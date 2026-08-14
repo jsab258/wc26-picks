@@ -63,11 +63,14 @@ That takes the sourcing from 37 clips to 19, and your listening pass from
 about forty minutes to about fifteen.
 """
 
+import atexit
 import argparse
 import json
 import os
+import pathlib
 import shutil
 import subprocess
+import tempfile
 import sys
 import time as _time
 import wave
@@ -1411,7 +1414,11 @@ def _rows_from_existing_page(out_dir):
         return {}
     html = page.read_text(encoding="utf-8")
     out = {}
-    for cid, body in re.findall(r'<section id="([a-z0-9_]+)">(.*?)</section>',
+    # `[^>]*` BECAUSE THE TAG GREW A CLASS AND THIS DID NOT. Adding
+    # `class="cast"` to the marked sections made every id here unreadable,
+    # and the round-trip check caught it in the same minute — which is the
+    # argument for a parser test over a rendering that "looks right".
+    for cid, body in re.findall(r'<section id="([a-z0-9_]+)"[^>]*>(.*?)</section>',
                                 html, re.S):
         rows = []
         for n, (src, meta) in enumerate(
@@ -1430,7 +1437,21 @@ def _rows_from_existing_page(out_dir):
     return out
 
 
-def build_page(cast, made, out_dir, source, keep_existing=False):
+def cast_already_done(repo_root):
+    """Ids that already have a reference clip, read off the disk.
+
+    The clip IS the casting — `export_probe.reference` globs `<id>.*` here
+    and hands the first hit to the cloner — so this cannot drift from what
+    the game will actually use, the way a list in a json file would.
+    """
+    clips = repo_root / "game-design" / "picked-clips"
+    if not clips.is_dir():
+        return set()
+    return {q.name.split(".")[0] for q in clips.iterdir() if q.is_file()}
+
+
+def build_page(cast, made, out_dir, source, keep_existing=False,
+               cast_already=None):
     """The listening page — and it is a MOBILE page, because that is where the
     listening actually happens.
 
@@ -1490,9 +1511,19 @@ def build_page(cast, made, out_dir, source, keep_existing=False):
             players = ('<p class=none>Nothing matched this brief in the rows '
                        'scanned. Re-run with a larger <code>--candidates</code>, '
                        'or fall back to <code>--source libritts</code>.</p>')
+        # ALREADY CAST IS NOT STILL TO DO. The page counted every
+        # character it had candidates for, so a fetch for four new
+        # principals produced "0 of 23 picked" and a to-do list naming
+        # nineteen voices chosen weeks ago. Jafar read that and asked what
+        # it was for, which is the right question: it invited him to redo
+        # settled work, and any of those re-picks would have gone through
+        # `--install` as a re-cast. The clip on disk is the evidence, so
+        # the page asks the disk rather than being told.
+        done = " cast" if cast_already and c["id"] in cast_already else ""
         rows.append(f"""
-  <section id="{c['id']}">
-    <h2>{c['name']} <code>{c['id']}</code></h2>
+  <section id="{c['id']}"{' class=cast' if done else ''}>
+    <h2>{c['name']} <code>{c['id']}</code>{
+        ' <span class=done>already cast</span>' if done else ''}</h2>
     <p class=brief>{brief_of(c)}</p>
     {players}
     <button class=clear type=button data-clear="{c['id']}">clear</button>
@@ -1552,6 +1583,9 @@ def build_page(cast, made, out_dir, source, keep_existing=False):
  section { border-top:1px solid var(--hairline); padding:1.2rem 0; }
  .brief { color: var(--dim); margin:.2rem 0 1rem; font-size:.95rem;
           max-width: 62ch; }
+    .done { color: #7bd88f; font-size: .72em; letter-spacing: .08em;
+            text-transform: uppercase; margin-left: .5em; }
+    section.cast > h2 { opacity: .75 }
  .cand { display:flex; align-items:center; gap:.6rem; margin:.3rem 0;
          padding:.55rem .6rem; border-radius:.4rem; min-height:2.9rem;
          background: var(--surface); border:1px solid transparent;
@@ -1644,8 +1678,11 @@ __ROWS__
   }
   // Every character that has candidates to choose between. Read from the
   // page rather than passed in, so it cannot drift from what is rendered.
+  // ONLY THE ONES STILL NEEDING A DECISION. A section marked `cast`
+  // already has a reference clip on disk; counting it would put settled
+  // work back on the to-do list and invite a re-cast nobody asked for.
   var ALL = Array.prototype.map.call(
-    document.querySelectorAll('section'), function (s) { return s.id; })
+    document.querySelectorAll('section:not(.cast)'), function (s) { return s.id; })
     .filter(function (id) {
       return document.querySelector('input[name="pick-' + id + '"]');
     });
@@ -1758,15 +1795,36 @@ def read_picks():
     return picks
 
 
-def install(cast, repo_root):
+def install(cast, repo_root, force=False):
+    """Land the picked clips where the rest of the pipeline actually reads.
+
+    IT USED TO WRITE TO `ledger/Assets/Voices`, WHICH NOTHING READS. Not the
+    game, not the exporter, not the conditioning step — the folder is not
+    even tracked. Every consumer names `game-design/picked-clips`:
+    `export_probe.reference` globs `<id>.*` there, and `precompute-voices`
+    turns those clips into the `.bin` conditioning the build is given. So a
+    casting pass could be done carefully, report success, and change nothing
+    audible, which is the silent-failure shape this whole file is written
+    against. Found 14 August by following the chain from a clip to a
+    character's voice before telling Jafar to run it.
+
+    AND IT DOES NOT OVERWRITE A CAST VOICE WITHOUT BEING TOLD. `picked-clips`
+    is the folder CLAUDE.md rule 5 exists about: it holds what a human spent
+    an evening choosing, deliberately somewhere the pipeline cannot reach.
+    Nineteen of those were picked weeks ago. A `picks.txt` that still lists
+    them — which is what the page hands you, because it offers every
+    character it has candidates for — would silently re-cast the lot. So an
+    id that already has a clip is REPORTED and skipped, and `--force` says
+    what it is about to replace before replacing it.
+    """
     picks = read_picks()
     if not picks:
         print("No picks yet. Open ledger-voices-out/picks.txt and fill it in.")
         return 1
-    dest = repo_root / "ledger" / "Assets" / "Voices"
+    dest = repo_root / "game-design" / "picked-clips"
     dest.mkdir(parents=True, exist_ok=True)
     known = {c["id"] for c in cast}
-    installed, missing, unknown = [], [], []
+    installed, missing, unknown, kept = [], [], [], []
     for cid, n in sorted(picks.items()):
         if cid not in known:
             unknown.append(cid)
@@ -1775,10 +1833,18 @@ def install(cast, repo_root):
         if not src.exists():
             missing.append(f"{cid} #{n}")
             continue
+        already = sorted(dest.glob(cid + ".*"))
+        if already and not force:
+            kept.append(f"{cid} (already cast as {already[0].name})")
+            continue
+        if already:
+            print(f"  replacing {already[0].name} for {cid}")
+            for old_clip in already:
+                old_clip.unlink()
         shutil.copyfile(src, dest / f"{cid}.wav")
         installed.append(f"{cid} <- candidate-{n:02d} ({seconds_of(src):.1f}s)")
 
-    (dest / "casting.json").write_text(json.dumps(
+    (OUT / "casting.json").write_text(json.dumps(
         dict(version=VERSION, exaggeration=EXAGGERATION,
              cast={c["id"]: dict(name=c["name"], tier=c["tier"]) for c in cast},
              picked=picks), indent=2), encoding="utf-8")
@@ -1789,9 +1855,19 @@ def install(cast, repo_root):
         print(f"  ! not in the cast, ignored: {', '.join(unknown)}")
     if missing:
         print(f"  ! picked but no such candidate on disk: {', '.join(missing)}")
-    print(f"\n{len(installed)} reference clip(s) in {dest}")
-    print("Commit them and the game has a cast.")
-    return 0 if installed else 1
+    if kept:
+        print("  left alone, already cast (pass --force to re-cast):")
+        for k in kept:
+            print("    " + k)
+    print(f"\n{len(installed)} reference clip(s) in {dest.name}")
+    if installed:
+        # THE STEP AFTER THIS ONE, NAMED. A clip in `picked-clips` is not yet
+        # a voice: `precompute-voices` turns it into the conditioning the
+        # build is handed, and a casting pass that stops here looks finished
+        # and changes nothing.
+        print("Now run '4 PREPARE THE VOICES.bat' so the new clip(s) become")
+        print("conditioning the game can load, then commit both.")
+    return 0 if installed else (0 if kept else 1)
 
 
 # ---------------------------------------------------------------------------
@@ -2071,6 +2147,52 @@ def selftest():
     check([n for n, _ in _routes_for("commonvoice", CAST)][0] == "vctk",
           "an unnamed preference still TRIES vctk first")
 
+    # ---- ALREADY CAST, BOTH WAYS. Jafar opened the page after a fetch for
+    # ---- four new principals and saw "0 of 23 picked" with nineteen
+    # ---- settled voices on the to-do list. Nothing was broken in the
+    # ---- fetching; the page simply had no idea casting had ever happened.
+    _t = pathlib.Path(tempfile.mkdtemp(prefix="ledger-cast-"))
+    atexit.register(shutil.rmtree, _t, True)
+    (_t / "game-design" / "picked-clips").mkdir(parents=True)
+    (_t / "game-design" / "picked-clips" / "lena.p228.mp3").write_bytes(b"x")
+    (_t / "game-design" / "picked-clips" / "rocco.p251.mp3").write_bytes(b"x")
+    seen = cast_already_done(_t)
+    check(seen == {"lena", "rocco"},
+          "THE PAGE LEARNS WHO IS CAST FROM THE CLIPS ON DISK, which is what "
+          "the cloner actually reads", str(sorted(seen)))
+    check(cast_already_done(_t / "nowhere") == set(),
+          "and a repository with no casting yet says nobody, rather than "
+          "failing")
+
+    _pg = _t / "page"
+    _pg.mkdir()
+    _two = [c for c in CAST if c["id"] in ("lena", "aldous")]
+    _rows2 = [dict(n=1, file="x/candidate-01.mp3", seconds=9.9, speaker="p228",
+                   age="thirties", accent="English")]
+    # `PICKS` is module scope and an earlier check left it pointing at a
+    # tmpdir that has since been cleaned, so this names its own.
+    global PICKS
+    _keep_picks = PICKS
+    PICKS = _pg / "picks.txt"
+    try:
+        build_page(_two, {"lena": _rows2, "aldous": _rows2}, _pg, "vctk",
+                   cast_already={"lena"})
+    finally:
+        PICKS = _keep_picks
+    _html = (_pg / "listen.html").read_text(encoding="utf-8")
+    check('<section id="lena" class=cast>' in _html,
+          "A CAST CHARACTER IS MARKED ON THE PAGE so the count skips it",
+          _html[_html.find('<section id="lena"'):][:44])
+    check('<section id="aldous">' in _html,
+          "AND ONE STILL NEEDING A VOICE IS NOT — the accepting case, which "
+          "is the half that would have made this useless if wrong")
+    check("section:not(.cast)" in _html,
+          "and the counter reads only the unmarked ones")
+    _back = _rows_from_existing_page(_pg)
+    check(set(_back) >= {"lena", "aldous"},
+          "and the id parser still round-trips a tag that grew a class",
+          str(sorted(_back)))
+
     print(f"\n{ok} passed, {fail} failed")
     return 1 if fail else 0
 
@@ -2097,6 +2219,9 @@ def main():
     ap.add_argument("--inventory", action="store_true",
                     help="enumerate every speaker in the corpus from metadata "
                          "only, and write the table to vctk-speakers.json")
+    ap.add_argument("--force", action="store_true",
+                    help="re-cast a character that already has a clip; it "
+                         "prints what it is replacing before it does")
     ap.add_argument("--selftest", action="store_true")
     # TWO MINUTES INSTEAD OF FORTY-FIVE. Opens each route, reads a few rows,
     # and prints what the filter actually sees. See `diagnose` for why.
@@ -2122,7 +2247,7 @@ def main():
             return 1
 
     if args.install:
-        return install(CAST, HERE.parent.parent)
+        return install(CAST, HERE.parent.parent, force=args.force)
 
     if args.selftest:
         try:
@@ -2189,7 +2314,8 @@ def main():
     # Merging the rows alone still produced a one-character page, because the
     # renderer loops over the cast it was handed.
     build_page(CAST if args.who else cast, made, OUT, used_source,
-               keep_existing=bool(args.who))
+               keep_existing=bool(args.who),
+               cast_already=cast_already_done(HERE.parent.parent))
     total = sum(len(v) for v in made.values())
     empty = [c["id"] for c in cast if not made.get(c["id"])]
     print(f"\n  {total} candidate(s) for {len(cast) - len(empty)} of {len(cast)} characters")
