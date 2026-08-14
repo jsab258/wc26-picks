@@ -535,8 +535,18 @@ def publish(root, say, message):
     # which characters exist and names only files belonging to one of them,
     # which is a list this repository defines rather than whatever happens to
     # be in a directory.
-    produced += casting_files(root)
+    cast_here = casting_files(root)
+    produced += cast_here
     here = [f for f in produced if (root / f).exists()]
+    # SAY WHAT WAS INCLUDED, WITH ITS DENOMINATOR. The first run of this
+    # published nothing and the log could not tell me whether there was
+    # nothing to publish or whether the publishing was broken — the two need
+    # completely different next actions and looked identical. Naming the
+    # count and the last few is one line and it answers that in one run
+    # instead of an evening of reading code and guessing.
+    say(f"  casting files seen: {len(cast_here)}"
+        + (" — " + ", ".join(pathlib.Path(f).name for f in cast_here[-4:])
+           if cast_here else " (none: is voice-picks.json readable here?)"))
     if not here:
         say("  the job produced none of the files it can publish")
         return False
