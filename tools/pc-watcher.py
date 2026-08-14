@@ -282,6 +282,14 @@ TABLE = {
     # separates them.
     "one-word-every-voice": [["PY", "tools/voice-live/bench-binding.py",
                               "--sweep", "--text", "No."]],
+    # NARROW ROCCO'S SHORTLIST BEFORE ASKING FOR EARS. His pick pads every
+    # short line by about half a second, and he was chosen on timbre from a
+    # page that could not tell anybody that. This measures each candidate on
+    # one word and then speaks a real line with only the ones that behave —
+    # so the listening pass chooses on sound alone, from options that all
+    # work.
+    "audition-rocco": [["PY", "tools/voice-live/audition-candidates.py",
+                        "--who", "rocco"]],
     "judge-the-voice": [["PY", "tools/voice-live/bench-binding.py"],
                         ["PY", "tools/voice-live/speak.py",
                          "--voice", "rocco",
@@ -518,6 +526,7 @@ def publish(root, say, message):
                 "game-design/voice-live/export-report.txt",
                 "game-design/voice-live/shape-report.txt",
                 "game-design/voice-live/step-report.txt",
+                "game-design/voice-live/audition-rocco.wav",
                 # THE BANK ITSELF, and it is a directory rather than a file
                 # because a render produces clips whose NAMES are hashes of
                 # the words — so nobody can list them in advance, which is the
