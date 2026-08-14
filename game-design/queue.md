@@ -72,31 +72,35 @@ both ways) drops them into a downloaded build — the step nobody had
 written and the reason every build so far fell back to the bank. It has
 not been run against a real build yet.
 
-**THE "ah" BEFORE SHORT LINES IS FOUR VOICES, NOT THE MODEL — 14 Aug,
-23 renders.** Jafar heard a filler before "No." The same word in every
-voice with conditioning: shortest 0.56s, median 0.84s, longest 2.04s,
-and four sit far outside — `crowd_m3` 2.04s/51 tokens, `hal` 1.54/39,
-`rita` 1.44/36, `rocco` 1.40/35. Nineteen say a one-syllable word in
-under a second. Token count moves with duration exactly, so the model
-is GENERATING more rather than the decoder stretching it.
+**RETRACTED — THE "ah" IS NOT FOUR VOICES. IT IS RANDOM, AND I BUILT A
+WHOLE DIAGNOSIS ON ONE SAMPLE EACH.** Rendering "No." in all 23 voices
+put four far outside the pack (rocco 1.40s against a 0.84s median) and I
+published that as a casting fault, wrote a tool to narrow shortlists,
+set a threshold from the distribution, and asked Jafar to consider
+re-casting a voice he had approved twice.
 
-That rules out the expensive cause: if short text made the model pad,
-all 23 would. The conditioning is the variable, so the lever is a
-reference CLIP — a file this project owns. Not the clip's vintage
-either: August's four and July's nineteen have the same 0.84s median.
+Then the same six candidate files, measured an hour apart through the
+same code, came back 1.7x, 1.7x, 1.2x, **4.0x**, 1.5x and 1.3x longer.
+Candidate 4 went 0.80s to 3.20s. And the INSTALLED Rocco — the one the
+sweep called 1.40s — rendered in 0.60s, cleanly.
 
-**AND ROCCO IS ONE OF THE FOUR, WHICH MAKES IT JAFAR'S CALL.** He has
-approved Rocco by ear twice. Re-casting him fixes the padding and costs
-a voice he likes; keeping him costs ~0.8s of dead air before every
-short line, and the street is mostly interjections. A third path is
-cheap and untried: render "No." with each of his existing shortlist
-candidates and offer him only the ones that do not pad.
+Sampling is stochastic: temperature 0.8, no fixed seed, so every render
+is a fresh draw. ONE RENDER PER VOICE MEASURES THE DRAW, NOT THE VOICE.
+The four "bad" voices were four unlucky draws, and the audition's
+"clean" list was six lucky ones.
 
-**AND ONLY DURATION-AGAINST-TEXT-LENGTH READS IT.** `headMs` and
-`parts` are printed for all 23 and neither separates the groups —
-`parts=2` appears on a 0.56s render and on the 2.04s one. Three
-instruments were built for this fault before the answer turned out to
-be two numbers already on every bench line since it was written.
+**WHAT SURVIVES.** Jafar heard a real filler and it is really there —
+the "ah ... No." was split, measured, and confirmed by his ear. What is
+wrong is the CAUSE and everything built on it. It is intermittent, it
+can happen to any voice, and no casting decision reaches it.
+
+**SO THE FIX IS DETECT AND RETRY, not casting.** A render whose length
+is wildly out of proportion to its text is a bad draw, and the loop
+already owns the decision to keep or discard — it has a deadline and a
+usability test. Regenerating a line that came out three times too long
+costs one more pass and is the only lever that works on something
+random. The threshold wants a SERIES per voice first, which is the
+thing this whole episode existed to teach.
 
 **STREAMING IS CLOSED.** Block attention makes a chunk's audio final on
 the small model exactly, but on the shipped weights the render moved
