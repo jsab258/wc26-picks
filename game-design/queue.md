@@ -72,6 +72,32 @@ both ways) drops them into a downloaded build — the step nobody had
 written and the reason every build so far fell back to the bank. It has
 not been run against a real build yet.
 
+**THE "ah" BEFORE SHORT LINES IS FOUR VOICES, NOT THE MODEL — 14 Aug,
+23 renders.** Jafar heard a filler before "No." The same word in every
+voice with conditioning: shortest 0.56s, median 0.84s, longest 2.04s,
+and four sit far outside — `crowd_m3` 2.04s/51 tokens, `hal` 1.54/39,
+`rita` 1.44/36, `rocco` 1.40/35. Nineteen say a one-syllable word in
+under a second. Token count moves with duration exactly, so the model
+is GENERATING more rather than the decoder stretching it.
+
+That rules out the expensive cause: if short text made the model pad,
+all 23 would. The conditioning is the variable, so the lever is a
+reference CLIP — a file this project owns. Not the clip's vintage
+either: August's four and July's nineteen have the same 0.84s median.
+
+**AND ROCCO IS ONE OF THE FOUR, WHICH MAKES IT JAFAR'S CALL.** He has
+approved Rocco by ear twice. Re-casting him fixes the padding and costs
+a voice he likes; keeping him costs ~0.8s of dead air before every
+short line, and the street is mostly interjections. A third path is
+cheap and untried: render "No." with each of his existing shortlist
+candidates and offer him only the ones that do not pad.
+
+**AND ONLY DURATION-AGAINST-TEXT-LENGTH READS IT.** `headMs` and
+`parts` are printed for all 23 and neither separates the groups —
+`parts=2` appears on a 0.56s render and on the 2.04s one. Three
+instruments were built for this fault before the answer turned out to
+be two numbers already on every bench line since it was written.
+
 **STREAMING IS CLOSED.** Block attention makes a chunk's audio final on
 the small model exactly, but on the shipped weights the render moved
 1.8 of full scale, the doubling Jafar heard SURVIVED, and the voice
@@ -89,51 +115,16 @@ which is also the half that does not need him. **What is left for him
 is the half that does**: open `tools/voice-fetch/ledger-voices-out/`'s
 page, listen, type four numbers into `picks.txt`, run `--install`.
 
-**THE BANK'S "HOLES" ARE MOSTLY NOT HOLES — 13 Aug, measured.** This
-item stood for days as "53 of 381 asked lines had no clip, generation
-work, not yet costed", and the premise was wrong. Most of those misses
-cannot be rendered by anybody.
-
-`VoiceBank.ClipName` keys a clip by (voice, EXACT text). A gossip
-TELLING is built by `StreetVoice.Exchange` as a template plus
-`{what} = Trim(r.Summary)`, and the summary is itself assembled at run
-time — `"someone in a runner's coat — maybe Sam — was handling a package
-past midnight"`, plus the address, plus the vehicle. So every telling of
-a real rumour is a sentence nobody has ever rendered, and the space is
-unbounded rather than merely large.
-
-What the bank actually holds, counted: 336 atomic lines × 6 street
-voices = 2,010 clips, all on disk and correct. **42 of those 336 are the
-`exchange.tell.*` family and every one is instantiated with a single
-specimen rumour** — "the new owner was at the warehouse on Tuesday" —
-so their 252 clips can only play for a rumour that says exactly that.
-`Recognition` and `Ambient` are literal throughout (zero interpolations
-between them, checked) and are genuinely banked. The pair slots' halves
-are all present as atomic lines: 2,268 pairs checked, 0 missing.
-
-So the rumour half of the street — the part that says out loud what the
-social memory remembers, which is the moat — **can only ever be voiced
-live.** That is not a scope decision to take; it is what the pipeline
-is, and it is why live speech is load-bearing rather than a garnish.
-
-**THE NUMBER NOW SAYS WHICH KIND OF MISS IT IS, AND THE REAL BACKLOG IS
-FOUR LINES.** `56610d6` landed it: `speechNoClip=38` of which
-`speechNoClipComposed=31`, so 82% of the misses can never be recorded
-and **seven were real**. All seven are one fault. `barks.json` is
-enumerated from `StreetVoice.cs` and `ClipName` keys on EXACT text, so
-when four bark lines were edited to satisfy the slop check — three
-commas and full stops becoming em dashes — each edit orphaned six
-recordings and asked for six that were never made. Two guards pulling on
-the same strings, and the one that owns the audio did not know the other
-existed.
-
-Fixed and guarded: `barks.json` and `bark-names.json` regenerated,
-`barks_current()` in `verify.py` runs the enumerator and fails the commit
-naming any drifted line (tested both ways), and `render-the-drift` makes
-the 24 clips on Jafar's machine — `--all` skips the 1,986 already there.
-**And `--names` had been writing to whatever directory the shell stood
-in**, the exact fault fixed for the manifest weeks ago and never applied
-to its sibling, which is why the render plan said nothing to do.
+**THE BANK'S "HOLES" WERE MOSTLY NOT HOLES — measured 13 Aug.**
+`speechNoClip=38` of which `speechNoClipComposed=31`: 82% of the misses
+are gossip TELLINGS, built as a template plus a rumour summary that is
+itself assembled at run time, so their clip name is new every time and
+no renderer can get ahead of them. The rumour half of the street — the
+part that says out loud what the social memory remembers, which is the
+moat — can only ever be voiced live. Seven misses were real and all
+seven were one fault: four bark lines edited for the slop check
+orphaned their recordings, now regenerated and guarded by
+`barks_current()`.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
