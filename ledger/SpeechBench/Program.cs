@@ -35,7 +35,13 @@ namespace Ledger.Bench
             string voice = "rocco";
             bool shortSet = false;
             bool sweep = false;
-            int repeat = 0;
+            // NAMED `repeatDraws` BECAUSE `repeat` IS TAKEN. The timing
+            // section above already has a `float[] repeat` — the logits
+            // buffer for the repeatability check — and reusing the name
+            // compiled into "cannot apply '>' to float[] and int", which
+            // reads like a type error in new code and is a collision with
+            // old code twenty lines up.
+            int repeatDraws = 0;
             // The sweep's nine-word line, so these numbers read against the
             // sweep's and the probe's. The driver passes it explicitly; this
             // default only covers running the bench by hand.
@@ -52,7 +58,7 @@ namespace Ledger.Bench
                     case "--voice": voice = args[i + 1]; break;
                     case "--short": shortSet = args[i + 1] != "0"; break;
                     case "--sweep": sweep = args[i + 1] != "0"; break;
-                    case "--repeat": repeat = int(args[i + 1]); break;
+                    case "--repeat": repeatDraws = int.Parse(args[i + 1]); break;
                     case "--text": text = args[i + 1]; break;
                     case "--window": window = int.Parse(args[i + 1]); break;
                     case "--positions":
@@ -390,12 +396,12 @@ namespace Ledger.Bench
                 // padding is OURS — the sampler or the graphs — and it is
                 // fixable here rather than being a property of the model we
                 // have to work around.
-                if (repeat > 0)
+                if (repeatDraws > 0)
                 {
                     cast = new[] { voice };
-                    lines = new string[repeat];
-                    for (int i = 0; i < repeat; i++) lines[i] = text;
-                    Console.WriteLine("BENCH: " + repeat + " draws of \""
+                    lines = new string[repeatDraws];
+                    for (int i = 0; i < repeatDraws; i++) lines[i] = text;
+                    Console.WriteLine("BENCH: " + repeatDraws + " draws of \""
                                       + text + "\" as " + voice);
                 }
                 else if (sweep)
@@ -422,9 +428,10 @@ namespace Ledger.Bench
                     // person without costing more lines.
                     // ONE VOICE PER LINE IN A SWEEP, not a rotation: the
                     // whole point is that every voice says the SAME words.
-                    string asked = (sweep || repeat > 0) ? cast[i % cast.Length]
-                                                          : cast[i % cast.Length];
-                    if (sweep) asked = cast[i];
+                    // A SWEEP IS ONE VOICE PER LINE; everything else rotates.
+                    // A repeat has a single-voice cast, so the rotation lands
+                    // on the same one every time and needs no special case.
+                    string asked = sweep ? cast[i] : cast[i % cast.Length];
                     // WHICH VOICE ACTUALLY SPOKE, resolved BEFORE the line so
                     // the label cannot outrun the fact. A machine that has
                     // only some of the cast precomputed still gets five takes
