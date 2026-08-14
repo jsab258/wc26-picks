@@ -20,6 +20,7 @@ before it judges anything, because a threshold this project invented rather
 than measured is how `nightNotDarker` came to fail on a thousandth.
 """
 import json
+import struct
 import pathlib
 import sys
 
@@ -47,6 +48,41 @@ MIN_SECONDS, MAX_SECONDS = 4.0, 30.0
 MIN_RATE = 16000
 MAX_QUIET = 0.50          # half the file silent is a broken clip, not a style
 MIN_MEAN_BITS = 200       # a dead clip sits near zero; speech sits near 1400
+
+
+def probe_wav(path):
+    """The same six numbers `mp3probe.probe` returns, read from a wav.
+
+    `mean` is the mp3 parser's mean frame BITRATE, a proxy for "is there
+    real audio in here" that has no counterpart in an uncompressed file. So
+    it returns RMS scaled to the same order, and the threshold it is judged
+    against is the same question asked of a different quantity — stated
+    here rather than silently equated, because a number that changes meaning
+    while keeping its name is this project's most expensive habit.
+    """
+    import wave as _wave
+    with _wave.open(str(path)) as w:
+        rate = w.getframerate()
+        chans = w.getnchannels()
+        n = w.getnframes()
+        raw = w.readframes(n)
+    dur = n / rate if rate else 0.0
+    if w.getsampwidth() != 2 or n == 0:
+        return dur, rate, chans, 0, 1.0, 0.0
+    vals = struct.unpack("<%dh" % (len(raw) // 2), raw)
+    win = max(1, rate // 50)                      # 20ms
+    quiet_wins = total = 0
+    acc = 0.0
+    for i in range(0, len(vals) - win, win):
+        chunk = vals[i:i + win]
+        rms = (sum(v * v for v in chunk) / win) ** 0.5
+        acc += rms
+        total += 1
+        if rms < 200:                             # below this is room tone
+            quiet_wins += 1
+    quiet = quiet_wins / total if total else 1.0
+    mean = (acc / total) if total else 0.0
+    return dur, rate, chans, total, quiet, mean
 
 
 def clips():
@@ -87,7 +123,17 @@ def clips():
             continue
         path = hits[0]
         try:
-            dur, rate, chans, frames, quiet, mean = probe(path)
+            # WAV OR MP3, BECAUSE THE FETCHER NOW INSTALLS WAV AND THE PARSER
+            # ONLY EVER READ MP3 FRAMES. The four August clips each failed
+            # with "index out of range" — and a clip that cannot be parsed is
+            # `continue`d, so it never reaches the shared-speaker check
+            # below. That is the dangerous half: June and Lena were BOTH
+            # given speaker p228, two characters with one voice, and the
+            # check written to catch exactly that could not see them because
+            # a different check had already given up. A guard that fails
+            # early can hide a guard that matters more.
+            dur, rate, chans, frames, quiet, mean = (
+                probe_wav(path) if path.suffix.lower() == ".wav" else probe(path))
         except Exception as e:                                  # noqa: BLE001
             check(False, f"{name} — clip parses as mp3", str(e)[:60])
             continue

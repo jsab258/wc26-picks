@@ -121,28 +121,29 @@
     "aldous": {
       "candidate": 3,
       "picked": "2026-08-14",
-      "speaker": null,
+      "speaker": "p226",
       "age": null,
       "accent": null
     },
     "danny": {
       "candidate": 1,
       "picked": "2026-08-14",
-      "speaker": null,
+      "speaker": "p254",
       "age": null,
       "accent": null
     },
     "june": {
-      "candidate": 2,
-      "picked": "2026-08-14",
+      "candidate": null,
+      "picked": null,
       "speaker": null,
       "age": null,
-      "accent": null
+      "accent": null,
+      "note": "candidate 2 was p228, already Lena's voice \u2014 needs a re-pick"
     },
     "zlata": {
       "candidate": 3,
       "picked": "2026-08-14",
-      "speaker": null,
+      "speaker": "p233",
       "age": null,
       "accent": null
     }
