@@ -52,7 +52,7 @@ NATIVE = ["onnxruntime.dll", "DirectML.dll", "Microsoft.ML.OnnxRuntime.dll"]
 LINE = "Seen the van again. Thursday, same as last Thursday."
 
 
-def command(voice="rocco", short=False, sweep=False, text=None):
+def command(voice="rocco", short=False, sweep=False, text=None, repeat=0):
     """The argv this hands to dotnet — one place, so the selftest and the
     run cannot drift apart."""
     argv = ["dotnet", "run", "-c", "Release", "--project", str(BENCH), "--",
@@ -64,6 +64,8 @@ def command(voice="rocco", short=False, sweep=False, text=None):
         argv += ["--short", "1"]
     if sweep:
         argv += ["--sweep", "1"]
+    if repeat:
+        argv += ["--repeat", str(repeat)]
     return argv
 
 
@@ -115,7 +117,7 @@ def sdk_missing(which=None, probe=None):
 WAIT_SECONDS = 1800
 
 
-def main(short=False, sweep=False, text=None):
+def main(short=False, sweep=False, text=None, repeat=0):
     why = sdk_missing()
     if why:
         print(f"bench-binding: no .NET SDK yet ({why}).")
@@ -157,8 +159,8 @@ def main(short=False, sweep=False, text=None):
     # STREAMED, NOT CAPTURED. The probe that captured its output and died on
     # a timeout published an hour of silence and lost the half it had done;
     # everything since streams so a dead run still shows where it stopped.
-    r = subprocess.run(command(short=short, sweep=sweep, text=text),
-                       cwd=str(ROOT))
+    r = subprocess.run(command(short=short, sweep=sweep, text=text,
+                               repeat=repeat), cwd=str(ROOT))
     # AND CARRY THE WAV BACK. The bench now speaks a whole line through the
     # game's own `SpeechLoop.Run` and writes it beside itself; a sound
     # nobody can hear proves as little as the numbers did. Copied to the
@@ -300,6 +302,8 @@ def parser():
                     help="speak the five short lines instead of the usual set")
     ap.add_argument("--sweep", action="store_true",
                     help="speak ONE line in every voice that has conditioning")
+    ap.add_argument("--repeat", type=int, default=0,
+                    help="speak ONE line N times, for the series")
     ap.add_argument("--text", default=None,
                     help="the line to speak (used with --sweep)")
     return ap
@@ -308,4 +312,5 @@ def parser():
 if __name__ == "__main__":
     a = parser().parse_args()
     sys.exit(selftest() if a.selftest
-              else main(short=a.short, sweep=a.sweep, text=a.text))
+              else main(short=a.short, sweep=a.sweep, text=a.text,
+                        repeat=a.repeat))

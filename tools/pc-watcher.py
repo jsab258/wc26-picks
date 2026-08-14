@@ -295,6 +295,11 @@ TABLE = {
     # distribution rather than from a fourth guess.
     "repeat-one-voice": [["PY", "tools/voice-live/audition-candidates.py",
                           "--who", "rocco", "--repeat", "20"]],
+    # THE SAME TWENTY DRAWS THROUGH OUR OWN PATH. Pytorch gave 0.52-1.00
+    # with no outlier; ours gave 1.40 once. Symmetric measurement or it
+    # stays a suspicion.
+    "repeat-ours": [["PY", "tools/voice-live/bench-binding.py",
+                     "--repeat", "20", "--text", "No."]],
     "judge-the-voice": [["PY", "tools/voice-live/bench-binding.py"],
                         ["PY", "tools/voice-live/speak.py",
                          "--voice", "rocco",

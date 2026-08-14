@@ -35,6 +35,7 @@ namespace Ledger.Bench
             string voice = "rocco";
             bool shortSet = false;
             bool sweep = false;
+            int repeat = 0;
             // The sweep's nine-word line, so these numbers read against the
             // sweep's and the probe's. The driver passes it explicitly; this
             // default only covers running the bench by hand.
@@ -51,6 +52,7 @@ namespace Ledger.Bench
                     case "--voice": voice = args[i + 1]; break;
                     case "--short": shortSet = args[i + 1] != "0"; break;
                     case "--sweep": sweep = args[i + 1] != "0"; break;
+                    case "--repeat": repeat = int(args[i + 1]); break;
                     case "--text": text = args[i + 1]; break;
                     case "--window": window = int.Parse(args[i + 1]); break;
                     case "--positions":
@@ -375,7 +377,28 @@ namespace Ledger.Bench
                 // what their reference clip taught it, and a reference clip
                 // is a file we control. Nothing else distinguishes those,
                 // and they want completely different work.
-                if (sweep)
+                // THE SAME LINE, THE SAME VOICE, N TIMES THROUGH OUR PATH.
+                //
+                // Twenty draws of "No." with Rocco through chatterbox's own
+                // code came back 0.52 to 1.00, median 0.76, not one outlier.
+                // Our pipeline produced 1.40 for the same voice and word —
+                // outside that whole distribution. That is one sample against
+                // twenty, so it is a suspicion rather than a finding, and the
+                // symmetric measurement is the only thing that settles it.
+                //
+                // If our path has a fat tail where pytorch has none, the
+                // padding is OURS — the sampler or the graphs — and it is
+                // fixable here rather than being a property of the model we
+                // have to work around.
+                if (repeat > 0)
+                {
+                    cast = new[] { voice };
+                    lines = new string[repeat];
+                    for (int i = 0; i < repeat; i++) lines[i] = text;
+                    Console.WriteLine("BENCH: " + repeat + " draws of \""
+                                      + text + "\" as " + voice);
+                }
+                else if (sweep)
                 {
                     var found = new System.Collections.Generic.List<string>();
                     foreach (var f in System.IO.Directory.GetFiles(conds, "*.bin"))
@@ -399,7 +422,9 @@ namespace Ledger.Bench
                     // person without costing more lines.
                     // ONE VOICE PER LINE IN A SWEEP, not a rotation: the
                     // whole point is that every voice says the SAME words.
-                    string asked = sweep ? cast[i] : cast[i % cast.Length];
+                    string asked = (sweep || repeat > 0) ? cast[i % cast.Length]
+                                                          : cast[i % cast.Length];
+                    if (sweep) asked = cast[i];
                     // WHICH VOICE ACTUALLY SPOKE, resolved BEFORE the line so
                     // the label cannot outrun the fact. A machine that has
                     // only some of the cast precomputed still gets five takes
