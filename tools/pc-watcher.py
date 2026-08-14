@@ -286,6 +286,33 @@ TABLE = {
 WIN_PY = pathlib.Path("tools") / "voice-live" / "env-export" / "Scripts" / "python.exe"
 
 
+def casting_files(root):
+    """Reference clips and conditioning belonging to a named cast member.
+
+    Returns repository-relative paths. A file whose stem is not a cast id is
+    not returned, so a stray recording, a scratch export or an editor's
+    backup can never ride along.
+    """
+    picks = root / "game-design" / "voice-picks.json"
+    try:
+        ids = set(json.loads(picks.read_text(encoding="utf-8"))["picks"])
+    except (OSError, ValueError, KeyError):
+        return []
+    out = []
+    for folder, exts in (("picked-clips", (".wav", ".mp3", ".flac")),
+                         ("voice-conds", (".bin", ".npz"))):
+        d = root / "game-design" / folder
+        if not d.is_dir():
+            continue
+        for q in sorted(d.iterdir()):
+            if not q.is_file() or q.suffix.lower() not in exts:
+                continue
+            if q.name.split(".")[0] not in ids:
+                continue
+            out.append(f"game-design/{folder}/{q.name}")
+    return out
+
+
 def git(*args, cwd=None, timeout=600):
     p = subprocess.run(["git"] + list(args), cwd=str(cwd or ROOT),
                        capture_output=True, text=True, timeout=timeout)
@@ -493,6 +520,22 @@ def publish(root, say, message):
                 # incident was `git add -A` from the repository ROOT, which
                 # swept up an untracked Python environment.
                 "ledger/Assets/StreamingAssets/Audio/Voice"]
+    # AND THE CASTING, WHICH INSTALLED ON THAT MACHINE AND STAYED THERE.
+    #
+    # `cast-and-prepare` ran, wrote four reference clips into `picked-clips`
+    # and computed 23 voices from them — and the repository still had 19,
+    # because nothing published them. `2 INSTALL.bat` calls PUSH.bat for
+    # exactly this reason and its comment says so: the first version "copied
+    # the voices into the project and left them sitting on this machine, the
+    # same gap that stranded the Mixamo clips". My job skipped that half.
+    #
+    # DERIVED FROM THE CAST, NOT A WILDCARD. The rule above is absolute —
+    # `git add -A` from the root staged Jafar's Python environment once and
+    # the next reset took the folder with it. So this asks `voice-picks.json`
+    # which characters exist and names only files belonging to one of them,
+    # which is a list this repository defines rather than whatever happens to
+    # be in a directory.
+    produced += casting_files(root)
     here = [f for f in produced if (root / f).exists()]
     if not here:
         say("  the job produced none of the files it can publish")
@@ -815,6 +858,21 @@ def selftest():
                     bad.append(f"{job}: {step[1]} does not take {tok}")
     check(not bad, "every flag a job passes is one that script accepts",
           "; ".join(bad[:3]))
+
+    # ---- THE CASTING TRAVELS, AND ONLY THE CASTING.
+    files = casting_files(ROOT)
+    check(any(f.endswith(".mp3") or f.endswith(".wav") for f in files),
+          "REFERENCE CLIPS ARE PUBLISHED, so a casting pass on that machine "
+          "reaches the repository instead of stopping there",
+          f"{len(files)} file(s)")
+    ids = set(json.loads((ROOT / "game-design" / "voice-picks.json")
+                         .read_text(encoding="utf-8"))["picks"])
+    check(all(pathlib.Path(f).name.split(".")[0] in ids for f in files),
+          "and every one belongs to a named cast member — no wildcard, "
+          "which is what once staged a whole python environment")
+    check(casting_files(ROOT / "nowhere") == [],
+          "and a tree with no casting in it publishes nothing rather than "
+          "failing")
 
     print(f"\npc-watcher --selftest: "
           f"{'PASS' if not fails else str(len(fails)) + ' FAILED'} — {len(ran)} checks")
