@@ -4,8 +4,24 @@ namespace Ledger.Game
 {
     /// Everything in M0 is constructed from code at runtime — no authored scenes,
     /// no prefabs. This hook fires after any scene loads and stands the world up.
+    ///
+    /// THE SCENE RELOAD IS THE ONLY FULL TEARDOWN THIS PROJECT HAS. The city
+    /// is parentless root objects — destroying the GameController does not
+    /// touch it — and the sweep below is the one thing that does. Every path
+    /// that ends a session (the end screen's R, quit-to-menu) must come back
+    /// through a reload, or the next `BuildBlock` stands a second city on top
+    /// of the first. That was quit-to-menu → New game until 15 Aug: read from
+    /// the code, nothing on that path destroyed a root, and the sim never
+    /// walks that path so no gate ever saw the doubling.
     public static class Bootstrap
     {
+        /// Set by the end screen's R before it reloads: the player asked to
+        /// REPLAY THE WEEK, so this reload lands back in the game rather than
+        /// at the front door. A static survives the reload, which is exactly
+        /// why it is the channel — and it is cleared where it is read, so a
+        /// later quit-to-menu cannot inherit it.
+        public static bool RestartStraightIn;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Init()
         {
@@ -36,8 +52,9 @@ namespace Ledger.Game
             // channel would have been dead on arrival and looked wired.
             CaptionBar.Ensure();
 
-            if (SimMode.Days > 0)
+            if (SimMode.Days > 0 || RestartStraightIn)
             {
+                RestartStraightIn = false;
                 var go = new GameObject("GameController");
                 go.AddComponent<GameController>();
                 return;

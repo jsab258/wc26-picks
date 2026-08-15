@@ -29,6 +29,12 @@ namespace Ledger.Game
 
         void Build()
         {
+            // The menu is made of buttons, and the reload that brought us
+            // here may arrive with the cursor still locked by gameplay —
+            // DialogueUI (whose DriveCursor owns the policy in play) died in
+            // the load, and nothing else would ever free the pointer.
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
             _font = UiTheme.LoadFont();
             var canvasGo = new GameObject("MenuCanvas");
             canvasGo.transform.SetParent(transform, false);
@@ -133,7 +139,13 @@ namespace Ledger.Game
             // and then bailed would have thrown the save away for nothing.
             if (_starting || Blackout.Busy) return;
             _starting = true;
-            if (!load) SaveSlots.DeleteAuto();   // the manual copies are the player's property
+            if (!load)
+            {
+                SaveSlots.DeleteAuto();   // the manual copies are the player's property
+                // And the street forgets: a new game whose NPCs remember the
+                // last owner is the last owner's game with the money reset.
+                ConversationHost.ForgetEverything();
+            }
             GameSettings.Current.Save();
             Showing = false;
             // The menu leaves and the street arrives UNDER BLACK, where the

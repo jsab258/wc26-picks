@@ -34,19 +34,44 @@ namespace Ledger.Game
         public bool Ready => _engine != null;
         public string MemoryFilePath { get; private set; }
 
+        /// The one place the memory ROOT is spelled, so a host opening its
+        /// file and "New game wipes the street's memory" cannot disagree
+        /// about where that is. The self-test gets its own root: a -simdays
+        /// run used to load the player's NPC brains AND append the bot's
+        /// events into them (audit 2026-07-27). Same split as the save file.
+        public static string MemoryRoot => Path.Combine(
+            Application.persistentDataPath,
+            SimMode.Days > 0 ? "memories-sim" : "memories");
+
+        /// The wipe behind "New game" and "start the week over". Until 15 Aug
+        /// neither touched these files: the autosave died and every NPC kept
+        /// its memory of the run being renounced — so player two inherited
+        /// player one's reputation, which on a laptop passed between three
+        /// friends is not a subtlety, it is the game being haunted. Counts
+        /// before deleting so the log says what was destroyed (the manual
+        /// save slots are the player's property and are not touched here).
+        public static void ForgetEverything()
+        {
+            try
+            {
+                if (!Directory.Exists(MemoryRoot)) return;
+                int n = Directory.GetFiles(MemoryRoot).Length;
+                Directory.Delete(MemoryRoot, true);
+                Debug.Log($"ConversationHost: new life — {n} memory file(s) wiped");
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"ConversationHost: memory wipe failed: {e.Message}");
+            }
+        }
+
         public void Initialize(GameController game, string cardMarkdown,
             Action<KnowledgeBase> seedKnowledge, Action<MemoryStore> seedMemories)
         {
             _game = game;
             Card = CharacterCard.Parse(cardMarkdown);
 
-            // The self-test gets its own memory root: a -simdays run used to
-            // load the player's NPC brains AND append the bot's events into
-            // them — the "fresh week" claim was false for memory, and the
-            // player's files were polluted (audit 2026-07-27). Same split as
-            // the save file.
-            MemoryFilePath = Path.Combine(Application.persistentDataPath,
-                SimMode.Days > 0 ? "memories-sim" : "memories", $"{Card.Id}.md");
+            MemoryFilePath = Path.Combine(MemoryRoot, $"{Card.Id}.md");
             Memory = new MemoryStore(Card.Id, MemoryFilePath);
             seedMemories?.Invoke(Memory);
 
@@ -65,10 +90,23 @@ namespace Ledger.Game
 
         public void Reconnect(string apiKey) => Connect(apiKey);
 
+        /// CAFÉ-WIFI POLICY, for both clients (characters here, the world
+        /// client in GameController — reference these so the two sites cannot
+        /// drift). Core's defaults are 60s and three retries, which on a dead
+        /// connection is up to 254 seconds of "is thinking..." — measured for
+        /// the playtest plan, and on a laptop in a bar indistinguishable from
+        /// a hang. 15s and one retry bounds the wait around half a minute; a
+        /// real sonnet reply arrives in single-digit seconds, and the degrade
+        /// (the street keeps talking) is the designed path, so failing FAST
+        /// into it beats waiting four minutes to fail into it.
+        public const int LlmTimeoutSeconds = 15;
+        public const int LlmMaxRetries = 1;
+
         void Connect(string apiKey)
         {
             _client?.Dispose(); // Reconnect (F2 re-key) must not leak the previous HttpClient.
-            _client = new AnthropicClient(apiKey);
+            _client = new AnthropicClient(apiKey, TimeSpan.FromSeconds(LlmTimeoutSeconds))
+                { MaxRetries = LlmMaxRetries };
             _engine = new ConversationEngine(_client, Card, Memory, Knowledge, Suspicion, _game.Cost);
         }
 

@@ -28,7 +28,11 @@ namespace Ledger.EditorTools
     /// once and committed would be a binary nobody could review or regenerate.
     public static class CharacterPrefab
     {
-        public const string BodyModel = "Assets/Characters/X Bot.fbx";
+        /// Joe since 15 Aug: the default body a gate or an empty pool falls
+        /// back to should be a PERSON, not the grey rig mannequin the clips
+        /// happened to be retargeted through. X Bot stood here only because
+        /// it was the first FBX this project ever had.
+        public const string BodyModel = "Assets/Characters/Joe.fbx";
         public const string ResourceDir = "Assets/Resources/Characters";
         public const string BodyPrefab = ResourceDir + "/Body.prefab";
         public const string ControllerPath = ResourceDir + "/Body.controller";
@@ -57,11 +61,9 @@ namespace Ledger.EditorTools
 
         /// EVERY BODY IN THE FOLDER, NOT JUST THE ONE NAMED ABOVE.
         ///
-        /// `BodyModel` names `X Bot.fbx` because that is all there has ever
-        /// been. When real characters land — Jafar runs `BODIES.bat` and drops
-        /// them in beside the clips — a town where sixty-odd named people share
-        /// one face is barely better than a town of boxes, and pointing the
-        /// constant at a different single file would just move the problem.
+        /// A town where sixty-odd named people share one face is barely
+        /// better than a town of boxes, and pointing `BodyModel` at a
+        /// different single file would just move the problem.
         ///
         /// So this writes one prefab per body it finds and `RealBody` picks per
         /// character. Written BEFORE the bodies arrive on purpose: the drop
@@ -94,9 +96,24 @@ namespace Ledger.EditorTools
             ExtractTextures();
             Variants = 0;
             _locomotion = null;
+            int mannequins = 0;
             foreach (var path in BodyModels())
+            {
+                // The rig mannequins get no prefab at all, so they cannot be
+                // worn, shipped, or picked by any code that ever greps
+                // `Resources/Characters` — the same `IsMannequin` the runtime
+                // pool asks, one implementation on purpose (its comment in
+                // `RealBody` carries the story).
+                if (Ledger.Game.RealBody.IsMannequin(
+                        System.IO.Path.GetFileNameWithoutExtension(path)))
+                {
+                    mannequins++;
+                    continue;
+                }
                 BuildOne(path, path == BodyModel);
-            Debug.Log($"CharacterPrefab: {Variants} body prefab(s) written");
+            }
+            Debug.Log($"CharacterPrefab: {Variants} body prefab(s) written, "
+                      + $"{mannequins} rig mannequin(s) skipped");
         }
 
         /// THE EMBEDDED TEXTURES, PULLED OUT OF THE FBX, because Unity does not

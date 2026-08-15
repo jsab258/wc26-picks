@@ -584,7 +584,14 @@ namespace Ledger.Game
             int i = 0;
             foreach (var (pos, size) in specs)
             {
-                var facade = facades[i % facades.Length];
+                // BY POSITION, NOT BY LOOP INDEX. `i % 4` marched
+                // brick-plaster-brick-concrete in strict rotation down every
+                // street — a repeating stripe, which is one of the strongest
+                // greybox tells and became visible the day the textures did.
+                // A position hash is just as deterministic (CI's pixel gates
+                // depend on that) and reads as a town that grew, not a
+                // pattern that was stamped.
+                var facade = facades[FacadePick(pos)];
                 var body = MakeBox($"Building_{i}", pos + new Vector3(0, size.y / 2f, 0), size, facade);
                 // Tile the façade at roughly one texture repeat per 3.5m so brick keeps a
                 // consistent scale across differently-sized buildings.
@@ -1232,7 +1239,8 @@ namespace Ledger.Game
                 // the two would report a number nobody can act on.
                 if (faceInStreet && !faceInRoad) PlaceFacesInLane++;
 
-                var facade = facades[i % facades.Length];
+                // Same position hash as BuildBuildings, same reason.
+                var facade = facades[FacadePick(pos)];
                 var body = MakeBox($"District_{place.Id}", pos + new Vector3(0, size.y / 2f, 0), size, facade);
                 SetTiling(body, Mathf.Max(1, Mathf.RoundToInt(size.x / 3.5f)), Mathf.Max(1, Mathf.RoundToInt(size.y / 3.5f)));
                 MakeBox($"District_{place.Id}_roof", pos + new Vector3(0, size.y + 0.12f, 0),
@@ -1847,10 +1855,32 @@ namespace Ledger.Game
         static void SetTiling(GameObject go, float u, float v)
         {
             var r = go.GetComponent<Renderer>();
+            // THE ASPECT CORRECTION MUST SURVIVE THIS OVERRIDE. The material
+            // computed `TextureFit.Isotropic` at build time and this block
+            // stomped `_MainTex_ST` with the raw pair — so the two non-square
+            // textures in the pack rendered oblong on exactly the objects
+            // that tile per-size, and `brick_red` (1024x512) is a facade on
+            // a quarter of the buildings. The correction the material made
+            // is re-made here, against the texture actually bound.
+            var tex = r.sharedMaterial != null ? r.sharedMaterial.mainTexture : null;
+            double tu = u, tv = v;
+            if (tex != null)
+                Ledger.Core.TextureFit.Isotropic(u, v, tex.width, tex.height, out tu, out tv);
             var mpb = new MaterialPropertyBlock();
             r.GetPropertyBlock(mpb);
-            mpb.SetVector("_MainTex_ST", new Vector4(u, v, 0, 0));
+            mpb.SetVector("_MainTex_ST", new Vector4((float)tu, (float)tv, 0, 0));
             r.SetPropertyBlock(mpb);
+        }
+
+        /// Which facade a building at `pos` wears. A hash of the ground
+        /// position, so it is stable across runs (the pixel gates need that)
+        /// and unrelated to build order (the stripe needed that gone).
+        static int FacadePick(Vector3 pos)
+        {
+            int x = (int)Mathf.Round(pos.x * 4f);
+            int z = (int)Mathf.Round(pos.z * 4f);
+            int h = (x * 73856093) ^ (z * 19349663);
+            return (h & 0x7fffffff) % 4;
         }
     }
 }

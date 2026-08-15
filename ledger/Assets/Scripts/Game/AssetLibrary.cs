@@ -112,6 +112,33 @@ namespace Ledger.Game
         }
         static readonly Dictionary<int, Material> _flat = new Dictionary<int, Material>();
 
+        /// THE GRADE THAT REPLACED THE TINT-AS-COLOUR, 15 Aug — the one-line
+        /// cause of the greybox.
+        ///
+        /// Every texture this library resolves already CARRIES its colour: a
+        /// pack texture is a photograph, and a procedural one bakes
+        /// `spec.Tint` into its own pixels at generation. `mat.color` then
+        /// multiplied `spec.Tint` on top — squaring the palette on the
+        /// procedural path and crushing the photographs on the pack path.
+        /// Measured on the shipped pack: ten of twelve surfaces landed below
+        /// 0.19 albedo (asphalt 0.045, windows 0.041), with film grain 2-35x
+        /// louder than the texture detail that survived. Twelve real 1K
+        /// photographs were invisible in every frame since 31 July, and the
+        /// city read as a greybox with the textures switched ON.
+        ///
+        /// So: when a texture is present, the material colour is this GRADE —
+        /// slightly cool, slightly desaturated, ~0.85 luminance, which keeps
+        /// the noir cast without eating the albedo. The mood lives in the
+        /// grade, the fog, and the post stack; the COLOUR lives in the
+        /// texture, once. `spec.Tint` keeps both of its real jobs: the
+        /// procedural generator's base colour, and the flat-colour fallback
+        /// when no texture resolves at all.
+        ///
+        /// An ART value, iterated against committed stills — not a measured
+        /// constant. If the street goes garish the lever is here, in one
+        /// place, and the stills are the judge.
+        static readonly Color TextureGrade = new Color(0.82f, 0.84f, 0.88f, 1f);
+
         static Material BuildMaterial(string logical)
         {
             var spec = SurfaceSpec.For(logical);
@@ -134,7 +161,9 @@ namespace Ledger.Game
                                      out double tx, out double ty);
                 mat.mainTextureScale = new Vector2((float)tx, (float)ty);
             }
-            mat.color = spec.Tint;
+            // The grade when the texture carries the colour; the tint only
+            // when nothing else does. The story is on `TextureGrade`.
+            mat.color = tex != null ? TextureGrade : spec.Tint;
             // Standard shader (built-in): _Glossiness is smoothness, _Metallic is 0..1.
             mat.SetFloat("_Glossiness", spec.Smoothness);
             mat.SetFloat("_Metallic", spec.Metallic);
@@ -171,8 +200,13 @@ namespace Ledger.Game
                 if (!_materials.TryGetValue(name, out var mat) || mat == null) continue;
                 var spec = SurfaceSpec.For(name);
                 mat.SetFloat("_Glossiness", (float)LightModel.Smoothness(spec.Smoothness, wetness));
-                mat.color = new Color(spec.Tint.r * (float)albedo, spec.Tint.g * (float)albedo,
-                                      spec.Tint.b * (float)albedo, spec.Tint.a);
+                // Darken the GRADE, not the tint — the wet ground is textured,
+                // so its base colour is `TextureGrade` (see BuildMaterial), and
+                // scaling the tint here would reintroduce the crush this
+                // library just stopped doing everywhere else.
+                var baseCol = mat.mainTexture != null ? TextureGrade : spec.Tint;
+                mat.color = new Color(baseCol.r * (float)albedo, baseCol.g * (float)albedo,
+                                      baseCol.b * (float)albedo, baseCol.a);
             }
         }
         static float _wetness = -1f;

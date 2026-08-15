@@ -35,7 +35,16 @@ namespace Ledger.Core
 
     public static class Detail
     {
-        public const DetailLevel Default = DetailLevel.High;
+        /// Medium since 15 Aug, and it is a first-impressions decision, not a
+        /// quality one. The first machine this game will ever really run on
+        /// is a MacBook Air driving a Retina panel — roughly 4.3 million
+        /// pixels through a post stack that scales with every one of them —
+        /// and a game that opens at 20fps has made its first impression
+        /// before anybody finds the options screen. Opening at Medium and
+        /// offering High upward reads as headroom; the reverse reads as a
+        /// slow game. Every existing install keeps whatever it saved: this
+        /// is only who arrives where on the FIRST run.
+        public const DetailLevel Default = DetailLevel.Medium;
 
         /// How far light shafts are drawn, in metres. Zero means none.
         ///

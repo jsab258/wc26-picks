@@ -5,10 +5,12 @@ WHY THIS EXISTS, and it is the largest visible gap in the project.
 
 `Assets/Characters/` holds 44 FBX. Forty-two are animations. The only two
 BODIES are `X Bot.fbx` and `Y Bot.fbx`, which are the grey featureless
-mannequins Mixamo hands you as a preview. The player has been one of them for
-weeks: `CharacterPrefab.BodyModel` names X Bot, and `review_day1_noon.jpg`
-shows exactly what that looks like — a pale figure with no face and a blue hip
-band, standing in a city that is otherwise trying to be a place.
+mannequins Mixamo hands you as a preview. The player was one of them for
+weeks: `CharacterPrefab.BodyModel` named X Bot until 15 Aug (it points at a
+real body now, and the mannequins are excluded from the wear pool), and
+`review_day1_noon.jpg` showed exactly what that looked like — a pale figure
+with no face and a blue hip band, standing in a city that is otherwise trying
+to be a place.
 
 TWO THINGS CAUSED IT AND BOTH ARE IN THIS FOLDER.
 

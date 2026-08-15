@@ -1,6 +1,6 @@
 # The work stack
 
-> **STATUS — LIVE**, verified 2026-08-04. What gets picked up next, in order.
+> **STATUS — LIVE**, verified 2026-08-15. What gets picked up next, in order.
 > The plan is `roadmap.md` and it wins; this is the next few hours of it.
 
 ## Why this file exists, and how to use it
@@ -34,6 +34,16 @@ YIELDS: live speech is parked (no DirectML on the machine), the visual
 and playability work in the plan takes every slot. The deterministic
 retry design, the constant-gate plants and the frame-gate CPU work
 resume Thursday.
+
+**Sat 15 Aug evening: the plan's Saturday AND Sunday batches are code-
+complete and verified green** (sky, texture grade, facades, mannequins
+out, cursor lock, memory wipe on New game/R, restart fixes, quit-save,
+café-wifi timeout, chips skip the router, Medium first-run default with
+the sim pinned High). What remains of the Sunday page: dispatch, then
+JUDGE THE GRADE ON THE STILLS and iterate the one constant if the
+street reads muddy or garish. Next after that, from the plan's Monday
+page (no Jafar needed): the resolution/render-scale option, post-stack
+cost on Low/Medium, onboarding toasts + bound-key names.
 
 ### LIVE SPEECH — WHERE IT STANDS, 13 AUGUST *(parked for the playtest)*
 

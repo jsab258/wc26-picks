@@ -132,6 +132,19 @@ namespace Ledger.Game
                         : new GameSettings();
                 }
                 catch (System.Exception) { _current = new GameSettings(); }
+                // THE SIM RENDERS AT HIGH, ALWAYS — pinned here, in the one
+                // place every reader goes through, the moment the settings
+                // materialise. `Detail.Default` went to Medium on 15 Aug for
+                // first-run machines, and CI has no settings file, so without
+                // this pin every committed still would have quietly switched
+                // to Medium: shorter shafts, nearer shadows — and every
+                // lighting number in the verdict history would sit on the
+                // other side of a regime change nothing announced. The stills
+                // judge the ART, and the art is judged at full detail; what a
+                // first-run player defaults to is a separate question with a
+                // separate answer.
+                if (SimMode.Days > 0)
+                    _current.Detail = (int)Ledger.Core.DetailLevel.High;
                 return _current;
             }
         }

@@ -233,7 +233,11 @@ namespace Ledger.Game
             // is playing a smaller game than the one we built.
             _input = MakeInput(_dialoguePanel.transform, "Say something — or say what you want to do...", new Vector2(0.5f, 0), new Vector2(-60, 18), new Vector2(720, 44));
             var sendBtn = MakeButton(_dialoguePanel.transform, "Send", new Vector2(1, 0), new Vector2(-16, 18), new Vector2(110, 44));
-            sendBtn.onClick.AddListener(Submit);
+            // A lambda, not the method group: `Submit` grew an optional
+            // parameter, and optional parameters do not participate in
+            // delegate conversion — the bare group stopped matching
+            // UnityAction the moment it gained one.
+            sendBtn.onClick.AddListener(() => Submit());
 
             // Damage-control verbs sit just above the text input, out of the way of
             // normal talk. Only visible when this NPC is actually carrying something.
@@ -813,7 +817,7 @@ namespace Ledger.Game
             // this street remembers which one you made.
             bool leaving = _chipLabels[i].text == "leave it";
             _input.text = _chipSays[i];
-            Submit();
+            Submit(authoredLine: true);
             if (leaving) CloseDialogue();
         }
 
@@ -1318,6 +1322,10 @@ namespace Ledger.Game
         void Update()
         {
             _frames.Tick(Time.unscaledDeltaTime);
+            // Before ANY early return below — the pause and end-screen paths
+            // return out of this method, and they are exactly the states the
+            // cursor must be free in.
+            DriveCursor();
 
             var now = _game.Now;
             var money = _game.Wallet.Dirty > 0
@@ -1596,6 +1604,30 @@ namespace Ledger.Game
             || (_planPanel != null && _planPanel.activeSelf)
             || (_phonePanel != null && _phonePanel.activeSelf);
 
+        /// THE cursor policy, beside the input-lock policy it mirrors — and
+        /// until 15 Aug there was none: `Cursor.lockState` appeared nowhere
+        /// in the project, so mouse-look dragged the OS pointer across the
+        /// screen and off the window edge. On the playtest MacBook's trackpad
+        /// that is the difference between a camera and a fight.
+        ///
+        /// The panels that take your legs take the pointer with them; the
+        /// meta states (pause, options, the end screens) free it because they
+        /// are made of buttons; the ledger and debug overlays deliberately do
+        /// NOT free it — they leave you walking, are dismissed by key, and
+        /// have nothing to click. Re-asserted every frame against the OS
+        /// rather than on change: cmd-tab on a Mac takes the lock away
+        /// without telling anyone, and the compare-before-write makes the
+        /// steady state free.
+        void DriveCursor()
+        {
+            bool free = SimMode.Days > 0 || MainMenu.Showing || OptionsScreen.Open
+                || _paused || _endPanel != null || _posturePanel != null
+                || AnyPanelDemandsInput();
+            var want = free ? CursorLockMode.None : CursorLockMode.Locked;
+            if (Cursor.lockState != want) Cursor.lockState = want;
+            if (Cursor.visible != free) Cursor.visible = free;
+        }
+
         static string HeatWord(double h) => GameController.StreetWord(h);
 
         /// How hard the holder would swear to what they have on you.
@@ -1744,10 +1776,17 @@ namespace Ledger.Game
 
         void Restart()
         {
-            // Restarting the week means renouncing its history: the save goes too.
+            // Restarting the week means renouncing its history: the save goes,
+            // and so does every NPC's memory of the week being renounced —
+            // "start the week over" with a street that remembers it is not over.
             _game.DeleteSave();
+            ConversationHost.ForgetEverything();
             // The world is fully code-built, so a clean restart is: drop the
-            // controller and UI, reload the scene, and let Bootstrap stand it back up.
+            // controller and UI, reload the scene, and let Bootstrap stand it
+            // back up. STRAIGHT BACK IN: the screen said "start the week
+            // over", and until 15 Aug this landed on the title screen instead
+            // — the reload was right, the destination was Bootstrap's default.
+            Bootstrap.RestartStraightIn = true;
             Destroy(_game.gameObject);
             Destroy(gameObject);
             UnityEngine.SceneManagement.SceneManager.LoadScene(
@@ -1853,7 +1892,15 @@ namespace Ledger.Game
             return list;
         }
 
-        async void Submit()
+        /// `authoredLine`: this text came off a chip, not the keyboard. The
+        /// router exists to catch typed ACTIONS ("give him the fifty") — a
+        /// chip is speech this project wrote itself, so routing it spends a
+        /// model round trip and pennies to rediscover what the button said,
+        /// doubles the wait behind every chip press, and hands the lexical
+        /// fast path a chance to misread an authored sentence as a verb.
+        /// Anything on a button that IS an action is wired to the action
+        /// directly (the damage-control and empire rows), never through here.
+        async void Submit(bool authoredLine = false)
         {
             var host = _current;
             if (host == null) return;
@@ -1880,8 +1927,9 @@ namespace Ledger.Game
             _waiting = true;
             // The intent router (roadmap M6.5) sits between typing and speaking.
             // Most lines are speech and fall straight through, exactly as before
-            // this existed — the router is additive, not a gate.
-            var handled = await TryRouteAsync(text, host);
+            // this existed — the router is additive, not a gate. Chips skip it
+            // outright (see the parameter).
+            var handled = !authoredLine && await TryRouteAsync(text, host);
             if (handled)
             {
                 _waiting = false;

@@ -429,9 +429,10 @@ namespace Ledger.Game
 
         /// WHICH MODEL A NAME WEARS, ASKABLE WITHOUT ATTACHING ONE.
         ///
-        /// Ten prefabs against forty-three named people is the sameness problem
-        /// in one sentence, and it has never had a number — `bodyChoices=10`
-        /// says how many models EXIST, which is not the question. The question
+        /// Eight prefabs against forty-three named people is the sameness
+        /// problem in one sentence (ten minus the two rig mannequins, since
+        /// 15 Aug), and it has never had a number — `bodyChoices` says how
+        /// many models EXIST, which is not the question. The question
         /// is how many DISTINCT ones are in the frame, and answering it needs
         /// the pick for a walker the reader is not attaching.
         ///
@@ -449,6 +450,29 @@ namespace Ledger.Game
             return p != null ? p.name : "none";
         }
 
+        /// THE RIG MANNEQUINS ARE NOT PEOPLE, and until 15 Aug a fifth of the
+        /// street was them: `X Bot` and `Y Bot` are Mixamo's grey untextured
+        /// stand-ins, they ride along in `Assets/Characters` because the
+        /// animation clips were retargeted through them, and nothing anywhere
+        /// excluded them from being WORN. Two of ten pool slots, so with
+        /// twelve bodies on screen at once, two greys in frame was the
+        /// expected case, not the unlucky one.
+        ///
+        /// ONE IMPLEMENTATION, TWO CALLERS, on purpose: `CharacterPrefab`
+        /// (Editor) asks this before writing a prefab, and `PickBody` asks it
+        /// again before pooling one — so a mannequin prefab left behind by an
+        /// older build still cannot reach the street. Accepts either spelling
+        /// ("X Bot" the model, "Body_XBot" the prefab) so the two callers
+        /// cannot drift apart on normalisation.
+        public static bool IsMannequin(string modelOrPrefabName)
+        {
+            if (string.IsNullOrEmpty(modelOrPrefabName)) return false;
+            var n = modelOrPrefabName.Replace(" ", "");
+            if (n.StartsWith("Body_")) n = n.Substring("Body_".Length);
+            return string.Equals(n, "XBot", System.StringComparison.OrdinalIgnoreCase)
+                || string.Equals(n, "YBot", System.StringComparison.OrdinalIgnoreCase);
+        }
+
         static GameObject PickBody(string wearer)
         {
             if (_bodies == null)
@@ -456,7 +480,8 @@ namespace Ledger.Game
                 var all = Resources.LoadAll<GameObject>("Characters");
                 var list = new System.Collections.Generic.List<GameObject>();
                 foreach (var g in all)
-                    if (g != null && g.name.StartsWith("Body_")) list.Add(g);
+                    if (g != null && g.name.StartsWith("Body_") && !IsMannequin(g.name))
+                        list.Add(g);
                 list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
                 _bodies = list.ToArray();
                 BodyChoices = _bodies.Length;
@@ -468,12 +493,13 @@ namespace Ledger.Game
             return _bodies[i];
         }
 
-        /// TEN MODELS, FORTY-THREE NAMED PEOPLE — SO THEY MUST NOT BE THE ONLY
-        /// THING THAT TELLS THEM APART.
+        /// EIGHT MODELS, FORTY-THREE NAMED PEOPLE — SO THEY MUST NOT BE THE
+        /// ONLY THING THAT TELLS THEM APART.
         ///
-        /// COUNTED, NOT JUDGED FROM THE STILL. There are ten body prefabs and
-        /// the cast is forty-three, with twelve worn at once, so by pigeonhole
-        /// at least two people on screen share a model at all times. The noon
+        /// COUNTED, NOT JUDGED FROM THE STILL. There are eight body prefabs
+        /// (ten FBX minus the two rig mannequins) and the cast is forty-three,
+        /// with twelve worn at once, so by pigeonhole at least two people on
+        /// screen share a model at all times. The noon
         /// frame shows it plainly: two women in the same yellow trousers with
         /// the same hair, one of them the player.
         ///

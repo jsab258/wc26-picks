@@ -28,7 +28,12 @@ namespace Ledger.Game
                 {
                     _worldLlmTried = true;
                     var key = Secrets.LoadAnthropicKey();
-                    if (!string.IsNullOrEmpty(key)) _worldLlm = new AnthropicClient(key);
+                    // Same café-wifi bounds as the character clients — the
+                    // policy and its reasoning live on ConversationHost.
+                    if (!string.IsNullOrEmpty(key))
+                        _worldLlm = new AnthropicClient(key,
+                            System.TimeSpan.FromSeconds(ConversationHost.LlmTimeoutSeconds))
+                            { MaxRetries = ConversationHost.LlmMaxRetries };
                 }
                 return _worldLlm;
             }
@@ -471,6 +476,14 @@ namespace Ledger.Game
         /// arrives at the moment nothing is visible — tearing both down on the
         /// click cut from a lit street to a dark field in a single frame, and
         /// that was the last hard cut §8 had left.
+        ///
+        /// BY SCENE RELOAD, since 15 Aug, because the city is parentless root
+        /// objects and destroying this controller never touched it. The old
+        /// body of this method destroyed the UI and itself and created the
+        /// menu over a still-standing city — so "New game" from that menu ran
+        /// `BuildBlock` on top of the old streets and doubled the geometry.
+        /// Bootstrap's root sweep is the one real teardown; every session end
+        /// goes through it now (the end screen's R already did).
         public void LeaveToMenu()
         {
             // A second click while one is running does nothing rather than
@@ -478,9 +491,8 @@ namespace Ledger.Game
             Blackout.Cover(() =>
             {
                 Time.timeScale = 1f;
-                if (_ui != null) Destroy(_ui.gameObject);
-                Destroy(gameObject);
-                MainMenu.Create();
+                UnityEngine.SceneManagement.SceneManager.LoadScene(
+                    UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
             });
         }
 
@@ -2557,6 +2569,17 @@ namespace Ledger.Game
             catch (System.Exception e) { Debug.LogError($"Save failed: {e.Message}"); }
         }
 
+        /// Cmd-Q, the red button, the window's close box. Until 15 Aug none
+        /// of them saved: the pause menu's "Save and quit" was the only exit
+        /// that kept the evening, and on a laptop passed between three people
+        /// the OS quit is the exit somebody WILL use. The MonoBehaviour
+        /// message rather than `Application.wantsToQuit`, deliberately — the
+        /// static event outlives this controller, and a session-per-reload
+        /// game that subscribes each session leaks a dead handler per
+        /// restart. `SaveNow` already guards the too-early case, and the sim
+        /// writes to its own split path.
+        void OnApplicationQuit() => SaveNow(quiet: true);
+
         /// A manual copy in a numbered drawer (P2). Same codec, own file.
         public void SaveToSlot(int slot)
         {
@@ -2927,11 +2950,18 @@ namespace Ledger.Game
             // chosen mode actually reads. This was a second, silent
             // implementation of the same idea, losing.
 
-            // The sky is the fog, so the horizon never shows a seam.
+            // The sky is a gradient skybox whose horizon band IS the fog
+            // colour (SceneLighting drives it every frame), so the horizon
+            // still never shows a seam — the old guarantee, kept, with an
+            // actual sky above it. SolidColor survives only as the fallback
+            // for a build where the sky shader failed to load; its
+            // background is written either way and is harmless under Skybox.
             var cam = Camera.main;
             if (cam != null)
             {
-                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.clearFlags = SceneLighting.SkyboxLive
+                    ? CameraClearFlags.Skybox
+                    : CameraClearFlags.SolidColor;
                 cam.backgroundColor = RenderSettings.fogColor;
             }
             WorldBuilder.SetLampsEnabled(daylight < 0.25f);

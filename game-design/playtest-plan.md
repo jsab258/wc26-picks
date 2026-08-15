@@ -17,6 +17,12 @@ where it shows inside a three-day session.
 
 ## What the research established (checked, with anchors)
 
+> **Now historical**: every fault this section names except the
+> animation re-pick and the Air's resolution control was FIXED in the
+> two batches of 15 Aug — the work log above each fix is in "The work,
+> in order" below. Kept as written because it is the argument for the
+> plan's shape, not a report on today's code.
+
 **The world is already textured and nobody can see it.** Twelve real 1K
 photographs (ambientCG, CC0) ship in `StreamingAssets/CityPack/textures`
 and load at runtime — and `AssetLibrary.cs:137` multiplies every one by a
@@ -95,31 +101,41 @@ guard; saves are atomic with backups.
 
 ## The work, in order — what shows on screen first
 
-### Tonight (Sat) — the platform stops being a guess
-1. **Mac workflow repair** (no Unity compile risk): zip the .app
-   *before* upload so permissions survive; print `lipo -archs` in the
-   verdict; licence retry (copy of the Windows one); fix the `-e`
-   error-reporting bug; widen trigger paths to `Assets/Editor/**` and
-   `Assets/Characters/**`; add a step-summary. Push AFTER the in-flight
-   mac run lands (single licence seat).
-2. Read the in-flight mac run: green → artifact exists; note arch.
+### Tonight (Sat) — the platform stops being a guess — **DONE 15 Aug**
+1. ~~Mac workflow repair~~ **DONE, validated green same evening**: zip
+   before upload (permissions survive), `lipo -archs` printed, licence
+   retry, `-e` bug fixed, triggers widened, step summary added.
+2. ~~Read the in-flight mac run~~ **DONE**: green, artifact
+   `LEDGER-macOS` 347 MB, expires 2026-08-29.
 
-### Sunday — the two big visual levers, one batch, one dispatch
-3. **Untint the textures** (`AssetLibrary.cs:137` + `SetWetness` +
-   procedural double-tint): texture present → neutral grade (~0.85
-   desaturated blue-grey, tunable), tint stays only as the procedural
-   generator's base. The noir look must survive — judged on stills,
-   iterated same day.
-4. **Skybox**: drive a gradient sky from the three already-computed
-   colours; `clearFlags` → Skybox. Fixes wet reflections for free.
-5. Facade variety (`i % 4` → position hash) + `SetTiling` aspect fix.
-6. **Bots out of the pick pool**; default body repointed off X Bot.
-7. The Mac-experience batch: cursor lock while no panel wants input;
-   New-game clears `memories/`; R-restart actually restarts; LLM
-   timeout 15s/1 retry + chips skip the router; `wantsToQuit` →
-   SaveNow; preset defaults Medium (not High) on first run.
-8. ONE Windows dispatch for stills (visual judgement) + mac build.
-   Iterate the grade off the stills the same evening.
+### Sunday — the two big visual levers, one batch — **CODE DONE 15 Aug
+### evening, verified green; stills judgement pending the dispatch**
+3. ~~Untint the textures~~ **DONE**: `TextureGrade` (0.82/0.84/0.88)
+   replaces the tint-multiply when a texture is present; `SetWetness`
+   darkens the grade; tint keeps its procedural-base and no-texture
+   jobs. Judged on stills next, iterated by changing one constant.
+4. ~~Skybox~~ **DONE**: `Hidden/LedgerSky` gradient driven per-frame
+   from the three computed colours, horizon stop = fog colour so the
+   seam is impossible; camera clears to Skybox with SolidColor
+   fallback; dry reflections refresh via thresholded environment
+   updates; wet ground keeps its own probe capture.
+5. ~~Facade variety + tiling~~ **DONE**: position-hash facades, tiling
+   aspect-corrected against the bound texture.
+6. ~~Bots out of the pool~~ **DONE**: `IsMannequin` (one
+   implementation, Editor writer + runtime pool both call it), no
+   Body_XBot/YBot prefab written at all; default body is Joe.
+7. ~~Mac-experience batch~~ **DONE**: cursor locks in play and frees
+   for menus/panels/pause/end (policy beside the input-lock policy it
+   mirrors); New game AND R-restart wipe `memories/`; R restarts
+   straight into a fresh week (was: title screen); quit-to-menu now
+   tears down by scene reload (was: second city built over the first
+   on New game — read from code, never caught by the sim); LLM 15s
+   timeout + 1 retry both clients; chips skip the router (faster and
+   cheaper per press); Cmd-Q/close-box saves; first-run preset Medium
+   (sim pinned to High so every committed still and verdict number
+   stays comparable).
+8. ONE Windows dispatch for stills — **tonight's remaining step**.
+   Iterate the grade off the stills (overnight/morning).
 
 ### Monday — people and playability (Jafar's PC in the loop)
 9. **Characters, his half (~10 min)**: fresh Mixamo token → catalogue
