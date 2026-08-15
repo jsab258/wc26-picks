@@ -40,8 +40,13 @@ JUDGED, most of Monday's no-Jafar items done early.** Run edbce5b
 proved the batch (Skybox live, bodyChoices=8, tposeBodies=0, preset
 probe passing, errors=0) and answered the grade question in numbers:
 noon meanLuma 0.44-0.49 with 40-48% bright pixels — overshot into
-seaside-morning. Iteration 2 (grade 0.74/0.76/0.80) is IN FLIGHT on
-cdef923; judge its stills the same way (lumaPairs + brightPct + eyes).
+seaside-morning. Iteration 2 (0.74/0.76/0.80) landed on cdef923 and
+SETTLED IT: every matched dry noon came down (worst 0.494→0.446,
+bright 48→39%), nights held 0.10-0.13, and the noon still reads
+overcast port with the brick fully legible. Weather is not pinned
+between runs, so per-day medians mislead — same-shot dry-day pairs
+are the honest comparison and both runs' files carry them. The grade
+stays; further cuts start re-crushing the brick.
 Also landed tonight: render scale option (+ the options panel height
 fix), post stack joined the preset (AO's DepthNormals prepass gated),
 toast queue + ambient barks, onboarding teaches walking first with
