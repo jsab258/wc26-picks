@@ -81,6 +81,23 @@ namespace Ledger.Core
         /// Whether wet surfaces get a reflection probe at all.
         public static bool Reflections(DetailLevel d) => d != DetailLevel.Low;
 
+        /// THE POST STACK JOINS THE PRESET, 15 Aug — it never had before.
+        /// Every blit in FilmGrade is priced per pixel and ran identically on
+        /// every level, so on the machine the preset exists for (a Retina
+        /// laptop) turning the dial down bought shafts and shadows and left
+        /// the most pixel-hungry system in the game untouched.
+        ///
+        /// The ladder names what each step adds: Low keeps grain, vignette
+        /// and the tonemap (one composite pass — the film stock IS the look
+        /// and costs almost nothing extra in a pass that runs anyway).
+        /// Medium adds bloom, because a neon that does not spill light is a
+        /// coloured rectangle and this game's nights are made of neon. High
+        /// adds ambient occlusion — three half-res passes plus a whole
+        /// depth-normals prepass of the scene, the single most expensive
+        /// stretch of the stack, spent on contact shadow.
+        public static bool PostBloom(DetailLevel d) => d != DetailLevel.Low;
+        public static bool PostOcclusion(DetailLevel d) => d == DetailLevel.High;
+
         /// The fraction of the walking crowd kept.
         ///
         /// PROTECTED, and this is the whole argument. Halving the crowd is
@@ -100,9 +117,9 @@ namespace Ledger.Core
         /// exactly what they are buying with their frame rate.
         public static string Describes(DetailLevel d) =>
             d == DetailLevel.Low
-                ? "No light shafts or reflections, short shadows. The street stays busy."
+                ? "No light shafts, reflections, glow or contact shadow; short shadows. The street stays busy."
             : d == DetailLevel.Medium
-                ? "Shorter light shafts and shadows. Reflections kept."
+                ? "Shorter light shafts and shadows. Reflections and neon glow kept; no contact shadow."
                 : "Everything on.";
 
         /// A rough cost index, 0..1, used only to prove the presets are

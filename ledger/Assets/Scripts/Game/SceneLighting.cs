@@ -112,6 +112,7 @@ namespace Ledger.Game
                 (float)Ledger.Core.Detail.ShadowDistance(
                     Ledger.Core.Detail.Parse(GameSettings.Current.Detail));
             LightShaft.ApplyPreset();
+            FilmGrade.ApplyPreset();
             ApplyRenderScale();
         }
 

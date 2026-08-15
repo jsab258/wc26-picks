@@ -20,7 +20,7 @@
   {
     "name": "the descriptions are a copy-paste, so the menu says nothing",
     "file": "Assets/Scripts/Core/Detail.cs",
-    "old": "                ? \"No light shafts or reflections, short shadows. The street stays busy.\"\n            : d == DetailLevel.Medium\n                ? \"Shorter light shafts and shadows. Reflections kept.\"\n                : \"Everything on.\";",
+    "old": "                ? \"No light shafts, reflections, glow or contact shadow; short shadows. The street stays busy.\"\n            : d == DetailLevel.Medium\n                ? \"Shorter light shafts and shadows. Reflections and neon glow kept; no contact shadow.\"\n                : \"Everything on.\";",
     "new": "                ? \"Everything on.\"\n            : d == DetailLevel.Medium\n                ? \"Everything on.\"\n                : \"Everything on.\";"
   },
   {

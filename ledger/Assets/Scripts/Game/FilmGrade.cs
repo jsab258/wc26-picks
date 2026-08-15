@@ -112,12 +112,30 @@ namespace Ledger.Game
             if (aoShader != null && aoShader.isSupported)
                 _ao = new Material(aoShader) { hideFlags = HideFlags.HideAndDontSave };
 
-            // Depth AND normals, and this one line is what makes
-            // `_CameraDepthNormalsTexture` exist at all. Without it the AO
-            // pass samples a texture Unity never rendered and returns a
-            // uniform grey — which looks like a shader bug and is a missing
-            // request.
-            if (_cam != null) _cam.depthTextureMode |= DepthTextureMode.DepthNormals;
+            // Depth AND normals via ApplyPreset — see it for why the request
+            // is conditional now.
+            ApplyPreset();
+        }
+
+        /// The preset's half of the stack, applied where the other quality
+        /// levers are applied (SceneLighting.ApplyQuality calls this).
+        ///
+        /// The DepthNormals request is the reason this exists: it is not a
+        /// texture flag, it is A WHOLE EXTRA RENDER OF THE SCENE every
+        /// frame, and it was requested unconditionally even though its only
+        /// consumer is the AO pass. On Low and Medium the AO never runs, so
+        /// the prepass was a full scene render feeding a texture nothing
+        /// sampled. Cleared, not just left unused — and re-requested the
+        /// moment the slider returns to High, no restart.
+        public static void ApplyPreset()
+        {
+            if (_instance == null || _instance._cam == null) return;
+            bool occlusion = Ledger.Core.Detail.PostOcclusion(
+                Ledger.Core.Detail.Parse(GameSettings.Current.Detail));
+            if (occlusion)
+                _instance._cam.depthTextureMode |= DepthTextureMode.DepthNormals;
+            else
+                _instance._cam.depthTextureMode &= ~DepthTextureMode.DepthNormals;
         }
 
         /// Whether occlusion is worth its passes at all. Off is a real
@@ -186,26 +204,42 @@ namespace Ledger.Game
             // your eye and you both know it.
             vignette += Standoff.FrameTighten * Standoff.Curve * vignette;
 
+            // THE PRESET'S SHARE OF THE STACK (Core/Detail.PostBloom /
+            // PostOcclusion carry the design). The sim is pinned to High, so
+            // every still and every A/B gate renders the full stack — the
+            // per-effect switches below this stay the sim's own instruments.
+            var preset = Ledger.Core.Detail.Parse(GameSettings.Current.Detail);
+            bool presetBloom = Ledger.Core.Detail.PostBloom(preset);
+
             // BLOOM: downsample, blur, add back. Two small textures rather
             // than a chain — at this scale the extra passes buy nothing you
             // can see, and every one costs a frame budget we have already
-            // measured as tight.
-            int w = Mathf.Max(2, src.width / 4), h = Mathf.Max(2, src.height / 4);
-            _bloomA = RenderTexture.GetTemporary(w, h, 0, src.format);
-            _bloomB = RenderTexture.GetTemporary(w, h, 0, src.format);
-            // FROM CORE, and it moves with the night. A fixed 0.62 under an
-            // exposure that opens after dark meant the bright pass was
-            // selecting most of the frame, which is a second exposure rather
-            // than a highlight pass.
-            _mat.SetFloat("_Threshold", (float)LightModel.BloomThreshold(night));
-            Graphics.Blit(src, _bloomA, _mat, 1);            // pass 1: bright pass
-            _mat.SetVector("_Dir", new Vector4(1f / w, 0, 0, 0));
-            Graphics.Blit(_bloomA, _bloomB, _mat, 2);        // pass 2: blur X
-            _mat.SetVector("_Dir", new Vector4(0, 1f / h, 0, 0));
-            Graphics.Blit(_bloomB, _bloomA, _mat, 2);        // pass 2: blur Y
-
-            _mat.SetTexture("_BloomTex", _bloomA);
-            _mat.SetFloat("_Bloom", Bloom ? (float)LightModel.BloomStrength(night) : 0f);
+            // measured as tight. On Low the three passes are not run at all,
+            // not run-and-multiplied-away.
+            if (presetBloom)
+            {
+                int w = Mathf.Max(2, src.width / 4), h = Mathf.Max(2, src.height / 4);
+                _bloomA = RenderTexture.GetTemporary(w, h, 0, src.format);
+                _bloomB = RenderTexture.GetTemporary(w, h, 0, src.format);
+                // FROM CORE, and it moves with the night. A fixed 0.62 under an
+                // exposure that opens after dark meant the bright pass was
+                // selecting most of the frame, which is a second exposure rather
+                // than a highlight pass.
+                _mat.SetFloat("_Threshold", (float)LightModel.BloomThreshold(night));
+                Graphics.Blit(src, _bloomA, _mat, 1);            // pass 1: bright pass
+                _mat.SetVector("_Dir", new Vector4(1f / w, 0, 0, 0));
+                Graphics.Blit(_bloomA, _bloomB, _mat, 2);        // pass 2: blur X
+                _mat.SetVector("_Dir", new Vector4(0, 1f / h, 0, 0));
+                Graphics.Blit(_bloomB, _bloomA, _mat, 2);        // pass 2: blur Y
+                _mat.SetTexture("_BloomTex", _bloomA);
+            }
+            else
+            {
+                _bloomA = _bloomB = null;
+                _mat.SetTexture("_BloomTex", Texture2D.blackTexture);
+            }
+            _mat.SetFloat("_Bloom",
+                Bloom && presetBloom ? (float)LightModel.BloomStrength(night) : 0f);
             _mat.SetFloat("_Grain", Grain ? grain : 0f);
             _mat.SetFloat("_Vignette", Vignette ? vignette : 0f);
             // The aperture opens at night and closes in daylight rain, from
@@ -244,7 +278,8 @@ namespace Ledger.Game
             // detail anyway. Full res would cost four times as much to
             // produce an image the next pass erases.
             RenderTexture aoA = null, aoB = null;
-            if (AmbientOcclusion && _cam != null && _ao != null)
+            if (AmbientOcclusion && Ledger.Core.Detail.PostOcclusion(preset)
+                && _cam != null && _ao != null)
             {
                 int aw = Mathf.Max(2, src.width / 2), ah = Mathf.Max(2, src.height / 2);
                 aoA = RenderTexture.GetTemporary(aw, ah, 0, RenderTextureFormat.R8);
@@ -293,8 +328,8 @@ namespace Ledger.Game
 
             if (aoA != null) RenderTexture.ReleaseTemporary(aoA);
             if (aoB != null) RenderTexture.ReleaseTemporary(aoB);
-            RenderTexture.ReleaseTemporary(_bloomA);
-            RenderTexture.ReleaseTemporary(_bloomB);
+            if (_bloomA != null) RenderTexture.ReleaseTemporary(_bloomA);
+            if (_bloomB != null) RenderTexture.ReleaseTemporary(_bloomB);
         }
     }
 }

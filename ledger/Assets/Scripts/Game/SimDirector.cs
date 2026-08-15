@@ -6799,8 +6799,9 @@ namespace Ledger.Game
             // concludes the game is simply slow.
             //
             // Low against High: no shafts, short shadows, no reflections,
-            // less body detail. If that renders the same frame, the whole
-            // preset is a label.
+            // less body detail — and since 15 Aug no bloom and no ambient
+            // occlusion either (the post stack joined the preset). If that
+            // renders the same frame, the whole preset is a label.
             int wasDetail = GameSettings.Current.Detail;
             GameSettings.Current.Detail = (int)DetailLevel.Low;
             SceneLighting.ApplyQuality();
