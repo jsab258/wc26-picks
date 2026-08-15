@@ -587,8 +587,14 @@ namespace Ledger.SimHarness
                 novel.Kind == IntentKind.Novel && novel.Check == Checks.DirtyCash, novel.ToString());
 
             var broke = Adjudicator.Resolve(novel, new AdjudicationInput { Clean = 500, Dirty = 5 });
+            // "£5", because the city spends pounds (1d99269, 31 Jul). This
+            // assertion still said "$5" two weeks later — the currency commit
+            // fixed the code and never grepped the harness for the symbol it
+            // was retiring, and no core-tests run happened to execute this
+            // battery until 15 Aug, so a deterministic red sat invisible the
+            // whole time.
             Check("a novel action you cannot afford fails and says so plainly",
-                !broke.Passed && broke.Reason.Contains("$5"), broke.Reason);
+                !broke.Passed && broke.Reason.Contains("£5"), broke.Reason);
 
             var lands = Adjudicator.Resolve(novel, new AdjudicationInput { Clean = 0, Dirty = 200 });
             Check("a novel action you can afford is charged for what it cost",
