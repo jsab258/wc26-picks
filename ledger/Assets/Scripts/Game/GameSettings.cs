@@ -34,6 +34,14 @@ namespace Ledger.Game
         /// number of people cannot tolerate, and an art choice that makes
         /// somebody unable to play is not an art choice.
         public float GrainAmount = 1.0f;
+        /// Render scale, percent of the screen the game actually renders
+        /// (100 / 75 / 55 from the options slider). THE one lever a Retina
+        /// laptop needs: the post stack prices every pixel, a MacBook Air
+        /// panel has ~4.3 million of them, and 75% is half the pixels for a
+        /// softness that is hard to spot in motion. Applied by
+        /// SceneLighting.ApplyRenderScale; the sim never sees it.
+        public int RenderScalePercent = 100;
+
         /// Graphics preset. See Core/Detail for what each level gives up and
         /// why the crowd is not what gets cut.
         public int Detail = (int)Ledger.Core.Detail.Default;
@@ -75,7 +83,7 @@ namespace Ledger.Game
                 { "voice", VoiceVolume }, { "captions", Captions },
                 { "textScale", TextScalePercent }, { "colourblind", ColourblindSafe },
                 { "sensitivity", MouseSensitivity }, { "grain", GrainAmount },
-                { "detail", Detail },
+                { "detail", Detail }, { "renderScale", RenderScalePercent },
                 { "showOdds", ShowOdds },
                 { "keys", keys },
             });
@@ -101,6 +109,9 @@ namespace Ledger.Game
                 s.MouseSensitivity = Num(root, "sensitivity", s.MouseSensitivity);
                 s.GrainAmount = Num(root, "grain", s.GrainAmount);
                 s.Detail = (int)Num(root, "detail", s.Detail);
+                // Absent in every file written before the option existed, so
+                // the 100 default survives the round trip.
+                s.RenderScalePercent = (int)Num(root, "renderScale", s.RenderScalePercent);
                 s.ShowOdds = !root.TryGetValue("showOdds", out var so) || !(so is bool sb) || sb;
                 var keys = MiniJson.GetObject(root, "keys");
                 if (keys != null)

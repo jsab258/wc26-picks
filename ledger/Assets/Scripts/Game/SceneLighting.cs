@@ -112,7 +112,33 @@ namespace Ledger.Game
                 (float)Ledger.Core.Detail.ShadowDistance(
                     Ledger.Core.Detail.Parse(GameSettings.Current.Detail));
             LightShaft.ApplyPreset();
+            ApplyRenderScale();
         }
+
+        /// THE ONE LEVER A RETINA LAPTOP NEEDS. The post stack is priced per
+        /// pixel and is not reduced by the graphics preset at all, so on a
+        /// MacBook Air panel (~4.3 million pixels) the preset alone cannot
+        /// buy the frame back. 75% is half the pixel cost for a softness
+        /// that is hard to spot in motion; 55% is a third.
+        ///
+        /// The 100% BASELINE IS CAPTURED, not asked of the display: what the
+        /// game launched at, in real backbuffer pixels, is what "native"
+        /// means on this machine — display-mode queries on macOS disagree
+        /// about points versus pixels across Unity versions, and a captured
+        /// number cannot. Never in the sim: its stills are rendered into
+        /// RenderTextures at fixed sizes, and this must stay a fact about
+        /// the player's screen, not about the instrument.
+        public static void ApplyRenderScale()
+        {
+            if (SimMode.Days > 0 || Application.isBatchMode) return;
+            if (_baseW == 0) { _baseW = Screen.width; _baseH = Screen.height; }
+            int pct = Mathf.Clamp(GameSettings.Current.RenderScalePercent, 50, 100);
+            int w = Mathf.Max(960, _baseW * pct / 100);
+            int h = Mathf.Max(540, _baseH * pct / 100);
+            if (Screen.width == w && Screen.height == h) return;
+            Screen.SetResolution(w, h, Screen.fullScreenMode);
+        }
+        static int _baseW, _baseH;
 
         void LateUpdate()
         {

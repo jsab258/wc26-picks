@@ -88,7 +88,15 @@ namespace Ledger.Game
 
         void BuildOptions()
         {
-            _optionsPanel = Panel(_canvas, "Options", new Vector2(760, 620));
+            // 960 TALL, COMPUTED FROM THE ROWS, because 620 never was: Place
+            // pivots every row at its top edge, and the y-chain below reaches
+            // -820 before the Controls button — so the last two toggles, the
+            // text-size note and Controls have been hanging below the panel
+            // background, floating over the shade, since this screen was
+            // built. Measured from the layout arithmetic, not from a
+            // screenshot (no gate looks at this screen); the Tuesday smoke
+            // test is the eyes on it.
+            _optionsPanel = Panel(_canvas, "Options", new Vector2(760, 960));
             var s = GameSettings.Current;
 
             Label(_optionsPanel.transform, "O P T I O N S", new Vector2(0.5f, 1), new Vector2(0, -22),
@@ -151,6 +159,24 @@ namespace Ledger.Game
                     // restart to show anything is a setting the player cannot
                     // tune against their own frame rate, which is the entire
                     // point of it being here.
+                    SceneLighting.ApplyQuality();
+                }); y -= 84;
+
+            // RENDER SCALE, the lever the graphics preset does not hold: the
+            // post stack is priced per pixel and the preset never touches
+            // pixel count. Same three-stop grammar; the note says what each
+            // stop buys, in pixels, because "Fast" on its own tells a player
+            // nothing they can act on.
+            _scaleNote = Label(_optionsPanel.transform, ScaleNote(s.RenderScalePercent),
+                new Vector2(0.5f, 1), new Vector2(0, y - 34), new Vector2(660, 26),
+                Typography.Small, TextAnchor.UpperCenter);
+            _scaleNote.color = UiTheme.Dim;
+            MenuSlider(_optionsPanel.transform, "Render scale", y, ScaleStop(s.RenderScalePercent) / 2f,
+                v =>
+                {
+                    int stop = Mathf.RoundToInt(Mathf.Clamp01(v) * 2f);
+                    s.RenderScalePercent = stop == 0 ? 55 : stop == 1 ? 75 : 100;
+                    if (_scaleNote != null) _scaleNote.text = ScaleNote(s.RenderScalePercent);
                     SceneLighting.ApplyQuality();
                 }); y -= 84;
 
@@ -324,6 +350,17 @@ namespace Ledger.Game
 
         Text _detailNote;
         Text _captionNote;
+        Text _scaleNote;
+
+        /// Which of the three stops a saved percent belongs to. Thresholds
+        /// rather than equality so a hand-edited settings file (say, 80)
+        /// still lands on a sensible stop instead of crashing the slider.
+        static int ScaleStop(int pct) => pct >= 100 ? 2 : pct >= 75 ? 1 : 0;
+
+        static string ScaleNote(int pct) =>
+            pct >= 100 ? "Native. Every pixel your screen has."
+            : pct >= 75 ? "Balanced. About half the pixels; hard to spot in motion."
+            : "Fast. A third of the pixels; visibly softer, much quicker.";
 
         /// What each stop actually buys, in the same spirit as the graphics
         /// note: "Speech" tells a player nothing they can act on, and "the

@@ -43,6 +43,11 @@ namespace Ledger.Game
             // Settings and sound come up before anything else; the self-test
             // skips the front end entirely and drops straight into the city.
             UiTheme.SetColourblind(GameSettings.Current.ColourblindSafe);
+            // The saved render scale applies at the front door, not on first
+            // entering the city — a relaunch that ran the menu at native and
+            // then dropped resolution mid-fade would read as something
+            // breaking. Guarded inside against sim and batch runs.
+            SceneLighting.ApplyRenderScale();
             Audio.Initialize();
             // AND THE CAPTION BAR, here rather than lazily on the first
             // caption. Two of the three channels it carries — the street
