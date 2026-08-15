@@ -1,32 +1,35 @@
 name: LEDGER macOS build
 
-# DOES IT COMPILE ON A MAC — that is the entire question this answers.
+# DOES IT COMPILE ON A MAC, AND DOES THE ARTIFACT ACTUALLY LAUNCH — since
+# 15 Aug the second half is the point: the playtest machine is a MacBook
+# Air, so this artifact is the one three people will play on Wednesday.
 #
-# Nothing in Assets/Scripts is Windows-specific: no platform `#if`, no `.exe`
-# assumption, no Win32 API, built-in render pipeline and one custom unlit
-# shader. So macOS "should" work, and "should" is the exact shape of claim
-# this project has spent a week catching itself making. The only way it
-# becomes a fact is to run the compiler on a mac.
+# Nothing in Assets/Scripts is Windows-specific: no platform `#if`, no .exe
+# assumption, no Win32 API, built-in render pipeline, Metal-safe shaders.
+# That was verified by audit on 15 Aug, not assumed.
 #
-# NO SIMULATION STEP, deliberately. The nine-day sim and every pixel gate
-# runs on Windows and takes twenty-odd minutes; macOS runners bill at ten
-# times the rate of Linux, so paying for a second copy of a gate that is
-# already green buys nothing. What is NOT already covered is whether the
-# thing links and produces a .app, and that is what runs here.
+# NO SIMULATION STEP, deliberately. The sim and every pixel gate run on
+# Windows; macOS runners bill at ten times the Linux rate, so paying for a
+# second copy of a green gate buys nothing. What is NOT covered elsewhere
+# is whether the thing links, produces a .app, and survives the trip to a
+# real machine — which is what runs here.
 #
-# TRIGGERED NARROWLY. `workflow_dispatch` only fires for workflows on the
-# DEFAULT branch, and this lives on a feature branch — the dispatch API
-# answers 404, which reads like the file is missing rather than like it is in
-# the wrong place. So there is a push trigger, scoped to the two files that
-# can change the answer, rather than to the whole script tree: a mac build on
-# every commit would burn the minutes allowance for a result that almost
-# never differs.
+# THE TRIGGER WATCHES THE BLIND SPOTS THAT BIT. On 4 Aug this fired only on
+# two paths, so three days and 252 files accumulated unbuilt — including
+# 223 MB of new character FBX — and were cashed in one run that failed on a
+# compile error found days earlier by the Windows job. Editor/** and
+# Characters/** are now watched; Scripts changes still ride on dispatch,
+# because a mac build per push would contend the single Personal licence
+# seat with every Windows dispatch. (The old comment here claimed dispatch
+# 404s from a feature branch; a dispatch on 15 Aug returned 204 and ran, so
+# that claim was stale and is retired.)
 on:
   push:
     branches: [claude/game-dev-ai-automation-2h67ix]
     paths:
       - ".github/workflows/ledger-build-mac.yml"
-      - "ledger/Assets/Editor/CiBuild.cs"
+      - "ledger/Assets/Editor/**"
+      - "ledger/Assets/Characters/**"
   workflow_dispatch:
 
 jobs:
@@ -35,7 +38,7 @@ jobs:
     timeout-minutes: 70
     steps:
       - uses: actions/checkout@v4
-        timeout-minutes: 2
+        timeout-minutes: 4
         with:
           persist-credentials: false
 
@@ -57,7 +60,26 @@ jobs:
           version-file: ledger/ProjectSettings/ProjectVersion.txt
           build-targets: StandaloneOSX
 
+      # TWO ATTEMPTS, LIKE WINDOWS HAS HAD SINCE 4 AUG. The Personal licence
+      # is one seat; on 4 Aug two Windows builds died here five seconds in,
+      # and the retry landed on that workflow the same morning. This job
+      # never got it, so any seat contention was an instant red mac build.
       - name: Activate Unity license
+        id: license1
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: buildalon/activate-unity-license@v2
+        with:
+          license: Personal
+          username: ${{ secrets.UNITY_EMAIL }}
+          password: ${{ secrets.UNITY_PASSWORD }}
+
+      - name: Wait for a licence seat
+        if: steps.license1.outcome == 'failure'
+        run: sleep 45
+
+      - name: Activate Unity license (second attempt)
+        if: steps.license1.outcome == 'failure'
         timeout-minutes: 2
         uses: buildalon/activate-unity-license@v2
         with:
@@ -66,23 +88,37 @@ jobs:
           password: ${{ secrets.UNITY_PASSWORD }}
 
       - name: Build player
-        timeout-minutes: 20
+        timeout-minutes: 30
         run: |
           set -o pipefail
           mkdir -p build-log
           # `-logFile -` and tee, for the reason the Windows job documents at
           # length: redirecting to a file makes Unity exit in four seconds
           # without ever writing it.
+          #
+          # `|| code=$?` IS THE WHOLE FIX ON THIS LINE. Actions runs this
+          # script with `-e`, so a bare failing pipeline terminated the step
+          # before `code=$?` was ever assigned — the diagnostics block below
+          # was dead code from the day it was written, and the only reason
+          # the 4 Aug compile errors surfaced at all was the always-run
+          # Verdict step doing its own grep. Now the failure is caught, the
+          # block runs, and the step reports its own cause.
+          code=0
           "$UNITY_EDITOR_PATH" -quit -batchmode -nographics \
             -projectPath ledger \
             -buildTarget OSXUniversal \
             -executeMethod Ledger.EditorTools.CiBuild.BuildMac \
-            -logFile - | tee build-log/unity.log > /dev/null
-          code=$?
+            -logFile - | tee build-log/unity.log > /dev/null || code=$?
           if [ $code -ne 0 ]; then
             echo "=== compile errors ==="
             grep -E 'error CS|Compilation failed|error:' build-log/unity.log | head -40 \
               || tail -60 build-log/unity.log
+            {
+              echo "## macOS build FAILED"
+              echo '```'
+              grep -E 'error CS|Compilation failed' build-log/unity.log | head -20 || true
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
             exit $code
           fi
           grep -E 'Shader error|Shader warning in' build-log/unity.log | head -20 || true
@@ -97,13 +133,35 @@ jobs:
           test -x "$app/Contents/MacOS/LEDGER" || {
             echo "=== .app has no executable ==="; find "$app" -maxdepth 3 | head -40; exit 1; }
           echo "built: $(du -sh "$app" | cut -f1)"
+          # WHICH CPUs THIS RUNS ON, printed where it can be read. Nothing
+          # pins the architecture (no ProjectSettings.asset), so whether the
+          # playtest MacBook gets native arm64 or Rosetta is whatever Unity
+          # defaulted to — a fact worth a line, not a guess.
+          echo "architectures: $(lipo -archs "$app/Contents/MacOS/LEDGER" 2>/dev/null || echo unreadable)"
+
+      # ZIPPED HERE, BEFORE UPLOAD, OR THE APP CANNOT LAUNCH. upload-artifact
+      # does not preserve POSIX permission bits, so the executable this job
+      # just test -x'd arrives on the other side without +x — the artifact
+      # passed its own check and shipped broken. `ditto -c -k` is Apple's own
+      # tool for exactly this; the exec bit survives inside the zip and
+      # macOS Archive Utility restores it on extraction. (The download is an
+      # artifact zip CONTAINING this zip: unzip twice, then right-click →
+      # Open for Gatekeeper. The runbook carries the steps.)
+      - name: Zip the .app with its permissions
+        if: always()
+        run: |
+          if [ -d ledger/build/LEDGER-mac/LEDGER.app ]; then
+            cd ledger/build/LEDGER-mac
+            ditto -c -k --sequesterRsrc --keepParent LEDGER.app LEDGER-mac.zip
+            du -sh LEDGER-mac.zip
+          fi
 
       - uses: actions/upload-artifact@v4
         timeout-minutes: 10
         if: always()
         with:
           name: LEDGER-macOS
-          path: ledger/build/LEDGER-mac
+          path: ledger/build/LEDGER-mac/LEDGER-mac.zip
           retention-days: 14
 
       - name: Verdict
@@ -112,6 +170,7 @@ jobs:
           echo "=== LEDGER macOS VERDICT ==="
           if [ -d ledger/build/LEDGER-mac/LEDGER.app ]; then
             echo "macOS builds. $(du -sh ledger/build/LEDGER-mac/LEDGER.app | cut -f1)"
+            echo "## macOS build OK — $(du -sh ledger/build/LEDGER-mac/LEDGER.app | cut -f1), $(lipo -archs ledger/build/LEDGER-mac/LEDGER.app/Contents/MacOS/LEDGER 2>/dev/null || echo '?')" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "macOS did NOT build"
             grep -E 'error CS' build-log/unity.log | head -3 || true
