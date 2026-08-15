@@ -36,7 +36,11 @@ __pycache__/
 mixamo_token.txt
 ledger-mixamo/
 tools/mixamo-pick/animations/
-characters_available.txt
+# characters_available.txt is TRACKED now, deliberately. It is the complete
+# list of bodies Jafar's Mixamo account can see, and while it was ignored
+# every body pick in this project was made blind, from remembered names —
+# which is how a catwalk sashay and two grey mannequins got cast. The
+# animation side has `_catalogue.txt` for exactly this reason.
 ledger/.verify-footer
 
 # The ONNX export probe's output — .onnx files, per-part results and the

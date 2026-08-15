@@ -92,10 +92,36 @@ WANTS = [
     ("hands_up",     "B", [r"\bsurrender\b", r"\bhands up\b", r"^defeat\b",
                            r"\bdefeated\b"]),
     ("back_away",    "B", [r"\bwalk(ing)? backward", r"\bstanding dodge backward\b"]),
-    ("walk_start",   "B", [r"\bwalk(ing)? start\b", r"\bstart walking\b"]),
-    ("walk_stop",    "B", [r"\bwalk(ing)? stop\b", r"\bstop walking\b"]),
+    # EXACT PHRASE FIRST, or the catwalk wins. `\bwalk(ing)? start\b`
+    # matches "Catwalk Walk Start Turn 180 Left" — "catwalk" ENDS in
+    # "walk", so the word boundary passes — and pattern order decided the
+    # pick before "Start Walking" was ever tried. Depth 0 then recorded it
+    # `exact: true`, so a fashion-runway sashay shipped as the town's
+    # walk-start with nothing flagging it. Anchored plain forms go first;
+    # the loose form stays as the fallback it should have been.
+    ("walk_start",   "B", [r"^start walking\b", r"\bstart walking\b",
+                           r"\bwalk(ing)? start\b"]),
+    ("walk_stop",    "B", [r"^stop walking\b", r"\bstop walking\b",
+                           r"\bwalk(ing)? stop\b"]),
     ("stairs_up",    "B", [r"\bascending stairs\b"]),
     ("stairs_down",  "B", [r"\bdescending stairs\b"]),
+
+    # ---- TIER B2: the street stops walking in lockstep (playtest push).
+    # Every name below was verified present in `_catalogue.txt` on 15 Aug
+    # before being asked for — these are reads of the harvest, not guesses.
+    ("walk_old",     "B", [r"^old man walk\b"]),
+    ("idle_old",     "B", [r"^old man idle\b"]),
+    ("walk_start_f", "B", [r"^female start walking\b"]),
+    ("walk_stop_f",  "B", [r"^female stop walking\b"]),
+    ("lean_wall",    "B", [r"^leaning on a wall\b", r"\bone shoulder lean\b"]),
+    ("carry",        "B", [r"^carrying\b"]),
+    ("carry_bag",    "B", [r"^walking with shopping bag\b"]),
+    ("idle_bored",   "B", [r"^bored\b"]),
+    ("idle_2",       "B", [r"^standing idle 0?1\b", r"^neutral idle\b"]),
+    ("argue",        "B", [r"^standing arguing\b"]),
+    # Payphones exist in this world; pocket phones do not. The pattern is
+    # anchored so "Talking On A Cell Phone" and "Texting" can never match.
+    ("phone_box",    "B", [r"^talking on phone\b"]),
 
     # ---- TIER C: life, and the end -------------------------------------
     ("sit",          "C", [r"\bsitting idle\b", r"^sitting\b"]),

@@ -27,44 +27,26 @@ CLAUDE.md under AUTO MODE.
 
 ## Now
 
-### LIVE SPEECH — WHERE IT STANDS, 13 AUGUST
+### THE PLAYTEST PUSH OWNS THE QUEUE UNTIL WEDNESDAY 19 AUGUST.
+**The plan is `playtest-plan.md`** — MacBook Air, three players, four
+days. Order there wins over order here. Everything below stands but
+YIELDS: live speech is parked (no DirectML on the machine), the visual
+and playability work in the plan takes every slot. The deterministic
+retry design, the constant-gate plants and the frame-gate CPU work
+resume Thursday.
 
-**PROVEN.** The three whole-line graphs run on Jafar's card and produce a
-voice he approved by ear twice — one line, then five in two voices, a
-line ~5.2s for 4.1s of speech. **GUIDANCE STAYS AND SHIPS** (`--rows 2`,
-the exporter's default): no-guidance is 1.5× faster per STEP and loses
-it per LINE, because the model without its second opinion generates more
-tokens for the same words — "No." came out 19 tokens guided and 46
-unguided, which Jafar heard blind as "slowed, stretched". This file said
-the opposite for a day and I quoted it forward on 13 Aug before checking
-`1c2afb2`, which is rule 1 exactly: my own doc is not evidence.
-Startup is 38s, not the 178 this file
-claimed for a day (the four-step solver cut it and nobody re-measured),
-and the cause is 1.3GB of weights rather than DirectML (CPU opens it in
-39.5s) or graph optimisation (disabling costs 59s). It blocks nothing
-now: opening moved off the main thread.
+### LIVE SPEECH — WHERE IT STANDS, 13 AUGUST *(parked for the playtest)*
 
-**THE C# SIDE HAS NOW MADE A SOUND — 13 Aug, `csharp-speaks-3`.** For
-the whole project until this run, `speechStarted=0 speechSpoken=0` in
-every recorded verdict: the game had asked for live speech and been
-refused for want of a model every time, and Python driving the graphs is
-not the game driving them. `SpeechBench` opens `OnnxSpeech` and runs
-`SpeechLoop.Run` — the game's own class, the game's own loop — against
-the real graphs on the RX 6700: `stop=Finished tokens=80 steps=81`,
-76800 samples, 3.2s of audio for 4.37s of work, and a real waveform
-(peak 27857, rms 2702, 43% near-silence).
-Awaiting Jafar's ears — it speaks Rocco's Thursday line, the same one he
-approved whole and rejected streamed, so the doubling fault has a direct
-comparison.
+**PROVEN.** The whole-line graphs run on Jafar's card in a voice he
+approved twice; ~5.2s per 4.1s line; guidance ships at `--rows 2` (the
+unguided model inflates short lines — measured in `1c2afb2`); startup
+38s, off the main thread, weights-bound.
 
-**TWO NUMBERS FROM THAT RUN WANT READING.** The bound step is FLAT —
-`pos10=17.2 pos100=17.4 pos200=17.3 pos400=17.2`, fit `17.3ms+-0us/pos`
-— against the host path's `35.1ms+157us/pos`. Long lines therefore cost
-no more per step than short ones, which is the thing device-resident KV
-was for. And decode came in at 2.80s where the Python whole-line path
-measures 1.6s; the obvious suspect is first-call warmup on the decode
-graph in a fresh process, and it is a suspicion, not a measurement —
-the bench decodes exactly once so it cannot tell warmup from cost.
+**THE C# SIDE SPEAKS — 13 Aug.** `SpeechBench` runs the game's own
+`OnnxSpeech`/`SpeechLoop.Run` on the card: five lines, three voices, no
+pops after the feather, ~1.1x realtime; bound step FLAT at 17.2ms/pos
+against host 35ms+157us/pos; the 2.8s decode was first-call warmup
+(1.5s steady, measured over five).
 
 **WHAT IS STILL UNPROVEN: any of this inside Unity.** No build has ever
 carried the graphs. `put-voices-in-build.py` (landed 13 Aug, selftested
@@ -94,13 +76,26 @@ the "ah ... No." was split, measured, and confirmed by his ear. What is
 wrong is the CAUSE and everything built on it. It is intermittent, it
 can happen to any voice, and no casting decision reaches it.
 
-**SO THE FIX IS DETECT AND RETRY, not casting.** A render whose length
-is wildly out of proportion to its text is a bad draw, and the loop
-already owns the decision to keep or discard — it has a deadline and a
-usability test. Regenerating a line that came out three times too long
-costs one more pass and is the only lever that works on something
-random. The threshold wants a SERIES per voice first, which is the
-thing this whole episode existed to teach.
+**CLOSED 15 Aug: THE SERIES LANDED AND THE PICTURE IS COMPLETE — OUR
+SAMPLER IS DETERMINISTIC, SO THE "ah" IS PERMANENT PER LINE, AND SO IS
+THE FIX.** Twenty draws of "No." as Rocco through chatterbox: 0.52–1.00,
+median 0.76, no outlier. Twenty draws through OUR path: **1.40 twenty
+times, identical.** `VoiceBank.Seed(voice, text)` fixes the draw by
+design (audit item 5: same inputs, same take), so per (voice, line)
+there is no distribution — one draw, replayed forever. Rocco's "No."
+deterministically carries the filler; chatterbox re-rolls each time and
+usually misses it. The 23-voice sweep was therefore RIGHT about our
+pipeline: four (voice, word) pairs are permanently padded, and the
+retraction stands only for the claim that the VOICES were at fault.
+
+**DETECT AND RETRY, WITH THE SEED PERTURBED — retrying the same seed
+replays the same render forever.** `SpeechLoop` owns keep-or-discard; a
+render wildly long for its text re-rolls with seed+attempt, and because
+the system is deterministic, one good draw is permanently good. Bound
+from the two series in `repeat-rocco.txt` / the bench log: chatterbox
+never exceeded 2.0x its median; our bad draw sits at 1.84x the good
+path's median. PARKED until after the playtest — live speech does not
+run on the Mac.
 
 **STREAMING IS CLOSED.** Block attention makes a chunk's audio final on
 the small model exactly, but on the shipped weights the render moved

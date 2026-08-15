@@ -57,7 +57,9 @@ BASE = "https://www.mixamo.com/api/v1"
 #
 # These are Mixamo's free rigged humans in ordinary clothes. Neutral matters
 # more than striking: no armour, no capes, no stylised proportions, because
-# LEDGER is a 1950s port town and a silhouette has to read as a person in a
+# LEDGER is a LATE-ANALOG (1980s/90s) British port town — the decade in
+# this comment steered picks toward the wrong century once already, and
+# CLAUDE.md section 0 exists because of it. A silhouette has to read as a person in a
 # coat. Zombies, mutants and the sci-fi soldiers are skipped for the same
 # reason.
 #
