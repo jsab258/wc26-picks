@@ -137,7 +137,14 @@ namespace Ledger.Game
         /// An ART value, iterated against committed stills — not a measured
         /// constant. If the street goes garish the lever is here, in one
         /// place, and the stills are the judge.
-        static readonly Color TextureGrade = new Color(0.82f, 0.84f, 0.88f, 1f);
+        ///
+        /// ITERATION 2, from run edbce5b's numbers: at 0.82/0.84/0.88 the
+        /// noon frames came back meanLuma 0.44-0.49 with 40-48% of pixels
+        /// bright on three of ten days — pavements reading seaside-morning
+        /// white, not overcast port. Ten percent down. Night barely moves
+        /// (lamps and emission own it) and the textures stay ~4x the crushed
+        /// albedo this replaced, so nothing goes back to greybox.
+        static readonly Color TextureGrade = new Color(0.74f, 0.76f, 0.80f, 1f);
 
         static Material BuildMaterial(string logical)
         {
