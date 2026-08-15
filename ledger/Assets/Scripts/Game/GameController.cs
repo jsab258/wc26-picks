@@ -973,31 +973,47 @@ namespace Ledger.Game
                 var line = BarkFor(name);
                 if (line == null) continue;
                 _barkDay[name] = Now.Day;
-                _ui.Toast(line, 5f);
+                // AMBIENT: a bark is colour of its moment. It must never eat
+                // a queued beat, and a bark held back until the queue drains
+                // would land about somebody who has already walked away — so
+                // it is dropped, not delayed (the Toast comment carries the
+                // policy).
+                _ui.Toast(line, 5f, ambient: true);
                 break; // one voice per pass
             }
         }
 
-        // First-morning onboarding: three lines, diegetic in tone, never in sim.
+        // First-morning onboarding: four lines, diegetic in tone, never in
+        // sim. Movement first — the playtest plan's research found the game
+        // taught talking before it ever taught WALKING, and a first-time
+        // player on a borrowed laptop starts by standing still. Every key is
+        // printed from the live binding, not the default letter: the prompt
+        // is read at the exact moment a player trusts it most.
         int _onboardStep;
 
         void CheckOnboarding()
         {
             if (SimMode.Days > 0 || Now.Day != 1 || _ui == null) return;
-            if (_onboardStep == 0 && (Now.Hour > 9 || (Now.Hour == 9 && Now.Minute >= 10)))
+            var keys = GameSettings.Current;
+            if (_onboardStep == 0 && (Now.Hour > 9 || (Now.Hour == 9 && Now.Minute >= 2)))
             {
                 _onboardStep = 1;
-                _ui.Toast("The pub is yours now. Walk up to anyone and press E to talk — they remember.", 9f);
+                _ui.Toast("Your feet know the way: WASD walks, Shift runs. The street watches whoever is moving.", 8f);
             }
-            else if (_onboardStep == 1 && Now.Hour >= 10)
+            else if (_onboardStep == 1 && (Now.Hour > 9 || (Now.Hour == 9 && Now.Minute >= 10)))
             {
                 _onboardStep = 2;
-                _ui.Toast("Press L for your ledger: what you believe the street knows about you — and what you hold over it.", 9f);
+                _ui.Toast($"The pub is yours now. Walk up to anyone and press {keys.Key("Talk")} to talk — they remember.", 9f);
             }
-            else if (_onboardStep == 2 && Now.Hour >= 12)
+            else if (_onboardStep == 2 && Now.Hour >= 10)
             {
                 _onboardStep = 3;
-                _ui.Toast("Tonight the outfit will want its first drop made. C toggles the runner's coat — harder to name in the dark, harder to explain in daylight.", 10f);
+                _ui.Toast($"Press {keys.Key("Ledger")} for your ledger: what you believe the street knows about you — and what you hold over it.", 9f);
+            }
+            else if (_onboardStep == 3 && Now.Hour >= 12)
+            {
+                _onboardStep = 4;
+                _ui.Toast($"Tonight the outfit will want its first drop made. {keys.Key("Coat")} toggles the runner's coat — harder to name in the dark, harder to explain in daylight.", 10f);
             }
         }
 

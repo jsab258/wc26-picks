@@ -1353,7 +1353,24 @@ namespace Ledger.Game
                     (_game.WearingCoat ? $"   <color={UiTheme.HexAmber}>In the coat.</color>" : "");
             }
 
-            if (_toastUntil > 0f && Time.unscaledTime > _toastUntil) { _toastText.text = ""; _toastUntil = 0f; }
+            // Toast expiry, then the queue: a short blank between lines so a
+            // new one reads as a new one rather than as the text mutating.
+            if (_toastUntil > 0f && Time.unscaledTime > _toastUntil)
+            {
+                _toastText.text = "";
+                _toastUntil = 0f;
+                if (_toastQueue.Count > 0) _toastBlankUntil = Time.unscaledTime + 0.35f;
+            }
+            if (_toastBlankUntil > 0f && Time.unscaledTime > _toastBlankUntil && _toastUntil == 0f)
+            {
+                _toastBlankUntil = 0f;
+                if (_toastQueue.Count > 0)
+                {
+                    var (queuedLine, queuedSeconds) = _toastQueue.Dequeue();
+                    _toastText.text = queuedLine;
+                    _toastUntil = Time.unscaledTime + queuedSeconds;
+                }
+            }
 
             if (_endPanel != null)
             {
@@ -1405,7 +1422,10 @@ namespace Ledger.Game
             bool coatBusy = _coatVerb.Phase != VerbPhase.Idle;
             _promptText.text =
                 coatBusy ? CoatLine()
-                : offering ? $"Press E to talk to {_nearest.Card.Name}" : "";
+                // The BOUND key, not the letter E: nine keys are rebindable
+                // and a prompt that names the default teaches a rebound
+                // player the wrong button in the exact moment they trust it.
+                : offering ? $"Press {GameSettings.Current.Key("Talk")} to talk to {_nearest.Card.Name}" : "";
 
             // AND IT FADES (§6). A prompt that pops is the single most common
             // tell that a game's interface was bolted on rather than staged.
@@ -1667,11 +1687,31 @@ namespace Ledger.Game
             return (_game.WearingCoat ? "Shrugging off the coat  " : "Pulling on the coat  ") + bar;
         }
 
-        public void Toast(string line, float seconds = 7f)
+        /// QUEUED, since 15 Aug. This was one slot, last-writer-wins, and the
+        /// writers did not know about each other: a street bark five seconds
+        /// after an onboarding beat erased the beat, and the day-turn summary
+        /// fired three Toasts in one frame of which only the last was ever
+        /// seen. Beats now queue (capped, oldest first, a short blank between
+        /// so a change reads as a change); AMBIENT lines — barks, colour that
+        /// is of its moment — are dropped instead of queued when anything is
+        /// showing or waiting, because a bark delivered a minute late about
+        /// somebody who has walked away is worse than no bark.
+        public void Toast(string line, float seconds = 7f, bool ambient = false)
         {
+            bool busy = (_toastUntil > 0f && Time.unscaledTime <= _toastUntil)
+                        || _toastQueue.Count > 0 || _toastBlankUntil > 0f;
+            if (busy)
+            {
+                if (ambient) return;
+                if (_toastQueue.Count < 5) _toastQueue.Enqueue((line, seconds));
+                return;
+            }
             _toastText.text = line;
             _toastUntil = Time.unscaledTime + seconds;
         }
+        readonly Queue<(string line, float seconds)> _toastQueue
+            = new Queue<(string, float)>();
+        float _toastBlankUntil;
 
         /// The week is over, one way or another. Freezes play input and offers restart.
         /// A won week earns PP7 first — Lena's question over the true books — and
