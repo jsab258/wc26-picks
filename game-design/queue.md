@@ -35,105 +35,34 @@ and playability work in the plan takes every slot. The deterministic
 retry design, the constant-gate plants and the frame-gate CPU work
 resume Thursday.
 
-**Sat 15 Aug evening: the plan's Saturday AND Sunday batches are code-
-complete and verified green** (sky, texture grade, facades, mannequins
-out, cursor lock, memory wipe on New game/R, restart fixes, quit-save,
-café-wifi timeout, chips skip the router, Medium first-run default with
-the sim pinned High). What remains of the Sunday page: dispatch, then
-JUDGE THE GRADE ON THE STILLS and iterate the one constant if the
-street reads muddy or garish. Next after that, from the plan's Monday
-page (no Jafar needed): the resolution/render-scale option, post-stack
-cost on Low/Medium, onboarding toasts + bound-key names.
+**Sat 15 Aug, end of night: Saturday page done, Sunday page done AND
+JUDGED, most of Monday's no-Jafar items done early.** Run edbce5b
+proved the batch (Skybox live, bodyChoices=8, tposeBodies=0, preset
+probe passing, errors=0) and answered the grade question in numbers:
+noon meanLuma 0.44-0.49 with 40-48% bright pixels — overshot into
+seaside-morning. Iteration 2 (grade 0.74/0.76/0.80) is IN FLIGHT on
+cdef923; judge its stills the same way (lumaPairs + brightPct + eyes).
+Also landed tonight: render scale option (+ the options panel height
+fix), post stack joined the preset (AO's DepthNormals prepass gated),
+toast queue + ambient barks, onboarding teaches walking first with
+live bindings, PLAYTEST-RUNBOOK.md drafted, and the two-week-old £/$
+harness red fixed (core tests green again). Still open before Wed:
+judge cdef923's stills; Jafar's Mixamo session then per-physique
+controllers; Tuesday freeze + final builds + smoke test. The glowing
+box in day2_night's plaza is the bar sign's bare back face — one-line
+material fix, queue it behind the playtest-critical work.
 
-### LIVE SPEECH — WHERE IT STANDS, 13 AUGUST *(parked for the playtest)*
+### LIVE SPEECH — PARKED until after the playtest (resume Thursday)
 
-**PROVEN.** The whole-line graphs run on Jafar's card in a voice he
-approved twice; ~5.2s per 4.1s line; guidance ships at `--rows 2` (the
-unguided model inflates short lines — measured in `1c2afb2`); startup
-38s, off the main thread, weights-bound.
-
-**THE C# SIDE SPEAKS — 13 Aug.** `SpeechBench` runs the game's own
-`OnnxSpeech`/`SpeechLoop.Run` on the card: five lines, three voices, no
-pops after the feather, ~1.1x realtime; bound step FLAT at 17.2ms/pos
-against host 35ms+157us/pos; the 2.8s decode was first-call warmup
-(1.5s steady, measured over five).
-
-**WHAT IS STILL UNPROVEN: any of this inside Unity.** No build has ever
-carried the graphs. `put-voices-in-build.py` (landed 13 Aug, selftested
-both ways) drops them into a downloaded build — the step nobody had
-written and the reason every build so far fell back to the bank. It has
-not been run against a real build yet.
-
-**RETRACTED — THE "ah" IS NOT FOUR VOICES. IT IS RANDOM, AND I BUILT A
-WHOLE DIAGNOSIS ON ONE SAMPLE EACH.** Rendering "No." in all 23 voices
-put four far outside the pack (rocco 1.40s against a 0.84s median) and I
-published that as a casting fault, wrote a tool to narrow shortlists,
-set a threshold from the distribution, and asked Jafar to consider
-re-casting a voice he had approved twice.
-
-Then the same six candidate files, measured an hour apart through the
-same code, came back 1.7x, 1.7x, 1.2x, **4.0x**, 1.5x and 1.3x longer.
-Candidate 4 went 0.80s to 3.20s. And the INSTALLED Rocco — the one the
-sweep called 1.40s — rendered in 0.60s, cleanly.
-
-Sampling is stochastic: temperature 0.8, no fixed seed, so every render
-is a fresh draw. ONE RENDER PER VOICE MEASURES THE DRAW, NOT THE VOICE.
-The four "bad" voices were four unlucky draws, and the audition's
-"clean" list was six lucky ones.
-
-**WHAT SURVIVES.** Jafar heard a real filler and it is really there —
-the "ah ... No." was split, measured, and confirmed by his ear. What is
-wrong is the CAUSE and everything built on it. It is intermittent, it
-can happen to any voice, and no casting decision reaches it.
-
-**CLOSED 15 Aug: THE SERIES LANDED AND THE PICTURE IS COMPLETE — OUR
-SAMPLER IS DETERMINISTIC, SO THE "ah" IS PERMANENT PER LINE, AND SO IS
-THE FIX.** Twenty draws of "No." as Rocco through chatterbox: 0.52–1.00,
-median 0.76, no outlier. Twenty draws through OUR path: **1.40 twenty
-times, identical.** `VoiceBank.Seed(voice, text)` fixes the draw by
-design (audit item 5: same inputs, same take), so per (voice, line)
-there is no distribution — one draw, replayed forever. Rocco's "No."
-deterministically carries the filler; chatterbox re-rolls each time and
-usually misses it. The 23-voice sweep was therefore RIGHT about our
-pipeline: four (voice, word) pairs are permanently padded, and the
-retraction stands only for the claim that the VOICES were at fault.
-
-**DETECT AND RETRY, WITH THE SEED PERTURBED — retrying the same seed
-replays the same render forever.** `SpeechLoop` owns keep-or-discard; a
-render wildly long for its text re-rolls with seed+attempt, and because
-the system is deterministic, one good draw is permanently good. Bound
-from the two series in `repeat-rocco.txt` / the bench log: chatterbox
-never exceeded 2.0x its median; our bad draw sits at 1.84x the good
-path's median. PARKED until after the playtest — live speech does not
-run on the Mac.
-
-**STREAMING IS CLOSED.** Block attention makes a chunk's audio final on
-the small model exactly, but on the shipped weights the render moved
-1.8 of full scale, the doubling Jafar heard SURVIVED, and the voice
-went robotic. These weights are offline-trained whatever the code
-retains. Full account in `chunked_attention`'s docstring. It buys
-nothing today anyway: five chunks cost 7.9s against 1.7s whole. fp16 is
-dead too — no faster, and overflowing.
-
-**THE CAST IS FOUR SHORT and the reason was a layer back**: Aldous,
-Danny, June and Zlata had no entry in the voice FETCHER, so no clip
-could be fetched and no voice picked; each drew a crowd voice silently.
-Entries added 13 Aug, and the fetch is queued as `fetch-four-voices` —
-the corpus is 403 from this container, so it runs on Jafar's machine,
-which is also the half that does not need him. **What is left for him
-is the half that does**: open `tools/voice-fetch/ledger-voices-out/`'s
-page, listen, type four numbers into `picks.txt`, run `--install`.
-
-**THE BANK'S "HOLES" WERE MOSTLY NOT HOLES — measured 13 Aug.**
-`speechNoClip=38` of which `speechNoClipComposed=31`: 82% of the misses
-are gossip TELLINGS, built as a template plus a rumour summary that is
-itself assembled at run time, so their clip name is new every time and
-no renderer can get ahead of them. The rumour half of the street — the
-part that says out loud what the social memory remembers, which is the
-moat — can only ever be voiced live. Seven misses were real and all
-seven were one fault: four bark lines edited for the slop check
-orphaned their recordings, now regenerated and guarded by
-`barks_current()`.
+The one-paragraph state, full accounts in the git log: the C# side
+speaks on Jafar's card (~1.1x realtime, pops fixed, cast complete at
+23 voices). The "ah" filler is a deterministic bad draw per
+(voice, line) — our sampler fixes the seed — so the fix is DETECT AND
+RETRY WITH THE SEED PERTURBED, designed, not built. Streaming and fp16
+are closed (worse, measured). `put-voices-in-build.py` is selftested
+but has never run against a real build — that is the first Thursday
+item. No live speech on the playtest Mac (no GPU): recorded bank only,
+and the verdict's speech keys already measure that path.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
