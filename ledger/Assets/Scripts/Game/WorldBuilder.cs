@@ -707,7 +707,11 @@ namespace Ledger.Game
         {
             float run = a1 - a0;
             if (run < 5f || depth < 3.4f) return;
-            float alleyAt = alleyT > 0f ? a0 + run * alleyT : float.MaxValue;
+            // No alley in a run that cannot afford one: a 3m mouth in a
+            // 12.8m row is a quarter of the block gone, and this map's
+            // blocks are all near that size (the second thing
+            // terraceParcels=58 taught).
+            float alleyAt = alleyT > 0f && run >= 14f ? a0 + run * alleyT : float.MaxValue;
             bool alleyCut = false;
 
             float x = a0;
@@ -720,7 +724,12 @@ namespace Ledger.Game
                     if (a1 - x < 4.5f) break;
                 }
 
-                float pw = 5.5f + 5.5f * (float)rng.NextDouble();
+                // A short run is ONE building filling all of it — this
+                // map's blocks mostly hold a single frontage per edge, and
+                // a 5.5-11m parcel lottery on a 12.8m run left slivers and
+                // gaps where a solid wall should be.
+                float remain = a1 - x;
+                float pw = remain <= 12.5f ? remain : 5.5f + 5.5f * (float)rng.NextDouble();
                 // Absorb a remainder too small to be a building into the
                 // last parcel — a 2m sliver of house is a rendering error.
                 if (a1 - (x + pw) < 4.5f) pw = a1 - x;
@@ -801,9 +810,14 @@ namespace Ledger.Game
             {
                 if (Mathf.Abs(pos.x - (float)place.X) < hx + 1.2f &&
                     Mathf.Abs(pos.z - (float)place.Z) < hz + 1.2f) return true;
+                // 0.3 and not 1.0: on blocks this small a metre of margin
+                // is the difference between a terrace that ABUTS the place
+                // building — one continuous frontage, which is what a real
+                // street does with its pub — and a block that stays empty
+                // because nothing may stand near the only thing in it.
                 if (PlaceMassOf(place, out var pp, out var ps) &&
-                    Mathf.Abs(pos.x - pp.x) < hx + ps.x / 2f + 1.0f &&
-                    Mathf.Abs(pos.z - pp.z) < hz + ps.z / 2f + 1.0f) return true;
+                    Mathf.Abs(pos.x - pp.x) < hx + ps.x / 2f + 0.3f &&
+                    Mathf.Abs(pos.z - pp.z) < hz + ps.z / 2f + 0.3f) return true;
             }
             return false;
         }
