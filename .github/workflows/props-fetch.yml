@@ -34,6 +34,14 @@ on:
       - "tools/props/fetch_props.py"
   workflow_dispatch:
 
+# WRITE, OR THE COMMIT STEP IS THEATRE. The repo's default workflow
+# token is read-only; the first run extracted forty-odd models, listed
+# every kit, committed cleanly — and then pushed six 403s and threw the
+# lot away. Both pushing workflows (citypack, windows) declare this;
+# this one forgot.
+permissions:
+  contents: write
+
 jobs:
   fetch-props:
     runs-on: ubuntu-latest

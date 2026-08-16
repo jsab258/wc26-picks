@@ -202,6 +202,18 @@ guard; saves are atomic with backups.
   no-key/no-net degrade is clean (street keeps talking); the F1 panel
   shows spend live.
 
+## Scope change, Sunday 16 Aug — Jafar: "textures and models have to
+## come before playtest. max polish."
+
+Models and texture detail move INTO the pre-Wednesday scope. Landed
+same morning: the CC0 model-kit pipeline end to end (fetch job,
+prefab ingestion, swap-in for traffic vehicles, benches and bins,
+every site keeping its primitive fallback) and normal maps end to end
+(fetch, pack check, runtime bump maps with the DXT5nm swizzle, shader
+variant kept). Both fetches run in CI; candidate model names are
+corrected from committed kit listings, then one Windows build judges
+meshes + relief + the settled grade together on stills.
+
 ## Explicitly out of scope until after the playtest
 
 Live speech on any platform, streaming, firearms (M23), credits/licence
