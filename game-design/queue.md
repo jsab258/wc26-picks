@@ -27,17 +27,20 @@ CLAUDE.md under AUTO MODE.
 
 ## Now
 
-### SUNDAY 16 AUG, AFTERNOON: THE TOWN PLAN OWNS THE QUEUE.
-Jafar approved `town-plan.md` ("go") after the step-back: the city's
-space was organised by geometry logic, not human logic, and no polish
-fixes an arrangement fault. Build order: T1 terraces + street ribbon
-+ legible zoning (behind `TownPlan.Enabled`, old paths preserved),
-then T2 ground-floor grammar, judged on `review_street.jpg` every
-build. TUESDAY NOON DECISION: stable → Wednesday ships the town;
-doubtful → flag back, Wednesday ships the proven world. The morning's
-max-polish work all landed and held: kit vehicles in town paints
-(propsPlaced=23), normal maps on all twelve surfaces, gait archetypes
-awaiting Jafar's Mixamo clips.
+### SUNDAY 16 AUG, MIDDAY: T1 LANDED AND JUDGED, T2 MOSTLY LANDED.
+Two town-plan builds in. T1 (terraces, street ribbon, give-way
+paint, skyline) judged on its stills: enclosure works at street
+level, sign furniture 545→77 across the two builds, no new gate
+failures. T2's first wave landed with it: name plates ON corner
+buildings (wallPlates=176), kit lamps with heads, K6 + pillar boxes,
+parked cars (136, half-on-kerb). Build 3 in flight carries roughness
+maps on walls, cables extended to the building line (they ended
+mid-air — both builds' skies showed floating scribbles), and the 2K
+pack. STILL OPEN in T2: shopfront fasciae with painted names,
+awnings wired to commercial sites, door steps/surrounds. TUESDAY
+NOON DECISION stands: stable → Wednesday ships the town; doubtful →
+flag back. Standing order (16 Aug, enforced via CLAUDE.md + the
+ladder below): best available result, not first working one.
 
 ### THE PLAYTEST PUSH OWNS THE QUEUE UNTIL WEDNESDAY 19 AUGUST.
 **The plan is `playtest-plan.md`** — MacBook Air, three players, four
@@ -313,7 +316,7 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 
 | aspect | rung now | known next rung, free |
 |---|---|---|
-| textures | 2K colour+normal+roughness fetching | wire roughness into materials; AO maps |
+| textures | 2K colour+normal landed; roughness wired on walls | ground roughness (SetWetness must drive _GlossMapScale); AO maps |
 | buildings | procedural terraces, photo surfaces | window reveals/sills relief; per-district trim |
 | vehicles | Kenney kit + town paints | curated higher-fidelity CC0 set (Quaternius/Sketchfab), same pipeline |
 | props | Kenney kits, partial coverage | fill the miss list (benches!); higher-tier swaps |
