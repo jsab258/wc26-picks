@@ -230,6 +230,8 @@ namespace Ledger.Game
             // (BuildBuildings, the name-plate wall finder) has run by now —
             // from here on the list is only consulted as obstacles.
             BuildParkedCars();
+            BuildSmoke();
+            BuildGulls();
         }
 
         /// Built-in-pipeline environment: gradient ambient + distance fog. The per-frame
@@ -1637,6 +1639,92 @@ namespace Ledger.Game
             int hh = 17;
             foreach (var ch in s) hh = hh * 31 + ch;
             return hh;
+        }
+
+        /// Chimneys that smoke, and how many do. TOWN-PLAN.MD T4: "a frame
+        /// with a dozen moving things reads alive", and smoke is the
+        /// cheapest of the dozen. A SUBSET smokes — every ninth stack —
+        /// because forty emitters is atmosphere and seven hundred is a
+        /// house fire, and the CI software rasteriser pays per pixel of
+        /// overdraw. Deterministic pick, so the same stacks smoke in every
+        /// still. Fails closed on a missing shader, like every effect here.
+        public static int SmokeStacks;
+
+        static void BuildSmoke()
+        {
+            SmokeStacks = 0;
+            if (!TownPlanEnabled) return;
+            var shader = Shader.Find("Hidden/LedgerSmoke");
+            if (shader == null) return;
+
+            // One soft radial sprite, shared by every emitter.
+            var tex = new Texture2D(64, 64, TextureFormat.RGBA32, true, true);
+            var px = new Color32[64 * 64];
+            for (int y = 0; y < 64; y++)
+                for (int x = 0; x < 64; x++)
+                {
+                    float d = Mathf.Sqrt((x - 31.5f) * (x - 31.5f) + (y - 31.5f) * (y - 31.5f)) / 30f;
+                    byte a = (byte)(255 * Mathf.Clamp01(1f - d) * Mathf.Clamp01(1f - d));
+                    px[y * 64 + x] = new Color32(255, 255, 255, a);
+                }
+            tex.SetPixels32(px); tex.Apply(true);
+            var smokeMat = new Material(shader) { mainTexture = tex };
+
+            int i = 0;
+            foreach (var (cpos, baseY) in TerraceChimneys)
+            {
+                if (i++ % 9 != 0) continue;
+                var go = new GameObject($"Smoke_{SmokeStacks}");
+                go.transform.position = cpos + new Vector3(0, baseY + 1.5f, 0);
+                var ps = go.AddComponent<ParticleSystem>();
+                var main = ps.main;
+                main.startLifetime = new ParticleSystem.MinMaxCurve(5f, 8f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(0.3f, 0.55f);
+                main.startSize = new ParticleSystem.MinMaxCurve(0.5f, 1.0f);
+                main.startColor = new Color(0.58f, 0.58f, 0.60f, 0.30f);
+                main.maxParticles = 12;
+                main.simulationSpace = ParticleSystemSimulationSpace.World;
+                var em = ps.emission;
+                em.rateOverTime = 1.4f;
+                var shape = ps.shape;
+                shape.shapeType = ParticleSystemShapeType.Cone;
+                shape.angle = 10f;
+                shape.radius = 0.16f;
+                // The prevailing wind, one direction for the whole town —
+                // smoke that disagrees with itself reads as a bug.
+                var vel = ps.velocityOverLifetime;
+                vel.enabled = true;
+                vel.x = 0.4f; vel.z = 0.18f;
+                var col = ps.colorOverLifetime;
+                col.enabled = true;
+                var g = new Gradient();
+                g.SetKeys(
+                    new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                    new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.55f, 0.15f),
+                            new GradientAlphaKey(0f, 1f) });
+                col.color = new ParticleSystem.MinMaxGradient(g);
+                var sol = ps.sizeOverLifetime;
+                sol.enabled = true;
+                sol.size = new ParticleSystem.MinMaxCurve(1f,
+                    new AnimationCurve(new Keyframe(0f, 0.4f), new Keyframe(1f, 1.6f)));
+                var rend = go.GetComponent<ParticleSystemRenderer>();
+                rend.sharedMaterial = smokeMat;
+                SmokeStacks++;
+            }
+        }
+
+        /// Gulls over the docks (town-plan T4). A handful of white shapes
+        /// on slow circles above Ironside and the quay line — the second
+        /// cheapest motion there is, and the one that says PORT from any
+        /// street in town. GullHost drives them all from one Update.
+        public static int Gulls;
+
+        static void BuildGulls()
+        {
+            Gulls = 0;
+            if (!TownPlanEnabled) return;
+            var host = new GameObject("Gulls").AddComponent<GullHost>();
+            Gulls = host.Build();
         }
 
         /// A K6 in boxes: red shell, domed cap in two steps, dark glazing on

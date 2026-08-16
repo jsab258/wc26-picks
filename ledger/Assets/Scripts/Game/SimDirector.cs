@@ -10711,6 +10711,7 @@ namespace Ledger.Game
                       // between a pipeline and a street (rule 6).
                       $"propsPlaced={AssetLibrary.PropsPlaced} " +
                       $"parkedCars={WorldBuilder.ParkedCars} shopNames={WorldBuilder.ShopNamesPainted} " +
+                      $"smokeStacks={WorldBuilder.SmokeStacks} gulls={WorldBuilder.Gulls} " +
                       // THE WALKERS' BODIES, counted separately because
                       // `RealBody.Attached` is restored after each one and
                       // therefore cannot see them. A walker body that
