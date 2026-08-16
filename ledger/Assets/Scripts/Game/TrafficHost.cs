@@ -620,7 +620,11 @@ namespace Ledger.Game
         /// port, and the lamps are what glow. Values sit above the old
         /// tint-crush floor — the kit texture averages bright, so the
         /// products land near the asphalt-to-wardrobe band, not below it.
-        static readonly Color[] KitPaints =
+        /// PUBLIC because the parked cars (WorldBuilder) read the same
+        /// table — one palette for every car in town, moving or not.
+        /// They reach it as GameController.KitPaints: this file declares
+        /// partial GameController, not a TrafficHost type.
+        public static readonly Color[] KitPaints =
         {
             new Color(0.16f, 0.18f, 0.24f),   // navy
             new Color(0.12f, 0.12f, 0.13f),   // black

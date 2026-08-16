@@ -10710,6 +10710,7 @@ namespace Ledger.Game
                       // or the name candidates missed — the difference
                       // between a pipeline and a street (rule 6).
                       $"propsPlaced={AssetLibrary.PropsPlaced} " +
+                      $"parkedCars={WorldBuilder.ParkedCars} " +
                       // THE WALKERS' BODIES, counted separately because
                       // `RealBody.Attached` is restored after each one and
                       // therefore cannot see them. A walker body that

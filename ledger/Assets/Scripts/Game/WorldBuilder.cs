@@ -225,6 +225,11 @@ namespace Ledger.Game
             // Signs last: they read the finished network, and a rule the city
             // obeys without telling you is indistinguishable from a bug.
             StreetFurniture.Build();
+            // And the parked cars after even the signs: they append to
+            // `Masses`, and everything that reads Masses as BUILDING specs
+            // (BuildBuildings, the name-plate wall finder) has run by now —
+            // from here on the list is only consulted as obstacles.
+            BuildParkedCars();
         }
 
         /// Built-in-pipeline environment: gradient ambient + distance fog. The per-frame
@@ -1388,6 +1393,112 @@ namespace Ledger.Game
                 PostBox(new Vector3(11.6f, 0, 5.2f));     // beside the market bench
                 PostBox(new Vector3(-20.9f, 0, 13.5f));   // the teahouse kerb
             }
+        }
+
+        /// How many cars are parked on kerbs, for the done line — "the
+        /// pipeline exists" and "a car stood at a kerb" are different facts.
+        public static int ParkedCars;
+
+        /// TOWN-PLAN.MD T2 item 7: parked cars, the cheapest lived-in signal
+        /// there is. Deterministic kerb slots along driveable street edges,
+        /// HALF-ON-KERB as a British terrace street actually parks (an 8m
+        /// carriageway does not spare a full parking lane), filled ~55% with
+        /// kit saloons in the town paints — GameController.KitPaints (the
+        /// table lives in TrafficHost.cs, which declares no type of its own
+        /// name), one palette for every car in town. Each car joins Masses
+        /// so walkers
+        /// route around a bonnet instead of through it; `massInRoad` is
+        /// untouched (it reads StreetMap's own registry, not this list).
+        ///
+        /// The mesh normalisation is a deliberate small twin of
+        /// TrafficHost.EnsureBody's — scale by longest horizontal axis,
+        /// yaw 90 if X-long, seat by bounds — kept separate because that
+        /// path is proven on a moving fleet mid-playtest-week and a shared
+        /// refactor now risks both for tidiness.
+        static void BuildParkedCars()
+        {
+            ParkedCars = 0;
+            if (!TownPlanEnabled) return;
+            string[] stems = { "sedan", "suv", "hatchback_sports", "sedan_sports", "van" };
+            foreach (var e in Ledger.Core.StreetMap.Edges)
+            {
+                if (!e.Driveable || e.Kind == "lane" || e.Length < 26) continue;
+                var a = Ledger.Core.StreetMap.Node(e.A);
+                var b = Ledger.Core.StreetMap.Node(e.B);
+                if (a == null || b == null) continue;
+                // A goods yard keeps its vehicles inside its gates.
+                if (Ledger.Core.StreetMap.DistrictAt((a.X + b.X) / 2, (a.Z + b.Z) / 2) == "Ironside")
+                    continue;
+
+                int h = StableHash(e.A) * 31 + StableHash(e.B);
+                var rng = new System.Random(7331 + (h & 0x7fffffff) % 100000);
+                float dx = (float)(b.X - a.X), dz = (float)(b.Z - a.Z);
+                float len = Mathf.Sqrt(dx * dx + dz * dz);
+                dx /= len; dz /= len;
+                bool alongZ = Mathf.Abs(dz) > Mathf.Abs(dx);
+                float side = (h & 1) == 0 ? 1f : -1f;
+                var perp = new Vector3(-dz, 0, dx) * side;
+                float kerb = (float)e.Width / 2f;
+
+                for (float s = 9f; s < len - 9f; s += 6.5f)
+                {
+                    if (rng.NextDouble() > 0.55) continue;
+                    var p = new Vector3((float)a.X + dx * s, 0, (float)a.Z + dz * s) + perp * kerb;
+                    if (!PointClear(p, 0.3f)) continue;
+                    float yaw = Mathf.Atan2(dx, dz) * Mathf.Rad2Deg + (side > 0 ? 0f : 180f);
+                    ParkedCar(p, yaw, stems[rng.Next(rng.NextDouble() < 0.8 ? 4 : 5)],
+                        GameController.KitPaints[rng.Next(GameController.KitPaints.Length)]);
+                    Masses.Add((p, alongZ ? new Vector3(1.8f, 1.5f, 4.3f)
+                                          : new Vector3(4.3f, 1.5f, 1.8f)));
+                    ParkedCars++;
+                }
+            }
+        }
+
+        static void ParkedCar(Vector3 p, float yaw, string stem, Color paint)
+        {
+            float targetLen = stem == "van" ? 4.6f : 4.1f;
+            var kit = AssetLibrary.TryInstantiateProp("car_kit_" + stem, p,
+                Quaternion.Euler(0, yaw, 0));
+            if (kit != null)
+            {
+                var rends = kit.GetComponentsInChildren<Renderer>();
+                if (rends.Length == 0) { Object.Destroy(kit); }
+                else
+                {
+                    var bo = rends[0].bounds;
+                    foreach (var r in rends) bo.Encapsulate(r.bounds);
+                    // Longest horizontal axis is the car's length whatever
+                    // the author called forward; X-long means turn it 90.
+                    float lx = bo.size.x, lz = bo.size.z;
+                    if (lx > lz) kit.transform.Rotate(0, 90f, 0, Space.Self);
+                    float longest = Mathf.Max(lx, lz);
+                    if (longest > 0.3f) kit.transform.localScale *= targetLen / longest;
+                    bo = rends[0].bounds;
+                    foreach (var r in rends) bo.Encapsulate(r.bounds);
+                    kit.transform.position += Vector3.up * (p.y - bo.min.y);
+                    var mpb = new MaterialPropertyBlock();
+                    mpb.SetColor("_Color", paint);
+                    foreach (var r in rends) r.SetPropertyBlock(mpb);
+                    foreach (var c in kit.GetComponentsInChildren<Collider>())
+                        Object.Destroy(c);
+                    return;
+                }
+            }
+            // Fallback: two boxes that read as a car at street distance.
+            var body = Tint(MakeBox($"Parked_{ParkedCars}_body", p + new Vector3(0, 0.62f, 0),
+                new Vector3(1.7f, 1.0f, 4.0f), AssetLibrary.Metal), paint);
+            body.transform.rotation = Quaternion.Euler(0, yaw, 0);
+            var cabin = Tint(MakeBox($"Parked_{ParkedCars}_cabin", p + new Vector3(0, 1.28f, 0),
+                new Vector3(1.5f, 0.55f, 2.2f), AssetLibrary.Metal), paint);
+            cabin.transform.rotation = Quaternion.Euler(0, yaw, 0);
+        }
+
+        static int StableHash(string s)
+        {
+            int hh = 17;
+            foreach (var ch in s) hh = hh * 31 + ch;
+            return hh;
         }
 
         /// A K6 in boxes: red shell, domed cap in two steps, dark glazing on
