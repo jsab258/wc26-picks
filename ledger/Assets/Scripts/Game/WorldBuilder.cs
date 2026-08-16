@@ -377,6 +377,26 @@ namespace Ledger.Game
                             AssetLibrary.Sidewalk);
                     }
                 }
+
+                // SINGLE yellow lines along the kerbs of the commercial
+                // spines (town-plan T2) — "a council manages this street" in
+                // one stroke of paint. Single and not double on purpose: the
+                // kerbs carry parked cars, and to a British eye a car on a
+                // DOUBLE yellow is a mistake in the world's grammar, while
+                // eighties parking on a single yellow is just the afternoon.
+                if (TownPlanEnabled && e.Driveable && e.Kind != "lane" && len > 14f
+                    && Ledger.Core.Dressing.NearestCore(mid.x, mid.z, DenseCores) <= NearCoreMetres)
+                {
+                    foreach (var s in new[] { 1f, -1f })
+                    {
+                        var ypos = mid + (alongZ ? new Vector3(s * (w / 2f - 0.5f), 0.045f, 0)
+                                                 : new Vector3(0, 0.045f, s * (w / 2f - 0.5f)));
+                        Tint(MakeBox($"Yellow_{n}_{(s > 0 ? "p" : "m")}", ypos,
+                            alongZ ? new Vector3(0.09f, 0.015f, len - 10f)
+                                   : new Vector3(len - 10f, 0.015f, 0.09f),
+                            AssetLibrary.Sidewalk), new Color(0.62f, 0.52f, 0.18f));
+                    }
+                }
                 n++;
             }
 
@@ -1212,6 +1232,77 @@ namespace Ledger.Game
                     : new Vector3(width * 0.9f, 0.55f, 0.25f);
                 MakeBox($"{tag}_fascia", face + new Vector3(0, 3.5f, 0), fasciaSize,
                         AssetLibrary.Roof);
+
+                // TOWN-PLAN.MD T2 item 4: the NAME on the board. A fascia
+                // with no name is "commercial-ish box"; a painted trade name
+                // is what makes it a shop you could be sent to. Deterministic
+                // from position (the same city every run, CI stills stay
+                // comparable), trade tables split by kind — a warehouse gets
+                // a company, not a chip shop. 26 shops + 12 sheds in the
+                // last verdict, so this is ~38 TextMeshes, not the 144 the
+                // stop signs refused to spend.
+                if (TownPlanEnabled)
+                {
+                    var names = kind == Ledger.Core.Dressing.Premises.Warehouse
+                        ? WarehouseNames : ShopNames;
+                    int pick = System.Math.Abs((int)(pos.x * 31 + pos.z * 7)) % names.Length;
+                    var tgo = new GameObject($"{tag}_fascia_name");
+                    // Local -z is what a translated WorldText copy reads
+                    // from (see StreetFurniture.Label): aim it outward.
+                    float yaw = Mathf.Atan2(-outward.x, -outward.z) * Mathf.Rad2Deg;
+                    tgo.transform.position = face + outward * 0.16f + new Vector3(0, 3.5f, 0);
+                    tgo.transform.rotation = Quaternion.Euler(0, yaw, 0);
+                    tgo.transform.Translate(0, 0, -0.05f, Space.Self);
+                    var tm = tgo.AddComponent<TextMesh>();
+                    tm.text = names[pick];
+                    tm.characterSize = 0.062f;
+                    tm.fontSize = 64;
+                    tm.anchor = TextAnchor.MiddleCenter;
+                    tm.alignment = TextAlignment.Center;
+                    tm.color = new Color(0.88f, 0.85f, 0.74f);
+                    WorldText.Adopt(tm);
+                    ShopNamesPainted++;
+                }
+            }
+
+            // An awning over a shop window (kit mesh, town-plan T2): scaled
+            // to the frontage, oriented by its bounds the way the lamps are,
+            // tinted to the district's weathered canvas. A miss just leaves
+            // the fascia and mullions, which already read as a shopfront.
+            if (TownPlanEnabled && kind == Ledger.Core.Dressing.Premises.Shop)
+            {
+                var akey = width > 6f ? "city_kit_commercial_detail_awning_wide"
+                                      : "city_kit_commercial_detail_awning";
+                var awn = AssetLibrary.TryInstantiateProp(akey,
+                    face + outward * 0.1f + new Vector3(0, 2.75f, 0), Quaternion.identity);
+                if (awn != null)
+                {
+                    var rends = awn.GetComponentsInChildren<Renderer>();
+                    if (rends.Length == 0) Object.Destroy(awn);
+                    else
+                    {
+                        var ab = rends[0].bounds;
+                        foreach (var r in rends) ab.Encapsulate(r.bounds);
+                        float along = alongX ? ab.size.z : ab.size.x;
+                        float wantAlong = width * 0.7f;
+                        if (along > 0.2f) awn.transform.localScale *= wantAlong / along;
+                        ab = rends[0].bounds;
+                        foreach (var r in rends) ab.Encapsulate(r.bounds);
+                        var ao = ab.center - awn.transform.position; ao.y = 0;
+                        if (ao.sqrMagnitude > 0.01f)
+                        {
+                            float have = Mathf.Atan2(ao.x, ao.z) * Mathf.Rad2Deg;
+                            float want = Mathf.Atan2(outward.x, outward.z) * Mathf.Rad2Deg;
+                            awn.transform.rotation = Quaternion.Euler(0, want - have, 0);
+                        }
+                        var ampb = new MaterialPropertyBlock();
+                        ampb.SetColor("_Color", AwningPaints[
+                            System.Math.Abs((int)(pos.x * 13 + pos.z * 5)) % AwningPaints.Length]);
+                        foreach (var r in rends) { r.SetPropertyBlock(ampb); }
+                        foreach (var c in awn.GetComponentsInChildren<Collider>())
+                            Object.Destroy(c);
+                    }
+                }
             }
 
             // The door: narrow, tall, set INTO the wall rather than onto it, so
@@ -1257,6 +1348,14 @@ namespace Ledger.Game
             MakeBox($"{tag}_jambA", face + off + new Vector3(0, dhgh * 0.54f, 0), jambSize,
                     AssetLibrary.Concrete);
             MakeBox($"{tag}_jambB", face - off + new Vector3(0, dhgh * 0.54f, 0), jambSize,
+                    AssetLibrary.Concrete);
+            // And a step (town-plan T2): a threshold is the cheapest thing
+            // that says a door is USED. Houses especially — a British
+            // terrace is a rhythm of doorsteps.
+            if (TownPlanEnabled)
+                MakeBox($"{tag}_step", face + outward * 0.24f + new Vector3(0, 0.07f, 0),
+                    alongX ? new Vector3(0.5f, 0.14f, dwid + 0.35f)
+                           : new Vector3(dwid + 0.35f, 0.14f, 0.5f),
                     AssetLibrary.Concrete);
             Doors++;
 
@@ -1405,6 +1504,38 @@ namespace Ledger.Game
         /// How many cars are parked on kerbs, for the done line — "the
         /// pipeline exists" and "a car stood at a kerb" are different facts.
         public static int ParkedCars;
+
+        /// How many shop fasciae carry a painted name, same reasoning.
+        public static int ShopNamesPainted;
+
+        /// Trade names for the fasciae (town-plan T2). Late-analog British
+        /// port: surnames and trades, a few of them from the communities the
+        /// design doc gives the market quarter. Deliberately NOT the names
+        /// of any cast member — a shop sign that matches a witness's surname
+        /// would tell the player a fact the sim does not know it is telling.
+        static readonly string[] ShopNames =
+        {
+            "HODGSON'S GROCERS", "MARLOW BUTCHERS", "BLYTHE & SON BAKERS",
+            "TIDE & ANCHOR CAFE", "CALLOWAY HARDWARE", "P. QUINN NEWSAGENT",
+            "REGENT DRY CLEANING", "HARBOUR FISH BAR", "STANNARD CHEMIST",
+            "KOWALSKI TAILOR", "OSMAN GENERAL STORE", "CROWN LAUNDERETTE",
+            "FERRIER SHOE REPAIRS", "NG'S KITCHEN", "VARGA WATCH & CLOCK",
+            "DELVE & DAUGHTERS", "BECKETT TOBACCONIST", "ROPER'S IRONMONGERY",
+        };
+        static readonly string[] WarehouseNames =
+        {
+            "BONDED STORE No.4", "ALBION ROPEWORKS", "MERSEA IMPORT CO.",
+            "GRAINGER & CO. SHIPPING", "NORTH QUAY COLD STORE", "IRONSIDE FORWARDING",
+        };
+
+        /// Weathered canvas, not carnival: the dark end of seaside stripes.
+        static readonly Color[] AwningPaints =
+        {
+            new Color(0.30f, 0.24f, 0.20f),   // faded tan
+            new Color(0.18f, 0.26f, 0.24f),   // sea green
+            new Color(0.30f, 0.16f, 0.16f),   // oxblood
+            new Color(0.20f, 0.22f, 0.30f),   // washed navy
+        };
 
         /// TOWN-PLAN.MD T2 item 7: parked cars, the cheapest lived-in signal
         /// there is. Deterministic kerb slots along driveable street edges,
