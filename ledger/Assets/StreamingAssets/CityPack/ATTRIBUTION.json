@@ -6,108 +6,120 @@
    "source": "ambientCG",
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Asphalt012",
-   "resolution": "1K-JPG",
+   "resolution": "2K-JPG",
    "file": "asphalt.jpg",
-   "normal": "asphalt_n.jpg"
+   "normal": "asphalt_n.jpg",
+   "roughness": "asphalt_r.jpg"
   },
   "brick_grey": {
    "assetId": "Bricks023",
    "source": "ambientCG",
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Bricks023",
-   "resolution": "1K-JPG",
+   "resolution": "2K-JPG",
    "file": "brick_grey.jpg",
-   "normal": "brick_grey_n.jpg"
+   "normal": "brick_grey_n.jpg",
+   "roughness": "brick_grey_r.jpg"
   },
   "brick_red": {
    "assetId": "Bricks075A",
    "source": "ambientCG",
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Bricks075A",
-   "resolution": "1K-JPG",
+   "resolution": "2K-JPG",
    "file": "brick_red.jpg",
-   "normal": "brick_red_n.jpg"
+   "normal": "brick_red_n.jpg",
+   "roughness": "brick_red_r.jpg"
   },
   "concrete": {
    "assetId": "Concrete017",
    "source": "ambientCG",
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Concrete017",
-   "resolution": "1K-JPG",
+   "resolution": "2K-JPG",
    "file": "concrete.jpg",
-   "normal": "concrete_n.jpg"
+   "normal": "concrete_n.jpg",
+   "roughness": "concrete_r.jpg"
   },
   "glass": {
    "assetId": "Facade001",
    "source": "ambientCG",
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Facade001",
-   "resolution": "1K-JPG",
+   "resolution": "2K-JPG",
    "file": "glass.jpg",
-   "normal": "glass_n.jpg"
+   "normal": "glass_n.jpg",
+   "roughness": "glass_r.jpg"
   },
   "kerb": {
    "assetId": "Concrete034",
    "source": "ambientCG",
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Concrete034",
-   "resolution": "1K-JPG",
+   "resolution": "2K-JPG",
    "file": "kerb.jpg",
-   "normal": "kerb_n.jpg"
+   "normal": "kerb_n.jpg",
+   "roughness": "kerb_r.jpg"
   },
   "metal": {
    "assetId": "Metal032",
    "source": "ambientCG",
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Metal032",
-   "resolution": "1K-JPG",
+   "resolution": "2K-JPG",
    "file": "metal.jpg",
-   "normal": "metal_n.jpg"
+   "normal": "metal_n.jpg",
+   "roughness": "metal_r.jpg"
   },
   "plaster": {
    "assetId": "Plaster001",
    "source": "ambientCG",
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Plaster001",
-   "resolution": "1K-JPG",
+   "resolution": "2K-JPG",
    "file": "plaster.jpg",
-   "normal": "plaster_n.jpg"
+   "normal": "plaster_n.jpg",
+   "roughness": "plaster_r.jpg"
   },
   "roof": {
    "assetId": "RoofingTiles006",
    "source": "ambientCG",
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=RoofingTiles006",
-   "resolution": "1K-JPG",
+   "resolution": "2K-JPG",
    "file": "roof.jpg",
-   "normal": "roof_n.jpg"
+   "normal": "roof_n.jpg",
+   "roughness": "roof_r.jpg"
   },
   "sidewalk": {
    "assetId": "PavingStones067",
    "source": "ambientCG",
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=PavingStones067",
-   "resolution": "1K-JPG",
+   "resolution": "2K-JPG",
    "file": "sidewalk.jpg",
-   "normal": "sidewalk_n.jpg"
+   "normal": "sidewalk_n.jpg",
+   "roughness": "sidewalk_r.jpg"
   },
   "window": {
    "assetId": "Facade018A",
    "source": "ambientCG",
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Facade018A",
-   "resolution": "1K-JPG",
+   "resolution": "2K-JPG",
    "file": "window.jpg",
-   "normal": "window_n.jpg"
+   "normal": "window_n.jpg",
+   "roughness": "window_r.jpg"
   },
   "wood": {
    "assetId": "Planks011",
    "source": "ambientCG",
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Planks011",
-   "resolution": "1K-JPG",
+   "resolution": "2K-JPG",
    "file": "wood.jpg",
-   "normal": "wood_n.jpg"
+   "normal": "wood_n.jpg",
+   "roughness": "wood_r.jpg"
   }
  }
 }
