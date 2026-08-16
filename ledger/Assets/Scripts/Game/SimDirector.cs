@@ -10701,6 +10701,11 @@ namespace Ledger.Game
                       $"crowdConsidered={_crowdConsidered} crowdLumRange={_crowdLumRange} " +
                       $"crowdSatRange={_crowdSatRange} " +
                       $"bodyChoices={RealBody.BodyChoices} " +
+                      // Kit-model props that actually reached the world.
+                      // Zero with models committed means the prefab builder
+                      // or the name candidates missed — the difference
+                      // between a pipeline and a street (rule 6).
+                      $"propsPlaced={AssetLibrary.PropsPlaced} " +
                       // THE WALKERS' BODIES, counted separately because
                       // `RealBody.Attached` is restored after each one and
                       // therefore cannot see them. A walker body that

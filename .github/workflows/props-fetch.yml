@@ -1,0 +1,94 @@
+name: LEDGER props — fetch CC0 model kits
+
+# CARS, BENCHES AND BINS STOP BEING BOXES (Jafar, 16 Aug: "textures and
+# models have to come before playtest... max polish").
+#
+# Downloads CC0 model kits from Kenney, commits the chosen subset into
+# ledger/Assets/Props (which PropPrefab turns into Resources prefabs at
+# build time, which TrafficHost and WorldBuilder then prefer over their
+# primitive constructions — every layer with a fallback, so a kit that
+# fails to arrive changes nothing).
+#
+# A CI JOB because every asset host is blocked from the dev container —
+# same shape as the voice and texture pipelines. Dispatch-only: it costs
+# a few tens of MB of downloads and there is no reason for it to ride
+# every push. No Unity, no licence seat — it can run beside a build.
+#
+# ONE RUN ANSWERS EVERY QUESTION: the full listing of every kit is
+# committed to tools/props/listings.json even when extraction chooses
+# narrowly, so the next round of prop picks is made locally from
+# evidence rather than by dispatching another guess.
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch-props:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        timeout-minutes: 4
+
+      - name: Count what is already committed
+        id: before
+        run: |
+          n=$(find ledger/Assets/Props -type f 2>/dev/null | wc -l)
+          echo "count=$n" >> "$GITHUB_OUTPUT"
+          echo "props on disk before: $n"
+
+      - name: Fetch the kits
+        id: fetch
+        continue-on-error: true
+        run: python3 tools/props/fetch_props.py --fetch
+
+      - name: Attribution still holds
+        id: attribution
+        continue-on-error: true
+        run: python3 tools/attribution-check.py
+
+      # Commit what arrived, judge each thing on itself, delete nothing,
+      # and name only the paths this job writes. Same rules and the same
+      # rebase-before-retry loop as the texture job, for the same
+      # incident-shaped reasons.
+      - name: Commit whatever arrived
+        run: |
+          before=${{ steps.before.outputs.count }}
+          after=$(find ledger/Assets/Props -type f 2>/dev/null | wc -l)
+          echo "props: $before -> $after  (fetch=${{ steps.fetch.outcome }})"
+          if [ "${{ steps.fetch.outcome }}" = "success" ] && [ "$after" -eq 0 ]; then
+            echo "nothing on disk after a successful fetch — that is the fetch lying"
+            exit 1
+          fi
+          git config user.name  "Claude"
+          git config user.email "noreply@anthropic.com"
+          git add ledger/Assets/Props tools/props/listings.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "nothing arrived that was not already committed"
+            exit 0
+          fi
+          git commit -m "CC0 model kits: the street's objects stop being boxes
+
+          Fetched from Kenney (CC0 1.0, attributed in Props/ATTRIBUTION.json
+          and THIRD-PARTY.md), chosen by the patterns in fetch_props.py. The
+          full kit listings are committed beside them so the next round of
+          picks is made from evidence, not another dispatch.
+
+          No code change needed to consume these: PropPrefab builds a prefab
+          per model at CI build time, and every call site keeps its primitive
+          fallback."
+          for i in 1 2 3 4 5 6; do
+            git push origin HEAD:${GITHUB_REF_NAME} && exit 0
+            echo "push failed, attempt $i — refetching and rebasing"
+            git fetch origin ${GITHUB_REF_NAME} || true
+            git rebase FETCH_HEAD || { git rebase --abort || true; }
+            sleep $((2 ** i))
+          done
+          exit 1
+
+      - name: The verdict, named step by step
+        run: |
+          bad=0
+          [ "${{ steps.fetch.outcome }}"       = "success" ] || { echo "KIT FETCH FAILED (see the fetch step's own print for which kit and why)"; bad=1; }
+          [ "${{ steps.attribution.outcome }}" = "success" ] || { echo "ATTRIBUTION CHECK FAILED"; bad=1; }
+          [ "$bad" -eq 0 ] && echo "kits, extraction and attribution all green"
+          exit $bad

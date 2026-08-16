@@ -326,15 +326,33 @@ namespace Ledger.Game
             catch (System.Exception e) { Debug.LogWarning($"AssetLibrary: prop bundle load failed: {e.Message}"); }
         }
 
-        /// Instantiate a pack prop by name if the bundle provides it; otherwise the
-        /// caller falls back to primitive geometry. Returns null when unavailable.
+        /// Instantiate a prop by name; the caller falls back to primitive
+        /// geometry on null. TWO TIERS since 16 Aug: the pack bundle first
+        /// (authored packs win), then the Resources prefabs PropPrefab
+        /// builds from the fetched CC0 kit models. The name is normalised
+        /// the same way PropPrefab.Key normalises — lowercase, spaces and
+        /// dashes to underscores — one rule, and if the two ever disagree
+        /// the miss falls through to a primitive rather than to an error.
         public static GameObject TryInstantiateProp(string name, Vector3 position, Quaternion rotation)
         {
-            if (_propBundle == null) return null;
-            var prefab = _propBundle.LoadAsset<GameObject>(name);
+            if (_propBundle != null)
+            {
+                var packed = _propBundle.LoadAsset<GameObject>(name);
+                if (packed != null) return Object.Instantiate(packed, position, rotation);
+            }
+            var key = name.ToLowerInvariant().Replace(" ", "_").Replace("-", "_");
+            var prefab = Resources.Load<GameObject>("Props/Prop_" + key);
             if (prefab == null) return null;
-            return Object.Instantiate(prefab, position, rotation);
+            var go = Object.Instantiate(prefab, position, rotation);
+            PropsPlaced++;
+            return go;
         }
+
+        /// How many kit-model props actually reached the world this run —
+        /// the done line reads it, because "the pipeline exists" and "a
+        /// mesh stood on the street" are different facts and this project
+        /// has shipped that difference before (rule 6).
+        public static int PropsPlaced;
     }
 
     /// Per-surface appearance: tint, PBR params, tiling, procedural pattern kind,

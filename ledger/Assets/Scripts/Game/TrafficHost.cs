@@ -345,6 +345,28 @@ namespace Ledger.Game
 
         // ---- bodies ----
 
+        /// Which kit models may dress each vehicle kind, in preference
+        /// order — tried until one resolves, so a name the kit turns out
+        /// not to have costs nothing but a lookup. Several per kind on
+        /// purpose: the per-vehicle offset into this list is what stops
+        /// every car on the street being the same car. PROVISIONAL until
+        /// the first props-fetch commits its listings; corrected from
+        /// tools/props/listings.json, not from memory, the moment it lands.
+        /// The bike stays primitive — no kit carries a bicycle with rider,
+        /// and the two-box bike with a coated rider reads fine at night.
+        static string[] KitCandidates(string kindId)
+        {
+            switch (kindId)
+            {
+                case "cab":   return new[] { "taxi", "sedan" };
+                case "van":   return new[] { "van", "delivery" };
+                case "truck": return new[] { "truck", "delivery_flat", "van" };
+                case "bus":   return new[] { "bus", "van" };
+                case "bike":  return System.Array.Empty<string>();
+                default:      return new[] { "sedan", "suv", "hatchback_sports", "sedan_sports" };
+            }
+        }
+
         void EnsureBody(Vehicle v)
         {
             if (_vehicleBodies.ContainsKey(v.Id)) return;
@@ -353,6 +375,46 @@ namespace Ledger.Game
             float len = (float)v.Kind.Length, wid = (float)v.Kind.Width, hi = (float)v.Kind.Height;
             var paint = PaintFor(v);
 
+            // A KIT MESH, WHEN ONE HAS ARRIVED (max-polish order, 16 Aug).
+            // The props-fetch job commits CC0 vehicle models; PropPrefab
+            // makes them loadable; this prefers them and falls back to the
+            // primitive construction below unchanged — a build with no
+            // models is exactly the build we shipped yesterday. The mesh
+            // replaces the BODY AND WHEELS only: the head and brake lamps
+            // are still ours (they are the night read and a gate counts
+            // them), and Core still owns motion and collision.
+            //
+            // Scaled by its longest horizontal axis to the kind's length,
+            // rotated if that axis is X — a kit's forward convention is a
+            // fact we learn from the first stills, not one to assume.
+            GameObject kitBody = null;
+            var candidates = KitCandidates(v.Kind.Id);
+            for (int c = 0; c < candidates.Length && kitBody == null; c++)
+                kitBody = AssetLibrary.TryInstantiateProp(
+                    "car_kit_" + candidates[(v.Id + c) % candidates.Length],
+                    Vector3.zero, Quaternion.identity);
+            if (kitBody != null)
+            {
+                kitBody.transform.SetParent(root, false);
+                var kr = kitBody.GetComponentInChildren<Renderer>();
+                if (kr != null && kr.bounds.size.sqrMagnitude > 0.001f)
+                {
+                    var size = kr.bounds.size;
+                    if (size.x > size.z)
+                        kitBody.transform.localRotation = Quaternion.Euler(0, 90f, 0);
+                    float meshLen = Mathf.Max(size.x, size.z);
+                    if (meshLen > 0.01f)
+                        kitBody.transform.localScale = Vector3.one * (len / meshLen);
+                    // Grounded: after scale and rotation the renderer knows
+                    // where its feet are; sit them on y=0.
+                    var grounded = kitBody.GetComponentInChildren<Renderer>().bounds;
+                    kitBody.transform.localPosition = new Vector3(0, -grounded.min.y, 0);
+                }
+                foreach (var col in kitBody.GetComponentsInChildren<Collider>())
+                    Destroy(col);   // Core owns collision, same as the primitives
+            }
+
+            if (kitBody == null)
             switch (v.Kind.Id)
             {
                 case "bike":

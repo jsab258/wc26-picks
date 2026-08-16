@@ -71,31 +71,18 @@ and the verdict's speech keys already measure that path.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
-1. **THE FIRST PLAYER-HEIGHT FRAME (dfefd62) FINDS THREE THINGS NO
-   ELEVATED STILL COULD:** the RAIN fills the sky as dense dark
-   scribble at eye level — far too many streaks, far too long, a
-   player-facing weather fault the top-down view flattered; the street
-   plates do NOT stack from player height, so the nameplate-heap item
-   collapses to a review-camera artifact and the declutter is vindicated
-   (managed-labels peak 6, orphans 0); and the pink figure reads as
-   ERROR-SHADER MAGENTA on one body variant — a missing material, not a
-   pose. Next: thin/shorten rain streaks judged against this frame, and
-   name the magenta body's material (the census's who-fields will carry
-   it once its material check looks for magenta too).
-
-1. **A T-POSED FIGURE THE ARM MEDIANS CANNOT SEE.** *(on screen)*
-   `review_day1_night.jpg` (b01ea7d): a figure in pink, both arms straight
-   out, on a street `armStreet=10.7/armStreetWorst=15.3` calls healthy —
-   the median-across-bodies blind spot again (the worst is a max over
-   medians). One frame, one body: a hypothesis. The number: per-body count
-   of arms within 5 degrees of horizontal held over a second, emitted as
-   `tposeBodies` with the body id. **RETRACTION, 13 Aug: every tpose
-   number so far was INVERTED** — the latch read `< 5` from straight
-   DOWN, counting hanging arms held still. Both bucket stories void,
-   corrected to hold above 75, and the pink still is the only real
-   evidence until the recount lands. (The capsule half closed into the
-   census item above; the nameplate-heap half closed into item 1, which
-   shows plates do not stack from player height.)
+1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL** *(on screen —
+   the first player-height frame, dfefd62)*. From the review camera the
+   rain was fine; from the player's eyes the sky is dense dark scribble
+   — too many streaks, too long, likely sized for a downward view. Read
+   streak width/alpha/length against camera pitch, thin them, re-judge
+   on the next street frame. THE SAME FRAME CLOSED TWO ITEMS: plates do
+   NOT stack from player height (nameplate-heap was a review-camera
+   artifact; declutter vindicated, managed-labels peak 6, orphans 0),
+   and the tpose question is CLOSED — the corrected latch recounted
+   zero on both 15 Aug runs, so the pink figure is ERROR-SHADER MAGENTA
+   on one body variant, a missing material, not a pose. Still owed:
+   name the magenta body's material via the census.
 
 1. **THE FRAME GATE IS THE ONLY LIVE RED, AND IT IS THE GAME'S OWN TIME.**
    **Read the breakdown, not the mean.** `mean=483.7ms` is a software

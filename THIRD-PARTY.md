@@ -64,6 +64,18 @@ by reading it.
 not be redistributed as a standalone asset library. Nothing here does the
 latter; the FBX files are tracked because they are project inputs.
 
+## Street props and vehicles — Kenney, CC0
+
+| | |
+|---|---|
+| **What** | Low-poly vehicle and street-furniture models (cars, vans, benches, bins) |
+| **Source** | **Kenney** (kenney.nl) — the Car Kit and City Kits, fetched by `tools/props/fetch_props.py` via the props-fetch CI job |
+| **Licence** | CC0 1.0 Universal — no attribution required, recorded anyway because this file's rule is that every third-party file is named |
+| **Where in the repo** | `ledger/Assets/Props/` (per-kit subdirectories, with their own `ATTRIBUTION.json` and `THIRD-PARTY.md` written by the same fetch that writes the models) |
+
+**Courtesy credit for the shipped credits screen:** "Vehicle and prop models
+by Kenney (kenney.nl), CC0."
+
 ## Engine — Unity
 
 | | |

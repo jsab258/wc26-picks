@@ -1136,6 +1136,17 @@ namespace Ledger.Game
 
         static void Bench(Vector3 pos, bool alongZ = false)
         {
+            // A kit bench when one has arrived (max-polish order, 16 Aug);
+            // the three boxes below are the fallback that shipped every
+            // build until now. The kit candidates are provisional until the
+            // first props-fetch commits its listings — a miss costs a
+            // lookup and falls through, same rule as the vehicles.
+            var mesh = AssetLibrary.TryInstantiateProp("city_kit_commercial_bench",
+                           pos, Quaternion.Euler(0, alongZ ? 0f : 90f, 0))
+                    ?? AssetLibrary.TryInstantiateProp("city_kit_suburban_bench",
+                           pos, Quaternion.Euler(0, alongZ ? 0f : 90f, 0));
+            if (mesh != null) return;
+
             var seat = alongZ ? new Vector3(0.45f, 0.08f, 1.6f) : new Vector3(1.6f, 0.08f, 0.45f);
             var leg = new Vector3(alongZ ? 0.4f : 0.12f, 0.42f, alongZ ? 0.12f : 0.4f);
             int n = Lamps.Count * 31 + (int)(pos.x * 7 + pos.z * 3);
@@ -1542,6 +1553,13 @@ namespace Ledger.Game
                 switch (d.Kind)
                 {
                     case Ledger.Core.Clutter.Bin:
+                        // A kit bin when one has arrived; the box is the
+                        // fallback that shipped every build until 16 Aug.
+                        // Same provisional-candidates rule as the vehicles.
+                        if (AssetLibrary.TryInstantiateProp("city_kit_commercial_trash_can", at,
+                                Quaternion.Euler(0, (at.x * 61f) % 360f, 0)) != null) break;
+                        if (AssetLibrary.TryInstantiateProp("city_kit_suburban_trash_can", at,
+                                Quaternion.Euler(0, (at.x * 61f) % 360f, 0)) != null) break;
                         MakeBox($"Bin_{id}_{at.x:0.0}", at + new Vector3(0, 0.55f * sc, 0),
                             new Vector3(0.75f, 1.1f, 0.7f) * sc, AssetLibrary.Metal);
                         break;

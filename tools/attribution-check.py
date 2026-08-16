@@ -49,6 +49,11 @@ WATCHED = {
     # a minute ago" is the same argument this file already rejects two rows up.
     "game-design/voice-live": "VCTK",
     "ledger/Assets/StreamingAssets/CityPack": "CityPack",
+    # The CC0 model kits (props-fetch job). CC0 needs no credit by law and
+    # gets one anyway — the project's rule is that every third-party file
+    # is named, and Props/ATTRIBUTION.json + THIRD-PARTY.md are written by
+    # the same fetch that writes the models, so they cannot drift apart.
+    "ledger/Assets/Props": "Kenney",
     # A single file, not a directory — the shipped face sits in `Resources`
     # beside code and prefabs, so there is no folder to name that would not
     # also swallow half the project. The token is the licence, because that is

@@ -34,6 +34,12 @@ namespace Ledger.EditorTools
             // first — see below.
             CharacterPrefab.Build();
 
+            // And the same move for the CC0 kit models (cars, benches,
+            // bins): a prefab per model into Resources/Props, so the
+            // runtime swap sites can reach them. Runs before the audit for
+            // the same import-ordering reason CharacterPrefab does.
+            PropPrefab.Build();
+
             // M17.1, ANSWERED BY THE ONLY THING THAT CAN ANSWER IT. Whether the
             // Mixamo FBX yield valid human Avatars is a question about Unity's
             // importer, and the Game layer does not compile locally — so the
