@@ -22,6 +22,7 @@ namespace Ledger.Game
         public static void Build()
         {
             SignCount = 0;
+            WallPlateCount = 0;
             foreach (var n in StreetMap.Nodes)
             {
                 if (!n.IsJunction) continue;
@@ -112,11 +113,53 @@ namespace Ledger.Game
             Strip(go.GetComponent<Collider>());
         }
 
-        /// Two boards on one post at each junction, one per street, set on the
-        /// corner where somebody arriving can actually read them.
+        /// How many plates are mounted on walls. Separate from SignCount on
+        /// purpose: SignCount answers "how much sign FURNITURE stands in the
+        /// street", and a plate screwed to a building stands in nobody's way.
+        public static int WallPlateCount { get; private set; }
+
+        /// Street names at each junction. TOWN-PLAN.MD T2 under the flag:
+        /// plates are MOUNTED ON THE CORNER BUILDING, as a British council
+        /// mounts them — the NS street's name on the wall you see walking
+        /// that street, the EW name round the corner. The terrace generator
+        /// guarantees corners are buildings (Z-rows own them), so quadrants
+        /// are tried until one has a wall whose two junction-facing faces are
+        /// both exposed; only a junction with no wall at all (the map's cut
+        /// corners, Ironside's yards) falls back to one clustered post —
+        /// which is also what a council does. Legacy path: post always.
         static void BuildNamePlates(StreetNode n)
         {
             if (!StreetMap.NamesAt(n, out var ns, out var ew)) return;
+
+            if (WorldBuilder.TownPlanEnabled)
+            {
+                float half = (float)StreetMap.AvenueWidth / 2f;
+                float toCorner = half + WorldBuilder.BlockSetback + 2.5f;
+                foreach (var (qx, qz) in new[] { (1f, 1f), (-1f, 1f), (1f, -1f), (-1f, -1f) })
+                {
+                    var probe = new Vector3((float)n.X + qx * toCorner, 0,
+                                            (float)n.Z + qz * toCorner);
+                    if (!WorldBuilder.MassAt(probe, 3f, out var mp, out var ms)) continue;
+
+                    // The two faces looking back at the junction's streets —
+                    // and both must be real frontages, not party walls: a
+                    // probe that landed on a mid-row parcel (yard-gate gap,
+                    // alley) offers a face with a neighbour pressed against
+                    // it, and a plate there would be buried in brick.
+                    float fx = mp.x - qx * ms.x / 2f;
+                    float fz = mp.z - qz * ms.z / 2f;
+                    float pz = fz + qz * 1.6f;   // 1.6m round the corner, each way
+                    float px = fx + qx * 1.6f;
+                    if (!WorldBuilder.PointClear(new Vector3(fx - qx * 0.3f, 0, pz), 0f)) continue;
+                    if (!WorldBuilder.PointClear(new Vector3(px, 0, fz - qz * 0.3f), 0f)) continue;
+
+                    WallPlate($"NamePlate_{n.Id}_ns", new Vector3(fx - qx * 0.05f, 2.7f, pz), ns, 90f);
+                    WallPlate($"NamePlate_{n.Id}_ew", new Vector3(px, 2.7f, fz - qz * 0.05f), ew, 0f);
+                    WallPlateCount += 2;
+                    return;
+                }
+            }
+
             float d = (float)StreetMap.AvenueWidth / 2f + 2.0f;
             var basePos = new Vector3((float)n.X - d, 0, (float)n.Z + d);
 
@@ -309,6 +352,23 @@ namespace Ledger.Game
             go.transform.localScale = new Vector3(0.1f, height, 0.1f);
             go.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Metal);
             Strip(go.GetComponent<Collider>());
+        }
+
+        /// A plate flush on a wall — board and text, no post. Proud of the
+        /// brick by a few centimetres so it reads as an object, not paint.
+        /// The label's buried back copy sits on the wall plane facing INTO
+        /// the building; its front face is what the culling shader keeps,
+        /// so from the street it is simply invisible rather than fighting.
+        static void WallPlate(string name, Vector3 at, string text, float yaw)
+        {
+            var board = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            board.name = name;
+            board.transform.position = at;
+            board.transform.localScale = new Vector3(2.2f, 0.32f, 0.05f);
+            board.transform.rotation = Quaternion.Euler(0, yaw, 0);
+            board.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Plaster);
+            Strip(board.GetComponent<Collider>());
+            Label(name + "_text", at, text, yaw, 0.05f);
         }
 
         static void Plate(string name, Vector3 at, string text, float yaw)

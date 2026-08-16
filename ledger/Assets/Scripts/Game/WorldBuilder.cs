@@ -741,6 +741,18 @@ namespace Ledger.Game
             return true;
         }
 
+        /// The mass standing at (or within `r` of) a point, for signage that
+        /// mounts on WALLS rather than posts (town-plan.md T2). First hit in
+        /// list order, which is deterministic because the specs are.
+        public static bool MassAt(Vector3 p, float r, out Vector3 pos, out Vector3 size)
+        {
+            foreach (var (mp, ms) in Masses)
+                if (p.x > mp.x - ms.x / 2f - r && p.x < mp.x + ms.x / 2f + r &&
+                    p.z > mp.z - ms.z / 2f - r && p.z < mp.z + ms.z / 2f + r)
+                { pos = mp; size = ms; return true; }
+            pos = default; size = default; return false;
+        }
+
         static bool InsideXZ(Vector3 p, Vector3 c, float hx, float hz) =>
             p.x > c.x - hx && p.x < c.x + hx && p.z > c.z - hz && p.z < c.z + hz;
 

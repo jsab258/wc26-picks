@@ -9912,7 +9912,11 @@ namespace Ledger.Game
                       $"tailsBehindStart={(traffic != null ? traffic.TailsBehindStart : -1)} " +
                       $"gapWhy=[{(traffic != null ? traffic.TightestGapWhy : "no traffic")}] " +
                       $"offRoad={offRoad} yields={(traffic != null ? traffic.YieldsToPeople : 0)} trafficOk={trafficOk} " +
-                      $"signs={StreetFurniture.SignCount} vehicleFact={vehicleFactSeen} witnessCarOk={witnessCarOk} " +
+                      // `signs` answers "how much sign FURNITURE stands in the
+                      // street" — under the town plan the name plates moved onto
+                      // walls and out of this count, into wallPlates beside it.
+                      $"signs={StreetFurniture.SignCount} wallPlates={StreetFurniture.WallPlateCount} " +
+                      $"vehicleFact={vehicleFactSeen} witnessCarOk={witnessCarOk} " +
                       // THE BUILDINGS THAT STAND IN A CARRIAGEWAY, with how far.
                       // Two today, both the pub — Hook Street over its east
                       // face and Quay Street over its south, a metre and a half
