@@ -27,6 +27,18 @@ CLAUDE.md under AUTO MODE.
 
 ## Now
 
+### SUNDAY 16 AUG, AFTERNOON: THE TOWN PLAN OWNS THE QUEUE.
+Jafar approved `town-plan.md` ("go") after the step-back: the city's
+space was organised by geometry logic, not human logic, and no polish
+fixes an arrangement fault. Build order: T1 terraces + street ribbon
++ legible zoning (behind `TownPlan.Enabled`, old paths preserved),
+then T2 ground-floor grammar, judged on `review_street.jpg` every
+build. TUESDAY NOON DECISION: stable → Wednesday ships the town;
+doubtful → flag back, Wednesday ships the proven world. The morning's
+max-polish work all landed and held: kit vehicles in town paints
+(propsPlaced=23), normal maps on all twelve surfaces, gait archetypes
+awaiting Jafar's Mixamo clips.
+
 ### THE PLAYTEST PUSH OWNS THE QUEUE UNTIL WEDNESDAY 19 AUGUST.
 **The plan is `playtest-plan.md`** — MacBook Air, three players, four
 days. Order there wins over order here. Everything below stands but
