@@ -7,7 +7,8 @@
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Asphalt012",
    "resolution": "1K-JPG",
-   "file": "asphalt.jpg"
+   "file": "asphalt.jpg",
+   "normal": "asphalt_n.jpg"
   },
   "brick_grey": {
    "assetId": "Bricks023",
@@ -15,7 +16,8 @@
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Bricks023",
    "resolution": "1K-JPG",
-   "file": "brick_grey.jpg"
+   "file": "brick_grey.jpg",
+   "normal": "brick_grey_n.jpg"
   },
   "brick_red": {
    "assetId": "Bricks075A",
@@ -23,7 +25,8 @@
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Bricks075A",
    "resolution": "1K-JPG",
-   "file": "brick_red.jpg"
+   "file": "brick_red.jpg",
+   "normal": "brick_red_n.jpg"
   },
   "concrete": {
    "assetId": "Concrete017",
@@ -31,7 +34,8 @@
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Concrete017",
    "resolution": "1K-JPG",
-   "file": "concrete.jpg"
+   "file": "concrete.jpg",
+   "normal": "concrete_n.jpg"
   },
   "glass": {
    "assetId": "Facade001",
@@ -39,7 +43,8 @@
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Facade001",
    "resolution": "1K-JPG",
-   "file": "glass.jpg"
+   "file": "glass.jpg",
+   "normal": "glass_n.jpg"
   },
   "kerb": {
    "assetId": "Concrete034",
@@ -47,7 +52,8 @@
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Concrete034",
    "resolution": "1K-JPG",
-   "file": "kerb.jpg"
+   "file": "kerb.jpg",
+   "normal": "kerb_n.jpg"
   },
   "metal": {
    "assetId": "Metal032",
@@ -55,7 +61,8 @@
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Metal032",
    "resolution": "1K-JPG",
-   "file": "metal.jpg"
+   "file": "metal.jpg",
+   "normal": "metal_n.jpg"
   },
   "plaster": {
    "assetId": "Plaster001",
@@ -63,7 +70,8 @@
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Plaster001",
    "resolution": "1K-JPG",
-   "file": "plaster.jpg"
+   "file": "plaster.jpg",
+   "normal": "plaster_n.jpg"
   },
   "roof": {
    "assetId": "RoofingTiles006",
@@ -71,7 +79,8 @@
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=RoofingTiles006",
    "resolution": "1K-JPG",
-   "file": "roof.jpg"
+   "file": "roof.jpg",
+   "normal": "roof_n.jpg"
   },
   "sidewalk": {
    "assetId": "PavingStones067",
@@ -79,7 +88,8 @@
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=PavingStones067",
    "resolution": "1K-JPG",
-   "file": "sidewalk.jpg"
+   "file": "sidewalk.jpg",
+   "normal": "sidewalk_n.jpg"
   },
   "window": {
    "assetId": "Facade018A",
@@ -87,7 +97,8 @@
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Facade018A",
    "resolution": "1K-JPG",
-   "file": "window.jpg"
+   "file": "window.jpg",
+   "normal": "window_n.jpg"
   },
   "wood": {
    "assetId": "Planks011",
@@ -95,7 +106,8 @@
    "licence": "CC0 1.0 Universal",
    "url": "https://ambientcg.com/view?id=Planks011",
    "resolution": "1K-JPG",
-   "file": "wood.jpg"
+   "file": "wood.jpg",
+   "normal": "wood_n.jpg"
   }
  }
 }
