@@ -27,20 +27,25 @@ CLAUDE.md under AUTO MODE.
 
 ## Now
 
-### SUNDAY 16 AUG, MIDDAY: T1 LANDED AND JUDGED, T2 MOSTLY LANDED.
-Two town-plan builds in. T1 (terraces, street ribbon, give-way
-paint, skyline) judged on its stills: enclosure works at street
-level, sign furniture 545→77 across the two builds, no new gate
-failures. T2's first wave landed with it: name plates ON corner
-buildings (wallPlates=176), kit lamps with heads, K6 + pillar boxes,
-parked cars (136, half-on-kerb). Build 3 in flight carries roughness
-maps on walls, cables extended to the building line (they ended
-mid-air — both builds' skies showed floating scribbles), and the 2K
-pack. STILL OPEN in T2: shopfront fasciae with painted names,
-awnings wired to commercial sites, door steps/surrounds. TUESDAY
-NOON DECISION stands: stable → Wednesday ships the town; doubtful →
-flag back. Standing order (16 Aug, enforced via CLAUDE.md + the
-ladder below): best available result, not first working one.
+### SUNDAY 16 AUG, EVENING: SEVEN BUILDS, THE TOWN REBUILT, THE CEILING MEASURED.
+The town plan landed end to end and is unambiguously better than the
+old world on every axis seen or measured: terraces, ribbon, British
+sign grammar (signs 545 to 77), wall-mounted street names, lamps with
+heads, 136 parked cars, painted shop names, awnings, doorsteps,
+yellow lines, cranes/gasometer, smoke, gulls, 2K photo textures with
+roughness on walls, cables to the building line, and the noon sun at
+a real northern angle (real shadows — the overhead-sun bug was the
+dead-noon cause). RECOMMENDATION FOR TUESDAY NOON: KEEP.
+
+AND THE STRUCTURAL FACT, measured not guessed: at this grid pitch a
+block holds ONE building per edge (Copper Row 6.8m buildable, Parade
+8.8m, Hook 12.8m) — ~110 parcel ceiling citywide, 60 landed after
+place carve-outs. The town cannot read big at this pitch no matter
+the dressing. The topology re-plan (wider per-district pitch, 61
+places re-authored) is Thursday's headline, with this paragraph as
+its case. Monday: polish batch (all 19 chimneys smoke, dangling
+cable end, giant bubble text, box-crowd at close range), then freeze
+prep.
 
 ### THE PLAYTEST PUSH OWNS THE QUEUE UNTIL WEDNESDAY 19 AUGUST.
 **The plan is `playtest-plan.md`** — MacBook Air, three players, four
