@@ -56,8 +56,54 @@ namespace Ledger.EditorTools
         /// from a screenshot of one character.
         public static int Variants;
 
-        /// Built on the first body and reused for the rest.
-        static RuntimeAnimatorController _locomotion;
+        /// One controller PER GAIT ARCHETYPE, cached — built on first use,
+        /// shared by every body of that archetype. WRITTEN BEFORE THE CLIPS
+        /// ARRIVE (16 Aug), the pipeline's standing pattern: today only the
+        /// shared idle/walk/run exist, so every archetype resolves to the
+        /// same three clips and nothing changes; the moment Jafar's Mixamo
+        /// re-pick lands `walk_old`, `idle_old` and the idle variants, old
+        /// bodies walk old and idles stop being one loop — in that build,
+        /// with no further code.
+        static readonly System.Collections.Generic.Dictionary<string, RuntimeAnimatorController>
+            _locomotions = new System.Collections.Generic.Dictionary<string, RuntimeAnimatorController>();
+
+        /// Which gait a body wears, from its model name — the same
+        /// name-keyed determinism `Physique` uses ("the same name is the
+        /// same body, always"). "old" is the only special archetype until a
+        /// female walk clip actually exists in the harvest; wiring an
+        /// archetype whose clips cannot arrive would be rule 6 in advance.
+        static string ArchetypeFor(string stem)
+        {
+            var s = stem.ToLowerInvariant();
+            if (s.Contains("granny") || s.Contains("old") || s.Contains("elder"))
+                return "old";
+            return "default";
+        }
+
+        /// Which idle VARIANT a default body opens with, spread
+        /// deterministically across whatever idle clips the harvest holds
+        /// (`idle`, `idle_2`, `idle_bored`). Variety for one street-glance:
+        /// two people waiting at a corner should not breathe in unison.
+        static readonly string[] IdleVariants = { "idle", "idle_2", "idle_bored" };
+
+        static RuntimeAnimatorController LocomotionFor(string stem)
+        {
+            var arch = ArchetypeFor(stem);
+            string idleKey = "idle";
+            if (arch == "default")
+            {
+                int h = 0;
+                foreach (char c in stem) h = h * 31 + c;
+                idleKey = IdleVariants[((h % IdleVariants.Length)
+                                       + IdleVariants.Length) % IdleVariants.Length];
+            }
+            var key = arch + ":" + idleKey;
+            if (_locomotions.TryGetValue(key, out var cached) && cached != null)
+                return cached;
+            var built = BuildLocomotion(arch, idleKey);
+            _locomotions[key] = built;
+            return built;
+        }
 
         /// EVERY BODY IN THE FOLDER, NOT JUST THE ONE NAMED ABOVE.
         ///
@@ -95,7 +141,7 @@ namespace Ledger.EditorTools
         {
             ExtractTextures();
             Variants = 0;
-            _locomotion = null;
+            _locomotions.Clear();
             int mannequins = 0;
             foreach (var path in BodyModels())
             {
@@ -265,14 +311,14 @@ namespace Ledger.EditorTools
                     // controller present it now takes the composing branch it
                     // was designed for, and the rest-restore stands down
                     // because something else genuinely is driving the pose.
-                    // BUILT ONCE AND SHARED. Every body plays the same idle
-                    // and the same walk, and `CreateAnimatorControllerAtPath`
-                    // called four times at one path would rebuild it four
-                    // times — with the later calls landing on an asset that
-                    // already exists, which is a failure mode nobody would
-                    // read as "too many bodies".
-                    if (_locomotion == null) _locomotion = BuildLocomotion();
-                    animator.runtimeAnimatorController = _locomotion;
+                    // BUILT ONCE PER ARCHETYPE AND SHARED within it — the
+                    // cache stops `CreateAnimatorControllerAtPath` landing
+                    // twice on one path, which is a failure mode nobody
+                    // would read as "too many bodies". Which archetype a
+                    // body gets is a function of its model name, so the
+                    // same body walks the same way every build.
+                    var gaitStem = System.IO.Path.GetFileNameWithoutExtension(modelPath);
+                    animator.runtimeAnimatorController = LocomotionFor(gaitStem);
                     //
                     // AND THAT CONTRACT HAD A SHARP EDGE NOBODY HAD WRITTEN
                     // DOWN. An Animator with no controller drives nothing, so
@@ -368,13 +414,35 @@ namespace Ledger.EditorTools
         /// return leaves the body exactly as it was before this change and
         /// says why on the done line, which is a bad frame instead of no
         /// frames at all.
-        static RuntimeAnimatorController BuildLocomotion()
+        static RuntimeAnimatorController BuildLocomotion(string arch, string idleKey)
         {
-            ClipsBound = 0;
+            // The default:idle pair keeps the historic asset path and is the
+            // one that writes the done-line statics — every gate and every
+            // landed verdict has watched THAT controller, and a variant
+            // renaming it out from under them would read as the controller
+            // vanishing. Variants get their own assets and their own log
+            // line each.
+            bool canonical = arch == "default" && idleKey == "idle";
+            var assetPath = canonical
+                ? ControllerPath
+                : $"{ResourceDir}/Body_{arch}_{idleKey}.controller";
+            if (canonical) ClipsBound = 0;
             try
             {
-                var idle = ClipFor("idle");
-                var walk = ClipFor("walk");
+                // FALLBACK CHAINS, so an archetype whose clips have not
+                // landed yet is byte-identical to the default — which is
+                // the whole trick of writing this before the re-pick runs.
+                AnimationClip idle, walk;
+                if (arch == "old")
+                {
+                    idle = ClipFor("idle_old") ?? ClipFor("idle");
+                    walk = ClipFor("walk_old") ?? ClipFor("walk");
+                }
+                else
+                {
+                    idle = ClipFor(idleKey) ?? ClipFor("idle");
+                    walk = ClipFor("walk");
+                }
                 var run = ClipFor("run");
                 if (idle == null)
                 {
@@ -382,12 +450,16 @@ namespace Ledger.EditorTools
                     // tree whose zero-speed pose is a walk cycle looks worse
                     // than the statue, so this refuses rather than half-doing
                     // it — and says which clip was missing.
-                    ControllerWhy = "no idle clip under Assets/Characters";
+                    if (canonical) ControllerWhy = "no idle clip under Assets/Characters";
                     return null;
                 }
 
-                var controller = AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
-                if (controller == null) { ControllerWhy = "could not create controller asset"; return null; }
+                var controller = AnimatorController.CreateAnimatorControllerAtPath(assetPath);
+                if (controller == null)
+                {
+                    if (canonical) ControllerWhy = "could not create controller asset";
+                    return null;
+                }
                 controller.AddParameter(SpeedParam, AnimatorControllerParameterType.Float);
 
                 var state = controller.CreateBlendTreeInController("Locomotion", out BlendTree tree, 0);
@@ -399,9 +471,11 @@ namespace Ledger.EditorTools
                 // the kind of wrong that looks like a physics bug.
                 tree.useAutomaticThresholds = false;
 
-                tree.AddChild(idle, 0f);   ClipsBound++;
-                if (walk != null) { tree.AddChild(walk, 1.4f); ClipsBound++; }
-                if (run != null) { tree.AddChild(run, 4.0f); ClipsBound++; }
+                int bound = 0;
+                tree.AddChild(idle, 0f);   bound++;
+                if (walk != null) { tree.AddChild(walk, 1.4f); bound++; }
+                if (run != null) { tree.AddChild(run, 4.0f); bound++; }
+                if (canonical) ClipsBound = bound;
 
                 controller.layers[0].stateMachine.defaultState = state;
 
@@ -428,13 +502,27 @@ namespace Ledger.EditorTools
                 controller.layers = layers;
 
                 AssetDatabase.SaveAssets();
-                ControllerWhy = $"ok (idle{(walk != null ? "+walk" : "")}{(run != null ? "+run" : "")})";
+                if (canonical)
+                    ControllerWhy = $"ok (idle{(walk != null ? "+walk" : "")}{(run != null ? "+run" : "")})";
+                // Every variant says what it is actually made of — the
+                // done-line statics describe only the canonical controller,
+                // so a variant quietly falling back to shared clips (the
+                // expected state until the re-pick lands) is visible here
+                // and nowhere else.
+                Debug.Log($"CharacterPrefab: locomotion {arch}:{idleKey} -> "
+                          + $"idle={idle.name} walk={(walk != null ? walk.name : "none")} "
+                          + $"run={(run != null ? run.name : "none")} at {assetPath}");
                 return controller;
             }
             catch (System.Exception e)
             {
-                ControllerWhy = $"{e.GetType().Name}: {e.Message}";
-                ClipsBound = 0;
+                if (canonical)
+                {
+                    ControllerWhy = $"{e.GetType().Name}: {e.Message}";
+                    ClipsBound = 0;
+                }
+                Debug.Log($"CharacterPrefab: locomotion {arch}:{idleKey} FAILED "
+                          + $"{e.GetType().Name}: {e.Message}");
                 return null;
             }
         }
