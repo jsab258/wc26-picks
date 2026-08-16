@@ -123,18 +123,19 @@ def audit(pack=None):
         # here — present or corrupt, it read the same. Same shape rules
         # as the albedo; absence is fine (the surface simply renders
         # without relief), a broken one is not.
-        for ext2 in EXTS:
-            pn = textures / (logical + "_n" + ext2)
-            if not pn.exists():
-                continue
-            nd = dimensions(pn)
-            if nd is None:
-                check(False, f"{logical}_n — decodes as PNG or JPEG", "unreadable header")
+        for suffix in ("_n", "_r"):
+            for ext2 in EXTS:
+                pn = textures / (logical + suffix + ext2)
+                if not pn.exists():
+                    continue
+                nd = dimensions(pn)
+                if nd is None:
+                    check(False, f"{logical}{suffix} — decodes as PNG or JPEG", "unreadable header")
+                    break
+                nw, nh = nd
+                check(nw and (nw & (nw - 1)) == 0, f"{logical}{suffix} — width power-of-two", f"{nw}")
+                check(nh and (nh & (nh - 1)) == 0, f"{logical}{suffix} — height power-of-two", f"{nh}")
                 break
-            nw, nh = nd
-            check(nw and (nw & (nw - 1)) == 0, f"{logical}_n — width power-of-two", f"{nw}")
-            check(nh and (nh & (nh - 1)) == 0, f"{logical}_n — height power-of-two", f"{nh}")
-            break
 
     if sizes:
         print()

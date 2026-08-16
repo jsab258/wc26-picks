@@ -68,11 +68,12 @@ SURFACES = {
     "window":     ["Glass", "Metal"],
 }
 
-# 1K is the right size and this is a decision rather than a default. Seven
-# districts of buildings at 2K is a download and a memory budget bought for
-# detail nobody sees: the art direction is fog, rain and restricted palette
-# doing the heavy lifting, and the camera is a street-level third person. 1K
-# tiling at the tiling rates in `SurfaceSpec` reads correctly at that distance.
+# The DEFAULT when choices.json is silent; the committed choices carry the
+# real decision. The pack started at 1K on the argument that fog and palette
+# do the heavy lifting; RE-DECIDED 16 Aug ("best possible result, all
+# aspects") — the target machine is an M5 with memory to spare, the camera
+# walks right up to walls, and 2K is where brick stops smearing at arm's
+# length. Twelve surfaces at 2K JPG is ~40MB, noise for a desktop game.
 RESOLUTION = "1K-JPG"
 
 
@@ -260,7 +261,7 @@ def inventory():
     return 0
 
 
-def links_for(ids):
+def links_for(ids, resolution=None):
     """Download links for exactly these asset ids, from the LIST endpoint.
 
     THE SEARCH ENDPOINT LIED FOR THE THIRD TIME. `--fetch` used to resolve each
@@ -282,6 +283,7 @@ def links_for(ids):
     why the first failure needed a CI log dug out of a truncated window to
     diagnose at all."""
     want, found = set(ids), {}
+    res = resolution or RESOLUTION
     offset, limit = 0, 200
     print(f"  resolving {len(want)} link(s) from the list endpoint")
     while offset < 4000 and len(found) < len(want):
@@ -298,7 +300,7 @@ def links_for(ids):
         for a in assets:
             aid = a.get("assetId") if isinstance(a, dict) else None
             if aid in want and aid not in found:
-                link = link_for(a, RESOLUTION)
+                link = link_for(a, res)
                 if link:
                     found[aid] = link
         offset += limit
@@ -380,23 +382,32 @@ def fetch():
     # costs nothing; the committed one predates it, so the list endpoint fills
     # the gap. Either way the fetch loop below only ever downloads a URL the
     # library itself handed over.
+    #
+    # ONLY IF THE LINK IS AT THE WANTED RESOLUTION. The committed catalogue's
+    # links are the 1K zips it was pulled at, and a resolution bump in
+    # choices.json would otherwise download 1K and LABEL it 2K in the
+    # attribution — a quietly-wrong answer, the exact class this file's
+    # header warns about. The zip filename carries the size, so the check is
+    # a substring; a mismatch just falls through to the list endpoint.
+    want_res = choices.get("resolution", RESOLUTION)
     cat_path = HERE / "catalogue.json"
     links = {}
     if cat_path.exists():
         for a in json.loads(cat_path.read_text(encoding="utf-8")).get("assets", []):
-            if a.get("id") in set(wanted.values()) and a.get("link"):
+            if (a.get("id") in set(wanted.values()) and a.get("link")
+                    and want_res in a["link"]):
                 links[a["id"]] = a["link"]
         if links:
             print(f"  {len(links)} link(s) came from the committed catalogue")
     unresolved = set(wanted.values()) - set(links)
     if unresolved:
-        links.update(links_for(unresolved))
+        links.update(links_for(unresolved, want_res))
 
     written, failed, attribution = [], [], {}
     for logical, asset_id in wanted.items():
         link = links.get(asset_id)
         if not link:
-            print(f"  {logical:<12} FAILED {asset_id}: no {RESOLUTION} download "
+            print(f"  {logical:<12} FAILED {asset_id}: no {want_res} download "
                   "link — the library did not offer one")
             failed.append(logical)
             continue
@@ -410,8 +421,10 @@ def fetch():
         # Colour AND normal, since 16 Aug ("max polish" — the Standard
         # shader path in AssetLibrary now samples _BumpMap, so the normal
         # map stopped being weight for nothing and became the difference
-        # between painted brick and brick). Roughness and AO stay behind:
-        # nothing samples them, same rule as before.
+        # between painted brick and brick). Roughness joined them the same
+        # day, on the same rule going the other way: AssetLibrary is being
+        # taught to sample it, so it stops being weight for nothing the
+        # build after it lands. AO alone stays behind: nothing samples it.
         try:
             with zipfile.ZipFile(io.BytesIO(blob)) as z:
                 inside = z.namelist()
@@ -422,6 +435,7 @@ def fetch():
                 # useful thing to print is what WAS.
                 name = None
                 norm_name = None
+                rough_name = None
                 for n in inside:
                     low = n.lower()
                     if not low.endswith((".jpg", ".png")):
@@ -433,10 +447,13 @@ def fetch():
                     # would emboss every mortar line outward.
                     if "normalgl" in low and norm_name is None:
                         norm_name = n
+                    if "roughness" in low and rough_name is None:
+                        rough_name = n
                 if name is None:
                     raise ValueError("no colour map among " + ", ".join(inside[:8]))
                 img = z.read(name)
                 norm = z.read(norm_name) if norm_name else None
+                rough = z.read(rough_name) if rough_name else None
         except Exception as e:                                   # noqa: BLE001
             print(f"  {logical:<12} FAILED to read colour map from {asset_id}: "
                   f"{type(e).__name__}: {e}")
@@ -452,17 +469,23 @@ def fetch():
             next_to = textures / (logical + "_n" + ext)
             next_to.write_bytes(norm)
             norm_note = f"+ {next_to.name} {len(norm) // 1024} KiB"
+        rough_note = "no Roughness in zip"
+        if rough is not None:
+            r_to = textures / (logical + "_r" + ext)
+            r_to.write_bytes(rough)
+            rough_note = f"+ {r_to.name} {len(rough) // 1024} KiB"
         attribution[logical] = {
             "assetId": asset_id,
             "source": "ambientCG",
             "licence": "CC0 1.0 Universal",
             "url": f"https://ambientcg.com/view?id={asset_id}",
-            "resolution": RESOLUTION,
+            "resolution": want_res,
             "file": dest.name,
             "normal": (logical + "_n" + ext) if norm is not None else None,
+            "roughness": (logical + "_r" + ext) if rough is not None else None,
         }
         print(f"  {logical:<12} ok  {asset_id}  {len(img) // 1024} KiB  "
-              f"-> {dest.name}  {norm_note}")
+              f"-> {dest.name}  {norm_note}  {rough_note}")
 
     (PACK / "ATTRIBUTION.json").write_text(
         json.dumps({"note": "Sources for every file in this pack. "

@@ -306,6 +306,22 @@ When `## Now` has nothing startable in it, the next action is to take one of
 these and decompose it into `## Now` — NOT to end the turn. Running out of short
 items is a refill signal, not a stop signal.
 
+### The quality ladder (standing order 16 Aug: best available, not first working)
+
+Before closing any visible item, ask: best available result, or first working
+one? Take the next rung or name it here. A blank next rung is a research task.
+
+| aspect | rung now | known next rung, free |
+|---|---|---|
+| textures | 2K colour+normal+roughness fetching | wire roughness into materials; AO maps |
+| buildings | procedural terraces, photo surfaces | window reveals/sills relief; per-district trim |
+| vehicles | Kenney kit + town paints | curated higher-fidelity CC0 set (Quaternius/Sketchfab), same pipeline |
+| props | Kenney kits, partial coverage | fill the miss list (benches!); higher-tier swaps |
+| characters | Mixamo bodies, gait archetypes | Jafar's clip session; reaction anims (T3) |
+| lighting | gradient sky, noir grade, wet streets | clouds (T4); noon shadows/AO; HDRP post-playtest |
+| animation feel | walk/idle variants | flinch/greeting/turn-to-look wired to perception |
+| audio | foley, barks, procedural score | voices into build (Thu); positional street sounds |
+
 - **M21, the two ledgers.** Empire growth, law as a tool, what expansion costs
   you. Entirely unbuilt, entirely Core, so entirely doable here without a round
   trip. This is the largest piece of unwritten game left.

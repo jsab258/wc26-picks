@@ -1196,3 +1196,28 @@ And the framing every plan is judged against: unmistakably deeper than KCD2
 while looking unmistakably worse, and at peace with that trade. The moat is
 social memory 93, consequence persistence 95, information 90 — against a
 best-in-class of 60, 85 and 65. Everything else is in service of it.
+
+**And the standing order underneath both, 16 Aug, his words: "use creativity
+and skill and available resources to get the best possible result in all
+aspects of the game."** Not "make it work" — the best result AVAILABLE. The
+first version of anything in this project has repeatedly been the first thing
+that worked, declared done because it ran: 1K textures picked when 2K was one
+field away, headless lamp posts shipped for weeks beside a fetched kit that
+had heads, roughness maps left unfetched by a comment saying nothing samples
+them — written by the same hand that could have made something sample them.
+
+He asked how this gets ENFORCED, and the honest answer is that a rule with no
+trigger point decays — this file is a list of proofs. So it has two:
+
+1. **It lives here**, in the file read at every session start, which is the
+   only thing the ephemeral container cannot lose.
+2. **It is asked at close.** `queue.md` keeps a QUALITY LADDER — each visible
+   aspect of the game, its current rung, and the known next rung from
+   available resources. Before an item is closed, the question is "is this
+   the best available result, or the first working one?" — and the next rung
+   either gets taken now or goes onto the ladder with a name. An aspect whose
+   next rung is blank is a research task, not a finished aspect.
+
+The ladder turns "best possible" from a mood into a delta. The trap it
+exists for: a pipeline that CAN ingest better assets is not the same as
+better assets ingested — built is not running (rule 6), applied to quality.
