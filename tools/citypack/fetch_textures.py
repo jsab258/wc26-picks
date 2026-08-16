@@ -407,10 +407,11 @@ def fetch():
             failed.append(logical)
             continue
 
-        # The colour map only. Normal, roughness and AO maps are a second
-        # decision and a much larger download, and the Standard shader path in
-        # `AssetLibrary` reads albedo — shipping maps nothing samples would be
-        # weight for nothing.
+        # Colour AND normal, since 16 Aug ("max polish" — the Standard
+        # shader path in AssetLibrary now samples _BumpMap, so the normal
+        # map stopped being weight for nothing and became the difference
+        # between painted brick and brick). Roughness and AO stay behind:
+        # nothing samples them, same rule as before.
         try:
             with zipfile.ZipFile(io.BytesIO(blob)) as z:
                 inside = z.namelist()
@@ -420,13 +421,22 @@ def fetch():
                 # round trip to identify. If no colour map is in there, the
                 # useful thing to print is what WAS.
                 name = None
+                norm_name = None
                 for n in inside:
-                    if n.lower().endswith((".jpg", ".png")) and "color" in n.lower():
+                    low = n.lower()
+                    if not low.endswith((".jpg", ".png")):
+                        continue
+                    if "color" in low and name is None:
                         name = n
-                        break
+                    # NormalGL, not NormalDX: Unity's tangent space is
+                    # OpenGL-handed (green up). The DX map inverts green and
+                    # would emboss every mortar line outward.
+                    if "normalgl" in low and norm_name is None:
+                        norm_name = n
                 if name is None:
                     raise ValueError("no colour map among " + ", ".join(inside[:8]))
                 img = z.read(name)
+                norm = z.read(norm_name) if norm_name else None
         except Exception as e:                                   # noqa: BLE001
             print(f"  {logical:<12} FAILED to read colour map from {asset_id}: "
                   f"{type(e).__name__}: {e}")
@@ -437,6 +447,11 @@ def fetch():
         dest = textures / (logical + ext)
         dest.write_bytes(img)
         written.append(dest)
+        norm_note = "no NormalGL in zip"
+        if norm is not None:
+            next_to = textures / (logical + "_n" + ext)
+            next_to.write_bytes(norm)
+            norm_note = f"+ {next_to.name} {len(norm) // 1024} KiB"
         attribution[logical] = {
             "assetId": asset_id,
             "source": "ambientCG",
@@ -444,8 +459,10 @@ def fetch():
             "url": f"https://ambientcg.com/view?id={asset_id}",
             "resolution": RESOLUTION,
             "file": dest.name,
+            "normal": (logical + "_n" + ext) if norm is not None else None,
         }
-        print(f"  {logical:<12} ok  {asset_id}  {len(img) // 1024} KiB  -> {dest.name}")
+        print(f"  {logical:<12} ok  {asset_id}  {len(img) // 1024} KiB  "
+              f"-> {dest.name}  {norm_note}")
 
     (PACK / "ATTRIBUTION.json").write_text(
         json.dumps({"note": "Sources for every file in this pack. "

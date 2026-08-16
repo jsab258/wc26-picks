@@ -171,6 +171,17 @@ namespace Ledger.Game
             // The grade when the texture carries the colour; the tint only
             // when nothing else does. The story is on `TextureGrade`.
             mat.color = tex != null ? TextureGrade : spec.Tint;
+            // RELIEF, when the pack ships it (16 Aug, "max polish"). The
+            // normal map is what makes a wall you stand next to read as
+            // COURSES OF BRICK rather than as a photograph of one — and at
+            // player height, standing next to walls is most of the game.
+            // Same ST as the albedo, so the two cannot drift.
+            var nrm = tex != null ? ResolveNormal(logical) : null;
+            if (nrm != null)
+            {
+                mat.SetTexture("_BumpMap", nrm);
+                mat.EnableKeyword("_NORMALMAP");
+            }
             // Standard shader (built-in): _Glossiness is smoothness, _Metallic is 0..1.
             mat.SetFloat("_Glossiness", spec.Smoothness);
             mat.SetFloat("_Metallic", spec.Metallic);
@@ -275,6 +286,60 @@ namespace Ledger.Game
             _textures[logical] = tex;
             return tex;
         }
+
+        /// The pack's normal map for a surface, SWIZZLED FOR THE SHADER.
+        ///
+        /// The desktop Standard shader unpacks normals as DXT5nm — x from
+        /// ALPHA, y from GREEN (`UnpackScaleNormal` reads `.wy`). A JPEG
+        /// normal map is plain RGB, so assigning it raw shifts every normal
+        /// toward +x and the whole street lights as though raked from one
+        /// side — a wrongness that reads as a lighting bug, not a texture
+        /// bug, which is why it would have cost a build cycle to find on
+        /// stills. Swizzled once at load: R into A, G kept, R/B slots left
+        /// white (the shader reconstructs z). Linear, not sRGB, because a
+        /// normal is a vector and gamma would bend every one of them.
+        static Texture2D ResolveNormal(string logical)
+        {
+            if (_normals.TryGetValue(logical, out var cached)) return cached;
+            Texture2D result = null;
+            if (PackPresent)
+            {
+                foreach (var ext in new[] { ".png", ".jpg", ".jpeg" })
+                {
+                    var path = Path.Combine(_packRoot, "textures", logical + "_n" + ext);
+                    if (!File.Exists(path)) continue;
+                    try
+                    {
+                        var raw = new Texture2D(2, 2, TextureFormat.RGBA32, false, true);
+                        if (raw.LoadImage(File.ReadAllBytes(path))
+                            && TextureFit.IsCleanShape(raw.width, raw.height))
+                        {
+                            var px = raw.GetPixels32();
+                            for (int i = 0; i < px.Length; i++)
+                            {
+                                px[i].a = px[i].r;
+                                px[i].r = 255;
+                                px[i].b = 255;
+                            }
+                            result = new Texture2D(raw.width, raw.height,
+                                                   TextureFormat.RGBA32, true, true)
+                            { name = "packnrm_" + logical,
+                              wrapMode = TextureWrapMode.Repeat,
+                              filterMode = FilterMode.Bilinear };
+                            result.SetPixels32(px);
+                            result.Apply(true);
+                        }
+                        UnityEngine.Object.Destroy(raw);
+                    }
+                    catch (System.Exception e)
+                    { Debug.LogWarning($"AssetLibrary: normal map {path} failed: {e.Message}"); }
+                    break;
+                }
+            }
+            _normals[logical] = result;   // null cached too: ask the disk once
+            return result;
+        }
+        static readonly Dictionary<string, Texture2D> _normals = new Dictionary<string, Texture2D>();
 
         static Texture2D LoadPackTexture(string logical)
         {

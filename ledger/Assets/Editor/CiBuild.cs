@@ -104,6 +104,13 @@ namespace Ledger.EditorTools
             mat.EnableKeyword("_EMISSION");
             mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             mat.SetColor("_EmissionColor", new Color(1f, 0.8f, 0.4f));
+            // _NORMALMAP too (16 Aug): AssetLibrary now builds its bump maps
+            // at runtime, which the variant collector cannot see — exactly
+            // the fault this method exists for, one keyword later. Without
+            // this line the swizzle, the loader and the fetch all work and
+            // the wall stays flat, silently, in the player only.
+            mat.EnableKeyword("_NORMALMAP");
+            mat.SetTexture("_BumpMap", Texture2D.normalTexture);
             AssetDatabase.CreateAsset(mat, matPath);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

@@ -118,6 +118,24 @@ def audit(pack=None):
         check(h and (h & (h - 1)) == 0, f"{logical} — height power-of-two", f"{h}")
         check(256 <= w <= 2048, f"{logical} — a sane size", f"{w}px")
 
+        # THE COMPANION NORMAL MAP, WHEN ONE SHIPS. The loop above walks
+        # LOGICAL names, so `asphalt_n.jpg` was invisible to every check
+        # here — present or corrupt, it read the same. Same shape rules
+        # as the albedo; absence is fine (the surface simply renders
+        # without relief), a broken one is not.
+        for ext2 in EXTS:
+            pn = textures / (logical + "_n" + ext2)
+            if not pn.exists():
+                continue
+            nd = dimensions(pn)
+            if nd is None:
+                check(False, f"{logical}_n — decodes as PNG or JPEG", "unreadable header")
+                break
+            nw, nh = nd
+            check(nw and (nw & (nw - 1)) == 0, f"{logical}_n — width power-of-two", f"{nw}")
+            check(nh and (nh & (nh - 1)) == 0, f"{logical}_n — height power-of-two", f"{nh}")
+            break
+
     if sizes:
         print()
         for logical, w, h, n in sizes:
