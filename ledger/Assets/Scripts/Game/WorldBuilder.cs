@@ -641,14 +641,27 @@ namespace Ledger.Game
             bool offices = district == "the Exchange";
             bool villas = district == "Fairview";
             bool resort = district == "Gullwing";
-            float depthN = RowDepth(rng, offices, villas, resort);
-            float depthS = RowDepth(rng, offices, villas, resort);
 
             float w = maxX - minX, d = maxZ - minZ;
-            // Shallow blocks cannot hold two facing rows and a yard; give
-            // them a single row facing the wider street and stop.
-            bool deepEnough = d > depthN + depthS + 4f;
-            if (!deepEnough) depthS = 0f;
+            // DERIVED FROM THE BLOCK, CAPPED BY THE WISH-LIST — not the
+            // other way round. RowDepth's 9-15m plans were written for
+            // real-city blocks; THIS map's blocks are ~12.8m buildable
+            // (26m grid, 8m roads, 2.6m setbacks), so demanding two 9m
+            // rows plus a 4m yard produced one row on a good block and
+            // nothing on Copper Row — terraceParcels=38 across 46 blocks,
+            // measured, which is the empty city the stills were showing
+            // all along. A terrace house is genuinely 4-5m deep all over
+            // Britain; the deep plan is the luxury, not the norm.
+            float halfAvail = (d - 3f) / 2f;
+            float depthN = Mathf.Min(RowDepth(rng, offices, villas, resort), halfAvail);
+            float depthS = Mathf.Min(RowDepth(rng, offices, villas, resort), halfAvail);
+            bool deepEnough = depthN >= 4.2f;
+            if (!deepEnough)
+            {
+                depthS = 0f;
+                depthN = Mathf.Min(RowDepth(rng, offices, villas, resort),
+                                   Mathf.Max(3.5f, d - 2.5f));
+            }
 
             // Which edge carries the alley mouth, and where along it.
             int alleyEdge = rng.Next(4);
@@ -661,12 +674,14 @@ namespace Ledger.Game
                 TerraceRow(specs, rng, minX, maxX, minZ, depthS, alongX: true, dir: -1f,
                            offices, villas, resort, alleyEdge == 1 ? alleyT : -1f);
 
-            // East and west rows: between the corner buildings.
+            // East and west rows: between the corner buildings, with their
+            // depths fitted to the width the same way.
             float z0 = minZ + (deepEnough ? depthS : 0f), z1 = maxZ - depthN;
-            if (z1 - z0 > 6f && w > RowDepth(rng, offices, villas, resort) * 2f + 4f)
+            float sideAvail = (w - 3f) / 2f;
+            if (z1 - z0 > 6f && sideAvail >= 4.2f)
             {
-                float depthE = RowDepth(rng, offices, villas, resort);
-                float depthW = RowDepth(rng, offices, villas, resort);
+                float depthE = Mathf.Min(RowDepth(rng, offices, villas, resort), sideAvail);
+                float depthW = Mathf.Min(RowDepth(rng, offices, villas, resort), sideAvail);
                 TerraceRow(specs, rng, z0, z1, maxX, depthE, alongX: false, dir: +1f,
                            offices, villas, resort, alleyEdge == 2 ? alleyT : -1f);
                 TerraceRow(specs, rng, z0, z1, minX, depthW, alongX: false, dir: -1f,
@@ -691,7 +706,7 @@ namespace Ledger.Game
                                bool offices, bool villas, bool resort, float alleyT)
         {
             float run = a1 - a0;
-            if (run < 5f || depth < 4f) return;
+            if (run < 5f || depth < 3.4f) return;
             float alleyAt = alleyT > 0f ? a0 + run * alleyT : float.MaxValue;
             bool alleyCut = false;
 
@@ -743,23 +758,53 @@ namespace Ledger.Game
             }
         }
 
-        /// Keep clear of the bar and of every named place's doorway — a
-        /// generated terrace must not close a door the game opens.
+        /// Where a place's graybox mass STANDS — the one formula, shared by
+        /// BuildDistrict (which draws it) and ClashesWithAuthored (which
+        /// keeps terraces out of it). Two copies of this arithmetic would
+        /// be the fourth "one idea, two implementations" on this file.
+        /// False for unplanned places: they build nothing.
+        public static bool PlaceMassOf(Ledger.Core.HookPlace place, out Vector3 pos, out Vector3 size)
+        {
+            pos = default; size = default;
+            if (!place.Planned) return false;
+            var stop = new Vector3((float)place.X, 0, (float)place.Z);
+            var block = Ledger.Core.StreetMap.BlockAt(stop.x, stop.z);
+            var dir = block != null
+                ? new Vector3((float)block.CentreX - stop.x, 0, (float)block.CentreZ - stop.z).normalized
+                : new Vector3(stop.x, 0, stop.z).normalized;
+            if (dir.sqrMagnitude < 0.01f) dir = Vector3.forward;
+            size = place.Kind == "home" ? new Vector3(9, 10, 8)
+                : place.Kind == "landmark" ? new Vector3(10, 7, 9)
+                : place.Kind == "business" ? new Vector3(7, 6, 7)
+                : new Vector3(4, 3, 4); // corner: a shelter, not a building
+            pos = stop + dir * (size.z / 2f + 2.5f);
+            return true;
+        }
+
+        /// Keep clear of the bar and of every named place — a generated
+        /// terrace must not close a door the game opens.
         ///
-        /// MARGINS TIGHTENED after the first landed T1 build: the Hook has
-        /// so many authored places that a 3m halo around each one skipped
-        /// whole runs of parcels, and the busiest streets in the game were
-        /// the gappiest — the opposite of the enclosure the phase exists
-        /// for. A doorway needs about a metre and a half of standing room,
-        /// not three; judged on the next build's stills like everything.
+        /// REWRITTEN AGAINST THE MEASUREMENT (terraceParcels=38 across 46
+        /// blocks). The old test was a halo around the place's STOP POINT —
+        /// an authored kerbside coordinate — inflated by the parcel's own
+        /// half-size, so one place erased half a row and 61 places erased
+        /// the city. What actually needs protecting is the place's BUILT
+        /// MASS (which stands ~6m into the block, via the shared formula
+        /// above) and a doorway's worth of standing room at the stop. Box
+        /// against box for the first; a 1.2m point margin for the second.
         static bool ClashesWithAuthored(Vector3 pos, Vector3 size)
         {
-            float hx = size.x / 2f + 1.5f, hz = size.z / 2f + 1.5f;
+            float hx = size.x / 2f, hz = size.z / 2f;
             // The bar.
-            if (Mathf.Abs(pos.x + 8f) < hx + 3.5f && Mathf.Abs(pos.z - 8f) < hz + 3.5f) return true;
+            if (Mathf.Abs(pos.x + 8f) < hx + 5f && Mathf.Abs(pos.z - 8f) < hz + 5f) return true;
             foreach (var place in Ledger.Core.HookMap.Places)
-                if (Mathf.Abs(pos.x - (float)place.X) < hx + 1.5f &&
-                    Mathf.Abs(pos.z - (float)place.Z) < hz + 1.5f) return true;
+            {
+                if (Mathf.Abs(pos.x - (float)place.X) < hx + 1.2f &&
+                    Mathf.Abs(pos.z - (float)place.Z) < hz + 1.2f) return true;
+                if (PlaceMassOf(place, out var pp, out var ps) &&
+                    Mathf.Abs(pos.x - pp.x) < hx + ps.x / 2f + 1.0f &&
+                    Mathf.Abs(pos.z - pp.z) < hz + ps.z / 2f + 1.0f) return true;
+            }
             return false;
         }
 
@@ -1883,22 +1928,15 @@ namespace Ledger.Game
             int i = 0;
             foreach (var place in Ledger.Core.HookMap.Places)
             {
-                if (!place.Planned) { i++; continue; }
-                var stop = new Vector3((float)place.X, 0, (float)place.Z);
                 // The mass sits BACK FROM THE STREET into its own block, so the
-                // door faces the road it is addressed from. Pushing it radially
-                // outward from the city centre — which is what this used to do —
-                // now lands buildings in the middle of avenues.
-                var block = Ledger.Core.StreetMap.BlockAt(stop.x, stop.z);
-                var dir = block != null
-                    ? new Vector3((float)block.CentreX - stop.x, 0, (float)block.CentreZ - stop.z).normalized
-                    : new Vector3(stop.x, 0, stop.z).normalized;
-                if (dir.sqrMagnitude < 0.01f) dir = Vector3.forward;
-                Vector3 size = place.Kind == "home" ? new Vector3(9, 10, 8)
-                    : place.Kind == "landmark" ? new Vector3(10, 7, 9)
-                    : place.Kind == "business" ? new Vector3(7, 6, 7)
-                    : new Vector3(4, 3, 4); // corner: a shelter, not a building
-                var pos = stop + dir * (size.z / 2f + 2.5f);
+                // door faces the road it is addressed from. The arithmetic
+                // lives in PlaceMassOf, SHARED with ClashesWithAuthored so
+                // the terraces carve around exactly the box this draws.
+                if (!PlaceMassOf(place, out var pos, out var size)) { i++; continue; }
+                var stop = new Vector3((float)place.X, 0, (float)place.Z);
+                // Recovered from the two points the helper guarantees are
+                // distinct — same vector the old inline computation had.
+                var dir = (pos - stop).normalized;
 
                 // IS THIS PLACE'S OWN POINT IN THE ROAD, AND IS ITS FACE?
                 //
