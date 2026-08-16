@@ -75,8 +75,7 @@ namespace Ledger.Game
                 {
                     double x = a.X + dx * s, z = a.Z + dz * s;
                     if (!Dressing.CableAt(x, z, prosperity, e.Width)) continue;
-                    Cable(x, z, dx, dz, e.Width);
-                    CableCount++;
+                    if (Cable(x, z, dx, dz, e.Width)) CableCount++;
                 }
             }
         }
@@ -88,7 +87,7 @@ namespace Ledger.Game
         /// middle is the cheapest thing that reads as weight — a real catenary
         /// would be a mesh, and at this distance in fog nobody can tell the
         /// difference between a curve and one bend.
-        static void Cable(double x, double z, double dx, double dz, double span)
+        static bool Cable(double x, double z, double dx, double dz, double span)
         {
             // Across the street, not along it: the perpendicular.
             var across = new Vector3((float)-dz, 0, (float)dx);
@@ -100,12 +99,21 @@ namespace Ledger.Game
             // black scribbles floating against the sky, anchored to nothing.
             // Road half + setback + 0.6 buries the ends in the terrace faces.
             float half = (float)span * 0.5f + WorldBuilder.BlockSetback + 0.6f;
+            // AND ONLY WHERE BOTH ENDS HAVE A BUILDING TO HOLD THEM. The
+            // extension fixed the geometry; it cannot conjure a wall where a
+            // parcel was skipped, and the third landed build still showed one
+            // scribble over a gap. A cable is a thing two buildings agree on.
+            var endA = mid - across * ((float)span * 0.5f + WorldBuilder.BlockSetback * 0.5f);
+            var endB = mid + across * ((float)span * 0.5f + WorldBuilder.BlockSetback * 0.5f);
+            if (!WorldBuilder.MassAt(endA, 2.0f, out _, out _)) return false;
+            if (!WorldBuilder.MassAt(endB, 2.0f, out _, out _)) return false;
             const float high = 6.0f, sag = 0.35f;
             var left = mid - across * half + Vector3.up * high;
             var right = mid + across * half + Vector3.up * high;
             var low = mid + Vector3.up * (high - sag);
             Segment($"Cable_{x:0}_{z:0}_a", left, low);
             Segment($"Cable_{x:0}_{z:0}_b", low, right);
+            return true;
         }
 
         static void Segment(string name, Vector3 from, Vector3 to)
