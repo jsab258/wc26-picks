@@ -2875,10 +2875,22 @@ namespace Ledger.Game
             // The music still swaps on a boundary — it is a different piece
             // of music, not a different time of day — but the ROOM now
             // crossfades continuously, below.
-            // 06:00 sunrise, 18:00 sunset mapped across a full rotation.
+            // 06:00 sunrise, 18:00 sunset. TOWN-PLAN.MD T4, the noon fix:
+            // the old mapping put the sun DIRECTLY OVERHEAD at midday
+            // (dayFraction 0.5 -> 90 degrees), so vertical walls took no
+            // direct light and shadows shrank to nothing — which is exactly
+            // the dead pasted-on noon Jafar flagged, caused by an angle no
+            // British sky ever reaches. Elevation now peaks at 52 degrees
+            // (a northern port in summer) while the azimuth swings east to
+            // west, so noon has real shadow direction and a lit side of the
+            // street facing a shaded one. Outside daylight the elevation
+            // clamps to the horizon; at 0.02 intensity the night cannot
+            // tell, and the night is the half that already looks right.
             float dayFraction = (Now.Hour * 60 + Now.Minute) / 1440f;
-            float sunAngle = dayFraction * 360f - 90f;
-            _sun.transform.rotation = Quaternion.Euler(sunAngle, 35f, 0);
+            float dayT = Mathf.Clamp01((dayFraction - 0.25f) / 0.5f);
+            float elev = Mathf.Sin(dayT * Mathf.PI) * 52f;
+            float azim = Mathf.Lerp(70f, 290f, dayT);
+            _sun.transform.rotation = Quaternion.Euler(elev, azim, 0);
 
             float daylight = Mathf.Clamp01(Mathf.Sin(dayFraction * Mathf.PI * 2f - Mathf.PI / 2f) + 0.15f);
             // Published so the film grade pushes the stock at night off the
