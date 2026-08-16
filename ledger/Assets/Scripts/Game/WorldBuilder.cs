@@ -1750,9 +1750,13 @@ namespace Ledger.Game
             var smokeMat = new Material(shader) { mainTexture = tex };
 
             int i = 0;
+            // Aim at ~40 smokers and take EVERY stack when there are fewer:
+            // the every-ninth rule assumed the hundreds of chimneys the tiny
+            // blocks turned out not to hold, and sampled nineteen down to two.
+            int step = Mathf.Max(1, TerraceChimneys.Count / 40);
             foreach (var (cpos, baseY) in TerraceChimneys)
             {
-                if (i++ % 9 != 0) continue;
+                if (i++ % step != 0) continue;
                 var go = new GameObject($"Smoke_{SmokeStacks}");
                 go.transform.position = cpos + new Vector3(0, baseY + 1.5f, 0);
                 var ps = go.AddComponent<ParticleSystem>();
