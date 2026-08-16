@@ -614,6 +614,10 @@ namespace Ledger.Game
         /// worst — with the number DRAWN at that same worst pass, so the two can
         /// honestly be read as a fraction.
         public static int VehiclesOffRoad, VehiclesOffRoadPeak, VehiclesAtOffRoadWorst;
+        /// WHO left the road, last seen: kind/id@x/z, the directed edge, the
+        /// distance along it, junction occupancy and what blocked it. "none"
+        /// until anything ever goes off-road, so a clean run says so.
+        public static string OffRoadWorstDesc = "none";
 
         /// The kit-mesh paints, multiplied over the kit's palette texture.
         /// Dark on purpose: these are saloons on a wet street in a noir
@@ -689,7 +693,19 @@ namespace Ledger.Game
             // has its centre inside the road and its body over the edge, and
             // flagging that would be measuring the model rather than the fault.
             if (!Ledger.Core.StreetMap.OnRoad(v.X, v.Z, v.Kind.Width * 0.5))
+            {
                 VehiclesOffRoad++;
+                // NAME THE CULPRIT. offRoad went intermittent-1 on 16 Aug
+                // (green four builds, then 1 in two of the next three) and a
+                // count cannot be chased — it says a vehicle left the road
+                // somewhere in nine days and nothing else. Kind, id, position
+                // and the edge it should be on turn the next red into an
+                // answer. Last-wins is fine: any culprit beats a bare count,
+                // and offRoad has never exceeded 1.
+                OffRoadWorstDesc = $"{v.Kind.Id}/{v.Id}@{v.X:0.0}/{v.Z:0.0}"
+                    + $"/edge:{v.FromId ?? "none"}-{v.ToId ?? "none"}"
+                    + $"/s:{v.S:0.0}/inJ:{v.InJunction ?? "no"}/blk:{v.BlockedBy ?? "no"}";
+            }
 
             // BRAKE LIGHTS, off `Vehicle.Waiting`. Toggled by the RENDERER
             // rather than the GameObject: `WorldBuilder.RegisterNightLight`

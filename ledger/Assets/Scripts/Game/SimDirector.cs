@@ -9911,7 +9911,8 @@ namespace Ledger.Game
                       $"clampsPerKm={(traffic != null && traffic.TotalDistance > 0 ? 1000.0 * traffic.OverlapsResolved / traffic.TotalDistance : 0):0.00} " +
                       $"tailsBehindStart={(traffic != null ? traffic.TailsBehindStart : -1)} " +
                       $"gapWhy=[{(traffic != null ? traffic.TightestGapWhy : "no traffic")}] " +
-                      $"offRoad={offRoad} yields={(traffic != null ? traffic.YieldsToPeople : 0)} trafficOk={trafficOk} " +
+                      $"offRoad={offRoad} offRoadWho=[{GameController.OffRoadWorstDesc}] " +
+                      $"yields={(traffic != null ? traffic.YieldsToPeople : 0)} trafficOk={trafficOk} " +
                       // `signs` answers "how much sign FURNITURE stands in the
                       // street" — under the town plan the name plates moved onto
                       // walls and out of this count, into wallPlates beside it.
