@@ -708,14 +708,21 @@ namespace Ledger.Game
 
         /// Keep clear of the bar and of every named place's doorway — a
         /// generated terrace must not close a door the game opens.
+        ///
+        /// MARGINS TIGHTENED after the first landed T1 build: the Hook has
+        /// so many authored places that a 3m halo around each one skipped
+        /// whole runs of parcels, and the busiest streets in the game were
+        /// the gappiest — the opposite of the enclosure the phase exists
+        /// for. A doorway needs about a metre and a half of standing room,
+        /// not three; judged on the next build's stills like everything.
         static bool ClashesWithAuthored(Vector3 pos, Vector3 size)
         {
             float hx = size.x / 2f + 1.5f, hz = size.z / 2f + 1.5f;
             // The bar.
-            if (Mathf.Abs(pos.x + 8f) < hx + 6f && Mathf.Abs(pos.z - 8f) < hz + 6f) return true;
+            if (Mathf.Abs(pos.x + 8f) < hx + 3.5f && Mathf.Abs(pos.z - 8f) < hz + 3.5f) return true;
             foreach (var place in Ledger.Core.HookMap.Places)
-                if (Mathf.Abs(pos.x - (float)place.X) < hx + 3f &&
-                    Mathf.Abs(pos.z - (float)place.Z) < hz + 3f) return true;
+                if (Mathf.Abs(pos.x - (float)place.X) < hx + 1.5f &&
+                    Mathf.Abs(pos.z - (float)place.Z) < hz + 1.5f) return true;
             return false;
         }
 
@@ -1560,7 +1567,8 @@ namespace Ledger.Game
 
         /// Property-block colour multiply — one shared material, per-object
         /// colour, no draw-call split. The vehicles' paint trick, reused.
-        static GameObject Tint(GameObject go, Color c)
+        /// Public: StreetFurniture paints its no-entry discs with it.
+        public static GameObject Tint(GameObject go, Color c)
         {
             var r = go.GetComponent<Renderer>();
             var mpb = new MaterialPropertyBlock();
@@ -2391,10 +2399,16 @@ namespace Ledger.Game
             for (int i = 0; i < cxs.Length; i++)
             {
                 float x = cxs[i], z = -174f;
-                MakeBox($"Crane_{i}_tower", new Vector3(x, 9f, z),
-                    new Vector3(1.4f, 18f, 1.4f), AssetLibrary.Metal);
+                // Two stepped sections, not one thin post: at review distance
+                // a 1.4m tower faded to nothing while the 17m jib survived,
+                // and the first landed build showed three jibs FLOATING.
+                // Thickness is what buys a silhouette its legs.
+                MakeBox($"Crane_{i}_tower", new Vector3(x, 5f, z),
+                    new Vector3(2.8f, 10f, 2.8f), AssetLibrary.Metal);
+                MakeBox($"Crane_{i}_tower_up", new Vector3(x, 14f, z),
+                    new Vector3(1.9f, 8f, 1.9f), AssetLibrary.Metal);
                 MakeBox($"Crane_{i}_cab", new Vector3(x, 18.7f, z),
-                    new Vector3(2.4f, 1.9f, 2.2f), AssetLibrary.Metal);
+                    new Vector3(2.6f, 1.9f, 2.4f), AssetLibrary.Metal);
                 var dir = new Vector3(Mathf.Sin(slew[i] * Mathf.Deg2Rad), 0,
                                       Mathf.Cos(slew[i] * Mathf.Deg2Rad));
                 // The jib: 17m, raked 24 degrees up from the cab. Centre sits

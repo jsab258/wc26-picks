@@ -273,7 +273,11 @@ namespace Ledger.Game
                 disc.transform.position = at + new Vector3(0, 1.95f, 0);
                 disc.transform.localScale = new Vector3(0.62f, 0.05f, 0.62f);
                 disc.transform.rotation = Quaternion.Euler(90f, Mathf.Atan2(dx, dz) * Mathf.Rad2Deg, 0);
-                disc.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.BrickRed);
+                disc.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Plaster);
+                // Actually red. On BrickRed the noir grade left a grey
+                // lollipop — the first landed T1 build shows one mid-frame —
+                // and a no-entry sign that is not red is not a sign.
+                WorldBuilder.Tint(disc, new Color(0.60f, 0.09f, 0.09f));
                 Strip(disc.GetComponent<Collider>());
                 SignCount++;
             }
