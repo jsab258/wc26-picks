@@ -320,6 +320,18 @@ namespace Ledger.Game
         ///
         /// Returns how many were pinned, so a shot that pins nothing is legible
         /// as a shot with no speech in it rather than as a working cap.
+        /// The fraction a bubble is pinned against: its HEIGHT share of the
+        /// frame, or its WIDTH share scaled so ~22% of frame width trips the
+        /// same 0.12 cap — whichever is larger. Height alone let a wide
+        /// one-liner through untouched: "today." lay across a warehouse wall
+        /// in two committed street stills as sky-writing, five-odd percent
+        /// tall and a quarter of the frame wide, and the height cap approved
+        /// it both times. One helper, used by the shot pin AND the per-frame
+        /// pin, so the pair cannot drift the way this project's pairs do.
+        static float PinFrac(Camera cam, Rect rect) =>
+            Mathf.Max(rect.height / Mathf.Max(1f, cam.pixelHeight),
+                      0.55f * rect.width / Mathf.Max(1f, cam.pixelWidth));
+
         public static int PinAll(Camera cam)
         {
             if (cam == null) return 0;
@@ -332,7 +344,7 @@ namespace Ledger.Game
                 var rend = b._text.GetComponent<Renderer>();
                 if (rend == null) continue;
                 if (!NameTags.ScreenRect(cam, rend.bounds, out var rect)) continue;
-                NameTags.PinBubble(b._text, rect.height / Mathf.Max(1f, cam.pixelHeight));
+                NameTags.PinBubble(b._text, PinFrac(cam, rect));
                 pinned++;
             }
             return pinned;
@@ -587,7 +599,7 @@ namespace Ledger.Game
                 var rend = _text.GetComponent<Renderer>();
                 if (cam != null && rend != null
                     && NameTags.ScreenRect(cam, rend.bounds, out var rect))
-                    NameTags.PinBubble(_text, rect.height / Mathf.Max(1f, cam.pixelHeight));
+                    NameTags.PinBubble(_text, PinFrac(cam, rect));
             }
 
             float left = _until - Time.time;
