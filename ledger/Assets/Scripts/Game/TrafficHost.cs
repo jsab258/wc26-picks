@@ -398,6 +398,19 @@ namespace Ledger.Game
                     Vector3.zero, Quaternion.identity);
             if (kitBody != null)
             {
+                // REPAINTED INTO THE TOWN'S PALETTE. The kit's own texture is
+                // holiday-brochure mint — the first stills showed every car
+                // on the street wearing the same cheerful green. A dark
+                // multiply over the palette texture keeps the kit's shading
+                // and windows while the paint goes late-analog: navy, black,
+                // burgundy, bottle, grey, stone — the wardrobe's vocabulary,
+                // stable per vehicle. The cab is black, because a British
+                // cab is a black cab.
+                var paintMpb = new MaterialPropertyBlock();
+                paintMpb.SetColor("_Color", KitPaint(v));
+                foreach (var kr0 in kitBody.GetComponentsInChildren<Renderer>())
+                    kr0.SetPropertyBlock(paintMpb);
+
                 kitBody.transform.SetParent(root, false);
                 var kr = kitBody.GetComponentInChildren<Renderer>();
                 if (kr != null && kr.bounds.size.sqrMagnitude > 0.001f)
@@ -601,6 +614,25 @@ namespace Ledger.Game
         /// worst — with the number DRAWN at that same worst pass, so the two can
         /// honestly be read as a fraction.
         public static int VehiclesOffRoad, VehiclesOffRoadPeak, VehiclesAtOffRoadWorst;
+
+        /// The kit-mesh paints, multiplied over the kit's palette texture.
+        /// Dark on purpose: these are saloons on a wet street in a noir
+        /// port, and the lamps are what glow. Values sit above the old
+        /// tint-crush floor — the kit texture averages bright, so the
+        /// products land near the asphalt-to-wardrobe band, not below it.
+        static readonly Color[] KitPaints =
+        {
+            new Color(0.16f, 0.18f, 0.24f),   // navy
+            new Color(0.12f, 0.12f, 0.13f),   // black
+            new Color(0.34f, 0.16f, 0.17f),   // burgundy
+            new Color(0.16f, 0.25f, 0.20f),   // bottle green
+            new Color(0.38f, 0.39f, 0.41f),   // grey
+            new Color(0.48f, 0.45f, 0.40f),   // stone
+        };
+
+        static Color KitPaint(Vehicle v) =>
+            v.Kind.Id == "cab" ? KitPaints[1]
+            : KitPaints[((v.Id % KitPaints.Length) + KitPaints.Length) % KitPaints.Length];
 
         /// A paint colour that is stable for a given vehicle — nobody wants the
         /// bus changing colour when the crowd re-bands.
