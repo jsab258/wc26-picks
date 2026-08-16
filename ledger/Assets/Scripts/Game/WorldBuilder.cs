@@ -1089,6 +1089,13 @@ namespace Ledger.Game
 
             // Hanging sign by the door — an emissive panel that lights up at night.
             MakeBox("Bar_SignBracket", new Vector3(-6f, 2.9f, 5.4f), new Vector3(0.08f, 0.5f, 0.5f), AssetLibrary.Metal);
+            // A dark frame behind the panel, thinner in X so the glowing
+            // faces protrude past it. Without this the sign is a bare
+            // emissive BOX: at night its bracket vanishes and from across
+            // the plaza it read as a glowing cube floating over the ground
+            // (day2_night, first grade-iteration run). A 3cm dark rim is
+            // the difference between a mounted sign and a rendering error.
+            MakeBox("Bar_SignFrame", new Vector3(-6f, 2.6f, 5.1f), new Vector3(0.06f, 0.8f, 1.7f), AssetLibrary.Metal);
             // THE BAR'S SIGN IS A SHOPFRONT, and it is the one the player
             // navigates by. It keeps late hours by the same rule as any other —
             // which is right: a pub sign that went dark at seven would be a
