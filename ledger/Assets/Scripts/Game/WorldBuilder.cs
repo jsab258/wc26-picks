@@ -1371,6 +1371,92 @@ namespace Ledger.Game
 
             // A canopy over the bar's open front — marks the door from down the street.
             MakeBox("Bar_Canopy", new Vector3(-6.6f, 3.35f, 5.6f), new Vector3(3.4f, 0.12f, 1.6f), AssetLibrary.Roof);
+
+            // TOWN-PLAN.MD T2 item 6, the red pieces. The phone box stands AT
+            // the letter-writer's stall — the exchange's one genuinely
+            // outdoor line — so the box the player sees is a phone that
+            // works in the fiction, not a prop pretending. The pillar boxes
+            // take two corners the founding streets already made busy.
+            if (TownPlanEnabled)
+            {
+                var stall = Ledger.Core.HookMap.Get("letter_stall");
+                if (stall != null)
+                {
+                    var at = new Vector3((float)stall.X + 2.2f, 0, (float)stall.Z - 1.4f);
+                    if (PointClear(at, 0.6f)) PhoneBox(at);
+                }
+                PostBox(new Vector3(11.6f, 0, 5.2f));     // beside the market bench
+                PostBox(new Vector3(-20.9f, 0, 13.5f));   // the teahouse kerb
+            }
+        }
+
+        /// A K6 in boxes: red shell, domed cap in two steps, dark glazing on
+        /// three sides with horizontal bars, a pale sign band under the cap.
+        /// The fourth side is the door and stays solid — nobody models a
+        /// hinge for a silhouette. Red is a property-block multiply over the
+        /// plaster base, the same trick the vehicles use for their paint.
+        static void PhoneBox(Vector3 at)
+        {
+            var red = new Color(0.62f, 0.07f, 0.07f);
+            Tint(MakeBox("PhoneBox_plinth", at + new Vector3(0, 0.05f, 0),
+                new Vector3(1.05f, 0.1f, 1.05f), AssetLibrary.Concrete), Color.white);
+            Tint(MakeBox("PhoneBox_body", at + new Vector3(0, 1.25f, 0),
+                new Vector3(0.92f, 2.3f, 0.92f), AssetLibrary.Plaster), red);
+            Tint(MakeBox("PhoneBox_cap", at + new Vector3(0, 2.46f, 0),
+                new Vector3(1.0f, 0.12f, 1.0f), AssetLibrary.Plaster), red);
+            Tint(MakeBox("PhoneBox_dome", at + new Vector3(0, 2.58f, 0),
+                new Vector3(0.8f, 0.12f, 0.8f), AssetLibrary.Plaster), red);
+            var glass = new Color(0.16f, 0.19f, 0.22f);
+            foreach (var (dx, dz, sx, sz, k) in new[] {
+                (0.47f, 0f, 0.02f, 0.66f, 0), (-0.47f, 0f, 0.02f, 0.66f, 1), (0f, 0.47f, 0.66f, 0.02f, 2) })
+            {
+                Tint(MakeBox($"PhoneBox_glass_{k}", at + new Vector3(dx, 1.35f, dz),
+                    new Vector3(sx, 1.5f, sz), AssetLibrary.Metal), glass);
+                for (int b = 0; b < 3; b++)
+                    Tint(MakeBox($"PhoneBox_bar_{k}_{b}", at + new Vector3(dx, 0.85f + b * 0.5f, dz),
+                        new Vector3(sx + 0.02f, 0.05f, sz + 0.02f), AssetLibrary.Plaster), red);
+                Tint(MakeBox($"PhoneBox_sign_{k}", at + new Vector3(dx, 2.25f, dz),
+                    new Vector3(sx + 0.01f, 0.18f, sz + 0.01f), AssetLibrary.Plaster),
+                    new Color(0.9f, 0.88f, 0.8f));
+            }
+        }
+
+        /// A pillar box: red drum on a plinth, black cap line, dark slot.
+        static void PostBox(Vector3 at)
+        {
+            if (!PointClear(at, 0.4f)) return;
+            var red = new Color(0.62f, 0.07f, 0.07f);
+            Tint(MakeBox("PostBox_plinth", at + new Vector3(0, 0.04f, 0),
+                new Vector3(0.62f, 0.08f, 0.62f), AssetLibrary.Concrete), Color.white);
+            var drum = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            drum.name = "PostBox_drum";
+            drum.transform.position = at + new Vector3(0, 0.62f, 0);
+            drum.transform.localScale = new Vector3(0.48f, 0.55f, 0.48f);
+            drum.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Plaster);
+            Tint(drum, red);
+            Object.Destroy(drum.GetComponent<Collider>());
+            var cap = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            cap.name = "PostBox_cap";
+            cap.transform.position = at + new Vector3(0, 1.2f, 0);
+            cap.transform.localScale = new Vector3(0.52f, 0.05f, 0.52f);
+            cap.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Metal);
+            Tint(cap, new Color(0.12f, 0.12f, 0.13f));
+            Object.Destroy(cap.GetComponent<Collider>());
+            Tint(MakeBox("PostBox_slot", at + new Vector3(0, 0.98f, 0.23f),
+                new Vector3(0.3f, 0.05f, 0.04f), AssetLibrary.Metal),
+                new Color(0.1f, 0.1f, 0.1f));
+        }
+
+        /// Property-block colour multiply — one shared material, per-object
+        /// colour, no draw-call split. The vehicles' paint trick, reused.
+        static GameObject Tint(GameObject go, Color c)
+        {
+            var r = go.GetComponent<Renderer>();
+            var mpb = new MaterialPropertyBlock();
+            r.GetPropertyBlock(mpb);
+            mpb.SetColor("_Color", c);
+            r.SetPropertyBlock(mpb);
+            return go;
         }
 
         static void Bench(Vector3 pos, bool alongZ = false)
@@ -1404,9 +1490,13 @@ namespace Ledger.Game
             {
                 if (!j.IsJunction) continue;
                 float off = (float)Ledger.Core.StreetMap.AvenueWidth / 2f + 1.6f;
-                MakeLamp(new Vector3((float)j.X + off, 0, (float)j.Z + off));
-                MakeLamp(new Vector3((float)j.X - off, 0, (float)j.Z - off));
+                var jc = new Vector3((float)j.X, 0, (float)j.Z);
+                var pA = jc + new Vector3(off, 0, off);
+                var pB = jc - new Vector3(off, 0, off);
+                MakeLamp(pA, jc - pA);
+                MakeLamp(pB, jc - pB);
             }
+            int ei = 0;
             foreach (var e in Ledger.Core.StreetMap.Edges)
             {
                 if (!e.Driveable || e.Length < 20) continue;
@@ -1414,8 +1504,12 @@ namespace Ledger.Game
                 var b = Ledger.Core.StreetMap.Node(e.B);
                 var mid = new Vector3((float)(a.X + b.X) / 2f, 0, (float)(a.Z + b.Z) / 2f);
                 bool alongZ = Mathf.Abs((float)(b.Z - a.Z)) > Mathf.Abs((float)(b.X - a.X));
-                float off = (float)e.Width / 2f + 1.4f;
-                MakeLamp(mid + (alongZ ? new Vector3(off, 0, 0) : new Vector3(0, 0, off)));
+                // Alternating sides under the plan — a run of lamps all down
+                // one kerb is the tell of a loop nobody thought about.
+                float side = TownPlanEnabled && (ei++ % 2 == 1) ? -1f : 1f;
+                float off = ((float)e.Width / 2f + 1.4f) * side;
+                var lampAt = mid + (alongZ ? new Vector3(off, 0, 0) : new Vector3(0, 0, off));
+                MakeLamp(lampAt, mid - lampAt);
             }
         }
 
@@ -1522,12 +1616,13 @@ namespace Ledger.Game
             }
 
             // Light the district's busier corners so night rounds read.
-            MakeLamp(new Vector3(-27, 0, -5));   // outside the pawnshop
-            MakeLamp(new Vector3(-25, 0, 13));   // the teahouse corner
-            MakeLamp(new Vector3(29, 0, 17));    // the ferry stop
-            MakeLamp(new Vector3(23, 0, -9));    // the cab rank
-            MakeLamp(new Vector3(-17, 0, 19));   // the north tenements
-            MakeLamp(new Vector3(-11, 0, -17));  // the bakery corner
+            // Each arm aimed at the avenue the lamp serves.
+            MakeLamp(new Vector3(-27, 0, -5), new Vector3(1, 0, 0));    // outside the pawnshop
+            MakeLamp(new Vector3(-25, 0, 13), new Vector3(-1, 0, 0));   // the teahouse corner
+            MakeLamp(new Vector3(29, 0, 17), new Vector3(-1, 0, 0));    // the ferry stop
+            MakeLamp(new Vector3(23, 0, -9), new Vector3(1, 0, 0));     // the cab rank
+            MakeLamp(new Vector3(-17, 0, 19), new Vector3(0, 0, 1));    // the north tenements
+            MakeLamp(new Vector3(-11, 0, -17), new Vector3(0, 0, -1));  // the bakery corner
         }
 
         /// Dress the street-facing wall of a mass (Core/Dressing).
@@ -1992,8 +2087,70 @@ namespace Ledger.Game
             return sun;
         }
 
-        static void MakeLamp(Vector3 basePos)
+        /// TOWN-PLAN.MD T2 item 6: a lamp with a HEAD. The kit road light is
+        /// tried first (curved arm over the carriageway); the two boxes
+        /// below are the fallback that shipped every build until now. The
+        /// kit mesh's own conventions are not assumed: it is scaled to a
+        /// 5.2m head from its measured bounds, ORIENTED by them — the arm
+        /// makes the bounds asymmetric about the pivot, and rotating that
+        /// offset onto `towardRoad` points the arm at the road whatever
+        /// axis the FBX author chose — seated by them, and painted the
+        /// near-black green of a British column over the kit palette.
+        static void MakeLamp(Vector3 basePos, Vector3? towardRoad = null)
         {
+            var kit = TownPlanEnabled
+                ? AssetLibrary.TryInstantiateProp("city_kit_roads_light_curved",
+                      basePos, Quaternion.identity)
+                : null;
+            if (kit != null)
+            {
+                var rends = kit.GetComponentsInChildren<Renderer>();
+                if (rends.Length > 0)
+                {
+                    var b = rends[0].bounds;
+                    foreach (var r in rends) b.Encapsulate(r.bounds);
+                    if (b.size.y > 0.5f)
+                        kit.transform.localScale *= 5.2f / b.size.y;
+
+                    b = rends[0].bounds;
+                    foreach (var r in rends) b.Encapsulate(r.bounds);
+                    var armOff = b.center - basePos; armOff.y = 0;
+                    if (towardRoad.HasValue && armOff.sqrMagnitude > 0.02f)
+                    {
+                        float have = Mathf.Atan2(armOff.x, armOff.z) * Mathf.Rad2Deg;
+                        float want = Mathf.Atan2(towardRoad.Value.x, towardRoad.Value.z) * Mathf.Rad2Deg;
+                        kit.transform.rotation = Quaternion.Euler(0, want - have, 0);
+                    }
+                    b = rends[0].bounds;
+                    foreach (var r in rends) b.Encapsulate(r.bounds);
+                    kit.transform.position += Vector3.up * (basePos.y - b.min.y);
+
+                    var mpb = new MaterialPropertyBlock();
+                    mpb.SetColor("_Color", new Color(0.15f, 0.17f, 0.15f));
+                    foreach (var r in rends) r.SetPropertyBlock(mpb);
+                    foreach (var c in kit.GetComponentsInChildren<Collider>())
+                        Object.Destroy(c);
+
+                    // The head is at the arm's end — about twice as far out
+                    // as the bounds centre — up at the top of the mesh.
+                    b = rends[0].bounds;
+                    foreach (var r in rends) b.Encapsulate(r.bounds);
+                    var head = b.center + (b.center - basePos) * 1.0f;
+                    var kgo = new GameObject($"LampLight_{Lamps.Count}");
+                    kgo.transform.position = new Vector3(head.x, b.max.y - 0.25f, head.z);
+                    var klight = kgo.AddComponent<Light>();
+                    klight.type = LightType.Point;
+                    klight.range = 12;
+                    klight.intensity = 1.4f;
+                    klight.color = new Color(1f, 0.82f, 0.55f);
+                    klight.enabled = false;
+                    LightShaft.Attach(klight, 1.0f);
+                    Lamps.Add(klight);
+                    return;
+                }
+                Object.Destroy(kit);
+            }
+
             MakeBox($"LampPole_{Lamps.Count}", basePos + new Vector3(0, 1.75f, 0), new Vector3(0.15f, 3.5f, 0.15f), AssetLibrary.Metal);
             MakeBox($"LampHead_{Lamps.Count}", basePos + new Vector3(0, 3.55f, 0), new Vector3(0.4f, 0.2f, 0.4f), AssetLibrary.Metal);
             var go = new GameObject($"LampLight_{Lamps.Count}");
