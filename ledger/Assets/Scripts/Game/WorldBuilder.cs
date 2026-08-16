@@ -342,6 +342,7 @@ namespace Ledger.Game
         /// trick and the cheapest thing that stops a grid reading as graph paper.
         static void BuildStreetsAndWalks()
         {
+            ZebraSpots.Clear();
             var map = Ledger.Core.StreetMap.Edges;
 
             // 1. Tarmac along every road. Lanes are paved too but narrower and
@@ -397,6 +398,46 @@ namespace Ledger.Game
                             alongZ ? new Vector3(0.09f, 0.015f, len - 10f)
                                    : new Vector3(len - 10f, 0.015f, 0.09f),
                             AssetLibrary.Sidewalk), new Color(0.62f, 0.52f, 0.18f));
+                    }
+
+                    // A ZEBRA on roughly every third core street, off-centre so
+                    // it reads as placed for people rather than for symmetry,
+                    // with a belisha beacon on each kerb — the single most
+                    // British object a road can carry, and the players WILL
+                    // cross these roads. Stripes run with the traffic, as real
+                    // ones do; the spot is recorded so the parked cars keep
+                    // clear (a car on a zebra is worse grammar than no zebra).
+                    if (len > 24f && (StableHash(e.A) + StableHash(e.B)) % 3 == 0)
+                    {
+                        var zc = Vector3.Lerp(pa, pb, 0.38f);
+                        ZebraSpots.Add(zc);
+                        var dirAlong = (pb - pa).normalized;
+                        var across = new Vector3(-dirAlong.z, 0, dirAlong.x);
+                        int stripes = Mathf.FloorToInt((w - 1.2f) / 1.0f);
+                        for (int zi = 0; zi < stripes; zi++)
+                        {
+                            float off = -(w - 1.2f) / 2f + 0.5f + zi * 1.0f;
+                            var sp = zc + across * off + new Vector3(0, 0.055f, 0);
+                            var stripe = MakeBox($"Zebra_{n}_{zi}", sp,
+                                new Vector3(0.5f, 0.015f, 2.6f), AssetLibrary.Sidewalk);
+                            stripe.transform.rotation = Quaternion.LookRotation(dirAlong);
+                            Tint(stripe, new Color(0.85f, 0.86f, 0.84f));
+                        }
+                        foreach (var bs in new[] { 1f, -1f })
+                        {
+                            var bpos = zc + across * bs * (w / 2f + 0.6f);
+                            MakeBox($"Belisha_{n}_{(bs > 0 ? "p" : "m")}_pole",
+                                bpos + new Vector3(0, 1.25f, 0),
+                                new Vector3(0.09f, 2.5f, 0.09f), AssetLibrary.Metal);
+                            var ball = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                            ball.name = $"Belisha_{n}_{(bs > 0 ? "p" : "m")}_ball";
+                            ball.transform.position = bpos + new Vector3(0, 2.65f, 0);
+                            ball.transform.localScale = Vector3.one * 0.32f;
+                            ball.GetComponent<Renderer>().sharedMaterial =
+                                AssetLibrary.Material(AssetLibrary.Plaster);
+                            Tint(ball, new Color(0.95f, 0.62f, 0.12f));
+                            Object.Destroy(ball.GetComponent<Collider>());
+                        }
                     }
                 }
                 n++;
@@ -1586,6 +1627,9 @@ namespace Ledger.Game
         /// pipeline exists" and "a car stood at a kerb" are different facts.
         public static int ParkedCars;
 
+        /// Where the zebras are, so the parked cars keep clear of them.
+        static readonly List<Vector3> ZebraSpots = new List<Vector3>();
+
         /// How many shop fasciae carry a painted name, same reasoning.
         public static int ShopNamesPainted;
 
@@ -1664,6 +1708,12 @@ namespace Ledger.Game
                     if (rng.NextDouble() > 0.55) continue;
                     var p = new Vector3((float)a.X + dx * s, 0, (float)a.Z + dz * s) + perp * kerb;
                     if (!PointClear(p, 0.3f)) continue;
+                    // Not on a zebra: a car parked across a crossing is worse
+                    // grammar than having no crossing at all.
+                    bool onZebra = false;
+                    foreach (var z in ZebraSpots)
+                        if ((z - p).sqrMagnitude < 4.5f * 4.5f) { onZebra = true; break; }
+                    if (onZebra) continue;
                     float yaw = Mathf.Atan2(dx, dz) * Mathf.Rad2Deg + (side > 0 ? 0f : 180f);
                     ParkedCar(p, yaw, stems[rng.Next(rng.NextDouble() < 0.8 ? 4 : 5)],
                         GameController.KitPaints[rng.Next(GameController.KitPaints.Length)]);
