@@ -18,7 +18,20 @@ name: LEDGER props — fetch CC0 model kits
 # committed to tools/props/listings.json even when extraction chooses
 # narrowly, so the next round of prop picks is made locally from
 # evidence rather than by dispatching another guess.
+# PUSH-TRIGGERED ON ITS OWN FILES, MEASURED, NOT PREFERRED. The API
+# dispatch endpoint resolves workflows from the DEFAULT branch's
+# registry — this file lives only on the working branch, so dispatch
+# returns 404 (tried twice, 16 Aug; the registry listing confirms all
+# nine registered workflows are main's). Until a merge to main
+# registers it, the trigger is a push touching this workflow or the
+# fetcher — which also means the edit that adds this comment starts
+# the first run.
 on:
+  push:
+    branches: [claude/game-dev-ai-automation-2h67ix]
+    paths:
+      - ".github/workflows/props-fetch.yml"
+      - "tools/props/fetch_props.py"
   workflow_dispatch:
 
 jobs:
