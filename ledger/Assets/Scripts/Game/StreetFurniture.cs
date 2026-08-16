@@ -93,7 +93,13 @@ namespace Ledger.Game
             // Across the street, not along it: the perpendicular.
             var across = new Vector3((float)-dz, 0, (float)dx);
             var mid = new Vector3((float)x, 0, (float)z);
-            float half = (float)span * 0.5f + 0.6f;   // into the facade at each end
+            // TO THE BUILDING LINE, not the kerb. The building faces sit
+            // BlockSetback behind the block edge, and a half-span of
+            // road-width + 0.6 left every cable ending in MID-AIR above the
+            // pavement — both landed town-plan builds show the result: bent
+            // black scribbles floating against the sky, anchored to nothing.
+            // Road half + setback + 0.6 buries the ends in the terrace faces.
+            float half = (float)span * 0.5f + WorldBuilder.BlockSetback + 0.6f;
             const float high = 6.0f, sag = 0.35f;
             var left = mid - across * half + Vector3.up * high;
             var right = mid + across * half + Vector3.up * high;

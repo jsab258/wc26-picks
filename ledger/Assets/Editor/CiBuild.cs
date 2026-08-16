@@ -111,6 +111,12 @@ namespace Ledger.EditorTools
             // the wall stays flat, silently, in the player only.
             mat.EnableKeyword("_NORMALMAP");
             mat.SetTexture("_BumpMap", Texture2D.normalTexture);
+            // _METALLICGLOSSMAP too (16 Aug): the roughness maps are built at
+            // runtime like the bump maps, invisible to the collector the same
+            // way, and would strip the same way — shiny-where-worn works in
+            // the editor and dies in the player without this pair of lines.
+            mat.EnableKeyword("_METALLICGLOSSMAP");
+            mat.SetTexture("_MetallicGlossMap", Texture2D.whiteTexture);
             AssetDatabase.CreateAsset(mat, matPath);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

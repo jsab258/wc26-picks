@@ -182,6 +182,24 @@ namespace Ledger.Game
                 mat.SetTexture("_BumpMap", nrm);
                 mat.EnableKeyword("_NORMALMAP");
             }
+            // PER-TEXEL GLOSS from the pack's roughness map (16 Aug, the
+            // standing order) — worn brick sheens where the mortar does not,
+            // which is most of what "material realness" is. DELIBERATELY NOT
+            // on the ground surfaces: SetWetness drives their `_Glossiness`
+            // scalar, and with `_METALLICGLOSSMAP` bound the shader ignores
+            // that scalar — the wet-street look would silently die on the
+            // four surfaces it was calibrated for. Ground stays scalar until
+            // SetWetness learns `_GlossMapScale` (on the quality ladder).
+            bool wetDriven = System.Array.IndexOf(WetSurfaces, logical) >= 0;
+            var gls = tex != null && !wetDriven
+                ? ResolveGloss(logical, (byte)Mathf.RoundToInt(spec.Metallic * 255f))
+                : null;
+            if (gls != null)
+            {
+                mat.SetTexture("_MetallicGlossMap", gls);
+                mat.EnableKeyword("_METALLICGLOSSMAP");
+                mat.SetFloat("_GlossMapScale", 1f);
+            }
             // Standard shader (built-in): _Glossiness is smoothness, _Metallic is 0..1.
             mat.SetFloat("_Glossiness", spec.Smoothness);
             mat.SetFloat("_Metallic", spec.Metallic);
@@ -340,6 +358,56 @@ namespace Ledger.Game
             return result;
         }
         static readonly Dictionary<string, Texture2D> _normals = new Dictionary<string, Texture2D>();
+
+        /// The pack's roughness map, converted to what the built-in Standard
+        /// shader actually samples: `_MetallicGlossMap`, metallic in R,
+        /// SMOOTHNESS in A — so alpha is 255 minus the roughness texel, and
+        /// R carries the surface's own scalar metallic (with the keyword on,
+        /// the `_Metallic` scalar is ignored, so it must ride in the map).
+        /// Linear, like the normal map: neither is colour data.
+        static Texture2D ResolveGloss(string logical, byte metallic)
+        {
+            if (_gloss.TryGetValue(logical, out var cached)) return cached;
+            Texture2D result = null;
+            if (PackPresent)
+            {
+                foreach (var ext in new[] { ".png", ".jpg", ".jpeg" })
+                {
+                    var path = Path.Combine(_packRoot, "textures", logical + "_r" + ext);
+                    if (!File.Exists(path)) continue;
+                    try
+                    {
+                        var raw = new Texture2D(2, 2, TextureFormat.RGBA32, false, true);
+                        if (raw.LoadImage(File.ReadAllBytes(path))
+                            && TextureFit.IsCleanShape(raw.width, raw.height))
+                        {
+                            var px = raw.GetPixels32();
+                            for (int i = 0; i < px.Length; i++)
+                            {
+                                px[i].a = (byte)(255 - px[i].r);
+                                px[i].r = metallic;
+                                px[i].g = 0;
+                                px[i].b = 0;
+                            }
+                            result = new Texture2D(raw.width, raw.height,
+                                                   TextureFormat.RGBA32, true, true)
+                            { name = "packgls_" + logical,
+                              wrapMode = TextureWrapMode.Repeat,
+                              filterMode = FilterMode.Bilinear };
+                            result.SetPixels32(px);
+                            result.Apply(true);
+                        }
+                        UnityEngine.Object.Destroy(raw);
+                    }
+                    catch (System.Exception e)
+                    { Debug.LogWarning($"AssetLibrary: roughness map {path} failed: {e.Message}"); }
+                    break;
+                }
+            }
+            _gloss[logical] = result;   // null cached too: ask the disk once
+            return result;
+        }
+        static readonly Dictionary<string, Texture2D> _gloss = new Dictionary<string, Texture2D>();
 
         static Texture2D LoadPackTexture(string logical)
         {
