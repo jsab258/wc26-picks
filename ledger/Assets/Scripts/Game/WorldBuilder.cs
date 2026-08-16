@@ -221,6 +221,7 @@ namespace Ledger.Game
             BuildLamps();
             BuildNeon();
             BuildDistrict();
+            BuildLandmarks();
             // Signs last: they read the finished network, and a rule the city
             // obeys without telling you is indistinguishable from a bug.
             StreetFurniture.Build();
@@ -384,7 +385,10 @@ namespace Ledger.Game
                     new Vector3(w, 0.04f, w), AssetLibrary.Asphalt);
             }
 
-            // 3. Pavement and kerb around every block, with chamfered corners.
+            // 3. Pavement and kerb around every block. Under TownPlanEnabled the
+            // corners are SQUARE and the kerb closes through them; the legacy
+            // path below it keeps the chamfered plate-island look for the
+            // Tuesday-noon revert.
             int bi = 0;
             foreach (var b in Ledger.Core.StreetMap.Blocks)
             {
@@ -392,6 +396,37 @@ namespace Ledger.Game
                 float hw = (float)b.Width / 2f, hd = (float)b.Depth / 2f;
                 float ch = (float)Ledger.Core.StreetMap.Chamfer;
                 const float walk = 2.2f, kerbH = 0.34f;
+
+                if (TownPlanEnabled)
+                {
+                    // TOWN-PLAN.MD T1 item 2: the ribbon. Z strips own the full
+                    // width including both corners; X strips are shortened by one
+                    // pavement width at each end so the pair ABUT rather than
+                    // overlap — two coplanar tops in the same square would
+                    // z-fight. Square corners, no pads, nothing rotated.
+                    MakeBox($"Walk_{bi}_zP", new Vector3(cx, 0.16f, cz + hd - walk / 2f),
+                        new Vector3((float)b.Width, 0.32f, walk), AssetLibrary.Sidewalk);
+                    MakeBox($"Walk_{bi}_zN", new Vector3(cx, 0.16f, cz - hd + walk / 2f),
+                        new Vector3((float)b.Width, 0.32f, walk), AssetLibrary.Sidewalk);
+                    float xLen = b.Depth > 2 * walk ? (float)b.Depth - 2 * walk : 1f;
+                    MakeBox($"Walk_{bi}_xP", new Vector3(cx + hw - walk / 2f, 0.16f, cz),
+                        new Vector3(walk, 0.32f, xLen), AssetLibrary.Sidewalk);
+                    MakeBox($"Walk_{bi}_xN", new Vector3(cx - hw + walk / 2f, 0.16f, cz),
+                        new Vector3(walk, 0.32f, xLen), AssetLibrary.Sidewalk);
+
+                    // Kerb runs unbroken to the corner: the Z pair carries 0.2
+                    // past each end to close the notch where the two runs meet.
+                    MakeBox($"Kerb_{bi}_zP", new Vector3(cx, 0.20f, cz + hd + 0.1f),
+                        new Vector3((float)b.Width + 0.4f, kerbH, 0.2f), AssetLibrary.Kerb);
+                    MakeBox($"Kerb_{bi}_zN", new Vector3(cx, 0.20f, cz - hd - 0.1f),
+                        new Vector3((float)b.Width + 0.4f, kerbH, 0.2f), AssetLibrary.Kerb);
+                    MakeBox($"Kerb_{bi}_xP", new Vector3(cx + hw + 0.1f, 0.20f, cz),
+                        new Vector3(0.2f, kerbH, (float)b.Depth), AssetLibrary.Kerb);
+                    MakeBox($"Kerb_{bi}_xN", new Vector3(cx - hw - 0.1f, 0.20f, cz),
+                        new Vector3(0.2f, kerbH, (float)b.Depth), AssetLibrary.Kerb);
+                    bi++;
+                    continue;
+                }
 
                 // Four pavement strips, each shortened by the chamfer so the
                 // corners are cut rather than square.
@@ -441,9 +476,23 @@ namespace Ledger.Game
         ///
         /// Deterministic from the block index, so the city is the same city
         /// every run and the CI screenshots stay comparable.
+        /// TOWN-PLAN.MD T1, the switch. One constant, so Tuesday-noon's
+        /// decision is a one-line revert with the old arrangement code
+        /// standing untouched beside the new.
+        public const bool TownPlanEnabled = true;
+
+        /// Chimney stacks recorded by the terrace generator (one per party
+        /// wall, on the roofline) and built after the buildings are — the
+        /// generator makes SPECS, geometry belongs to the build pass, and a
+        /// chimney needs to know its parcel's height which only the spec
+        /// moment knows.
+        static readonly List<(Vector3 pos, float baseY)> TerraceChimneys
+            = new List<(Vector3, float)>();
+
         static List<(Vector3 pos, Vector3 size)> BuildBlockSpecs()
         {
             var specs = new List<(Vector3, Vector3)>();
+            TerraceChimneys.Clear();
             int bi = 0;
             foreach (var b in Ledger.Core.StreetMap.Blocks)
             {
@@ -453,6 +502,22 @@ namespace Ledger.Game
                 float minZ = (float)b.MinZ + inset, maxZ = (float)b.MaxZ - inset;
                 float w = maxX - minX, d = maxZ - minZ;
                 if (w < 6 || d < 6) { bi++; continue; }
+
+                // THE TERRACE PATH (town-plan.md T1). A block is a PERIMETER
+                // of contiguous frontages around a rear yard, not detached
+                // boxes floating in a field — the single change that turns
+                // "objects on a plane" into "street-space between walls",
+                // which is the whole enclosure argument of the plan.
+                // Warehouse blocks keep the detached long-shed massing below:
+                // a dock district genuinely is sheds and yard walls, and
+                // terracing it would make it read as housing.
+                var tpDistrict = Ledger.Core.StreetMap.DistrictAt(b.CentreX, b.CentreZ);
+                if (TownPlanEnabled && tpDistrict != "Ironside")
+                {
+                    TerraceBlock(specs, rng, minX, maxX, minZ, maxZ, tpDistrict);
+                    bi++;
+                    continue;
+                }
 
                 // Two to four along the longer axis, so a block reads as a
                 // terrace of separate buildings rather than one solid slab.
@@ -509,6 +574,131 @@ namespace Ledger.Game
                 bi++;
             }
             return specs;
+        }
+
+        /// ONE BLOCK AS A PERIMETER OF TERRACES (town-plan.md T1).
+        ///
+        /// Four rows, one per street-facing edge. The two Z-facing rows own
+        /// the corners (full inset width); the X-facing rows start after
+        /// them, so corners resolve without overlap and every corner of
+        /// every block is a corner BUILDING — which is where the street
+        /// name plates go in T2, exactly as a British council would.
+        ///
+        /// Parcels are contiguous — party walls, no gaps — except one alley
+        /// mouth per block (deterministic), which is what keeps the rear
+        /// yard reachable and gives the bins somewhere honest to stand.
+        /// A parcel that would close an authored doorway is simply skipped:
+        /// the gap it leaves reads as a yard gate, and a generated terrace
+        /// must never shut a door the game opens.
+        static void TerraceBlock(List<(Vector3 pos, Vector3 size)> specs,
+                                 System.Random rng,
+                                 float minX, float maxX, float minZ, float maxZ,
+                                 string district)
+        {
+            // Row depths: shops want deeper plans than houses; offices
+            // deeper still. The yard is whatever the middle has left.
+            bool offices = district == "the Exchange";
+            bool villas = district == "Fairview";
+            bool resort = district == "Gullwing";
+            float depthN = RowDepth(rng, offices, villas, resort);
+            float depthS = RowDepth(rng, offices, villas, resort);
+
+            float w = maxX - minX, d = maxZ - minZ;
+            // Shallow blocks cannot hold two facing rows and a yard; give
+            // them a single row facing the wider street and stop.
+            bool deepEnough = d > depthN + depthS + 4f;
+            if (!deepEnough) depthS = 0f;
+
+            // Which edge carries the alley mouth, and where along it.
+            int alleyEdge = rng.Next(4);
+            float alleyT = 0.25f + 0.5f * (float)rng.NextDouble();
+
+            // North and south rows: full width, corners included.
+            TerraceRow(specs, rng, minX, maxX, maxZ, depthN, alongX: true, dir: +1f,
+                       offices, villas, resort, alleyEdge == 0 ? alleyT : -1f);
+            if (deepEnough)
+                TerraceRow(specs, rng, minX, maxX, minZ, depthS, alongX: true, dir: -1f,
+                           offices, villas, resort, alleyEdge == 1 ? alleyT : -1f);
+
+            // East and west rows: between the corner buildings.
+            float z0 = minZ + (deepEnough ? depthS : 0f), z1 = maxZ - depthN;
+            if (z1 - z0 > 6f && w > RowDepth(rng, offices, villas, resort) * 2f + 4f)
+            {
+                float depthE = RowDepth(rng, offices, villas, resort);
+                float depthW = RowDepth(rng, offices, villas, resort);
+                TerraceRow(specs, rng, z0, z1, maxX, depthE, alongX: false, dir: +1f,
+                           offices, villas, resort, alleyEdge == 2 ? alleyT : -1f);
+                TerraceRow(specs, rng, z0, z1, minX, depthW, alongX: false, dir: -1f,
+                           offices, villas, resort, alleyEdge == 3 ? alleyT : -1f);
+            }
+        }
+
+        static float RowDepth(System.Random rng, bool offices, bool villas, bool resort) =>
+            offices ? 12f + 3f * (float)rng.NextDouble()
+            : villas ? 8f + 2f * (float)rng.NextDouble()
+            : resort ? 9f + 2f * (float)rng.NextDouble()
+            : 9f + 3f * (float)rng.NextDouble();
+
+        /// One contiguous row of parcels from a0 to a1 whose front faces sit
+        /// exactly on `frontCoord` — the building line. Contiguity is the
+        /// point: `x` advances by exactly each parcel's width, so party
+        /// walls touch, and the roofline steps because heights vary while
+        /// the frontage never breaks.
+        static void TerraceRow(List<(Vector3 pos, Vector3 size)> specs,
+                               System.Random rng, float a0, float a1,
+                               float frontCoord, float depth, bool alongX, float dir,
+                               bool offices, bool villas, bool resort, float alleyT)
+        {
+            float run = a1 - a0;
+            if (run < 5f || depth < 4f) return;
+            float alleyAt = alleyT > 0f ? a0 + run * alleyT : float.MaxValue;
+            bool alleyCut = false;
+
+            float x = a0;
+            while (a1 - x >= 4.5f)
+            {
+                if (!alleyCut && x >= alleyAt)
+                {
+                    x += 3.0f;      // the alley mouth: one cart wide, like the real ones
+                    alleyCut = true;
+                    if (a1 - x < 4.5f) break;
+                }
+
+                float pw = 5.5f + 5.5f * (float)rng.NextDouble();
+                // Absorb a remainder too small to be a building into the
+                // last parcel — a 2m sliver of house is a rendering error.
+                if (a1 - (x + pw) < 4.5f) pw = a1 - x;
+
+                float h = offices ? 12f + 10f * (float)rng.NextDouble()
+                    : villas ? 5.5f + 2f * (float)rng.NextDouble()
+                    : resort ? 5.5f + 3f * (float)rng.NextDouble()
+                    : rng.NextDouble() < 0.55 ? 6.2f + 1.4f * (float)rng.NextDouble()   // two storeys
+                                              : 8.6f + 1.8f * (float)rng.NextDouble(); // three
+
+                var pos = alongX
+                    ? new Vector3(x + pw / 2f, 0, frontCoord - dir * depth / 2f)
+                    : new Vector3(frontCoord - dir * depth / 2f, 0, x + pw / 2f);
+                var size = alongX
+                    ? new Vector3(pw, h, depth)
+                    : new Vector3(depth, h, pw);
+
+                if (!ClashesWithAuthored(pos, size))
+                {
+                    specs.Add((pos, size));
+                    // A chimney stack on the leading party wall, on the
+                    // ridge — the single cheapest silhouette signal a
+                    // British terrace has. Offices get none: Downtown's
+                    // skyline is tanks and tiers, not pots.
+                    if (!offices && x > a0 + 0.5f)
+                    {
+                        var cpos = alongX
+                            ? new Vector3(x + 0.45f, 0, pos.z)
+                            : new Vector3(pos.x, 0, x + 0.45f);
+                        TerraceChimneys.Add((cpos, h));
+                    }
+                }
+                x += pw;
+            }
         }
 
         /// Keep clear of the bar and of every named place's doorway — a
@@ -631,6 +821,20 @@ namespace Ledger.Game
                 FireEscape($"B{i}", pos, size, -outward);
                 RearExtension($"B{i}", pos, size, -outward, facade);
                 i++;
+            }
+
+            // The chimney stacks the terrace generator recorded: brick with
+            // a capping slab, standing on the roofline at each party wall.
+            // Emitted here because the generator makes specs and geometry
+            // belongs to the build pass.
+            int cn = 0;
+            foreach (var (cpos, baseY) in TerraceChimneys)
+            {
+                MakeBox($"Chimney_{cn}", cpos + new Vector3(0, baseY + 0.65f, 0),
+                    new Vector3(0.85f, 1.3f, 0.85f), AssetLibrary.BrickRed);
+                MakeBox($"ChimneyCap_{cn}", cpos + new Vector3(0, baseY + 1.38f, 0),
+                    new Vector3(1.05f, 0.16f, 1.05f), AssetLibrary.Concrete);
+                cn++;
             }
         }
 
@@ -824,6 +1028,25 @@ namespace Ledger.Game
             int nz = near ? Mathf.Max(1, Mathf.RoundToInt(runZ / (target + gap))) : 1;
             float paneX = (runX - gap * (nx - 1)) / nx;
             float paneZ = (runZ - gap * (nz - 1)) / nz;
+
+            // A PARTY WALL IS NOT A FACADE (town-plan.md T1). Terrace parcels
+            // touch, so a face can be another building — and where rooflines
+            // step, a window band on that face floats over the neighbour's
+            // roof as glass on a blank gable. Sample just outside each pane:
+            // inside any mass's footprint means the wall is shared and stays
+            // brick. Height is deliberately ignored — the stub of party wall
+            // ABOVE a shorter neighbour is a gable, and gables are blank.
+            // (Tiers are safe: they never come through here.) Gated on the
+            // flag so the legacy path stays byte-identical for the revert.
+            bool Open(float sx, float sz)
+            {
+                if (!TownPlanEnabled) return true;
+                foreach (var (mp, ms) in Masses)
+                    if (sx > mp.x - ms.x / 2f && sx < mp.x + ms.x / 2f &&
+                        sz > mp.z - ms.z / 2f && sz < mp.z + ms.z / 2f) return false;
+                return true;
+            }
+
             int floor = 0;
             for (float y = 2.0f; y < size.y - 1.0f; y += floorH, floor++)
             {
@@ -836,23 +1059,27 @@ namespace Ledger.Game
                 {
                     float off = ground ? 0f : -runZ / 2f + paneZ / 2f + k * (paneZ + gap);
                     float w = ground ? runZ * 0.92f : paneZ;
-                    AddWindow(WinBox($"{tag}_win_xP_{floor}_{k}",
-                        new Vector3(pos.x + size.x / 2f + proud, y, pos.z + off),
-                        new Vector3(0.08f, bandH, w)), ground);
-                    AddWindow(WinBox($"{tag}_win_xN_{floor}_{k}",
-                        new Vector3(pos.x - size.x / 2f - proud, y, pos.z + off),
-                        new Vector3(0.08f, bandH, w)), ground);
+                    if (Open(pos.x + size.x / 2f + 0.3f, pos.z + off))
+                        AddWindow(WinBox($"{tag}_win_xP_{floor}_{k}",
+                            new Vector3(pos.x + size.x / 2f + proud, y, pos.z + off),
+                            new Vector3(0.08f, bandH, w)), ground);
+                    if (Open(pos.x - size.x / 2f - 0.3f, pos.z + off))
+                        AddWindow(WinBox($"{tag}_win_xN_{floor}_{k}",
+                            new Vector3(pos.x - size.x / 2f - proud, y, pos.z + off),
+                            new Vector3(0.08f, bandH, w)), ground);
                 }
                 for (int k = 0; k < (ground ? 1 : nx); k++)
                 {
                     float off = ground ? 0f : -runX / 2f + paneX / 2f + k * (paneX + gap);
                     float w = ground ? runX * 0.92f : paneX;
-                    AddWindow(WinBox($"{tag}_win_zP_{floor}_{k}",
-                        new Vector3(pos.x + off, y, pos.z + size.z / 2f + proud),
-                        new Vector3(w, bandH, 0.08f)), ground);
-                    AddWindow(WinBox($"{tag}_win_zN_{floor}_{k}",
-                        new Vector3(pos.x + off, y, pos.z - size.z / 2f - proud),
-                        new Vector3(w, bandH, 0.08f)), ground);
+                    if (Open(pos.x + off, pos.z + size.z / 2f + 0.3f))
+                        AddWindow(WinBox($"{tag}_win_zP_{floor}_{k}",
+                            new Vector3(pos.x + off, y, pos.z + size.z / 2f + proud),
+                            new Vector3(w, bandH, 0.08f)), ground);
+                    if (Open(pos.x + off, pos.z - size.z / 2f - 0.3f))
+                        AddWindow(WinBox($"{tag}_win_zN_{floor}_{k}",
+                            new Vector3(pos.x + off, y, pos.z - size.z / 2f - proud),
+                            new Vector3(w, bandH, 0.08f)), ground);
                 }
             }
         }
@@ -1864,6 +2091,68 @@ namespace Ledger.Game
         static int _windowsHour = -2;
 
         // ---- primitive helpers ----
+
+        /// TOWN-PLAN.MD T1 item 3, the skyline. Orientation should come free
+        /// with a glance down any street: cranes mean the docks (south), the
+        /// gasometer marks the goods edge (east). All of it is silhouette
+        /// work — fog and distance do the drawing — so every piece is a box
+        /// or a cylinder, parked outside the block grid where nothing else
+        /// builds: the quay line south of Ironside's last avenue, and the
+        /// no-man's strip between Ironside and Gullwing (the goods spur
+        /// crosses that strip at z~-127; the drum sits 19m north of it).
+        static void BuildLandmarks()
+        {
+            if (!TownPlanEnabled) return;
+
+            // Three quay cranes, jibs slewed to different angles so they read
+            // as machines parked mid-task rather than one machine copied.
+            float[] cxs = { -34f, 2f, 36f };
+            float[] slew = { 160f, 200f, 125f };   // yaw; roughly seaward
+            for (int i = 0; i < cxs.Length; i++)
+            {
+                float x = cxs[i], z = -174f;
+                MakeBox($"Crane_{i}_tower", new Vector3(x, 9f, z),
+                    new Vector3(1.4f, 18f, 1.4f), AssetLibrary.Metal);
+                MakeBox($"Crane_{i}_cab", new Vector3(x, 18.7f, z),
+                    new Vector3(2.4f, 1.9f, 2.2f), AssetLibrary.Metal);
+                var dir = new Vector3(Mathf.Sin(slew[i] * Mathf.Deg2Rad), 0,
+                                      Mathf.Cos(slew[i] * Mathf.Deg2Rad));
+                // The jib: 17m, raked 24 degrees up from the cab. Centre sits
+                // half its horizontal reach out along the slew.
+                var jib = MakeBox($"Crane_{i}_jib",
+                    new Vector3(x, 21.6f, z) + dir * 7.6f,
+                    new Vector3(0.8f, 0.8f, 17f), AssetLibrary.Metal);
+                jib.transform.rotation = Quaternion.Euler(-24f, slew[i], 0);
+                // Counter-jib and its kentledge block, opposite and low.
+                var counter = MakeBox($"Crane_{i}_counter",
+                    new Vector3(x, 19.2f, z) - dir * 2.6f,
+                    new Vector3(0.7f, 0.7f, 5f), AssetLibrary.Metal);
+                counter.transform.rotation = Quaternion.Euler(0, slew[i], 0);
+                MakeBox($"Crane_{i}_weight", new Vector3(x, 18.3f, z) - dir * 4.6f,
+                    new Vector3(1.6f, 1.4f, 1.2f), AssetLibrary.Concrete);
+            }
+
+            // The gasometer: a drum in a guide frame that outlives the drum's
+            // travel — the frame runs taller than the bell, as they do.
+            var gpos = new Vector3(70f, 0f, -108f);
+            var drum = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            drum.name = "Gasometer_drum";
+            drum.transform.position = gpos + Vector3.up * 5.5f;
+            drum.transform.localScale = new Vector3(9f, 5.5f, 9f);
+            drum.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Metal);
+            for (int k = 0; k < 8; k++)
+            {
+                float a = k * 45f * Mathf.Deg2Rad;
+                MakeBox($"Gasometer_col_{k}",
+                    gpos + new Vector3(Mathf.Sin(a) * 9.6f, 7f, Mathf.Cos(a) * 9.6f),
+                    new Vector3(0.4f, 14f, 0.4f), AssetLibrary.Metal);
+            }
+            var ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            ring.name = "Gasometer_ring";
+            ring.transform.position = gpos + Vector3.up * 13.8f;
+            ring.transform.localScale = new Vector3(9.8f, 0.12f, 9.8f);
+            ring.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Metal);
+        }
 
         static GameObject MakeBox(string name, Vector3 center, Vector3 size, string material)
         {

@@ -129,6 +129,14 @@ namespace Ledger.Game
         /// A stop sign on every approach that actually exists. The outer ring has
         /// three approaches, not four, and a sign facing empty ground is the kind
         /// of detail that quietly tells the player the world is generated.
+        ///
+        /// TOWN-PLAN.MD T1, and the largest single sign class dies here: under
+        /// the flag a minor junction is marked the way a British one is — a
+        /// double broken bar PAINTED across the entering lane — because give-way
+        /// posts on every approach of every junction is American grammar and,
+        /// at this density, is most of what read as sign spam. The rule stays
+        /// readable (a car halting at the line has a line to halt at); paint is
+        /// not a sign, so SignCount stops counting these, which is the point.
         static void BuildStopSigns(StreetNode n)
         {
             foreach (var e in StreetMap.EdgesAt(n.Id))
@@ -142,6 +150,32 @@ namespace Ledger.Game
                 float len = Mathf.Sqrt(dx * dx + dz * dz);
                 if (len < 0.001f) continue;
                 dx /= len; dz /= len;
+
+                if (WorldBuilder.TownPlanEnabled)
+                {
+                    // Two broken bars across the inbound lane, just past the
+                    // junction pad. Lane centre is a quarter road-width to the
+                    // driver's right of the centreline; the bar spans local x,
+                    // which under this yaw lies across the carriageway. Same
+                    // height and material as the centre-line dashes so all road
+                    // paint reads as one system.
+                    float backP = (float)StreetMap.AvenueWidth / 2f + 0.8f;
+                    float laneW = Mathf.Max(1.5f, (float)e.Width / 2f - 0.5f);
+                    foreach (var off in new[] { 0f, 0.45f })
+                    {
+                        var bar = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        bar.name = $"GiveWay_{n.Id}_{other.Id}_{off:0.00}";
+                        bar.transform.position = new Vector3(
+                            (float)n.X + dx * (backP + off) - dz * (float)e.Width / 4f, 0.05f,
+                            (float)n.Z + dz * (backP + off) + dx * (float)e.Width / 4f);
+                        bar.transform.localScale = new Vector3(laneW, 0.02f, 0.18f);
+                        bar.transform.rotation = Quaternion.Euler(0, Mathf.Atan2(dx, dz) * Mathf.Rad2Deg, 0);
+                        bar.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Sidewalk);
+                        Strip(bar.GetComponent<Collider>());
+                    }
+                    continue;
+                }
+
                 float back = (float)StreetMap.AvenueWidth / 2f + 1.4f;
                 float side = (float)e.Width / 2f + 1.2f;
                 // Right of an inbound driver (travelling -d) is (-dz, dx).
