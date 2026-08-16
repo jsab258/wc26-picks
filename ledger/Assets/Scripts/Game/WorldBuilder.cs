@@ -516,10 +516,22 @@ namespace Ledger.Game
         static readonly List<(Vector3 pos, float baseY)> TerraceChimneys
             = new List<(Vector3, float)>();
 
+        /// INSTRUMENTS for the smoke mystery (16 Aug): smokeStacks came back
+        /// 2 when the arithmetic said ~35, no stack shows on any roofline,
+        /// and every line of the recording, emission and smoke code reads
+        /// correct — so one of the assumptions underneath them is wrong and
+        /// no amount of rereading will say which. Four counters, printed on
+        /// the done line, pin the stage: how many blocks took each massing
+        /// path, how many parcels the terraces added, how many chimneys
+        /// were recorded. One build answers what an afternoon of armchair
+        /// deduction could not.
+        public static int TerracedBlocks, LegacyBlocks, TerraceParcels;
+
         static List<(Vector3 pos, Vector3 size)> BuildBlockSpecs()
         {
             var specs = new List<(Vector3, Vector3)>();
             TerraceChimneys.Clear();
+            TerracedBlocks = 0; LegacyBlocks = 0; TerraceParcels = 0;
             int bi = 0;
             foreach (var b in Ledger.Core.StreetMap.Blocks)
             {
@@ -541,10 +553,12 @@ namespace Ledger.Game
                 var tpDistrict = Ledger.Core.StreetMap.DistrictAt(b.CentreX, b.CentreZ);
                 if (TownPlanEnabled && tpDistrict != "Ironside")
                 {
+                    TerracedBlocks++;
                     TerraceBlock(specs, rng, minX, maxX, minZ, maxZ, tpDistrict);
                     bi++;
                     continue;
                 }
+                LegacyBlocks++;
 
                 // Two to four along the longer axis, so a block reads as a
                 // terrace of separate buildings rather than one solid slab.
@@ -712,6 +726,7 @@ namespace Ledger.Game
                 if (!ClashesWithAuthored(pos, size))
                 {
                     specs.Add((pos, size));
+                    TerraceParcels++;
                     // A chimney stack on the leading party wall, on the
                     // ridge — the single cheapest silhouette signal a
                     // British terrace has. Offices get none: Downtown's
@@ -882,7 +897,12 @@ namespace Ledger.Game
                     new Vector3(1.05f, 0.16f, 1.05f), AssetLibrary.Concrete);
                 cn++;
             }
+            ChimneyCount = cn;
         }
+
+        /// How many chimney stacks the build pass actually emitted — the
+        /// denominator smokeStacks was missing when it read 2.
+        public static int ChimneyCount;
 
         /// THE BACK OF A BLOCK, WHICH HAS BINS AND DRAINPIPES AND NO SHAPE.
         ///

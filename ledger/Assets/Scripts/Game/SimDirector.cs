@@ -10712,6 +10712,8 @@ namespace Ledger.Game
                       $"propsPlaced={AssetLibrary.PropsPlaced} " +
                       $"parkedCars={WorldBuilder.ParkedCars} shopNames={WorldBuilder.ShopNamesPainted} " +
                       $"smokeStacks={WorldBuilder.SmokeStacks} gulls={WorldBuilder.Gulls} " +
+                      $"terraceBlocks={WorldBuilder.TerracedBlocks} legacyBlocks={WorldBuilder.LegacyBlocks} " +
+                      $"terraceParcels={WorldBuilder.TerraceParcels} chimneys={WorldBuilder.ChimneyCount} " +
                       // THE WALKERS' BODIES, counted separately because
                       // `RealBody.Attached` is restored after each one and
                       // therefore cannot see them. A walker body that
