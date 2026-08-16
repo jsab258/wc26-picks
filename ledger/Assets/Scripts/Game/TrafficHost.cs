@@ -349,19 +349,22 @@ namespace Ledger.Game
         /// order — tried until one resolves, so a name the kit turns out
         /// not to have costs nothing but a lookup. Several per kind on
         /// purpose: the per-vehicle offset into this list is what stops
-        /// every car on the street being the same car. PROVISIONAL until
-        /// the first props-fetch commits its listings; corrected from
-        /// tools/props/listings.json, not from memory, the moment it lands.
-        /// The bike stays primitive — no kit carries a bicycle with rider,
-        /// and the two-box bike with a coated rider reads fine at night.
+        /// every car on the street being the same car.
+        ///
+        /// CONFIRMED AGAINST tools/props/listings.json, 16 Aug: every name
+        /// below exists in the fetched Car Kit. Two kinds stay primitive
+        /// by evidence, not oversight — the kit has NO BUS (a van scaled
+        /// to 10.5m reads worse than our glass-band box), and no bicycle
+        /// with rider. The kit's police, ambulance, karts and race cars
+        /// are deliberately never referenced: wrong era, wrong town.
         static string[] KitCandidates(string kindId)
         {
             switch (kindId)
             {
                 case "cab":   return new[] { "taxi", "sedan" };
                 case "van":   return new[] { "van", "delivery" };
-                case "truck": return new[] { "truck", "delivery_flat", "van" };
-                case "bus":   return new[] { "bus", "van" };
+                case "truck": return new[] { "truck", "delivery_flat", "truck_flat" };
+                case "bus":   return System.Array.Empty<string>();
                 case "bike":  return System.Array.Empty<string>();
                 default:      return new[] { "sedan", "suv", "hatchback_sports", "sedan_sports" };
             }
