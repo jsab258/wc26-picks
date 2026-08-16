@@ -1,7 +1,8 @@
 # LEDGER — Founding Design Document
 
-> **STATUS — LIVE, verified 2026-07-31, reference.** the founding document. Pillars, fiction, systems.
-> Kept current. If it is wrong, that is a bug in this file.
+> **STATUS — LIVE, verified 2026-08-16, reference.** the founding document. Pillars, fiction, systems.
+> Kept current. If it is wrong, that is a bug in this file. (The 16 Aug pass found and
+> fixed four stale built-state claims; §7 and §18 now match the code and the town plan.)
 
 Working title: **LEDGER** (your two lives are two accounts, and you are always balancing them).
 Genre: open-city crime sim × slice-of-life social RPG. Single-player, premium, PC first.
@@ -328,12 +329,16 @@ asset-pack-coherent build target:
 6. **Ironside** (industrial) — warehouses, logistics, places without witnesses.
 7. **Gullwing** (faded resort waterfront) — off-season melancholy, hideouts, endgame turf.
 
-**Built as of 2026-07-27: the Hook, Copper Row and Ironside. The other four are names in
-this document and nothing on the ground** — Downtown, The Strip, Fairview and Gullwing have
-no geometry, no places and no cast (player decision, 2026-07-27: *"ironside, rest later"* —
-three districts prove the system, seven spend a runway).
+**Built as of 2026-08-16: all seven, with geometry, places, cast and walkers** (M14
+landed the outer four; the 2026-07-27 "ironside, rest later" staging did its job and
+retired). And the EXPRESSION of all seven was rebuilt 16 Aug under `town-plan.md` (SPEC,
+approved): contiguous terraces with party walls and chimneys instead of detached boxes,
+continuous pavements with square kerb corners, British sign grammar (name plates on corner
+buildings, give-way paint, single yellows), lamps with heads, parked cars, shopfront
+fasciae with painted trade names, crane-and-gasometer skyline. The street GRAPH those
+sit on is unchanged — every gate and nine days of verdict history still hold.
 
-The three that exist are deliberately different in the two ways a map can actually be
+The founding three are deliberately different in the two ways a map can actually be
 different, and both are legible from the street without a word of explanation:
 
 | | block size | who is there |
@@ -358,16 +363,19 @@ consistent that DENSITY carries the feeling of size rather than area does.
 
 - **A real grid**, streets first and buildings fitted into blocks rather than the reverse.
   26m spacing in the Hook, tighter 20m in Copper Row so it reads older the moment you walk
-  into it. Chamfered junction corners — Barcelona's trick, nearly free, and the single
-  cheapest thing that makes a grid read as designed rather than as graph paper.
-- **Ten named streets**, with the plates and the gossip reading the same table, so the city
-  can never tell the player one name and a character another. An address is the unit people
-  give directions in.
+  into it. (The chamfered "Barcelona" corners this bullet used to praise were retired by
+  the town plan, 16 Aug: square kerb corners with the kerb line closed through them read
+  British, and the chamfer pads were most of why blocks read as floating plates.)
+- **Named streets in every district**, with the plates and the gossip reading the same
+  table, so the city can never tell the player one name and a character another. An
+  address is the unit people give directions in. Since the town plan, the plates are
+  mounted on the corner buildings, as a council mounts them.
 - **Two bridges between the districts, and only two.** A chokepoint is a place where things
   can happen: somebody waiting at a bridge is a scene, somebody waiting on an open grid is a
   man standing in a road. About a third of the city crosses one to work.
 - **Traffic** as a deterministic engine-free model: six vehicle kinds, lights at the big
-  crossings, stop signs elsewhere, buses that keep a circuit and cabs that idle at ranks.
+  crossings, painted give-way bars elsewhere (the stop-sign forest was American grammar
+  and died with the town plan), buses that keep a circuit and cabs that idle at ranks.
   Four properties are held as tests because none can be judged from a screenshot — nobody
   overlaps, nobody crosses a stop line on red, nobody drives through a person, and the grid
   never wedges solid.
@@ -708,26 +716,34 @@ Director, then population scale. The economy is still worth building; it is simp
 *conservative* kind of depth, and it is better built underneath a game whose interface has
 already stopped being a list of buttons.
 
-## 18. What this document describes that does not exist yet (2026-07-27)
+## 18. What this document describes that does not exist yet (refreshed 2026-08-16)
 
 Kept deliberately, and kept current. A design document that only accumulates achievements
-stops being usable for planning, and this one was drifting that way.
+stops being usable for planning, and this one was drifting that way. (The 2026-07-27
+version of this list had gone stale in four places — melee, the four districts, the city
+pack and most of voice had all been BUILT and the list still owed them. That is this
+document's own header warning coming true, and the refresh below is against the code.)
 
-- **Playable melee.** Deferred until after the art pass. The consequence layer is built.
-- **Four of the seven districts** in §7 — Downtown, The Strip, Fairview and Gullwing. Three
-  exist. Deferred by the player, 2026-07-27.
-- **Act II's seven pressure points.** Drafted and approved 2026-07-26; the machinery exists,
-  the authored moments are not all fired. With Act I and Act III both running end to end,
-  this is now the thinnest stretch of the spine.
+- **The two ledgers (M21).** Empire growth, law as a tool, what expansion costs. The
+  largest piece of unwritten GAME, as opposed to unfinished presentation.
+- **The shape of a playthrough (M22).** Onboarding beyond the first minutes, pacing,
+  replayability, succession. Unbuilt.
 - **A played endgame.** Act III is built, measured and tested; nobody has sat down and
-  reached it. Measured is not the same as felt, and the distribution
-  (`balance-findings-endings.md`) cannot tell us whether the six days have the right shape.
-- **Most of §6.6's honest life** beyond the courier track: romance, the other job tracks, the
-  apartment.
-- **Lifestyle upgrades** in §6.7 — apartment, clothes, car as status. The car exists as
-  transport and evidence, not as a purchase.
-- **HDRP, the city pack, and voice.** Deliberately deferred; the game runs on procedural
-  fallbacks by design, and the pack drops in with no code change.
+  reached it. Measured is not the same as felt.
+- **Act II's seven pressure points, all fired in one run.** The machinery exists; still
+  the thinnest stretch of the spine.
+- **Interiors beyond the pub.** Every other door is a threshold, not a room.
+- **Live speech in a build a person has run.** The pipeline speaks on the dev machine;
+  the 4.5GB voice models only exist there, and the copy-into-a-downloaded-build script
+  has never been run against a real build. The "ah"-filler retry fix is designed, unbuilt.
+- **Reaction animation** (flinch, greeting, turn-to-look) — blocked on the Mixamo clip
+  session; the perception events it wires to already fire.
+- **Most of §6.6's honest life** beyond the courier track: romance, the other job tracks,
+  the apartment. **Lifestyle upgrades** in §6.7 likewise.
+- **A handful of story branches that have never fired in any recorded run** (the
+  constant-key sweep finds them; planting their trigger conditions is ongoing).
+- **HDRP.** Deliberately post-playtest; the 2K/roughness material work this week is
+  pipeline-portable and carries over.
 
 ## 12. Risks
 
