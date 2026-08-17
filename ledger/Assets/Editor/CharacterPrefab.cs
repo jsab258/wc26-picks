@@ -86,6 +86,20 @@ namespace Ledger.EditorTools
         /// two people waiting at a corner should not breathe in unison.
         static readonly string[] IdleVariants = { "idle", "idle_2", "idle_bored" };
 
+        /// The clips a person can be DOING rather than travelling through.
+        /// Every one of these was in Jafar's harvest with no consumer; the
+        /// build log prints how many became states, so "the pick landed" and
+        /// "the game can play it" stay separate facts.
+        static readonly string[] ActivitySlots =
+        {
+            "talk", "argue", "greet", "phone_box", "lean_wall", "lean",
+            "smoke", "drink", "sit", "carry", "carry_bag", "work_counter",
+            "idle_bored", "look_around",
+        };
+
+        /// How many activity states the canonical controller carries.
+        public static int ActivityStates = -1;
+
         static RuntimeAnimatorController LocomotionFor(string stem)
         {
             var arch = ArchetypeFor(stem);
@@ -476,6 +490,40 @@ namespace Ledger.EditorTools
                 if (walk != null) { tree.AddChild(walk, 1.4f); bound++; }
                 if (run != null) { tree.AddChild(run, 4.0f); bound++; }
                 if (canonical) ClipsBound = bound;
+
+                // THE ACTIVITY STATES (town-plan T3, "visible purpose").
+                //
+                // Jafar's harvest landed argue, phone_box, lean_wall, carry,
+                // carry_bag, drink, smoke, sit, talk and greet, and NOTHING
+                // LOADED ANY OF THEM — clips on disk with no consumer, which
+                // is rule 6 in its purest form. These states give them one.
+                //
+                // UNCONNECTED BY DESIGN. A transition graph over ten states
+                // needs conditions, exit times and a parameter per branch,
+                // all built blind in an editor script with no inspector to
+                // check it in; `Animator.CrossFade` plays a state by hash and
+                // needs none of that, so the graph stays one blend tree plus
+                // a handful of islands the rig can jump to and come back
+                // from. The rig checks `HasState` first, so a clip that never
+                // landed is a body that keeps walking rather than a warning
+                // every frame.
+                //
+                // Only on the canonical controller: the archetype variants
+                // exist to vary IDLE and WALK, and ten more states each would
+                // multiply the asset count for nothing.
+                if (canonical)
+                {
+                    ActivityStates = 0;
+                    foreach (var slot in ActivitySlots)
+                    {
+                        var clip = ClipFor(slot);
+                        if (clip == null) continue;
+                        var st = controller.layers[0].stateMachine.AddState(
+                            Ledger.Game.CharacterRig.ActivityStatePrefix + slot);
+                        st.motion = clip;
+                        ActivityStates++;
+                    }
+                }
 
                 controller.layers[0].stateMachine.defaultState = state;
 

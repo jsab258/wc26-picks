@@ -1182,6 +1182,37 @@ namespace Ledger.Game
             _lastBodyPos = here;
             double speed = moved / dt;
             _body.Speed = speed;
+
+            // WHAT THIS PERSON IS DOING, not merely how fast (town-plan T3).
+            //
+            // Only while genuinely stopped: a clip of somebody leaning on a
+            // wall played by somebody crossing a road is worse than no clip.
+            // The choice is deterministic per person — a body that reshuffles
+            // its activity every frame reads as a glitch, and a stable one
+            // reads as a character trait.
+            //
+            // TALK AND ARGUE ARE THE BIG ONES because conversation is this
+            // game's whole moat and it has been performed, until now, by two
+            // people standing perfectly still facing each other. `argue` for
+            // the sourer quarter of confabs, by a hash of the pair, so the
+            // street has both registers in it.
+            if (speed > Ledger.Core.Rig.StillBelowMetresPerSec)
+            {
+                _body.Activity = null;
+            }
+            else if (InConfab)
+            {
+                _body.Activity = (ActivityHash() & 3) == 0 ? "argue" : "talk";
+            }
+            else if (WaitingAsHost)
+            {
+                // Somebody who promised to wait looks like somebody waiting.
+                _body.Activity = (ActivityHash() & 1) == 0 ? "lean_wall" : "idle_bored";
+            }
+            else
+            {
+                _body.Activity = null;
+            }
             // SAMPLED WHERE IT IS MEASURED, not where it is configured. A
             // constant says what the walker was ASKED to do; this says what
             // the body was actually handed, which is the number the gait
@@ -1222,6 +1253,19 @@ namespace Ledger.Game
         /// beat. Cleared the moment the window closes, so a host who was
         /// stood up goes back to their evening.
         public bool WaitingAsHost { get; set; }
+
+        /// A stable number per person, for choosing WHICH activity they do.
+        /// From the gossip id when there is one and the object name
+        /// otherwise, so the same body makes the same choice every frame of
+        /// every run — a walker that reshuffles its activity per frame reads
+        /// as a glitch, and one that keeps it reads as a character.
+        int ActivityHash()
+        {
+            var key = GossipId ?? DisplayName ?? name;
+            int h = 17;
+            foreach (var c in key) h = h * 31 + c;
+            return h & 0x7fffffff;
+        }
 
         /// Begin one. Called on both halves of a pair, by whoever noticed the
         /// exchange — the walkers do not decide this, the gossip does.

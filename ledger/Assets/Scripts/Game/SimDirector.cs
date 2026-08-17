@@ -10550,6 +10550,11 @@ namespace Ledger.Game
                       // frame, and the frame where it stood widest.
                       $"armStreet={CharacterRig.ArmDropStreetMedian:0.0} " +
                       $"tposeBodies={CharacterRig.TposeBodies} " +
+                      // The activity wire (town-plan T3): how many bodies are
+                      // DOING something at the worst instant, against how many
+                      // could. Peak beside the count of states that exist, so
+                      // "no clips" and "clips nobody plays" cannot read alike.
+                      $"activityPeak={CharacterRig.ActivityPeak} " +
                       $"tposeAtGrant={CharacterRig.TposeAtGrant} " +
                       $"tposeWhy=[{CharacterRig.TposeWhy}] " +
                       $"tposeWho={CharacterRig.TposeWho} " +

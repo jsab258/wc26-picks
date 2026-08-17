@@ -615,6 +615,57 @@ namespace Ledger.Game
             PreArmRead = true;
         }
 
+        /// WHAT THIS PERSON IS DOING, or null for "travelling". Set by the
+        /// walker; the rig crossfades to the matching state and back. The
+        /// name is a clip slot ("talk", "smoke", "lean_wall") — the same
+        /// vocabulary the harvest picks by, so there is one set of names
+        /// from Mixamo's catalogue to the street.
+        ///
+        /// TOWN-PLAN T3. Ten harvested clips had no consumer at all: the
+        /// social sim is the moat and it was being performed by people
+        /// standing perfectly still. This is the wire.
+        public string Activity;
+
+        /// States are named `<prefix><slot>` so the rig can find one by hash
+        /// without an inventory. Shared with `CharacterPrefab`, which builds
+        /// them, because two spellings of one name is the fault this project
+        /// finds in pairs.
+        public const string ActivityStatePrefix = "Act_";
+
+        /// How many bodies are playing an activity right now, and the most
+        /// ever at once — the done line reads both, because "the states
+        /// exist" and "somebody is doing something" are different facts.
+        public static int ActivityNow, ActivityPeak;
+
+        string _activityPlaying;
+
+        /// Cross-fade into the activity state, or back to the locomotion
+        /// tree when it clears. GUARDED BY `HasState`: an archetype
+        /// controller carries no activity islands and a clip that never
+        /// landed leaves no state, and `CrossFade` to a missing hash warns
+        /// every frame forever — the kind of red that trains people to
+        /// ignore the console.
+        void DriveActivity()
+        {
+            if (_activityPlaying == Activity) return;
+            var want = Activity;
+            if (!string.IsNullOrEmpty(want))
+            {
+                int hash = Animator.StringToHash(ActivityStatePrefix + want);
+                if (!_animator.HasState(0, hash)) { Activity = null; return; }
+                _animator.CrossFade(hash, 0.25f, 0);
+                if (string.IsNullOrEmpty(_activityPlaying)) ActivityNow++;
+                if (ActivityNow > ActivityPeak) ActivityPeak = ActivityNow;
+            }
+            else
+            {
+                int loco = Animator.StringToHash("Locomotion");
+                if (_animator.HasState(0, loco)) _animator.CrossFade(loco, 0.25f, 0);
+                if (!string.IsNullOrEmpty(_activityPlaying) && ActivityNow > 0) ActivityNow--;
+            }
+            _activityPlaying = want;
+        }
+
         /// The blend-tree float. Must match `CharacterPrefab.SpeedParam`, and
         /// is spelled out here rather than referenced because that type is
         /// Editor-only and this one ships.
@@ -1613,6 +1664,7 @@ namespace Ledger.Game
             {
                 _animator.SetFloat(SpeedParam, (float)Speed);
                 if (!SpeedDriven) { SpeedDriven = true; }
+                DriveActivity();
 
                 // AND THE PERSON'S OWN CADENCE AND PHASE, WHICH THIS BRANCH
                 // IGNORED WHILE THE PROCEDURAL ONE HONOURED BOTH.
