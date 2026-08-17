@@ -99,6 +99,70 @@ namespace Ledger.Core
             public bool HasFoundingCross;
         }
 
+        /// STREET-SPEC.MD, THE TOPOLOGY RE-PLAN. The measured case, in one
+        /// line: at today's pitch a block holds ONE building per edge and the
+        /// whole city tops out near 110 parcels, so no amount of dressing
+        /// makes it read as a town. The spec derives the sizes from the
+        /// buildings up — two terrace rows plus a yard is 16-19m of buildable
+        /// depth, five to ten parcels is 35-70m of frontage — and that means
+        /// RECTANGULAR blocks: long frontages on the named street, short ends
+        /// on the side street. Today's are square and identical, which is why
+        /// every street has the same rhythm.
+        ///
+        /// APPLIED AS A SCALE ABOUT EACH DISTRICT'S OWN CENTRE, which is the
+        /// migration contract's cheapest honest form: one affine map per
+        /// district, applied to the avenue lines AND to every address in it,
+        /// so a place keeps its street, its side of that street and its
+        /// position along it — by construction rather than by re-authoring
+        /// sixty-one coordinates by hand and hoping.
+        ///
+        /// Behind a flag beside `WorldBuilder.TownPlanEnabled`, for the same
+        /// reason: the graph is what every gate, walker and schedule consumes,
+        /// so the way back has to be one constant.
+        public const bool WideBlocks = true;
+
+        /// The Hook's founding cross stays where it is — the pub is hand-built
+        /// at fixed coordinates, Act I happens inside it, and a scale about
+        /// the origin leaves x=0 and z=0 exactly where they were. Everything
+        /// the pub touches sits inside that first block and travels with it.
+        /// The long axis grows more than the short one; that anisotropy IS the
+        /// rectangle.
+        /// ONE STRETCH, ABOUT THE ORIGIN, FOR THE WHOLE CITY — and the first
+        /// version scaled each district about its OWN centre, which CoreTests
+        /// refused inside a minute ("an avenue is road along its length").
+        /// The reason is arithmetic and obvious in hindsight: a district that
+        /// grows in place grows INTO its neighbours. Downtown's east edge
+        /// moved from -110 to -58 while the Hook's west edge moved from -52
+        /// to -112, so two grids occupied the same ground and their avenues
+        /// crossed with no junction between them.
+        ///
+        /// A single affine map over every coordinate cannot do that: every
+        /// district, bridge and address moves together, relative arrangement
+        /// exactly preserved, and NOTHING overlaps that did not overlap
+        /// before. It also delivers the actual goal without touching a road:
+        /// carriageways stay 8m while the gaps between them stretch, so the
+        /// buildable depth of every block grows by the whole difference.
+        ///
+        /// Anisotropic on purpose — that is what makes a block a RECTANGLE
+        /// with a long frontage and a short end, which is the spec's single
+        /// biggest shape change from today's identical squares.
+        public const double StretchX = 2.15, StretchZ = 1.15;
+
+        static (double x, double z) BlockScale(District d) =>
+            WideBlocks ? (StretchX, StretchZ) : (1.0, 1.0);
+
+        /// The origin, for every district: the Hook's founding cross is at
+        /// x=0/z=0 and the pub is hand-built against it, so scaling about the
+        /// origin leaves both exactly where they are.
+        static (double x, double z) DistrictCentre(District d) => (0.0, 0.0);
+
+        /// The scaled position of an avenue line, and of anything standing
+        /// beside one. ONE function, used by the grid, the blocks and the
+        /// address migration, so the three cannot disagree — which is the
+        /// failure this project finds in pairs more than any other.
+        static double ScaleAbout(double v, double centre, double k) =>
+            centre + (v - centre) * k;
+
         /// The Hook, and Copper Row across the cut to the north.
         ///
         /// Copper Row is the design doc's **immigrant market quarter — dense
@@ -409,13 +473,20 @@ namespace Ledger.Core
             foreach (var d in Districts)
             {
                 string prefix = d.Id == "hook" ? "j" : d.Id + "_j";
+                // The re-plan lives HERE and nowhere else: the authored tables
+                // stay exactly as written (they are the layout's intent), and
+                // the scale is applied as they are read. One place to revert,
+                // one place to read, and the blocks and the addresses below
+                // consume the same two helpers.
+                var (kx, kz) = BlockScale(d);
+                var (cx0, cz0) = DistrictCentre(d);
                 for (int i = 0; i < d.AvenuesX.Length; i++)
                     for (int j = 0; j < d.AvenuesZ.Length; j++)
                         Add(new StreetNode
                         {
                             Id = $"{prefix}{i}_{j}",
-                            X = d.AvenuesX[i],
-                            Z = d.AvenuesZ[j],
+                            X = ScaleAbout(d.AvenuesX[i], cx0, kx),
+                            Z = ScaleAbout(d.AvenuesZ[j], cz0, kz),
                             IsJunction = true,
                         });
 
@@ -436,10 +507,10 @@ namespace Ledger.Core
                     for (int j = 0; j + 1 < d.AvenuesZ.Length; j++)
                         _blocks.Add(new Block
                         {
-                            MinX = d.AvenuesX[i] + halfW,
-                            MaxX = d.AvenuesX[i + 1] - halfW,
-                            MinZ = d.AvenuesZ[j] + halfW,
-                            MaxZ = d.AvenuesZ[j + 1] - halfW,
+                            MinX = ScaleAbout(d.AvenuesX[i], cx0, kx) + halfW,
+                            MaxX = ScaleAbout(d.AvenuesX[i + 1], cx0, kx) - halfW,
+                            MinZ = ScaleAbout(d.AvenuesZ[j], cz0, kz) + halfW,
+                            MaxZ = ScaleAbout(d.AvenuesZ[j + 1], cz0, kz) - halfW,
                         });
             }
 
@@ -493,6 +564,7 @@ namespace Ledger.Core
             // corrected ones. Doing it in `HookMap` would have been circular;
             // doing it in the world builder would have moved the geometry and
             // left the schedules pointing at the road.
+            MigrateAddresses();
             SetPlacesBackFromRoads();
 
             // 3. Every place on the map gets a lane to the nearest junction, so
@@ -736,6 +808,85 @@ namespace Ledger.Core
         /// nothing and moves nobody. That matters because `Ensure` can be
         /// reached from anywhere and a normalisation that drifted a little
         /// further each time would be the worst kind of bug to find.
+        /// THE MIGRATION CONTRACT, and the whole reason the re-plan is a
+        /// scale rather than a re-authoring. Every address moves by exactly
+        /// the transform its own district's grid moved by, so it keeps the
+        /// street it is on, the side it is on and how far along it stands —
+        /// no coordinate is guessed, and the sixty-one authored places do not
+        /// need re-typing.
+        ///
+        /// ONCE. `Ensure` runs the builder once per process, but a place is
+        /// mutable and shared, so a second pass would scale an already-scaled
+        /// address and put the letter-writer in the sea.
+        ///
+        /// The Hook's founding block is exempt: the pub is hand-built at
+        /// fixed coordinates in `WorldBuilder`, Act I happens inside it, and
+        /// its door, counter and step are authored beside it. Scaling the
+        /// door away from the building it belongs to would be the same class
+        /// of fault as a name plate on the wrong wall.
+        static bool _addressesMigrated;
+
+        static void MigrateAddresses()
+        {
+            if (!WideBlocks || _addressesMigrated) return;
+            _addressesMigrated = true;
+            foreach (var place in HookMap.Places)
+            {
+                // The founding block, where the pub is hand-built.
+                if (Math.Abs(place.X) < 14 && Math.Abs(place.Z) < 14) continue;
+                var d = DistrictFor(place.X, place.Z);
+                if (d == null) continue;
+                var (kx, kz) = BlockScale(d);
+                var (cx, cz) = DistrictCentre(d);
+                place.X = ScaleAbout(place.X, cx, kx);
+                place.Z = ScaleAbout(place.Z, cz, kz);
+            }
+        }
+
+        /// Is this junction on the OUTER RING of its district — the first or
+        /// last avenue line on either axis?
+        ///
+        /// Written for `Signals.HasLights`, which asked `Math.Abs(v) < 52.0`
+        /// and meant exactly this. 52 was the Hook's outermost avenue when the
+        /// Hook was the whole city; the topology stretch moved that line to
+        /// 111.8 and the constant would have quietly switched off every
+        /// traffic light in the game — a rule that reads a REMEMBERED
+        /// COORDINATE rather than the map it is about, which is the fault
+        /// this file has now produced twice in one change.
+        public static bool OnOuterRing(StreetNode n)
+        {
+            if (n == null) return false;
+            Ensure();
+            foreach (var d in Districts)
+            {
+                var (kx, kz) = BlockScale(d);
+                var (cx, cz) = DistrictCentre(d);
+                double x0 = ScaleAbout(d.AvenuesX[0], cx, kx);
+                double x1 = ScaleAbout(d.AvenuesX[d.AvenuesX.Length - 1], cx, kx);
+                double z0 = ScaleAbout(d.AvenuesZ[0], cz, kz);
+                double z1 = ScaleAbout(d.AvenuesZ[d.AvenuesZ.Length - 1], cz, kz);
+                if (n.X < x0 - 1 || n.X > x1 + 1 || n.Z < z0 - 1 || n.Z > z1 + 1) continue;
+                return Math.Abs(n.X - x0) < 0.01 || Math.Abs(n.X - x1) < 0.01
+                    || Math.Abs(n.Z - z0) < 0.01 || Math.Abs(n.Z - z1) < 0.01;
+            }
+            return false;
+        }
+
+        /// Which district an authored coordinate belongs to, by the UNSCALED
+        /// tables — because that is the frame the coordinate was written in,
+        /// and asking the scaled map would be asking where it has already
+        /// moved to.
+        static District DistrictFor(double x, double z)
+        {
+            foreach (var d in Districts)
+            {
+                double minX = d.AvenuesX[0] - 20, maxX = d.AvenuesX[d.AvenuesX.Length - 1] + 20;
+                double minZ = d.AvenuesZ[0] - 20, maxZ = d.AvenuesZ[d.AvenuesZ.Length - 1] + 20;
+                if (x >= minX && x <= maxX && z >= minZ && z <= maxZ) return d;
+            }
+            return null;
+        }
+
         static void SetPlacesBackFromRoads()
         {
             AddressesSetBack = AddressesRefused = AddressesLeftInRoad = 0;

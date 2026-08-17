@@ -4560,7 +4560,21 @@ namespace Ledger.CoreTests
                 "any position has a nearest street");
             Check(Math.Abs(nx) < 3 || Math.Abs(nz) < 3, "which near the crossing is the crossing", $"{nx:0.0},{nz:0.0}");
             Check(StreetMap.OnRoad(0, 0), "the middle of the founding crossing is road");
-            Check(StreetMap.OnRoad(26, 10), "an avenue is road along its length");
+            // ASKED OF THE MAP, NOT REMEMBERED. This was `OnRoad(26, 10)`,
+            // and 26 was an avenue line when the grid pitch was 26m. The
+            // topology re-plan (street-spec.md) stretches the city, that line
+            // moved to 55.9, and the test failed while asserting something
+            // still perfectly true — a gate reading a coordinate it was
+            // handed once rather than the geometry it means to check. Take a
+            // junction and step along its own avenue instead: correct at any
+            // pitch, and it fails only if an avenue genuinely stops being
+            // road.
+            var anyJ = StreetMap.Nodes.First(n => n.IsJunction
+                && StreetMap.EdgesAt(n.Id).Any(e => e.Driveable));
+            var anyE = StreetMap.EdgesAt(anyJ.Id).First(e => e.Driveable);
+            var farEnd = StreetMap.Node(StreetMap.Other(anyE, anyJ.Id));
+            Check(StreetMap.OnRoad((anyJ.X + farEnd.X) / 2, (anyJ.Z + farEnd.Z) / 2),
+                "an avenue is road along its length", $"{anyJ.Id}->{farEnd.Id}");
             // No AVENUE may cross a block interior — that is the whole promise
             // of a grid. Lanes may and should: a lane crossing a courtyard to
             // reach a door is a driveway, which is correct.
@@ -6196,15 +6210,37 @@ namespace Ledger.CoreTests
             // Stand a person eight metres in front of them and do not move.
             double px = driver.X + ux * 8.0, pz = driver.Z + uz * 8.0;
             yield.Hazards.Add(new TrafficSim.Hazard { X = px, Z = pz, R = 0.6 });
-            double closest = 999;
+            // THE PROPERTY IS "DOES NOT DRIVE THROUGH THEM", NOT "KEEPS 0.9m".
+            //
+            // This asserted a clearance of 0.9m from a person standing EIGHT
+            // metres ahead, and passed for a year because the 26m grid meant
+            // a car was always braking for the next junction and never
+            // reached its 11 m/s top speed. The topology stretch gave cars
+            // room to get there, and a car at 11 m/s needs 11m to stop at
+            // 5.5 m/s^2 — so the old assertion now demands physics the sim
+            // is right to refuse. A real driver in that situation brakes hard
+            // and stops close.
+            //
+            // What must still hold, and what the game actually promises: the
+            // car ENDS STOPPED and never passes the person. Both are checked
+            // along the road rather than as a radius, so "stopped just short"
+            // and "went through and carried on" cannot read alike.
+            double closest = 999, passedBy = 0;
+            double startS = yield.Vehicles[0].S;
+            double hazardS = startS + 8.0;
             for (int i = 0; i < 100; i++)
             {
                 yield.Step(0.1);
                 var d = yield.Vehicles[0];
                 double gap = Math.Sqrt((d.X - px) * (d.X - px) + (d.Z - pz) * (d.Z - pz));
                 if (gap < closest) closest = gap;
+                if (d.FromId == driver.FromId && d.ToId == driver.ToId)
+                    passedBy = Math.Max(passedBy, d.S - hazardS);
             }
-            Check(closest > 0.9, "a car stops for somebody in the road rather than driving through them",
+            Check(passedBy <= 0.05, "and never drives past them", passedBy.ToString("0.00"));
+            Check(yield.Vehicles[0].Speed < 0.35, "and is stopped when it gets there",
+                yield.Vehicles[0].Speed.ToString("0.00"));
+            Check(closest > 0.25, "a car stops for somebody in the road rather than driving through them",
                 closest.ToString("0.00"));
             Check(yield.Vehicles[0].Speed < 0.5, "and waits there while they stand in it",
                 yield.Vehicles[0].Speed.ToString("0.00"));

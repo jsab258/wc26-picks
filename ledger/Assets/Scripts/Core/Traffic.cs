@@ -116,10 +116,14 @@ namespace Ledger.Core
         public static bool HasLights(StreetNode n)
         {
             if (n == null || !n.IsJunction) return false;
-            return Interior(n.X) && Interior(n.Z) && n.X != 0 && n.Z != 0;
+            // NOT ON THE OUTER RING, ASKED OF THE MAP. This was
+            // `Interior(x) && Interior(z)` against a hardcoded 52.0 — the
+            // Hook's outermost avenue back when the Hook was the whole city.
+            // The topology stretch moved that line to 111.8 and the constant
+            // would have switched off every light in the game while looking
+            // like a rule about junctions.
+            return !StreetMap.OnOuterRing(n) && n.X != 0 && n.Z != 0;
         }
-
-        static bool Interior(double v) => Math.Abs(v) < 52.0 - 0.001;
 
         /// Junctions do not all switch at once — that is what makes a grid feel
         /// mechanical. A per-junction offset gives something close to a green
@@ -371,10 +375,32 @@ namespace Ledger.Core
         {
             if (dt <= 0) return;
             if (dt > 1.0) dt = 1.0;              // a stall must not teleport traffic
-            int steps = (int)Math.Ceiling(dt / SubStep);
-            double h = dt / steps;
-            for (int i = 0; i < steps; i++) Advance(h);
+            // A FIXED SLICE, ACCUMULATED — not `dt / ceil(dt / SubStep)`.
+            //
+            // The old line sub-stepped, which looks like frame-rate
+            // independence and is not: at 60fps it ran one slice of 16.7ms
+            // and at 10fps two slices of 50ms, so the two machines integrated
+            // the same ten seconds with different h and drifted apart. Short
+            // edges hid it — a vehicle reaching a junction resets S, and the
+            // old 26m grid reset everybody several times in ten seconds, so
+            // the accumulated difference was clamped before it could show.
+            // The topology stretch made edges 2.15x longer, the resets got
+            // rarer, and the drift the test allows 2.5m of came back 14.15.
+            // The bound was not wrong; it was being flattered by the map.
+            //
+            // With a fixed slice and a remainder carried forward, any
+            // sequence of dt summing to the same total runs the SAME number
+            // of identical advances, so the two machines agree by
+            // construction rather than by being interrupted often enough.
+            _stepAccum += dt;
+            while (_stepAccum >= SubStep - 1e-12)
+            {
+                Advance(SubStep);
+                _stepAccum -= SubStep;
+            }
         }
+
+        double _stepAccum;
 
         void Advance(double h)
         {
@@ -401,6 +427,43 @@ namespace Ledger.Core
                 v.Braking = target < was - 0.01;
 
                 double travelled = v.Speed * h;
+
+                // A HARD FLOOR UNDER THE PROMISE, not just a braking model.
+                //
+                // "An AI driver stops, always" was true only because a 26m
+                // grid never let anyone reach 11 m/s. Give a car room to get
+                // there and the arithmetic bites: stopping from top speed
+                // needs 11m at 5.5 m/s^2, so a person who appears 8m ahead
+                // CANNOT be stopped for — the planner brakes, the car goes
+                // through, and once past, the corridor test stops seeing them
+                // and it accelerates away. The stretch found it by driving a
+                // car fifteen metres beyond somebody standing in the road.
+                //
+                // Braking stays the behaviour; this is the invariant. A
+                // vehicle may not advance past a hazard in its own corridor,
+                // however fast it arrived — it stops hard against them
+                // instead, which is a driver standing on the brakes rather
+                // than a driver committing manslaughter. `Enforce` already
+                // does exactly this for vehicle-on-vehicle overlap; people
+                // were the case nobody wrote it for.
+                double blocked = -1;
+                foreach (var hz in Hazards)
+                {
+                    double ahead = Corridor(v, hz.X, hz.Z, hz.R);
+                    if (ahead >= 0 && (blocked < 0 || ahead < blocked)) blocked = ahead;
+                }
+                if (blocked >= 0)
+                {
+                    double room = Math.Max(0, blocked - v.Kind.Length * 0.5);
+                    if (travelled > room)
+                    {
+                        travelled = room;
+                        v.Speed = 0;
+                        v.Braking = true;
+                        v.BlockedBy = "person";
+                    }
+                }
+
                 TotalDistance += travelled;
                 v.S += travelled;
                 v.ClearedDistance += travelled;
