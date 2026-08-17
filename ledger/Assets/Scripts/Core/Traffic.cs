@@ -470,11 +470,12 @@ namespace Ledger.Core
                 // does exactly this for vehicle-on-vehicle overlap; people
                 // were the case nobody wrote it for.
                 double blocked = -1;
-                foreach (var hz in Hazards)
-                {
-                    double ahead = Corridor(v, hz.X, hz.Z, hz.R);
-                    if (ahead >= 0 && (blocked < 0 || ahead < blocked)) blocked = ahead;
-                }
+                if (Heading(v, out var hdx, out var hdz))
+                    foreach (var hz in Hazards)
+                    {
+                        double ahead = CorridorAlong(v, hdx, hdz, hz.X, hz.Z, hz.R);
+                        if (ahead >= 0 && (blocked < 0 || ahead < blocked)) blocked = ahead;
+                    }
                 if (blocked >= 0)
                 {
                     double room = Math.Max(0, blocked - v.Kind.Length * 0.5);
@@ -641,11 +642,12 @@ namespace Ledger.Core
             // 2. A person in the road. An AI driver stops, always, however
             // inconvenient — they have no story to be part of, so all a
             // pedestrian gets from them is a delay.
-            foreach (var hz in Hazards)
-            {
-                double ahead = Corridor(v, hz.X, hz.Z, hz.R);
-                if (ahead >= 0 && ahead < best) { best = ahead; why = "person"; }
-            }
+            if (Heading(v, out var pdx, out var pdz))
+                foreach (var hz in Hazards)
+                {
+                    double ahead = CorridorAlong(v, pdx, pdz, hz.X, hz.Z, hz.R);
+                    if (ahead >= 0 && ahead < best) { best = ahead; why = "person"; }
+                }
 
             // 3. The junction at the end of the road, if it will not have us.
             double toJunction = v.Edge.Length - v.S;
@@ -666,15 +668,39 @@ namespace Ledger.Core
         }
 
         /// Distance to a hazard that is genuinely in this vehicle's path, or -1.
-        double Corridor(Vehicle v, double hx, double hz, double r)
+        /// THE VEHICLE'S UNIT HEADING, ONCE PER VEHICLE.
+        ///
+        /// This used to live inside `Corridor`, which is called once per
+        /// HAZARD — so a lorry with forty pedestrians near it did forty
+        /// identical pairs of node lookups and forty identical square roots
+        /// to rediscover the direction of the road it was already on. The
+        /// heading does not depend on the hazard at all.
+        ///
+        /// It is the same shape as the crowd separation's square roots, found
+        /// by grepping for that fault rather than by noticing it twice, and
+        /// `traffic` is the second largest cost in the game budget after
+        /// `npcs`. Behaviour is untouched: the same direction reaches the same
+        /// arithmetic, just computed once instead of per hazard, and the
+        /// degenerate cases return the same -1 through `false` here.
+        bool Heading(Vehicle v, out double dx, out double dz)
         {
+            dx = dz = 0;
             var a = StreetMap.Node(v.FromId);
             var b = StreetMap.Node(v.ToId);
-            if (a == null || b == null) return -1;
-            double dx = b.X - a.X, dz = b.Z - a.Z;
+            if (a == null || b == null) return false;
+            dx = b.X - a.X; dz = b.Z - a.Z;
             double len = Math.Sqrt(dx * dx + dz * dz);
-            if (len < 1e-6) return -1;
+            if (len < 1e-6) return false;
             dx /= len; dz /= len;
+            return true;
+        }
+
+        /// How far ahead a hazard sits in this vehicle's lane, given a heading
+        /// already computed by `Heading`. -1 when it is behind, beyond the
+        /// lookahead, or off to the side.
+        double CorridorAlong(Vehicle v, double dx, double dz,
+                             double hx, double hz, double r)
+        {
             double ox = hx - v.X, oz = hz - v.Z;
             double ahead = ox * dx + oz * dz;
             if (ahead < 0 || ahead > Lookahead) return -1;
