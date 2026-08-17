@@ -1225,7 +1225,25 @@ namespace Ledger.Game
             }
             else
             {
-                _body.Activity = null;
+                // AND WHAT THE PLACE THEY ARE STANDING AT IS FOR. Somebody
+                // stopped outside a bar is having a cigarette; somebody
+                // behind a counter is working it; somebody at a phone is on
+                // the phone — and until now all three stood to attention,
+                // which is the social sim being invisible while it runs.
+                //
+                // The place is looked up once and CACHED per stop, not per
+                // frame: `HookMap.Places` is sixty-one entries and this is
+                // every walker on every tick, which is exactly the shape of
+                // cost this project has paid for before.
+                if (_activityStopAt != Vector3.zero
+                    && (here - _activityStopAt).sqrMagnitude > 4f)
+                    _activityAtPlace = null;   // moved on; ask again
+                if (_activityAtPlace == null)
+                {
+                    _activityStopAt = here;
+                    _activityAtPlace = ActivityForPlaceNear(here) ?? "";
+                }
+                _body.Activity = _activityAtPlace.Length > 0 ? _activityAtPlace : null;
             }
             // SAMPLED WHERE IT IS MEASURED, not where it is configured. A
             // constant says what the walker was ASKED to do; this says what
@@ -1267,6 +1285,50 @@ namespace Ledger.Game
         /// beat. Cleared the moment the window closes, so a host who was
         /// stood up goes back to their evening.
         public bool WaitingAsHost { get; set; }
+
+        string _activityAtPlace;
+        Vector3 _activityStopAt;
+
+        /// What somebody standing HERE would plausibly be doing, from the
+        /// nearest authored place and its kind — or null for "just standing",
+        /// which is a perfectly good thing to be doing on a pavement.
+        ///
+        /// The vocabulary is the harvest's clip slots, so a name that reaches
+        /// here is a name the rig can already play. Deterministic per person:
+        /// two people outside the same pub should not both light up in the
+        /// same frame like a chorus line.
+        string ActivityForPlaceNear(Vector3 here)
+        {
+            Ledger.Core.HookPlace best = null;
+            double bestD2 = 7.0 * 7.0;      // arm's length of a doorway
+            foreach (var p in Ledger.Core.HookMap.Places)
+            {
+                double dx = p.X - here.x, dz = p.Z - here.z;
+                double d2 = dx * dx + dz * dz;
+                if (d2 < bestD2) { bestD2 = d2; best = p; }
+            }
+            if (best == null) return null;
+            int h = ActivityHash();
+            switch (best.Kind)
+            {
+                case "business":
+                    // Behind the counter or waiting to be served — the split
+                    // is per person, so a shop has both in it.
+                    return (h & 3) == 0 ? "work_counter"
+                         : (h & 3) == 1 ? "carry_bag" : null;
+                case "landmark":
+                    return (h & 3) == 0 ? "look_around" : null;
+                case "corner":
+                    // A shelter is where people wait, smoke and lean.
+                    return (h & 3) == 0 ? "smoke"
+                         : (h & 3) == 1 ? "lean_wall"
+                         : (h & 3) == 2 ? "idle_bored" : null;
+                case "home":
+                    return (h & 7) == 0 ? "smoke" : null;
+                default:
+                    return null;
+            }
+        }
 
         /// A stable number per person, for choosing WHICH activity they do.
         /// From the gossip id when there is one and the object name
