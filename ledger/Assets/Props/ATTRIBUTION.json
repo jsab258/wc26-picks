@@ -66,9 +66,17 @@
    "licence": "CC0 1.0 Universal",
    "url": "https://kenney.nl/assets/city-kit-commercial",
    "files": [
+    "building-a.fbx",
+    "building-b.fbx",
+    "building-c.fbx",
+    "building-skyscraper-a.fbx",
+    "building-skyscraper-b.fbx",
     "colormap.png",
     "detail-awning-wide.fbx",
-    "detail-awning.fbx"
+    "detail-awning.fbx",
+    "low-detail-building-a.fbx",
+    "low-detail-building-b.fbx",
+    "low-detail-building-c.fbx"
    ]
   },
   "city-kit-suburban": {
@@ -77,6 +85,9 @@
    "licence": "CC0 1.0 Universal",
    "url": "https://kenney.nl/assets/city-kit-suburban",
    "files": [
+    "building-type-a.fbx",
+    "building-type-b.fbx",
+    "building-type-c.fbx",
     "colormap.png",
     "fence-1x2.fbx",
     "fence-1x3.fbx",
