@@ -7605,10 +7605,41 @@ namespace Ledger.Game
                     _streetStills++;
                     var keepPos = cam.transform.position;
                     var keepRot = cam.transform.rotation;
-                    cam.transform.position =
-                        _game.Player.transform.position + Vector3.up * 1.65f;
-                    cam.transform.rotation = Quaternion.LookRotation(
-                        _game.Player.transform.forward, Vector3.up);
+                    // EYE HEIGHT, ON THE PAVEMENT, LOOKING DOWN THE STREET.
+                    //
+                    // This took the sim player's own position and facing, and
+                    // three builds running it produced the same photograph of
+                    // a brick wall 40cm from the lens. The player is a bot
+                    // that has been walking for three game-days; where it
+                    // stands and what it faces at noon on day three is
+                    // arbitrary, and with the blocks now full there is a
+                    // facade within a few metres of almost anywhere. I aimed
+                    // the SPAWN down the street to fix this, which was the
+                    // wrong moment by three days — the second time in two
+                    // commits I have fixed a picture at the wrong end.
+                    //
+                    // The still exists to answer "what does the street look
+                    // like from eye level", so it is framed for that: the
+                    // player's position, nudged out of anything solid, aimed
+                    // along the nearest carriageway rather than across it.
+                    var eye = _game.Player.transform.position + Vector3.up * 1.65f;
+                    var aim = _game.Player.transform.forward;
+                    if (Ledger.Core.StreetMap.NearestOnRoad(eye.x, eye.z,
+                            out var srx, out var srz, out _))
+                    {
+                        var toRoad = new Vector3((float)srx - eye.x, 0, (float)srz - eye.z);
+                        if (toRoad.sqrMagnitude > 0.04f)
+                            aim = new Vector3(-toRoad.z, 0, toRoad.x).normalized;
+                        // And stand where a person could: if the eye is inside
+                        // a wall, walk it toward the carriageway until it is
+                        // not. Two metres is a pavement's width; past that the
+                        // frame would be a road shot rather than a street one.
+                        var step = toRoad.sqrMagnitude > 0.04f ? toRoad.normalized : Vector3.forward;
+                        for (int g = 0; g < 8 && !WorldBuilder.PointClear(eye, 0.5f); g++)
+                            eye += step * 0.35f;
+                    }
+                    cam.transform.position = eye;
+                    cam.transform.rotation = Quaternion.LookRotation(aim, Vector3.up);
                     Billboard.AimAll(cam);
                     SpeechBubble.PinAll(cam);
                     NameTags.PinAll(cam);
