@@ -10555,6 +10555,12 @@ namespace Ledger.Game
                       // could. Peak beside the count of states that exist, so
                       // "no clips" and "clips nobody plays" cannot read alike.
                       $"activityPeak={CharacterRig.ActivityPeak} " +
+                      // The denominator: how many bodies were ever ASKED to
+                      // do something, against the peak that managed it. One
+                      // without the other cannot tell a broken wire from a
+                      // quiet street — which is exactly what happened on the
+                      // first build of this feature.
+                      $"activityAsked={CharacterRig.ActivityAsked} " +
                       $"tposeAtGrant={CharacterRig.TposeAtGrant} " +
                       $"tposeWhy=[{CharacterRig.TposeWhy}] " +
                       $"tposeWho={CharacterRig.TposeWho} " +

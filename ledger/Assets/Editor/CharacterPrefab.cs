@@ -508,22 +508,38 @@ namespace Ledger.EditorTools
                 // landed is a body that keeps walking rather than a warning
                 // every frame.
                 //
-                // Only on the canonical controller: the archetype variants
-                // exist to vary IDLE and WALK, and ten more states each would
-                // multiply the asset count for nothing.
-                if (canonical)
+                // ON EVERY CONTROLLER, AND THE FIRST VERSION SAID CANONICAL
+                // ONLY — measured wrong within one build. The reasoning was
+                // "the variants exist to vary idle and walk, and ten more
+                // states each would multiply the asset count for nothing",
+                // which ignored that the idle variant is HASHED PER PERSON:
+                // three variants plus the old archetype means roughly two
+                // people in three are on a controller that had no activity
+                // states at all, and `HasState` correctly refused them. The
+                // run said it in one number — 81 confabs, `activityPeak=1`.
+                //
+                // The states are nodes pointing at clips that already exist,
+                // so four controllers' worth is a rounding error against the
+                // clips themselves.
+                int states = 0;
+                foreach (var slot in ActivitySlots)
                 {
-                    ActivityStates = 0;
-                    foreach (var slot in ActivitySlots)
-                    {
-                        var clip = ClipFor(slot);
-                        if (clip == null) continue;
-                        var st = controller.layers[0].stateMachine.AddState(
-                            Ledger.Game.CharacterRig.ActivityStatePrefix + slot);
-                        st.motion = clip;
-                        ActivityStates++;
-                    }
+                    var clip = ClipFor(slot);
+                    if (clip == null) continue;
+                    var st = controller.layers[0].stateMachine.AddState(
+                        Ledger.Game.CharacterRig.ActivityStatePrefix + slot);
+                    st.motion = clip;
+                    states++;
                 }
+                ActivityStates = states;
+                // AND THE DENOMINATOR, which the first version also omitted
+                // while its own commit message quoted the rule about zeros
+                // needing one. `activityPeak=1` could mean the wire is broken
+                // or the street is quiet; with this line beside it, "no
+                // states were built" stops reading like "nobody did
+                // anything".
+                Debug.Log($"CharacterPrefab: activity states {states} of "
+                          + $"{ActivitySlots.Length} on {arch}:{idleKey}");
 
                 controller.layers[0].stateMachine.defaultState = state;
 

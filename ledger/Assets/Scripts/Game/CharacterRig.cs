@@ -637,6 +637,14 @@ namespace Ledger.Game
         /// exist" and "somebody is doing something" are different facts.
         public static int ActivityNow, ActivityPeak;
 
+        /// How many times a body was ASKED for an activity — including the
+        /// asks refused because the controller had no such state. The
+        /// refusals are the whole point: `activityPeak=1` against 81 confabs
+        /// could not distinguish "nobody is talking" from "two thirds of the
+        /// street is on a controller that cannot talk", and it was the
+        /// second.
+        public static int ActivityAsked;
+
         string _activityPlaying;
 
         /// Cross-fade into the activity state, or back to the locomotion
@@ -651,6 +659,7 @@ namespace Ledger.Game
             var want = Activity;
             if (!string.IsNullOrEmpty(want))
             {
+                ActivityAsked++;
                 int hash = Animator.StringToHash(ActivityStatePrefix + want);
                 if (!_animator.HasState(0, hash)) { Activity = null; return; }
                 _animator.CrossFade(hash, 0.25f, 0);
