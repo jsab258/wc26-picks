@@ -1882,12 +1882,12 @@ namespace Ledger.Game
             var red = new Color(0.62f, 0.07f, 0.07f);
             Tint(MakeBox("PhoneBox_plinth", at + new Vector3(0, 0.05f, 0),
                 new Vector3(1.05f, 0.1f, 1.05f), AssetLibrary.Concrete), Color.white);
-            Tint(MakeBox("PhoneBox_body", at + new Vector3(0, 1.25f, 0),
-                new Vector3(0.92f, 2.3f, 0.92f), AssetLibrary.Plaster), red);
-            Tint(MakeBox("PhoneBox_cap", at + new Vector3(0, 2.46f, 0),
-                new Vector3(1.0f, 0.12f, 1.0f), AssetLibrary.Plaster), red);
-            Tint(MakeBox("PhoneBox_dome", at + new Vector3(0, 2.58f, 0),
-                new Vector3(0.8f, 0.12f, 0.8f), AssetLibrary.Plaster), red);
+            MakeBoxCol("PhoneBox_body", at + new Vector3(0, 1.25f, 0),
+                new Vector3(0.92f, 2.3f, 0.92f), red);
+            MakeBoxCol("PhoneBox_cap", at + new Vector3(0, 2.46f, 0),
+                new Vector3(1.0f, 0.12f, 1.0f), red);
+            MakeBoxCol("PhoneBox_dome", at + new Vector3(0, 2.58f, 0),
+                new Vector3(0.8f, 0.12f, 0.8f), red);
             var glass = new Color(0.16f, 0.19f, 0.22f);
             foreach (var (dx, dz, sx, sz, k) in new[] {
                 (0.47f, 0f, 0.02f, 0.66f, 0), (-0.47f, 0f, 0.02f, 0.66f, 1), (0f, 0.47f, 0.66f, 0.02f, 2) })
@@ -1914,15 +1914,22 @@ namespace Ledger.Game
             drum.name = "PostBox_drum";
             drum.transform.position = at + new Vector3(0, 0.62f, 0);
             drum.transform.localScale = new Vector3(0.48f, 0.55f, 0.48f);
-            drum.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Plaster);
-            Tint(drum, red);
+            // A REAL RED MATERIAL, NOT A TINT OVER PLASTER. Two tall white
+            // objects stand in `review_day1_noon` and there are exactly two
+            // pillar boxes in the city — the drum is 0.48 by 1.1m and so are
+            // they. The property-block multiply is not reaching this
+            // renderer, and rather than spend another build finding out why,
+            // the colour moves into the material itself: `Opaque` is a
+            // shared cached material per colour, so it costs no draw call
+            // and cannot be silently overwritten by a later property block.
+            drum.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Opaque(red);
             Object.Destroy(drum.GetComponent<Collider>());
             var cap = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             cap.name = "PostBox_cap";
             cap.transform.position = at + new Vector3(0, 1.2f, 0);
             cap.transform.localScale = new Vector3(0.52f, 0.05f, 0.52f);
-            cap.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Metal);
-            Tint(cap, new Color(0.12f, 0.12f, 0.13f));
+            cap.GetComponent<Renderer>().sharedMaterial =
+                AssetLibrary.Opaque(new Color(0.12f, 0.12f, 0.13f));
             Object.Destroy(cap.GetComponent<Collider>());
             Tint(MakeBox("PostBox_slot", at + new Vector3(0, 0.98f, 0.23f),
                 new Vector3(0.3f, 0.05f, 0.04f), AssetLibrary.Metal),
@@ -2862,6 +2869,21 @@ namespace Ledger.Game
             ring.transform.position = gpos + Vector3.up * 13.8f;
             ring.transform.localScale = new Vector3(9.8f, 0.12f, 9.8f);
             ring.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Metal);
+        }
+
+        /// A box in a FLAT COLOUR rather than a logical surface — for the
+        /// painted street furniture (pillar box, phone box) whose colour is
+        /// the point and whose material must not be a tint that can go
+        /// missing. `AssetLibrary.Opaque` caches per colour, so a whole
+        /// city's red shares one material and one batch.
+        static GameObject MakeBoxCol(string name, Vector3 center, Vector3 size, Color c)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = name;
+            go.transform.position = center;
+            go.transform.localScale = size;
+            go.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Opaque(c);
+            return go;
         }
 
         static GameObject MakeBox(string name, Vector3 center, Vector3 size, string material)
