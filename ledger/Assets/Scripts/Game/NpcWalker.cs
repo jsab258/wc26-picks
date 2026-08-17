@@ -440,6 +440,15 @@ namespace Ledger.Game
         /// the skinned set to the named cast means the cost is a number
         /// somebody chose rather than whatever the population happened to be.
         public bool WantsRealBody => _wantsRealBody;
+
+        /// Whether this walker MAY wear a skinned body at all, as opposed to
+        /// whether it asks for one everywhere. The cast asks everywhere; the
+        /// crowd is allowed one only when `PopulationHost` ranks it close
+        /// enough to read as a box, which is a decision about the CAMERA and
+        /// therefore belongs where the distances are. The paragraph above is
+        /// the old rule and stands corrected: it reasoned from an elevated
+        /// review camera, and the street camera stands among these people.
+        public bool CanWearBody => true;
         public bool HasRealBody => RealBody.Wearing(gameObject);
 
         /// Swap this walker between a skinned body and a mannequin.
@@ -456,7 +465,12 @@ namespace Ledger.Game
         /// next tick, against the body that is actually there.
         public bool SetRealBody(bool want)
         {
-            if (!_wantsRealBody && want) return false;
+            // The rank decides WHO, this decides WHETHER IT IS POSSIBLE —
+            // and since the crowd may now hold a body when it is close, the
+            // guard reads `CanWearBody` rather than the cast-only flag. A
+            // grant still only ever arrives from `PopulationHost`'s ranking,
+            // which is where the budget and the distance both live.
+            if (!CanWearBody && want) return false;
             bool has = HasRealBody;
             if (has == want) return false;
 

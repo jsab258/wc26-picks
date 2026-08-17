@@ -516,13 +516,33 @@ namespace Ledger.Game
             CoatHost.RefreshShowingWeapon();
             BodyCrowdEligible = 0;
             _bodyRank.Clear();
+            // THE CROWD JOINS THE RANKING WHEN IT IS CLOSE ENOUGH TO READ AS
+            // BOXES, and the comment that kept it out is why this took until
+            // now: `WantsRealBody` says the crowd is excluded "by choice
+            // rather than by budget — mannequins read perfectly well at the
+            // distance the crowd is ever seen". True when written, against an
+            // ELEVATED review camera. The player-height street still puts a
+            // dozen cube-headed figures two metres from the lens, which is
+            // the distance the crowd is now seen at, every frame of play.
+            //
+            // PERF-NEUTRAL BY CONSTRUCTION: the cap and the hysteresis below
+            // are untouched, so the same number of skinned bodies exists —
+            // only WHO holds them changes, and the ranking is by distance, so
+            // what changes is that the nearest person in shot stops being a
+            // box. A crowd walker forty metres away is still a mannequin,
+            // which is what mannequins are good at.
+            const float crowdBodyMetres = 14f;
+            float crowdBodyD2 = crowdBodyMetres * crowdBodyMetres;
             foreach (var n in _npcs)
             {
-                if (n == null || !n.WantsRealBody) continue;
-                if (n.IsCrowd) BodyCrowdEligible++;
+                if (n == null) continue;
                 float dx = n.transform.position.x - playerPos.x;
                 float dz = n.transform.position.z - playerPos.z;
-                _bodyRank.Add((n, dx * dx + dz * dz));
+                float d2 = dx * dx + dz * dz;
+                bool crowdNear = n.IsCrowd && n.CanWearBody && d2 <= crowdBodyD2;
+                if (!n.WantsRealBody && !crowdNear) continue;
+                if (n.IsCrowd) BodyCrowdEligible++;
+                _bodyRank.Add((n, d2));
             }
             BodyLodEligible = _bodyRank.Count;
             if (_bodyRank.Count == 0) return;
