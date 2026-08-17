@@ -61,14 +61,34 @@ KITS = [
 # builds as primitives, so a match drops straight into an existing spot.
 WANT = {
     "car-kit": [r"\.fbx$", r"\.png$"],
+    # A SAMPLE OF BUILDINGS, TO MEASURE — NOT A DECISION TO USE THEM.
+    #
+    # `listings.json` says this kit holds 14 buildings, 5 skyscrapers and
+    # 16 low-detail blocks, and exactly three files were ever extracted
+    # from it: two awnings and a colormap. The queue carries the question
+    # as a real trade rather than an obvious win — ours are plain masses
+    # wearing 2K photographic brick, the kit's are better silhouettes
+    # wearing a flat palette colormap, and "low poly is not going to cut
+    # it" cuts both ways.
+    #
+    # Nothing about their size, poly count or UVs can be checked from the
+    # dev container because the FBX are catalogued and not on disk. So
+    # this takes a HANDFUL — a,b,c of each family — which is enough to
+    # measure and cheap in repo weight. Widening to all 35 before knowing
+    # whether one of them is even the right scale for a 6x12m parcel
+    # would be buying the answer before asking the question.
     "city-kit-commercial": [
         r"bench", r"bin\b", r"trash", r"lamp", r"light.*post", r"streetlight",
         r"phone", r"post.?box", r"crate", r"barrel", r"fence", r"hydrant",
         r"awning", r"sign", r"\.png$",
+        r"^building-[abc]\.fbx$",
+        r"^building-skyscraper-[ab]\.fbx$",
+        r"^low-detail-building-[abc]\.fbx$",
     ],
     "city-kit-suburban": [
         r"bench", r"bin\b", r"trash", r"lamp", r"streetlight", r"fence",
         r"hydrant", r"planter", r"\.png$",
+        r"^building-type-[abc]\.fbx$",
     ],
     "city-kit-roads": [
         r"lamp", r"light", r"barrier", r"cone", r"sign", r"\.png$",
