@@ -27,25 +27,40 @@ CLAUDE.md under AUTO MODE.
 
 ## Now
 
-### SUNDAY 16 AUG, EVENING: SEVEN BUILDS, THE TOWN REBUILT, THE CEILING MEASURED.
-The town plan landed end to end and is unambiguously better than the
-old world on every axis seen or measured: terraces, ribbon, British
-sign grammar (signs 545 to 77), wall-mounted street names, lamps with
-heads, 136 parked cars, painted shop names, awnings, doorsteps,
-yellow lines, cranes/gasometer, smoke, gulls, 2K photo textures with
-roughness on walls, cables to the building line, and the noon sun at
-a real northern angle (real shadows — the overhead-sun bug was the
-dead-noon cause). RECOMMENDATION FOR TUESDAY NOON: KEEP.
+### MONDAY: JAFAR'S CLIPS LANDED AND THE STREET IS ALIVE.
+The Mixamo harvest came in complete — 54 slots, zero missing, and
+the pick replaced two absurd July survivors (walk start/stop were
+FASHION CATWALK turns). Ten clips had no consumer at all; they have
+one now. People talk, argue, lean, look bored, smoke outside the
+pub, work counters, carry shopping — `activityPeak` 1 -> 18 once the
+states went on ALL FOUR controllers rather than the canonical one
+(the first version reached one body in the city and its own commit
+message quoted the rule about denominators it then omitted). The old-
+person gait is live off `idle_old`/`walk_old`. The crowd stops being
+boxes within 14m, perf-neutral: same cap, better allocation.
 
-AND THE STRUCTURAL FACT, measured not guessed: at this grid pitch a
-block holds ONE building per edge (Copper Row 6.8m buildable, Parade
-8.8m, Hook 12.8m) — ~110 parcel ceiling citywide, 60 landed after
-place carve-outs. The town cannot read big at this pitch no matter
-the dressing. The topology re-plan (wider per-district pitch, 61
-places re-authored) is Thursday's headline, with this paragraph as
-its case. Monday: polish batch (all 19 chimneys smoke, dangling
-cable end, giant bubble text, box-crowd at close range), then freeze
-prep.
+Also closed: the intermittent traffic red (a cab idling on a rank
+spur, which is a LANE, so `OnRoad` called correct behaviour a fault —
+the gate was measuring the model), zebra crossings with belisha
+beacons, cables that only hang where two buildings hold them, the
+width-aware bubble cap, every chimney smoking, and the two white
+pills at the kerb.
+
+THE PILLS COST FOUR BUILDS AND THE LESSON IS RULE ONE. I identified
+them three times off a 1280x720 JPEG — capsule, default material,
+smoke — and all three were wrong; `undressed=0` and `capsules=0`
+each killed a class, the smoke retune changed nothing. Nine lines of
+numpy over the committed frame then answered it in one turn: exactly
+two tall white blobs, and the city builds exactly two pillar boxes,
+0.48 by 1.1m, both. Their red was a property-block tint that never
+reached the renderer; the colour now lives in a shared material,
+where nothing can quietly overwrite it. **MEASURE THE FRAME. The
+image analysis is cheap, it is in the repo already, and it beat
+three confident readings.**
+
+NEXT: T3 queue points and standing destinations; then the freeze
+decision (recommendation KEEP, unchanged and now stronger); then the
+street-spec topology re-plan, whose case is the ~110 parcel ceiling.
 
 ### THE PLAYTEST PUSH OWNS THE QUEUE UNTIL WEDNESDAY 19 AUGUST.
 **The plan is `playtest-plan.md`** — MacBook Air, three players, four
