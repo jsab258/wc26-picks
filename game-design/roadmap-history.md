@@ -1997,3 +1997,17 @@ counting magenta pixels (zero) and then by measuring the rig.
 NEXT: T3 queue points and standing destinations; then the freeze
 decision (recommendation KEEP, unchanged and now stronger); then the
 street-spec topology re-plan, whose case is the ~110 parcel ceiling.
+
+
+### Closed 17 Aug — the pink figure
+
+1. **CLOSED — the pink figure was never a fault.** Three explanations
+   went out unchecked and measurement killed all three: zero magenta
+   pixels, not a broken mesh, and not cartoon proportions (7.63 heads).
+   It is Sporty Granny as authored. The measuring instead found two
+   models nobody had looked at — The Boss 0.762 and Big Vegas 0.761
+   against a realistic cluster of 0.806–0.837 — now kept out by
+   `Core/Proportion` rather than a name list. Pool 8 -> 6. **Owed:
+   more realistic bodies, a Mixamo pick and Jafar's step** — sameness
+   got worse to buy this.
+

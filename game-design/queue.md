@@ -111,6 +111,15 @@ recorded bank only, which the verdict's speech keys already measure.
    The comment beside `PopulationCount = 700` also still describes the
    city BEFORE the stretch. Re-read it when the numbers land.
 
+   **`RealBodyCap = 12` NEEDS A PC MEASUREMENT, not a CI one.** Its
+   comment prices a dozen skinned bodies at ~280k vertices, "the order
+   the rest of this scene is built at" — judged against a runner with
+   no GPU that software-rasterises every frame (`render+rest=587ms`).
+   Jafar's machine is not that machine, and this is plausibly the
+   cheapest large win available for how full the street looks.
+   `streetBodiesSkinned` lands next build and says whether the cap is
+   costing anything in the frame at all.
+
 1. **FIFTY-SIX BUILDING MODELS ARE SITTING IN A CATALOGUE NOBODY HAS
    PICKED FROM.** `tools/props/listings.json` was committed so the next
    pick could be made locally from evidence, and then it never was:
@@ -145,16 +154,6 @@ recorded bank only, which the verdict's speech keys already measure.
    Also unused and already on disk: `police`, `ambulance`, `firetruck`,
    `garbage-truck`. A police car has obvious business in this game and
    costs one line of `KitCandidates` once there is a kind for it.
-
-1. **CLOSED — the pink figure was never a fault.** Three explanations
-   went out unchecked and measurement killed all three: zero magenta
-   pixels, not a broken mesh, and not cartoon proportions (7.63 heads).
-   It is Sporty Granny as authored. The measuring instead found two
-   models nobody had looked at — The Boss 0.762 and Big Vegas 0.761
-   against a realistic cluster of 0.806–0.837 — now kept out by
-   `Core/Proportion` rather than a name list. Pool 8 -> 6. **Owed:
-   more realistic bodies, a Mixamo pick and Jafar's step** — sameness
-   got worse to buy this.
 
 1. **THE FRAME GATE IS THE ONLY LIVE RED, AND IT IS THE GAME'S OWN TIME.**
    **Read the breakdown, not the mean.** `mean=483.7ms` is a software
