@@ -175,15 +175,15 @@
   },
   "walk_start": {
     "tier": "B",
-    "found": "Catwalk Walk Start Turn 180 Left_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Start Walking_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
-    "pattern": "\\bwalk(ing)? start\\b"
+    "pattern": "^start walking\\b"
   },
   "walk_stop": {
     "tier": "B",
-    "found": "Catwalk Walk Stop_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Stop Walking_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
-    "pattern": "\\bwalk(ing)? stop\\b"
+    "pattern": "^stop walking\\b"
   },
   "stairs_up": {
     "tier": "B",
@@ -196,6 +196,72 @@
     "found": "Descending Stairs_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
     "pattern": "\\bdescending stairs\\b"
+  },
+  "walk_old": {
+    "tier": "B",
+    "found": "Old Man Walk_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^old man walk\\b"
+  },
+  "idle_old": {
+    "tier": "B",
+    "found": "Old Man Idle_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^old man idle\\b"
+  },
+  "walk_start_f": {
+    "tier": "B",
+    "found": "Female Start Walking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^female start walking\\b"
+  },
+  "walk_stop_f": {
+    "tier": "B",
+    "found": "Female Stop Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "exact": true,
+    "pattern": "^female stop walking\\b"
+  },
+  "lean_wall": {
+    "tier": "B",
+    "found": "Leaning On A Wall_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^leaning on a wall\\b"
+  },
+  "carry": {
+    "tier": "B",
+    "found": "Carrying_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^carrying\\b"
+  },
+  "carry_bag": {
+    "tier": "B",
+    "found": "Walking With Shopping Bag_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^walking with shopping bag\\b"
+  },
+  "idle_bored": {
+    "tier": "B",
+    "found": "Bored_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^bored\\b"
+  },
+  "idle_2": {
+    "tier": "B",
+    "found": "Standing Idle 01_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^standing idle 0?1\\b"
+  },
+  "argue": {
+    "tier": "B",
+    "found": "Standing Arguing_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^standing arguing\\b"
+  },
+  "phone_box": {
+    "tier": "B",
+    "found": "Talking On Phone_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^talking on phone\\b"
   },
   "sit": {
     "tier": "C",
