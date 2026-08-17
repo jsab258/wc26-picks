@@ -527,6 +527,27 @@ namespace Ledger.Game
                           + $"{spawnAt.x:0.0},{spawnAt.z:0.0} (wanted {wish.x:0.0},{wish.z:0.0}) found={found}");
             }
             var player = PlayerController.Spawn(spawnAt);
+            // AND FACING DOWN THE STREET. The spawn point was clear — the
+            // build's log carries no "moved off built ground" line — and the
+            // player-height still came back as a close-up of brick anyway,
+            // because standing in the open facing a wall looks identical to
+            // standing inside one. A first frame is a first impression, and
+            // with the blocks now full there is a facade within a few metres
+            // of almost anywhere. So the opening view is aimed along the
+            // nearest carriageway, which is where the street is.
+            if (Ledger.Core.StreetMap.NearestOnRoad(spawnAt.x, spawnAt.z,
+                    out var rx, out var rz, out _))
+            {
+                var along = new Vector3((float)rx - spawnAt.x, 0, (float)rz - spawnAt.z);
+                if (along.sqrMagnitude > 0.04f)
+                {
+                    // Along the road, not at it: turn the offset ninety
+                    // degrees so the player looks DOWN the street rather than
+                    // across it into the opposite frontage.
+                    var look = new Vector3(-along.z, 0, along.x).normalized;
+                    player.transform.rotation = Quaternion.LookRotation(look, Vector3.up);
+                }
+            }
             _player = player;
             // The gait reads the harm system directly, so an injury we have
             // simulated since day one finally shows up in how he walks.

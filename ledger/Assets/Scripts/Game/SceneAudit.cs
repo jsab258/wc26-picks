@@ -282,7 +282,17 @@ namespace Ledger.Game
               .Append(" skinnedBones=").Append(SkinnedBones)
               .Append(" skinnedVerts=").Append(SkinnedVerts)
               .Append(" clean=").Append(Clean);
-            if (Findings.Count == 0) { sb.Append(" findings=none"); return sb.ToString(); }
+            // THE COUNT ALWAYS, THE DETAIL WHEN THERE IS ANY. This printed
+            // `findings=none` on a clean scene and DROPPED THE KEY ENTIRELY
+            // the moment it had something to say — so the verdict-key guard
+            // reported "VERDICT KEYS GONE: findings" for a report that was
+            // working perfectly, and a reader grepping `findings=` saw
+            // nothing exactly when there was something to see. A key that
+            // disappears when the news is bad is the inverse of rule 3b: not
+            // a zero without a denominator, but a denominator that leaves
+            // when the numerator arrives.
+            sb.Append(" findings=").Append(Findings.Count);
+            if (Findings.Count == 0) { sb.Append(" findingKinds=none"); return sb.ToString(); }
             foreach (var f in Findings)
                 sb.Append(' ').Append(f.Kind).Append('=').Append(f.Count)
                   .Append("[").Append(f.First).Append("]");
