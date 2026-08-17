@@ -7652,6 +7652,34 @@ namespace Ledger.Game
                             eye += step * 0.35f;
                         float toKerb = Mathf.Sqrt(toRoad.sqrMagnitude);
                         eye += step * Mathf.Min(toKerb + 1.6f, 6f);
+
+                        // AND ELBOW ROOM FROM PEOPLE, which is the third thing
+                        // that has stood in this frame. `SceneAudit` named it
+                        // rather than leaving me to guess a fourth time:
+                        // `Ch27_Body:1.63m@1.3` — a walker 1.3m from the lens,
+                        // filling the shot as a dark silhouette. Buildings were
+                        // `PointClear`, furniture was the kerb step, and a
+                        // person is neither: they move, so no build-time check
+                        // can place a camera clear of them.
+                        //
+                        // Slide ALONG the street rather than further into it —
+                        // a street photograph taken from the middle of the road
+                        // is the frame we want, and stepping sideways would
+                        // only find the opposite kerb.
+                        var alongStreet = aim.normalized;
+                        for (int g = 0; g < 10; g++)
+                        {
+                            bool crowded = false;
+                            foreach (var w in NpcWalker.Live)
+                            {
+                                if (w == null) continue;
+                                var d = w.transform.position - eye;
+                                d.y = 0;
+                                if (d.sqrMagnitude < 2.5f * 2.5f) { crowded = true; break; }
+                            }
+                            if (!crowded) break;
+                            eye += alongStreet * 1.2f;
+                        }
                     }
                     cam.transform.position = eye;
                     cam.transform.rotation = Quaternion.LookRotation(aim, Vector3.up);
