@@ -27,17 +27,15 @@ CLAUDE.md under AUTO MODE.
 
 ## Now
 
-### MONDAY: JAFAR'S CLIPS LANDED AND THE STREET IS ALIVE.
-The Mixamo harvest came in complete — 54 slots, zero missing, and
-the pick replaced two absurd July survivors (walk start/stop were
-FASHION CATWALK turns). Ten clips had no consumer at all; they have
-one now. People talk, argue, lean, look bored, smoke outside the
-pub, work counters, carry shopping — `activityPeak` 1 -> 18 once the
-states went on ALL FOUR controllers rather than the canonical one
-(the first version reached one body in the city and its own commit
-message quoted the rule about denominators it then omitted). The old-
-person gait is live off `idle_old`/`walk_old`. The crowd stops being
-boxes within 14m, perf-neutral: same cap, better allocation.
+### THE CLIPS LANDED AND THE STREET IS ALIVE.
+Jafar's Mixamo harvest came in complete — 54 slots, zero missing —
+and replaced two absurd survivors (walk start/stop were FASHION
+CATWALK turns). Ten clips had no consumer; they have one now. People
+talk, argue, lean, look bored, smoke outside the pub, work counters,
+carry shopping. `activityPeak` 1 -> 18 once the states went on ALL
+FOUR controllers rather than the canonical one. Old-person gait is
+live off `idle_old`/`walk_old`, and the crowd stops being boxes
+within 14m at the same cap.
 
 Also closed: the intermittent traffic red (a cab idling on a rank
 spur, which is a LANE, so `OnRoad` called correct behaviour a fault —
@@ -81,17 +79,16 @@ controllers; freeze, final builds, smoke test. The glowing box in
 day2_night's plaza is the bar sign's bare back face — one-line
 material fix, behind the playtest-critical work.
 
-### LIVE SPEECH — PARKED until after the playtest (resume Thursday)
+### LIVE SPEECH — PARKED until after the playtest
 
-The one-paragraph state, full accounts in the git log: the C# side
-speaks on Jafar's card (~1.1x realtime, pops fixed, cast complete at
-23 voices). The "ah" filler is a deterministic bad draw per
-(voice, line) — our sampler fixes the seed — so the fix is DETECT AND
-RETRY WITH THE SEED PERTURBED, designed, not built. Streaming and fp16
-are closed (worse, measured). `put-voices-in-build.py` is selftested
-but has never run against a real build — that is the first Thursday
-item. No live speech on the playtest Mac (no GPU): recorded bank only,
-and the verdict's speech keys already measure that path.
+State in one paragraph, full accounts in the git log: the C# side
+speaks on Jafar's card (~1.1x realtime, pops fixed, 23 voices cast).
+The "ah" filler is a deterministic bad draw per (voice, line), so the
+fix is DETECT AND RETRY WITH THE SEED PERTURBED — designed, not built.
+Streaming and fp16 are closed (worse, measured). `put-voices-in-build.py`
+is selftested but has NEVER run against a real build; that is the first
+item on resuming. No live speech on the playtest Mac (no GPU) —
+recorded bank only, which the verdict's speech keys already measure.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
@@ -104,12 +101,22 @@ and the verdict's speech keys already measure that path.
    stretch, `crowdWalkers=12` is exactly `CrowdWalkerCap` so the near
    cap is BINDING, and `crowdMill=136` is the GOSSIP mill — social
    agents, not a render tier. There is no cheap visible-body tier at
-   all. `streetBodies` / `streetBodiesNear` / `streetBodiesLive` land
-   next build, counted through the real camera at the shutter. READ
-   THE SERIES BEFORE TOUCHING THE CAP: raising it is ~0.58ms/walker
-   against `npcs=6.93ms` of a 12ms budget, so doubling it blows the
-   frame gate that is already red. The affordable move is more bodies
-   in shot per millisecond, not more walkers.
+   all.
+
+   **MEASURED at f802928: `streetBodies=5 streetBodiesNear=2
+   streetBodiesLive=52`.** Standing in the middle of the street you see
+   FIVE people, two of them close enough to read as a person, out of
+   52 alive. A camera sees ~60 degrees, so bodies scattered evenly
+   round the player put ~1 in 6 of them in frame no matter how the cap
+   is set — which is why the cap is not the lever it looks like.
+
+   **THE COST IS NPCs AND TRAFFIC, NOT SUN.** Same run: `npcs=9.36
+   traffic=4.67 mix=3.37 bodyLod=1.46 rigs=1.21 sun=1.26`, `game=22.84`
+   against a 12ms budget. And `sun` has read 0.91, 3.15 and 1.26 across
+   three runs that changed nothing relevant to it, so the queue's old
+   "sun is a quarter of the budget" line was reading noise. Frame
+   numbers move with the runner too (`mean` 527 -> 610 between these
+   two), so compare within a run, not across.
 
    And the comment beside `PopulationCount = 700` still says "700 puts
    roughly a dozen people out of doors within earshot at midday, which
@@ -139,17 +146,15 @@ and the verdict's speech keys already measure that path.
    checked here. First step is fetching a handful to MEASURE, not
    committing to the swap.
 
-1. **CLOSED 17 Aug — the pink figure was never a fault.** Three
-   explanations went out before any was checked and measurement killed
-   all three: the frame holds ZERO magenta pixels so it is not the
-   error shader, it is not a broken mesh, and it is not cartoon
-   proportions — she measures 7.63 heads. It is Mixamo's Sporty Granny
-   rendering as authored. What the measuring DID find was two models
-   nobody had looked at: The Boss (neckFrac 0.762) and Big Vegas
-   (0.761) against a realistic cluster of 0.806–0.837, both now kept
-   out of the pool by `Core/Proportion` rather than by a name list.
-   Pool 8 -> 6. **Owed: more realistic bodies, which is a Mixamo pick
-   and Jafar's step** — the sameness problem got worse to buy this.
+1. **CLOSED — the pink figure was never a fault.** Three explanations
+   went out unchecked and measurement killed all three: zero magenta
+   pixels, not a broken mesh, and not cartoon proportions (7.63 heads).
+   It is Sporty Granny as authored. The measuring instead found two
+   models nobody had looked at — The Boss 0.762 and Big Vegas 0.761
+   against a realistic cluster of 0.806–0.837 — now kept out by
+   `Core/Proportion` rather than a name list. Pool 8 -> 6. **Owed:
+   more realistic bodies, a Mixamo pick and Jafar's step** — sameness
+   got worse to buy this.
 
 1. **THE FRAME GATE IS THE ONLY LIVE RED, AND IT IS THE GAME'S OWN TIME.**
    **Read the breakdown, not the mean.** `mean=483.7ms` is a software
@@ -329,10 +334,6 @@ and the verdict's speech keys already measure that path.
   British pub — and quoting both in one unit is how "a few pounds" reached him
   for a bill he pays in CHF. Two tasks authorised 3 Aug, both done; the writing
   probe re-run authorised 5 Aug. Nothing beyond that.
-
-## Done, kept here only until the next tidy
-
-Cleared 5 August — the git log is the record.
 
 ## How to keep this file honest
 

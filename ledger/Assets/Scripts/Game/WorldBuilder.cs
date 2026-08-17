@@ -313,8 +313,22 @@ namespace Ledger.Game
 
         /// Neon is a night thing, and it flickers a little because a sign in
         /// 1990 that never flickered was a sign somebody was maintaining.
+        /// BY DAY THIS IS A SWEEP THAT SETS THE SAME FALSE OVER AND OVER.
+        /// The night pass has to run every frame — it drives the flicker —
+        /// but the daytime pass only turns everything off, which stays off.
+        /// Same count guard as the lamps, and for the same reason: a neon
+        /// sign built after the last sweep still has to be dealt with.
         public static void TickNeon(bool night, float time)
         {
+            if (!night)
+            {
+                // Done already, and no sign has been built since.
+                if (_neonDayDoneAt == _neon.Count) { NeonSweepsSkipped++; return; }
+                _neonDayDoneAt = _neon.Count;
+            }
+            else _neonDayDoneAt = -1;    // night sweeps every frame; re-arm the day guard
+            NeonSweeps++;
+
             for (int i = 0; i < _neon.Count; i++)
             {
                 var l = _neon[i];
@@ -2711,12 +2725,41 @@ namespace Ledger.Game
         public static int LampToggleCount;
         static bool _lampsOn;
 
+        /// SWEPT WHEN SOMETHING CHANGED, NOT EVERY FRAME.
+        ///
+        /// `UpdateSun` calls this each frame and it walked every lamp in the
+        /// city each time, comparing a bool that flips twice a game-day. The
+        /// queue's note on the `sun=3.15ms` reading said `UpdateSun` "has no
+        /// loops, so it is Unity-side light or shadow work" — it has three,
+        /// in the three `WorldBuilder` calls at its end, and this was the one
+        /// with no guard on it. (`SetWindowsLit` already had one; `TickNeon`
+        /// has to run nightly because it animates.)
+        ///
+        /// THE COUNT IS PART OF THE KEY, because the city is built
+        /// incrementally: a lamp created after the state last changed would
+        /// keep whatever `enabled` it was born with if the guard looked only
+        /// at the bool. That is the exact way an early-out ships a dark
+        /// street at midnight.
         public static void SetLampsEnabled(bool on)
         {
             if (on != _lampsOn) { _lampsOn = on; LampToggleCount++; }
+            else if (Lamps.Count == _lampsSweptCount && _lampsSwept) { LampSweepsSkipped++; return; }
+            _lampsSwept = true;
+            _lampsSweptCount = Lamps.Count;
+            LampSweeps++;
             foreach (var lamp in Lamps)
                 if (lamp != null && lamp.enabled != on) lamp.enabled = on;
         }
+        static bool _lampsSwept;
+        static int _lampsSweptCount = -1;
+        /// The neon count at which the DAYTIME disable pass last completed;
+        /// -1 means it has not, which is also what night sets it back to.
+        static int _neonDayDoneAt = -1;
+        /// Both halves of each guard, on the done line: a guard that skips
+        /// everything and a guard that skips nothing are indistinguishable
+        /// from one number (rule 3b). Ratios are what say whether these
+        /// bought anything, and they are cumulative, so the done line.
+        public static int LampSweeps, LampSweepsSkipped, NeonSweeps, NeonSweepsSkipped;
 
         /// Make the building windows glow (after dusk) or go dark (daytime). Emission is
         /// driven per-renderer via a property block so all windows keep sharing one

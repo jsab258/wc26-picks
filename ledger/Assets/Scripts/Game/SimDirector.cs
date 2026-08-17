@@ -10852,6 +10852,8 @@ namespace Ledger.Game
                       $"propsPlaced={AssetLibrary.PropsPlaced} variantSurfaces={AssetLibrary.VariantsUsed} " +
                       $"vehiclesKitted={GameController.VehiclesKitted}/{GameController.VehiclesBodied} " +
                       $"vehicleFellBack=[{(GameController.VehicleFallbackWhy.Length == 0 ? "none" : GameController.VehicleFallbackWhy)}] " +
+                      $"lampSweeps={WorldBuilder.LampSweeps}/{WorldBuilder.LampSweeps + WorldBuilder.LampSweepsSkipped} " +
+                      $"neonSweeps={WorldBuilder.NeonSweeps}/{WorldBuilder.NeonSweeps + WorldBuilder.NeonSweepsSkipped} " +
                       $"parkedCars={WorldBuilder.ParkedCars} shopNames={WorldBuilder.ShopNamesPainted} " +
                       $"smokeStacks={WorldBuilder.SmokeStacks} gulls={WorldBuilder.Gulls} " +
                       $"terraceBlocks={WorldBuilder.TerracedBlocks} legacyBlocks={WorldBuilder.LegacyBlocks} " +
