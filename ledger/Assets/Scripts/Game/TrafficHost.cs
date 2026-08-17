@@ -396,6 +396,25 @@ namespace Ledger.Game
                 kitBody = AssetLibrary.TryInstantiateProp(
                     "car_kit_" + candidates[(v.Id + c) % candidates.Length],
                     Vector3.zero, Quaternion.identity);
+
+            // WHICH VEHICLES ACTUALLY GOT A MESH, AND WHICH DID NOT.
+            //
+            // The comment above says a build with no kit models is exactly
+            // the build we shipped before — which is the point of the
+            // fallback and also the reason it needs counting. A silent
+            // fallback is indistinguishable from a working pipeline from
+            // anywhere outside this function, and `propsPlaced=822` cannot
+            // settle it: that counts every kit prop in the world, lamps and
+            // cones included, so cars could be primitives inside a large
+            // healthy-looking total.
+            //
+            // Kept as a PAIR rather than a ratio, so the denominator is on
+            // the same line as the numerator and nobody has to divide two
+            // numbers that might have come from different moments.
+            VehiclesBodied++;
+            if (kitBody != null) VehiclesKitted++;
+            else if (VehicleFallbackWhy.Length < 60)
+                VehicleFallbackWhy += (VehicleFallbackWhy.Length > 0 ? "," : "") + v.Kind.Id;
             if (kitBody != null)
             {
                 // REPAINTED INTO THE TOWN'S PALETTE. The kit's own texture is
@@ -614,6 +633,18 @@ namespace Ledger.Game
         /// worst — with the number DRAWN at that same worst pass, so the two can
         /// honestly be read as a fraction.
         public static int VehiclesOffRoad, VehiclesOffRoadPeak, VehiclesAtOffRoadWorst;
+
+        /// HOW MANY VEHICLES WEAR A KIT MESH, AND OUT OF HOW MANY.
+        /// Cumulative over the whole run — every body built, not a peak and
+        /// not a per-frame reading — so they are printed on the done line
+        /// where a lifetime count belongs, never on a shot line. Both, or
+        /// neither: `VehiclesKitted` alone cannot tell a pipeline that
+        /// failed from a street with no cars on it.
+        public static int VehiclesKitted, VehiclesBodied;
+        /// Which KINDS fell back to primitives, so a partial failure names
+        /// itself instead of showing up as a number slightly below the
+        /// denominator. Capped, and the cap is visible in the value.
+        public static string VehicleFallbackWhy = "";
         /// WHO left the road, last seen: kind/id@x/z, the directed edge, the
         /// distance along it, junction occupancy and what blocked it. "none"
         /// until anything ever goes off-road, so a clean run says so.

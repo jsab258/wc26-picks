@@ -500,7 +500,16 @@ namespace Ledger.Game
             if (_propBundle != null)
             {
                 var packed = _propBundle.LoadAsset<GameObject>(name);
-                if (packed != null) return Object.Instantiate(packed, position, rotation);
+                // COUNTED ON BOTH PATHS. This one returned without touching
+                // the counter until 17 Aug: one idea, two implementations,
+                // and the one nobody looks at is the one missing a line.
+                // Latent while the bundle is null — which is exactly what
+                // makes it the kind that ships.
+                if (packed != null)
+                {
+                    PropsPlaced++;
+                    return Object.Instantiate(packed, position, rotation);
+                }
             }
             var key = name.ToLowerInvariant().Replace(" ", "_").Replace("-", "_");
             var prefab = Resources.Load<GameObject>("Props/Prop_" + key);

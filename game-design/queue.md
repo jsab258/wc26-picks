@@ -46,51 +46,40 @@ beacons, cables that only hang where two buildings hold them, the
 width-aware bubble cap, every chimney smoking, and the two white
 pills at the kerb.
 
-THE PILLS COST FOUR BUILDS AND THE LESSON IS RULE ONE. I identified
-them three times off a 1280x720 JPEG — capsule, default material,
-smoke — and all three were wrong; `undressed=0` and `capsules=0`
-each killed a class, the smoke retune changed nothing. Nine lines of
-numpy over the committed frame then answered it in one turn: exactly
-two tall white blobs, and the city builds exactly two pillar boxes,
-0.48 by 1.1m, both. Their red was a property-block tint that never
-reached the renderer; the colour now lives in a shared material,
-where nothing can quietly overwrite it. **MEASURE THE FRAME. The
-image analysis is cheap, it is in the repo already, and it beat
-three confident readings.**
+THE PILLS COST FOUR BUILDS AND THE LESSON IS RULE ONE. Identified
+three times off a JPEG — capsule, default material, smoke — all three
+wrong. Nine lines of numpy over the committed frame answered it in one
+turn: two tall white blobs, and the city builds exactly two pillar
+boxes at 0.48x1.1m. Their red was a property-block tint that never
+reached the renderer; it lives in a shared material now. **MEASURE
+THE FRAME** — it is cheap, it is already in the repo, and on 17 Aug
+it did it again: three more wrong readings of one walker, killed by
+counting magenta pixels (zero) and then by measuring the rig.
 
 NEXT: T3 queue points and standing destinations; then the freeze
 decision (recommendation KEEP, unchanged and now stronger); then the
 street-spec topology re-plan, whose case is the ~110 parcel ceiling.
 
-### THE PLAYTEST PUSH OWNS THE QUEUE UNTIL WEDNESDAY 19 AUGUST.
-**The plan is `playtest-plan.md`** — MacBook Air, three players, four
-days. Order there wins over order here. Everything below stands but
-YIELDS: live speech is parked (no DirectML on the machine), the visual
-and playability work in the plan takes every slot. The deterministic
-retry design, the constant-gate plants and the frame-gate CPU work
-resume Thursday.
+### THE PLAYTEST PUSH — sequence, not calendar (Jafar: "forget exact
+### days, just keep the sequence")
 
-**Sat 15 Aug, end of night: Saturday page done, Sunday page done AND
-JUDGED, most of Monday's no-Jafar items done early.** Run edbce5b
-proved the batch (Skybox live, bodyChoices=8, tposeBodies=0, preset
-probe passing, errors=0) and answered the grade question in numbers:
-noon meanLuma 0.44-0.49 with 40-48% bright pixels — overshot into
-seaside-morning. Iteration 2 (0.74/0.76/0.80) landed on cdef923 and
-SETTLED IT: every matched dry noon came down (worst 0.494→0.446,
-bright 48→39%), nights held 0.10-0.13, and the noon still reads
-overcast port with the brick fully legible. Weather is not pinned
-between runs, so per-day medians mislead — same-shot dry-day pairs
-are the honest comparison and both runs' files carry them. The grade
-stays; further cuts start re-crushing the brick.
-Also landed tonight: render scale option (+ the options panel height
-fix), post stack joined the preset (AO's DepthNormals prepass gated),
-toast queue + ambient barks, onboarding teaches walking first with
-live bindings, PLAYTEST-RUNBOOK.md drafted, and the two-week-old £/$
-harness red fixed (core tests green again). Still open before Wed:
-judge cdef923's stills; Jafar's Mixamo session then per-physique
-controllers; Tuesday freeze + final builds + smoke test. The glowing
-box in day2_night's plaza is the bar sign's bare back face — one-line
-material fix, queue it behind the playtest-critical work.
+**The plan is `playtest-plan.md`** — MacBook Air, three players. Order
+there wins over order here. Everything below stands but YIELDS: live
+speech is parked (no DirectML on the machine) and the visual and
+playability work takes the slots. The deterministic retry design, the
+constant-gate plants and the frame-gate CPU work resume after.
+
+**SETTLED, so it stops being re-litigated: the daylight grade.** Two
+iterations, judged on matched dry-noon pairs rather than per-day
+medians (weather is not pinned between runs, so a median compares
+different weather). Worst noon came 0.494 → 0.446, bright pixels
+48% → 39%, nights held 0.10–0.13, brick still legible. Further cuts
+start re-crushing the brick. The grade stays.
+
+**Still owed from that push:** Jafar's Mixamo session then per-physique
+controllers; freeze, final builds, smoke test. The glowing box in
+day2_night's plaza is the bar sign's bare back face — one-line
+material fix, behind the playtest-critical work.
 
 ### LIVE SPEECH — PARKED until after the playtest (resume Thursday)
 
@@ -126,6 +115,29 @@ and the verdict's speech keys already measure that path.
    roughly a dozen people out of doors within earshot at midday, which
    is a street rather than a demonstration" — measured on the city
    BEFORE the stretch. Re-read it when the numbers land.
+
+1. **FIFTY-SIX BUILDING MODELS ARE SITTING IN A CATALOGUE NOBODY HAS
+   PICKED FROM.** `tools/props/listings.json` was committed so the next
+   pick could be made locally from evidence, and then it never was:
+   `city-kit-commercial` lists 14 buildings + 5 skyscrapers + 16
+   low-detail, `city-kit-suburban` 21 more. **Three files were
+   extracted from commercial — two awnings and a colormap.** The
+   street's buildings are procedural boxes while this sits unused.
+
+   **DO NOT JUST SWITCH TO THEM — IT IS A REAL TRADE AND IT COULD
+   REGRESS.** Ours are plain masses wearing 2K photographic brick and
+   window textures; the kit's are hand-modelled silhouettes wearing a
+   flat palette colormap. Jafar's bar is "low poly is not going to cut
+   it", and a Kenney building is lower fidelity per surface than what
+   we draw now even though its shape is better. The likely right answer
+   is to take the kit where OUR system is weakest — distant skyline and
+   silhouette variety — and keep photographic surfaces on the near
+   terraces, but that is a hypothesis and not a measurement.
+
+   Blocked on a props-fetch run: the building FBX are catalogued, not
+   on disk, so nothing about their size, poly count or UVs can be
+   checked here. First step is fetching a handful to MEASURE, not
+   committing to the swap.
 
 1. **CLOSED 17 Aug — the pink figure was never a fault.** Three
    explanations went out before any was checked and measurement killed
@@ -255,10 +267,6 @@ and the verdict's speech keys already measure that path.
      sampled — one brandish can only produce one answer, and it has been
      `FleeScreaming` every time. Plant more than one, at people with different
      nerve, or the other three branches stay theoretical for ever.
-   - **CLOSED — `contradiction=0.00` is by design; the branch has run 46
-     times.** The zero is the FIRST denouncement, left uncontradicted on
-     purpose so the probe cannot alter the outcome beside it. It is in
-     `EXPLAINED_ZEROS` now so the tool stops offering it as work.
    - **`departed=0` ONLY — `adds` READS 10.** This entry said "she is
      recruited and never leaves and never brings anybody. Two branches, no
      runs." `companion[with=June recruited=1 departed=0 noted=3 exposure=3

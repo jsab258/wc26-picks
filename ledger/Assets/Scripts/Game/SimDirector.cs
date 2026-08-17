@@ -10850,6 +10850,8 @@ namespace Ledger.Game
                       // or the name candidates missed — the difference
                       // between a pipeline and a street (rule 6).
                       $"propsPlaced={AssetLibrary.PropsPlaced} variantSurfaces={AssetLibrary.VariantsUsed} " +
+                      $"vehiclesKitted={GameController.VehiclesKitted}/{GameController.VehiclesBodied} " +
+                      $"vehicleFellBack=[{(GameController.VehicleFallbackWhy.Length == 0 ? "none" : GameController.VehicleFallbackWhy)}] " +
                       $"parkedCars={WorldBuilder.ParkedCars} shopNames={WorldBuilder.ShopNamesPainted} " +
                       $"smokeStacks={WorldBuilder.SmokeStacks} gulls={WorldBuilder.Gulls} " +
                       $"terraceBlocks={WorldBuilder.TerracedBlocks} legacyBlocks={WorldBuilder.LegacyBlocks} " +
