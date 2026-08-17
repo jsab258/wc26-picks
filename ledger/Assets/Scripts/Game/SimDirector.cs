@@ -68,6 +68,7 @@ namespace Ledger.Game
         /// which is a different fact from 0 — "it ran and the street was
         /// empty" — and the two must never come out looking the same.
         int _streetBodies = -1, _streetBodiesNear = -1, _streetBodiesLive = -1;
+        int _streetBodiesSkinned = -1;
         /// Noon and night of one rest day, on top of the four. Two,
         /// because a Saturday needs the same pair of lighting
         /// conditions as a Tuesday to be comparable with one.
@@ -7722,6 +7723,7 @@ namespace Ledger.Game
                     _streetBodies = 0;
                     _streetBodiesNear = 0;
                     _streetBodiesLive = 0;
+                    _streetBodiesSkinned = 0;
                     foreach (var w in NpcWalker.Live)
                     {
                         if (w == null) continue;
@@ -7734,6 +7736,15 @@ namespace Ledger.Game
                             continue;
                         _streetBodies++;
                         if (vp.z <= 25f) _streetBodiesNear++;
+                        // AND HOW MANY OF THEM ARE ACTUAL PEOPLE. Beyond
+                        // `RealBodyCap` a walker wears a procedural mannequin
+                        // instead of a skinned model — still visible, still
+                        // person-shaped, and not the same thing to look at.
+                        // `bodyLodNear=12` of `bodyLodEligible=45` says two
+                        // thirds of the eligible crowd are mannequins; this
+                        // says how many of them are in the PHOTOGRAPH, which
+                        // is the only place it matters.
+                        if (w.HasRealBody) _streetBodiesSkinned++;
                     }
 
                     cam.Render();
@@ -9971,7 +9982,7 @@ namespace Ledger.Game
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
                       $"coverageOk={coverageOk} openModeForced={_openModeForced} endScreen={_endScreenDismissed} " +
                       $"daysSkipped={_daysSkipped} endDay={_endDay} " +
-                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} cutOffDay={_cutOffDay} cutOffNights={_cutOffNights} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} streetBodies={_streetBodies} streetBodiesNear={_streetBodiesNear} streetBodiesLive={_streetBodiesLive} millAgents={millCount} crowdMill={crowdMill} strandedEmpty={strandedEmpty} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
+                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} cutOffDay={_cutOffDay} cutOffNights={_cutOffNights} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} streetBodies={_streetBodies} streetBodiesNear={_streetBodiesNear} streetBodiesLive={_streetBodiesLive} streetBodiesSkinned={_streetBodiesSkinned} millAgents={millCount} crowdMill={crowdMill} strandedEmpty={strandedEmpty} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} opened={_game.ActThree.Opened} [{_actThreeWhy}] " +
                       $"ending={_actThreeEnding} handed={_actThreeHandedOver} " +
