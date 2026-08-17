@@ -692,7 +692,28 @@ namespace Ledger.Game
             // picked to make the number small: a car legitimately at the kerb
             // has its centre inside the road and its body over the edge, and
             // flagging that would be measuring the model rather than the fault.
-            if (!Ledger.Core.StreetMap.OnRoad(v.X, v.Z, v.Kind.Width * 0.5))
+            // A CAB ON A RANK IS NOT OFF THE ROAD, and the instrument is what
+            // proved it: `offRoadWho=[taxi/17@32.2/18.9/edge:stop_ferry_stop-
+            // j3_3/s:0.4/blk:stop]` — a taxi 0.4m onto the ferry-stop spur,
+            // which is exactly where `TrafficSim.Ranks` sends it to wait.
+            //
+            // `OnRoad` walks DRIVEABLE edges only, and `Driveable => Kind !=
+            // "lane"` — every place's spur, including both ranks, is a lane.
+            // So the sim drives cabs onto rank spurs by design and the gate
+            // reads that design as a fault. The number was measuring the
+            // model, which is the thing a threshold must never do.
+            //
+            // NARROW ON PURPOSE: only a vehicle whose CURRENT edge touches a
+            // rank or a bus stop it is entitled to use. A car that wanders
+            // down somebody's alley still trips, which is the fault this
+            // gate exists for.
+            bool atOwnStop = Traffic != null
+                && ((v.Kind.WaitsAtRanks && (Traffic.Ranks.Contains(v.FromId)
+                                             || Traffic.Ranks.Contains(v.ToId)))
+                    || (v.Kind.StopsAtStops && (Traffic.IsBusStop(v.FromId)
+                                                || Traffic.IsBusStop(v.ToId))));
+            if (!atOwnStop
+                && !Ledger.Core.StreetMap.OnRoad(v.X, v.Z, v.Kind.Width * 0.5))
             {
                 VehiclesOffRoad++;
                 // NAME THE CULPRIT. offRoad went intermittent-1 on 16 Aug
