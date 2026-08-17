@@ -44,12 +44,22 @@ string coreDir = args.Length > 0 ? args[0] : "Assets/Scripts/Core";
 string gameDir = args.Length > 1 ? args[1] : "Assets/Scripts/Game";
 string? allowPath = null, jsonOut = null;
 var testDirs = new List<string>();
+// EXTRA CONSUMER DIRECTORIES. `Assets/Editor` was invisible to this tool
+// until 17 Aug: it is not the Game layer and it is not a test project, so
+// a Core API called ONLY from there read as "tested, unwired" — built and
+// not running — when it was running on every CI build. Found by wiring
+// `Proportion` into `CharacterPrefab` and watching reach stay red with the
+// call site sitting right there. The blind spot cut both ways: nothing in
+// Editor counted as reaching anything, so the ledger could not have been
+// right about it either.
+var alsoDirs = new List<string>();
 bool series = false, quiet = false;
 for (int i = 2; i < args.Length; i++)
 {
     if (args[i] == "--allow" && i + 1 < args.Length) allowPath = args[++i];
     else if (args[i] == "--json" && i + 1 < args.Length) jsonOut = args[++i];
     else if (args[i] == "--tests" && i + 1 < args.Length) testDirs.Add(args[++i]);
+    else if (args[i] == "--also" && i + 1 < args.Length) alsoDirs.Add(args[++i]);
     else if (args[i] == "--series") series = true;
     else if (args[i] == "--quiet") quiet = true;
 }
@@ -137,7 +147,11 @@ var qualified = new HashSet<(string Owner, string Name)>();
 // `Cost` on a MonoBehaviour and `Cost` in Core look identical from here.
 var gameDeclares = new HashSet<string>();
 
-foreach (var tree in Parse(gameDir))
+var consumerTrees = Parse(gameDir);
+foreach (var dir in alsoDirs)
+    if (Directory.Exists(dir)) consumerTrees.AddRange(Parse(dir));
+
+foreach (var tree in consumerTrees)
 {
     foreach (var node in tree.GetRoot().DescendantNodes())
     {

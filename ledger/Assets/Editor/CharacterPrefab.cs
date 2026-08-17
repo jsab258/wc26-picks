@@ -156,24 +156,111 @@ namespace Ledger.EditorTools
             ExtractTextures();
             Variants = 0;
             _locomotions.Clear();
-            int mannequins = 0;
+            int mannequins = 0, cartoons = 0, unmeasured = 0;
+            var cartoonWho = new System.Collections.Generic.List<string>();
+            var unmeasuredWho = new System.Collections.Generic.List<string>();
             foreach (var path in BodyModels())
             {
+                var stem = System.IO.Path.GetFileNameWithoutExtension(path);
+
                 // The rig mannequins get no prefab at all, so they cannot be
                 // worn, shipped, or picked by any code that ever greps
                 // `Resources/Characters` — the same `IsMannequin` the runtime
                 // pool asks, one implementation on purpose (its comment in
                 // `RealBody` carries the story).
-                if (Ledger.Game.RealBody.IsMannequin(
-                        System.IO.Path.GetFileNameWithoutExtension(path)))
+                if (Ledger.Game.RealBody.IsMannequin(stem))
                 {
                     mannequins++;
                     continue;
                 }
+
+                // AND NEITHER DO THE CARICATURES. Same gate, one step later,
+                // and deliberately NOT a second name list: `Proportion` is
+                // measured arithmetic covered by CoreTests, and it judges
+                // whatever gets dropped into `Assets/Characters` next rather
+                // than only what somebody remembered to write down. The
+                // reading is reported either way — a model that cannot be
+                // measured is named and KEPT, because "unmeasured" and
+                // "caricature" are different facts with different fixes and
+                // silently dropping the first would empty the street.
+                double floorY, neckY, crownY, neckFrac;
+                if (!TryBoneHeights(path, out floorY, out neckY, out crownY)
+                    || !Ledger.Core.Proportion.TryNeckFraction(
+                            floorY, neckY, crownY, out neckFrac))
+                {
+                    unmeasured++;
+                    unmeasuredWho.Add(stem);
+                }
+                else if (Ledger.Core.Proportion.IsCaricature(floorY, neckY, crownY))
+                {
+                    // The DECISION comes from Core, not from comparing the
+                    // fraction against the constant here. Both spellings are
+                    // the same rule, and a rule with two implementations is
+                    // one that drifts — the fraction is read out only to put
+                    // a number next to the name in the log.
+                    cartoons++;
+                    cartoonWho.Add($"{stem}:{neckFrac:F3}");
+                    continue;
+                }
+
                 BuildOne(path, path == BodyModel);
             }
             Debug.Log($"CharacterPrefab: {Variants} body prefab(s) written, "
-                      + $"{mannequins} rig mannequin(s) skipped");
+                      + $"{mannequins} rig mannequin(s) skipped, "
+                      + $"{cartoons} caricature(s) skipped "
+                      + $"[{(cartoonWho.Count == 0 ? "none" : string.Join(",", cartoonWho))}], "
+                      + $"{unmeasured} unmeasured but kept "
+                      + $"[{(unmeasuredWho.Count == 0 ? "none" : string.Join(",", unmeasuredWho))}]");
+        }
+
+        /// THE THREE BONE HEIGHTS `Proportion` NEEDS, off the imported model.
+        /// Hands back the raw heights rather than the fraction so the caller
+        /// asks Core both questions — is it measurable, and is it a caricature
+        /// — without either one being re-derived up here.
+        ///
+        /// Read from the transform hierarchy by name rather than through
+        /// `Animator.GetBoneTransform`, for two reasons. `HeadTop_End` is not
+        /// a Humanoid bone at all — Unity's enum has no crown — so half of
+        /// what this needs could not be asked for that way. And this runs on
+        /// the ASSET, before any avatar is guaranteed to have been built.
+        ///
+        /// The names are safe to depend on: every one of the ten models under
+        /// `Assets/Characters` is a Mixamo export and carries the same
+        /// `mixamorig:` skeleton, which `tools/body-proportions.py` confirmed
+        /// by reading all ten off disk. A model that does NOT carry them
+        /// returns false and is kept, not dropped.
+        ///
+        /// Import scale is irrelevant here on purpose — the reading is a
+        /// ratio of two heights, so it survives whatever the importer does.
+        static bool TryBoneHeights(string path,
+                                   out double floorY, out double neckY, out double crownY)
+        {
+            floorY = neckY = crownY = 0.0;
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (go == null) return false;
+
+            Transform neck = null, crown = null;
+            double floor = double.MaxValue;
+            foreach (var t in go.GetComponentsInChildren<Transform>(true))
+            {
+                var bare = t.name;
+                int colon = bare.LastIndexOf(':');
+                if (colon >= 0) bare = bare.Substring(colon + 1);
+
+                if (bare == "Neck") neck = t;
+                else if (bare == "HeadTop_End") crown = t;
+                else if (bare == "LeftToe_End" || bare == "RightToe_End"
+                         || bare == "LeftToeBase" || bare == "RightToeBase"
+                         || bare == "LeftFoot" || bare == "RightFoot")
+                    floor = System.Math.Min(floor, t.position.y);
+            }
+            if (neck == null || crown == null || floor == double.MaxValue)
+                return false;
+
+            floorY = floor;
+            neckY = neck.position.y;
+            crownY = crown.position.y;
+            return true;
         }
 
         /// THE EMBEDDED TEXTURES, PULLED OUT OF THE FBX, because Unity does not

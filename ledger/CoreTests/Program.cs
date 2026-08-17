@@ -70,6 +70,7 @@ namespace Ledger.CoreTests
                 await TestTranscriptRollback();
                 await TestReflection();
                 TestPhysique();
+                TestProportion();
                 TestConfab();
                 TestMixing();
                 TestDetailBudget();
@@ -11644,6 +11645,74 @@ namespace Ledger.CoreTests
                 "nor do they pick the sentence back up when he leaves: somebody caught "
                 + "talking about you moves off, and the street is quieter behind you",
                 $"{Confab.HushCooldownSeconds}s vs a {Confab.MaxSeconds}s confab");
+        }
+
+        static void TestProportion()
+        {
+            Console.WriteLine("Proportion — a caricature standing next to a person reads as a bug:");
+
+            // THE FIXTURES ARE THE REAL MODELS, read off their bind poses by
+            // `tools/body-proportions.py`: floor, neck, crown, in the FBX's
+            // own units. Raw bone heights rather than the fractions they
+            // imply, so this exercises the arithmetic and not just the table.
+            //
+            // Rule 5b: THE ACCEPTING CASE COMES FIRST and it is the whole
+            // realistic cast, because the expensive failure here is not
+            // "a caricature got through" — it is a bound so tight that the
+            // street empties of everybody.
+            var people = new (string Name, double Floor, double Neck, double Crown)[]
+            {
+                ("Sporty Granny",  0.01, 133.64, 165.81),
+                ("Michelle",       1.00, 130.85, 158.60),
+                ("X Bot",          0.00, 150.31, 181.97),
+                ("Joe",            2.03, 148.04, 177.78),
+                ("Martha",         0.46, 145.71, 175.20),
+                ("Y Bot",          3.11, 149.75, 178.55),
+                ("Sophie",         2.43, 147.95, 176.30),
+            };
+            foreach (var p in people)
+                Check(!Proportion.IsCaricature(p.Floor, p.Neck, p.Crown),
+                    $"{p.Name} is built like a person and stays in the pool",
+                    $"neckFrac {(p.Neck - p.Floor) / (p.Crown - p.Floor):F3} "
+                    + $"vs bound {Proportion.MinNeckFraction}");
+
+            // THE REJECTING CASE, also measured. Both sit ~0.045 below the
+            // nearest real body — a gap wider than the entire realistic
+            // cluster, which is what makes 0.79 a break and not a preference.
+            var cartoons = new (string Name, double Floor, double Neck, double Crown)[]
+            {
+                ("The Boss",      -0.03, 149.37, 196.15),
+                ("Big Vegas",      0.08, 141.97, 186.43),
+            };
+            foreach (var c in cartoons)
+                Check(Proportion.IsCaricature(c.Floor, c.Neck, c.Crown),
+                    $"{c.Name} is a caricature and is kept off the street",
+                    $"neckFrac {(c.Neck - c.Floor) / (c.Crown - c.Floor):F3} "
+                    + $"vs bound {Proportion.MinNeckFraction}");
+
+            // UNMEASURABLE IS NOT THE SAME ANSWER AS FINE (rule 3b). Remy's
+            // rig puts its neck ABOVE its crown, so there is no fraction to
+            // be had — and the one thing that must not happen is that
+            // reading silently joining the pass pile.
+            double f;
+            Check(!Proportion.TryNeckFraction(3.17, 311.33, 299.44, out f),
+                "Remy's rig cannot be measured and says so rather than passing",
+                "neck sits above crown — no fraction exists");
+            Check(!Proportion.IsCaricature(3.17, 311.33, 299.44),
+                "an unmeasurable model is not condemned either — it is unmeasured");
+
+            // Degenerate input must not throw or invent a number.
+            Check(!Proportion.TryNeckFraction(0, 0, 0, out f),
+                "a zero-height figure is refused, not divided by");
+            Check(!Proportion.TryNeckFraction(0, double.NaN, 180, out f),
+                "a NaN bone is refused rather than propagated");
+
+            // The bound must sit inside the measured gap, not on a cluster
+            // edge. If somebody moves it, this is what tells them they have
+            // moved it onto real data.
+            Check(Proportion.MinNeckFraction > 0.762 && Proportion.MinNeckFraction < 0.806,
+                "the bound sits inside the measured gap between the two clusters",
+                $"{Proportion.MinNeckFraction} in (0.762, 0.806)");
         }
 
         static void TestPhysique()

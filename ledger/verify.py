@@ -119,6 +119,10 @@ def reach():
                      "--tests", str(ROOT / "BalanceLab"),
                      "--tests", str(ROOT / "BarkGen"),
                      "--tests", str(ROOT / "Tier2Gen"),
+                     # The Editor layer is a real consumer — `CharacterPrefab`
+                     # calls Core on every CI build — and went unscanned until
+                     # 17 Aug, so anything it alone called read as unwired.
+                     "--also", str(ROOT / "Assets" / "Editor"),
                      "--allow", str(ROOT / "ReachCheck" / "allow.json")])
     m = re.search(r"reach ok — (\d+) on the ledger", out)
     if m:
