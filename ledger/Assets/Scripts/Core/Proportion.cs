@@ -79,9 +79,14 @@ namespace Ledger.Core
         /// that gap with margin on both sides — 0.028 above the caricatures,
         /// 0.016 below the nearest real body.
         ///
-        /// Remy is NOT in the table: its rig does not yield a `HeadTop_End`
-        /// and the tool refuses to guess at it. It is named as unmeasured
-        /// rather than assumed fine.
+        /// Remy is NOT in the table, and the reason is in its FILE rather
+        /// than in the reader: its bind pose puts the crown of the skull
+        /// BELOW the head bone, and the knee, ankle and toe-base all at one
+        /// height — four unrelated bones no standing figure can share. All
+        /// seven of its skin clusters say so identically, so it is what was
+        /// exported. It is named as unmeasured rather than assumed fine, and
+        /// it stays in the pool: nothing here has any evidence about how it
+        /// is built, which is not the same as evidence that it is wrong.
         public const double MinNeckFraction = 0.79;
 
         /// True only for a figure that was MEASURED and came out below the

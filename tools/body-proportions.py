@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 """HOW MANY HEADS TALL IS EACH BODY IN THE POOL.
 
-WHY THIS EXISTS. `review_street.jpg` at 2715f21 put a walker in the
-foreground whose head is a ball of pink hair curlers roughly a third of
-her own height. Two hypotheses about it were wrong before this tool
-existed and both were refuted by measuring pixels rather than by
-arguing: it is not error-shader magenta (0 magenta pixels in the frame)
-and it is not a broken mesh. It is Mixamo's `Sporty Granny` rendering
-exactly as authored -- a CARICATURE, standing next to `Michelle` and
-`Remy`, who are not. The fault is casting, not rendering.
+WHY THIS EXISTS, AND WHAT IT PROVED WRONG. `review_street.jpg` at
+2715f21 put a walker in the foreground whose head is a ball of pink
+hair curlers roughly a third of her own height. THREE explanations for
+her went out before any of them was checked, and all three were
+refuted: not error-shader magenta (the frame holds 0 magenta pixels),
+not a broken mesh, and not -- this tool's own first answer -- cartoon
+proportions. She is Mixamo's `Sporty Granny`, she measures 7.63 heads
+and a 0.806 neck fraction, and she is built like a person. Nothing is
+wrong with her.
+
+The tool was written to convict her and acquitted her instead, which is
+the entire argument for having written it. What it DID find was two
+models in the same pool that nobody had ever looked at: `The Boss`
+(0.762) and `Big Vegas` (0.761), against a realistic cluster spanning
+0.806 to 0.837.
 
 `RealBody.IsMannequin` already excludes `X Bot` and `Y Bot` by NAME,
 which was right for them: they are untextured grey rig stand-ins and
@@ -38,10 +45,22 @@ after looking at the numbers, not before. Run it, read the column,
 then decide -- and if the models do not separate cleanly, that is an
 answer too, and a different fix.
 
+TWO COLUMNS, BECAUSE ONE CANNOT ANSWER THIS. `headsTall` measures to
+`HeadTop_End`, which is the crown of the HAIR -- Big Vegas has an afro
+and Sporty Granny a head of curlers, so it cannot tell a large skull
+from a tall hairstyle. `neckFrac` can: hair piled above the crown does
+not move the shoulders and a large head pushes them down the body.
+Neither can see the cranium itself; no bone marks it.
+
 Reads Kaydara binary FBX directly, so it needs no Unity and runs here
-in under a second. Only the bone hierarchy is parsed (Model/LimbNode
-records, their `Lcl Translation`, and the OO connections between them);
-mesh and texture payloads are skipped without decompressing.
+in under a second. Bone positions come from the `BindPose` records --
+world matrices as bound, with no rotation composition to get wrong --
+and the `Lcl Translation` of a bone is used only to place leaf ends the
+bind pose omits. Mesh and texture payloads are skipped unread.
+
+The enforcement is NOT here: `Core/Proportion` holds the rule and
+CoreTests covers it, so the bound is testable without Unity and exists
+once. This is the evidence that set it, and the way to re-check it.
 """
 
 import os
@@ -214,13 +233,38 @@ def skeleton(path):
             if len(c.props) >= 3 and c.props[0] == "OO":       # (type, child, parent)
                 parent[c.props[1]] = c.props[2]
 
+    # A MODEL HAS ONE BIND POSE PER SKINNED MESH, NOT ONE IN TOTAL. Remy is
+    # skinned as seven separate meshes -- body, hair and five garments -- so
+    # it carries seven `BindPose` records, and the small per-garment clusters
+    # mention only the bones near their own geometry. Taking them
+    # biggest-first and letting the first writer keep the bone means the
+    # body's own complete skeleton is the authority rather than whichever
+    # cluster happened to be parsed last.
+    #
+    # HONESTLY: THIS CHANGED NOTHING, ON ANY OF THE TEN MODELS. It was
+    # written to explain Remy, and then all seven of Remy's poses turned out
+    # to AGREE to the centimetre on every bone they share. The ordering is
+    # kept because last-writer-wins is not a rule anybody chose and the next
+    # model may not be so tidy — but it is a guard, not a fix, and saying so
+    # is the difference between this comment and a false one.
+    #
+    # What is actually wrong with Remy is in the FILE: its bind pose puts
+    # `HeadTop_End` (299.44) BELOW `Head` (333.56), and places the knee,
+    # ankle and toe-base all at 299.39 — four anatomically unrelated bones
+    # at one height, which no standing figure can do. Every cluster says so
+    # identically, so it is what was exported. The tool declines Remy and
+    # names it rather than inventing a proportion for it.
+    poses = [p for p in objects.find_all("Pose")
+             if any(s == "BindPose" for s in p.props if isinstance(s, str))]
+    poses.sort(key=lambda p: len(p.find_all("PoseNode")), reverse=True)
+
     bind = {}
-    for pose in objects.find_all("Pose"):
-        if not any(p == "BindPose" for p in pose.props if isinstance(p, str)):
-            continue
+    for pose in poses:
         for pn in pose.find_all("PoseNode"):
             node, matrix = pn.find("Node"), pn.find("Matrix")
             if node is None or matrix is None or not node.props:
+                continue
+            if node.props[0] in bind:
                 continue
             m = next((p for p in matrix.props if isinstance(p, tuple)), None)
             if m is not None and len(m) >= 16:
@@ -269,18 +313,26 @@ def measure(path):
     crown = bone(bones, "HeadTop_End")
     head = bone(bones, "Head")
     if crown is None or head is None:
-        return None
+        return "no Head/HeadTop_End pair — not a Mixamo rig"
     feet = [bone(bones, b) for b in ("LeftToe_End", "RightToe_End",
                                      "LeftToeBase", "RightToeBase",
                                      "LeftFoot", "RightFoot")]
     feet = [y for y in feet if y is not None]
     if not feet:
-        return None
+        return "no foot bones — cannot find the floor"
     floor = min(feet)
     height = crown - floor
     head_len = crown - head
-    if head_len <= 0 or height <= 0:
-        return None
+    # THE REFUSAL SAYS WHICH REFUSAL IT IS. "Remy is not a Mixamo rig" was
+    # the first thing this printed and it is false — Remy is one, and it
+    # carries every bone asked for. What it does not carry is a bind pose
+    # that can be stood up. Those are different findings and only one of
+    # them is about the reader.
+    if head_len <= 0:
+        return ("crown %.2f sits BELOW the skull %.2f — the bind pose in "
+                "this file cannot be stood up" % (crown, head))
+    if height <= 0:
+        return "crown %.2f sits below the feet %.2f" % (crown, floor)
     hips = bone(bones, "Hips")
     neck = bone(bones, "Neck")
     return {
@@ -326,7 +378,7 @@ def selftest():
         # A rig this tool DECLINES is not a failure -- it is the refusal
         # working. Only rigs it hands back a number for are held to the
         # physics, because those are the numbers something will act on.
-        if measure(path) is None:
+        if not isinstance(measure(path), dict):
             declined.append(name[:-4])
             continue
         measured += 1
@@ -377,8 +429,11 @@ def main():
         except Exception as exc:                       # noqa: BLE001
             print("  %-18s PARSE FAILED: %s" % (name[:-4], exc))
             continue
+        if isinstance(m, str):
+            print("  %-18s DECLINED: %s" % (name[:-4], m))
+            continue
         if m is None:
-            print("  %-18s no Head/HeadTop_End pair -- not a Mixamo rig" % name[:-4])
+            print("  %-18s DECLINED: no bind pose to read" % name[:-4])
             continue
         rows.append((name[:-4], m))
 
