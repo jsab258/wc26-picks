@@ -10561,6 +10561,8 @@ namespace Ledger.Game
                       // quiet street — which is exactly what happened on the
                       // first build of this feature.
                       $"activityAsked={CharacterRig.ActivityAsked} " +
+                      $"undressed={WorldBuilder.UndressedRenderers} " +
+                      $"undressedWho=[{WorldBuilder.UndressedWho}] " +
                       $"tposeAtGrant={CharacterRig.TposeAtGrant} " +
                       $"tposeWhy=[{CharacterRig.TposeWhy}] " +
                       $"tposeWho={CharacterRig.TposeWho} " +

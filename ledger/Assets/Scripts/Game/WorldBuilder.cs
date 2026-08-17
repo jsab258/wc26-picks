@@ -232,6 +232,9 @@ namespace Ledger.Game
             BuildParkedCars();
             BuildSmoke();
             BuildGulls();
+            // LAST, so it sees the finished world: anything still wearing
+            // Unity's default white is something nobody dressed.
+            AuditUndressed();
         }
 
         /// Built-in-pipeline environment: gradient ambient + distance fog. The per-frame
@@ -1915,6 +1918,40 @@ namespace Ledger.Game
             Tint(MakeBox("PostBox_slot", at + new Vector3(0, 0.98f, 0.23f),
                 new Vector3(0.3f, 0.05f, 0.04f), AssetLibrary.Metal),
                 new Color(0.1f, 0.1f, 0.1f));
+        }
+
+        /// WHAT IS DRAWING UNITY'S DEFAULT WHITE, and what it is called.
+        ///
+        /// `review_day1_noon` on 7466829 has five or six featureless white
+        /// pills standing at the kerb. `walkersPrimitive=0 of 49` rules out
+        /// the one thing this project already instruments — a walker still
+        /// wearing its spawn capsule — so it is scenery, and every candidate
+        /// is something added this weekend.
+        ///
+        /// GENERAL RATHER THAN A GUESS. I could name three suspects and test
+        /// them one build at a time; `CreatePrimitive` hands out
+        /// `Default-Material` to anything nobody dressed, so ASKING THE SCENE
+        /// which renderers still wear it answers the question for every
+        /// suspect at once and keeps answering it for whatever gets added
+        /// next. That is the shape `walkersPrimitiveWho` already proved: the
+        /// count sends you nowhere, the names send you to the object.
+        public static int UndressedRenderers;
+        public static string UndressedWho = "none";
+
+        public static void AuditUndressed()
+        {
+            int n = 0;
+            var names = new List<string>();
+            foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                var m = r.sharedMaterial;
+                if (m != null && m.name != "Default-Material") continue;
+                n++;
+                if (names.Count < 8) names.Add(r.gameObject.name);
+            }
+            UndressedRenderers = n;
+            UndressedWho = names.Count > 0 ? string.Join("/", names) : "none";
+            Debug.Log($"WorldBuilder: undressed renderers {n} [{UndressedWho}]");
         }
 
         /// Property-block colour multiply — one shared material, per-object
