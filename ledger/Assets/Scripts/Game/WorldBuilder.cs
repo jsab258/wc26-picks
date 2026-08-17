@@ -1814,18 +1814,27 @@ namespace Ledger.Game
                 go.transform.position = cpos + new Vector3(0, baseY + 1.5f, 0);
                 var ps = go.AddComponent<ParticleSystem>();
                 var main = ps.main;
-                main.startLifetime = new ParticleSystem.MinMaxCurve(5f, 8f);
-                main.startSpeed = new ParticleSystem.MinMaxCurve(0.3f, 0.55f);
-                main.startSize = new ParticleSystem.MinMaxCurve(0.5f, 1.0f);
-                main.startColor = new Color(0.58f, 0.58f, 0.60f, 0.30f);
-                main.maxParticles = 12;
+                // SLOW AND CROWDED WAS THE BUG. At 0.3-0.55 m/s over a 5-8s
+                // life from a 0.16m cone, eight-plus sprites sat on top of
+                // each other within a metre and their alpha compounded into
+                // a SOLID WHITE PILL — five or six of them stood at kerb
+                // height in `review_day1_noon` on 57f3d5d and I read them as
+                // geometry twice. Rise faster, live shorter, start bigger and
+                // fainter, and the same emitter reads as a wisp.
+                main.startLifetime = new ParticleSystem.MinMaxCurve(3.5f, 5.5f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(0.9f, 1.4f);
+                main.startSize = new ParticleSystem.MinMaxCurve(0.9f, 1.6f);
+                // Darker, because a coal-era chimney at noon is a grey smudge
+                // against the sky and 0.58 grey reads white on a bright one.
+                main.startColor = new Color(0.42f, 0.42f, 0.45f, 0.16f);
+                main.maxParticles = 6;
                 main.simulationSpace = ParticleSystemSimulationSpace.World;
                 var em = ps.emission;
-                em.rateOverTime = 1.4f;
+                em.rateOverTime = 0.7f;   // half as many, twice as far apart
                 var shape = ps.shape;
                 shape.shapeType = ParticleSystemShapeType.Cone;
                 shape.angle = 10f;
-                shape.radius = 0.16f;
+                shape.radius = 0.35f;   // spread at birth, so they cannot stack
                 // The prevailing wind, one direction for the whole town —
                 // smoke that disagrees with itself reads as a bug.
                 var vel = ps.velocityOverLifetime;
@@ -1836,7 +1845,7 @@ namespace Ledger.Game
                 var g = new Gradient();
                 g.SetKeys(
                     new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
-                    new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.55f, 0.15f),
+                    new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.42f, 0.2f),
                             new GradientAlphaKey(0f, 1f) });
                 col.color = new ParticleSystem.MinMaxGradient(g);
                 var sol = ps.sizeOverLifetime;
