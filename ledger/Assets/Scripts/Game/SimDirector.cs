@@ -10563,6 +10563,8 @@ namespace Ledger.Game
                       $"activityAsked={CharacterRig.ActivityAsked} " +
                       $"undressed={WorldBuilder.UndressedRenderers} " +
                       $"undressedWho=[{WorldBuilder.UndressedWho}] " +
+                      $"capsules={WorldBuilder.CapsuleMeshes} " +
+                      $"capsuleWho=[{WorldBuilder.CapsuleWho}] " +
                       $"tposeAtGrant={CharacterRig.TposeAtGrant} " +
                       $"tposeWhy=[{CharacterRig.TposeWhy}] " +
                       $"tposeWho={CharacterRig.TposeWho} " +

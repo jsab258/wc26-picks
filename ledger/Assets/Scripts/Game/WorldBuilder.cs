@@ -1937,6 +1937,8 @@ namespace Ledger.Game
         /// count sends you nowhere, the names send you to the object.
         public static int UndressedRenderers;
         public static string UndressedWho = "none";
+        public static int CapsuleMeshes;
+        public static string CapsuleWho = "none";
 
         public static void AuditUndressed()
         {
@@ -1952,6 +1954,29 @@ namespace Ledger.Game
             UndressedRenderers = n;
             UndressedWho = names.Count > 0 ? string.Join("/", names) : "none";
             Debug.Log($"WorldBuilder: undressed renderers {n} [{UndressedWho}]");
+
+            // AND THE CAPSULES, BY NAME AND PLACE. `undressed=0` came back on
+            // the first run of the sweep above, so the white pills at the
+            // kerb wear a REAL material — a pale one — and "which object is
+            // that" is still unanswered. A capsule is not a shape this city
+            // builds on purpose anywhere except a walker's spawn husk, so
+            // every one of them is worth naming, and the position turns a
+            // name into a place I can look at in the next still.
+            int caps = 0;
+            var capNames = new List<string>();
+            foreach (var mf in Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
+            {
+                if (mf.sharedMesh == null || mf.sharedMesh.name != "Capsule") continue;
+                caps++;
+                if (capNames.Count < 8)
+                {
+                    var p = mf.transform.position;
+                    capNames.Add($"{mf.gameObject.name}@{p.x:0}/{p.z:0}");
+                }
+            }
+            CapsuleMeshes = caps;
+            CapsuleWho = capNames.Count > 0 ? string.Join("/", capNames) : "none";
+            Debug.Log($"WorldBuilder: capsule meshes {caps} [{CapsuleWho}]");
         }
 
         /// Property-block colour multiply — one shared material, per-object
