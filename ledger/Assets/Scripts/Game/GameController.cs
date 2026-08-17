@@ -502,7 +502,31 @@ namespace Ledger.Game
             _sun = WorldBuilder.BuildSun();
             Weather.Ensure(this);   // rain, wetness, and the fog that follows them
 
-            var player = PlayerController.Spawn(new Vector3(0, 1.2f, -8));
+            // ON GROUND THAT IS ACTUALLY CLEAR, not on a remembered
+            // coordinate. (0, -8) was the pavement outside the bar when a
+            // block held one building per edge; the topology stretch filled
+            // the blocks — 60 parcels to 376 — and a terrace row landed on
+            // the spawn, so the first frame of the game was the inside of a
+            // wall. The wish stays exactly where it was; if something now
+            // stands there, the nearest clear spot wins, which survives the
+            // next re-plan as well as this one.
+            var wish = new Vector3(0, 1.2f, -8);
+            var spawnAt = wish;
+            if (!WorldBuilder.PointClear(spawnAt, 0.6f))
+            {
+                bool found = false;
+                for (float r = 2f; r <= 16f && !found; r += 2f)
+                    for (int a = 0; a < 16 && !found; a++)
+                    {
+                        float th = a * Mathf.PI * 2f / 16f;
+                        var probe = wish + new Vector3(Mathf.Cos(th) * r, 0, Mathf.Sin(th) * r);
+                        if (!WorldBuilder.PointClear(probe, 0.6f)) continue;
+                        spawnAt = probe; found = true;
+                    }
+                Debug.Log($"GameController: spawn moved off built ground to "
+                          + $"{spawnAt.x:0.0},{spawnAt.z:0.0} (wanted {wish.x:0.0},{wish.z:0.0}) found={found}");
+            }
+            var player = PlayerController.Spawn(spawnAt);
             _player = player;
             // The gait reads the harm system directly, so an injury we have
             // simulated since day one finally shows up in how he walks.
