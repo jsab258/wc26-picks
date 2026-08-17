@@ -21,6 +21,16 @@
    "normal": "brick_grey_n.jpg",
    "roughness": "brick_grey_r.jpg"
   },
+  "brick_grey_b": {
+   "assetId": "Bricks102",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Bricks102",
+   "resolution": "2K-JPG",
+   "file": "brick_grey_b.jpg",
+   "normal": "brick_grey_b_n.jpg",
+   "roughness": "brick_grey_b_r.jpg"
+  },
   "brick_red": {
    "assetId": "Bricks075A",
    "source": "ambientCG",
@@ -31,6 +41,16 @@
    "normal": "brick_red_n.jpg",
    "roughness": "brick_red_r.jpg"
   },
+  "brick_red_b": {
+   "assetId": "Bricks101",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Bricks101",
+   "resolution": "2K-JPG",
+   "file": "brick_red_b.jpg",
+   "normal": "brick_red_b_n.jpg",
+   "roughness": "brick_red_b_r.jpg"
+  },
   "concrete": {
    "assetId": "Concrete017",
    "source": "ambientCG",
@@ -40,6 +60,16 @@
    "file": "concrete.jpg",
    "normal": "concrete_n.jpg",
    "roughness": "concrete_r.jpg"
+  },
+  "concrete_b": {
+   "assetId": "Concrete042A",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Concrete042A",
+   "resolution": "2K-JPG",
+   "file": "concrete_b.jpg",
+   "normal": "concrete_b_n.jpg",
+   "roughness": "concrete_b_r.jpg"
   },
   "glass": {
    "assetId": "Facade001",
@@ -81,6 +111,16 @@
    "normal": "plaster_n.jpg",
    "roughness": "plaster_r.jpg"
   },
+  "plaster_b": {
+   "assetId": "Plaster002",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Plaster002",
+   "resolution": "2K-JPG",
+   "file": "plaster_b.jpg",
+   "normal": "plaster_b_n.jpg",
+   "roughness": "plaster_b_r.jpg"
+  },
   "roof": {
    "assetId": "RoofingTiles006",
    "source": "ambientCG",
@@ -90,6 +130,16 @@
    "file": "roof.jpg",
    "normal": "roof_n.jpg",
    "roughness": "roof_r.jpg"
+  },
+  "roof_b": {
+   "assetId": "RoofingTiles013A",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=RoofingTiles013A",
+   "resolution": "2K-JPG",
+   "file": "roof_b.jpg",
+   "normal": "roof_b_n.jpg",
+   "roughness": "roof_b_r.jpg"
   },
   "sidewalk": {
    "assetId": "PavingStones067",
