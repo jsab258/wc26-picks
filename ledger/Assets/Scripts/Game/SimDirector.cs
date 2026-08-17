@@ -10386,6 +10386,7 @@ namespace Ledger.Game
                       $"steerOrigin={NpcWalker.SteerOrigin} " +
                       $"crowdApartCapped={NpcWalker.ApartCapped} " +
                       $"crowdApartCalls={NpcWalker.ApartCalls} " +
+                      $"crowdApartPairs={NpcWalker.ApartPairs} " +
                       $"crowdApartWorst={NpcWalker.ApartWorst:0.00} " +
                       $"crowdBodyWidth={CrowdWidthRead()} " +
                       // AND THE BIGGEST HUDDLE, because a median over pairs is

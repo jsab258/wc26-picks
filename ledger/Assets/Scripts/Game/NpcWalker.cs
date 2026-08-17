@@ -215,6 +215,13 @@ namespace Ledger.Game
         /// a large one is "no pile ever needed it" — rule 3b, and the two look
         /// identical without the second number.
         public static int ApartCapped, ApartCalls;
+        /// How many PAIRS actually came close enough to be measured, against
+        /// `ApartCalls` walkers swept. The broad-phase reject above is
+        /// behaviour-neutral, so nothing can go red if it stops working — this
+        /// is the only thing that would say so. A ratio near the crowd size
+        /// means the reject is doing nothing; near zero means almost every
+        /// pair is being dropped before the square root, which is the point.
+        public static int ApartPairs;
         public static float ApartWorst;
 
         /// Which branch of `Steer` each walker took. Four counters because the
@@ -1745,8 +1752,33 @@ namespace Ledger.Game
                     if (other == null || other == this) continue;
                     var d = other.transform.position - at;
                     d.y = 0;
-                    float dist = d.magnitude;
-                    if (dist >= BodyWidth) continue;
+                    // REJECTED ON AN AXIS, THEN ON THE SQUARE, AND ONLY THEN
+                    // MEASURED. This took `d.magnitude` — a square root — for
+                    // EVERY other walker in the city before comparing it, and
+                    // it runs per walker per frame, so it is O(n^2) square
+                    // roots: about three thousand a frame at 55 walkers, of
+                    // which a handful are ever within touching distance.
+                    //
+                    // That is not a micro-optimisation here, it is the reason
+                    // the street cannot be busier. `npcs` is the largest game
+                    // cost (9.36ms of a 12ms budget) and this term grows with
+                    // the SQUARE of the crowd, so doubling the walkers to fill
+                    // an empty street quadruples it while everything else
+                    // about adding a person is linear.
+                    //
+                    // BEHAVIOUR IS UNCHANGED BY CONSTRUCTION, which is the
+                    // point — no threshold is introduced and none needs
+                    // measuring. |dx| >= BodyWidth implies dist >= BodyWidth,
+                    // and so does dx*dx + dz*dz >= BodyWidth^2, so both
+                    // rejects drop exactly the pairs the old comparison
+                    // dropped; the survivors take the same square root and the
+                    // same push as before.
+                    if (d.x >= BodyWidth || d.x <= -BodyWidth
+                        || d.z >= BodyWidth || d.z <= -BodyWidth) continue;
+                    float sq = d.x * d.x + d.z * d.z;
+                    if (sq >= BodyWidth * BodyWidth) continue;
+                    ApartPairs++;
+                    float dist = Mathf.Sqrt(sq);
                     // EXACTLY COINCIDENT NEEDS A DIRECTION FROM SOMEWHERE, and
                     // `d/0` is not one. Two walkers spawned on the same metre is
                     // not hypothetical — `crowdTightest=0.00` says it happened —
