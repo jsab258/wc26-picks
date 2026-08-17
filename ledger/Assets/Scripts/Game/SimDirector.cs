@@ -7634,9 +7634,24 @@ namespace Ledger.Game
                         // a wall, walk it toward the carriageway until it is
                         // not. Two metres is a pavement's width; past that the
                         // frame would be a road shot rather than a street one.
+                        // AND OUT OF THE FURNITURE, WHICH `PointClear` CANNOT
+                        // SEE. It knows building masses; lamp posts, signs and
+                        // beacons are not in that list, so the first framed
+                        // shot came back with a lamp column splitting it down
+                        // the middle — clear of every wall and still useless.
+                        //
+                        // A pavement is two metres wide and carries all of
+                        // that; the carriageway carries none of it. So the eye
+                        // steps to the kerb and then 1.6m past it, which is a
+                        // person standing in the road looking along it — the
+                        // one place in a British street with nothing at head
+                        // height, and the frame every street photograph is
+                        // taken from.
                         var step = toRoad.sqrMagnitude > 0.04f ? toRoad.normalized : Vector3.forward;
                         for (int g = 0; g < 8 && !WorldBuilder.PointClear(eye, 0.5f); g++)
                             eye += step * 0.35f;
+                        float toKerb = Mathf.Sqrt(toRoad.sqrMagnitude);
+                        eye += step * Mathf.Min(toKerb + 1.6f, 6f);
                     }
                     cam.transform.position = eye;
                     cam.transform.rotation = Quaternion.LookRotation(aim, Vector3.up);
@@ -10756,7 +10771,7 @@ namespace Ledger.Game
                       // Zero with models committed means the prefab builder
                       // or the name candidates missed — the difference
                       // between a pipeline and a street (rule 6).
-                      $"propsPlaced={AssetLibrary.PropsPlaced} " +
+                      $"propsPlaced={AssetLibrary.PropsPlaced} variantSurfaces={AssetLibrary.VariantsUsed} " +
                       $"parkedCars={WorldBuilder.ParkedCars} shopNames={WorldBuilder.ShopNamesPainted} " +
                       $"smokeStacks={WorldBuilder.SmokeStacks} gulls={WorldBuilder.Gulls} " +
                       $"terraceBlocks={WorldBuilder.TerracedBlocks} legacyBlocks={WorldBuilder.LegacyBlocks} " +

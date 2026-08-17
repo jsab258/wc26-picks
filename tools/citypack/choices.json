@@ -32,7 +32,8 @@
     "",
     "RE-TRIGGERED 2026-07-31 (b). The routing fix worked and the fetch ran, and all twelve surfaces failed in six seconds with a bare `StopIteration`. The fetch resolved each id through `?q=<assetId>` and took the result whose assetId matched; nothing matched, for any of the twelve. THE SEARCH ENDPOINT AGAIN — the same one that reported zero PavingStones against 162 in the catalogue and zero RoofingTiles against 31. Three times is not a coincidence, so the fetch path no longer asks it anything: links come from the committed catalogue where present, and otherwise from the paginated list endpoint that produced all 2,005 materials in the first place. The catalogue now records each asset's download link too, so the next fetch is twelve downloads and no lookup at all.",
     "",
-    "RE-TRIGGERED 2026-08-16: 1K to 2K, and roughness joins colour+normal. Jafar's standing order is best-possible with available resources; the target machine is an M5, the camera walks up to walls, and 2K is where brick stops smearing at arm's length. All twelve ids publish 2K-JPG (checked against the committed catalogue before this commit, zero runs spent). The committed catalogue links are 1K zips, so the fetcher now refuses a catalogue link whose filename lacks the wanted size and resolves those through the list endpoint instead — otherwise this commit would have downloaded 1K and labelled it 2K."
+    "RE-TRIGGERED 2026-08-16: 1K to 2K, and roughness joins colour+normal. Jafar's standing order is best-possible with available resources; the target machine is an M5, the camera walks up to walls, and 2K is where brick stops smearing at arm's length. All twelve ids publish 2K-JPG (checked against the committed catalogue before this commit, zero runs spent). The committed catalogue links are 1K zips, so the fetcher now refuses a catalogue link whose filename lacks the wanted size and resolves those through the list endpoint instead — otherwise this commit would have downloaded 1K and labelled it 2K.",
+    "RE-TRIGGERED 2026-08-18: VARIETY, the ladder rung after scale. Twelve surfaces meant every brick building in the city wore the SAME PHOTOGRAPH, and at 376 buildings that repetition is what a street reads as now that there are enough of them to compare. One extra variant each for the five surfaces that fill a street view — the two bricks, plaster, roof, concrete — picked per building by the position hash that already picks the surface. Five new ids rather than fifty: the catalogue offers 113 bricks and 154 paving stones, so the limit is repository weight and not availability, and doubling the facade set is the cheapest visible half of that. Picked by category and stable id, unseen, exactly as the first twelve were; the visual pass happens when they land, by looking."
   ],
   "resolution": "2K-JPG",
   "surfaces": {
@@ -47,6 +48,11 @@
     "roof": "RoofingTiles006",
     "metal": "Metal032",
     "glass": "Facade001",
-    "window": "Facade018A"
+    "window": "Facade018A",
+    "brick_red_b": "Bricks101",
+    "brick_grey_b": "Bricks102",
+    "plaster_b": "Plaster002",
+    "roof_b": "RoofingTiles013A",
+    "concrete_b": "Concrete042A"
   }
 }

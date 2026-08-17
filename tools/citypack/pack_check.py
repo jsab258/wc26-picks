@@ -28,6 +28,12 @@ PACK = ROOT / "ledger" / "Assets" / "StreamingAssets" / "CityPack"
 SURFACES = ["asphalt", "sidewalk", "kerb", "brick_red", "brick_grey", "plaster",
             "concrete", "wood", "roof", "metal", "glass", "window"]
 
+# The variants are OPTIONAL by design: the game asks for `brick_red` and takes
+# `brick_red_b` only if it is there, so a fetch that lands eleven of twelve
+# variants is a slightly less varied city rather than a broken one. Checked
+# for shape when present, never required.
+VARIANTS = ["brick_red_b", "brick_grey_b", "plaster_b", "roof_b", "concrete_b"]
+
 # `LoadPackTexture` tries these three, in this order.
 EXTS = (".png", ".jpg", ".jpeg")
 

@@ -68,6 +68,35 @@ namespace Ledger.Game
         /// A shared, cached material for a logical surface. Shared (not instanced)
         /// so identical surfaces batch. Callers that need a per-object tweak should
         /// use a MaterialPropertyBlock rather than mutating the returned material.
+        /// The same surface, in one of its variants — `brick_red` or
+        /// `brick_red_b`, chosen by a hash the caller already has.
+        ///
+        /// THE FALLBACK IS THE POINT. A variant that never landed resolves to
+        /// no texture, and a material with no texture is the flat-tint path,
+        /// which would put untextured walls in a street rather than a
+        /// slightly less varied one. So a variant is used only when the pack
+        /// actually carries its file, and the base surface answers otherwise:
+        /// the fetch can fail, partially or completely, and the city looks
+        /// exactly as it does today.
+        public static Material MaterialVariant(string logical, int hash)
+        {
+            if (!_initialized) Initialize();
+            if ((hash & 1) == 0) return Material(logical);
+            var alt = logical + "_b";
+            if (_variantOk.TryGetValue(alt, out var ok))
+                return ok ? Material(alt) : Material(logical);
+            ok = PackPresent && ResolveTexture(alt, SurfaceSpec.For(alt)) != null;
+            _variantOk[alt] = ok;
+            if (ok) VariantsUsed++;
+            return ok ? Material(alt) : Material(logical);
+        }
+        static readonly Dictionary<string, bool> _variantOk = new Dictionary<string, bool>();
+
+        /// How many variant surfaces the pack actually supplied — so "the
+        /// city is varied" and "the fetch landed nothing and everything fell
+        /// back" cannot read the same on the done line.
+        public static int VariantsUsed;
+
         public static Material Material(string logical)
         {
             if (!_initialized) Initialize();

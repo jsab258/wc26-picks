@@ -66,6 +66,16 @@ SURFACES = {
     "metal":      ["Metal"],
     "glass":      ["Glass", "Metal"],
     "window":     ["Glass", "Metal"],
+    # VARIANTS (18 Aug). A second photograph for each surface that fills a
+    # street view, so 376 buildings stop wearing one brick. The logical name
+    # is `<surface>_b`, which `AssetLibrary` resolves as an alternate rather
+    # than as a new kind of thing — nothing in the world asks for "brick_red_b"
+    # by name.
+    "brick_red_b":  ["Bricks"],
+    "brick_grey_b": ["Bricks", "Concrete"],
+    "plaster_b":    ["Plaster"],
+    "roof_b":       ["RoofingTiles"],
+    "concrete_b":   ["Concrete"],
 }
 
 # The DEFAULT when choices.json is silent; the committed choices carry the

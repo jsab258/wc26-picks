@@ -946,11 +946,11 @@ namespace Ledger.Game
                 // depend on that) and reads as a town that grew, not a
                 // pattern that was stamped.
                 var facade = facades[FacadePick(pos)];
-                var body = MakeBox($"Building_{i}", pos + new Vector3(0, size.y / 2f, 0), size, facade);
+                var body = MakeBoxVaried($"Building_{i}", pos + new Vector3(0, size.y / 2f, 0), size, facade, pos);
                 // Tile the façade at roughly one texture repeat per 3.5m so brick keeps a
                 // consistent scale across differently-sized buildings.
                 SetTiling(body, Mathf.Max(1, Mathf.RoundToInt(size.x / 3.5f)), Mathf.Max(1, Mathf.RoundToInt(size.y / 3.5f)));
-                MakeBox($"Roof_{i}", pos + new Vector3(0, size.y + 0.15f, 0), new Vector3(size.x + 0.4f, 0.3f, size.z + 0.4f), AssetLibrary.Roof);
+                MakeBoxVaried($"Roof_{i}", pos + new Vector3(0, size.y + 0.15f, 0), new Vector3(size.x + 0.4f, 0.3f, size.z + 0.4f), AssetLibrary.Roof, pos);
 
                 AddWindows($"Bldg{i}", pos, size);
                 GroundFloor($"Bldg{i}", pos, size, OutwardFrom(pos));
@@ -2893,6 +2893,23 @@ namespace Ledger.Game
             go.transform.position = center;
             go.transform.localScale = size;
             go.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(material);
+            return go;
+        }
+
+        /// A box wearing one of its surface's VARIANTS, chosen by position.
+        /// Same determinism as `FacadePick` and the same argument: a city
+        /// where every brick wall is the same photograph reads as repetition
+        /// once there are enough walls to compare, and 60 parcels became 376.
+        static GameObject MakeBoxVaried(string name, Vector3 center, Vector3 size,
+                                        string material, Vector3 at)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = name;
+            go.transform.position = center;
+            go.transform.localScale = size;
+            int h = Mathf.Abs(Mathf.RoundToInt(at.x * 7.3f + at.z * 3.1f));
+            go.GetComponent<Renderer>().sharedMaterial =
+                AssetLibrary.MaterialVariant(material, h);
             return go;
         }
 
