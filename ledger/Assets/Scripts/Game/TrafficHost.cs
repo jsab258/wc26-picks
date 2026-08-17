@@ -268,7 +268,7 @@ namespace Ledger.Game
                 if (loud <= best) continue;
                 best = loud;
                 // A lorry idles lower than a cab does.
-                pitch = (v.Kind.Id == "truck" || v.Kind.Id == "bus" ? 0.72f : 1.0f)
+                pitch = (v.Kind.Id == Ledger.Core.VehicleKinds.TruckId || v.Kind.Id == Ledger.Core.VehicleKinds.BusId ? 0.72f : 1.0f)
                         + speedFrac * 0.45f;
             }
             var mine = PlayerCar.Instance;
@@ -458,24 +458,59 @@ namespace Ledger.Game
             if (kitBody == null)
             switch (v.Kind.Id)
             {
-                case "bike":
-                    Part(root, "frame", new Vector3(0, hi * 0.55f, 0), new Vector3(wid, hi * 0.35f, len), paint);
-                    Part(root, "rider", new Vector3(0, hi * 0.85f, -0.1f), new Vector3(0.45f, hi * 0.5f, 0.35f), Coat());
+                case Ledger.Core.VehicleKinds.BikeId:
+                    // A CYCLIST, NOT TWO SLABS. Nine of the city's 28 vehicles
+                    // are bicycles and every one is a primitive — the kit has
+                    // no bicycle in it, all 50 of its models are already
+                    // extracted, so this construction IS the bike until a
+                    // different CC0 kit arrives. It was a 0.7 x 0.6 x 1.8 box
+                    // for the frame with a single box sitting on it, which at
+                    // street distance reads as a crate with a person on top.
+                    //
+                    // The wheels were already right (`Wheels` gives a bike two
+                    // at 0.45m). What was missing is everything that says
+                    // BICYCLE from twenty metres: a thin frame instead of a
+                    // slab, a saddle and a fork, HANDLEBARS across the front —
+                    // the one part that is unmistakable in silhouette — and a
+                    // rider who leans, with legs and a head rather than a
+                    // single upright block.
+                    //
+                    // Six small boxes where there were two, so nine bikes cost
+                    // 54 primitives instead of 18. Against 822 props already
+                    // placed that is not a number worth protecting, and it is
+                    // the cheapest available step up for a third of the
+                    // traffic — "best available, not first working".
+                    Part(root, "frameBar", new Vector3(0, 0.62f, 0),
+                         new Vector3(0.07f, 0.09f, len * 0.66f), paint);
+                    Part(root, "seatTube", new Vector3(0, 0.78f, -len * 0.14f),
+                         new Vector3(0.07f, 0.34f, 0.07f), paint);
+                    Part(root, "saddle", new Vector3(0, 0.95f, -len * 0.17f),
+                         new Vector3(0.13f, 0.06f, 0.26f), paint);
+                    Part(root, "fork", new Vector3(0, 0.80f, len * 0.31f),
+                         new Vector3(0.07f, 0.40f, 0.07f), paint);
+                    Part(root, "bars", new Vector3(0, 1.00f, len * 0.30f),
+                         new Vector3(0.52f, 0.05f, 0.05f), paint);
+                    Part(root, "riderLegs", new Vector3(0, 0.72f, -0.02f),
+                         new Vector3(0.30f, 0.50f, 0.24f), Coat());
+                    Part(root, "riderTorso", new Vector3(0, 1.12f, len * 0.06f),
+                         new Vector3(0.40f, 0.52f, 0.28f), Coat());
+                    Part(root, "riderHead", new Vector3(0, 1.45f, len * 0.10f),
+                         new Vector3(0.20f, 0.22f, 0.20f), Coat());
                     break;
 
-                case "bus":
+                case Ledger.Core.VehicleKinds.BusId:
                     Part(root, "body", new Vector3(0, hi * 0.55f, 0), new Vector3(wid, hi * 0.8f, len), paint);
                     Part(root, "band", new Vector3(0, hi * 0.72f, 0), new Vector3(wid + 0.04f, hi * 0.22f, len * 0.92f),
                         AssetLibrary.Glass);
                     break;
 
-                case "truck":
+                case Ledger.Core.VehicleKinds.TruckId:
                     Part(root, "cab", new Vector3(0, hi * 0.4f, len * 0.30f), new Vector3(wid, hi * 0.62f, len * 0.34f), paint);
                     Part(root, "load", new Vector3(0, hi * 0.52f, -len * 0.18f), new Vector3(wid, hi * 0.8f, len * 0.62f),
                         AssetLibrary.Wood);
                     break;
 
-                case "van":
+                case Ledger.Core.VehicleKinds.VanId:
                     Part(root, "body", new Vector3(0, hi * 0.5f, -len * 0.08f), new Vector3(wid, hi * 0.72f, len * 0.82f), paint);
                     Part(root, "nose", new Vector3(0, hi * 0.32f, len * 0.38f), new Vector3(wid * 0.95f, hi * 0.4f, len * 0.24f), paint);
                     break;
@@ -489,14 +524,14 @@ namespace Ledger.Game
 
             Wheels(root, v.Kind, len, wid, hi);
 
-            if (v.Kind.Id != "bike")
+            if (v.Kind.Id != Ledger.Core.VehicleKinds.BikeId)
             {
                 // Headlamps. Emissive at night through the same window material
                 // the buildings use, so a car coming down an avenue after dark
                 // is two lights before it is a shape — which is most of what
                 // makes a street at night feel occupied.
                 float nose = len / 2f - 0.1f;
-                float lampY = v.Kind.Id == "truck" || v.Kind.Id == "bus" ? hi * 0.35f : 0.45f;
+                float lampY = v.Kind.Id == Ledger.Core.VehicleKinds.TruckId || v.Kind.Id == Ledger.Core.VehicleKinds.BusId ? hi * 0.35f : 0.45f;
                 Lamp(root, "lampL", new Vector3(-wid * 0.32f, lampY, nose));
                 Lamp(root, "lampR", new Vector3(wid * 0.32f, lampY, nose));
 
@@ -685,10 +720,10 @@ namespace Ledger.Game
         {
             switch (v.Kind.Id)
             {
-                case "bus": return AssetLibrary.Metal;
-                case "truck": return AssetLibrary.Metal;
-                case "taxi": return AssetLibrary.Metal;
-                case "bike": return AssetLibrary.Metal;
+                case Ledger.Core.VehicleKinds.BusId: return AssetLibrary.Metal;
+                case Ledger.Core.VehicleKinds.TruckId: return AssetLibrary.Metal;
+                case Ledger.Core.VehicleKinds.TaxiId: return AssetLibrary.Metal;
+                case Ledger.Core.VehicleKinds.BikeId: return AssetLibrary.Metal;
                 default: return v.Id % 2 == 0 ? AssetLibrary.Metal : AssetLibrary.Concrete;
             }
         }
