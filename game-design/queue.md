@@ -103,10 +103,13 @@ recorded bank only, which the verdict's speech keys already measure.
    numbers move with the runner too (`mean` 527 -> 610 between these
    two), so compare within a run, not across.
 
-   And the comment beside `PopulationCount = 700` still says "700 puts
-   roughly a dozen people out of doors within earshot at midday, which
-   is a street rather than a demonstration" — measured on the city
-   BEFORE the stretch. Re-read it when the numbers land.
+   **CORRECTION — f802928's commit message costs a walker at "~0.58ms"
+   by dividing `npcs` by `crowdWalkers=12`.** Wrong denominator: that
+   scope ticks every entry of `_npcs`, i.e. `walkers=55`. ~0.13ms each,
+   and not flat — the separation term is quadratic in the crowd.
+
+   The comment beside `PopulationCount = 700` also still describes the
+   city BEFORE the stretch. Re-read it when the numbers land.
 
 1. **FIFTY-SIX BUILDING MODELS ARE SITTING IN A CATALOGUE NOBODY HAS
    PICKED FROM.** `tools/props/listings.json` was committed so the next
