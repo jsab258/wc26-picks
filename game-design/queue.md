@@ -106,18 +106,38 @@ and the verdict's speech keys already measure that path.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
-1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL** *(on screen —
-   the first player-height frame, dfefd62)*. From the review camera the
-   rain was fine; from the player's eyes the sky is dense dark scribble
-   — too many streaks, too long, likely sized for a downward view. Read
-   streak width/alpha/length against camera pitch, thin them, re-judge
-   on the next street frame. THE SAME FRAME CLOSED TWO ITEMS: plates do
-   NOT stack from player height (nameplate-heap was a review-camera
-   artifact; declutter vindicated, managed-labels peak 6, orphans 0),
-   and the tpose question is CLOSED — the corrected latch recounted
-   zero on both 15 Aug runs, so the pink figure is ERROR-SHADER MAGENTA
-   on one body variant, a missing material, not a pose. Still owed:
-   name the magenta body's material via the census.
+1. **THE STREET IS EMPTY AT EYE LEVEL, AND EVERY POPULATION NUMBER
+   SAYS IT IS FINE.** *(on screen — review_street.jpg at 0d38986, the
+   first frame with nothing standing in it)* The judgement camera is
+   finally clear and what it shows is a deserted city. The numbers all
+   read healthy and NOT ONE of them is about the view: `walkers=55` is
+   bodies anywhere in a city that grew ~2.5x in area at the topology
+   stretch, `crowdWalkers=12` is exactly `CrowdWalkerCap` so the near
+   cap is BINDING, and `crowdMill=136` is the GOSSIP mill — social
+   agents, not a render tier. There is no cheap visible-body tier at
+   all. `streetBodies` / `streetBodiesNear` / `streetBodiesLive` land
+   next build, counted through the real camera at the shutter. READ
+   THE SERIES BEFORE TOUCHING THE CAP: raising it is ~0.58ms/walker
+   against `npcs=6.93ms` of a 12ms budget, so doubling it blows the
+   frame gate that is already red. The affordable move is more bodies
+   in shot per millisecond, not more walkers.
+
+   And the comment beside `PopulationCount = 700` still says "700 puts
+   roughly a dozen people out of doors within earshot at midday, which
+   is a street rather than a demonstration" — measured on the city
+   BEFORE the stretch. Re-read it when the numbers land.
+
+1. **CLOSED 17 Aug — the pink figure was never a fault.** Three
+   explanations went out before any was checked and measurement killed
+   all three: the frame holds ZERO magenta pixels so it is not the
+   error shader, it is not a broken mesh, and it is not cartoon
+   proportions — she measures 7.63 heads. It is Mixamo's Sporty Granny
+   rendering as authored. What the measuring DID find was two models
+   nobody had looked at: The Boss (neckFrac 0.762) and Big Vegas
+   (0.761) against a realistic cluster of 0.806–0.837, both now kept
+   out of the pool by `Core/Proportion` rather than by a name list.
+   Pool 8 -> 6. **Owed: more realistic bodies, which is a Mixamo pick
+   and Jafar's step** — the sameness problem got worse to buy this.
 
 1. **THE FRAME GATE IS THE ONLY LIVE RED, AND IT IS THE GAME'S OWN TIME.**
    **Read the breakdown, not the mean.** `mean=483.7ms` is a software

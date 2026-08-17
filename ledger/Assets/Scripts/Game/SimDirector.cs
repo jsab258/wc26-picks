@@ -63,6 +63,11 @@ namespace Ledger.Game
         const int MaxReviewStills = 4;
         int _reviewStills;
         int _streetStills;
+        /// How many people are in the street photograph, counted through the
+        /// camera at the instant it fires. -1 is "the street shot never ran",
+        /// which is a different fact from 0 — "it ran and the street was
+        /// empty" — and the two must never come out looking the same.
+        int _streetBodies = -1, _streetBodiesNear = -1, _streetBodiesLive = -1;
         /// Noon and night of one rest day, on top of the four. Two,
         /// because a Saturday needs the same pair of lighting
         /// conditions as a Tuesday to be comparable with one.
@@ -7686,6 +7691,51 @@ namespace Ledger.Game
                     Billboard.AimAll(cam);
                     SpeechBubble.PinAll(cam);
                     NameTags.PinAll(cam);
+
+                    // HOW MANY PEOPLE ARE ACTUALLY IN THIS PHOTOGRAPH.
+                    //
+                    // The frame this camera fix finally cleared came back
+                    // looking DESERTED, and nothing measured that. Every
+                    // population number describes the simulation rather than
+                    // the view: `walkers=55` counts bodies anywhere in a city
+                    // that just grew about two and a half times in area, and
+                    // `crowdWalkers=12` is a cap on how many stand near the
+                    // player, not on how many are in shot. Both were healthy
+                    // while the street looked empty, which is the whole
+                    // reason this counter exists.
+                    //
+                    // Taken AT THE SHUTTER, through the real camera's own
+                    // projection, so the count and the picture are the same
+                    // instant and the same frustum — rule 2's same-instant
+                    // rule, which this project has broken four times by
+                    // dividing two peaks taken from different moments.
+                    //
+                    // Two distances because they answer different questions.
+                    // `streetBodies` is anybody on screen at all, which is
+                    // what "does this look like a city" asks. `streetBodiesNear`
+                    // is those inside 25m, where a body reads as a person
+                    // rather than a speck — a street can be busy at the far
+                    // end and empty where you are standing, and one number
+                    // cannot say which. `streetBodiesLive` is the denominator
+                    // (rule 3b): without it, "nobody in shot" and "nobody
+                    // spawned" are the same reading.
+                    _streetBodies = 0;
+                    _streetBodiesNear = 0;
+                    _streetBodiesLive = 0;
+                    foreach (var w in NpcWalker.Live)
+                    {
+                        if (w == null) continue;
+                        _streetBodiesLive++;
+                        // Chest height: a body's feet can sit below the frame
+                        // on a kerb while the person is plainly in the picture.
+                        var at = w.transform.position + Vector3.up * 0.9f;
+                        var vp = cam.WorldToViewportPoint(at);
+                        if (vp.z <= 0 || vp.x < 0f || vp.x > 1f || vp.y < 0f || vp.y > 1f)
+                            continue;
+                        _streetBodies++;
+                        if (vp.z <= 25f) _streetBodiesNear++;
+                    }
+
                     cam.Render();
                     RenderTexture.active = rt;
                     tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
@@ -9921,7 +9971,7 @@ namespace Ledger.Game
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
                       $"coverageOk={coverageOk} openModeForced={_openModeForced} endScreen={_endScreenDismissed} " +
                       $"daysSkipped={_daysSkipped} endDay={_endDay} " +
-                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} cutOffDay={_cutOffDay} cutOffNights={_cutOffNights} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} millAgents={millCount} crowdMill={crowdMill} strandedEmpty={strandedEmpty} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
+                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} cutOffDay={_cutOffDay} cutOffNights={_cutOffNights} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} streetBodies={_streetBodies} streetBodiesNear={_streetBodiesNear} streetBodiesLive={_streetBodiesLive} millAgents={millCount} crowdMill={crowdMill} strandedEmpty={strandedEmpty} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} opened={_game.ActThree.Opened} [{_actThreeWhy}] " +
                       $"ending={_actThreeEnding} handed={_actThreeHandedOver} " +
