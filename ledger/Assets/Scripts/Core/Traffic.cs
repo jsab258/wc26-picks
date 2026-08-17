@@ -45,39 +45,62 @@ namespace Ledger.Core
 
     public static class VehicleKinds
     {
+        /// THE IDS AS CONSTANTS, so the Game layer can switch on them
+        /// instead of retyping the string.
+        ///
+        /// `TrafficHost` matched `Kind.Id == "cab"` in TWO places — the kit
+        /// model lookup and the paint — and no vehicle has ever had that id;
+        /// this one is `taxi` and its NAME is "cab". Both branches were dead
+        /// from the day they were written, so every taxi in the city has been
+        /// getting a generic sedan mesh in a hashed colour, under a comment
+        /// reading "the cab is black, because a British cab is a black cab".
+        /// One idea, two implementations, both wrong the same way, and a
+        /// comment asserting behaviour that never once happened.
+        ///
+        /// A `const` can appear in a `case` label, which is the whole point:
+        /// the compiler now rejects the typo that a string literal accepted
+        /// silently. Found by `vehiclesKitted=18/28` — the counter added to
+        /// answer a different question entirely.
+        public const string CarId = "car";
+        public const string VanId = "van";
+        public const string TruckId = "truck";
+        public const string BusId = "bus";
+        public const string TaxiId = "taxi";
+        public const string BikeId = "bike";
+
         public static readonly VehicleKind Car = new VehicleKind
         {
-            Id = "car", Name = "car", Length = 4.2, Width = 1.8, Height = 1.5,
+            Id = CarId, Name = "car", Length = 4.2, Width = 1.8, Height = 1.5,
             TopSpeed = 11.0, Accel = 2.6, Brake = 5.5, Gap = 1.6, Rarity = 5,
             Witness = "a car", EngineNote = "car",
         };
         public static readonly VehicleKind Van = new VehicleKind
         {
-            Id = "van", Name = "delivery van", Length = 5.4, Width = 2.0, Height = 2.3,
+            Id = VanId, Name = "delivery van", Length = 5.4, Width = 2.0, Height = 2.3,
             TopSpeed = 9.5, Accel = 2.0, Brake = 4.8, Gap = 1.8, Rarity = 3,
             Witness = "a delivery van", EngineNote = "van",
         };
         public static readonly VehicleKind Truck = new VehicleKind
         {
-            Id = "truck", Name = "lorry", Length = 7.8, Width = 2.4, Height = 3.0,
+            Id = TruckId, Name = "lorry", Length = 7.8, Width = 2.4, Height = 3.0,
             TopSpeed = 8.0, Accel = 1.3, Brake = 4.0, Gap = 2.4, Rarity = 2,
             Witness = "a lorry", EngineNote = "truck",
         };
         public static readonly VehicleKind Bus = new VehicleKind
         {
-            Id = "bus", Name = "bus", Length = 10.5, Width = 2.5, Height = 3.2,
+            Id = BusId, Name = "bus", Length = 10.5, Width = 2.5, Height = 3.2,
             TopSpeed = 8.5, Accel = 1.2, Brake = 4.0, Gap = 2.6, Rarity = 1,
             StopsAtStops = true, Witness = "the bus", EngineNote = "bus",
         };
         public static readonly VehicleKind Taxi = new VehicleKind
         {
-            Id = "taxi", Name = "cab", Length = 4.4, Width = 1.8, Height = 1.6,
+            Id = TaxiId, Name = "cab", Length = 4.4, Width = 1.8, Height = 1.6,
             TopSpeed = 11.5, Accel = 2.9, Brake = 5.5, Gap = 1.5, Rarity = 3,
             WaitsAtRanks = true, Witness = "a cab", EngineNote = "car",
         };
         public static readonly VehicleKind Bike = new VehicleKind
         {
-            Id = "bike", Name = "bicycle", Length = 1.8, Width = 0.7, Height = 1.7,
+            Id = BikeId, Name = "bicycle", Length = 1.8, Width = 0.7, Height = 1.7,
             TopSpeed = 5.5, Accel = 1.6, Brake = 3.5, Gap = 1.0, Rarity = 4,
             UsesLanes = true, Witness = "a bicycle", EngineNote = "none",
         };

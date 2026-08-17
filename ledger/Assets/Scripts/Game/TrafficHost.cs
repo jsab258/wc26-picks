@@ -361,11 +361,17 @@ namespace Ledger.Game
         {
             switch (kindId)
             {
-                case "cab":   return new[] { "taxi", "sedan" };
-                case "van":   return new[] { "van", "delivery" };
-                case "truck": return new[] { "truck", "delivery_flat", "truck_flat" };
-                case "bus":   return System.Array.Empty<string>();
-                case "bike":  return System.Array.Empty<string>();
+                // `taxi`, not "cab" — the id is `taxi` and only the NAME
+                // is "cab". This branch was dead from the day it was
+                // written and every cab in the city got a plain sedan.
+                case Ledger.Core.VehicleKinds.TaxiId: return new[] { "taxi", "sedan" };
+                case Ledger.Core.VehicleKinds.VanId:  return new[] { "van", "delivery" };
+                case Ledger.Core.VehicleKinds.TruckId: return new[] { "truck", "delivery_flat", "truck_flat" };
+                // No bus and no bicycle exist in the kit — all 50 of its
+                // models are extracted and neither is among them, so these
+                // two fall back on purpose and `vehicleFellBack` names them.
+                case Ledger.Core.VehicleKinds.BusId:  return System.Array.Empty<string>();
+                case Ledger.Core.VehicleKinds.BikeId: return System.Array.Empty<string>();
                 default:      return new[] { "sedan", "suv", "hatchback_sports", "sedan_sports" };
             }
         }
@@ -670,7 +676,7 @@ namespace Ledger.Game
         };
 
         static Color KitPaint(Vehicle v) =>
-            v.Kind.Id == "cab" ? KitPaints[1]
+            v.Kind.Id == Ledger.Core.VehicleKinds.TaxiId ? KitPaints[1]
             : KitPaints[((v.Id % KitPaints.Length) + KitPaints.Length) % KitPaints.Length];
 
         /// A paint colour that is stable for a given vehicle — nobody wants the

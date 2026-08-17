@@ -1959,3 +1959,41 @@ plan. The open questions stayed behind; this is the settled part.
   the ring hour.** Held back deliberately so a moving `summonsTaken` could be
   attributed; it did not move, so the plant is now unambiguous.
 
+
+
+## Moved out of `queue.md`, 17 Aug — settled, kept for the reasoning
+
+The queue is capped at 400 lines by `docs-check` precisely so this
+migration happens instead of the file becoming a diary. These blocks
+were all closed work.
+
+### THE CLIPS LANDED AND THE STREET IS ALIVE.
+Jafar's Mixamo harvest came in complete — 54 slots, zero missing —
+and replaced two absurd survivors (walk start/stop were FASHION
+CATWALK turns). Ten clips had no consumer; they have one now. People
+talk, argue, lean, look bored, smoke outside the pub, work counters,
+carry shopping. `activityPeak` 1 -> 18 once the states went on ALL
+FOUR controllers rather than the canonical one. Old-person gait is
+live off `idle_old`/`walk_old`, and the crowd stops being boxes
+within 14m at the same cap.
+
+Also closed: the intermittent traffic red (a cab idling on a rank
+spur, which is a LANE, so `OnRoad` called correct behaviour a fault —
+the gate was measuring the model), zebra crossings with belisha
+beacons, cables that only hang where two buildings hold them, the
+width-aware bubble cap, every chimney smoking, and the two white
+pills at the kerb.
+
+THE PILLS COST FOUR BUILDS AND THE LESSON IS RULE ONE. Identified
+three times off a JPEG — capsule, default material, smoke — all three
+wrong. Nine lines of numpy over the committed frame answered it in one
+turn: two tall white blobs, and the city builds exactly two pillar
+boxes at 0.48x1.1m. Their red was a property-block tint that never
+reached the renderer; it lives in a shared material now. **MEASURE
+THE FRAME** — it is cheap, it is already in the repo, and on 17 Aug
+it did it again: three more wrong readings of one walker, killed by
+counting magenta pixels (zero) and then by measuring the rig.
+
+NEXT: T3 queue points and standing destinations; then the freeze
+decision (recommendation KEEP, unchanged and now stronger); then the
+street-spec topology re-plan, whose case is the ~110 parcel ceiling.

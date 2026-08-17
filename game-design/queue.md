@@ -27,36 +27,17 @@ CLAUDE.md under AUTO MODE.
 
 ## Now
 
-### THE CLIPS LANDED AND THE STREET IS ALIVE.
-Jafar's Mixamo harvest came in complete — 54 slots, zero missing —
-and replaced two absurd survivors (walk start/stop were FASHION
-CATWALK turns). Ten clips had no consumer; they have one now. People
-talk, argue, lean, look bored, smoke outside the pub, work counters,
-carry shopping. `activityPeak` 1 -> 18 once the states went on ALL
-FOUR controllers rather than the canonical one. Old-person gait is
-live off `idle_old`/`walk_old`, and the crowd stops being boxes
-within 14m at the same cap.
+### Where the street got to
 
-Also closed: the intermittent traffic red (a cab idling on a rank
-spur, which is a LANE, so `OnRoad` called correct behaviour a fault —
-the gate was measuring the model), zebra crossings with belisha
-beacons, cables that only hang where two buildings hold them, the
-width-aware bubble cap, every chimney smoking, and the two white
-pills at the kerb.
-
-THE PILLS COST FOUR BUILDS AND THE LESSON IS RULE ONE. Identified
-three times off a JPEG — capsule, default material, smoke — all three
-wrong. Nine lines of numpy over the committed frame answered it in one
-turn: two tall white blobs, and the city builds exactly two pillar
-boxes at 0.48x1.1m. Their red was a property-block tint that never
-reached the renderer; it lives in a shared material now. **MEASURE
-THE FRAME** — it is cheap, it is already in the repo, and on 17 Aug
-it did it again: three more wrong readings of one walker, killed by
-counting magenta pixels (zero) and then by measuring the rig.
+Jafar's Mixamo harvest landed complete (54 slots, zero missing) and the
+street came alive with it — people talk, argue, lean, smoke, work
+counters, carry shopping, `activityPeak` 1 -> 18. Zebra crossings,
+belisha beacons, hanging cables, smoking chimneys and the topology
+stretch all landed with it. **The accounts are in
+`roadmap-history.md`; the git log is the record.**
 
 NEXT: T3 queue points and standing destinations; then the freeze
-decision (recommendation KEEP, unchanged and now stronger); then the
-street-spec topology re-plan, whose case is the ~110 parcel ceiling.
+decision (recommendation KEEP, unchanged and now stronger).
 
 ### THE PLAYTEST PUSH — sequence, not calendar (Jafar: "forget exact
 ### days, just keep the sequence")
@@ -103,12 +84,16 @@ recorded bank only, which the verdict's speech keys already measure.
    agents, not a render tier. There is no cheap visible-body tier at
    all.
 
-   **MEASURED at f802928: `streetBodies=5 streetBodiesNear=2
-   streetBodiesLive=52`.** Standing in the middle of the street you see
-   FIVE people, two of them close enough to read as a person, out of
-   52 alive. A camera sees ~60 degrees, so bodies scattered evenly
-   round the player put ~1 in 6 of them in frame no matter how the cap
-   is set — which is why the cap is not the lever it looks like.
+   **MEASURED, TWICE: `5/2/52` at f802928 and `8/5/55` at 645421c** —
+   bodies in shot / within 25m / alive. Standing in the street you see
+   five to eight people, two to five close enough to read as a person.
+   **NOTHING BETWEEN THOSE RUNS CHANGED DENSITY, so the 5 -> 8 is the
+   spread of the measurement, not progress** — the street shot picks a
+   different spot each run. Two samples is not a series; get more
+   before reading any movement as a result. A camera sees ~60 degrees,
+   so bodies scattered evenly round the player put ~1 in 6 in frame no
+   matter how the cap is set — which is why the cap is not the lever it
+   looks like.
 
    **THE COST IS NPCs AND TRAFFIC, NOT SUN.** Same run: `npcs=9.36
    traffic=4.67 mix=3.37 bodyLod=1.46 rigs=1.21 sun=1.26`, `game=22.84`
@@ -145,6 +130,18 @@ recorded bank only, which the verdict's speech keys already measure.
    on disk, so nothing about their size, poly count or UVs can be
    checked here. First step is fetching a handful to MEASURE, not
    committing to the swap.
+
+1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — 10 of 28 vehicles are
+   still primitives.** `vehiclesKitted=18/28`,
+   `vehicleFellBack=[bus,bike x9]` on its first run. Checked: all 50
+   models in the car-kit listing ARE extracted, and neither a bus nor
+   a bicycle is among them. So this is a sourcing gap, not a bug, and
+   the fix is another CC0 kit — not more code. Bikes are nine of the
+   ten, so one bicycle model closes almost all of it.
+
+   Also unused and already on disk: `police`, `ambulance`, `firetruck`,
+   `garbage-truck`. A police car has obvious business in this game and
+   costs one line of `KitCandidates` once there is a kind for it.
 
 1. **CLOSED — the pink figure was never a fault.** Three explanations
    went out unchecked and measurement killed all three: zero magenta
