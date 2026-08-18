@@ -2047,3 +2047,55 @@ is selftested but has NEVER run against a real build; that is the first
 item on resuming. No live speech on the playtest Mac (no GPU) —
 recorded bank only, which the verdict's speech keys already measure.
 
+
+
+### The two perf fixes, in full — one worked, one did not
+
+   **THE TWO PERF FIXES, MEASURED — ONE WORKED, ONE DID NOT.**
+
+   `traffic`: 4.67 -> 4.27 -> **2.23**. Hoisting the road heading out
+   of the per-hazard loop roughly halved it, well outside the prior
+   spread. One sample; treat as strong, not settled.
+
+   `npcs`: 9.36 -> 8.43 -> **8.63**. Did NOT move. The broad-phase in
+   `StepApart` works exactly as designed — `crowdApartPairs=5288` of
+   `crowdApartCalls=63298`, so of ~3.3M candidate pairs only 0.16%
+   reach a square root — and the time stayed put anyway. **So the
+   commit title "that is why the street is empty" was overstated and
+   is corrected here.** Removing the sqrt did not help because the
+   ITERATION is what costs: the sweep still visits every walker for
+   every walker, and only the work per visit got cheaper. Still O(n²),
+   just with a smaller constant. A spatial bucket is the real fix and
+   is not yet written; the cost of the crowd is still somewhere inside
+   `Tick` that nothing has isolated.
+
+
+
+### The kit building measurements, in full
+
+   **MEASURED — eleven fetched, `tools/prop-dimensions.py`, and the
+   answer is NOT the terraces.**
+
+       building-a              733 verts   88 x 129 x  94
+       building-b              762         97 x 129 x  94
+       building-type-a         707        130 x  83 x 103
+       skyscraper-a            978        136 x 288 x 136
+       low-detail-building-a   104         50 x 200 x  50
+       low-detail-building-c    90         50 x 225 x  50
+
+   Read the RATIOS: kit units are not metres (its `sedan` is 150x145x255
+   and a sedan is 4.2m long) and `TrafficHost` already rescales a kit
+   mesh on instantiate, so proportion is what decides.
+
+   **Every full building has a roughly SQUARE plan** — 88x94, 97x94,
+   130x103. Our terrace parcels are about 1:2, narrow frontage and
+   deep. These are detached standalone blocks and cannot be terrace
+   units at any scale. That closes the "just switch to them" option on
+   geometry rather than on taste.
+
+   **The low-detail set is the find: 90–112 verts at a 1:4 tower
+   ratio.** Trivial against a scene already carrying ~280k vertices in
+   bodies alone, and exactly the shape a DISTANT SKYLINE wants — which
+   is where the queue guessed our system was weakest, now with evidence
+   under it. That is the next step, not a terrace swap.
+

@@ -67,35 +67,44 @@ is the bar sign's bare back face, one line, behind the critical work.
    scattered round the player put ~1 in 6 in frame however the cap is
    set, which is why the cap is not the lever it looks like.
 
-   **AND `streetBodiesSkinned=0` of 3 — the frame was showing
-   MANNEQUINS.** The body budget ranks by distance to the PLAYER and
-   this camera deliberately walks away from the player, so the skinned
-   models stayed behind the lens. Every visual judgement of the bodies
-   in that still has been made of the wrong thing. Fixed by re-ranking
-   from the camera before the shutter; judge on the next frame.
+   **THE BODY BUDGET IS SPENT ON WHO IS NEAREST, NOT ON WHO YOU ARE
+   LOOKING AT — and that is a game fault, not an instrument one.**
+
+   `streetBodiesSkinned` went 0/3, then 2/6 after re-ranking from the
+   camera, then 0/6 again once the camera stepped clear of the parked
+   car. The reason is in `SceneAudit`'s near list: `Ch03:1.89m`,
+   `Ch02_Body:1.93m` — skinned bodies a metre or two from the lens and
+   OUT OF FRAME, beating the four people in shot at 10–25m to all 12
+   grants. `NearMetres=34` and `crowdBodyMetres=14`, so the in-frame
+   ones are eligible; they simply lose on raw distance.
+
+   **So the still is telling the truth and should not be "fixed".** A
+   player standing there sees exactly this: the people they are
+   LOOKING AT are mannequins while the budget went to somebody behind
+   their shoulder. Biasing the shot's ranking would make the frame
+   flatter than the game, which is worse than a frame that shows the
+   fault.
+
+   The fix belongs in play: rank the budget with a forward bias, so
+   the twelve skinned bodies are the twelve you can see. Not done —
+   it changes play behaviour and wants judgement about how strong the
+   bias is, which is a decision and not a tidy-up.
 
    **THE COST IS NPCs AND TRAFFIC, NOT SUN.** `sun` has read 0.91,
    3.15 and 1.26 across runs that changed nothing relevant to it, so
    the old "sun is a quarter of the budget" line was reading noise.
    Frame numbers move with the runner too, so compare within a run.
 
-   **THE TWO PERF FIXES, MEASURED — ONE WORKED, ONE DID NOT.**
-
-   `traffic`: 4.67 -> 4.27 -> **2.23**. Hoisting the road heading out
-   of the per-hazard loop roughly halved it, well outside the prior
-   spread. One sample; treat as strong, not settled.
-
-   `npcs`: 9.36 -> 8.43 -> **8.63**. Did NOT move. The broad-phase in
-   `StepApart` works exactly as designed — `crowdApartPairs=5288` of
-   `crowdApartCalls=63298`, so of ~3.3M candidate pairs only 0.16%
-   reach a square root — and the time stayed put anyway. **So the
-   commit title "that is why the street is empty" was overstated and
-   is corrected here.** Removing the sqrt did not help because the
-   ITERATION is what costs: the sweep still visits every walker for
-   every walker, and only the work per visit got cheaper. Still O(n²),
-   just with a smaller constant. A spatial bucket is the real fix and
-   is not yet written; the cost of the crowd is still somewhere inside
-   `Tick` that nothing has isolated.
+   **PERF, MEASURED.** `traffic` 4.67 -> 4.27 -> **2.23**: hoisting
+   the road heading out of the per-hazard loop roughly halved it. One
+   sample, so strong not settled. `npcs` 9.36 -> 8.43 -> **8.63**: did
+   NOT move, though the broad-phase drops 99.8% of pairs before any
+   square root (`crowdApartPairs=5288` of `crowdApartCalls=63298`). So
+   the ITERATION is the cost, not the arithmetic in it — still O(n²)
+   with a smaller constant, and the commit title claiming otherwise is
+   corrected. `crowdApartMs` lands next build and says whether a
+   spatial bucket is worth writing at all. Accounts in
+   `roadmap-history.md`.
 
    **CORRECTION — f802928's commit message costs a walker at "~0.58ms"
    by dividing `npcs` by `crowdWalkers=12`.** Wrong denominator: that
@@ -118,31 +127,15 @@ is the bar sign's bare back face, one line, behind the critical work.
    procedural masses, which wear 2K photographic brick against the
    kit's flat palette colormap.
 
-   **MEASURED — eleven fetched, `tools/prop-dimensions.py`, and the
-   answer is NOT the terraces.**
-
-       building-a              733 verts   88 x 129 x  94
-       building-b              762         97 x 129 x  94
-       building-type-a         707        130 x  83 x 103
-       skyscraper-a            978        136 x 288 x 136
-       low-detail-building-a   104         50 x 200 x  50
-       low-detail-building-c    90         50 x 225 x  50
-
-   Read the RATIOS: kit units are not metres (its `sedan` is 150x145x255
-   and a sedan is 4.2m long) and `TrafficHost` already rescales a kit
-   mesh on instantiate, so proportion is what decides.
-
-   **Every full building has a roughly SQUARE plan** — 88x94, 97x94,
-   130x103. Our terrace parcels are about 1:2, narrow frontage and
-   deep. These are detached standalone blocks and cannot be terrace
-   units at any scale. That closes the "just switch to them" option on
-   geometry rather than on taste.
-
-   **The low-detail set is the find: 90–112 verts at a 1:4 tower
-   ratio.** Trivial against a scene already carrying ~280k vertices in
-   bodies alone, and exactly the shape a DISTANT SKYLINE wants — which
-   is where the queue guessed our system was weakest, now with evidence
-   under it. That is the next step, not a terrace swap.
+   **MEASURED (`tools/prop-dimensions.py`).** Every FULL building has
+   a roughly square plan — 88x94, 97x94, 130x103 — against terrace
+   parcels at about 1:2, narrow-fronted and deep. They are detached
+   standalone blocks and cannot be terraces at any scale, so that
+   option closes on geometry rather than taste. **The low-detail set is
+   the find: 90–112 verts at a 1:4 tower ratio**, trivial against ~280k
+   vertices of bodies, and exactly what a distant skyline wants — which
+   is where the hypothesis said our system was weakest. Skyline built
+   on that evidence; table in `roadmap-history.md`.
 
 1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — 10 of 28 vehicles are
    still primitives.** `vehiclesKitted=18/28`,
