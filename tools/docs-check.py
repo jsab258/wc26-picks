@@ -82,7 +82,13 @@ def main():
         head = p2.read_text(encoding="utf-8").split("\n")[:WITHIN_LINES]
         if not re.search(r"\*\*STATUS — LIVE", "\n".join(head)):
             continue
-        body = p2.read_text(encoding="utf-8").split("\n")
+        # splitlines, NOT split("\n"): every text file here ends in a newline,
+        # so split leaves a phantom empty final element and the count printed
+        # in the failure message is one more than wc -l says. That made the
+        # 400-line cap really a 399-line cap and sent me hunting for a line
+        # that was not there — the instrument disagreeing with every other
+        # line-counting tool in the project (rule 3).
+        body = p2.read_text(encoding="utf-8").splitlines()
         # NARROWED, DELIBERATELY, after the first version flagged three docs
         # of which only one was really guilty. "§7.1 Streets and the car (M12,
         # built 2026-07-26)" is a design section carrying its provenance and is

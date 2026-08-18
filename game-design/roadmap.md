@@ -15,6 +15,7 @@ what happens next.
 |---|---|---|
 | **now** | M17 — the game looks and sounds like itself | 17.4/17.6/17.9 closed · 17.7 part done · **17.1 and 17.1b CLOSED**: eight real bodies, `bodyChoices=10`, textures extracted, foot IK on both feet, the twelve NEAREST people wearing them. **What is open is SAMENESS, not absence** — ten models dress forty-three named people, so two on screen always share a face (`fourteen people, eight faces`). Breadth, cadence, loop phase and head scale vary and are confirmed; the limp IS wired and live (`Rig.Limp` drives the dip every solve; three walkers limping in the 8520994 run, amplitude 0.05 — small enough to read as subtle rather than absent, retune only off a still that says otherwise). The genuinely open half of sameness is the MODEL COUNT, which is a purchase decision, not code. The wardrobe wash is fixed and measured (near-white 39% predicted to 7.7% of 4,904 washes) with a per-material albedo anchor. The night skyline is occupancy-lit (`windowsLit=1747` of 2447). Full account in `roadmap-history.md` |
 | **also now** | M18 — the second life | family verified running · **the companion is CLOSED, 4 Aug**: she was never too slow, she had no idea where the player WAS — a walker learns the transform from one proximity sweep and both the escort's target and its catch-up speed were guarded on having it, so falling behind is what stopped her following. Bound at recruit time and picked by proximity now: `companionAtRecruit=9.2` against 23.8, `companionDist=4.2` at the deed, `deedWaitedDays=0` · vice and lifestyle deferred |
+| | M18.5 — the person you lie to | **promoted to a milestone 18 Aug, by Jafar**, from a bullet that was in no milestone at all. §2's illustration of the whole double life — *"your girlfriend can catch your alibi from your coworker"* — needs a partner to exist, and none does. The propagation half is built and running; what is missing is the relationship that makes catching an alibi hurt |
 | **next** | M19 — the people are thinking | inputs judged and fixed · **input parity done: a conversation can be carried without typing** · **outputs now judged too: the dialogue benchmark is a measured 78, no longer the word `unjudged`** |
 | | M20 — the town you learn | **days now differ from each other** · **the district cut is OFF — filling the city beats shrinking it, measured** · the cast tiering is what remains |
 | | M21 — the two ledgers | **started 4 Aug, and law-as-a-tool is now a complete verb.** An accusation is weighed by what the street will tell a detective rather than by whether it is true; making one marks you; and a charge that sticks points the detective at somebody else for four days before she comes back with exactly what she had. Allegiance shifts: pledge, refuse, walk out — three methods that existed, were tested, and had no callers. **AND 5 AUG: THE LAW COULD NEVER ACTUALLY ESCALATE, FOR THE WHOLE PROJECT.** `Killing.TopicKey` built its mill key by hand while `Fact` lowercases, so every victim — all capitalised — was filed under one key and looked up under another. `LiveWitnesses` returned nobody in every run ever kept, so the inquiry could not pass Procedure, the paper never named the player, the redirect had nothing to relieve, and `CoatHost.Arrested` still has no caller. Fixed, probed against real Core and guarded by a CoreTest tested both ways — so the verb was complete and the CHAIN it drives was dead, which reads identically from inside Core. What remains is the surface a player accuses somebody FROM, empire growth, notoriety and the competence axis |
@@ -31,18 +32,15 @@ LLM characters to beat it in the one place authored games cannot compete: the
 people are THINKING, not triggering.**
 
 Every NPC reaction in KCD2 is authored, and outside what the writer anticipated
-there is nothing. Here, what a person thinks of you is computed from what they
-saw or were told, then spoken in character by a model — so they can be WRONG
-about you, be argued with, and hold a grudge over a thing that never happened.
-The consequence engine is not wasted by this: it stops being the product and
+there is nothing. Here, what a person thinks of you is computed from what they saw
+or were told and spoken by a model — so they can be WRONG about you, be argued
+with, and hold a grudge over a thing that never happened. The consequence engine
 becomes the reason the conversations matter.
 
 **Worse at, and at peace with it:** visual fidelity, animation, traversal scale,
 driving, content volume, combat depth. **Never worse at:** characters, dialogue,
-whether the town feels inhabited, whether anything you do is remembered.
-
-Scores per dimension are in `agency-model.md`, re-scored against the code on
-2026-07-31.
+whether the town feels inhabited, whether anything you do is remembered. Scores
+per dimension are in `agency-model.md`.
 
 ---
 
@@ -52,20 +50,19 @@ Phases 1–4 shipped and gated; phase 5 is firearms and is M23. The §4.7 gate
 holds — *the same killing leaves no witness in an empty alley, several in a
 market, and none in the back room of a busy pub*.
 
-**"Shipped" is true of the CONSEQUENCE half and not of the fighting**, found
-2026-08-04 by reading the code rather than this table: violence is staged as an
-event, everything downstream runs, and there is no exchange of blows anywhere.
-Fixing it needs a done-condition that measures a FIGHT. **The risk it exposed
-set the pace of everything below, and 5 Aug removed it:** the Game layer now
-compiles here in six seconds (`tools/gamecheck.py`), so a wiring error costs a
-keystroke rather than a round trip. Accounts in `roadmap-history.md`.
+**"Shipped" is true of the CONSEQUENCE half and not of the fighting**, found by
+reading the code rather than this table: violence is staged as an event,
+everything downstream runs, and there is no exchange of blows anywhere. Fixing
+it needs a done-condition that measures a FIGHT. **The risk it exposed set the
+pace of everything below, and 5 Aug removed it:** the Game layer compiles here
+in six seconds now, so a wiring error costs a keystroke, not a round trip.
 
 ---
 
 ## M17 — THE GAME LOOKS AND SOUNDS LIKE ITSELF
 
 **Why first.** A player judges a game in ninety seconds and none of the depth
-below is visible in them. Almost nothing here is new design.
+below is visible in them.
 
 | | what | state | risk |
 |---|---|---|---|
@@ -81,65 +78,48 @@ below is visible in them. Almost nothing here is new design.
 | 17.9 | **A font that ships, and icons** | **DONE 2026-08-01.** PT Sans (SIL OFL) committed with its licence beside it; `fontless=0` every run | closed |
 
 **17.6–17.9 were found by an audit, not by the plan** — this file was derived
-from the work queue rather than from a definition of done, so it was silent
-about nine whole categories. Cause in `completeness-audit-2026-07-31.md`. **The
-2026-08-18 audit is the same shape aimed at the design doc** and found five more
-(romance, job tracks, smuggling, interiors, the session-hook guarantee), now
-placed in M18/M20/M21/M22.
+from the work queue rather than from a definition of done. **The 18 Aug audit
+is the same shape aimed at the design doc** and found five more (romance, job
+tracks, smuggling, interiors, the session-hook guarantee), now placed in
+M18/M18.5/M20/M21/M22.
 
-§4 chose stylised noir for the reason that still holds — a game about what people
-think they saw should look subjective and half-obscured, and weather and fog cut
-draw distance, hide low-detail geometry and make mood at once.
+§4 chose stylised noir for a reason that still holds: a game about what people
+think they saw should look subjective and half-obscured, and weather and fog
+cut draw distance, hide low-detail geometry and make mood at once.
 
 **The project can see itself.** Every Windows build commits four stills, a clip
 contact sheet and a `verdict.txt` to `game-design/sim-shots/`. **Judge M17 from
 the stills, not from the source** — and read all four before reading any gate.
 
-**Done when.** A sim screenshot shows a skinned body walking with foot IK, and
-`bodiesOk` gates on the Avatar being bound rather than on `Mannequin` boxes;
-every named character speaks in their cast voice; the bark bank has been read
-end to end; effort sounds exist for Phase 3's fight.
-
-**Depends on.** Nothing. All five can start today.
+**Done when.** A sim screenshot shows a skinned body walking with foot IK and
+`bodiesOk` gates on the Avatar being bound; every named character speaks in their
+cast voice; the bark bank has been read end to end. **Depends on** nothing.
 
 ---
 
 ## M18 — THE SECOND LIFE
 
-**Why it matters more than its scores suggest.** A belief network is only
-frightening if the people in it are people you would miss. Scores and the full
-argument: `agency-model.md`.
+**Why it matters more than its scores suggest.** A belief network is only frightening
+if the people in it are people you would miss. Scores and argument: `agency-model.md`.
 
 **What is in it.**
 - **Home as a place that reacts.** The rooms above the pub change with money,
   heat and who has been in them. A base that reads your week back to you.
-- **Companionship.** **DONE 2026-08-01, and closed 4 Aug** — she is a witness by
-  standing there, with no companion branch in the perception path. Account and
-  the following-distance fault in `roadmap-history.md`.
-- **Family and dependents.** **DONE 2026-08-01.** A dependent below `TalkFreely`
-  joins the mill as an ordinary agent whose loyalty is their bond, so the people
-  closest to you become the people most willing to talk.
+- **Companionship** and **family and dependents.** **DONE 2026-08-01.** She is a
+  witness by standing there, with no companion branch in the perception path; a
+  dependent below `TalkFreely` joins the mill as an ordinary agent whose
+  loyalty is their bond, so the people closest to you are the most willing to
+  talk. Accounts in `roadmap-history.md`.
 - **Vice.** A cost that is not money and not heat. **Not started.**
 - **Lifestyle.** **Not started**, and it needs BUILDING rather than wiring —
-  `Core/Wardrobe` is the only real starting point. (The substrate this entry
-  once claimed turned out to be weapons concealment and street furniture;
-  account in `roadmap-history.md`.)
-- **Romance. NOT STARTED AND, UNTIL 2026-08-18, IN NO MILESTONE AT ALL** — found
-  by auditing `design-doc.md` against this file. §6.6 names "friendship and
-  romance", and §2's flagship illustration of the second novelty claim is *"your
-  girlfriend can catch your alibi from your coworker"*: the clearest sentence
-  anyone has written about why this game is worth making depends on a system
-  that does not exist. What exists is friendship-shaped — every few days the
-  person who thinks best of you asks for an evening. The propagation underneath
-  is real and running; what is missing is the relationship that makes catching
-  an alibi hurt. **Done when** a partner holds a belief about the player that
-  came from a third party, and the endings matrix separates a run where it was
-  managed from one where it was not. **Depends on** nothing. **Risk: this may
-  deserve to be a milestone rather than a bullet**, and that is Jafar's call.
+  `Core/Wardrobe` is the only starting point.
+- **Romance — MOVED OUT 18 Aug, and it is now M18.5.** The boundary: M18 is the
+  life you go home to, M18.5 is the one person in it who can be lied to and
+  find out.
 - **The other day-job tracks.** §6.6 offers "bar, courier, office"; `Core/DayJob`
-  has no track concept — it is the courier round, singular, so a choice the doc
-  offers on the player's first morning has never existed. **Done when** two
-  tracks run end to end and each shows a different social graph and cover.
+  has no track concept — a choice the doc offers on the player's first morning
+  has never existed. **Done when** two tracks run end to end and each shows a
+  different social graph and cover.
 
 **Done when.** A run where the player never goes home is measurably worse in
 the endings matrix than one where they do — and the difference comes from
@@ -149,14 +129,57 @@ relationships rather than from a stat.
 
 ---
 
+## M18.5 — THE PERSON YOU LIE TO
+
+**Promoted to a milestone 2026-08-18, by Jafar**, from a bullet inside M18 that
+an audit found was in no milestone at all. It earns its own number because of
+the sentence it is load-bearing for: `design-doc.md` §2's illustration of the
+second novelty claim — the one the whole double life rests on — is *"your
+girlfriend can catch your alibi from your coworker."* That is the clearest
+thing anybody has written about why this game is worth making, and the system
+it describes does not exist; the word appears here only in character prose.
+
+**Why it sits here rather than later.** Every other consequence is survivable:
+money comes back, heat decays, a rival can be outlasted. A person who stops
+believing you is the one loss with no counterplay, and that is what makes the
+lying cost anything. Until one exists the double life is bookkeeping — and the
+propagation half is already running, so what is missing is the relationship,
+not the machinery.
+
+**What is in it.**
+- **One partner, arrived at through play.** No menu, no roster, no meter — P3
+  says a relationship is personal history, not a number. The open city already
+  asks: every few days the person who thinks best of you wants an evening.
+- **A belief that is theirs, not the street's.** They already take facts from
+  the mill at their own confidence; what is missing is that a fact can
+  CONTRADICT something the player told them, and be remembered as theirs.
+- **Evenings that cost the night** (P1 made literal), and **ending badly SCARS
+  rather than fails** — open mode's rule; it is a state, not a screen.
+
+**Done when.** A partner holds a belief about the player that arrived from a
+THIRD PARTY, the run names the hop it came by and who carried it, and the
+endings matrix separates a run where that belief was managed from one where it
+was not. Three facts, all reportable — nothing here closes on a screenshot.
+
+**Depends on.** Nothing. M19's conversations make it better, not possible; the
+mill, suspicion, memory and the social calendar all run today.
+
+**Risk, and it is not technical.** This is the easiest place in the project to
+write badly, and a romance written as slop is worse than none — it is the first
+thing a reviewer would quote. The bar is the one the dialogue already clears (a
+measured 78, slop at zero on authored prose) and it is judged by reading a
+transcript, not by a gate. The second risk is P3's: the moment this becomes a
+meter the player tops up, the mechanic has been replaced by its substitute.
+
+---
+
 ## M19 — THE PEOPLE ARE THINKING *(next, and the centrepiece)*
 
 **THE WRITING HAS BEEN JUDGED AND IT IS GOOD — the project's largest unexamined
-risk is retired.** Forty real exchanges through the live engine, read line by
-line on 3 August, scoring **78**: four voices stay four voices with the name
-tags removed, they catch a checkable lie for reasons grounded in who they are,
-and jailbreaks land in fiction rather than as refusals. Account and transcript
-in `roadmap-history.md` and `writing-check-free.md`.
+risk is retired.** Forty real exchanges, read line by line, scoring **78**:
+four voices stay four voices with the name tags off, they catch a checkable lie
+for reasons grounded in who they are, and jailbreaks land in fiction rather
+than as refusals. Accounts in `writing-check-free.md`.
 
 - **CONFIRMED 5 AUGUST, and the re-read found worse than either closure.** Both original faults are closed. **But all four voices answered "what's the mood" with the single word "Quiet.", in both paid runs, eight for eight** — every reply good alone, so it passed two readings and both checks, because the fault lives BETWEEN replies and nothing looked there. Each card now has a `What You Notice First` so they answer from different places. **And the cast was inventing people** — Frank Doyle's two-year tab, old Duffy's chair, Mrs Bartholomew, Vic, Ray, none of whom exist — the law breaking at its most expensive point, since a model that mints a person with a history has taken over deciding. Names are now limited to what the prompt already contains. **Checking is free from here**: `ConvoProbe --dump-prompts` needs no API call. Transcript and full account in `writing-check-free.md`.
 - Then make it good: voice held under pressure, memory of what you did.
@@ -164,9 +187,8 @@ in `roadmap-history.md` and `writing-check-free.md`.
 - NPCs who are **wrong about you** and can be argued with.
 
 **INPUT PARITY — a rule, checked, not promised.** Every conversational action is
-reachable with a stick and two buttons. Typing and dictation stay first-class
-alternatives, never removed and never required. The check: no dialogue state is
-reachable ONLY by text.
+reachable with a stick and two buttons; typing and dictation stay first-class
+and never required. The check: no dialogue state is reachable ONLY by text.
 
 The fix is to stop the model PARSING and start it OFFERING: it writes four
 things Tom could say right now, from live state, and you pick one. `IntentRouter`
@@ -195,48 +217,39 @@ because a flag flipped, and the whole exchange was played on a controller.
 
 ## M20 — THE TOWN YOU LEARN
 
-**THE DISTRICT CUT IS OFF — filling the city beats shrinking it, and this
-section said the opposite until 2026-08-18.** It read "Keep the Hook, Copper Row
-and Ironside; cut four" while the screen table at the top of this same file
+**THE DISTRICT CUT IS OFF — filling the city beats shrinking it, and this section
+said the opposite until 2026-08-18** — it read "cut four" while the screen table
 said the cut was off, measured. Two halves of one document giving opposite
-instructions is the exact failure `roadmap.md` exists to prevent, and it stood
-for two weeks.
+instructions is the exact failure this file exists to prevent; it stood a fortnight.
 
-What the measurement still says, and it is why the question was live:
-`ledger/Recurrence` counts how many people an ordinary resident crosses in a
-day — **6.5 at seven districts, 12.1 at two, 12.9 at three**, 32% more at face
-range. Concentration nearly doubles recurrence, which is the mechanism by which
-a place becomes familiar. **The answer was to raise density rather than cut
-area**, which buys the same recurrence without throwing away Ironside — the
-design's own "warehouses, logistics, places without witnesses", and its best
-unobserved location.
+`ledger/Recurrence` counts how many people an ordinary resident crosses a day:
+**6.5 at seven districts, 12.1 at two, 12.9 at three**, 32% more at face range.
+Concentration nearly doubles recurrence — but **raising density buys the same
+thing without throwing away Ironside**, the design's own "places without
+witnesses" and its best unobserved location.
 
-- **Days that differ from each other.** `OutdoorsAt` and `OutdoorPosition` take
-  an hour and reduce it mod 24 — there is no day parameter anywhere in the
-  routine model, so every Tuesday is every Saturday and recurrence is total and
-  unearned. Found by the tool above while measuring something else.
-- **Tier the cast**, because recognition and relationship have different
-  cognitive costs: a named few with faces, voices and memory; a recognisable
-  many with a name and a routine; a crowd that witnesses and fills a market.
-  Dunbar's layers (~5 / ~15 / ~50 / ~150) are the scale.
-- **Population is a dial, not a cliff, and it sits at 700.** 350 gives 5.1
-  crossings a day, 700 gives 12.9, 1400 gives 21.9, 2800 gives 38.9 — roughly
-  linear, so the crowd tier is sized against a frame budget rather than opinion.
-  (`design-doc.md` claimed 3000 until 2026-08-18; the build has never run it.)
+- **Days that differ from each other.** The routine model reduces the hour mod
+  24 with no day parameter anywhere, so every Tuesday is every Saturday and
+  recurrence is total and unearned.
+- **Tier the cast** — a named few with faces, voices and memory; a recognisable
+  many with a name and a routine; a crowd that witnesses. Dunbar's layers
+  (~5 / ~15 / ~50 / ~150) are the scale.
+- **Population is a dial, not a cliff, and it sits at 700**: 350 gives 5.1
+  crossings a day, 700 gives 12.9, 1400 gives 21.9, 2800 gives 38.9, roughly
+  linear. (`design-doc.md` claimed 3000; the build has never run it.)
 - Routines legible enough that following somebody for an afternoon holds up.
 
-**Constraint to respect: 14 character models, and it is a FETCH, not a purchase.**
-This read "44 models ... until somebody buys more" — wrong twice: 44 was the
-animation CLIP count, and every body came free. Sameness is the real cap: 14
-models dress 43 named people, so two on screen always share a face.
+- **Interiors beyond the pub. NOT STARTED AND, UNTIL 18 Aug, IN NO MILESTONE.**
+  §18 carried "every other door is a threshold" for weeks with nothing owning
+  it. It belongs here rather than in the art milestone: a room you can enter is
+  what makes a routine followable and a regular recognisable, which is this
+  milestone's own done-condition. **Done when** three interiors a routine
+  visits can be entered and somebody can be found inside one by following them.
 
-- **Interiors beyond the pub. NOT STARTED AND, UNTIL 2026-08-18, IN NO MILESTONE.**
-  `design-doc.md` §18 has carried "every other door is a threshold, not a room"
-  for weeks with nothing owning it. It belongs here rather than in the art
-  milestone: a room you can enter is what makes a routine followable and a
-  regular recognisable, which is this milestone's whole done-condition. **Done
-  when** three interiors a routine actually visits can be entered, and somebody
-  can be found inside one by following them. Kit-built, per §12's risk note.
+**Constraint: 14 character models, and it is a FETCH, not a purchase.** This
+read "44 models ... until somebody buys more" — wrong twice: 44 was the CLIP
+count and every body came free. Sameness is the real cap: 14 models dress 43
+named people, so two on screen always share a face.
 
 **Done when.** You recognise a regular by their coat before you can see their
 face, and you are right.
@@ -245,16 +258,15 @@ face, and you are right.
 
 ## M21 — THE TWO LEDGERS
 
-You inherit a pub, two workers and your father's debts. The day side is a
-licence, a till and wages. The night side pays better than the bar ever will.
-**The game is named for the two books that do not balance** — and the build
-already tracks them apart: one run closed with £0 clean against £354 dirty,
-which is the whole story in two numbers.
+You inherit a pub, two workers and your father's debts. **The game is named for
+the two books that do not balance**, and the build tracks them apart: one run
+closed with £0 clean against £354 dirty, which is the whole story in two
+numbers.
 
-**Everything you gain is a person who knows something about you.** A `CrewMember`
-IS a gossip agent, with their own memory, loyalty and mouth. Recruiting
-manufactures a witness with a wage. Expansion and exposure are the same system
-read from either end — and as of 4 Aug the street finally hears about a poach.
+**Everything you gain is a person who knows something about you.** A
+`CrewMember` IS a gossip agent with their own memory, loyalty and mouth, so
+recruiting manufactures a witness with a wage — expansion and exposure are one
+system read from either end.
 
 | dimension | now | target | what is missing |
 |---|---|---|---|
@@ -266,36 +278,31 @@ read from either end — and as of 4 Aug the street finally hears about a poach.
 **Law as a tool was the one to build first, and the spine of it is in** (4 Aug):
 an accusation is weighed by what people will say to a detective rather than by
 whether it is true, and the mark for informing is a return value no caller can
-skip. The rest still stands — the game has an excise audit, a detective with a
-case and police escalation on a body, and being able to *point* those at
-somebody turns its central threat into a verb the player can hold, reusing the
-information layer rather than adding one.
+skip. Being able to *point* the excise audit, the detective and the escalation
+at somebody turns this game's central threat into a verb the player holds.
 
 **Growth is the competence axis, and there is NO EGO METER.** A number the
-player tops up kills the story the mechanic exists to tell. Instead it is a run
-of individually reasonable decisions that compound — the bigger cut, the job
-done yourself, the sixth night missed — every one of which the game already
-punishes. What it owes the player is the ability to SEE the shape forming:
-M19's chips, and the ledger's DOUBT section as of 4 August.
+player tops up kills the story the mechanic exists to tell. It is a run of
+individually reasonable decisions that compound — the bigger cut, the job done
+yourself, the sixth night missed — all of which the game already punishes. What
+it owes the player is the ability to SEE the shape forming.
 
 **The empire grows in DEPTH, not area.** Four businesses on a street where you
 know every face beats twelve across a map.
 
-**Two of the five rackets do not exist, and nobody had planned them** — found
-2026-08-18 by auditing `design-doc.md` against this file. §6.5 names protection,
-smuggling, gambling, fencing and debt-collection; `EmpireSetup` builds
-collection, protection and fencing. **Smuggling is the conspicuous one**: this
-is a port town whose Act III threat is Customs and Excise, and there is nothing
-to be caught smuggling. It is also the racket with the most natural exposure
-profile — a cargo, a shed, an hour, a person who signs — and the one that would
-make the existing audit mechanic bite. **Done when** a smuggling round runs on
-the same `Racket` substrate as the other three and an Act III audit can land on
-its paperwork. Gambling is the weaker of the two and can wait behind it.
+**Two of the five rackets do not exist, and nobody had planned them** (18 Aug
+audit). §6.5 names five; `EmpireSetup` builds collection, protection and
+fencing. **Smuggling is the conspicuous one**: a port town whose Act III threat
+is Customs and Excise, with nothing to be caught smuggling — and it has the
+most natural exposure profile of any of them (a cargo, a shed, an hour, a
+person who signs). **Done when** a smuggling round runs on the same `Racket`
+substrate as the other three and an Act III audit can land on its paperwork.
+Gambling is the weaker of the two and waits behind it.
 
 **The rival is a person, not a stage counter — and she rings you as of 4 August**:
-being unreachable is a position you can take and the first thing in the game
-that charges for it. **Still missing: the third answer** — picking up and saying
-no needs a prompt, which belongs with the UI. Account in `roadmap-history.md`.
+being unreachable is a position you can take and the first thing that charges
+for it. **Still missing: the third answer** — picking up and saying no needs a
+prompt, which belongs with the UI.
 
 **Done when.** A player can end a rival without touching them — allegiance
 moves, a charge lands, their access closes because of what the street believes —
@@ -312,26 +319,20 @@ Not a systems milestone. The one that decides the review score, and the one a
 systems-first project is most likely to skip.
 
 - **Onboarding.** The first fifteen minutes have to teach a belief network, an
-  economy, a schedule and a double life. They currently teach none of it, and
-  every system above is invisible to somebody who bounces in minute three.
-- **Pacing and difficulty.** Seven authored days, then an open city, then an
-  audit. Whether that curve holds is unmeasured — the balance lab tests
-  outcomes, not the felt shape of a week.
+  economy, a schedule and a double life. They teach none of it, and every
+  system above is invisible to somebody who bounces in minute three.
+- **Pacing and difficulty.** Seven authored days, an open city, an audit —
+  whether that curve holds is unmeasured, because the balance lab tests
+  outcomes rather than the felt shape of a week.
 - **Replayability.** Five endings exist; whether a *second run feels different*
-  is the untested claim. The Director and the gossip mill are the two systems
-  that could make it true, if the Director is authoring real variety.
+  is untested. The Director and the gossip mill are what could make it true.
 - **Legacy & succession, 40 → 70.** Succession exists only at the ending; a
   hand-over that matters mid-game is what turns a campaign into a dynasty.
-- **The session-hook guarantee. NOT BUILT AND, UNTIL 2026-08-18, IN NO
-  MILESTONE.** `design-doc.md` §4 says the player's "one more day" comes from
-  *"an unresolved thread every evening — **the sim guarantees one**"*. Nothing
-  guarantees it. It is the document's only explicit retention claim, and having
-  no owner made it read as a solved problem in the one section anyone checks
-  for whether the game is sticky. It is also the cheapest item here: every
-  input exists (a rumour in flight, a recruit wavering, an evening promised, a
-  debt due) and the end-of-day summary is already the right surface. **Done
-  when** no closed day in a full run ends with nothing outstanding, and the
-  summary NAMES the thread rather than counting it.
+- **The session-hook guarantee — HALF BUILT 18 Aug.** The design doc's only
+  retention claim had no implementation and no owner; `Core/LooseEnds` picks
+  the evening's thread and the day close shows it, three of six sources fed.
+  **Done when** all six are fed, no closed day ends with nothing outstanding,
+  and the run NAMES the thread rather than counting it.
 
 **Done when.** Two full playthroughs by somebody who has not read the design
 docs, with notes, and a measured difference between them.
@@ -343,8 +344,7 @@ docs, with notes, and a measured difference between them.
 ## M23 — FIREARMS
 
 M16 phase 5, held back on purpose. A gun in a game about being watched is a
-different game, and it should arrive when everything that observes it is
-finished: the ladder, the delivery window, provenance, disposal, notoriety.
+different game; it arrives when everything that observes it is finished.
 
 ---
 
