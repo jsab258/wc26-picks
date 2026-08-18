@@ -1,0 +1,54 @@
+# THE ANIMATION CLIP DEBT — measured, and counting down only.
+#
+# STATUS — LIVE, verified 2026-08-18.
+#
+# `tools/clip-motion.py` reads every clip FBX we ship and reports the two
+# faults a file can prove on its own: two slots holding the SAME BYTES, and a
+# clip whose hips neither move nor turn across its whole length. `verify.py`
+# compares the count against the number below and fails when it rises, so a
+# re-pick cannot quietly introduce a new one.
+#
+# THE SAME SHAPE AS THE REACH LEDGER, and for the same reason: the debt is
+# real, it cannot be cleared today, and a guard that demands zero on day one
+# is a guard nobody can commit past. This one counts down.
+#
+# WHY IT IS NOT ZERO. Both faults are in the HARVEST, which lives on Jafar's
+# Windows machine and is the one input this container cannot reach. The fix
+# is a re-pick, which needs no token and takes seconds — the picker now skips
+# a candidate whose bytes are already in another slot, and the WANTS list has
+# alternate names for the clips involved.
+#
+# LOWER THIS NUMBER WHEN THE FINDINGS DROP. Never raise it to make red go
+# away; that is the move rule 2 forbids.
+
+clipFindings=4
+
+# WHAT THE FOUR ARE, on 2026-08-18:
+#
+# 1. DUPLICATE: `shoved` (Shove Reaction) == `talk` (Talking), byte for byte.
+#    `_picks.json` records the picker matching two DIFFERENT harvest names
+#    exactly, so the collision was made by the bulk harvester, not here. One
+#    of those two slots has been playing the other's motion — and the file
+#    carries no distinguishing take name (every Mixamo FBX calls its take
+#    "mixamo.com"), so which one cannot be told from the bytes. `talk` is on
+#    the street constantly; `shoved` is combat and has never run.
+#    FIX: the picker now prefers `Shoved`, a third catalogue name for the
+#    same motion, so a re-pick breaks the tie without a download.
+#
+# 2-4. FROZEN ROOT: `walk_start` (Start Walking), `lean` (Leaning),
+#    `block_end` (Standing Block End). The hips are the root of a Mixamo rig
+#    and carry the body's whole world motion, so a clip whose hips move less
+#    than a centimetre and turn less than two degrees is animated from the
+#    waist up. For a Standing Block End that is arguable. For a START WALKING
+#    it is not: that clip should carry more root travel than any other in the
+#    set, and it carries 0.30cm over 3.1 seconds.
+#    The catalogue holds no alternate name for any of the three, so these need
+#    a re-download rather than a re-pick, and none of the three is wired to
+#    anything today.
+#
+# WHAT THIS FILE DELIBERATELY DOES NOT CLAIM. It does not say which animation
+# a mislabelled clip really is. Hip HEIGHT is not comparable between clips (a
+# stand-up legitimately starts at 8cm) and Euler ranges inflate on wrap (the
+# walk reads 131 degrees of hip roll), and two readings that looked like
+# findings died on exactly those two facts. The file says what it can prove.
+# The rest is a question for a frame.

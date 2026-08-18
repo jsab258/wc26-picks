@@ -111,9 +111,17 @@ _ARRAY_ITEM = {"f": 4, "d": 8, "l": 8, "i": 4, "b": 1}
 _ARRAY_FMT = {"f": "<%df", "d": "<%dd", "l": "<%dq", "i": "<%di", "b": "<%d?"}
 
 
-def _read_property(f):
-    """One property record. Small arrays are inflated and returned as a
-    tuple; large ones are skipped and returned as None."""
+def _read_property(f, max_array=SMALL_ARRAY):
+    """One property record. Arrays at or under `max_array` elements are
+    inflated and returned as a tuple; larger ones are skipped and
+    returned as None.
+
+    THE CAP IS A PARAMETER because a second reader needs a different one.
+    Bind poses are 16 doubles and this file wants nothing bigger; an
+    animation curve is thousands of keys and `tools/clip-motion.py` must
+    have them. A module-level global that one caller raises for the
+    other is a mutable global by another name, and this project has
+    already paid for one of those (`BarkGen`'s manifest path)."""
     code = f.read(1).decode("ascii", "replace")
     if code == "Y":
         return struct.unpack("<h", f.read(2))[0]
@@ -131,7 +139,7 @@ def _read_property(f):
         length, encoding, comp_len = struct.unpack("<III", f.read(12))
         raw_len = length * _ARRAY_ITEM[code]
         on_disk = comp_len if encoding else raw_len
-        if length > SMALL_ARRAY:
+        if length > max_array:
             f.seek(on_disk, 1)
             return None
         payload = f.read(on_disk)
@@ -147,7 +155,7 @@ def _read_property(f):
     raise ValueError("unknown FBX property code %r at %d" % (code, f.tell()))
 
 
-def _read_node(f, version):
+def _read_node(f, version, max_array=SMALL_ARRAY):
     """One node record, or None for the sentinel that ends a child list."""
     wide = version >= 7500
     fmt, size = ("<QQQ", 24) if wide else ("<III", 12)
@@ -161,11 +169,11 @@ def _read_node(f, version):
     name = f.read(name_len).decode("utf-8", "replace")
     node = Node(name)
     for _ in range(num_props):
-        node.props.append(_read_property(f))
+        node.props.append(_read_property(f, max_array))
     # A nested list is present only if bytes remain before this node ends.
     # The sentinel is one empty record of the same width as the header.
     while f.tell() < end_offset - (size + 1):
-        child = _read_node(f, version)
+        child = _read_node(f, version, max_array)
         if child is None:
             break
         node.children.append(child)
@@ -173,7 +181,7 @@ def _read_node(f, version):
     return node
 
 
-def parse_fbx(path):
+def parse_fbx(path, max_array=SMALL_ARRAY):
     with open(path, "rb") as f:
         magic = f.read(23)
         if not magic.startswith(b"Kaydara FBX Binary"):
@@ -181,7 +189,7 @@ def parse_fbx(path):
         version = struct.unpack("<I", f.read(4))[0]
         root = Node("__root__")
         while True:
-            node = _read_node(f, version)
+            node = _read_node(f, version, max_array)
             if node is None:
                 break
             root.children.append(node)

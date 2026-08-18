@@ -157,6 +157,77 @@ def tools_tracked():
     return True, "%d tool project(s) tracked" % n
 
 
+def clip_audit():
+    """The animation clips we ship are what their filenames say, as far as a
+    file can prove it — and the debt counts down.
+
+    WHY THIS EXISTS. Jafar asked whether the people in the stills are moving
+    right or whether we are playing the wrong animations. Half of that needs
+    a frame. The other half does not: two slots holding the SAME BYTES means
+    one is playing the other's motion, and that is a hash comparison rather
+    than a judgement. `shoved` and `talk` were byte-identical when this was
+    written, from two DIFFERENT harvest names that both matched exactly, so
+    every name-based check in the pipeline passed them.
+
+    TWO CHECKS, NOT ONE, and they answer different questions. `--selftest`
+    says the reader still works at all — it has an accepting case (the live
+    harvest must parse) and a rejecting case (a rig with no take must not
+    read as a moving clip). The count says today's clips are no worse than
+    the recorded debt. A green selftest with a rising count is a working
+    instrument reporting a real regression, and the two must not be able to
+    stand in for each other.
+
+    THE LEDGER IS A CEILING, NOT A TARGET. It can only be lowered, and the
+    file says why each entry is still open. Raising it to make red go away is
+    the move rule 2 forbids."""
+    tools = ROOT.parent / "tools"
+    code, out = run(["python3", str(tools / "clip-motion.py"), "--selftest", "--quiet"])
+    m = re.search(r"clipFindings=(\d+) duplicates=(\d+) frozen=(\d+) clipsRead=(\d+)", out)
+    if not m:
+        return False, "clip-motion did not report a count"
+    found, dups, frozen, read = (int(g) for g in m.groups())
+    if "SELFTEST PASSED" not in out:
+        bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+        return False, "CLIPS: " + (bad[0][:90] if bad else "selftest did not pass")
+
+    # A ZERO NEEDS A DENOMINATOR (rule 3b): "no duplicates" and "no clips
+    # were read" are the same finding count and opposite facts.
+    if read == 0:
+        return False, "CLIPS: no clip read at all — the harvest folders are empty"
+
+    ledger = ROOT.parent / "game-design" / "clip-findings.txt"
+    if not ledger.exists():
+        return False, "CLIPS: no clip-findings.txt to measure against"
+    lm = re.search(r"^clipFindings=(\d+)", ledger.read_text(encoding="utf-8"), re.M)
+    if not lm:
+        return False, "CLIPS: clip-findings.txt carries no count"
+    allowed = int(lm.group(1))
+    if found > allowed:
+        return False, ("CLIP DEBT ROSE: %d finding(s) against %d allowed "
+                       "(%d duplicate, %d frozen)" % (found, allowed, dups, frozen))
+    if found < allowed:
+        return False, ("CLIP DEBT FELL to %d from %d — lower the number in "
+                       "game-design/clip-findings.txt and say which one closed"
+                       % (found, allowed))
+    return True, "clips ok (%d read, %d known finding(s))" % (read, found)
+
+
+def picker_selftest():
+    """The clip picker refuses to put one file in two slots.
+
+    Separate from `clip_audit` on purpose: that one checks what LANDED, this
+    one checks the thing that lands it, and a re-pick happens on a machine
+    this container never sees. If the picker's duplicate check breaks, the
+    next harvest silently reintroduces the fault the audit exists to catch,
+    and the audit would be measuring a ceiling nobody is defending."""
+    tool = ROOT.parent / "tools" / "mixamo-pick" / "pick_animations.py"
+    code, out = run(["python3", str(tool), "--selftest"])
+    if code != 0 or "SELFTEST PASSED" not in out:
+        bad = [l.strip() for l in out.splitlines() if l.strip().startswith("  FAIL")]
+        return False, "PICKER: " + (bad[0][8:98] if bad else "selftest did not pass")
+    return True, "clip picker ok"
+
+
 def backend_compiles():
     """Does the speech backend compile against the real onnxruntime assembly.
 
@@ -1089,7 +1160,7 @@ def main():
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
                frame_drift, verdict_keys, verdict_format, save_chaos, soak,
-               adversary, stale_anchors, core_tests):
+               adversary, stale_anchors, clip_audit, picker_selftest, core_tests):
         ok, text = fn()
         all_ok &= ok
         parts.append(text)

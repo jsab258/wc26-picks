@@ -22,6 +22,7 @@ Nothing is deleted and nothing is moved. The harvest stays where it is.
 
 import argparse
 import glob
+import hashlib
 import json
 import os
 import re
@@ -63,7 +64,16 @@ WANTS = [
     ("strike_alt",   "A", [r"\bbody jab cross\b", r"\belbow punch\b",
                            r"\bhook punch\b"]),
     ("shove",        "A", [r"^push\b", r"\bpush(ing)?\b", r"\bshove\b"]),
-    ("shoved",       "A", [r"\bshove reaction\b", r"\bshoved reaction\b"]),
+    # `^shoved$` FIRST, and the reason is a duplicate nobody could have seen
+    # from a filename. The harvest holds `Shove Reaction` and `Talking` as two
+    # differently-named files with IDENTICAL BYTES — `tools/clip-motion.py`
+    # found it by hashing what shipped — so one of those two slots has been
+    # playing the other's animation. Which one cannot be told from here, and
+    # `Shoved` is a third name in the catalogue for the same motion, so taking
+    # it sidesteps the collision without a re-download. The content check
+    # below is the general fix; this is the specific one.
+    ("shoved",       "A", [r"^shoved$", r"\bshove reaction\b",
+                           r"\bshoved reaction\b"]),
     ("take_hit",     "A", [r"\bstanding react small from front\b",
                            r"\bhit reaction\b", r"\breact(ion)? small\b"]),
     ("stagger",      "A", [r"\bstanding react large\b", r"\bstumbl(e|ing)\b"]),
@@ -137,6 +147,51 @@ WANTS = [
     ("fall_stairs",  "C", [r"\bfalling from losing balance\b",
                            r"\bfall(ing)? down stairs\b", r"\bfalling down\b"]),
     ("lie_still",    "C", [r"\blying down\b", r"\blying\b", r"\bdead\b"]),
+
+    # ---- TIER B3: HALF THIS TOWN IS WOMEN AND ALL OF THEM WALK LIKE A MAN.
+    #
+    # `walk_f` is the one that matters and it is the cheapest fix in the
+    # project: `Female Walk` has been sitting in the harvest since the first
+    # run, the catalogue lists it at line 717, and nothing ever asked for it.
+    # The archetype that consumes it already exists in `CharacterPrefab` —
+    # `walk_old`/`idle_old` proved the shape — so this is a WANTS line and a
+    # name, not a system.
+    #
+    # `jog` fills a real hole rather than adding variety: the locomotion blend
+    # tree runs idle at 0, walk at 1.4 and run at 4.0, so everything between a
+    # stroll and a sprint is a walk cycle played fast. An escort hurrying at
+    # 2.6 m/s is exactly that case and it is on the street every run.
+    #
+    # Every name below was checked against `_catalogue.txt` before being
+    # asked for, which is the rule that stopped the guessed list.
+    ("walk_f",       "B", [r"^female walk$"]),
+    ("jog",          "B", [r"^jog forward$", r"^jogging$"]),
+
+    # ---- TIER D: what a person is DOING when they are not travelling.
+    #
+    # The activity layer already has fourteen states and reaches five at its
+    # peak, so the ceiling is choice, not wiring. These are the gestures a
+    # street actually contains: giving directions, refusing, waiting, going
+    # through your pockets, glancing behind you. Every one is a read of the
+    # catalogue.
+    #
+    # THEY ARRIVE BEFORE THEIR CONSUMERS ON PURPOSE, and that is rule 6 with
+    # its eyes open: Jafar is away from the Windows machine until Friday and
+    # the harvest only exists there, so the choice is clips-then-wiring or
+    # three days of neither. The wiring is mine and it is not blocked.
+    ("wave",         "D", [r"^waving$", r"^waving gesture$"]),
+    ("shake_hands",  "D", [r"^shaking hands 1$", r"^shaking hands\b"]),
+    ("point",        "D", [r"^pointing$", r"^pointing gesture$"]),
+    ("thinking",     "D", [r"^thinking$"]),
+    ("laugh",        "D", [r"^laughing$"]),
+    ("yell",         "D", [r"^yelling$", r"^yelling while standing$"]),
+    ("head_no",      "D", [r"^shaking head no$"]),
+    ("glance",       "D", [r"^look over shoulder$"]),
+    ("pockets",      "D", [r"^searching pockets$"]),
+    ("rummage",      "D", [r"^rummaging$"]),
+    ("lift",         "D", [r"^lifting object$", r"^lifting$"]),
+    ("sit_talk",     "D", [r"^sitting talking$"]),
+    ("sit_drink",    "D", [r"^sitting drinking$"]),
 ]
 
 FLAT = re.compile(r"[^a-z0-9]+")
@@ -158,33 +213,146 @@ def catalogue(harvest):
     return found
 
 
-def pick(items, patterns):
+def content(path, cache):
+    """SHA256 of one harvest file, remembered. Only candidates get hashed —
+    hashing the whole harvest would read a gigabyte to answer a question
+    about forty files."""
+    if path not in cache:
+        h = hashlib.sha256()
+        with open(path, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                h.update(chunk)
+        cache[path] = h.hexdigest()
+    return cache[path]
+
+
+def pick(items, patterns, taken=None, cache=None):
     """First pattern with a hit wins; within a pattern, the SHORTEST name wins.
 
     Shortest because Mixamo names extra variants by suffixing — "Walking",
     "Walking Backwards", "Walking While Texting" — so the bare name is nearly
     always the plain version of the motion, and the plain version is the one a
     game blends from.
+
+    AND A CANDIDATE WHOSE BYTES ARE ALREADY IN ANOTHER SLOT IS SKIPPED, which
+    is a fix for a fault upstream of this script. The harvester downloaded
+    `Shove Reaction` and `Talking` as two names over one file, and every check
+    in this pipeline was name-based, so both slots reported `exact: true`
+    against two different patterns and one of them shipped the wrong motion
+    for weeks. A name cannot detect that; only the content can. Skipping to
+    the next candidate is the right response rather than failing, because the
+    catalogue usually holds another name for the same motion — and when it
+    does not, the slot goes MISSING, which is a report rather than a silent
+    wrong answer.
     """
     for depth, pat in enumerate(patterns):
         rx = re.compile(pat)
         hits = [it for it in items if rx.search(it[0])]
-        if hits:
-            hits.sort(key=lambda it: (len(it[0]), it[0]))
-            return hits[0], depth
-    return None, -1
+        hits.sort(key=lambda it: (len(it[0]), it[0]))
+        for hit in hits:
+            if taken is None:
+                return hit, depth, None
+            digest = content(hit[2], cache)
+            if digest in taken:
+                print(f"    duplicate content: {hit[1]} is byte-identical to "
+                      f"the clip already taken for '{taken[digest]}' — skipping")
+                continue
+            return hit, depth, digest
+    return None, -1, None
+
+
+def selftest():
+    """BOTH OUTCOMES OF THE CONTENT CHECK, on a harvest built here.
+
+    Rule 5b: a guard is shipped only when the case it must ACCEPT has been
+    watched run, not just the case it must reject. The accepting case is
+    the one that goes unrun and the one that costs a day — a picker that
+    refuses everything and a picker that works are the same summary line.
+    """
+    import tempfile
+
+    failures = []
+    with tempfile.TemporaryDirectory() as tmp:
+        def write(name, body):
+            p = os.path.join(tmp, name + ".fbx")
+            with open(p, "wb") as fh:
+                fh.write(body)
+            return p
+
+        # Two names over one file is exactly what the harvester did, and a
+        # third name carries the same motion honestly.
+        write("Talking", b"CLIP-ONE")
+        write("Shove Reaction", b"CLIP-ONE")
+        write("Shoved", b"CLIP-TWO")
+        write("Walking", b"CLIP-THREE")
+        items = catalogue(tmp)
+
+        taken, cache = {}, {}
+
+        # ACCEPTING: an uncontested slot picks its clip, first pattern.
+        hit, depth, digest = pick(items, [r"^walking\b"], taken, cache)
+        if hit is None or hit[1] != "Walking" or depth != 0:
+            failures.append("an uncontested slot did not pick its own clip")
+        else:
+            taken[digest] = "walk"
+
+        # ACCEPTING: the first claimant of a shared file still gets it.
+        hit, depth, digest = pick(items, [r"^talking\b"], taken, cache)
+        if hit is None or hit[1] != "Talking":
+            failures.append("the first claimant of a duplicate was refused")
+        else:
+            taken[digest] = "talk"
+
+        # REJECTING: the second claimant is skipped onto the next candidate
+        # rather than shipping the same bytes under another name.
+        hit, depth, digest = pick(
+            items, [r"^shoved$", r"\bshove reaction\b"], taken, cache)
+        if hit is None:
+            failures.append("the duplicate skip left the slot empty when an "
+                            "alternative existed")
+        elif hit[1] != "Shoved":
+            failures.append("the second claimant took %r, the duplicate"
+                            % hit[1])
+
+        # REJECTING, with no way out: a slot whose ONLY candidate is already
+        # taken must report MISSING rather than duplicate it silently.
+        hit, _depth, _digest = pick(items, [r"\bshove reaction\b"], taken, cache)
+        if hit is not None:
+            failures.append("a slot with only a duplicate candidate was "
+                            "given it anyway")
+
+        # And the check must not fire on distinct files, or it would empty
+        # the harvest one slot at a time.
+        if len(set(cache.values())) < 3:
+            failures.append("three distinct files did not hash to three values")
+
+    for f in failures:
+        print("  FAIL: %s" % f)
+    if failures:
+        print("SELFTEST FAILED -- %d failure(s)" % len(failures))
+        return 1
+    print("SELFTEST PASSED -- duplicate content is skipped, distinct content "
+          "is not, and a slot with no alternative reports missing")
+    return 0
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--harvest", required=True,
+    ap.add_argument("--selftest", action="store_true",
+                    help="check the picker against a harvest built here")
+    ap.add_argument("--harvest", default=None,
                     help="the MixamoHarvester 'animations' folder")
     ap.add_argument("--out", default=None,
                     help="where to copy picks (default: ledger/Assets/Characters)")
-    ap.add_argument("--tiers", default="ABC",
+    ap.add_argument("--tiers", default="ABCD",
                     help="which tiers to copy, e.g. 'A' for combat only")
     args = ap.parse_args()
 
+    if args.selftest:
+        return selftest()
+    if not args.harvest:
+        print("--harvest is required (or --selftest)")
+        return 2
     if not os.path.isdir(args.harvest):
         print(f"No such folder: {args.harvest}")
         return 2
@@ -211,10 +379,13 @@ def main():
 
     report = OrderedDict()
     copied = missing = substituted = 0
+    # {content hash: the slot that claimed it}, so a collision can name the
+    # other slot rather than just refusing.
+    taken, hash_cache = {}, {}
     for slot, tier, patterns in WANTS:
         if tier not in args.tiers:
             continue
-        hit, depth = pick(items, patterns)
+        hit, depth, digest = pick(items, patterns, taken, hash_cache)
         if hit is None:
             report[slot] = {"tier": tier, "found": None,
                             "tried": patterns}
@@ -240,6 +411,8 @@ def main():
         dest = os.path.join(dest_dir, f"{slot}__{stem}.fbx")
         shutil.copy2(path, dest)
         copied += 1
+        if digest is not None:
+            taken[digest] = slot
         exact = depth == 0
         if not exact:
             substituted += 1
