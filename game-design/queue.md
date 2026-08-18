@@ -45,37 +45,37 @@ is the bar sign's bare back face, one line, low priority.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
-1. **JUDGE THE 67 ANIMATIONS — the deliverable Jafar actually asked for.**
-   *(needs the fixed sheet; the reader is built)* The sheet from b153d64
-   says the POSES ARE GOOD — real retargeting, feet down, hands
-   articulated, no T-poses — and that a third of it cannot be read:
-   `sheetDark=25 of 67`, `sheetLuma=14..118`. Plotted against RENDER ORDER
-   the luma traces two day/night cycles, so a clip is dark because of WHEN
-   it was drawn; the fix is written (ambient re-asserted after the per-tile
-   yield) and its build died in checkout. Also suspected and recorded:
-   `walk_stop` renders as a deep crouch, `sit` as standing at phase 0.15.
+1. **TEN ANIMATIONS ARE THE WRONG ANIMATION — ANSWERED, and the fix is a
+   RE-PICK, not a re-download.** *(on screen; the pick runs on Jafar's
+   machine in seconds)* The exposure fix landed (`sheetDark` 25 -> 0) so all
+   67 were read at once. **Five are confirmed on two instruments** — the
+   render and the hips' height in the FBX: `jog` is a body flat on the floor
+   at 7cm and `lie_still` an upright stride at 96cm, so **they are each
+   other**; `collapse` ("Dying") never leaves 103cm; `sit` and `sit_talk`
+   stand. **Five more are suspected on the picture alone** — `carry_bag`,
+   `idle_bored`, `head_no`, `walk_stop`, `thinking` — and height CANNOT close
+   them, because `run` at 74 and `block_broken` at 74 are correct and sit in
+   the same band. Controls: `walk` 95, `idle` 100, `get_up` 8 (prone, right),
+   `knockdown` 6..104.
+
+   **The picker is NOT at fault**: every file carries the right Mixamo title
+   and the dryrun is 65 exact / 2 substitute / 0 missing, so the mismatch is
+   between a harvest file's NAME and its CONTENTS, upstream of this repo.
+
+   **NEXT, and it needs no Windows machine to write:** make the picker VERIFY
+   a candidate's posture rather than trust its name. The full harvest is
+   already on his disk, so REPICK.bat then finds replacements in seconds with
+   no token and no downloads.
+   **Rule 5b applies hard here, twice:** the check must ACCEPT `get_up` at
+   8cm and `knockdown` at 6..104, and it must not police the crouch band at
+   all — the only bound the distribution supports is the empty gap from 18 to
+   60, floor against upright.
    Full account in `clip-findings.txt`.
 
-1. **THREE SLOTS LOOK LIKE THE WRONG ANIMATION — suspected, on picture
-   evidence alone.** *(on screen)* `lie_still` renders MID-STRIDE in all
-   three phases, `jog` as a body flat on its back, `collapse` (shipped as
-   "Dying") as a STANDING figure at 15%, 45% and 78%. All three are BRIGHT
-   tiles, and the sheet's own mapping was checked first (`yell` lands alone
-   in the 3-tile bottom row; `phone_box` renders as a man with a hand at
-   his head). **Settle it on a legible sheet** — reading 42 of 67 is how
-   you convince yourself of a pattern that is not there.
-
-   **The FBX corroboration was tried and does NOT hold**, which is why this
-   says "suspected": clip-motion's travel column reads `Walking` 0.00 and
-   `Standing React Large Gut` 2.29m in 0.73s, so it cannot argue about what
-   a clip contains.
-
 1. **`clip-motion.py`'s travel/path columns are not trustworthy.** *(local)*
-   Two walks reading 0.00 and 1.22; a standing reaction reading 3.1 m/s.
-   `measure()` uses the HIPS' local translation curves — world motion only
-   while the hips are unparented, and that assumption is what to check.
-   Nothing else reads these columns, and the duplicate and frozen-root
-   findings `clipFindings` counts do not depend on them.
+   Two walks reading 0.00 and 1.22, a standing reaction at 3.1 m/s. Nothing
+   reads them and the findings `clipFindings` counts do not depend on them;
+   the new `hip cm` column IS sound for the one question it answers.
 
 1. **`looseEnds=6/0/[Owed:6]` IS NOT THE FAULT IT LOOKS LIKE, and the
    reading needs fixing rather than the code.** Six evenings, none empty,

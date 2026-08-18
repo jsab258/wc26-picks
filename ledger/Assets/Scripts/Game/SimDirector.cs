@@ -11337,8 +11337,11 @@ namespace Ledger.Game
                       $"hotUnease={_scoreHotUnease:0.00}@heat{_scoreHottestHeat:0.00} scoreOk={scoreOk} " +
                       $"lightingOk={lightingOk}{(lightingWhy.Count > 0 ? " [" + string.Join(",", lightingWhy) + "]" : "")} " +
                       // THE DENOMINATOR FOR pass=True, which otherwise reads
-                      // identically whether forty-one gates passed or the list
-                      // was empty. It is also what the workflow's verdict step
+                      // identically whether seventy-two gates passed or the
+                      // list was empty. (Seventy-two is measured, off the
+                      // first run to carry the key. Both of these comments
+                      // said "forty-one" when written, which was a guess, and
+                      // the build corrected it within the hour.) It is also what the workflow's verdict step
                       // needs to tell "no failing gates" from "nothing ran".
                       $"gatesChecked={gates.Length} gatesFailed={failed.Count} " +
                       $"verdict={camp.Verdict} pass={pass}");
@@ -11347,9 +11350,10 @@ namespace Ledger.Game
             //
             // WITH ITS DENOMINATOR (rule 3b). "FAILING GATES: aoSpread" says
             // how bad it is only if you already know how many gates there are,
-            // and nobody reading a red build at 3am does. "3 of 41" also makes
-            // a gate LIST that has silently shrunk visible — a gate deleted or
-            // never constructed leaves no other trace anywhere in the verdict.
+            // and nobody reading a red build at 3am does. "4 of 72" — the
+            // first real reading — also makes a gate LIST that has silently
+            // shrunk visible, since a gate deleted or never constructed leaves
+            // no other trace anywhere in the verdict.
             if (!pass)
                 Debug.LogError($"SimDirector: FAILING GATES: {failed.Count} of {gates.Length}: " +
                                $"{string.Join(", ", failed)}");

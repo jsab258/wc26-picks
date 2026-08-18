@@ -231,7 +231,132 @@ def content(path, cache):
     return cache[path]
 
 
-def pick(items, patterns, taken=None, cache=None):
+#: THE POSTURE CHECK, AND IT ASSERTS ONLY WHAT THE DISTRIBUTION SUPPORTS.
+#:
+#: On 18 August the contact sheet showed ten clips playing something other than
+#: their name, and the picker was cleared of blame: every file carried the right
+#: Mixamo title and the dryrun read 65 exact / 2 substitute / 0 missing. The
+#: mismatch is between a harvest file's NAME and its CONTENTS, which no
+#: name-based check can ever see — the same shape as the duplicate-bytes fault
+#: above, one layer deeper.
+#:
+#: What a FILE can prove is where the hips are. Printing the median hip height
+#: of all 67 shipped clips, sorted, gives one clean gap and one crowded band:
+#:
+#:     7 jog · 9 get_up · 14 knockdown · 18 sit_drink        <- on the floor
+#:        ...nothing at all between 18 and 60...
+#:     60 carry_bag · 64 idle_bored · 68 guard_exit · 69 head_no · 72 thinking
+#:     73 turn_right · 74 block_broken · 74 RUN · 76 walk_stop
+#:     80..103 everything else
+#:
+#: So FLOOR_CM sits at 39, in the middle of a 42cm gap with nothing in it. That
+#: is the only bound the evidence carries.
+#:
+#: IT DELIBERATELY DOES NOT POLICE THE CROUCH BAND. `run` reads 74 and is
+#: correct; `walk_stop` reads 76 and looks wrong on the sheet. Any bound that
+#: separates them rejects a correct clip, which is rule 5b's ratchet, so those
+#: stay a person's judgement. This catches `jog` (7, a body on the floor),
+#: `lie_still` (96, an upright stride) and `collapse` (103 flat, a death that
+#: never falls) and honestly catches nothing else.
+FLOOR_CM = 39.0
+
+#: Slots whose posture is unambiguous. Everything absent is unchecked ON
+#: PURPOSE — the sitting slots because the evidence is contradictory
+#: (`sit_drink` reads 18 against `sit_talk` at 94 and nothing says which is
+#: right), and `get_up`, `shoved`, `take_hit` and `stagger` because they are
+#: transitions that may legitimately be anywhere.
+POSTURE = {
+    # Must spend most of the clip DOWN.
+    "lie_still": "floor",
+    # Must START upright and REACH the floor. A death or a knockdown that
+    # never goes down is the exact fault found on 18 August.
+    "collapse": "falls", "knockdown": "falls", "fall_stairs": "falls",
+    # Must never be on the floor.
+    "walk": "upright", "walk_f": "upright", "walk_old": "upright",
+    "walk_start": "upright", "walk_start_f": "upright",
+    "walk_stop": "upright", "walk_stop_f": "upright",
+    "run": "upright", "jog": "upright", "back_away": "upright",
+    "idle": "upright", "idle_2": "upright", "idle_old": "upright",
+    "idle_bored": "upright", "talk": "upright", "argue": "upright",
+    "greet": "upright", "wave": "upright", "point": "upright",
+    "thinking": "upright", "glance": "upright", "head_no": "upright",
+    "laugh": "upright", "yell": "upright", "smoke": "upright",
+    "drink": "upright", "lean": "upright", "lean_wall": "upright",
+    "pockets": "upright", "rummage": "upright", "lift": "upright",
+    "carry": "upright", "carry_bag": "upright", "work_counter": "upright",
+    "phone_box": "upright", "shake_hands": "upright", "shove": "upright",
+    "look_around": "upright", "turn_left": "upright", "turn_right": "upright",
+    "stairs_up": "upright", "stairs_down": "upright", "hands_up": "upright",
+    "guard": "upright", "guard_enter": "upright", "guard_exit": "upright",
+    "block_start": "upright", "block_hold": "upright", "block_end": "upright",
+    "block_broken": "upright", "strike": "upright", "strike_alt": "upright",
+    "draw_gun": "upright", "draw_holster": "upright", "draw_reach": "upright",
+}
+
+
+def _motion():
+    """`tools/clip-motion.py`, loaded by path because its filename is not an
+    importable identifier.
+
+    THE READER IS NOT REIMPLEMENTED HERE. A first draft of this function
+    re-derived the hips from the FBX tree, which is one idea with two
+    implementations — the shape CLAUDE.md records as the single most repeated
+    fault in this project, where the copy nobody looks at is the one missing a
+    line. clip-motion already parses the file, finds `mixamorig:Hips`, refuses
+    when the hips are PARENTED (local curves would not be world motion there),
+    and reports hipLow/hipCm/hipHigh. This calls that.
+    """
+    import importlib.util
+    here = os.path.dirname(os.path.abspath(__file__))
+    spec = importlib.util.spec_from_file_location(
+        "clip_motion", os.path.join(here, "..", "clip-motion.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_CM = None
+
+
+def hip_cm(path):
+    """(lowest, median, highest) hip height in centimetres, or None.
+
+    None means the file could not be read, and None must NEVER be treated as a
+    failed posture — a reader that cannot open a file has not found a fault
+    (rule 3b). The caller accepts the candidate in that case.
+    """
+    global _CM
+    try:
+        if _CM is None:
+            _CM = _motion()
+        r = _CM.measure(path)
+        if "error" in r or "hipCm" not in r:
+            return None
+        return r["hipLow"], r["hipCm"], r["hipHigh"]
+    except Exception:
+        return None
+
+
+def posture_ok(slot, path):
+    """(ok, why). `why` is empty when the candidate is accepted."""
+    want = POSTURE.get(slot)
+    if want is None:
+        return True, ""
+    h = hip_cm(path)
+    if h is None:
+        return True, ""                 # unreadable is not a fault
+    lo, md, hi = h
+    if want == "floor" and md >= FLOOR_CM:
+        return False, f"hips sit at {md:.0f}cm — upright, not on the floor"
+    if want == "upright" and md < FLOOR_CM:
+        return False, f"hips sit at {md:.0f}cm — on the floor, not upright"
+    if want == "falls" and not (lo < FLOOR_CM and hi >= 80.0):
+        return False, (f"hips run {lo:.0f}..{hi:.0f}cm — it never goes from "
+                       f"standing to the floor")
+    return True, ""
+
+
+def pick(items, patterns, taken=None, cache=None, slot=None):
     """First pattern with a hit wins; within a pattern, the SHORTEST name wins.
 
     Shortest because Mixamo names extra variants by suffixing — "Walking",
@@ -261,6 +386,10 @@ def pick(items, patterns, taken=None, cache=None):
             if digest in taken:
                 print(f"    duplicate content: {hit[1]} is byte-identical to "
                       f"the clip already taken for '{taken[digest]}' — skipping")
+                continue
+            ok, why = posture_ok(slot, hit[2])
+            if not ok:
+                print(f"    wrong posture: {hit[1]} — {why} — skipping")
                 continue
             return hit, depth, digest
     return None, -1, None
@@ -392,6 +521,53 @@ def selftest():
             failures.append("a slot with only a duplicate candidate was "
                             "given it anyway")
 
+        # THE POSTURE CHECK, BOTH WAYS, against the clips actually shipped.
+        # A fixture proves nothing here: the whole point is that a file's
+        # CONTENTS disagree with its name, and only a real harvest file has
+        # contents. Accepting cases first, and `run` is the important one —
+        # it reads 74cm, inside the crouch band, and any bound tightened far
+        # enough to catch `walk_stop` at 76 would reject it.
+        shipped = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "..", "..", "ledger", "Assets", "Characters")
+        def one(slot):
+            for folder in ("A", "B", "C", "D"):
+                d = os.path.join(shipped, folder)
+                if not os.path.isdir(d):
+                    continue
+                for f in os.listdir(d):
+                    if f.startswith(slot + "__") and f.endswith(".fbx"):
+                        return os.path.join(d, f)
+            return None
+
+        checked = 0
+        for slot in ("run", "walk", "knockdown", "walk_stop"):
+            f = one(slot)
+            if f is None:
+                continue
+            checked += 1
+            ok, why = posture_ok(slot, f)
+            if not ok:
+                failures.append("posture rejected %s, which is correct: %s"
+                                % (slot, why))
+        for slot in ("jog", "lie_still", "collapse"):
+            f = one(slot)
+            if f is None:
+                continue
+            checked += 1
+            ok, _why = posture_ok(slot, f)
+            if ok:
+                failures.append("posture accepted %s, which the contact sheet "
+                                "and the hip height both say is wrong" % slot)
+        if checked == 0:
+            failures.append("the posture check ran against nothing — no "
+                            "shipped clips found, so neither case was tested")
+
+        # AND AN UNREADABLE FILE IS NOT A FAULT (rule 3b): a reader that
+        # cannot open something has not found anything.
+        ok, _why = posture_ok("walk", os.path.join(tmp, "not-an-fbx.txt"))
+        if not ok:
+            failures.append("an unreadable file was treated as a bad posture")
+
         # And the check must not fire on distinct files, or it would empty
         # the harvest one slot at a time.
         if len(set(cache.values())) < 3:
@@ -491,7 +667,7 @@ def main():
     for slot, tier, patterns in WANTS:
         if tier not in args.tiers:
             continue
-        hit, depth, digest = pick(items, patterns, taken, hash_cache)
+        hit, depth, digest = pick(items, patterns, taken, hash_cache, slot=slot)
         if hit is None:
             report[slot] = {"tier": tier, "found": None,
                             "tried": patterns}

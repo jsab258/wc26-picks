@@ -231,3 +231,122 @@ before it was right, in opposite directions, inside one afternoon:
 
 Both wrong values were invented rather than measured, which is rule 2, twice,
 after quoting rule 2 in the commit that introduced the tool.
+
+
+================================================================
+2026-08-18 LATE — THE ANIMATIONS, ANSWERED. NINE ARE WRONG.
+================================================================
+
+The exposure fix landed (sheetDark 25 -> 0, sheetLuma 14..118 -> 33..190), so
+all 67 clips could be read at once for the first time. Every one was cropped
+individually with its slot name drawn on it, rather than located by arithmetic
+in a 201-tile grid, because position arithmetic is how the last three wrong
+readings happened.
+
+FIVE CLIPS DO NOT CONTAIN WHAT THEIR NAME SAYS, ON TWO INSTRUMENTS, AND FIVE
+MORE ARE SUSPECTED ON THE PICTURE ALONE.
+
+The first version of this section said NINE, "confirmed by two independent
+instruments", and that was wrong — written before printing the hip height of
+all 67 rather than of the ones I was already suspicious of. Rule 2, again, and
+this time caught by the series rather than by a build.
+
+  CONFIRMED — the render and the FBX agree, and the height is unambiguous:
+
+  slot        file name                   hips lo/md/hi   what it actually is
+  jog         Jog Forward                   7 /  7 /  7   a body flat on the floor
+  lie_still   Lying Down                   85 / 96 /121   an upright stride
+  collapse    Dying                       103 /103 /103   never leaves standing
+  sit         Sitting Idle                 92 / 96 /101   standing, arm raised
+  sit_talk    Sitting Talking              -  / 94 / -    standing
+
+  SUSPECTED — the render looks wrong and the height CANNOT corroborate it,
+  because correct clips share the same band:
+
+  carry_bag   Walking With Shopping Bag    60 / 60 / 62   crouched, travel 0.00
+  idle_bored  Bored                        63 / 64 / 67   crouched
+  head_no     Shaking Head No              48 / 69 /103   seated; 11.5s long
+  walk_stop   Stop Walking                 43 / 76 / 81   drops into a crouch
+  thinking    Thinking                     70 / 72 / 74   a wide-armed stride
+
+WHY THE SECOND GROUP CANNOT BE CLOSED ON HEIGHT. Printing the median for ALL
+67, sorted, shows one clean gap and one crowded band:
+
+  7  jog · 9 get_up · 14 knockdown · 18 sit_drink   <- on the floor
+     ...a gap with nothing in it from 18 to 60...
+  60 carry_bag · 64 idle_bored · 68 guard_exit · 69 head_no · 72 thinking
+  73 turn_right · 74 block_broken · 74 RUN · 76 walk_stop
+  80..103  everything else, upright
+
+**`run` reads 74 and is correct.** So is `block_broken` at 74. Any bound that
+rejects `walk_stop` at 76 rejects those, which is rule 5b's ratchet exactly.
+The floor gap at 18..60 is real and usable; the crouch band is not separable by
+height and needs a different measurement or a person.
+
+  jog and lie_still are EACH OTHER. That is not five independent bad
+  downloads; an exact swap is a slot/content mix-up.
+
+Hip height is in centimetres and a standing adult reads about 95. CLAUDE.md
+warns that hip HEIGHT is not comparable between clips, and that warning is
+right about the question it was written for — you cannot tell WHICH animation a
+clip is from it. It answers only "upright or on the floor", and only across the
+gap that the distribution actually shows.
+
+THE CONTROLS, which matter as much as the findings — a checker that flags
+everything has found nothing:
+
+  walk        Walking          93 / 95 / 95   upright, correct
+  idle        Breathing Idle   94 /100 /105   upright, correct
+  get_up      Stand Up          8 /  9 / 11   starts prone, correct
+  knockdown   Knocked Out       6 / 14 /104   standing to floor, correct
+  block_start Standing Block    -              hands up at the face, correct
+
+WHERE THE FAULT IS NOT. The picker chose correctly: every file on disk carries
+the right Mixamo title, and `pick_animations.py --dryrun` resolves 65 exact and
+2 substitutes with 0 missing. The controller binds by the filename's slot
+prefix. The sheet's grid is sound (`yell`, the 67th clip, lands alone in the
+three-tile bottom row). So the disagreement is between a harvest file's NAME
+and its CONTENTS, upstream of everything in this repository.
+
+  An earlier note in this file said the picker's patterns were the next thing
+  to check. They were checked and they are fine. The one real pattern smell
+  left is `walk_stop`'s second, unanchored `\bstop walking\b`, which also
+  matches "Crouch Stop Walking" — and the clip renders as a crouch. That is
+  suggestive and it is NOT the explanation, because the file on disk is named
+  "Stop Walking", not "Crouch Stop Walking".
+
+WHAT FIXES IT. A re-pick, not a re-download: the full harvest (~2,500
+animations per character) is already on Jafar's machine and REPICK.bat runs
+against it in seconds with no token and no downloads. What the picker needs is
+to VERIFY the candidate rather than trust its name — the hip-height reading
+above is exactly the discriminator, and it would have rejected all nine.
+
+  A CAUTION FOR THAT WORK, and it is rule 5b twice over: the check must ACCEPT
+  `get_up` at 8cm and `knockdown` at 6..104, and it must not try to police the
+  crouch band, where `run` at 74 and `walk_stop` at 76 are one correct and one
+  wrong. It can only assert the thing the distribution supports — a slot that
+  must be ON THE FLOOR against one that must be UPRIGHT, across the empty gap
+  from 18 to 60.
+
+----------------------------------------------------------------
+AND THE RE-CENTRE MEASUREMENT CAME BACK NON-ZERO, WHICH IS A FINDING
+----------------------------------------------------------------
+
+`sheetSlid=73 sheetSlidWorst=0.20` against `sheetTiles=67` (201 phase tiles).
+
+It was written expecting ZERO. `applyRootMotion` is false, so in principle the
+transform never accumulates and the hips stay over the origin — and nothing had
+ever checked that "in principle". Seventy-three of 201 tiles needed moving, by
+up to 20cm.
+
+20cm does not push a body out of a frame 3.9m away, so this was never the cause
+of anything visible, and the earlier claim that it was is retracted elsewhere in
+this file. It is worth keeping for exactly the reason it was worth printing: a
+number that was assumed to be zero and is not.
+
+The exposure is also not fully pinned even after the fix — `sheetLuma=33..190`,
+a 157-level spread, against 14..118 before. Nothing is unreadable any more
+(`sheetDark=0`), which is what the fix was for, so the residue is not blocking.
+The floor plane now reads 254, i.e. blown out; that is the ambient re-assert
+landing on a surface that was already bright, and it costs nothing because the
+floor carries no information.

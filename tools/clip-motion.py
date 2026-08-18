@@ -226,7 +226,32 @@ def measure(path):
                for i in range(steps - 1))
 
     keycount = max(len(t) for t, _v in spans)
+
+    # HIP HEIGHT, IN CENTIMETRES, AND IT IS THE MOST USEFUL NUMBER HERE.
+    #
+    # CLAUDE.md warns that hip HEIGHT is not comparable between clips, and
+    # that is right about the question it was written for: you cannot tell
+    # WHICH animation a clip is from its hip height, because a stand-up
+    # legitimately starts at 8cm. It is decisive for a much narrower question
+    # — is the body UPRIGHT or ON THE FLOOR — and that question is what caught
+    # a whole class of wrong clips on 18 August:
+    #
+    #     walk         Walking          95cm      upright, as it should be
+    #     jog          Jog Forward       7cm      a body on the floor
+    #     lie_still    Lying Down       96cm      upright
+    #     collapse     Dying           103cm      upright, and flat across the
+    #                                             whole clip, so it never falls
+    #
+    # jog and lie_still are each other, confirmed independently by the contact
+    # sheet. The median is the posture; min and max say whether it CHANGES,
+    # which is how Knocked Out (6..104) reads correctly as a fall and Dying
+    # (102.60..102.67) reads as a man standing perfectly still.
+    hip_y = trans.get("Y")
+    hips_cm = sorted(v * scale for v in hip_y[1]) if hip_y else []
     return {
+        "hipLow": hips_cm[0] if hips_cm else 0.0,
+        "hipCm": hips_cm[len(hips_cm) // 2] if hips_cm else 0.0,
+        "hipHigh": hips_cm[-1] if hips_cm else 0.0,
         "duration": duration,
         "travel": math.hypot(ends("X"), ends("Z")),
         "path": path,
@@ -288,17 +313,19 @@ def main():
     read = [r for r in rows if "error" not in r]
 
     if args.series or not args.quiet:
-        print("%-14s %-30s %7s %7s %7s %8s %8s" %
-              ("slot", "mixamo clip", "secs", "movecm", "turn°", "travel m", "path m"))
+        print("%-14s %-26s %6s %7s %7s %8s %8s %14s" %
+              ("slot", "mixamo clip", "secs", "movecm", "turn°", "travel m",
+               "path m", "hip cm lo/md/hi"))
         order = sorted(rows, key=lambda r: (r.get("movedCm", 0.0),
                                             r.get("turnedDeg", 0.0)))
         for r in order:
             if "error" in r:
-                print("%-14s %-30s   %s" % (r["slot"], r["mixamo"][:30], r["error"]))
+                print("%-14s %-26s   %s" % (r["slot"], r["mixamo"][:26], r["error"]))
                 continue
-            print("%-14s %-30s %7.2f %7.2f %7.1f %8.2f %8.2f%s" %
-                  (r["slot"], r["mixamo"][:30], r["duration"], r["movedCm"],
+            print("%-14s %-26s %6.2f %7.2f %7.1f %8.2f %8.2f %14s%s" %
+                  (r["slot"], r["mixamo"][:26], r["duration"], r["movedCm"],
                    r["turnedDeg"], r["travel"], r["path"],
+                   "%.0f/%.0f/%.0f" % (r["hipLow"], r["hipCm"], r["hipHigh"]),
                    "   FROZEN ROOT" if r["frozen"] else ""))
         print()
 

@@ -43,7 +43,18 @@ RUNS = ROOT / "game-design" / "sim-shots" / "runs"
 # paraphrased — see tools/verdict-keys.py, which matches the same marker.
 NO_SIM = "NO PLAYER LOG"
 
-FAILING = re.compile(r"FAILING GATES:\s*(.+)")
+# THE COUNT PREFIX IS OPTIONAL, BECAUSE THE LINE GAINED ONE ON 18 AUGUST AND
+# EVERY KEPT RUN BEFORE THAT DOES NOT HAVE IT. SimDirector now prints
+# "FAILING GATES: 4 of 72: jobRan, dayJob, ..." so a red build states its own
+# denominator; the 198 runs already on disk say "FAILING GATES: jobRan, ...".
+# Without the optional group this tool read "4 of 72: jobRan" as a GATE NAME
+# and duly reported a new gate that had failed once in 198 runs, flagged as
+# "rare, and rare is the dangerous kind" — its own warning, fired at itself.
+#
+# That is rule 1's second corollary exactly: changing the line changed what
+# reads it, and the reader was three files away. Both formats parse now, and
+# they have to, because the history is the whole point of this tool.
+FAILING = re.compile(r"FAILING GATES:\s*(?:\d+ of \d+:\s*)?(.+)")
 PASS = re.compile(r"\bpass=(True|False)\b")
 
 
