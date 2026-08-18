@@ -2011,3 +2011,39 @@ street-spec topology re-plan, whose case is the ~110 parcel ceiling.
    more realistic bodies, a Mixamo pick and Jafar's step** — sameness
    got worse to buy this.
 
+
+
+### Moved out of `queue.md` — playtest push and live-speech state
+
+### THE PLAYTEST PUSH — sequence, not calendar (Jafar: "forget exact
+### days, just keep the sequence")
+
+**The plan is `playtest-plan.md`** — MacBook Air, three players. Order
+there wins over order here. Everything below stands but YIELDS: live
+speech is parked (no DirectML on the machine) and the visual and
+playability work takes the slots. The deterministic retry design, the
+constant-gate plants and the frame-gate CPU work resume after.
+
+**SETTLED, so it stops being re-litigated: the daylight grade.** Two
+iterations, judged on matched dry-noon pairs rather than per-day
+medians (weather is not pinned between runs, so a median compares
+different weather). Worst noon came 0.494 → 0.446, bright pixels
+48% → 39%, nights held 0.10–0.13, brick still legible. Further cuts
+start re-crushing the brick. The grade stays.
+
+**Still owed from that push:** Jafar's Mixamo session then per-physique
+controllers; freeze, final builds, smoke test. The glowing box in
+day2_night's plaza is the bar sign's bare back face — one-line
+material fix, behind the playtest-critical work.
+
+### LIVE SPEECH — PARKED until after the playtest
+
+State in one paragraph, full accounts in the git log: the C# side
+speaks on Jafar's card (~1.1x realtime, pops fixed, 23 voices cast).
+The "ah" filler is a deterministic bad draw per (voice, line), so the
+fix is DETECT AND RETRY WITH THE SEED PERTURBED — designed, not built.
+Streaming and fp16 are closed (worse, measured). `put-voices-in-build.py`
+is selftested but has NEVER run against a real build; that is the first
+item on resuming. No live speech on the playtest Mac (no GPU) —
+recorded bank only, which the verdict's speech keys already measure.
+

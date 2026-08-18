@@ -29,79 +29,73 @@ CLAUDE.md under AUTO MODE.
 
 ### Where the street got to
 
-Jafar's Mixamo harvest landed complete (54 slots, zero missing) and the
-street came alive with it — people talk, argue, lean, smoke, work
-counters, carry shopping, `activityPeak` 1 -> 18. Zebra crossings,
-belisha beacons, hanging cables, smoking chimneys and the topology
-stretch all landed with it. **The accounts are in
-`roadmap-history.md`; the git log is the record.**
+The Mixamo harvest landed complete and the street came alive with it —
+people talk, argue, lean, smoke, work counters, carry shopping
+(`activityPeak` 1 -> 18) — along with zebra crossings, belisha beacons,
+hanging cables, smoking chimneys and the topology stretch. **Accounts
+in `roadmap-history.md`; the git log is the record.**
 
 NEXT: T3 queue points and standing destinations; then the freeze
 decision (recommendation KEEP, unchanged and now stronger).
 
-### THE PLAYTEST PUSH — sequence, not calendar (Jafar: "forget exact
-### days, just keep the sequence")
+### THE PLAYTEST PUSH — sequence, not calendar
 
-**The plan is `playtest-plan.md`** — MacBook Air, three players. Order
-there wins over order here. Everything below stands but YIELDS: live
-speech is parked (no DirectML on the machine) and the visual and
-playability work takes the slots. The deterministic retry design, the
-constant-gate plants and the frame-gate CPU work resume after.
-
-**SETTLED, so it stops being re-litigated: the daylight grade.** Two
-iterations, judged on matched dry-noon pairs rather than per-day
-medians (weather is not pinned between runs, so a median compares
-different weather). Worst noon came 0.494 → 0.446, bright pixels
-48% → 39%, nights held 0.10–0.13, brick still legible. Further cuts
-start re-crushing the brick. The grade stays.
-
-**Still owed from that push:** Jafar's Mixamo session then per-physique
-controllers; freeze, final builds, smoke test. The glowing box in
-day2_night's plaza is the bar sign's bare back face — one-line
-material fix, behind the playtest-critical work.
-
-### LIVE SPEECH — PARKED until after the playtest
-
-State in one paragraph, full accounts in the git log: the C# side
-speaks on Jafar's card (~1.1x realtime, pops fixed, 23 voices cast).
-The "ah" filler is a deterministic bad draw per (voice, line), so the
-fix is DETECT AND RETRY WITH THE SEED PERTURBED — designed, not built.
-Streaming and fp16 are closed (worse, measured). `put-voices-in-build.py`
-is selftested but has NEVER run against a real build; that is the first
-item on resuming. No live speech on the playtest Mac (no GPU) —
-recorded bank only, which the verdict's speech keys already measure.
+**The plan is `playtest-plan.md`** — MacBook Air, three players; its
+order wins over this one. Live speech is parked (no DirectML on that
+machine): recorded bank only, which the verdict's speech keys measure.
+Still owed: Jafar's Mixamo session then per-physique controllers;
+freeze, final builds, smoke test. The glowing box in day2_night's plaza
+is the bar sign's bare back face, one line, behind the critical work.
+**The daylight grade is SETTLED and the accounts are in
+`roadmap-history.md` — it stops being re-litigated.**
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
 1. **THE STREET IS EMPTY AT EYE LEVEL, AND EVERY POPULATION NUMBER
-   SAYS IT IS FINE.** *(on screen — review_street.jpg at 0d38986, the
-   first frame with nothing standing in it)* The judgement camera is
-   finally clear and what it shows is a deserted city. The numbers all
-   read healthy and NOT ONE of them is about the view: `walkers=55` is
-   bodies anywhere in a city that grew ~2.5x in area at the topology
-   stretch, `crowdWalkers=12` is exactly `CrowdWalkerCap` so the near
-   cap is BINDING, and `crowdMill=136` is the GOSSIP mill — social
-   agents, not a render tier. There is no cheap visible-body tier at
-   all.
+   SAYS IT IS FINE.** *(on screen — `review_street.jpg`)* Not one
+   existing number is about the VIEW: `walkers=55` counts bodies
+   anywhere in a city that grew ~2.5x in area, `crowdWalkers=12` is
+   exactly `CrowdWalkerCap` so the near cap BINDS, and `crowdMill=136`
+   is the GOSSIP mill — social agents, not a render tier. There is no
+   cheap visible-body tier at all.
 
-   **MEASURED, TWICE: `5/2/52` at f802928 and `8/5/55` at 645421c** —
-   bodies in shot / within 25m / alive. Standing in the street you see
-   five to eight people, two to five close enough to read as a person.
-   **NOTHING BETWEEN THOSE RUNS CHANGED DENSITY, so the 5 -> 8 is the
-   spread of the measurement, not progress** — the street shot picks a
-   different spot each run. Two samples is not a series; get more
-   before reading any movement as a result. A camera sees ~60 degrees,
-   so bodies scattered evenly round the player put ~1 in 6 in frame no
-   matter how the cap is set — which is why the cap is not the lever it
-   looks like.
+   **MEASURED, THREE RUNS: `5/2/52`, `8/5/55`, `3/2/52`** — in shot /
+   within 25m / alive. Three to eight people visible, two to five close
+   enough to read as a person. **NOTHING CHANGED DENSITY BETWEEN THEM,
+   so that spread is the instrument, not progress** — the shot stands
+   somewhere different each run. A camera sees ~60 degrees, so bodies
+   scattered round the player put ~1 in 6 in frame however the cap is
+   set, which is why the cap is not the lever it looks like.
 
-   **THE COST IS NPCs AND TRAFFIC, NOT SUN.** Same run: `npcs=9.36
-   traffic=4.67 mix=3.37 bodyLod=1.46 rigs=1.21 sun=1.26`, `game=22.84`
-   against a 12ms budget. And `sun` has read 0.91, 3.15 and 1.26 across
-   three runs that changed nothing relevant to it, so the queue's old
-   "sun is a quarter of the budget" line was reading noise. Frame
-   numbers move with the runner too (`mean` 527 -> 610 between these
-   two), so compare within a run, not across.
+   **AND `streetBodiesSkinned=0` of 3 — the frame was showing
+   MANNEQUINS.** The body budget ranks by distance to the PLAYER and
+   this camera deliberately walks away from the player, so the skinned
+   models stayed behind the lens. Every visual judgement of the bodies
+   in that still has been made of the wrong thing. Fixed by re-ranking
+   from the camera before the shutter; judge on the next frame.
+
+   **THE COST IS NPCs AND TRAFFIC, NOT SUN.** `sun` has read 0.91,
+   3.15 and 1.26 across runs that changed nothing relevant to it, so
+   the old "sun is a quarter of the budget" line was reading noise.
+   Frame numbers move with the runner too, so compare within a run.
+
+   **THE TWO PERF FIXES, MEASURED — ONE WORKED, ONE DID NOT.**
+
+   `traffic`: 4.67 -> 4.27 -> **2.23**. Hoisting the road heading out
+   of the per-hazard loop roughly halved it, well outside the prior
+   spread. One sample; treat as strong, not settled.
+
+   `npcs`: 9.36 -> 8.43 -> **8.63**. Did NOT move. The broad-phase in
+   `StepApart` works exactly as designed — `crowdApartPairs=5288` of
+   `crowdApartCalls=63298`, so of ~3.3M candidate pairs only 0.16%
+   reach a square root — and the time stayed put anyway. **So the
+   commit title "that is why the street is empty" was overstated and
+   is corrected here.** Removing the sqrt did not help because the
+   ITERATION is what costs: the sweep still visits every walker for
+   every walker, and only the work per visit got cheaper. Still O(n²),
+   just with a smaller constant. A spatial bucket is the real fix and
+   is not yet written; the cost of the crowd is still somewhere inside
+   `Tick` that nothing has isolated.
 
    **CORRECTION — f802928's commit message costs a walker at "~0.58ms"
    by dividing `npcs` by `crowdWalkers=12`.** Wrong denominator: that
@@ -112,36 +106,43 @@ recorded bank only, which the verdict's speech keys already measure.
    city BEFORE the stretch. Re-read it when the numbers land.
 
    **`RealBodyCap = 12` NEEDS A PC MEASUREMENT, not a CI one.** Its
-   comment prices a dozen skinned bodies at ~280k vertices, "the order
-   the rest of this scene is built at" — judged against a runner with
-   no GPU that software-rasterises every frame (`render+rest=587ms`).
-   Jafar's machine is not that machine, and this is plausibly the
-   cheapest large win available for how full the street looks.
-   `streetBodiesSkinned` lands next build and says whether the cap is
-   costing anything in the frame at all.
+   comment prices a dozen skinned bodies at ~280k vertices against a
+   runner with no GPU that software-rasterises every frame. Jafar's
+   machine is not that machine, and this is plausibly the cheapest
+   large win for how full the street looks.
 
-1. **FIFTY-SIX BUILDING MODELS ARE SITTING IN A CATALOGUE NOBODY HAS
-   PICKED FROM.** `tools/props/listings.json` was committed so the next
-   pick could be made locally from evidence, and then it never was:
-   `city-kit-commercial` lists 14 buildings + 5 skyscrapers + 16
-   low-detail, `city-kit-suburban` 21 more. **Three files were
-   extracted from commercial — two awnings and a colormap.** The
-   street's buildings are procedural boxes while this sits unused.
+1. **THE KIT BUILDINGS ARE NOT TERRACES — SETTLED ON GEOMETRY.**
+   The catalogue holds 35 commercial + 21 suburban building models and
+   three files had ever been taken from it (two awnings and a
+   colormap). Eleven fetched to answer whether they beat our
+   procedural masses, which wear 2K photographic brick against the
+   kit's flat palette colormap.
 
-   **DO NOT JUST SWITCH TO THEM — IT IS A REAL TRADE AND IT COULD
-   REGRESS.** Ours are plain masses wearing 2K photographic brick and
-   window textures; the kit's are hand-modelled silhouettes wearing a
-   flat palette colormap. Jafar's bar is "low poly is not going to cut
-   it", and a Kenney building is lower fidelity per surface than what
-   we draw now even though its shape is better. The likely right answer
-   is to take the kit where OUR system is weakest — distant skyline and
-   silhouette variety — and keep photographic surfaces on the near
-   terraces, but that is a hypothesis and not a measurement.
+   **MEASURED — eleven fetched, `tools/prop-dimensions.py`, and the
+   answer is NOT the terraces.**
 
-   Blocked on a props-fetch run: the building FBX are catalogued, not
-   on disk, so nothing about their size, poly count or UVs can be
-   checked here. First step is fetching a handful to MEASURE, not
-   committing to the swap.
+       building-a              733 verts   88 x 129 x  94
+       building-b              762         97 x 129 x  94
+       building-type-a         707        130 x  83 x 103
+       skyscraper-a            978        136 x 288 x 136
+       low-detail-building-a   104         50 x 200 x  50
+       low-detail-building-c    90         50 x 225 x  50
+
+   Read the RATIOS: kit units are not metres (its `sedan` is 150x145x255
+   and a sedan is 4.2m long) and `TrafficHost` already rescales a kit
+   mesh on instantiate, so proportion is what decides.
+
+   **Every full building has a roughly SQUARE plan** — 88x94, 97x94,
+   130x103. Our terrace parcels are about 1:2, narrow frontage and
+   deep. These are detached standalone blocks and cannot be terrace
+   units at any scale. That closes the "just switch to them" option on
+   geometry rather than on taste.
+
+   **The low-detail set is the find: 90–112 verts at a 1:4 tower
+   ratio.** Trivial against a scene already carrying ~280k vertices in
+   bodies alone, and exactly the shape a DISTANT SKYLINE wants — which
+   is where the queue guessed our system was weakest, now with evidence
+   under it. That is the next step, not a terrace swap.
 
 1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — 10 of 28 vehicles are
    still primitives.** `vehiclesKitted=18/28`,

@@ -202,6 +202,30 @@ namespace Ledger.Game
         /// walker and costs nothing; the ACT is a prefab instantiate, and doing
         /// that on a frame boundary is how a fix for a frame budget becomes a
         /// frame budget problem.
+        /// RE-RANK THE BODY BUDGET FROM SOMEWHERE ELSE, NOW.
+        ///
+        /// The skinned-body budget is spent on the nearest twelve TO THE
+        /// PLAYER, which is right for play and wrong for the review still:
+        /// the street shot deliberately walks the camera off the player —
+        /// out of the furniture, past the kerb, then along the road until no
+        /// walker is in the lens — so it can end a dozen metres away, ranking
+        /// bodies against somebody who is not holding the camera.
+        ///
+        /// `streetBodiesSkinned=0` on its first run, against three bodies in
+        /// shot. Three is too small a sample to call on its own, but the
+        /// mechanism is not in doubt, and the consequence is: every visual
+        /// judgement anybody has made of the bodies in `review_street.jpg`
+        /// has been made of PROCEDURAL MANNEQUINS while the skinned models
+        /// stood behind the camera. A frame that systematically shows worse
+        /// than the game does is worse than no frame — it is rule 4's
+        /// "open the artifact you are shipping" failing in the instrument
+        /// rather than in the artifact.
+        public void RankBodiesFrom(Vector3 at)
+        {
+            _nextBodyLod = -1f;      // this pass is not the optional once-a-second one
+            TickBodyDetail(at);
+        }
+
         void TickBodyDetail(Vector3 playerPos)
         {
             if (Populace == null || _npcs.Count == 0) return;

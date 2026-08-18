@@ -7720,6 +7720,14 @@ namespace Ledger.Game
                     // cannot say which. `streetBodiesLive` is the denominator
                     // (rule 3b): without it, "nobody in shot" and "nobody
                     // spawned" are the same reading.
+                    // SPEND THE BODY BUDGET ON WHAT THE LENS CAN SEE. The
+                    // ranking is by distance to the PLAYER, and this camera
+                    // has just walked away from the player on purpose, so
+                    // without this the frame shows mannequins while the
+                    // skinned models stand behind it. Before the count, so
+                    // `streetBodiesSkinned` describes the picture taken.
+                    _game.RankBodiesFrom(eye);
+
                     _streetBodies = 0;
                     _streetBodiesNear = 0;
                     _streetBodiesLive = 0;
