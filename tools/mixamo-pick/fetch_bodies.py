@@ -80,6 +80,12 @@ EXPORT_PREFS = {
 }
 
 
+class TokenExpired(Exception):
+    """The token died mid-run. Its own type because it is not a fault of the
+    character being fetched, and every caller must stop rather than carry on
+    printing the same refusal once per name."""
+
+
 def api(url, token, data=None, timeout=60):
     """One request shape for every call, so a header cannot go missing on one."""
     headers = {
@@ -140,6 +146,12 @@ def export_body(token, cid, name, out_dir, wait_seconds=180):
         print(f"  {name}: export request refused — {e.code} {e.reason}")
         if detail.strip():
             print("    " + detail.replace("\n", "\n    "))
+        # A DEAD TOKEN IS NOT A PER-CHARACTER FAILURE. It printed the same
+        # 401 ten times, once per name, and ended "0 of 10 bodies written"
+        # — which reads like ten bad picks rather than one expired token.
+        # Raised so the caller stops on the first one and says what to do.
+        if e.code in (401, 403):
+            raise TokenExpired()
         return False
 
     # POLLED, NOT SLEPT-THEN-ASSUMED. The export is a job; a fixed sleep
@@ -310,7 +322,29 @@ def main():
         return 0
 
     print(f"Downloading {len(chosen)} body/bodies with skin:")
-    ok = sum(1 for cid, name in chosen if export_body(token, cid, name, args.out))
+    # STOP ON A DEAD TOKEN RATHER THAN REPEATING IT PER NAME. The first run
+    # of this batch printed the identical 401 ten times and finished "0 of 10
+    # bodies written", which reads as ten bad picks. It was one expired
+    # token, and the summary said nothing about that.
+    ok = 0
+    try:
+        for cid, name in chosen:
+            if export_body(token, cid, name, args.out):
+                ok += 1
+    except TokenExpired:
+        print()
+        print("STOPPED: the Mixamo token has expired. Nothing here is wrong")
+        print("with the picks or the script — the session simply timed out.")
+        print()
+        print("Get a fresh one, it takes a moment:")
+        print("    1. open mixamo.com and sign in")
+        print("    2. press F12 for the console")
+        print("    3. run:  localStorage.getItem('access_token')")
+        print(f"    4. paste it into {tokfile}, without the quotes")
+        print()
+        print("Then run the same script again. Anything already downloaded")
+        print("is skipped, so nothing is fetched twice.")
+        return 2
 
     print()
     print(f"{ok} of {len(chosen)} bodies written to {args.out}")
