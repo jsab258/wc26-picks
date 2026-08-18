@@ -222,6 +222,7 @@ namespace Ledger.Game
             BuildNeon();
             BuildDistrict();
             BuildLandmarks();
+            BuildSkyline();
             // Signs last: they read the finished network, and a rule the city
             // obeys without telling you is indistinguishable from a bug.
             StreetFurniture.Build();
@@ -2854,6 +2855,104 @@ namespace Ledger.Game
         /// builds: the quay line south of Ironside's last avenue, and the
         /// no-man's strip between Ironside and Gullwing (the goods spur
         /// crosses that strip at z~-127; the drum sits 19m north of it).
+        /// How many skyline blocks stood, and how many wore a kit mesh. A
+        /// fallback that never fires and one that always fires are the same
+        /// single number (rule 3b), and this one has a real chance of never
+        /// firing — the models arrive through a fetch job, not through the
+        /// repo.
+        public static int SkylineBlocks, SkylineKitted;
+
+        /// THE CITY DOES NOT END AT THE LAST TERRACE.
+        ///
+        /// Every eye-level frame so far ends in blank sky about two hundred
+        /// metres out: the street runs to the edge of the built area and then
+        /// there is nothing, which is what makes a town read as a diorama
+        /// rather than as part of somewhere larger. Jafar's note against GTA5
+        /// was density, textures, models — "making it feel like a real city" —
+        /// and a horizon is the cheapest third of that.
+        ///
+        /// USES THE KIT'S LOW-DETAIL BLOCKS, WHICH WERE MEASURED FIRST. The
+        /// eleven building models fetched for this decision came back with
+        /// every FULL building on a roughly square plan (88x94, 97x94,
+        /// 130x103) against our terrace parcels at about 1:2 — so they cannot
+        /// be terraces at any scale, and that half of the idea is closed on
+        /// geometry. The low-detail set is a different answer: 90 to 112
+        /// vertices at a 1:4 tower ratio. Thirty of them is under 4k
+        /// vertices, against a scene already carrying ~280k in bodies alone,
+        /// and a distant block is exactly where a flat palette colormap costs
+        /// nothing — nobody reads brick at three hundred metres.
+        ///
+        /// SCALED BY THE MESH'S OWN BOUNDS, not by a factor. Kit units are
+        /// not metres (its `sedan` measures 150x145x255 and a sedan is 4.2m),
+        /// so the height is read off the renderer and scaled to a target the
+        /// same way `TrafficHost` fits a car to its kind's length.
+        ///
+        /// FALLS BACK TO A BOX, and counts which happened. The models arrive
+        /// through a fetch job rather than through the repo, so a build
+        /// without them is not hypothetical — and a plain tower on the
+        /// horizon is still a better horizon than none.
+        static void BuildSkyline()
+        {
+            if (!TownPlanEnabled) return;
+            SkylineBlocks = SkylineKitted = 0;
+
+            // The outer ring sits near 112m after the topology stretch and the
+            // docks run to z=-174, so this stands well outside both. Two loose
+            // rings rather than one so the horizon has depth instead of
+            // reading as a fence.
+            const int Count = 34;
+            string[] models =
+            {
+                "city-kit-commercial_low-detail-building-a",
+                "city-kit-commercial_low-detail-building-b",
+                "city-kit-commercial_low-detail-building-c",
+            };
+
+            for (int i = 0; i < Count; i++)
+            {
+                int h = System.Math.Abs(StableHash($"skyline{i}"));
+                float ang = (i / (float)Count) * Mathf.PI * 2f
+                            + (h % 100) / 100f * 0.09f;          // deterministic jitter
+                float radius = 250f + (h / 100 % 7) * 22f + (i % 2 == 0 ? 0f : 46f);
+
+                // SEAWARD STAYS EMPTY. The docks and their cranes are the
+                // silhouette on that side and they are the better one; a
+                // skyline behind them would read as a city built in the water.
+                var dir = new Vector3(Mathf.Sin(ang), 0, Mathf.Cos(ang));
+                if (dir.z < -0.55f) continue;
+
+                float target = 26f + (h / 700 % 9) * 6.5f;        // 26..78m
+                var at = new Vector3(dir.x * radius, 0, dir.z * radius);
+
+                var kit = AssetLibrary.TryInstantiateProp(
+                    models[h % models.Length], at, Quaternion.Euler(0, (h / 7) % 360, 0));
+                SkylineBlocks++;
+                if (kit != null)
+                {
+                    SkylineKitted++;
+                    kit.name = $"Skyline_{i}";
+                    var r = kit.GetComponentInChildren<Renderer>();
+                    if (r != null && r.bounds.size.y > 0.01f)
+                        kit.transform.localScale = Vector3.one * (target / r.bounds.size.y);
+                    // Grounded after scaling — the mesh knows where its feet are.
+                    var g = kit.GetComponentInChildren<Renderer>();
+                    if (g != null) kit.transform.position = at + Vector3.up * (at.y - g.bounds.min.y);
+                    // `Object.Destroy`, not `Destroy` — this class is static
+                    // and has no MonoBehaviour to inherit it from. Caught by
+                    // the local Game-layer compile pass rather than by a
+                    // twenty-eight-minute round trip.
+                    foreach (var col in kit.GetComponentsInChildren<Collider>())
+                        Object.Destroy(col);
+                }
+                else
+                {
+                    float w = 14f + (h / 9 % 5) * 4f;
+                    MakeBox($"Skyline_{i}", at + Vector3.up * (target * 0.5f),
+                        new Vector3(w, target, w), AssetLibrary.Concrete);
+                }
+            }
+        }
+
         static void BuildLandmarks()
         {
             if (!TownPlanEnabled) return;
