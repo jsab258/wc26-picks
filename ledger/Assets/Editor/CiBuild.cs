@@ -34,6 +34,14 @@ namespace Ledger.EditorTools
             // first — see below.
             CharacterPrefab.Build();
 
+            // EVERY CLIP ON ONE CONTROLLER, so the sim can render a contact
+            // sheet of all of them. This has to be built here and photographed
+            // there: `UnityEditor.Animations` exists only in the Editor, and
+            // the Editor runs `-nographics`, which has no device to render
+            // with. After `CharacterPrefab.Build` because it reads the same
+            // imported clips and the ordering trap below is the same one.
+            ClipSheetAssets.Build();
+
             // And the same move for the CC0 kit models (cars, benches,
             // bins): a prefab per model into Resources/Props, so the
             // runtime swap sites can reach them. Runs before the audit for

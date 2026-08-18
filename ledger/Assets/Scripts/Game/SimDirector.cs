@@ -273,6 +273,21 @@ namespace Ledger.Game
             ViolenceHost.BindWalkers(_npcs);
             CoatHost.Reset();
             EvidenceHost.Reset();
+            // THE CONTACT SHEET OF EVERY ANIMATION, ONCE, BEFORE THE DAYS RUN.
+            //
+            // Here rather than beside the stills because it is not a picture of
+            // the street: it renders a body on its own layer five kilometres
+            // below the city, so nothing about the world can reach into shot
+            // and nothing about the clock can change how it looks. Taking it
+            // first also means a run that dies on day three still answers the
+            // question it was dispatched for.
+            //
+            // It is the only instrument in this project that can say which
+            // animation a clip actually IS — every Mixamo FBX names its take
+            // "mixamo.com", so a filename is the only label a file carries and
+            // the harvester has already been caught putting one animation under
+            // two names.
+            ClipSheet.Render("sim-out");
             Debug.Log($"SimDirector: simulating {SimMode.Days} day(s)");
         }
 
@@ -10734,6 +10749,20 @@ namespace Ledger.Game
                       // quiet street — which is exactly what happened on the
                       // first build of this feature.
                       $"activityAsked={CharacterRig.ActivityAsked} " +
+                      // THE CONTACT SHEET, AND ITS DENOMINATOR. `sheetTiles` is
+                      // how many clips were drawn; `sheetWhy` says why when
+                      // that is not all of them. `-1` means the pass threw and
+                      // `0` means it ran and found nothing, which are different
+                      // faults and have looked identical in three other
+                      // instruments in this project.
+                      //
+                      // NO SPACES IN A VERDICT VALUE — the file is
+                      // space-separated `key=value` and `verdict-read.py`
+                      // silently returns the first word otherwise, which is the
+                      // exact class of quietly-wrong answer it exists to
+                      // prevent. Underscores here, brackets round it.
+                      $"sheetTiles={ClipSheet.Tiles} " +
+                      $"sheetWhy=[{ClipSheet.Why.Replace(' ', '_')}] " +
                       $"undressed={WorldBuilder.UndressedRenderers} " +
                       $"undressedWho=[{WorldBuilder.UndressedWho}] " +
                       $"capsules={WorldBuilder.CapsuleMeshes} " +

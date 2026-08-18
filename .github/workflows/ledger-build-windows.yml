@@ -337,6 +337,22 @@ jobs:
             cp "${shots[@]}" game-design/sim-shots/
             STILLS_MINE=1
           fi
+
+          # THE CLIP CONTACT SHEET, ON ITS OWN EVIDENCE.
+          #
+          # Separate from the stills flag rather than folded into it, for the
+          # reason the frames flag is already separate: a run can reach the
+          # sheet (taken once, before day one) and die before any street
+          # screenshot, and one flag for two artefacts would have to guess.
+          sheet=(sim-run/sim-out/clips.jpg)
+          if [ ${#sheet[@]} -eq 0 ]; then
+            say "no clip sheet — the animation pass did not render"
+          else
+            cp sim-run/sim-out/clips.jpg game-design/sim-shots/
+            [ -f sim-run/sim-out/clips.tsv ] && cp sim-run/sim-out/clips.tsv game-design/sim-shots/
+            CLIPS_MINE=1
+            say "clip sheet rendered ($(du -k sim-run/sim-out/clips.jpg | cut -f1) KB)"
+          fi
           ls -la game-design/sim-shots/
 
           # AND THE VERDICT, AS A FILE IN THE REPOSITORY.
@@ -562,8 +578,9 @@ jobs:
           # WHAT THIS RUN PRODUCED, AND NOTHING ELSE — the reasoning, and the
           # build that reverted six stills it never rendered, are in the script.
           mapfile -t ours < <(bash tools/sim-shots-stage.sh "${GITHUB_SHA:0:7}" \
-                              "${STILLS_MINE:-0}" "${FRAMES_MINE:-0}" "$RUNNER_TEMP/ours")
-          say "committing ${#ours[@]} file(s) this run produced (stills=${STILLS_MINE:-0} frames=${FRAMES_MINE:-0})"
+                              "${STILLS_MINE:-0}" "${FRAMES_MINE:-0}" "$RUNNER_TEMP/ours" \
+                              "${CLIPS_MINE:-0}")
+          say "committing ${#ours[@]} file(s) this run produced (stills=${STILLS_MINE:-0} frames=${FRAMES_MINE:-0} clips=${CLIPS_MINE:-0})"
 
           # The script also stocks $RUNNER_TEMP/ours, which the retry loop puts
           # back on top of whatever another run pushed meanwhile.

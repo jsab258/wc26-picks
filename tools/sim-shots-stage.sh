@@ -48,6 +48,10 @@ sha7=${1:?sha7}
 stills=${2:-0}
 frames=${3:-0}
 ours=${4:-}
+# FIFTH AND AFTER `ours`, WHICH IS UGLY AND IS THE RIGHT TRADE. `ours` has one
+# caller and moving it would break that caller silently on a run nobody is
+# watching; appending cannot.
+clips=${5:-0}
 dir=game-design/sim-shots
 
 shopt -s nullglob
@@ -63,6 +67,11 @@ files=("$dir/verdict.txt" "$dir/runs/$sha7.txt")
 # manage the first and not the second, so one flag would have to guess.
 if [ "$stills" = 1 ]; then files+=("$dir"/review_*.jpg); fi
 if [ "$frames" = 1 ]; then files+=("$dir/frames.tsv"); fi
+# The clip contact sheet is taken once, before day one, so a run can produce it
+# and no street stills at all — which is why it gets its own flag rather than
+# riding on the stills one. Its ledger goes with it or the sheet is 67 unlabelled
+# tiles.
+if [ "$clips" = 1 ]; then files+=("$dir/clips.jpg" "$dir/clips.tsv"); fi
 
 if [ -n "$ours" ]; then
   rm -rf "$ours"
