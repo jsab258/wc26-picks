@@ -1746,6 +1746,27 @@ namespace Ledger.Game
 
             Vector3 StepApart(Vector3 at)
             {
+                // TIMED, BECAUSE I ALREADY GUESSED WRONG ABOUT THIS ONCE.
+                //
+                // Removing the square root from this sweep was committed as
+                // "why the street is empty" and `npcs` did not move: 9.36 ->
+                // 8.43 -> 8.63, while `crowdApartPairs` proved the rejection
+                // was dropping 99.8% of pairs before the arithmetic. So the
+                // separation is either not the cost, or the cost is the
+                // ITERATION rather than the work inside it, and no number
+                // anywhere can currently tell those apart.
+                //
+                // A spatial bucket is the obvious next move and it is a real
+                // piece of work. Writing it before knowing whether this loop
+                // is 1ms of the 8.63 or 6ms of it would be making the same
+                // mistake a second time, one build later.
+                //
+                // NOT IN THE BUDGET SUM. `attributed` adds a fixed whitelist
+                // of scope names and "apart" is not on it, so this nests
+                // inside `npcs` as a diagnostic without double-counting the
+                // gate. `Perf.Scope` is a struct over two Stopwatch reads, so
+                // 63k calls cost a few milliseconds across a ten-minute run.
+                using var _apart = Perf.Time("apart");
                 var push = Vector3.zero;
                 foreach (var other in Live)
                 {

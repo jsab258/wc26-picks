@@ -10415,6 +10415,11 @@ namespace Ledger.Game
                       $"crowdApartCapped={NpcWalker.ApartCapped} " +
                       $"crowdApartCalls={NpcWalker.ApartCalls} " +
                       $"crowdApartPairs={NpcWalker.ApartPairs} " +
+                      // Separation's share of `npcs`, per frame. Nested inside
+                      // it and deliberately OUTSIDE the budget whitelist, so
+                      // it diagnoses without double-counting. `none` means the
+                      // sweep never ran, which is a different fact from 0.00.
+                      $"crowdApartMs={(Perf.Get("apart") is var ap && ap != null && Perf.FrameCount > 0 ? (ap.TotalMs / Perf.FrameCount).ToString("0.000") : "none")} " +
                       $"crowdApartWorst={NpcWalker.ApartWorst:0.00} " +
                       $"crowdBodyWidth={CrowdWidthRead()} " +
                       // AND THE BIGGEST HUDDLE, because a median over pairs is
