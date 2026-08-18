@@ -284,6 +284,42 @@ namespace Ledger.Game
         /// Everybody a driver must not hit. The player always; the nearest
         /// walkers; and nothing further away than a driver could reach before
         /// the next gather.
+        /// IS A VEHICLE STANDING IN THIS SHOT.
+        ///
+        /// The judgement camera has now been blocked by four different
+        /// classes of thing and each was found by a human opening the frame:
+        /// a wall (fixed with `PointClear`), a lamp column (fixed by stepping
+        /// past the kerb), a walker (fixed by sliding along the street), and
+        /// now a parked car — `SceneAudit` named it `cabin:1.93m@3.7`, which
+        /// is a vehicle's glass cabin two metres from the lens.
+        ///
+        /// The slide only ever tested `NpcWalker.Live`. Vehicles were never
+        /// in it, and the player's own car parks near the bar door where the
+        /// player starts, so the one vehicle guaranteed to be near the camera
+        /// was the one nothing looked for.
+        ///
+        /// MEASURED AGAINST THE RENDERER'S OWN BOUNDS rather than a radius
+        /// somebody picked: a bus is 10.5m and a bike is 1.8m, so any single
+        /// number would be wrong for one of them, and rule 2 forbids inventing
+        /// it. `SqrDistance` to the world AABB is exact and needs no bound
+        /// beyond the clearance the caller already uses for people.
+        public bool AnyVehicleWithin(Vector3 at, float metres)
+        {
+            float m2 = metres * metres;
+            foreach (var kv in _vehicleBodies)
+            {
+                var t = kv.Value;
+                if (t == null) continue;
+                foreach (var r in t.GetComponentsInChildren<Renderer>())
+                    if (r != null && r.bounds.SqrDistance(at) < m2) return true;
+            }
+            var mine = PlayerCar.Instance;
+            if (mine != null)
+                foreach (var r in mine.GetComponentsInChildren<Renderer>())
+                    if (r != null && r.bounds.SqrDistance(at) < m2) return true;
+            return false;
+        }
+
         void GatherHazards()
         {
             var list = Traffic.Hazards;

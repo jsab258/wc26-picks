@@ -7683,6 +7683,15 @@ namespace Ledger.Game
                                 d.y = 0;
                                 if (d.sqrMagnitude < 2.5f * 2.5f) { crowded = true; break; }
                             }
+                            // AND A VEHICLE, WHICH IS THE FOURTH THING TO STAND
+                            // IN THIS FRAME. Wall, lamp column, walker, and now
+                            // a parked car — `SceneAudit` named it
+                            // `cabin:1.93m@3.7`. The player's own car parks by
+                            // the bar door, which is where the player starts,
+                            // so the one vehicle certain to be near this camera
+                            // was the one nothing tested for.
+                            if (!crowded && _game.AnyVehicleWithin(eye, 2.5f))
+                                crowded = true;
                             if (!crowded) break;
                             eye += alongStreet * 1.2f;
                         }
