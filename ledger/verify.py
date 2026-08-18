@@ -228,6 +228,53 @@ def picker_selftest():
     return True, "clip picker ok"
 
 
+def sheet_read():
+    """The contact-sheet reader still separates a legible tile from a silhouette.
+
+    Selftest only, deliberately. The LANDED sheet currently has 25 dark tiles
+    of 67 and that is a known, recorded finding with a fix already written —
+    gating on it would block every commit until a Windows round trip lands,
+    which is rule 5b's ratchet. What must not regress is the READER: it has
+    been wrong in both directions in one afternoon (a threshold of 42 passed a
+    sheet full of silhouettes, 60 failed clips I had just confirmed by eye),
+    so the thing worth guarding is that it still tells the two apart."""
+    tool = ROOT.parent / "tools" / "sheet-read.py"
+    code, out = run(["python3", str(tool), "--selftest"])
+    if code != 0:
+        bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+        return False, "SHEET: " + (bad[0][5:98] if bad else "selftest did not pass")
+    return True, out.strip().split("\n")[-1].replace("sheet-read ok", "sheet reader ok")
+
+
+def powershell_steps():
+    """Do the workflow's pwsh steps parse.
+
+    The Windows workflow is the only thing that can tell me anything about the
+    game, and shell mistakes INSIDE it have twice taken that channel out rather
+    than the thing it was checking — most recently a Verdict step that printed
+    "no failing gates" for a run whose checkout had failed. Rule 12 says the
+    blocked channel is the highest-leverage bug on the board; this is the part
+    of it that can be checked without a runner.
+
+    A DENOMINATOR ON THE SKIP, and this one is not cosmetic. pwsh is a global
+    dotnet tool, so a fresh container does not have it, and "the workflow's
+    PowerShell is fine" must never be indistinguishable from "no PowerShell
+    existed to check it with". The skip goes in the FOOTER, so a commit made
+    without the check says so in its own message.
+    """
+    tool = ROOT.parent / "tools" / "ps-check.py"
+    code, out = run(["python3", str(tool), "--quiet"])
+    if "NO POWERSHELL" in out:
+        return True, ("pwsh steps NOT CHECKED (no PowerShell — "
+                      "dotnet tool install --global PowerShell)")
+    if code != 0:
+        bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+        return False, "PWSH: " + (bad[0][5:98] if bad else "a workflow step did not parse")
+    n = out.strip().split()
+    count = n[2] if len(n) > 2 else "?"
+    return True, f"pwsh steps parse ({count} step(s))"
+
+
 def backend_compiles():
     """Does the speech backend compile against the real onnxruntime assembly.
 
@@ -1159,6 +1206,7 @@ def main():
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
+               powershell_steps, sheet_read,
                frame_drift, verdict_keys, verdict_format, save_chaos, soak,
                adversary, stale_anchors, clip_audit, picker_selftest, core_tests):
         ok, text = fn()

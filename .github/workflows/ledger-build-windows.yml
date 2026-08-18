@@ -742,11 +742,35 @@ jobs:
           $keys  = ""
           if ($done) {
             $keys = (($done -split " ") | Where-Object {
-              $_ -match "^(coverageOk|daysSkipped|dayJobOk|verdict|pass|lightingOk|scoreOk|jobsDone|jobsMissed|frozenCloses|beatTried|beatClosest|beatChaseSecs|beatMarker|beatsAttended|framedBeats|framingPush|nightFull|nightNoShafts|nightNoBloom|nightUngraded|hushWalkBys|hushes|labels|fontless|blankLabels|worldText|depthTested|realBody|realBodyWhy|aoSpread|grainSpread|aoRange|grainRange|aoHit|aoDrop|grainLocal|reflHit|reflRise|reflSeen|reflWetAtAb|specHit|specRise|presetHit|presetOk|stemVolMax|stemsUnbound|stemRatio|scoreAudible|busMusic|bloomHit|bloomRise|bloomLit|checks|confronts|confrontTarget|suspicionActs|looks|remarks|loiterLooks|loiterNotices|nightRunLooks|nightRunNotices|sounds|investigations|slamInvestigations|standoffs|hushPeak|litRange|darkRange|perceptionOk|lastDay|endDayReached|loiterStaged|slamStaged|nightRunStaged|meanFrame|p95|frameAvgMs|perfOk|weekLostAs|falls|ringsSized|ringsDrawn|ringSmall|ringShadowed|ringNoMaterial|ringMax|ringLastSkip|ringRadius|slamDrewRing|slams|ringSeen|ringRise|ringLedger|ringSprites|ringParticles|ringNone|ringTransformZ|ringControl|ringPaintUsed|aoRounds|aoTypical|aoRounds2|aoRan|ringOk|captions|captionHushes|deeds|deedWitnesses|deedSlotSets|deedBestRung|deedDispatched|deedArrived|deedIntercepted|deedInFlight|deedClaims|deedMisnamed|perceptionWhy|lumaPairs)="
+              $_ -match "^(coverageOk|daysSkipped|dayJobOk|verdict|pass|gatesChecked|gatesFailed|lightingOk|scoreOk|jobsDone|jobsMissed|frozenCloses|beatTried|beatClosest|beatChaseSecs|beatMarker|beatsAttended|framedBeats|framingPush|nightFull|nightNoShafts|nightNoBloom|nightUngraded|hushWalkBys|hushes|labels|fontless|blankLabels|worldText|depthTested|realBody|realBodyWhy|aoSpread|grainSpread|aoRange|grainRange|aoHit|aoDrop|grainLocal|reflHit|reflRise|reflSeen|reflWetAtAb|specHit|specRise|presetHit|presetOk|stemVolMax|stemsUnbound|stemRatio|scoreAudible|busMusic|bloomHit|bloomRise|bloomLit|checks|confronts|confrontTarget|suspicionActs|looks|remarks|loiterLooks|loiterNotices|nightRunLooks|nightRunNotices|sounds|investigations|slamInvestigations|standoffs|hushPeak|litRange|darkRange|perceptionOk|lastDay|endDayReached|loiterStaged|slamStaged|nightRunStaged|meanFrame|p95|frameAvgMs|perfOk|weekLostAs|falls|ringsSized|ringsDrawn|ringSmall|ringShadowed|ringNoMaterial|ringMax|ringLastSkip|ringRadius|slamDrewRing|slams|ringSeen|ringRise|ringLedger|ringSprites|ringParticles|ringNone|ringTransformZ|ringControl|ringPaintUsed|aoRounds|aoTypical|aoRounds2|aoRan|ringOk|captions|captionHushes|deeds|deedWitnesses|deedSlotSets|deedBestRung|deedDispatched|deedArrived|deedIntercepted|deedInFlight|deedClaims|deedMisnamed|perceptionWhy|lumaPairs)="
             }) -join " "
           }
+          # A ZERO NEEDS A DENOMINATOR, AND THIS ONE HAD NONE. Run 408 on
+          # 18 Aug failed in actions/checkout — every step after it skipped,
+          # no repository, no Unity, no sim — and this block printed "no
+          # failing gates", which is what a completely clean build prints.
+          # The placeholder above was already written for exactly that case
+          # and only ever reached $lines, so it went to the job summary (a
+          # channel this environment cannot read) and never to the log line
+          # a person actually sees.
+          #
+          # Three outcomes now, and they cannot be confused: gates failed,
+          # gates passed AND here is how many were checked, or the sim never
+          # ran. gatesChecked comes off the done line, so the middle case
+          # cannot be printed by a run that has no done line to read it from.
+          # Forced to a scalar string first, deliberately. `$done` comes off a
+          # pipeline, so it is a string when one line matched and an ARRAY when
+          # two did — and `-match` on an array returns the matching elements
+          # and leaves $Matches unset, so the array case would have read a
+          # stale $Matches from whatever matched last. Select-First-1 plus the
+          # quotes make both shapes the same shape.
+          $doneLine = "$($done | Select-Object -First 1)"
+          $checked = "?"
+          if ($doneLine -match "gatesChecked=(\d+)") { $checked = $Matches[1] }
           Write-Host "=== LEDGER VERDICT ==="
-          if ($gates) { $gates | ForEach-Object { Write-Host $_ } } else { Write-Host "no failing gates" }
+          if ($gates) { $gates | ForEach-Object { Write-Host $_ } }
+          elseif ($done) { Write-Host "no failing gates ($checked checked)" }
+          else { Write-Host "NO PLAYER LOG - the sim did not run on this commit" }
           Write-Host $keys
           Write-Host "======================"
 

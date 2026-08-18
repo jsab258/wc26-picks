@@ -94,6 +94,17 @@ namespace Ledger.Game
         /// guess, which is what two wrong diagnoses in a row are worth.
         public static float Settle = -1f;
 
+        /// HOW MANY TILES NEEDED RE-CENTRING, AND BY HOW FAR, in metres.
+        ///
+        /// Its denominator is `Tiles` (rule 3b): "the bodies are all in frame"
+        /// and "nothing was ever measured" have to look different, and a
+        /// re-centre that never fires is indistinguishable from one that is
+        /// not wired. Zero is the EXPECTED reading — `applyRootMotion` is
+        /// false, so in principle nothing accumulates — and the point of
+        /// printing it is that "in principle" has never been checked here.
+        public static int Slid = 0;
+        public static float SlidWorst = 0f;
+
         /// Renders the sheet into `outDir`. Returns the number of clips drawn.
         ///
         /// FAILS SOFT, ALWAYS. A picture nobody asked for must never be able to
@@ -162,6 +173,15 @@ namespace Ledger.Game
                 }
                 animator.runtimeAnimatorController = controller;
                 animator.applyRootMotion = false;
+                // Held rather than re-fetched per tile: GetBoneTransform is a
+                // lookup through the avatar and this runs 201 times.
+                var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+                // STATICS, SO THEY MUST BE RESET. The sheet renders once per
+                // run today, and a counter that silently carries a previous
+                // run's total is the shape of fault this file is a monument
+                // to — cheap to prevent, invisible when it happens.
+                Slid = 0;
+                SlidWorst = 0f;
                 // ALWAYS ANIMATE, for the reason the body prefab already
                 // carries it: the sim never renders a live camera, so a
                 // renderer nobody is continuously looking at is culled out of
@@ -359,6 +379,42 @@ namespace Ledger.Game
                         // right is the same change that broke the exposure.
                         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
                         RenderSettings.ambientLight = SheetAmbient;
+
+                        // AND THE BODY RE-CENTRED HORIZONTALLY, ON ITS OWN
+                        // HIPS — WHICH IS A MEASUREMENT, NOT A FIX.
+                        //
+                        // It was written as a fix, for a fault that was mine.
+                        // `sheet-read` reported `get_up` as drawing NO body at
+                        // all, I read `clip-motion`'s row a column out — travel
+                        // is the FOURTH column — and published "Stand Up
+                        // travels 2.78m" as the cause. It travels 0.01m along a
+                        // 0.20m path, and Jog Forward 0.00m along 0.03m.
+                        // Neither leaves frame, and `get_up` was never empty:
+                        // Stand Up begins PRONE and the reader was discarding
+                        // the floor band it lay in.
+                        //
+                        // Kept anyway, because `applyRootMotion` is already
+                        // false and NOTHING has ever confirmed that the hips
+                        // therefore stay over the origin — the clips that do
+                        // travel (Talking 2.77m, Standing Arguing 3.75m) would
+                        // be the ones to drift. `sheetSlid=0` is the expected
+                        // reading and is worth having; anything else is a
+                        // finding that was invisible before.
+                        //
+                        // XZ ONLY, deliberately. Y is information: a clip that
+                        // ends on the ground SHOULD sit low in frame, and a
+                        // sheet that levelled it would hide the one thing that
+                        // clip is for.
+                        if (hips != null)
+                        {
+                            var d = hips.position - origin;
+                            d.y = 0f;
+                            body.transform.position -= d;
+                            float slid = d.magnitude;
+                            if (slid > SlidWorst) SlidWorst = slid;
+                            if (slid > 0.05f) Slid++;
+                        }
+
                         RenderTexture.active = rt;
                         cam.Render();
                         tile.ReadPixels(new Rect(0, 0, TileWidth, TileHeight), 0, 0);

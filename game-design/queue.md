@@ -29,24 +29,68 @@ CLAUDE.md under AUTO MODE.
 
 ### Where the street got to
 
-The Mixamo harvest landed complete — 67 clips, no duplicates — and the
-street came alive with it: people talk, argue, lean, smoke, work
-counters, carry shopping. **Accounts in `roadmap-history.md`.**
-
-NEXT: T3 queue points and standing destinations.
+The Mixamo harvest landed complete — 67 clips, no duplicates — and the street
+came alive with it: people talk, argue, lean, smoke, work counters, carry
+shopping. **But three of the 67 play the wrong motion — see item 1.** Accounts
+in `roadmap-history.md`. NEXT: T3 queue points and standing destinations.
 
 ### THE PLAYTEST — DEPRIORITISED 18 Aug, by Jafar
 
 *"Don't worry about timelines or the near goal or play testing. Just keep
-building."* `playtest-plan.md` stays live as the Mac setup record and the
-runbook, and its sequence resumes when he asks for it. **Jafar's Mixamo
-session is DONE and the per-physique controllers exist**, so the two items
-this section was waiting on are closed. Live speech stays parked (no
-DirectML on the Air). The glowing box in day2_night's plaza is the bar
-sign's bare back face — one line, low priority. The daylight grade is
-SETTLED; accounts in `roadmap-history.md`.
+building."* `playtest-plan.md` stays live as the Mac setup record and its
+sequence resumes when he asks. Both items this section waited on are closed
+(the Mixamo session ran; the per-physique controllers exist). Live speech
+stays parked — no DirectML on the Air. The glowing box in day2_night's plaza
+is the bar sign's bare back face, one line, low priority.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
+
+1. **JUDGE THE 67 ANIMATIONS — the deliverable Jafar actually asked for.**
+   *(needs the fixed sheet; the reader is built)* The sheet from b153d64
+   says the POSES ARE GOOD — real retargeting, feet down, hands
+   articulated, no T-poses — and that a third of it cannot be read:
+   `sheetDark=25 of 67`, `sheetLuma=14..118`. Plotted against RENDER ORDER
+   the luma traces two day/night cycles, so a clip is dark because of WHEN
+   it was drawn; the fix is written (ambient re-asserted after the per-tile
+   yield) and its build died in checkout. Also suspected and recorded:
+   `walk_stop` renders as a deep crouch, `sit` as standing at phase 0.15.
+   Full account in `clip-findings.txt`.
+
+1. **THREE SLOTS LOOK LIKE THE WRONG ANIMATION — suspected, on picture
+   evidence alone.** *(on screen)* `lie_still` renders MID-STRIDE in all
+   three phases, `jog` as a body flat on its back, `collapse` (shipped as
+   "Dying") as a STANDING figure at 15%, 45% and 78%. All three are BRIGHT
+   tiles, and the sheet's own mapping was checked first (`yell` lands alone
+   in the 3-tile bottom row; `phone_box` renders as a man with a hand at
+   his head). **Settle it on a legible sheet** — reading 42 of 67 is how
+   you convince yourself of a pattern that is not there.
+
+   **The FBX corroboration was tried and does NOT hold**, which is why this
+   says "suspected": clip-motion's travel column reads `Walking` 0.00 and
+   `Standing React Large Gut` 2.29m in 0.73s, so it cannot argue about what
+   a clip contains.
+
+1. **`clip-motion.py`'s travel/path columns are not trustworthy.** *(local)*
+   Two walks reading 0.00 and 1.22; a standing reaction reading 3.1 m/s.
+   `measure()` uses the HIPS' local translation curves — world motion only
+   while the hips are unparented, and that assumption is what to check.
+   Nothing else reads these columns, and the duplicate and frozen-root
+   findings `clipFindings` counts do not depend on them.
+
+1. **`looseEnds=6/0/[Owed:6]` IS NOT THE FAULT IT LOOKS LIKE, and the
+   reading needs fixing rather than the code.** Six evenings, none empty,
+   every one naming the Owed tier — which reads as "five of six tiers are
+   dead". They are not: `Tonight` checks tiers in priority order and
+   RETURNS on the first hit, and Mickey's book always has somebody
+   outstanding, so Promise, Rumour and Standing cannot fire while a debt
+   is open no matter how well they are fed. Feeding them would change
+   nothing visible, which is why this is not "wire the other three".
+   **What is missing is the denominator** (rule 3b): the tally should say
+   how many threads were OPEN that evening, not only which one won, so
+   "one tier outranked the rest" stops looking like "one tier exists".
+   Law and Crew sitting silent above Owed is the part actually worth
+   checking — the inquiry naming the player was dead for the whole project
+   until 5 Aug.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL — RECOVERED, NOT
    RESOLVED.** *(player-height frame, dfefd62)* Fine from the elevated
@@ -64,21 +108,14 @@ SETTLED; accounts in `roadmap-history.md`.
    is the GOSSIP mill — social agents, not a render tier. There is no
    cheap visible-body tier at all.
 
-   **MEASURED, FOUR RUNS: 5/2, 8/5, 3/2, 19/7** — in shot / skinned,
-   of ~52 alive. The spread is the instrument, not progress: the shot
-   stands somewhere different each run and nothing changed density
-   between them. A camera sees ~60 degrees, so bodies scattered round
-   the player put ~1 in 6 in frame however the cap is set.
-
-   **THE BODY BUDGET GOES TO WHOEVER IS NEAREST, NOT TO WHOEVER YOU
-   ARE LOOKING AT.** Skinned bodies a metre from the lens and out of
-   frame beat the people in shot at 10–25m to all 12 grants; the
-   in-frame ones are eligible (`NearMetres=34`) and simply lose on raw
-   distance. **The still is telling the truth and must not be
-   "fixed"** — a player there sees exactly this. The fix belongs in
-   play: rank with a forward bias. Not done; it changes play behaviour
-   and how strong the bias should be is a judgement, since you can
-   turn round. Full account in `roadmap-history.md`.
+   **MEASURED, FOUR RUNS: 5/2, 8/5, 3/2, 19/7** in shot / skinned of ~52
+   alive — the spread is the shot standing somewhere different, not
+   progress. **THE BODY BUDGET GOES TO WHOEVER IS NEAREST, NOT TO
+   WHOEVER YOU ARE LOOKING AT**: bodies a metre from the lens and out of
+   frame beat the people in shot at 10-25m to all 12 grants. **The still
+   is telling the truth and must not be "fixed"** — the fix is a forward
+   bias in the ranking, and how strong it should be is a judgement, since
+   you can turn round. Full account in `roadmap-history.md`.
 
    **THE WHITE PILLS ARE STILL UNIDENTIFIED** — and a published claim
    that `bodyAlbedo` named them was wrong (it measures skinned Mixamo
@@ -112,27 +149,18 @@ SETTLED; accounts in `roadmap-history.md`.
    spawned, so its zeros meant "the world had none when built". Re-run
    at the done line now; still 0/0, but they carry information.
 
-   **PERF, SETTLED THIS ROUND.** `traffic` 4.67 -> **2.23**, halved by
-   hoisting the road heading out of the per-hazard loop. `npcs` 9.36 ->
-   **8.63**, unmoved — and `crowdApartMs=0.854` now says why it could
-   not move: the whole separation sweep is 0.85ms of that 8.63, so a
-   spatial bucket could save at most 0.8ms of a 12ms budget. **That
-   item is RETIRED — the measurement was worth more than the rewrite.**
-   `sun` (0.91 / 3.15 / 1.26 across runs that changed nothing) was
-   noise read as a finding. Accounts in `roadmap-history.md`.
+   **PERF, SETTLED AND RETIRED THIS ROUND** — traffic halved, the
+   separation sweep priced at 0.8ms of a 12ms budget so the rewrite is
+   not worth it, `sun` shown to be noise. Account in `roadmap-history.md`.
 
    **`RealBodyCap = 12` NEEDS A PC MEASUREMENT, not a CI one** — its
    comment prices a dozen skinned bodies against a runner with no GPU
    at all. Plausibly the cheapest large win for how full the street
    looks.
 
-1. **THE KIT BUILDINGS ARE NOT TERRACES — SETTLED ON GEOMETRY.**
-   Measured (`tools/prop-dimensions.py`): every FULL kit building has a
-   roughly square plan (88x94, 97x94, 130x103) against terrace parcels
-   at about 1:2, so they cannot be terraces at any scale. **The
-   low-detail set is the find: 90–112 verts at a 1:4 tower ratio**,
-   which is what a distant skyline wants; the skyline was built on that
-   evidence. Table in `roadmap-history.md`.
+1. **THE KIT BUILDINGS ARE NOT TERRACES — SETTLED ON GEOMETRY**, and the
+   low-detail set at a 1:4 tower ratio became the skyline. Table in
+   `roadmap-history.md`.
 
 1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — 10 of 28 vehicles are
    still primitives.** `vehiclesKitted=18/28`,
@@ -155,11 +183,10 @@ SETTLED; accounts in `roadmap-history.md`.
    or every count becomes a peak over partial passes. Tune on the PC, not CI.
 
    **`sun=3.15ms` is the odd one and is not an obvious loop** — `UpdateSun`
-   has none, so it is Unity-side light or shadow work being triggered every
-   frame by something that only changes each game-hour. That is a real
-   investigation and a plausible 3ms, which is a quarter of the whole budget.
-   The queue has been dismissing this item as "not worth touching while
-   render+rest is 458ms", which confuses the runner's cost with ours.
+   has none, so it is Unity-side light or shadow work retriggered every frame
+   by something that changes each game-hour. A plausible 3ms, a quarter of the
+   budget, and dismissing it as "not worth touching while render+rest is 458ms"
+   confuses the runner's cost with ours.
 
 1. **THE BUBBLE STACK'S SCREEN PASS HAS NEVER ONCE RUN.**
 
@@ -167,21 +194,14 @@ SETTLED; accounts in `roadmap-history.md`.
    `bubblesNoBounds=0` — so the stated uncertainty is closed (a TextMesh built
    this frame DOES have usable bounds) and the pass is simply inert.
 
-   **Two reasons, both in `LiftClearOfScreen`.** It runs once, at the bubble's
-   BIRTH, when nothing has drifted into it yet — overlap develops later as
-   speakers and camera move, and a one-shot test at creation cannot see that.
-   And the loop is gated `_lift < MaxLift`, so it is skipped entirely for the
-   bubbles already at the ceiling, which are precisely the ones it was written
-   for. `NameTags.PinAll` is the shape to copy: do it at the shot, against the
-   camera that renders it.
-
-   **BUT THE FAULT HAS RECEDED AND THE RATE IS WHY.** `bubblesAtCeiling` fell
-   61/156 → 15/75 → 5/66, which is 39% → 20% → 7.6%, and `collidingBubbles`
-   91 → 10 → 1. None of that is the fix, which never ran: `bubblesMade` fell
-   with it, because bubbles follow confabs and `confabs` swings 29–74 in this
-   regime. **Read the rate, not the count** — and it is a real fall even so.
-   So this drops down the list: a pass that never runs is rule 6, but it is
-   guarding a residue rather than two in five.
+   **Two reasons, both in `LiftClearOfScreen`**: it runs once at the bubble's
+   BIRTH, before anything has drifted into it, and the loop is gated
+   `_lift < MaxLift` so it skips exactly the bubbles at the ceiling it was
+   written for. `NameTags.PinAll` is the shape to copy — do it at the shot,
+   against the camera that renders it. **BUT THE FAULT HAS RECEDED**:
+   `bubblesAtCeiling` 39% -> 20% -> 7.6%, a real fall in the RATE and none of
+   it this fix, which never ran. So it guards a residue rather than two in
+   five, and drops down the list.
 
 3. **THE DWELL FIX TRADES A VISIBLE FAULT FOR AN INVISIBLE SAVING.**
    `bodyLod=2.59ms` against `population=1.31ms` — the LOD pass costs twice the
@@ -219,13 +239,10 @@ SETTLED; accounts in `roadmap-history.md`.
    `AuditClosed` staging landing and holding — not a lucky run — and it is the
    first movement in the whole recorded history of the key.
 
-   **The old text under this number said the law had NEVER asked, sixty for
-   sixty.** True when written and false the moment the staging landed, which is
-   comment decay in a document rather than in code. It stood for four builds
-   because `gates --series inquiry` answered *"no landed run carries that
-   name"* — the tool matched numbers only, so every categorical value in the
-   verdict was unreadable and its refusal read as a spelling mistake. Fixed
-   5 August; the series is what corrected this entry.
+   **The old text here said the law had NEVER asked, sixty for sixty** — true
+   when written, false once the staging landed, and it stood four builds
+   because `gates --series inquiry` matched numbers only, so a categorical
+   value read as a spelling mistake. Fixed 5 Aug; the series corrected it.
 
    **What is open now is the SECOND stage, and it is one number.** `homSaw=29
    homWouldTalk=7 homNamed=0`: twenty-nine people saw a killing, seven would
@@ -236,14 +253,11 @@ SETTLED; accounts in `roadmap-history.md`.
    `redirected=1 pointedAt=kest redirectRelief=0.00` is the same story — the
    redirect relieves a pressure that has not been built.
 
-   **`homSawStored`/`homHoldsIt` are in flight and split it three ways:**
-   stored=0 means the register never took the witness list, stored=29 with
-   holds=0 means `FileWith` is not writing, and holds=29 with named=0 means the
-   confidence bar. Different afternoons, one reading.
-
-   **And `pointedAt=kest` in all 67 runs** — the redirect has never once
-   pointed at anybody else. Staged, so probably honest, but it is the shape of
-   a branch nobody has sampled and it belongs in item 12's list.
+   **`homSawStored`/`homHoldsIt` are in flight and split it three ways** —
+   the register never took the list, `FileWith` is not writing, or the
+   confidence bar. Different afternoons, one reading. **And `pointedAt=kest`
+   in all 67 runs**: staged, so probably honest, but a branch nobody has
+   sampled, and it belongs in item 12's list.
 
 12. **THE REST OF WHAT `gates --constant` FOUND, AND IT IS A WORK LIST.**
    Sixty keys have never been anything but zero across 131 runs. Most are fault
@@ -272,39 +286,33 @@ SETTLED; accounts in `roadmap-history.md`.
 - **Raise the population rather than cutting districts.** Measured, and it
   reverses the old plan: seven districts at 1,400 gives 43.5 distinct faces a
   week against 47.4 for three at 700, and 2,100 beats the cut outright.
-  `CrowdWalkerCap = 12` bounds how many are within earshot whatever the
-  headcount, so this buys FAMILIARITY and changes the frame not at all —
-  whether a fuller city still reads as a port is a question for a still.
-- **Tier the cast.** 47 distinct faces a week, 13 near enough to read, a knee
-  at ~50 covering 92% of a resident's week; 68 rigs cost 1.1ms of 12ms. **The
+  `CrowdWalkerCap = 12` bounds earshot whatever the headcount, so this buys
+  FAMILIARITY and changes the frame not at all.
+- **Tier the cast.** 47 distinct faces a week, 13 near enough to read, a knee at
+  ~50 covering 92% of a resident's week, and 68 rigs cost 1.1ms of 12ms. **The
   machine does not bound the cast at fifty; only authoring does.**
-- **M17.2 voices** — no longer held on the writing verdict (78). A SPEND, and Jafar has not authorised it.
-- **Is fifty-six conversations a run too many?** A judgement off a still, not a
-  number: 16-42 under the old flat-road test, 7 after the pace slowed, 30-56
-  now the test asks about junctions.
+- **M17.2 voices** — no longer held on the writing verdict (78). A SPEND, not
+  authorised.
+- **Is fifty-six conversations a run too many?** A judgement off a still: 16-42
+  under the old flat-road test, 7 after the pace slowed, 30-56 now it asks
+  about junctions.
 
 ## Blocked, and on whom
 
 - **SETTLED 18 Aug, by Jafar, and NOT TO BE ASKED AGAIN: the era is LATE
-  1980s / EARLY 1990s, and the currency follows from it.** So the money
-  moves FORWARD to decimal — pounds and pence — and the seven
-  pre-decimal references across the sixty cards (shillings, half a
-  crown, two-and-six) are the thing that changes, not the decade.
-  Decimalisation was 1971, so those words are twenty years stale in
-  this world rather than merely old-fashioned.
+  1980s / EARLY 1990s, and the currency follows.** Money moved FORWARD to
+  decimal and the pre-decimal card references were the thing that changed,
+  not the decade — decimalisation was 1971, so those words were twenty years
+  stale in this world. The era was already right in `design-doc.md` and in
+  `Tier2Gen`'s CDs and pagers; only the card writing drifted. Load-bearing
+  rather than flavour: a late-analog city is what turns missed calls and
+  being unreachable into mechanics. Recorded as a DECISION so nobody
+  re-opens it — Jafar has answered it more than once.
 
-  The era was already the right way round in `design-doc.md`
-  ("late-analog") and in `Tier2Gen`'s CDs, pagers and car phones; only
-  the card writing drifted. It is load-bearing rather than flavour —
-  a late-analog city is what turns missed calls, wiretaps and being
-  unreachable into mechanics — which is why it goes forward and not
-  back. Recorded here as a DECISION so nobody re-opens it: Jafar has
-  now answered this more than once.
-
-- **CLOSED 18 Aug — a character mesh needed no purchase at all.** This
-  entry said only Jafar could buy one; Mixamo bodies are a free
-  download and the pool is now FOURTEEN against 43 named people. Right
-  about the gap, wrong about the price, for weeks.
+- **CLOSED 18 Aug — a character mesh needed no purchase at all.** This entry
+  said only Jafar could buy one; Mixamo bodies are a free download and the
+  pool is FOURTEEN against 43 named people. Right about the gap, wrong about
+  the price, for weeks.
 - **API spend is quoted in FRANCS; the game's money stays £.** Jafar is in
   Switzerland. The £ in the design doc is a deliberate fiction decision — a
   British pub — and quoting both in one unit is how "a few pounds" reached him
@@ -314,14 +322,13 @@ SETTLED; accounts in `roadmap-history.md`.
 ## How to keep this file honest
 
 - **Dispatch, then immediately take item 1 of Now.** A build in flight is a
-  reason to switch tasks, never a reason to stop.
-- **Arming a watcher is the PRECONDITION for ending a turn, not permission to
-  end one.** Both are required and only one of them feels like progress.
-- **Batch Game-layer changes** — each build keeps its own verdict under
-  `sim-shots/runs/<sha>.txt`, so concurrent builds are concurrent answers, but
-  the single Personal licence seat means one at a time.
-- **Prefer a local answer.** Before dispatching, ask whether the question is
-  actually about Unity. Item 1 above is not.
+  reason to switch tasks, never a reason to stop. **Arming a watcher is the
+  PRECONDITION for ending a turn, not permission to end one** — both are
+  required and only one of them feels like progress.
+- **Batch Game-layer changes**; each build keeps its own verdict under
+  `sim-shots/runs/<sha>.txt`, but the single Personal licence seat means one
+  build at a time. **And prefer a local answer** — before dispatching, ask
+  whether the question is actually about Unity. Item 1 above is not.
 
 ## Standing work
 
@@ -338,15 +345,11 @@ planned. Five, each now placed in a milestone and each startable without CI or
 his machine. Full statements in `roadmap.md`; `design-doc.md` §18 has the
 account and the denominator of what was checked and found sound.
 
-1. ~~**The session-hook guarantee** (M22)~~ — **HALF DONE 18 Aug.**
-   `Core/LooseEnds` picks the evening's thread and the day close shows it;
-   three of six tiers are fed (law, crew, Mickey's book) and `looseEndsFed`
-   says so. **What is open: the other three tiers, and then whether any
-   evening is ever EMPTY — which is what decides if the planting half is
-   worth building. Read `looseEnds` off the next landed verdict first.**
-2. **Romance** (M18) — the largest, and possibly its own milestone. §2's
-   flagship sentence about why this game is worth making — *"your girlfriend can
-   catch your alibi from your coworker"* — needs a partner to exist.
+1. ~~**The session-hook guarantee** (M22)~~ — **BUILT AND HOLDING.**
+   `looseEnds=6/0/[Owed:6]`: six evenings closed, none empty, so the guarantee
+   is real. What is open is the READING, not the tiers — see `## Now`.
+2. ~~**Romance** (M18)~~ — **PROMOTED TO ITS OWN MILESTONE, M18.5, 18 Aug by
+   Jafar.** Statement, done-when and risk are in `roadmap.md`.
 3. **Smuggling** (M21) — a port town whose Act III threat is Customs and Excise,
    with no smuggling to be caught at. Runs on the `Racket` substrate the other
    three use.
@@ -378,22 +381,20 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 - **M21, the two ledgers.** Empire growth, law as a tool, what expansion costs
   you. Entirely unbuilt, entirely Core, so entirely doable here without a round
   trip. This is the largest piece of unwritten game left.
-- **M22, the shape of a playthrough.** Onboarding, pacing, replayability,
-  succession. Also unbuilt and also Core-shaped.
-- **Read a system and write down what it actually does.** Every system in this
-  project has at least one comment that is now false; three were found today,
-  one of them in the file being edited at the time. The supply is effectively
-  unlimited and each one found is a bug that would otherwise have been believed.
-- **Turn a still into a number.** Five faults have now been found by opening a
-  frame and none by a gate — the newest being rumour text printed backwards
-  across `day5_night` while three separate orientation metrics read perfect.
-  Anything a frame shows that no metric names is a metric worth adding.
+- **M22, the shape of a playthrough.** Onboarding, pacing, replayability and
+  succession — also unbuilt and also Core-shaped.
+- **Read a system and write down what it actually does.** Every system here has
+  at least one comment that is now false — three found in one day, one in the
+  file being edited at the time. The supply is unlimited and each one found is
+  a bug that would otherwise have been believed.
+- **Turn a still into a number.** Five faults found by opening a frame and none
+  by a gate — the newest, rumour text printed backwards across `day5_night`
+  while three orientation metrics read perfect. Anything a frame shows that no
+  metric names is a metric worth adding.
 
-- **THE DROP PIPELINE, AND WHAT IS LEFT OF IT.** `jobRan` says `JobsDone >= 1`
-  and means "a drop can be made end to end". Two of six windows miss in a
-  typical run and both causes are named: the first was the waypoint's own
-  collider, thirty centimetres outside its completion radius, now fixed. The
-  second — ten of sixteen metres covered, steered the whole window, stalled
-  seven metres out — has no explanation, and `stalled=` lands next build.
-  **Deliberately not loosened**: accepting a run that never exercised the
-  pipeline is rule 6 exactly.
+- **THE DROP PIPELINE, AND WHAT IS LEFT OF IT.** Two of six windows miss in a
+  typical run. The first cause was the waypoint's own collider sitting thirty
+  centimetres outside its completion radius, now fixed; the second — steered
+  the whole window, stalled seven metres out — has no explanation and
+  `stalled=` lands next build. **Deliberately not loosened**: accepting a run
+  that never exercised the pipeline is rule 6 exactly.

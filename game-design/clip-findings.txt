@@ -109,3 +109,125 @@ clipFindings=3
 # walk reads 131 degrees of hip roll), and two readings that looked like
 # findings died on exactly those two facts. The file says what it can prove.
 # The rest is a question for a frame.
+
+================================================================
+2026-08-18 — THE CONTACT SHEET, READ WITH AN INSTRUMENT
+================================================================
+
+The sheet from b153d64 renders 67 of 67 slots and the POSES ARE GOOD: real
+retargeting, feet on the floor, articulated hands, no T-poses, no clawed arms,
+no detached shoes. The pose fault reported against the first sheet is closed.
+
+WHAT IS WRONG IS THE EXPOSURE, AND IT IS NOT THE CLIPS.
+
+  sheetLegible=40 sheetDark=25 sheetSmall=1 sheetEmpty=1 sheetClips=67
+  sheetLuma=14..108
+
+Plotted against RENDER ORDER rather than against slot name, the body luma
+traces two clean day/night cycles: 61 at the first clip, down to 14 in the
+trough, up to 77 at the peak, down again, rising at the last. The game's
+lighting pass writes RenderSettings.ambientLight from the clock every frame,
+each tile costs one frame, and 201 frames is long enough for the in-game clock
+to run through two dawns. So a clip is dark because of WHEN in the sheet it was
+drawn, not because of anything about the clip.
+
+  The fix is already written and has never run: ClipSheet re-asserts the sheet
+  ambient AFTER the per-tile `yield return null` and immediately before
+  cam.Render(), which is the only ordering that survives a lighting pass. It
+  was committed as ab954a2, whose build died in actions/checkout.
+
+AND THEN "ARE WE USING WRONG ANIMATIONS": THREE SLOTS LOOK WRONG IN THE
+PICTURE, AND THE PICTURE IS ALL THE EVIDENCE THERE IS. It is enough to open
+the question and not enough to close it.
+
+  lie_still  renders as a figure MID-STRIDE across all three phases — one leg
+             raised, arms bent at the elbow.
+  jog        renders as a body flat on its back, arms out, all three phases.
+  collapse   ships as "Dying" (4.00s) and renders as a STANDING figure with an
+             arm out at 15%, 45% and 78%.
+
+All three sit on BRIGHT tiles, so none of these is a reading made on a
+silhouette, and the sheet's own mapping was checked before believing any of it:
+`yell`, the 67th and last clip, lands alone in the three-tile bottom row, and
+`phone_box` renders as a man with a hand at his head. Rows and columns are
+`i / 6` and `i % 6` and the ledger is written from the same pair. The
+controller binds by the filename's slot prefix — the same discriminator
+clip-motion reads — so the sheet and the file reader agree about WHICH FILE
+backs each slot.
+
+I THEN TRIED TO CORROBORATE IT FROM THE FBX AND THE CORROBORATION DOES NOT
+HOLD, which is the part worth writing down. `lie_still` measures 2.18m of
+travel in 1.67s and I published that as "a walking speed, so it is not a
+lying-down animation". Reading the whole column kills it:
+
+  Walking                    travel 0.00      Female Walk   travel 1.22
+  Standing React Large Gut   travel 2.29      Lying Down    travel 2.18
+  Jog Forward                travel 0.00      Running       travel 1.67
+
+A standing reaction does not travel 2.29m in 0.73s (3.1 m/s), and one walk
+reading 0.00 beside another reading 1.22 is not a property of walks. So the
+column does not track what the animation IS, and cannot be used to argue about
+what a clip contains. `measure()` takes the HIPS' local translation curves,
+which is right only while the hips are unparented and carry the world motion;
+that assumption is the thing to check.
+
+  OPEN: clip-motion's travel/path columns are not trustworthy for this
+  question. Nothing else in the project reads them, and the duplicate and
+  frozen-root findings — which are what `clipFindings` counts — do not depend
+  on them.
+
+So the honest state is: three slots are SUSPECTED of playing the wrong motion,
+on picture evidence alone, and the way to settle it is a legible sheet where
+all 67 can be read side by side rather than 42 of them.
+
+The sheet's own mapping was checked before believing any of this, because a
+row-indexing slip would produce exactly this symptom: `yell`, the 67th and last
+clip, lands alone in the three-tile bottom row, and `phone_box` renders as a man
+with a hand at his head. Rows and columns are `i / 6` and `i % 6` and the ledger
+is written from the same pair. The controller binds by the filename's slot
+prefix — the same discriminator clip-motion reads — so the sheet and the file
+reader agree about WHICH FILE backs each slot. The disagreement is between the
+file's NAME and its CONTENTS, which is upstream of both.
+
+RETRACTED, from an hour earlier in this same session, and both were mine:
+
+  "get_up draws nothing"    — it draws a body lying on the floor. `sheet-read`
+                              was excluding the floor band by HEIGHT to keep
+                              the lit plane out of the luma, and a prone body
+                              lives entirely inside the band being discarded.
+                              Area is measured over the whole tile now and luma
+                              above the floor line, because they are two
+                              questions.
+  "get_up and jog travel"   — read off the wrong COLUMN. clip-motion prints
+                              `secs movecm turn deg travel m path m`; I took
+                              movecm as travel and turn as path, and published
+                              "Stand Up travels 2.78m along a 150.7m path". It
+                              travels 0.01m along 0.20m. The clips that DO
+                              travel are Talking (2.77m) and Standing Arguing
+                              (3.75m).
+
+The re-centring code written for that wrong diagnosis is kept, downgraded from
+a fix to a measurement: `applyRootMotion` is false so `sheetSlid` should read
+zero, and nothing has ever confirmed that.
+
+AND ONE SUSPICION THAT IS NOT YET EVIDENCE, recorded so it is not re-derived:
+`walk_stop` renders as a deep crouch and `sit` as a standing figure at phase
+0.15. Both are plausible as legitimate phases of their motion, and both sit on
+tiles a third of whose neighbours cannot be seen. Judge on a legible sheet.
+
+ON THE INSTRUMENT ITSELF (tools/sheet-read.py), because it was wrong twice
+before it was right, in opposite directions, inside one afternoon:
+
+  DARK_LUMA=42  passed 67 of 67 on a sheet with visible silhouettes. The floor
+                plane across the bottom quarter of every tile is brighter than
+                the background, counted as body, and dragged a silhouette's
+                mean from about 6 up to 46.
+  DARK_LUMA=60  then failed 54 of 67 including clips confirmed fine by eye.
+  DARK_LUMA=27  is measured: the floor is excluded by detecting the step in the
+                median row luma across all 201 tiles (90.0 at y=164, 118.0 at
+                y=166), and the bound sits where the tiles stop being readable
+                — walk_old at 25 is still a silhouette, sit_talk at 28 shows
+                face, tie and shoes.
+
+Both wrong values were invented rather than measured, which is rule 2, twice,
+after quoting rule 2 in the commit that introduced the tool.

@@ -10783,6 +10783,14 @@ namespace Ledger.Game
                       // the second broken sheet was a retarget that had
                       // not initialised, or something else entirely.
                       $"sheetSettle={ClipSheet.Settle:0.0} " +
+                      // HOW MANY TILES THE BODY HAD DRIFTED OUT OF, and by how
+                      // far, against `sheetTiles` as the denominator. Zero is
+                      // what `applyRootMotion=false` is supposed to guarantee
+                      // and nothing has ever checked it; the clips that travel
+                      // (Talking 2.77m, Standing Arguing 3.75m) are where it
+                      // would show.
+                      $"sheetSlid={ClipSheet.Slid} " +
+                      $"sheetSlidWorst={ClipSheet.SlidWorst:0.00} " +
                       $"undressed={WorldBuilder.UndressedRenderers} " +
                       $"undressedWho=[{WorldBuilder.UndressedWho}] " +
                       $"capsules={WorldBuilder.CapsuleMeshes} " +
@@ -11328,10 +11336,23 @@ namespace Ledger.Game
                       $"calmUnease={_scoreCalmUnease:0.00}@heat{_scoreCalmestHeat:0.00} " +
                       $"hotUnease={_scoreHotUnease:0.00}@heat{_scoreHottestHeat:0.00} scoreOk={scoreOk} " +
                       $"lightingOk={lightingOk}{(lightingWhy.Count > 0 ? " [" + string.Join(",", lightingWhy) + "]" : "")} " +
+                      // THE DENOMINATOR FOR pass=True, which otherwise reads
+                      // identically whether forty-one gates passed or the list
+                      // was empty. It is also what the workflow's verdict step
+                      // needs to tell "no failing gates" from "nothing ran".
+                      $"gatesChecked={gates.Length} gatesFailed={failed.Count} " +
                       $"verdict={camp.Verdict} pass={pass}");
             // Last line in the log, on purpose: whatever else scrolls past, this
             // is what a person reading a red build needs.
-            if (!pass) Debug.LogError($"SimDirector: FAILING GATES: {string.Join(", ", failed)}");
+            //
+            // WITH ITS DENOMINATOR (rule 3b). "FAILING GATES: aoSpread" says
+            // how bad it is only if you already know how many gates there are,
+            // and nobody reading a red build at 3am does. "3 of 41" also makes
+            // a gate LIST that has silently shrunk visible — a gate deleted or
+            // never constructed leaves no other trace anywhere in the verdict.
+            if (!pass)
+                Debug.LogError($"SimDirector: FAILING GATES: {failed.Count} of {gates.Length}: " +
+                               $"{string.Join(", ", failed)}");
             Application.Quit(pass ? 0 : 1);
         }
 
