@@ -41,7 +41,12 @@ namespace Ledger.Game
         /// unnamed in this project and unnamed layers render perfectly well —
         /// a name is a Project Settings entry, and needing one would put this
         /// instrument's correctness in a file nobody reviews.
-        const int SheetLayer = 30;
+        /// PUBLIC because `SceneAudit` must be able to skip it. The sheet
+        /// stands a body five kilometres below the world, and the audit's
+        /// `buried` rule correctly flagged the floor as mispositioned — one
+        /// instrument making another one lie. A layer test is the fix; a name
+        /// list would need updating every time this gains an object.
+        public const int SheetLayer = 30;
 
         /// One tile. Tall rather than square because the subject is a standing
         /// figure, and 220 pixels of person is the difference between reading a
@@ -56,6 +61,19 @@ namespace Ledger.Game
         /// that loops, so sampling the ends would give two identical tiles and
         /// hide the middle, which is the part that identifies the motion.
         static readonly float[] Phases = { 0.15f, 0.45f, 0.78f };
+
+        /// A FIXED EXPOSURE FOR THE SHEET, brighter than the city it is
+        /// photographing. The wardrobe deliberately crushes this cast towards
+        /// black — that is the whole noir palette — and a correct game body at
+        /// street ambient reads as a silhouette at 110 pixels wide. Raising the
+        /// light does not change the game; it changes what the DIAGNOSTIC can
+        /// see, which is the only job this picture has.
+        static readonly Color SheetAmbient = new Color(0.55f, 0.56f, 0.60f, 1f);
+
+        /// Enough key to separate a dark suit from a dark background. Measured
+        /// the only way available: the first legible sheet came back with a
+        /// third of its tiles as black silhouettes at 1.15.
+        const float KeyIntensity = 2.1f;
 
         /// Reported on the done line. `-1` is "the pass never ran", which is a
         /// different fault from "it ran and found no clips" — the distinction
@@ -213,7 +231,7 @@ namespace Ledger.Game
                 lightGo.transform.rotation = Quaternion.Euler(35f, 20f, 0f);
                 var key = lightGo.AddComponent<Light>();
                 key.type = LightType.Directional;
-                key.intensity = 1.15f;
+                key.intensity = KeyIntensity;
                 key.color = Color.white;
                 key.shadows = LightShadows.None;
                 key.cullingMask = 1 << SheetLayer;
@@ -245,7 +263,7 @@ namespace Ledger.Game
                 // diagnostic whose appearance depends on when you ran it is one
                 // nobody can compare across builds.
                 RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-                RenderSettings.ambientLight = new Color(0.32f, 0.33f, 0.36f, 1f);
+                RenderSettings.ambientLight = SheetAmbient;
 
                 // ONE REAL FRAME BEFORE ANYTHING IS SAMPLED, AND A BRACKET THAT
                 // SAYS WHETHER IT MATTERED.
@@ -326,6 +344,21 @@ namespace Ledger.Game
                         // all 201 tiles. 201 frames is a few seconds in a run
                         // that simulates eleven days.
                         yield return null;
+                        // AND THE LIGHT RE-ASSERTED EVERY TILE, because the
+                        // frame above is what lets the game's own lighting pass
+                        // run — and that pass writes `RenderSettings.ambientLight`
+                        // from the CLOCK. Set once before the loop, it survived
+                        // only as long as nothing else got a frame; the moment
+                        // the per-tile yield landed, the sheet's brightness
+                        // started following the in-game time of day and a third
+                        // of the tiles came back as black silhouettes.
+                        //
+                        // That is why the FIRST sheet was evenly lit and this
+                        // one was not: the earlier version never yielded, so
+                        // nothing overwrote it. The fix that made the poses
+                        // right is the same change that broke the exposure.
+                        RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+                        RenderSettings.ambientLight = SheetAmbient;
                         RenderTexture.active = rt;
                         cam.Render();
                         tile.ReadPixels(new Rect(0, 0, TileWidth, TileHeight), 0, 0);

@@ -98,6 +98,19 @@ namespace Ledger.Game
             foreach (var r in renderers)
             {
                 if (r == null || !r.enabled) continue;
+                // THE CLIP SHEET IS NOT THE CITY, and on 18 August it made this
+                // audit report a fault that did not exist. `ClipSheet` stands a
+                // body and a floor five kilometres BELOW the world on their own
+                // layer, so the `buried` rule — everything under the pavement is
+                // mispositioned — fired on `ClipSheetFloor` and turned
+                // `clean=False` on an otherwise sound scene.
+                //
+                // Skipped by LAYER rather than by name: a name test would need
+                // updating every time the sheet gains an object, which is the
+                // exclusion-list shape that has already cost this project a
+                // measurement. One instrument must not be able to make another
+                // one lie.
+                if (r.gameObject.layer == ClipSheet.SheetLayer) continue;
                 seen++;
                 var t = r.transform;
 
@@ -310,10 +323,46 @@ namespace Ledger.Game
             // a zero without a denominator, but a denominator that leaves
             // when the numerator arrives.
             sb.Append(" findings=").Append(Findings.Count);
-            if (Findings.Count == 0) { sb.Append(" findingKinds=none"); return sb.ToString(); }
-            foreach (var f in Findings)
-                sb.Append(' ').Append(f.Kind).Append('=').Append(f.Count)
-                  .Append("[").Append(f.First).Append("]");
+
+            // AND `findingKinds` HAD THE IDENTICAL FAULT, ONE LINE BELOW THE
+            // PARAGRAPH DESCRIBING IT. `findings` was fixed to print always;
+            // `findingKinds` was left emitting only on the EMPTY branch, so it
+            // vanished the moment the audit had something to say — and the
+            // verdict-key guard duly reported "VERDICT KEYS GONE: findingKinds"
+            // on the first run with a real finding in it.
+            //
+            // One idea, two implementations, and the one nobody looked at is
+            // the one missing the line. CLAUDE.md's rule for this is "when you
+            // fix a bug, grep for the same bug", and the twin was inside the
+            // same statement.
+            //
+            // It now carries the KINDS rather than the word "none", so it
+            // answers its own question either way: comma-joined and never
+            // spaced, because a verdict value with a space is silently
+            // truncated by every reader in this project.
+            sb.Append(" findingKinds=");
+            if (Findings.Count == 0) { sb.Append("none"); return sb.ToString(); }
+
+            // ONE VALUE, NOT ONE KEY PER KIND — and that is the deeper half of
+            // the same fault. This used to append `buried=10[ClipSheetFloor]`
+            // as a top-level verdict key, so the KEY SET changed with the
+            // findings: a new kind arrived as an unknown key and a fixed one
+            // left as a GONE key. A manifest of required measurements cannot
+            // work against a key set that varies with the news, and both
+            // symptoms showed up in the same run.
+            //
+            // Folded into one bracketed value instead. `kind:count@first`,
+            // comma-separated, no spaces — so the detail survives, the key set
+            // is constant, and every reader in this project can still consume
+            // it whole.
+            sb.Append('[');
+            for (int i = 0; i < Findings.Count; i++)
+            {
+                if (i > 0) sb.Append(',');
+                sb.Append(Findings[i].Kind).Append(':').Append(Findings[i].Count)
+                  .Append('@').Append(Findings[i].First);
+            }
+            sb.Append(']');
             return sb.ToString();
         }
     }
