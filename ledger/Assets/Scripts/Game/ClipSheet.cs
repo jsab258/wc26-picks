@@ -134,13 +134,60 @@ namespace Ledger.Game
                 // broken clips.
                 animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 
-                // THE POSE-DRIVING RIG OFF. `CharacterRig` composes a
-                // procedural lean, a limp and an arm swing on top of whatever
-                // the Animator wrote, and every one of those would appear in
-                // the sheet as though it were part of the clip. This picture
-                // has to be of the CLIP.
-                foreach (var extra in body.GetComponentsInChildren<MonoBehaviour>())
-                    if (extra != null && !(extra is Animator)) extra.enabled = false;
+                // EVERY COMPONENT STAYS ON, AND THE FIRST VERSION TURNED THEM
+                // ALL OFF — which produced a sheet that libelled all 67 clips.
+                //
+                // The reasoning was "`CharacterRig` composes a lean, a limp and
+                // an arm swing on top of whatever the Animator wrote, and this
+                // picture has to be of the CLIP". It sounded right and the first
+                // rendered sheet refuted it: every tile came back with one arm
+                // clawed up beside the head and the shoes lying detached on the
+                // ground, while the same build's street still shows a man in a
+                // blue suit walking correctly, arms swinging, feet planted.
+                //
+                // The cause is that `CharacterRig.Awake` calls `Bind()` and runs
+                // whether the component is enabled or not, so disabling it left
+                // the pose it binds with and removed the LateUpdate that
+                // finishes the job. Disabling half a system is not the same as
+                // not having it.
+                //
+                // And the premise was wrong anyway. The question this sheet
+                // exists to answer is Jafar's — *does it look real* — and what
+                // a player sees IS the clip plus the procedural layer. A
+                // picture of the clip alone would be a picture of something
+                // nobody ever looks at.
+                //
+                // WHAT THIS STILL DOES NOT SHOW, said rather than discovered
+                // later: the whole sheet is drawn inside ONE frame, so
+                // `CharacterRig`'s LateUpdate runs once for all 201 tiles
+                // rather than once per tile. The rig is intact and its bind is
+                // correct — that is what fixes the broken pose — but the
+                // per-frame lean, limp and arm swing are not sampled per tile.
+                // Getting those needs a frame each, which is a coroutine and a
+                // second round trip; it is worth doing only if a tile turns
+                // out to disagree with the street still, and it is written down
+                // here so nobody reads this sheet as more than it is.
+
+                // GROUND UNDER THE FEET, because foot IK is part of what a
+                // player sees and it reaches for a surface. Without one the
+                // solver hunts for a floor five kilometres above and bends
+                // every leg towards it — the sheet would report a rig fault
+                // that only the sheet has. Unlit dark grey so it reads as a
+                // shadow catcher rather than as scenery.
+                var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
+                floor.name = "ClipSheetFloor";
+                floor.transform.SetParent(root.transform);
+                floor.transform.position = origin;
+                floor.transform.localScale = new Vector3(0.6f, 1f, 0.6f);
+                SetLayer(floor, SheetLayer);
+                // AND NO COLLIDER. `CreatePrimitive` adds one, and a body with
+                // a controller standing exactly on it would be pushed out of
+                // frame by the physics step — a fault that would look like a
+                // clip putting somebody through the floor.
+                var floorCollider = floor.GetComponent<Collider>();
+                if (floorCollider != null) Object.Destroy(floorCollider);
+                var floorMat = floor.GetComponent<Renderer>().material;
+                if (floorMat != null) floorMat.color = new Color(0.30f, 0.31f, 0.34f, 1f);
 
                 var lightGo = new GameObject("ClipSheetKey");
                 lightGo.transform.SetParent(root.transform);

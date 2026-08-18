@@ -55,6 +55,30 @@ clipFindings=3
 #    a re-download rather than a re-pick, and none of the three is wired to
 #    anything today.
 #
+# THE FIRST CONTACT SHEET WAS THE INSTRUMENT'S FAULT, NOT THE GAME'S — 18 Aug.
+# `clips.jpg` on 340e958 drew all 67 clips and every one of them showed the same
+# broken figure: one arm clawed up beside the head, the other a detached blob,
+# and the shoes lying on the ground away from the feet. Read as a finding it
+# would have condemned the whole harvest, the body pool and the retarget.
+#
+# The same build's `review_day1_noon.jpg` shows a man in a blue suit walking
+# across Hook Street with his arms swinging and his feet planted, and he looks
+# good. Two pictures from ONE build disagreeing is the tell, and the ruler was
+# the one at fault (rule 3).
+#
+# The cause was mine and it was one line. The sheet disabled every MonoBehaviour
+# on the body so the picture would be "of the CLIP" rather than of the clip plus
+# the procedural layer. But `CharacterRig.Awake` calls `Bind()` and runs whether
+# the component is enabled or not — so disabling it kept the bind and removed
+# the LateUpdate that finishes it. Disabling half a system is not the same as
+# not having it. The premise was wrong as well: what a player sees IS the clip
+# plus the procedural layer, so a picture of the clip alone is a picture of
+# something nobody ever looks at.
+#
+# Fixed by leaving every component on and giving the body a floor to stand on.
+# NO CLIP IS ACCUSED ON THE STRENGTH OF THAT SHEET, and the count above is
+# unchanged by it — it reports only what the FILES prove.
+
 # WHAT THIS FILE DELIBERATELY DOES NOT CLAIM. It does not say which animation
 # a mislabelled clip really is. Hip HEIGHT is not comparable between clips (a
 # stand-up legitimately starts at 8cm) and Euler ranges inflate on wrap (the
