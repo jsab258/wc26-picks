@@ -412,20 +412,46 @@ def selftest():
 
     # 5. IT HAS TO BE FASTER, or none of this was worth doing. Same work both
     # ways: ninety steps of one token.
-    with torch.no_grad():
-        t0 = time.time()
+    #
+    # BEST OF THREE, NOT ONE SHOT, AND THE BOUND IS UNTOUCHED. One timing
+    # each flaked on 18 Aug: `77 ms uncached against 78 ms cached`, a red
+    # build off a 1 ms margin. Six runs then showed the effect is real and
+    # the RULER is noisy — cached won every time, but uncached ranged 77 to
+    # 131 ms and cached 57 to 87, so the two overlap and a run occasionally
+    # lands the wrong side of a bare `<`.
+    #
+    # The fix is the instrument rather than the threshold, which rule 2
+    # requires: loosening this to `fast < slow * 0.9` would invent a number
+    # and hide a genuine regression inside the slack. For a deterministic
+    # workload the MINIMUM is the truest estimate — scheduler noise, page
+    # faults and a busy container only ever ADD time, never remove it — so
+    # three runs and the best of each measures the same thing with less of
+    # the machine in it.
+    def timed(fn, rounds=3):
+        best = None
+        for _ in range(rounds):
+            t0 = time.time()
+            fn()
+            dt = time.time() - t0
+            if best is None or dt < best:
+                best = dt
+        return best
+
+    def uncached():
         seq = torch.randn(1, 1, D)
         for _ in range(90):
             seq = torch.cat([seq, torch.randn(1, 1, D)], dim=1)
             m(inputs_embeds=seq)
-        slow = time.time() - t0
 
-        t0 = time.time()
+    def cached():
         x, cache = torch.randn(1, 1, D), None
         for _ in range(90):
             h, cache = m(inputs_embeds=x, past_key_values=cache, use_cache=True)
             x = h[:, -1:]
-        fast = time.time() - t0
+
+    with torch.no_grad():
+        slow = timed(uncached)
+        fast = timed(cached)
     check(fast < slow,
           f"and it is faster: {slow * 1000:.0f} ms uncached against {fast * 1000:.0f} ms cached",
           f"{slow * 1000:.0f} vs {fast * 1000:.0f} ms")

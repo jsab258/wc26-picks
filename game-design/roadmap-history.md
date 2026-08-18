@@ -2200,3 +2200,38 @@ recorded bank only, which the verdict's speech keys already measure.
    `Mannequin.Build` strips. Now re-run at the done line: still 0/0,
    but those zeros finally carry information.
 
+
+
+### The rain item, and how it was lost and recovered
+
+1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL — RECOVERED, NOT
+   RESOLVED.** *(on screen — the first player-height frame, dfefd62)*
+   From the elevated review camera the rain pass looked fine; from the
+   player's own eyes the sky is dense dark striation. Likely sized for
+   a downward view: read streak width / alpha / length against camera
+   pitch. **Cannot be judged on any frame since** — every recent run
+   has come back dry, so this needs a run with rain, not another look.
+
+   This item was LOST when the density work replaced it, and came back
+   only because a container rollback surfaced the old file. It arrived
+   bundled with a claim that the pink figure was error-shader magenta:
+   **that half is REFUTED** — the frame holds zero magenta pixels and
+   she measures 7.63 heads. Kept apart so the dead half cannot
+   resurrect itself the next time this text is found.
+
+
+
+### The white pills, full account
+
+   **THE WHITE PILLS ARE STILL UNIDENTIFIED, and 19f0cfd claimed
+   otherwise — wrongly.** `AlbedoValueOf` runs on a REAL BODY's
+   `m.mainTexture` (`RealBody.cs:1100`), so `bodyAlbedo` measures
+   skinned Mixamo TEXTURES, not the pale blobs — which show up in
+   frames where `streetBodiesSkinned` is low. **Fifth wrong
+   identification, first one published**: it arrived as a NUMBER, and a
+   number felt pre-checked. Known: one object at two distances (aspect
+   1.88/1.83, fill 0.88/0.87); run-time `capsules=0`/`undressed=0` rule
+   out a primitive and an untextured renderer. **Intermittent.** Next
+   step is a number that fires WHILE one is on screen. Full account in
+   `roadmap-history.md`.
+

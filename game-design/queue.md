@@ -52,19 +52,13 @@ is the bar sign's bare back face, one line, behind the critical work.
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL — RECOVERED, NOT
-   RESOLVED.** *(on screen — the first player-height frame, dfefd62)*
-   From the elevated review camera the rain pass looked fine; from the
-   player's own eyes the sky is dense dark striation. Likely sized for
-   a downward view: read streak width / alpha / length against camera
-   pitch. **Cannot be judged on any frame since** — every recent run
-   has come back dry, so this needs a run with rain, not another look.
-
-   This item was LOST when the density work replaced it, and came back
-   only because a container rollback surfaced the old file. It arrived
-   bundled with a claim that the pink figure was error-shader magenta:
-   **that half is REFUTED** — the frame holds zero magenta pixels and
-   she measures 7.63 heads. Kept apart so the dead half cannot
-   resurrect itself the next time this text is found.
+   RESOLVED.** *(player-height frame, dfefd62)* Fine from the elevated
+   camera, dense dark striation from the player's eyes — likely sized
+   for a downward view. **Cannot be judged on any frame since; every
+   run has come back dry.** Needs a wet run, not another look. It came
+   bundled with a claim that the pink figure was error-shader magenta —
+   **that half is REFUTED** (zero magenta pixels, 7.63 heads) and is
+   named so it cannot resurrect. Account in `roadmap-history.md`.
 
 1. **THE STREET IS EMPTY AT EYE LEVEL, AND EVERY POPULATION NUMBER
    SAYS IT IS FINE.** *(on screen — `review_street.jpg`)* Not one
@@ -90,17 +84,13 @@ is the bar sign's bare back face, one line, behind the critical work.
    and how strong the bias should be is a judgement, since you can
    turn round. Full account in `roadmap-history.md`.
 
-   **THE WHITE PILLS ARE STILL UNIDENTIFIED, and 19f0cfd claimed
-   otherwise — wrongly.** `AlbedoValueOf` runs on a REAL BODY's
-   `m.mainTexture` (`RealBody.cs:1100`), so `bodyAlbedo` measures
-   skinned Mixamo TEXTURES, not the pale blobs — which show up in
-   frames where `streetBodiesSkinned` is low. **Fifth wrong
-   identification, first one published**: it arrived as a NUMBER, and a
-   number felt pre-checked. Known: one object at two distances (aspect
-   1.88/1.83, fill 0.88/0.87); run-time `capsules=0`/`undressed=0` rule
-   out a primitive and an untextured renderer. **Intermittent.** Next
-   step is a number that fires WHILE one is on screen. Full account in
-   `roadmap-history.md`.
+   **THE WHITE PILLS ARE STILL UNIDENTIFIED** — and 19f0cfd claimed
+   otherwise, wrongly: `bodyAlbedo` measures skinned Mixamo TEXTURES
+   (`RealBody.cs:1100`), not the pale blobs. Fifth wrong identification,
+   first one published; it arrived as a NUMBER and a number felt
+   pre-checked. Known: one object at two distances, `capsules=0` /
+   `undressed=0` at run time. **Intermittent.** Next step is a number
+   that fires WHILE one is on screen. Account in `roadmap-history.md`.
 
    **SEPARATELY, AND IT IS REAL: the cast is too bright for the
    palette.** `bodyAlbedo=[... 0.61 0.67 0.78 0.91 vs wardrobe max
@@ -317,19 +307,29 @@ is the bar sign's bare back face, one line, behind the critical work.
 
 ## Blocked, and on whom
 
-- **THE MONEY DOES NOT MATCH THE DECADE, and it is a decision rather than a
-  fault.** The cast deals in shillings, half a crown, pence and two-and-six —
-  pre-decimal British currency, gone in 1971 — while `Tier2Gen` dates the world
-  to the eighties and nineties by listing CDs, pagers and car phones as
-  in-period. Seven references across the sixty cards, now counted by `--audit`
-  and deliberately not rejected: refusing sixty cards over an unmade decision is
-  the ratchet rule 5 warns about. Two ways out, both cheap, and it is Jafar's
-  call: move the era back, or move the money forward. Worth noting the era is
-  load-bearing rather than flavour — a late-analog city is what makes missed
-  calls, wiretaps and being unreachable into mechanics.
+- **SETTLED 18 Aug, by Jafar, and NOT TO BE ASKED AGAIN: the era is LATE
+  1980s / EARLY 1990s, and the currency follows from it.** So the money
+  moves FORWARD to decimal — pounds and pence — and the seven
+  pre-decimal references across the sixty cards (shillings, half a
+  crown, two-and-six) are the thing that changes, not the decade.
+  Decimalisation was 1971, so those words are twenty years stale in
+  this world rather than merely old-fashioned.
 
-- **A character mesh.** Only Jafar can buy one, and it is now the single
-  largest immersion gap in the project — see roadmap 17.1b.
+  The era was already the right way round in `design-doc.md`
+  ("late-analog") and in `Tier2Gen`'s CDs, pagers and car phones; only
+  the card writing drifted. It is load-bearing rather than flavour —
+  a late-analog city is what turns missed calls, wiretaps and being
+  unreachable into mechanics — which is why it goes forward and not
+  back. Recorded here as a DECISION so nobody re-opens it: Jafar has
+  now answered this more than once.
+
+- **CLOSED 18 Aug — a character mesh needed no purchase at all.** This
+  said only Jafar could buy one and called it the single largest
+  immersion gap. Mixamo characters are a free download, and the pool is
+  now FOURTEEN realistic bodies against 43 named people. The entry was
+  right that it was the biggest gap and wrong about the price, and it
+  sat here unexamined while the answer was a script in
+  `tools/mixamo-pick/`.
 - **API spend is quoted in FRANCS; the game's money stays £.** Jafar is in
   Switzerland. The £ in the design doc is a deliberate fiction decision — a
   British pub — and quoting both in one unit is how "a few pounds" reached him
