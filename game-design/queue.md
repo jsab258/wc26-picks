@@ -65,53 +65,47 @@ is the bar sign's bare back face, one line, behind the critical work.
    between them. A camera sees ~60 degrees, so bodies scattered round
    the player put ~1 in 6 in frame however the cap is set.
 
-   **THE BODY BUDGET IS SPENT ON WHO IS NEAREST, NOT ON WHO YOU ARE
-   LOOKING AT — and that is a game fault, not an instrument one.**
+   **THE BODY BUDGET GOES TO WHOEVER IS NEAREST, NOT TO WHOEVER YOU
+   ARE LOOKING AT.** Skinned bodies a metre from the lens and out of
+   frame beat the people in shot at 10–25m to all 12 grants; the
+   in-frame ones are eligible (`NearMetres=34`) and simply lose on raw
+   distance. **The still is telling the truth and must not be
+   "fixed"** — a player there sees exactly this. The fix belongs in
+   play: rank with a forward bias. Not done; it changes play behaviour
+   and how strong the bias should be is a judgement, since you can
+   turn round. Full account in `roadmap-history.md`.
 
-   `streetBodiesSkinned` went 0/3, then 2/6 after re-ranking from the
-   camera, then 0/6 again once the camera stepped clear of the parked
-   car. The reason is in `SceneAudit`'s near list: `Ch03:1.89m`,
-   `Ch02_Body:1.93m` — skinned bodies a metre or two from the lens and
-   OUT OF FRAME, beating the four people in shot at 10–25m to all 12
-   grants. `NearMetres=34` and `crowdBodyMetres=14`, so the in-frame
-   ones are eligible; they simply lose on raw distance.
+   **THE WHITE PILLS ARE BODIES BRIGHTER THAN THE WARDROBE ALLOWS, AND
+   THE VERDICT HAS BEEN SAYING SO ALL ALONG.**
 
-   **So the still is telling the truth and should not be "fixed".** A
-   player standing there sees exactly this: the people they are
-   LOOKING AT are mannequins while the budget went to somebody behind
-   their shoulder. Biasing the shot's ranking would make the frame
-   flatter than the game, which is worse than a frame that shows the
-   fault.
+       bodyAlbedo=[0.04 0.14 0.21 0.21 0.22 0.38 0.44 0.50 0.54 0.58
+                   0.61 0.67 0.78 0.91 vs wardrobe max 0.46]
 
-   The fix belongs in play: rank the budget with a forward bias, so
-   the twelve skinned bodies are the twelve you can see. Not done —
-   it changes play behaviour and wants judgement about how strong the
-   bias is, which is a decision and not a tidy-up.
+   Seven of fourteen bodies exceed the wardrobe's own maximum and the
+   brightest is 0.91 — white. That key exists to compare exactly those
+   two numbers and nobody read it, through every one of the wrong
+   identifications below.
 
-   **AND A MANNEQUIN AT DISTANCE IS A WHITE PILL.** *(on screen —
-   `review_street.jpg` at d4afbf9 has two, mid-road)* Measured rather
-   than named: both blobs are 73x137 and 23x42 px with aspect 1.88 /
-   1.83 and fill 0.88 / 0.87 — identical shape at two distances, so
-   one kind of object twice. `capsules=0` and `undressed=0` rule out a
-   bare primitive and an untextured renderer, and `Mannequin` builds
-   from cubes and spheres, so the likeliest reading is a mannequin
-   whose ten boxes merge into a featureless pale blob at 15–25m.
-   **NOT CONCLUSIVELY IDENTIFIED** — three wrong identifications in
-   this frame family already, so it is written as the leading
-   hypothesis and not as a fact.
+   Got there by measurement, not by naming: the blobs were 73x137 and
+   23x42 px, aspect 1.88 / 1.83, fill 0.88 / 0.87 — one object at two
+   distances — and `capsules=0` / `undressed=0` ruled out a primitive
+   and an untextured renderer.
 
-   It makes the forward-bias item much more valuable than it looked:
-   the cost of losing a body grant is not "slightly worse figure", it
-   is a white pill standing in a noir street.
+   **OWED: where 0.91 comes from.** Skin is `Lerp(colour, warm
+   neutral, 0.65)` at ~0.61 luminance and is legitimately above a
+   clothing bound, but nothing explains 0.78 or 0.91. Trace the source
+   before capping anything — a cap over an unexplained value is rule
+   2's trap. **Intermittent**: the next frame had zero pill-shaped
+   blobs with nothing changed, because the shot stands somewhere
+   different each run.
 
-   **THE CAPSULE AUDIT CANNOT SEE THIS, BY CONSTRUCTION.**
-   `AuditUndressed` runs once inside `WorldBuilder.Build` — before a
-   single walker spawns — so `capsules` and `undressed` are BUILD-time
-   readings of a RUN-time condition. Every walker starts life as a
-   `PrimitiveType.Capsule` that `Mannequin.Build` strips, so the exact
-   thing those counters are named for happens entirely after they have
-   finished looking. A zero from them means "the world had none when
-   it was built", not "the street has none" — and nothing says so.
+   **AND THE CAPSULE AUDIT COULD NOT HAVE SEEN IT.** `AuditUndressed`
+   ran once inside `WorldBuilder.Build`, BEFORE any walker spawns, so
+   `capsules` and `undressed` were BUILD-time readings of a RUN-time
+   condition — every walker begins as a `PrimitiveType.Capsule` that
+   `Mannequin.Build` strips. A zero meant "the world had none when it
+   was built" while reading as "the street has none". Now re-run at the
+   done line: still 0/0, but those zeros finally carry information.
 
    **PERF, SETTLED THIS ROUND.** `traffic` 4.67 -> **2.23**, halved by
    hoisting the road heading out of the per-hazard loop. `npcs` 9.36 ->

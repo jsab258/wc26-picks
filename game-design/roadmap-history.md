@@ -2139,3 +2139,30 @@ recorded bank only, which the verdict's speech keys already measure.
    The comment beside `PopulationCount = 700` also still describes the
    city BEFORE the stretch. Re-read it when the numbers land.
 
+
+
+### The body-budget finding, in full
+
+   **THE BODY BUDGET IS SPENT ON WHO IS NEAREST, NOT ON WHO YOU ARE
+   LOOKING AT — and that is a game fault, not an instrument one.**
+
+   `streetBodiesSkinned` went 0/3, then 2/6 after re-ranking from the
+   camera, then 0/6 again once the camera stepped clear of the parked
+   car. The reason is in `SceneAudit`'s near list: `Ch03:1.89m`,
+   `Ch02_Body:1.93m` — skinned bodies a metre or two from the lens and
+   OUT OF FRAME, beating the four people in shot at 10–25m to all 12
+   grants. `NearMetres=34` and `crowdBodyMetres=14`, so the in-frame
+   ones are eligible; they simply lose on raw distance.
+
+   **So the still is telling the truth and should not be "fixed".** A
+   player standing there sees exactly this: the people they are
+   LOOKING AT are mannequins while the budget went to somebody behind
+   their shoulder. Biasing the shot's ranking would make the frame
+   flatter than the game, which is worse than a frame that shows the
+   fault.
+
+   The fix belongs in play: rank the budget with a forward bias, so
+   the twelve skinned bodies are the twelve you can see. Not done —
+   it changes play behaviour and wants judgement about how strong the
+   bias is, which is a decision and not a tidy-up.
+
