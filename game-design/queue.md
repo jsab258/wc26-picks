@@ -59,13 +59,11 @@ is the bar sign's bare back face, one line, behind the critical work.
    is the GOSSIP mill — social agents, not a render tier. There is no
    cheap visible-body tier at all.
 
-   **MEASURED, THREE RUNS: `5/2/52`, `8/5/55`, `3/2/52`** — in shot /
-   within 25m / alive. Three to eight people visible, two to five close
-   enough to read as a person. **NOTHING CHANGED DENSITY BETWEEN THEM,
-   so that spread is the instrument, not progress** — the shot stands
-   somewhere different each run. A camera sees ~60 degrees, so bodies
-   scattered round the player put ~1 in 6 in frame however the cap is
-   set, which is why the cap is not the lever it looks like.
+   **MEASURED, FOUR RUNS: 5/2, 8/5, 3/2, 19/7** — in shot / skinned,
+   of ~52 alive. The spread is the instrument, not progress: the shot
+   stands somewhere different each run and nothing changed density
+   between them. A camera sees ~60 degrees, so bodies scattered round
+   the player put ~1 in 6 in frame however the cap is set.
 
    **THE BODY BUDGET IS SPENT ON WHO IS NEAREST, NOT ON WHO YOU ARE
    LOOKING AT — and that is a game fault, not an instrument one.**
@@ -90,29 +88,39 @@ is the bar sign's bare back face, one line, behind the critical work.
    it changes play behaviour and wants judgement about how strong the
    bias is, which is a decision and not a tidy-up.
 
-   **THE COST IS NPCs AND TRAFFIC, NOT SUN.** `sun` has read 0.91,
-   3.15 and 1.26 across runs that changed nothing relevant to it, so
-   the old "sun is a quarter of the budget" line was reading noise.
-   Frame numbers move with the runner too, so compare within a run.
+   **AND A MANNEQUIN AT DISTANCE IS A WHITE PILL.** *(on screen —
+   `review_street.jpg` at d4afbf9 has two, mid-road)* Measured rather
+   than named: both blobs are 73x137 and 23x42 px with aspect 1.88 /
+   1.83 and fill 0.88 / 0.87 — identical shape at two distances, so
+   one kind of object twice. `capsules=0` and `undressed=0` rule out a
+   bare primitive and an untextured renderer, and `Mannequin` builds
+   from cubes and spheres, so the likeliest reading is a mannequin
+   whose ten boxes merge into a featureless pale blob at 15–25m.
+   **NOT CONCLUSIVELY IDENTIFIED** — three wrong identifications in
+   this frame family already, so it is written as the leading
+   hypothesis and not as a fact.
 
-   **PERF, MEASURED.** `traffic` 4.67 -> 4.27 -> **2.23**: hoisting
-   the road heading out of the per-hazard loop roughly halved it. One
-   sample, so strong not settled. `npcs` 9.36 -> 8.43 -> **8.63**: did
-   NOT move, though the broad-phase drops 99.8% of pairs before any
-   square root (`crowdApartPairs=5288` of `crowdApartCalls=63298`). So
-   the ITERATION is the cost, not the arithmetic in it — still O(n²)
-   with a smaller constant, and the commit title claiming otherwise is
-   corrected. `crowdApartMs` lands next build and says whether a
-   spatial bucket is worth writing at all. Accounts in
-   `roadmap-history.md`.
+   It makes the forward-bias item much more valuable than it looked:
+   the cost of losing a body grant is not "slightly worse figure", it
+   is a white pill standing in a noir street.
 
-   **CORRECTION — f802928's commit message costs a walker at "~0.58ms"
-   by dividing `npcs` by `crowdWalkers=12`.** Wrong denominator: that
-   scope ticks every entry of `_npcs`, i.e. `walkers=55`. ~0.13ms each,
-   and not flat — the separation term is quadratic in the crowd.
+   **THE CAPSULE AUDIT CANNOT SEE THIS, BY CONSTRUCTION.**
+   `AuditUndressed` runs once inside `WorldBuilder.Build` — before a
+   single walker spawns — so `capsules` and `undressed` are BUILD-time
+   readings of a RUN-time condition. Every walker starts life as a
+   `PrimitiveType.Capsule` that `Mannequin.Build` strips, so the exact
+   thing those counters are named for happens entirely after they have
+   finished looking. A zero from them means "the world had none when
+   it was built", not "the street has none" — and nothing says so.
 
-   The comment beside `PopulationCount = 700` also still describes the
-   city BEFORE the stretch. Re-read it when the numbers land.
+   **PERF, SETTLED THIS ROUND.** `traffic` 4.67 -> **2.23**, halved by
+   hoisting the road heading out of the per-hazard loop. `npcs` 9.36 ->
+   **8.63**, unmoved — and `crowdApartMs=0.854` now says why it could
+   not move: the whole separation sweep is 0.85ms of that 8.63, so a
+   spatial bucket could save at most 0.8ms of a 12ms budget. **That
+   item is RETIRED — the measurement was worth more than the rewrite.**
+   `sun` (0.91 / 3.15 / 1.26 across runs that changed nothing) was
+   noise read as a finding. Accounts in `roadmap-history.md`.
 
    **`RealBodyCap = 12` NEEDS A PC MEASUREMENT, not a CI one.** Its
    comment prices a dozen skinned bodies at ~280k vertices against a

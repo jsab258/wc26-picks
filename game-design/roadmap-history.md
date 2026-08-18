@@ -2099,3 +2099,43 @@ recorded bank only, which the verdict's speech keys already measure.
    is where the queue guessed our system was weakest, now with evidence
    under it. That is the next step, not a terrace swap.
 
+
+
+### The street-density series, in full
+
+   **MEASURED, THREE RUNS: `5/2/52`, `8/5/55`, `3/2/52`** — in shot /
+   within 25m / alive. Three to eight people visible, two to five close
+   enough to read as a person. **NOTHING CHANGED DENSITY BETWEEN THEM,
+   so that spread is the instrument, not progress** — the shot stands
+   somewhere different each run. A camera sees ~60 degrees, so bodies
+   scattered round the player put ~1 in 6 in frame however the cap is
+   set, which is why the cap is not the lever it looks like.
+
+
+
+### The perf hunt, in full
+
+   **THE COST IS NPCs AND TRAFFIC, NOT SUN.** `sun` has read 0.91,
+   3.15 and 1.26 across runs that changed nothing relevant to it, so
+   the old "sun is a quarter of the budget" line was reading noise.
+   Frame numbers move with the runner too, so compare within a run.
+
+   **PERF, MEASURED.** `traffic` 4.67 -> 4.27 -> **2.23**: hoisting
+   the road heading out of the per-hazard loop roughly halved it. One
+   sample, so strong not settled. `npcs` 9.36 -> 8.43 -> **8.63**: did
+   NOT move, though the broad-phase drops 99.8% of pairs before any
+   square root (`crowdApartPairs=5288` of `crowdApartCalls=63298`). So
+   the ITERATION is the cost, not the arithmetic in it — still O(n²)
+   with a smaller constant, and the commit title claiming otherwise is
+   corrected. `crowdApartMs` lands next build and says whether a
+   spatial bucket is worth writing at all. Accounts in
+   `roadmap-history.md`.
+
+   **CORRECTION — f802928's commit message costs a walker at "~0.58ms"
+   by dividing `npcs` by `crowdWalkers=12`.** Wrong denominator: that
+   scope ticks every entry of `_npcs`, i.e. `walkers=55`. ~0.13ms each,
+   and not flat — the separation term is quadratic in the crowd.
+
+   The comment beside `PopulationCount = 700` also still describes the
+   city BEFORE the stretch. Re-read it when the numbers land.
+

@@ -9983,6 +9983,21 @@ namespace Ledger.Game
             // A distinct prefix keeps the old split intact and lets the tool
             // decide separately what to do with this one.
             Debug.Log($"SimDirector: ALL GATES: {string.Join(" | ", System.Array.ConvertAll(gates, g => (g.ok ? "ok " : "RED ") + g.name))}");
+            // RE-AUDITED WITH A POPULATED STREET, because the first pass ran
+            // before there was one. `AuditUndressed` is called once inside
+            // `WorldBuilder.Build`, BEFORE a single walker spawns — and every
+            // walker begins life as a `PrimitiveType.Capsule` that
+            // `Mannequin.Build` then strips. So `capsules` and `undressed`
+            // have been BUILD-time readings of a RUN-time condition: the exact
+            // thing they are named for happens entirely after they finished
+            // looking, and a zero has meant "the world had none when it was
+            // built" while reading as "the street has none".
+            //
+            // Cheap enough to run once at the end — it is a single
+            // `FindObjectsByType<Renderer>` sweep, and the done line is the
+            // one moment in the run where the city is fully populated.
+            WorldBuilder.AuditUndressed();
+
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
