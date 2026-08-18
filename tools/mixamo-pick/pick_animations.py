@@ -64,7 +64,7 @@ WANTS = [
     ("strike_alt",   "A", [r"\bbody jab cross\b", r"\belbow punch\b",
                            r"\bhook punch\b"]),
     ("shove",        "A", [r"^push\b", r"\bpush(ing)?\b", r"\bshove\b"]),
-    # `^shoved$` FIRST, and the reason is a duplicate nobody could have seen
+    # `Shoved` FIRST, and the reason is a duplicate nobody could have seen
     # from a filename. The harvest holds `Shove Reaction` and `Talking` as two
     # differently-named files with IDENTICAL BYTES — `tools/clip-motion.py`
     # found it by hashing what shipped — so one of those two slots has been
@@ -72,7 +72,12 @@ WANTS = [
     # `Shoved` is a third name in the catalogue for the same motion, so taking
     # it sidesteps the collision without a re-download. The content check
     # below is the general fix; this is the specific one.
-    ("shoved",       "A", [r"^shoved$", r"\bshove reaction\b",
+    #
+    # THE FIRST VERSION OF THIS LINE WAS `^shoved$` AND MATCHED NOTHING, with
+    # the paragraph forty lines above it explaining why. The `--catalogue`
+    # check now refuses a pattern that cannot match, so the next one fails
+    # here rather than on Jafar's machine.
+    ("shoved",       "A", [r"^shoved\b", r"\bshove reaction\b",
                            r"\bshoved reaction\b"]),
     ("take_hit",     "A", [r"\bstanding react small from front\b",
                            r"\bhit reaction\b", r"\breact(ion)? small\b"]),
@@ -164,8 +169,8 @@ WANTS = [
     #
     # Every name below was checked against `_catalogue.txt` before being
     # asked for, which is the rule that stopped the guessed list.
-    ("walk_f",       "B", [r"^female walk$"]),
-    ("jog",          "B", [r"^jog forward$", r"^jogging$"]),
+    ("walk_f",       "B", [r"^female walk\b"]),
+    ("jog",          "B", [r"^jog forward\b", r"^jogging\b"]),
 
     # ---- TIER D: what a person is DOING when they are not travelling.
     #
@@ -179,19 +184,19 @@ WANTS = [
     # its eyes open: Jafar is away from the Windows machine until Friday and
     # the harvest only exists there, so the choice is clips-then-wiring or
     # three days of neither. The wiring is mine and it is not blocked.
-    ("wave",         "D", [r"^waving$", r"^waving gesture$"]),
-    ("shake_hands",  "D", [r"^shaking hands 1$", r"^shaking hands\b"]),
-    ("point",        "D", [r"^pointing$", r"^pointing gesture$"]),
-    ("thinking",     "D", [r"^thinking$"]),
-    ("laugh",        "D", [r"^laughing$"]),
-    ("yell",         "D", [r"^yelling$", r"^yelling while standing$"]),
-    ("head_no",      "D", [r"^shaking head no$"]),
-    ("glance",       "D", [r"^look over shoulder$"]),
-    ("pockets",      "D", [r"^searching pockets$"]),
-    ("rummage",      "D", [r"^rummaging$"]),
-    ("lift",         "D", [r"^lifting object$", r"^lifting$"]),
-    ("sit_talk",     "D", [r"^sitting talking$"]),
-    ("sit_drink",    "D", [r"^sitting drinking$"]),
+    ("wave",         "D", [r"^waving\b", r"^waving gesture\b"]),
+    ("shake_hands",  "D", [r"^shaking hands 1\b", r"^shaking hands\b"]),
+    ("point",        "D", [r"^pointing\b", r"^pointing gesture\b"]),
+    ("thinking",     "D", [r"^thinking\b"]),
+    ("laugh",        "D", [r"^laughing\b"]),
+    ("yell",         "D", [r"^yelling\b", r"^yelling while standing\b"]),
+    ("head_no",      "D", [r"^shaking head no\b"]),
+    ("glance",       "D", [r"^look over shoulder\b"]),
+    ("pockets",      "D", [r"^searching pockets\b"]),
+    ("rummage",      "D", [r"^rummaging\b"]),
+    ("lift",         "D", [r"^lifting object\b", r"^lifting\b"]),
+    ("sit_talk",     "D", [r"^sitting talking\b"]),
+    ("sit_drink",    "D", [r"^sitting drinking\b"]),
 ]
 
 FLAT = re.compile(r"[^a-z0-9]+")
@@ -261,6 +266,72 @@ def pick(items, patterns, taken=None, cache=None):
     return None, -1, None
 
 
+#: Where the last real harvest's listing lives once it has been committed.
+#: This is the whole catalogue as MixamoHarvester named it, 2,846 lines, and
+#: it is the only description of the harvest that exists on this side.
+CATALOGUE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "..", "..", "ledger", "Assets", "Characters",
+                         "_catalogue.txt")
+
+
+def dryrun(catalogue_path=CATALOGUE, verbose=True):
+    """WHICH SLOTS WOULD FIND A CLIP, checked against the committed listing
+    rather than against the harvest — which lives on a machine this container
+    never sees.
+
+    WHY THIS EXISTS, and it is the most expensive lesson in this file. On 18
+    August I added seventeen slots, wrote every pattern with a `$` anchor, and
+    Jafar ran the pick. Fourteen came back MISSING. The paragraph forbidding
+    `$` anchors is at the top of THIS FILE, thirty lines above the block I was
+    typing into, and I had read it that morning — MixamoHarvester appends the
+    character id to every name, so `^waving$` cannot match `waving 2dee24f8...`
+    and never could.
+
+    The fix is not remembering. The catalogue has been committed since the
+    first run, so every pattern can be tried against real names HERE, in
+    milliseconds, with no harvest and no Windows machine. A slot that cannot
+    match is a bug in the pattern, and it is now caught before anybody runs
+    anything.
+
+    Returns (missing, substituted, matched) as lists of (slot, name)."""
+    if not os.path.isfile(catalogue_path):
+        return None, None, None
+    items = []
+    with open(catalogue_path, encoding="utf-8") as fh:
+        for line in fh:
+            stem = line.strip()
+            if stem:
+                items.append((flatten(stem), stem, None))
+
+    missing, substituted, matched = [], [], []
+    for slot, _tier, patterns in WANTS:
+        hit, depth, _digest = pick(items, patterns)
+        if hit is None:
+            missing.append((slot, patterns))
+        elif depth == 0:
+            matched.append((slot, hit[1]))
+        else:
+            substituted.append((slot, hit[1]))
+    if verbose:
+        for slot, patterns in missing:
+            print("  WOULD MISS  %-14s — none of %d pattern(s) match any of "
+                  "the %d catalogued names" % (slot, len(patterns), len(items)))
+        for slot, name in substituted:
+            print("  substitute  %-14s <- %s" % (slot, name))
+        print("catalogue %d names: %d exact, %d substitute, %d missing"
+              % (len(items), len(matched), len(substituted), len(missing)))
+    return missing, substituted, matched
+
+
+def matching_enough(matched):
+    """A ZERO NEEDS A DENOMINATOR (rule 3b). "No slot is missing" is also what
+    an empty catalogue and a broken reader both print, so the dry run has to
+    say how many slots it positively MATCHED before its silence means
+    anything. Two thirds is a floor, not a target: the list legitimately
+    carries substitutes, and this exists to catch "nothing was tried"."""
+    return len(matched) >= (2 * len(WANTS)) // 3
+
+
 def selftest():
     """BOTH OUTCOMES OF THE CONTENT CHECK, on a harvest built here.
 
@@ -326,6 +397,33 @@ def selftest():
         if len(set(cache.values())) < 3:
             failures.append("three distinct files did not hash to three values")
 
+    # A `$` ANCHOR CAN NEVER MATCH, so a pattern carrying one is a bug however
+    # right it looks. The rule was prose at the top of this file and prose does
+    # not run; fourteen slots were lost to it in one afternoon.
+    for slot, _tier, patterns in WANTS:
+        for pat in patterns:
+            if pat.rstrip().endswith("$"):
+                failures.append("%s: pattern %r ends in $ — the harvester "
+                                "appends the character id, so it cannot match"
+                                % (slot, pat))
+
+    # AND EVERY SLOT MUST MATCH A REAL NAME. The `$` rule catches one way of
+    # writing an impossible pattern; this catches all of them, including the
+    # ones nobody has thought of, by trying them against the 2,846 names the
+    # last harvest actually produced.
+    missing, _sub, matched = dryrun(verbose=False)
+    if missing is None:
+        failures.append("no committed catalogue to check the patterns against")
+    else:
+        for slot, patterns in missing:
+            failures.append("%s: no catalogued name matches any of %d "
+                            "pattern(s)" % (slot, len(patterns)))
+        # The denominator, so "nothing missing" cannot mean "nothing tried".
+        if not matching_enough(matched):
+            failures.append("only %d slot(s) matched the catalogue — the "
+                            "listing or the reader is wrong, not the patterns"
+                            % len(matched))
+
     for f in failures:
         print("  FAIL: %s" % f)
     if failures:
@@ -340,6 +438,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--selftest", action="store_true",
                     help="check the picker against a harvest built here")
+    ap.add_argument("--dryrun", action="store_true",
+                    help="try every pattern against the committed catalogue")
     ap.add_argument("--harvest", default=None,
                     help="the MixamoHarvester 'animations' folder")
     ap.add_argument("--out", default=None,
@@ -348,6 +448,12 @@ def main():
                     help="which tiers to copy, e.g. 'A' for combat only")
     args = ap.parse_args()
 
+    if args.dryrun:
+        missing, _sub, _matched = dryrun()
+        if missing is None:
+            print("no committed catalogue at %s" % os.path.normpath(CATALOGUE))
+            return 2
+        return 1 if missing else 0
     if args.selftest:
         return selftest()
     if not args.harvest:

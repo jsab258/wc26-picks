@@ -21,21 +21,30 @@
 # LOWER THIS NUMBER WHEN THE FINDINGS DROP. Never raise it to make red go
 # away; that is the move rule 2 forbids.
 
-clipFindings=4
+clipFindings=3
 
-# WHAT THE FOUR ARE, on 2026-08-18:
+# CLOSED 2026-08-18, ON THE FIRST RUN OF THE GUARD THAT FOUND IT:
 #
 # 1. DUPLICATE: `shoved` (Shove Reaction) == `talk` (Talking), byte for byte.
-#    `_picks.json` records the picker matching two DIFFERENT harvest names
-#    exactly, so the collision was made by the bulk harvester, not here. One
-#    of those two slots has been playing the other's motion — and the file
-#    carries no distinguishing take name (every Mixamo FBX calls its take
-#    "mixamo.com"), so which one cannot be told from the bytes. `talk` is on
-#    the street constantly; `shoved` is combat and has never run.
-#    FIX: the picker now prefers `Shoved`, a third catalogue name for the
-#    same motion, so a re-pick breaks the tie without a download.
+#    `_picks.json` recorded the picker matching two DIFFERENT harvest names
+#    exactly, so the collision was made by the bulk harvester, not here — and
+#    the file carries no distinguishing take name (every Mixamo FBX calls its
+#    take "mixamo.com"), so which slot was wrong could not be told from the
+#    bytes.
+#    CLOSED by the content check doing exactly what it was written for, on
+#    Jafar's machine, in the first re-pick after it shipped: it skipped the
+#    duplicate for `talk` and took `Talking_4f5d21e1` instead — a different
+#    character's export of the same motion. The audit now reads "no two clips
+#    share content" over 53 clips.
+#    NOT CLOSED BY THE PART I PREDICTED. The commit said the fix was the
+#    picker preferring `Shoved`; that pattern was written `^shoved$` and
+#    matched nothing, so `shoved` kept Shove Reaction and the CONTENT check
+#    carried the whole repair. The specific fix was wrong and the general one
+#    worked, which is the argument for having written the general one.
 #
-# 2-4. FROZEN ROOT: `walk_start` (Start Walking), `lean` (Leaning),
+# WHAT THE REMAINING THREE ARE:
+#
+# 1-3. FROZEN ROOT: `walk_start` (Start Walking), `lean` (Leaning),
 #    `block_end` (Standing Block End). The hips are the root of a Mixamo rig
 #    and carry the body's whole world motion, so a clip whose hips move less
 #    than a centimetre and turn less than two degrees is animated from the
