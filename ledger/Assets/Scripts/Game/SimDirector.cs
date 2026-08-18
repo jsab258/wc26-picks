@@ -287,7 +287,8 @@ namespace Ledger.Game
             // "mixamo.com", so a filename is the only label a file carries and
             // the harvester has already been caught putting one animation under
             // two names.
-            ClipSheet.Render("sim-out");
+            // A COROUTINE, because the pose needs real frames — see `ClipSheet`.
+            StartCoroutine(ClipSheet.RenderRoutine("sim-out"));
             Debug.Log($"SimDirector: simulating {SimMode.Days} day(s)");
         }
 
@@ -10777,6 +10778,11 @@ namespace Ledger.Game
                       $"looseEndsFed={GameController.LooseEndTiersFed}/{GameController.LooseEndTiers} " +
                       $"sheetTiles={ClipSheet.Tiles} " +
                       $"sheetWhy=[{ClipSheet.Why.Replace(' ', '_')}] " +
+                      // How far the pose moved when one real frame was
+                      // allowed to pass. The bracket that decides whether
+                      // the second broken sheet was a retarget that had
+                      // not initialised, or something else entirely.
+                      $"sheetSettle={ClipSheet.Settle:0.0} " +
                       $"undressed={WorldBuilder.UndressedRenderers} " +
                       $"undressedWho=[{WorldBuilder.UndressedWho}] " +
                       $"capsules={WorldBuilder.CapsuleMeshes} " +

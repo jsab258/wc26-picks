@@ -64,14 +64,32 @@ namespace Ledger.Game
         public static int Tiles = -1;
         public static string Why = "not tried";
 
+        /// HOW MUCH THE POSE MOVES WHEN A REAL FRAME IS ALLOWED TO PASS, in
+        /// degrees at one bone. This exists because the sheet came back broken
+        /// twice and I was wrong about the cause the first time: the fix I
+        /// shipped changed nothing, which is only visible because the floor
+        /// proved the new code had run.
+        ///
+        /// Near zero says a frame makes no difference and the "the humanoid
+        /// retarget has not initialised" hypothesis is dead. A large angle says
+        /// it was the whole fault. Either way the next build stops being a
+        /// guess, which is what two wrong diagnoses in a row are worth.
+        public static float Settle = -1f;
+
         /// Renders the sheet into `outDir`. Returns the number of clips drawn.
         ///
         /// FAILS SOFT, ALWAYS. A picture nobody asked for must never be able to
         /// stop the run that produces every other measurement — the sim is the
         /// only process in this pipeline with a graphics device, so everything
         /// downstream of a throw here would be lost with it.
-        public static int Render(string outDir)
+        public static System.Collections.IEnumerator RenderRoutine(string outDir)
         {
+            // A COROUTINE, BECAUSE THE POSE NEEDS REAL FRAMES. `yield` cannot
+            // sit inside a try/CATCH in C#, so the guard here is try/FINALLY
+            // plus null checks on everything loaded. A throw stops the routine
+            // and Unity logs it, and `Why` is left holding "started" — which is
+            // a legible state rather than a silent one.
+            Why = "started";
             GameObject root = null;
             RenderTexture rt = null;
             Texture2D tile = null, sheet = null;
@@ -89,7 +107,7 @@ namespace Ledger.Game
                     Why = string.Format("missing asset (body={0} controller={1} slots={2})",
                                         prefab != null, controller != null, manifest != null);
                     Tiles = 0;
-                    return 0;
+                    yield break;
                 }
 
                 var slots = manifest.text.Split('\n');
@@ -103,7 +121,7 @@ namespace Ledger.Game
                 {
                     Why = "the slot manifest is empty";
                     Tiles = 0;
-                    return 0;
+                    yield break;
                 }
 
                 // FAR BELOW THE CITY. The sheet runs after the world is built —
@@ -122,7 +140,7 @@ namespace Ledger.Game
                 {
                     Why = "the body prefab carries no Animator";
                     Tiles = 0;
-                    return 0;
+                    yield break;
                 }
                 animator.runtimeAnimatorController = controller;
                 animator.applyRootMotion = false;
@@ -229,6 +247,51 @@ namespace Ledger.Game
                 RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
                 RenderSettings.ambientLight = new Color(0.32f, 0.33f, 0.36f, 1f);
 
+                // ONE REAL FRAME BEFORE ANYTHING IS SAMPLED, AND A BRACKET THAT
+                // SAYS WHETHER IT MATTERED.
+                //
+                // The first sheet drew all 67 clips with the same broken figure
+                // — one arm clawed beside the head, the other detached, shoes
+                // on the ground — while the same build's street still showed a
+                // man walking correctly. I blamed disabling `CharacterRig`,
+                // fixed that, and THE SECOND SHEET CAME BACK IDENTICAL. The
+                // floor proved the new code ran, so the diagnosis was simply
+                // wrong.
+                //
+                // The remaining hypothesis is that a humanoid Animator does not
+                // finish initialising its retarget until the player loop has
+                // updated it once, so `Update(0f)` called in the same frame as
+                // `Instantiate` evaluates only part of the rig. That fits what
+                // the picture shows: legs that vary between phases, arms and
+                // feet stuck.
+                //
+                // RATHER THAN SWAP ONE GUESS FOR ANOTHER, THE RUN MEASURES IT.
+                // The same pose is sampled twice — once with no frame between,
+                // once after one — and `sheetSettle` reports the angle between
+                // them. Near zero means the frame changed nothing and the
+                // hypothesis is dead; a large number means it was the fix. It
+                // costs one bone read and it ends the guessing either way.
+                var probe = animator.GetBoneTransform(HumanBodyBones.LeftHand)
+                            ?? animator.GetBoneTransform(HumanBodyBones.Hips);
+                int probeHash = Animator.StringToHash(Editorless.StatePrefix + wanted[0]);
+                Quaternion before = Quaternion.identity, after = Quaternion.identity;
+                if (probe != null && animator.HasState(0, probeHash))
+                {
+                    animator.Play(probeHash, 0, Phases[1]);
+                    animator.Update(0f);
+                    animator.Update(0f);
+                    before = probe.localRotation;
+                }
+                yield return null;
+                if (probe != null && animator.HasState(0, probeHash))
+                {
+                    animator.Play(probeHash, 0, Phases[1]);
+                    animator.Update(0f);
+                    animator.Update(0f);
+                    after = probe.localRotation;
+                }
+                Settle = Quaternion.Angle(before, after);
+
                 int rows = (wanted.Count + ClipsPerRow - 1) / ClipsPerRow;
                 int sheetW = ClipsPerRow * PhasesPerClip * TileWidth;
                 int sheetH = rows * TileHeight;
@@ -256,6 +319,13 @@ namespace Ledger.Game
                         // wholesale mislabelling.
                         animator.Update(0f);
                         animator.Update(0f);
+                        // AND A REAL FRAME PER TILE. `Update(0f)` drives the
+                        // Animator; it does not run the player loop, so
+                        // `CharacterRig`'s LateUpdate — the procedural layer a
+                        // player actually sees — would otherwise apply once for
+                        // all 201 tiles. 201 frames is a few seconds in a run
+                        // that simulates eleven days.
+                        yield return null;
                         RenderTexture.active = rt;
                         cam.Render();
                         tile.ReadPixels(new Rect(0, 0, TileWidth, TileHeight), 0, 0);
@@ -283,14 +353,6 @@ namespace Ledger.Game
                 Why = string.Format("{0} of {1} slot(s) drawn, {2}x{3}",
                                     drawn, wanted.Count, sheetW, sheetH);
                 Debug.Log(string.Format("ClipSheet: {0}", Why));
-                return drawn;
-            }
-            catch (System.Exception e)
-            {
-                Tiles = -1;
-                Why = e.GetType().Name + ": " + e.Message;
-                Debug.Log("ClipSheet: FAILED " + Why);
-                return -1;
             }
             finally
             {

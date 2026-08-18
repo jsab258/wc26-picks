@@ -520,7 +520,7 @@ namespace Ledger.Core
                     "There's men getting rich off that shrug.",
                     "Wait till the winter.",
                     "It's the same everywhere. That's what they tell me, anyway.",
-                    "I've gone back to the market. Costs me an hour, saves me a shilling.",
+                    "I've gone back to the market. Costs me an hour, saves me a pound.",
                     "Nobody's putting wages up to match, funny that.",
                     "My mother said the same in her day. Doesn't help.",
                     "You should see what they charge across the water.",
