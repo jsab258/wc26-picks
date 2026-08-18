@@ -61,9 +61,9 @@
   },
   "shoved": {
     "tier": "A",
-    "found": "Shove Reaction_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": false,
-    "pattern": "\\bshove reaction\\b"
+    "found": "Shoved_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^shoved\\b"
   },
   "take_hit": {
     "tier": "A",
@@ -145,7 +145,7 @@
   },
   "talk": {
     "tier": "B",
-    "found": "Talking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "found": "Talking_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
     "pattern": "^talking\\b"
   },
@@ -313,111 +313,92 @@
   },
   "walk_f": {
     "tier": "B",
-    "found": null,
-    "tried": [
-      "^female walk$"
-    ]
+    "found": "Female Walk_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^female walk\\b"
   },
   "jog": {
     "tier": "B",
-    "found": null,
-    "tried": [
-      "^jog forward$",
-      "^jogging$"
-    ]
+    "found": "Jog Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "exact": true,
+    "pattern": "^jog forward\\b"
   },
   "wave": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^waving$",
-      "^waving gesture$"
-    ]
+    "found": "Waving_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^waving\\b"
   },
   "shake_hands": {
     "tier": "D",
     "found": "Shaking Hands 1_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": false,
-    "pattern": "^shaking hands\\b"
+    "exact": true,
+    "pattern": "^shaking hands 1\\b"
   },
   "point": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^pointing$",
-      "^pointing gesture$"
-    ]
+    "found": "Pointing_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^pointing\\b"
   },
   "thinking": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^thinking$"
-    ]
+    "found": "Thinking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^thinking\\b"
   },
   "laugh": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^laughing$"
-    ]
+    "found": "Laughing_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^laughing\\b"
   },
   "yell": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^yelling$",
-      "^yelling while standing$"
-    ]
+    "found": "Yelling_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^yelling\\b"
   },
   "head_no": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^shaking head no$"
-    ]
+    "found": "Shaking Head No_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^shaking head no\\b"
   },
   "glance": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^look over shoulder$"
-    ]
+    "found": "Look Over Shoulder_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^look over shoulder\\b"
   },
   "pockets": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^searching pockets$"
-    ]
+    "found": "Searching Pockets_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^searching pockets\\b"
   },
   "rummage": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^rummaging$"
-    ]
+    "found": "Rummaging_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^rummaging\\b"
   },
   "lift": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^lifting object$",
-      "^lifting$"
-    ]
+    "found": "Lifting Object_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^lifting object\\b"
   },
   "sit_talk": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^sitting talking$"
-    ]
+    "found": "Sitting Talking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^sitting talking\\b"
   },
   "sit_drink": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^sitting drinking$"
-    ]
+    "found": "Sitting Drinking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^sitting drinking\\b"
   }
 }
