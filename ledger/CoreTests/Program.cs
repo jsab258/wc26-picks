@@ -113,6 +113,7 @@ namespace Ledger.CoreTests
                 TestWardrobe();
                 TestOccupancy();
                 TestReliability();
+                TestLooseEnds();
                 TestTextureFit();
                 TestLightModel();
                 TestMusicModel();
@@ -14972,6 +14973,129 @@ namespace Ledger.CoreTests
                 "a wall with no length dresses nothing rather than dividing by it");
             Check(Dressing.Facade(0, 0, 0.5, 0, 0.1, false, false).Count == 0,
                 "and neither does one too short to put anything against");
+        }
+
+        static void TestLooseEnds()
+        {
+            Console.WriteLine("LooseEnds — the design doc's only retention promise:");
+
+            // THE ACCEPTING CASE IS THE QUIET DAY, and it goes first because it
+            // is the one a version written to satisfy the design document
+            // breaks. A day with nothing open must return NOTHING. Inventing a
+            // sentence here would make the empty count — the number that
+            // decides whether the planting half is worth building — say zero
+            // for ever, which is the silent-no-op shape this project keeps
+            // producing.
+            var quiet = new LooseEnds.Evening { Day = 5 };
+            Check(!LooseEnds.Tonight(quiet).Any, "a quiet day has no thread");
+            Check(LooseEnds.Tonight(quiet).Of == LooseEnds.Kind.None, "and says so by kind");
+
+            // Each kind on its own, so a ranking bug cannot hide behind a
+            // neighbour that happens to fire.
+            var law = new LooseEnds.Evening
+            { Day = 5, InquiryStage = 2, InquiryNamesYou = true, InquiryAbout = "the Quay Street fire" };
+            Check(LooseEnds.Tonight(law).Of == LooseEnds.Kind.Law, "an inquiry that names you is a thread");
+            Check(LooseEnds.Tonight(law).Line.Contains("Quay Street fire"),
+                "and the line says what they are asking about", LooseEnds.Tonight(law).Line);
+
+            // AN INQUIRY THAT HAS NOT REACHED YOU IS NOT YOUR LOOSE END, and
+            // this is the rejecting case for the loudest kind — the one that
+            // would otherwise fire every evening of a run where a detective is
+            // working on somebody else entirely.
+            var elsewhere = law; elsewhere.InquiryNamesYou = false;
+            Check(!LooseEnds.Tonight(elsewhere).Any, "an inquiry into somebody else is not");
+
+            // The crew floor comes from the CALLER, so this file cannot invent
+            // a second definition of "about to walk" beside `Empire`'s.
+            var crew = new LooseEnds.Evening
+            { Day = 5, CrewNearestBreaking = "Sam", CrewLoyalty = 0.18, CrewBreakingPoint = 0.20 };
+            Check(LooseEnds.Tonight(crew).Of == LooseEnds.Kind.Crew, "a runner at the floor is a thread");
+            var loyal = crew; loyal.CrewLoyalty = 0.55;
+            Check(!LooseEnds.Tonight(loyal).Any, "a loyal one is not");
+
+            // MICKEY'S BOOK RUNS TOWARDS THE PLAYER, and the first version of
+            // this tier ran the other way — money the player owed, with a due
+            // date, a shape this game does not have anywhere. Reading the
+            // accessors before wiring is what caught it.
+            var owed = new LooseEnds.Evening
+            { Day = 5, OwedAmount = 120, OwedBy = "Rita", OwedLastAskedDay = 2 };
+            Check(LooseEnds.Tonight(owed).Of == LooseEnds.Kind.Owed, "a name in the book is a thread");
+            Check(LooseEnds.Tonight(owed).Line.Contains("3 days ago"), "and it counts since you asked",
+                LooseEnds.Tonight(owed).Line);
+            var never = owed; never.OwedLastAskedDay = -1;
+            Check(LooseEnds.Tonight(never).Line.Contains("never been asked"),
+                "an inherited debt nobody has opened reads loudest", LooseEnds.Tonight(never).Line);
+            var askedToday = owed; askedToday.OwedLastAskedDay = 5;
+            Check(LooseEnds.Tonight(askedToday).Line.Contains("today"), "asked today says today",
+                LooseEnds.Tonight(askedToday).Line);
+            var settled = owed; settled.OwedAmount = 0;
+            Check(!LooseEnds.Tonight(settled).Any, "a settled name is not a thread");
+
+            var promise = new LooseEnds.Evening { Day = 5, PromisedTo = "June", PromisedOnDay = 3 };
+            Check(LooseEnds.Tonight(promise).Of == LooseEnds.Kind.Promise, "an unkept evening is a thread");
+            Check(LooseEnds.Tonight(promise).Line.Contains("2 days ago"), "and it counts the days waited",
+                LooseEnds.Tonight(promise).Line);
+            var asked = promise; asked.PromisedOnDay = 5;
+            Check(LooseEnds.Tonight(asked).Line.Contains("this week"), "asked today reads as this week",
+                LooseEnds.Tonight(asked).Line);
+
+            var rumour = new LooseEnds.Evening { Day = 5, RumoursInFlight = 3, RumourTopic = "the warehouse" };
+            Check(LooseEnds.Tonight(rumour).Of == LooseEnds.Kind.Rumour, "a story in flight is a thread");
+            Check(LooseEnds.Tonight(rumour).Line.Contains("warehouse"), "and it names the story",
+                LooseEnds.Tonight(rumour).Line);
+
+            var standing = new LooseEnds.Evening { Day = 5, TrustFell = "Zlata", TrustFellBy = 0.12 };
+            Check(LooseEnds.Tonight(standing).Of == LooseEnds.Kind.Standing, "a change of heart is a thread");
+            var rounding = standing; rounding.TrustFellBy = 0.01;
+            Check(!LooseEnds.Tonight(rounding).Any, "a rounding is not");
+
+            // THE RANKING, and it is the whole reason this is one function
+            // rather than six. Everything open at once must name the LOUDEST.
+            var everything = new LooseEnds.Evening
+            {
+                Day = 5,
+                InquiryStage = 2, InquiryNamesYou = true, InquiryAbout = "the fire",
+                OwedAmount = 120, OwedBy = "Rita", OwedLastAskedDay = 2,
+                CrewNearestBreaking = "Sam", CrewLoyalty = 0.1, CrewBreakingPoint = 0.2,
+                PromisedTo = "June", PromisedOnDay = 3,
+                RumoursInFlight = 3, RumourTopic = "the warehouse",
+                TrustFell = "Zlata", TrustFellBy = 0.4,
+            };
+            Check(LooseEnds.Tonight(everything).Of == LooseEnds.Kind.Law,
+                "the law outranks everything else open");
+            var noLaw = everything; noLaw.InquiryNamesYou = false;
+            Check(LooseEnds.Tonight(noLaw).Of == LooseEnds.Kind.Crew, "then the crew");
+            var noCrew0 = noLaw; noCrew0.CrewNearestBreaking = null;
+            Check(LooseEnds.Tonight(noCrew0).Of == LooseEnds.Kind.Owed, "then the book");
+            var noCrew = noCrew0; noCrew.OwedAmount = 0;
+            Check(LooseEnds.Tonight(noCrew).Of == LooseEnds.Kind.Promise, "then the promise");
+            var noPromise = noCrew; noPromise.PromisedTo = null;
+            Check(LooseEnds.Tonight(noPromise).Of == LooseEnds.Kind.Rumour, "then the talk");
+            var noRumour = noPromise; noRumour.RumoursInFlight = 0;
+            Check(LooseEnds.Tonight(noRumour).Of == LooseEnds.Kind.Standing, "and last the change of heart");
+
+            // DETERMINISTIC, because a summary that shuffled between saves
+            // would make the player doubt the one screen that is the day's
+            // record.
+            Check(LooseEnds.Tonight(everything).Line == LooseEnds.Tonight(everything).Line,
+                "the same evening names the same thread");
+
+            // THE TALLY CARRIES ITS DENOMINATOR (rule 3b). "No empty evenings"
+            // and "no evenings" are the same zero and opposite facts.
+            var tally = new LooseEnds.Tally();
+            tally.Saw(LooseEnds.Tonight(everything));
+            tally.Saw(LooseEnds.Tonight(quiet));
+            tally.Saw(LooseEnds.Tonight(promise));
+            Check(tally.Evenings == 3, "the tally counts every evening", $"{tally.Evenings}");
+            Check(tally.Empty == 1, "and how many were empty", $"{tally.Empty}");
+            Check(tally.Count(LooseEnds.Kind.Law) == 1, "and what each one was");
+            Check(!tally.Line().Contains(" "), "and its verdict value carries no space", tally.Line());
+            Check(tally.Line().StartsWith("3/1/["), "and reads count/empty/breakdown", tally.Line());
+
+            var none = new LooseEnds.Tally();
+            none.Saw(LooseEnds.Tonight(quiet));
+            Check(none.Line().Contains("none"),
+                "a run with nothing open says none rather than printing an empty list", none.Line());
         }
 
         static void TestReliability()

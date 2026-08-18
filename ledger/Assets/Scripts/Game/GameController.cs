@@ -383,6 +383,76 @@ namespace Ledger.Game
         /// caller existed, and the value never reached it.
         public Inquiry PoliceInquiry =>
             _gossip?.Mill == null ? Inquiry.None : Homicides.Stage(_gossip.Mill, IsAlive, Now.Day);
+
+        /// Every evening of the run, and what was open on it. Static because
+        /// the verdict reads it once at the end and a per-instance counter
+        /// would be lost to the scene reload the Fall performs.
+        public static readonly LooseEnds.Tally LooseEndsTally = new LooseEnds.Tally();
+
+        /// HOW MANY OF THE SIX TIERS ARE ACTUALLY FED, and the denominator is
+        /// the point (rule 3b). `Rumour` never appearing in a run's breakdown
+        /// means "no rumours were in flight" only if the rumour tier is wired;
+        /// otherwise it means nothing at all, and the two read identically.
+        /// Three of six today: the law, the crew and Mickey's book. The
+        /// promise, the talk and the change of heart need accessors that do
+        /// not exist yet as single reads, and inventing them here would be
+        /// three more numbers nobody had measured.
+        public const int LooseEndTiersFed = 3;
+        public const int LooseEndTiers = 6;
+
+        /// THE EVENING, ASSEMBLED FROM WHAT THE GAME ACTUALLY HOLDS.
+        ///
+        /// Deliberately a plain struct of primitives handed to Core rather
+        /// than Core reaching into the hosts: it keeps the choosing testable
+        /// without Unity, which is where all thirty-one of its checks live.
+        LooseEnds.Evening EveningState(int dayClosed)
+        {
+            var e = new LooseEnds.Evening { Day = dayClosed };
+
+            // THE LAW. `PoliceInquiry` is the staged read the redirect already
+            // uses; `PointedAt` is empty while the detective is still on the
+            // player and carries a name once a charge has moved her.
+            var stage = PoliceInquiry;
+            e.InquiryStage = (int)stage;
+            e.InquiryNamesYou = stage != Inquiry.None
+                && string.IsNullOrEmpty(Homicides.PointedAt);
+            e.InquiryAbout = Homicides.PressureWhy(_gossip?.Mill, IsAlive, Now.Day);
+
+            // THE CREW. Loyalty lives on the GOSSIPER, not on `CrewMember` —
+            // a crew member is a person on this street who happens to work for
+            // you, which is §6.5's whole point — so the floor and the value
+            // both come from `Empire` rather than from a second definition.
+            double worst = double.MaxValue;
+            foreach (var c in Empire.Crew)
+            {
+                if (c == null || c.Departed) continue;
+                var g = _gossip?.Mill?.Get(c.Id);
+                if (g == null) continue;
+                if (g.Loyalty >= worst) continue;
+                worst = g.Loyalty;
+                e.CrewNearestBreaking = c.Name;
+                e.CrewLoyalty = g.Loyalty;
+            }
+            e.CrewBreakingPoint = Empire.PoachLoyaltyFloor;
+
+            // MICKEY'S BOOK. The largest name still outstanding, because a
+            // player with six open debts should be pointed at the one worth
+            // walking across town for.
+            Debtor biggest = null;
+            foreach (var d in Debts.All)
+            {
+                if (d == null || !d.Outstanding) continue;
+                if (biggest == null || d.Amount > biggest.Amount) biggest = d;
+            }
+            if (biggest != null)
+            {
+                e.OwedAmount = biggest.Amount;
+                e.OwedBy = biggest.Name;
+                e.OwedLastAskedDay = biggest.LastAskedDay;
+            }
+
+            return e;
+        }
         Inquiry _lastInquiry = Inquiry.None;
 
         // Suspicion escalation (§6.4): Confronting NPCs block the player's path and
@@ -2317,6 +2387,29 @@ namespace Ledger.Game
                 foreach (var k in Knowledge.Entries) if (!k.Handled) talk++;
                 _ui?.ShowDaySummary(Now.Day - 1, takings, washed, talk,
                     StreetWord(heat), OutfitWord(Campaign.OutfitPatience), Wallet.Clean, Wallet.Dirty, racketToday);
+
+                // THE THREAD THAT IS STILL OPEN (design-doc §4). The document
+                // promises "an unresolved thread every evening — the sim
+                // guarantees one" and nothing implemented it until 18 Aug.
+                // Read here rather than inside the summary panel because the
+                // sim closes days with no UI at all, and a retention promise
+                // that only exists when somebody is looking at a screen cannot
+                // be measured across a run.
+                var tonight = LooseEnds.Tonight(EveningState(Now.Day - 1));
+                LooseEndsTally.Saw(tonight);
+                if (tonight.Any)
+                {
+                    _ui?.Toast(tonight.Line, 9f);
+                    Debug.Log($"LooseEnds: day {Now.Day - 1} {tonight.Of} — {tonight.Line}");
+                }
+                else
+                {
+                    // SAID OUT LOUD, because this is the case that decides
+                    // whether the planting half is worth building. A quiet
+                    // evening that logs nothing is indistinguishable from the
+                    // pass not running.
+                    Debug.Log($"LooseEnds: day {Now.Day - 1} NOTHING OPEN");
+                }
 
                 // The bookkeeper sees a hoard the till can't explain. Diegetic
                 // "unexplained money" pressure (design-doc §6.7) — small, daily.

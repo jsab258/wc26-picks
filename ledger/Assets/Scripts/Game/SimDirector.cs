@@ -10761,6 +10761,20 @@ namespace Ledger.Game
                       // silently returns the first word otherwise, which is the
                       // exact class of quietly-wrong answer it exists to
                       // prevent. Underscores here, brackets round it.
+                      // THE EVENINGS, AND WHETHER ANY OF THEM WAS EMPTY.
+                      // `design-doc.md` §4 promises the sim guarantees an
+                      // unresolved thread every evening; this is the number
+                      // that says whether it does. Format is
+                      // evenings/empty/[kind:count,...] — one value, no
+                      // spaces, because a verdict value with a space is
+                      // silently truncated by every reader here.
+                      //
+                      // AND ITS DENOMINATOR BESIDE IT: `looseEndsFed` says how
+                      // many of the six tiers are actually wired, so a kind
+                      // missing from the breakdown cannot be read as "that
+                      // never happened" when it means "that is not connected".
+                      $"looseEnds={GameController.LooseEndsTally.Line()} " +
+                      $"looseEndsFed={GameController.LooseEndTiersFed}/{GameController.LooseEndTiers} " +
                       $"sheetTiles={ClipSheet.Tiles} " +
                       $"sheetWhy=[{ClipSheet.Why.Replace(' ', '_')}] " +
                       $"undressed={WorldBuilder.UndressedRenderers} " +
