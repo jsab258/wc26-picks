@@ -1,353 +1,464 @@
-# LEDGER — Founding Design Document
+# LEDGER — Design Document
 
-> **STATUS — LIVE, verified 2026-08-16, reference.** the founding document. Pillars, fiction, systems.
-> Kept current. If it is wrong, that is a bug in this file. (The 16 Aug pass found and
-> fixed four stale built-state claims; §7 and §18 now match the code and the town plan.)
+> **STATUS — LIVE, verified 2026-08-18, reference.** The founding document: what the
+> game is, what it is made of, and what is not built yet. If it is wrong, that is a bug
+> in this file. `roadmap.md` owns the plan and wins on any question of what happens next.
 
-Working title: **LEDGER** (your two lives are two accounts, and you are always balancing them).
-Genre: open-city crime sim × slice-of-life social RPG. Single-player, premium, PC first.
-Engine: Unity 6, C#. Setting: **a British port town, late-analog** — landlines, payphones,
-answering machines, messages left with people; no internet, no mobiles.
+**LEDGER** — your two lives are two accounts, and you are always balancing them.
 
-**The place was decided 2026-07-31, and mostly discovered rather than chosen.** The prose
-had been writing `flat`, `colour`, `pavement`, `constable`, `neighbourhood` and `kerb` for
-weeks, and the streets were already Saltmarket, Quay Street, The Esplanade, Weighhouse Lane,
-Tannery Row — British street forms and nothing else. The American accent brief was the
-outlier. Money is **£**; the inherited business is a **pub** whose counter is still the
-bar; its owner is the **landlord**; the Act III audit is **Customs and Excise** under s.112
-of the Customs and Excise Management Act. Consequences in full:
-`setting-britain-2026-07-31.md`.
-
-**Quality target: a high-quality indie game** (player decision 2026-07-26) — the bar is
-Disco Elysium / Papers Please / Rimworld / Shadows of Doubt: reviews well, sells, gets
-covered. Explicitly NOT chasing AAA breadth; the realistic ceiling for this team is AA /
-premium indie (Kingdom Come 1, Hunt: Showdown, Mount & Blade), and the winning position is
-*the game that does one thing no AAA studio can currently do, at a polish level that reads
-as excellent*.
-
-Status: founding doc **v2.0** (2026-07-26 — rewritten against built reality after the
-agency-model discussion; §§14-16 are new). Companions: `agency-model.md` (depth targets per
-dimension, and the filters that govern scope), `roadmap.md` (live milestone plan),
-`process.md` (decision log), `act1-draft.md` / `act2-draft.md` (the authored spine),
-`empire-roster.md`, `balance-findings-open.md`, `how-to-play.md`.
+Open-city crime sim × slice-of-life social RPG. Single-player, premium, PC first.
+Unity 6, C#. A British port town called Meridian, **late-analog**: landlines, payphones,
+answering machines, messages left with people. No internet, no mobiles.
 
 ---
 
-## 1. High concept
+## 1. What the game is
 
-You are **Tom Novak**, and you arrive alone in Meridian Bay with one suitcase and a letter:
-Mickey, your mother's brother, has died and left you his bar. The bar is real. So is what came with it — a half-dead criminal
-outfit: two aging loyalists, a book of uncollectable debts, and a territory the city's three
-established organizations have already begun to carve up.
+> **LEDGER is a crime game in a city that perceives, reacts and remembers.**
+>
+> Violence, weapons and the physical business of committing crimes are core pillars.
+> What distinguishes them from the same verbs in other crime games is that every act is
+> perceived PARTIALLY, by people with real sight and hearing, who then behave
+> differently, tell each other, and remember.
 
-By day you build a life: a job, an apartment, friendships, maybe love. By night you rebuild
-the family business. Every person in the city — hundreds of them — is a character with a
-schedule, a personality, and a **persistent memory of everything you've said and done**. They
-talk to each other. Word spreads. The game is keeping your two lives apart in a city that
-never stops comparing notes.
+Neither half survives alone. A crime game with a thin reaction layer is something this
+project cannot out-produce. A reaction layer with nothing to react to is a chat
+simulator. **The value is entirely in the join**, and every argument in this document
+should be tested against that sentence rather than against either half of it.
 
-Breaking Bad as a systemic game: the drama isn't scripted — it leaks.
+### The premise
 
-## 2. Why this game (novelty claims)
+You are **Tom Novak**, and you arrive alone in Meridian with one suitcase and a letter.
+Mickey, your mother's brother, has died and left you his pub. The pub is real. So is
+what came with it: a half-dead criminal outfit, two ageing loyalists, a book of
+uncollectable debts, and a territory the town's three established organisations have
+already begun to carve up.
 
-Claims we make explicitly, so every design decision can be tested against them:
+By day you build a life — a job, a room, friendships, maybe love. By night you rebuild
+the family business. Every person in the town is a character with a schedule, a
+personality, and a persistent memory of everything you have said and done. They talk to
+each other. Word spreads. The game is keeping your two lives apart in a town that never
+stops comparing notes.
 
-1. **NPCs genuinely remember — forever.** Real conversations (LLM-driven, voiced), with
-   persistent per-character memory. Not a dialogue tree in disguise.
-2. **The double life is mechanical, not cinematic.** Cover stories only matter if NPCs can
-   compare notes. Ours can: information propagates person-to-person through schedule
-   intersections. Your girlfriend can catch your alibi from your coworker. No scripted game
-   can do this; it is the heart of the game.
-3. **Secrets are loot.** What you know about people — and what they know about you — is the
-   primary currency and progression system (CK3 hooks × Outer Wilds knowledge-progression).
-3b. **Recognition, not detection** (added 2026-07-30, M16 Phase 1 built). Every crime game
-   asks whether a witness saw you. Ours asks **which parts they got, and whether they can
-   put a name to it** — seven perceivable slots and a five-rung identification ladder, where
-   the top rung is *recognition* and needs a relationship rather than a distance. At twenty
-   metres in the rain a stranger sees a shape and **your neighbour sees you.** That requires
-   a three-thousand-person acquaintance graph with real familiarity in it, which is why no
-   AAA crime game is in a position to build it, and it inverts the tactics: the dangerous
-   witness is not the closest one, it is the one who knows you. Measured in `RunPerceptionLab`:
-   partial observation is 95% of outcomes, and darkness cuts naming by 4.6x.
-4. **A living city at honest scale.** **700 residents as of 2026-08-18, and that number is
-   a decision rather than a ceiling** — it read "3000 as of M9" here until an audit compared
-   it against `PopulationHost.PopulationCount`, which has been 700 since the district cut.
-   The claim was not wrong when written and was never revised when the world changed shape.
-   M20 measured the trade directly: 350 people give an ordinary resident 5.1 crossings a
-   day, 700 give 12.9, 1400 give 21.9, 2800 give 38.9 — roughly linear, so this is a dial
-   sized against a frame budget, not a wall. Whether to turn it up is open and belongs to
-   M20 beside the cast tiering. Any resident can be promoted by attention into a full
-   character. Almost none of them are
-   simulated at any moment, and the design is honest about that: a **Near** band walks the
-   world with a full brain, a **Mid** band lives in the gossip mill without a body — carrying
-   and passing talk you have not met yet — and the **Far** band is a record that answers
-   exactly one question, *roughly what share of this district has heard it*, saturating
-   because a story never reaches literally everyone. When a Far resident is promoted, that
-   share decides via a stable hash whether **this** person had heard it, so leaving a street
-   and coming back finds the same neighbourhood rather than a re-rolled one. Anyone
-   load-bearing is exempt from the caps, and the gossip mill outright refuses to forget
-   somebody who is carrying a rumor or a memory: the world must not lose things because the
-   player walked around a corner. The whole city persists as a seed plus the exceptions.
-5. **Emergent betrayal.** Your organization is made of individuals with loyalty, fear, and
-   grievances. Betrayal is never a cutscene; it is caused, and it is preventable.
+Breaking Bad as a systemic game: the drama is not scripted, it leaks.
 
-If a feature serves none of these, it is cut.
+### The quality target
 
-## 3. Design pillars
+A high-quality indie game. The bar is Disco Elysium, Papers Please, Rimworld, Shadows
+of Doubt: reviews well, sells, gets covered. Explicitly not chasing AAA breadth — the
+realistic ceiling is AA / premium indie (Kingdom Come 1, Hunt: Showdown, Mount &
+Blade), and the winning position is *the game that does one thing no AAA studio can
+currently do, at a polish level that reads as excellent*.
 
-- **P1 — Two lives, one clock.** Time is the resource the two lives fight over. Every hour
-  spent on one is an hour not spent protecting the other.
-- **P2 — Information is physical.** Facts exist in NPC memories, move between people, decay
-  into rumor, and can be bought, planted, or silenced.
-- **P3 — People, not units.** Every recruit, rival, lover, and witness is an individual whose
-  relationship to you is personal history, not a meter.
-- **P4 — Authored anchors, simulated bones, LLM director and interface.** *(revised
-  2026-07-26 — see §17.)* The original wording was "authored spine, systemic flesh, LLM
-  skin", and it under-used the model on both ends. The model is not only the skin: it is
-  also the **interface** (the player says anything and it is routed into real mechanics)
-  and the **director** (nightly world-level authoring read off the actual state). What
-  stays authored shrinks to *anchors* — the acts' hard turns, the Tier-1 cast, the rules
-  of the world. What stays simulated is the *bones* — money, time, information, standing;
-  every outcome the player feels is still decided in deterministic C#. Each layer is
-  still protected from the others: the model classifies and performs, it never adjudicates.
-- **P5 — Consequences persist.** No quest resets, no memory wipes. The city's state is the
-  save file.
+The comparison that governs scope is KCD2: unmistakably deeper in social memory,
+consequence and information, and unmistakably worse-looking, at peace with that trade.
 
-## 4. Core loops
+---
 
-### Inner loop (minutes): the encounter
-Talk / observe / act. A conversation that yields a secret; a delivery that builds trust; a
-lie that plants a false memory. Every encounter writes to somebody's memory file.
+## 2. The claims
 
-### Middle loop (session): the day — Persona-style calendar
-A day has time slots (morning / afternoon / evening / night). Obligations (day job shifts,
-dates, collections, meets) compete for slots. End-of-day is a natural save/stop point with a
-ledger summary: money moved, secrets gained, rumors spreading, loyalty shifts. The two lives
-cross-feed Dave-the-Diver style: at work you plan the night; at night you worry about
+Stated explicitly so that every design decision can be tested against them. **A feature
+that serves none of these is cut.**
+
+1. **Acts are perceived partially, by people.** Every crime game asks whether a witness
+   saw you. This one asks which parts they got, and whether they can put a name to it.
+   Seven perceivable slots, a five-rung identification ladder, and the top rung is
+   *recognition* — which needs a relationship, not a distance. At twenty metres in the
+   rain a stranger sees a shape and **your neighbour sees you.** That inverts the
+   tactics: the dangerous witness is not the closest one, it is the one who knows you.
+   Measured in the perception lab: partial observation is 95% of outcomes, and
+   darkness cuts naming by 4.6×.
+
+2. **NPCs genuinely remember, forever.** Real conversations, model-driven and voiced,
+   with persistent per-character memory. Not a dialogue tree in disguise.
+
+3. **The double life is mechanical, not cinematic.** Cover stories only matter if NPCs
+   can compare notes, and these can: information propagates person-to-person through
+   schedule intersections. Your partner can catch your alibi from your coworker. No
+   scripted game can do this.
+
+4. **Secrets are loot.** What you know about people — and what they know about you — is
+   the primary currency and the progression system. CK3 hooks crossed with Outer Wilds
+   knowledge-progression.
+
+5. **A living town at honest scale.** Any resident can be promoted by attention into a
+   full character. Almost none are simulated at any moment, and the design is honest
+   about that (§7.2). The whole town persists as a seed plus its exceptions.
+
+6. **Betrayal is emergent.** Your organisation is made of individuals with loyalty,
+   fear and grievances. Betrayal is never a cutscene; it is caused, and it is
+   preventable.
+
+---
+
+## 3. Pillars
+
+- **P1 — Two lives, one clock.** Time is the resource the two lives fight over. Every
+  hour spent on one is an hour not spent protecting the other.
+- **P2 — Information is physical.** Facts exist in NPC memories, move between people,
+  decay into rumour, and can be bought, planted or silenced.
+- **P3 — People, not units.** Every recruit, rival, lover and witness is an individual
+  whose relationship to you is personal history, not a meter.
+- **P4 — Authored anchors, simulated bones, model as director and interface.** What
+  stays authored is *anchors*: the acts' hard turns, the Tier-1 cast, the rules of the
+  world. What stays simulated is the *bones*: money, time, information, standing. Every
+  outcome the player feels is decided in deterministic C#. The model is the
+  **interface** (the player says anything and it is routed into real mechanics) and the
+  **director** (nightly world-level authoring read off actual state) — never the
+  referee. It classifies and performs; it does not adjudicate. Full argument in §11.
+- **P5 — Consequences persist.** No quest resets, no memory wipes. The town's state is
+  the save file.
+
+---
+
+## 4. The perception chain
+
+The design has one spine, and it runs in this order:
+
+    PERCEPTION → OBSERVATION → REACTION → MEMORY & TALK
+
+Every system in §7 sits at one of those stages, and the ordering is the point: talk is
+the *fourth* stage, not the foundation. A rumour is only worth simulating because
+somebody imperfectly saw something first.
+
+**Partial observation is a generator, not a list.** An act exposes seven perceivable
+slots — what happened, who did it, what they looked like, what they carried, where,
+when, and which way they went — and a witness may get any subset. Identification runs
+on a separate five-rung ladder, from *somebody was there* to *that was Tom Novak*, and
+the top rung is **recognition**: the same distance and the same light identify you to
+your neighbour and not to a stranger. That requires an acquaintance graph with real
+familiarity in it, which is why no other crime game is in a position to build it.
+
+**Believing something and being willing to say it are different values.** A witness who
+is certain and frightened is not a witness who talks.
+
+**A witness is a deadline.** Somebody who saw you is a person walking somewhere to tell
+someone, and they are interceptable until they arrive.
+
+**Light and sound are already computed and must be read.** The lighting model knows the
+light level everywhere at every hour. Whether a man is standing under a lamp or in a
+doorway decides what he can see, and perception is what makes the art and audio work
+load-bearing rather than decorative.
+
+The reference point for reactivity is KCD2: NPCs who react to what you do, including
+things that are not crimes.
+
+---
+
+## 5. Loops
+
+### Inner loop — the encounter (minutes)
+
+Talk, observe, act. A conversation that yields a secret; a delivery that builds trust;
+a lie that plants a false memory. Every encounter writes to somebody's memory.
+
+### Middle loop — the day (a session)
+
+A Persona-style calendar: morning, afternoon, evening, night. Obligations — shifts,
+dates, collections, meets — compete for slots. End of day is a natural save and stop
+point with a ledger summary: money moved, secrets gained, rumours spreading, loyalty
+shifts. The two lives cross-feed: at work you plan the night, at night you worry about
 tomorrow's lunch with her parents.
 
-### The two modes (added v2.0)
-**Week mode (days 1-7)** is Act I's on-ramp: survive the week, learn every system under
-real stakes, answer Lena's question on day seven. **Open mode (day 8 on)** is the game:
-no verdict, no countdown, no win condition. Losing remains possible but *scars* rather than
-ends — exposure means the Fall (days inside, unwashed cash seized, every rumour about you
-collapsing into public fact, and you start again from there). An ending screen would
-contradict P5.
+### The two modes
 
-### Outer loop (campaign): the two ledgers
-Grow the empire (territory, rackets, crew) while growing the life (relationships, standing,
-comfort). The city squeezes both: rivals move on your territory, loved ones ask harder
-questions. Acts advance when the authored spine's pressure points fire (see §8).
+**Week mode (days 1–7)** is Act I's on-ramp: survive the week, learn every system under
+real stakes, answer Lena's question on day seven.
+
+**Open mode (day 8 on)** is the game: no verdict, no countdown, no win condition.
+Losing remains possible but **scars rather than ends** — exposure means the Fall: days
+inside, unwashed cash seized, every rumour about you collapsing into public fact, and
+you start again from there. An ending screen would contradict P5.
+
+### Outer loop — the two ledgers (a campaign)
+
+Grow the empire (territory, rackets, crew) while growing the life (relationships,
+standing, comfort). The town squeezes both: rivals move on your territory, loved ones
+ask harder questions. Acts advance when the authored spine's pressure points fire (§9).
 
 ### Session hooks
-"One more day" comes from: (a) an unresolved thread every evening (the sim guarantees one —
-a rumor in flight, a recruit wavering, a date promised), (b) end-of-day ledger dangling
-tomorrow's opportunity, (c) rising stakes — the bigger both lives grow, the more each day
-can win or lose.
-**Design rule — no hard timers** (player decision, 2026-07): nothing in the game expires on
-a countdown. Pressure comes from escalation and consequence — rivals react to what you do,
-not to a clock. The player sets the pace; the world raises the stakes.
-No dark patterns: no dailies, no timers, no FOMO. Retention through curiosity and stakes.
 
-## 5. The cast — three tiers (the Watch Dogs Legion lesson)
+"One more day" comes from three places: an unresolved thread every evening — the
+simulation guarantees one, a rumour in flight, a recruit wavering, a date promised; the
+end-of-day ledger dangling tomorrow's opportunity; and rising stakes, because the
+bigger both lives grow the more each day can win or lose.
 
-- **Tier 1 — Authored core (~14).** Handwritten cards, arcs, and voices. See §9.
-- **Tier 2 — Generated middle ring (~150–300).** Full character cards (personality, history,
-  job, home, schedule, connections, one secret, one need), AI-generated in batch, then
-  hand-touched. Each has mechanical individuality: a unique skill, access, or connection
-  (the customs clerk, the pharmacist with debts, the cop's ex-wife) so *who* you recruit or
-  befriend matters. Anyone the player invests in can be **promoted**: their card deepens,
-  their memory file grows, they join active story systems.
-- **Tier 3 — Crowd (700 today, and see §2.4).** Schedule-simulated bodies that make streets
-  alive (KCD2-style AI level-of-detail). Talking to one instantiates a Tier-2 card on the
-  spot — the city has no "non-characters," only characters nobody has looked at yet.
-  *(Read "~thousands" until 2026-08-18; the build has run 700 since the district cut.)*
+**No hard timers.** Nothing in the game expires on a countdown. Pressure comes from
+escalation and consequence — rivals react to what you do, not to a clock. The player
+sets the pace; the world raises the stakes. No dailies, no FOMO, no dark patterns.
+Retention through curiosity and stakes.
 
-**What the city calls you.** The street learns your name rather than being told it, and what
-somebody calls you is a readout of where you stand with them: *the new owner* (they know the
-bar changed hands, not who you are) → *Novak* (you are a fact on this street) → *Tom* (they
-decided about you and it was fine) → *Toma* (two or three people, ever). The gate is knowing,
-not liking — somebody can think well of you and still not know what to call you. It is
-appended to every conversation's scene from one place rather than written into thirty cards.
+---
 
-## 6. The systems
+## 6. The cast
 
-### 6.1 Memory (the foundation)
-Per-character memory following the Stanford generative-agents architecture:
-- **Memory stream**: timestamped events (conversations, sightings, heard rumors).
-- **Retrieval**: relevance × recency × importance scoring picks what enters an LLM call.
-- **Reflection**: periodic summarization into stable beliefs ("I trust him", "he was lying
-  about the fire") — bounds cost and context, and *beliefs formed from false rumors are the
-  gameplay*.
-Storage: human-readable markdown per character (debuggable, moddable, versionable).
+Three tiers, which is the Watch Dogs Legion lesson taken seriously: procedural people
+are worthless unless some of them can become real.
 
-### 6.2 Information & gossip
-Facts are typed objects (who/what/when/certainty/source). When two NPCs' schedules
-intersect and their relationship clears a threshold, facts about salient topics (the player,
-crimes, romances) can transfer, with mutation: certainty decays, details blur into rumor.
-Player-facing: the **Ledger UI** shows what you *believe* the city knows — never ground
-truth. Counterplay: silence a witness (many ways, most non-violent), buy a rumor's source,
-plant a counter-story, or get ahead of it by confessing.
+- **Tier 1 — authored core (~14).** Handwritten cards, arcs and voices.
+- **Tier 2 — generated middle ring (~150–300).** Full character cards — personality,
+  history, job, home, schedule, connections, one secret, one need — generated in batch
+  and hand-touched. Each has mechanical individuality: a unique skill, access or
+  connection (the customs clerk, the pharmacist with debts, the constable's ex-wife)
+  so that *who* you recruit or befriend matters. Anyone the player invests in can be
+  **promoted**: their card deepens, their memory grows, they join the story systems.
+- **Tier 3 — the crowd.** Schedule-simulated bodies that make streets alive. Talking to
+  one instantiates a Tier-2 card on the spot. The town has no "non-characters", only
+  characters nobody has looked at yet.
 
-**The second channel: the telephone (built).** §1's late-analog setting made into a system.
-**A phone is a place, not a pocket** — you ring the pub, or the boarding-house hall phone, or
-the foundry office across the water, and whoever is near it answers. That single constraint
-generates the play: reaching somebody is a gamble on their afternoon; **somebody else picking
-up is the interesting outcome, not a failure**, because now they know you called and you must
-decide whether to leave word; a message left with a person enters the mill as talk at one hop
-and second-hand confidence, which is what a passed-along message actually is. Being
-unreachable at the wrong moment is now something that happens *to* the player, which a
-walking city could never do.
+**What the town calls you.** The street learns your name rather than being told it, and
+what somebody calls you is a readout of where you stand with them: *the new owner*
+(they know the pub changed hands, not who you are) → *Novak* (you are a fact on this
+street) → *Tom* (they decided about you and it was fine) → *Toma* (two or three people,
+ever). The gate is knowing, not liking: somebody can think well of you and still not
+know what to call you.
 
-### 6.3 Secrets, hooks, leverage (CK3-shaped)
-Learning a shameful secret grants a **weak hook** (one big favor); a criminal secret grants
-a **strong hook** (standing coercion, protection from hostile acts). Hooks work on you too:
-what rivals and cops learn about your night life becomes their leverage. The investigation
-skill-tree is the player's own mental map of who knows what — knowledge-as-progression.
+**Core cast (Tier 1).** Rocco and Lena, the inherited loyalists — old muscle, older
+bookkeeper. The three rival heads: Aldous Vane, Sera Kest — "the Widow" — and Danny Ro. Detective Mara
+Ellis. The day-life ring: Sam, Ada, June (the uncle's estranged daughter and the moral
+mirror), Father Emil (who knows the uncle's real history), the love-interest options —
+Noor, a journalist and the dangerous choice, and Elias, a teacher with innocence at
+stake — and the Fixer, broker between all three rivals and the gossip system
+personified.
 
-### 6.4 Suspicion & cover (the double-life core)
-Every Tier-1/2 character tracks **suspicion** toward each of your lives. Suspicion rises
-from contradictions (caught out of place, alibi conflicts with another NPC's memory,
-unexplained money) and falls with maintenance (time spent, consistent stories, staged
-evidence). Thresholds trigger behavior: probing questions → checking with others →
-confrontation. Crucially: **persuasion outcomes are decided by game state** (relationship,
-evidence, plausibility), the LLM performs the scene. Players can't jailbreak an NPC into
-believing the unbelievable; NPCs can't be talked out of what they remember seeing.
+> **Open question.** The built cards drift from this sketch: Sam and Ada were written
+> to fit a one-street scale rather than the day-job world, which did not exist when
+> they were cast. Either the sketch is revised to match the cards, or these roles are
+> re-homed in new characters now the day-job world exists. Not yet decided.
 
-**On the telephone, both of you are half-blind (built).** A voice on a line is not a face
-across a table, so suspicion moves at 45% of its in-person weight — in *both* directions.
-Your lies land better and so do theirs. That symmetry is deliberate: it stops the phone being
-a straight upgrade over walking there, and makes "say this to their face or say it down a
-wire" a real choice rather than a convenience.
+---
 
-### 6.5 The empire (bottom-up crime sim)
-- **Crew**: recruited individuals from Tier 2, each with loyalty (to you personally), fear,
-  ambition, competence, and a breaking point. Loyalty is history: promises kept, cuts paid,
-  respect shown, family remembered. Rot is visible early to the attentive.
-- **Rackets**: protection, smuggling, gambling, fencing, debt-collection — each a small
-  operating loop with staffing choices and exposure profile.
-- **Heat**: per-district and per-investigator attention, driven by what witnesses actually
-  saw and told. Reduce by laying low, scapegoats, corrupted officials (hooks!).
-- **Rivals**: three authored organizations with distinct doctrines (Old-money machine:
-  corruption and lawyers; the Dockside syndicate: muscle and smuggling; the New crew:
-  tech-forward, flashy, reckless). Their org charts are individuals — flippable, bribable,
-  with their own loyalty rot. ⚠ Design note: internal rival hierarchies must be reviewed
-  against the Nemesis patent (US10926179B2, active to 2036) — no promotion-by-defeating-
-  the-player structures. Rival advancement is driven by their internal politics, not by
-  encounters with the player.
-- **Violence, staged — consequence first, melee second, guns last** (player decisions
-  2026-07-26/27). The eventual fighting is Sleeping Dogs-lineage: physical, readable,
-  third-person; fists, grapples, improvised objects; skill is positioning, timing and reading
-  opponents. Firearms exist and change everything — drawing one escalates a scene, firing one
-  is a city-level event. Impact over blood, never gory. **Playable melee is deferred until
-  after the art pass**, because positioning-and-timing combat cannot be judged on capsules.
+## 7. Systems
 
-  **The consequence layer is BUILT and came first on purpose**, because a punch with no
-  aftermath teaches the player that violence is free and that lesson is very hard to take
-  back later. The rule it is built on: **an injury is information.** It is on your face, the
-  infirmary keeps hours and neighbours, and a man with his hand dressed on Tuesday cannot
-  claim he was somewhere quiet on Monday night — getting hurt costs you capability *and* the
-  ability to have been elsewhere.
-    - Injuries persist, compound, and show as a look rather than a number.
-    - **They turn if untreated**, which is what makes the infirmary a decision. Treatment
-      takes clean money: you cannot hand a doctor a roll of night money and expect the visit
-      to be remembered for the right reason.
-    - **Trauma is cumulative and does not heal with the wound** — that is the whole
-      difference between an injury and a scar.
-    - **Feuds are first-class, not suspicion.** A feud does not decay when you leave the room
-      and evidence cannot settle it; only somebody choosing to stop can. Two people in a hot
-      feud will not work together, which is a scheduling problem solved with people rather
-      than with a menu.
-  Violence currently enters through systems that already exist — a job that goes wrong, a
-  rival's answer, the Fall — rather than through a fight the player drives.
+### 7.1 Memory
 
-### 6.6 The honest life
-A day job (chosen from a few tracks — bar, courier, office) that provides cover, income,
-and a social graph. Relationships (friendship and romance) built through real conversation
-and remembered shared history, not gift-grinding. The honest life is not a mini-game; it is
-the stakes. The people in it are the ones your other life endangers, and the game's best
-content — dinner-table scenes where suspicion sits under small talk — lives here.
+Per-character memory on the Stanford generative-agents architecture:
 
-**Built (v2.0):** the courier track at Meridian Parcel. Zlata's board goes up each morning
-until noon; take the satchel, walk the route, deliver by evening for clean pay AND cover —
-a day worked in company colours lets the whole day circle's suspicion breathe out. One
-round a day; the morning spent on parcels is a morning not spent on the other ledger (P1
-made literal). The open city also keeps its own social calendar: every few days the person
-who thinks best of you asks for an evening.
+- **Memory stream** — timestamped events: conversations, sightings, heard rumours.
+- **Retrieval** — relevance × recency × importance decides what enters a model call.
+- **Reflection** — periodic summarisation into stable beliefs ("I trust him", "he was
+  lying about the fire"). This bounds cost and context, and **beliefs formed from false
+  rumours are the gameplay**.
 
-### 6.7 Economy
-Two currencies that resist mixing: clean money (spendable anywhere, slow) and dirty money
-(fast, but spending it visibly is evidence — laundering through the pub/rackets is a core
-loop). Lifestyle upgrades (apartment, clothes, car) improve both lives but raise "how does
-he afford that?" suspicion if income doesn't cover them.
+Storage is human-readable markdown per character: debuggable, moddable, versionable.
 
-**The district's own money (M7, built 2026-07-26).** The street is not a payout table. It
-holds a finite amount of money, and everything you do to it changes how much. Rackets take
-money out; wages and generous cuts put money back; heat keeps people indoors. Prosperity and
-prices drift over a week, never overnight, so a decision can be felt before its consequence
-lands — and both feed the pub's daily takings. **Squeezing the street therefore makes the
-street poorer, and a poorer street spends less in your bar**: the racket that pays dirty
-money at night quietly costs clean money in the morning, and past a point it costs more than
-it pays. The balance lab puts aggressive play £94 *behind* a campaign that ran no rackets
-at all, despite £1697 of racket income — the trade is real, and there is no dominant answer.
+### 7.2 Information and gossip
 
-**And the screw turns twice (decision 9, 2026-07-27).** The paragraph above was only half
-the loop for a while: the take drained the street, and nothing let the street limit the
-take. You collected the same sixty a day from a district you had emptied. Now the racket's
-income scales with the street it is squeezing, so a starved district simply has less to
-hand over — and it says so rather than quietly paying less: *"They're not holding out.
-There's nothing on that street to hold out with."* Over 400 worlds, cautious play's rounds
-fell 468 → 434 as prosperity dropped to 0.40. Squeezing harder is now genuinely capable of
-earning you less, which is the shape this system was always supposed to have.
+Facts are typed objects — who, what, when, certainty, source. When two NPCs' schedules
+intersect and their relationship clears a threshold, facts about salient topics can
+transfer, with mutation: certainty decays, details blur into rumour.
 
-**Suppliers are people.** Somebody brings the drink, and he is not a supply-chain node: he
-comes on Thursdays, remembers when he was last paid, sells to eight other places on this
-street and hears what all of them are worried about. Neglect loses him. A poor neighbourhood
-does not — it only makes him dearer, and he tells you so himself.
+The player never sees ground truth. The **Ledger UI** shows what you *believe* the town
+knows. Counterplay: silence a witness (many ways, most non-violent), buy a rumour's
+source, plant a counter-story, or get ahead of it by confessing.
 
-**Nobody has infinite pockets either (M13, built 2026-07-27).** The economy was finite in
-one direction only — squeeze the street, the street gets poorer — while every *counterparty*
-still produced whatever they owed on demand, out of a starving district, in one movement. A
-purse is now what somebody can lay hands on **today**: not their wealth, not their income,
-the money in the drawer. Ask for more and you get what is there and the balance stays on the
-page, so a big marker stops being a transaction and becomes a relationship — four visits, or
-one visit and a decision about what you are willing to do to shorten it. Purses fill from the
-district's prosperity, so squeezing the street drains the pockets you are trying to collect
-from, and it arrives a few days later when you have started relying on being paid. A debtor
-you emptied goes to a patron overnight: **the money moves rather than appearing**, and the
+**Scale is a three-band scheme, and the design is honest about it.** A **Near** band
+walks the world with a full brain. A **Mid** band lives in the gossip mill without a
+body, carrying and passing talk about people you have not met. The **Far** band is a
+record that answers exactly one question — roughly what share of this district has
+heard it — and it saturates, because a story never reaches literally everyone. When a
+Far resident is promoted, that share decides via a stable hash whether **this** person
+had heard it, so leaving a street and coming back finds the same neighbourhood rather
+than a re-rolled one.
+
+Anyone load-bearing is exempt from the caps, and the mill outright refuses to forget
+somebody carrying a rumour or a memory. **The world must not lose things because the
+player walked round a corner.**
+
+Districts have local information ecosystems: a rumour can own Copper Row and not exist
+in Fairview.
+
+**The population is a dial, not a ceiling.** It sits at 700. Measured: 350 residents
+give an ordinary person 5.1 crossings a day, 700 give 12.9, 1,400 give 21.9, 2,800 give
+38.9 — roughly linear. So the number is sized against a frame budget rather than a
+design wall, and whether to raise it is an open question owned by the roadmap.
+
+### 7.3 The telephone
+
+§1's late-analog setting made into a system. **A phone is a place, not a pocket.** You
+ring the pub, or the boarding-house hall phone, or the foundry office across the water,
+and whoever is near it answers.
+
+That single constraint generates the play. Reaching somebody is a gamble on their
+afternoon. **Somebody else picking up is the interesting outcome, not a failure** —
+now they know you called, and you must decide whether to leave word. A message left
+with a person enters the mill as talk at one hop and second-hand confidence, which is
+what a passed-along message actually is. Being unreachable at the wrong moment is
+something that happens *to* the player, which a walking city could never do.
+
+Wiretaps are the natural counterplay and follow from the same fiction.
+
+### 7.4 Secrets, hooks and leverage
+
+Learning a shameful secret grants a **weak hook** — one large favour. A criminal secret
+grants a **strong hook** — standing coercion, and protection from hostile acts.
+
+Hooks work on you too: what rivals and police learn about your night life becomes their
+leverage. There is no investigation skill tree; the progression is the player's own
+mental map of who knows what.
+
+### 7.5 Suspicion and cover
+
+Every Tier-1 and Tier-2 character tracks **suspicion** toward each of your lives.
+
+It rises from contradictions — caught out of place, an alibi that conflicts with
+another NPC's memory, unexplained money — and falls with maintenance: time spent,
+consistent stories, staged evidence. Thresholds change behaviour: probing questions,
+then checking with others, then confrontation.
+
+**Persuasion outcomes are decided by game state** — relationship, evidence,
+plausibility — and the model performs the scene. Players cannot talk an NPC into
+believing the unbelievable, and NPCs cannot be talked out of what they remember seeing.
+
+**On the telephone both of you are half-blind.** A voice on a line is not a face across
+a table, so suspicion moves at 45% of its in-person weight, **in both directions**.
+Your lies land better and so do theirs. That symmetry is deliberate: it stops the phone
+being a straight upgrade over walking there, and makes "say this to their face or say
+it down a wire" a real choice rather than a convenience.
+
+### 7.6 The empire
+
+- **Crew.** Recruited individuals from Tier 2, each with loyalty (to you personally),
+  fear, ambition, competence and a breaking point. Loyalty is history: promises kept,
+  cuts paid, respect shown, family remembered. Rot is visible early to the attentive.
+- **Rackets.** Protection, smuggling, gambling, fencing, debt collection — each a small
+  operating loop with staffing choices and an exposure profile.
+- **Heat.** Per-district and per-investigator attention, driven by what witnesses
+  actually saw and told. Reduced by lying low, by scapegoats, by corrupted officials.
+- **Rivals.** Three authored organisations with distinct doctrines: the old-money
+  machine (corruption and lawyers), the dockside syndicate (muscle and smuggling), the
+  new crew (flashy, reckless). Their org charts are individuals — flippable, bribable,
+  with their own loyalty rot.
+
+> **Constraint: the Nemesis patent** (US10926179B2, active to 2036). No
+> promotion-by-defeating-the-player structures anywhere. Rival advancement is driven by
+> their internal politics, never by encounters with the player. Design review before
+> building any rival internals.
+
+**Faction agency.** The three organisations are rosters of people who already walk the
+street, so poaching is not a new verb — it is recruit-by-need and recruit-by-hook aimed
+at somebody who already had an employer. Allegiance is a state: pledge to an arm for
+protection and tribute, or break with them and never be trusted again.
+
+### 7.7 Violence
+
+Staged deliberately: **consequence first, melee second, guns last.**
+
+The fighting is Sleeping Dogs-lineage — physical, readable, third-person; fists,
+grapples, improvised objects; skill is positioning, timing and reading opponents.
+Firearms exist and change everything: drawing one escalates a scene, firing one is a
+town-level event. Impact over blood, never gory.
+
+**Playable melee is deferred until after the art pass**, because positioning-and-timing
+combat cannot be judged on capsules.
+
+**The consequence layer came first on purpose**, because a punch with no aftermath
+teaches the player that violence is free, and that lesson is very hard to take back
+later. It is built on one rule: **an injury is information.** It is on your face, the
+infirmary keeps hours and has neighbours, and a man with his hand dressed on Tuesday
+cannot claim he was somewhere quiet on Monday night. Getting hurt costs you capability
+*and* the ability to have been elsewhere.
+
+- Injuries persist, compound, and show as a look rather than a number.
+- **They turn if untreated**, which is what makes the infirmary a decision. Treatment
+  takes clean money — you cannot hand a doctor a roll of night money and expect the
+  visit to be remembered for the right reason.
+- **Trauma is cumulative and does not heal with the wound.** That is the whole
+  difference between an injury and a scar.
+- **Feuds are first-class, and are not suspicion.** A feud does not decay when you
+  leave the room, and evidence cannot settle it — only somebody choosing to stop can.
+  Two people in a hot feud will not work together, which is a scheduling problem solved
+  with people rather than with a menu.
+
+### 7.8 The honest life
+
+A day job, chosen from a few tracks — bar, courier, office — providing cover, income
+and a social graph. Relationships built through real conversation and remembered shared
+history, never gift-grinding.
+
+The honest life is not a mini-game, it is the stakes. The people in it are the ones
+your other life endangers, and the game's best content — dinner-table scenes where
+suspicion sits under small talk — lives here.
+
+The courier track runs out of Meridian Parcel: Zlata's board goes up each morning until
+noon, take the satchel, walk the route, deliver by evening for clean pay *and* cover —
+a day worked in company colours lets a whole day-circle's suspicion breathe out. One
+round a day, so the morning spent on parcels is a morning not spent on the other ledger
+(P1 made literal). The open town keeps its own social calendar: every few days the
+person who thinks best of you asks for an evening.
+
+### 7.9 Economy
+
+Two currencies that resist mixing: **clean money** (spendable anywhere, slow) and
+**dirty money** (fast, but spending it visibly is evidence). Laundering through the pub
+and the rackets is a core loop. Lifestyle upgrades — a better room, clothes, a car —
+improve both lives but raise *how does he afford that?* if income does not cover them.
+
+**The street has its own money.** It is not a payout table: the district holds a finite
+amount, and everything you do changes it. Rackets take money out; wages and generous
+cuts put money back; heat keeps people indoors. Prosperity and prices drift over a
+week, never overnight, so a decision can be felt before its consequence lands — and
+both feed the pub's daily takings.
+
+**Squeezing the street therefore makes the street poorer, and a poorer street spends
+less in your pub.** The racket that pays dirty money at night quietly costs clean money
+in the morning, and past a point it costs more than it pays. Measured: aggressive play
+finishes £94 *behind* a campaign that ran no rackets at all, despite £1,697 of racket
+income. The trade is real and there is no dominant answer.
+
+**And the screw turns twice.** For a while that was only half the loop — the take
+drained the street and nothing let the street limit the take, so you collected the same
+sixty a day from a district you had emptied. Now a racket's income scales with the
+street it is squeezing, and a starved district simply has less to hand over. It says so
+rather than quietly paying less: *"They're not holding out. There's nothing on that
+street to hold out with."* Over 400 simulated worlds, cautious play's rounds fell from
+468 to 434 as prosperity dropped to 0.40. Squeezing harder is genuinely capable of
+earning you less.
+
+**Nobody has infinite pockets.** A purse is what somebody can lay hands on **today** —
+not their wealth, not their income, the money in the drawer. Ask for more and you get
+what is there and the balance stays on the page, so a big marker stops being a
+transaction and becomes a relationship: four visits, or one visit and a decision about
+what you are willing to do to shorten it. Purses fill from the district's prosperity,
+so squeezing the street drains the pockets you are trying to collect from — and it
+arrives a few days later, when you have started relying on being paid. A debtor you
+emptied goes to a patron overnight: **the money moves rather than appearing**, and the
 favour they now owe is world state the Director can read. You will usually not know it
-happened — you will notice they paid, and that they are colder about it than the money
+happened. You will notice they paid, and that they were colder about it than the money
 explains.
 
-**Legibility is a hard requirement, not a preference.** No number in this system is ever
-shown as a number. Prices rising is Mitch asking for more and not explaining the difference;
-a poorer street is two regulars drinking at home. If a value cannot be said as somebody's
-circumstance, it is not surfaced at all — and that rule is asserted in the test suite rather
-than merely intended.
+**Suppliers are people.** Somebody brings the drink, and he is not a supply-chain node:
+he comes on Thursdays, remembers when he was last paid, sells to eight other places on
+this street and hears what all of them are worried about. Neglect loses him. A poor
+neighbourhood does not — it only makes him dearer, and he tells you so himself.
 
-## 7. The city — Meridian Bay
+**Legibility is a hard requirement, not a preference.** No number in this system is
+ever shown as a number. Prices rising is Mitch asking for more and not explaining the
+difference; a poorer street is two regulars drinking at home. If a value cannot be said
+as somebody's circumstance, it is not surfaced at all — and that rule is asserted in the
+test suite rather than merely intended.
 
-A dense coastal city, one contiguous map, seven districts, each a personality and an
-asset-pack-coherent build target:
-1. **The Hook** (old port) — your bar, docks, smuggling, the Dockside syndicate.
-2. **Copper Row** (immigrant market quarter) — dense street life, cash economies, loyalty.
-3. **Downtown** — the day-job world, offices, the machine's lawyers, money laundering.
-4. **The Strip** (entertainment) — clubs, gambling, the New crew, information nightlife.
-5. **Fairview** (residential hills) — where the honest life aspires to live; quiet money.
-6. **Ironside** (industrial) — warehouses, logistics, places without witnesses.
-7. **Gullwing** (faded resort waterfront) — off-season melancholy, hideouts, endgame turf.
+---
 
-**Built as of 2026-08-16: all seven, with geometry, places, cast and walkers** (M14
-landed the outer four; the 2026-07-27 "ironside, rest later" staging did its job and
-retired). And the EXPRESSION of all seven was rebuilt 16 Aug under `town-plan.md` (SPEC,
-approved): contiguous terraces with party walls and chimneys instead of detached boxes,
-continuous pavements with square kerb corners, British sign grammar (name plates on corner
-buildings, give-way paint, single yellows), lamps with heads, parked cars, shopfront
-fasciae with painted trade names, crane-and-gasometer skyline. The street GRAPH those
-sit on is unchanged — every gate and nine days of verdict history still hold.
+## 8. The town
 
-The founding three are deliberately different in the two ways a map can actually be
-different, and both are legible from the street without a word of explanation:
+Meridian is one contiguous map, seven districts, each with a personality and an
+asset-coherent build target:
+
+1. **the Hook** — old port. Your pub, the docks, smuggling, the dockside syndicate.
+2. **Copper Row** — immigrant market quarter. Dense street life, cash economies,
+   loyalty.
+3. **the Exchange** — the day-job world. Offices, the machine's lawyers, laundering.
+4. **the Parade** — entertainment. Clubs, gambling, the new crew, information
+   nightlife.
+5. **Fairview** — residential hills. Where the honest life aspires to live; quiet
+   money.
+6. **Ironside** — industrial. Warehouses, logistics, places without witnesses.
+7. **Gullwing** — faded resort waterfront. Off-season melancholy, hideouts, endgame
+   turf.
+
+The founding three differ in the two ways a map can actually differ, and both are
+legible from the street without a word of explanation:
 
 | | block size | who is there |
 |---|---|---|
@@ -355,537 +466,468 @@ different, and both are legible from the street without a word of explanation:
 | **the Hook** | 26m | where you live, and where the game happens |
 | **Ironside** | 34m — widest | one person in fourteen sleeps there; one in three works there |
 
-Ironside's brief is *warehouses, logistics, places without witnesses*, and the third of those
-is the only one that is a mechanic. What makes a place unwitnessed is that nobody is in it —
-so Ironside is a district you can be busy in at noon and alone in at midnight, and its blocks
-are long low sheds with few doors rather than terraces with windows above them. Everything the
-player can do anywhere else they can do here; the difference is only who sees it, which is the
-difference this game is made of.
+Ironside's brief is *warehouses, logistics, places without witnesses*, and only the
+third of those is a mechanic. What makes a place unwitnessed is that nobody is in it —
+so Ironside is a district you can be busy in at noon and alone in at midnight, and its
+blocks are long low sheds with few doors rather than terraces with windows above them.
+Everything the player can do anywhere else they can do here; the difference is only who
+sees it, which is the difference this game is made of.
 
-### 7.1 Streets, traffic, and the car (M12, built 2026-07-26/27)
-
-The district used to be a 90×90m slab with buildings and no streets — **about the size of one
-real city block** — which is why it read as a diorama rather than a place. A walkable block is
-79m in Portland and 113m in Barcelona's Eixample; games compress, and the research is
-consistent that DENSITY carries the feeling of size rather than area does.
-
-- **A real grid**, streets first and buildings fitted into blocks rather than the reverse.
-  26m spacing in the Hook, tighter 20m in Copper Row so it reads older the moment you walk
-  into it. (The chamfered "Barcelona" corners this bullet used to praise were retired by
-  the town plan, 16 Aug: square kerb corners with the kerb line closed through them read
-  British, and the chamfer pads were most of why blocks read as floating plates.)
-- **Named streets in every district**, with the plates and the gossip reading the same
-  table, so the city can never tell the player one name and a character another. An
-  address is the unit people give directions in. Since the town plan, the plates are
-  mounted on the corner buildings, as a council mounts them.
-- **Two bridges between the districts, and only two.** A chokepoint is a place where things
-  can happen: somebody waiting at a bridge is a scene, somebody waiting on an open grid is a
-  man standing in a road. About a third of the city crosses one to work.
-- **Traffic** as a deterministic engine-free model: six vehicle kinds, lights at the big
-  crossings, painted give-way bars elsewhere (the stop-sign forest was American grammar
-  and died with the town plan), buses that keep a circuit and cabs that idle at ranks.
-  Four properties are held as tests because none can be judged from a screenshot — nobody
-  overlaps, nobody crosses a stop line on red, nobody drives through a person, and the grid
-  never wedges solid.
-- **A driveable car.** Arcade and kinematic — no gears, damage, fuel or tyre model, which
-  does not contradict the agency model's "no drivable-vehicle physics, ever". What it is
-  *for* is that **a car is a thing witnesses describe**, and they describe it whether or not
-  you wore the coat. The disguise buys doubt about your face and none at all about the
-  vehicle standing in the street.
-- **Collisions hurt and never kill** (player decision, 2026-07-27). Nothing in the code can
-  produce a death — a property, not a tuning value. The victim is really injured on the
-  system above, everyone nearby holds it as hard fact, and it records a low-heat exchange
-  rather than a feud, because an accident is not a war until it goes unanswered. AI drivers
-  brake for everybody; **only the player's car can strike anyone**, because the player is
-  holding the wheel, and that is the difference between a system and a decision.
-
-Districts have local information ecosystems: a rumor can own Copper Row and not exist in
-Fairview. Territory control is social (who talks to you, who pays, who warns you) not a
+Territory control is social — who talks to you, who pays, who warns you — never a
 map-painting minigame.
 
-## 8. Narrative
-
-**Structure: authored anchors, simulated bones, LLM director (P4, revised — see §17).**
-The anchors are fixed pressure points that fire on conditions, not dates alone — the world
-state at firing time makes each playthrough's version different.
-
-**Between the anchors, the Director (M8, built 2026-07-26).** Authored beats are finite and
-were all written before the player's city existed. So every few nights a world-level pass
-reads the actual state — who is angry, who is exposed, what has been left undone, what the
-street's money is doing — and authors the next pressure from it, using five primitives and
-no others: put a fact in the mill, arrange a meeting, make a demand, change where somebody
-is, seed a grievance. It proposes an occasion; the simulation runs it, exactly as it runs an
-authored one. Every person it names must exist, every pressure must justify itself from
-something concrete, and **pressure comes from what the player neglected, never from bad
-luck** — inventing a stranger, an accident or a coincidence is forbidden in the prompt and
-discarded in validation. Most nights the correct answer is that nothing happens, and the
-prompt argues for it. The player is never shown what is pending: §6.2's rule holds.
-
-- **Act I — The Inheritance.** Arrival, the pub, discovering what it really is. Choice of
-  posture (wind it down / take it over) that the game then makes hard to keep.
-- **Act II — The Squeeze.** Growth attracts the three rivals and one authored investigator,
-  Detective **Mara Ellis** — patient, personal, incorruptible-so-far. The two lives begin
-  colliding through the gossip system; Act II's set pieces are systemic collisions the spine
-  guarantees (someone from each life ends up in a room together).
-- **Act III — The Ledger Comes Due** (`act3-draft.md`; drafted, approved and wired
-  2026-07-27 — the act opens off world state, runs its six days, and resolves in play).
-  The crisis is an **audit** — the least dramatic instrument available, which is what
-  makes it frightening. Somebody with a mandate asks to see the pub's books, and the books are
-  the one document in this game that has been quietly lying since day one. Everything the
-  player did to the ledger becomes evidence in the other direction, **and it is wrong in both
-  directions**: launder too little and the night money has nowhere to have come from, launder
-  too much and the pub earned more than a pub on this street possibly could.
-
-  The endgame matrix is *empire × life*, and **the player never picks an ending from a list**.
-  Each is a condition the world can be IN when the books open; several can be live at once and
-  the last thing the player did decides between them:
-    - **Both** — keep everything. Requires the information landscape actively managed, not
-      merely a big empire and a friend. Deliberately not achievable on a first playthrough
-      (player decision, 2026-07-27).
-    - **The Kingdom** — you keep it all and nobody is left who knew you before it.
-    - **The Straight Life** — you dissolve the business to keep the people.
-    - **Burn Both** — what doing nothing produces, which is why it is the default rather than
-      a special case: the ledger comes due whether or not you answer it.
-    - **The Quiet Ending** — hand it to a crew member you built up. Not a fifth cell but a way
-      of leaving the matrix; the only one you cannot reach by accident, and **the only ending
-      with an epilogue** — three days where you are not in charge and you watch whether what
-      you built holds, without a verb (player decision, 2026-07-27).
-
-  The act's best scene is its cheapest: **Lena knows exactly where the lie holds and where it
-  does not, and telling you is gated entirely on her loyalty.** That is the thesis of the
-  project stated as a mechanic.
-
-  **The books have to hold.** Keeping anything requires the ledger to survive being looked
-  at — managing every mouth on the street does not save books that describe a business which
-  does not exist, and that is the whole reason the crisis is an audit rather than a raid.
-  Two exemptions, both the price of a door: selling up (there is nothing left to be in them)
-  and handing over (the inspection lands on whoever signed).
-
-  **The audit has a face: Tobias Reese, Board of Excise.** Not corrupt — load-bearing rather
-  than characterisation, because an inspector with a price collapses the matrix into *did you
-  save up*. Not cruel either, which is the frightening part. He sits at a table in the pub
-  from nine until six and does not go anywhere else. The only thing about him that moves is
-  **how much he reads**: one item a day for six days, produce it or tell him to put it in
-  writing. It is the act's only verb that is not irreversible and the only one that costs
-  nothing but attention.
-
-  **But attention must not be the whole game (decision 10, 2026-07-27).** Measured for the
-  first time, six answered mornings outweighed three acts of laundering: the aggressive plan
-  ended 100% Kingdom whatever it had done to its books. Cooperation's relief was halved, and
-  stonewalling kept its full weight — **being difficult moves him further than cooperating
-  does**, which is the asymmetry an inspector who cannot be bought should have. Aggressive
-  play now ends 100% Burn Both; cautious-and-answered splits 48/52. Paperwork buys you room,
-  not absolution.
-
-  **The last day is a scene, not a countdown.** Two calls, and reaching one is not reaching
-  another: Lena moves the real books (gated on loyalty — a felony at a few hours' notice, and
-  her refusal has her own reason), somebody on the crew is told to go quiet, or somebody in
-  the day life hears it from you rather than from the street. All three run down the M10
-  exchange, so whether you reach anybody at all is a question about where they are standing.
-
-**Core cast (Tier 1, sketch):** Rocco & Lena (the inherited loyalists — old muscle, older
-bookkeeper); the three rival heads (Aldous Vane / "the Widow" Sera Kest / Danny Ro); Det.
-Mara Ellis; the day-life ring: Sam (first friend, coworker), Ada (landlady, sees
-everything), the love-interest options (Noor — journalist, dangerous choice; Elias —
-teacher, innocence at stake), June (uncle's estranged daughter, moral mirror), Father Emil
-(knows the uncle's real history), and the Fixer (broker between all three rivals, gossip
-system personified). ~14 total; full cards to be written next.
-
-> **Status note (2026-07-25).** The prototype's approved cast cards drift from this
-> sketch: Sam is currently a street go-between (both circles) and Ada a retired
-> schoolteacher across from the pub — both fit the one-street scale better than
-> "coworker" and "landlady" while the day job doesn't exist yet. Open decision: either
-> this sketch is revised to match, or the doc roles are re-homed in new characters when
-> the day-job world arrives (see `roadmap.md`, open items).
-
-## 9. AI architecture (runtime)
-
-- **Dialogue LLM, tiered**: cheap/fast model (Haiku-class) for Tier-2/ambient; stronger
-  model (Sonnet-class) for Tier-1 scenes and reflection passes. Provider-agnostic client;
-  local-model fallback evaluated later for cost/offline.
-- **Guardrails**: player input treated as untrusted; system prompts carry character card +
-  retrieved memories + *hard state* (what this NPC knows/can do). Outcome-bearing moments
-  (persuade/intimidate/seduce/confess) resolve as game-state checks first; LLM narrates the
-  result. Output passes a validator (stays in character, no leaked instructions, length cap).
-- **Voice**: TTS per character (cloud API at first; pre-generated banks for ambient barks;
-  streaming for live dialogue). Subtitles-first design so voice failures degrade gracefully.
-- **Simulation**: schedules + gossip + suspicion run on plain C# (no LLM), tick-based, with
-  KCD2-style LOD: full sim near player, statistical sim elsewhere. LLM only fires on
-  player engagement and nightly "reflection" batches.
-- **Cost envelope** (target): < $0.05 per played hour ambient, spikes during heavy Tier-1
-  scenes acceptable. Measured from prototype day one.
-
-## 10. Content pipeline (AI-first)
-
-- **City**: purchased modular city asset packs (HDRP-compatible) + procedural placement
-  scripts (block assembly, props, signage, interiors from kits). Manual work: curation
-  passes, not modeling.
-- **Characters**: base meshes from a character system (evaluate: Character Creator 4
-  pipeline vs. Unity asset-store systems) + Mixamo/asset animation libraries; batch
-  variation (clothing, body, face) by script.
-- **Cards & schedules**: generated in batch by LLM from district/occupation templates,
-  validated by script (schedule feasibility, home/job existence), hand-touched on promotion.
-- **Rendering**: HDRP, realistic-stylized target ("good indie realism": clean PBR, strong
-  lighting/atmosphere over asset density). Fallback to URP only if HDRP perf fails on
-  mid hardware.
-- **Writing**: authored spine and Tier-1 cards are human+AI collaborative; everything else
-  generated-then-curated.
-
-## 11. Milestones (revised 2026-07-25 — live plan lives in `roadmap.md`)
-
-This section originally sketched M0–M4; the built milestones diverged from it by player
-decision (gossip before scale, the week campaign before the day job). What follows is the
-as-built record; `roadmap.md` carries the forward plan and supersedes this section's
-numbering.
-
-**Built and CI-validated (2026-07):**
-- **M0 — Tech spike**: one code-built city block, day/night, 4 scheduled NPCs, Lena as a
-  full LLM character (card, markdown memory, retrieval, reflection, suspicion), automated
-  Windows builds with an in-engine self-test sim. *(Voice deferred to the vertical slice
-  by decision.)*
-- **M1 — The gossip engine** (was "living block", re-scoped): person-to-person rumor
-  propagation through physical co-location, confidence decay, contradiction-driven
-  suspicion, day/night circles; the player's damage-control verbs (pay off / lean on /
-  plant doubt / lie low) with trait-decided outcomes; the whole cast conversational.
-- **M2 — The week** (was "double-life MVP", re-scoped): nightly outfit drops that create
-  witnesses, bar takings taxed by street heat, outfit patience, exposure fuse, win/lose
-  the week, restart. Balance lab (Monte-Carlo bot weeks) tuned heat corroboration, money,
-  and the once-per-story denial cap. Full 7-day campaign plays in CI on every build.
-- **M3.1 — The Ledger**: PlayerKnowledge belief-state + Ledger UI v0 ("what you believe
-  the city knows — never ground truth"), learned only through play; loyal-NPC warnings.
-
-**Forward plan — see `roadmap.md`:** M3 (clean/dirty money + laundering, disguise,
-end-of-day summary, conflict beats), M4 (secrets-as-loot hooks, suspicion-threshold
-confrontations, Det. Ellis, save/load), M5 vertical slice (the original M3: The Hook
-polished, 5 Tier-1 characters, 7 days of Act I, voice throughout — the is-this-fun gate),
-M6+ expansion. Not-yet-scheduled from the original sketch: day job, rackets, calendar
-slots UI, melee combat (deliberately deferred; see roadmap open items).
-
-Scope honesty: systems milestones are heavily AI-buildable (code, cards, pipelines). The
-vertical slice is where taste, iteration, and playtesting (the human's real job) dominate.
-
-## 14. Agency: what the player can actually do (added v2.0)
-
-`agency-model.md` is canon and scores ~28 dimensions against shipped state-of-the-art. Two
-filters govern every scope decision:
-
-1. **Every non-social system exists to give the social system stakes.** Money buys silence,
-   violence is seen, health is how you meet June, clothes are how the street reads you. A
-   system that does not feed the social layer is grind.
-2. **Decisions ripple; maintenance is a chore.** Every system needs a lazy path and an
-   invested path, and nothing may punish a player for ignoring it. Conversation must never
-   be mandatory for progress — a full loop is playable with a few chip taps.
-
-Headline targets: social memory 98, persistence 100, information 95, time 90, economy 85,
-multiple-solutions-per-obstacle 80 (a project law, not a feature), faction politics 75,
-operation planning 75, law-as-a-tool 70, legacy 70, violence 70 (staged), traversal 65
-(breadth of place, never vehicle simulation), access-as-soft-keys 65. Refused outright:
-body needs, crafting/lockpicking minigames, gear treadmills.
-
-**Faction agency (built):** the three organizations are rosters of people who already walk
-the street, so poaching is not a new verb — it is recruit-by-need and recruit-by-hook aimed
-at someone who already had an employer. Allegiance is a state: pledge to an arm for
-protection and tribute, or break with them and never be trusted again.
-
-**Decided in the same discussion:** phones exist (late-analog, so information gains a
-channel without travelling at internet speed, and wiretaps become natural counterplay);
-visible odds are qualitative reads, never percentages; interiority is *pressure, not
-personality* (the protagonist's nerve, guilt and appetite as intrusive lines, never stats);
-competence tracks per domain and unlocks approaches rather than raising numbers;
-vehicles/driving are approved but sequenced late.
-
-## 15. Production requirements (added v2.0)
-
-The design doc previously tracked mechanics only. A shipped game needs all of the
-following, none of which is optional, and each of which is now on the roadmap:
-
-- **Front end**: main menu, new game / continue, options (audio, video, gameplay), key
-  rebinding, pause menu, quit. None of this exists today.
-- **Audio**: music, ambience, footsteps, doors, UI feedback, and the mixer to balance them.
-  Currently the game is entirely silent.
-- **Save robustness**: versioned saves with migration, multiple slots, corruption recovery.
-  We have one autosave slot and no version field.
-- **Accessibility**: subtitle sizing, colourblind-safe UI, remappable input, no-timer
-  guarantees (already a design rule), text scaling.
-- **Localisation**: UI and authored strings externalised; generated dialogue is a special
-  case (the model can speak the target language directly — an advantage, not a cost).
-- **Performance**: LOD and statistical simulation for distant districts (doc §9 already
-  specifies KCD2-style LOD; unimplemented), draw-call and memory budgets.
-- **Controller support** and Steam Deck verification.
-- **Platform**: Steam page, achievements, cloud saves, build pipeline for release.
-- **QA**: a human test matrix on top of the automated harness (334 unit checks, a 9-day
-  in-engine simulation per build, Monte-Carlo balance runs, an AI playtest harness — this
-  infrastructure is unusually strong for the project's size and materially reduces, but
-  does not replace, human QA).
-
-## 16. Shipping an LLM game (added v2.0)
-
-Three problems specific to this design, each of which can sink it:
-
-1. **Inference economics.** Target < $0.05 per played hour ambient. **Deferred by the
-   player, 2026-07-26** — explicitly not a build-time blocker; revisited only if we decide
-   to publish. The four pricing models on the table then:
-   - **subscription** — recurring fee, studio pays inference, margin scales with retention;
-   - **pay-as-you-go** — player buys credits, cost tracks usage honestly, worst first-run
-     feel;
-   - **cheap purchase + local LLM** — one-time price, inference on the player's machine,
-     quality drop and a hardware floor, but zero marginal cost and it works offline;
-   - **dedicated server** — hosted inference the studio operates, best control over
-     quality/safety, highest fixed cost.
-   Nothing in the architecture picks one for us, and that is deliberate: `ILlmClient` is a
-   one-method interface, so a local model is a new implementation, not a rewrite. Cost is
-   measured from day one (`CostTracker`) so the decision is made against real numbers.
-   The router (§17) makes this sharper, not worse: it adds one cheap classification call
-   per typed line, on the ambient tier, and it can fall back to the lexical path entirely
-   with no LLM at all.
-2. **Content safety.** Generated characters will eventually say something indefensible.
-   We have a response validator; shipping needs guardrails, moderation, red-teaming, and a
-   documented policy.
-3. **Age rating.** ESRB/PEGI rate authored content; ours is generated at runtime. No clean
-   industry precedent exists. Needs a human with a legal budget, early.
-
-**The quality risk that outranks all three:** slop. If conversations read as chatbot rather
-than person, the entire pitch collapses and nothing else in this document matters. That
-means relentless card and prompt iteration, a model strong enough to hold character, and
-latency low enough that talking feels alive.
-
-## 17. The first-principles pass (added 2026-07-26)
-
-The player asked the right question: *if we were building the best possible game with the
-tools we actually have — an agent that writes code and a model that can be part of the
-running game — is this what we would end up with?* Honest answer: no, not quite. Three
-places where the design was still built like a game made by a team of forty people who do
-not have a language model, rather than one that does.
-
-### Gap 1 — the verb space is hand-enumerated
-
-Today the player's mechanical vocabulary is a set of context-sensitive buttons: pay off,
-lean on, plant doubt, use what you know, collect, forgive, buy, squeeze, recruit, pledge.
-Every one had to be authored, named, and given a button. That is the correct way to build
-a game *without* a model in the loop, and it is why open-world games have a small verb set
-and enormous content around it.
-
-With a model, the verb *space* can be open while the verb *implementation* stays closed:
-
-> **The intent router.** The player types anything. A fast model classifies that text
-> against the verbs that are genuinely available in this exact moment, and returns one of
-> three things: (a) an existing mechanical verb with arguments, (b) a novel action the game
-> adjudicates against a state check, or (c) pure narrative that goes to the conversation
-> engine as it does today.
-
-The critical property is that this is **classification, not adjudication**. The router
-picks from a closed set assembled from live game state; anything it returns that is not in
-that set is rejected and downgraded to speech. Outcomes are still computed by the same
-deterministic C# the buttons called. This preserves "game state decides, LLM performs"
-exactly — the model has been moved from the *skin* to the *interface*, not to the referee's
-chair.
-
-The novel-action path is the interesting half. A player who says *"I'll tell Sera's dockers
-that Vane's been shorting them"* is not doing anything the buttons offer, but the game
-knows what the words touch: standing with two arms, a fact in the mill, a place and an
-hour. So the router names a **requirement** from a closed vocabulary (cash / dirty cash /
-standing / a hook on a person / crew / hour of day / heat) and the game evaluates it,
-applying one **effect** from a closed vocabulary with clamped magnitude. Novel actions can
-therefore be *small and real* rather than large and fake.
-
-It degrades cleanly: a lexical fast path handles unambiguous phrasings for free and
-instantly, and is also the complete fallback when there is no model available.
-
-### Gap 2 — the story is hand-authored where it should be directed
-
-Act I's pressure points and Act II's Squeeze are authored beats that fire on state
-conditions. That is a real improvement over dated beats, but it still means the pressure a
-player feels on day 30 was written by us on day 1, and there are a finite number of them.
-
-> **The Director.** A nightly world-level pass — not a character-level one — that reads the
-> actual state (who is angry, who is exposed, what the player has been ignoring, which
-> relationships are load-bearing) and *authors the next pressure from it*.
-
-Same guardrail shape as the router: the Director does not invent outcomes or bypass systems.
-It proposes a pressure built from existing primitives — a fact injected into the mill, an
-NPC's schedule changed, a demand made, a meeting arranged — and the simulation runs it. Its
-output is validated against what the primitives permit. Authored anchors still exist and
-still fire; the Director fills the enormous space between them, which today is empty.
-
-### Gap 3 — the population is 36
-
-We already proved density is purchasable: Tier-2 generation produced 60 validator-passed
-cards in 19 calls for about 92k tokens. The population number is therefore not a
-constraint, it is a decision we never revisited. Thousands is reachable with generation
-plus a level-of-detail scheme where only the people near the player's attention are
-simulated at full fidelity, exactly as KCD2 does it.
-
-### What this changes in the plan
-
-Pillar P4 is rewritten (see §3). The roadmap is re-sequenced: the router first (it is
-purely additive — every existing verb keeps working, and typed text that routes to nothing
-falls through to conversation exactly as today), then the economy substrate, then the
-Director, then population scale. The economy is still worth building; it is simply the
-*conservative* kind of depth, and it is better built underneath a game whose interface has
-already stopped being a list of buttons.
-
-## 18. What this document describes that does not exist yet (audited 2026-08-18)
-
-Kept deliberately, and kept current. A design document that only accumulates achievements
-stops being usable for planning, and this one was drifting that way. (The 2026-07-27
-version of this list had gone stale in four places — melee, the four districts, the city
-pack and most of voice had all been BUILT and the list still owed them. That is this
-document's own header warning coming true.)
-
-**THE 18 AUGUST PASS ASKED A DIFFERENT QUESTION FROM THE ONE BEFORE IT, and that is why
-it found more.** Earlier passes asked *"is anything on this list already built"*, which
-catches stale debts and nothing else. This one asked Jafar's question — *"is everything
-this document defines actually PLANNED"* — and checked each system against the code AND
-against `roadmap.md`. Five things this document treats as part of the game appear in no
-milestone at all, and a doc commitment nobody has scheduled is worse than an unbuilt one,
-because it reads as covered.
-
-**What was checked and IS sound** (rule 3b — a list of gaps with no denominator cannot
-tell a thorough audit from a lazy one): memory and nightly reflection; typed facts and the
-gossip mill; the telephone as a place; weak and strong hooks off shameful and criminal
-secrets; suspicion with its confrontation ladder; the three rival arms with the three
-distinct doctrines §6.5 names; injuries that persist, turn if untreated, and leave
-cumulative trauma; feuds as first-class; the courier track; two currencies and laundering;
-the end-of-day summary; the name ladder; the recognition ladder; no hard timers; and the
-Nemesis-patent constraint (`RivalArm` is flat, with no promotion ladder anywhere).
-
-### Unbuilt, and owned by a milestone
-
-- **The two ledgers (M21).** Empire growth, law as a tool, what expansion costs. The
-  largest piece of unwritten GAME, as opposed to unfinished presentation.
-- **The shape of a playthrough (M22).** Onboarding beyond the first minutes, pacing,
-  replayability, succession. Unbuilt.
-- **A played endgame.** Act III is built, measured and tested; nobody has sat down and
-  reached it. Measured is not the same as felt.
-- **Act II's seven pressure points, all fired in one run.** The machinery exists; still
-  the thinnest stretch of the spine.
-- **Live speech in a build a person has run.** The pipeline speaks on the dev machine;
-  the 4.5GB voice models only exist there, and the copy-into-a-downloaded-build script
-  has never been run against a real build. The "ah"-filler retry fix is designed, unbuilt.
-- **Vice and lifestyle** (§6.7's upgrades, the apartment) — M18, not started.
-- **A handful of story branches that have never fired in any recorded run** (the
-  constant-key sweep finds them; planting their trigger conditions is ongoing).
-- **HDRP.** Deliberately post-playtest; the 2K/roughness material work this week is
-  pipeline-portable and carries over.
-
-### Unbuilt AND unplanned — found 2026-08-18, now in M18/M20/M21
-
-Each of these is defined above as part of the game and appeared **zero times** in
-`roadmap.md` and `queue.md` before this audit.
-
-- **Romance (§6.6), and it is the sharpest of the five.** §2's flagship illustration of
-  novelty claim 2 — the one the whole double life rests on — is *"your girlfriend can
-  catch your alibi from your coworker."* There is no romance system, no courtship, no
-  partner; the word appears in this project only inside character prose. What exists is
-  friendship-shaped: every few days the person who thinks best of you asks for an evening.
-  The alibi-propagation machinery underneath is real and running — what is missing is the
-  relationship that makes catching one hurt.
-- **The other day-job tracks (§6.6).** "Chosen from a few tracks — bar, courier, office."
-  `Core/DayJob` has no track concept at all: it is the courier round, singular. A choice
-  the document offers the player on his first morning has never existed.
-- **Smuggling and gambling (§6.5).** Five rackets are named; `EmpireSetup` builds three —
-  collection, protection, fencing. Smuggling is the conspicuous one: this is a port town
-  whose Act III threat is **Customs and Excise**, and there is no smuggling to be caught at.
-- **Interiors beyond the pub.** Every other door is a threshold. This was on the list
-  before and was owned by nothing, which is how it stayed there.
-- **The session-hook guarantee (§4).** "An unresolved thread every evening — *the sim
-  guarantees one*." Nothing guarantees it. This is the document's only explicit retention
-  claim and it has no implementation and no owner. It is also the cheapest of the five:
-  the state it would read (a rumour in flight, a recruit wavering, an evening promised)
-  is already tracked, and the end-of-day summary is already the surface it belongs on.
-
-### Unblocked 2026-08-18, needs scheduling rather than waiting
-
-- **Reaction animation** (flinch, greeting, turn-to-look). This read "blocked on the Mixamo
-  clip session" for weeks; that session ran on 18 August and the clips are on disk —
-  `flinch`, `greet`, `wave`, `glance` (Look Over Shoulder), `point`, `head_no`. The
-  perception events it wires to already fire, so this is now wiring, not sourcing.
-
-## 12. Risks
-
-1. **Simulation jank** (Shadows of Doubt's fate): mitigated by scope discipline — gossip
-   and schedules first-class, everything else cut ruthlessly in v1 (no combat, no vehicles
-   v1, interiors from kits).
-2. **LLM cost/latency drift**: measured from M0; tiering + reflection keep context small.
-3. **Slop dialogue**: every conversation must be able to *change state*; card quality bar;
-   Tier-1 always hand-polished.
-4. **Nemesis patent** (rival hierarchies): design review checkpoint before building rival
-   internals (see §6.5).
-5. **Scale seduction**: the city wants to grow; the vertical slice is one district and it
-   must be great before anything widens.
-6. **Player-driven derailment**: authored spine fires on conditions — needs careful design
-   so systemic chaos delays but cannot orphan the plot.
-
-## 13. Architecture principle: separability
-
-All narrative/content packs (character cards, scenes, districts, rating-sensitive content)
-load as data, cleanly separated from engine/systems code, so the project can be forked or
-modded into variant editions without touching the simulation core. Content pipeline and
-memory formats are plain text (markdown/JSON) end to end.
+### 8.1 Streets, traffic and the car
+
+The town is built streets-first, buildings fitted into blocks rather than the reverse.
+An early version was a 90×90m slab with buildings and no streets — about the size of one
+real city block — which is why it read as a diorama rather than a place. A walkable
+block is 79m in Portland and 113m in Barcelona's Eixample; games compress, and the
+research is consistent that **density carries the feeling of size, not area**.
+
+- **A real grid.** 26m spacing in the Hook, tighter 20m in Copper Row so it reads older
+  the moment you walk into it. Square kerb corners with the kerb line closed through
+  them, which is what reads British.
+- **Named streets in every district**, with the plates and the gossip reading the same
+  table, so the town can never tell the player one name and a character another. An
+  address is the unit people give directions in. Plates are mounted on corner
+  buildings, as a council mounts them.
+- **Two bridges between the districts, and only two.** A chokepoint is a place where
+  things can happen: somebody waiting at a bridge is a scene, somebody waiting on an
+  open grid is a man standing in a road. About a third of the town crosses one to work.
+- **Traffic** as a deterministic, engine-free model: six vehicle kinds, lights at the
+  big crossings, painted give-way bars elsewhere, buses that keep a circuit and cabs
+  that idle at ranks. Four properties are held as tests because none can be judged from
+  a screenshot — nobody overlaps, nobody crosses a stop line on red, nobody drives
+  through a person, and the grid never wedges solid.
+- **A driveable car**, arcade and kinematic: no gears, damage, fuel or tyre model. What
+  it is *for* is that **a car is a thing witnesses describe**, and they describe it
+  whether or not you wore the coat. A disguise buys doubt about your face and none at
+  all about the vehicle standing in the street.
+- **Collisions hurt and never kill.** Nothing in the code can produce a death — a
+  property, not a tuning value. The victim is really injured on the system in §7.7,
+  everyone nearby holds it as hard fact, and it records a low-heat exchange rather than
+  a feud, because an accident is not a war until it goes unanswered. AI drivers brake
+  for everybody; **only the player's car can strike anyone**, because the player is
+  holding the wheel, and that is the difference between a system and a decision.
+
+### 8.2 How the town looks
+
+Contiguous terraces with party walls and chimneys rather than detached boxes.
+Continuous pavements with square kerb corners. British sign grammar: name plates on
+corner buildings, give-way paint, single yellows. Lamps with heads, parked cars,
+shopfront fasciae with painted trade names, a crane-and-gasometer skyline. Detail in
+`town-plan.md`.
+
+**The look is stylised noir, and the reason is mechanical rather than aesthetic.** A game
+about what people *think* they saw should look subjective and half-obscured. Weather and
+fog cut draw distance, hide low-detail geometry, and make mood — three jobs from one
+decision, and the first of them is what §4 is measuring.
 
 ---
 
-*Next documents: `cast-tier1.md` (full core-cast cards), `systems-gossip.md` (propagation
-spec), `m0-plan.md` (tech-spike build plan for Unity).*
+## 9. Narrative
 
-## 20. THE FRAMING, CORRECTED (2026-07-29)
+**Authored anchors, simulated bones, model as director.** The anchors are fixed
+pressure points that fire on conditions rather than on dates alone, so the world state
+at firing time makes each playthrough's version different.
 
-The phrase *"the antagonist is gossip"* has been load-bearing in this
-document and in every design argument built on it. It is a good slogan and
-it became a straitjacket — it was being used to argue that anything which
-was not social was decoration.
+**Between the anchors, the Director.** Authored beats are finite and were all written
+before the player's town existed. So every few nights a world-level pass reads the
+actual state — who is angry, who is exposed, what has been left undone, what the
+street's money is doing — and authors the next pressure from it, using five primitives
+and no others: put a fact in the mill, arrange a meeting, make a demand, change where
+somebody is, seed a grievance.
 
-**Corrected, by Jafar:**
+It proposes an occasion; the simulation runs it, exactly as it runs an authored one.
+Every person it names must exist, every pressure must justify itself from something
+concrete, and **pressure comes from what the player neglected, never from bad luck** —
+inventing a stranger, an accident or a coincidence is forbidden in the prompt and
+discarded in validation. Most nights the correct answer is that nothing happens, and
+the prompt argues for it. The player is never shown what is pending: §7.2's rule holds.
 
-> *"You're basing everything on gossip alone. That's not the entire game or
-> it shouldn't be. It's a crime game, so violence and weapons should be a
-> huge part of it. And the gossip and characters talking is just to make it
-> better, more realistic, more relatable, more immersive… But that doesn't
-> mean it's a text game which is just based on dialogue and combat and
-> everything else doesn't play a role."*
+### The three acts
 
-So the statement of what this game is, replacing §2's framing wherever the
-two disagree:
+**Act I — The Inheritance.** Arrival, the pub, discovering what it really is. A choice
+of posture — wind it down or take it over — that the game then makes hard to keep.
 
-> **LEDGER is a crime game in a city that perceives, reacts and remembers.**
->
-> Violence, weapons and the physical business of committing crimes are core
-> pillars. What distinguishes them from the same verbs in other crime games
-> is that every act is perceived PARTIALLY, by people with real sight and
-> hearing, who then behave differently, tell each other, and remember.
+**Act II — The Squeeze.** Growth attracts the three rivals and one authored
+investigator: Detective **Mara Ellis**, patient, personal, incorruptible so far. The
+two lives begin colliding through the gossip system, and Act II's set pieces are
+systemic collisions the spine guarantees — somebody from each life ends up in a room
+together.
 
-Neither half survives alone. A crime game with a thin reaction layer is
-something we cannot out-produce; a reaction layer with nothing to react to
-is a chat simulator. **The value is entirely in the join.**
+**Act III — The Ledger Comes Due.** The crisis is an **audit**, the least dramatic
+instrument available, which is what makes it frightening. Somebody with a mandate asks
+to see the pub's books, and the books are the one document in this game that has been
+quietly lying since day one. Everything the player did to the ledger becomes evidence
+in the other direction, **and it is wrong in both directions**: launder too little and
+the night money has nowhere to have come from, launder too much and the pub earned more
+than a pub on this street possibly could.
 
-### What this changes concretely
+### The endgame
 
-**The pipeline was upside down.** Gossip is not the foundation, it is the
-fourth stage of one:
+The matrix is *empire × life*, and **the player never picks an ending from a list**.
+Each is a condition the world can be in when the books open. Several can be live at
+once, and the last thing the player did decides between them.
 
-    PERCEPTION -> OBSERVATION -> REACTION -> MEMORY & TALK
+- **Both** — keep everything. Requires the information landscape actively managed, not
+  merely a big empire and a friend. Deliberately not achievable on a first playthrough.
+- **The Kingdom** — you keep it all, and nobody is left who knew you before it.
+- **The Straight Life** — you dissolve the business to keep the people.
+- **Burn Both** — what doing nothing produces, which is why it is the default rather
+  than a special case: the ledger comes due whether or not you answer it.
+- **The Quiet Ending** — hand it to a crew member you built up. Not a fifth cell but a
+  way of leaving the matrix; the only one you cannot reach by accident, and **the only
+  ending with an epilogue** — three days where you are not in charge and you watch
+  whether what you built holds, without a verb.
 
-Stages 3 and 4 are this project's strongest work. **Stages 1 and 2 barely
-exist** — there is no vision model, no NPC hearing, and no notion of a
-witness having learned only PART of what happened. That is the gap, and
-`weapons-spec.md` proposes closing it.
+**The books have to hold.** Keeping anything requires the ledger to survive being
+looked at. Managing every mouth on the street does not save books that describe a
+business which does not exist, and that is the whole reason the crisis is an audit
+rather than a raid. Two exemptions, both the price of a door: selling up (there is
+nothing left to be in them) and handing over (the inspection lands on whoever signed).
 
-**Partial observation is now a generator rather than a list** (`weapons-spec.md`
-v2.1 §4): an act has seven perceivable slots, identification runs on a
-separate five-rung ladder, believing something and being willing to say it
-are different values, and a witness is a **deadline** — a person walking
-somewhere to tell someone, interceptable until they arrive. The rung that
-matters most is recognition: **the same distance and the same light identify
-you to your neighbour and not to a stranger**, which is a mechanic that
-requires the acquaintance graph this project already has and that no other
-crime game is in a position to build.
+**The audit has a face: Tobias Reese, Board of Excise.** Not corrupt — load-bearing
+rather than characterisation, because an inspector with a price collapses the matrix
+into *did you save up*. Not cruel either, which is the frightening part. He sits at a
+table in the pub from nine until six and does not go anywhere else. The only thing
+about him that moves is **how much he reads**: one item a day for six days, produce it
+or tell him to put it in writing. It is the act's only verb that is not irreversible,
+and the only one that costs nothing but attention.
 
-**The reference point is KCD2's reactivity**, named by Jafar as the most
-immersive thing about it: NPCs who react to what you do, including things
-that are not crimes.
+**Attention must not be the whole game.** Measured: six answered mornings once
+outweighed three acts of laundering, and the aggressive plan ended 100% Kingdom
+whatever it had done to its books. Cooperation's relief is halved now and stonewalling
+keeps its full weight — **being difficult moves him further than cooperating does**,
+which is the asymmetry an inspector who cannot be bought should have. Aggressive play
+now ends 100% Burn Both; cautious-and-answered splits 48/52. Paperwork buys room, not
+absolution.
 
-**A consequence for the art and audio work already done:** the lighting
-model computes a light level everywhere, at every hour, and no NPC has ever
-read it. Whether a man is standing under a lamp or in a doorway is already
-known to the renderer and unknown to the city. Perception makes weeks of
-existing work load-bearing rather than decorative.
+**The last day is a scene, not a countdown.** Two calls, and reaching one is not
+reaching another: Lena moves the real books (gated on loyalty — a felony at a few
+hours' notice, and her refusal has her own reason), somebody on the crew is told to go
+quiet, or somebody in the day life hears it from you rather than from the street. All
+three run down the telephone system, so whether you reach anybody at all is a question
+about where they are standing.
+
+**The act's best scene is its cheapest.** Lena knows exactly where the lie holds and
+where it does not, and telling you is gated entirely on her loyalty. That is the thesis
+of the project stated as a mechanic.
+
+---
+
+## 10. Agency, and the filters on scope
+
+`agency-model.md` is canon and scores ~28 dimensions against shipped state of the art.
+Two filters govern every scope decision:
+
+1. **Every non-social system exists to give the social system stakes.** Money buys
+   silence, violence is seen, health is how you meet June, clothes are how the street
+   reads you. A system that does not feed the social layer is grind.
+2. **Decisions ripple; maintenance is a chore.** Every system needs a lazy path and an
+   invested path, and nothing may punish a player for ignoring it. Conversation must
+   never be mandatory for progress — a full loop is playable with a few chip taps.
+
+Headline targets: social memory 98, persistence 100, information 95, time 90, economy
+85, multiple-solutions-per-obstacle 80 (a project law, not a feature), faction politics
+75, operation planning 75, law-as-a-tool 70, legacy 70, violence 70 (staged), traversal
+65 (breadth of place, never vehicle simulation), access-as-soft-keys 65.
+
+**Refused outright:** body needs, crafting and lockpicking minigames, gear treadmills.
+
+**Also settled:** visible odds are qualitative reads, never percentages; interiority is
+*pressure, not personality* — the protagonist's nerve, guilt and appetite as intrusive
+lines, never stats; competence tracks per domain and unlocks approaches rather than
+raising numbers.
+
+**Input parity is a rule, not an aspiration.** Every conversational action is reachable
+with a stick and two buttons; typing and dictation stay first-class and never required.
+The check: no dialogue state is reachable only by text.
+
+---
+
+## 11. Where the model sits
+
+The honest question is: *if we were building the best possible game with the tools we
+actually have — an agent that writes code, and a model that can be part of the running
+game — is this what we would end up with?* Three places where the answer was no, and
+what each became.
+
+### The verb space is open; the verb implementation is closed
+
+A conventional design gives the player a set of context-sensitive buttons — pay off,
+lean on, plant doubt, collect, forgive, buy, squeeze, recruit, pledge. Every one has to
+be authored, named and given a button, which is why games without a model in the loop
+have a small verb set and enormous content around it.
+
+> **The intent router.** The player types anything. A fast model classifies that text
+> against the verbs genuinely available in this exact moment and returns one of three
+> things: an existing mechanical verb with arguments, a novel action the game
+> adjudicates against a state check, or pure narrative that goes to the conversation
+> engine.
+
+The critical property is that this is **classification, not adjudication**. The router
+picks from a closed set assembled from live game state; anything it returns that is not
+in that set is rejected and downgraded to speech. Outcomes are computed by the same
+deterministic C# the buttons called. The model has moved from the skin to the
+*interface*, not to the referee's chair.
+
+The novel-action path is the interesting half. A player who says *"I'll tell Sera's
+dockers that Vane's been shorting them"* is not doing anything the buttons offer, but
+the game knows what the words touch: standing with two arms, a fact in the mill, a
+place and an hour. So the router names a **requirement** from a closed vocabulary —
+cash, dirty cash, standing, a hook on a person, crew, hour of day, heat — and the game
+evaluates it, applying one **effect** from a closed vocabulary with clamped magnitude.
+Novel actions are therefore *small and real* rather than large and fake.
+
+It degrades cleanly. A lexical fast path handles unambiguous phrasings for free and
+instantly, and is the complete fallback when no model is available.
+
+### The story is directed, not only authored
+
+Authored pressure points firing on state conditions are a real improvement over dated
+beats, but the pressure a player feels on day 30 was still written on day 1, and there
+is a finite number of them. The Director (§9) fills the space between the anchors,
+under the same guardrail shape as the router: it proposes a pressure built from
+existing primitives and the simulation runs it, validated against what the primitives
+permit.
+
+### Density is purchasable
+
+Tier-2 generation produced 60 validator-passed cards in 19 calls for about 92k tokens.
+The population number was never a constraint, only a decision — which is why §7.2
+treats it as a dial.
+
+### Runtime architecture
+
+- **Tiered dialogue.** A cheap, fast model for Tier-2 and ambient; a stronger one for
+  Tier-1 scenes and reflection passes. The client is provider-agnostic; a local-model
+  fallback is evaluated later for cost and offline play.
+- **Guardrails.** Player input is untrusted. System prompts carry the character card,
+  retrieved memories and *hard state* — what this NPC knows and can do.
+  Outcome-bearing moments — persuade, intimidate, seduce, confess — resolve as
+  game-state checks first, and the model narrates the result. Output passes a validator: stays in character, no leaked instructions, length
+  capped.
+- **Voice.** TTS per character — cloud at first, pre-generated banks for ambient barks,
+  streaming for live dialogue. Subtitles-first, so voice failures degrade gracefully.
+- **Simulation.** Schedules, gossip and suspicion run on plain C#, tick-based, with
+  KCD2-style level of detail: full simulation near the player, statistical elsewhere.
+  The model fires only on player engagement and nightly reflection batches.
+- **Cost envelope.** Target under $0.05 per played hour ambient; spikes during heavy
+  Tier-1 scenes are acceptable. Measured from day one.
+
+**Voice sourcing is consent-bound.** Only corpora whose contributors donated their
+voices to build speech technology, and no identifiable public figures, ever.
+
+---
+
+## 12. Content pipeline
+
+- **Town.** Modular city asset packs plus procedural placement — block assembly, props,
+  signage, interiors from kits. The manual work is curation passes, not modelling.
+- **Characters.** Base meshes and animation libraries from Mixamo, with batch variation
+  in clothing, body and face by script.
+- **Cards and schedules.** Generated in batch from district and occupation templates,
+  validated by script (schedule feasibility, home and job existence), hand-touched on
+  promotion.
+- **Rendering.** A realistic-stylised target: clean PBR, strong lighting and atmosphere
+  over asset density. HDRP is deliberately post-playtest and the current material work
+  is pipeline-portable.
+- **Writing.** The authored spine and Tier-1 cards are human-and-model collaborative;
+  everything else is generated then curated.
+
+---
+
+## 13. Production requirements
+
+A shipped game needs all of the following, none optional:
+
+- **Front end** — main menu, new game and continue, options (audio, video, gameplay),
+  key rebinding, pause, quit.
+- **Audio** — music, ambience, footsteps, doors, UI feedback, and the mixer to balance
+  them.
+- **Save robustness** — versioned saves with migration, multiple slots, corruption
+  recovery.
+- **Accessibility** — subtitle sizing, colourblind-safe UI, remappable input, text
+  scaling, and the no-timer guarantee that is already a design rule.
+- **Localisation** — UI and authored strings externalised. Generated dialogue is a
+  special case: the model can speak the target language directly, which is an advantage
+  rather than a cost.
+- **Performance** — level of detail and statistical simulation for distant districts,
+  draw-call and memory budgets.
+- **Controller support** and Steam Deck verification.
+- **Platform** — Steam page, achievements, cloud saves, a release build pipeline.
+- **QA** — a human test matrix on top of the automated harness. That harness is
+  unusually strong for a project this size (3,620 unit checks, an eleven-day in-engine
+  simulation on every build, Monte-Carlo balance runs, an AI playtest harness) and it
+  materially reduces, but does not replace, human QA.
+
+---
+
+## 14. Shipping a game with a model in it
+
+Three problems specific to this design, each of which can sink it.
+
+**1. Inference economics.** Target under $0.05 per played hour ambient. The pricing
+decision is deferred and is explicitly not a build-time blocker. Four models are on the
+table:
+
+- **subscription** — recurring fee, studio pays inference, margin scales with
+  retention;
+- **pay-as-you-go** — player buys credits, cost tracks usage honestly, worst first-run
+  feel;
+- **cheap purchase plus local model** — one-time price, inference on the player's
+  machine, a quality drop and a hardware floor, but zero marginal cost and it works
+  offline;
+- **dedicated server** — hosted inference the studio operates, best control over
+  quality and safety, highest fixed cost.
+
+Nothing in the architecture picks one, and that is deliberate: the client is a
+one-method interface, so a local model is a new implementation rather than a rewrite.
+Cost is measured from day one so the decision is made against real numbers. The router
+makes this sharper, not worse — it adds one cheap classification call per typed line on
+the ambient tier, and it can fall back to the lexical path with no model at all.
+
+**2. Content safety.** Generated characters will eventually say something indefensible.
+A response validator exists; shipping needs guardrails, moderation, red-teaming and a
+documented policy.
+
+**3. Age rating.** ESRB and PEGI rate authored content; this is generated at runtime.
+No clean industry precedent exists. Needs a human with a legal budget, early.
+
+**The quality risk that outranks all three: slop.** If conversations read as chatbot
+rather than person, the entire pitch collapses and nothing else in this document
+matters. That means relentless card and prompt iteration, a model strong enough to hold
+character, and latency low enough that talking feels alive.
+
+---
+
+## 15. Risks
+
+1. **Simulation jank** — Shadows of Doubt's fate. Mitigated by scope discipline: gossip
+   and schedules first-class, everything else cut ruthlessly.
+2. **Cost and latency drift** — measured from the first milestone; tiering and
+   reflection keep context small.
+3. **Slop dialogue** — every conversation must be able to *change state*; a card
+   quality bar; Tier-1 always hand-polished.
+4. **The Nemesis patent** — a design review checkpoint before building rival internals
+   (§7.6).
+5. **Scale seduction** — the town wants to grow. The vertical slice is one district and
+   it must be great before anything widens.
+6. **Player-driven derailment** — the authored spine fires on conditions, which needs
+   careful design so that systemic chaos delays the plot but cannot orphan it.
+
+---
+
+## 16. Architecture principle: separability
+
+All narrative and content packs — character cards, scenes, districts, rating-sensitive
+content — load as data, cleanly separated from engine and systems code, so the project
+can be forked or modded into variant editions without touching the simulation core.
+Content pipeline and memory formats are plain text, markdown and JSON, end to end.
+
+---
+
+## 17. What is not built yet
+
+*Audited 2026-08-18 against the code and against `roadmap.md`.*
+
+Kept deliberately and kept current. A design document that only accumulates achievements
+stops being usable for planning.
+
+**What was checked and is sound** — a list of gaps with no denominator cannot tell a
+thorough audit from a lazy one: memory and nightly reflection; typed facts and the
+gossip mill; the telephone as a place; weak and strong hooks; suspicion with its
+confrontation ladder; the three rival arms with the three doctrines §7.6 names;
+injuries that persist, turn if untreated and leave cumulative trauma; feuds as
+first-class; the courier track; two currencies and laundering; the end-of-day summary;
+the name ladder; the recognition ladder; no hard timers; the session-hook guarantee;
+and the Nemesis constraint (the rival type is flat, with no promotion ladder anywhere).
+
+### Unbuilt, and owned by a milestone
+
+- **The two ledgers.** Empire growth, law as a tool, what expansion costs. The largest
+  piece of unwritten *game*, as opposed to unfinished presentation.
+- **The shape of a playthrough.** Onboarding beyond the first minutes, pacing,
+  replayability, succession.
+- **A played endgame.** Act III is built, measured and tested; nobody has sat down and
+  reached it. Measured is not the same as felt.
+- **Act II's seven pressure points, all fired in one run.** The machinery exists; this
+  is still the thinnest stretch of the spine.
+- **Live speech in a build a person has run.** The pipeline speaks on the dev machine;
+  the voice models exist only there, and the copy-into-a-build script has never been run
+  against a real build. The "ah"-filler retry fix is designed and unbuilt.
+- **Vice and lifestyle** — §7.9's upgrades, the better room. Not started.
+- **Romance.** Promoted to its own milestone, because §2's flagship illustration of the
+  double life needs a partner to exist and none does. The propagation machinery
+  underneath is real and running; what is missing is the relationship that makes
+  catching an alibi hurt.
+- **The other day-job tracks.** §7.8 offers bar, courier and office. The day-job system
+  has no track concept: it is the courier round, singular. A choice this document
+  offers the player on his first morning has never existed.
+- **Smuggling and gambling.** Five rackets are named in §7.6 and three are built —
+  collection, protection, fencing. Smuggling is the conspicuous absence: this is a port
+  town whose Act III threat is Customs and Excise, and there is nothing to be caught at.
+- **Interiors beyond the pub.** Every other door is a threshold.
+- **A handful of story branches that have never fired in any recorded run.** A
+  constant-key sweep finds them; planting their trigger conditions is ongoing.
+- **HDRP.** Deliberately post-playtest.
+
+### Needs scheduling rather than waiting
+
+- **Reaction animation** — flinch, greeting, turn-to-look. The clips are on disk and the
+  perception events they wire to already fire, so this is wiring rather than sourcing —
+  with one caveat: of the six clips this needs, `head_no` is one of ten in the harvest
+  found on 2026-08-18 to play a motion other than the one its name claims. Account and
+  the current list in `clip-findings.txt`.
+
+---
+
+## 18. Settled decisions
+
+Recorded here so they are not re-opened. Each was decided by Jafar.
+
+- **The setting is a British port town, and it was discovered rather than chosen.** The
+  prose had been writing *flat*, *colour*, *pavement*, *constable*, *neighbourhood* and
+  *kerb* for weeks, and the streets were already Saltmarket, Quay Street, The
+  Esplanade, Weighhouse Lane, Tannery Row. The American accent brief was the outlier.
+  Money is £, the inherited business is a pub whose counter is the bar, its owner is the
+  landlord, and the Act III audit is Customs and Excise under s.112 of the Customs and
+  Excise Management Act. Consequences in `setting-britain-2026-07-31.md`.
+- **The era is the late 1980s / early 1990s, and the currency follows from it.** Money
+  is decimal — pounds and pence. Late-analog is load-bearing rather than flavour: it is
+  what turns missed calls, wiretaps and being unreachable into mechanics.
+- **The framing is the join, not gossip alone.** *"You're basing everything on gossip
+  alone. That's not the entire game or it shouldn't be. It's a crime game, so violence
+  and weapons should be a huge part of it. And the gossip and characters talking is just
+  to make it better, more realistic, more relatable, more immersive… But that doesn't
+  mean it's a text game which is just based on dialogue and combat and everything else
+  doesn't play a role."* §1 is the result.
+- **Quality target: high-quality indie**, not AAA breadth.
+- **No hard timers**, anywhere, ever.
+- **Violence is staged** — consequence first, melee second, firearms last.
+- **Collisions hurt and never kill**, as a property of the code rather than a tuning
+  value.
+- **"Both" is not achievable on a first playthrough**, and the Quiet Ending is the only
+  ending with an epilogue.
+- **The population is a dial**, sized against a frame budget, not a design ceiling.
+- **The standing order on quality:** use creativity, skill and available resources to
+  get the best possible result in all aspects of the game — the best result *available*,
+  not the first one that works.
+
+---
+
+## Companion documents
+
+| document | what it owns |
+|---|---|
+| `roadmap.md` | the live plan, and the tiebreak on what happens next |
+| `roadmap-history.md` | chronology, post-mortems, superseded plans, the M0–M3.1 as-built record |
+| `agency-model.md` | depth targets per dimension, and the scope filters |
+| `town-plan.md` | how the streets and buildings are expressed |
+| `queue.md` | the next few hours of the roadmap |
+| `process.md` | the decision log |
+| `act1-draft.md`, `act2-draft.md`, `act3-draft.md` | the authored spine |
+| `empire-roster.md` | the rival organisations and their people |
+| `how-to-play.md` | the player-facing explanation |
+| `setting-britain-2026-07-31.md` | the setting decision and its consequences |

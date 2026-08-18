@@ -2235,3 +2235,39 @@ recorded bank only, which the verdict's speech keys already measure.
    step is a number that fires WHILE one is on screen. Full account in
    `roadmap-history.md`.
 
+
+---
+
+## M0–M3.1 as built — moved out of `design-doc.md`, 2026-08-18
+
+The design document carried this record under a heading called "Milestones" that
+had said, since 2026-07-25, that `roadmap.md` superseded its numbering. It was a
+fossil sitting in the middle of a founding document, and it is chronology, so it
+belongs here. Nothing is changed; it is only relocated.
+
+The original section sketched M0–M4. The built milestones diverged from that sketch
+by player decision — gossip before scale, the week campaign before the day job.
+
+**Built and CI-validated (2026-07):**
+
+- **M0 — Tech spike.** One code-built city block, day/night, four scheduled NPCs,
+  Lena as a full LLM character (card, markdown memory, retrieval, reflection,
+  suspicion), automated Windows builds with an in-engine self-test sim. Voice was
+  deferred to the vertical slice by decision.
+- **M1 — The gossip engine** (was "living block", re-scoped). Person-to-person
+  rumour propagation through physical co-location, confidence decay,
+  contradiction-driven suspicion, day and night circles; the player's damage-control
+  verbs — pay off, lean on, plant doubt, lie low — with trait-decided outcomes; the
+  whole cast conversational.
+- **M2 — The week** (was "double-life MVP", re-scoped). Nightly outfit drops that
+  create witnesses, bar takings taxed by street heat, outfit patience, the exposure
+  fuse, win or lose the week, restart. The balance lab (Monte-Carlo bot weeks) tuned
+  heat corroboration, money, and the once-per-story denial cap. The full seven-day
+  campaign played in CI on every build.
+- **M3.1 — The Ledger.** `PlayerKnowledge` belief-state and Ledger UI v0 — "what you
+  believe the city knows, never ground truth" — learned only through play, with
+  loyal-NPC warnings.
+
+**Scope honesty, as written at the time:** systems milestones are heavily
+AI-buildable (code, cards, pipelines). The vertical slice is where taste, iteration
+and playtesting — the human's real job — dominate.
