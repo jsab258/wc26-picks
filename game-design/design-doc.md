@@ -69,8 +69,15 @@ Claims we make explicitly, so every design decision can be tested against them:
    AAA crime game is in a position to build it, and it inverts the tactics: the dangerous
    witness is not the closest one, it is the one who knows you. Measured in `RunPerceptionLab`:
    partial observation is 95% of outcomes, and darkness cuts naming by 4.6x.
-4. **A living city at honest scale.** Thousands of residents (3000 as of M9, 2026-07-26),
-   any of whom can be promoted by attention into a full character. Almost none of them are
+4. **A living city at honest scale.** **700 residents as of 2026-08-18, and that number is
+   a decision rather than a ceiling** — it read "3000 as of M9" here until an audit compared
+   it against `PopulationHost.PopulationCount`, which has been 700 since the district cut.
+   The claim was not wrong when written and was never revised when the world changed shape.
+   M20 measured the trade directly: 350 people give an ordinary resident 5.1 crossings a
+   day, 700 give 12.9, 1400 give 21.9, 2800 give 38.9 — roughly linear, so this is a dial
+   sized against a frame budget, not a wall. Whether to turn it up is open and belongs to
+   M20 beside the cast tiering. Any resident can be promoted by attention into a full
+   character. Almost none of them are
    simulated at any moment, and the design is honest about that: a **Near** band walks the
    world with a full brain, a **Mid** band lives in the gossip mill without a body — carrying
    and passing talk you have not met yet — and the **Far** band is a record that answers
@@ -151,9 +158,10 @@ No dark patterns: no dailies, no timers, no FOMO. Retention through curiosity an
   (the customs clerk, the pharmacist with debts, the cop's ex-wife) so *who* you recruit or
   befriend matters. Anyone the player invests in can be **promoted**: their card deepens,
   their memory file grows, they join active story systems.
-- **Tier 3 — Crowd (~thousands).** Schedule-simulated bodies that make streets alive
-  (KCD2-style AI level-of-detail). Talking to one instantiates a Tier-2 card on the spot —
-  the city has no "non-characters," only characters nobody has looked at yet.
+- **Tier 3 — Crowd (700 today, and see §2.4).** Schedule-simulated bodies that make streets
+  alive (KCD2-style AI level-of-detail). Talking to one instantiates a Tier-2 card on the
+  spot — the city has no "non-characters," only characters nobody has looked at yet.
+  *(Read "~thousands" until 2026-08-18; the build has run 700 since the district cut.)*
 
 **What the city calls you.** The street learns your name rather than being told it, and what
 somebody calls you is a readout of where you stand with them: *the new owner* (they know the
@@ -716,13 +724,32 @@ Director, then population scale. The economy is still worth building; it is simp
 *conservative* kind of depth, and it is better built underneath a game whose interface has
 already stopped being a list of buttons.
 
-## 18. What this document describes that does not exist yet (refreshed 2026-08-16)
+## 18. What this document describes that does not exist yet (audited 2026-08-18)
 
 Kept deliberately, and kept current. A design document that only accumulates achievements
 stops being usable for planning, and this one was drifting that way. (The 2026-07-27
 version of this list had gone stale in four places — melee, the four districts, the city
 pack and most of voice had all been BUILT and the list still owed them. That is this
-document's own header warning coming true, and the refresh below is against the code.)
+document's own header warning coming true.)
+
+**THE 18 AUGUST PASS ASKED A DIFFERENT QUESTION FROM THE ONE BEFORE IT, and that is why
+it found more.** Earlier passes asked *"is anything on this list already built"*, which
+catches stale debts and nothing else. This one asked Jafar's question — *"is everything
+this document defines actually PLANNED"* — and checked each system against the code AND
+against `roadmap.md`. Five things this document treats as part of the game appear in no
+milestone at all, and a doc commitment nobody has scheduled is worse than an unbuilt one,
+because it reads as covered.
+
+**What was checked and IS sound** (rule 3b — a list of gaps with no denominator cannot
+tell a thorough audit from a lazy one): memory and nightly reflection; typed facts and the
+gossip mill; the telephone as a place; weak and strong hooks off shameful and criminal
+secrets; suspicion with its confrontation ladder; the three rival arms with the three
+distinct doctrines §6.5 names; injuries that persist, turn if untreated, and leave
+cumulative trauma; feuds as first-class; the courier track; two currencies and laundering;
+the end-of-day summary; the name ladder; the recognition ladder; no hard timers; and the
+Nemesis-patent constraint (`RivalArm` is flat, with no promotion ladder anywhere).
+
+### Unbuilt, and owned by a milestone
 
 - **The two ledgers (M21).** Empire growth, law as a tool, what expansion costs. The
   largest piece of unwritten GAME, as opposed to unfinished presentation.
@@ -732,18 +759,47 @@ document's own header warning coming true, and the refresh below is against the 
   reached it. Measured is not the same as felt.
 - **Act II's seven pressure points, all fired in one run.** The machinery exists; still
   the thinnest stretch of the spine.
-- **Interiors beyond the pub.** Every other door is a threshold, not a room.
 - **Live speech in a build a person has run.** The pipeline speaks on the dev machine;
   the 4.5GB voice models only exist there, and the copy-into-a-downloaded-build script
   has never been run against a real build. The "ah"-filler retry fix is designed, unbuilt.
-- **Reaction animation** (flinch, greeting, turn-to-look) — blocked on the Mixamo clip
-  session; the perception events it wires to already fire.
-- **Most of §6.6's honest life** beyond the courier track: romance, the other job tracks,
-  the apartment. **Lifestyle upgrades** in §6.7 likewise.
+- **Vice and lifestyle** (§6.7's upgrades, the apartment) — M18, not started.
 - **A handful of story branches that have never fired in any recorded run** (the
   constant-key sweep finds them; planting their trigger conditions is ongoing).
 - **HDRP.** Deliberately post-playtest; the 2K/roughness material work this week is
   pipeline-portable and carries over.
+
+### Unbuilt AND unplanned — found 2026-08-18, now in M18/M20/M21
+
+Each of these is defined above as part of the game and appeared **zero times** in
+`roadmap.md` and `queue.md` before this audit.
+
+- **Romance (§6.6), and it is the sharpest of the five.** §2's flagship illustration of
+  novelty claim 2 — the one the whole double life rests on — is *"your girlfriend can
+  catch your alibi from your coworker."* There is no romance system, no courtship, no
+  partner; the word appears in this project only inside character prose. What exists is
+  friendship-shaped: every few days the person who thinks best of you asks for an evening.
+  The alibi-propagation machinery underneath is real and running — what is missing is the
+  relationship that makes catching one hurt.
+- **The other day-job tracks (§6.6).** "Chosen from a few tracks — bar, courier, office."
+  `Core/DayJob` has no track concept at all: it is the courier round, singular. A choice
+  the document offers the player on his first morning has never existed.
+- **Smuggling and gambling (§6.5).** Five rackets are named; `EmpireSetup` builds three —
+  collection, protection, fencing. Smuggling is the conspicuous one: this is a port town
+  whose Act III threat is **Customs and Excise**, and there is no smuggling to be caught at.
+- **Interiors beyond the pub.** Every other door is a threshold. This was on the list
+  before and was owned by nothing, which is how it stayed there.
+- **The session-hook guarantee (§4).** "An unresolved thread every evening — *the sim
+  guarantees one*." Nothing guarantees it. This is the document's only explicit retention
+  claim and it has no implementation and no owner. It is also the cheapest of the five:
+  the state it would read (a rumour in flight, a recruit wavering, an evening promised)
+  is already tracked, and the end-of-day summary is already the surface it belongs on.
+
+### Unblocked 2026-08-18, needs scheduling rather than waiting
+
+- **Reaction animation** (flinch, greeting, turn-to-look). This read "blocked on the Mixamo
+  clip session" for weeks; that session ran on 18 August and the clips are on disk —
+  `flinch`, `greet`, `wave`, `glance` (Look Over Shoulder), `point`, `head_no`. The
+  perception events it wires to already fire, so this is now wiring, not sourcing.
 
 ## 12. Risks
 

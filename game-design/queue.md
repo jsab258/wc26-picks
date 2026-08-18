@@ -38,16 +38,16 @@ in `roadmap-history.md`; the git log is the record.**
 NEXT: T3 queue points and standing destinations; then the freeze
 decision (recommendation KEEP, unchanged and now stronger).
 
-### THE PLAYTEST PUSH — sequence, not calendar
+### THE PLAYTEST — DEPRIORITISED 18 Aug, by Jafar
 
-**The plan is `playtest-plan.md`** — MacBook Air, three players; its
-order wins over this one. Live speech is parked (no DirectML on that
-machine): recorded bank only, which the verdict's speech keys measure.
-Still owed: Jafar's Mixamo session then per-physique controllers;
-freeze, final builds, smoke test. The glowing box in day2_night's plaza
-is the bar sign's bare back face, one line, behind the critical work.
-**The daylight grade is SETTLED and the accounts are in
-`roadmap-history.md` — it stops being re-litigated.**
+*"Don't worry about timelines or the near goal or play testing. Just keep
+building."* `playtest-plan.md` stays live as the Mac setup record and the
+runbook, and its sequence resumes when he asks for it. **Jafar's Mixamo
+session is DONE and the per-physique controllers exist**, so the two items
+this section was waiting on are closed. Live speech stays parked (no
+DirectML on the Air). The glowing box in day2_night's plaza is the bar
+sign's bare back face — one line, low priority. The daylight grade is
+SETTLED; accounts in `roadmap-history.md`.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
@@ -84,20 +84,17 @@ is the bar sign's bare back face, one line, behind the critical work.
    and how strong the bias should be is a judgement, since you can
    turn round. Full account in `roadmap-history.md`.
 
-   **THE WHITE PILLS ARE STILL UNIDENTIFIED** — and 19f0cfd claimed
-   otherwise, wrongly: `bodyAlbedo` measures skinned Mixamo TEXTURES
-   (`RealBody.cs:1100`), not the pale blobs. Fifth wrong identification,
-   first one published; it arrived as a NUMBER and a number felt
-   pre-checked. Known: one object at two distances, `capsules=0` /
-   `undressed=0` at run time. **Intermittent.** Next step is a number
-   that fires WHILE one is on screen. Account in `roadmap-history.md`.
+   **THE WHITE PILLS ARE STILL UNIDENTIFIED** — and a published claim
+   that `bodyAlbedo` named them was wrong (it measures skinned Mixamo
+   TEXTURES). Fifth wrong identification, first one published; it
+   arrived as a NUMBER and a number felt pre-checked. **Intermittent.**
+   Next step is a number that fires WHILE one is on screen.
 
    **SEPARATELY, AND IT IS REAL: the cast is too bright for the
-   palette.** `bodyAlbedo=[... 0.61 0.67 0.78 0.91 vs wardrobe max
-   0.46]` — 7 of 14 skinned body textures exceed the ceiling the
-   procedural wardrobe respects. Bought characters are not going
-   through the palette that keeps this city noir. Worth fixing; not
-   the pills.
+   palette.** 7 of 14 skinned body textures exceed the 0.46 ceiling the
+   procedural wardrobe respects, topping at 0.91. The FETCHED characters
+   are not going through the palette that keeps this city noir. Worth
+   fixing; not the pills.
 
    **AND THE CAPSULE AUDIT USED TO BE BLIND** — `AuditUndressed` ran
    before any walker spawned, so its zeros meant "the world had none
@@ -119,21 +116,12 @@ is the bar sign's bare back face, one line, behind the critical work.
    looks.
 
 1. **THE KIT BUILDINGS ARE NOT TERRACES — SETTLED ON GEOMETRY.**
-   The catalogue holds 35 commercial + 21 suburban building models and
-   three files had ever been taken from it (two awnings and a
-   colormap). Eleven fetched to answer whether they beat our
-   procedural masses, which wear 2K photographic brick against the
-   kit's flat palette colormap.
-
-   **MEASURED (`tools/prop-dimensions.py`).** Every FULL building has
-   a roughly square plan — 88x94, 97x94, 130x103 — against terrace
-   parcels at about 1:2, narrow-fronted and deep. They are detached
-   standalone blocks and cannot be terraces at any scale, so that
-   option closes on geometry rather than taste. **The low-detail set is
-   the find: 90–112 verts at a 1:4 tower ratio**, trivial against ~280k
-   vertices of bodies, and exactly what a distant skyline wants — which
-   is where the hypothesis said our system was weakest. Skyline built
-   on that evidence; table in `roadmap-history.md`.
+   Measured (`tools/prop-dimensions.py`): every FULL kit building has a
+   roughly square plan (88x94, 97x94, 130x103) against terrace parcels
+   at about 1:2, so they cannot be terraces at any scale. **The
+   low-detail set is the find: 90–112 verts at a 1:4 tower ratio**,
+   which is what a distant skyline wants; the skyline was built on that
+   evidence. Table in `roadmap-history.md`.
 
 1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — 10 of 28 vehicles are
    still primitives.** `vehiclesKitted=18/28`,
@@ -189,14 +177,11 @@ is the bar sign's bare back face, one line, behind the critical work.
    guarding a residue rather than two in five.
 
 3. **THE DWELL FIX TRADES A VISIBLE FAULT FOR AN INVISIBLE SAVING.**
-   `bodySpell=5.41` median over 1,143 spells against a derivable 4.7s
-   (`BandSlack`/`crowdSpeed`), and the perf split says `bodyLod=2.59ms` against
-   `population=1.31ms` — the LOD pass costs twice the reband it was hiding
-   inside, spending it on 1,157 prefab instantiates. **Decide against
-   `gameShare`, not against milliseconds:** the frame gate reads
-   `gameShare=3.43%` with `render+rest=458ms` on a software-rendering runner,
-   so a 1ms saving is noise there and would be real on a player's machine.
-   That is the whole difficulty and it is why this has not been done.
+   `bodyLod=2.59ms` against `population=1.31ms` — the LOD pass costs twice the
+   reband it hides inside, on 1,157 prefab instantiates. **Decide against
+   `gameShare`, not milliseconds:** at `render+rest=458ms` on a software
+   runner a 1ms saving is noise here and real on a player's machine, which is
+   why this has not been done.
 
 6. **THE FRAME GATE'S BIGGEST ITEM IS NOW TWO NUMBERS.** *(CI)* `population=
    4.08ms` covered a pass that runs every frame and one that runs once a
@@ -263,24 +248,14 @@ is the bar sign's bare back face, one line, behind the critical work.
      sampled — one brandish can only produce one answer, and it has been
      `FleeScreaming` every time. Plant more than one, at people with different
      nerve, or the other three branches stay theoretical for ever.
-   - **`departed=0` ONLY — `adds` READS 10.** This entry said "she is
-     recruited and never leaves and never brings anybody. Two branches, no
-     runs." `companion[with=June recruited=1 departed=0 noted=3 exposure=3
-     adds=10 carriedOut=0]`. `--constant` listed `departed` alone and was
-     right; the prose here added `adds=0` on its own and was wrong for four
-     builds. The live zeros are `departed` and `carriedOut`.
+   - **`departed=0` and `carriedOut=0` are the live zeros** — `adds` reads 10,
+     and this entry claimed otherwise for four builds off prose rather than a
+     reading.
    - **`groundless=False`** — a carry has never been groundless.
-   - **`summonsTaken=0` — fixed 5 August, awaiting its own build.**
-     `SummonsHost.Nightly` runs at the day close and tested the player's LIVE
-     position against lines live at hour 21, so the hour came from the ring
-     and the position came from breakfast; now sampled at the ring hour, with
-     a third miss reason so the new case cannot read as the old one. **The
-     plant is deliberately NOT in the same build**, so a moving
-     `summonsTaken` is attributable to this and nothing else.
-   - **`reliabilityFiled` moved and came back, and that is honest.** Series
-     0,1,1,2,1,1,1 then 0 newest, and `reliabilityRead` says why: zero drops
-     were skipped in that run, so zero filed is correct. Rule 5b's corollary
-     — make the skip deterministic rather than read the zero as a regression.
+   - **`summonsTaken=0` — fixed 5 August, awaiting its own build.** The nightly
+     pass sampled the player's position at breakfast against lines live at hour
+     21; now sampled at the ring hour. **The plant is deliberately NOT in the
+     same build**, so a moving `summonsTaken` is attributable to this alone.
 
    **The rule for every one of these is the same and it is rule 5b's
    corollary: PLANT the condition, never loosen the bound.** And do them one
@@ -324,12 +299,9 @@ is the bar sign's bare back face, one line, behind the critical work.
   now answered this more than once.
 
 - **CLOSED 18 Aug — a character mesh needed no purchase at all.** This
-  said only Jafar could buy one and called it the single largest
-  immersion gap. Mixamo characters are a free download, and the pool is
-  now FOURTEEN realistic bodies against 43 named people. The entry was
-  right that it was the biggest gap and wrong about the price, and it
-  sat here unexamined while the answer was a script in
-  `tools/mixamo-pick/`.
+  entry said only Jafar could buy one; Mixamo bodies are a free
+  download and the pool is now FOURTEEN against 43 named people. Right
+  about the gap, wrong about the price, for weeks.
 - **API spend is quoted in FRANCS; the game's money stays £.** Jafar is in
   Switzerland. The £ in the design doc is a deliberate fiction decision — a
   British pub — and quoting both in one unit is how "a few pounds" reached him
@@ -358,6 +330,32 @@ list read as an empty afternoon. Three gaps of 21, 28 and 28 minutes followed.
 When `## Now` has nothing startable in it, the next action is to take one of
 these and decompose it into `## Now` — NOT to end the turn. Running out of short
 items is a refill signal, not a stop signal.
+
+### THE FIVE THINGS THE DESIGN DOC DEFINES AND NOBODY HAD PLANNED (18 Aug)
+
+Jafar asked for the design doc to be checked for anything defined and never
+planned. Five, each now placed in a milestone and each startable without CI or
+his machine. Full statements in `roadmap.md`; `design-doc.md` §18 has the
+account and the denominator of what was checked and found sound.
+
+1. **The session-hook guarantee** (M22) — the cheapest, and the only one that is
+   nearly free. §4 promises "the sim guarantees one unresolved thread every
+   evening"; nothing does. Every input already exists and the end-of-day summary
+   is already the surface. **Start here.**
+2. **Romance** (M18) — the largest, and possibly its own milestone. §2's
+   flagship sentence about why this game is worth making — *"your girlfriend can
+   catch your alibi from your coworker"* — needs a partner to exist.
+3. **Smuggling** (M21) — a port town whose Act III threat is Customs and Excise,
+   with no smuggling to be caught at. Runs on the `Racket` substrate the other
+   three use.
+4. **The other day-job tracks** (M18) — `Core/DayJob` is the courier round,
+   singular; the doc offers bar/courier/office on the first morning.
+5. **Interiors beyond the pub** (M20) — every other door is a threshold.
+
+**And one now unblocked:** reaction animation (flinch, greet, turn-to-look) read
+"blocked on the Mixamo clip session" for weeks. That session ran on 18 August;
+`flinch`, `greet`, `wave`, `glance`, `point` and `head_no` are on disk and the
+perception events they wire to already fire. Wiring, not sourcing.
 
 ### The quality ladder (standing order 16 Aug: best available, not first working)
 

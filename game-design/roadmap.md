@@ -34,11 +34,8 @@ Every NPC reaction in KCD2 is authored, and outside what the writer anticipated
 there is nothing. Here, what a person thinks of you is computed from what they
 saw or were told, then spoken in character by a model — so they can be WRONG
 about you, be argued with, and hold a grudge over a thing that never happened.
-The one axis where we do not approximate KCD2 but beat it.
-
-The consequence engine is not wasted by this. It stops being the product and
-becomes the reason the conversations matter: the person talking to you knows
-what you did and who told them.
+The consequence engine is not wasted by this: it stops being the product and
+becomes the reason the conversations matter.
 
 **Worse at, and at peace with it:** visual fidelity, animation, traversal scale,
 driving, content volume, combat depth. **Never worse at:** characters, dialogue,
@@ -58,13 +55,10 @@ market, and none in the back room of a busy pub*.
 **"Shipped" is true of the CONSEQUENCE half and not of the fighting**, found
 2026-08-04 by reading the code rather than this table: violence is staged as an
 event, everything downstream runs, and there is no exchange of blows anywhere.
-Fixing it is a milestone needing a done-condition that measures a FIGHT. Full
-account in `roadmap-history.md`.
-
-**The risk it exposed set the pace of everything below, and 5 Aug removed it:**
-the Game layer now compiles HERE, in six seconds, against Unity's own reference
-assemblies — so a wiring error costs a keystroke rather than a 28-minute round
-trip. `tools/gamecheck.py`, wired into `verify.py`.
+Fixing it needs a done-condition that measures a FIGHT. **The risk it exposed
+set the pace of everything below, and 5 Aug removed it:** the Game layer now
+compiles here in six seconds (`tools/gamecheck.py`), so a wiring error costs a
+keystroke rather than a round trip. Accounts in `roadmap-history.md`.
 
 ---
 
@@ -86,21 +80,20 @@ below is visible in them. Almost nothing here is new design.
 | 17.8 | **Weapons and held objects** — the player's hands are empty | shipped: `HeldObject` draws from the hand, silhouette derived from reach | low |
 | 17.9 | **A font that ships, and icons** | **DONE 2026-08-01.** PT Sans (SIL OFL) committed with its licence beside it; `fontless=0` every run | closed |
 
-**17.6–17.9 were found by an audit on 2026-07-31, not by the plan** — this file
-was derived from the work queue rather than from a definition of done, so it was
-silent about nine whole categories. Cause in `completeness-audit-2026-07-31.md`.
+**17.6–17.9 were found by an audit, not by the plan** — this file was derived
+from the work queue rather than from a definition of done, so it was silent
+about nine whole categories. Cause in `completeness-audit-2026-07-31.md`. **The
+2026-08-18 audit is the same shape aimed at the design doc** and found five more
+(romance, job tracks, smuggling, interiors, the session-hook guarantee), now
+placed in M18/M20/M21/M22.
 
 §4 chose stylised noir for the reason that still holds — a game about what people
 think they saw should look subjective and half-obscured, and weather and fog cut
-draw distance, hide low-detail geometry and make mood at once. One palette across
-seven districts beats scattered high-resolution assets, and none of it needs a
-purchase.
+draw distance, hide low-detail geometry and make mood at once.
 
-**The project can see itself.** Every Windows build commits four stills and a
-`verdict.txt` to `game-design/sim-shots/`. **Judge M17 from the stills, not from
-the source** — and read all four before reading any gate. What that loop has
-found, and the 17.1 import risk as it stood before it closed, are in
-`roadmap-history.md` §"seeing the game, 2026-08-01".
+**The project can see itself.** Every Windows build commits four stills, a clip
+contact sheet and a `verdict.txt` to `game-design/sim-shots/`. **Judge M17 from
+the stills, not from the source** — and read all four before reading any gate.
 
 **Done when.** A sim screenshot shows a skinned body walking with foot IK, and
 `bodiesOk` gates on the Avatar being bound rather than on `Mannequin` boxes;
@@ -114,35 +107,39 @@ end to end; effort sounds exist for Phase 3's fight.
 ## M18 — THE SECOND LIFE
 
 **Why it matters more than its scores suggest.** A belief network is only
-frightening if the people in it are people you would miss. Dimension scores and
-the full argument are in `agency-model.md` and `roadmap-history.md`.
+frightening if the people in it are people you would miss. Scores and the full
+argument: `agency-model.md`.
 
 **What is in it.**
 - **Home as a place that reacts.** The rooms above the pub change with money,
   heat and who has been in them. A base that reads your week back to you.
-- **Companionship.** **DONE 2026-08-01.** `Core/Companionship` + `CompanionHost`
-  + `NpcWalker.Escorting`. The companion is a witness through
-  `Witnesses.Resolve` **by standing there** — no companion branch anywhere in
-  the perception path — and adds no new threshold: both join/leave lines are
-  taken from `Empire`'s recruit and poach floors, and whether they spot a
-  watcher is `Perception` from where they stand. Gated on the comparison
-  (`companionRung >= streetRung >= 4`), because a gate on their rung alone
-  would pass on a run where the whole street had a clean look.
-- **Family and dependents.** **DONE 2026-08-01.** `Core/Household` +
-  `HouseholdHost`. Neglect has no number anything reads: a dependent below
-  `TalkFreely` is added to the mill as an ordinary agent whose loyalty is their
-  bond, so the people closest to you become the people most willing to talk.
+- **Companionship.** **DONE 2026-08-01, and closed 4 Aug** — she is a witness by
+  standing there, with no companion branch in the perception path. Account and
+  the following-distance fault in `roadmap-history.md`.
+- **Family and dependents.** **DONE 2026-08-01.** A dependent below `TalkFreely`
+  joins the mill as an ordinary agent whose loyalty is their bond, so the people
+  closest to you become the people most willing to talk.
 - **Vice.** A cost that is not money and not heat. **Not started.**
-- **Lifestyle.** **Not started, and the substrate this entry claimed does not
-  exist.** It said *"`Core/Coat` and `Core/Dressing` exist; what you wear should
-  be read by the street, and it already can be — `Reaction.CataloguesYourCoat`
-  has no caller."* Checked 2026-08-01: `Coat` is weapons **concealment**,
-  `Dressing` is **street furniture** placement, and `CataloguesYourCoat` DOES
-  have a caller (`CoatHost.Arrested`) — which itself has none, so it is the
-  whole `Reaction.Lawful` arrest path that is unwired, and that is an M19
-  finding rather than a lifestyle one. Nothing here is self-presentation.
-  Lifestyle needs **building**, not wiring, and `Core/Wardrobe` (which dresses
-  the crowd) is the only real starting point.
+- **Lifestyle.** **Not started**, and it needs BUILDING rather than wiring —
+  `Core/Wardrobe` is the only real starting point. (The substrate this entry
+  once claimed turned out to be weapons concealment and street furniture;
+  account in `roadmap-history.md`.)
+- **Romance. NOT STARTED AND, UNTIL 2026-08-18, IN NO MILESTONE AT ALL** — found
+  by auditing `design-doc.md` against this file. §6.6 names "friendship and
+  romance", and §2's flagship illustration of the second novelty claim is *"your
+  girlfriend can catch your alibi from your coworker"*: the clearest sentence
+  anyone has written about why this game is worth making depends on a system
+  that does not exist. What exists is friendship-shaped — every few days the
+  person who thinks best of you asks for an evening. The propagation underneath
+  is real and running; what is missing is the relationship that makes catching
+  an alibi hurt. **Done when** a partner holds a belief about the player that
+  came from a third party, and the endings matrix separates a run where it was
+  managed from one where it was not. **Depends on** nothing. **Risk: this may
+  deserve to be a milestone rather than a bullet**, and that is Jafar's call.
+- **The other day-job tracks.** §6.6 offers "bar, courier, office"; `Core/DayJob`
+  has no track concept — it is the courier round, singular, so a choice the doc
+  offers on the player's first morning has never existed. **Done when** two
+  tracks run end to end and each shows a different social graph and cover.
 
 **Done when.** A run where the player never goes home is measurably worse in
 the endings matrix than one where they do — and the difference comes from
@@ -156,13 +153,10 @@ relationships rather than from a stat.
 
 **THE WRITING HAS BEEN JUDGED AND IT IS GOOD — the project's largest unexamined
 risk is retired.** Forty real exchanges through the live engine, read line by
-line on 3 August, scoring **78**. Four voices stayed four voices and are
-tellable apart with the name tags removed; they catch a checkable lie with
-reasoning grounded in who they are; and jailbreak attempts land IN FICTION
-rather than as refusals — a barman told to ignore his instructions says you are
-talking to him like he is the electric meter. Both faults found were closed at
-the source the same hour: a stage direction instead of speech, and an
-out-of-period word repeated back.
+line on 3 August, scoring **78**: four voices stay four voices with the name
+tags removed, they catch a checkable lie for reasons grounded in who they are,
+and jailbreaks land in fiction rather than as refusals. Account and transcript
+in `roadmap-history.md` and `writing-check-free.md`.
 
 - **CONFIRMED 5 AUGUST, and the re-read found worse than either closure.** Both original faults are closed. **But all four voices answered "what's the mood" with the single word "Quiet.", in both paid runs, eight for eight** — every reply good alone, so it passed two readings and both checks, because the fault lives BETWEEN replies and nothing looked there. Each card now has a `What You Notice First` so they answer from different places. **And the cast was inventing people** — Frank Doyle's two-year tab, old Duffy's chair, Mrs Bartholomew, Vic, Ray, none of whom exist — the law breaking at its most expensive point, since a model that mints a person with a history has taken over deciding. Names are now limited to what the prompt already contains. **Checking is free from here**: `ConvoProbe --dump-prompts` needs no API call. Transcript and full account in `writing-check-free.md`.
 - Then make it good: voice held under pressure, memory of what you did.
@@ -174,14 +168,12 @@ reachable with a stick and two buttons. Typing and dictation stay first-class
 alternatives, never removed and never required. The check: no dialogue state is
 reachable ONLY by text.
 
-*This inverts a decision from 2026-07-26 that is still in the code —
-`DialogueUI` reads "clicking one says it; typing stays the game", with chips as
-a convenience on top of an `InputField`.* The fix is to stop the model PARSING
-and start it OFFERING: it writes four things Tom could say right now, from live
-state, and you pick one. `IntentRouter` already exists and is tested — today it
-maps typed text to an intent, and the change is that it maps stick input to the
-same intent. Plus an approach radial (press, lie, offer, soften) where you
-choose the intent and the model writes Tom's words.
+The fix is to stop the model PARSING and start it OFFERING: it writes four
+things Tom could say right now, from live state, and you pick one. `IntentRouter`
+exists and is tested; the change is that it maps stick input to the same intent,
+plus an approach radial (press, lie, offer, soften). *(This inverts a 2026-07-26
+decision still in the code — `DialogueUI` reads "clicking one says it; typing
+stays the game".)*
 
 **A side effect worth having: the chips ARE the odds display.** An option
 reading *"ask him why he was on Quay Street"* only appears if you know he was.
@@ -189,9 +181,9 @@ That answers `agency-model`'s visible-odds row (scored 0, target 50) without a
 percentage anywhere on screen — the player sees what they hold by seeing what
 they can say.
 
-**And the couch problem is reading, not typing.** Nobody wants three paragraphs
+**And the couch problem is reading, not typing** — nobody wants three paragraphs
 at two metres from a television, which makes 17.2's voices load-bearing rather
-than polish. Replies stay short; subtitles optional.
+than polish.
 
 **Done when.** A conversation with somebody who half-saw you do something is
 worth having twice, their opinion changed because of what you said rather than
@@ -203,36 +195,48 @@ because a flag flipped, and the whole exchange was played on a controller.
 
 ## M20 — THE TOWN YOU LEARN
 
-**Three districts, and the number is measured rather than argued.**
-`ledger/Recurrence` links the real `Population` model and counts how many people
-an ordinary resident crosses in a day: **6.5 at seven districts, 12.1 at two,
-12.9 at three** — and 32% more at face range. Concentration nearly doubles
-recurrence, which is the mechanism by which a place becomes familiar.
+**THE DISTRICT CUT IS OFF — filling the city beats shrinking it, and this
+section said the opposite until 2026-08-18.** It read "Keep the Hook, Copper Row
+and Ironside; cut four" while the screen table at the top of this same file
+said the cut was off, measured. Two halves of one document giving opposite
+instructions is the exact failure `roadmap.md` exists to prevent, and it stood
+for two weeks.
 
-Three beats two because Ironside houses 4% of the city and employs 20%: it drags
-commuters across the map and manufactures crossings. It is also the design's own
-*"warehouses, logistics, places without witnesses"*, so cutting it would have
-cost the game its best unobserved location. **Keep the Hook, Copper Row and
-Ironside; cut four.** This supersedes the two-district call of 2026-07-31, which
-was right about cutting and wrong about how far.
+What the measurement still says, and it is why the question was live:
+`ledger/Recurrence` counts how many people an ordinary resident crosses in a
+day — **6.5 at seven districts, 12.1 at two, 12.9 at three**, 32% more at face
+range. Concentration nearly doubles recurrence, which is the mechanism by which
+a place becomes familiar. **The answer was to raise density rather than cut
+area**, which buys the same recurrence without throwing away Ironside — the
+design's own "warehouses, logistics, places without witnesses", and its best
+unobserved location.
 
 - **Days that differ from each other.** `OutdoorsAt` and `OutdoorPosition` take
   an hour and reduce it mod 24 — there is no day parameter anywhere in the
   routine model, so every Tuesday is every Saturday and recurrence is total and
   unearned. Found by the tool above while measuring something else.
 - **Tier the cast**, because recognition and relationship have different
-  cognitive costs: a named few with faces and voices and real memory, a
-  recognisable many with a name and a routine, a crowd that witnesses and
-  gossips and fills a market. Dunbar's layers (~5 / ~15 / ~50 / ~150) are the
-  scale; the sizes come from the sweep below and from a frame budget nobody has
-  measured yet.
-- **Population is a dial, not a cliff.** Three districts: 350 people gives 5.1
-  crossings a day, 700 gives 12.9, 1400 gives 21.9, 2800 gives 38.9. Roughly
-  linear, so the crowd tier can be sized against performance rather than opinion.
+  cognitive costs: a named few with faces, voices and memory; a recognisable
+  many with a name and a routine; a crowd that witnesses and fills a market.
+  Dunbar's layers (~5 / ~15 / ~50 / ~150) are the scale.
+- **Population is a dial, not a cliff, and it sits at 700.** 350 gives 5.1
+  crossings a day, 700 gives 12.9, 1400 gives 21.9, 2800 gives 38.9 — roughly
+  linear, so the crowd tier is sized against a frame budget rather than opinion.
+  (`design-doc.md` claimed 3000 until 2026-08-18; the build has never run it.)
 - Routines legible enough that following somebody for an afternoon holds up.
 
-**Constraint to respect:** 44 character models exist, measured every build. That
-caps distinct NAMED faces until somebody buys more, which is Jafar's call.
+**Constraint to respect: 14 character models, and it is a FETCH, not a purchase.**
+This read "44 models ... until somebody buys more" — wrong twice: 44 was the
+animation CLIP count, and every body came free. Sameness is the real cap: 14
+models dress 43 named people, so two on screen always share a face.
+
+- **Interiors beyond the pub. NOT STARTED AND, UNTIL 2026-08-18, IN NO MILESTONE.**
+  `design-doc.md` §18 has carried "every other door is a threshold, not a room"
+  for weeks with nothing owning it. It belongs here rather than in the art
+  milestone: a room you can enter is what makes a routine followable and a
+  regular recognisable, which is this milestone's whole done-condition. **Done
+  when** three interiors a routine actually visits can be entered, and somebody
+  can be found inside one by following them. Kit-built, per §12's risk note.
 
 **Done when.** You recognise a regular by their coat before you can see their
 face, and you are right.
@@ -261,40 +265,41 @@ read from either end — and as of 4 Aug the street finally hears about a poach.
 
 **Law as a tool was the one to build first, and the spine of it is in** (4 Aug):
 an accusation is weighed by what people will say to a detective rather than by
-whether it is true, and the mark for having informed is a return value so no
-caller can skip the cost. The rest of the original plan still stands: The game already has an excise
-audit, a detective with a case, and police escalation on a body. Being able to
-*point* those at somebody — inform, press a charge, tip Ellis off, let a rival's
-books be the ones that do not reconcile — turns the game's central threat into a
-verb the player can hold. It reuses the whole information layer rather than
-adding one: a crime game where your best weapon is what people believe.
+whether it is true, and the mark for informing is a return value no caller can
+skip. The rest still stands — the game has an excise audit, a detective with a
+case and police escalation on a body, and being able to *point* those at
+somebody turns its central threat into a verb the player can hold, reusing the
+information layer rather than adding one.
 
 **Growth is the competence axis, and there is NO EGO METER.** A number the
 player tops up kills the story the mechanic exists to tell. Instead it is a run
-of individually reasonable decisions that compound: take the bigger cut because
-you earned it and loyalty erodes; do this one yourself because the lad would
-botch it and four people see your face instead of his; miss tonight because this
-job matters, and that is the sixth night running. The game already punishes
-every one. What it owes the player is the ability to SEE the shape forming —
-M19's chips, and as of 4 August the ledger's DOUBT section, which finally
-reads back why each person stopped trusting you.
+of individually reasonable decisions that compound — the bigger cut, the job
+done yourself, the sixth night missed — every one of which the game already
+punishes. What it owes the player is the ability to SEE the shape forming:
+M19's chips, and the ledger's DOUBT section as of 4 August.
 
 **The empire grows in DEPTH, not area.** Four businesses on a street where you
 know every face beats twelve across a map.
 
-**The rival is a person, not a stage counter — and she rings you as of
-4 August.** `ResolveTable` took accept, defy or counter, and all three require
-the player to be in the room. A call has a FOURTH answer those cannot express —
-not being there — and being unreachable is now a position you can take and the
-first thing in the game that charges for it. Missing costs less than refusing
-to her face, more than taking the call, and leaves her attention where it was
-so the matter stays live. **Still missing: the third answer.** Picking up and
-saying no needs a prompt, which belongs with the UI.
+**Two of the five rackets do not exist, and nobody had planned them** — found
+2026-08-18 by auditing `design-doc.md` against this file. §6.5 names protection,
+smuggling, gambling, fencing and debt-collection; `EmpireSetup` builds
+collection, protection and fencing. **Smuggling is the conspicuous one**: this
+is a port town whose Act III threat is Customs and Excise, and there is nothing
+to be caught smuggling. It is also the racket with the most natural exposure
+profile — a cargo, a shed, an hour, a person who signs — and the one that would
+make the existing audit mechanic bite. **Done when** a smuggling round runs on
+the same `Racket` substrate as the other three and an Act III audit can land on
+its paperwork. Gambling is the weaker of the two and can wait behind it.
+
+**The rival is a person, not a stage counter — and she rings you as of 4 August**:
+being unreachable is a position you can take and the first thing in the game
+that charges for it. **Still missing: the third answer** — picking up and saying
+no needs a prompt, which belongs with the UI. Account in `roadmap-history.md`.
 
 **Done when.** A player can end a rival without touching them — allegiance
-moves, a charge lands, their access closes because of what the street believes.
-And a player who overreached can look back and name the night it became
-inevitable.
+moves, a charge lands, their access closes because of what the street believes —
+and a player who overreached can name the night it became inevitable.
 
 **Depends on.** M16 for the observation model, M19 for the conversations the
 negotiations happen in.
@@ -312,13 +317,21 @@ systems-first project is most likely to skip.
 - **Pacing and difficulty.** Seven authored days, then an open city, then an
   audit. Whether that curve holds is unmeasured — the balance lab tests
   outcomes, not the felt shape of a week.
-- **Replayability.** Five endings exist. Whether a *second run feels different*
-  is the untested claim, and the Director plus the gossip mill are the two
-  systems that could make it true — different people knowing different things
-  is a different game, if the Director is actually authoring variety.
-- **Legacy & succession, 40 → 70.** Succession exists only at the ending. A
-  hand-over that matters mid-game is what turns one campaign into a dynasty,
-  and CK3 scores 95 here for exactly that.
+- **Replayability.** Five endings exist; whether a *second run feels different*
+  is the untested claim. The Director and the gossip mill are the two systems
+  that could make it true, if the Director is authoring real variety.
+- **Legacy & succession, 40 → 70.** Succession exists only at the ending; a
+  hand-over that matters mid-game is what turns a campaign into a dynasty.
+- **The session-hook guarantee. NOT BUILT AND, UNTIL 2026-08-18, IN NO
+  MILESTONE.** `design-doc.md` §4 says the player's "one more day" comes from
+  *"an unresolved thread every evening — **the sim guarantees one**"*. Nothing
+  guarantees it. It is the document's only explicit retention claim, and having
+  no owner made it read as a solved problem in the one section anyone checks
+  for whether the game is sticky. It is also the cheapest item here: every
+  input exists (a rumour in flight, a recruit wavering, an evening promised, a
+  debt due) and the end-of-day summary is already the right surface. **Done
+  when** no closed day in a full run ends with nothing outstanding, and the
+  summary NAMES the thread rather than counting it.
 
 **Done when.** Two full playthroughs by somebody who has not read the design
 docs, with notes, and a measured difference between them.
@@ -332,21 +345,21 @@ docs, with notes, and a measured difference between them.
 M16 phase 5, held back on purpose. A gun in a game about being watched is a
 different game, and it should arrive when everything that observes it is
 finished: the ladder, the delivery window, provenance, disposal, notoriety.
-Building it earlier would have made every one of those decisions easier and
-wronger.
 
 ---
 
 ## M24 — SHIP
 
-Performance budgets held under load; macOS (compiles today, never run);
-controller support (28 `Input.*` calls to move onto an action map — contained,
-not a rewrite, and zero `OnGUI` so the focus model already applies);
-accessibility beyond the caption channel; and `qa-matrix.md` run for real by a
-person rather than asserted by a harness.
+Performance budgets held under load; **macOS builds green and packages, and has
+never been LAUNCHED by a person** (the workflow proves the app exists and names
+its architecture; only real hardware can prove it runs — Jafar's machine is an
+M-series Air, so it is native arm64 rather than Rosetta); controller support (28
+`Input.*` calls to move onto an action map — contained, not a rewrite, and zero
+`OnGUI` so the focus model already applies); accessibility beyond the caption
+channel; and `qa-matrix.md` run for real by a person rather than by a harness.
 
 **And the four things that turn a build into something a person installs**,
-added by the 2026-07-31 audit because none of them had an owner:
+added by an audit because none of them had an owner:
 
 | | what | why it is not optional |
 |---|---|---|
@@ -372,25 +385,15 @@ spending a year losing it.
 
 ## At risk
 
-- **Windows CI is green** (`2cd11c2`, pass=True). `nightNotDarker` is settled.
-- **The animation import** (M17.1) is unverifiable locally but CI says it works:
-  `humanoid=44 validHumanAvatar=44`, `realBody=1` scaled x0.949 from raw 1.90m.
-  Player skinned; the crowd stays boxes until one is costed on a GPU-less runner.
-- **Phases 2–4 were built, tested and disconnected.** `tools/ReachCheck` runs
-  every commit; the ledger is 89 typed entries, counting down only — the debt
-  *measured*, not cleared.
+- **The frame gate is the only live red** — `game=17.55ms` against a 12ms
+  budget, failing 28 of 141 runs. CI timings are the wrong machine to tune on.
+- **The reach ledger is 37 typed entries, counting down only** — the debt
+  measured, not cleared. Read each entry's REASON as well as its name: reasons
+  decay exactly like comments and three were wrong on 4 August alone.
+- **Two clips have a frozen root and one slot's identity is unresolved** —
+  `game-design/clip-findings.txt`, which is a ceiling and can only be lowered.
 
-## The rules this project runs on
-
-- **Measure before you gate.** A threshold set without a measured value is how
-  `nightNotDarker` failed on noise. Print the series first — it is what
-  separated a leaking reasons trail from a healthy rumour count.
-- **Check the ruler before the reading.** The instrument was at fault four
-  times this month: `breakrun.py` reverting one file of a two-file spec, a bark
-  manifest written to an untracked path, a diagnostic reporting on a corpus it
-  had sampled one speaker of, and an Adversary control asserting behaviour the
-  router had reasoned its way out of.
-- **Built is not running.** A system with no call site is not a feature and
-  looks exactly like one in review — `SuspicionTracker.Reasons` is the newest.
-- **Nothing here requires a purchase.** Characters, animations and voices came
-  free; the last shopping-list item was decided free on 2026-07-31.
+*(The working rules that used to be repeated here live in `CLAUDE.md`, which is
+read at the start of every session. Two copies of a rule is one copy that goes
+stale, and this one had: it still described a 89-entry reach ledger and a crowd
+of boxes months after both changed.)*
