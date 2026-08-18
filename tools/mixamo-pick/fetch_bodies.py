@@ -189,7 +189,9 @@ def export_body(token, cid, name, out_dir, wait_seconds=180):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--harvester", required=True, help="the MixamoHarvester folder (for the token)")
-    ap.add_argument("--out", required=True, help="ledger/Assets/Characters in the repo")
+    ap.add_argument("--out", default=None, help="ledger/Assets/Characters in the repo")
+    ap.add_argument("--list", action="store_true", dest="list_only",
+                    help="print every character name this account can see, then stop")
     ap.add_argument("--token", default=None)
     ap.add_argument("--names", default=None, help="comma-separated, overrides the defaults")
     ap.add_argument("--count", type=int, default=4)
@@ -205,9 +207,13 @@ def main():
     if not token:
         print("The token file is empty.")
         return 2
-    if not os.path.isdir(args.out):
-        print(f"No such folder: {args.out}")
-        return 2
+    if not args.list_only:
+        if not args.out:
+            print("--out is required unless you passed --list")
+            return 2
+        if not os.path.isdir(args.out):
+            print(f"No such folder: {args.out}")
+            return 2
 
     try:
         chars = characters(token)
@@ -220,6 +226,25 @@ def main():
         return 2
 
     print(f"{len(chars)} characters visible to this account.\n")
+
+    # LIST THE WHOLE CATALOGUE AND STOP.
+    #
+    # Until now the names were only ever printed when a pick MISSED, and only
+    # the first forty of them. So every body in this game was chosen from a
+    # guess at a name — `MORE-BODIES.bat` says so itself: "CHOSEN FROM NAMES,
+    # NOT FROM LOOKING". Two of the five it picked that way turned out to be
+    # caricatures and were taken off the street on 17 Aug: a 40% miss rate,
+    # paid for in build round trips.
+    #
+    # A pick still cannot see a MODEL from here — but it can be made from the
+    # real list rather than from a memory of what Mixamo probably has, and
+    # `tools/body-proportions.py` measures whatever arrives before it can
+    # reach the street. Guess-then-measure beats guess-then-ship.
+    if args.list_only:
+        for _, name in sorted(chars, key=lambda c: c[1].lower()):
+            print(f"    {name}")
+        print(f"\n{len(chars)} names. Pick from these, not from memory.")
+        return 0
 
     wanted = [n.strip().lower() for n in args.names.split(",")] if args.names \
         else DEFAULT_BODIES
