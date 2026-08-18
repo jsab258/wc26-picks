@@ -29,14 +29,11 @@ CLAUDE.md under AUTO MODE.
 
 ### Where the street got to
 
-The Mixamo harvest landed complete and the street came alive with it —
-people talk, argue, lean, smoke, work counters, carry shopping
-(`activityPeak` 1 -> 18) — along with zebra crossings, belisha beacons,
-hanging cables, smoking chimneys and the topology stretch. **Accounts
-in `roadmap-history.md`; the git log is the record.**
+The Mixamo harvest landed complete — 67 clips, no duplicates — and the
+street came alive with it: people talk, argue, lean, smoke, work
+counters, carry shopping. **Accounts in `roadmap-history.md`.**
 
-NEXT: T3 queue points and standing destinations; then the freeze
-decision (recommendation KEEP, unchanged and now stronger).
+NEXT: T3 queue points and standing destinations.
 
 ### THE PLAYTEST — DEPRIORITISED 18 Aug, by Jafar
 
@@ -55,10 +52,9 @@ SETTLED; accounts in `roadmap-history.md`.
    RESOLVED.** *(player-height frame, dfefd62)* Fine from the elevated
    camera, dense dark striation from the player's eyes — likely sized
    for a downward view. **Cannot be judged on any frame since; every
-   run has come back dry.** Needs a wet run, not another look. It came
-   bundled with a claim that the pink figure was error-shader magenta —
-   **that half is REFUTED** (zero magenta pixels, 7.63 heads) and is
-   named so it cannot resurrect. Account in `roadmap-history.md`.
+   run has come back dry.** Needs a wet run, not another look. The
+   magenta half of that report is REFUTED (zero magenta pixels, 7.63
+   heads) and is named so it cannot resurrect.
 
 1. **THE STREET IS EMPTY AT EYE LEVEL, AND EVERY POPULATION NUMBER
    SAYS IT IS FINE.** *(on screen — `review_street.jpg`)* Not one
@@ -90,16 +86,31 @@ SETTLED; accounts in `roadmap-history.md`.
    arrived as a NUMBER and a number felt pre-checked. **Intermittent.**
    Next step is a number that fires WHILE one is on screen.
 
-   **SEPARATELY, AND IT IS REAL: the cast is too bright for the
-   palette.** 7 of 14 skinned body textures exceed the 0.46 ceiling the
-   procedural wardrobe respects, topping at 0.91. The FETCHED characters
-   are not going through the palette that keeps this city noir. Worth
-   fixing; not the pills.
+   **"THE CAST IS TOO BRIGHT FOR THE PALETTE" — RETRACTED 18 Aug, the
+   THIRD wrong reading of `bodyAlbedo`.** They do not bypass the
+   palette: `RealBody.Tint` calls `Wardrobe.Wash` on every one, anchored
+   per material, so a 0.78 sheet is multiplied to land AT the band —
+   which is what the anchored rule is for. `bodyAlbedo` measures the
+   SOURCE SHEET before the wash: the input the wash exists to pull down,
+   read as though it were the rendered result.
 
-   **AND THE CAPSULE AUDIT USED TO BE BLIND** — `AuditUndressed` ran
-   before any walker spawned, so its zeros meant "the world had none
-   when built". Now re-run at the done line; still 0/0, but they carry
-   information. Account in `roadmap-history.md`.
+   **The honest residue is the opposite number and nobody has looked at
+   it: `bodyWashUnreached=534` against `bodyTinted=1326`** — 40% of
+   bodies render DARKER than the band the wardrobe chose, because their
+   sheet is darker than the band and a multiply only subtracts. Not a
+   bug in the wash, which did the only thing available, but a real limit
+   on how much of the palette reaches the street. That is the number to
+   judge from a frame.
+
+   **AND `bodyLiftedCrowd` READS BACKWARDS.** It counts crowd bodies
+   correctly NOT given the cast's brightness lift, while its own comment
+   said non-zero was the fault it existed to catch — true before the
+   `cast` flag landed, false after. Comment fixed; the name is kept
+   because the key has a landed series.
+
+   **AND THE CAPSULE AUDIT USED TO BE BLIND** — it ran before any walker
+   spawned, so its zeros meant "the world had none when built". Re-run
+   at the done line now; still 0/0, but they carry information.
 
    **PERF, SETTLED THIS ROUND.** `traffic` 4.67 -> **2.23**, halved by
    hoisting the road heading out of the per-hazard loop. `npcs` 9.36 ->
@@ -136,16 +147,12 @@ SETTLED; accounts in `roadmap-history.md`.
    costs one line of `KitCandidates` once there is a kind for it.
 
 1. **THE FRAME GATE IS THE ONLY LIVE RED, AND IT IS THE GAME'S OWN TIME.**
-   **Read the breakdown, not the mean.** `mean=483.7ms` is a software
-   rasteriser and says nothing; `game=17.55ms` against `gameBudget=12ms` is a
-   46% overrun in OUR code and a real number on a real machine.
-   `bodyLod=4.39 traffic=3.72 sun=3.15 npcs=2.77 rigs=2.06 population=1.32`.
-   `gates --flaky`: `frame` has failed 28 of 141 runs and is red on the
-   newest; everything else is quiet. bodyLod is a once-a-second FULL pass
-   (spike, not steady cost) — spreading it round-robin is the obvious move
-   BUT its verdict counters assume one atomic pass, so split the measurement
-   from the sweep first or every count becomes a peak over partial passes.
-   CI timings are the wrong machine for tuning: verify on the PC.
+   **Read the breakdown, not the mean** — `mean=483.7ms` is a software
+   rasteriser and says nothing; `game=17.55ms` against a 12ms budget is a 46%
+   overrun in OUR code. `bodyLod=4.39 traffic=3.72 sun=3.15 npcs=2.77`.
+   `frame` has failed 28 of 141 runs. bodyLod is a once-a-second FULL pass, so
+   spreading it round-robin needs the measurement split from the sweep first
+   or every count becomes a peak over partial passes. Tune on the PC, not CI.
 
    **`sun=3.15ms` is the odd one and is not an obvious loop** — `UpdateSun`
    has none, so it is Unity-side light or shadow work being triggered every
@@ -244,13 +251,11 @@ SETTLED; accounts in `roadmap-history.md`.
    `panelsBad=0`, `offRoad=0`. These are the ones that are not:
 
    - **`threat` has only ever seen one outcome.** `brandishes=1` a run, so
-     `called=0 complied=0 undraw=False` are three responses that CANNOT be
-     sampled — one brandish can only produce one answer, and it has been
-     `FleeScreaming` every time. Plant more than one, at people with different
-     nerve, or the other three branches stay theoretical for ever.
-   - **`departed=0` and `carriedOut=0` are the live zeros** — `adds` reads 10,
-     and this entry claimed otherwise for four builds off prose rather than a
-     reading.
+     `called=0 complied=0 undraw=False` CANNOT be sampled — one brandish gives
+     one answer, `FleeScreaming` every time. Plant several, at people with
+     different nerve.
+   - **`departed=0` and `carriedOut=0` are the live zeros**; `adds` reads 10,
+     and this entry claimed otherwise for four builds off prose.
    - **`groundless=False`** — a carry has never been groundless.
    - **`summonsTaken=0` — fixed 5 August, awaiting its own build.** The nightly
      pass sampled the player's position at breakfast against lines live at hour
@@ -264,21 +269,19 @@ SETTLED; accounts in `roadmap-history.md`.
 
 ## Next
 
-- **Raise the population rather than cutting districts.** Measured and it
-  reverses the old plan: seven districts at 1,400 people gives 43.5 distinct
-  faces a week against 47.4 for three at 700, and 2,100 beats the cut outright.
-  What is NOT measured is whether a fuller city still reads as a port rather
-  than a crowd — a question for a still. Note `CrowdWalkerCap = 12` bounds how
-  many are out of doors within earshot whatever the headcount is, so this buys
-  FAMILIARITY and changes the frame not at all.
-- **Tier the cast.** 47 distinct faces a week, 13 near enough to read, a knee at
-  ~50 people covering 92% of a resident's week; 68 rigs cost 1.1ms of a 12ms
-  budget. **The machine does not bound the cast at fifty; only authoring does.**
-- **M17.2 voices** — no longer held on the writing verdict, which came back 78.
-  Note this is a SPEND and Jafar has not authorised it.
-- **Is fifty-six conversations a run too many?** A judgement off a still rather
-  than a number. The history: 16-42 a run under the old flat-road test, 7 after
-  the walking pace slowed, 30-56 now the test asks about junctions.
+- **Raise the population rather than cutting districts.** Measured, and it
+  reverses the old plan: seven districts at 1,400 gives 43.5 distinct faces a
+  week against 47.4 for three at 700, and 2,100 beats the cut outright.
+  `CrowdWalkerCap = 12` bounds how many are within earshot whatever the
+  headcount, so this buys FAMILIARITY and changes the frame not at all —
+  whether a fuller city still reads as a port is a question for a still.
+- **Tier the cast.** 47 distinct faces a week, 13 near enough to read, a knee
+  at ~50 covering 92% of a resident's week; 68 rigs cost 1.1ms of 12ms. **The
+  machine does not bound the cast at fifty; only authoring does.**
+- **M17.2 voices** — no longer held on the writing verdict (78). A SPEND, and Jafar has not authorised it.
+- **Is fifty-six conversations a run too many?** A judgement off a still, not a
+  number: 16-42 under the old flat-road test, 7 after the pace slowed, 30-56
+  now the test asks about junctions.
 
 ## Blocked, and on whom
 
@@ -314,22 +317,19 @@ SETTLED; accounts in `roadmap-history.md`.
   reason to switch tasks, never a reason to stop.
 - **Arming a watcher is the PRECONDITION for ending a turn, not permission to
   end one.** Both are required and only one of them feels like progress.
-- **Batch Game-layer changes, and dispatch hypotheses in parallel** — each build
-  keeps its own verdict under `sim-shots/runs/<sha>.txt`, so concurrent builds
-  are concurrent answers.
+- **Batch Game-layer changes** — each build keeps its own verdict under
+  `sim-shots/runs/<sha>.txt`, so concurrent builds are concurrent answers, but
+  the single Personal licence seat means one at a time.
 - **Prefer a local answer.** Before dispatching, ask whether the question is
   actually about Unity. Item 1 above is not.
 
 ## Standing work
 
-**This section never empties, and that is its entire job.** The queue ran dry on
-3 August after an hour of good work, because every item was sized to fit inside
-one build round trip — so an hour of good work consumed the list, and an empty
-list read as an empty afternoon. Three gaps of 21, 28 and 28 minutes followed.
-
-When `## Now` has nothing startable in it, the next action is to take one of
-these and decompose it into `## Now` — NOT to end the turn. Running out of short
-items is a refill signal, not a stop signal.
+**This section never empties, and that is its entire job.** The queue ran dry
+on 3 August because every item was sized to fit one build round trip, so an
+hour of good work consumed the list and an empty list read as an empty
+afternoon. When `## Now` has nothing startable, decompose one of these into it
+— running out of short items is a refill signal, not a stop signal.
 
 ### THE FIVE THINGS THE DESIGN DOC DEFINES AND NOBODY HAD PLANNED (18 Aug)
 
@@ -338,10 +338,12 @@ planned. Five, each now placed in a milestone and each startable without CI or
 his machine. Full statements in `roadmap.md`; `design-doc.md` §18 has the
 account and the denominator of what was checked and found sound.
 
-1. **The session-hook guarantee** (M22) — the cheapest, and the only one that is
-   nearly free. §4 promises "the sim guarantees one unresolved thread every
-   evening"; nothing does. Every input already exists and the end-of-day summary
-   is already the surface. **Start here.**
+1. ~~**The session-hook guarantee** (M22)~~ — **HALF DONE 18 Aug.**
+   `Core/LooseEnds` picks the evening's thread and the day close shows it;
+   three of six tiers are fed (law, crew, Mickey's book) and `looseEndsFed`
+   says so. **What is open: the other three tiers, and then whether any
+   evening is ever EMPTY — which is what decides if the planting half is
+   worth building. Read `looseEnds` off the next landed verdict first.**
 2. **Romance** (M18) — the largest, and possibly its own milestone. §2's
    flagship sentence about why this game is worth making — *"your girlfriend can
    catch your alibi from your coworker"* — needs a partner to exist.
@@ -389,9 +391,9 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 
 - **THE DROP PIPELINE, AND WHAT IS LEFT OF IT.** `jobRan` says `JobsDone >= 1`
   and means "a drop can be made end to end". Two of six windows miss in a
-  typical run and both causes are now named: the first was the waypoint's own
-  collider, thirty centimetres outside its completion radius, and it is fixed.
-  The second — ten of sixteen metres covered, steered the whole window, stalled
-  seven metres out — has no explanation, and `stalled=` lands next build to say
-  whether he stopped or merely walked slowly. **Deliberately not loosened**:
-  accepting a run that never exercised the pipeline is rule 6 exactly.
+  typical run and both causes are named: the first was the waypoint's own
+  collider, thirty centimetres outside its completion radius, now fixed. The
+  second — ten of sixteen metres covered, steered the whole window, stalled
+  seven metres out — has no explanation, and `stalled=` lands next build.
+  **Deliberately not loosened**: accepting a run that never exercised the
+  pipeline is rule 6 exactly.

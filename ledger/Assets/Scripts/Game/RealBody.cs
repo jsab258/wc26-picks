@@ -627,9 +627,27 @@ namespace Ledger.Game
         /// How many bodies got the cast's brightness lift and how many did not.
         /// Lifetime, and NOT in the save-and-restore set: these are counts of
         /// what happened to the city, not statements about the player.
-        /// `bodyLiftedCrowd` non-zero is the fault this pair was added to
-        /// prove was fixed, so a run that reports zero of both means no body
-        /// was dressed at all rather than that the fix worked.
+        ///
+        /// `LiftedCrowd` COUNTS THE CROWD BODIES THAT WERE **NOT** LIFTED, and
+        /// the comment here said the opposite until 2026-08-18: *"non-zero is
+        /// the fault this pair was added to prove was fixed"*. That was true
+        /// while `TryAttachExtra` lifted everybody. The `cast` flag below fixed
+        /// it, and the moment it did, non-zero became the CORRECT reading —
+        /// `bodyLiftedCrowd=161` says a hundred and sixty-one crowd bodies were
+        /// properly left under `Wardrobe.MaxValue`, not that a hundred and
+        /// sixty-one are illegally bright.
+        ///
+        /// So the pair reads: `LiftedCast` bodies got the cast's brightness
+        /// lift, `LiftedCrowd` bodies correctly did not. Zero of BOTH still
+        /// means no body was dressed at all, which is what the original
+        /// sentence was reaching for and is the only part of it that survived.
+        ///
+        /// THE NAME IS KEPT DESPITE BEING WRONG, and that is a deliberate
+        /// trade rather than laziness: `bodyLiftedCrowd` is a landed verdict
+        /// key with a history behind it, and this project has already paid for
+        /// losing a measurement's series. The name is wrong; this paragraph is
+        /// the fix, and it is the same fault CLAUDE.md files under "a number
+        /// keeps its name when the question it answers moves".
         public static int LiftedCast { get; private set; }
         public static int LiftedCrowd { get; private set; }
 
