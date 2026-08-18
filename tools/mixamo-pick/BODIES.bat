@@ -61,7 +61,29 @@ if "%~1"=="" (
 if errorlevel 1 goto :failed
 echo.
 
-echo  [3/3] Committing...
+echo  [3/4] Measuring what arrived...
+echo.
+REM  MEASURE BEFORE COMMITTING, because git keeps a file for ever even
+REM  after it is deleted. Two of the last five bodies picked from names
+REM  were caricatures - The Boss at 5.11 heads, Big Vegas at 6.05 - and
+REM  they were only caught once they were in the repo and on the street.
+REM  This prints the proportions of everything in Assets/Characters so a
+REM  bad one can be deleted while deleting it still costs nothing.
+REM
+REM  It only PRINTS. Nothing is auto-deleted: a script that throws away a
+REM  download it just made is the shape of fault that cost this project
+REM  24 listened-to voice clips, and a human reading a table is cheap.
+python "%REPO%\tools\body-proportions.py"
+echo.
+echo  ---------------------------------------------------------------
+echo   Paste the table above into the chat BEFORE the commit finishes
+echo   mattering - anything under about 7 heads is a caricature and
+echo   should come back out.
+echo  ---------------------------------------------------------------
+echo.
+pause
+
+echo  [4/4] Committing...
 pushd "%REPO%"
 git add "ledger/Assets/Characters"
 git commit -m "Character bodies from Mixamo, with skin"
