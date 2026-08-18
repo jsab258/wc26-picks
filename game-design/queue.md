@@ -51,6 +51,21 @@ is the bar sign's bare back face, one line, behind the critical work.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
+1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL — RECOVERED, NOT
+   RESOLVED.** *(on screen — the first player-height frame, dfefd62)*
+   From the elevated review camera the rain pass looked fine; from the
+   player's own eyes the sky is dense dark striation. Likely sized for
+   a downward view: read streak width / alpha / length against camera
+   pitch. **Cannot be judged on any frame since** — every recent run
+   has come back dry, so this needs a run with rain, not another look.
+
+   This item was LOST when the density work replaced it, and came back
+   only because a container rollback surfaced the old file. It arrived
+   bundled with a claim that the pink figure was error-shader magenta:
+   **that half is REFUTED** — the frame holds zero magenta pixels and
+   she measures 7.63 heads. Kept apart so the dead half cannot
+   resurrect itself the next time this text is found.
+
 1. **THE STREET IS EMPTY AT EYE LEVEL, AND EVERY POPULATION NUMBER
    SAYS IT IS FINE.** *(on screen — `review_street.jpg`)* Not one
    existing number is about the VIEW: `walkers=55` counts bodies
@@ -75,24 +90,17 @@ is the bar sign's bare back face, one line, behind the critical work.
    and how strong the bias should be is a judgement, since you can
    turn round. Full account in `roadmap-history.md`.
 
-   **THE WHITE PILLS ARE STILL UNIDENTIFIED — AND THE PREVIOUS COMMIT
-   SAID OTHERWISE, WRONGLY.** 19f0cfd claimed `bodyAlbedo` had been
-   naming them all along. It had not. `AlbedoValueOf` is called on
-   `m.mainTexture` of a REAL BODY's material (`RealBody.cs:1100`), so
-   that series measures the brightness of skinned Mixamo TEXTURES —
-   not the pale blobs, which appear in frames where
-   `streetBodiesSkinned` is low. If anything the evidence points away
-   from skinned bodies. **Fifth wrong identification of this thing, and
-   the first one I published.** The tell I ignored: I found a number
-   that fitted the story and stopped checking what it measured.
-
-   What is actually known: the blobs are 73x137 and 23x42 px, aspect
-   1.88 / 1.83, fill 0.88 / 0.87 — one object at two distances.
-   Run-time `capsules=0` and `undressed=0` rule out a bare primitive
-   and an untextured renderer with an instrument that can now see
-   walkers. **Intermittent** — the next frame had none, with nothing
-   changed. Next step is a number that fires WHEN one is on screen,
-   not another look at a still.
+   **THE WHITE PILLS ARE STILL UNIDENTIFIED, and 19f0cfd claimed
+   otherwise — wrongly.** `AlbedoValueOf` runs on a REAL BODY's
+   `m.mainTexture` (`RealBody.cs:1100`), so `bodyAlbedo` measures
+   skinned Mixamo TEXTURES, not the pale blobs — which show up in
+   frames where `streetBodiesSkinned` is low. **Fifth wrong
+   identification, first one published**: it arrived as a NUMBER, and a
+   number felt pre-checked. Known: one object at two distances (aspect
+   1.88/1.83, fill 0.88/0.87); run-time `capsules=0`/`undressed=0` rule
+   out a primitive and an untextured renderer. **Intermittent.** Next
+   step is a number that fires WHILE one is on screen. Full account in
+   `roadmap-history.md`.
 
    **SEPARATELY, AND IT IS REAL: the cast is too bright for the
    palette.** `bodyAlbedo=[... 0.61 0.67 0.78 0.91 vs wardrobe max
@@ -101,12 +109,10 @@ is the bar sign's bare back face, one line, behind the critical work.
    through the palette that keeps this city noir. Worth fixing; not
    the pills.
 
-   **AND THE CAPSULE AUDIT USED TO BE BLIND.** `AuditUndressed` ran
-   inside `WorldBuilder.Build`, BEFORE any walker spawned, so
-   `capsules`/`undressed` were BUILD-time readings of a RUN-time
-   condition — every walker begins as a `PrimitiveType.Capsule` that
-   `Mannequin.Build` strips. Now re-run at the done line: still 0/0,
-   but those zeros finally carry information.
+   **AND THE CAPSULE AUDIT USED TO BE BLIND** — `AuditUndressed` ran
+   before any walker spawned, so its zeros meant "the world had none
+   when built". Now re-run at the done line; still 0/0, but they carry
+   information. Account in `roadmap-history.md`.
 
    **PERF, SETTLED THIS ROUND.** `traffic` 4.67 -> **2.23**, halved by
    hoisting the road heading out of the per-hazard loop. `npcs` 9.36 ->
@@ -117,11 +123,10 @@ is the bar sign's bare back face, one line, behind the critical work.
    `sun` (0.91 / 3.15 / 1.26 across runs that changed nothing) was
    noise read as a finding. Accounts in `roadmap-history.md`.
 
-   **`RealBodyCap = 12` NEEDS A PC MEASUREMENT, not a CI one.** Its
-   comment prices a dozen skinned bodies at ~280k vertices against a
-   runner with no GPU that software-rasterises every frame. Jafar's
-   machine is not that machine, and this is plausibly the cheapest
-   large win for how full the street looks.
+   **`RealBodyCap = 12` NEEDS A PC MEASUREMENT, not a CI one** — its
+   comment prices a dozen skinned bodies against a runner with no GPU
+   at all. Plausibly the cheapest large win for how full the street
+   looks.
 
 1. **THE KIT BUILDINGS ARE NOT TERRACES — SETTLED ON GEOMETRY.**
    The catalogue holds 35 commercial + 21 suburban building models and

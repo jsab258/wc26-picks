@@ -2166,3 +2166,37 @@ recorded bank only, which the verdict's speech keys already measure.
    it changes play behaviour and wants judgement about how strong the
    bias is, which is a decision and not a tidy-up.
 
+
+
+### The white pills — five wrong identifications, in full
+
+   **THE WHITE PILLS ARE STILL UNIDENTIFIED — AND THE PREVIOUS COMMIT
+   SAID OTHERWISE, WRONGLY.** 19f0cfd claimed `bodyAlbedo` had been
+   naming them all along. It had not. `AlbedoValueOf` is called on
+   `m.mainTexture` of a REAL BODY's material (`RealBody.cs:1100`), so
+   that series measures the brightness of skinned Mixamo TEXTURES —
+   not the pale blobs, which appear in frames where
+   `streetBodiesSkinned` is low. If anything the evidence points away
+   from skinned bodies. **Fifth wrong identification of this thing, and
+   the first one I published.** The tell I ignored: I found a number
+   that fitted the story and stopped checking what it measured.
+
+   What is actually known: the blobs are 73x137 and 23x42 px, aspect
+   1.88 / 1.83, fill 0.88 / 0.87 — one object at two distances.
+   Run-time `capsules=0` and `undressed=0` rule out a bare primitive
+   and an untextured renderer with an instrument that can now see
+   walkers. **Intermittent** — the next frame had none, with nothing
+   changed. Next step is a number that fires WHEN one is on screen,
+   not another look at a still.
+
+
+
+### The capsule audit's timing fault, in full
+
+   **AND THE CAPSULE AUDIT USED TO BE BLIND.** `AuditUndressed` ran
+   inside `WorldBuilder.Build`, BEFORE any walker spawned, so
+   `capsules`/`undressed` were BUILD-time readings of a RUN-time
+   condition — every walker begins as a `PrimitiveType.Capsule` that
+   `Mannequin.Build` strips. Now re-run at the done line: still 0/0,
+   but those zeros finally carry information.
+
