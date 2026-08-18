@@ -123,10 +123,28 @@ namespace Ledger.Game
                 // declares, and a Mixamo body at centimetre scale is a hundred
                 // times too big. Bounded loosely on purpose — this is looking
                 // for a factor of a hundred, not for a design opinion.
+                //
+                // EVERY AXIS, NOT ANY AXIS, and the numbers are unchanged.
+                // This asked whether the LARGEST axis exceeded 100, and a road
+                // is legitimately 150m long and 15mm thick — so it fired on
+                // `Road_150` and on the yellow kerb lines, 7 times, in ALL
+                // ELEVEN landed runs, and the only names it has ever produced
+                // are `Road_*` and `Yellow_*`. It has never once caught a real
+                // fault while sitting in `Fatal` and holding `clean=False`
+                // permanently, which is how a red gate teaches everybody to
+                // read red as noise — and it hid whether the rest of this
+                // audit had anything to say.
+                //
+                // The fault being hunted is a UNIT MISMATCH, which is UNIFORM
+                // by construction: a centimetre-scale import is a hundred
+                // times too big on all three axes at once. A road is absurd on
+                // exactly one. So the quantifier moves from any to every and
+                // the bounds stay where they were — no threshold was loosened,
+                // and the edge case at exactly 100 behaves as it always did.
                 var s = t.lossyScale;
                 float big = Mathf.Max(Mathf.Abs(s.x), Mathf.Max(Mathf.Abs(s.y), Mathf.Abs(s.z)));
                 float small = Mathf.Min(Mathf.Abs(s.x), Mathf.Min(Mathf.Abs(s.y), Mathf.Abs(s.z)));
-                if (big > 100f || small < 0.0005f) Note(found, "absurdScale", r.name);
+                if (small > 100f || big < 0.0005f) Note(found, "absurdScale", r.name);
 
                 // BURIED. Something entirely below the pavement is either
                 // mispositioned or the ground moved under it. The ground plane
