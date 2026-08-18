@@ -97,6 +97,29 @@ namespace Ledger.Core
         /// us", and refusing beats guessing.
         public const double MinNeckFraction = 0.79;
 
+        /// VALIDATED BY TEN MODELS IT WAS NOT SET FROM (18 Aug).
+        ///
+        /// The bound above came from nine bodies and a two-cluster break, which
+        /// is the smallest evidence a threshold can honestly rest on. Ten more
+        /// were then fetched from the account's real catalogue and measured
+        /// before anything was committed, and NOT ONE LANDED IN THE GAP:
+        ///
+        ///     below   Claire 0.740  Abe 0.759  Big Vegas 0.761  The Boss 0.762
+        ///     -- 0.79 --
+        ///     above   Sporty Granny 0.806 ... James 0.857   (fifteen of them)
+        ///
+        /// Four below at 0.740–0.762, fifteen above at 0.806–0.857, and the
+        /// gap is still 0.044 wide with nothing in it. A bound set on nine and
+        /// tested by ten that were picked without reference to it is about as
+        /// good as this kind of evidence gets.
+        ///
+        /// ABE IS THE CASE THAT EARNED THE SECOND COLUMN. He reads 7.01
+        /// headsTall — borderline, and easily waved through — while his
+        /// neckFrac is 0.759, sitting with the two known caricatures, and his
+        /// `headLen` is 25.3 against a realistic 21–23. `headsTall` measures
+        /// to the crown of the HAIR and cannot separate a large skull from a
+        /// tall hairstyle; this can, and it is the one that caught him.
+
         /// True only for a figure that was MEASURED and came out below the
         /// bound. An unmeasurable model is not a caricature — it is
         /// unmeasured, which is a different fact and a different fix, and
