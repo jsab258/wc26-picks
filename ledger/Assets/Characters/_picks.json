@@ -62,7 +62,7 @@
   "shoved": {
     "tier": "A",
     "found": "Shove Reaction_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": true,
+    "exact": false,
     "pattern": "\\bshove reaction\\b"
   },
   "take_hit": {
@@ -145,7 +145,7 @@
   },
   "talk": {
     "tier": "B",
-    "found": "Talking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Talking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
     "exact": true,
     "pattern": "^talking\\b"
   },
@@ -310,5 +310,114 @@
     "found": "Lying Down_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
     "pattern": "\\blying down\\b"
+  },
+  "walk_f": {
+    "tier": "B",
+    "found": null,
+    "tried": [
+      "^female walk$"
+    ]
+  },
+  "jog": {
+    "tier": "B",
+    "found": null,
+    "tried": [
+      "^jog forward$",
+      "^jogging$"
+    ]
+  },
+  "wave": {
+    "tier": "D",
+    "found": null,
+    "tried": [
+      "^waving$",
+      "^waving gesture$"
+    ]
+  },
+  "shake_hands": {
+    "tier": "D",
+    "found": "Shaking Hands 1_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": false,
+    "pattern": "^shaking hands\\b"
+  },
+  "point": {
+    "tier": "D",
+    "found": null,
+    "tried": [
+      "^pointing$",
+      "^pointing gesture$"
+    ]
+  },
+  "thinking": {
+    "tier": "D",
+    "found": null,
+    "tried": [
+      "^thinking$"
+    ]
+  },
+  "laugh": {
+    "tier": "D",
+    "found": null,
+    "tried": [
+      "^laughing$"
+    ]
+  },
+  "yell": {
+    "tier": "D",
+    "found": null,
+    "tried": [
+      "^yelling$",
+      "^yelling while standing$"
+    ]
+  },
+  "head_no": {
+    "tier": "D",
+    "found": null,
+    "tried": [
+      "^shaking head no$"
+    ]
+  },
+  "glance": {
+    "tier": "D",
+    "found": null,
+    "tried": [
+      "^look over shoulder$"
+    ]
+  },
+  "pockets": {
+    "tier": "D",
+    "found": null,
+    "tried": [
+      "^searching pockets$"
+    ]
+  },
+  "rummage": {
+    "tier": "D",
+    "found": null,
+    "tried": [
+      "^rummaging$"
+    ]
+  },
+  "lift": {
+    "tier": "D",
+    "found": null,
+    "tried": [
+      "^lifting object$",
+      "^lifting$"
+    ]
+  },
+  "sit_talk": {
+    "tier": "D",
+    "found": null,
+    "tried": [
+      "^sitting talking$"
+    ]
+  },
+  "sit_drink": {
+    "tier": "D",
+    "found": null,
+    "tried": [
+      "^sitting drinking$"
+    ]
   }
 }
