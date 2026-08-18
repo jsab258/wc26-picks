@@ -75,37 +75,38 @@ is the bar sign's bare back face, one line, behind the critical work.
    and how strong the bias should be is a judgement, since you can
    turn round. Full account in `roadmap-history.md`.
 
-   **THE WHITE PILLS ARE BODIES BRIGHTER THAN THE WARDROBE ALLOWS, AND
-   THE VERDICT HAS BEEN SAYING SO ALL ALONG.**
+   **THE WHITE PILLS ARE STILL UNIDENTIFIED — AND THE PREVIOUS COMMIT
+   SAID OTHERWISE, WRONGLY.** 19f0cfd claimed `bodyAlbedo` had been
+   naming them all along. It had not. `AlbedoValueOf` is called on
+   `m.mainTexture` of a REAL BODY's material (`RealBody.cs:1100`), so
+   that series measures the brightness of skinned Mixamo TEXTURES —
+   not the pale blobs, which appear in frames where
+   `streetBodiesSkinned` is low. If anything the evidence points away
+   from skinned bodies. **Fifth wrong identification of this thing, and
+   the first one I published.** The tell I ignored: I found a number
+   that fitted the story and stopped checking what it measured.
 
-       bodyAlbedo=[0.04 0.14 0.21 0.21 0.22 0.38 0.44 0.50 0.54 0.58
-                   0.61 0.67 0.78 0.91 vs wardrobe max 0.46]
+   What is actually known: the blobs are 73x137 and 23x42 px, aspect
+   1.88 / 1.83, fill 0.88 / 0.87 — one object at two distances.
+   Run-time `capsules=0` and `undressed=0` rule out a bare primitive
+   and an untextured renderer with an instrument that can now see
+   walkers. **Intermittent** — the next frame had none, with nothing
+   changed. Next step is a number that fires WHEN one is on screen,
+   not another look at a still.
 
-   Seven of fourteen bodies exceed the wardrobe's own maximum and the
-   brightest is 0.91 — white. That key exists to compare exactly those
-   two numbers and nobody read it, through every one of the wrong
-   identifications below.
+   **SEPARATELY, AND IT IS REAL: the cast is too bright for the
+   palette.** `bodyAlbedo=[... 0.61 0.67 0.78 0.91 vs wardrobe max
+   0.46]` — 7 of 14 skinned body textures exceed the ceiling the
+   procedural wardrobe respects. Bought characters are not going
+   through the palette that keeps this city noir. Worth fixing; not
+   the pills.
 
-   Got there by measurement, not by naming: the blobs were 73x137 and
-   23x42 px, aspect 1.88 / 1.83, fill 0.88 / 0.87 — one object at two
-   distances — and `capsules=0` / `undressed=0` ruled out a primitive
-   and an untextured renderer.
-
-   **OWED: where 0.91 comes from.** Skin is `Lerp(colour, warm
-   neutral, 0.65)` at ~0.61 luminance and is legitimately above a
-   clothing bound, but nothing explains 0.78 or 0.91. Trace the source
-   before capping anything — a cap over an unexplained value is rule
-   2's trap. **Intermittent**: the next frame had zero pill-shaped
-   blobs with nothing changed, because the shot stands somewhere
-   different each run.
-
-   **AND THE CAPSULE AUDIT COULD NOT HAVE SEEN IT.** `AuditUndressed`
-   ran once inside `WorldBuilder.Build`, BEFORE any walker spawns, so
-   `capsules` and `undressed` were BUILD-time readings of a RUN-time
+   **AND THE CAPSULE AUDIT USED TO BE BLIND.** `AuditUndressed` ran
+   inside `WorldBuilder.Build`, BEFORE any walker spawned, so
+   `capsules`/`undressed` were BUILD-time readings of a RUN-time
    condition — every walker begins as a `PrimitiveType.Capsule` that
-   `Mannequin.Build` strips. A zero meant "the world had none when it
-   was built" while reading as "the street has none". Now re-run at the
-   done line: still 0/0, but those zeros finally carry information.
+   `Mannequin.Build` strips. Now re-run at the done line: still 0/0,
+   but those zeros finally carry information.
 
    **PERF, SETTLED THIS ROUND.** `traffic` 4.67 -> **2.23**, halved by
    hoisting the road heading out of the per-hazard loop. `npcs` 9.36 ->
