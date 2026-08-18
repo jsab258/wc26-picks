@@ -338,20 +338,19 @@ jobs:
             STILLS_MINE=1
           fi
 
-          # THE CLIP CONTACT SHEET, ON ITS OWN EVIDENCE.
-          #
-          # Separate from the stills flag rather than folded into it, for the
-          # reason the frames flag is already separate: a run can reach the
-          # sheet (taken once, before day one) and die before any street
-          # screenshot, and one flag for two artefacts would have to guess.
-          sheet=(sim-run/sim-out/clips.jpg)
-          if [ ${#sheet[@]} -eq 0 ]; then
-            say "no clip sheet — the animation pass did not render"
-          else
-            cp sim-run/sim-out/clips.jpg game-design/sim-shots/
-            [ -f sim-run/sim-out/clips.tsv ] && cp sim-run/sim-out/clips.tsv game-design/sim-shots/
+          # THE CLIP SHEET, ON ITS OWN FLAG, and `[ -f ]` NOT AN ARRAY: the
+          # first version copied the glob idiom above and missed that
+          # `nullglob` only empties a WILDCARD, so `cp` always ran and the
+          # first build that rendered nothing died here under `-e`, taking the
+          # verdict with it. Account in `game-design/clip-findings.txt`.
+          if [ -f sim-run/sim-out/clips.jpg ]; then
+            cp sim-run/sim-out/clips.jpg game-design/sim-shots/ || true
+            [ -f sim-run/sim-out/clips.tsv ] \
+              && { cp sim-run/sim-out/clips.tsv game-design/sim-shots/ || true; }
             CLIPS_MINE=1
             say "clip sheet rendered ($(du -k sim-run/sim-out/clips.jpg | cut -f1) KB)"
+          else
+            say "no clip sheet — the animation pass did not render"
           fi
           ls -la game-design/sim-shots/
 

@@ -79,6 +79,30 @@ clipFindings=3
 # NO CLIP IS ACCUSED ON THE STRENGTH OF THAT SHEET, and the count above is
 # unchanged by it — it reports only what the FILES prove.
 
+# AND THE FIX'S OWN BUILD NEVER RAN, FOR A REASON THAT WAS ALSO MINE — 18 Aug.
+# The run on bf0aab4 died at `actions/checkout` (two minutes, everything after
+# it skipped), which is not my code. What IS mine is that it produced no
+# verdict at all: the step that always writes one exited 1 first, on
+# `cp: cannot stat 'sim-run/sim-out/clips.jpg'`.
+#
+# The copy block I had added read `sheet=(sim-run/sim-out/clips.jpg)` and
+# tested the array length — copied from the `shots=(...*.jpg)` line above it
+# without noticing that `nullglob` only empties a pattern containing a
+# WILDCARD. A literal path has none, so the array always held one element, the
+# `cp` always ran, and the first build where the sim rendered nothing died
+# there under `set -e`.
+#
+# That is rule 12 wearing my own patch: the run that most needed a verdict was
+# the one guaranteed not to get one, and the reason the checkout failed had to
+# be read out of the job API instead. `[ -f ]` now, with `|| true` on the
+# copies, and all three cases — no sheet, sheet only, sheet plus ledger — were
+# run against the exact text in the workflow before committing. The old form
+# was run too, and fails exactly as CI did.
+#
+# THE LESSON THAT GENERALISES: an artefact this pipeline ADDS must never be
+# able to cost the pipeline its feedback channel. Guard every new copy with a
+# test of the file, and run the empty case.
+
 # WHAT THIS FILE DELIBERATELY DOES NOT CLAIM. It does not say which animation
 # a mislabelled clip really is. Hip HEIGHT is not comparable between clips (a
 # stand-up legitimately starts at 8cm) and Euler ranges inflate on wrap (the
