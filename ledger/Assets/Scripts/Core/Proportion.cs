@@ -79,14 +79,22 @@ namespace Ledger.Core
         /// that gap with margin on both sides — 0.028 above the caricatures,
         /// 0.016 below the nearest real body.
         ///
-        /// Remy is NOT in the table, and the reason is in its FILE rather
-        /// than in the reader: its bind pose puts the crown of the skull
-        /// BELOW the head bone, and the knee, ankle and toe-base all at one
-        /// height — four unrelated bones no standing figure can share. All
-        /// seven of its skin clusters say so identically, so it is what was
-        /// exported. It is named as unmeasured rather than assumed fine, and
-        /// it stays in the pool: nothing here has any evidence about how it
-        /// is built, which is not the same as evidence that it is wrong.
+        /// Remy is missing from the table above, and the build then settled
+        /// why. `tools/body-proportions.py` refuses it: the RAW FBX bind
+        /// pose puts the crown of the skull below the head bone and the
+        /// knee, ankle and toe-base all at one height, which no standing
+        /// figure can do, and all seven of its skin clusters agree.
+        ///
+        /// UNITY MEASURES IT FINE — the build reports "0 unmeasured but
+        /// kept" and writes Remy a prefab, so it passed this bound. The
+        /// importer rebuilds the rig rather than trusting the stored bind
+        /// pose, so the two readers are looking at different things and
+        /// BOTH are right about the thing they read. The one that governs
+        /// is the Editor's, because that is the hierarchy the game runs.
+        ///
+        /// The Python tool stays as it is. It reads the file as shipped,
+        /// which is the correct question for "what did this vendor give
+        /// us", and refusing beats guessing.
         public const double MinNeckFraction = 0.79;
 
         /// True only for a figure that was MEASURED and came out below the

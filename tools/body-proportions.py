@@ -61,6 +61,17 @@ bind pose omits. Mesh and texture payloads are skipped unread.
 The enforcement is NOT here: `Core/Proportion` holds the rule and
 CoreTests covers it, so the bound is testable without Unity and exists
 once. This is the evidence that set it, and the way to re-check it.
+
+AND WHERE THIS TOOL AND THE BUILD DISAGREE, THE BUILD WINS. This
+refuses `Remy` -- its stored bind pose puts the crown below the skull
+and the knee, ankle and toe-base at one height, and all seven of its
+skin clusters say so. Unity measures it without complaint and the
+build reports "0 unmeasured but kept", because the importer REBUILDS
+the rig rather than trusting the stored pose. Both readers are right
+about what they read; only one of them is looking at the hierarchy the
+game runs. This one reads the file as shipped, which is the right
+question for "what did this vendor actually give us" -- so the refusal
+stays, and it is not evidence of anything being wrong in the game.
 """
 
 import os
