@@ -45,36 +45,36 @@ is the bar sign's bare back face, one line, low priority.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
-1. **TEN ANIMATIONS ARE THE WRONG ANIMATION — ANSWERED, and the fix is a
-   RE-PICK, not a re-download.** *(on screen; the pick runs on Jafar's
-   machine in seconds)* The exposure fix landed (`sheetDark` 25 -> 0) so all
-   67 were read at once. **Five are confirmed on two instruments** — the
-   render and the hips' height in the FBX: `jog` is a body flat on the floor
-   at 7cm and `lie_still` an upright stride at 96cm, so **they are each
-   other**; `collapse` ("Dying") never leaves 103cm; `sit` and `sit_talk`
-   stand. **Five more are suspected on the picture alone** — `carry_bag`,
-   `idle_bored`, `head_no`, `walk_stop`, `thinking` — and height CANNOT close
-   them, because `run` at 74 and `block_broken` at 74 are correct and sit in
-   the same band. Controls: `walk` 95, `idle` 100, `get_up` 8 (prone, right),
-   `knockdown` 6..104.
+1. **ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION — twenty-one of
+   sixty-seven.** *(on screen; the re-pick runs on Jafar's machine)* The
+   "ten" finding was right and far too small. What found the rest is the
+   travel column I had written off the day before: `Walking` reads 0.00m
+   and `Standing Arguing` 3.75m, and I called the instrument broken
+   because a standing argument cannot travel that far. It can, if the file
+   does not contain a standing argument.
 
-   **The picker is NOT at fault**: every file carries the right Mixamo title
-   and the dryrun is 65 exact / 2 substitute / 0 missing, so the mismatch is
-   between a harvest file's NAME and its CONTENTS, upstream of this repo.
+   **The renders agree with travel in every case checked**: `idle` is
+   mid-stride, `talk` is locomotion, `pockets` and `laugh` are people
+   walking, `guard` is a throw, `argue` folds double — and **`walk` is a
+   stationary guard pose with the hands up.** The slot the whole street is
+   named after does not contain a walk.
 
-   **NEXT, and it needs no Windows machine to write:** make the picker VERIFY
-   a candidate's posture rather than trust its name. The full harvest is
-   already on his disk, so REPICK.bat then finds replacements in seconds with
-   no token and no downloads.
-   **Rule 5b applies hard here, twice:** the check must ACCEPT `get_up` at
-   8cm and `knockdown` at 6..104, and it must not police the crouch band at
-   all — the only bound the distribution supports is the empty gap from 18 to
-   60, floor against upright.
+   **The picker screens on both axes now** — hips for upright-or-floor,
+   travel for does-it-move — with bounds from the measured gap rather than
+   a guess. Twenty-one rejected, forty-six accepted.
+
+   **What that means for Friday:** the re-pick REFUSES a candidate whose
+   contents contradict its name and tries the next. Where the catalogue has
+   an alternative that is a fix; where it has only the one name (`thinking`
+   matches "Thinking" and nothing else) the slot reports MISSING rather
+   than shipping the wrong motion. **Holes are the right outcome and they
+   are the information** — a slot that cannot be filled from a 2,846-name
+   harvest says the harvest needs redoing, not re-picking.
+
+   **Not caught, and said so:** `sit` renders standing at 96cm and passes
+   both axes. The three sitting clips read 18, 94 and 96, none at chair
+   height, so there is no correct example to set a band from.
    Full account in `clip-findings.txt`.
-
-1. **`clip-motion.py`'s travel/path columns are not trustworthy** *(local)* —
-   two walks reading 0.00 and 1.22, a standing reaction at 3.1 m/s. Nothing
-   reads them; the new `hip cm` column IS sound for its one question.
 
 1. **`looseEnds=6/0/[Owed:6]` IS NOT THE FAULT IT LOOKS LIKE.** Six
    evenings, none empty, every one naming Owed — which reads as "five of

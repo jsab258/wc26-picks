@@ -350,3 +350,71 @@ a 157-level spread, against 14..118 before. Nothing is unreadable any more
 The floor plane now reads 254, i.e. blown out; that is the ambient re-assert
 landing on a surface that was already bright, and it costs nothing because the
 floor carries no information.
+
+================================================================
+2026-08-19 — IT IS NOT TEN CLIPS. IT IS ABOUT A THIRD OF THEM.
+================================================================
+
+The "ten wrong animations" finding was right and far too small, and the thing
+that found the rest is the column I had written off the day before.
+
+`clip-motion`'s travel figure read `Walking` 0.00m and `Standing Arguing` 3.75m,
+and I dismissed it: a standing argument cannot travel 3.75 metres, so the
+instrument must be wrong. That inference has a hole in it. It CAN travel that
+far — if the file called `argue__Standing_Arguing` does not contain a standing
+argument. The column was telling the truth about files that lie, and reading it
+as a broken instrument cost most of a day.
+
+WHAT THE RENDERS SAY, on the legible sheet, for the ones travel flagged:
+
+  idle          renders MID-STRIDE, feet alternating          travels 1.74m
+  talk          renders as locomotion with gestures           travels 2.77m
+  walk          renders as a STATIONARY guard pose, hands up  travels 0.00m
+  pockets       renders as a man walking                      travels 2.42m
+  laugh         renders as a man walking                      travels 1.63m
+  guard         renders as a throw — arm out, leg up, twisted travels 3.12m
+  argue         folds double, head at knee height, mid-clip   travels 3.75m
+
+Every one agrees with its travel figure. Two independent instruments, and the
+one I discarded is the one that scales — it needs no picture and no build.
+
+  `walk` is the sharpest of these. The slot the whole street is named after
+  does not contain a walk.
+
+THE SCREEN, RUN OVER ALL 67: twenty-one rejected, forty-six accepted. Nine fail
+because they should go somewhere and do not, or should stand still and walk off;
+the rest fail on hip height. So roughly a third of the harvest does not contain
+what its filename says.
+
+  This is not a picking fault and it was checked before being blamed: the
+  picker resolves 65 exact / 2 substitute / 0 missing, every file carries a
+  real Mixamo title, and the controller binds by that title's slot prefix.
+  The names are right and the CONTENTS are not, which is upstream of this
+  repository and of the picker.
+
+THE PICKER NOW SCREENS ON BOTH AXES. Hip height answers "upright or on the
+floor"; travel answers "does this move". Bounds come from the measured gap
+rather than a guess — everything that renders as locomotion travels 1.0m or
+more, everything correct and stationary sits at 0.00-0.06m, so 0.15 and 0.50
+leave that gap open on both sides.
+
+  AND `walk` STOPPED BEING AN ACCEPTING CASE IN THE SELFTEST, which is worth
+  writing down: it was one, and freezing a known-bad clip into a fixture as
+  proof of correctness is rule 5b failing in the direction nobody checks. The
+  accepting cases are `run`, `walk_f`, `knockdown` and `get_up` now, and `run`
+  is still the load-bearing one — it reads 74cm, inside the crouch band, and
+  any hip bound tight enough to catch `walk_stop` at 76 would reject it.
+
+WHAT THIS MEANS FOR THE RE-PICK. It will now REFUSE a candidate whose contents
+contradict its name and try the next one. Where the catalogue holds an
+alternative that is a fix; where it holds only the one name — `thinking` matches
+"Thinking" and nothing else — the slot will report MISSING instead of shipping
+the wrong motion. Holes are the correct outcome and they are information: a
+slot that cannot be filled from a 2,846-name harvest says the harvest needs
+redoing rather than re-picking.
+
+STILL NOT CAUGHT, and stated so the gap is not mistaken for a clean result:
+`sit` renders standing at 96cm and passes both axes, because sitting has no
+band anybody can set from evidence — the three sitting clips read 18, 94 and 96
+and not one of them is at chair height, so there is no correct example to
+calibrate against.

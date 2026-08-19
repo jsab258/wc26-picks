@@ -294,6 +294,44 @@ POSTURE = {
 }
 
 
+#: DOES IT GO ANYWHERE, WHICH IS THE SECOND AXIS AND THE ONE THAT CATCHES MOST.
+#:
+#: Hip height answers "upright or on the floor" and closes five slots. Travel
+#: answers "does this move", and on 19 August it flagged nineteen — because the
+#: harvest's names do not reliably describe its contents, and travel is the
+#: cheapest way to see that from a file.
+#:
+#: I had this backwards first. The travel column read `Walking` 0.00 and
+#: `Standing Arguing` 3.75m and I wrote it off as untrustworthy, reasoning that
+#: a standing argument cannot travel. It can, if the file called
+#: `argue__Standing_Arguing` does not contain a standing argument — and the
+#: contact sheet says it does not: `idle` renders mid-stride, `talk` renders as
+#: locomotion, `pockets` and `laugh` are people walking, `guard` is a throw, and
+#: `walk` is a stationary guard pose. The column was telling the truth about
+#: files that lie, and dismissing it cost most of a day.
+#:
+#: THE BOUNDS ARE THE MEASURED GAP, NOT A GUESS. Every clip that renders as
+#: locomotion travels 1.0m or more; every clip that renders stationary and is
+#: correct sits at 0.00-0.06m. 0.15 and 0.5 leave that gap wide open on both
+#: sides, so a slow shuffle is not called a walk and a gesture that drifts a
+#: hand's width is not called a journey.
+TRAVELS_MIN = 0.15          # metres, for a slot whose name means locomotion
+STILL_MAX = 0.50            # metres, for a slot whose name means standing
+
+#: Slots whose NAME says they go somewhere. Absent slots are unchecked.
+GOES = {"walk", "walk_f", "walk_old", "run", "jog", "back_away", "walk_start",
+        "walk_start_f", "walk_stop", "walk_stop_f", "stairs_up", "stairs_down",
+        "carry_bag"}
+
+#: Slots whose NAME says they stay put. `lie_still` is here as well as in
+#: POSTURE: it must be on the floor AND not walk about on it.
+STAYS = {"idle", "idle_2", "idle_old", "idle_bored", "talk", "argue", "greet",
+         "wave", "point", "thinking", "glance", "head_no", "laugh", "yell",
+         "smoke", "drink", "lean", "lean_wall", "pockets", "rummage",
+         "work_counter", "phone_box", "shake_hands", "sit", "sit_talk",
+         "sit_drink", "block_hold", "block_start", "guard", "lie_still"}
+
+
 def _motion():
     """`tools/clip-motion.py`, loaded by path because its filename is not an
     importable identifier.
@@ -337,8 +375,42 @@ def hip_cm(path):
         return None
 
 
+def travel_m(path):
+    """How far the clip goes, first to last, horizontally. None if unreadable."""
+    global _CM
+    try:
+        if _CM is None:
+            _CM = _motion()
+        r = _CM.measure(path)
+        return None if "error" in r or "travel" not in r else r["travel"]
+    except Exception:
+        return None
+
+
+def motion_ok(slot, path):
+    """(ok, why). Does the clip go somewhere, when its name says it should."""
+    goes, stays = slot in GOES, slot in STAYS
+    if not goes and not stays:
+        return True, ""
+    d = travel_m(path)
+    if d is None:
+        return True, ""                 # unreadable is not a fault
+    if goes and d < TRAVELS_MIN:
+        return False, f"travels {d:.2f}m — it does not go anywhere"
+    if stays and d > STILL_MAX:
+        return False, f"travels {d:.2f}m — it walks off"
+    return True, ""
+
+
 def posture_ok(slot, path):
-    """(ok, why). `why` is empty when the candidate is accepted."""
+    """(ok, why). `why` is empty when the candidate is accepted.
+
+    Two axes: where the hips ARE (upright or on the floor) and whether the clip
+    GOES anywhere. Either can reject; the first to fire says why.
+    """
+    ok, why = motion_ok(slot, path)
+    if not ok:
+        return False, why
     want = POSTURE.get(slot)
     if want is None:
         return True, ""
@@ -539,8 +611,17 @@ def selftest():
                         return os.path.join(d, f)
             return None
 
+        # ACCEPTING CASES, AND `walk` IS NO LONGER ONE. It was, until the
+        # travel axis landed and showed that the shipped `walk` clip does not
+        # go anywhere and renders as a stationary guard pose. A fixture that
+        # asserts a KNOWN-BAD clip is good would freeze the bug in place, which
+        # is the shape of rule 5b failing in the other direction.
+        #
+        # `run` remains the load-bearing accepting case for posture: it reads
+        # 74cm, inside the crouch band, and any hip bound tight enough to catch
+        # `walk_stop` at 76 would reject it.
         checked = 0
-        for slot in ("run", "walk", "knockdown", "walk_stop"):
+        for slot in ("run", "walk_f", "knockdown", "get_up"):
             f = one(slot)
             if f is None:
                 continue
@@ -549,15 +630,18 @@ def selftest():
             if not ok:
                 failures.append("posture rejected %s, which is correct: %s"
                                 % (slot, why))
-        for slot in ("jog", "lie_still", "collapse"):
+        # REJECTING CASES, one per axis so a broken axis cannot hide behind the
+        # other: jog and lie_still fail on hips, walk and idle on travel,
+        # collapse on the falls test.
+        for slot in ("jog", "lie_still", "collapse", "walk", "idle", "talk"):
             f = one(slot)
             if f is None:
                 continue
             checked += 1
             ok, _why = posture_ok(slot, f)
             if ok:
-                failures.append("posture accepted %s, which the contact sheet "
-                                "and the hip height both say is wrong" % slot)
+                failures.append("accepted %s, which the contact sheet and the "
+                                "file both say is the wrong motion" % slot)
         if checked == 0:
             failures.append("the posture check ran against nothing — no "
                             "shipped clips found, so neither case was tested")
