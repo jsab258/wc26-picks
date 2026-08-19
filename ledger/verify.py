@@ -246,6 +246,31 @@ def sheet_read():
     return True, out.strip().split("\n")[-1].replace("sheet-read ok", "sheet reader ok")
 
 
+def prop_dimensions():
+    """The prop reader still reads a model whole, and assembles its parts.
+
+    IT WAS BROKEN TWICE AND SILENT BOTH TIMES, which is why it is in here now
+    rather than being a script somebody remembers to run. It set a module
+    global that `parse_fbx` had turned into a default argument, so every FBX
+    was read at a 21-vertex cap and eleven of the twelve car-kit models
+    printed `no vertex data` — which reads as a fact about the files. And it
+    pooled vertices from meshes that do not share a frame, so every vehicle
+    measured 30 units taller than it is, uniformly, with the extra 30 buried
+    under the road.
+
+    Neither could fail. A tool that returns a plausible number for the wrong
+    reason has no failing case at all — the only thing that catches it is an
+    assertion about the WORLD, and the selftest's is that a car's wheels are
+    on the ground."""
+    tool = ROOT.parent / "tools" / "prop-dimensions.py"
+    code, out = run(["python3", str(tool), "--selftest"])
+    if code != 0:
+        bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+        return False, "PROPS: " + (bad[0][5:98] if bad else "selftest did not pass")
+    n = len([l for l in out.splitlines() if l.strip().startswith("ok")])
+    return True, "prop reader ok (%d checks)" % n
+
+
 def powershell_steps():
     """Do the workflow's pwsh steps parse.
 
@@ -1206,7 +1231,7 @@ def main():
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
-               powershell_steps, sheet_read,
+               powershell_steps, sheet_read, prop_dimensions,
                frame_drift, verdict_keys, verdict_format, save_chaos, soak,
                adversary, stale_anchors, clip_audit, picker_selftest, core_tests):
         ok, text = fn()
