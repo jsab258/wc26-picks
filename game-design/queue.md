@@ -31,27 +31,25 @@ CLAUDE.md under AUTO MODE.
 
 The Mixamo harvest landed complete — 67 clips, no duplicates — and the street
 came alive with it: people talk, argue, lean, smoke, work counters, carry
-shopping. **But three of the 67 play the wrong motion — see item 1.** Accounts
-in `roadmap-history.md`. NEXT: T3 queue points and standing destinations.
+shopping. **But twenty-one of the 67 play the wrong motion — item 1.**
+Accounts in `roadmap-history.md`. NEXT: T3 queue points and standing
+destinations.
 
 ### THE PLAYTEST — DEPRIORITISED 18 Aug, by Jafar
 
 *"Don't worry about timelines or the near goal or play testing. Just keep
-building."* `playtest-plan.md` stays live as the Mac setup record and its
-sequence resumes when he asks. Both items this section waited on are closed
-(the Mixamo session ran; the per-physique controllers exist). Live speech
-stays parked — no DirectML on the Air. The glowing box in day2_night's plaza
-is the bar sign's bare back face, one line, low priority.
+building."* `playtest-plan.md` stays live as the Mac setup record and resumes
+when he asks. Live speech stays parked — no DirectML on the Air. The glowing
+box in day2_night's plaza is the bar sign's bare back face, one line.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
 1. **ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION — twenty-one of
-   sixty-seven.** *(on screen; the re-pick runs on Jafar's machine)* The
-   "ten" finding was right and far too small. What found the rest is the
-   travel column I had written off the day before: `Walking` reads 0.00m
-   and `Standing Arguing` 3.75m, and I called the instrument broken
-   because a standing argument cannot travel that far. It can, if the file
-   does not contain a standing argument.
+   sixty-seven.** *(on screen; the re-pick runs on Jafar's machine)* What
+   found them is the travel column I had written off the day before:
+   `Walking` reads 0.00m and `Standing Arguing` 3.75m, and I called the
+   instrument broken because a standing argument cannot travel that far. It
+   can, if the file does not contain a standing argument.
 
    **The renders agree with travel in every case checked** — and **`walk` is
    a stationary guard pose with the hands up**, so the slot the whole street
@@ -68,8 +66,8 @@ is the bar sign's bare back face, one line, low priority.
 
    **Not caught, and said so:** `sit` renders standing at 96cm and passes
    both axes. The three sitting clips read 18, 94 and 96, none at chair
-   height, so there is no correct example to set a band from.
-   Full account in `clip-findings.txt`.
+   height, so there is no correct example to set a band from. Full account in
+   `clip-findings.txt`.
 
 1. **TWO OF THE SIX REVIEW STILLS ARE PHOTOGRAPHS OF A WALL.** *(the
    evidence channel itself — rule 12)* `review_day2_noon` on `e6634a1` is a
@@ -79,25 +77,32 @@ is the bar sign's bare back face, one line, low priority.
    reads every build shows almost no street.
 
    **No gate could have said so, and that is the interesting part.** Every
-   one asks about a SYSTEM — are the billboards aimed, is text the right way
-   round, did the bodies get skinned — and all of them pass perfectly on a
-   picture of a wall. `review_street` has had a declutter loop since a lamp
-   column filled its frame; the DAY stills never got one and are taken
-   wherever the sim's camera happens to be standing.
+   one asks about a SYSTEM — billboards aimed, text the right way round,
+   bodies skinned — and all pass perfectly on a picture of a wall.
 
-   **`shotBlocked*` ships this build and MOVES NOTHING, on purpose.** The
-   loop needs a bound and I do not have one: I can see two frames are bad and
-   cannot say what fraction that is. Guessing it is expensive both ways — too
-   low and every still starts backing away from ordinary streets, since this
-   city is terraced and a wall five metres off is most compositions, and a
-   dozen code comments citing these file names quietly start describing
-   different pictures; too high and nothing happens and it reads as fixed.
+   **MEASURED, THEN FIXED, IN THAT ORDER.** `682e676` printed a run's twenty
+   shots sorted: `0.00 x13 0.05 0.06 0.10 | 0.37 0.48 0.60 1.00`, cleanly
+   bimodal, so the bound went in the widest empty stretch at 0.25 and the
+   camera steps straight back — never re-aimed, because a dozen comments cite
+   these file names as evidence for particular findings. The 1.00 was
+   `day2_noon`: the camera flat against a stone wall with a street sign at
+   point-blank range.
 
-   **NEXT BUILD: read `shotBlockedSeries` beside `shotBlockedWhere`.** Six
-   fractions, one per still, and the two named above should be legibly
-   different from the four good ones. If they are not, the ray grid is
-   measuring the wrong thing and that is the finding. Then the loop lands
-   with a number under it.
+   **AND THE LOOP IS UNEXERCISED ON THE CASE IT WAS BUILT FOR.** `b71c71f`
+   reads `shotNudges=1 shotNudgesWorked=1 shotNearBefore=0.29` — one shot
+   needed a step, at 0.29, cleared in one. The severe case did not recur: the
+   run diverged, because patrol rebalancing changes the traffic and so where
+   the player walks. `day2_noon` is a proper street in this build and the
+   loop is not why. Rule 5b's corollary — a guard needing a world its
+   condition can happen in. Watch `shotNearBefore` over the next few builds
+   rather than calling it closed.
+
+   **AND THE METRIC IS NARROWER THAN ITS NAME.** Two metres catches "the
+   camera is against a wall". It does not catch `review_day5_noon`, which is
+   roof and awning slabs across the middle of frame at about ten metres —
+   visibly blocked, numerically clear. I claimed two of six stills were
+   photographs of a wall; the measurement confirms one and is blind to the
+   other. **The next number is a median ray distance, not a wider bound.**
 
 1. **THE DENOMINATOR PAID FOR ITSELF THE FIRST TIME IT RAN, and the law
    tier was broken.** `e6634a1` read `looseEnds=6/0/[Owed:6]/open6/1of6` —
@@ -109,16 +114,14 @@ is the bar sign's bare back face, one line, low priority.
 
    Cause: the tier asked `string.IsNullOrEmpty(Homicides.PointedAt)` — is
    anybody else named — and NOTHING EVER CLEARS THAT NAME. Only the relief
-   expires, after four days. One successful redirect, ever, closed the tier
-   for the rest of the run. It reads the live relief now. Tested both ways
-   off the real book, and the accepting case is the one the old condition
-   could never reach.
+   expires, after four days, so one successful redirect ever closed the tier
+   for the rest of the run. It reads the live relief now, tested both ways
+   off the real book.
 
-   **What to read next build:** the open count. If it is 2 or more the lower
-   tiers fire and are outranked; if it is still 1 with a manhunt running,
-   something else in the chain is dead. **Crew has also never opened**
-   (`crew=2`, no member below the poach floor) — that is the next one to
-   check if the count does not move.
+   **Landed:** `[Law:1,Owed:5]/open7/2of6` against yesterday's
+   `[Owed:6]/open6/1of6`. The tier fires and two are live on the busiest
+   evening. **Crew still never opens** (`crew=2`, nobody below the poach
+   floor) — the next one to chase.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL — RECOVERED, NOT
    RESOLVED.** *(player-height frame, dfefd62)* Fine from the elevated
@@ -137,12 +140,10 @@ is the bar sign's bare back face, one line, low priority.
    **The white pills are still unidentified, and NOT ONE OF THE SIX STILLS
    ON `e6634a1` HAS ONE.** Measured rather than squinted at: the two pale
    figures in `review_street.jpg` read `#5d626f` and `#66676a` on their lit
-   quarter, against the buildings behind them at `#7f838f`. They are darker
-   than the walls. And the brightest 1% of that frame sits entirely in one
-   place — x576-704, y320-384, the harbour at the vanishing point — not on
-   any body. I had written "two of them, one in a T-pose" off the picture
-   before measuring it, which is the sixth wrong identification of this and
-   the exact trap rule 4's second half describes.
+   quarter against buildings at `#7f838f` — darker than the walls — and the
+   brightest 1% of that frame is entirely the harbour at the vanishing point.
+   I had written "two of them, one in a T-pose" off the picture before
+   measuring it, the sixth wrong identification of this.
 
    So the claim `bodyAlbedo` named them was wrong (it measures source
    TEXTURES, not the render), "the cast is too bright for the palette" is
@@ -164,13 +165,11 @@ is the bar sign's bare back face, one line, low priority.
    prices a dozen skinned bodies against a runner with no GPU at all.
    Plausibly the cheapest large win for how full the street looks.
 
-1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — 10 of 28 vehicles are
-   still primitives.** `vehiclesKitted=18/28`,
-   `vehicleFellBack=[bus,bike x9]` on its first run. Checked: all 50
-   models in the car-kit listing ARE extracted, and neither a bus nor
-   a bicycle is among them. So this is a sourcing gap, not a bug, and
-   the fix is another CC0 kit — not more code. Bikes are nine of the
-   ten, so one bicycle model closes almost all of it.
+1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — the remaining primitives.**
+   `vehicleFellBack=[bus,bike x6]`. All 50 models in the car-kit listing ARE
+   extracted and neither a bus nor a bicycle is among them, so this is a
+   sourcing gap and the fix is another CC0 kit, not more code. Bikes are
+   almost all of it, so one bicycle model closes it.
 
    **THE POLICE CAR IS IN — awaiting its first build.** "Wrong era, wrong
    town" was a guess about a file nobody had opened. It is a plain saloon a
@@ -183,19 +182,29 @@ is the bar sign's bare back face, one line, low priority.
    `ambulance` and `firetruck` stay out with a reason rather than an
    assumption — both are mid-slate in this palette.
 
-1. **PATROL DENSITY NOW FOLLOWS THE INQUIRY — awaiting its first build.**
-   `PatrolWeightFor(Inquiry)` is a pure Core function: None 1, Procedure 2,
-   Investigation 3, Manhunt 5, which on 28 vehicles is 2 patrol cars quiet
-   against 6 under a manhunt. Conversion happens right after `SetHour` and
-   only on PARKED cars, so nothing changes shape in front of the player, and
-   the changed ids come back so their bodies are rebuilt rather than Core
-   believing something the street does not show.
+1. **PATROL DENSITY FOLLOWS THE INQUIRY.** `PatrolWeightFor(Inquiry)` is a
+   pure Core function — None 1, Procedure 2, Investigation 3, Manhunt 5,
+   which on 28 vehicles is 2 patrol cars quiet against 6 under a manhunt.
+   Conversion runs right after `SetHour` and only on PARKED cars, so nothing
+   changes shape in front of the player.
 
-   **Read next build:** `inquiry patrolWeight patrolWant patrolNow
-   patrolsChanged patrolBodies`, all on one line. `patrolsChanged` without
-   `patrolBodies` is the wiring broken; `patrolNow` short of `patrolWant`
-   through a whole run means the dormant tail is never long enough and the
-   conversion needs a second moment.
+   **EVERY LINK FIRES.** `b71c71f`: `inquiry=Manhunt
+   patrolWeight=5.0 patrolWant=6 patrolNow=6 patrolsChanged=5
+   patrolBodies=5`. The chain runs end to end and the meshes followed.
+
+   **AND NOT ONE OF THE SIX STILLS HAS A WHITE CAR IN IT**, which is a
+   different fact and the one that matters. Six patrol cars existing and the
+   player seeing one are rule 6's two halves; nothing counted the second, so
+   "the camera was pointed elsewhere" and "the mechanism runs and nothing
+   reaches the screen" read identically. `patrolInShotPeak` /
+   `patrolInShotMean` / `patrolShots` ship next build. **A peak of 0 is the
+   finding** — it would mean six cars are out and none has ever been in
+   frame.
+
+   **Also noted, not chased:** `vehiclesKitted=26/33` where the fleet is 28.
+   `VehiclesBodied` counts bodies BUILT, and rebalancing rebuilds bodies, so
+   the denominator quietly stopped meaning "vehicles in the world". The ratio
+   is still honest; the name is not.
 
 1. **THE FRAME GATE IS RED AND THE COST HAS MOVED — this item was two regime
    changes stale.** **Read the breakdown, not the mean**: `mean=666.4ms` is a
@@ -250,22 +259,13 @@ is the bar sign's bare back face, one line, low priority.
    surface to choose one. **It must not be randomised** — CI determinism
    depends on it — so this is a surface, not a change to the default.
 
-11. **THE LAW REACHES MANHUNT NOW — this item was written when it stopped at
-   Procedure and is superseded.** `e6634a1` reads `inquiry=Manhunt homSaw=9
-   homWouldTalk=3 homNamed=9 homPressure=2.71 pressNamed=1
-   pressHeadline=[KILLING ON THE HOOK: POLICE NAME THE PUBLICAN]`. The whole
-   chain the old text called open — witnesses who can name you, pressure past
-   `ManhuntAt`, the paper printing it — is running end to end.
-
-   **The one thing that was still broken it could not see**, because the
-   evening screen has its own opinion: the law tier read shut on all six
-   evenings anyway. That is the redirect bug, fixed, and it is the item above.
-
-   **Still worth a look:** `homWouldTalk=3` of `homSaw=9`, so two thirds of
-   witnesses would say nothing to a detective — plausible for this town and
-   never checked against the design. And `pointedAt=kest` in every run:
-   staged, so probably honest, but a branch nobody has sampled. Item 12's
-   list.
+11. **THE LAW REACHES MANHUNT — this item used to say it stopped at
+   Procedure.** `inquiry=Manhunt homNamed=9 homPressure=2.71 pressNamed=1
+   pressHeadline=[KILLING ON THE HOOK: POLICE NAME THE PUBLICAN]`: witnesses
+   who can name you, pressure past `ManhuntAt`, the paper printing it, end to
+   end. **Still worth a look:** `homWouldTalk=3` of `homSaw=9`, two thirds of
+   witnesses saying nothing to a detective — plausible and never checked
+   against the design. `pointedAt=kest` in every run belongs in item 12.
 
 12. **THE REST OF WHAT `gates --constant` FOUND, AND IT IS A WORK LIST.**
    Sixty keys have never been anything but zero across 131 runs. Most are fault

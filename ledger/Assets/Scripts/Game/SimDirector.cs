@@ -7322,6 +7322,7 @@ namespace Ledger.Game
         int _shotNudges, _shotNudgesWorked, _shotNudgesGaveUp;
         bool _shotMoved;
         Vector3 _shotStoodAt;
+        int _patrolShotPeak, _patrolShotSum, _patrolShots;
 
         /// How much of this camera's frame is solid within arm's length.
         ///
@@ -7588,6 +7589,23 @@ namespace Ledger.Game
                 // one-idea-two-implementations shape that has put a wrong
                 // reading in this file four times.
                 _shotNearFracThis = nearFrac;
+
+                // AND HOW MANY PATROL CARS ARE IN THE PICTURE. Same camera,
+                // same instant, after the declutter step so it describes the
+                // frame that gets written — the same-instant rule the four
+                // shot-time measurements below are all about.
+                //
+                // A PEAK AND A SUM, because they answer different questions
+                // and this project has published the wrong one of that pair
+                // four times. The peak says whether a patrol car has ever
+                // reached the frame at all, which is the rule-6 question. The
+                // mean over shots says whether the street READS as policed,
+                // which is the design one, and it needs `patrolShots` beside
+                // it or a low mean cannot be told from a short run.
+                int inShot = _game != null ? _game.PatrolsInShot(blockCam) : 0;
+                if (inShot > _patrolShotPeak) _patrolShotPeak = inShot;
+                _patrolShotSum += inShot;
+                _patrolShots++;
             }
 
             // HOW MANY PEOPLE ARE ACTUALLY IN THE PICTURE.
@@ -11263,6 +11281,16 @@ namespace Ledger.Game
                       $"patrolNow={(_game?.Traffic != null ? _game.Traffic.PatrolCount() : -1)} " +
                       $"patrolsChanged={GameController.PatrolsRebalanced} " +
                       $"patrolBodies={GameController.PatrolBodiesRebuilt} " +
+                      // AND HOW MANY REACHED THE SCREEN. `patrolNow=6` is the
+                      // fleet; this is the photograph. `b71c71f` had all six
+                      // out and not one white car in any of the committed
+                      // stills, and nothing could say whether that was the
+                      // camera looking elsewhere or the mechanism running into
+                      // a wall — which is rule 6 exactly, and the reason the
+                      // mean carries `patrolShots` as its denominator.
+                      $"patrolInShotPeak={_patrolShotPeak} " +
+                      $"patrolInShotMean={(_patrolShots > 0 ? (double)_patrolShotSum / _patrolShots : -1):0.00} " +
+                      $"patrolShots={_patrolShots} " +
                       $"vehicleFellBack=[{(GameController.VehicleFallbackWhy.Length == 0 ? "none" : GameController.VehicleFallbackWhy)}] " +
                       $"lampSweeps={WorldBuilder.LampSweeps}/{WorldBuilder.LampSweeps + WorldBuilder.LampSweepsSkipped} " +
                       $"neonSweeps={WorldBuilder.NeonSweeps}/{WorldBuilder.NeonSweeps + WorldBuilder.NeonSweepsSkipped} " +

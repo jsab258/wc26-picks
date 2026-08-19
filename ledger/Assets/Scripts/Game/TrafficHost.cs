@@ -358,6 +358,38 @@ namespace Ledger.Game
         /// number would be wrong for one of them, and rule 2 forbids inventing
         /// it. `SqrDistance` to the world AABB is exact and needs no bound
         /// beyond the clearance the caller already uses for people.
+        /// How many patrol cars are in THIS camera's frame right now.
+        ///
+        /// SIX EXIST AND THE PLAYER SEES ONE ARE DIFFERENT FACTS, which is the
+        /// whole of rule 6 and the reason this counter exists rather than
+        /// `patrolNow` being taken as the answer. `b71c71f` reported
+        /// `patrolWant=6 patrolNow=6 patrolsChanged=5 patrolBodies=5` — every
+        /// link in the chain firing — and not one of the six committed stills
+        /// has a white car in it. Both of those can be true at once, and until
+        /// something counts what is in frame there is no way to tell "the
+        /// patrols are out and the camera was pointed elsewhere" from "the
+        /// mechanism runs and nothing reaches the screen".
+        ///
+        /// Awake only: a dormant vehicle is hidden, so counting it would say
+        /// the street is full of police at four in the morning when it is
+        /// empty. Position rather than renderer bounds, matching how
+        /// `streetBodies` asks the same question about people, so the two
+        /// numbers are comparable.
+        public int PatrolsInShot(Camera eye)
+        {
+            if (eye == null || Traffic == null) return 0;
+            int n = 0;
+            foreach (var v in Traffic.Vehicles)
+            {
+                if (v == null || v.Dormant || v.Kind == null) continue;
+                if (v.Kind.Id != Ledger.Core.VehicleKinds.PoliceId) continue;
+                var vp = eye.WorldToViewportPoint(
+                    new Vector3((float)v.X, 0.6f, (float)v.Z));
+                if (vp.z > 0f && vp.x >= 0f && vp.x <= 1f && vp.y >= 0f && vp.y <= 1f) n++;
+            }
+            return n;
+        }
+
         public bool AnyVehicleWithin(Vector3 at, float metres)
         {
             float m2 = metres * metres;
