@@ -153,37 +153,16 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    changes shape in front of the player.
 
    **EVERY LINK FIRES** (`b71c71f`): `patrolWant=6 patrolNow=6
-   patrolsChanged=5 patrolBodies=5`, meshes following kinds.
+   patrolsChanged=5 patrolBodies=5`, meshes following kinds. Then the in-shot
+   counter found they were invisible — `patrolInShotMean=0.10` under a full
+   manhunt, one frame in ten.
 
-   **The fix was a BEAT, not a bigger weight** — the weight is already a
-   quarter of all traffic, and raising it fills far districts with police
-   nobody sees. Patrols route inside the district the player stands in,
-   borrowed from the local-journey rule ordinary traffic already uses, so
-   there is no radius to tune. Cleared when the inquiry is None: a beat that
-   cannot be stood down is a consequence that never expires. Core test
-   converges 5 of 5 and disperses on stand-down.
-
-   **EVERY NUMBER I QUOTED FOR THIS WAS TWO REGIMES AVERAGED TOGETHER.**
-   `896e7b6` printed `shotDistricts=[the_Hook:20]`, `patrolBeat=the_Hook` and
-   `shotsOnBeat=3/20` — which cannot all be true unless `patrolBeat` is the
-   END-of-run value, and it is. **Seventeen of twenty shots measured a town
-   with no manhunt in it**, where there are two patrol cars in the whole
-   city.
-
-   **SPLIT, AND THE ON-BEAT SAMPLE IS TOO SMALL TO CARRY ANYTHING.**
-   `9b4e2b5`: `patrolOnBeatMean=0.00` over 3 shots against
-   `patrolOffBeatMean=0.18` over 17. Zero of three is consistent with broken
-   and with unlucky, and nothing separates them — so the reading is not "the
-   beat made it worse", it is "there is no measurement here yet".
-
-   **The condition and the observation never overlap**, which is the real
-   fault and is rule 5b's corollary at its purest. The four review stills
-   fill their quota on days 1 and 2; the killing is staged around day 12. So
-   the loudest state this game has — the one the whole feature exists for —
-   has never been in a committed photograph. **A `hunt_` pair now fires while
-   `inquiry=Manhunt`**, noon and night, on the same evidence flag as the
-   others, and `huntStills=N/2` says whether it did. Nothing else to try
-   until that lands.
+   **EVERY NUMBER I QUOTED WAS TWO REGIMES AVERAGED.** `shotsOnBeat=3/20`
+   against `shotDistricts=[the_Hook:20]` and `patrolBeat=the_Hook`: the last
+   is the END-of-run value, and **seventeen of twenty shots measured a town
+   with no manhunt in it**. So 0.10, 0.20 and 0.25 were all mixtures.
+   `patrolOnBeatMean=0.00` over 3 shots against `0.18` over 17 — zero of
+   three separates nothing, so there is still no measurement here.
 
    **Ruled out, each for one measurement:** the cameras (frames hold 2.75-4.75
    vehicles); too few cars (6 of 28); and my own tidy theory that `Rebalance`
@@ -193,6 +172,14 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    **Still unread:** six cars that never stop are six brief crossings. A
    patrol PARKED at a junction with its beacon lit stays in frame and is
    worth more than three that drive past. A feature, not a knob.
+
+1. **THE VERDICT STEP IS 400 CHARS OFF A HARD CEILING AND FAILS AT DISPATCH,
+   NOT AT COMMIT.** *(CI)* Adding one paragraph took it 815 over the largest
+   step that has ever dispatched; `workflow-size` caught it and four rounds of
+   trimming prose bought it back. A 422 at dispatch means NO Windows build at
+   all. **The real fix is extraction**, as `sim-shots-stage.sh` already
+   proves: move the step body to a script file and the YAML stops being the
+   constraint. Until then every comment added there is a coin flip.
 
 1. **EVERY REVIEW STILL IS TAKEN IN ONE OF SEVEN DISTRICTS.**
    `shotDistricts=[the_Hook:20]` — all twenty, every run. The stills are the

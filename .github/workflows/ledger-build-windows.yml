@@ -346,7 +346,11 @@ jobs:
 
           shopt -s nullglob
           mkdir -p game-design/sim-shots
-          shots=(sim-run/sim-out/review_*.jpg)
+          # `hunt_*` TOO — the pair taken while the manhunt is live.
+          # `sim-shots-stage.sh` learnt about them and this glob did not, so
+          # `huntStills=2/2` came back with no `hunt_*.jpg` committed:
+          # rendered, never copied, and only the verdict key said so.
+          shots=(sim-run/sim-out/review_*.jpg sim-run/sim-out/hunt_*.jpg)
           if [ ${#shots[@]} -eq 0 ]; then
             # NOT `exit 0`, AND THE DIFFERENCE IS THE WHOLE POINT OF THE STEP.
             # Bailing here left the PREVIOUS run's verdict.txt sitting in the
@@ -378,24 +382,18 @@ jobs:
           fi
           ls -la game-design/sim-shots/
 
-          # AND THE VERDICT, AS A FILE IN THE REPOSITORY.
+          # AND THE VERDICT, AS A FILE IN THE REPOSITORY — the one channel out
+          # of this job that has ever worked. The log API returns a fixed ~4KB
+          # BYTE tail, not a line count, so nothing mid-log is reachable and
+          # post-job cleanup fills that window every time. The step summary
+          # comes back EMPTY through the check-run API, and artifacts live on a
+          # host this project's review environment is denied outright.
           #
-          # THE ONE CHANNEL OUT OF THIS JOB THAT HAS ACTUALLY WORKED. The log
-          # API returns a fixed ~4KB BYTE tail — not a line count — so
-          # `tail_lines` cannot reach anything mid-log, and GitHub's own
-          # post-job cleanup fills that window every time. The step summary was
-          # supposed to be the answer and comes back EMPTY through the check-run
-          # API. Artifacts live on a host this project's review environment is
-          # denied outright.
-          #
-          # So every diagnostic the sim prints has been unreadable unless it
-          # happened to land in the last four kilobytes, which is why three
-          # separate faults tonight had to be inferred from a step's DURATION
-          # or from the fact that a branch had not moved. The stills proved the
-          # fix: a file in the repository can simply be read.
-          #
-          # Grepped rather than copied whole — player.log is megabytes, and the
-          # point is the handful of lines that answer a question.
+          # So every diagnostic the sim prints was unreadable unless it landed
+          # in the last four kilobytes, and three faults in one night had to be
+          # inferred from a step's DURATION. A file in the repository can
+          # simply be read. Grepped rather than copied whole — player.log is
+          # megabytes and the point is the few lines that answer a question.
           # THE HEADER IS WRITTEN UNCONDITIONALLY, and it used to be written
           # only when there was a player.log to grep. That meant the single
           # worst kind of run — one that never reached the sim at all — left
@@ -429,21 +427,15 @@ jobs:
 
           if [ -f sim-run/player.log ]; then
             {
-              # ASCII ONLY IN THE PATTERN. The places line is prefixed with a
+              # ASCII ONLY IN THE PATTERN, and matched on distinctive
+              # substrings rather than prefixes. The places line starts with a
               # section sign, and a non-ASCII byte in a grep pattern under Git
-              # bash on Windows is a coin flip about encoding — the sort of
-              # thing that silently matches nothing and looks like "the sim
-              # never printed it".
-              # Matched on distinctive ASCII substrings rather than on a
-              # prefix: the places line reads "SimDirector: <section sign>4.7
-              # places", so anchoring on "SimDirector: places" would match
-              # nothing, and "alley eyes=" is both unique and plain.
-              # `brandished a cosh` carries the HAND TIER, and it is here
-              # because the tier is only in the threat gate's label — which
-              # prints when the gate FAILS. That is backwards for a diagnostic:
-              # `hand=hand bone` on a green run is the line that proves the
-              # bought skeleton is the one holding the object, and the run that
-              # needs it most is the one that passed for the wrong reason.
+              # bash on Windows is a coin flip about encoding that silently
+              # matches nothing and looks like "the sim never printed it".
+              # `brandished a cosh` carries the HAND TIER, which otherwise
+              # appears only in the threat gate's label — printed when the gate
+              # FAILS. Backwards for a diagnostic: `hand=hand bone` on a GREEN
+              # run is what proves the bought skeleton holds the object.
               # AN ALLOWLIST THAT HAS SILENTLY EATEN THREE PIECES OF WORK:
               # windowWarmth, ringGrowth, and — to the commit repairing this
               # very channel — ALL GATES. Each built, ran, went green, never

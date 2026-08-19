@@ -75,13 +75,27 @@ def main():
         if i + 1 >= len(sys.argv):
             print("report-frame: --frame needs a name, e.g. --frame day5_night")
             return 2
-        want = sys.argv[i + 1].replace("review_", "").replace(".jpg", "")
-        frame = f"review_{want}.jpg"
-        if not (ROOT / "game-design" / "sim-shots" / frame).exists():
-            have = sorted(p.name[len("review_"):-len(".jpg")]
-                          for p in (ROOT / "game-design" / "sim-shots").glob("review_*.jpg"))
+        # `hunt_` FRAMES ARE REACHABLE TOO, and this is the third place that
+        # had to learn the prefix — after the workflow's copy glob and
+        # `sim-shots-stage.sh`. The sim commits a pair taken while the
+        # detective is running a manhunt, which is the most dramatic state the
+        # game has and therefore the frame a report most often wants; a tool
+        # whose whole job is putting a picture in a report could not reach it.
+        #
+        # The name is taken as given if it already carries a prefix, so
+        # `--frame hunt_day13_night` works and so does `--frame day1_noon`.
+        want = sys.argv[i + 1].replace(".jpg", "")
+        shots = ROOT / "game-design" / "sim-shots"
+        frame = want + ".jpg" if want.startswith(("review_", "hunt_")) \
+            else f"review_{want}.jpg"
+        if not (shots / frame).exists() and (shots / f"hunt_{want}.jpg").exists():
+            frame = f"hunt_{want}.jpg"
+        if not (shots / frame).exists():
+            have = sorted(p.name[:-len(".jpg")]
+                          for p in list(shots.glob("review_*.jpg"))
+                          + list(shots.glob("hunt_*.jpg")))
             print(f"report-frame: no frame called {want}. This build committed: "
-                  + ", ".join(have))
+                  + (", ".join(have) if have else "nothing"))
             return 2
     rel = f"game-design/sim-shots/{frame}"
 
