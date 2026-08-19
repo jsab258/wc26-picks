@@ -576,11 +576,9 @@ namespace Ledger.Game
             //
             // GENTLE AND CONTINUOUS, NOT A CONE. You can turn round, so a hard
             // in-frame test would swap the whole set on a spin and pay twelve
-            // prefab instantiates for it. A body directly behind ranks as if it
-            // were about 1.41x further away, one abreast about 1.22x, one
-            // straight ahead unchanged: enough to reorder, never enough to
-            // exclude, and smooth, so turning costs nothing at the moment it
-            // crosses.
+            // prefab instantiates for it. Being behind costs a FIXED amount of
+            // apparent distance instead — see `BehindPenaltyD2` for why a
+            // multiplier could not work and what the first build measured.
             //
             // THE BAND TEST BELOW STILL READS TRUE DISTANCE. Whether somebody is
             // close enough to deserve a body at all is a question about metres;
@@ -593,6 +591,8 @@ namespace Ledger.Game
             float fwdLen = fwd.magnitude;
             bool aimed = fwdLen > 0.001f;
             if (aimed) fwd /= fwdLen;
+            float behindMetres = (float)Populace.NearMetres * BehindPenaltyShare;
+            float behindPenaltyD2 = behindMetres * behindMetres;
 
             foreach (var n in _npcs)
             {
@@ -608,7 +608,7 @@ namespace Ledger.Game
                 {
                     float inv = 1f / Mathf.Sqrt(d2);
                     float dot = (dx * inv) * fwd.x + (dz * inv) * fwd.z;
-                    rank = d2 * (1f + FacingBias * (1f - dot) * 0.5f);
+                    rank = d2 + behindPenaltyD2 * (1f - dot) * 0.5f;
                 }
                 _bodyRank.Add((n, d2, rank));
             }
@@ -725,19 +725,37 @@ namespace Ledger.Game
         public static long BodyLodInShotSum, BodyLodShotEligibleSum;
         public static int BodyLodInShotPeak, BodyLodShotPeak;
 
-        /// HOW HARD THE RANKING PREFERS WHAT THE CAMERA IS POINTED AT.
+        /// HOW HARD THE RANKING PREFERS WHAT THE CAMERA IS POINTED AT, as a
+        /// FIXED COST IN APPARENT DISTANCE rather than a multiplier.
         ///
-        /// 1.0 makes a body directly behind rank as if it were about 1.41x
-        /// further away. It is a STARTING value and it is NOT measured, which is
-        /// unusual in this project and is said rather than hidden: what will
-        /// judge it is `bodyLodInShot` against `bodyLodShotEligible` over a few
-        /// runs, and no such number existed before this change, so there was
-        /// nothing to set it from.
+        /// THE MULTIPLIER VERSION COULD NEVER HAVE WORKED, and the first landed
+        /// reading is what proved it. Scaling squared distance by a facing
+        /// factor cannot beat squared distance: somebody one metre behind ranks
+        /// 1, somebody twenty metres ahead ranks 400, and no multiplier closes
+        /// a gap of four hundred — at a bias of twenty the person behind still
+        /// ranks 21. The arithmetic is obvious written down and was invisible
+        /// while it was a plausible-sounding "about 1.41x further away".
         ///
-        /// Raise it if bodies still go to people behind the camera; lower it if
-        /// `bodyGrants` climbs, which is turning round costing prefab
-        /// instantiates.
-        const float FacingBias = 1.0f;
+        /// It measured what the shipped version cost: 13.3 walkers in shot per
+        /// pass, 5.6 of them skinned, so 8.4 of fourteen grants were going to
+        /// people off screen. That is the complaint, unmoved.
+        ///
+        /// ADDITIVE FIXES IT. Being behind costs a flat amount of apparent
+        /// distance, so a metre behind you ranks like somebody far up the
+        /// street and loses to anybody actually in frame. Directly ahead costs
+        /// nothing, abreast costs half, and it stays continuous, so turning
+        /// round still has no cliff in it.
+        ///
+        /// AND THE COST IS THE BAND'S OWN NUMBER, not a new one: three quarters
+        /// of `NearMetres`. The band is this design's existing statement of how
+        /// far away still matters, so "being behind puts you most of the way to
+        /// the edge of it" is a sentence about the game rather than a constant
+        /// somebody chose. At today's 34m band that is 25.5m, which sorts a
+        /// person 1m behind (ranks as 25.5m) below one 20m ahead and above one
+        /// at 30m — who is barely visible anyway.
+        /// A LOCAL, NOT A STATIC PROPERTY: `Populace` is an instance member, so
+        /// a static cannot reach it. Computed once per pass in `BodyLod`.
+        const float BehindPenaltyShare = 0.75f;
 
         /// Is a ground position inside the camera's frame. A point test rather
         /// than a bounds test: the question is roughly how many are in shot, not

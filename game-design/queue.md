@@ -108,32 +108,32 @@ is the bar sign's bare back face, one line, low priority.
    WHOEVER YOU WERE LOOKING AT**: bodies a metre from the lens and out of
    frame beat the people in shot at 10-25m to all 12 grants.
 
-   **AND THE FIRST BUILD SAYS THE FIX ADDRESSES ONLY HALF OF IT.**
-   `review_street.jpg` at 75b9d2b has **not one person in it**, and the
-   same run read one walker in shot out of 46 eligible. A ranking change
-   decides WHICH people get bodies; it cannot put anybody in frame. So the
-   open question is now the other half — whether 46 walkers spread over
-   seven districts simply leaves most streets empty — and the number that
-   settles it lands next build: the summed in-shot counts say how the run
-   went, and `bodyLodShotPeak` says whether a crowd was EVER in frame,
-   which a fraction cannot tell from a day of empty streets.
+   **THE STREET IS NOT EMPTY — that reading was retracted the moment the
+   counter was fixed.** `review_street.jpg` at 75b9d2b shows nobody, and I
+   published "most streets are empty" off it plus a `1 in shot` that was a
+   last-wins artefact I already knew was broken. Run-level: **13.3 walkers
+   in shot per pass, peaking at 32.** The frame was an unlucky instant.
+
+   **WHAT IS REAL IS WHERE THE BUDGET GOES: 5.6 of the 14 grants are in
+   shot, so 8.4 go to people off screen** (2079/4965 = 41.9%).
+
+   **AND THE MULTIPLIER COULD NEVER HAVE FIXED IT.** Scaling squared
+   distance by a facing factor cannot beat squared distance: 1m behind
+   ranks 1, 20m ahead ranks 400, and at a bias of twenty the person behind
+   still ranks 21. Replaced with an ADDITIVE cost in apparent distance,
+   three quarters of `NearMetres` — the band's own number rather than a new
+   one. Awaiting its build.
 
    **THE CHURN WORRY IS ANSWERED AND IT IS FINE.** 278 grants / 68 revokes
    against a recent band of 198-313 / 41-83, so turning round is not
    costing prefab instantiates. (The drop from ~1,200 twenty runs ago was
    the rank slack, not this.)
 
-   **A FORWARD BIAS IS IN.** The rank is
-   distance scaled by facing — directly behind counts as ~1.41x further,
-   abreast ~1.22x, ahead unchanged — gentle and continuous rather than a
-   cone, because you can turn round and a hard test would swap the whole
-   set on a spin. The BAND test still reads true distance, so nobody
-   across the district gets a body for facing the right way. **The
-   strength (1.0) is a starting value and is NOT measured**, which is
-   stated in the code rather than hidden: `bodyLodInShot` against
-   `bodyLodShotEligible` is what will judge it, and no such number existed
-   until now. Raise it if bodies still go behind the camera; lower it if
-   `bodyGrants` climbs, which is turning costing prefab instantiates.
+   It stays gentle and continuous rather than a cone, because you can turn
+   round and a hard in-frame test would swap the whole set on a spin. The
+   BAND test reads true distance throughout, so nobody across the district
+   gets a body for facing the right way — only the contest for the fourteen
+   slots is a question about attention.
 
    **THE WHITE PILLS ARE STILL UNIDENTIFIED**, and the claim that
    `bodyAlbedo` named them was wrong — it measures skinned Mixamo
