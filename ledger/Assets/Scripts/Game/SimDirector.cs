@@ -7324,6 +7324,8 @@ namespace Ledger.Game
         Vector3 _shotStoodAt;
         int _patrolShotPeak, _patrolShotSum, _patrolShots;
         int _carsShotPeak, _carsShotSum;
+        readonly Dictionary<string, int> _shotDistricts = new Dictionary<string, int>();
+        int _shotsOnBeat;
 
         /// How much of this camera's frame is solid within arm's length.
         ///
@@ -7377,6 +7379,18 @@ namespace Ledger.Game
                 _shotKeptWorst = _shotNearFracThis;
                 _shotKeptWhere = string.IsNullOrEmpty(name) ? "unnamed" : name;
             }
+        }
+
+        /// Which districts the twenty shots were taken in, busiest first.
+        /// No spaces: a verdict value may not contain one.
+        string ShotDistrictLine()
+        {
+            if (_shotDistricts.Count == 0) return "none";
+            var rows = new List<KeyValuePair<string, int>>(_shotDistricts);
+            rows.Sort((a, b) => b.Value.CompareTo(a.Value));
+            var parts = new List<string>();
+            foreach (var r in rows) parts.Add($"{r.Key}:{r.Value}");
+            return string.Join("/", parts);
         }
 
         static string FracSeries(List<float> xs)
@@ -7605,6 +7619,41 @@ namespace Ledger.Game
                 // it or a low mean cannot be told from a short run.
                 int inShot = 0, carsInShot = 0;
                 if (_game != null) _game.VehiclesInShot(blockCam, out inShot, out carsInShot);
+                // AND WHERE THIS CAMERA IS STANDING, which is the question the
+                // patrol numbers keep failing to answer.
+                //
+                // `c200192`: `patrolInShotMean=0.25` of `carsInShotMean=4.75`
+                // — patrol cars are 5.3% of what a frame holds while they are
+                // 21% of the fleet and, measured hour by hour, 27-35% of
+                // everything AWAKE. A four- to sixfold under-representation,
+                // and the frames are full of traffic, so it is not the
+                // cameras being pointed at walls.
+                //
+                // The first explanation was mine and it was WRONG: `Rebalance`
+                // converts dormant cars and `SetHour` parks from the back of
+                // the list, so the patrol fleet should have been made of the
+                // vehicles that sleep most. Probed hour by hour, patrols are
+                // 6 of 6 awake from 07:00 to 23:00. Refuted, and worth the two
+                // minutes it took rather than a commit built on it.
+                //
+                // What is left is the beat itself: patrols are concentrated in
+                // one district, and nothing has ever checked whether the
+                // camera is IN that district. `patrolBeat` against
+                // `shotDistrict` settles it in one build instead of another
+                // round of theories.
+                if (_game != null && blockCam != null)
+                {
+                    var lens = blockCam.transform.position;
+                    var d = Ledger.Core.StreetMap.DistrictAt(lens.x, lens.z);
+                    var key = string.IsNullOrEmpty(d) ? "none" : d.Replace(" ", "_");
+                    _shotDistricts.TryGetValue(key, out var seen);
+                    _shotDistricts[key] = seen + 1;
+                    if (_game.Traffic != null
+                        && key == (string.IsNullOrEmpty(_game.Traffic.PatrolFocusDistrict)
+                                   ? "none"
+                                   : _game.Traffic.PatrolFocusDistrict.Replace(" ", "_")))
+                        _shotsOnBeat++;
+                }
                 if (inShot > _patrolShotPeak) _patrolShotPeak = inShot;
                 _patrolShotSum += inShot;
                 _carsShotSum += carsInShot;
@@ -11310,6 +11359,13 @@ namespace Ledger.Game
                       // point. If it holds eight, the beat needs more cars.
                       // Opposite conclusions from the same number, and until
                       // this line existed nothing could tell them apart.
+                      // AND WHETHER THE CAMERA WAS EVEN ON THE BEAT. Sorted
+                      // and slash-joined so it is one value, with the count of
+                      // shots as its denominator — `shotsOnBeat=0 of 20` and
+                      // `shotsOnBeat=18 of 20` are opposite findings and the
+                      // fraction alone cannot say which without the total.
+                      $"shotsOnBeat={_shotsOnBeat}/{_patrolShots} " +
+                      $"shotDistricts=[{ShotDistrictLine()}] " +
                       $"carsInShotPeak={_carsShotPeak} " +
                       $"carsInShotMean={(_patrolShots > 0 ? (double)_carsShotSum / _patrolShots : -1):0.00} " +
                       $"vehicleFellBack=[{(GameController.VehicleFallbackWhy.Length == 0 ? "none" : GameController.VehicleFallbackWhy)}] " +
