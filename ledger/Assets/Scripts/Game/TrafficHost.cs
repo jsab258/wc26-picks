@@ -138,6 +138,51 @@ namespace Ledger.Game
             }
         }
 
+        /// How many vehicles have changed what they are this run, and how many
+        /// of those bodies were actually rebuilt.
+        ///
+        /// KEPT AS A PAIR, and the second is the one that matters. Core can
+        /// decide a van is now a patrol car and the street will go on showing
+        /// a van for ever, because `_vehicleBodies` caches a body per id and
+        /// nothing in `PlaceBody` ever asks whether the kind still matches.
+        /// That is rule 6 in its purest form — a system built, tested, and
+        /// connected to nothing — so the two numbers are printed side by side
+        /// and a gap between them is the wiring being broken.
+        public static int PatrolsRebalanced, PatrolBodiesRebuilt;
+
+        /// Tell the sim how hard the detective is looking, then let it move
+        /// parked cars between kinds.
+        ///
+        /// THE WEIGHT COMES FROM CORE AND THE STAGE COMES FROM THE GAME, which
+        /// is the only split that lets the mapping be tested here at all:
+        /// `TrafficSim.PatrolWeightFor` is a pure function of `Inquiry` with
+        /// eight CoreTests on it, and this line is the whole of the Game-layer
+        /// half. If it were a table in this file the only way to check it
+        /// would be a Windows round trip.
+        int RebalancePatrols()
+        {
+            if (Traffic == null) return 0;
+            Traffic.PatrolWeight = Ledger.Core.TrafficSim.PatrolWeightFor(PoliceInquiry);
+            _patrolChanged.Clear();
+            int changed = Traffic.Rebalance(_patrolChanged);
+            // AND THE BODY HAS TO FOLLOW, or Core is right and the street is
+            // wrong. Destroyed rather than edited: `EnsureBody` builds a whole
+            // vehicle — kit mesh, wheels, lamps, the patrol car's roof beacon
+            // — from the kind, and there is no half of that worth reproducing
+            // here as a second implementation.
+            foreach (var id in _patrolChanged)
+            {
+                if (!_vehicleBodies.TryGetValue(id, out var t)) continue;
+                if (t != null) Destroy(t.gameObject);
+                _vehicleBodies.Remove(id);
+                PatrolBodiesRebuilt++;
+            }
+            foreach (var v in Traffic.Vehicles)
+                if (_patrolChanged.Contains(v.Id)) EnsureBody(v);
+            return changed;
+        }
+        readonly List<int> _patrolChanged = new List<int>();
+
         void TickTraffic(float step)
         {
             if (Traffic == null) return;
@@ -147,6 +192,16 @@ namespace Ledger.Game
                 {
                     _trafficHour = Now.Hour;
                     Traffic.SetHour(_trafficHour);
+                    // AND HOW MANY PATROL CARS THE STREET SHOULD BE CARRYING,
+                    // once an hour, straight after the parking.
+                    //
+                    // Order matters and is the point: `SetHour` decides which
+                    // vehicles are parked up, and `Rebalance` only ever
+                    // converts a parked one — so a car changes what it is
+                    // while nobody can see it, and is a patrol car by the time
+                    // it drives out again. Any other order converts vehicles
+                    // that are about to be on screen.
+                    PatrolsRebalanced += RebalancePatrols();
                 }
                 GatherHazards();
                 Traffic.Step(step);

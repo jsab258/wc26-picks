@@ -375,15 +375,22 @@ namespace Ledger.Core
             }
         }
 
+        /// The patrol car's weight is `PatrolWeight` rather than its rarity,
+        /// so the same roll serves a quiet town and a manhunt. Every other
+        /// kind keeps its own number — a police presence changes how much of
+        /// the traffic is police, not how many lorries there are.
+        double WeightOf(VehicleKind k) =>
+            k.Id == VehicleKinds.PoliceId ? PatrolWeight : k.Rarity;
+
         VehicleKind PickKind()
         {
             double total = 0;
-            foreach (var k in VehicleKinds.All) if (!k.StopsAtStops) total += k.Rarity;
+            foreach (var k in VehicleKinds.All) if (!k.StopsAtStops) total += WeightOf(k);
             double roll = Next() * total;
             foreach (var k in VehicleKinds.All)
             {
                 if (k.StopsAtStops) continue;    // buses are placed explicitly
-                roll -= k.Rarity;
+                roll -= WeightOf(k);
                 if (roll <= 0) return k;
             }
             return VehicleKinds.Car;
@@ -1101,6 +1108,119 @@ namespace Ledger.Core
             int n = 0;
             foreach (var v in Vehicles) if (!v.Dormant) n++;
             return n;
+        }
+
+        // ---- patrols ----
+
+        /// HOW MUCH OF THE TRAFFIC IS A PATROL CAR, and it is meant to be read
+        /// off the street rather than off a screen.
+        ///
+        /// This is the half that makes the police car a mechanic instead of a
+        /// model. A white saloon going past is set dressing; three of them in
+        /// an hour when there was one yesterday is the player being told the
+        /// detective has moved on to a manhunt — before any UI says so, and
+        /// without a number anywhere. §4's perception chain runs the other way
+        /// for once: the world reporting its state to the player.
+        ///
+        /// Defaults to the kind's own rarity, so a caller that never sets it
+        /// gets exactly the traffic that existed before this was written.
+        public double PatrolWeight = VehicleKinds.Police.Rarity;
+
+        /// The weight for a stage of inquiry, and the shape is the argument.
+        ///
+        /// A pure function of the stage, in Core, beside the stage itself —
+        /// not a table in the Game layer, because then the only way to check
+        /// it would be a Windows round trip.
+        ///
+        /// THE NUMBERS COME OUT OF THE POOL, not out of the air. `PickKind`
+        /// rolls against the sum of every non-bus rarity, which is 18 with the
+        /// patrol car in it. So a weight of 1 is about 5.5% of the fleet — on
+        /// 28 vehicles, one and a half cars, which is "there is a police car
+        /// in this town". At 5 it is 22%, near seven cars, which is "they are
+        /// everywhere". The two ends have to be far enough apart to read
+        /// WITHOUT counting, since counting is exactly what the player will
+        /// not do, and 1.5 against 7 is the difference between noticing one
+        /// and not being able to miss them.
+        ///
+        /// Investigation sits at 3 rather than midway on purpose: the step
+        /// that should feel like something is her turning towards you, and
+        /// that is `Procedure -> Investigation`. Manhunt is the shout after
+        /// it, not the whole climb.
+        public static double PatrolWeightFor(Inquiry stage)
+        {
+            switch (stage)
+            {
+                case Inquiry.Procedure: return 2;
+                case Inquiry.Investigation: return 3;
+                case Inquiry.Manhunt: return 5;
+                default: return VehicleKinds.Police.Rarity;
+            }
+        }
+
+        /// How many patrol cars the current weight asks for.
+        public int PatrolTarget()
+        {
+            double total = 0;
+            foreach (var k in VehicleKinds.All)
+            {
+                if (k.StopsAtStops) continue;
+                total += k.Id == VehicleKinds.PoliceId ? PatrolWeight : k.Rarity;
+            }
+            if (total <= 0) return 0;
+            return (int)Math.Round(Vehicles.Count * (PatrolWeight / total));
+        }
+
+        public int PatrolCount()
+        {
+            int n = 0;
+            foreach (var v in Vehicles)
+                if (v.Kind != null && v.Kind.Id == VehicleKinds.PoliceId) n++;
+            return n;
+        }
+
+        /// Move the fleet towards `PatrolTarget`, and return how many changed.
+        ///
+        /// ONLY DORMANT VEHICLES ARE TOUCHED, which is the whole reason this
+        /// can exist at all. A car that turns into a police car halfway down
+        /// an avenue is a mesh swapping in front of the player; a car parked
+        /// up overnight is not drawn, so converting it costs nothing and
+        /// nobody sees the seam. `SetHour` already thins the street from the
+        /// back of the list every hour, so there is always a dormant tail to
+        /// draw from except at the busiest hour of the day — and the count
+        /// simply arrives an hour later then, which is the right failure.
+        ///
+        /// RETURNS THE COUNT BECAUSE THE HOST HAS TO ACT ON IT. `TrafficHost`
+        /// caches a body per vehicle id and would happily keep showing a van
+        /// that Core now believes is a patrol car — the exact shape of "built
+        /// is not running", one layer down. The ids that changed come back so
+        /// their bodies can be rebuilt, and a zero here means a zero there.
+        public int Rebalance(List<int> changedIds = null)
+        {
+            int want = PatrolTarget(), have = PatrolCount(), changed = 0;
+            if (want == have) return 0;
+            foreach (var v in Vehicles)
+            {
+                if (want == have) break;
+                if (v == null || !v.Dormant || v.Kind == null) continue;
+                bool isPatrol = v.Kind.Id == VehicleKinds.PoliceId;
+                if (want > have && !isPatrol)
+                {
+                    // Never convert the bus or a bicycle: one is the route and
+                    // the other is a different shape of vehicle entirely.
+                    if (v.Kind.StopsAtStops || v.Kind.UsesLanes) continue;
+                    v.Kind = VehicleKinds.Police;
+                    have++;
+                }
+                else if (want < have && isPatrol)
+                {
+                    v.Kind = VehicleKinds.Car;
+                    have--;
+                }
+                else continue;
+                changed++;
+                changedIds?.Add(v.Id);
+            }
+            return changed;
         }
 
         /// Did the player's car just hit somebody? Called by the host with the

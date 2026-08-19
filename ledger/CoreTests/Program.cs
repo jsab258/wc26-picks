@@ -5955,6 +5955,110 @@ namespace Ledger.CoreTests
                     $"{laneCentre + k.Width / 2.0:0.00}m of {streetHalf:0.00}m");
             }
 
+            // PATROL DENSITY — the street saying how hard she is looking.
+            //
+            // A white saloon going past is set dressing. Three of them in an
+            // hour where there was one yesterday is the player being told the
+            // inquiry has moved, without a UI and without a number, which is
+            // what "information 90" is supposed to mean.
+            //
+            // THE ACCEPTING CASE IS THE QUIET TOWN AND IT GOES FIRST, because
+            // the expensive failure here is not "a manhunt looks the same" —
+            // it is a default that fills an ordinary street with police and
+            // makes the loud state unreachable. A sim nobody has told about
+            // the inquiry must produce exactly the traffic that existed before
+            // any of this was written.
+            var quietSim = new TrafficSim(seed: 4242);
+            Check(quietSim.PatrolWeight == VehicleKinds.Police.Rarity,
+                "a sim nobody has told about the law runs the base rarity",
+                $"{quietSim.PatrolWeight}");
+            Check(TrafficSim.PatrolWeightFor(Inquiry.None) == VehicleKinds.Police.Rarity,
+                "and so does an inquiry that has not started");
+
+            // MONOTONIC, WHICH IS THE WHOLE CLAIM. Each stage is louder than
+            // the one below it; anything else and the street would say the
+            // heat had dropped while it rose.
+            var stages = new[] { Inquiry.None, Inquiry.Procedure,
+                                 Inquiry.Investigation, Inquiry.Manhunt };
+            for (int s = 1; s < stages.Length; s++)
+                Check(TrafficSim.PatrolWeightFor(stages[s])
+                      > TrafficSim.PatrolWeightFor(stages[s - 1]),
+                    $"{stages[s]} puts more cars out than {stages[s - 1]}",
+                    $"{TrafficSim.PatrolWeightFor(stages[s])}");
+
+            // AND THE TWO ENDS MUST BE FAR ENOUGH APART TO READ WITHOUT
+            // COUNTING, since counting is exactly what a player will not do.
+            quietSim.Populate(28);
+            int quietWant = quietSim.PatrolTarget();
+            quietSim.PatrolWeight = TrafficSim.PatrolWeightFor(Inquiry.Manhunt);
+            int huntWant = quietSim.PatrolTarget();
+            Console.WriteLine($"  .. patrols of 28: none={quietWant} manhunt={huntWant}");
+            Check(huntWant >= quietWant * 3,
+                "a manhunt puts at least three times as many patrols out as a quiet week",
+                $"{quietWant} -> {huntWant}");
+
+            // REBALANCE, BOTH DIRECTIONS, AND ONLY WHILE PARKED.
+            var patrolSim = new TrafficSim(seed: 99);
+            patrolSim.Populate(28);
+            patrolSim.SetHour(3);                 // the small hours: most parked up
+            patrolSim.PatrolWeight = TrafficSim.PatrolWeightFor(Inquiry.Manhunt);
+            var moved = new List<int>();
+            int n1 = patrolSim.Rebalance(moved);
+            Check(n1 > 0 && moved.Count == n1,
+                "a manhunt converts parked cars into patrols and names them",
+                $"{n1} changed, {moved.Count} named");
+            Check(patrolSim.PatrolCount() == patrolSim.PatrolTarget(),
+                "and it reaches the target",
+                $"{patrolSim.PatrolCount()} of {patrolSim.PatrolTarget()}");
+            Check(patrolSim.Rebalance() == 0,
+                "asking twice changes nothing — it is a level, not a step");
+
+            patrolSim.PatrolWeight = TrafficSim.PatrolWeightFor(Inquiry.None);
+            Check(patrolSim.Rebalance() > 0 && patrolSim.PatrolCount() == patrolSim.PatrolTarget(),
+                "and when she loses interest the street empties of them again",
+                $"{patrolSim.PatrolCount()} of {patrolSim.PatrolTarget()}");
+
+            // A MOVING CAR IS NEVER TOUCHED. The seam this avoids is a mesh
+            // changing in front of the player, and it is the reason the whole
+            // thing hangs off dormancy rather than off a timer.
+            var busySim = new TrafficSim(seed: 7);
+            busySim.Populate(28);
+            busySim.SetHour(8);                   // rush: everything awake
+            int awake = busySim.AwakeCount();
+            int wasPatrol = busySim.PatrolCount();
+            busySim.PatrolWeight = TrafficSim.PatrolWeightFor(Inquiry.Manhunt);
+            busySim.Rebalance();
+            int stillMoving = 0;
+            foreach (var v in busySim.Vehicles)
+                if (!v.Dormant && v.Kind.Id == VehicleKinds.PoliceId) stillMoving++;
+            Check(stillMoving == wasPatrol,
+                "at rush hour no vehicle on the road is converted under the player",
+                $"{awake} awake, patrols among them {wasPatrol} -> {stillMoving}");
+
+            // AND THE BUS AND THE BICYCLES SURVIVE IT. Converting the route
+            // bus would strand the transit line, and a bicycle is a different
+            // shape of thing entirely.
+            var keepSim = new TrafficSim(seed: 11);
+            keepSim.Populate(28);
+            keepSim.SetHour(3);
+            int busesBefore = 0, bikesBefore = 0;
+            foreach (var v in keepSim.Vehicles)
+            {
+                if (v.Kind.Id == VehicleKinds.BusId) busesBefore++;
+                if (v.Kind.Id == VehicleKinds.BikeId) bikesBefore++;
+            }
+            keepSim.PatrolWeight = TrafficSim.PatrolWeightFor(Inquiry.Manhunt);
+            keepSim.Rebalance();
+            int busesAfter = 0, bikesAfter = 0;
+            foreach (var v in keepSim.Vehicles)
+            {
+                if (v.Kind.Id == VehicleKinds.BusId) busesAfter++;
+                if (v.Kind.Id == VehicleKinds.BikeId) bikesAfter++;
+            }
+            Check(busesAfter == busesBefore && bikesAfter == bikesBefore,
+                "the bus and the bicycles are never converted",
+                $"bus {busesBefore}->{busesAfter}, bikes {bikesBefore}->{bikesAfter}");
+
             // Lights. A pure function of the clock, so a light cannot drift out
             // of step with its own render or need saving.
             var centre = StreetMap.Node("j2_2");        // the founding cross

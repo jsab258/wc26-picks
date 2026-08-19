@@ -11095,6 +11095,27 @@ namespace Ledger.Game
                       $"propsPlaced={AssetLibrary.PropsPlaced} variantSurfaces={AssetLibrary.VariantsUsed} " +
                       $"skyline={WorldBuilder.SkylineKitted}/{WorldBuilder.SkylineBlocks} " +
                       $"vehiclesKitted={GameController.VehiclesKitted}/{GameController.VehiclesBodied} " +
+                      // THE PATROL CARS, AND WHETHER THE STREET AGREES WITH
+                      // CORE ABOUT THEM.
+                      //
+                      // `patrolNow` against `patrolWant` says the rebalance
+                      // reached its target; `patrolsChanged` against
+                      // `patrolBodies` says the MESHES followed, which is a
+                      // different fact and the one that fails silently — Core
+                      // can call a van a patrol car and the street will show a
+                      // van for ever, because bodies are cached per vehicle id.
+                      //
+                      // `patrolWeight` and `inquiry` are printed on the same
+                      // line so the chain is legible end to end: how hard she
+                      // is looking, what weight that asks for, how many cars
+                      // that is, and how many are out there. A zero anywhere
+                      // in that row says which link is broken instead of
+                      // leaving four candidates.
+                      $"patrolWeight={(_game?.Traffic != null ? _game.Traffic.PatrolWeight : -1):0.0} " +
+                      $"patrolWant={(_game?.Traffic != null ? _game.Traffic.PatrolTarget() : -1)} " +
+                      $"patrolNow={(_game?.Traffic != null ? _game.Traffic.PatrolCount() : -1)} " +
+                      $"patrolsChanged={GameController.PatrolsRebalanced} " +
+                      $"patrolBodies={GameController.PatrolBodiesRebuilt} " +
                       $"vehicleFellBack=[{(GameController.VehicleFallbackWhy.Length == 0 ? "none" : GameController.VehicleFallbackWhy)}] " +
                       $"lampSweeps={WorldBuilder.LampSweeps}/{WorldBuilder.LampSweeps + WorldBuilder.LampSweepsSkipped} " +
                       $"neonSweeps={WorldBuilder.NeonSweeps}/{WorldBuilder.NeonSweeps + WorldBuilder.NeonSweepsSkipped} " +
