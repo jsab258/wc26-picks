@@ -877,6 +877,32 @@ So the still-reading rule gains a first step: **read line 1 and the `NO PLAYER
 LOG` line before looking at any frame.** A picture in this directory is only
 evidence about the commit named beside it if that commit ran.
 
+**THE CONTAINER ROLLS THIS CHECKOUT BACK, AND IT DOES NOT LOOK LIKE THAT.**
+Three times on 19 August the working tree reset to `cacebe2` while origin held
+several more commits. Nothing was lost — everything here is pushed the moment it
+goes green — and the whole cost was the DIAGNOSIS, because every symptom reads
+as a code problem first:
+
+  * `gamecheck` said 168 files where it had said 172 twenty minutes earlier,
+    with no deletions anywhere in git;
+  * `git status` showed `queue.md` MODIFIED, carrying two dozen lines of
+    retired content dated six days back that nobody had written that day;
+  * a grep for a queue item added an hour before came back empty.
+
+Four files vanishing from a compile is alarming, and a document silently
+reverting is alarming, and both are completely explained by the checkout having
+moved underneath the process. The first occurrence cost the better part of an
+hour before the cause was even suspected.
+
+**`python3 tools/resync.py` says ROLLED BACK in its first line, and `--fix`
+resets to origin.** It only acts when HEAD is a strict ANCESTOR of origin — the
+rollback signature, and the one state in which a hard reset can lose nothing —
+and it REFUSES when the tree is ahead, because that is unpushed work and the
+answer there is to push it. Tested against all four states.
+
+**The habit that makes it free: commit and push as soon as a thing is green.**
+Every rollback so far has cost nothing because of that and nothing else.
+
 **Always run `ledger/verify.py` before committing, and PASTE THE FOOTER FROM
 THE FILE.** A green run writes `ledger/.verify-footer`; a red run deletes it.
 
