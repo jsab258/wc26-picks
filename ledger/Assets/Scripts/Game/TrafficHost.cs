@@ -162,7 +162,29 @@ namespace Ledger.Game
         int RebalancePatrols()
         {
             if (Traffic == null) return 0;
-            Traffic.PatrolWeight = Ledger.Core.TrafficSim.PatrolWeightFor(PoliceInquiry);
+            var stage = PoliceInquiry;
+            Traffic.PatrolWeight = Ledger.Core.TrafficSim.PatrolWeightFor(stage);
+
+            // AND WHERE THEY WORK, which is the half that reaches the screen.
+            //
+            // `01f4eeb` had all six patrol cars out under a manhunt and
+            // `patrolInShotMean=0.10` — one frame in ten. Six cars spread over
+            // seven districts is nothing anywhere, and the answer is not a
+            // bigger weight, it is a BEAT: the district the player is standing
+            // in, which is where the trouble is by definition.
+            //
+            // CLEARED WHEN NOBODY IS LOOKING, and that matters as much as
+            // setting it. A beat that cannot be stood down would leave the
+            // player's own district under patrol for the rest of the save
+            // whatever they did — a consequence that never expires, which is
+            // the exploit `Informing` refuses by name at the other end of this
+            // same system.
+            Traffic.PatrolFocusDistrict =
+                stage != Inquiry.None && Player != null
+                    ? (Ledger.Core.StreetMap.DistrictAt(
+                           Player.transform.position.x,
+                           Player.transform.position.z) ?? "")
+                    : "";
             _patrolChanged.Clear();
             int changed = Traffic.Rebalance(_patrolChanged);
             // AND THE BODY HAS TO FOLLOW, or Core is right and the street is

@@ -6059,6 +6059,93 @@ namespace Ledger.CoreTests
                 "the bus and the bicycles are never converted",
                 $"bus {busesBefore}->{busesAfter}, bikes {bikesBefore}->{bikesAfter}");
 
+            // A PATROL GOES WHERE THE TROUBLE IS, and the numbers that forced
+            // this are worth keeping beside it. `01f4eeb` ran a full manhunt
+            // with every car the loudest state asks for out on the street —
+            // `patrolWant=6 patrolNow=6` — and the shot counter read
+            // `patrolInShotPeak=1 patrolInShotMean=0.10` over twenty frames.
+            // One frame in ten, never more than one. The quiet state is two
+            // cars, about 0.03, and a player cannot tell those apart.
+            //
+            // Six cars spread evenly over seven districts is nothing anywhere,
+            // and the fix is not a bigger weight — that fills the far
+            // districts with police nobody sees. It is that patrols work a
+            // BEAT.
+            //
+            // THE ACCEPTING CASE FIRST: no focus set must mean the traffic
+            // that existed before any of this, or a quiet street becomes a
+            // police state by default.
+            var beatSim = new TrafficSim(seed: 31);
+            beatSim.Populate(28);
+            Check(beatSim.PatrolFocusDistrict == "",
+                "with no focus set the patrols wander like anybody else");
+
+            // Drive both ways and compare where the patrols END UP, which is
+            // the only thing a player can see. Districts rather than metres,
+            // because the district is the unit the routing actually uses and
+            // measuring in metres here would invent a second definition of
+            // "near" beside the one being tested.
+            string Beat(TrafficSim s)
+            {
+                var counts = new Dictionary<string, int>();
+                foreach (var v in s.Vehicles)
+                {
+                    if (v.Kind == null || v.Kind.Id != VehicleKinds.PoliceId) continue;
+                    var n = StreetMap.Node(v.ToId);
+                    if (n == null) continue;
+                    var d = StreetMap.DistrictAt(n.X, n.Z) ?? "";
+                    counts[d] = counts.TryGetValue(d, out var c) ? c + 1 : 1;
+                }
+                var best = ""; int most = 0;
+                foreach (var kv in counts) if (kv.Value > most) { most = kv.Value; best = kv.Key; }
+                return $"{best}:{most}/{counts.Count}";
+            }
+
+            beatSim.PatrolWeight = TrafficSim.PatrolWeightFor(Inquiry.Manhunt);
+            beatSim.SetHour(3);
+            beatSim.Rebalance();
+            beatSim.SetHour(8);
+            int patrols = beatSim.PatrolCount();
+            Check(patrols >= 4, "the manhunt has patrol cars to place", $"{patrols}");
+
+            // Loose, because a route is a path and a car in the wrong corner
+            // takes time to arrive: what is asserted is that they CONVERGE,
+            // not that they teleport.
+            var focus = StreetMap.DistrictAt(
+                StreetMap.Node(beatSim.Vehicles[0].ToId).X,
+                StreetMap.Node(beatSim.Vehicles[0].ToId).Z) ?? "";
+            beatSim.PatrolFocusDistrict = focus;
+            for (int t = 0; t < 400; t++) beatSim.Step(0.5);
+            string after = Beat(beatSim);
+            Console.WriteLine($"  .. patrol beat: focus={focus} spread after={after}");
+            int inFocus = 0;
+            foreach (var v in beatSim.Vehicles)
+            {
+                if (v.Kind == null || v.Kind.Id != VehicleKinds.PoliceId) continue;
+                var n = StreetMap.Node(v.ToId);
+                if (n != null && (StreetMap.DistrictAt(n.X, n.Z) ?? "") == focus) inFocus++;
+            }
+            Check(inFocus > patrols / 2,
+                "most of the patrols are heading into the district with the trouble in it",
+                $"{inFocus} of {patrols} bound for {focus}");
+
+            // AND CLEARING THE FOCUS LETS THEM DISPERSE AGAIN, which is the
+            // rejecting case: a beat that cannot be stood down would make the
+            // whole town a police district for the rest of the save.
+            beatSim.PatrolFocusDistrict = "";
+            for (int t = 0; t < 800; t++) beatSim.Step(0.5);
+            int stillThere = 0;
+            foreach (var v in beatSim.Vehicles)
+            {
+                if (v.Kind == null || v.Kind.Id != VehicleKinds.PoliceId) continue;
+                var n = StreetMap.Node(v.ToId);
+                if (n != null && (StreetMap.DistrictAt(n.X, n.Z) ?? "") == focus) stillThere++;
+            }
+            Console.WriteLine($"  .. patrol beat: stood down, {stillThere} of {patrols} still in {focus}");
+            Check(stillThere < patrols,
+                "and standing the beat down lets them spread out again",
+                $"{stillThere} of {patrols}");
+
             // Lights. A pure function of the clock, so a light cannot drift out
             // of step with its own render or need saving.
             var centre = StreetMap.Node("j2_2");        // the founding cross

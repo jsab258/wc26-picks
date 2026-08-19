@@ -1000,6 +1000,43 @@ namespace Ledger.Core
             if (v.Kind.WaitsAtRanks && _ranks.Count > 0 && NextInt(2) == 0)
                 destination = _ranks[NextInt(_ranks.Count)];
 
+            // A PATROL GOES WHERE THE TROUBLE IS, and this is what turns six
+            // patrol cars into a police presence.
+            //
+            // MEASURED BEFORE IT WAS BUILT. `01f4eeb` ran a full manhunt with
+            // `patrolWant=6 patrolNow=6` — every car the loudest state asks
+            // for, out on the street — and `patrolInShotPeak=1
+            // patrolInShotMean=0.10` over twenty shots. One frame in ten had a
+            // patrol car in it, and never more than one. The quiet state is
+            // two cars, so about 0.03; a player cannot tell those apart, and
+            // "you cannot miss them" was the entire design claim.
+            //
+            // The cause is not the weight — it is already 5 of a pool of 18,
+            // over a quarter of the traffic. It is that six cars spread evenly
+            // across seven districts is nothing anywhere. Raising the weight
+            // would fill the far districts with police nobody sees, which is
+            // the same mistake one step louder.
+            //
+            // THE DISTRICT IS THE UNIT, and it is borrowed rather than
+            // invented. Ordinary traffic already prefers its own district
+            // because the alternative made every journey cross a bridge; a
+            // patrol simply uses somebody else's district as its local one. No
+            // radius, no fraction, nothing to tune — and a car in a far
+            // district drives over, which is what converging on trouble looks
+            // like.
+            if (destination == null && v.Kind.Id == VehicleKinds.PoliceId
+                && !string.IsNullOrEmpty(PatrolFocusDistrict))
+            {
+                IndexJunctions();
+                if (_junctionsByDistrict.TryGetValue(PatrolFocusDistrict, out var beat)
+                    && beat.Count > 0)
+                    for (int tries = 0; tries < 6; tries++)
+                    {
+                        var pick = beat[NextInt(beat.Count)];
+                        if (pick != v.ToId && pick != v.FromId) { destination = pick; break; }
+                    }
+            }
+
             if (destination == null)
             {
                 // MOST TRIPS ARE LOCAL, and it is not a realism flourish — it is
@@ -1125,6 +1162,12 @@ namespace Ledger.Core
         /// Defaults to the kind's own rarity, so a caller that never sets it
         /// gets exactly the traffic that existed before this was written.
         public double PatrolWeight = VehicleKinds.Police.Rarity;
+
+        /// Which district the patrols work. Empty means they wander like
+        /// anybody else, which is exactly the traffic that existed before this
+        /// was written — the accepting case a caller who never sets it gets.
+        /// See the long note in `Reroute`.
+        public string PatrolFocusDistrict = "";
 
         /// The weight for a stage of inquiry, and the shape is the argument.
         ///

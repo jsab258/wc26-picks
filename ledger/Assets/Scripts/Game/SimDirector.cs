@@ -11288,6 +11288,11 @@ namespace Ledger.Game
                       // camera looking elsewhere or the mechanism running into
                       // a wall — which is rule 6 exactly, and the reason the
                       // mean carries `patrolShots` as its denominator.
+                      // AND WHICH DISTRICT THEY ARE WORKING. Empty is the
+                      // correct reading when nobody is looking for you, and it
+                      // has to be distinguishable from the beat being unwired
+                      // — so it prints `none` rather than nothing.
+                      $"patrolBeat={(_game?.Traffic != null && !string.IsNullOrEmpty(_game.Traffic.PatrolFocusDistrict) ? _game.Traffic.PatrolFocusDistrict.Replace(" ", "_") : "none")} " +
                       $"patrolInShotPeak={_patrolShotPeak} " +
                       $"patrolInShotMean={(_patrolShots > 0 ? (double)_patrolShotSum / _patrolShots : -1):0.00} " +
                       $"patrolShots={_patrolShots} " +

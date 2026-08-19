@@ -69,16 +69,12 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    height, so there is no correct example to set a band from. Full account in
    `clip-findings.txt`.
 
-1. **TWO OF THE SIX REVIEW STILLS ARE PHOTOGRAPHS OF A WALL.** *(the
-   evidence channel itself — rule 12)* `review_day2_noon` on `e6634a1` is a
-   stone wall across the right half with a street sign on it;
-   `review_day5_noon` is roof and awning slabs across the middle with the
-   street visible only in gaps. A third of the primary evidence this project
-   reads every build shows almost no street.
-
-   **No gate could have said so, and that is the interesting part.** Every
-   one asks about a SYSTEM — billboards aimed, text the right way round,
-   bodies skinned — and all pass perfectly on a picture of a wall.
+1. **THE REVIEW STILLS WERE PHOTOGRAPHS OF A WALL.** *(the evidence channel
+   itself — rule 12)* `review_day2_noon` on `e6634a1` was stone across the
+   right half; `review_day5_noon` roof and awning slabs across the middle. A
+   third of the primary evidence this project reads every build showed almost
+   no street, and **no gate could have said so** — every one asks about a
+   SYSTEM, and billboards aim correctly on a picture of a wall.
 
    **MEASURED, THEN FIXED, IN THAT ORDER.** `682e676` printed a run's twenty
    shots sorted: `0.00 x13 0.05 0.06 0.10 | 0.37 0.48 0.60 1.00`, cleanly
@@ -88,14 +84,12 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    `day2_noon`: the camera flat against a stone wall with a street sign at
    point-blank range.
 
-   **AND THE LOOP IS UNEXERCISED ON THE CASE IT WAS BUILT FOR.** `b71c71f`
-   reads `shotNudges=1 shotNudgesWorked=1 shotNearBefore=0.29` — one shot
-   needed a step, at 0.29, cleared in one. The severe case did not recur: the
-   run diverged, because patrol rebalancing changes the traffic and so where
-   the player walks. `day2_noon` is a proper street in this build and the
-   loop is not why. Rule 5b's corollary — a guard needing a world its
-   condition can happen in. Watch `shotNearBefore` over the next few builds
-   rather than calling it closed.
+   **AND IT IS NOW EXERCISED ON THE CASE IT WAS BUILT FOR.** `b71c71f` was
+   mild — `shotNearBefore=0.29`, one step — so nothing was proved. `01f4eeb`
+   ran into a real one: `shotNearBefore=0.83 shotNudges=8 shotNudgesWorked=5
+   shotNudgesGaveUp=0`. Five blocked shots, all cleared, averaging 1.6 steps,
+   and the whole twenty-shot series now tops out at 0.18 against a
+   pre-loop `0.37 0.48 0.60 1.00` tail.
 
    **AND THE METRIC IS NARROWER THAN ITS NAME.** Two metres catches "the
    camera is against a wall". It does not catch `review_day5_noon`, which is
@@ -123,19 +117,18 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    evening. **Crew still never opens** (`crew=2`, nobody below the poach
    floor) — the next one to chase.
 
-1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL — RECOVERED, NOT
-   RESOLVED.** *(player-height frame, dfefd62)* Fine from the elevated
-   camera, dense dark striation from the player's eyes, likely sized for a
-   downward view. **Cannot be judged on any frame since — every run has
-   come back dry, so this needs a wet run rather than another look.** The
-   magenta half of that report is REFUTED and named so it cannot return.
+1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
+   dfefd62)* Fine from the elevated camera, dense dark striation from the
+   player's eyes, likely sized for a downward view. **Every run since has come
+   back dry, so this needs a WET run rather than another look.** The magenta
+   half of that report is REFUTED.
 
 1. **THE BODY BUDGET IS CLOSED AT 87.8% — the account is in
    `roadmap-history.md`.** What is still live is three separate things:
 
-   **The band, not the budget.** 13.1 walkers in frame per pass and only 6.5
-   inside the 34m band: half the people you can see are too far away to ever
-   be skinned. Belongs with the population item, not here.
+   **The band, not the budget.** 13.1 walkers in frame per pass, only 6.5
+   inside the 34m band — half the people you can see are too far away to ever
+   be skinned. Belongs with the population item.
 
    **The white pills are still unidentified, and NOT ONE OF THE SIX STILLS
    ON `e6634a1` HAS ONE.** Measured rather than squinted at: the two pale
@@ -145,21 +138,20 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    I had written "two of them, one in a T-pose" off the picture before
    measuring it, the sixth wrong identification of this.
 
-   So the claim `bodyAlbedo` named them was wrong (it measures source
-   TEXTURES, not the render), "the cast is too bright for the palette" is
-   retracted, and now "it is visible in the stills we have" is retracted too.
-   **It is intermittent and no committed frame currently contains one**, so
-   the next step is a measurement that fires WHILE one is on screen — the
-   still-reading route is closed until a frame actually catches one.
+   So `bodyAlbedo` naming them was wrong (it measures source TEXTURES, not
+   the render), "the cast is too bright for the palette" is retracted, and so
+   is "it is visible in the stills we have". **Intermittent, and no committed
+   frame currently contains one**, so the next step is a measurement that
+   fires WHILE one is on screen.
 
-   **The T-pose is real and separate.** One figure in `review_street.jpg` has
-   arms straight out. That is `armStreet`'s tail, and CLAUDE.md's own note
-   says a median across bodies structurally cannot see it.
+   **The T-pose is real and separate.** One figure in `review_street.jpg`
+   has arms straight out — `armStreet`'s tail, which a median across bodies
+   structurally cannot see.
 
    **`bodyWashUnreached=534` against `bodyTinted=1326`, and nobody has
-   looked.** 40% of bodies render DARKER than the band, because their sheet
-   is darker and a multiply only subtracts. Not a bug in the wash — a real
-   limit on how much of the palette reaches the street.
+   looked.** 40% of bodies render DARKER than the band because their sheet is
+   darker and a multiply only subtracts. Not a bug — a limit on how much of
+   the palette reaches the street.
 
    **`RealBodyCap = 12` needs a PC measurement, not a CI one.** Its comment
    prices a dozen skinned bodies against a runner with no GPU at all.
@@ -171,16 +163,14 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    sourcing gap and the fix is another CC0 kit, not more code. Bikes are
    almost all of it, so one bicycle model closes it.
 
-   **THE POLICE CAR IS IN — awaiting its first build.** "Wrong era, wrong
-   town" was a guess about a file nobody had opened. It is a plain saloon a
-   fifth longer than the sedan, and its body maps to the WHITE region of the
-   shared colormap (#cbcbde) where every other car maps to mid-slate. White
-   saloon, slate stripe, one blue beacon on a plinth we add — the kit has no
-   light bar. Exempt from the noir multiply, which would have turned it into
-   the dark saloon it exists to not be. Its front push bar is one named mesh
-   (`grill`) and is dropped. **Landed: `vehiclesKitted` 18/28 -> 21/28.**
-   `ambulance` and `firetruck` stay out with a reason rather than an
-   assumption — both are mid-slate in this palette.
+   **THE POLICE CAR IS IN.** "Wrong era, wrong town" was a guess about a file
+   nobody had opened: it is a plain saloon a fifth longer than the sedan, and
+   its body maps to the WHITE region of the shared colormap (#cbcbde) where
+   every other car maps to mid-slate. Slate stripe, one blue beacon on a
+   plinth we add since the kit has no light bar, exempt from the noir
+   multiply, front push bar (`grill`) dropped by name. `vehiclesKitted` went
+   18/28 to 21/28. `ambulance` and `firetruck` stay out with a reason now
+   rather than an assumption — both are mid-slate in this palette.
 
 1. **PATROL DENSITY FOLLOWS THE INQUIRY.** `PatrolWeightFor(Inquiry)` is a
    pure Core function — None 1, Procedure 2, Investigation 3, Manhunt 5,
@@ -192,19 +182,30 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    patrolWeight=5.0 patrolWant=6 patrolNow=6 patrolsChanged=5
    patrolBodies=5`. The chain runs end to end and the meshes followed.
 
-   **AND NOT ONE OF THE SIX STILLS HAS A WHITE CAR IN IT**, which is a
-   different fact and the one that matters. Six patrol cars existing and the
-   player seeing one are rule 6's two halves; nothing counted the second, so
-   "the camera was pointed elsewhere" and "the mechanism runs and nothing
-   reaches the screen" read identically. `patrolInShotPeak` /
-   `patrolInShotMean` / `patrolShots` ship next build. **A peak of 0 is the
-   finding** — it would mean six cars are out and none has ever been in
-   frame.
+   **AND THEY WERE INVISIBLE, WHICH THE IN-SHOT COUNTER CAUGHT AT ONCE.**
+   `01f4eeb`: a full manhunt, `patrolWant=6 patrolNow=6`, and
+   `patrolInShotPeak=1 patrolInShotMean=0.10` over twenty frames. One frame
+   in ten, never two at once. The quiet state is two cars — about 0.03 — and
+   a player cannot tell those apart, so "you cannot miss them" was false.
 
-   **Also noted, not chased:** `vehiclesKitted=26/33` where the fleet is 28.
-   `VehiclesBodied` counts bodies BUILT, and rebalancing rebuilds bodies, so
-   the denominator quietly stopped meaning "vehicles in the world". The ratio
-   is still honest; the name is not.
+   **The fix is a BEAT, not a bigger weight.** The weight is already 5 of a
+   pool of 18, over a quarter of the traffic; raising it would fill the far
+   districts with police nobody sees. Six cars spread over seven districts is
+   nothing anywhere, so patrols now route inside the district the player is
+   standing in — borrowed from the local-journey rule ordinary traffic
+   already uses, so there is no radius to tune. Cleared when the inquiry is
+   None: a beat that cannot be stood down is a consequence that never
+   expires. Core test converges 5 of 5 and disperses on stand-down.
+
+   **Read next build:** `patrolBeat` names the district and should be `none`
+   only while `inquiry=None`. `patrolInShotMean` should be several times
+   0.10; if it is not, the cars are converging and the camera never looks at
+   the road, which is a different problem and the stills will show it.
+
+   **Noted, not chased:** `vehiclesKitted=26/33` where the fleet is 28.
+   `VehiclesBodied` counts bodies BUILT and rebalancing rebuilds them, so the
+   denominator stopped meaning "vehicles in the world". Ratio honest, name
+   not.
 
 1. **THE FRAME GATE IS RED AND THE COST HAS MOVED — this item was two regime
    changes stale.** **Read the breakdown, not the mean**: `mean=666.4ms` is a
@@ -241,11 +242,9 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    milliseconds:** at `render+rest=641.83ms` on a software runner a few ms is
    noise here and real on a player's machine, which is why this is undone.
 
-8. **KEEP RETIRING THE REACH LEDGER — 35 entries**, `StreetMap.OnStreet` off it
-   tonight because the place-setback question needed exactly the wider
-   containment test the entry said it was waiting for. **AND READ THE ENTRY'S
-   REASON, NOT JUST ITS NAME**: two were wrong this morning, and the two
-   sampled tonight (`Combat.Breathe`, `VoiceBank.PoolVoices`) were both honest.
+8. **KEEP RETIRING THE REACH LEDGER — 37 entries.** **READ THE ENTRY'S
+   REASON, NOT JUST ITS NAME**: three were wrong on 4 August, describing a
+   consumer somebody intended rather than one that exists.
 
 9. **JUDGE THE LIMP FROM A FRAME.** The pose limp was a sixteenth of the audio
    one and is now the same size; at capability 0.30 the bad leg's stride is
