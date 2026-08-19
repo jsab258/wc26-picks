@@ -69,40 +69,25 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    height, so there is no correct example to set a band from. Full account in
    `clip-findings.txt`.
 
-1. **THE REVIEW STILLS WERE PHOTOGRAPHS OF A WALL.** *(the evidence channel
-   itself — rule 12)* `review_day2_noon` on `e6634a1` was stone across the
-   right half; `review_day5_noon` roof and awning slabs across the middle. A
-   third of the primary evidence this project reads every build showed almost
-   no street, and **no gate could have said so** — every one asks about a
-   SYSTEM, and billboards aim correctly on a picture of a wall.
+1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
+   NARROW.** *(the evidence channel itself — rule 12)* Two of six committed
+   frames showed almost no street; the camera now steps back off anything
+   filling more than a quarter of the frame at arm's length, with the bound
+   taken from a measured bimodal series and the loop exercised on a real
+   0.83 case. Full account in `roadmap-history.md`.
 
-   **MEASURED, THEN FIXED, IN THAT ORDER.** `682e676` printed a run's twenty
-   shots sorted: `0.00 x13 0.05 0.06 0.10 | 0.37 0.48 0.60 1.00`, cleanly
-   bimodal, so the bound went in the widest empty stretch at 0.25 and the
-   camera steps straight back — never re-aimed, because a dozen comments cite
-   these file names as evidence for particular findings. The 1.00 was
-   `day2_noon`: the camera flat against a stone wall with a street sign at
-   point-blank range.
-
-   **AND IT IS NOW EXERCISED ON THE CASE IT WAS BUILT FOR.** `b71c71f` was
-   mild — `shotNearBefore=0.29`, one step — so nothing was proved. `01f4eeb`
-   ran into a real one: `shotNearBefore=0.83 shotNudges=8 shotNudgesWorked=5
-   shotNudgesGaveUp=0`. Five blocked shots, all cleared, averaging 1.6 steps,
-   and the whole twenty-shot series now tops out at 0.18 against a
-   pre-loop `0.37 0.48 0.60 1.00` tail.
-
-   **AND THE METRIC IS NARROWER THAN ITS NAME.** Two metres catches "the
-   camera is against a wall". It does not catch `review_day5_noon`, which is
-   roof and awning slabs across the middle of frame at about ten metres —
-   visibly blocked, numerically clear. I claimed two of six stills were
-   photographs of a wall; the measurement confirms one and is blind to the
-   other. **The next number is a median ray distance, not a wider bound.**
+   **What is left:** two metres catches "the camera is against a wall" and
+   misses `review_day5_noon` — roof and awning slabs across the middle at
+   about ten metres, visibly blocked and numerically clear. I claimed two of
+   six were photographs of a wall; the measurement confirms one and is blind
+   to the other. **The next number is a median ray distance, not a wider
+   bound.**
 
 1. **THE DENOMINATOR PAID FOR ITSELF THE FIRST TIME IT RAN, and the law
    tier was broken.** `e6634a1` read `looseEnds=6/0/[Owed:6]/open6/1of6` —
    six evenings, exactly ONE tier live on each — beside `inquiry=Manhunt
-   pressNamed=1 homNamed=9 redirected=1 pointedAt=kest`. The detective was
-   hunting the player and the paper had printed her name, and the evening
+   pressNamed=1 homNamed=9 redirected=1`. The detective was hunting the
+   player and the paper had printed her name, and the evening
    screen said the law was not open. Without the open count that reads as
    "Owed simply outranked it", which is what I would have concluded.
 
@@ -178,29 +163,38 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    Conversion runs right after `SetHour` and only on PARKED cars, so nothing
    changes shape in front of the player.
 
-   **EVERY LINK FIRES.** `b71c71f`: `inquiry=Manhunt
-   patrolWeight=5.0 patrolWant=6 patrolNow=6 patrolsChanged=5
-   patrolBodies=5`. The chain runs end to end and the meshes followed.
+   **EVERY LINK FIRES** (`b71c71f`): `patrolWant=6 patrolNow=6
+   patrolsChanged=5 patrolBodies=5`, meshes following kinds.
 
    **AND THEY WERE INVISIBLE, WHICH THE IN-SHOT COUNTER CAUGHT AT ONCE.**
-   `01f4eeb`: a full manhunt, `patrolWant=6 patrolNow=6`, and
-   `patrolInShotPeak=1 patrolInShotMean=0.10` over twenty frames. One frame
-   in ten, never two at once. The quiet state is two cars — about 0.03 — and
-   a player cannot tell those apart, so "you cannot miss them" was false.
+   `01f4eeb`: a full manhunt and `patrolInShotMean=0.10` over twenty frames —
+   one in ten, never two at once. The quiet state is about 0.03; a player
+   cannot tell those apart, so "you cannot miss them" was false.
 
-   **The fix is a BEAT, not a bigger weight.** The weight is already 5 of a
-   pool of 18, over a quarter of the traffic; raising it would fill the far
-   districts with police nobody sees. Six cars spread over seven districts is
-   nothing anywhere, so patrols now route inside the district the player is
-   standing in — borrowed from the local-journey rule ordinary traffic
-   already uses, so there is no radius to tune. Cleared when the inquiry is
-   None: a beat that cannot be stood down is a consequence that never
-   expires. Core test converges 5 of 5 and disperses on stand-down.
+   **The fix is a BEAT, not a bigger weight** — the weight is already a
+   quarter of all traffic, and raising it fills far districts with police
+   nobody sees. Patrols route inside the district the player stands in,
+   borrowed from the local-journey rule ordinary traffic already uses, so
+   there is no radius to tune. Cleared when the inquiry is None: a beat that
+   cannot be stood down is a consequence that never expires. Core test
+   converges 5 of 5 and disperses on stand-down.
 
-   **Read next build:** `patrolBeat` names the district and should be `none`
-   only while `inquiry=None`. `patrolInShotMean` should be several times
-   0.10; if it is not, the cars are converging and the camera never looks at
-   the road, which is a different problem and the stills will show it.
+   **THE BEAT DOUBLED IT AND THAT IS NOT ENOUGH.** `312f6fa`:
+   `patrolBeat=the_Hook`, `patrolInShotMean` 0.10 -> 0.20, `patrolInShotPeak`
+   still 1 over twenty shots. Four frames in twenty have a patrol car and
+   never two at once. Real, and short of "you cannot miss them".
+
+   **The next number decides which fix is right, and it ships next build.**
+   `carsInShotMean` is how many vehicles of ANY kind a review frame holds. If
+   it is around 2, then one in five being a patrol car is a heavily policed
+   street and the thing to fix is where the cameras point. If it is 8, the
+   beat needs more cars. **Opposite conclusions from the same 0.20**, and
+   until now nothing could tell them apart — so no tuning until it lands.
+
+   **And a third possibility the pair will not settle:** six cars that never
+   stop are six brief crossings. A patrol PARKED at a junction with its
+   beacon lit stays in frame, and is worth more than three that drive past.
+   That is a feature, not a tuning knob, and it waits on the reading.
 
    **Noted, not chased:** `vehiclesKitted=26/33` where the fleet is 28.
    `VehiclesBodied` counts bodies BUILT and rebalancing rebuilds them, so the

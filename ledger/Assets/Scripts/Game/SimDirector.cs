@@ -7323,6 +7323,7 @@ namespace Ledger.Game
         bool _shotMoved;
         Vector3 _shotStoodAt;
         int _patrolShotPeak, _patrolShotSum, _patrolShots;
+        int _carsShotPeak, _carsShotSum;
 
         /// How much of this camera's frame is solid within arm's length.
         ///
@@ -7602,9 +7603,12 @@ namespace Ledger.Game
                 // mean over shots says whether the street READS as policed,
                 // which is the design one, and it needs `patrolShots` beside
                 // it or a low mean cannot be told from a short run.
-                int inShot = _game != null ? _game.PatrolsInShot(blockCam) : 0;
+                int inShot = 0, carsInShot = 0;
+                if (_game != null) _game.VehiclesInShot(blockCam, out inShot, out carsInShot);
                 if (inShot > _patrolShotPeak) _patrolShotPeak = inShot;
                 _patrolShotSum += inShot;
+                _carsShotSum += carsInShot;
+                if (carsInShot > _carsShotPeak) _carsShotPeak = carsInShot;
                 _patrolShots++;
             }
 
@@ -11296,6 +11300,18 @@ namespace Ledger.Game
                       $"patrolInShotPeak={_patrolShotPeak} " +
                       $"patrolInShotMean={(_patrolShots > 0 ? (double)_patrolShotSum / _patrolShots : -1):0.00} " +
                       $"patrolShots={_patrolShots} " +
+                      // THE DENOMINATOR, AND IT DECIDES WHICH FIX IS RIGHT.
+                      //
+                      // The beat took `patrolInShotMean` 0.10 -> 0.20, a real
+                      // doubling, and 0.20 still sounds thin. Thin against
+                      // what? If a review frame typically holds two vehicles,
+                      // one in five being a patrol car is a heavily policed
+                      // street and the thing to fix is where the cameras
+                      // point. If it holds eight, the beat needs more cars.
+                      // Opposite conclusions from the same number, and until
+                      // this line existed nothing could tell them apart.
+                      $"carsInShotPeak={_carsShotPeak} " +
+                      $"carsInShotMean={(_patrolShots > 0 ? (double)_carsShotSum / _patrolShots : -1):0.00} " +
                       $"vehicleFellBack=[{(GameController.VehicleFallbackWhy.Length == 0 ? "none" : GameController.VehicleFallbackWhy)}] " +
                       $"lampSweeps={WorldBuilder.LampSweeps}/{WorldBuilder.LampSweeps + WorldBuilder.LampSweepsSkipped} " +
                       $"neonSweeps={WorldBuilder.NeonSweeps}/{WorldBuilder.NeonSweeps + WorldBuilder.NeonSweepsSkipped} " +

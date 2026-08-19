@@ -397,19 +397,36 @@ namespace Ledger.Game
         /// empty. Position rather than renderer bounds, matching how
         /// `streetBodies` asks the same question about people, so the two
         /// numbers are comparable.
-        public int PatrolsInShot(Camera eye)
+        /// AND THE DENOMINATOR, WITHOUT WHICH THE PATROL COUNT IS A JUDGEMENT
+        /// RATHER THAN A MEASUREMENT.
+        ///
+        /// The beat took `patrolInShotMean` from 0.10 to 0.20 — a real
+        /// doubling — and 0.20 still sounds thin. But thin against WHAT? If
+        /// the review cameras typically have two vehicles of any kind in
+        /// frame, then one in five being a patrol car is a heavily policed
+        /// street and the thing to fix is where the cameras point. If they
+        /// typically have eight, it is thin and the beat needs more cars.
+        /// Those are opposite conclusions from the same number, and nothing
+        /// in the verdict could tell them apart — rule 3b, on a fraction
+        /// whose numerator was built two builds ago.
+        ///
+        /// `all` counts every awake vehicle in the same frustum at the same
+        /// instant, so the pair cannot be two different moments quoted as a
+        /// ratio.
+        public void VehiclesInShot(Camera eye, out int patrols, out int all)
         {
-            if (eye == null || Traffic == null) return 0;
-            int n = 0;
+            patrols = all = 0;
+            if (eye == null || Traffic == null) return;
             foreach (var v in Traffic.Vehicles)
             {
                 if (v == null || v.Dormant || v.Kind == null) continue;
-                if (v.Kind.Id != Ledger.Core.VehicleKinds.PoliceId) continue;
                 var vp = eye.WorldToViewportPoint(
                     new Vector3((float)v.X, 0.6f, (float)v.Z));
-                if (vp.z > 0f && vp.x >= 0f && vp.x <= 1f && vp.y >= 0f && vp.y <= 1f) n++;
+                if (!(vp.z > 0f && vp.x >= 0f && vp.x <= 1f && vp.y >= 0f && vp.y <= 1f))
+                    continue;
+                all++;
+                if (v.Kind.Id == Ledger.Core.VehicleKinds.PoliceId) patrols++;
             }
-            return n;
         }
 
         public bool AnyVehicleWithin(Vector3 at, float metres)

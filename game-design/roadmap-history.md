@@ -2316,3 +2316,67 @@ Both keys kept their names, since they have landed series.
 **Perf, settled and retired in the same round:** traffic halved, the
 separation sweep priced at 0.8ms against a 12ms budget so the rewrite is not
 worth doing, and `sun` shown to be noise.
+
+---
+
+## The review stills were photographs of a wall — 2026-08-19
+
+Cut from `queue.md` when the work closed. What stayed there is the one live
+residue: the metric is narrower than its name.
+
+**The finding.** Opening all six committed stills — which rule 4 asks for and
+which had not been done in a while — showed `review_day2_noon` as a stone wall
+across the right half and `review_day5_noon` as roof and awning slabs across
+the middle. A third of the primary evidence this project reads every build
+showed almost no street.
+
+**No gate could have said so**, and that is the interesting part. Every one
+asks about a SYSTEM — are the billboards aimed, is the text the right way
+round, did the bodies get skinned — and all of them pass perfectly on a
+photograph of a wall. `review_street` had had a declutter loop since a lamp
+column filled its frame; the day stills never got one and were taken wherever
+the sim's camera happened to be standing.
+
+**A duplicate was written and deleted.** The first response was a fresh 35-ray
+grid, which turned out to duplicate an existing 84-ray one forty lines further
+down the same function, with a better exclusion list. Rule 3: when your own
+analysis says something is missing, open the file.
+
+**What was actually missing was narrower.** `shotNearFracWorst=1.00
+where=[day13_night]` — and `day13_night` is not a picture this build commits.
+The sim shoots about twenty times a run and keeps about six, and the
+measurement never told the two sets apart, so the worst reading named a frame
+nobody can open while the two bad stills went unnamed. It now carries the
+per-shot series and a separate worst over the stills that became FILES,
+claimed at the write site so one place knows which pictures exist.
+
+**Then the bound, from a run rather than from taste.** `682e676` printed a
+run's twenty shots sorted:
+
+    0.00 x13  0.05  0.06  0.10 | 0.37  0.48  0.60  1.00
+
+Cleanly bimodal, so the threshold went in the widest empty stretch at 0.25 —
+0.15 clear of the worst good frame and 0.12 clear of the best bad one. The
+measurement shipped one build EARLIER with no loop attached, deliberately,
+because there was no run to set a bound from.
+
+**Straight back, never re-aimed.** The aim is what the shot is OF, and a dozen
+comments across the codebase cite these file names as the evidence for
+particular findings; a frame re-pointed to find air would quietly falsify all
+of them. Eight steps of 1.5m, and a camera that cannot get clear goes back
+where it stood.
+
+**Three mistakes caught before it shipped.** The series was being recorded
+above the loop, so it would have published fractions describing camera
+positions the sim never photographed. The restore position was captured
+beside the render-target save, three hundred lines below the loop, by which
+point the camera had already moved — "restoring" would have left it displaced
+for the rest of the run, a screenshot fix quietly becoming a gameplay change.
+And the 84-ray grid was about to exist twice.
+
+**Exercised on the case it was built for, two builds later.** `b71c71f` was
+mild — `shotNearBefore=0.29`, one step — so it proved nothing. `01f4eeb` ran
+into a real one: `shotNearBefore=0.83 shotNudges=8 shotNudgesWorked=5
+shotNudgesGaveUp=0`. Five blocked shots, all cleared, averaging 1.6 steps, and
+the twenty-shot series topped out at 0.18 against that pre-loop
+`0.37 0.48 0.60 1.00` tail.
