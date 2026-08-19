@@ -83,24 +83,19 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    to the other. **The next number is a median ray distance, not a wider
    bound.**
 
-1. **THE DENOMINATOR PAID FOR ITSELF THE FIRST TIME IT RAN, and the law
-   tier was broken.** `e6634a1` read `looseEnds=6/0/[Owed:6]/open6/1of6` —
-   six evenings, exactly ONE tier live on each — beside `inquiry=Manhunt
-   pressNamed=1 homNamed=9 redirected=1`. The detective was hunting the
-   player and the paper had printed her name, and the evening
-   screen said the law was not open. Without the open count that reads as
-   "Owed simply outranked it", which is what I would have concluded.
+1. **THE DENOMINATOR PAID FOR ITSELF THE FIRST TIME IT RAN, and the law tier
+   was broken.** `looseEnds=6/0/[Owed:6]/open6/1of6` — one tier live on each
+   of six evenings — beside `inquiry=Manhunt pressNamed=1 homNamed=9`. The
+   detective was hunting the player, the paper had printed her name, and the
+   evening screen said the law was not open. Without the open count that
+   reads as "Owed simply outranked it", which is what I would have concluded.
 
-   Cause: the tier asked `string.IsNullOrEmpty(Homicides.PointedAt)` — is
-   anybody else named — and NOTHING EVER CLEARS THAT NAME. Only the relief
-   expires, after four days, so one successful redirect ever closed the tier
-   for the rest of the run. It reads the live relief now, tested both ways
-   off the real book.
-
-   **Landed:** `[Law:1,Owed:5]/open7/2of6` against yesterday's
-   `[Owed:6]/open6/1of6`. The tier fires and two are live on the busiest
-   evening. **Crew still never opens** (`crew=2`, nobody below the poach
-   floor) — the next one to chase.
+   Cause: the tier asked whether anybody ELSE was named, and NOTHING EVER
+   CLEARS THAT NAME — only the relief expires, after four days, so one
+   successful redirect ever closed the tier for the rest of the run. It reads
+   the live relief now, tested both ways off the real book. **Landed:**
+   `[Law:1,Owed:5]/open7/2of6`. **Crew still never opens** (`crew=2`, nobody
+   below the poach floor) — the next one to chase.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the
@@ -115,19 +110,15 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    inside the 34m band — half the people you can see are too far away to ever
    be skinned. Belongs with the population item.
 
-   **The white pills are still unidentified, and NOT ONE OF THE SIX STILLS
-   ON `e6634a1` HAS ONE.** Measured rather than squinted at: the two pale
-   figures in `review_street.jpg` read `#5d626f` and `#66676a` on their lit
-   quarter against buildings at `#7f838f` — darker than the walls — and the
-   brightest 1% of that frame is entirely the harbour at the vanishing point.
-   I had written "two of them, one in a T-pose" off the picture before
-   measuring it, the sixth wrong identification of this.
-
-   So `bodyAlbedo` naming them was wrong (it measures source TEXTURES, not
-   the render), "the cast is too bright for the palette" is retracted, and so
-   is "it is visible in the stills we have". **Intermittent, and no committed
-   frame currently contains one**, so the next step is a measurement that
-   fires WHILE one is on screen.
+   **The white pills are still unidentified, and NO COMMITTED STILL HAS
+   ONE.** Measured rather than squinted at: the two pale figures in
+   `review_street.jpg` read `#5d626f` and `#66676a` on their lit quarter
+   against buildings at `#7f838f` — darker than the walls — and that frame's
+   brightest 1% is entirely the harbour at the vanishing point. I had written
+   "two of them, one in a T-pose" off the picture before measuring, the sixth
+   wrong identification of this. `bodyAlbedo` naming them was wrong too (it
+   measures source TEXTURES). **The next step is a measurement that fires
+   WHILE one is on screen.**
 
    **The T-pose is real and separate.** One figure in `review_street.jpg`
    has arms straight out — `armStreet`'s tail, which a median across bodies
@@ -149,13 +140,11 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    almost all of it, so one bicycle model closes it.
 
    **THE POLICE CAR IS IN.** "Wrong era, wrong town" was a guess about a file
-   nobody had opened: it is a plain saloon a fifth longer than the sedan, and
-   its body maps to the WHITE region of the shared colormap (#cbcbde) where
-   every other car maps to mid-slate. Slate stripe, one blue beacon on a
-   plinth we add since the kit has no light bar, exempt from the noir
-   multiply, front push bar (`grill`) dropped by name. `vehiclesKitted` went
-   18/28 to 21/28. `ambulance` and `firetruck` stay out with a reason now
-   rather than an assumption — both are mid-slate in this palette.
+   nobody had opened: a plain saloon a fifth longer than the sedan whose body
+   maps to the WHITE region of the shared colormap (#cbcbde) where every
+   other car is mid-slate. Blue beacon on a plinth we add, exempt from the
+   noir multiply, push bar dropped by name. `vehiclesKitted` 18/28 -> 21/28.
+   `ambulance` and `firetruck` stay out — both mid-slate in this palette.
 
 1. **PATROL DENSITY FOLLOWS THE INQUIRY.** `PatrolWeightFor(Inquiry)` is a
    pure Core function — None 1, Procedure 2, Investigation 3, Manhunt 5,
@@ -179,22 +168,37 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    cannot be stood down is a consequence that never expires. Core test
    converges 5 of 5 and disperses on stand-down.
 
-   **THE BEAT DOUBLED IT AND THAT IS NOT ENOUGH.** `312f6fa`:
-   `patrolBeat=the_Hook`, `patrolInShotMean` 0.10 -> 0.20, `patrolInShotPeak`
-   still 1 over twenty shots. Four frames in twenty have a patrol car and
-   never two at once. Real, and short of "you cannot miss them".
+   **EVERY NUMBER I QUOTED FOR THIS WAS TWO REGIMES AVERAGED TOGETHER.**
+   `896e7b6` printed `shotDistricts=[the_Hook:20]`, `patrolBeat=the_Hook` and
+   `shotsOnBeat=3/20` — which cannot all be true unless `patrolBeat` is the
+   value at the END of the run. It is. The beat exists only once an inquiry
+   does, the killing is staged around day 12 of sixteen, and most stills are
+   days 1 to 5. **Seventeen of twenty shots measured a town with no manhunt
+   in it**, where there are two patrol cars in the whole city.
 
-   **The next number decides which fix is right, and it ships next build.**
-   `carsInShotMean` is how many vehicles of ANY kind a review frame holds. If
-   it is around 2, then one in five being a patrol car is a heavily policed
-   street and the thing to fix is where the cameras point. If it is 8, the
-   beat needs more cars. **Opposite conclusions from the same 0.20**, and
-   until now nothing could tell them apart — so no tuning until it lands.
+   So 0.10, 0.20 and 0.25 were all that mixture and **the beat's actual
+   effect has never been measured.** CLAUDE.md's regime-change warning,
+   walked into while holding the rule. `patrolOnBeatMean` and
+   `patrolOffBeatMean` split it, each with its own shot count, because three
+   frames is a hint and not a finding.
 
-   **And a third possibility the pair will not settle:** six cars that never
-   stop are six brief crossings. A patrol PARKED at a junction with its
-   beacon lit stays in frame, and is worth more than three that drive past.
-   That is a feature, not a tuning knob, and it waits on the reading.
+   **Ruled out along the way, and each cost only a measurement:** the cameras
+   (frames hold 2.75-4.75 vehicles, they are not pointed at walls); too few
+   cars (6 of 28 on the beat); and my own tidy theory that `Rebalance`
+   converting dormant cars made the patrol fleet out of the vehicles that
+   sleep most — probed hour by hour, patrols are 6 of 6 awake 07:00-23:00.
+
+   **Still unread:** six cars that never stop are six brief crossings. A
+   patrol PARKED at a junction with its beacon lit stays in frame and is
+   worth more than three that drive past. A feature, not a knob.
+
+1. **EVERY REVIEW STILL IS TAKEN IN ONE OF SEVEN DISTRICTS.**
+   `shotDistricts=[the_Hook:20]` — all twenty, every run. The stills are the
+   primary evidence channel and they have never shown Downtown, the Strip,
+   Fairview, Gullwing or the dockside at all. Anything built there is
+   unverified by the thing this project checks every build, and the districts
+   were the largest world change in weeks. Cheap first step: send one review
+   shot per district rather than twenty at the player's feet.
 
    **Noted, not chased:** `vehiclesKitted=26/33` where the fleet is 28.
    `VehiclesBodied` counts bodies BUILT and rebalancing rebuilds them, so the

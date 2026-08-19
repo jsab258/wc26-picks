@@ -7326,6 +7326,7 @@ namespace Ledger.Game
         int _carsShotPeak, _carsShotSum;
         readonly Dictionary<string, int> _shotDistricts = new Dictionary<string, int>();
         int _shotsOnBeat;
+        int _patrolOnBeatSum, _patrolOnBeatShots, _patrolOffBeatSum, _patrolOffBeatShots;
 
         /// How much of this camera's frame is solid within arm's length.
         ///
@@ -7659,6 +7660,29 @@ namespace Ledger.Game
                 _carsShotSum += carsInShot;
                 if (carsInShot > _carsShotPeak) _carsShotPeak = carsInShot;
                 _patrolShots++;
+
+                // SPLIT BY WHETHER A BEAT WAS ON, because the run has two
+                // regimes in it and the mean was quietly averaging them.
+                //
+                // `896e7b6` printed `shotDistricts=[the_Hook:20]` and
+                // `patrolBeat=the_Hook` and `shotsOnBeat=3/20` — which looks
+                // like a contradiction and is not. `patrolBeat` is the value
+                // at the END of the run; the beat only exists once an inquiry
+                // does, and the killing is staged around day 12 of sixteen
+                // while most stills are taken on days 1 to 5. So seventeen of
+                // twenty shots measured a town with NO manhunt in it, where
+                // there are two patrol cars in the whole city.
+                //
+                // Every reading I have quoted for this feature — 0.10, 0.20,
+                // 0.25 — was that mixture, and the beat's actual effect has
+                // therefore never been measured. CLAUDE.md's regime-change
+                // warning, walked into while holding the rule: no aggregate
+                // survives a break like that, and the give-away was two
+                // numbers that could not both be true.
+                bool onBeat = _game?.Traffic != null
+                              && !string.IsNullOrEmpty(_game.Traffic.PatrolFocusDistrict);
+                if (onBeat) { _patrolOnBeatSum += inShot; _patrolOnBeatShots++; }
+                else { _patrolOffBeatSum += inShot; _patrolOffBeatShots++; }
             }
 
             // HOW MANY PEOPLE ARE ACTUALLY IN THE PICTURE.
@@ -11365,6 +11389,16 @@ namespace Ledger.Game
                       // `shotsOnBeat=18 of 20` are opposite findings and the
                       // fraction alone cannot say which without the total.
                       $"shotsOnBeat={_shotsOnBeat}/{_patrolShots} " +
+                      // THE TWO REGIMES APART. `patrolInShotMean` above is the
+                      // MIXTURE and is kept only because it has a series;
+                      // these two are the ones to read. Each carries its own
+                      // shot count because the on-beat sample is tiny — three
+                      // of twenty on `896e7b6` — and a mean of three frames is
+                      // a hint, not a finding.
+                      $"patrolOnBeatMean={(_patrolOnBeatShots > 0 ? (double)_patrolOnBeatSum / _patrolOnBeatShots : -1):0.00} " +
+                      $"patrolOnBeatShots={_patrolOnBeatShots} " +
+                      $"patrolOffBeatMean={(_patrolOffBeatShots > 0 ? (double)_patrolOffBeatSum / _patrolOffBeatShots : -1):0.00} " +
+                      $"patrolOffBeatShots={_patrolOffBeatShots} " +
                       $"shotDistricts=[{ShotDistrictLine()}] " +
                       $"carsInShotPeak={_carsShotPeak} " +
                       $"carsInShotMean={(_patrolShots > 0 ? (double)_carsShotSum / _patrolShots : -1):0.00} " +
