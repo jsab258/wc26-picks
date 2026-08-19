@@ -65,7 +65,17 @@ files=("$dir/verdict.txt" "$dir/runs/$sha7.txt")
 # CONDITIONAL, AND EACH ON ITS OWN EVIDENCE. Stills come from the sim reaching a
 # screenshot; the frame ledger comes from it writing frames.tsv. A run can
 # manage the first and not the second, so one flag would have to guess.
-if [ "$stills" = 1 ]; then files+=("$dir"/review_*.jpg); fi
+# `hunt_*` RIDES THE SAME FLAG AND HAD TO BE NAMED HERE OR IT WOULD NOT EXIST.
+# The sim writes a pair of stills while the detective is running a manhunt —
+# the loudest state the game has, and one no committed frame had ever shown,
+# because the review quota fills on days 1-2 and the killing is staged around
+# day 12. Written by the sim and never staged is the same as never taken, and
+# it would have looked exactly like the feature not working.
+#
+# Same flag rather than its own: both come from the sim reaching a screenshot,
+# which is the fact the flag records. A run with no manhunt in it simply
+# produces no `hunt_` files and the glob is empty — `nullglob` is on above.
+if [ "$stills" = 1 ]; then files+=("$dir"/review_*.jpg "$dir"/hunt_*.jpg); fi
 if [ "$frames" = 1 ]; then files+=("$dir/frames.tsv"); fi
 # The clip contact sheet is taken once, before day one, so a run can produce it
 # and no street stills at all — which is why it gets its own flag rather than

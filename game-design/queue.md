@@ -155,12 +155,7 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    **EVERY LINK FIRES** (`b71c71f`): `patrolWant=6 patrolNow=6
    patrolsChanged=5 patrolBodies=5`, meshes following kinds.
 
-   **AND THEY WERE INVISIBLE, WHICH THE IN-SHOT COUNTER CAUGHT AT ONCE.**
-   `01f4eeb`: a full manhunt and `patrolInShotMean=0.10` over twenty frames —
-   one in ten, never two at once. The quiet state is about 0.03; a player
-   cannot tell those apart, so "you cannot miss them" was false.
-
-   **The fix is a BEAT, not a bigger weight** — the weight is already a
+   **The fix was a BEAT, not a bigger weight** — the weight is already a
    quarter of all traffic, and raising it fills far districts with police
    nobody sees. Patrols route inside the district the player stands in,
    borrowed from the local-journey rule ordinary traffic already uses, so
@@ -171,22 +166,29 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    **EVERY NUMBER I QUOTED FOR THIS WAS TWO REGIMES AVERAGED TOGETHER.**
    `896e7b6` printed `shotDistricts=[the_Hook:20]`, `patrolBeat=the_Hook` and
    `shotsOnBeat=3/20` — which cannot all be true unless `patrolBeat` is the
-   value at the END of the run. It is. The beat exists only once an inquiry
-   does, the killing is staged around day 12 of sixteen, and most stills are
-   days 1 to 5. **Seventeen of twenty shots measured a town with no manhunt
-   in it**, where there are two patrol cars in the whole city.
+   END-of-run value, and it is. **Seventeen of twenty shots measured a town
+   with no manhunt in it**, where there are two patrol cars in the whole
+   city.
 
-   So 0.10, 0.20 and 0.25 were all that mixture and **the beat's actual
-   effect has never been measured.** CLAUDE.md's regime-change warning,
-   walked into while holding the rule. `patrolOnBeatMean` and
-   `patrolOffBeatMean` split it, each with its own shot count, because three
-   frames is a hint and not a finding.
+   **SPLIT, AND THE ON-BEAT SAMPLE IS TOO SMALL TO CARRY ANYTHING.**
+   `9b4e2b5`: `patrolOnBeatMean=0.00` over 3 shots against
+   `patrolOffBeatMean=0.18` over 17. Zero of three is consistent with broken
+   and with unlucky, and nothing separates them — so the reading is not "the
+   beat made it worse", it is "there is no measurement here yet".
 
-   **Ruled out along the way, and each cost only a measurement:** the cameras
-   (frames hold 2.75-4.75 vehicles, they are not pointed at walls); too few
-   cars (6 of 28 on the beat); and my own tidy theory that `Rebalance`
-   converting dormant cars made the patrol fleet out of the vehicles that
-   sleep most — probed hour by hour, patrols are 6 of 6 awake 07:00-23:00.
+   **The condition and the observation never overlap**, which is the real
+   fault and is rule 5b's corollary at its purest. The four review stills
+   fill their quota on days 1 and 2; the killing is staged around day 12. So
+   the loudest state this game has — the one the whole feature exists for —
+   has never been in a committed photograph. **A `hunt_` pair now fires while
+   `inquiry=Manhunt`**, noon and night, on the same evidence flag as the
+   others, and `huntStills=N/2` says whether it did. Nothing else to try
+   until that lands.
+
+   **Ruled out, each for one measurement:** the cameras (frames hold 2.75-4.75
+   vehicles); too few cars (6 of 28); and my own tidy theory that `Rebalance`
+   converting dormant cars built the patrol fleet from the vehicles that sleep
+   most — probed hour by hour, patrols are 6 of 6 awake 07:00-23:00.
 
    **Still unread:** six cars that never stop are six brief crossings. A
    patrol PARKED at a junction with its beacon lit stays in frame and is

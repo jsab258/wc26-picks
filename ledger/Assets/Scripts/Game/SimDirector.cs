@@ -75,6 +75,30 @@ namespace Ledger.Game
         const int MaxRestStills = 2;
         int _restStills;
 
+        /// AND A PAIR TAKEN WHILE THEY ARE HUNTING YOU.
+        ///
+        /// The condition and the observation have never overlapped. The
+        /// killing is staged around day 12 of sixteen and the four review
+        /// stills fill their quota on days 1 and 2, so every photograph this
+        /// project has ever committed is of a town with no inquiry in it. The
+        /// patrol counters found it the hard way: `9b4e2b5` read
+        /// `patrolOnBeatShots=3` against `patrolOffBeatShots=17`, and the
+        /// three on-beat frames are not shots that were KEPT — they are
+        /// merely the three of twenty sampling moments that happened to fall
+        /// after day 12.
+        ///
+        /// So "what does the street look like when they are hunting you" —
+        /// the question the whole patrol feature exists to answer, and the
+        /// most dramatic state this game has — has never been in a picture.
+        /// That is rule 5b's corollary at its purest: not a guard that is
+        /// wrong, a guard pointed at a world where its subject never happens.
+        ///
+        /// Two, for the same reason the rest day gets two: a manhunt at noon
+        /// and a manhunt at night are different pictures, and one of each is
+        /// what makes them comparable with the ordinary pair.
+        const int MaxHuntStills = 2;
+        int _huntStills;
+
         /// LAYER 3, and the thing it is actually for.
         ///
         /// Twenty frames are fingerprinted every run — mean and peak luminance,
@@ -7894,10 +7918,39 @@ namespace Ledger.Game
                 // true statements to save 300KB a build.
                 bool restStill = Ledger.Core.Population.IsRestDay(_game != null ? _game.Now.Day : 0)
                                  && _restStills < MaxRestStills;
-                if (_reviewStills < MaxReviewStills || restStill)
+                // AND A PAIR WHILE THEY ARE HUNTING YOU. See `MaxHuntStills`:
+                // the inquiry starts around day 12 and the review quota is
+                // spent on days 1 and 2, so no committed frame has ever shown
+                // the loudest state this game has.
+                //
+                // Named `hunt_` rather than `review_` on purpose. The four
+                // `review_day*` names are cited by a dozen comments as the
+                // evidence for particular findings, and a fifth file that
+                // sometimes appears and sometimes does not would rot that
+                // straight away — a run with no manhunt in it simply has no
+                // `hunt_` frames, which is legible rather than confusing.
+                bool huntStill = _game != null
+                                 && _game.PoliceInquiry == Inquiry.Manhunt
+                                 && _huntStills < MaxHuntStills;
+                // ONE SHOT SPENDS ONE QUOTA, and the precedence is written out
+                // rather than implied. The first draft incremented the hunt
+                // counter while leaving the review counter untouched, so a
+                // frame could claim two quotas and the file name depended on a
+                // counter the same statement had declined to move. It happened
+                // to work only because the manhunt starts long after the
+                // review quota fills — a latent coupling to the order of two
+                // unrelated systems, which is the shape that breaks the day
+                // somebody stages the killing earlier.
+                bool asReview = _reviewStills < MaxReviewStills;
+                bool asRest = !asReview && restStill;
+                bool asHunt = !asReview && !asRest && huntStill;
+                if (asReview || asRest || asHunt)
                 {
-                    if (restStill) _restStills++; else _reviewStills++;
-                    System.IO.File.WriteAllBytes($"sim-out/review_{name}.jpg",
+                    if (asReview) _reviewStills++;
+                    else if (asRest) _restStills++;
+                    else _huntStills++;
+                    var stem = asHunt ? $"hunt_{name}" : $"review_{name}";
+                    System.IO.File.WriteAllBytes($"sim-out/{stem}.jpg",
                                                  tex.EncodeToJPG(60));
                     // THIS ONE IS EVIDENCE NOW. See `KeptTheShot` — the
                     // framing was measured at the top of `Shot`, and this is
@@ -11399,6 +11452,11 @@ namespace Ledger.Game
                       $"patrolOnBeatShots={_patrolOnBeatShots} " +
                       $"patrolOffBeatMean={(_patrolOffBeatShots > 0 ? (double)_patrolOffBeatSum / _patrolOffBeatShots : -1):0.00} " +
                       $"patrolOffBeatShots={_patrolOffBeatShots} " +
+                      // AND WHETHER THE MANHUNT WAS EVER PHOTOGRAPHED.
+                      // `huntStills=0` with `inquiry=Manhunt` on the same line
+                      // means the pair never fired and the reading below is
+                      // still about a town nobody is hunting anybody in.
+                      $"huntStills={_huntStills}/{MaxHuntStills} " +
                       $"shotDistricts=[{ShotDistrictLine()}] " +
                       $"carsInShotPeak={_carsShotPeak} " +
                       $"carsInShotMean={(_patrolShots > 0 ? (double)_carsShotSum / _patrolShots : -1):0.00} " +
