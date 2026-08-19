@@ -7309,6 +7309,55 @@ namespace Ledger.Game
         float _shotKeptWorst = -1f;
         string _shotKeptWhere = "none";
 
+        /// Above this fraction of the frame filled at arm's length, the shot
+        /// steps back. MEASURED, not chosen: see the long note at the call
+        /// site — `682e676` printed a run's twenty shots as
+        /// `0.00 x13 0.05 0.06 0.10 | 0.37 0.48 0.60 1.00`, and this sits in
+        /// the widest empty stretch of that series.
+        const float ShotBlockedAt = 0.25f;
+        /// The worst reading taken BEFORE any step, and the count of steps.
+        /// Without these a clean run cannot say whether the loop worked or
+        /// whether nothing was ever in the way.
+        float _shotNearBefore = -1f;
+        int _shotNudges, _shotNudgesWorked, _shotNudgesGaveUp;
+        bool _shotMoved;
+        Vector3 _shotStoodAt;
+
+        /// How much of this camera's frame is solid within arm's length.
+        ///
+        /// 84 rays across the frustum, hits inside two metres, the player's
+        /// own colliders excluded. It is a fraction of a KNOWN denominator —
+        /// the grid is fixed — so unlike most counters in this file it cannot
+        /// read low because nothing was sampled.
+        ///
+        /// TWO METRES IS WHAT IT MEASURES AND IT IS NOT THE WHOLE QUESTION.
+        /// `review_day5_noon` is roof and awning slabs across the middle of
+        /// the frame and reads near zero here, because those slabs are ten
+        /// metres out, not two. So this catches "the camera is against a
+        /// wall" and not "the camera cannot see the street", and the second
+        /// needs a different number — a median ray distance would do it. Said
+        /// here rather than left to be discovered, because a metric that
+        /// answers a narrower question than its name suggests is how four
+        /// wrong readings got published in this project already.
+        float ShotNearFrac(Camera eye)
+        {
+            if (eye == null) return 0f;
+            int nearHits = 0, rays = 0;
+            for (int gx = 0; gx < 12; gx++)
+                for (int gy = 0; gy < 7; gy++)
+                {
+                    var ray = eye.ViewportPointToRay(
+                        new Vector3((gx + 0.5f) / 12f, (gy + 0.5f) / 7f, 0f));
+                    rays++;
+                    if (Physics.Raycast(ray, out var nh, 2f,
+                                        ~0, QueryTriggerInteraction.Ignore)
+                        && !(_game != null && _game.Player != null
+                             && nh.collider.transform.IsChildOf(_game.Player.transform)))
+                        nearHits++;
+                }
+            return rays > 0 ? (float)nearHits / rays : 0f;
+        }
+
         /// This shot was written to disk, so its framing is EVIDENCE.
         ///
         /// Called from the one place that decides, immediately after the
@@ -7418,54 +7467,126 @@ namespace Ledger.Game
                 // CLEAR, and the framing is still bad. An 84-ray grid
                 // across the frustum, counting hits within two metres —
                 // the fraction is the number, the worst shot is named.
-                int nearHits = 0, rays = 0;
-                for (int gx = 0; gx < 12; gx++)
-                    for (int gy = 0; gy < 7; gy++)
+                // ONE IMPLEMENTATION OF THE GRID, in `ShotNearFrac`, because
+                // the loop below has to re-ask the same question after every
+                // step and a second copy of an 84-ray sweep is precisely the
+                // shape this file keeps finding wrong on the side nobody looks
+                // at.
+                float nearFrac = ShotNearFrac(blockCam);
+                // BACK OFF THE WALL, WITH A BOUND OFF THE SERIES.
+                //
+                // `682e676` printed the twenty shots of a run sorted:
+                //
+                //   0.00 x13  0.05  0.06  0.10 | 0.37  0.48  0.60  1.00
+                //
+                // and the committed six were 0.00 x4, 0.05, 1.00. That is
+                // bimodal with the widest empty stretch in the whole series
+                // between 0.10 and 0.37, so `ShotBlockedAt` sits in it —
+                // 0.15 clear of the worst good frame and 0.12 clear of the
+                // best bad one. Not a round number picked first and defended
+                // afterwards: the previous commit shipped this measurement
+                // deliberately WITHOUT a loop, because the bound had to come
+                // from a run and there had not been one (rule 2).
+                //
+                // The 1.00 is `day2_noon`, and it is worth naming what that
+                // still actually is: the camera flat against a stone wall
+                // with a street sign at point-blank range, every one of the
+                // 84 rays hitting inside two metres. One of the six pictures
+                // this project reads every build.
+                //
+                // STRAIGHT BACK, NOT RE-AIMED. The aim is what the shot is
+                // OF, and a dozen comments across this file cite these file
+                // names as the evidence for particular findings; a frame
+                // re-pointed to find air would quietly falsify all of them.
+                // Only the standoff changes. Eight steps of 1.5m is bounded
+                // and cannot walk the camera across town.
+                //
+                // AND IT REPORTS WHAT IT DID. `shotNearBefore` keeps the
+                // worst reading taken BEFORE any step, so a run where every
+                // frame comes back clean can still say whether that is the
+                // loop working or nothing having been in the way — the
+                // missing denominator, applied to a repair rather than to a
+                // count.
+                if (nearFrac > ShotBlockedAt)
+                {
+                    if (nearFrac > _shotNearBefore) _shotNearBefore = nearFrac;
+                    var back = blockCam.transform.forward;
+                    back.y = 0f;
+                    if (back.sqrMagnitude > 0.0001f)
                     {
-                        var vp = new Vector3((gx + 0.5f) / 12f,
-                                             (gy + 0.5f) / 7f, 0f);
-                        var ray = blockCam.ViewportPointToRay(vp);
-                        rays++;
-                        if (Physics.Raycast(ray, out var nh, 2f,
-                                            ~0, QueryTriggerInteraction.Ignore)
-                            && !nh.collider.transform.IsChildOf(
-                                    _game.Player.transform))
-                            nearHits++;
+                        back = -back.normalized;
+                        var stood = blockCam.transform.position;
+                        float best = nearFrac;
+                        for (int step = 0; step < 8; step++)
+                        {
+                            blockCam.transform.position += back * 1.5f;
+                            _shotNudges++;
+                            float now = ShotNearFrac(blockCam);
+                            if (now < best) best = now;
+                            if (now <= ShotBlockedAt) { best = now; break; }
+                        }
+                        if (best > ShotBlockedAt)
+                        {
+                            // NOTHING HELPED, SO PUT IT BACK. A camera that
+                            // has walked eight steps into a building it could
+                            // not escape makes a worse picture than the one it
+                            // started with, and the number says the frame was
+                            // blocked either way.
+                            blockCam.transform.position = stood;
+                            _shotNudgesGaveUp++;
+                        }
+                        else
+                        {
+                            // REMEMBERED HERE, NOT AT THE RENDER. The first
+                            // draft captured the restore position beside the
+                            // render-target save, three hundred lines below —
+                            // by which point this loop has already moved the
+                            // camera, so "restoring" would have put it back
+                            // where it already was and left it displaced for
+                            // the rest of the run. `stood` is the only value
+                            // in the function that is the position before any
+                            // step, so it is the one that has to travel.
+                            _shotStoodAt = stood;
+                            _shotMoved = true;
+                            _shotNudgesWorked++;
+                        }
+                        nearFrac = ShotNearFrac(blockCam);
                     }
-                float nearFrac = rays > 0 ? (float)nearHits / rays : 0f;
+                }
+
+                // RECORDED AFTER THE LOOP, WHICH IS THE WHOLE POINT OF THE
+                // ORDERING. These numbers exist to describe the PICTURE, and
+                // the picture is taken from wherever the camera ended up. The
+                // first draft of this commit recorded them above the loop and
+                // would have published a series about positions the sim never
+                // photographed — a measurement of a frame that does not exist,
+                // which is the same fault as reading a still from a build that
+                // never rendered.
+                //
+                // `shotNearBefore` above is the one reading that is
+                // deliberately from before, and it is named so.
+                //
+                // A PEAK CANNOT DESCRIBE A SET OF PHOTOGRAPHS. `shotNearFracWorst`
+                // read 1.00 at `day13_night` on `e6634a1` and said nothing
+                // about the other nineteen; whether that is one bad shot or a
+                // systematic problem with where the camera stands is the only
+                // question worth asking of it, and a maximum cannot answer it.
                 if (nearFrac > _shotNearFracWorst)
                 {
                     _shotNearFracWorst = nearFrac;
                     _shotNearFracWhere = name;
                 }
-                // A PEAK CANNOT DESCRIBE A SET OF PHOTOGRAPHS, and this one
-                // has been asked to since it was written. `shotNearFracWorst`
-                // read 1.00 at `day13_night` on `e6634a1` — one frame entirely
-                // filled — and said nothing about the other nineteen. Whether
-                // that is one bad shot or a systematic problem with where the
-                // camera stands is the only question worth asking of it, and a
-                // maximum structurally cannot answer it.
                 _shotNearFrac.Add(nearFrac);
 
-                // AND ONLY SOME OF THESE SHOTS BECOME FILES, which is the
-                // sharper fault and is the reason I opened all six stills
-                // before finding this number at all.
-                //
-                // The sim shoots roughly twenty times a run and commits about
-                // six. `day13_night` is not one of them, so the worst reading
-                // in the verdict describes a frame nobody can open, while
-                // `review_day2_noon` — a stone wall across the right half —
-                // and `review_day5_noon` — roof slabs across the middle — are
-                // named nowhere. The number was measuring shots; the evidence
-                // is FILES; and the two sets have never been told apart.
-                //
-                // SO IT IS BANKED HERE AND CLAIMED AT THE WRITE, rather than
-                // predicted here. Whether a still is kept depends on two
-                // counters and a rest-day rule, and evaluating that twice is
-                // the one-idea-two-implementations shape that put a wrong
-                // reading in this file four times. The writer is the single
-                // place that knows, so it calls `KeptTheShot` and this only
-                // has to remember what it measured.
+                // AND ONLY SOME OF THESE SHOTS BECOME FILES. The sim shoots
+                // roughly twenty times a run and commits about six, so the
+                // worst reading described a frame nobody can open while
+                // `review_day2_noon` went unnamed. Banked here and CLAIMED at
+                // the write by `KeptTheShot`, rather than predicted here:
+                // whether a still is kept depends on two counters and a
+                // rest-day rule, and evaluating that twice is the
+                // one-idea-two-implementations shape that has put a wrong
+                // reading in this file four times.
                 _shotNearFracThis = nearFrac;
             }
 
@@ -7919,6 +8040,17 @@ namespace Ledger.Game
                 // leave the ring invisible for the rest of the run and
                 // turn a screenshot fix into a silent feature removal.
                 NoiseRing.SetHiddenForCapture(false);
+                // AND PUT THE CAMERA BACK. The declutter loop may have stepped
+                // it off a wall, and a camera left displaced follows the sim
+                // for the rest of the run — a screenshot fix quietly becoming
+                // a gameplay change, which is the same trap
+                // `NoiseRing.SetHiddenForCapture` sits in `finally` for. Here
+                // beside it, so a throw mid-render cannot strand it either.
+                if (_shotMoved)
+                {
+                    cam.transform.position = _shotStoodAt;
+                    _shotMoved = false;
+                }
                 if (tex != null) Destroy(tex);
                 if (rt != null) { rt.Release(); Destroy(rt); }
             }
@@ -10656,7 +10788,22 @@ namespace Ledger.Game
                       $"shotNearKeptWhere=[{_shotKeptWhere}] " +
                       $"shotNearKeptMedian={Median(_shotNearFracKept):0.00} " +
                       $"shotNearKeptSeries=[{FracSeries(_shotNearFracKept)}] " +
-                      $"shotNearKept={_shotNearFracKept.Count} uiOk={uiOk} " +
+                      $"shotNearKept={_shotNearFracKept.Count} " +
+                      // AND WHAT THE DECLUTTER LOOP DID, WITH ITS BEFORE.
+                      //
+                      // `shotNearBefore` is the worst reading taken before any
+                      // step; every other number here is after. Without the
+                      // pair, a run where all six stills come back clean
+                      // cannot say whether the loop earned that or whether
+                      // nothing was ever in the way — the missing denominator
+                      // again, this time on a repair rather than a count.
+                      // `shotNudgesGaveUp` is the honest third outcome: the
+                      // camera walked eight steps and could not get clear, so
+                      // it was put back and the frame is blocked anyway.
+                      $"shotNearBefore={_shotNearBefore:0.00} " +
+                      $"shotNudges={_shotNudges} " +
+                      $"shotNudgesWorked={_shotNudgesWorked} " +
+                      $"shotNudgesGaveUp={_shotNudgesGaveUp} uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} " +
                       $"collidingBubbles={_collidingBubbles} bubblesAtWorst={_bubblesAtWorst} bubblesOnScreen={_bubblesOnScreen} " +
