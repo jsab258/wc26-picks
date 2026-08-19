@@ -72,10 +72,9 @@ is the bar sign's bare back face, one line, low priority.
    60, floor against upright.
    Full account in `clip-findings.txt`.
 
-1. **`clip-motion.py`'s travel/path columns are not trustworthy.** *(local)*
-   Two walks reading 0.00 and 1.22, a standing reaction at 3.1 m/s. Nothing
-   reads them and the findings `clipFindings` counts do not depend on them;
-   the new `hip cm` column IS sound for the one question it answers.
+1. **`clip-motion.py`'s travel/path columns are not trustworthy** *(local)* —
+   two walks reading 0.00 and 1.22, a standing reaction at 3.1 m/s. Nothing
+   reads them; the new `hip cm` column IS sound for its one question.
 
 1. **`looseEnds=6/0/[Owed:6]` IS NOT THE FAULT IT LOOKS LIKE.** Six
    evenings, none empty, every one naming Owed — which reads as "five of
@@ -108,41 +107,42 @@ is the bar sign's bare back face, one line, low priority.
    WHOEVER YOU WERE LOOKING AT**: bodies a metre from the lens and out of
    frame beat the people in shot at 10-25m to all 12 grants.
 
-   **THE STREET IS NOT EMPTY — that reading was retracted the moment the
-   counter was fixed.** `review_street.jpg` at 75b9d2b shows nobody, and I
-   published "most streets are empty" off it plus a `1 in shot` that was a
-   last-wins artefact I already knew was broken. Run-level: **13.3 walkers
-   in shot per pass, peaking at 32.** The frame was an unlucky instant.
+   **THE STREET IS NOT EMPTY** — retracted the moment the counter was
+   fixed. `review_street.jpg` at 75b9d2b shows nobody and I published
+   "most streets are empty" off it, plus a `1 in shot` that was a last-wins
+   artefact I had already diagnosed. Run-level: **13.5 walkers in shot per
+   pass, peaking at 30.** The frame was an unlucky instant.
 
-   **WHAT IS REAL IS WHERE THE BUDGET GOES: 5.6 of the 14 grants are in
-   shot, so 8.4 go to people off screen** (2079/4965 = 41.9%).
+   **THE MULTIPLIER COULD NEVER HAVE FIXED IT.** Scaling squared distance
+   by a facing factor cannot beat squared distance: 1m behind ranks 1, 20m
+   ahead ranks 400, and at a bias of twenty the person behind still ranks
+   21. Replaced with an ADDITIVE cost in apparent distance, three quarters
+   of `NearMetres` — the band's own number rather than a new one.
 
-   **AND THE MULTIPLIER COULD NEVER HAVE FIXED IT.** Scaling squared
-   distance by a facing factor cannot beat squared distance: 1m behind
-   ranks 1, 20m ahead ranks 400, and at a bias of twenty the person behind
-   still ranks 21. Replaced with an ADDITIVE cost in apparent distance,
-   three quarters of `NearMetres` — the band's own number rather than a new
-   one. Awaiting its build.
+   **IT LANDED AND MOVED THE SHARE 41.9% -> 44.7%, WHICH IS TOO SMALL TO
+   READ, BECAUSE THE DENOMINATOR IS WRONG.** `bodyLodShotEligible` counts
+   everybody in frame INCLUDING people beyond the 34m band, who can never
+   be granted whatever the ranking does — so the ratio was measuring the
+   band, not the ranking. `bodyLodShotInBand` lands next build and is the
+   set the ranking actually chooses from; that ratio approaches 1.0 when
+   the ranking is right, and it is the one to judge on.
 
-   **THE CHURN WORRY IS ANSWERED AND IT IS FINE.** 278 grants / 68 revokes
-   against a recent band of 198-313 / 41-83, so turning round is not
-   costing prefab instantiates. (The drop from ~1,200 twenty runs ago was
-   the rank slack, not this.)
+   **AND THE CHURN ROSE: 362 grants / 131 revokes against 278 / 68 and a
+   recent band of 198-313.** Turning round now costs more. Whether that is
+   worth paying cannot be decided until the share is measured properly, so
+   it is noted rather than acted on.
 
    It stays gentle and continuous rather than a cone, because you can turn
    round and a hard in-frame test would swap the whole set on a spin. The
    BAND test reads true distance throughout, so nobody across the district
-   gets a body for facing the right way — only the contest for the fourteen
-   slots is a question about attention.
+   gets a body for facing the right way.
 
-   **THE WHITE PILLS ARE STILL UNIDENTIFIED**, and the claim that
-   `bodyAlbedo` named them was wrong — it measures skinned Mixamo
-   TEXTURES. Fifth wrong identification, first one published; it arrived
-   as a NUMBER and a number felt pre-checked. Intermittent. Next step is
-   a number that fires WHILE one is on screen. **"The cast is too bright
-   for the palette" is retracted for the same reason** — the third wrong
-   reading of that key: `RealBody.Tint` washes every body, anchored per
-   material, and `bodyAlbedo` reads the SOURCE sheet before the wash.
+   **THE WHITE PILLS ARE STILL UNIDENTIFIED**, and the claim `bodyAlbedo`
+   named them was wrong — it measures source TEXTURES, not the render.
+   Fifth wrong identification, first one published; it arrived as a NUMBER
+   and a number felt pre-checked. Intermittent; next step is a number that
+   fires WHILE one is on screen. **"The cast is too bright for the palette"
+   is retracted for the same reason**, the third wrong reading of that key.
 
    **The honest residue is the opposite number and nobody has looked at
    it: `bodyWashUnreached=534` against `bodyTinted=1326`** — 40% of bodies

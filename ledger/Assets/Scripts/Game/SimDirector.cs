@@ -11114,6 +11114,11 @@ namespace Ledger.Game
                       $"bodyLodShotEligible={GameController.BodyLodShotEligibleSum} " +
                       $"bodyLodInShotPeak={GameController.BodyLodInShotPeak} " +
                       $"bodyLodShotPeak={GameController.BodyLodShotPeak} " +
+                      // THE DENOMINATOR THE RANKING CAN BE SCORED ON: visible
+                      // AND inside the band. `bodyLodShotEligible` includes
+                      // people too far away to ever be granted, so scoring
+                      // against it measures the band rather than the ranking.
+                      $"bodyLodShotInBand={GameController.BodyLodShotInBandSum} " +
                       // WHO IS LIMPING. `Rig.Limp` has had one writer since it
                       // was built — the player — so the city has never limped,
                       // whatever was done to it. `limpNames` is the half that

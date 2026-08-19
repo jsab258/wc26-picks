@@ -652,7 +652,7 @@ namespace Ledger.Game
                 NpcWalker.RealBodyCap * (Populace.BandSlack / Populace.NearMetres));
             int spent = 0;
             int wanted = 0;
-            int inShot = 0, shotEligible = 0;
+            int inShot = 0, shotEligible = 0, shotInBand = 0;
             foreach (var (n, d2, _rank) in _bodyRank)
             {
                 bool has = n.HasRealBody;
@@ -671,6 +671,7 @@ namespace Ledger.Game
                 if (eye != null && InShot(eye, n.transform.position))
                 {
                     shotEligible++;
+                    if (inBand) shotInBand++;
                     if (want) inShot++;
                 }
             }
@@ -690,8 +691,25 @@ namespace Ledger.Game
             // the people in shot had bodies") and the peaks answer the other one
             // ("was there ever a crowd in frame at all"), because a fraction of
             // sums cannot tell a busy street from a run of empty ones.
+            // AND THE DENOMINATOR THE RANKING CAN ACTUALLY BE SCORED ON.
+            //
+            // `shotEligible` counts everybody in frame, INCLUDING people beyond
+            // the band, and the band test is a question about metres that no
+            // amount of ranking can answer — somebody visible sixty metres down
+            // the street is never getting a body. Scoring the ranking against
+            // that denominator therefore measures mostly the band: it read
+            // 41.9% before the ranking changed and 44.7% after, and almost all
+            // of both is people who were never candidates.
+            //
+            // `shotInBand` is the set the ranking is actually choosing from, so
+            // inShot/shotInBand is the number that approaches 1.0 when the
+            // ranking is right. Kept beside the other one rather than replacing
+            // it, because "how many visible people could ever be skinned" is a
+            // real question too — it is the one that decides whether the CAP is
+            // the binding constraint.
             BodyLodInShotSum += inShot;
             BodyLodShotEligibleSum += shotEligible;
+            BodyLodShotInBandSum += shotInBand;
             if (inShot > BodyLodInShotPeak) BodyLodInShotPeak = inShot;
             if (shotEligible > BodyLodShotPeak) BodyLodShotPeak = shotEligible;
         }
@@ -722,7 +740,8 @@ namespace Ledger.Game
         /// a field assigned here and read at the end of the run describes the
         /// LAST pass and nothing else — which is what the first version did, and
         /// it landed `0 of 1` on a run with forty-six eligible walkers.
-        public static long BodyLodInShotSum, BodyLodShotEligibleSum;
+        public static long BodyLodInShotSum, BodyLodShotEligibleSum,
+                           BodyLodShotInBandSum;
         public static int BodyLodInShotPeak, BodyLodShotPeak;
 
         /// HOW HARD THE RANKING PREFERS WHAT THE CAMERA IS POINTED AT, as a
