@@ -30,6 +30,7 @@ than carrying a second parser — one idea, one implementation.
 
 import importlib.util
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -215,6 +216,44 @@ def assemble(root):
 
 
 CAR_KIT = os.path.join(os.path.normpath(PROPS), "car-kit")
+SCRIPTS = os.path.join(HERE, "..", "ledger", "Assets", "Scripts")
+
+
+def read_kind_table():
+    """{id: (length, width, height)} read out of Core/Traffic.cs."""
+    src = open(os.path.join(SCRIPTS, "Core", "Traffic.cs"),
+               encoding="utf-8").read()
+    out = {}
+    for m in re.finditer(
+            r"Id\s*=\s*(\w+)Id\s*,.*?Length\s*=\s*([\d.]+)\s*,"
+            r"\s*Width\s*=\s*([\d.]+)\s*,\s*Height\s*=\s*([\d.]+)",
+            src, re.S):
+        out[m.group(1).lower()] = tuple(float(m.group(i)) for i in (2, 3, 4))
+    return out
+
+
+def read_kit_map():
+    """{kind id: first kit model name} read out of Game/TrafficHost.cs.
+
+    Only the FIRST candidate of each kind, which is the one the offset picks
+    for vehicle 0 and the one whose proportions stand for the slot. A kind
+    returning `Array.Empty` has no model and is simply absent here.
+    """
+    src = open(os.path.join(SCRIPTS, "Game", "TrafficHost.cs"),
+               encoding="utf-8").read()
+    out = {}
+    for m in re.finditer(
+            r"case\s+Ledger\.Core\.VehicleKinds\.(\w+)Id\s*:\s*return\s+new\[\]\s*\{\s*\"([^\"]+)\"",
+            src):
+        out[m.group(1).lower()] = m.group(2)
+    # `default:` dresses everything not named above, and `car` is the kind
+    # that reaches it. Named explicitly rather than inferred, because a
+    # silent miss here would drop a row from the table above and read as a
+    # clean run.
+    d = re.search(r"default:\s*return\s+new\[\]\s*\{\s*\"([^\"]+)\"", src)
+    if d and "car" not in out:
+        out["car"] = d.group(1)
+    return out
 
 
 def selftest():
@@ -277,6 +316,57 @@ def selftest():
     check(pooled < -1,
           "REJECTING CASE — pooling the parts unplaced buries the car",
           "pooled floor %.1f, which is what the table used to print" % pooled)
+
+    # -- THE VEHICLES THE GAME ACTUALLY DRESSES ------------------------
+    #
+    # `TrafficHost` scales a kit mesh to the kind's box on every axis, which
+    # is what stopped a rendered lorry being 3.97m wide on a road that gives
+    # it 3.00m. That means the mesh is DISTORTED, deliberately, and the
+    # amount is worth a bound: this kit is stylised-chunky and ours is meant
+    # to be plain, so some squash is the point and a lot of it is a model
+    # that should not have been chosen.
+    #
+    # Both tables are READ FROM THE CODE, not copied. A second copy of the
+    # vehicle dimensions in Python is the one-idea-two-implementations shape
+    # this project keeps paying for, and the parse failing is a FAILING check
+    # rather than an empty pass — the count of what was read is asserted
+    # first (rule 3b).
+    kinds, models = read_kind_table(), read_kit_map()
+    check(len(kinds) >= 6, "the kind table parses out of Core/Traffic.cs",
+          "%d kinds read" % len(kinds))
+    check(len(models) >= 4, "and the kit mapping out of Game/TrafficHost.cs",
+          "%d kinds mapped" % len(models))
+
+    squash = []
+    for kid, (L, W, H) in sorted(kinds.items()):
+        model = models.get(kid)
+        if not model:
+            continue
+        path = os.path.join(CAR_KIT, model.replace("_", "-") + ".fbx")
+        if not os.path.exists(path):
+            check(False, "kit model for %s exists" % kid, model)
+            continue
+        parts = assemble(_bp.parse_fbx(path, max_array=VERT_CAP)[0])
+        # The game drops the push bar before it measures, so this must too.
+        parts = [p for p in parts if not p[0].startswith("grill")]
+        mw = max(p[3][0] for p in parts) - min(p[2][0] for p in parts)
+        mh = max(p[3][1] for p in parts) - min(p[2][1] for p in parts)
+        md = max(p[3][2] for p in parts) - min(p[2][2] for p in parts)
+        sL, sW, sH = L / md, W / mw, H / mh
+        squash.append((kid, model, sW / sL, sH / sL))
+    print("  .. squash (1.00 keeps the kit's own proportions): "
+          + " ".join("%s=%.2f/%.2f" % (k, w, h) for k, _m, w, h in squash))
+    # MEASURED, NOT INVENTED (rule 2). Today's series runs 0.60..0.78 on
+    # width and 0.67..0.87 on height, the lorry being the worst on both
+    # counts because the kit's is nearly square in plan. 0.50 sits below all
+    # of it with room, and would catch a kind pointed at a model of the
+    # wrong shape entirely — a bus dressed as a van, say. Every hit on
+    # today's kit is a false positive by definition, which is what makes
+    # this bound trustworthy without a fixture.
+    worst = min([(min(w, h), k) for k, _m, w, h in squash] or [(1.0, "")])
+    check(worst[0] >= 0.50,
+          "no kit model is squashed past half to fit its kind",
+          "%s at %.2f" % (worst[1], worst[0]))
 
     # And the cap, because this file's whole history is that it was reading
     # nothing and saying so quietly.

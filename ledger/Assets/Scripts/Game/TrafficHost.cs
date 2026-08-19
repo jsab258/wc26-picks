@@ -391,12 +391,22 @@ namespace Ledger.Game
         /// below exists in the fetched Car Kit. Two kinds stay primitive
         /// by evidence, not oversight — the kit has NO BUS (a van scaled
         /// to 10.5m reads worse than our glass-band box), and no bicycle
-        /// with rider. The kit's police, ambulance, karts and race cars
-        /// are deliberately never referenced: wrong era, wrong town.
+        /// with rider.
+        ///
+        /// `police` USED TO BE ON THE NEVER-REFERENCED LIST, with the karts
+        /// and the race cars, under "wrong era, wrong town". That was a guess
+        /// about a file nobody had opened, and it was wrong: the model is a
+        /// plain saloon a fifth longer than the sedan, and its body maps to
+        /// the WHITE region of the shared colormap (#cbcbde) where every other
+        /// car maps to mid-slate. White saloon, slate stripe — the right car.
+        /// The karts and race cars stay out, and so do `ambulance` and
+        /// `firetruck`: both are slate in this palette, so neither reads as
+        /// what it is without livery work nobody has done.
         static string[] KitCandidates(string kindId)
         {
             switch (kindId)
             {
+                case Ledger.Core.VehicleKinds.PoliceId: return new[] { "police" };
                 // `taxi`, not "cab" — the id is `taxi` and only the NAME
                 // is "cab". This branch was dead from the day it was
                 // written and every cab in the city got a plain sedan.
@@ -472,20 +482,99 @@ namespace Ledger.Game
                 foreach (var kr0 in kitBody.GetComponentsInChildren<Renderer>())
                     kr0.SetPropertyBlock(paintMpb);
 
+                // THE PUSH BAR IS THE ONLY AMERICAN THING ABOUT THE PATROL CAR,
+                // and it is one named child. The kit calls it `grill` and puts
+                // it at the front — 100 x 51 x 25 units at z +130..155, which
+                // is where the extra 55 units of the model's 310 come from.
+                // Dropped before the bounds are taken, so the car scales to its
+                // body rather than to its bumper.
+                foreach (var t0 in kitBody.GetComponentsInChildren<Transform>())
+                    if (t0 != kitBody.transform && t0.name.StartsWith("grill"))
+                        DestroyImmediate(t0.gameObject);
+
                 kitBody.transform.SetParent(root, false);
-                var kr = kitBody.GetComponentInChildren<Renderer>();
-                if (kr != null && kr.bounds.size.sqrMagnitude > 0.001f)
+
+                // THE BOX, NOT JUST THE LENGTH — and lorries were the reason.
+                //
+                // This used to scale UNIFORMLY by the model's longest
+                // horizontal axis, which is right if a kit's proportions match
+                // ours and this kit's do not. Measured with
+                // `tools/prop-dimensions.py`, every kit vehicle rendered
+                // wider than the box the sim collides and gaps with:
+                //
+                //   car   2.47m wide against a declared 1.8  (+37%)
+                //   van   2.95m            against 2.0        (+47%)
+                //   truck 3.97m            against 2.4        (+65%)
+                //
+                // On an eight-metre avenue that is chunky and legal. On a
+                // six-metre street the lane centres are 1.5m from the middle,
+                // so a 3.97m lorry reaches 0.48m PAST the centreline and 0.48m
+                // over the kerb — two of them passing overlap by most of a
+                // metre. `vehiclesOffRoad=0` said none of this, and could not:
+                // it measures `Kind.Width`, which is the box, and the box was
+                // never what was too big.
+                //
+                // So each axis goes to its own dimension and the mesh ends up
+                // exactly the vehicle the sim thinks it is.
+                //
+                // BOUNDS OVER EVERY RENDERER. The old line took
+                // `GetComponentInChildren<Renderer>()` — the FIRST one, which
+                // for `police` is a wheel, since the kit orders its parts
+                // wheel, wheel, wheel, body, grill, wheel. It happened to
+                // return a body for the models shipped so far and that is luck,
+                // not a rule.
+                var rends = kitBody.GetComponentsInChildren<Renderer>();
+                if (rends.Length > 0)
                 {
-                    var size = kr.bounds.size;
-                    if (size.x > size.z)
+                    var bb = rends[0].bounds;
+                    for (int r = 1; r < rends.Length; r++) bb.Encapsulate(rends[r].bounds);
+                    var size = bb.size;
+                    // A kit whose length runs along X is turned to face down Z.
+                    // localScale is applied in the model's own axes, BEFORE
+                    // that rotation, so the factors swap with it.
+                    bool sideways = size.x > size.z;
+                    if (sideways)
                         kitBody.transform.localRotation = Quaternion.Euler(0, 90f, 0);
                     float meshLen = Mathf.Max(size.x, size.z);
-                    if (meshLen > 0.01f)
-                        kitBody.transform.localScale = Vector3.one * (len / meshLen);
-                    // Grounded: after scale and rotation the renderer knows
-                    // where its feet are; sit them on y=0.
-                    var grounded = kitBody.GetComponentInChildren<Renderer>().bounds;
-                    kitBody.transform.localPosition = new Vector3(0, -grounded.min.y, 0);
+                    float meshWid = Mathf.Min(size.x, size.z);
+                    float meshHi = size.y;
+                    if (meshLen > 0.01f && meshWid > 0.01f && meshHi > 0.01f)
+                    {
+                        float sLen = len / meshLen, sWid = wid / meshWid, sHi = hi / meshHi;
+                        kitBody.transform.localScale = sideways
+                            ? new Vector3(sLen, sHi, sWid)
+                            : new Vector3(sWid, sHi, sLen);
+
+                        // AND THE WHEELS STAY ROUND. A wheel rolls in the plane
+                        // of (length axis, up), so squashing height against
+                        // length turns it into an ellipse — 30% out on a car,
+                        // which is the one part of a vehicle an eye checks
+                        // without being asked. Correcting the child's own Y by
+                        // the ratio makes its effective height match its
+                        // effective length again; it stays THINNER by `sWid`,
+                        // which is right, because the car is narrower now.
+                        // Multiplied rather than assigned: an imported child
+                        // may already carry a scale of its own.
+                        float round = sHi > 0.0001f ? sLen / sHi : 1f;
+                        foreach (var t1 in kitBody.GetComponentsInChildren<Transform>())
+                        {
+                            if (t1 == kitBody.transform) continue;
+                            if (!t1.name.StartsWith("wheel")) continue;
+                            var s1 = t1.localScale;
+                            s1.y *= round;
+                            t1.localScale = s1;
+                        }
+                    }
+                    // Grounded: after scale, rotation and the wheel correction
+                    // the renderers know where their feet are; sit them on y=0.
+                    // Re-read, because every one of those moved them.
+                    var reread = kitBody.GetComponentsInChildren<Renderer>();
+                    if (reread.Length > 0)
+                    {
+                        var gb = reread[0].bounds;
+                        for (int r = 1; r < reread.Length; r++) gb.Encapsulate(reread[r].bounds);
+                        kitBody.transform.localPosition = new Vector3(0, -gb.min.y, 0);
+                    }
                 }
                 foreach (var col in kitBody.GetComponentsInChildren<Collider>())
                     Destroy(col);   // Core owns collision, same as the primitives
@@ -594,6 +683,32 @@ namespace Ledger.Game
                      new Vector3(0.16f, 0.11f, 0.06f));
                 Lamp(root, "brakeR", new Vector3(wid * 0.30f, lampY * 0.85f, tail),
                      new Vector3(0.16f, 0.11f, 0.06f));
+            }
+
+            // THE ROOF LAMP, AND IT IS WHAT MAKES A PATROL CAR ONE.
+            //
+            // The kit model has no light bar — checked part by part, it is a
+            // body, four wheels and a front push bar we drop. So its whole
+            // claim to being a police car is that it is white in a street of
+            // slate saloons, and white is what a pale car looks like at noon
+            // and what every car looks like under a street lamp.
+            //
+            // Two boxes on the roof: a dark plinth across the cabin and one
+            // lamp on it, emissive through the same window material as the
+            // headlamps, so it carries after dark exactly as they do. A single
+            // blue lamp on a plinth is the British period shape — a full
+            // American bar would undo the reason this model was allowed in.
+            //
+            // Built here rather than in the kit branch on purpose: it runs on
+            // the primitive fallback too, so a build whose props did not
+            // extract still puts a light on the roof instead of shipping an
+            // ordinary car that the sim believes is the police.
+            if (v.Kind.Id == Ledger.Core.VehicleKinds.PoliceId)
+            {
+                Part(root, "bar", new Vector3(0, hi + 0.03f, -len * 0.04f),
+                     new Vector3(wid * 0.52f, 0.06f, 0.20f), AssetLibrary.Metal);
+                Lamp(root, "beacon", new Vector3(0, hi + 0.10f, -len * 0.04f),
+                     new Vector3(0.26f, 0.10f, 0.18f));
             }
 
             _vehicleBodies[v.Id] = root;
@@ -746,8 +861,21 @@ namespace Ledger.Game
             new Color(0.48f, 0.45f, 0.40f),   // stone
         };
 
+        /// THE PATROL CAR IS THE ONE VEHICLE THE MULTIPLY MUST NOT TOUCH.
+        ///
+        /// Every colour in `KitPaints` is between 0.12 and 0.48, which is the
+        /// point of them — the kit ships holiday-brochure mint and this town
+        /// does not have any. Applied to `police` that arithmetic would take a
+        /// #cbcbde body to about #3d3d43 and produce a dark saloon, which is
+        /// the exact car it was brought in to not be. Near-white rather than
+        /// white: 0.88 keeps it inside the palette's ceiling instead of being
+        /// the brightest thing in the frame, and the model's own slate stripe
+        /// survives because a multiply preserves the ratio between them.
+        static readonly Color PatrolWhite = new Color(0.88f, 0.88f, 0.90f);
+
         static Color KitPaint(Vehicle v) =>
-            v.Kind.Id == Ledger.Core.VehicleKinds.TaxiId ? KitPaints[1]
+            v.Kind.Id == Ledger.Core.VehicleKinds.PoliceId ? PatrolWhite
+            : v.Kind.Id == Ledger.Core.VehicleKinds.TaxiId ? KitPaints[1]
             : KitPaints[((v.Id % KitPaints.Length) + KitPaints.Length) % KitPaints.Length];
 
         /// A paint colour that is stable for a given vehicle — nobody wants the

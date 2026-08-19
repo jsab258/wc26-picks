@@ -5895,7 +5895,7 @@ namespace Ledger.CoreTests
 
             // The catalogue. Six kinds, and the differences between them have to
             // be real differences, or "vehicle variety" is six colours of car.
-            Check(VehicleKinds.All.Length == 6, "six kinds of vehicle",
+            Check(VehicleKinds.All.Length == 7, "seven kinds of vehicle",
                 VehicleKinds.All.Length.ToString());
             foreach (var k in VehicleKinds.All)
             {
@@ -5912,6 +5912,48 @@ namespace Ledger.CoreTests
                 "buses stop, cabs wait, bicycles use the lanes");
             Check(VehicleKinds.ById("truck") == VehicleKinds.Truck && VehicleKinds.ById("nope") == null,
                 "kinds look up by id, and an unknown id is null rather than a guess");
+
+            // THE PATROL CAR. A big saloon, quicker than the traffic, and the
+            // only vehicle in the catalogue a witness names as information
+            // rather than as a noun.
+            Check(VehicleKinds.Police.Length > VehicleKinds.Car.Length
+                && VehicleKinds.Police.TopSpeed > VehicleKinds.Car.TopSpeed,
+                "a police car is longer and faster than an ordinary one");
+            Check(VehicleKinds.Police.Rarity <= VehicleKinds.Truck.Rarity,
+                "and rarer than a lorry, so it is a thing you notice");
+            Check(!VehicleKinds.Police.StopsAtStops && !VehicleKinds.Police.WaitsAtRanks
+                && !VehicleKinds.Police.UsesLanes,
+                "it does not queue at stops, wait at ranks or thread the bike lanes");
+
+            // EVERY VEHICLE FITS ITS HALF OF THE NARROWEST ROAD IT DRIVES ON,
+            // and this check is load-bearing in a way it was not before.
+            //
+            // `TrafficHost` used to scale a kit mesh UNIFORMLY by its length,
+            // so what the sim collided and what the player saw were different
+            // objects: measured with `tools/prop-dimensions.py`, the rendered
+            // lorry was 3.97m against a declared 2.4, and on a six-metre
+            // street that put it 0.48m over the centreline and 0.48m over the
+            // kerb. `vehiclesOffRoad=0` could never see it — that gate reads
+            // `Kind.Width`, and the box was never what was too big.
+            //
+            // The mesh is now scaled to this box on every axis, so these
+            // numbers are the render as well as the collision, and a kind that
+            // outgrows its lane here is a kind that will visibly do it.
+            //
+            // A street is 6.0m wide (`StreetEdge.Width`), traffic rides at
+            // width/4 from the centreline, so the lane centre is 1.5m out and
+            // the kerb is at 3.0m. Bicycles are excluded because they alone
+            // ride the 4.0m lanes, on their own offset rule.
+            const double streetHalf = 3.0, laneCentre = 1.5;
+            foreach (var k in VehicleKinds.All)
+            {
+                if (k.UsesLanes) continue;
+                Check(k.Width / 2.0 <= laneCentre,
+                    $"{k.Id} keeps its own side of a street", $"{k.Width:0.00}m wide");
+                Check(laneCentre + k.Width / 2.0 <= streetHalf,
+                    $"{k.Id} stays inside the kerb on a street",
+                    $"{laneCentre + k.Width / 2.0:0.00}m of {streetHalf:0.00}m");
+            }
 
             // Lights. A pure function of the clock, so a light cannot drift out
             // of step with its own render or need saving.

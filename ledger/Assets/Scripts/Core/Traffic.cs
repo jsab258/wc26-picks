@@ -67,6 +67,7 @@ namespace Ledger.Core
         public const string BusId = "bus";
         public const string TaxiId = "taxi";
         public const string BikeId = "bike";
+        public const string PoliceId = "police";
 
         public static readonly VehicleKind Car = new VehicleKind
         {
@@ -105,7 +106,35 @@ namespace Ledger.Core
             UsesLanes = true, Witness = "a bicycle", EngineNote = "none",
         };
 
-        public static readonly VehicleKind[] All = { Car, Van, Truck, Bus, Taxi, Bike };
+        /// A PATROL CAR, AND IT IS IN HERE BECAUSE THE MODEL IS WHITE.
+        ///
+        /// The kit's `police` sat unused under a comment reading "wrong era,
+        /// wrong town", which was a guess about a file nobody had opened. Read
+        /// properly it is a 150 x 130 x 290 saloon — a fifth longer than the
+        /// kit's sedan, the same width and height — and sampling the shared
+        /// colormap at the body's own UVs gives #cbcbde, near-white, where
+        /// every other car in the kit maps to mid-slate #6b6d82. A white
+        /// saloon with a slate stripe is exactly the area car this town and
+        /// this decade had. The one wrong note is a separate front push-bar
+        /// mesh the kit calls `grill`, and the Game layer drops that child by
+        /// name.
+        ///
+        /// LONGER AND FASTER THAN A CAR, because it is a big saloon and it is
+        /// the only vehicle on this street with a reason to hurry.
+        ///
+        /// `Witness` is the part that earns its place. Every other kind here
+        /// gives a witness a noun; this one gives them "a police car", which
+        /// is the only vehicle in the catalogue whose PRESENCE is information.
+        /// Rarity 1 — the same as the bus — so it is a thing you notice rather
+        /// than a thing you see.
+        public static readonly VehicleKind Police = new VehicleKind
+        {
+            Id = PoliceId, Name = "police car", Length = 4.8, Width = 1.8, Height = 1.5,
+            TopSpeed = 12.5, Accel = 3.0, Brake = 6.0, Gap = 1.6, Rarity = 1,
+            Witness = "a police car", EngineNote = "car",
+        };
+
+        public static readonly VehicleKind[] All = { Car, Van, Truck, Bus, Taxi, Bike, Police };
 
         public static VehicleKind ById(string id)
         {
