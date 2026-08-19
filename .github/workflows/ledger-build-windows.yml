@@ -20,14 +20,38 @@ jobs:
     # it. Every long step below carries its own timeout as well, so a failure
     # says WHICH part hung rather than only that the job did.
     # Per-step caps sum to 6 (shape) + 30 (install) + 15 (build) + 25 (sim)
-    # + 2 (checkout) + 1 (lint) + 2 (license) + 10 + 10 (uploads) + 1 (verdict)
-    # = 102 in the worst case, so the job cap clears that with headroom — the
+    # + 6 (checkout) + 1 (lint) + 2 (license) + 10 + 10 (uploads) + 1 (verdict)
+    # = 106 in the worst case, so the job cap clears that with headroom — the
     # old cap of 80 could kill a run in which every step passed its own cap,
     # and the arithmetic in this comment omitted four steps (audit 2026-07-27).
+    #
+    # AND WHAT A HEALTHY RUN ACTUALLY COSTS, measured off run 32294117005
+    # rather than budgeted: checkout 64s, lint 8s, ShapeCheck 26s, unity-setup
+    # 547s, licence 6s, build 170s, sim 861s, verdict 6s, uploads 35s — about
+    # 29 minutes end to end. Every cap here is a ceiling on a hang, not a
+    # target, and the job cap has some eighty minutes of slack under it.
     timeout-minutes: 110
     steps:
       - uses: actions/checkout@v4
-        timeout-minutes: 2
+        # SIX, AND IT WAS TWO UNTIL A CHECKOUT TIMED OUT ON 19 AUGUST.
+        #
+        # Run 32298151417 died with `The action 'Run actions/checkout@v4' has
+        # timed out after 2 minutes` — before the licence step, so the verdict
+        # read `NO PLAYER LOG` with both licence attempts `skipped` and no
+        # compile errors, which is the shape this project has learnt to read
+        # as a Game-layer break. It was neither. A whole round trip answered
+        # nothing and the diagnosis went to the C# first.
+        #
+        # A good checkout takes 64 SECONDS (measured, run 32294117005) against
+        # a 120-second cap, which is a margin of 1.9x on a repository whose
+        # working tree is 1.3GB and grows every build — every run commits
+        # stills and a per-commit verdict. That margin was always going to run
+        # out; six minutes is 5.6x the observed time and costs nothing against
+        # a job cap with eighty minutes spare.
+        #
+        # It is a ceiling on a hang, not a budget. If a checkout ever really
+        # takes six minutes the repository needs pruning, not a bigger number.
+        timeout-minutes: 6
         with:
           # The credential this would otherwise persist costs about 1.5KB of
           # git-config unwinding in POST-job cleanup — which matters because the
