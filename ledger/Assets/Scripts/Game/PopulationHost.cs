@@ -557,6 +557,43 @@ namespace Ledger.Game
             // which is what mannequins are good at.
             const float crowdBodyMetres = 14f;
             float crowdBodyD2 = crowdBodyMetres * crowdBodyMetres;
+
+            // AND THE BUDGET GOES TO WHOEVER YOU ARE LOOKING AT, NOT WHOEVER IS
+            // NEAREST. The block above put the near crowd into the contest; this
+            // decides who wins it.
+            //
+            // Measured over four runs, the street had 5, 8, 3 and 19 people in
+            // shot and 2, 5, 2 and 7 of them skinned. The spread is the shot
+            // standing somewhere different each run rather than progress, and
+            // what those numbers hid is WHY: bodies a metre from the lens and
+            // OUT OF FRAME beat the people in shot at 10-25m to all twelve
+            // grants, because the rank was raw distance and nothing else. A
+            // camera sees about sixty degrees, so scattering people round the
+            // player puts roughly one in six in frame however the cap is set.
+            //
+            // THE STILL WAS TELLING THE TRUTH AND MUST NOT BE "FIXED" — a player
+            // standing there sees exactly that. The fix belongs in the ranking.
+            //
+            // GENTLE AND CONTINUOUS, NOT A CONE. You can turn round, so a hard
+            // in-frame test would swap the whole set on a spin and pay twelve
+            // prefab instantiates for it. A body directly behind ranks as if it
+            // were about 1.41x further away, one abreast about 1.22x, one
+            // straight ahead unchanged: enough to reorder, never enough to
+            // exclude, and smooth, so turning costs nothing at the moment it
+            // crosses.
+            //
+            // THE BAND TEST BELOW STILL READS TRUE DISTANCE. Whether somebody is
+            // close enough to deserve a body at all is a question about metres;
+            // only the contest for the twelve slots is a question about
+            // attention. Biasing both would put a body on somebody across the
+            // district for facing the right way.
+            var eye = Camera.main;
+            Vector3 fwd = eye != null ? eye.transform.forward : Vector3.forward;
+            fwd.y = 0f;
+            float fwdLen = fwd.magnitude;
+            bool aimed = fwdLen > 0.001f;
+            if (aimed) fwd /= fwdLen;
+
             foreach (var n in _npcs)
             {
                 if (n == null) continue;
@@ -566,11 +603,18 @@ namespace Ledger.Game
                 bool crowdNear = n.IsCrowd && n.CanWearBody && d2 <= crowdBodyD2;
                 if (!n.WantsRealBody && !crowdNear) continue;
                 if (n.IsCrowd) BodyCrowdEligible++;
-                _bodyRank.Add((n, d2));
+                float rank = d2;
+                if (aimed && d2 > 0.01f)
+                {
+                    float inv = 1f / Mathf.Sqrt(d2);
+                    float dot = (dx * inv) * fwd.x + (dz * inv) * fwd.z;
+                    rank = d2 * (1f + FacingBias * (1f - dot) * 0.5f);
+                }
+                _bodyRank.Add((n, d2, rank));
             }
             BodyLodEligible = _bodyRank.Count;
             if (_bodyRank.Count == 0) return;
-            _bodyRank.Sort((a, b) => a.d2.CompareTo(b.d2));
+            _bodyRank.Sort((a, b) => a.rank.CompareTo(b.rank));
 
             // SQUARED, AND THE SLACK GOES ON THE WALKER THAT ALREADY HAS ONE.
             // That is what makes the boundary sticky: somebody wearing a body
@@ -608,7 +652,8 @@ namespace Ledger.Game
                 NpcWalker.RealBodyCap * (Populace.BandSlack / Populace.NearMetres));
             int spent = 0;
             int wanted = 0;
-            foreach (var (n, d2) in _bodyRank)
+            int inShot = 0, shotEligible = 0;
+            foreach (var (n, d2, _rank) in _bodyRank)
             {
                 bool has = n.HasRealBody;
                 bool inBand = d2 <= (has ? keep : near);
@@ -616,9 +661,23 @@ namespace Ledger.Game
                 bool want = inBand && spent < limit;
                 if (want) { spent++; wanted++; }
                 n.SetRealBody(want);
+
+                // THE NUMBER THIS WHOLE BLOCK EXISTS FOR, WITH ITS DENOMINATOR.
+                // `bodyLodNear` says how many bodies were granted and cannot say
+                // whether any of them were on screen, which is the only question
+                // a player can ask. Both are counted in the same loop over the
+                // same set, so the fraction is one measurement rather than two
+                // peaks divided — the mistake this project has made four times.
+                if (eye != null && InShot(eye, n.transform.position))
+                {
+                    shotEligible++;
+                    if (want) inShot++;
+                }
             }
             BodyLodNear = wanted;
             BodyLodSlack = slackRanks;
+            BodyLodInShot = inShot;
+            BodyLodShotEligible = shotEligible;
         }
 
         float _nextBodyLod = -1f;
@@ -627,13 +686,46 @@ namespace Ledger.Game
         /// how somebody is DRAWN and a second of being a mannequin while you
         /// approach is not something a player can see.
         const float BodyLodSeconds = 1f;
-        readonly List<(NpcWalker n, float d2)> _bodyRank = new List<(NpcWalker, float)>();
+        readonly List<(NpcWalker n, float d2, float rank)> _bodyRank =
+            new List<(NpcWalker, float, float)>();
 
         /// THE DENOMINATORS, because `bodyLodNear=0` on its own cannot tell a
         /// street with nobody on it from a pass that never ran. `Passes` says
         /// the pass ran, `Eligible` says there was anybody to consider, `Near`
         /// says how many of them were close enough and inside the budget.
         public static int BodyLodPasses, BodyLodEligible, BodyLodNear, BodyLodSlack;
+
+        /// HOW MANY OF THE GRANTED BODIES ARE ACTUALLY ON SCREEN, and how many
+        /// eligible walkers were on screen at all.
+        ///
+        /// `bodyLodInShot` is the number the empty-street complaint is really
+        /// about, and until now it was counted by hand off a screenshot: 2 of 5,
+        /// 5 of 8, 2 of 3 and 7 of 19 across four runs. Counting it inside the
+        /// run turns four hand-counts into a series.
+        public static int BodyLodInShot, BodyLodShotEligible;
+
+        /// HOW HARD THE RANKING PREFERS WHAT THE CAMERA IS POINTED AT.
+        ///
+        /// 1.0 makes a body directly behind rank as if it were about 1.41x
+        /// further away. It is a STARTING value and it is NOT measured, which is
+        /// unusual in this project and is said rather than hidden: what will
+        /// judge it is `bodyLodInShot` against `bodyLodShotEligible` over a few
+        /// runs, and no such number existed before this change, so there was
+        /// nothing to set it from.
+        ///
+        /// Raise it if bodies still go to people behind the camera; lower it if
+        /// `bodyGrants` climbs, which is turning round costing prefab
+        /// instantiates.
+        const float FacingBias = 1.0f;
+
+        /// Is a ground position inside the camera's frame. A point test rather
+        /// than a bounds test: the question is roughly how many are in shot, not
+        /// whether a shoulder clips the edge.
+        static bool InShot(Camera eye, Vector3 world)
+        {
+            var v = eye.WorldToViewportPoint(world);
+            return v.z > 0f && v.x >= 0f && v.x <= 1f && v.y >= 0f && v.y <= 1f;
+        }
         /// Of the eligible, how many are crowd. See the note at the count: it
         /// is what stops `bodyLiftedCrowd=0` reading as a fix that worked when
         /// it is a branch that cannot be taken.

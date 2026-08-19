@@ -11094,6 +11094,16 @@ namespace Ledger.Game
                       $"walkersPrimitiveWho=[{string.Join(" ", GameController.WalkersPrimitiveWho)}] " +
                       $"bodyLodNear={GameController.BodyLodNear} " +
                       $"bodyLodSlack={GameController.BodyLodSlack} " +
+                      // IN SHOT, AND ITS DENOMINATOR. Every other body number
+                      // here counts people the pass CONSIDERED; this is the
+                      // only one that counts people the player can see, which
+                      // is the whole of the empty-street complaint. Both come
+                      // off the same loop over the same set at the same
+                      // instant, so the fraction is one reading rather than two
+                      // divided. Four hand-counts off screenshots gave 2/5,
+                      // 5/8, 2/3 and 7/19 before this existed.
+                      $"bodyLodInShot={GameController.BodyLodInShot} " +
+                      $"bodyLodShotEligible={GameController.BodyLodShotEligible} " +
                       // WHO IS LIMPING. `Rig.Limp` has had one writer since it
                       // was built — the player — so the city has never limped,
                       // whatever was done to it. `limpNames` is the half that

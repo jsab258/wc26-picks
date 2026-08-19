@@ -110,44 +110,44 @@ is the bar sign's bare back face, one line, low priority.
 
    **MEASURED, FOUR RUNS: 5/2, 8/5, 3/2, 19/7** in shot / skinned of ~52
    alive — the spread is the shot standing somewhere different, not
-   progress. **THE BODY BUDGET GOES TO WHOEVER IS NEAREST, NOT TO
-   WHOEVER YOU ARE LOOKING AT**: bodies a metre from the lens and out of
-   frame beat the people in shot at 10-25m to all 12 grants. **The still
-   is telling the truth and must not be "fixed"** — the fix is a forward
-   bias in the ranking, and how strong it should be is a judgement, since
-   you can turn round. Full account in `roadmap-history.md`.
+   progress. **THE BODY BUDGET WENT TO WHOEVER WAS NEAREST, NOT TO
+   WHOEVER YOU WERE LOOKING AT**: bodies a metre from the lens and out of
+   frame beat the people in shot at 10-25m to all 12 grants.
 
-   **THE WHITE PILLS ARE STILL UNIDENTIFIED** — and a published claim
-   that `bodyAlbedo` named them was wrong (it measures skinned Mixamo
-   TEXTURES). Fifth wrong identification, first one published; it
-   arrived as a NUMBER and a number felt pre-checked. **Intermittent.**
-   Next step is a number that fires WHILE one is on screen.
+   **A FORWARD BIAS IS IN, AWAITING ITS FIRST BUILD.** The rank is
+   distance scaled by facing — directly behind counts as ~1.41x further,
+   abreast ~1.22x, ahead unchanged — gentle and continuous rather than a
+   cone, because you can turn round and a hard test would swap the whole
+   set on a spin. The BAND test still reads true distance, so nobody
+   across the district gets a body for facing the right way. **The
+   strength (1.0) is a starting value and is NOT measured**, which is
+   stated in the code rather than hidden: `bodyLodInShot` against
+   `bodyLodShotEligible` is what will judge it, and no such number existed
+   until now. Raise it if bodies still go behind the camera; lower it if
+   `bodyGrants` climbs, which is turning costing prefab instantiates.
 
-   **"THE CAST IS TOO BRIGHT FOR THE PALETTE" — RETRACTED 18 Aug, the
-   THIRD wrong reading of `bodyAlbedo`.** They do not bypass the
-   palette: `RealBody.Tint` calls `Wardrobe.Wash` on every one, anchored
-   per material, so a 0.78 sheet is multiplied to land AT the band —
-   which is what the anchored rule is for. `bodyAlbedo` measures the
-   SOURCE SHEET before the wash: the input the wash exists to pull down,
-   read as though it were the rendered result.
+   **THE WHITE PILLS ARE STILL UNIDENTIFIED**, and the claim that
+   `bodyAlbedo` named them was wrong — it measures skinned Mixamo
+   TEXTURES. Fifth wrong identification, first one published; it arrived
+   as a NUMBER and a number felt pre-checked. Intermittent. Next step is
+   a number that fires WHILE one is on screen. **"The cast is too bright
+   for the palette" is retracted for the same reason** — the third wrong
+   reading of that key: `RealBody.Tint` washes every body, anchored per
+   material, and `bodyAlbedo` reads the SOURCE sheet before the wash.
 
    **The honest residue is the opposite number and nobody has looked at
-   it: `bodyWashUnreached=534` against `bodyTinted=1326`** — 40% of
-   bodies render DARKER than the band the wardrobe chose, because their
-   sheet is darker than the band and a multiply only subtracts. Not a
-   bug in the wash, which did the only thing available, but a real limit
-   on how much of the palette reaches the street. That is the number to
-   judge from a frame.
+   it: `bodyWashUnreached=534` against `bodyTinted=1326`** — 40% of bodies
+   render DARKER than the band, because their sheet is darker and a
+   multiply only subtracts. Not a bug in the wash, but a real limit on how
+   much of the palette reaches the street, and the number to judge from a
+   frame.
 
-   **AND `bodyLiftedCrowd` READS BACKWARDS.** It counts crowd bodies
-   correctly NOT given the cast's brightness lift, while its own comment
-   said non-zero was the fault it existed to catch — true before the
-   `cast` flag landed, false after. Comment fixed; the name is kept
-   because the key has a landed series.
-
-   **AND THE CAPSULE AUDIT USED TO BE BLIND** — it ran before any walker
-   spawned, so its zeros meant "the world had none when built". Re-run
-   at the done line now; still 0/0, but they carry information.
+   **Two instrument fixes here, both closed:** `bodyLiftedCrowd` counts
+   crowd bodies correctly NOT lifted, and its comment claimed the
+   opposite — true before the `cast` flag landed, false after; the name
+   is kept because the key has a landed series. And the capsule audit used
+   to run before any walker spawned, so its zeros meant "none when built";
+   it re-runs at the done line now, still 0/0 but carrying information.
 
    **PERF, SETTLED AND RETIRED THIS ROUND** — traffic halved, the
    separation sweep priced at 0.8ms of a 12ms budget so the rewrite is
