@@ -90,6 +90,78 @@ def lint_text(text):
     return bad
 
 
+def collisions(text):
+    """ONE KEY, TWO MEANINGS — and it corrupted a series for months.
+
+    The verdict is one namespace. `npcs` was a POPULATION on the done line and
+    a MILLISECOND TIMING inside the frame gate, so `tools/gates.py --series
+    npcs` printed a column with `42` scattered through the milliseconds and no
+    sign that two different quantities had been merged. `checks` and `rigs`
+    were the same, a count and a timing each.
+
+    This tool already had what it takes to see it — it prints line numbers and
+    refuses when requested keys do not share one — and nobody ever pointed it
+    at the whole file. That is the shape of most of the faults in this
+    project: the instrument existed and the sweep did not.
+
+    THE TEST IS DIFFERING VALUES, NOT DIFFERING LINES. A verdict legitimately
+    repeats a key: the gate block and the done line both print `gatesChecked`,
+    and the frame gate appears verbatim in the FAILING GATES line. Those are
+    one number written twice and are fine. A key that reads `42` in one place
+    and `9.48` in another is two numbers wearing one name, and only the second
+    is a fault.
+
+    AND ONLY THE LINES TOOLS READ BY NAME, WHICH TOOK TWO NARROWINGS. The
+    first version swept the whole file: 69 hits, of which about three were
+    real. Most of a verdict is per-thing lines — one per character
+    (`avatar=AdamAvatar`), one per sky sample (`density=0.0127`), one per clip
+    — where repeating a key with a different value is the format doing its
+    job. Filtering on `SimDirector:` barely helped, because the sim logs its
+    diagnostics under that prefix too. Only three lines are the shared
+    namespace: the gate block, the done line, and the failing-gates line.
+
+    AND A KEY INSIDE A BRACKETED GROUP IS SCOPED TO IT. The done line carries
+    `clean=308 dirty=0` at the top level and `[... crew=2 clean=0 dirty=247]`
+    in the empire group, which is two namespaces and not a collision — so the
+    groups are flattened away first, exactly as the space lint above does it.
+    What is left is the flat `key=value` space that `gates.py --series` reads,
+    and that is the only place one name may mean one thing.
+
+    NOT PART OF `--lint`, AND THAT IS THE POINT OF THIS PARAGRAPH. Wired into
+    the lint it reports 24 names on a healthy verdict, and about twenty of
+    them are deliberate: a gate group is prose in brackets, so
+    `disposal[seen=True risk=0.85 unseen=False risk=0.30]` reuses `risk`
+    on purpose and `why`, `near`, `peak`, `staged` and `tightest` are short
+    local names inside their own gates. Blocking a commit on those is rule 5's
+    ratchet — a guard that cannot tell a fault from the format working.
+
+    So the DETECTION lives here and the WARNING lives at the point of use:
+    `gates.py --series <key>` is the tool that reads flat and file-wide, and
+    it now says when a name is ambiguous instead of silently returning
+    whichever match came first. Run this with `--collisions` to see the whole
+    list.
+    """
+    seen = {}
+    for n, line in enumerate(text.split("\n"), 1):
+        if "=" not in line:
+            continue
+        if not any(k in line for k in ("SimDirector: ALL GATES:",
+                                       "SimDirector: done.",
+                                       "SimDirector: FAILING GATES:")):
+            continue
+        for m in re.finditer(r"(?<![\w])([A-Za-z][\w]*)=([^\s\]]+)", line):
+            seen.setdefault(m.group(1), []).append((n, m.group(2)))
+    out = []
+    for key, hits in sorted(seen.items()):
+        values = {v for _n, v in hits}
+        if len(values) < 2:
+            continue
+        where = ", ".join(f"line {n}: {v}" for n, v in hits[:3])
+        out.append(f"KEY COLLISION {key} has {len(values)} different "
+                   f"values in one verdict — {where}")
+    return out
+
+
 # A LINE THAT MUST BE REJECTED AND A LINE THAT MUST BE ACCEPTED. Both are real
 # shapes from real verdicts: the first is the emitter fault of 4 August that
 # made this tool return `0.45(narrowest`, and the second is a nested gate group,
@@ -177,6 +249,21 @@ def main():
             print("verdict-read: no run has measured anything — nothing to lint")
             return 0
         return lint(run)
+    if "--collisions" in argv:
+        run = run or newest_measuring_run()
+        if run is None or not run.exists():
+            print("verdict-read: no run has measured anything")
+            return 0
+        hits = collisions(run.read_text(encoding="utf-8", errors="replace"))
+        print(f"verdict-read --collisions on {run.name}: "
+              f"{len(hits)} name(s) carrying more than one value")
+        for h in hits:
+            print("  " + h)
+        print("\n  Most of these are deliberate: a gate group is prose in "
+              "brackets and\n  reuses short local names. What matters is a "
+              "name somebody would ask\n  `gates.py --series` for — that tool "
+              "reads flat and file-wide, and it\n  warns on its own now.")
+        return 0
 
     keys = argv
     if not keys:

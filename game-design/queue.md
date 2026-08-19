@@ -53,41 +53,72 @@ is the bar sign's bare back face, one line, low priority.
    because a standing argument cannot travel that far. It can, if the file
    does not contain a standing argument.
 
-   **The renders agree with travel in every case checked**: `idle` is
-   mid-stride, `talk` is locomotion, `pockets` and `laugh` are people
-   walking, `guard` is a throw, `argue` folds double — and **`walk` is a
-   stationary guard pose with the hands up.** The slot the whole street is
-   named after does not contain a walk.
+   **The renders agree with travel in every case checked** — and **`walk` is
+   a stationary guard pose with the hands up**, so the slot the whole street
+   is named after does not contain a walk. The picker screens on both axes
+   now, hips for upright-or-floor and travel for does-it-move, with bounds
+   from the measured gap. Twenty-one rejected, forty-six accepted.
 
-   **The picker screens on both axes now** — hips for upright-or-floor,
-   travel for does-it-move — with bounds from the measured gap rather than
-   a guess. Twenty-one rejected, forty-six accepted.
-
-   **What that means for Friday:** the re-pick REFUSES a candidate whose
-   contents contradict its name and tries the next. Where the catalogue has
-   an alternative that is a fix; where it has only the one name (`thinking`
-   matches "Thinking" and nothing else) the slot reports MISSING rather
-   than shipping the wrong motion. **Holes are the right outcome and they
-   are the information** — a slot that cannot be filled from a 2,846-name
-   harvest says the harvest needs redoing, not re-picking.
+   **For Friday:** the re-pick REFUSES a candidate whose contents contradict
+   its name and tries the next. Where the catalogue has an alternative that
+   is a fix; where it has only the one name (`thinking` matches "Thinking"
+   and nothing else) the slot reports MISSING. **Holes are the right outcome
+   and they are the information** — a slot that cannot be filled from a
+   2,846-name harvest says the harvest needs redoing, not re-picking.
 
    **Not caught, and said so:** `sit` renders standing at 96cm and passes
    both axes. The three sitting clips read 18, 94 and 96, none at chair
    height, so there is no correct example to set a band from.
    Full account in `clip-findings.txt`.
 
-1. **`looseEnds` NOW CARRIES ITS DENOMINATOR — awaiting its first build.**
-   Six evenings of `[Owed:6]` read as "five of six tiers are dead". They
-   are not: `Tonight` returns on the first hit in priority order, and
-   Mickey's book always has somebody outstanding, so nothing below Owed is
-   reachable however well it is fed. `OpenCount` counts every live tier
-   rather than the winner, summed across evenings with the busiest kept, and
-   a CoreTest asserts the two walks agree about whether anything is open at
-   all — they are separate passes over the same rules, which is the shape
-   that rots. **What to read next build:** if the open count is 1, the lower
-   tiers genuinely never fire; if it is 3 or 4, they fire constantly and are
-   simply outranked, and Law and Crew sitting silent ABOVE Owed becomes the
-   thing worth checking.
+1. **TWO OF THE SIX REVIEW STILLS ARE PHOTOGRAPHS OF A WALL.** *(the
+   evidence channel itself — rule 12)* `review_day2_noon` on `e6634a1` is a
+   stone wall across the right half with a street sign on it;
+   `review_day5_noon` is roof and awning slabs across the middle with the
+   street visible only in gaps. A third of the primary evidence this project
+   reads every build shows almost no street.
+
+   **No gate could have said so, and that is the interesting part.** Every
+   one asks about a SYSTEM — are the billboards aimed, is text the right way
+   round, did the bodies get skinned — and all of them pass perfectly on a
+   picture of a wall. `review_street` has had a declutter loop since a lamp
+   column filled its frame; the DAY stills never got one and are taken
+   wherever the sim's camera happens to be standing.
+
+   **`shotBlocked*` ships this build and MOVES NOTHING, on purpose.** The
+   loop needs a bound and I do not have one: I can see two frames are bad and
+   cannot say what fraction that is. Guessing it is expensive both ways — too
+   low and every still starts backing away from ordinary streets, since this
+   city is terraced and a wall five metres off is most compositions, and a
+   dozen code comments citing these file names quietly start describing
+   different pictures; too high and nothing happens and it reads as fixed.
+
+   **NEXT BUILD: read `shotBlockedSeries` beside `shotBlockedWhere`.** Six
+   fractions, one per still, and the two named above should be legibly
+   different from the four good ones. If they are not, the ray grid is
+   measuring the wrong thing and that is the finding. Then the loop lands
+   with a number under it.
+
+1. **THE DENOMINATOR PAID FOR ITSELF THE FIRST TIME IT RAN, and the law
+   tier was broken.** `e6634a1` read `looseEnds=6/0/[Owed:6]/open6/1of6` —
+   six evenings, exactly ONE tier live on each — beside `inquiry=Manhunt
+   pressNamed=1 homNamed=9 redirected=1 pointedAt=kest`. The detective was
+   hunting the player and the paper had printed her name, and the evening
+   screen said the law was not open. Without the open count that reads as
+   "Owed simply outranked it", which is what I would have concluded.
+
+   Cause: the tier asked `string.IsNullOrEmpty(Homicides.PointedAt)` — is
+   anybody else named — and NOTHING EVER CLEARS THAT NAME. Only the relief
+   expires, after four days. One successful redirect, ever, closed the tier
+   for the rest of the run. It reads the live relief now. Tested both ways
+   off the real book, and the accepting case is the one the old condition
+   could never reach.
+
+   **What to read next build:** the open count. If it is 2 or more the lower
+   tiers fire and are outranked; if it is still 1 with a manhunt running,
+   something else in the chain is dead. **Crew has also never opened**
+   (`crew=2`, no member below the poach floor) — that is the next one to
+   check if the count does not move.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL — RECOVERED, NOT
    RESOLVED.** *(player-height frame, dfefd62)* Fine from the elevated
@@ -96,63 +127,42 @@ is the bar sign's bare back face, one line, low priority.
    come back dry, so this needs a wet run rather than another look.** The
    magenta half of that report is REFUTED and named so it cannot return.
 
-1. **THE BODY BUDGET IS FIXED AND MEASURED — 87.8%. What is left is the
-   BAND, not the ranking.** *(was: "the street is empty at eye level")*
+1. **THE BODY BUDGET IS CLOSED AT 87.8% — the account is in
+   `roadmap-history.md`.** What is still live is three separate things:
 
-   The complaint was that bodies a metre behind the camera beat the people
-   in shot. True, and fixed: being behind now costs a flat amount of
-   apparent distance (three quarters of `NearMetres`, the band's own
-   number) rather than a multiplier, which could never have worked — 1m
-   behind ranks 1 against 20m ahead at 400, and no multiplier closes that.
+   **The band, not the budget.** 13.1 walkers in frame per pass and only 6.5
+   inside the 34m band: half the people you can see are too far away to ever
+   be skinned. Belongs with the population item, not here.
 
-   **`bodyLodInShot / bodyLodShotInBand = 87.8%`** — of the walkers who are
-   visible AND close enough to be granted, seven in eight get a body. The
-   missing eighth is the rank hysteresis doing its job: an off-screen
-   incumbent keeps its body for two extra ranks, which is the trade that
-   stopped the set churning three times a second.
+   **The white pills are still unidentified, and NOT ONE OF THE SIX STILLS
+   ON `e6634a1` HAS ONE.** Measured rather than squinted at: the two pale
+   figures in `review_street.jpg` read `#5d626f` and `#66676a` on their lit
+   quarter, against the buildings behind them at `#7f838f`. They are darker
+   than the walls. And the brightest 1% of that frame sits entirely in one
+   place — x576-704, y320-384, the harbour at the vanishing point — not on
+   any body. I had written "two of them, one in a T-pose" off the picture
+   before measuring it, which is the sixth wrong identification of this and
+   the exact trap rule 4's second half describes.
 
-   **THE REAL SHAPE OF "EMPTY" IS NOW VISIBLE: 13.1 walkers in frame per
-   pass, and only 6.5 of them inside the 34m band.** Half the people you
-   can see are too far away to ever be skinned. That is a band-and-density
-   question, not a budget one, and it belongs with the population item
-   below rather than here.
+   So the claim `bodyAlbedo` named them was wrong (it measures source
+   TEXTURES, not the render), "the cast is too bright for the palette" is
+   retracted, and now "it is visible in the stills we have" is retracted too.
+   **It is intermittent and no committed frame currently contains one**, so
+   the next step is a measurement that fires WHILE one is on screen — the
+   still-reading route is closed until a frame actually catches one.
 
-   **Cost, stated:** grants went 0.74 -> 0.96 per pass and have stayed
-   there, so turning round is about 30% more instantiates. Read per pass,
-   because run lengths differ (374, 373, 446).
+   **The T-pose is real and separate.** One figure in `review_street.jpg` has
+   arms straight out. That is `armStreet`'s tail, and CLAUDE.md's own note
+   says a median across bodies structurally cannot see it.
 
+   **`bodyWashUnreached=534` against `bodyTinted=1326`, and nobody has
+   looked.** 40% of bodies render DARKER than the band, because their sheet
+   is darker and a multiply only subtracts. Not a bug in the wash — a real
+   limit on how much of the palette reaches the street.
 
-   **THE WHITE PILLS ARE STILL UNIDENTIFIED**, and the claim `bodyAlbedo`
-   named them was wrong — it measures source TEXTURES, not the render.
-   Fifth wrong identification, first one published; it arrived as a NUMBER
-   and a number felt pre-checked. Intermittent; next step is a number that
-   fires WHILE one is on screen. **"The cast is too bright for the palette"
-   is retracted for the same reason**, the third wrong reading of that key.
-
-   **The honest residue is the opposite number and nobody has looked at
-   it: `bodyWashUnreached=534` against `bodyTinted=1326`** — 40% of bodies
-   render DARKER than the band, because their sheet is darker and a
-   multiply only subtracts. Not a bug in the wash, but a real limit on how
-   much of the palette reaches the street, and the number to judge from a
-   frame.
-
-   **Two instrument fixes here, both closed:** `bodyLiftedCrowd`'s comment
-   claimed the opposite of what it counts (true before the `cast` flag
-   landed, false after), and the capsule audit used to run before any
-   walker spawned. Both fixed; names kept, since the keys have series.
-
-   **PERF, SETTLED AND RETIRED THIS ROUND** — traffic halved, the
-   separation sweep priced at 0.8ms of a 12ms budget so the rewrite is
-   not worth it, `sun` shown to be noise. Account in `roadmap-history.md`.
-
-   **`RealBodyCap = 12` NEEDS A PC MEASUREMENT, not a CI one** — its
-   comment prices a dozen skinned bodies against a runner with no GPU
-   at all. Plausibly the cheapest large win for how full the street
-   looks.
-
-1. **THE KIT BUILDINGS ARE NOT TERRACES — SETTLED ON GEOMETRY**, and the
-   low-detail set at a 1:4 tower ratio became the skyline. Table in
-   `roadmap-history.md`.
+   **`RealBodyCap = 12` needs a PC measurement, not a CI one.** Its comment
+   prices a dozen skinned bodies against a runner with no GPU at all.
+   Plausibly the cheapest large win for how full the street looks.
 
 1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — 10 of 28 vehicles are
    still primitives.** `vehiclesKitted=18/28`,
@@ -162,50 +172,65 @@ is the bar sign's bare back face, one line, low priority.
    the fix is another CC0 kit — not more code. Bikes are nine of the
    ten, so one bicycle model closes almost all of it.
 
-   Also unused and already on disk: `police`, `ambulance`, `firetruck`,
-   `garbage-truck`. A police car has obvious business in this game and
-   costs one line of `KitCandidates` once there is a kind for it.
+   **THE POLICE CAR IS IN — awaiting its first build.** "Wrong era, wrong
+   town" was a guess about a file nobody had opened. It is a plain saloon a
+   fifth longer than the sedan, and its body maps to the WHITE region of the
+   shared colormap (#cbcbde) where every other car maps to mid-slate. White
+   saloon, slate stripe, one blue beacon on a plinth we add — the kit has no
+   light bar. Exempt from the noir multiply, which would have turned it into
+   the dark saloon it exists to not be. Its front push bar is one named mesh
+   (`grill`) and is dropped. **Read next build: `vehiclesKitted` should rise
+   past 18/28, and a white car should be findable in a noon frame.**
 
-1. **THE FRAME GATE IS THE ONLY LIVE RED, AND IT IS THE GAME'S OWN TIME.**
-   **Read the breakdown, not the mean** — `mean=483.7ms` is a software
-   rasteriser and says nothing; `game=17.55ms` against a 12ms budget is a 46%
-   overrun in OUR code. `bodyLod=4.39 traffic=3.72 sun=3.15 npcs=2.77`.
-   `frame` has failed 28 of 141 runs. bodyLod is a once-a-second FULL pass, so
-   spreading it round-robin needs the measurement split from the sweep first
-   or every count becomes a peak over partial passes. Tune on the PC, not CI.
+   `ambulance` and `firetruck` stay out and now there is a reason rather
+   than an assumption: both are mid-slate in this palette, so neither reads
+   as what it is without livery work nobody has done.
 
-   **`sun=3.15ms` is the odd one and is not an obvious loop** — `UpdateSun`
-   has none, so it is Unity-side light or shadow work retriggered every frame
-   by something that changes each game-hour. A plausible 3ms, a quarter of the
-   budget, and dismissing it as "not worth touching while render+rest is 458ms"
-   confuses the runner's cost with ours.
+1. **PATROL DENSITY DOES NOT RESPOND TO THE INQUIRY, and that is the half
+   worth having.** *(on screen; needs a repopulate hook)* A police car whose
+   frequency rises with how hard she is looking tells the player the heat is
+   climbing before any UI does — information 90, which is the moat. The
+   blocker is structural, not hard: `TrafficSim.Populate` runs once inside
+   `BuildTraffic`, so the mix is fixed at world build and a weight set later
+   reaches nothing. Two steps: a `PatrolWeight` on the sim that `PickKind`
+   reads in place of `Police.Rarity`, and a nightly call that re-rolls some
+   fraction of the traffic. Core-testable end to end — the mapping from
+   `Inquiry` to weight is a pure function and belongs beside `Stage`.
 
-1. **THE BUBBLE STACK'S SCREEN PASS HAS NEVER ONCE RUN.**
+1. **THE FRAME GATE IS RED AND THE COST HAS MOVED — this item was two regime
+   changes stale.** **Read the breakdown, not the mean**: `mean=666.4ms` is a
+   software rasteriser and says nothing; `game=24.53ms` against a 12ms budget
+   is a 104% overrun in OUR code.
 
-   `bubblesScreenLifted=0` on `2d5840f` and 2 on the build before, with
-   `bubblesNoBounds=0` — so the stated uncertainty is closed (a TextMesh built
-   this frame DOES have usable bounds) and the pass is simply inert.
+   Current: `npcs=9.48 bodyLod=4.68 mix=3.75 traffic=2.51 sun=1.27
+   population=1.40 rigs=1.25`. **`npcs` is now the dominant cost** and this
+   item used to say `npcs=2.77` with bodyLod on top — the series says npcs has
+   tripled (~2.3-3.3 → ~4.4 → ~8.6-9.5 across three regimes) while `game` went
+   14→18→24ms. Start there, not at bodyLod.
 
-   **Two reasons, both in `LiftClearOfScreen`**: it runs once at the bubble's
-   BIRTH, before anything has drifted into it, and the loop is gated
-   `_lift < MaxLift` so it skips exactly the bubbles at the ceiling it was
-   written for. `NameTags.PinAll` is the shape to copy — do it at the shot,
-   against the camera that renders it. **BUT THE FAULT HAS RECEDED**:
-   `bubblesAtCeiling` 39% -> 20% -> 7.6%, a real fall in the RATE and none of
-   it this fix, which never ran. So it guards a residue rather than two in
-   five, and drops down the list.
+   **`sun` is settled and the old paragraph here was wrong.** It read 3.15ms
+   because the whole audio mix ran inside the sun's timer; `mix` was split out
+   of it and `sun` is 1.27ms now, with the landed series confirming the step.
+   Nothing to chase.
+
+   bodyLod is a once-a-second FULL pass, so spreading it round-robin needs the
+   measurement split from the sweep first or every count becomes a peak over
+   partial passes. Tune on the PC, not CI.
+
+1. **THE BUBBLE STACK'S SCREEN PASS BARELY RUNS.** `bubblesScreenLifted=1` of
+   `bubblesMade=54` with `bubblesAtCeiling=16`. Two reasons, both in
+   `LiftClearOfScreen`: it runs once at the bubble's BIRTH, before anything
+   has drifted into it, and the loop is gated `_lift < MaxLift` so it skips
+   exactly the bubbles at the ceiling it was written for. `NameTags.PinAll`
+   is the shape to copy — do it at the shot, against the camera that renders
+   it. **The recession claimed here before ("7.6% at ceiling") does not hold
+   on `e6634a1`: 16 of 54 is 30%.**
 
 3. **THE DWELL FIX TRADES A VISIBLE FAULT FOR AN INVISIBLE SAVING.**
-   `bodyLod=2.59ms` against `population=1.31ms` — the LOD pass costs twice the
-   reband it hides inside, on 1,157 prefab instantiates. **Decide against
-   `gameShare`, not milliseconds:** at `render+rest=458ms` on a software
-   runner a 1ms saving is noise here and real on a player's machine, which is
-   why this has not been done.
-
-6. **THE FRAME GATE'S BIGGEST ITEM IS NOW TWO NUMBERS.** *(CI)* `population=
-   4.08ms` covered a pass that runs every frame and one that runs once a
-   second; read apart they are 1.31ms and 2.59ms. Neither is worth touching
-   while `render+rest` is 458ms on a software runner — see item 3.
+   `bodyLodMs=4.68` against `populationMs=1.40` — the LOD pass costs three
+   times the reband it hides inside. **Decide against `gameShare`, not
+   milliseconds:** at `render+rest=641.83ms` on a software runner a few ms is
+   noise here and real on a player's machine, which is why this is undone.
 
 8. **KEEP RETIRING THE REACH LEDGER — 35 entries**, `StreetMap.OnStreet` off it
    tonight because the place-setback question needed exactly the wider
@@ -225,31 +250,22 @@ is the bar sign's bare back face, one line, low priority.
    surface to choose one. **It must not be randomised** — CI determinism
    depends on it — so this is a surface, not a change to the default.
 
-11. **THE LAW NOW ASKS, AND IT STOPS AT THE FIRST STAGE.**
-   `inquiry` reads **Procedure** in the four newest runs and **None** in the
-   sixty-three before them, changing exactly once, at `0720f52`. That is the
-   `AuditClosed` staging landing and holding — not a lucky run — and it is the
-   first movement in the whole recorded history of the key.
+11. **THE LAW REACHES MANHUNT NOW — this item was written when it stopped at
+   Procedure and is superseded.** `e6634a1` reads `inquiry=Manhunt homSaw=9
+   homWouldTalk=3 homNamed=9 homPressure=2.71 pressNamed=1
+   pressHeadline=[KILLING ON THE HOOK: POLICE NAME THE PUBLICAN]`. The whole
+   chain the old text called open — witnesses who can name you, pressure past
+   `ManhuntAt`, the paper printing it — is running end to end.
 
-   **The old text here said the law had NEVER asked, sixty for sixty** — true
-   when written, false once the staging landed, and it stood four builds
-   because `gates --series inquiry` matched numbers only, so a categorical
-   value read as a spelling mistake. Fixed 5 Aug; the series corrected it.
+   **The one thing that was still broken it could not see**, because the
+   evening screen has its own opinion: the law tier read shut on all six
+   evenings anyway. That is the redirect bug, fixed, and it is the item above.
 
-   **What is open now is the SECOND stage, and it is one number.** `homSaw=29
-   homWouldTalk=7 homNamed=0`: twenty-nine people saw a killing, seven would
-   talk to a detective, and not one can put a name to it — so `homPressure`
-   sits at 0.40 and cannot reach `ManhuntAt`. `pressNamed=0` is still correct
-   and still not a fault: `Press.Print` names you at
-   `law >= Inquiry.Investigation` and the stage is one below it.
-   `redirected=1 pointedAt=kest redirectRelief=0.00` is the same story — the
-   redirect relieves a pressure that has not been built.
-
-   **`homSawStored`/`homHoldsIt` are in flight and split it three ways** —
-   the register never took the list, `FileWith` is not writing, or the
-   confidence bar. Different afternoons, one reading. **And `pointedAt=kest`
-   in all 67 runs**: staged, so probably honest, but a branch nobody has
-   sampled, and it belongs in item 12's list.
+   **Still worth a look:** `homWouldTalk=3` of `homSaw=9`, so two thirds of
+   witnesses would say nothing to a detective — plausible for this town and
+   never checked against the design. And `pointedAt=kest` in every run:
+   staged, so probably honest, but a branch nobody has sampled. Item 12's
+   list.
 
 12. **THE REST OF WHAT `gates --constant` FOUND, AND IT IS A WORK LIST.**
    Sixty keys have never been anything but zero across 131 runs. Most are fault

@@ -2271,3 +2271,48 @@ by player decision — gossip before scale, the week campaign before the day job
 **Scope honesty, as written at the time:** systems milestones are heavily
 AI-buildable (code, cards, pipelines). The vertical slice is where taste, iteration
 and playtesting — the human's real job — dominate.
+
+---
+
+## The body budget, closed — 2026-08-19
+
+Cut from `queue.md` when the queue hit its length cap. The residue that is
+still live stayed there; this is the settled account.
+
+**The complaint** was that the street looked empty at eye level. The cause was
+the LOD ranking: bodies a metre behind the camera outranked the people in
+shot. The first fix was a multiplier on the squared distance, and it could
+never have worked — 1m behind ranks 1 against 20m ahead at 400, and no
+multiplier closes that gap. Being behind now costs a flat amount of apparent
+distance instead, three quarters of `NearMetres`, which is the band's own
+number rather than a new one.
+
+**`bodyLodInShot / bodyLodShotInBand = 87.8%`.** Of the walkers who are both
+visible and close enough to be granted a body, seven in eight get one. The
+missing eighth is the rank hysteresis working: an off-screen incumbent keeps
+its body for two extra ranks, which is what stopped the set churning three
+times a second.
+
+**The denominator was the whole argument.** The first version divided by
+`bodyLodShotEligible`, which counts people beyond the band who can never be
+granted anything, and read 43.6%. The same run, against the walkers actually
+in the band, reads 87.8%. And before either, `bodyLodInShot` was a last-wins
+field assigned every pass and read at the end — it reported `0 of 1` on a run
+with 46 eligible walkers.
+
+**What that left is a different question.** 13.1 walkers in frame per pass and
+only 6.5 of them inside the 34m band: half the people you can see are too far
+away to ever be skinned. That is band and density, not budget.
+
+**Cost, stated:** grants went 0.74 to 0.96 per pass and stayed, so turning
+round is about 30% more instantiates. Read per pass, because run lengths
+differ (374, 373, 446).
+
+**Two instruments fixed on the way through.** `bodyLiftedCrowd`'s comment
+claimed the opposite of what it counts — true before the `cast` flag landed
+and false after — and the capsule audit ran before any walker had spawned.
+Both keys kept their names, since they have landed series.
+
+**Perf, settled and retired in the same round:** traffic halved, the
+separation sweep priced at 0.8ms against a 12ms budget so the rewrite is not
+worth doing, and `sun` shown to be noise.

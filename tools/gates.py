@@ -171,11 +171,42 @@ def series(key):
     # value starts with a digit. A RUN of either is what holds.
     pat = re.compile(r"(?<![\w])" + re.escape(key)
                      + r"=((?:\[[^\]]*\]|\([^)]*\)|[^\s\[\(])+)")
+    # AND IF THE NAME MEANS TWO THINGS, SAY SO BEFORE PRINTING ANY OF IT.
+    #
+    # `search` takes the FIRST match in the whole file. That is fine while a
+    # name is unique and silently wrong when it is not, and `npcs` was not:
+    # the done line carried a population of 42 and the frame gate carried
+    # 9.48ms of per-frame cost, so this printed a column with `42` scattered
+    # through the milliseconds and no sign that two quantities had been
+    # merged. `checks` and `rigs` were the same shape.
+    #
+    # The emitter is fixed — those three timings are `npcsMs`, `checksMs`,
+    # `rigsMs` now — but the hazard is structural and the next reused name
+    # would land here again. `verdict-read.py` has refused to answer across
+    # two lines since the day it was written; this is that idea in the tool
+    # that actually reads the trend, and it WARNS rather than refuses because
+    # the older half of a series is often still worth looking at once you know
+    # what happened to it.
     hits = []
+    ambiguous = []
     for sha, path in runs:
-        m = pat.search(read(path))
-        if m:
-            hits.append((sha, m.group(1)))
+        text = read(path)
+        found = pat.findall(text)
+        if found:
+            hits.append((sha, found[0]))
+        distinct = {f for f in found}
+        if len(distinct) > 1:
+            ambiguous.append((sha, sorted(distinct)[:3]))
+
+    if ambiguous:
+        sha, vals = ambiguous[0]
+        print(f"gates --series {key}: AMBIGUOUS — this name carries more than "
+              f"one value in {len(ambiguous)} of {len(runs)} run(s).")
+        print(f"  {sha} has {', '.join(vals)} — the series below takes the "
+              "FIRST match in each")
+        print("  file, so it may be mixing two different quantities. "
+              "`tools/verdict-read.py --collisions`")
+        print("  lists every such name with its line numbers.\n")
 
     if not hits:
         print(f"gates --series {key}: no landed run carries that name.")

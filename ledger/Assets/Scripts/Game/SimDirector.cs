@@ -7301,6 +7301,48 @@ namespace Ledger.Game
         /// within two metres of the lens, and which shot it was.
         float _shotNearFracWorst;
         string _shotNearFracWhere = "none";
+        /// Every shot's blocked fraction, and separately the ones that became
+        /// files. See `KeptTheShot`.
+        readonly List<float> _shotNearFrac = new List<float>();
+        readonly List<float> _shotNearFracKept = new List<float>();
+        float _shotNearFracThis = -1f;
+        float _shotKeptWorst = -1f;
+        string _shotKeptWhere = "none";
+
+        /// This shot was written to disk, so its framing is EVIDENCE.
+        ///
+        /// Called from the one place that decides, immediately after the
+        /// bytes go out. The blocked fraction was measured at the top of
+        /// `Shot` against the same camera and the same instant; this only
+        /// moves it into the kept set, so there is no second copy of the
+        /// quota rule and no chance of the two disagreeing about which
+        /// pictures exist.
+        void KeptTheShot(string name)
+        {
+            if (_shotNearFracThis < 0f) return;
+            _shotNearFracKept.Add(_shotNearFracThis);
+            if (_shotNearFracThis > _shotKeptWorst)
+            {
+                _shotKeptWorst = _shotNearFracThis;
+                _shotKeptWhere = string.IsNullOrEmpty(name) ? "unnamed" : name;
+            }
+        }
+
+        static string FracSeries(List<float> xs)
+        {
+            if (xs == null || xs.Count == 0) return "none";
+            var sorted = new List<float>(xs);
+            sorted.Sort();
+            return string.Join("/", sorted.ConvertAll(f => f.ToString("0.00")));
+        }
+
+        static float Median(List<float> xs)
+        {
+            if (xs == null || xs.Count == 0) return -1f;
+            var sorted = new List<float>(xs);
+            sorted.Sort();
+            return sorted[sorted.Count / 2];
+        }
         int _restFrameSum, _restFrames, _workFrameSum, _workFrames;
 
         /// The frame the last shot-time probe read. Several probes run inside
@@ -7396,6 +7438,35 @@ namespace Ledger.Game
                     _shotNearFracWorst = nearFrac;
                     _shotNearFracWhere = name;
                 }
+                // A PEAK CANNOT DESCRIBE A SET OF PHOTOGRAPHS, and this one
+                // has been asked to since it was written. `shotNearFracWorst`
+                // read 1.00 at `day13_night` on `e6634a1` — one frame entirely
+                // filled — and said nothing about the other nineteen. Whether
+                // that is one bad shot or a systematic problem with where the
+                // camera stands is the only question worth asking of it, and a
+                // maximum structurally cannot answer it.
+                _shotNearFrac.Add(nearFrac);
+
+                // AND ONLY SOME OF THESE SHOTS BECOME FILES, which is the
+                // sharper fault and is the reason I opened all six stills
+                // before finding this number at all.
+                //
+                // The sim shoots roughly twenty times a run and commits about
+                // six. `day13_night` is not one of them, so the worst reading
+                // in the verdict describes a frame nobody can open, while
+                // `review_day2_noon` — a stone wall across the right half —
+                // and `review_day5_noon` — roof slabs across the middle — are
+                // named nowhere. The number was measuring shots; the evidence
+                // is FILES; and the two sets have never been told apart.
+                //
+                // SO IT IS BANKED HERE AND CLAIMED AT THE WRITE, rather than
+                // predicted here. Whether a still is kept depends on two
+                // counters and a rest-day rule, and evaluating that twice is
+                // the one-idea-two-implementations shape that put a wrong
+                // reading in this file four times. The writer is the single
+                // place that knows, so it calls `KeptTheShot` and this only
+                // has to remember what it measured.
+                _shotNearFracThis = nearFrac;
             }
 
             // HOW MANY PEOPLE ARE ACTUALLY IN THE PICTURE.
@@ -7612,6 +7683,11 @@ namespace Ledger.Game
                     if (restStill) _restStills++; else _reviewStills++;
                     System.IO.File.WriteAllBytes($"sim-out/review_{name}.jpg",
                                                  tex.EncodeToJPG(60));
+                    // THIS ONE IS EVIDENCE NOW. See `KeptTheShot` — the
+                    // framing was measured at the top of `Shot`, and this is
+                    // the only line in the file that knows the picture
+                    // survived.
+                    KeptTheShot(name);
                 }
 
                 // AND ONE FRAME FROM WHERE A PLAYER ACTUALLY STANDS. Every
@@ -8338,10 +8414,35 @@ namespace Ledger.Game
                                          "traffic", "signals", "rigs" })
             {
                 var c = Perf.Get(name);
-                if (c == null || c.Samples == 0) { perFrame.Add($"{name}=none"); continue; }
+                // `Ms` SUFFIX, BECAUSE THREE OF THESE NINE NAMES ARE ALREADY
+                // TAKEN BY A COUNT.
+                //
+                // The done line carries `npcs=42`, `checks=211` and `rigs=67`
+                // — a population, a number of suspicion checks and a number of
+                // rigs — and this block was emitting `npcs=9.48ms`,
+                // `checks=0.07ms` and `rigs=1.25ms` on two other lines of the
+                // same file. Anything reading the verdict by name gets
+                // whichever it hits first: `tools/gates.py --series npcs`
+                // prints a column with `42` scattered through the
+                // milliseconds, which is how this was found.
+                //
+                // `verdict-read.py` catches it — it prints line numbers and
+                // refuses when requested keys do not share one — and nothing
+                // swept for it, so it sat in a tool that is otherwise the
+                // project's main way of seeing a trend. `trafficMs` on the
+                // done line already used this suffix, so the convention was
+                // here and this block simply had not adopted it.
+                //
+                // Suffixed as a BLOCK rather than the three that collide,
+                // because fixing the three that happen to clash today leaves
+                // the next count named `sun` or `mix` to find the same hole —
+                // the allow-list mistake in a different coat. The series for
+                // these three was never sound to begin with, so nothing worth
+                // keeping is being reset.
+                if (c == null || c.Samples == 0) { perFrame.Add($"{name}Ms=none"); continue; }
                 double perFrameMs = Perf.FrameCount > 0 ? c.TotalMs / Perf.FrameCount : 0;
                 attributed += perFrameMs;
-                perFrame.Add($"{name}={perFrameMs:0.00}ms");
+                perFrame.Add($"{name}Ms={perFrameMs:0.00}");
             }
             double residueMs = Math.Max(0, meanFrameMs - attributed);
             perFrame.Add($"game={attributed:0.00}ms render+rest={residueMs:0.00}ms");
@@ -10530,7 +10631,32 @@ namespace Ledger.Game
                       $"shotsAimed={_shotsAimed} shotsBlocked={_shotsBlocked} " +
                       $"shotBlocker=[{_shotBlockWhat}] " +
                       $"shotNearFracWorst={_shotNearFracWorst:0.00} " +
-                      $"shotNearFracWhere=[{_shotNearFracWhere}] uiOk={uiOk} " +
+                      $"shotNearFracWhere=[{_shotNearFracWhere}] " +
+                      // THE SERIES, AND THE FILES SEPARATELY FROM THE SHOTS.
+                      //
+                      // `shotNearFracWorst=1.00 where=[day13_night]` was the
+                      // whole reading, and `day13_night` is not one of the
+                      // pictures this build commits. So the number named a
+                      // frame nobody can open while `review_day2_noon` — a
+                      // stone wall across the right half — went unnamed. A
+                      // peak over shots, read as a description of the
+                      // evidence.
+                      //
+                      // `shotNearKept*` is the same measurement over the
+                      // stills that became FILES, which is the set a human
+                      // actually reads, and both carry their series sorted so
+                      // one bad frame and a systematic problem look different.
+                      // `shotNearShots` against `shotNearKept` is the
+                      // denominator: it says how much of what was measured
+                      // survives into the directory at all.
+                      $"shotNearFracMedian={Median(_shotNearFrac):0.00} " +
+                      $"shotNearSeries=[{FracSeries(_shotNearFrac)}] " +
+                      $"shotNearShots={_shotNearFrac.Count} " +
+                      $"shotNearKeptWorst={_shotKeptWorst:0.00} " +
+                      $"shotNearKeptWhere=[{_shotKeptWhere}] " +
+                      $"shotNearKeptMedian={Median(_shotNearFracKept):0.00} " +
+                      $"shotNearKeptSeries=[{FracSeries(_shotNearFracKept)}] " +
+                      $"shotNearKept={_shotNearFracKept.Count} uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} " +
                       $"collidingBubbles={_collidingBubbles} bubblesAtWorst={_bubblesAtWorst} bubblesOnScreen={_bubblesOnScreen} " +
