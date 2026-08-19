@@ -2395,8 +2395,14 @@ namespace Ledger.Game
                 // sim closes days with no UI at all, and a retention promise
                 // that only exists when somebody is looking at a screen cannot
                 // be measured across a run.
-                var tonight = LooseEnds.Tonight(EveningState(Now.Day - 1));
-                LooseEndsTally.Saw(tonight);
+                // ONE STATE, READ ONCE. `Tonight` and `OpenCount` are two
+                // walks over the same rules, so building the evening twice
+                // would let them disagree about a day that changed between
+                // the two calls — and the whole point of the count is that it
+                // describes the same evening the thread came from.
+                var evening = EveningState(Now.Day - 1);
+                var tonight = LooseEnds.Tonight(evening);
+                LooseEndsTally.Saw(tonight, LooseEnds.OpenCount(evening));
                 if (tonight.Any)
                 {
                     _ui?.Toast(tonight.Line, 9f);

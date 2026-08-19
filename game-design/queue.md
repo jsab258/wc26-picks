@@ -76,15 +76,18 @@ is the bar sign's bare back face, one line, low priority.
    height, so there is no correct example to set a band from.
    Full account in `clip-findings.txt`.
 
-1. **`looseEnds=6/0/[Owed:6]` IS NOT THE FAULT IT LOOKS LIKE.** Six
-   evenings, none empty, every one naming Owed — which reads as "five of
-   six tiers are dead". They are not: `Tonight` returns on the first hit in
-   priority order, and Mickey's book always has somebody outstanding, so
-   Promise, Rumour and Standing cannot fire while a debt is open however
-   well they are fed. **What is missing is the denominator** (rule 3b): the
-   tally should say how many threads were OPEN that evening, not only which
-   won. Law and Crew sitting silent ABOVE Owed is the part worth checking —
-   the inquiry naming the player was dead for the whole project until 5 Aug.
+1. **`looseEnds` NOW CARRIES ITS DENOMINATOR — awaiting its first build.**
+   Six evenings of `[Owed:6]` read as "five of six tiers are dead". They
+   are not: `Tonight` returns on the first hit in priority order, and
+   Mickey's book always has somebody outstanding, so nothing below Owed is
+   reachable however well it is fed. `OpenCount` counts every live tier
+   rather than the winner, summed across evenings with the busiest kept, and
+   a CoreTest asserts the two walks agree about whether anything is open at
+   all — they are separate passes over the same rules, which is the shape
+   that rots. **What to read next build:** if the open count is 1, the lower
+   tiers genuinely never fire; if it is 3 or 4, they fire constantly and are
+   simply outranked, and Law and Crew sitting silent ABOVE Owed becomes the
+   thing worth checking.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL — RECOVERED, NOT
    RESOLVED.** *(player-height frame, dfefd62)* Fine from the elevated

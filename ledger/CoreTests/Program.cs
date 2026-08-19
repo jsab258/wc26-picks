@@ -15096,6 +15096,40 @@ namespace Ledger.CoreTests
             none.Saw(LooseEnds.Tonight(quiet));
             Check(none.Line().Contains("none"),
                 "a run with nothing open says none rather than printing an empty list", none.Line());
+
+            // OPENCOUNT — the denominator, and the whole point of it is that
+            // `Tonight` returns ONE thread however many are live. Six evenings
+            // reading `[Owed:6]` says "nothing below Owed can be reached while
+            // Mickey's book has somebody in it", not "five tiers are dead", and
+            // those need to look different.
+            Check(LooseEnds.OpenCount(quiet) == 0, "a quiet evening has nothing open",
+                $"{LooseEnds.OpenCount(quiet)}");
+            Check(LooseEnds.OpenCount(everything) > 1,
+                "an evening with several live tiers counts them all, not just the winner",
+                $"{LooseEnds.OpenCount(everything)}");
+            Check(LooseEnds.Tiers == 6, "and it has a ceiling to be read against",
+                $"{LooseEnds.Tiers}");
+
+            // AND THE TWO MUST AGREE ABOUT WHETHER ANYTHING IS LIVE AT ALL.
+            // They are separate walks over the same rules, which is the shape
+            // that rots — one gains a tier and the other does not, and the
+            // count silently stops matching the thread. This is the cheap
+            // check that catches that.
+            foreach (var ev in new[] { quiet, everything, promise })
+                Check((LooseEnds.OpenCount(ev) > 0) == LooseEnds.Tonight(ev).Any,
+                    "OpenCount and Tonight agree about whether anything is open",
+                    $"open={LooseEnds.OpenCount(ev)} any={LooseEnds.Tonight(ev).Any}");
+
+            var deep = new LooseEnds.Tally();
+            deep.Saw(LooseEnds.Tonight(everything), LooseEnds.OpenCount(everything));
+            deep.Saw(LooseEnds.Tonight(quiet), LooseEnds.OpenCount(quiet));
+            Check(deep.OpenMost == LooseEnds.OpenCount(everything),
+                "the tally keeps the busiest evening rather than the last one",
+                $"{deep.OpenMost}");
+            Check(deep.OpenSum == LooseEnds.OpenCount(everything),
+                "and sums across evenings", $"{deep.OpenSum}");
+            Check(deep.Line().Contains("/open") && !deep.Line().Contains(" "),
+                "and the verdict value carries the open counts and no space", deep.Line());
         }
 
         static void TestReliability()

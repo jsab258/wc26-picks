@@ -10770,10 +10770,21 @@ namespace Ledger.Game
                       // spaces, because a verdict value with a space is
                       // silently truncated by every reader here.
                       //
-                      // AND ITS DENOMINATOR BESIDE IT: `looseEndsFed` says how
-                      // many of the six tiers are actually wired, so a kind
-                      // missing from the breakdown cannot be read as "that
-                      // never happened" when it means "that is not connected".
+                      // AND TWO DENOMINATORS BESIDE IT, which answer different
+                      // questions and were being confused.
+                      //
+                      // `looseEndsFed` says how many of the six tiers are
+                      // WIRED, so a kind missing from the breakdown cannot read
+                      // as "that never happened" when it means "that is not
+                      // connected".
+                      //
+                      // The `/openN/M of T` tail on the value itself says how
+                      // many tiers were OPEN across the run and on its busiest
+                      // evening. `Tonight` returns one thread however many are
+                      // live, so the breakdown can only ever name the winner:
+                      // six evenings of `[Owed:6]` says "nothing below Owed is
+                      // reachable while Mickey's book has somebody in it", not
+                      // "five tiers are dead", and only one of those is a bug.
                       $"looseEnds={GameController.LooseEndsTally.Line()} " +
                       $"looseEndsFed={GameController.LooseEndTiersFed}/{GameController.LooseEndTiers} " +
                       $"sheetTiles={ClipSheet.Tiles} " +

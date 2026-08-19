@@ -229,17 +229,60 @@ namespace Ledger.Core
         /// POINT (rule 3b): `emptyEvenings=0` means the guarantee holds, and it
         /// means nothing at all unless the run also says how many evenings it
         /// closed. Both are reported together or neither is.
+        /// HOW MANY THREADS WERE OPEN THAT EVENING, not which one won.
+        ///
+        /// `Tonight` returns on the FIRST tier that fires, in priority order,
+        /// which is right — the player gets one thread, the most important one.
+        /// It also means the tally can only ever report the winner, and six
+        /// evenings of `[Owed:6]` reads as "five of the six tiers are dead"
+        /// when what it says is "Mickey's book always has somebody outstanding,
+        /// so nothing below Owed can ever be reached".
+        ///
+        /// Those are completely different facts and only one of them is a bug.
+        /// Feeding the lower tiers harder would change nothing visible, which
+        /// is why the fix is the READING rather than the code (rule 3b: a
+        /// number needs the denominator that makes it mean something).
+        ///
+        /// Counted rather than returned, because the evening still shows one
+        /// thread and this must not change what a player sees.
+        public static int OpenCount(Evening e)
+        {
+            int n = 0;
+            if (e.InquiryStage > 0 && e.InquiryNamesYou) n++;
+            if (!string.IsNullOrEmpty(e.CrewNearestBreaking)
+                && e.CrewLoyalty <= e.CrewBreakingPoint) n++;
+            if (e.OwedAmount > 0 && !string.IsNullOrEmpty(e.OwedBy)) n++;
+            if (!string.IsNullOrEmpty(e.PromisedTo)) n++;
+            if (e.RumoursInFlight >= RumoursThatCount) n++;
+            if (!string.IsNullOrEmpty(e.TrustFell) && e.TrustFellBy >= TrustFallThatCounts) n++;
+            return n;
+        }
+
+        /// How many tiers exist, so `OpenCount` has a ceiling to be read
+        /// against. `Kind.None` is not a tier.
+        public static int Tiers => Enum.GetValues(typeof(Kind)).Length - 1;
+
         public sealed class Tally
         {
             public int Evenings { get; private set; }
             public int Empty { get; private set; }
+            /// Summed across evenings, not last-wins. An evening's open count
+            /// assigned to a field and read at the end of a run describes the
+            /// LAST evening, which is the mistake this project has now made
+            /// twice with counters written the same day they were read.
+            public int OpenSum { get; private set; }
+            public int OpenMost { get; private set; }
             readonly int[] _byKind = new int[Enum.GetValues(typeof(Kind)).Length];
 
-            public void Saw(Thread t)
+            public void Saw(Thread t) => Saw(t, 0);
+
+            public void Saw(Thread t, int openTonight)
             {
                 Evenings++;
                 if (!t.Any) Empty++;
                 _byKind[(int)t.Of]++;
+                OpenSum += openTonight;
+                if (openTonight > OpenMost) OpenMost = openTonight;
             }
 
             public int Count(Kind k) => _byKind[(int)k];
@@ -260,7 +303,13 @@ namespace Ledger.Core
                     first = false;
                 }
                 if (first) sb.Append("none");
-                return sb.Append(']').ToString();
+                sb.Append("]/open");
+                // Total then worst, both against the tier ceiling, so
+                // "one tier outranked the rest" stops looking like "one
+                // tier exists".
+                sb.Append(OpenSum).Append('/').Append(OpenMost)
+                  .Append("of").Append(Tiers);
+                return sb.ToString();
             }
         }
     }
