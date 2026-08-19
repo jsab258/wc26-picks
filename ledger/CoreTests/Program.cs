@@ -15130,6 +15130,78 @@ namespace Ledger.CoreTests
                 "and sums across evenings", $"{deep.OpenSum}");
             Check(deep.Line().Contains("/open") && !deep.Line().Contains(" "),
                 "and the verdict value carries the open counts and no space", deep.Line());
+
+            // THE LAW TIER'S FEED, AND IT WAS WRONG FOR A DAY.
+            //
+            // `InquiryNamesYou` is filled in by the Game layer, which has no
+            // test harness here, so nothing in Core could see that the caller
+            // was reading the wrong field. The first version asked whether
+            // `PointedAt` was empty — is anybody else named — which sounds like
+            // the right question and is not, because NOTHING EVER CLEARS THAT
+            // NAME. Only the RELIEF expires. So one redirect that stuck, on day
+            // one of a nine-day run, closed this tier for the rest of it.
+            //
+            // Build `e6634a1` is how it surfaced and it took the denominator
+            // added the day before to do it: `open6/1of6` — six evenings, one
+            // tier live on each — while the same verdict read `inquiry=Manhunt`
+            // and `pressNamed=1`. The detective was hunting the player, the
+            // paper had printed her name, and the evening screen said the law
+            // was not open.
+            //
+            // BOTH SIDES OF THE FORK, from the REAL book rather than arithmetic
+            // written here (rule 5b, and a third walk over these rules is the
+            // last thing this seam needs). The rejecting case is a live
+            // redirect: she is looking at Kest, so the tier stays shut. The
+            // ACCEPTING case is the same book four days later — and it is the
+            // one the old condition could never reach.
+            var lawBook = new HomicideBook();
+            var lawMill = new GossipMill(new SocialGraph());
+            lawMill.Add(Agent("ida", "Ida", "day"));
+            var lawKill = lawBook.Record("vane", "Vane", 1, 23, "the lock");
+            lawKill.SawYouDoIt.Add("ida");
+            lawBook.FileWith(lawMill, lawKill, new GameTime(1, 22, 0));
+            lawBook.PointAt("kest", 1);
+
+            int expired = 1 + HomicideBook.RedirectHolds;
+            Check(lawBook.RedirectReliefOn(1) > 0, "a redirect that just stuck is pulling her away",
+                $"{lawBook.RedirectReliefOn(1):0.00}");
+            Check(lawBook.RedirectReliefOn(expired) <= 0,
+                "and four days on it is pulling nothing", $"{lawBook.RedirectReliefOn(expired):0.00}");
+
+            // THE FACT THE BUG RESTED ON, pinned so a later tidy-up of
+            // `PointedAt` cannot quietly make the old reading correct again and
+            // leave this comment describing a world that no longer exists.
+            Check(!string.IsNullOrEmpty(lawBook.PointedAt),
+                "the name she was pointed at is STILL SET after the relief has gone",
+                $"\"{lawBook.PointedAt}\"");
+
+            var shielded = new LooseEnds.Evening
+            {
+                Day = 1,
+                InquiryStage = (int)lawBook.Stage(lawMill, null, 1),
+                InquiryNamesYou = lawBook.Stage(lawMill, null, 1) != Inquiry.None
+                                  && lawBook.RedirectReliefOn(1) <= 0,
+                InquiryAbout = "the lock",
+            };
+            Check(shielded.InquiryStage > 0, "the inquiry is running either way",
+                $"stage={shielded.InquiryStage}");
+            Check(LooseEnds.Tonight(shielded).Of != LooseEnds.Kind.Law,
+                "a live redirect keeps the law off the evening screen");
+
+            var backOnYou = shielded;
+            backOnYou.Day = expired;
+            backOnYou.InquiryStage = (int)lawBook.Stage(lawMill, null, expired);
+            backOnYou.InquiryNamesYou = lawBook.Stage(lawMill, null, expired) != Inquiry.None
+                                       && lawBook.RedirectReliefOn(expired) <= 0;
+            Check(LooseEnds.Tonight(backOnYou).Of == LooseEnds.Kind.Law,
+                "and when it expires she is back, and the evening says so");
+
+            // The old condition, run against the same book, so the failure is
+            // demonstrated rather than described. It reads false on BOTH days —
+            // which is the bug, in one line.
+            bool oldWay = string.IsNullOrEmpty(lawBook.PointedAt);
+            Check(!oldWay, "reading the name instead of the relief answers no for ever",
+                $"pointedAt=\"{lawBook.PointedAt}\" reliefNow={lawBook.RedirectReliefOn(expired):0.00}");
         }
 
         static void TestReliability()

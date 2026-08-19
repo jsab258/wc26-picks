@@ -409,13 +409,29 @@ namespace Ledger.Game
         {
             var e = new LooseEnds.Evening { Day = dayClosed };
 
-            // THE LAW. `PoliceInquiry` is the staged read the redirect already
-            // uses; `PointedAt` is empty while the detective is still on the
-            // player and carries a name once a charge has moved her.
+            // THE LAW, AND THE FIRST VERSION READ A NAME THAT IS NEVER CLEARED.
+            //
+            // It asked `string.IsNullOrEmpty(Homicides.PointedAt)` — the
+            // detective is on you while nobody else is named. That is the right
+            // idea and the wrong field. `PointedAt` is set when a charge sticks
+            // and NOTHING EVER UNSETS IT: only the RELIEF expires, after
+            // `RedirectHolds` days. So one successful redirect, ever, turned
+            // this tier off permanently.
+            //
+            // The run said so and the run is the only reason I know. `inquiry`
+            // reached MANHUNT, `pressNamed=1` — the paper had named the player —
+            // `homNamed=9`, and the evening thread still reported the law as
+            // not open, on every one of six evenings. The denominator built
+            // yesterday is what made that visible: `open6/1of6` says exactly
+            // one tier was ever live, so the four above and below it were not
+            // merely outranked.
+            //
+            // Reading the live relief instead asks the question the tier means:
+            // is there a redirect PULLING HER AWAY RIGHT NOW.
             var stage = PoliceInquiry;
             e.InquiryStage = (int)stage;
             e.InquiryNamesYou = stage != Inquiry.None
-                && string.IsNullOrEmpty(Homicides.PointedAt);
+                && Homicides.RedirectReliefOn(dayClosed) <= 0;
             e.InquiryAbout = Homicides.PressureWhy(_gossip?.Mill, IsAlive, Now.Day);
 
             // THE CREW. Loyalty lives on the GOSSIPER, not on `CrewMember` —
