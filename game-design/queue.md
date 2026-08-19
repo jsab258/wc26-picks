@@ -93,49 +93,31 @@ is the bar sign's bare back face, one line, low priority.
    come back dry, so this needs a wet run rather than another look.** The
    magenta half of that report is REFUTED and named so it cannot return.
 
-1. **THE STREET IS EMPTY AT EYE LEVEL, AND EVERY POPULATION NUMBER
-   SAYS IT IS FINE.** *(on screen — `review_street.jpg`)* Not one
-   existing number is about the VIEW: `walkers=55` counts bodies
-   anywhere in a city that grew ~2.5x in area, `crowdWalkers=12` is
-   exactly `CrowdWalkerCap` so the near cap BINDS, and `crowdMill=136`
-   is the GOSSIP mill — social agents, not a render tier. There is no
-   cheap visible-body tier at all.
+1. **THE BODY BUDGET IS FIXED AND MEASURED — 87.8%. What is left is the
+   BAND, not the ranking.** *(was: "the street is empty at eye level")*
 
-   **MEASURED, FOUR RUNS: 5/2, 8/5, 3/2, 19/7** in shot / skinned of ~52
-   alive — the spread is the shot standing somewhere different, not
-   progress. **THE BODY BUDGET WENT TO WHOEVER WAS NEAREST, NOT TO
-   WHOEVER YOU WERE LOOKING AT**: bodies a metre from the lens and out of
-   frame beat the people in shot at 10-25m to all 12 grants.
+   The complaint was that bodies a metre behind the camera beat the people
+   in shot. True, and fixed: being behind now costs a flat amount of
+   apparent distance (three quarters of `NearMetres`, the band's own
+   number) rather than a multiplier, which could never have worked — 1m
+   behind ranks 1 against 20m ahead at 400, and no multiplier closes that.
 
-   **THE STREET IS NOT EMPTY** — retracted the moment the counter was
-   fixed. `review_street.jpg` at 75b9d2b shows nobody and I published
-   "most streets are empty" off it, plus a `1 in shot` that was a last-wins
-   artefact I had already diagnosed. Run-level: **13.5 walkers in shot per
-   pass, peaking at 30.** The frame was an unlucky instant.
+   **`bodyLodInShot / bodyLodShotInBand = 87.8%`** — of the walkers who are
+   visible AND close enough to be granted, seven in eight get a body. The
+   missing eighth is the rank hysteresis doing its job: an off-screen
+   incumbent keeps its body for two extra ranks, which is the trade that
+   stopped the set churning three times a second.
 
-   **THE MULTIPLIER COULD NEVER HAVE FIXED IT.** Scaling squared distance
-   by a facing factor cannot beat squared distance: 1m behind ranks 1, 20m
-   ahead ranks 400, and at a bias of twenty the person behind still ranks
-   21. Replaced with an ADDITIVE cost in apparent distance, three quarters
-   of `NearMetres` — the band's own number rather than a new one.
+   **THE REAL SHAPE OF "EMPTY" IS NOW VISIBLE: 13.1 walkers in frame per
+   pass, and only 6.5 of them inside the 34m band.** Half the people you
+   can see are too far away to ever be skinned. That is a band-and-density
+   question, not a budget one, and it belongs with the population item
+   below rather than here.
 
-   **IT LANDED AND MOVED THE SHARE 41.9% -> 44.7%, WHICH IS TOO SMALL TO
-   READ, BECAUSE THE DENOMINATOR IS WRONG.** `bodyLodShotEligible` counts
-   everybody in frame INCLUDING people beyond the 34m band, who can never
-   be granted whatever the ranking does — so the ratio was measuring the
-   band, not the ranking. `bodyLodShotInBand` lands next build and is the
-   set the ranking actually chooses from; that ratio approaches 1.0 when
-   the ranking is right, and it is the one to judge on.
+   **Cost, stated:** grants went 0.74 -> 0.96 per pass and have stayed
+   there, so turning round is about 30% more instantiates. Read per pass,
+   because run lengths differ (374, 373, 446).
 
-   **AND THE CHURN ROSE: 362 grants / 131 revokes against 278 / 68 and a
-   recent band of 198-313.** Turning round now costs more. Whether that is
-   worth paying cannot be decided until the share is measured properly, so
-   it is noted rather than acted on.
-
-   It stays gentle and continuous rather than a cone, because you can turn
-   round and a hard in-frame test would swap the whole set on a spin. The
-   BAND test reads true distance throughout, so nobody across the district
-   gets a body for facing the right way.
 
    **THE WHITE PILLS ARE STILL UNIDENTIFIED**, and the claim `bodyAlbedo`
    named them was wrong — it measures source TEXTURES, not the render.
