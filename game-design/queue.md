@@ -179,23 +179,23 @@ is the bar sign's bare back face, one line, low priority.
    saloon, slate stripe, one blue beacon on a plinth we add — the kit has no
    light bar. Exempt from the noir multiply, which would have turned it into
    the dark saloon it exists to not be. Its front push bar is one named mesh
-   (`grill`) and is dropped. **Read next build: `vehiclesKitted` should rise
-   past 18/28, and a white car should be findable in a noon frame.**
+   (`grill`) and is dropped. **Landed: `vehiclesKitted` 18/28 -> 21/28.**
+   `ambulance` and `firetruck` stay out with a reason rather than an
+   assumption — both are mid-slate in this palette.
 
-   `ambulance` and `firetruck` stay out and now there is a reason rather
-   than an assumption: both are mid-slate in this palette, so neither reads
-   as what it is without livery work nobody has done.
+1. **PATROL DENSITY NOW FOLLOWS THE INQUIRY — awaiting its first build.**
+   `PatrolWeightFor(Inquiry)` is a pure Core function: None 1, Procedure 2,
+   Investigation 3, Manhunt 5, which on 28 vehicles is 2 patrol cars quiet
+   against 6 under a manhunt. Conversion happens right after `SetHour` and
+   only on PARKED cars, so nothing changes shape in front of the player, and
+   the changed ids come back so their bodies are rebuilt rather than Core
+   believing something the street does not show.
 
-1. **PATROL DENSITY DOES NOT RESPOND TO THE INQUIRY, and that is the half
-   worth having.** *(on screen; needs a repopulate hook)* A police car whose
-   frequency rises with how hard she is looking tells the player the heat is
-   climbing before any UI does — information 90, which is the moat. The
-   blocker is structural, not hard: `TrafficSim.Populate` runs once inside
-   `BuildTraffic`, so the mix is fixed at world build and a weight set later
-   reaches nothing. Two steps: a `PatrolWeight` on the sim that `PickKind`
-   reads in place of `Police.Rarity`, and a nightly call that re-rolls some
-   fraction of the traffic. Core-testable end to end — the mapping from
-   `Inquiry` to weight is a pure function and belongs beside `Stage`.
+   **Read next build:** `inquiry patrolWeight patrolWant patrolNow
+   patrolsChanged patrolBodies`, all on one line. `patrolsChanged` without
+   `patrolBodies` is the wiring broken; `patrolNow` short of `patrolWant`
+   through a whole run means the dormant tail is never long enough and the
+   conversion needs a second moment.
 
 1. **THE FRAME GATE IS RED AND THE COST HAS MOVED — this item was two regime
    changes stale.** **Read the breakdown, not the mean**: `mean=666.4ms` is a
