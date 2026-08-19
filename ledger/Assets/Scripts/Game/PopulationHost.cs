@@ -676,8 +676,24 @@ namespace Ledger.Game
             }
             BodyLodNear = wanted;
             BodyLodSlack = slackRanks;
-            BodyLodInShot = inShot;
-            BodyLodShotEligible = shotEligible;
+            // ACCUMULATED, NOT LAST-WINS, AND THE FIRST VERSION WAS LAST-WINS.
+            //
+            // It read `bodyLodInShot=0 bodyLodShotEligible=1` on its first
+            // landed run and that says nothing at all: the pass runs once a
+            // second and the fields were overwritten every time, so what landed
+            // in the verdict described whatever the camera happened to be
+            // pointing at on pass 373 of 373. One sample, published as though it
+            // were the run — which is the last-wins-read-as-a-summary mistake
+            // this project has already made with `namesTracked`.
+            //
+            // The sums answer the actual question ("across the run, how many of
+            // the people in shot had bodies") and the peaks answer the other one
+            // ("was there ever a crowd in frame at all"), because a fraction of
+            // sums cannot tell a busy street from a run of empty ones.
+            BodyLodInShotSum += inShot;
+            BodyLodShotEligibleSum += shotEligible;
+            if (inShot > BodyLodInShotPeak) BodyLodInShotPeak = inShot;
+            if (shotEligible > BodyLodShotPeak) BodyLodShotPeak = shotEligible;
         }
 
         float _nextBodyLod = -1f;
@@ -698,11 +714,16 @@ namespace Ledger.Game
         /// HOW MANY OF THE GRANTED BODIES ARE ACTUALLY ON SCREEN, and how many
         /// eligible walkers were on screen at all.
         ///
-        /// `bodyLodInShot` is the number the empty-street complaint is really
-        /// about, and until now it was counted by hand off a screenshot: 2 of 5,
-        /// 5 of 8, 2 of 3 and 7 of 19 across four runs. Counting it inside the
-        /// run turns four hand-counts into a series.
-        public static int BodyLodInShot, BodyLodShotEligible;
+        /// The empty-street complaint is really about this number, and until
+        /// now it was counted by hand off a screenshot: 2 of 5, 5 of 8, 2 of 3
+        /// and 7 of 19 across four runs.
+        ///
+        /// SUMS OVER EVERY PASS, plus the peaks. The pass runs once a second, so
+        /// a field assigned here and read at the end of the run describes the
+        /// LAST pass and nothing else — which is what the first version did, and
+        /// it landed `0 of 1` on a run with forty-six eligible walkers.
+        public static long BodyLodInShotSum, BodyLodShotEligibleSum;
+        public static int BodyLodInShotPeak, BodyLodShotPeak;
 
         /// HOW HARD THE RANKING PREFERS WHAT THE CAMERA IS POINTED AT.
         ///

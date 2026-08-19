@@ -77,28 +77,22 @@ is the bar sign's bare back face, one line, low priority.
    reads them and the findings `clipFindings` counts do not depend on them;
    the new `hip cm` column IS sound for the one question it answers.
 
-1. **`looseEnds=6/0/[Owed:6]` IS NOT THE FAULT IT LOOKS LIKE, and the
-   reading needs fixing rather than the code.** Six evenings, none empty,
-   every one naming the Owed tier — which reads as "five of six tiers are
-   dead". They are not: `Tonight` checks tiers in priority order and
-   RETURNS on the first hit, and Mickey's book always has somebody
-   outstanding, so Promise, Rumour and Standing cannot fire while a debt
-   is open no matter how well they are fed. Feeding them would change
-   nothing visible, which is why this is not "wire the other three".
-   **What is missing is the denominator** (rule 3b): the tally should say
-   how many threads were OPEN that evening, not only which one won, so
-   "one tier outranked the rest" stops looking like "one tier exists".
-   Law and Crew sitting silent above Owed is the part actually worth
-   checking — the inquiry naming the player was dead for the whole project
-   until 5 Aug.
+1. **`looseEnds=6/0/[Owed:6]` IS NOT THE FAULT IT LOOKS LIKE.** Six
+   evenings, none empty, every one naming Owed — which reads as "five of
+   six tiers are dead". They are not: `Tonight` returns on the first hit in
+   priority order, and Mickey's book always has somebody outstanding, so
+   Promise, Rumour and Standing cannot fire while a debt is open however
+   well they are fed. **What is missing is the denominator** (rule 3b): the
+   tally should say how many threads were OPEN that evening, not only which
+   won. Law and Crew sitting silent ABOVE Owed is the part worth checking —
+   the inquiry naming the player was dead for the whole project until 5 Aug.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL — RECOVERED, NOT
    RESOLVED.** *(player-height frame, dfefd62)* Fine from the elevated
-   camera, dense dark striation from the player's eyes — likely sized
-   for a downward view. **Cannot be judged on any frame since; every
-   run has come back dry.** Needs a wet run, not another look. The
-   magenta half of that report is REFUTED (zero magenta pixels, 7.63
-   heads) and is named so it cannot resurrect.
+   camera, dense dark striation from the player's eyes, likely sized for a
+   downward view. **Cannot be judged on any frame since — every run has
+   come back dry, so this needs a wet run rather than another look.** The
+   magenta half of that report is REFUTED and named so it cannot return.
 
 1. **THE STREET IS EMPTY AT EYE LEVEL, AND EVERY POPULATION NUMBER
    SAYS IT IS FINE.** *(on screen — `review_street.jpg`)* Not one
@@ -114,7 +108,22 @@ is the bar sign's bare back face, one line, low priority.
    WHOEVER YOU WERE LOOKING AT**: bodies a metre from the lens and out of
    frame beat the people in shot at 10-25m to all 12 grants.
 
-   **A FORWARD BIAS IS IN, AWAITING ITS FIRST BUILD.** The rank is
+   **AND THE FIRST BUILD SAYS THE FIX ADDRESSES ONLY HALF OF IT.**
+   `review_street.jpg` at 75b9d2b has **not one person in it**, and the
+   same run read one walker in shot out of 46 eligible. A ranking change
+   decides WHICH people get bodies; it cannot put anybody in frame. So the
+   open question is now the other half — whether 46 walkers spread over
+   seven districts simply leaves most streets empty — and the number that
+   settles it lands next build: the summed in-shot counts say how the run
+   went, and `bodyLodShotPeak` says whether a crowd was EVER in frame,
+   which a fraction cannot tell from a day of empty streets.
+
+   **THE CHURN WORRY IS ANSWERED AND IT IS FINE.** 278 grants / 68 revokes
+   against a recent band of 198-313 / 41-83, so turning round is not
+   costing prefab instantiates. (The drop from ~1,200 twenty runs ago was
+   the rank slack, not this.)
+
+   **A FORWARD BIAS IS IN.** The rank is
    distance scaled by facing — directly behind counts as ~1.41x further,
    abreast ~1.22x, ahead unchanged — gentle and continuous rather than a
    cone, because you can turn round and a hard test would swap the whole
@@ -142,12 +151,10 @@ is the bar sign's bare back face, one line, low priority.
    much of the palette reaches the street, and the number to judge from a
    frame.
 
-   **Two instrument fixes here, both closed:** `bodyLiftedCrowd` counts
-   crowd bodies correctly NOT lifted, and its comment claimed the
-   opposite — true before the `cast` flag landed, false after; the name
-   is kept because the key has a landed series. And the capsule audit used
-   to run before any walker spawned, so its zeros meant "none when built";
-   it re-runs at the done line now, still 0/0 but carrying information.
+   **Two instrument fixes here, both closed:** `bodyLiftedCrowd`'s comment
+   claimed the opposite of what it counts (true before the `cast` flag
+   landed, false after), and the capsule audit used to run before any
+   walker spawned. Both fixed; names kept, since the keys have series.
 
    **PERF, SETTLED AND RETIRED THIS ROUND** — traffic halved, the
    separation sweep priced at 0.8ms of a 12ms budget so the rewrite is
@@ -283,13 +290,12 @@ is the bar sign's bare back face, one line, low priority.
 
 ## Next
 
-- **Raise the population rather than cutting districts.** Measured, and it
-  reverses the old plan: seven districts at 1,400 gives 43.5 distinct faces a
-  week against 47.4 for three at 700, and 2,100 beats the cut outright.
-  `CrowdWalkerCap = 12` bounds earshot whatever the headcount, so this buys
-  FAMILIARITY and changes the frame not at all.
+- **Raise the population rather than cutting districts.** Measured, reversing
+  the old plan: seven districts at 1,400 gives 43.5 distinct faces a week
+  against 47.4 for three at 700, and 2,100 beats the cut outright. **And the
+  empty street above may make this urgent rather than optional.**
 - **Tier the cast.** 47 distinct faces a week, 13 near enough to read, a knee at
-  ~50 covering 92% of a resident's week, and 68 rigs cost 1.1ms of 12ms. **The
+  ~50 covering 92% of a resident's week, 68 rigs at 1.1ms of 12ms. **The
   machine does not bound the cast at fifty; only authoring does.**
 - **M17.2 voices** — no longer held on the writing verdict (78). A SPEND, not
   authorised.
@@ -299,15 +305,8 @@ is the bar sign's bare back face, one line, low priority.
 
 ## Blocked, and on whom
 
-- **SETTLED 18 Aug, by Jafar, and NOT TO BE ASKED AGAIN: the era is LATE
-  1980s / EARLY 1990s, and the currency follows.** Money moved FORWARD to
-  decimal and the pre-decimal card references were the thing that changed,
-  not the decade — decimalisation was 1971, so those words were twenty years
-  stale in this world. The era was already right in `design-doc.md` and in
-  `Tier2Gen`'s CDs and pagers; only the card writing drifted. Load-bearing
-  rather than flavour: a late-analog city is what turns missed calls and
-  being unreachable into mechanics. Recorded as a DECISION so nobody
-  re-opens it — Jafar has answered it more than once.
+- **Settled decisions now live in `design-doc.md` §18** — the era and its
+  currency among them — so they are recorded once and not re-argued here.
 
 - **CLOSED 18 Aug — a character mesh needed no purchase at all.** This entry
   said only Jafar could buy one; Mixamo bodies are a free download and the

@@ -11102,8 +11102,18 @@ namespace Ledger.Game
                       // instant, so the fraction is one reading rather than two
                       // divided. Four hand-counts off screenshots gave 2/5,
                       // 5/8, 2/3 and 7/19 before this existed.
-                      $"bodyLodInShot={GameController.BodyLodInShot} " +
-                      $"bodyLodShotEligible={GameController.BodyLodShotEligible} " +
+                      // SUMMED OVER EVERY PASS, WITH THE PEAKS BESIDE THEM.
+                      // The first version of these two was assigned each pass
+                      // and read at the end, so it reported the LAST second of
+                      // the run: `0 of 1`, on a run with forty-six eligible
+                      // walkers. The sums say how the run went; the peaks say
+                      // whether a crowd was ever in frame, which a fraction of
+                      // sums cannot distinguish from a street that was empty
+                      // all day.
+                      $"bodyLodInShot={GameController.BodyLodInShotSum} " +
+                      $"bodyLodShotEligible={GameController.BodyLodShotEligibleSum} " +
+                      $"bodyLodInShotPeak={GameController.BodyLodInShotPeak} " +
+                      $"bodyLodShotPeak={GameController.BodyLodShotPeak} " +
                       // WHO IS LIMPING. `Rig.Limp` has had one writer since it
                       // was built — the player — so the city has never limped,
                       // whatever was done to it. `limpNames` is the half that
