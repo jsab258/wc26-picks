@@ -23,6 +23,49 @@ This document reconciles the two: what §11 called "M1 living block / M2 double-
 is partially built; several doc systems were missed along the way and are folded back in
 below. This supersedes §11's numbering going forward.
 
+## 20 Aug — five closed queue items, kept for the reasoning rather than the result
+
+Cut from `queue.md` when they closed. Each is here because the way it was got
+wrong is worth more than the fix.
+
+**The outer districts looked unbuilt.** They never were. Five places read the
+unscaled avenue arrays as map coordinates. Full account above. Closed on
+measured evidence with an unchanged control: `tourDepthBy` went from the Hook
+at 24.3m and every other district at 40.6-45.6 (bare ground) to a 18.8-28.5
+band with the Hook still at 24.3.
+
+**A dock name on a Fairview shopfront.** "NORTH QUAY COLD STORE" in the
+respectable residential district. The sign was innocent — the fascia pool is
+picked correctly by building type. The WAREHOUSE should not have been there:
+`Dressing.KindAt` made a quarter of every frontage away from a core a shed, in
+every district. Warehouse share is a per-district table now, and
+`premisesByDistrict` confirmed it in the world: zero sheds in Fairview,
+Gullwing, the Exchange and the Parade, Ironside at 4 of 7.
+
+**The margin should be half a block.** Withdrawn — the margin never mattered.
+With the district box in the right place, margins of 12, 20 and 26 assign all
+52 blocks identically. A sound-looking chain of reasoning on a false premise.
+
+**The margin fix wedges traffic.** Withdrawn, and this one cost a day. The gate
+compared a vehicle's edge and position at two instants sixty seconds apart, so
+a car that drove a loop and came back read exactly like one that never moved —
+the flagged car had crossed EIGHT edges. The ten-seed sweep that appeared to
+exonerate the change was the same instrument. Two confident readings, one
+broken ruler. The gate reads the whole window now and its predicate is asserted
+in both directions with the real eight-edge reading kept as a fixture.
+
+**`vehiclesKitted=26/33` where the fleet is 28.** Renamed to `bodiesKitted`,
+with `fleetNow` beside it. Both sides count bodies BUILT over the run and
+rebalancing rebuilds them, so 33 for 28 vehicles is the rebalance working. The
+arithmetic was never wrong; the name was, and it read as seven missing models.
+
+**The bubble stack's screen pass barely runs.** Stale item — `LiftAtShot`
+already existed, was called and was emitted. What WAS wrong is what it fed: it
+and both `PinAll`s and `Billboard.AimAll` return what they did on THIS shot and
+all four had their return assigned straight to a done-line field, so each
+described whichever of twenty shots ran last. Sum and peak now, over one shared
+`shotFixups` denominator.
+
 ## 20 Aug — the outer districts were never empty; the map was asking the wrong place
 
 The single largest visible fault in the project, and it had two wrong

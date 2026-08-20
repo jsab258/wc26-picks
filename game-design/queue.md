@@ -126,37 +126,27 @@ parked — no DirectML on the Air.
    **The real fix is extraction**, as `sim-shots-stage.sh` proves: move the
    step body to a script file. Until then every comment there is a coin flip.
 
-1. **THE FIRST MANHUNT FRAME IS BAD, AND IT IS THE FIRST ONE ANYONE HAS
-   SEEN.** *(on screen)* `hunt_day13_noon`: fifteen people packed shoulder to
-   shoulder in the road, a dozen NAMEPLATES stacked in an overlapping heap,
-   and a giant red `... you ...` caption across a building face.
+1. **A STREET PLATE FILLS HALF THE MANHUNT FRAME, AND NO RAYCAST CAN SEE IT.**
+   *(on screen, `hunt_day13_noon`)* "Quay Street" runs across the bottom of the
+   shot in letters a metre tall while every framing number reads clean.
+   **Structural:** those are RAYCASTS and a `TextMesh` has no collider, so the
+   shot-clearance loop can step back off a wall and cannot see a sign filling
+   the lens, however many rounds it runs. `worstNameFrac` measures this for
+   NAME tags (0.164); plates, fascias and captions had no size number at all.
+   **`worstWorldFrac` ships next build** — screen area, same projection the
+   declutter uses. Reported not gated: what a sign is ALLOWED to fill is a
+   judgement. **Also there:** `worstWorldPair=[Quay Street|Quay Street]`, two
+   identical plates overlapping, and `collidingWorldText=7`.
 
-   **THE `collidingNames=0` ARGUMENT IS SETTLED, AND THE COUNTER WAS WRONG
-   THREE SEPARATE WAYS.** Read the code rather than the readings:
-
-   - **The shot-time samples never reached the printed number.** Called from
-     the daily audit, whose return was assigned to the field, and once per shot
-     — where the return was THROWN AWAY. The verdict showed one arbitrary audit
-     moment and no photographed frame ever reached it. Every neighbour on that
-     line became a peak weeks ago; this one travels by RETURN VALUE, so the
-     sweep could not see it.
-   - **It was sampled before the camera finished moving.** The call sat at the
-     top of `Shot`; the declutter step-back moves the camera up to twelve
-     metres afterwards. Same-instant rule, applied to `nearFrac` in the commit
-     that added the step-back and not to its twin one line away.
-   - **`worstNamePair` could never say anything.** Computed by the boxes loop
-     and then unconditionally reset to `none` a hundred lines below, by a reset
-     correctly placed for the WORLD pair and copied without moving it. The
-     diagnostic added to settle this exact question has printed `none` every
-     run since the day it was written.
-
-   All three fixed. `collidingNames` is a peak over every sample now, with
-   `collidingNameSamples` as denominator and `collidingNamesWhere` naming the
-   shot — **so landed values are not comparable across this commit.**
-
-   **Two visual reads of mine were wrong and measured so before publishing:** a
-   "magenta cluster" (zero magenta pixels in the frame, so no error shader) and
-   a "pink object" (the only pinkish blocks are the stop sign and the caption).
+1. **THE NAMEPLATE HEAP IS MEASURED AT LAST AND THE INSTRUMENTS AGREE WITH
+   THE PICTURE.** *(on screen)* `collidingNames=3` over 26 samples, worst at
+   `day13_noon`; `worstNamePair=[Noor|Sam]`, `namesAtWorstName=5`,
+   `textPersonLabels=10`. Five labels projected at the peak, **3 of their 10
+   possible pairs overlapping** — a heap, as the frame shows. The
+   "counter says 0, picture says heap" argument is over; account in
+   `roadmap-history.md`. **What is open is the DECLUTTER**: `PinAll` runs at
+   shot time and three pairs still overlap. Read `namesPinnedSum` against
+   `shotFixups` next build before anyone tunes it.
 
 1. **THE VERDICT HAS AMBIGUOUS KEYS AND NOTHING HAD EVER LOOKED — 30 same-line
    and 5 cross-line, measured.** `tools/verdict-dupkeys.py` is new and reports
@@ -181,59 +171,25 @@ parked — no DirectML on the Air.
    would go red on arrival (rule 5b's corollary). **Turn the file check into a
    gate once a verdict lands clean.**
 
-1. ~~**THE OUTER DISTRICTS LOOK UNBUILT**~~ — **CLOSED, AND THEY WERE NEVER
-   UNBUILT.** *(on screen)* Five places read the UNSCALED avenue arrays as map
-   coordinates while `WideBlocks` stretches the city about the origin. Four
-   districts' buildings stood 136-184m from the streets named for them, the
-   tour camera aimed at the gap, residents spawned there, and the ground plane
-   was sized to the unscaled map. Account in `roadmap-history.md`.
+1. **AND THE SAME COUNTER IMMEDIATELY FOUND A BIGGER ONE: FIVE OF SEVEN
+   DISTRICTS HAD NO SHOPS AT ALL.** `the_Hook:shop73 Copper_Row:shop4` and
+   **zero everywhere else** — the Exchange is the financial district and had no
+   commercial frontage; the Parade is the entertainment strip and was 37 houses
+   and 24 flats. Shops were gated on `nearCore` alone and the dense cores sit
+   in the Hook, so the flag had been answering "is this the Hook".
 
-   **The before/after is unambiguous and the control held.** `tourDepthBy` went
-   from `hook:24.3` with every other district at **40.6-45.6** — the bare-ground
-   figure predicted in advance — to a 18.8-28.5 band, every district reading as
-   built, with **the Hook unchanged at 24.3** as the control. Downtown is the
-   most enclosed, which is right for offices. The frames agree: a brick canyon,
-   and Fairview villas with chimney pots.
+   **The warehouse fault a second time, in the branch immediately below it** —
+   and found by reading the new counter's output, not the code. Two shares per
+   district now (at a core and away from one), because both are real: a
+   district has a character and its centre carries more trade than its edges.
+   The Hook keeps 0.55 at a core, since every frame-drift check is calibrated
+   on it. Tested both ways — five districts must have shops, and the Parade
+   must out-trade Fairview by a clear margin, or "everywhere is a high street"
+   would pass. **Read `premisesByDistrict` again next build.**
 
-   **A fifth consequence, unlooked for:** the outer districts were built with
-   `district = null` and got the DEFAULT terrace massing. `terraceParcels` 376
-   to 331 is deeper office plans finally reaching Downtown.
-
-1. ~~**A DOCK NAME ON A FAIRVIEW SHOPFRONT**~~ — **THE SIGN WAS INNOCENT.**
-   *(on screen)* The name pool is chosen correctly by building type; **the
-   warehouse was what should not have been there.** `Dressing.KindAt` made a
-   quarter of every frontage away from a core a shed in EVERY district — its
-   own comment records making that mistake once with `prosperity` and fixing
-   it with `nearCore`, which separates a district's centre from its edge and
-   is not a district signal either. Only fixable today: `DistrictAt` answered
-   `null` for most of the map until this session. Share is a per-district
-   table from the briefs — Ironside 0.55, the Hook 0.25, Copper Row 0.10, zero
-   for the Exchange, the Parade, Fairview and Gullwing — looked up inside
-   `KindAt` so no caller can forget it, and tested over each district's real
-   bounds with the sample size asserted first.
-
-   **LANDED AND IT MOVED THE RIGHT WAY:** `premises` went `shed54 house86` to
-   `shed10 house130` — forty-four sheds became houses. **But a total cannot
-   say WHERE**, which is the only thing the district table claims, and ten
-   sheds town-wide looks low for a quarter set to 0.55. `premisesByDistrict`
-   ships next build. It is also the rule-6 check on the table: CoreTests proves
-   `KindAt` RETURNS sheds for Ironside, not that the Game layer ever asks it
-   about an Ironside wall. **Read Ironside's row first**; if it is near zero
-   the suspect is `nearCore`, which suppresses the shed branch entirely and is
-   computed from core positions this test cannot see.
-
-1. ~~**THE MARGIN SHOULD BE HALF A BLOCK**~~ and ~~**THE MARGIN FIX WEDGES
-   TRAFFIC**~~ — **BOTH WITHDRAWN; two wrong explanations for one real bug.**
-   The margin never mattered. And "it wedges traffic" came from a gate that
-   compared two instants sixty seconds apart, so a car that drove a loop read
-   like one that never moved — the flagged car had crossed **eight edges**.
-   That pair of wrong readings delayed the real fix by a day. Gate now reads
-   the whole window, predicate asserted both ways.
-
-1. ~~**`vehiclesKitted=26/33` WHERE THE FLEET IS 28**~~ — **RENAMED** to
-   `bodiesKitted=`, with `fleetNow=` beside it. Both sides count bodies BUILT
-   over the run and rebalancing rebuilds them, so 33 for 28 vehicles is the
-   rebalance working. The arithmetic was never wrong; the name was.
+   **Ironside has only 7 dressed frontages against 40-135 elsewhere**, because
+   it is excluded from terracing and takes the legacy block path. The
+   industrial quarter is nearly undressed. Noted, not chased.
 
 1. **THE FRAME GATE IS RED AND THE COST HAS MOVED — this item was two regime
    changes stale.** **Read the breakdown, not the mean**: `mean=666.4ms` is a
@@ -247,110 +203,6 @@ parked — no DirectML on the Air.
    pass; spreading it round-robin needs the measurement split from the sweep
    first, and tuning belongs on the PC). **`sun` is settled** — it read 3.15ms
    only because the audio mix ran inside its timer.
-
-1. ~~**THE BUBBLE STACK'S SCREEN PASS BARELY RUNS**~~ — **STALE ITEM; THE FIX
-   WAS ALREADY IN.** `SpeechBubble.LiftAtShot` exists, is called from `Shot`
-   after the pin, and is emitted. Rule 3: the doc said missing, the code said
-   built. **What WAS wrong is what it fed** — it, both `PinAll`s and
-   `Billboard.AimAll` return what they did on THIS shot, and all FOUR were
-   assigned straight to done-line fields, so each described whichever of twenty
-   shots ran last. The fourth was found by grepping for the shape after fixing
-   the first three; it sits three lines above them, written the same evening.
-   Sum and peak now over `shotFixups`, one shared denominator. **Read
-   `bubblesLiftedSum` against `bubblesAtCeiling` next build.**
-
-3. **THE DWELL FIX TRADES A VISIBLE FAULT FOR AN INVISIBLE SAVING.**
-   `bodyLodMs=4.68` against `populationMs=1.40` — the LOD pass costs three
-   times the reband it hides inside. **Decide against `gameShare`, not
-   milliseconds.**
-
-8. **SWEEP THE GAME LAYER FOR DEAD MEASUREMENTS THE REACH LEDGER CANNOT
-   SEE.** The ledger covers public Core APIs; a PRIVATE method with no caller
-   is invisible to it. Listing every value-returning measurement in
-   `SimDirector` and grepping each for a call site found `FrameLuma` — a full
-   640x360 off-screen render plus a ReadPixels, never once called, duplicating
-   `FrameShot(cam).Mean` which has ten call sites. Deleted. **Do the same
-   sweep for the other Game-layer files**; it is two minutes each.
-
-8. **KEEP RETIRING THE REACH LEDGER — 37 entries.** **READ THE ENTRY'S
-   REASON, NOT JUST ITS NAME**: three were wrong on 4 August, describing a
-   consumer somebody intended rather than one that exists.
-
-9. **JUDGE THE LIMP FROM A FRAME.** The pose limp was a sixteenth of the audio
-   one and is now the same size; at capability 0.30 the bad leg's stride is
-   44cm shorter than the good one, which is a lot. `Gait.MaxAsymmetry`'s own
-   comment says above about 0.5 it stops reading as injured and starts reading
-   as broken animation. Nobody has looked at one yet.
-
-10. **M22, THE SHAPE OF A PLAYTHROUGH** — the largest Core-shaped piece left.
-   One sub-item is startable now: `PopulationSeed = 20260726` is hardcoded, a
-   second seed gives 699 of 700 different people, and there is no new-game
-   surface to choose one. **It must not be randomised** — CI determinism
-   depends on it — so this is a surface, not a change to the default.
-
-11. **THE LAW REACHES MANHUNT.** `inquiry=Manhunt homNamed=9
-   homPressure=2.71 pressNamed=1 pressHeadline=[KILLING ON THE HOOK: POLICE
-   NAME THE PUBLICAN]` — witnesses who can name you, pressure past
-   `ManhuntAt`, the paper printing it, end to end. **Worth a look:**
-   `homWouldTalk=3` of `homSaw=9`, two thirds of witnesses saying nothing to
-   a detective — plausible and never checked against the design.
-
-12. **THE REST OF WHAT `gates --constant` FOUND — a work list.** Sixty keys
-   have never been anything but zero. Most are fault counters doing their job;
-   these are not: **`threat` has only ever seen one outcome** (`brandishes=1` a
-   run, so `called`/`complied`/`undraw` cannot be sampled); **`departed=0`**;
-   **`carriedOut=0`**; **`groundless=False`**; **`summonsTaken=0`**, fixed and
-   awaiting its own build. **PLANT the condition, never loosen the bound** —
-   one or two at a time, or a red gate cannot be attributed.
-
-## Next
-
-- **Raise the population rather than cutting districts.** Measured, reversing
-  the old plan: seven districts at 1,400 gives 43.5 distinct faces a week
-  against 47.4 for three at 700, and 2,100 beats the cut outright. **And the
-  empty street above may make this urgent rather than optional.**
-- **Tier the cast.** 47 distinct faces a week, 13 near enough to read, a knee at
-  ~50 covering 92% of a resident's week, 68 rigs at 1.1ms of 12ms. **The
-  machine does not bound the cast at fifty; only authoring does.**
-- **M17.2 voices** — no longer held on the writing verdict (78). A SPEND, not
-  authorised.
-- **Is fifty-six conversations a run too many?** A judgement off a still: 16-42
-  under the old flat-road test, 7 after the pace slowed, 30-56 now it asks
-  about junctions.
-
-## Blocked, and on whom
-
-- **Settled decisions now live in `design-doc.md` §18** — the era and its
-  currency among them — so they are recorded once and not re-argued here.
-
-- **CLOSED 18 Aug — a character mesh needed no purchase at all.** This entry
-  said only Jafar could buy one; Mixamo bodies are a free download and the
-  pool is FOURTEEN against 43 named people. Right about the gap, wrong about
-  the price, for weeks.
-- **API spend is quoted in FRANCS; the game's money stays £.** Jafar is in
-  Switzerland. The £ in the design doc is a deliberate fiction decision — a
-  British pub — and quoting both in one unit is how "a few pounds" reached him
-  for a bill he pays in CHF. Two tasks authorised 3 Aug, both done; the writing
-  probe re-run authorised 5 Aug. Nothing beyond that.
-
-## How to keep this file honest
-
-- **Dispatch, then immediately take item 1 of Now.** A build in flight is a
-  reason to switch tasks, never a reason to stop.
-- **Batch Game-layer changes**; the single Personal licence seat means one
-  build at a time. **And prefer a local answer** — before dispatching, ask
-  whether the question is actually about Unity. Item 1 above is not.
-
-## Standing work
-
-**This section never empties, and that is its entire job.** When `## Now` has
-nothing startable, decompose one of these into it — running out of short items
-is a refill signal, not a stop signal.
-
-### THE FIVE THINGS THE DESIGN DOC DEFINES AND NOBODY HAD PLANNED (18 Aug)
-
-Five, each placed in a milestone and startable without CI or Jafar's machine.
-Full statements in `roadmap.md`; the account is in `design-doc.md` §18.
 
 1. ~~**The session-hook guarantee** (M22)~~ — **BUILT AND HOLDING.** What is
    open is the READING, not the tiers — see `## Now`.

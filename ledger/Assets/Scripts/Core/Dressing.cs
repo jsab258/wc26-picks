@@ -254,6 +254,51 @@ namespace Ledger.Core
         ///
         /// Out on the cut (`null`) keeps the old blanket figure: it is the
         /// ground between districts, where a shed is exactly what stands.
+        /// What share of the frontages AWAY from a core are shops, by district,
+        /// and the same at a core. Two numbers because both are real: a
+        /// district has a character, and its centre has more trade in it than
+        /// its edges.
+        ///
+        /// From the briefs. The Parade is the entertainment strip and its whole
+        /// purpose is frontage, so it is the highest. The Exchange is offices
+        /// with commercial ground floors. Copper Row is a market quarter, where
+        /// trade is the street rather than a high street. Gullwing is a resort
+        /// front. Fairview is villas — a corner shop, not a parade. Ironside is
+        /// sheds and yard walls and should stay that way.
+        ///
+        /// The Hook keeps 0.55 at a core, which is what it has always had and
+        /// what the landed stills were composed against; changing it would move
+        /// the one district every frame-drift check is calibrated on.
+        static double ShopShareCore(string district)
+        {
+            switch (district)
+            {
+                case "the Parade": return 0.60;
+                case "the Hook": return 0.55;
+                case "Copper Row": return 0.50;
+                case "the Exchange": return 0.45;
+                case "Gullwing": return 0.40;
+                case "Fairview": return 0.20;
+                case "Ironside": return 0.10;
+                default: return 0.55;   // between districts: as before
+            }
+        }
+
+        static double ShopShareAway(string district)
+        {
+            switch (district)
+            {
+                case "the Parade": return 0.35;
+                case "the Exchange": return 0.25;
+                case "Copper Row": return 0.20;
+                case "Gullwing": return 0.20;
+                case "the Hook": return 0.10;
+                case "Fairview": return 0.03;
+                case "Ironside": return 0.02;
+                default: return 0.0;    // between districts: nothing to shop at
+            }
+        }
+
         static double WarehouseShare(string district)
         {
             switch (district)
@@ -310,12 +355,38 @@ namespace Ledger.Core
             // Looked up HERE rather than passed in, so no caller can forget
             // it — which is the lesson of the five sites that each had to
             // remember to scale and four of which did not.
-            double sheds = WarehouseShare(StreetMap.DistrictAt(x, z));
+            var dn = StreetMap.DistrictAt(x, z);
+            double sheds = WarehouseShare(dn);
             if (!nearCore && r < sheds) return Premises.Warehouse;
             // Shops cluster where the money and the footfall are. Not
             // guaranteed even at the centre — a high street with a shop in
             // every single unit is a shopping centre, not a town.
-            if (nearCore && r < 0.30 + 0.45 * Feel.Clamp01(prosperity)) return Premises.Shop;
+            //
+            // AND `nearCore` ALONE PUT EVERY SHOP IN TOWN IN ONE DISTRICT.
+            // MEASURED, by the per-district counter written to answer a
+            // different question: `the_Hook:shop73 Copper_Row:shop4` and
+            // ZERO everywhere else. The Exchange is the financial district
+            // and had no commercial frontage at all; the Parade is the
+            // entertainment strip and was thirty-seven houses and
+            // twenty-four flats.
+            //
+            // This is the warehouse fault a second time in the same function,
+            // in the branch immediately below the one just fixed — and the
+            // grep that found it was reading the counter's own output rather
+            // than the code. `nearCore` says "the middle of somewhere", and
+            // the dense cores happen to sit in the Hook, so it has been
+            // answering "is this the Hook".
+            //
+            // Two shares per district: what a frontage AWAY from a core is,
+            // and what one at the centre is. A core still concentrates trade —
+            // that part was right — but a district's character sets the level.
+            double shopHere = nearCore ? ShopShareCore(dn) : ShopShareAway(dn);
+            // Away from a core the sheds already took the bottom band of the
+            // roll, so shops sit ABOVE it or the two would fight over the same
+            // frontages and the district with most sheds would silently lose
+            // its shops.
+            double shopFloor = nearCore ? 0.0 : sheds;
+            if (r >= shopFloor && r < shopFloor + shopHere) return Premises.Shop;
 
             // HOUSES WERE UNREACHABLE AND THE BUILD SAID SO:
             // `premises=[shop42 house0 tenement69 shed18]`.

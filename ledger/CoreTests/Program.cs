@@ -15446,6 +15446,52 @@ namespace Ledger.CoreTests
                 Check(shedsBy["the Hook"] > 0,
                     "and the port town itself has working ground behind its frontages",
                     $"{shedsBy["the Hook"]} of {seenBy["the Hook"]}");
+
+                // AND EVERY DISTRICT THAT TRADES HAS SOMEWHERE TO TRADE.
+                //
+                // FOUND BY THE COUNTER, NOT BY READING THE CODE.
+                // `premisesByDistrict` was added to answer a question about
+                // WAREHOUSES and its first run said `the_Hook:shop73
+                // Copper_Row:shop4` with ZERO everywhere else — the Exchange
+                // with no commercial frontage at all, the Parade thirty-seven
+                // houses and twenty-four flats. Shops were gated on `nearCore`
+                // alone, the dense cores sit in the Hook, so the flag had been
+                // answering "is this the Hook".
+                //
+                // Sampled AWAY from a core, which is the case that was empty.
+                // Near one everything already had shops, so asking there would
+                // pass for the wrong reason — rule 5b's corollary again, and
+                // the second time in this block.
+                var shopsBy = new Dictionary<string, int>();
+                foreach (var d in StreetMap.Districts)
+                {
+                    StreetMap.BoundsOf(d, out var x0, out var x1, out var z0, out var z1);
+                    int sp = 0;
+                    for (double x = x0; x <= x1; x += 3.0)
+                        for (double z = z0; z <= z1; z += 3.0)
+                        {
+                            if (StreetMap.DistrictAt(x, z) != d.Name) continue;
+                            if (Dressing.KindAt(x, z, 0.15, false) == Dressing.Premises.Shop) sp++;
+                        }
+                    shopsBy[d.Name] = sp;
+                }
+                foreach (var trades in new[] { "the Parade", "the Exchange", "Copper Row",
+                                               "Gullwing", "the Hook" })
+                    Check(shopsBy[trades] > 0,
+                        $"{trades} has somewhere to buy something",
+                        $"{shopsBy[trades]} of {seenBy[trades]}");
+
+                // AND THE OTHER HALF: a rule that made everywhere a high
+                // street would pass every line above. Fairview is villas and
+                // Ironside is yard walls; both should stay quiet, and the
+                // Parade should out-trade Fairview by a clear margin rather
+                // than by a rounding.
+                Check(shopsBy["the Parade"] * 100 / System.Math.Max(1, seenBy["the Parade"]) > 20,
+                    "and the entertainment strip reads as frontage",
+                    $"{shopsBy["the Parade"] * 100 / System.Math.Max(1, seenBy["the Parade"])}%");
+                Check(shopsBy["Fairview"] * 100 / System.Math.Max(1, seenBy["Fairview"]) < 10,
+                    "while the villas stay residential",
+                    $"{shopsBy["Fairview"] * 100 / System.Math.Max(1, seenBy["Fairview"])}%");
             }
 
             Check(Dressing.KindAt(17, 3, 0.5, true) == Dressing.KindAt(17, 3, 0.5, true),

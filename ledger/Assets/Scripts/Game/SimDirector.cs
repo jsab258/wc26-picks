@@ -3289,6 +3289,42 @@ namespace Ledger.Game
                 // count cannot tell those apart and neither can I from here,
                 // so the run says WHAT OVERLAPPED rather than how much.
                 if (bucket == other) otherText.Add(t.text);
+                // AND HOW MUCH OF THE FRAME ANY WORLD SIGN FILLS, which
+                // nothing measured and a still made unmissable.
+                //
+                // `hunt_day13_noon` is half a street plate. The words "Quay
+                // Street" run across the bottom of the frame in letters a
+                // metre tall on screen, and every framing number said the shot
+                // was clean: `shotNearFrac` low, `shotDepthMedian` healthy,
+                // no gate red.
+                //
+                // THE REASON IS STRUCTURAL AND WORTH WRITING DOWN. Both of
+                // those are RAYCASTS, and a `TextMesh` has no collider — rays
+                // pass straight through it. So the shot-clearance loop can
+                // step the camera back off a wall and cannot see a sign
+                // filling the lens, by construction, however many rounds it
+                // runs. A physics probe cannot answer a question about text.
+                //
+                // `worstNameFrac` already does exactly this for NAME tags and
+                // reads 0.164. Street plates, shop fascias and captions — the
+                // things this bucket holds — had no size number at all, which
+                // is why a plate could grow to half the frame with every gate
+                // green.
+                //
+                // Screen AREA, not height: a wide sign and a tall one are both
+                // the fault, and `NameTags.ScreenRect` is the same projection
+                // the declutter uses, so the number and the fix cannot disagree
+                // about what "big" means.
+                if (bucket == other && Screen.width > 0 && Screen.height > 0)
+                {
+                    float frac = (rect.width * rect.height)
+                               / (float)(Screen.width * Screen.height);
+                    if (frac > _worstWorldFrac)
+                    {
+                        _worstWorldFrac = frac;
+                        _worstWorldFracText = Trim(t.text);
+                    }
+                }
                 else if (bucket == boxes) boxText.Add(t.text);
             }
             // THE MANAGED BUCKET GETS NAMED TOO, because three night stills in
@@ -3570,6 +3606,13 @@ namespace Ledger.Game
 
         int _collidingNameSamples;
         string _collidingNamesWhere = "none";
+
+        /// The largest share of the frame any single world sign has covered,
+        /// and what it said. A peak over every sample, because "did a sign
+        /// ever eat the shot" is a peak question — a median over signs would
+        /// be dominated by the hundred small plates down the street.
+        float _worstWorldFrac;
+        string _worstWorldFracText = "none";
 
         int _collidingWorldText = -1;
         /// The first overlapping pair of world-text labels on a photographed
@@ -11413,6 +11456,20 @@ namespace Ledger.Game
                       $"collidingNameSamples={_collidingNameSamples} " +
                       $"collidingNamesWhere=[{_collidingNamesWhere}] " +
                       $"collidingWorldText={_collidingWorldText} " +
+                      // AND THE BIGGEST SIGN ANY FRAME CARRIED. See the note
+                      // at the measurement: this is the one framing question a
+                      // raycast structurally cannot answer, because text has
+                      // no collider. `worstNameFrac` is its twin for name tags
+                      // and reads 0.164; this had no number at all until a
+                      // still came back half-covered by "Quay Street".
+                      //
+                      // REPORTED, NOT GATED. There is no landed series, so a
+                      // bound would be invented (rule 2). What a sign is
+                      // ALLOWED to fill is also a judgement — a shop fascia
+                      // you walk past should be large — so the series comes
+                      // first and the bound comes off it.
+                      $"worstWorldFrac={_worstWorldFrac:0.000} " +
+                      $"worstWorldFracText=[{_worstWorldFracText}] " +
                       $"collidingBubbles={_collidingBubbles} bubblesAtWorst={_bubblesAtWorst} bubblesOnScreen={_bubblesOnScreen} " +
                       // WHY THEY COLLIDE, if they do. `bubblesAtCeiling` are
                       // the ones the stack had no room left for and put on top
