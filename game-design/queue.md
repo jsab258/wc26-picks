@@ -157,25 +157,31 @@ parked — no DirectML on the Air.
    the frame, which is the point** — it now exists for the next time, and the
    raycast blindness it was written for is real regardless.
 
-1. **A THIRD OF SPEECH BUBBLES OVERLAP, AND THE PASS THAT SHOULD FIX IT FIRED
-   ONCE IN A WHOLE RUN.** *(on screen)* `bubbleOverlapMedian=0.33` over 39
-   samples — a MEDIAN, so it describes a typical frame rather than a bad
-   moment — and the still shows "That's … ends with …" printed through "was
-   Novak … came to".
+1. **THE BUBBLE OVERLAP MEDIAN IS A PER-TICK NUMBER AND I READ IT AS A
+   PER-FRAME ONE.** *(instrument)* `SampleBubbles` runs per tick and
+   `CollidingNames` runs per shot, and BOTH wrote to `_bubbleOverlap` — so the
+   median is seventy-odd tick readings with twenty-six shot readings rounded
+   away. **The mixture gave itself away in the denominators:**
+   `bubbleSamples=71` against `collidingNameSamples=26`.
 
-   **The denominators added this session are what made it readable:**
-   `bubblesLiftedSum=1` against `shotFixups=27`. The control is
-   `namesPinnedSum=106` over the same 27 shots — the site runs, the pattern
-   works, and it is the bubble de-overlap specifically that does not.
+   **I got this wrong first.** The median moved 0.33 to 0.00 between builds and
+   I recorded it as the measurement-order fix working. It cannot have been —
+   that move changed WHEN a minority of samples are taken and the majority
+   never went near it. What moved was the street: the district fix spread the
+   population out, so more instants have two bubbles up (39 to 71) and fewer
+   collide. **A real improvement, and not the one I claimed.**
 
-   **And the measurement was in the wrong place to ever say so.**
-   `CollidingNames` ran three hundred lines ABOVE the three passes that move
-   text, so `collidingBubbles` and `bubbleOverlapMedian` reported the state the
-   repairs then acted on — a number that can only see the problem and never
-   the fix. Moved below all three; it also puts `collidingNameSamples` and
-   `shotFixups` on the same shots (they read 26 and 27). **Next build's median
-   is the first one that describes a committed frame** — read it before
-   touching `LiftAtShot`.
+   Split now: `bubbleOverlapMedian` per tick, `bubbleOverlapShotMedian` over
+   frames that become files, with both counts printed. **Read the shot median
+   next build** — it is the first number that can be checked against a still.
+
+   **Still open, and unaffected by any of this:** `bubblesLiftedSum=1` against
+   `shotFixups=27` — the de-overlap moved a bubble once in a run, while
+   `namesPinnedSum=106` over the same shots shows the site works. And
+   `collidingBubbles=3` with `bubblesAtWorst=3` means all three pairs
+   overlapped at the worst instant. Do not touch `LiftAtShot` until the shot
+   median lands: a pass that fires once may be broken, or starved by a
+   measurement that could not see it.
 
 1. **THE NAMEPLATE HEAP IS MEASURED AT LAST AND THE INSTRUMENTS AGREE WITH
    THE PICTURE.** *(on screen)* `collidingNames=3` over 26 samples, worst at

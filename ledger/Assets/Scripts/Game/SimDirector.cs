@@ -3565,10 +3565,34 @@ namespace Ledger.Game
             // is the street as it typically reads, the peak beside it is still
             // the worst moment, and the two answer different questions on
             // purpose. No bound until the series exists (rule 2).
+            //
+            // INTO ITS OWN SERIES, BECAUSE THESE ARE TWO SAMPLING REGIMES AND
+            // ONE OF THEM WAS INVISIBLE INSIDE THE OTHER.
+            //
+            // `SampleBubbles` runs per TICK and writes to `_bubbleOverlap`
+            // too, which was deliberate: the shot-only version came back with
+            // n=2 and a series of two cannot describe a street. But it means
+            // the list holds seventy-odd per-tick readings and twenty-six shot
+            // readings, and the median of the union is the per-tick population
+            // with the shots rounded away.
+            //
+            // MEASURED, and it caught me out: this run reads
+            // `bubbleSamples=71` against `collidingNameSamples=26`, and the
+            // median moved 0.33 to 0.00 between builds. I read that as the
+            // measurement move working. It cannot have been — the move
+            // changed WHEN a minority of the samples are taken, and the
+            // majority never went near it. What moved was the street: the
+            // district fix spread the population out, so more instants have
+            // two bubbles up (39 to 71) and fewer of them collide.
+            //
+            // Both questions are real. "How does the street read as it plays"
+            // is the per-tick series. "Is the picture we commit legible" is
+            // this one, and it is the one a human compares against a still.
+            // They need separate lists or the second can never be seen.
             if (bubbles.Count >= 2)
             {
                 int couldPair = bubbles.Count * (bubbles.Count - 1) / 2;
-                _bubbleOverlap.Add((float)now / couldPair);
+                _bubbleOverlapShot.Add((float)now / couldPair);
             }
             // AND THE NAME OVERLAP IS A PEAK OVER SAMPLES NOW, WHICH IS THE
             // SECOND HALF OF WHY `collidingNames=0` KEPT LOSING ARGUMENTS
@@ -4011,6 +4035,14 @@ namespace Ledger.Game
         /// quiet early days, which is the half of the run that has nobody
         /// talking in it.
         readonly List<float> _bubbleOverlap = new List<float>();
+
+        /// The same fraction, but only on the frames that become FILES.
+        /// Separate from `_bubbleOverlap` because that one is sampled per
+        /// tick: seventy-odd per-tick readings and twenty-six shot readings in
+        /// one list is one median describing the ticks, with the shots
+        /// rounded away. Two questions, two series — see the note at the
+        /// write.
+        readonly List<float> _bubbleOverlapShot = new List<float>();
 
         /// The only denominator `collidingBubbles` can honestly be divided by.
         int _bubblesAtWorst = 0;
@@ -11508,6 +11540,14 @@ namespace Ledger.Game
                       // what they are. The peak is "how bad did one moment
                       // get"; the median is "how does this street read".
                       $"bubbleOverlapMedian={bubbleMedian:0.00} bubbleSamples={_bubbleOverlap.Count} " +
+                      // AND THE SAME FRACTION OVER THE COMMITTED FRAMES ONLY.
+                      // `bubbleOverlapMedian` is per-tick and answers "how does
+                      // the street read as it plays"; this answers "is the
+                      // picture legible", which is the one that can be checked
+                      // against a still. They were one list until the sample
+                      // counts gave the mixture away.
+                      $"bubbleOverlapShotMedian={Median(_bubbleOverlapShot):0.00} " +
+                      $"bubbleOverlapShots={_bubbleOverlapShot.Count} " +
                       $"textMirrored={_textMirrored} " +
                       $"textFlat={_textFlat} textFlatWorst=[{_textFlatWorst}] " +
                       $"textFacingAway={_textFacingAway} textVisibleAtAway={_textVisibleAtAway} textVisible={_textVisible} " +
