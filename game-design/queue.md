@@ -204,31 +204,31 @@ parked — no DirectML on the Air.
    comparable, the fault is in what a parcel LOOKS like out there, which is a
    different job entirely.
 
-   **THE FIRST VERSION OF THAT COUNTER WAS WRONG AND AGREED WITH ME.** It
-   asked `StreetMap.DistrictAt` where each parcel STOOD and read `none:268 /
-   the_Hook:56 / Ironside:18 / the_Parade:16 / Gullwing:7 / Copper_Row:6 /
-   the_Exchange:5` — 71% of 376 parcels in no district, Fairview absent. The
-   ordering looked like the finding I expected and was ranking BLOCK SPACING:
-   the margin is a flat 12m, blocks run 20-34m, so the Hook keeps the most
-   only because its blocks are tightest. Caught because 71% `none` is
-   impossible, not because it was surprising. **It attributes by the BLOCK's
-   district now**, which the builder already knows.
+   **THE ANSWER CAME BACK AND IT IS A BUG, NOT A CONTENT GAP.** `DistrictAt`
+   compared SCALED positions against UNSCALED avenue arrays — `WideBlocks`
+   stretches the city about the origin and every other consumer of those
+   arrays scales, this one did not. Harmless near the origin, enormous far
+   from it: the Exchange's avenue centre x-155 becomes -333.3 scaled, and its
+   blocks measure **-333.3**. Same to three figures for Fairview, the Parade
+   and Gullwing. **The Exchange's buildings stand 178m from the streets named
+   for it.** 38 of 52 block centres were in no district and four districts
+   held none; fixed, 0 of 52 outside and every district has blocks. The
+   sight-lines agree independently — the Hook 24.3m, every other district
+   40.6-45.6m, the bare-ground figure predicted before the run. **Not a
+   reporting fix**: `LocalJunctions`, the patrol beat and `PopulationHost` all
+   read it. Full account in `roadmap-history.md`.
 
-1. **`StreetMap.DistrictAt`'s MARGIN IS A FLAT 12m AND SHOULD BE HALF A BLOCK
-   — correct, measured, and NOT SHIPPED because it wedges traffic.** Evidence
-   in the item above. This is not a reporting fix: `Traffic.LocalJunctions`
-   keeps journeys local with it, the patrol beat decides where police work
-   with it, and `PopulationHost` places people with it — all against boxes
-   too small in six of seven districts.
-
-   **Why it is queued rather than landed.** Widening it to
-   `max(12, widestBlockGap / 2)` moved junction locality, the beat and
-   placement together and wedged a bicycle in the 14-vehicle traffic gate.
-   **Measured before blaming it:** a ten-seed sweep at 28 vehicles wedges at
-   least one on 4 of 10 seeds on UNMODIFIED code, seed 5 wedging five. So
-   wedging is a standing fragility of a busier map — but the widening still
-   made the shipping density go red, so it does not land until the wedge is
-   fixed. **Order: fix the wedge first, then widen.** Do not loosen the gate.
+1. ~~**THE MARGIN SHOULD BE HALF A BLOCK**~~ and ~~**THE MARGIN FIX WEDGES
+   TRAFFIC**~~ — **BOTH WITHDRAWN; TWO WRONG EXPLANATIONS FOR ONE REAL BUG.**
+   The margin never mattered (12, 20 and 26 assign all 52 blocks identically
+   once the box is in the right place). And "it wedges traffic" came from a
+   broken gate: "nobody is permanently wedged" compared a vehicle's edge and
+   position at two instants sixty seconds apart, so a car that drove a loop and
+   came back read exactly like one that never moved — the flagged car had
+   crossed **eight edges**. The ten-seed sweep that appeared to exonerate the
+   change was the same instrument. **That pair of wrong readings delayed the
+   real fix by a day.** Gate now reads the whole window, predicate asserted
+   both ways with the eight-edge reading kept as a fixture.
 
 1. ~~**`vehiclesKitted=26/33` WHERE THE FLEET IS 28**~~ — **RENAMED** to
    `bodiesKitted=`, with `fleetNow=` beside it. Both sides count bodies BUILT

@@ -4457,12 +4457,31 @@ namespace Ledger.CoreTests
 
             // No two districts may overlap: every junction must sit in exactly
             // the district that claims it, or DistrictAt would lie somewhere.
+            // FROM THE BLOCKS, NOT FROM THE AVENUE ARRAYS.
+            //
+            // This used to average `AvenuesX[0]` and `AvenuesX[last]` and ask
+            // `DistrictAt` about the result. Those arrays are UNSCALED source
+            // data and `WideBlocks` scales the whole city about the origin, so
+            // the test was asking about a coordinate that is not anywhere on
+            // the map — it passed only because `DistrictAt` had the identical
+            // fault and the two errors cancelled. Fixing `DistrictAt` is what
+            // made this go red, which is the honest way round for a test that
+            // never had a chance of catching the bug it sat next to.
+            //
+            // A block's centre is a real, scaled place with buildings on it,
+            // so this now asserts something about the world rather than about
+            // one arithmetic mistake agreeing with another.
             foreach (var d in StreetMap.Districts)
             {
-                double cx = (d.AvenuesX[0] + d.AvenuesX[d.AvenuesX.Length - 1]) / 2;
-                double cz = (d.AvenuesZ[0] + d.AvenuesZ[d.AvenuesZ.Length - 1]) / 2;
-                Check(StreetMap.DistrictAt(cx, cz) == d.Name,
-                    $"the centre of {d.Name} is in {d.Name}", StreetMap.DistrictAt(cx, cz) ?? "nowhere");
+                StreetMap.Block mid = null;
+                foreach (var b in StreetMap.Blocks)
+                    if (StreetMap.DistrictAt(b.CentreX, b.CentreZ) == d.Name) { mid = b; break; }
+                Check(mid != null, $"{d.Name} has a block to test with",
+                    mid == null ? "none" : "ok");
+                if (mid == null) continue;
+                Check(StreetMap.DistrictAt(mid.CentreX, mid.CentreZ) == d.Name,
+                    $"a block in {d.Name} resolves to {d.Name}",
+                    StreetMap.DistrictAt(mid.CentreX, mid.CentreZ) ?? "nowhere");
             }
 
             // A DISTRICT CONTAINS THE THINGS BUILT IN IT, which is not what a
@@ -4480,27 +4499,53 @@ namespace Ledger.CoreTests
             // the district photographs, which is the hardest kind of wrong
             // number to catch.
             //
-            // THE ASSERTION THAT BELONGS HERE IS NOT WRITTEN, ON PURPOSE, AND
-            // THIS PARAGRAPH IS WHY. "Half a block outside the outermost
-            // avenue is still in the district" is the correct property and it
-            // is RED against today's flat 12m — so writing it now would block
-            // every commit in the project until the fix lands, and the fix
-            // does not land yet.
+            // EVERY BLOCK IS IN A DISTRICT, AND THIS IS THE ASSERTION THAT
+            // WOULD HAVE CAUGHT THE WHOLE THING.
             //
-            // Widening the margin moves `Traffic.LocalJunctions`, the patrol
-            // beat and `PopulationHost` placement together, and it wedged a
-            // bicycle in the 14-vehicle traffic gate. MEASURED BEFORE BLAMING
-            // IT: a ten-seed sweep at 28 vehicles wedges at least one on 4 of
-            // 10 seeds on unmodified code, seed 5 wedging five — so wedging is
-            // a standing fragility of a busier map, but the widening still
-            // made the SHIPPING density go red and that is not something to
-            // wave through. Order of work, in `queue.md`: fix the wedge, then
-            // widen, then this assertion goes in and the parcel counter should
-            // move off `none`.
+            // `DistrictAt` read the avenue arrays RAW while `WideBlocks`
+            // scales the city about the origin, so it tested scaled positions
+            // against unscaled boxes: 38 of 52 block centres were in no
+            // district at all and the Exchange, the Parade, Fairview and
+            // Gullwing contained NONE. Their buildings stand 136-184m from the
+            // streets named for them, which is what every district photograph
+            // has been showing.
             //
-            // The reporting half is already honest without it — the counter
-            // attributes a parcel to the district of the BLOCK it fills, which
-            // the builder knows for certain and never had to ask a box about.
+            // A block is a rectangle of buildable ground bounded by four
+            // avenues OF A DISTRICT — it cannot be in none of them. That is a
+            // property of the map, not a threshold, so it needs no measured
+            // bound and there is nothing here to tune.
+            //
+            // The previous version of this paragraph explained why the
+            // assertion could not be written yet, and blamed the flat 12m
+            // margin. Wrong premise: with the box in the right PLACE, margins
+            // of 12, 20 and 26 assign all 52 blocks identically.
+            {
+                int homeless = 0;
+                var perDistrict = new Dictionary<string, int>();
+                foreach (var b in StreetMap.Blocks)
+                {
+                    var dn = StreetMap.DistrictAt(b.CentreX, b.CentreZ);
+                    if (dn == null) { homeless++; continue; }
+                    perDistrict.TryGetValue(dn, out var n);
+                    perDistrict[dn] = n + 1;
+                }
+                Check(homeless == 0,
+                    "every block on the map is inside some district",
+                    $"{homeless} of {StreetMap.Blocks.Count} in none");
+                // AND THE DENOMINATOR ON THE OTHER SIDE (rule 3b): zero
+                // homeless blocks would also be true of a map with no blocks,
+                // and "every district has some" is the half that says the
+                // districts are all real places rather than one district
+                // having swallowed the lot.
+                var empty = new List<string>();
+                foreach (var d in StreetMap.Districts)
+                    if (!perDistrict.ContainsKey(d.Name)) empty.Add(d.Name);
+                Check(empty.Count == 0,
+                    "and every district has blocks in it",
+                    empty.Count == 0
+                        ? $"{StreetMap.Blocks.Count} blocks over {StreetMap.Districts.Length} districts"
+                        : string.Join("/", empty.ToArray()));
+            }
 
             // AND THE WIDER BOXES MUST STILL NOT TOUCH, which is the half that
             // a margin change can break silently: `DistrictAt` returns the
@@ -6402,31 +6447,91 @@ namespace Ledger.CoreTests
             Check(lastThird > firstThird * 0.6,
                 "and it is still moving as freely at the end as at the start",
                 $"{firstThird:0} then {lastThird:0}");
-            // WEDGING IS A STANDING FRAGILITY OF A BUSIER MAP, NOT SOMETHING
-            // ANY ONE CHANGE INVENTED — measured before blaming the
-            // `DistrictAt` widening for it, which is what the widening's first
-            // red run looked like. A throwaway sweep at DOUBLE this density
-            // (28 vehicles, hour 8, 200 settling steps then 120 watched)
-            // wedged at least one vehicle on 4 of 10 seeds, seed 5 wedging
-            // five, on unmodified code. This gate runs seed 11 at 14 vehicles
-            // and is clean, so it asserts a real property at the density the
-            // game ships — but the property is NOT yet true at twice that, and
-            // that is a queued bug rather than a threshold to loosen.
+            // NOBODY IS PERMANENTLY WEDGED — AND THE FIRST VERSION OF THIS
+            // GATE COULD NOT TELL A STUCK CAR FROM ONE THAT DROVE IN A CIRCLE.
+            //
+            // It sampled (edge, s) once, stepped sixty seconds, sampled again,
+            // and called a vehicle wedged if both matched within two metres.
+            // Two instants cannot see the sixty seconds between them: a car
+            // that leaves, drives a loop of eight edges and comes back reads
+            // EXACTLY like one that never moved.
+            //
+            // MEASURED, which is how it was caught: the flagged car reported
+            // `edgesSeenInWindow=8`. It crossed the Exchange twice.
+            //
+            // THE COST OF THIS ONE WAS A WRONG CONCLUSION, NOT A WRONG NUMBER.
+            // The false positive appeared the moment `DistrictAt` started
+            // routing traffic into the outer districts, so it read as "that
+            // change wedges traffic" — and a real fix was queued for a day on
+            // the strength of it. A ten-seed sweep then "confirmed" wedging at
+            // double density on unmodified code, which was the same false
+            // positive at a density that loops more, quoted as exoneration.
+            // Both readings came from an instrument that answers a different
+            // question from the one in its name.
+            //
+            // So the window is read WHOLE. A vehicle is wedged when it
+            // occupied exactly ONE edge for the entire minute and advanced no
+            // more than two metres along it. Every distinct edge it touches is
+            // recorded on every step, so a loop is visible as the eight edges
+            // it actually is.
+            // THE PREDICATE, NAMED, SO BOTH OF ITS ANSWERS CAN BE WATCHED.
+            //
+            // Rule 5b: a guard has two outcomes and shipping it means having
+            // seen BOTH. The live run below is the accepting case — it is
+            // green, over a real sim. The rejecting case cannot be produced on
+            // demand from a real sim (that is the whole difficulty: a genuine
+            // wedge is rare and seed-dependent), so it is asserted here
+            // directly against the numbers that describe one.
+            //
+            // The third row is the REAL reading that defeated the old gate,
+            // kept as a fixture: eight edges and a 0.3m difference between the
+            // window's two ends. The old test called that wedged. If this
+            // starts calling it wedged again, the regression is caught by the
+            // test rather than by a day of chasing a fix that was never wrong.
+            static bool MovedOn(bool dormant, int edgesSeen, double deltaS) =>
+                dormant || edgesSeen > 1 || deltaS > 2.0;
+
+            Check(!MovedOn(false, 1, 0.5),
+                "the wedge gate calls one edge and half a metre in a minute WEDGED");
+            Check(MovedOn(false, 1, 40.0),
+                "and a car that stayed on one long edge but covered forty metres is not");
+            Check(MovedOn(false, 8, 0.3),
+                "and the eight-edge loop that defeated the two-instant version is not",
+                "edgesSeen=8 deltaS=0.3");
+            Check(MovedOn(true, 1, 0.0),
+                "and a parked car is not traffic");
+
             int stuck = 0;
             var mark = new Dictionary<int, double>();
             foreach (var v in sim.Vehicles) mark[v.Id] = sim.TotalDistance;
             var was = new Dictionary<int, (string from, string to, double s)>();
             foreach (var v in sim.Vehicles) was[v.Id] = (v.FromId, v.ToId, v.S);
-            for (int i = 0; i < 120; i++) sim.Step(0.5);
+            var seenEdges = new Dictionary<int, HashSet<string>>();
+            foreach (var v in sim.Vehicles) seenEdges[v.Id] = new HashSet<string>();
+            for (int i = 0; i < 120; i++)
+            {
+                sim.Step(0.5);
+                foreach (var v in sim.Vehicles) seenEdges[v.Id].Add(v.FromId + "->" + v.ToId);
+            }
             foreach (var v in sim.Vehicles)
             {
                 var w = was[v.Id];
-                bool movedOn = w.from != v.FromId || w.to != v.ToId || Math.Abs(v.S - w.s) > 2.0;
+                bool movedOn = MovedOn(v.Dormant, seenEdges[v.Id].Count, Math.Abs(v.S - w.s));
                 if (!movedOn)
                 {
                     stuck++;
-                    Console.WriteLine($"  WEDGED v{v.Id} kind={v.Kind.Id} from={w.from} to={w.to} "
-                        + $"s={v.S:0.0} speed={v.Speed:0.00} dormant={v.Dormant} "
+                    // BOTH ENDS OF THE WINDOW, because one end cannot show a
+                    // wedge. The first version of this line printed `w.from`
+                    // and `w.to` — the BEFORE edge — beside `v.S`, the AFTER
+                    // position, and reported a car that had crossed four
+                    // junctions as stuck at 63.8m. A diagnostic that mixes two
+                    // instants is the exact fault the rest of this project
+                    // spends its time finding, and it was in the tool written
+                    // to find it.
+                    Console.WriteLine($"  WEDGED v{v.Id} kind={v.Kind.Id} "
+                        + $"before={w.from}->{w.to}@{w.s:0.0} "
+                        + $"after={v.FromId}->{v.ToId}@{v.S:0.0} "
+                        + $"speed={v.Speed:0.00} dormant={v.Dormant} "
                         + $"route={v.Route.Count} stoppedAt={v.StoppedAt} inJunction={v.InJunction}");
                 }
             }

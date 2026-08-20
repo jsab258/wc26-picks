@@ -832,36 +832,35 @@ namespace Ledger.Game
                     // AND WHICH DISTRICT IT WENT IN — FROM THE BLOCK, NOT
                     // FROM THE PARCEL'S OWN POSITION.
                     //
-                    // The first version asked `DistrictAt(pos)` and came back
-                    // `none:268` of 376 parcels: 71% of every terrace in the
-                    // world belonging to no district, with Fairview absent
-                    // entirely. Not a world with buildings scattered between
-                    // districts — `DistrictAt` puts a flat 12m margin around
-                    // the outermost avenue, and block spacing here runs 20 to
-                    // 34m, so a parcel outside that avenue sits up to HALF A
-                    // BLOCK past the box.
+                    // The block knows for certain: `BuildBlockSpecs` looked
+                    // the district up once and passed it down. A parcel
+                    // belongs to the block it fills, so there is nothing to
+                    // infer from a coordinate.
                     //
-                    // AND THE ORDERING IT PRODUCED LOOKED LIKE A FINDING. The
-                    // Hook kept the most because its blocks are the TIGHTEST,
-                    // so the counter appeared to confirm the tour photographs
-                    // — the outer districts looking bare — when what it was
-                    // really ranking was block spacing. A wrong number that
-                    // agrees with what you already believe is the hardest
-                    // kind to catch, and only 71% `none` being impossible
-                    // rather than merely surprising caught it.
+                    // IT ALSO CAUGHT A MUCH LARGER BUG, AND THE FIRST TWO
+                    // EXPLANATIONS FOR THAT BUG WERE BOTH WRONG. Asking
+                    // `DistrictAt(pos)` returned `none` for 71% of 376
+                    // parcels with Fairview absent entirely. I read that as
+                    // the flat 12m margin being narrower than the 20-34m
+                    // block spacing — plausible, and wrong. The real cause is
+                    // in `DistrictAt` itself: it compared SCALED positions
+                    // against UNSCALED avenue arrays, so four districts were
+                    // looking 136-184m away from their own buildings. Fixed
+                    // there. With the box in the right place, margins of 12,
+                    // 20 and 26 assign all 52 blocks identically — the margin
+                    // never mattered.
                     //
-                    // WIDENING `DistrictAt` IS THE REAL FIX AND IT IS NOT
-                    // FREE: tried, and it moves `LocalJunctions`, the patrol
-                    // beat and population placement, which wedged a bicycle
-                    // in the traffic test. A seed sweep says wedging is a
-                    // standing fragility rather than something that change
-                    // invented — 4 of 10 seeds wedge at least one vehicle and
-                    // seed 5 wedges five — so it is queued with its evidence
-                    // rather than shipped red.
-                    //
-                    // The block is the honest attribution anyway: a parcel
-                    // belongs to the block it fills, and the block's own
-                    // centre is well inside the box already.
+                    // THE SECOND WRONG EXPLANATION IS WORTH KEEPING TOO,
+                    // because it delayed the real fix by a day. Widening the
+                    // margin turned the traffic gate red and I recorded that
+                    // as "the fix is not free, it wedges a bicycle". The gate
+                    // was broken: it compared one vehicle's edge and position
+                    // at two instants sixty seconds apart, so a car that drove
+                    // a loop and came back read exactly like one that never
+                    // moved. The flagged car had crossed EIGHT edges. Both the
+                    // "it wedges traffic" reading and the ten-seed sweep that
+                    // appeared to exonerate it came from that same instrument.
+                    // Gate rewritten to read the whole window.
                     var pkey = string.IsNullOrEmpty(district) ? "none" : district.Replace(" ", "_");
                     ParcelsByDistrict.TryGetValue(pkey, out var had);
                     ParcelsByDistrict[pkey] = had + 1;

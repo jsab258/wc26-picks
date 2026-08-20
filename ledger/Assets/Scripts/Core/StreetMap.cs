@@ -290,12 +290,60 @@ namespace Ledger.Core
         };
 
         /// Which district a position is in, by name, or null out on the cut.
+        ///
+        /// THE AVENUE ARRAYS ARE UNSCALED SOURCE DATA AND THIS READ THEM RAW,
+        /// SO FOUR DISTRICTS HAVE BEEN LOOKING IN THE WRONG PLACE ENTIRELY.
+        ///
+        /// `WideBlocks` scales the whole city about the origin by `StretchX`
+        /// and `StretchZ`. Every other consumer of `AvenuesX`/`AvenuesZ` goes
+        /// through `ScaleAbout` — the junction grid, the block rectangles and
+        /// the address migration all do. This one did not, so it tested a
+        /// scaled position against an unscaled box.
+        ///
+        /// Near the origin that is a small error and the Hook, Copper Row and
+        /// Ironside kept working, which is exactly why it survived. Far from
+        /// the origin it is enormous, and the arithmetic matches the measured
+        /// world to three figures:
+        ///
+        ///   district      avenue centre x    x2.15     MEASURED block cluster
+        ///   the Exchange           -155     -333.3                    -333.3
+        ///   Fairview               -160     -344.0                    -344.0
+        ///   the Parade              118      253.7                     254.0
+        ///   Gullwing                128      275.2                     275.0
+        ///
+        /// So the Exchange's BUILDINGS stand 178m from the streets named for
+        /// it, and a camera pointed down the Exchange's middle avenue sees
+        /// bare ground — which is what all seven district photographs showed
+        /// and what `shotDepth` measured before this was understood: the Hook
+        /// 24.3m of sight-line, every other district 40.6 to 45.6, the
+        /// flat-empty-ground figure predicted for a plain.
+        ///
+        /// Measured before and after over the real block list: 38 of 52 block
+        /// centres were in NO district and four districts held none at all;
+        /// scaled, it is 0 of 52 outside and every district has blocks
+        /// (16/8/6/6/8/4/4). No two boxes overlap.
+        ///
+        /// AND THE MARGIN WAS NEVER THE PROBLEM. A previous investigation read
+        /// 71% of parcels as district-less and concluded the flat 12m pad was
+        /// too narrow against 20-34m block spacing. That reasoning was sound
+        /// and the premise was wrong: with the box in the right PLACE, 12, 20
+        /// and 26 give identical assignments for all 52 blocks. Widening it
+        /// would have treated a symptom, and it destabilised traffic when
+        /// tried — which is what stopped it shipping.
+        ///
+        /// THIS IS NOT A REPORTING FIX. `Traffic.LocalJunctions` keeps
+        /// journeys local with this, the patrol beat decides where police work
+        /// with it, and `PopulationHost` places people with it. All three have
+        /// been running against boxes in the wrong part of the map.
         public static string DistrictAt(double x, double z)
         {
+            var (kx, kz) = WideBlocks ? (StretchX, StretchZ) : (1.0, 1.0);
             foreach (var d in Districts)
             {
-                double minX = d.AvenuesX[0] - 12, maxX = d.AvenuesX[d.AvenuesX.Length - 1] + 12;
-                double minZ = d.AvenuesZ[0] - 12, maxZ = d.AvenuesZ[d.AvenuesZ.Length - 1] + 12;
+                double minX = ScaleAbout(d.AvenuesX[0], 0, kx) - 12;
+                double maxX = ScaleAbout(d.AvenuesX[d.AvenuesX.Length - 1], 0, kx) + 12;
+                double minZ = ScaleAbout(d.AvenuesZ[0], 0, kz) - 12;
+                double maxZ = ScaleAbout(d.AvenuesZ[d.AvenuesZ.Length - 1], 0, kz) + 12;
                 if (x >= minX && x <= maxX && z >= minZ && z <= maxZ) return d.Name;
             }
             return null;

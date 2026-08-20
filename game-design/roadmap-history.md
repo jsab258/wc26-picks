@@ -23,6 +23,85 @@ This document reconciles the two: what §11 called "M1 living block / M2 double-
 is partially built; several doc systems were missed along the way and are folded back in
 below. This supersedes §11's numbering going forward.
 
+## 20 Aug — the outer districts were never empty; the map was asking the wrong place
+
+The single largest visible fault in the project, and it had two wrong
+explanations before the right one.
+
+**The symptom.** Seven district photographs, the first ever taken of six of
+them. `district_downtown` and `district_fairview` read as a road with four cars
+on a vast grey plain; the Hook beside them has terraces, signs, props and
+people. That was an impression off a JPEG, and a pixel statistic over the seven
+frames could not tell them apart at all — block spread 37-44 and flat ground
+5-8% in every one, because textured ground varies as much as a street does.
+
+**The first measurement chose the right question.** `parcelsByDistrict`, from
+the builder rather than from pixels, came back `none:268` of 376 parcels — 71%
+of every terrace in the world in no district, Fairview absent entirely. The
+ordering looked like the finding I expected (the Hook rich, the outer districts
+bare) and was ranking block spacing. Only 71% being *impossible* rather than
+merely surprising caught it.
+
+**The first wrong explanation.** `DistrictAt` pads a district by a flat 12m and
+block spacing runs 20-34m, so a parcel outside the outermost avenue sits up to
+half a block past the box. Plausible, internally consistent, and wrong.
+
+**The second wrong explanation, which cost a day.** Widening the margin turned
+the traffic gate red, so it was recorded as "the real fix is not free — it
+wedges a bicycle" and queued rather than shipped. A ten-seed sweep then found
+wedging on 4 of 10 seeds at double density on unmodified code, and that was
+written up as "wedging is a standing fragility, not something this change
+invented". Both readings came from the same broken instrument.
+
+**The gate was the fault.** "In a minute of traffic, nobody is permanently
+wedged" sampled a vehicle's edge and position, stepped sixty seconds, and
+sampled again. Two instants cannot see the minute between them: a car that
+leaves, drives a loop and returns reads exactly like one that never moved. The
+flagged car reported `edgesSeenInWindow=8`. It had crossed the Exchange twice.
+
+**The real cause.** `WideBlocks` scales the whole city about the origin by
+`StretchX`=2.15 and `StretchZ`=1.15. Every consumer of the avenue arrays goes
+through `ScaleAbout` — the junction grid, the block rectangles, the address
+migration. `DistrictAt` read them raw, so it tested scaled positions against
+unscaled boxes. Near the origin that is a small error, which is exactly why the
+Hook, Copper Row and Ironside kept working and it survived this long.
+
+| district | avenue centre x | x 2.15 | measured block cluster |
+|---|---|---|---|
+| the Exchange | -155 | -333.3 | **-333.3** |
+| Fairview | -160 | -344.0 | **-344.0** |
+| the Parade | 118 | 253.7 | **254.0** |
+| Gullwing | 128 | 275.2 | **275.0** |
+
+The Exchange's buildings stand 178m from the streets named for it. **38 of 52
+block centres were in no district at all, and the Exchange, the Parade,
+Fairview and Gullwing contained none.** After the fix: 0 of 52 outside, every
+district has blocks (16/8/6/6/8/4/4), no two boxes overlap.
+
+**And the margin never mattered.** With the box in the right place, margins of
+12, 20 and 26 assign all 52 blocks identically.
+
+**An independent measurement agreed, and it was predicted in advance.** The
+sight-line depth metric shipped the same build with its prediction written into
+the emitter before the run: the tour camera stands 14m up and 34m back at about
+20 degrees down, so flat empty ground should read north of 40m and a built
+street ten to twenty. Result: the Hook **24.3m**, Copper Row 40.6, the Parade
+41.5, Ironside 41.5, Gullwing 43.1, Downtown 45.6, Fairview 45.6. Six districts
+reading as bare ground, one reading as built, with the boundary exactly where
+the arithmetic put it.
+
+**Not a reporting fix.** `Traffic.LocalJunctions` keeps journeys local with
+`DistrictAt`, the patrol beat decides where police work with it, and
+`PopulationHost` places people with it. All three have been running against
+boxes in the wrong part of the map.
+
+**What now guards it.** CoreTests asserts that every block is inside some
+district and that every district has blocks — a property of the map, needing no
+measured bound. The wedge gate reads the whole window (every distinct edge a
+vehicle touches, on every step) and its predicate is asserted in both
+directions, with the real eight-edge reading kept as a fixture so the
+regression cannot come back quietly.
+
 ## Where we actually are (vs. the doc)
 
 Built and CI-validated: schedules, day/night, gossip propagation with decay and
