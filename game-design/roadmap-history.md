@@ -2380,3 +2380,82 @@ into a real one: `shotNearBefore=0.83 shotNudges=8 shotNudgesWorked=5
 shotNudgesGaveUp=0`. Five blocked shots, all cleared, averaging 1.6 steps, and
 the twenty-shot series topped out at 0.18 against that pre-loop
 `0.37 0.48 0.60 1.00` tail.
+
+---
+
+## Patrol density, and four wrong theories — 2026-08-19
+
+Cut from `queue.md` at the length cap.
+
+1. **PATROL DENSITY FOLLOWS THE INQUIRY.** `PatrolWeightFor(Inquiry)` is a
+   pure Core function — None 1, Procedure 2, Investigation 3, Manhunt 5,
+   which on 28 vehicles is 2 patrol cars quiet against 6 under a manhunt.
+   Conversion runs right after `SetHour` and only on PARKED cars, so nothing
+   changes shape in front of the player.
+
+   **EVERY LINK FIRES** (`b71c71f`): `patrolWant=6 patrolNow=6
+   patrolsChanged=5 patrolBodies=5`, meshes following kinds. Then the in-shot
+   counter found they were invisible — `patrolInShotMean=0.10` under a full
+   manhunt, one frame in ten.
+
+   **EVERY NUMBER I QUOTED WAS TWO REGIMES AVERAGED.** `shotsOnBeat=3/20`
+   against `shotDistricts=[the_Hook:20]` and `patrolBeat=the_Hook`: the last
+   is the END-of-run value, and **seventeen of twenty shots measured a town
+   with no manhunt in it**. So 0.10, 0.20 and 0.25 were all mixtures.
+   `patrolOnBeatMean=0.00` over 3 shots against `0.18` over 17 — zero of
+   three separates nothing, so there is still no measurement here.
+
+   **Ruled out, each for one measurement:** the cameras (frames hold 2.75-4.75
+   vehicles); too few cars (6 of 28); and my own tidy theory that `Rebalance`
+   converting dormant cars built the patrol fleet from the vehicles that sleep
+   most — probed hour by hour, patrols are 6 of 6 awake 07:00-23:00.
+
+   **Still unread:** six cars that never stop are six brief crossings. A
+   patrol PARKED at a junction with its beacon lit stays in frame and is
+   worth more than three that drive past. A feature, not a knob.
+
+
+---
+
+## The gates --constant work list, long form — 2026-08-19
+
+12. **THE REST OF WHAT `gates --constant` FOUND, AND IT IS A WORK LIST.**
+   Sixty keys have never been anything but zero across 131 runs. Most are fault
+   counters doing their job — `errors=0`, `idLeaks=0`, `blankLabels=0`,
+   `panelsBad=0`, `offRoad=0`. These are the ones that are not:
+
+   - **`threat` has only ever seen one outcome.** `brandishes=1` a run, so
+     `called=0 complied=0 undraw=False` CANNOT be sampled — one brandish gives
+     one answer, `FleeScreaming` every time. Plant several, at people with
+     different nerve.
+   - **`departed=0` and `carriedOut=0` are the live zeros**; `adds` reads 10,
+     and this entry claimed otherwise for four builds off prose.
+   - **`groundless=False`** — a carry has never been groundless.
+   - **`summonsTaken=0` — fixed 5 August, awaiting its own build.** The nightly
+     pass sampled the player's position at breakfast against lines live at hour
+     21; now sampled at the ring hour. **The plant is deliberately NOT in the
+     same build**, so a moving `summonsTaken` is attributable to this alone.
+
+   **The rule for every one of these is the same and it is rule 5b's
+   corollary: PLANT the condition, never loosen the bound.** And do them one
+   or two at a time — a build carrying five new staged behaviours cannot
+   attribute a red gate to any of them.
+
+
+---
+
+## The police car, and reading a model instead of a comment — 2026-08-19
+
+1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — the remaining primitives.**
+   `vehicleFellBack=[bus,bike x6]`. All 50 models in the car-kit listing ARE
+   extracted and neither a bus nor a bicycle is among them, so this is a
+   sourcing gap and the fix is another CC0 kit, not more code. Bikes are
+   almost all of it, so one bicycle model closes it.
+
+   **THE POLICE CAR IS IN.** "Wrong era, wrong town" was a guess about a file
+   nobody had opened: a plain saloon a fifth longer than the sedan whose body
+   maps to the WHITE region of the shared colormap (#cbcbde) where every
+   other car is mid-slate. Blue beacon on a plinth we add, exempt from the
+   noir multiply, push bar dropped by name. `vehiclesKitted` 18/28 -> 21/28.
+   `ambulance` and `firetruck` stay out — both mid-slate in this palette.
+

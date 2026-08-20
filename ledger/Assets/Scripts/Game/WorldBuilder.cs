@@ -585,12 +585,30 @@ namespace Ledger.Game
         /// were recorded. One build answers what an afternoon of armchair
         /// deduction could not.
         public static int TerracedBlocks, LegacyBlocks, TerraceParcels;
+        /// Parcels per district. See the note at the increment site: a
+        /// pixel statistic over the district frames could not tell a built
+        /// street from an empty field, so the builder counts instead.
+        public static readonly System.Collections.Generic.Dictionary<string, int>
+            ParcelsByDistrict = new System.Collections.Generic.Dictionary<string, int>();
+
+        /// Busiest first, `name:count` joined by slashes — no spaces, because
+        /// a verdict value may not contain one.
+        public static string ParcelsByDistrictLine()
+        {
+            if (ParcelsByDistrict.Count == 0) return "none";
+            var rows = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, int>>(ParcelsByDistrict);
+            rows.Sort((a, b) => b.Value.CompareTo(a.Value));
+            var parts = new System.Collections.Generic.List<string>();
+            foreach (var r in rows) parts.Add(r.Key + ":" + r.Value);
+            return string.Join("/", parts);
+        }
 
         static List<(Vector3 pos, Vector3 size)> BuildBlockSpecs()
         {
             var specs = new List<(Vector3, Vector3)>();
             TerraceChimneys.Clear();
             TerracedBlocks = 0; LegacyBlocks = 0; TerraceParcels = 0;
+            ParcelsByDistrict.Clear();
             int bi = 0;
             foreach (var b in Ledger.Core.StreetMap.Blocks)
             {
@@ -810,6 +828,19 @@ namespace Ledger.Game
                 {
                     specs.Add((pos, size));
                     TerraceParcels++;
+                    // AND WHICH DISTRICT IT WENT IN. The tour's first seven
+                    // frames make the Exchange and Fairview look like a road
+                    // on an empty field beside the Hook's terraces — and a
+                    // pixel statistic over those frames CANNOT tell them
+                    // apart (block spread 37-44 and flat ground 5-8% in all
+                    // seven, because textured ground varies as much as a
+                    // street does). That is a metric blind to the question
+                    // asked of it, so the count comes from the builder, which
+                    // knows.
+                    var pd = Ledger.Core.StreetMap.DistrictAt(pos.x, pos.z);
+                    var pkey = string.IsNullOrEmpty(pd) ? "none" : pd.Replace(" ", "_");
+                    ParcelsByDistrict.TryGetValue(pkey, out var had);
+                    ParcelsByDistrict[pkey] = had + 1;
                     // A chimney stack on the leading party wall, on the
                     // ridge — the single cheapest silhouette signal a
                     // British terrace has. Offices get none: Downtown's

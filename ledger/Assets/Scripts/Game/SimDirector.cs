@@ -11544,6 +11544,11 @@ namespace Ledger.Game
                       $"smokeStacks={WorldBuilder.SmokeStacks} gulls={WorldBuilder.Gulls} " +
                       $"terraceBlocks={WorldBuilder.TerracedBlocks} legacyBlocks={WorldBuilder.LegacyBlocks} " +
                       $"terraceParcels={WorldBuilder.TerraceParcels} chimneys={WorldBuilder.ChimneyCount} " +
+                      // PER DISTRICT, because the totals cannot say whether
+                      // the Exchange is built. The tour frames suggest it is a
+                      // road on a field; a pixel statistic over them could not
+                      // tell it from the Hook, so this is the instrument.
+                      $"parcelsByDistrict=[{WorldBuilder.ParcelsByDistrictLine()}] " +
                       // THE WALKERS' BODIES, counted separately because
                       // `RealBody.Attached` is restored after each one and
                       // therefore cannot see them. A walker body that

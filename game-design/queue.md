@@ -63,30 +63,19 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    `clip-findings.txt`.
 
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
-   NARROW.** *(the evidence channel itself — rule 12)* Two of six committed
-   frames showed almost no street; the camera now steps back off anything
-   filling more than a quarter of the frame at arm's length, with the bound
-   taken from a measured bimodal series and the loop exercised on a real
-   0.83 case. Full account in `roadmap-history.md`.
+   NARROW.** *(rule 12)* The camera steps back off anything filling more than
+   a quarter of the frame at arm's length, bound from a measured bimodal
+   series, exercised on a real 0.83 case. Account in `roadmap-history.md`.
+   **What is left:** two metres cannot see `review_day5_noon` — slabs across
+   the middle at about ten metres, visibly blocked and numerically clear.
+   **The next number is a median ray distance, not a wider bound.**
 
-   **What is left:** two metres catches "the camera is against a wall" and
-   misses `review_day5_noon` — roof and awning slabs across the middle at
-   about ten metres, visibly blocked and numerically clear. I claimed two of
-   six were photographs of a wall; the measurement confirms one and is blind
-   to the other. **The next number is a median ray distance, not a wider
-   bound.**
-
-1. **THE DENOMINATOR PAID FOR ITSELF THE FIRST TIME IT RAN, and the law tier
-   was broken.** `looseEnds=6/0/[Owed:6]/open6/1of6` — one tier live on each
-   of six evenings — beside `inquiry=Manhunt pressNamed=1 homNamed=9`. The
-   detective was hunting the player, the paper had printed her name, and the
-   evening screen said the law was not open. Without the open count that
-   reads as "Owed simply outranked it", which is what I would have concluded.
-
-   Cause: the tier asked whether anybody ELSE was named, and NOTHING EVER
-   CLEARS THAT NAME — only the relief expires, after four days, so one
-   successful redirect ever closed the tier for the rest of the run. It reads
-   the live relief now, tested both ways off the real book. **Landed:**
+1. **THE LAW TIER WAS OFF FOR THE WHOLE RUN, AND THE DENOMINATOR CAUGHT IT.**
+   `looseEnds=6/0/[Owed:6]/open6/1of6` — one tier live on each of six evenings
+   — beside `inquiry=Manhunt pressNamed=1 homNamed=9`. The tier asked whether
+   anybody ELSE was named, and NOTHING EVER CLEARS THAT NAME: only the relief
+   expires, so one successful redirect ever closed it for the rest of the run.
+   Reads the live relief now, tested both ways off the real book. **Landed:**
    `[Law:1,Owed:5]/open7/2of6`. **Crew still never opens** (`crew=2`, nobody
    below the poach floor) — the next one to chase.
 
@@ -120,44 +109,63 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    against a runner with no GPU at all.
 
 1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — the remaining primitives.**
-   `vehicleFellBack=[bus,bike x6]`. All 50 models in the car-kit listing ARE
-   extracted and neither a bus nor a bicycle is among them, so this is a
-   sourcing gap and the fix is another CC0 kit, not more code. Bikes are
-   almost all of it, so one bicycle model closes it.
+   `vehicleFellBack=[bus,bike x6]`. All 50 car-kit models ARE extracted and
+   neither is among them, so this is a sourcing gap and the fix is another
+   CC0 kit, not more code. One bicycle model closes almost all of it.
+   (The police car is in and `vehiclesKitted` went 18/28 to 21/28 — account
+   in `roadmap-history.md`.)
 
-   **THE POLICE CAR IS IN.** "Wrong era, wrong town" was a guess about a file
-   nobody had opened: a plain saloon a fifth longer than the sedan whose body
-   maps to the WHITE region of the shared colormap (#cbcbde) where every
-   other car is mid-slate. Blue beacon on a plinth we add, exempt from the
-   noir multiply, push bar dropped by name. `vehiclesKitted` 18/28 -> 21/28.
-   `ambulance` and `firetruck` stay out — both mid-slate in this palette.
+1. **PATROL DENSITY FOLLOWS THE INQUIRY — and the measurement of whether it
+   READS is still not finished.** Weight by stage (None 1 ... Manhunt 5),
+   converted only on parked cars, routed to a beat in the player's district,
+   stood down when the inquiry clears. Every link fires. Account and the four
+   wrong theories in `roadmap-history.md`.
 
-1. **PATROL DENSITY FOLLOWS THE INQUIRY.** `PatrolWeightFor(Inquiry)` is a
-   pure Core function — None 1, Procedure 2, Investigation 3, Manhunt 5,
-   which on 28 vehicles is 2 patrol cars quiet against 6 under a manhunt.
-   Conversion runs right after `SetHour` and only on PARKED cars, so nothing
-   changes shape in front of the player.
+   **What is open:** `patrolOnBeatMean=0.00` over 3 shots against `0.18` over
+   17 — zero of three separates nothing. The `hunt_` pair now photographs the
+   manhunt, so the next build has frames to judge from. **Still unread:** six
+   cars that never stop are six brief crossings; a patrol PARKED with its
+   beacon lit stays in frame. A feature, not a knob.
 
-   **EVERY LINK FIRES** (`b71c71f`): `patrolWant=6 patrolNow=6
-   patrolsChanged=5 patrolBodies=5`, meshes following kinds. Then the in-shot
-   counter found they were invisible — `patrolInShotMean=0.10` under a full
-   manhunt, one frame in ten.
+1. **THE VERDICT STEP IS 400 CHARS OFF A HARD CEILING AND FAILS AT DISPATCH,
+   NOT AT COMMIT.** *(CI)* Adding one paragraph took it 815 over the largest
+   step that has ever dispatched; `workflow-size` caught it and four rounds of
+   trimming prose bought it back. A 422 at dispatch means NO Windows build at
+   all. **The real fix is extraction**, as `sim-shots-stage.sh` already
+   proves: move the step body to a script file and the YAML stops being the
+   constraint. Until then every comment added there is a coin flip.
 
-   **EVERY NUMBER I QUOTED WAS TWO REGIMES AVERAGED.** `shotsOnBeat=3/20`
-   against `shotDistricts=[the_Hook:20]` and `patrolBeat=the_Hook`: the last
-   is the END-of-run value, and **seventeen of twenty shots measured a town
-   with no manhunt in it**. So 0.10, 0.20 and 0.25 were all mixtures.
-   `patrolOnBeatMean=0.00` over 3 shots against `0.18` over 17 — zero of
-   three separates nothing, so there is still no measurement here.
+1. **THE FIRST MANHUNT FRAME IS BAD, AND IT IS THE FIRST ONE ANYONE HAS
+   SEEN.** *(on screen)* `hunt_day13_noon`: fifteen people packed shoulder to
+   shoulder in the road, a dozen NAMEPLATES stacked in an overlapping heap,
+   and a giant red `... you ...` caption across a building face.
 
-   **Ruled out, each for one measurement:** the cameras (frames hold 2.75-4.75
-   vehicles); too few cars (6 of 28); and my own tidy theory that `Rebalance`
-   converting dormant cars built the patrol fleet from the vehicles that sleep
-   most — probed hour by hour, patrols are 6 of 6 awake 07:00-23:00.
+   **`collidingNames=0` on the same run** — the counter says no nameplates
+   overlap and the picture shows a heap. A zero against a frame that
+   contradicts it, now with the picture in hand. **Two visual reads of mine
+   were wrong and measured so before publishing:** a "magenta cluster" (zero
+   magenta pixels in the frame, so no error shader) and a "pink object" (the
+   only pinkish blocks are the stop sign and the caption).
 
-   **Still unread:** six cars that never stop are six brief crossings. A
-   patrol PARKED at a junction with its beacon lit stays in frame and is
-   worth more than three that drive past. A feature, not a knob.
+1. **THE DISTRICT TOUR LANDED, AND THE OUTER DISTRICTS LOOK UNBUILT — BUT
+   THAT IS A HYPOTHESIS, NOT A MEASUREMENT.** *(on screen)* Seven frames now
+   exist, `district_*.jpg`, the first pictures ever taken of six of them.
+   `district_downtown` and `district_fairview` read as a road with four cars
+   on a vast empty grey plain, under a distant skyline of pale towers well
+   outside the noir palette. The Hook, beside them, has terraces, signs,
+   props and people.
+
+   **A pixel statistic over those frames CANNOT tell them apart** — block
+   spread 37-44 and flat ground 5-8% in all seven, because textured ground
+   varies as much as a street does. I chose a metric blind to the question,
+   which is why the claim above is still marked as an impression.
+
+   **So the count comes from the builder.** `parcelsByDistrict=[...]` ships
+   next build, incremented where the parcel is placed. **Read it against the
+   pictures**: if the Exchange really has a tenth of the Hook's parcels the
+   frames are honest and the districts need building out; if the counts are
+   comparable, the fault is in what a parcel LOOKS like out there, which is a
+   different job entirely.
 
 1. **THE VERDICT STEP IS 400 CHARS OFF A HARD CEILING AND FAILS AT DISPATCH,
    NOT AT COMMIT.** *(CI)* Adding one paragraph took it 815 over the largest
@@ -259,35 +267,26 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    surface to choose one. **It must not be randomised** — CI determinism
    depends on it — so this is a surface, not a change to the default.
 
-11. **THE LAW REACHES MANHUNT — this item used to say it stopped at
-   Procedure.** `inquiry=Manhunt homNamed=9 homPressure=2.71 pressNamed=1
-   pressHeadline=[KILLING ON THE HOOK: POLICE NAME THE PUBLICAN]`: witnesses
-   who can name you, pressure past `ManhuntAt`, the paper printing it, end to
-   end. **Still worth a look:** `homWouldTalk=3` of `homSaw=9`, two thirds of
-   witnesses saying nothing to a detective — plausible and never checked
-   against the design. `pointedAt=kest` in every run belongs in item 12.
+11. **THE LAW REACHES MANHUNT.** `inquiry=Manhunt homNamed=9
+   homPressure=2.71 pressNamed=1 pressHeadline=[KILLING ON THE HOOK: POLICE
+   NAME THE PUBLICAN]` — witnesses who can name you, pressure past
+   `ManhuntAt`, the paper printing it, end to end. **Worth a look:**
+   `homWouldTalk=3` of `homSaw=9`, two thirds of witnesses saying nothing to
+   a detective — plausible and never checked against the design.
 
-12. **THE REST OF WHAT `gates --constant` FOUND, AND IT IS A WORK LIST.**
-   Sixty keys have never been anything but zero across 131 runs. Most are fault
-   counters doing their job — `errors=0`, `idLeaks=0`, `blankLabels=0`,
-   `panelsBad=0`, `offRoad=0`. These are the ones that are not:
+12. **THE REST OF WHAT `gates --constant` FOUND — a work list.** Sixty keys
+   have never been anything but zero. Most are fault counters doing their
+   job; these are not: **`threat` has only ever seen one outcome**
+   (`brandishes=1` a run, so `called`/`complied`/`undraw` cannot be sampled —
+   plant several, at people with different nerve); **`departed=0` and
+   `carriedOut=0`**; **`groundless=False`** — a carry has never been
+   groundless; **`summonsTaken=0`**, fixed and awaiting its own build, with
+   the plant deliberately NOT in the same build so a moving number is
+   attributable.
 
-   - **`threat` has only ever seen one outcome.** `brandishes=1` a run, so
-     `called=0 complied=0 undraw=False` CANNOT be sampled — one brandish gives
-     one answer, `FleeScreaming` every time. Plant several, at people with
-     different nerve.
-   - **`departed=0` and `carriedOut=0` are the live zeros**; `adds` reads 10,
-     and this entry claimed otherwise for four builds off prose.
-   - **`groundless=False`** — a carry has never been groundless.
-   - **`summonsTaken=0` — fixed 5 August, awaiting its own build.** The nightly
-     pass sampled the player's position at breakfast against lines live at hour
-     21; now sampled at the ring hour. **The plant is deliberately NOT in the
-     same build**, so a moving `summonsTaken` is attributable to this alone.
-
-   **The rule for every one of these is the same and it is rule 5b's
-   corollary: PLANT the condition, never loosen the bound.** And do them one
-   or two at a time — a build carrying five new staged behaviours cannot
-   attribute a red gate to any of them.
+   **The rule for all of them is rule 5b's corollary: PLANT the condition,
+   never loosen the bound.** One or two at a time — a build carrying five new
+   staged behaviours cannot attribute a red gate to any of them.
 
 ## Next
 
