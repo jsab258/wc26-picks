@@ -227,8 +227,14 @@ namespace Ledger.Core
             foreach (var d in StreetMap.Districts)
             {
                 if (d.Name != districtName) continue;
-                int minX = (int)d.AvenuesX[0] + 6, maxX = (int)d.AvenuesX[d.AvenuesX.Length - 1] - 6;
-                int minZ = (int)d.AvenuesZ[0] + 6, maxZ = (int)d.AvenuesZ[d.AvenuesZ.Length - 1] - 6;
+                // SCALED BOUNDS, because the avenue arrays are source data
+                // and the city is stretched about the origin. Reading them raw
+                // put four districts' residents 136-184m from the district
+                // they live in — the same fault as `DistrictAt`, in the second
+                // of five places that had it.
+                StreetMap.BoundsOf(d, out var bx0, out var bx1, out var bz0, out var bz1);
+                int minX = (int)bx0 + 6, maxX = (int)bx1 - 6;
+                int minZ = (int)bz0 + 6, maxZ = (int)bz1 - 6;
                 x = rng.Next(minX, maxX + 1);
                 z = rng.Next(minZ, maxZ + 1);
                 return;

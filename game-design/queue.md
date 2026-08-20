@@ -87,11 +87,9 @@ parked — no DirectML on the Air.
    that report is REFUTED.
 
 1. **THE BODY BUDGET IS CLOSED AT 87.8% — account in `roadmap-history.md`.**
-   Three things stay live:
-
-   **The band, not the budget.** 13.1 walkers in frame per pass, only 6.5
-   inside the 34m band — half the people you can see can never be skinned.
-   Belongs with the population item.
+   Three things stay live. **The band, not the budget:** 13.1 walkers in frame
+   per pass, only 6.5 inside the 34m band, so half the people you can see can
+   never be skinned.
 
    **The white pills are unidentified and NO COMMITTED STILL HAS ONE.** The
    pale figures in `review_street.jpg` measure `#5d626f`/`#66676a` against
@@ -124,11 +122,9 @@ parked — no DirectML on the Air.
    beacon lit stays in frame. A feature, not a knob.
 
 1. **THE VERDICT STEP IS 416 CHARS OFF A HARD CEILING AND FAILS AT DISPATCH,
-   NOT AT COMMIT.** *(CI)* One added paragraph took it 815 over the largest
-   step that has ever dispatched, and a 422 at dispatch means NO Windows build
-   at all. **The real fix is extraction**, as `sim-shots-stage.sh` already
-   proves: move the step body to a script file. Until then every comment added
-   there is a coin flip.
+   NOT AT COMMIT.** *(CI)* A 422 at dispatch means NO Windows build at all.
+   **The real fix is extraction**, as `sim-shots-stage.sh` proves: move the
+   step body to a script file. Until then every comment there is a coin flip.
 
 1. **THE FIRST MANHUNT FRAME IS BAD, AND IT IS THE FIRST ONE ANYONE HAS
    SEEN.** *(on screen)* `hunt_day13_noon`: fifteen people packed shoulder to
@@ -204,31 +200,35 @@ parked — no DirectML on the Air.
    comparable, the fault is in what a parcel LOOKS like out there, which is a
    different job entirely.
 
-   **THE ANSWER CAME BACK AND IT IS A BUG, NOT A CONTENT GAP.** `DistrictAt`
-   compared SCALED positions against UNSCALED avenue arrays — `WideBlocks`
-   stretches the city about the origin and every other consumer of those
-   arrays scales, this one did not. Harmless near the origin, enormous far
-   from it: the Exchange's avenue centre x-155 becomes -333.3 scaled, and its
-   blocks measure **-333.3**. Same to three figures for Fairview, the Parade
-   and Gullwing. **The Exchange's buildings stand 178m from the streets named
-   for it.** 38 of 52 block centres were in no district and four districts
-   held none; fixed, 0 of 52 outside and every district has blocks. The
-   sight-lines agree independently — the Hook 24.3m, every other district
-   40.6-45.6m, the bare-ground figure predicted before the run. **Not a
-   reporting fix**: `LocalJunctions`, the patrol beat and `PopulationHost` all
-   read it. Full account in `roadmap-history.md`.
+   **THE ANSWER CAME BACK AND IT IS A BUG, NOT A CONTENT GAP.** Five places
+   read the UNSCALED avenue arrays as if they were map coordinates, while
+   `WideBlocks` stretches the city about the origin. Harmless near the origin,
+   enormous far from it: the Exchange's avenue centre -155 scales to -333.3 and
+   its blocks measure **-333.3** — same to three figures for Fairview, the
+   Parade and Gullwing. **The Exchange's buildings stand 178m from the streets
+   named for it.** 38 of 52 block centres were in no district and four
+   districts held none; fixed, 0 of 52 outside. Sight-lines agreed
+   independently: the Hook 24.3m, every other district 40.6-45.6m, the
+   bare-ground figure predicted before the run.
+
+   **AND FIXING ONE SITE FIXED NOTHING VISIBLE, WHICH IS THE LESSON.** After
+   the `DistrictAt` fix, `parcelsByDistrict` lost `none` entirely and
+   `tourDepthBy` was **unchanged** — because four MORE places read the same
+   raw arrays: the tour camera (still photographing a field next door),
+   `Population.Place` (residents spawned off their own district), and the
+   ground plane, sized -200..160 while blocks reach -426..340, whose own
+   comment records the July symptom *"road slabs floating over the skybox"*.
+   All four fixed; `BoundsOf`/`CentreOf` own the scaling and
+   `tools/lint-avenues.py` refuses a raw read. **Next build is the one to
+   look at.** Account in `roadmap-history.md`.
 
 1. ~~**THE MARGIN SHOULD BE HALF A BLOCK**~~ and ~~**THE MARGIN FIX WEDGES
-   TRAFFIC**~~ — **BOTH WITHDRAWN; TWO WRONG EXPLANATIONS FOR ONE REAL BUG.**
-   The margin never mattered (12, 20 and 26 assign all 52 blocks identically
-   once the box is in the right place). And "it wedges traffic" came from a
-   broken gate: "nobody is permanently wedged" compared a vehicle's edge and
-   position at two instants sixty seconds apart, so a car that drove a loop and
-   came back read exactly like one that never moved — the flagged car had
-   crossed **eight edges**. The ten-seed sweep that appeared to exonerate the
-   change was the same instrument. **That pair of wrong readings delayed the
-   real fix by a day.** Gate now reads the whole window, predicate asserted
-   both ways with the eight-edge reading kept as a fixture.
+   TRAFFIC**~~ — **BOTH WITHDRAWN; two wrong explanations for one real bug.**
+   The margin never mattered. And "it wedges traffic" came from a gate that
+   compared two instants sixty seconds apart, so a car that drove a loop read
+   like one that never moved — the flagged car had crossed **eight edges**.
+   That pair of wrong readings delayed the real fix by a day. Gate now reads
+   the whole window, predicate asserted both ways.
 
 1. ~~**`vehiclesKitted=26/33` WHERE THE FLEET IS 28**~~ — **RENAMED** to
    `bodiesKitted=`, with `fleetNow=` beside it. Both sides count bodies BUILT

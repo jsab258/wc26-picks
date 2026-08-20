@@ -95,7 +95,42 @@ the arithmetic put it.
 `PopulationHost` places people with it. All three have been running against
 boxes in the wrong part of the map.
 
-**What now guards it.** CoreTests asserts that every block is inside some
+**AND FIXING ONE SITE FIXED NOTHING A PLAYER COULD SEE.** The next build
+landed `parcelsByDistrict` with `none` gone entirely — 331 parcels, every one
+attributed, `the_Hook:121/the_Exchange:58/the_Parade:57/Gullwing:45/
+Fairview:36/Copper_Row:14` — and `tourDepthBy` came back UNCHANGED. Four more
+places read the same unscaled arrays:
+
+  * `SimDirector.DistrictTour` aimed the camera at the raw avenue centre, so
+    four of the seven district photographs were still pictures of a field next
+    door. This is why the depths did not move.
+  * `Population.Place` spawned residents between raw avenue bounds, so four
+    districts' people have been living 136-184m from their own district.
+  * `WorldBuilder`'s ground plane took its extent from raw bounds: sized
+    -200..160 while the blocks reach -426..340. Its own comment records the
+    July playtest symptom — *"five of the seven were standing on nothing, road
+    slabs floating over the skybox"* — diagnosed then as the ground not
+    following the districts, fixed by making it follow the one array that must
+    never be read raw.
+  * And a fifth consequence nobody was looking for: the outer districts were
+    built with `district = null`, so they got the DEFAULT terrace massing
+    rather than their own. Downtown should be offices at 12-15m depth,
+    Fairview villas, Gullwing a resort front. All three were generic housing.
+
+One idea, five implementations. Fixing the one I was looking at and stopping is
+rule 1's third corollary — grep for the fault, not for the symptom — and the
+grep that would have found all five (`AvenuesX` across the tree) took ten
+seconds once it was finally run.
+
+**What now guards it.** `StreetMap.BoundsOf` and `CentreOf` own the scaling, so
+no caller has to remember it, and `tools/lint-avenues.py` refuses a raw read
+outside `StreetMap.cs` — tested both ways, clean over 172 files. A rule was
+available the whole time: `ScaleAbout`'s docstring says it exists so the grid,
+the blocks and the addresses "cannot disagree, which is the failure this
+project finds in pairs more than any other". It was written by the same hand
+that then read the arrays raw in four other files.
+
+CoreTests asserts that every block is inside some
 district and that every district has blocks — a property of the map, needing no
 measured bound. The wedge gate reads the whole window (every distinct edge a
 vehicle touches, on every step) and its predicate is asserted in both

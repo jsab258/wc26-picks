@@ -289,6 +289,47 @@ namespace Ledger.Core
             },
         };
 
+        /// A DISTRICT'S BOUNDS AS THEY ACTUALLY EXIST ON THE MAP — the one
+        /// place anything outside this file should ask.
+        ///
+        /// `AvenuesX`/`AvenuesZ` are UNSCALED SOURCE DATA. `WideBlocks` scales
+        /// the whole city about the origin, so a raw read of those arrays
+        /// describes a city that was never built. Five separate places read
+        /// them raw, and every one of them was wrong in the same direction:
+        ///
+        ///   `DistrictAt`                  four districts looked 136-184m away
+        ///                                 from their own buildings
+        ///   `SimDirector.DistrictTour`    aimed seven cameras at bare ground
+        ///   `Population.Place`            spawned people off their district
+        ///   `WorldBuilder` ground extent  sized the ground plane to the
+        ///                                 unscaled map, so the outer
+        ///                                 districts stand off the edge of it
+        ///
+        /// One idea, five implementations, and the four nobody looked at were
+        /// the four missing a line. So the scaling stops being something each
+        /// caller must remember: ask here and it cannot be forgotten.
+        ///
+        /// No margin — that is the caller's business and `DistrictAt` is the
+        /// only one that wants one.
+        public static void BoundsOf(District d, out double minX, out double maxX,
+                                    out double minZ, out double maxZ)
+        {
+            var (kx, kz) = WideBlocks ? (StretchX, StretchZ) : (1.0, 1.0);
+            minX = ScaleAbout(d.AvenuesX[0], 0, kx);
+            maxX = ScaleAbout(d.AvenuesX[d.AvenuesX.Length - 1], 0, kx);
+            minZ = ScaleAbout(d.AvenuesZ[0], 0, kz);
+            maxZ = ScaleAbout(d.AvenuesZ[d.AvenuesZ.Length - 1], 0, kz);
+        }
+
+        /// The middle avenue crossing of a district, on the map. What a camera
+        /// aimed "down the middle of the Exchange" must actually point at.
+        public static void CentreOf(District d, out double x, out double z)
+        {
+            var (kx, kz) = WideBlocks ? (StretchX, StretchZ) : (1.0, 1.0);
+            x = ScaleAbout(d.AvenuesX[d.AvenuesX.Length / 2], 0, kx);
+            z = ScaleAbout(d.AvenuesZ[d.AvenuesZ.Length / 2], 0, kz);
+        }
+
         /// Which district a position is in, by name, or null out on the cut.
         ///
         /// THE AVENUE ARRAYS ARE UNSCALED SOURCE DATA AND THIS READ THEM RAW,
@@ -337,14 +378,11 @@ namespace Ledger.Core
         /// been running against boxes in the wrong part of the map.
         public static string DistrictAt(double x, double z)
         {
-            var (kx, kz) = WideBlocks ? (StretchX, StretchZ) : (1.0, 1.0);
             foreach (var d in Districts)
             {
-                double minX = ScaleAbout(d.AvenuesX[0], 0, kx) - 12;
-                double maxX = ScaleAbout(d.AvenuesX[d.AvenuesX.Length - 1], 0, kx) + 12;
-                double minZ = ScaleAbout(d.AvenuesZ[0], 0, kz) - 12;
-                double maxZ = ScaleAbout(d.AvenuesZ[d.AvenuesZ.Length - 1], 0, kz) + 12;
-                if (x >= minX && x <= maxX && z >= minZ && z <= maxZ) return d.Name;
+                BoundsOf(d, out var minX, out var maxX, out var minZ, out var maxZ);
+                if (x >= minX - 12 && x <= maxX + 12
+                 && z >= minZ - 12 && z <= maxZ + 12) return d.Name;
             }
             return null;
         }

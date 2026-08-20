@@ -7650,8 +7650,23 @@ namespace Ledger.Game
                 {
                     if (d?.AvenuesX == null || d.AvenuesZ == null) continue;
                     if (d.AvenuesX.Length == 0 || d.AvenuesZ.Length == 0) continue;
-                    float cx = (float)d.AvenuesX[d.AvenuesX.Length / 2];
-                    float cz = (float)d.AvenuesZ[d.AvenuesZ.Length / 2];
+                    // THE SCALED CENTRE, WHICH IS WHERE THE DISTRICT IS.
+                    //
+                    // This read the avenue arrays RAW, and they are unscaled
+                    // source data — so the tour aimed four of its seven cameras
+                    // at empty ground 136-184m from the district they were
+                    // named after, and the resulting photographs were read for
+                    // days as "the outer districts look unbuilt". They were
+                    // pictures of a field next door.
+                    //
+                    // The measurement said so before this was understood and
+                    // nobody could hear it: `tourDepthBy` came back with the
+                    // Hook at 24.3m of sight-line and every other district at
+                    // 40.6-45.6m, which is the bare-ground figure the emitter
+                    // had predicted in advance for a plain.
+                    Ledger.Core.StreetMap.CentreOf(d, out var dcx, out var dcz);
+                    float cx = (float)dcx;
+                    float cz = (float)dcz;
                     var look = new Vector3(cx, 1.6f, cz);
                     var eye = new Vector3(cx, 14f, cz - 34f);
                     cam.transform.position = eye;

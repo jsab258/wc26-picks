@@ -199,10 +199,22 @@ namespace Ledger.Game
             double gMinZ = double.MaxValue, gMaxZ = double.MinValue;
             foreach (var d in Ledger.Core.StreetMap.Districts)
             {
-                gMinX = System.Math.Min(gMinX, d.AvenuesX[0]);
-                gMaxX = System.Math.Max(gMaxX, d.AvenuesX[d.AvenuesX.Length - 1]);
-                gMinZ = System.Math.Min(gMinZ, d.AvenuesZ[0]);
-                gMaxZ = System.Math.Max(gMaxZ, d.AvenuesZ[d.AvenuesZ.Length - 1]);
+                // SCALED, AND THE COMMENT ABOVE IS ABOUT THIS EXACT SYMPTOM.
+                //
+                // "Five of the seven were standing on nothing — road slabs
+                // floating over the skybox" was diagnosed in July as the ground
+                // plane not following the districts, and the fix made it follow
+                // the AVENUE ARRAYS. Those are unscaled source data: the ground
+                // was sized -200..160 while the blocks reach -426..340, so the
+                // outer districts have been standing off the edge of it ever
+                // since. The right symptom, the right instinct, and a raw read
+                // of the one array in this codebase that must never be read raw.
+                Ledger.Core.StreetMap.BoundsOf(d, out var dx0, out var dx1,
+                                               out var dz0, out var dz1);
+                gMinX = System.Math.Min(gMinX, dx0);
+                gMaxX = System.Math.Max(gMaxX, dx1);
+                gMinZ = System.Math.Min(gMinZ, dz0);
+                gMaxZ = System.Math.Max(gMaxZ, dz1);
             }
             const float shoulder = 40f;   // you can walk past the last junction
             float gw = (float)(gMaxX - gMinX) + shoulder * 2f;

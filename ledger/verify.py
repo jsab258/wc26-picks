@@ -653,6 +653,42 @@ def namespace_as_value():
                   % (m.group(1), m.group(2)) if m else "0 namespace-as-value errors")
 
 
+
+def raw_avenues():
+    """A raw read of `AvenuesX`/`AvenuesZ` — the unscaled source arrays.
+
+    `WideBlocks` scales the city about the origin, so a coordinate taken
+    straight out of those arrays describes a city that was never built. FIVE
+    places did it and all five were wrong the same way: `DistrictAt` looked
+    136-184m from four districts' own buildings, the district tour aimed four
+    of seven cameras at bare ground, `Population.Place` spawned their residents
+    elsewhere, and the ground plane was sized -200..160 while blocks reach
+    -426..340.
+
+    A rule would not have caught it — `ScaleAbout`'s own docstring already says
+    it exists so the grid, the blocks and the addresses "cannot disagree", and
+    it was written by the hand that then read the arrays raw in four other
+    files. So `StreetMap.BoundsOf`/`CentreOf` do the scaling and this refuses
+    the read that bypasses them.
+
+    Both halves are run: the selftest proves the check still works, and the
+    tree is the accepting case — every hit on today's code would be a
+    regression by construction, so a clean sweep needs no fixture to trust."""
+    tool = str(ROOT.parent / "tools" / "lint-avenues.py")
+    code, out = run(["python3", tool, "--selftest"])
+    if code != 0:
+        first = next((l.strip() for l in out.splitlines()
+                      if "Error" in l or "assert" in l), "see lint-avenues --selftest")
+        return False, "AVENUE LINT BROKEN: " + first[:110]
+    code, out = run(["python3", tool])
+    if code != 0:
+        first = next((l.strip() for l in out.splitlines() if ".cs:" in l), "see lint-avenues")
+        return False, "RAW AVENUE READ (unscaled coordinates): " + first[:90]
+    m = re.search(r"\((\d+) files walked", out)
+    return True, ("0 raw avenue reads (%s files)" % m.group(1) if m
+                  else "0 raw avenue reads")
+
+
 def static_instance():
     """A static method reaching an instance member — CS0120.
 
@@ -1276,7 +1312,7 @@ def main():
     for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
-               static_instance, filename_as_type, namespace_as_value, workflow_size,
+               static_instance, raw_avenues, filename_as_type, namespace_as_value, workflow_size,
                powershell_steps, sheet_read, prop_dimensions,
                frame_drift, verdict_keys, verdict_format, verdict_dupkeys, save_chaos, soak,
                adversary, stale_anchors, clip_audit, picker_selftest, core_tests):
