@@ -150,17 +150,32 @@ parked — no DirectML on the Air.
    is a brightness comparison between kit props and the town palette, on the
    frame**, not another look.
 
-1. **A STREET PLATE FILLS HALF THE MANHUNT FRAME, AND NO RAYCAST CAN SEE IT.**
-   *(on screen, `hunt_day13_noon`)* "Quay Street" runs across the bottom of the
-   shot in letters a metre tall while every framing number reads clean.
-   **Structural:** those are RAYCASTS and a `TextMesh` has no collider, so the
-   shot-clearance loop can step back off a wall and cannot see a sign filling
-   the lens, however many rounds it runs. `worstNameFrac` measures this for
-   NAME tags (0.164); plates, fascias and captions had no size number at all.
-   **`worstWorldFrac` ships next build** — screen area, same projection the
-   declutter uses. Reported not gated: what a sign is ALLOWED to fill is a
-   judgement. **Also there:** `worstWorldPair=[Quay Street|Quay Street]`, two
-   identical plates overlapping, and `collidingWorldText=7`.
+1. ~~**A STREET PLATE FILLS HALF THE MANHUNT FRAME**~~ — **GONE, AND NOT
+   BECAUSE ANYONE AIMED AT IT.** `worstWorldFrac=0.037` with the plate named,
+   and the new `hunt_day13_noon` shows "Quay" small at the right edge. The
+   camera moved as a side-effect of the district fix. **The metric agrees with
+   the frame, which is the point** — it now exists for the next time, and the
+   raycast blindness it was written for is real regardless.
+
+1. **A THIRD OF SPEECH BUBBLES OVERLAP, AND THE PASS THAT SHOULD FIX IT FIRED
+   ONCE IN A WHOLE RUN.** *(on screen)* `bubbleOverlapMedian=0.33` over 39
+   samples — a MEDIAN, so it describes a typical frame rather than a bad
+   moment — and the still shows "That's … ends with …" printed through "was
+   Novak … came to".
+
+   **The denominators added this session are what made it readable:**
+   `bubblesLiftedSum=1` against `shotFixups=27`. The control is
+   `namesPinnedSum=106` over the same 27 shots — the site runs, the pattern
+   works, and it is the bubble de-overlap specifically that does not.
+
+   **And the measurement was in the wrong place to ever say so.**
+   `CollidingNames` ran three hundred lines ABOVE the three passes that move
+   text, so `collidingBubbles` and `bubbleOverlapMedian` reported the state the
+   repairs then acted on — a number that can only see the problem and never
+   the fix. Moved below all three; it also puts `collidingNameSamples` and
+   `shotFixups` on the same shots (they read 26 and 27). **Next build's median
+   is the first one that describes a committed frame** — read it before
+   touching `LiftAtShot`.
 
 1. **THE NAMEPLATE HEAP IS MEASURED AT LAST AND THE INSTRUMENTS AGREE WITH
    THE PICTURE.** *(on screen)* `collidingNames=3` over 26 samples, worst at

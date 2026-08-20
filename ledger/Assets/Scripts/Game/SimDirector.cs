@@ -7925,17 +7925,12 @@ namespace Ledger.Game
                 // for: "do the outer districts look unbuilt" is a sight-line
                 // question, and it needs its own series or it dilutes the one
                 // about where the GAME stands.
-                // AND THE TEXT COLLISIONS, HERE, FOR THE SAME REASON EVERY
-                // OTHER NUMBER IN THIS BLOCK IS HERE: the camera has finished
-                // moving, so this describes the frame that gets rendered.
-                //
-                // This block is guarded on there being a camera AND a player,
-                // which the old position was not, so a shot taken with no
-                // player no longer samples. `collidingNameSamples` is what
-                // says so — it is the denominator on the whole measurement and
-                // it will drop if that case is ever real. Preferred to
-                // sampling a frame the picture cannot be compared against.
-                if (_bubbleSampleWanted) CollidingNames();
+                // THE TEXT-COLLISION SAMPLE MOVED AGAIN, FURTHER DOWN — see
+                // the note beside `LiftAtShot`. Getting it after the camera
+                // stopped moving was necessary and not sufficient: the three
+                // passes that REPAIR the text run three hundred lines below
+                // this, so a sample here still described an intermediate
+                // state that nothing photographs.
 
                 if (_touring)
                 {
@@ -8245,6 +8240,29 @@ namespace Ledger.Game
             int liftedNow = SpeechBubble.LiftAtShot(cam);
             _bubblesLiftedSum += liftedNow;
             if (liftedNow > _bubblesLiftedPeak) _bubblesLiftedPeak = liftedNow;
+
+            // AND NOW MEASURE THE TEXT, AFTER EVERY PASS THAT MOVES IT.
+            //
+            // This sat three hundred lines up, before the pins and before the
+            // de-overlap — so `collidingBubbles` and `bubbleOverlapMedian`
+            // reported the state the repairs then acted on. A number placed
+            // where it can only ever see the problem and never the fix cannot
+            // tell a working pass from a broken one, and the frame is the only
+            // thing that could arbitrate.
+            //
+            // MOVING IT WAS PROMPTED BY A READING THE DENOMINATORS MADE
+            // POSSIBLE: `bubblesLiftedSum=1` over `shotFixups=27` — the
+            // de-overlap moved a bubble ONCE in a whole run — beside
+            // `bubbleOverlapMedian=0.33`, a third of bubble pairs overlapping
+            // in a typical frame, and a committed still with two lines of
+            // dialogue printed through each other. `namesPinnedSum=106` over
+            // the same 27 shots is the control: the site runs, the pattern
+            // works, and it is the bubble lift specifically that does not.
+            //
+            // It also puts `collidingNameSamples` and `shotFixups` on the same
+            // shots. They read 26 and 27, which is one shot that ran the
+            // repairs and was never measured.
+            if (_bubbleSampleWanted) CollidingNames();
             // AND THE MIRROR COUNT MOVES HERE TOO — AFTER the aim, on purpose,
             // because that is the frame that gets written. It used to run once,
             // at the audit moment, and reported 0 for a run whose committed
