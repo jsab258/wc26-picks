@@ -126,6 +126,30 @@ parked — no DirectML on the Air.
    **The real fix is extraction**, as `sim-shots-stage.sh` proves: move the
    step body to a script file. Until then every comment there is a coin flip.
 
+1. **THE DISTANT SKYLINE WAS PALE LAVENDER OVER A NOIR STREET.** *(on screen,
+   `district_strip` — the top third of the frame)* Kit props arrive wearing
+   whatever their author painted them, and `BuildSkyline`'s kit branch kept
+   them while its own `else` branch built the same tower out of
+   `AssetLibrary.Concrete` and looked right. **The fix already existed one
+   system over:** `TrafficHost` repaints kit cars for exactly this reason —
+   its comment says the kit ships "holiday-brochure mint" and the first stills
+   had every car wearing it. Same shape, and the skyline never got it.
+
+   Tinted to agree with its own fallback rather than to an invented colour,
+   and darker than the near town because these stand at the map's far edge —
+   a skyline brighter than the street in front of it is the specific thing
+   that read as wrong. `skylineRepainted` ships beside `skyline=n/m` so the
+   repaint cannot silently stop running, which is how this survived.
+
+1. **AND FOUR MORE KIT-PROP SITES ARE UNPAINTED — A QUESTION, NOT A FIX.**
+   Awnings and cars go through a repaint; benches, bins, street lights and the
+   crate stack do not. **Deliberately not mass-repainted:** the skyline was
+   wrong because it was BRIGHTER than everything around it at distance, and a
+   green bench is perfectly plausible. Acting on the resemblance alone is the
+   rule-4 mistake of treating a picture as evidence of WHAT. **The measurement
+   is a brightness comparison between kit props and the town palette, on the
+   frame**, not another look.
+
 1. **A STREET PLATE FILLS HALF THE MANHUNT FRAME, AND NO RAYCAST CAN SEE IT.**
    *(on screen, `hunt_day13_noon`)* "Quay Street" runs across the bottom of the
    shot in letters a metre tall while every framing number reads clean.

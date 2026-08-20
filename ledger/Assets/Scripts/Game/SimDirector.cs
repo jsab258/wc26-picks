@@ -11914,7 +11914,7 @@ namespace Ledger.Game
                       // or the name candidates missed — the difference
                       // between a pipeline and a street (rule 6).
                       $"propsPlaced={AssetLibrary.PropsPlaced} variantSurfaces={AssetLibrary.VariantsUsed} " +
-                      $"skyline={WorldBuilder.SkylineKitted}/{WorldBuilder.SkylineBlocks} " +
+                      $"skyline={WorldBuilder.SkylineKitted}/{WorldBuilder.SkylineBlocks} skylineRepainted={WorldBuilder.SkylineRepainted} " +
                       // BODIES BUILT, NOT VEHICLES PRESENT, and the old name
                       // said the wrong one. It read `vehiclesKitted=26/33` on
                       // a fleet of 28, which scans as "seven vehicles have no

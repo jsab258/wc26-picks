@@ -2971,6 +2971,23 @@ namespace Ledger.Game
         /// repo.
         public static int SkylineBlocks, SkylineKitted;
 
+        /// What the distant towers are painted. See the note at the repaint:
+        /// the kit ships its own bright materials and this branch kept them,
+        /// so the top third of every wide frame was pale lavender over a noir
+        /// street.
+        ///
+        /// Derived from the landed sky readings rather than picked: noon fog
+        /// measures (0.402,0.424,0.446) in the verdict, and something at the
+        /// far edge of the map must sit UNDER that or it reads as brighter
+        /// than the air in front of it. Slightly blue, because haze is.
+        static readonly Color SkylineHaze = new Color(0.34f, 0.36f, 0.40f);
+
+        /// How many kitted towers were repainted, so "the skyline is in the
+        /// palette" is a number rather than a hope. Zero with
+        /// `skyline=n/m` non-zero would mean the repaint stopped running —
+        /// which is exactly how this fault survived in the first place.
+        public static int SkylineRepainted;
+
         /// THE CITY DOES NOT END AT THE LAST TERRACE.
         ///
         /// Every eye-level frame so far ends in blank sky about two hundred
@@ -3003,7 +3020,7 @@ namespace Ledger.Game
         static void BuildSkyline()
         {
             if (!TownPlanEnabled) return;
-            SkylineBlocks = SkylineKitted = 0;
+            SkylineBlocks = SkylineKitted = SkylineRepainted = 0;
 
             // The outer ring sits near 112m after the topology stretch and the
             // docks run to z=-174, so this stands well outside both. Two loose
@@ -3039,6 +3056,7 @@ namespace Ledger.Game
                 if (kit != null)
                 {
                     SkylineKitted++;
+                    SkylineRepainted++;
                     kit.name = $"Skyline_{i}";
                     var r = kit.GetComponentInChildren<Renderer>();
                     if (r != null && r.bounds.size.y > 0.01f)
@@ -3046,6 +3064,44 @@ namespace Ledger.Game
                     // Grounded after scaling — the mesh knows where its feet are.
                     var g = kit.GetComponentInChildren<Renderer>();
                     if (g != null) kit.transform.position = at + Vector3.up * (at.y - g.bounds.min.y);
+                    // REPAINTED INTO THE HAZE, BECAUSE THE KIT SHIPS ITS OWN
+                    // MATERIALS AND THIS BRANCH WAS KEEPING THEM.
+                    //
+                    // Found by opening `district_strip`: the top third of the
+                    // frame is pale lavender-white towers standing over a noir
+                    // brick street. Every building in the town proper goes
+                    // through `MakeBoxVaried` and the palette; a kit prop
+                    // instantiated here arrives wearing whatever its author
+                    // painted it, and nothing touched it.
+                    //
+                    // THE FIX ALREADY EXISTED ONE SYSTEM OVER. `TrafficHost`
+                    // repaints kit cars for exactly this reason — its comment
+                    // says the kit's texture is "holiday-brochure mint" and
+                    // the first stills had every car on the street wearing it.
+                    // Same shape, same cause, and the skyline never got it:
+                    // one idea, two implementations, and the one nobody looked
+                    // at is the one missing a line.
+                    //
+                    // NOT AN INVENTED COLOUR (rule 2). The `else` branch four
+                    // lines down builds the same tower out of
+                    // `AssetLibrary.Concrete`, in the palette, and looks
+                    // right. The two branches of one function should produce
+                    // one look, so the kit path is tinted to agree with the
+                    // fallback rather than to a number somebody chose.
+                    //
+                    // Darkened further than the near town on purpose: these
+                    // stand at the far edge of the map, where distance and
+                    // haze take the contrast out of anything real. A skyline
+                    // that reads as BRIGHTER than the street in front of it is
+                    // the specific thing that made the frame look wrong.
+                    var haze = SkylineHaze;
+                    var mpb = new MaterialPropertyBlock();
+                    foreach (var rr in kit.GetComponentsInChildren<Renderer>())
+                    {
+                        rr.GetPropertyBlock(mpb);
+                        mpb.SetColor("_Color", haze);
+                        rr.SetPropertyBlock(mpb);
+                    }
                     // `Object.Destroy`, not `Destroy` — this class is static
                     // and has no MonoBehaviour to inherit it from. Caught by
                     // the local Game-layer compile pass rather than by a
