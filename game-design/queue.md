@@ -181,46 +181,44 @@ parked — no DirectML on the Air.
    would go red on arrival (rule 5b's corollary). **Turn the file check into a
    gate once a verdict lands clean.**
 
-1. **THE DISTRICT TOUR LANDED, AND THE OUTER DISTRICTS LOOK UNBUILT — BUT
-   THAT IS A HYPOTHESIS, NOT A MEASUREMENT.** *(on screen)* Seven frames now
-   exist, `district_*.jpg`, the first pictures ever taken of six of them.
-   `district_downtown` and `district_fairview` read as a road with four cars on
-   a vast empty grey plain under a skyline of pale towers well outside the noir
-   palette. The Hook beside them has terraces, signs, props and people.
+1. ~~**THE OUTER DISTRICTS LOOK UNBUILT**~~ — **CLOSED, AND THEY WERE NEVER
+   UNBUILT.** *(on screen)* Five places read the UNSCALED avenue arrays as map
+   coordinates while `WideBlocks` stretches the city about the origin. Four
+   districts' buildings stood 136-184m from the streets named for them, the
+   tour camera aimed at the gap, residents spawned there, and the ground plane
+   was sized to the unscaled map. Account in `roadmap-history.md`.
 
-   **A pixel statistic over those frames CANNOT tell them apart** — block
-   spread 37-44 and flat ground 5-8% in all seven, because textured ground
-   varies as much as a street does. A metric blind to the question, which is
-   why the claim above is still an impression.
+   **The before/after is unambiguous and the control held.** `tourDepthBy` went
+   from `hook:24.3` with every other district at **40.6-45.6** (the bare-ground
+   figure predicted in advance) to `downtown:18.8 / hook:24.3 / strip:27.6 /
+   ironside:27.6 / copper:27.6 / gullwing:27.6 / fairview:28.5`. Every district
+   now reads as built; **the Hook is unchanged at 24.3**, which is the control,
+   since it was always correct. Downtown is the most enclosed at 18.8, which is
+   right for an office district. The frames agree: Downtown is a brick canyon
+   and Fairview is villas with chimney pots.
 
-   **So the count comes from the builder.** `parcelsByDistrict=[...]` ships
-   next build, incremented where the parcel is placed. **Read it against the
-   pictures**: if the Exchange really has a tenth of the Hook's parcels the
-   frames are honest and the districts need building out; if the counts are
-   comparable, the fault is in what a parcel LOOKS like out there, which is a
-   different job entirely.
+   **A fifth consequence, unlooked for:** the outer districts were built with
+   `district = null` and got the DEFAULT terrace massing. `terraceParcels` 376
+   to 331 is deeper office plans finally reaching Downtown.
 
-   **THE ANSWER CAME BACK AND IT IS A BUG, NOT A CONTENT GAP.** Five places
-   read the UNSCALED avenue arrays as if they were map coordinates, while
-   `WideBlocks` stretches the city about the origin. Harmless near the origin,
-   enormous far from it: the Exchange's avenue centre -155 scales to -333.3 and
-   its blocks measure **-333.3** — same to three figures for Fairview, the
-   Parade and Gullwing. **The Exchange's buildings stand 178m from the streets
-   named for it.** 38 of 52 block centres were in no district and four
-   districts held none; fixed, 0 of 52 outside. Sight-lines agreed
-   independently: the Hook 24.3m, every other district 40.6-45.6m, the
-   bare-ground figure predicted before the run.
+1. ~~**A DOCK NAME ON A FAIRVIEW SHOPFRONT**~~ — **CHASED TO THE CODE AND
+   FIXED, AND THE SIGN WAS INNOCENT.** *(on screen, `district_fairview`)* A
+   fascia read "NORTH QUAY COLD STORE" in the district the design doc calls
+   respectable and residential. The name pool is chosen correctly by building
+   type — a warehouse gets a company, not a chip shop. **The warehouse was
+   what should not have been there:** `Dressing.KindAt` made a quarter of every
+   frontage away from a core a shed, in EVERY district. Its own comment records
+   making that exact mistake once with `prosperity` and fixing it with
+   `nearCore` — which separates a district's centre from its edge and is not a
+   district signal either.
 
-   **AND FIXING ONE SITE FIXED NOTHING VISIBLE, WHICH IS THE LESSON.** After
-   the `DistrictAt` fix, `parcelsByDistrict` lost `none` entirely and
-   `tourDepthBy` was **unchanged** — because four MORE places read the same
-   raw arrays: the tour camera (still photographing a field next door),
-   `Population.Place` (residents spawned off their own district), and the
-   ground plane, sized -200..160 while blocks reach -426..340, whose own
-   comment records the July symptom *"road slabs floating over the skybox"*.
-   All four fixed; `BoundsOf`/`CentreOf` own the scaling and
-   `tools/lint-avenues.py` refuses a raw read. **Next build is the one to
-   look at.** Account in `roadmap-history.md`.
+   **This was only fixable today**: `DistrictAt` answered `null` for most of the
+   map until this session, so keying on it before would have been keying on
+   nothing. Share is a per-district table now, from the briefs — Ironside 0.55
+   (its whole point is places without witnesses), the Hook 0.25, Copper Row
+   0.10, and zero for the Exchange, the Parade, Fairview and Gullwing. Looked
+   up inside `KindAt` so no caller can forget it. Tested by sweeping each
+   district's real bounds, with the sample size asserted first.
 
 1. ~~**THE MARGIN SHOULD BE HALF A BLOCK**~~ and ~~**THE MARGIN FIX WEDGES
    TRAFFIC**~~ — **BOTH WITHDRAWN; two wrong explanations for one real bug.**

@@ -239,6 +239,36 @@ namespace Ledger.Core
         public static bool HasFascia(Premises p) =>
             p == Premises.Shop || p == Premises.Warehouse;
 
+        /// What share of the frontages away from a core are sheds, by
+        /// district. DATA, not a chain of ifs, so adding a district is a row.
+        ///
+        /// From the design doc's own briefs rather than from taste: Ironside
+        /// is the industrial quarter and its whole point is places without
+        /// witnesses, so it is mostly sheds. The Hook is the port town itself
+        /// and has working ground behind the frontages. Copper Row is the
+        /// market quarter — cash, stalls, dense street life — so a few stores
+        /// behind the market, and no more. The Exchange is offices, the Parade
+        /// is entertainment, Fairview is villas and Gullwing is a seaside
+        /// resort: none of those has a bonded warehouse on its high street,
+        /// and putting one there is what made Fairview read as a dock.
+        ///
+        /// Out on the cut (`null`) keeps the old blanket figure: it is the
+        /// ground between districts, where a shed is exactly what stands.
+        static double WarehouseShare(string district)
+        {
+            switch (district)
+            {
+                case "Ironside": return 0.55;
+                case "the Hook": return 0.25;
+                case "Copper Row": return 0.10;
+                case "the Exchange":
+                case "the Parade":
+                case "Fairview":
+                case "Gullwing": return 0.0;
+                default: return 0.25;   // between districts
+            }
+        }
+
         public static Premises KindAt(double x, double z, double prosperity, bool nearCore)
         {
             double r = Roll(x, z, 11);
@@ -259,7 +289,29 @@ namespace Ledger.Core
             // signature because it is a real concept and a later caller may
             // have a genuine gradient — but nothing keys on it until one does,
             // rather than pretending a front/back flag is a wealth map.
-            if (!nearCore && r < 0.25) return Premises.Warehouse;
+            //
+            // AND THE SAME MISTAKE ONE LEVEL UP, WHICH THE PARAGRAPH ABOVE
+            // COULD NOT SEE. `nearCore` is real, but it separates the CENTRE
+            // of a district from its EDGE — it is not a district signal
+            // either. So a quarter of every frontage away from a core became
+            // a warehouse in EVERY district, and Fairview — villas, the
+            // respectable one — got industrial sheds with "NORTH QUAY COLD
+            // STORE" painted on them. Found by opening `district_fairview`
+            // and reading the sign, then reading the code rather than the
+            // picture: the sign is correct for a warehouse, and the warehouse
+            // is what should not be there.
+            //
+            // A REAL DISTRICT SIGNAL ONLY BECAME AVAILABLE TODAY. `DistrictAt`
+            // was comparing scaled positions against unscaled avenue arrays
+            // and answered `null` for most of the map, so keying on it before
+            // now would have been keying on nothing. That is why this is a fix
+            // and not an oversight being tidied.
+            //
+            // Looked up HERE rather than passed in, so no caller can forget
+            // it — which is the lesson of the five sites that each had to
+            // remember to scale and four of which did not.
+            double sheds = WarehouseShare(StreetMap.DistrictAt(x, z));
+            if (!nearCore && r < sheds) return Premises.Warehouse;
             // Shops cluster where the money and the footfall are. Not
             // guaranteed even at the centre — a high street with a shop in
             // every single unit is a shopping centre, not a town.

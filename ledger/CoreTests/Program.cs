@@ -15391,6 +15391,63 @@ namespace Ledger.CoreTests
             Check(shops < 86, "and a rich centre is not a shopping centre — some of "
                   + "it is still somewhere people live", $"{shops} of 86");
 
+            // AND A DISTRICT GETS THE BUILDINGS ITS BRIEF SAYS IT HAS.
+            //
+            // FOUND IN A PICTURE, FIXED IN THE CODE. `district_fairview` has a
+            // shed with "NORTH QUAY COLD STORE" painted on it, in the district
+            // the design doc calls respectable and residential. The sign was
+            // correct for a warehouse; the warehouse was what should not have
+            // been there. `KindAt` made a quarter of every frontage away from
+            // a core a shed, in every district — the same "that flag is not a
+            // district signal" mistake the comment inside it records having
+            // already made once with `prosperity`, repeated with `nearCore`.
+            //
+            // SAMPLED INSIDE THE REAL DISTRICTS, not at invented coordinates.
+            // Rule 5b's corollary: a probe that never enters the district it
+            // asks about is not a probe. Each district is swept across its own
+            // scaled bounds, and `nearCore: false` is the case the rule keys
+            // on — near a core nothing is a shed anyway, so asking there would
+            // pass for the wrong reason.
+            {
+                var shedsBy = new Dictionary<string, int>();
+                var seenBy = new Dictionary<string, int>();
+                foreach (var d in StreetMap.Districts)
+                {
+                    StreetMap.BoundsOf(d, out var x0, out var x1, out var z0, out var z1);
+                    int sh = 0, n = 0;
+                    for (double x = x0; x <= x1; x += 3.0)
+                        for (double z = z0; z <= z1; z += 3.0)
+                        {
+                            if (StreetMap.DistrictAt(x, z) != d.Name) continue;
+                            n++;
+                            if (Dressing.KindAt(x, z, 0.15, false) == Dressing.Premises.Warehouse) sh++;
+                        }
+                    shedsBy[d.Name] = sh; seenBy[d.Name] = n;
+                }
+                // THE DENOMINATOR FIRST (rule 3b): zero sheds in Fairview is
+                // only a finding if Fairview was sampled at all.
+                foreach (var d in StreetMap.Districts)
+                    Check(seenBy[d.Name] > 50, $"{d.Name} was sampled enough to say anything",
+                        seenBy[d.Name].ToString());
+
+                foreach (var quiet in new[] { "Fairview", "Gullwing", "the Exchange", "the Parade" })
+                    Check(shedsBy[quiet] == 0,
+                        $"{quiet} has no bonded warehouses on its streets",
+                        $"{shedsBy[quiet]} of {seenBy[quiet]}");
+
+                // AND THE OTHER HALF, or "no sheds anywhere" would pass this.
+                // Ironside's entire brief is places without witnesses.
+                Check(shedsBy["Ironside"] > 0,
+                    "and Ironside, the industrial quarter, does have them",
+                    $"{shedsBy["Ironside"]} of {seenBy["Ironside"]}");
+                Check(shedsBy["Ironside"] * 100 / System.Math.Max(1, seenBy["Ironside"]) > 30,
+                    "and enough of them that it reads as industrial",
+                    $"{shedsBy["Ironside"] * 100 / System.Math.Max(1, seenBy["Ironside"])}%");
+                Check(shedsBy["the Hook"] > 0,
+                    "and the port town itself has working ground behind its frontages",
+                    $"{shedsBy["the Hook"]} of {seenBy["the Hook"]}");
+            }
+
             Check(Dressing.KindAt(17, 3, 0.5, true) == Dressing.KindAt(17, 3, 0.5, true),
                 "the same corner is the same premises every time it is asked");
 
