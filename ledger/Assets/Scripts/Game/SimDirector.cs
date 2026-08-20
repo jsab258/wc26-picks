@@ -1300,6 +1300,15 @@ namespace Ledger.Game
             SampleBubbles();
             SampleCrowding();
             if (!_tookDayShot && now.Hour == 12) { _tookDayShot = true; Shot($"day{now.Day}_noon"); }
+            // AND ONE FRAME OF EVERY DISTRICT, ONCE A RUN. See `DistrictTour`:
+            // `shotDistricts=[the_Hook:20]` says all twenty shots of every run
+            // are in one of seven districts, and the other six have never been
+            // photographed at all.
+            if (!_tookTour && now.Day >= 3 && now.Hour == 12)
+            {
+                _tookTour = true;
+                DistrictTour();
+            }
             if (!_tookNightShot && now.Hour == 23)
             {
                 _tookNightShot = true;
@@ -7440,6 +7449,57 @@ namespace Ledger.Game
         /// a NAMED moment rather than of the run.
         string _lastShotName = "none";
 
+        bool _tookTour;
+        /// True while the district tour is running. See `DistrictTour`.
+        bool _touring;
+
+        /// ONE FRAME OF EVERY DISTRICT, so the six nobody has seen get looked at.
+        ///
+        /// `shotDistricts=[the_Hook:20]` — every shot of every run, in one of
+        /// seven districts. Copper Row, Ironside, the Exchange, the Parade,
+        /// Fairview and Gullwing have never been photographed. They were the
+        /// largest world change in weeks and the channel this project reads
+        /// every build has never once looked at them.
+        ///
+        /// Elevated and aimed along the middle avenue from outside the block,
+        /// which is the day stills' composition and therefore comparable with
+        /// them. The middle crossing is the district's centre by construction:
+        /// the avenue arrays ARE its definition, so there is no centre to
+        /// invent or to drift out of date.
+        ///
+        /// The camera goes back exactly where it stood. A tour that moved the
+        /// game's camera would be a screenshot feature changing the game, and
+        /// this file has already paid for that lesson once tonight.
+        void DistrictTour()
+        {
+            var cam = Camera.main;
+            if (cam == null) return;
+            var keepPos = cam.transform.position;
+            var keepRot = cam.transform.rotation;
+            _touring = true;
+            try
+            {
+                foreach (var d in Ledger.Core.StreetMap.Districts)
+                {
+                    if (d?.AvenuesX == null || d.AvenuesZ == null) continue;
+                    if (d.AvenuesX.Length == 0 || d.AvenuesZ.Length == 0) continue;
+                    float cx = (float)d.AvenuesX[d.AvenuesX.Length / 2];
+                    float cz = (float)d.AvenuesZ[d.AvenuesZ.Length / 2];
+                    var look = new Vector3(cx, 1.6f, cz);
+                    var eye = new Vector3(cx, 14f, cz - 34f);
+                    cam.transform.position = eye;
+                    cam.transform.rotation = Quaternion.LookRotation(look - eye, Vector3.up);
+                    Shot($"district_{d.Id}");
+                }
+            }
+            finally
+            {
+                _touring = false;
+                cam.transform.position = keepPos;
+                cam.transform.rotation = keepRot;
+            }
+        }
+
         void Shot(string name)
         {
             _lastShotName = name;
@@ -7642,7 +7702,17 @@ namespace Ledger.Game
                 // mean over shots says whether the street READS as policed,
                 // which is the design one, and it needs `patrolShots` beside
                 // it or a low mean cannot be told from a short run.
+                // NOT DURING THE TOUR. The district tour teleports the camera
+                // to seven arbitrary crossings, which is right for looking at
+                // districts and wrong for every statistic below — the patrol
+                // means, the shot-district histogram, the blocked-frame series
+                // all describe where the GAME put the camera. Folding seven
+                // teleports into them would be a regime change inside a single
+                // run, which is the fault that cost this feature three builds
+                // already.
                 int inShot = 0, carsInShot = 0;
+                if (!_touring)
+                {
                 if (_game != null) _game.VehiclesInShot(blockCam, out inShot, out carsInShot);
                 // AND WHERE THIS CAMERA IS STANDING, which is the question the
                 // patrol numbers keep failing to answer.
@@ -7707,6 +7777,7 @@ namespace Ledger.Game
                               && !string.IsNullOrEmpty(_game.Traffic.PatrolFocusDistrict);
                 if (onBeat) { _patrolOnBeatSum += inShot; _patrolOnBeatShots++; }
                 else { _patrolOffBeatSum += inShot; _patrolOffBeatShots++; }
+                }   // !_touring
             }
 
             // HOW MANY PEOPLE ARE ACTUALLY IN THE PICTURE.
@@ -7941,15 +8012,21 @@ namespace Ledger.Game
                 // review quota fills — a latent coupling to the order of two
                 // unrelated systems, which is the shape that breaks the day
                 // somebody stages the killing earlier.
-                bool asReview = _reviewStills < MaxReviewStills;
-                bool asRest = !asReview && restStill;
-                bool asHunt = !asReview && !asRest && huntStill;
-                if (asReview || asRest || asHunt)
+                // THE DISTRICT TOUR SPENDS NO QUOTA AND ALWAYS WRITES. Seven
+                // frames once a run, already named for their districts.
+                // Rationing them against the day stills would make the
+                // districts compete with the street for four slots, which is
+                // how six of seven came to be unphotographed at all.
+                bool asReview = !_touring && _reviewStills < MaxReviewStills;
+                bool asRest = !_touring && !asReview && restStill;
+                bool asHunt = !_touring && !asReview && !asRest && huntStill;
+                if (_touring || asReview || asRest || asHunt)
                 {
                     if (asReview) _reviewStills++;
                     else if (asRest) _restStills++;
-                    else _huntStills++;
-                    var stem = asHunt ? $"hunt_{name}" : $"review_{name}";
+                    else if (asHunt) _huntStills++;
+                    var stem = _touring ? name
+                        : asHunt ? $"hunt_{name}" : $"review_{name}";
                     System.IO.File.WriteAllBytes($"sim-out/{stem}.jpg",
                                                  tex.EncodeToJPG(60));
                     // THIS ONE IS EVIDENCE NOW. See `KeptTheShot` — the

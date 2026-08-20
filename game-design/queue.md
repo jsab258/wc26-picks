@@ -45,28 +45,21 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
 1. **ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION — twenty-one of
-   sixty-seven.** *(on screen; the re-pick runs on Jafar's machine)* What
-   found them is the travel column I had written off the day before:
-   `Walking` reads 0.00m and `Standing Arguing` 3.75m, and I called the
-   instrument broken because a standing argument cannot travel that far. It
-   can, if the file does not contain a standing argument.
-
-   **The renders agree with travel in every case checked** — and **`walk` is
-   a stationary guard pose with the hands up**, so the slot the whole street
-   is named after does not contain a walk. The picker screens on both axes
-   now, hips for upright-or-floor and travel for does-it-move, with bounds
-   from the measured gap. Twenty-one rejected, forty-six accepted.
+   sixty-seven.** *(on screen; the re-pick runs on Jafar's machine)* Found by
+   the travel column I had written off the day before: `Walking` reads 0.00m
+   and `Standing Arguing` 3.75m. **`walk` is a stationary guard pose with the
+   hands up**, so the slot the whole street is named after does not contain a
+   walk. The picker screens on both axes now — hips for upright-or-floor,
+   travel for does-it-move — with bounds from the measured gap. Twenty-one
+   rejected, forty-six accepted.
 
    **For Friday:** the re-pick REFUSES a candidate whose contents contradict
-   its name and tries the next. Where the catalogue has an alternative that
-   is a fix; where it has only the one name (`thinking` matches "Thinking"
-   and nothing else) the slot reports MISSING. **Holes are the right outcome
-   and they are the information** — a slot that cannot be filled from a
-   2,846-name harvest says the harvest needs redoing, not re-picking.
-
-   **Not caught, and said so:** `sit` renders standing at 96cm and passes
-   both axes. The three sitting clips read 18, 94 and 96, none at chair
-   height, so there is no correct example to set a band from. Full account in
+   its name and tries the next; where the catalogue has only the one name the
+   slot reports MISSING. **Holes are the right outcome and they are the
+   information** — a slot unfillable from a 2,846-name harvest says the
+   harvest needs redoing, not re-picking. **Not caught, and said so:** `sit`
+   renders standing at 96cm and the three sitting clips read 18, 94 and 96,
+   so there is no correct example to set a band from. Account in
    `clip-findings.txt`.
 
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
@@ -103,35 +96,28 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    back dry, so this needs a WET run rather than another look.** The magenta
    half of that report is REFUTED.
 
-1. **THE BODY BUDGET IS CLOSED AT 87.8% — the account is in
-   `roadmap-history.md`.** What is still live is three separate things:
+1. **THE BODY BUDGET IS CLOSED AT 87.8% — account in `roadmap-history.md`.**
+   Three things stay live:
 
    **The band, not the budget.** 13.1 walkers in frame per pass, only 6.5
-   inside the 34m band — half the people you can see are too far away to ever
-   be skinned. Belongs with the population item.
+   inside the 34m band — half the people you can see can never be skinned.
+   Belongs with the population item.
 
-   **The white pills are still unidentified, and NO COMMITTED STILL HAS
-   ONE.** Measured rather than squinted at: the two pale figures in
-   `review_street.jpg` read `#5d626f` and `#66676a` on their lit quarter
-   against buildings at `#7f838f` — darker than the walls — and that frame's
-   brightest 1% is entirely the harbour at the vanishing point. I had written
-   "two of them, one in a T-pose" off the picture before measuring, the sixth
-   wrong identification of this. `bodyAlbedo` naming them was wrong too (it
-   measures source TEXTURES). **The next step is a measurement that fires
-   WHILE one is on screen.**
-
-   **The T-pose is real and separate.** One figure in `review_street.jpg`
-   has arms straight out — `armStreet`'s tail, which a median across bodies
-   structurally cannot see.
+   **The white pills are unidentified and NO COMMITTED STILL HAS ONE.**
+   Measured: the pale figures in `review_street.jpg` read `#5d626f` and
+   `#66676a` against buildings at `#7f838f` — darker than the walls — and
+   that frame's brightest 1% is entirely the harbour. I called them white off
+   the picture before measuring, the sixth wrong identification; `bodyAlbedo`
+   naming them was wrong too, it measures source TEXTURES. **Next step is a
+   measurement that fires WHILE one is on screen.** The T-pose in that frame
+   is real and separate — `armStreet`'s tail, which a median cannot see.
 
    **`bodyWashUnreached=534` against `bodyTinted=1326`, and nobody has
    looked.** 40% of bodies render DARKER than the band because their sheet is
-   darker and a multiply only subtracts. Not a bug — a limit on how much of
-   the palette reaches the street.
-
-   **`RealBodyCap = 12` needs a PC measurement, not a CI one.** Its comment
-   prices a dozen skinned bodies against a runner with no GPU at all.
-   Plausibly the cheapest large win for how full the street looks.
+   darker and a multiply only subtracts. Not a bug — a limit on how much
+   palette reaches the street. **And `RealBodyCap = 12` needs a PC
+   measurement**, not a CI one: its comment prices a dozen skinned bodies
+   against a runner with no GPU at all.
 
 1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — the remaining primitives.**
    `vehicleFellBack=[bus,bike x6]`. All 50 models in the car-kit listing ARE
@@ -181,13 +167,41 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    proves: move the step body to a script file and the YAML stops being the
    constraint. Until then every comment added there is a coin flip.
 
-1. **EVERY REVIEW STILL IS TAKEN IN ONE OF SEVEN DISTRICTS.**
-   `shotDistricts=[the_Hook:20]` — all twenty, every run. The stills are the
-   primary evidence channel and they have never shown Downtown, the Strip,
-   Fairview, Gullwing or the dockside at all. Anything built there is
-   unverified by the thing this project checks every build, and the districts
-   were the largest world change in weeks. Cheap first step: send one review
-   shot per district rather than twenty at the player's feet.
+1. **THE FIRST MANHUNT FRAME IS BAD, AND IT IS THE FIRST ONE ANYONE HAS
+   SEEN.** *(on screen)* `hunt_day13_noon` shows three things at once:
+   about fifteen people packed shoulder to shoulder in the road, a dozen
+   NAMEPLATES stacked in an overlapping heap, and a giant red `... you ...`
+   caption across a building face.
+
+   **`collidingNames=0` on the same run.** The counter says no nameplates
+   overlap; the picture shows a heap of them. A number reading zero against a
+   frame that contradicts it — the exact class this project keeps finding,
+   and now with the picture in hand to work from.
+
+   **Two visual reads of mine were WRONG and measured so before publishing:**
+   a "magenta cluster" (zero magenta-ish pixels in the whole frame, so no
+   error shader) and a "pink object" in the crowd (the only pinkish blocks
+   are the stop sign and the caption text). Rule 4's second half, twice in
+   one frame.
+
+1. **A DISTRICT TOUR NOW PHOTOGRAPHS ALL SEVEN — awaiting its first build.**
+   `shotDistricts=[the_Hook:20]` said all twenty shots of every run were in
+   one district; Copper Row, Ironside, the Exchange, the Parade, Fairview and
+   Gullwing had never been photographed at all, having been the largest world
+   change in weeks. Seven frames once a run, day 3 noon, elevated and aimed
+   along each district's middle avenue — the day stills' composition, so they
+   are comparable with them.
+
+   **Deliberately outside every statistic.** The tour teleports the camera to
+   seven arbitrary crossings, which is right for looking at districts and
+   wrong for the patrol means, the shot-district histogram and the
+   blocked-frame series — all of which describe where the GAME put the
+   camera. Folding seven teleports in would be a regime change inside one
+   run, which is the fault that cost the patrol work three builds.
+
+   **All three staging sites taught the prefix this time** — the workflow
+   copy glob, `sim-shots-stage.sh` and `report-frame.py`. Missing one of them
+   is how the `hunt_` pair came back rendered and never committed.
 
    **Noted, not chased:** `vehiclesKitted=26/33` where the fleet is 28.
    `VehiclesBodied` counts bodies BUILT and rebalancing rebuilds them, so the

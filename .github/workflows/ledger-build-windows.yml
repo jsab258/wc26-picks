@@ -350,7 +350,7 @@ jobs:
           # `sim-shots-stage.sh` learnt about them and this glob did not, so
           # `huntStills=2/2` came back with no `hunt_*.jpg` committed:
           # rendered, never copied, and only the verdict key said so.
-          shots=(sim-run/sim-out/review_*.jpg sim-run/sim-out/hunt_*.jpg)
+          shots=(sim-run/sim-out/review_*.jpg sim-run/sim-out/hunt_*.jpg sim-run/sim-out/district_*.jpg)
           if [ ${#shots[@]} -eq 0 ]; then
             # NOT `exit 0`, AND THE DIFFERENCE IS THE WHOLE POINT OF THE STEP.
             # Bailing here left the PREVIOUS run's verdict.txt sitting in the

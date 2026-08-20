@@ -86,14 +86,15 @@ def main():
         # `--frame hunt_day13_night` works and so does `--frame day1_noon`.
         want = sys.argv[i + 1].replace(".jpg", "")
         shots = ROOT / "game-design" / "sim-shots"
-        frame = want + ".jpg" if want.startswith(("review_", "hunt_")) \
+        frame = want + ".jpg" if want.startswith(("review_", "hunt_", "district_")) \
             else f"review_{want}.jpg"
         if not (shots / frame).exists() and (shots / f"hunt_{want}.jpg").exists():
             frame = f"hunt_{want}.jpg"
         if not (shots / frame).exists():
             have = sorted(p.name[:-len(".jpg")]
                           for p in list(shots.glob("review_*.jpg"))
-                          + list(shots.glob("hunt_*.jpg")))
+                          + list(shots.glob("hunt_*.jpg"))
+                          + list(shots.glob("district_*.jpg")))
             print(f"report-frame: no frame called {want}. This build committed: "
                   + (", ".join(have) if have else "nothing"))
             return 2
