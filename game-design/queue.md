@@ -75,17 +75,16 @@ parked — no DirectML on the Air.
    that block, so seven teleported frames had been going into it.
 
 1. **THE CREW TIER OF `looseEnds` NEVER OPENS** — `crew=2`, nobody below the
-   poach floor, so the tier has never once fired in the recorded history of
-   the project. Same shape as the Law tier, which was off for entire runs
-   until the denominator caught it (fixed; account in `roadmap-history.md`,
-   landed at `[Law:1,Owed:5]/open7/2of6`). **Plant the condition, do not
-   loosen the floor.**
+   poach floor, so it has never once fired in the project's recorded history.
+   Same shape as the Law tier, off for entire runs until the denominator
+   caught it (fixed, landed `[Law:1,Owed:5]/open7/2of6`). **Plant the
+   condition, do not loosen the floor.**
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the
    player's eyes, likely sized for a downward view. **Every run since has come
-   back dry, so this needs a WET run rather than another look.** The magenta
-   half of that report is REFUTED.
+   back dry — this needs a WET run, not another look.** The magenta half of
+   that report is REFUTED.
 
 1. **THE BODY BUDGET IS CLOSED AT 87.8% — account in `roadmap-history.md`.**
    Three things stay live:
@@ -108,10 +107,9 @@ parked — no DirectML on the Air.
 
 1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — the remaining primitives.**
    `vehicleFellBack=[bus,bike x6]`. All 50 car-kit models ARE extracted and
-   neither is among them, so this is a sourcing gap and the fix is another
-   CC0 kit, not more code. One bicycle model closes almost all of it.
-   (The police car is in and `vehiclesKitted` went 18/28 to 21/28 — account
-   in `roadmap-history.md`.)
+   neither is among them, so this is a sourcing gap: another CC0 kit, not more
+   code. One bicycle model closes almost all of it. (The police car is in;
+   account in `roadmap-history.md`.)
 
 1. **PATROL DENSITY FOLLOWS THE INQUIRY — and the measurement of whether it
    READS is still not finished.** Weight by stage (None 1 ... Manhunt 5),
@@ -250,14 +248,16 @@ parked — no DirectML on the Air.
    first, and tuning belongs on the PC). **`sun` is settled** — it read 3.15ms
    only because the audio mix ran inside its timer.
 
-1. **THE BUBBLE STACK'S SCREEN PASS BARELY RUNS.** `bubblesScreenLifted=1` of
-   `bubblesMade=54` with `bubblesAtCeiling=16`. Two reasons, both in
-   `LiftClearOfScreen`: it runs once at the bubble's BIRTH, before anything
-   has drifted into it, and the loop is gated `_lift < MaxLift` so it skips
-   exactly the bubbles at the ceiling it was written for. `NameTags.PinAll`
-   is the shape to copy — do it at the shot, against the camera that renders
-   it. **The recession claimed here before ("7.6% at ceiling") does not hold
-   on `e6634a1`: 16 of 54 is 30%.**
+1. ~~**THE BUBBLE STACK'S SCREEN PASS BARELY RUNS**~~ — **STALE ITEM; THE FIX
+   WAS ALREADY IN.** `SpeechBubble.LiftAtShot` exists, is called from `Shot`
+   after the pin, and is emitted. Rule 3: the doc said missing, the code said
+   built. **What WAS wrong is what it fed** — it, both `PinAll`s and
+   `Billboard.AimAll` return what they did on THIS shot, and all FOUR were
+   assigned straight to done-line fields, so each described whichever of twenty
+   shots ran last. The fourth was found by grepping for the shape after fixing
+   the first three; it sits three lines above them, written the same evening.
+   Sum and peak now over `shotFixups`, one shared denominator. **Read
+   `bubblesLiftedSum` against `bubblesAtCeiling` next build.**
 
 3. **THE DWELL FIX TRADES A VISIBLE FAULT FOR AN INVISIBLE SAVING.**
    `bodyLodMs=4.68` against `populationMs=1.40` — the LOD pass costs three

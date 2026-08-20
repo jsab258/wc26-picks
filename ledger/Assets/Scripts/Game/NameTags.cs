@@ -688,8 +688,11 @@ namespace Ledger.Game
         /// cap applied against the wrong camera is not a cap.
         ///
         /// Returns how many it touched, so a zero on a shot with people in it
-        /// says the re-pin is not running rather than that nothing needed it —
-        /// the same denominator argument `bubblesPinnedAtShot` carries.
+        /// says the re-pin is not running rather than that nothing needed it.
+        /// The caller accumulates it into `namesPinnedSum`/`namesPinnedPeak`
+        /// over `shotFixups` shots — the return alone describes one frame, and
+        /// assigning it straight to a done-line field is how it spent its life
+        /// reporting whichever shot happened to be last.
         public static int PinAll(Camera cam)
         {
             if (cam == null) return 0;

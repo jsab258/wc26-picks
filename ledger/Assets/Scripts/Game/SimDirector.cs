@@ -2102,7 +2102,12 @@ namespace Ledger.Game
             }
         }
         float _billboardWorstDeg = 0f;
-        int _billboardsAimed = 0;
+        /// Billboards re-aimed at the shot, summed and peaked over the run.
+        /// It was a single last-wins field describing whichever shot ran last;
+        /// see the call site, where it is the fourth instance of that shape in
+        /// one block. `_shotFixups` is the denominator it shares with the two
+        /// pins and the bubble lift.
+        int _billboardsAimedSum, _billboardsAimedPeak;
 
         /// Visible text plates lying face-up — captions painted on the road.
         /// The worst carries the OBJECT'S NAME, because which system laid it
@@ -2213,20 +2218,23 @@ namespace Ledger.Game
                     ? string.Join("/", who.ToArray()) : "none";
             }
         }
-        /// How many bubbles the SHOT re-pinned. Zero on a shot with speech in
-        /// it means the re-pin is not running; zero with no speech is a quiet
-        /// street, and only the count beside `bubblesOnScreen` separates them.
-        int _bubblesPinnedAtShot;
-
-        /// Bubbles moved by the shot-time de-overlap. Zero here with a non-zero
-        /// `bubblesAtCeiling` means the pass ran and had nothing to do; zero
-        /// with no denominator is what the birth-time version reported for its
-        /// whole life.
-        int _bubblesShotLifted;
-        /// How many nameplates the SHOT re-pinned. Zero on a shot with people
-        /// in it means the re-pin is not running; zero with nobody on screen
-        /// is an empty street.
-        int _namesPinnedAtShot;
+        /// The three shot-time repairs, each as a SUM and a PEAK over the run,
+        /// with `_shotFixups` as the denominator all three share.
+        ///
+        /// They were three separate last-wins fields, so each described
+        /// whichever of the run's twenty shots happened to be last. See the
+        /// call site: they run at one place on one shot, so one shot count is
+        /// the honest denominator for all of them and three separate ones
+        /// could only drift apart.
+        ///
+        /// The sum answers "does this pass do anything"; the peak answers "how
+        /// crowded did one frame get". A zero on either is only readable
+        /// beside `_shotFixups` — zero over forty looks is a quiet street,
+        /// zero over zero is a pass that never ran.
+        int _bubblesPinnedSum, _bubblesPinnedPeak;
+        int _bubblesLiftedSum, _bubblesLiftedPeak;
+        int _namesPinnedSum, _namesPinnedPeak;
+        int _shotFixups;
         int _billboardsTracked = 0;
 
         /// See the note at the call site. Two numbers, each answering one
@@ -8109,7 +8117,24 @@ namespace Ledger.Game
             if (trackedNow > 0) _billboardStaleFrac.Add((float)staleNow / trackedNow);
             float staleDeg = Billboard.WorstDegrees(cam);
             if (staleDeg > _billboardWorstDeg) _billboardWorstDeg = staleDeg;
-            _billboardsAimed = Billboard.AimAll(cam);
+            // AND THIS IS THE FOURTH ONE, FOUND BY GREPPING FOR THE SHAPE
+            // AFTER FIXING THE OTHER THREE — three lines above them.
+            //
+            // `AimAll` re-aims the billboards for THIS frame and returns how
+            // many it moved, and that return went straight to a done-line
+            // field. Same last-wins fault as the pins and the lift below, in
+            // the same block, written the same evening. The shot counter is
+            // incremented HERE rather than below so it is honestly the
+            // denominator of all four rather than of three.
+            //
+            // `billboardsTracked` stays a plain snapshot on purpose: it is
+            // "how many billboards exist right now", which is not a thing to
+            // sum, and it is read beside `billboardsAtWorst` which carries its
+            // own same-instant denominator.
+            _shotFixups++;
+            int aimedNow = Billboard.AimAll(cam);
+            _billboardsAimedSum += aimedNow;
+            if (aimedNow > _billboardsAimedPeak) _billboardsAimedPeak = aimedNow;
             _billboardsTracked = Billboard.Tracked;
             // AND RE-PIN THE SPEECH AT THE SAME MOMENT, for the same reason and
             // one line later. A bubble's SCALE is set against wherever the
@@ -8119,19 +8144,49 @@ namespace Ledger.Game
             // against `worstBubbleFrac=1.245`, a post-cap reading larger than
             // its own pre-cap reading, which is only possible if the two are
             // describing different instants.
-            _bubblesPinnedAtShot = SpeechBubble.PinAll(cam);
+            // ACCUMULATED, NOT ASSIGNED — ALL THREE OF THEM, WHICH IS WHY THIS
+            // PARAGRAPH IS HERE AND NOT THREE SHORTER ONES.
+            //
+            // `PinAll`, `NameTags.PinAll` and `LiftAtShot` each return what
+            // they did on THIS shot, and all three were assigned to a field
+            // that is printed on the done line. So each described whichever
+            // shot happened to run last — twenty shots a run, one of them
+            // reported, and a zero indistinguishable from "the pass never
+            // ran". It is the last-wins fault, three times, in three adjacent
+            // lines written in one sitting: one idea, three implementations,
+            // and nobody had looked at any of them.
+            //
+            // A SUM, A PEAK AND ONE SHARED DENOMINATOR. The sum says whether
+            // the pass does anything across the run; the peak says how bad a
+            // single frame got, which is a different question; `shotFixups` is
+            // the denominator all three share BECAUSE THEY RUN AT THE SAME
+            // SITE ON THE SAME SHOTS — one count, honestly shared, rather than
+            // three that could drift apart. Zero over forty is a finding; zero
+            // over zero is an unwired pass.
+            //
+            // The bare `bubblesPinnedAtShot`, `namesPinnedAtShot` and
+            // `bubblesShotLifted` keys are GONE rather than redefined: they
+            // answered "what did the last shot do" and the replacements answer
+            // something else, so landed values must not silently compare.
+            int pinnedNow = SpeechBubble.PinAll(cam);
+            _bubblesPinnedSum += pinnedNow;
+            if (pinnedNow > _bubblesPinnedPeak) _bubblesPinnedPeak = pinnedNow;
             // AND THE NAMEPLATES, for the identical reason one line up.
             // `nameShownWidthWorst=0.171` against a `PinFrac` of 0.120 is a
             // label that went through the clamp and came out wider than the
             // clamp allows, which is what a cap applied against last frame's
             // camera looks like.
-            _namesPinnedAtShot = NameTags.PinAll(cam);
+            int namesNow = NameTags.PinAll(cam);
+            _namesPinnedSum += namesNow;
+            if (namesNow > _namesPinnedPeak) _namesPinnedPeak = namesNow;
             // AND DE-OVERLAP THE BUBBLES, AFTER the pin — sizing changes the
             // screen rect, so testing overlap before it would test rectangles
             // that are about to move. Third site of one idea: anything that has
             // to be right in the committed frame is redone against the camera
             // that renders it.
-            _bubblesShotLifted = SpeechBubble.LiftAtShot(cam);
+            int liftedNow = SpeechBubble.LiftAtShot(cam);
+            _bubblesLiftedSum += liftedNow;
+            if (liftedNow > _bubblesLiftedPeak) _bubblesLiftedPeak = liftedNow;
             // AND THE MIRROR COUNT MOVES HERE TOO — AFTER the aim, on purpose,
             // because that is the frame that gets written. It used to run once,
             // at the audit moment, and reported 0 for a run whose committed
@@ -11369,7 +11424,8 @@ namespace Ledger.Game
                       $"billboardsStale={_billboardsStale} billboardsAtWorst={_billboardsAtWorst} " +
                       $"billboardStaleMedian={BillboardStaleMedian:0.000} " +
                       $"billboardWorstDeg={_billboardWorstDeg:0.0} " +
-                      $"billboardsAimed={_billboardsAimed} " +
+                      $"billboardsAimedSum={_billboardsAimedSum} " +
+                      $"billboardsAimedPeak={_billboardsAimedPeak} " +
                       $"billboardsTracked={_billboardsTracked} " +
                       $"worstNameFrac={NameTags.WorstNameFrac:0.000} " +
                       $"nameTagsTooNear={NameTags.TooNear} nameTagsRects={NameTags.RectCalls} " +
@@ -11431,9 +11487,18 @@ namespace Ledger.Game
                       // which is a different fault from it not being needed.
                       $"bubbleFracPreCap={NameTags.WorstBubbleFracPreCap:0.000} " +
                       $"bubblesPinned={NameTags.BubblesPinned} " +
-                      $"bubblesPinnedAtShot={_bubblesPinnedAtShot} " +
-                      $"bubblesShotLifted={_bubblesShotLifted} " +
-                      $"namesPinnedAtShot={_namesPinnedAtShot} " +
+                      // SUM, PEAK, AND ONE SHARED DENOMINATOR — see the call
+                      // site. These were three last-wins fields describing
+                      // whichever shot ran last; the bare names are retired
+                      // rather than redefined so landed values cannot silently
+                      // be compared with these.
+                      $"bubblesPinnedSum={_bubblesPinnedSum} " +
+                      $"bubblesPinnedPeak={_bubblesPinnedPeak} " +
+                      $"bubblesLiftedSum={_bubblesLiftedSum} " +
+                      $"bubblesLiftedPeak={_bubblesLiftedPeak} " +
+                      $"namesPinnedSum={_namesPinnedSum} " +
+                      $"namesPinnedPeak={_namesPinnedPeak} " +
+                      $"shotFixups={_shotFixups} " +
                       $"bubblePinFloor={NameTags.BubblePinFloor:0.000} " +
                       $"bubbleFracSamples={NameTags.BubbleFracSamples} " +
                       // INPUT PARITY, AS A NUMBER. The claim is that a

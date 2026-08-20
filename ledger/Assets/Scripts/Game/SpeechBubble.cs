@@ -364,7 +364,10 @@ namespace Ledger.Game
         /// This is `NameTags.PinAll`'s shape, for the same reason and the third
         /// time: the still is rendered by a camera the ordinary schedule never
         /// sees, so anything that must be right IN THE FRAME has to be redone
-        /// at the frame. `bubblesShotLifted` says how many it moved.
+        /// at the frame. `bubblesLiftedSum` and `bubblesLiftedPeak` say how
+        /// many it moved, over `shotFixups` shots — a sum and a peak, because
+        /// the single last-wins number this used to feed described whichever
+        /// of the run's twenty shots happened to be last.
         ///
         /// Ordered by screen height, tallest first, so the biggest bubble keeps
         /// its place and smaller ones move around it — an arbitrary order lets
