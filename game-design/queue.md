@@ -189,36 +189,38 @@ parked — no DirectML on the Air.
    was sized to the unscaled map. Account in `roadmap-history.md`.
 
    **The before/after is unambiguous and the control held.** `tourDepthBy` went
-   from `hook:24.3` with every other district at **40.6-45.6** (the bare-ground
-   figure predicted in advance) to `downtown:18.8 / hook:24.3 / strip:27.6 /
-   ironside:27.6 / copper:27.6 / gullwing:27.6 / fairview:28.5`. Every district
-   now reads as built; **the Hook is unchanged at 24.3**, which is the control,
-   since it was always correct. Downtown is the most enclosed at 18.8, which is
-   right for an office district. The frames agree: Downtown is a brick canyon
-   and Fairview is villas with chimney pots.
+   from `hook:24.3` with every other district at **40.6-45.6** — the bare-ground
+   figure predicted in advance — to a 18.8-28.5 band, every district reading as
+   built, with **the Hook unchanged at 24.3** as the control. Downtown is the
+   most enclosed, which is right for offices. The frames agree: a brick canyon,
+   and Fairview villas with chimney pots.
 
    **A fifth consequence, unlooked for:** the outer districts were built with
    `district = null` and got the DEFAULT terrace massing. `terraceParcels` 376
    to 331 is deeper office plans finally reaching Downtown.
 
-1. ~~**A DOCK NAME ON A FAIRVIEW SHOPFRONT**~~ — **CHASED TO THE CODE AND
-   FIXED, AND THE SIGN WAS INNOCENT.** *(on screen, `district_fairview`)* A
-   fascia read "NORTH QUAY COLD STORE" in the district the design doc calls
-   respectable and residential. The name pool is chosen correctly by building
-   type — a warehouse gets a company, not a chip shop. **The warehouse was
-   what should not have been there:** `Dressing.KindAt` made a quarter of every
-   frontage away from a core a shed, in EVERY district. Its own comment records
-   making that exact mistake once with `prosperity` and fixing it with
-   `nearCore` — which separates a district's centre from its edge and is not a
-   district signal either.
+1. ~~**A DOCK NAME ON A FAIRVIEW SHOPFRONT**~~ — **THE SIGN WAS INNOCENT.**
+   *(on screen)* The name pool is chosen correctly by building type; **the
+   warehouse was what should not have been there.** `Dressing.KindAt` made a
+   quarter of every frontage away from a core a shed in EVERY district — its
+   own comment records making that mistake once with `prosperity` and fixing
+   it with `nearCore`, which separates a district's centre from its edge and
+   is not a district signal either. Only fixable today: `DistrictAt` answered
+   `null` for most of the map until this session. Share is a per-district
+   table from the briefs — Ironside 0.55, the Hook 0.25, Copper Row 0.10, zero
+   for the Exchange, the Parade, Fairview and Gullwing — looked up inside
+   `KindAt` so no caller can forget it, and tested over each district's real
+   bounds with the sample size asserted first.
 
-   **This was only fixable today**: `DistrictAt` answered `null` for most of the
-   map until this session, so keying on it before would have been keying on
-   nothing. Share is a per-district table now, from the briefs — Ironside 0.55
-   (its whole point is places without witnesses), the Hook 0.25, Copper Row
-   0.10, and zero for the Exchange, the Parade, Fairview and Gullwing. Looked
-   up inside `KindAt` so no caller can forget it. Tested by sweeping each
-   district's real bounds, with the sample size asserted first.
+   **LANDED AND IT MOVED THE RIGHT WAY:** `premises` went `shed54 house86` to
+   `shed10 house130` — forty-four sheds became houses. **But a total cannot
+   say WHERE**, which is the only thing the district table claims, and ten
+   sheds town-wide looks low for a quarter set to 0.55. `premisesByDistrict`
+   ships next build. It is also the rule-6 check on the table: CoreTests proves
+   `KindAt` RETURNS sheds for Ironside, not that the Game layer ever asks it
+   about an Ironside wall. **Read Ironside's row first**; if it is near zero
+   the suspect is `nearCore`, which suppresses the shed branch entirely and is
+   computed from core positions this test cannot see.
 
 1. ~~**THE MARGIN SHOULD BE HALF A BLOCK**~~ and ~~**THE MARGIN FIX WEDGES
    TRAFFIC**~~ — **BOTH WITHDRAWN; two wrong explanations for one real bug.**

@@ -185,6 +185,7 @@ namespace Ledger.Game
             WindowPanes = 0; WindowBands = 0;
             Doors = 0;
             System.Array.Clear(PremisesBuilt, 0, PremisesBuilt.Length);
+            PremisesByDistrict.Clear();
             AssetLibrary.Initialize();
             ConfigureEnvironment();
 
@@ -1387,6 +1388,28 @@ namespace Ledger.Game
             var kind = Ledger.Core.Dressing.KindAt(face.x, face.z,
                 StreetFrontProsperity, nearCore);
             PremisesBuilt[(int)kind]++;
+            // AND BY DISTRICT, BECAUSE THE TOTAL CANNOT ANSWER THE QUESTION
+            // THE DISTRICT TABLE ASKS.
+            //
+            // `premises=[shop77 house130 tenement159 shed10]` says the town
+            // has ten sheds. It cannot say whether they are all in Ironside,
+            // whose brief is places without witnesses and whose share is set
+            // to 0.55, or scattered through Fairview where the share is zero.
+            // The whole point of keying the rule on district is a claim about
+            // WHERE, and a total is blind to where by construction.
+            //
+            // Also the rule-6 check on the table itself: `KindAt` is asserted
+            // in CoreTests over Ironside's real bounds, but that proves the
+            // FUNCTION returns sheds, not that the Game layer ever asks it
+            // about an Ironside wall. Only a per-district count taken at the
+            // build can say the table reaches the world.
+            {
+                var dn = Ledger.Core.StreetMap.DistrictAt(face.x, face.z);
+                var dkey = string.IsNullOrEmpty(dn) ? "none" : dn.Replace(" ", "_");
+                PremisesByDistrict.TryGetValue(dkey, out var row);
+                if (row == null) PremisesByDistrict[dkey] = row = new int[4];
+                row[(int)kind]++;
+            }
 
             // The fascia: a band over the shopfront, at the height the ground
             // floor ends. Proud of the wall so it reads as a ledge rather than
@@ -2686,6 +2709,26 @@ namespace Ledger.Game
         /// exactly the ambiguity that linter exists to catch. It was a false
         /// positive about the USING and a true one about the NAME.
         public static readonly int[] PremisesBuilt = new int[4];
+
+        /// The same four counts per district. See the note at the increment:
+        /// a town-wide total cannot say whether the sheds are in the
+        /// industrial quarter or on a residential street, which is the only
+        /// question the district table exists to answer.
+        public static readonly System.Collections.Generic.Dictionary<string, int[]>
+            PremisesByDistrict = new System.Collections.Generic.Dictionary<string, int[]>();
+
+        /// Compact, no spaces — a verdict value may not contain one. Sheds
+        /// first in each row because that is the number being watched.
+        public static string PremisesByDistrictLine()
+        {
+            if (PremisesByDistrict.Count == 0) return "none";
+            var rows = new System.Collections.Generic.List<string>();
+            foreach (var kv in PremisesByDistrict)
+                rows.Add($"{kv.Key}:shed{kv.Value[3]}/shop{kv.Value[0]}"
+                         + $"/house{kv.Value[1]}/ten{kv.Value[2]}");
+            rows.Sort();
+            return string.Join(" ", rows).Replace(" ", "|");
+        }
 
         /// PIECES AND FACADES, split by whether they are near a dense core.
         ///
