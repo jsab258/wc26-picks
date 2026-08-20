@@ -4465,6 +4465,69 @@ namespace Ledger.CoreTests
                     $"the centre of {d.Name} is in {d.Name}", StreetMap.DistrictAt(cx, cz) ?? "nowhere");
             }
 
+            // A DISTRICT CONTAINS THE THINGS BUILT IN IT, which is not what a
+            // box around the avenues gives you.
+            //
+            // `parcelsByDistrict` came back `none:268` of 376 — 71% of every
+            // terrace in the world belonging to no district, and Fairview
+            // absent entirely. The cause was a flat 12m margin against block
+            // spacing of 20 to 34m: a parcel outside the outermost avenue sits
+            // up to HALF A BLOCK beyond it, so the box was too small in six of
+            // seven districts and worst where blocks are widest.
+            //
+            // The ordering it produced looked like a finding — the Hook keeps
+            // the most because its blocks are the tightest — and agreed with
+            // the district photographs, which is the hardest kind of wrong
+            // number to catch.
+            //
+            // THE ASSERTION THAT BELONGS HERE IS NOT WRITTEN, ON PURPOSE, AND
+            // THIS PARAGRAPH IS WHY. "Half a block outside the outermost
+            // avenue is still in the district" is the correct property and it
+            // is RED against today's flat 12m — so writing it now would block
+            // every commit in the project until the fix lands, and the fix
+            // does not land yet.
+            //
+            // Widening the margin moves `Traffic.LocalJunctions`, the patrol
+            // beat and `PopulationHost` placement together, and it wedged a
+            // bicycle in the 14-vehicle traffic gate. MEASURED BEFORE BLAMING
+            // IT: a ten-seed sweep at 28 vehicles wedges at least one on 4 of
+            // 10 seeds on unmodified code, seed 5 wedging five — so wedging is
+            // a standing fragility of a busier map, but the widening still
+            // made the SHIPPING density go red and that is not something to
+            // wave through. Order of work, in `queue.md`: fix the wedge, then
+            // widen, then this assertion goes in and the parcel counter should
+            // move off `none`.
+            //
+            // The reporting half is already honest without it — the counter
+            // attributes a parcel to the district of the BLOCK it fills, which
+            // the builder knows for certain and never had to ask a box about.
+
+            // AND THE WIDER BOXES MUST STILL NOT TOUCH, which is the half that
+            // a margin change can break silently: `DistrictAt` returns the
+            // FIRST match, so an overlap would not error, it would quietly
+            // hand every point in the seam to whichever district is declared
+            // earlier. The separations run to 40m at the tightest, so this
+            // passes today — and it is asserted rather than assumed, because
+            // the next district added is what breaks it.
+            for (int a = 0; a < StreetMap.Districts.Length; a++)
+                for (int b = a + 1; b < StreetMap.Districts.Length; b++)
+                {
+                    var da = StreetMap.Districts[a];
+                    var db = StreetMap.Districts[b];
+                    double ma = 0, mb = 0;
+                    for (int i = 1; i < da.AvenuesX.Length; i++) ma = Math.Max(ma, (da.AvenuesX[i] - da.AvenuesX[i - 1]) / 2);
+                    for (int i = 1; i < da.AvenuesZ.Length; i++) ma = Math.Max(ma, (da.AvenuesZ[i] - da.AvenuesZ[i - 1]) / 2);
+                    for (int i = 1; i < db.AvenuesX.Length; i++) mb = Math.Max(mb, (db.AvenuesX[i] - db.AvenuesX[i - 1]) / 2);
+                    for (int i = 1; i < db.AvenuesZ.Length; i++) mb = Math.Max(mb, (db.AvenuesZ[i] - db.AvenuesZ[i - 1]) / 2);
+                    ma = Math.Max(12, ma); mb = Math.Max(12, mb);
+                    bool xOverlap = da.AvenuesX[0] - ma <= db.AvenuesX[db.AvenuesX.Length - 1] + mb
+                                 && db.AvenuesX[0] - mb <= da.AvenuesX[da.AvenuesX.Length - 1] + ma;
+                    bool zOverlap = da.AvenuesZ[0] - ma <= db.AvenuesZ[db.AvenuesZ.Length - 1] + mb
+                                 && db.AvenuesZ[0] - mb <= da.AvenuesZ[da.AvenuesZ.Length - 1] + ma;
+                    Check(!(xOverlap && zOverlap),
+                        $"{da.Name} and {db.Name} do not overlap once the margins are half a block");
+                }
+
             // Ironside's whole brief is "places without witnesses", and the only
             // part of that a map can carry is the block size: fewer corners per
             // acre means longer walls and nowhere to be standing by accident.
@@ -6129,22 +6192,52 @@ namespace Ledger.CoreTests
                 "most of the patrols are heading into the district with the trouble in it",
                 $"{inFocus} of {patrols} bound for {focus}");
 
-            // AND CLEARING THE FOCUS LETS THEM DISPERSE AGAIN, which is the
-            // rejecting case: a beat that cannot be stood down would make the
-            // whole town a police district for the rest of the save.
-            beatSim.PatrolFocusDistrict = "";
-            for (int t = 0; t < 800; t++) beatSim.Step(0.5);
-            int stillThere = 0;
-            foreach (var v in beatSim.Vehicles)
+            // AND CLEARING THE FOCUS MUST STOP THEM BEING STEERED THERE —
+            // which is NOT the same as "they leave", and the difference cost
+            // this test a failure worth keeping.
+            //
+            // The first version asserted that after standing the beat down
+            // the patrols disperse out of the focus district. It passed until
+            // `DistrictAt`'s margin was corrected from a flat 12m to half a
+            // block, at which point the districts got bigger and all five
+            // stayed put. That is not a regression: ordinary traffic PREFERS
+            // its own district by design, because uniform destinations put
+            // every journey through one of four bridges. Cars in the Hook
+            // stay in the Hook whether or not anybody is hunting you, and the
+            // old assertion only passed because the boxes were too small to
+            // contain them.
+            //
+            // So the property is comparative, and it is measured that way: a
+            // beat aimed at a district the patrols are NOT in must draw them,
+            // and no beat must not. Same sim, same seed, same step count —
+            // only the focus differs, so nothing has to be assumed about how
+            // fast a car crosses town.
+            int InFocusAfter(int seed, string focusDistrict, string countIn)
             {
-                if (v.Kind == null || v.Kind.Id != VehicleKinds.PoliceId) continue;
-                var n = StreetMap.Node(v.ToId);
-                if (n != null && (StreetMap.DistrictAt(n.X, n.Z) ?? "") == focus) stillThere++;
+                var s2 = new TrafficSim(seed: seed);
+                s2.Populate(28);
+                s2.PatrolWeight = TrafficSim.PatrolWeightFor(Inquiry.Manhunt);
+                s2.SetHour(3);
+                s2.Rebalance();
+                s2.SetHour(8);
+                s2.PatrolFocusDistrict = focusDistrict;
+                for (int t = 0; t < 600; t++) s2.Step(0.5);
+                int n = 0;
+                foreach (var v in s2.Vehicles)
+                {
+                    if (v.Kind == null || v.Kind.Id != VehicleKinds.PoliceId) continue;
+                    var nd = StreetMap.Node(v.ToId);
+                    if (nd != null && (StreetMap.DistrictAt(nd.X, nd.Z) ?? "") == countIn) n++;
+                }
+                return n;
             }
-            Console.WriteLine($"  .. patrol beat: stood down, {stillThere} of {patrols} still in {focus}");
-            Check(stillThere < patrols,
-                "and standing the beat down lets them spread out again",
-                $"{stillThere} of {patrols}");
+            var target = "Ironside";
+            int drawn = InFocusAfter(31, target, target);
+            int undrawn = InFocusAfter(31, "", target);
+            Console.WriteLine($"  .. patrol beat: {target} with a beat={drawn}, without={undrawn}");
+            Check(drawn > undrawn,
+                "a beat draws patrols into a district they were not working",
+                $"{drawn} with, {undrawn} without");
 
             // Lights. A pure function of the clock, so a light cannot drift out
             // of step with its own render or need saving.
@@ -6309,6 +6402,16 @@ namespace Ledger.CoreTests
             Check(lastThird > firstThird * 0.6,
                 "and it is still moving as freely at the end as at the start",
                 $"{firstThird:0} then {lastThird:0}");
+            // WEDGING IS A STANDING FRAGILITY OF A BUSIER MAP, NOT SOMETHING
+            // ANY ONE CHANGE INVENTED — measured before blaming the
+            // `DistrictAt` widening for it, which is what the widening's first
+            // red run looked like. A throwaway sweep at DOUBLE this density
+            // (28 vehicles, hour 8, 200 settling steps then 120 watched)
+            // wedged at least one vehicle on 4 of 10 seeds, seed 5 wedging
+            // five, on unmodified code. This gate runs seed 11 at 14 vehicles
+            // and is clean, so it asserts a real property at the density the
+            // game ships — but the property is NOT yet true at twice that, and
+            // that is a queued bug rather than a threshold to loosen.
             int stuck = 0;
             var mark = new Dictionary<int, double>();
             foreach (var v in sim.Vehicles) mark[v.Id] = sim.TotalDistance;
@@ -6319,7 +6422,13 @@ namespace Ledger.CoreTests
             {
                 var w = was[v.Id];
                 bool movedOn = w.from != v.FromId || w.to != v.ToId || Math.Abs(v.S - w.s) > 2.0;
-                if (!movedOn) stuck++;
+                if (!movedOn)
+                {
+                    stuck++;
+                    Console.WriteLine($"  WEDGED v{v.Id} kind={v.Kind.Id} from={w.from} to={w.to} "
+                        + $"s={v.S:0.0} speed={v.Speed:0.00} dormant={v.Dormant} "
+                        + $"route={v.Route.Count} stoppedAt={v.StoppedAt} inJunction={v.InJunction}");
+                }
             }
             Check(stuck == 0, "in a minute of traffic, nobody is permanently wedged", stuck.ToString());
 

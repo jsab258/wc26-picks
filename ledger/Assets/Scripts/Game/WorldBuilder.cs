@@ -746,10 +746,10 @@ namespace Ledger.Game
 
             // North and south rows: full width, corners included.
             TerraceRow(specs, rng, minX, maxX, maxZ, depthN, alongX: true, dir: +1f,
-                       offices, villas, resort, alleyEdge == 0 ? alleyT : -1f);
+                       offices, villas, resort, alleyEdge == 0 ? alleyT : -1f, district);
             if (deepEnough)
                 TerraceRow(specs, rng, minX, maxX, minZ, depthS, alongX: true, dir: -1f,
-                           offices, villas, resort, alleyEdge == 1 ? alleyT : -1f);
+                           offices, villas, resort, alleyEdge == 1 ? alleyT : -1f, district);
 
             // East and west rows: between the corner buildings, with their
             // depths fitted to the width the same way.
@@ -760,9 +760,9 @@ namespace Ledger.Game
                 float depthE = Mathf.Min(RowDepth(rng, offices, villas, resort), sideAvail);
                 float depthW = Mathf.Min(RowDepth(rng, offices, villas, resort), sideAvail);
                 TerraceRow(specs, rng, z0, z1, maxX, depthE, alongX: false, dir: +1f,
-                           offices, villas, resort, alleyEdge == 2 ? alleyT : -1f);
+                           offices, villas, resort, alleyEdge == 2 ? alleyT : -1f, district);
                 TerraceRow(specs, rng, z0, z1, minX, depthW, alongX: false, dir: -1f,
-                           offices, villas, resort, alleyEdge == 3 ? alleyT : -1f);
+                           offices, villas, resort, alleyEdge == 3 ? alleyT : -1f, district);
             }
         }
 
@@ -780,7 +780,8 @@ namespace Ledger.Game
         static void TerraceRow(List<(Vector3 pos, Vector3 size)> specs,
                                System.Random rng, float a0, float a1,
                                float frontCoord, float depth, bool alongX, float dir,
-                               bool offices, bool villas, bool resort, float alleyT)
+                               bool offices, bool villas, bool resort, float alleyT,
+                               string district)
         {
             float run = a1 - a0;
             if (run < 5f || depth < 3.4f) return;
@@ -828,17 +829,40 @@ namespace Ledger.Game
                 {
                     specs.Add((pos, size));
                     TerraceParcels++;
-                    // AND WHICH DISTRICT IT WENT IN. The tour's first seven
-                    // frames make the Exchange and Fairview look like a road
-                    // on an empty field beside the Hook's terraces — and a
-                    // pixel statistic over those frames CANNOT tell them
-                    // apart (block spread 37-44 and flat ground 5-8% in all
-                    // seven, because textured ground varies as much as a
-                    // street does). That is a metric blind to the question
-                    // asked of it, so the count comes from the builder, which
-                    // knows.
-                    var pd = Ledger.Core.StreetMap.DistrictAt(pos.x, pos.z);
-                    var pkey = string.IsNullOrEmpty(pd) ? "none" : pd.Replace(" ", "_");
+                    // AND WHICH DISTRICT IT WENT IN — FROM THE BLOCK, NOT
+                    // FROM THE PARCEL'S OWN POSITION.
+                    //
+                    // The first version asked `DistrictAt(pos)` and came back
+                    // `none:268` of 376 parcels: 71% of every terrace in the
+                    // world belonging to no district, with Fairview absent
+                    // entirely. Not a world with buildings scattered between
+                    // districts — `DistrictAt` puts a flat 12m margin around
+                    // the outermost avenue, and block spacing here runs 20 to
+                    // 34m, so a parcel outside that avenue sits up to HALF A
+                    // BLOCK past the box.
+                    //
+                    // AND THE ORDERING IT PRODUCED LOOKED LIKE A FINDING. The
+                    // Hook kept the most because its blocks are the TIGHTEST,
+                    // so the counter appeared to confirm the tour photographs
+                    // — the outer districts looking bare — when what it was
+                    // really ranking was block spacing. A wrong number that
+                    // agrees with what you already believe is the hardest
+                    // kind to catch, and only 71% `none` being impossible
+                    // rather than merely surprising caught it.
+                    //
+                    // WIDENING `DistrictAt` IS THE REAL FIX AND IT IS NOT
+                    // FREE: tried, and it moves `LocalJunctions`, the patrol
+                    // beat and population placement, which wedged a bicycle
+                    // in the traffic test. A seed sweep says wedging is a
+                    // standing fragility rather than something that change
+                    // invented — 4 of 10 seeds wedge at least one vehicle and
+                    // seed 5 wedges five — so it is queued with its evidence
+                    // rather than shipped red.
+                    //
+                    // The block is the honest attribution anyway: a parcel
+                    // belongs to the block it fills, and the block's own
+                    // centre is well inside the box already.
+                    var pkey = string.IsNullOrEmpty(district) ? "none" : district.Replace(" ", "_");
                     ParcelsByDistrict.TryGetValue(pkey, out var had);
                     ParcelsByDistrict[pkey] = had + 1;
                     // A chimney stack on the leading party wall, on the

@@ -817,12 +817,25 @@ namespace Ledger.Game
                 // unaffordable, the racket may have wanted a front nobody owns,
                 // the Table may not have had an arm to answer. One line here
                 // saves a twenty-minute build to find out.
+                // PREFIXED, BECAUSE THIS BLOCK IS PRINTED ON THE DONE LINE AND
+                // THE DONE LINE HAS ITS OWN `clean=`/`dirty=`.
+                //
+                // This is a SNAPSHOT taken the moment Act III is judged; the
+                // done line's pair is the END of the run. Same key, two
+                // moments, one line — so `grep -o clean=` on the verdict
+                // returned 310 from the purse and 0 from here, with nothing to
+                // say it had a choice. Measured by `tools/verdict-dupkeys.py`
+                // on the landed file, not suspected.
+                //
+                // The others (`table`, `biz`, `rax`, `crew`) are unique on the
+                // line and are left alone rather than renamed for tidiness —
+                // every rename costs a landed series its history.
                 _actThreeWhy =
                     $"table={_game.ActTwo.TableFired} " +
                     $"biz={_game.Empire.Businesses.FindAll(b => b.Owned).Count} " +
                     $"rax={_game.Empire.Rackets.FindAll(r => r.Established).Count} " +
                     $"crew={_game.Empire.Crew.FindAll(c => !c.Departed).Count} " +
-                    $"clean={_game.Wallet.Clean} dirty={_game.Wallet.Dirty}";
+                    $"a3clean={_game.Wallet.Clean} a3dirty={_game.Wallet.Dirty}";
             }
 
             // One pass later, so the act has actually opened through its own
@@ -1947,7 +1960,11 @@ namespace Ledger.Game
             }
             _worldText = worldText;
             _worldTextDepth = worldTextMaterialled;
-            _labelsColliding = CollidingNames();
+            // NOT ASSIGNED FROM THE RETURN ANY MORE — the function keeps the
+            // peak itself, so the audit's sample and every shot's sample land
+            // in the same place. Assigning here was what made the shot-time
+            // samples invisible.
+            CollidingNames();
             // AND AGAIN AT SHOT TIME, so the bubble peak has seen the frames
             // that actually get committed. One sample per audit could miss
             // every conversation in a seventeen-day run.
@@ -1979,12 +1996,47 @@ namespace Ledger.Game
             SceneAudit.Run(_player != null ? _player.gameObject : null);
             Debug.Log(SceneAudit.Report());
 
+            // THE LINE ITSELF IS EMITTED AT THE END OF THE RUN, NOT HERE.
+            // See `LogGlyphs`.
+        }
+
+        /// The glyph line, and WHEN it is printed is most of what it says.
+        ///
+        /// It used to be emitted from inside `MeasureGlyphs`, which is guarded
+        /// by `_uiSmokeRun` and therefore runs ONCE, on day 2 of a seventeen-day
+        /// run. Two thirds of the numbers on it — `namesTracked`, `textWalked`,
+        /// `textInvisible`, `namesManagedSeen`, `textPersonLabels`, all of them
+        /// — are peaks that `CollidingNames` keeps raising from every shot for
+        /// the remaining fifteen days. So the line printed a day-2 partial and
+        /// read as a description of the run.
+        ///
+        /// MEASURED, in the committed verdict rather than argued: `collidingWorldText`
+        /// reads 5 on the glyphs line and 9 on the done line of the SAME run.
+        /// One key, two values, and `grep -o` returns whichever it reaches
+        /// first — the exact pair `tools/verdict-read.py` was written to refuse
+        /// after it cost an afternoon. Nothing had checked whether any OTHER
+        /// key had the same shape; eleven did.
+        ///
+        /// So the measurement stays on day 2, where the UI smoke test needs it,
+        /// and the REPORT moves to the end where every peak is final. The two
+        /// keys the done line already carries are dropped from here rather than
+        /// printed twice.
+        void LogGlyphs()
+        {
             Debug.Log($"SimDirector: glyphs labels={_labels} fontless={_labelsFontless} "
-                      + $"blank={_labelsBlank} worldText={worldText} "
-                      + $"depthTested={worldTextMaterialled} "
+                      // FROM THE FIELDS, which the locals were assigned to on
+                      // the same line they were computed. Those five are the
+                      // day-2 readings they have always been — the move to the
+                      // end of the run changes nothing for them and everything
+                      // for the peaks below.
+                      + $"blank={_labelsBlank} worldText={_worldText} "
+                      + $"depthTested={_worldTextDepth} "
                       + $"adopted={WorldText.Adopted} refused={WorldText.Refused} "
-                      + $"shader={WorldText.ShaderPresent} "
-                      + $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText}"
+                      + $"shader={WorldText.ShaderPresent}"
+                      // `collidingNames` and `collidingWorldText` are NOT
+                      // here: the done line carries both, and a key with two
+                      // values on two lines is the fault this move exists to
+                      // repair. Everything below appears on this line only.
                       + $" worstWorldPair=[{_worstWorldPair}]"
                       + $" worstNamePair=[{_worstNamePair}]"
                       + $" namesTracked={_namesTracked}"
@@ -3352,11 +3404,26 @@ namespace Ledger.Game
             // is per-call and the done-line shows the last call's value, so a
             // pair kept from an earlier call would describe a different frame
             // from the number next to it — the two-maxima fault in miniature.
+            // NAME PAIR NOT RESET HERE, AND THAT LINE BEING HERE IS WHY THE
+            // HEAP DIAGNOSTIC HAS NEVER SAID ANYTHING.
+            //
+            // `_worstNamePair` and `_worstNameArea` are computed by the boxes
+            // loop a hundred lines ABOVE, and this block cleared them again
+            // immediately afterwards — so `worstNamePair` could only ever
+            // print `none`, on every run, since the day it was added. The
+            // comment introducing it says naming the worst pair on each side
+            // "settles it in one build"; it has never once been able to.
+            //
+            // The reset is correct for the WORLD pair, which is computed by
+            // the loop directly below it — same call, same frame as
+            // `collidingWorldText` beside it. It was copied to the name pair
+            // without moving it above the loop that fills it: one idea, two
+            // implementations, and the copy nobody looked at is the one
+            // missing a line. The name pair is a RUN PEAK instead, which is
+            // what pairs correctly with the peak count now returned.
             _collidingWorldText = 0;
             _worstWorldPair = "none";
             _worstWorldArea = 0f;
-            _worstNamePair = "none";
-            _worstNameArea = 0f;
             for (int i = 0; i < other.Count; i++)
                 for (int j = i + 1; j < other.Count; j++)
                     if (other[i].Overlaps(other[j]))
@@ -3459,8 +3526,42 @@ namespace Ledger.Game
                 int couldPair = bubbles.Count * (bubbles.Count - 1) / 2;
                 _bubbleOverlap.Add((float)now / couldPair);
             }
+            // AND THE NAME OVERLAP IS A PEAK OVER SAMPLES NOW, WHICH IS THE
+            // SECOND HALF OF WHY `collidingNames=0` KEPT LOSING ARGUMENTS
+            // WITH PICTURES.
+            //
+            // `CollidingNames` is called twice: once from the daily audit,
+            // whose return was assigned to `_labelsColliding`, and once per
+            // shot, whose return was THROWN AWAY. So the printed number came
+            // from one arbitrary audit moment and no photographed frame ever
+            // reached it. `hunt_day13_noon` has a dozen nameplates stacked in
+            // an overlapping heap beside `collidingNames=0`, and both were
+            // honest: they are different instants, and only one of them is a
+            // picture anybody can open.
+            //
+            // Every neighbour on that line — `namesTracked`, `worldTextTracked`,
+            // `bubblesTracked`, `textWalked` — was converted to a peak weeks
+            // ago for this exact reason, in this exact function. This one was
+            // missed because it travels by RETURN VALUE rather than by field,
+            // so the sweep that fixed the others could not see it.
+            //
+            // REGIME CHANGE, SAID OUT LOUD: `collidingNames` used to answer
+            // "how many name pairs overlapped at the audit moment" and now
+            // answers "how many ever overlapped at once, across every sample".
+            // Landed values before this commit are not comparable with values
+            // after it. `collidingNameSamples` is the denominator that makes a
+            // zero mean "never, over N looks" instead of "not while I looked".
+            _collidingNameSamples++;
+            if (pairs > _labelsColliding)
+            {
+                _labelsColliding = pairs;
+                _collidingNamesWhere = _lastShotName;
+            }
             return pairs;
         }
+
+        int _collidingNameSamples;
+        string _collidingNamesWhere = "none";
 
         int _collidingWorldText = -1;
         /// The first overlapping pair of world-text labels on a photographed
@@ -7279,36 +7380,14 @@ namespace Ledger.Game
             }
         }
 
-        /// Mean luminance of one rendered frame, without writing a file.
-        double FrameLuma(Camera cam)
-        {
-            RenderTexture rt = null;
-            Texture2D tex = null;
-            var prevTarget = cam.targetTexture;
-            var prevActive = RenderTexture.active;
-            try
-            {
-                rt = new RenderTexture(640, 360, 24, RenderTextureFormat.ARGB32);
-                cam.targetTexture = rt;
-                cam.Render();
-                RenderTexture.active = rt;
-                tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
-                tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
-                tex.Apply();
-                var px = tex.GetPixels();
-                double sum = 0;
-                foreach (var c in px) sum += 0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
-                return px.Length > 0 ? sum / px.Length : 0;
-            }
-            catch (Exception e) { _errors.Add("FrameLuma: " + e.Message); return -1; }
-            finally
-            {
-                cam.targetTexture = prevTarget;
-                RenderTexture.active = prevActive;
-                if (tex != null) UnityEngine.Object.Destroy(tex);
-                if (rt != null) rt.Release();
-            }
-        }
+        // FrameLuma DELETED HERE, 20 August: a full 640x360 off-screen
+        // render plus a ReadPixels, with NO CALLER anywhere in the repo.
+        // `FrameShot(cam).Mean` one method above is the same number from
+        // the same render and has ten call sites, so this was one idea
+        // with two implementations and the unused one was the expensive
+        // one. Rule 6, found by listing every value-returning measurement
+        // in this file and grepping each for a call site — the sweep that
+        // fixing `CollidingNames` asked for.
 
         /// How many stills were taken with a live ring hidden. Zero over a
         /// whole run means either a silent street or a hide that never
@@ -7348,6 +7427,34 @@ namespace Ledger.Game
         /// `0.00 x13 0.05 0.06 0.10 | 0.37 0.48 0.60 1.00`, and this sits in
         /// the widest empty stretch of that series.
         const float ShotBlockedAt = 0.25f;
+        /// How far a sight-line ray is allowed to run before it counts as
+        /// "sees the horizon". Not a threshold on the answer — it is the
+        /// ceiling on the RAY, and it exists so a ray that reaches nothing has
+        /// a number instead of being dropped, which is rule 3b's missing
+        /// denominator wearing a different hat. 120m is past the far side of
+        /// any district (the widest, Ironside, is 34m between blocks).
+        const float ShotDepthCap = 120f;
+        /// Every shot's median sight-line depth, and the tightest of them.
+        /// TIGHTEST, not "worst" — this one is a MINIMUM, and the last time a
+        /// minimum in this project was read as a description it cost three
+        /// builds (`crowdTightest`).
+        readonly List<float> _shotDepth = new List<float>();
+        float _shotDepthTightest = float.MaxValue;
+        string _shotDepthWhere = "none";
+        /// The district tour's own framing series, kept apart from the two
+        /// above. Seven teleports to arbitrary crossings is a different
+        /// population from wherever the game put the camera, and mixing them
+        /// is a regime change inside one run — which no aggregate survives.
+        readonly List<float> _tourNearFrac = new List<float>();
+        readonly List<float> _tourDepth = new List<float>();
+        /// AND KEYED BY DISTRICT, because a SORTED series cannot answer the
+        /// only question the tour exists to ask. "Which districts look
+        /// unbuilt" needs the name attached to the number; the first draft of
+        /// this emitted `FracSeries(_tourDepth)` and would have printed seven
+        /// anonymous metres — a statistic that structurally cannot see the
+        /// thing being asked about, published under a name that promised it.
+        readonly List<KeyValuePair<string, float>> _tourDepthBy =
+            new List<KeyValuePair<string, float>>();
         /// The worst reading taken BEFORE any step, and the count of steps.
         /// Without these a clean run cannot say whether the loop worked or
         /// whether nothing was ever in the way.
@@ -7368,31 +7475,64 @@ namespace Ledger.Game
         /// the grid is fixed — so unlike most counters in this file it cannot
         /// read low because nothing was sampled.
         ///
-        /// TWO METRES IS WHAT IT MEASURES AND IT IS NOT THE WHOLE QUESTION.
-        /// `review_day5_noon` is roof and awning slabs across the middle of
-        /// the frame and reads near zero here, because those slabs are ten
-        /// metres out, not two. So this catches "the camera is against a
-        /// wall" and not "the camera cannot see the street", and the second
-        /// needs a different number — a median ray distance would do it. Said
-        /// here rather than left to be discovered, because a metric that
-        /// answers a narrower question than its name suggests is how four
-        /// wrong readings got published in this project already.
-        float ShotNearFrac(Camera eye)
+        /// TWO METRES IS WHAT IT MEASURES AND IT IS NOT THE WHOLE QUESTION,
+        /// SO THE SAME GRID NOW ANSWERS THE OTHER HALF. `review_day5_noon` is
+        /// roof and awning slabs across the middle of the frame and reads near
+        /// zero on the fraction, because those slabs are ten metres out, not
+        /// two. The fraction catches "the camera is against a wall"; it cannot
+        /// catch "the camera cannot see the street".
+        ///
+        /// `depthMedian` is that second question: the MEDIAN distance to the
+        /// first solid thing along each of the 84 rays, capped at
+        /// `ShotDepthCap` for a ray that reaches nothing. An open street looks
+        /// down its own length, so half its rays run long; a frame walled off
+        /// at ten metres has half of them at ten whatever the near fraction
+        /// says. Two questions, two statistics, computed in ONE pass — the
+        /// alternative is a second 84-ray sweep, which is exactly the
+        /// one-idea-two-implementations shape this file keeps finding wrong on
+        /// the copy nobody looks at.
+        ///
+        /// NO GATE YET, DELIBERATELY. There is no landed series for this
+        /// number, so any bound would be invented rather than measured
+        /// (rule 2). It ships printing the whole series first.
+        ///
+        /// The near fraction's arithmetic is UNCHANGED — `RaycastAll` gives
+        /// the same nearest-hit-within-two-metres, player excluded, that
+        /// `Raycast` gave — because `ShotBlockedAt` was bound off the old
+        /// series and moving the metric under a bound is a regime change.
+        float ShotSightlines(Camera eye, out float depthMedian)
         {
+            depthMedian = -1f;
             if (eye == null) return 0f;
+            var player = _game != null && _game.Player != null
+                ? _game.Player.transform : null;
             int nearHits = 0, rays = 0;
+            var depths = new List<float>();
             for (int gx = 0; gx < 12; gx++)
                 for (int gy = 0; gy < 7; gy++)
                 {
                     var ray = eye.ViewportPointToRay(
                         new Vector3((gx + 0.5f) / 12f, (gy + 0.5f) / 7f, 0f));
                     rays++;
-                    if (Physics.Raycast(ray, out var nh, 2f,
-                                        ~0, QueryTriggerInteraction.Ignore)
-                        && !(_game != null && _game.Player != null
-                             && nh.collider.transform.IsChildOf(_game.Player.transform)))
-                        nearHits++;
+                    var hits = Physics.RaycastAll(ray, ShotDepthCap,
+                                                  ~0, QueryTriggerInteraction.Ignore);
+                    // Nearest hit of any kind decides the near fraction, since
+                    // that is what a single `Raycast` used to return; nearest
+                    // hit that is NOT the player decides the depth, since the
+                    // player's own body sits a metre from a third-person lens
+                    // and would drag every median to arm's length.
+                    float anyD = float.MaxValue, freeD = ShotDepthCap;
+                    bool anyIsPlayer = false;
+                    foreach (var h in hits)
+                    {
+                        bool mine = player != null && h.collider.transform.IsChildOf(player);
+                        if (h.distance < anyD) { anyD = h.distance; anyIsPlayer = mine; }
+                        if (!mine && h.distance < freeD) freeD = h.distance;
+                    }
+                    if (anyD <= 2f && !anyIsPlayer) nearHits++;
+                    depths.Add(freeD);
                 }
+            depthMedian = Median(depths);
             return rays > 0 ? (float)nearHits / rays : 0f;
         }
 
@@ -7415,6 +7555,20 @@ namespace Ledger.Game
             }
         }
 
+        /// The tour's sight-line depth per district, SHORTEST FIRST, so the
+        /// districts that look walled-in or empty are the ones at the ends.
+        /// No spaces: a verdict value may not contain one, and the shot names
+        /// (`district_the_hook`) already carry none.
+        string TourDepthLine()
+        {
+            if (_tourDepthBy.Count == 0) return "none";
+            var rows = new List<KeyValuePair<string, float>>(_tourDepthBy);
+            rows.Sort((a, b) => a.Value.CompareTo(b.Value));
+            var parts = new List<string>();
+            foreach (var r in rows) parts.Add($"{r.Key}:{r.Value:0.0}");
+            return string.Join("/", parts);
+        }
+
         /// Which districts the twenty shots were taken in, busiest first.
         /// No spaces: a verdict value may not contain one.
         string ShotDistrictLine()
@@ -7427,12 +7581,17 @@ namespace Ledger.Game
             return string.Join("/", parts);
         }
 
-        static string FracSeries(List<float> xs)
+        /// The whole sorted series, because a summary is never the evidence
+        /// (rule 2). `fmt` exists so metres and fractions can share one
+        /// implementation without a second sort-and-join to keep in step —
+        /// two decimals reads right for a 0..1 fraction and is noise on a
+        /// 120m sight-line.
+        static string FracSeries(List<float> xs, string fmt = "0.00")
         {
             if (xs == null || xs.Count == 0) return "none";
             var sorted = new List<float>(xs);
             sorted.Sort();
-            return string.Join("/", sorted.ConvertAll(f => f.ToString("0.00")));
+            return string.Join("/", sorted.ConvertAll(f => f.ToString(fmt)));
         }
 
         static float Median(List<float> xs)
@@ -7503,12 +7662,19 @@ namespace Ledger.Game
         void Shot(string name)
         {
             _lastShotName = name;
-            // SAMPLE THE TEXT COLLISIONS ON THE FRAME BEING PHOTOGRAPHED.
-            // The audit's own sample is one moment a day; the picture is
-            // another, and it is the one a human looks at. Cheap — it walks the
-            // TextMeshes already in the scene — and it means the number and the
-            // still describe the same instant.
-            if (_bubbleSampleWanted) CollidingNames();
+            // THE TEXT-COLLISION SAMPLE USED TO BE HERE AND IS NOW TAKEN
+            // AFTER THE DECLUTTER STEP-BACK, a hundred lines down.
+            //
+            // It projects against `Camera.main`, and the step-back loop below
+            // MOVES `Camera.main` by up to twelve metres before the frame is
+            // rendered — so a sample taken here describes a viewpoint the sim
+            // walked away from, and the still it is quoted beside was taken
+            // from somewhere else. Its own comment claimed "the number and the
+            // still describe the same instant", which was true when it was
+            // written and stopped being true when the step-back landed one
+            // commit later. The same-instant fix was applied to `nearFrac` in
+            // that commit and not to its twin here.
+            //
             // AND WHAT IS STANDING BY THE PLAYER IN THE FRAME BEING TAKEN,
             // which is the only instant the picture can be compared against.
             if (_game != null && _game.Player != null && _nearShots < 2)
@@ -7568,12 +7734,12 @@ namespace Ledger.Game
                 // CLEAR, and the framing is still bad. An 84-ray grid
                 // across the frustum, counting hits within two metres —
                 // the fraction is the number, the worst shot is named.
-                // ONE IMPLEMENTATION OF THE GRID, in `ShotNearFrac`, because
+                // ONE IMPLEMENTATION OF THE GRID, in `ShotSightlines`, because
                 // the loop below has to re-ask the same question after every
                 // step and a second copy of an 84-ray sweep is precisely the
                 // shape this file keeps finding wrong on the side nobody looks
                 // at.
-                float nearFrac = ShotNearFrac(blockCam);
+                float nearFrac = ShotSightlines(blockCam, out float depthMedian);
                 // BACK OFF THE WALL, WITH A BOUND OFF THE SERIES.
                 //
                 // `682e676` printed the twenty shots of a run sorted:
@@ -7622,7 +7788,7 @@ namespace Ledger.Game
                         {
                             blockCam.transform.position += back * 1.5f;
                             _shotNudges++;
-                            float now = ShotNearFrac(blockCam);
+                            float now = ShotSightlines(blockCam, out _);
                             if (now < best) best = now;
                             if (now <= ShotBlockedAt) { best = now; break; }
                         }
@@ -7651,7 +7817,13 @@ namespace Ledger.Game
                             _shotMoved = true;
                             _shotNudgesWorked++;
                         }
-                        nearFrac = ShotNearFrac(blockCam);
+                        // RE-READ BOTH, not just the fraction. Stepping back
+                        // changes what the camera can see down the street as
+                        // much as it changes what is against the lens, and a
+                        // depth taken before the step would describe a frame
+                        // the sim did not photograph — the same fault the
+                        // ordering note below is about.
+                        nearFrac = ShotSightlines(blockCam, out depthMedian);
                     }
                 }
 
@@ -7672,12 +7844,66 @@ namespace Ledger.Game
                 // about the other nineteen; whether that is one bad shot or a
                 // systematic problem with where the camera stands is the only
                 // question worth asking of it, and a maximum cannot answer it.
-                if (nearFrac > _shotNearFracWorst)
+                //
+                // AND THE TOUR IS A SEPARATE POPULATION, WHICH THE COMMENT
+                // BELOW ALREADY CLAIMED AND THE CODE DID NOT DO. The paragraph
+                // introducing the `!_touring` block, a hundred lines down,
+                // names "the blocked-frame series" among the things the
+                // district tour is deliberately kept out of — and this `Add`
+                // sat OUTSIDE that block, so seven teleported frames have been
+                // going into it. A comment is a claim with no test attached,
+                // and this is the second one found in this function.
+                //
+                // Fixed by splitting rather than by excluding, because the
+                // tour frames are the ones this measurement is most wanted
+                // for: "do the outer districts look unbuilt" is a sight-line
+                // question, and it needs its own series or it dilutes the one
+                // about where the GAME stands.
+                // AND THE TEXT COLLISIONS, HERE, FOR THE SAME REASON EVERY
+                // OTHER NUMBER IN THIS BLOCK IS HERE: the camera has finished
+                // moving, so this describes the frame that gets rendered.
+                //
+                // This block is guarded on there being a camera AND a player,
+                // which the old position was not, so a shot taken with no
+                // player no longer samples. `collidingNameSamples` is what
+                // says so — it is the denominator on the whole measurement and
+                // it will drop if that case is ever real. Preferred to
+                // sampling a frame the picture cannot be compared against.
+                if (_bubbleSampleWanted) CollidingNames();
+
+                if (_touring)
                 {
-                    _shotNearFracWorst = nearFrac;
-                    _shotNearFracWhere = name;
+                    _tourNearFrac.Add(nearFrac);
+                    if (depthMedian >= 0f)
+                    {
+                        _tourDepth.Add(depthMedian);
+                        _tourDepthBy.Add(new KeyValuePair<string, float>(
+                            string.IsNullOrEmpty(name) ? "unnamed" : name, depthMedian));
+                    }
                 }
-                _shotNearFrac.Add(nearFrac);
+                else
+                {
+                    if (nearFrac > _shotNearFracWorst)
+                    {
+                        _shotNearFracWorst = nearFrac;
+                        _shotNearFracWhere = name;
+                    }
+                    _shotNearFrac.Add(nearFrac);
+
+                    // AND HOW FAR THIS FRAME CAN SEE. Same grid, same instant,
+                    // same post-step camera as the fraction above — recorded
+                    // here rather than at the measurement so it cannot describe
+                    // a position the sim stepped away from.
+                    if (depthMedian >= 0f)
+                    {
+                        _shotDepth.Add(depthMedian);
+                        if (depthMedian < _shotDepthTightest)
+                        {
+                            _shotDepthTightest = depthMedian;
+                            _shotDepthWhere = name;
+                        }
+                    }
+                }
 
                 // AND ONLY SOME OF THESE SHOTS BECOME FILES. The sim shoots
                 // roughly twenty times a run and commits about six, so the
@@ -7688,7 +7914,15 @@ namespace Ledger.Game
                 // rest-day rule, and evaluating that twice is the
                 // one-idea-two-implementations shape that has put a wrong
                 // reading in this file four times.
-                _shotNearFracThis = nearFrac;
+                //
+                // AND -1 DURING THE TOUR, WHICH IS HOW THE SPLIT REACHES THE
+                // KEPT SERIES TOO. `KeptTheShot` returns early on a negative,
+                // so the seven district frames stay out of `shotNearKept*` for
+                // the same reason they stay out of the series above. They are
+                // not unmeasured: every tour shot is kept by construction, so
+                // `tourNearSeries` IS the tour's kept series and there is no
+                // second rule to keep in step.
+                _shotNearFracThis = _touring ? -1f : nearFrac;
 
                 // AND HOW MANY PATROL CARS ARE IN THE PICTURE. Same camera,
                 // same instant, after the declutter step so it describes the
@@ -10472,6 +10706,11 @@ namespace Ledger.Game
             // one moment in the run where the city is fully populated.
             WorldBuilder.AuditUndressed();
 
+            // THE GLYPH LINE, HERE, FOR THE SAME REASON. See `LogGlyphs`: its
+            // numbers are peaks that keep rising until the last shot, and it
+            // used to be printed on day 2.
+            LogGlyphs();
+
             Debug.Log($"SimDirector: done. errors={_errors.Count} npcsMoved={npcsMoved} " +
                       $"lampToggles={WorldBuilder.LampToggleCount} screenshots={_screenshots.Count} " +
                       $"gossipHeat={gossipHeat:0.00} secretReachedDay={secretReachedDay} " +
@@ -11028,9 +11267,82 @@ namespace Ledger.Game
                       $"shotNearBefore={_shotNearBefore:0.00} " +
                       $"shotNudges={_shotNudges} " +
                       $"shotNudgesWorked={_shotNudgesWorked} " +
-                      $"shotNudgesGaveUp={_shotNudgesGaveUp} uiOk={uiOk} " +
+                      $"shotNudgesGaveUp={_shotNudgesGaveUp} " +
+                      // HOW FAR THE CAMERA COULD SEE, which is the half of
+                      // the framing question the fraction above cannot reach.
+                      // `review_day5_noon` reads near zero on the fraction —
+                      // nothing is against the lens — and is roof and awning
+                      // slabs across the middle at about ten metres. A frame
+                      // looking down an open street runs half its 84 rays
+                      // long; one walled off at ten has half of them at ten.
+                      //
+                      // MEDIAN OVER SHOTS OF A MEDIAN OVER RAYS, and both
+                      // words are load-bearing. The per-ray median asks "what
+                      // is a typical sight-line in this frame"; the series
+                      // beside it is what says whether one still is bad or the
+                      // camera stands badly everywhere. `shotDepthTightest` is
+                      // a MINIMUM and is named so, because the last minimum
+                      // read as a description here cost three builds.
+                      //
+                      // NO BOUND ON IT THIS BUILD. There is no landed series,
+                      // so a threshold would be invented (rule 2). It prints
+                      // the series first and gets a gate from the run.
+                      $"shotDepthMedian={Median(_shotDepth):0.0} " +
+                      $"shotDepthSeries=[{FracSeries(_shotDepth, "0.0")}] " +
+                      $"shotDepthTightest={(_shotDepth.Count > 0 ? _shotDepthTightest : -1f):0.0} " +
+                      $"shotDepthWhere=[{_shotDepthWhere}] " +
+                      $"shotDepthShots={_shotDepth.Count} shotDepthRays=84 " +
+                      $"shotDepthCap={ShotDepthCap:0} " +
+                      // AND THE DISTRICT TOUR'S OWN FRAMING, SEPARATELY.
+                      //
+                      // This is the pair the district question actually needs.
+                      // `district_downtown` and `district_fairview` read as a
+                      // road on an empty grey plain and the Hook beside them
+                      // has terraces, signs and people — but that is an
+                      // impression off a JPEG, and a pixel statistic over
+                      // those seven frames could not tell them apart at all.
+                      // A sight-line can: an unbuilt plain runs every ray to
+                      // the cap, a built street stops them at its own walls.
+                      //
+                      // THE PREDICTION, WRITTEN BEFORE THE RUN so the reading
+                      // cannot be rationalised afterwards. The tour camera
+                      // stands 14m up and 34m back, pitched about 20 degrees
+                      // down, so on FLAT EMPTY GROUND the centre ray reaches
+                      // 14/sin(20) = 41m and everything above the horizon runs
+                      // to the 120m cap: an unbuilt district should read
+                      // somewhere north of 40. A built one stops its rays on
+                      // its own terraces at ten to twenty. If all seven come
+                      // back within a few metres of each other, the ground
+                      // plane is dominating and this metric is the wrong shape
+                      // for the question — say so and do not reinterpret it.
+                      //
+                      // NAMED, NOT SORTED. Seven frames of seven different
+                      // districts is exactly the case where a middle describes
+                      // none of them, and the question is WHICH districts run
+                      // long — so the name travels with the number. The median
+                      // is beside it only as the thing each district is to be
+                      // read against.
+                      $"tourDepthBy=[{TourDepthLine()}] " +
+                      $"tourDepthMedian={Median(_tourDepth):0.0} " +
+                      $"tourNearSeries=[{FracSeries(_tourNearFrac)}] " +
+                      $"tourShots={_tourDepth.Count} " +
+                      $"uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
-                      $"collidingNames={_labelsColliding} collidingWorldText={_collidingWorldText} " +
+                      // COLLIDING NAMES IS A PEAK OVER SAMPLES NOW, AND ITS
+                      // TWO NEIGHBOURS ARE WHAT MAKE IT READABLE.
+                      //
+                      // It was the single audit call's return, so no
+                      // photographed frame ever reached it — `hunt_day13_noon`
+                      // shows a dozen nameplates in a heap beside a printed 0.
+                      // `collidingNameSamples` is the denominator (a zero over
+                      // forty looks is a finding; a zero over one is not), and
+                      // `collidingNamesWhere` names the shot the peak came
+                      // from, so the picture can be opened. Values before this
+                      // commit are not comparable: different question.
+                      $"collidingNames={_labelsColliding} " +
+                      $"collidingNameSamples={_collidingNameSamples} " +
+                      $"collidingNamesWhere=[{_collidingNamesWhere}] " +
+                      $"collidingWorldText={_collidingWorldText} " +
                       $"collidingBubbles={_collidingBubbles} bubblesAtWorst={_bubblesAtWorst} bubblesOnScreen={_bubblesOnScreen} " +
                       // WHY THEY COLLIDE, if they do. `bubblesAtCeiling` are
                       // the ones the stack had no room left for and put on top
@@ -11466,7 +11778,18 @@ namespace Ledger.Game
                       // between a pipeline and a street (rule 6).
                       $"propsPlaced={AssetLibrary.PropsPlaced} variantSurfaces={AssetLibrary.VariantsUsed} " +
                       $"skyline={WorldBuilder.SkylineKitted}/{WorldBuilder.SkylineBlocks} " +
-                      $"vehiclesKitted={GameController.VehiclesKitted}/{GameController.VehiclesBodied} " +
+                      // BODIES BUILT, NOT VEHICLES PRESENT, and the old name
+                      // said the wrong one. It read `vehiclesKitted=26/33` on
+                      // a fleet of 28, which scans as "seven vehicles have no
+                      // model" and is not what the pair counts: both sides are
+                      // cumulative over the run, and patrol rebalancing
+                      // REBUILDS a body, so 33 builds for 28 vehicles is the
+                      // rebalance working. The arithmetic was always honest —
+                      // one increment site, one instant — so this is a rename
+                      // and the third number is the missing context rather
+                      // than a new measurement.
+                      $"bodiesKitted={GameController.VehiclesKitted}/{GameController.VehiclesBodied} " +
+                      $"fleetNow={(_game?.Traffic != null ? _game.Traffic.Vehicles.Count : -1)} " +
                       // THE PATROL CARS, AND WHETHER THE STREET AGREES WITH
                       // CORE ABOUT THEM.
                       //

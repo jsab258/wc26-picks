@@ -1153,6 +1153,52 @@ def verdict_format():
     return True, "verdict format ok (selftest + newest run)"
 
 
+def verdict_dupkeys():
+    """One key, two values — the write-time half of the verdict-read guard.
+
+    `verdict-read.py` refuses when the keys you ASK FOR do not share a line.
+    That protects reads routed through it and nothing else, and nobody had ever
+    asked the file as a whole which of its keys are ambiguous.
+
+    MEASURED on the landed verdict, not suspected: `collidingWorldText` read 5
+    on the glyphs line and 9 on the done line of the same run, and `clean=`
+    appeared TWICE on the done line with 310 and 0. A `grep -o` returns
+    whichever it reaches first, silently. Both are repaired in the emitter by
+    the commit that adds this.
+
+    ONLY THE SELFTEST IS GATED, AND THAT IS THE POINT OF RULE 5b'S COROLLARY.
+    The landed verdict still carries the collisions, because it came from the
+    build BEFORE the repair — so gating on the file would go red on arrival and
+    block every commit until a twenty-eight-minute round trip landed. Exactly
+    the shape `verdict_format` above had to learn. So: the selftest must pass
+    (the tool works), the file is REPORTED with its counts (rule 3b — the
+    denominator ships with the zero), and gating waits for a verdict that
+    proves the accepting case exists. That step is written down in
+    `game-design/queue.md`, not left to be remembered."""
+    tool = str(ROOT.parent / "tools" / "verdict-dupkeys.py")
+    code, out = run(["python3", tool, "--selftest"])
+    if code != 0:
+        first = next((l.strip() for l in out.splitlines() if "Error" in l or "assert" in l),
+                     "see verdict-dupkeys --selftest")
+        return False, "VERDICT DUPKEY CHECK BROKEN: " + first[:110]
+    # ABSOLUTE, BECAUSE `run` STANDS IN `ledger/`. The first version passed no
+    # path and the tool's own relative default resolved against the wrong
+    # directory, so the footer read "cannot read ... No such file" and the
+    # check still returned ok — a tool reporting on nothing, which is the
+    # `BarkGen` manifest fault (rule 3) reproduced within the hour of reading
+    # about it. `verdict.txt` is not tracked between builds, so ABSENT is a
+    # normal state and says so distinctly from EMPTY.
+    verdict = ROOT.parent / "game-design" / "sim-shots" / "verdict.txt"
+    if not verdict.exists():
+        return True, "dupkeys ok (selftest); no landed verdict to read"
+    code, out = run(["python3", tool, str(verdict)])
+    head = next((l.strip() for l in out.splitlines()
+                 if l.startswith("verdict-dupkeys:")), "")
+    if not head or "cannot read" in head:
+        return False, "DUPKEY CHECK READ NOTHING: " + (head or out.strip())[:110]
+    return True, head.replace("verdict-dupkeys: ", "dupkeys ok (selftest); landed verdict: ")
+
+
 def frame_drift():
     """Layer 3 of the testing system: the instrument that reads the render.
 
@@ -1232,7 +1278,7 @@ def main():
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, filename_as_type, namespace_as_value, workflow_size,
                powershell_steps, sheet_read, prop_dimensions,
-               frame_drift, verdict_keys, verdict_format, save_chaos, soak,
+               frame_drift, verdict_keys, verdict_format, verdict_dupkeys, save_chaos, soak,
                adversary, stale_anchors, clip_audit, picker_selftest, core_tests):
         ok, text = fn()
         all_ok &= ok

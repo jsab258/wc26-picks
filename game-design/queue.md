@@ -5,22 +5,16 @@
 
 ## Why this file exists, and how to use it
 
-The moment after a dispatch is a decision point, and a decision point at the
-end of a long turn is where turns end. On 3 August that cost four gaps of
-twenty to thirty minutes with nothing landing. So the next items are written
-down BEFORE the dispatch and taken from the top afterwards, with no judgement
-required at the exact point where judgement was failing. The full account is in
-CLAUDE.md under AUTO MODE.
+The next items are written down BEFORE a dispatch and taken from the top
+afterwards, so no judgement is required at the exact point where judgement was
+failing. Full account in CLAUDE.md under AUTO MODE.
 
-- **Every item fits inside one build round trip (~28 min)**, or it gets split,
-  or it will be abandoned half-done when the build lands.
-- **CI-needed items are marked.** They are batched into the next dispatch and
-  are never a reason to stop working.
-- **Take from the top. Move finished items out** — this records what is NEXT.
-  Done work is in the git log, and `roadmap-history.md` holds the cut blocks;
-  `docs-check` caps a live plan at 400 lines, which is what forces the tidy.
-- **`## Standing work` never empties.** When `## Now` has nothing startable,
-  decompose a standing item into it. Running out of short items is a refill
+- **Every item fits inside one build round trip (~28 min)**, or it gets split.
+- **CI-needed items are marked** and batched into the next dispatch.
+- **Take from the top; move finished items out.** `roadmap-history.md` holds
+  the cut blocks and `docs-check` caps this file at 400 lines, which is what
+  forces the tidy.
+- **`## Standing work` never empties.** Running out of short items is a refill
   signal, not a stop signal.
 
 ---
@@ -29,18 +23,15 @@ CLAUDE.md under AUTO MODE.
 
 ### Where the street got to
 
-The Mixamo harvest landed complete — 67 clips, no duplicates — and the street
-came alive with it: people talk, argue, lean, smoke, work counters, carry
-shopping. **But twenty-one of the 67 play the wrong motion — item 1.**
-Accounts in `roadmap-history.md`. NEXT: T3 queue points and standing
-destinations.
+The Mixamo harvest landed complete — 67 clips — and the street came alive with
+it: people talk, argue, lean, smoke, work counters, carry shopping. **But
+twenty-one of the 67 play the wrong motion — item 1.** Accounts in
+`roadmap-history.md`. NEXT: T3 queue points and standing destinations.
 
-### THE PLAYTEST — DEPRIORITISED 18 Aug, by Jafar
-
-*"Don't worry about timelines or the near goal or play testing. Just keep
-building."* `playtest-plan.md` stays live as the Mac setup record and resumes
-when he asks. Live speech stays parked — no DirectML on the Air. The glowing
-box in day2_night's plaza is the bar sign's bare back face, one line.
+**THE PLAYTEST IS DEPRIORITISED (18 Aug, Jafar):** *"Don't worry about
+timelines or the near goal or play testing. Just keep building."*
+`playtest-plan.md` stays live as the Mac setup record. Live speech stays
+parked — no DirectML on the Air.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
@@ -54,30 +45,41 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    rejected, forty-six accepted.
 
    **For Friday:** the re-pick REFUSES a candidate whose contents contradict
-   its name and tries the next; where the catalogue has only the one name the
-   slot reports MISSING. **Holes are the right outcome and they are the
-   information** — a slot unfillable from a 2,846-name harvest says the
-   harvest needs redoing, not re-picking. **Not caught, and said so:** `sit`
-   renders standing at 96cm and the three sitting clips read 18, 94 and 96,
-   so there is no correct example to set a band from. Account in
-   `clip-findings.txt`.
+   its name and tries the next; a slot the catalogue cannot fill reports
+   MISSING. **Holes are the right outcome and they are the information.**
+   **Not caught, and said so:** `sit` renders standing at 96cm and the three
+   sitting clips read 18, 94 and 96, so there is no correct example to set a
+   band from. Account in `clip-findings.txt`.
 
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
    NARROW.** *(rule 12)* The camera steps back off anything filling more than
    a quarter of the frame at arm's length, bound from a measured bimodal
    series, exercised on a real 0.83 case. Account in `roadmap-history.md`.
-   **What is left:** two metres cannot see `review_day5_noon` — slabs across
-   the middle at about ten metres, visibly blocked and numerically clear.
-   **The next number is a median ray distance, not a wider bound.**
+   **The median ray distance SHIPS THIS BUILD.** Same 84-ray grid, one pass,
+   both numbers: the fraction still answers "is the camera against a wall" and
+   `shotDepthMedian` answers "can it see the street" — which is what
+   `review_day5_noon` needed, slabs across the middle at ten metres reading
+   near zero on the fraction. No bound on it: there is no landed series yet.
 
-1. **THE LAW TIER WAS OFF FOR THE WHOLE RUN, AND THE DENOMINATOR CAUGHT IT.**
-   `looseEnds=6/0/[Owed:6]/open6/1of6` — one tier live on each of six evenings
-   — beside `inquiry=Manhunt pressNamed=1 homNamed=9`. The tier asked whether
-   anybody ELSE was named, and NOTHING EVER CLEARS THAT NAME: only the relief
-   expires, so one successful redirect ever closed it for the rest of the run.
-   Reads the live relief now, tested both ways off the real book. **Landed:**
-   `[Law:1,Owed:5]/open7/2of6`. **Crew still never opens** (`crew=2`, nobody
-   below the poach floor) — the next one to chase.
+   **And the tour got its own pair**, `tourDepthBy=[...]` keyed by district and
+   sorted shortest-first, because "which districts look unbuilt" needs the name
+   attached to the number and a sorted series structurally cannot carry one.
+   **A prediction is written into the emitter before the run**: the tour camera
+   is 14m up and 34m back at about 20 degrees down, so flat empty ground should
+   read north of 40m and a built street ten to twenty. If all seven come back
+   within a few metres of each other the ground plane is dominating and the
+   metric is the wrong shape — say so, do not reinterpret it.
+
+   **Also fixed while in there:** the `!_touring` block's own comment claimed
+   the blocked-frame series excluded the district tour. The `Add` sat outside
+   that block, so seven teleported frames had been going into it.
+
+1. **THE CREW TIER OF `looseEnds` NEVER OPENS** — `crew=2`, nobody below the
+   poach floor, so the tier has never once fired in the recorded history of
+   the project. Same shape as the Law tier, which was off for entire runs
+   until the denominator caught it (fixed; account in `roadmap-history.md`,
+   landed at `[Law:1,Owed:5]/open7/2of6`). **Plant the condition, do not
+   loosen the floor.**
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the
@@ -92,21 +94,17 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    inside the 34m band — half the people you can see can never be skinned.
    Belongs with the population item.
 
-   **The white pills are unidentified and NO COMMITTED STILL HAS ONE.**
-   Measured: the pale figures in `review_street.jpg` read `#5d626f` and
-   `#66676a` against buildings at `#7f838f` — darker than the walls — and
-   that frame's brightest 1% is entirely the harbour. I called them white off
-   the picture before measuring, the sixth wrong identification; `bodyAlbedo`
-   naming them was wrong too, it measures source TEXTURES. **Next step is a
-   measurement that fires WHILE one is on screen.** The T-pose in that frame
-   is real and separate — `armStreet`'s tail, which a median cannot see.
+   **The white pills are unidentified and NO COMMITTED STILL HAS ONE.** The
+   pale figures in `review_street.jpg` measure `#5d626f`/`#66676a` against
+   buildings at `#7f838f` — DARKER than the walls — and that frame's brightest
+   1% is entirely the harbour. I called them white off the picture, the sixth
+   wrong identification. **Next step is a measurement that fires WHILE one is
+   on screen.** The T-pose in that frame is real and separate — `armStreet`'s
+   tail, which a median cannot see.
 
-   **`bodyWashUnreached=534` against `bodyTinted=1326`, and nobody has
-   looked.** 40% of bodies render DARKER than the band because their sheet is
-   darker and a multiply only subtracts. Not a bug — a limit on how much
-   palette reaches the street. **And `RealBodyCap = 12` needs a PC
-   measurement**, not a CI one: its comment prices a dozen skinned bodies
-   against a runner with no GPU at all.
+   **`bodyWashUnreached=534` against `bodyTinted=1326`** — 40% of bodies render
+   darker than the band because a multiply only subtracts. A limit, not a bug.
+   **`RealBodyCap = 12` needs a PC measurement**, not a CI one.
 
 1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — the remaining primitives.**
    `vehicleFellBack=[bus,bike x6]`. All 50 car-kit models ARE extracted and
@@ -122,43 +120,84 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    wrong theories in `roadmap-history.md`.
 
    **What is open:** `patrolOnBeatMean=0.00` over 3 shots against `0.18` over
-   17 — zero of three separates nothing. The `hunt_` pair now photographs the
-   manhunt, so the next build has frames to judge from. **Still unread:** six
-   cars that never stop are six brief crossings; a patrol PARKED with its
+   17 — zero of three separates nothing. The `hunt_` pair photographs the
+   manhunt now, so the next build has frames to judge from. **Still unread:**
+   six cars that never stop are six brief crossings; a patrol PARKED with its
    beacon lit stays in frame. A feature, not a knob.
 
-1. **THE VERDICT STEP IS 400 CHARS OFF A HARD CEILING AND FAILS AT DISPATCH,
-   NOT AT COMMIT.** *(CI)* Adding one paragraph took it 815 over the largest
-   step that has ever dispatched; `workflow-size` caught it and four rounds of
-   trimming prose bought it back. A 422 at dispatch means NO Windows build at
-   all. **The real fix is extraction**, as `sim-shots-stage.sh` already
-   proves: move the step body to a script file and the YAML stops being the
-   constraint. Until then every comment added there is a coin flip.
+1. **THE VERDICT STEP IS 416 CHARS OFF A HARD CEILING AND FAILS AT DISPATCH,
+   NOT AT COMMIT.** *(CI)* One added paragraph took it 815 over the largest
+   step that has ever dispatched, and a 422 at dispatch means NO Windows build
+   at all. **The real fix is extraction**, as `sim-shots-stage.sh` already
+   proves: move the step body to a script file. Until then every comment added
+   there is a coin flip.
 
 1. **THE FIRST MANHUNT FRAME IS BAD, AND IT IS THE FIRST ONE ANYONE HAS
    SEEN.** *(on screen)* `hunt_day13_noon`: fifteen people packed shoulder to
    shoulder in the road, a dozen NAMEPLATES stacked in an overlapping heap,
    and a giant red `... you ...` caption across a building face.
 
-   **`collidingNames=0` on the same run** — the counter says no nameplates
-   overlap and the picture shows a heap. A zero against a frame that
-   contradicts it, now with the picture in hand. **Two visual reads of mine
-   were wrong and measured so before publishing:** a "magenta cluster" (zero
-   magenta pixels in the frame, so no error shader) and a "pink object" (the
-   only pinkish blocks are the stop sign and the caption).
+   **THE `collidingNames=0` ARGUMENT IS SETTLED, AND THE COUNTER WAS WRONG
+   THREE SEPARATE WAYS.** Read the code rather than the readings:
+
+   - **The shot-time samples never reached the printed number.** Called from
+     the daily audit, whose return was assigned to the field, and once per shot
+     — where the return was THROWN AWAY. The verdict showed one arbitrary audit
+     moment and no photographed frame ever reached it. Every neighbour on that
+     line became a peak weeks ago; this one travels by RETURN VALUE, so the
+     sweep could not see it.
+   - **It was sampled before the camera finished moving.** The call sat at the
+     top of `Shot`; the declutter step-back moves the camera up to twelve
+     metres afterwards. Same-instant rule, applied to `nearFrac` in the commit
+     that added the step-back and not to its twin one line away.
+   - **`worstNamePair` could never say anything.** Computed by the boxes loop
+     and then unconditionally reset to `none` a hundred lines below, by a reset
+     correctly placed for the WORLD pair and copied without moving it. The
+     diagnostic added to settle this exact question has printed `none` every
+     run since the day it was written.
+
+   All three fixed. `collidingNames` is a peak over every sample now, with
+   `collidingNameSamples` as denominator and `collidingNamesWhere` naming the
+   shot — **so landed values are not comparable across this commit.**
+
+   **Two visual reads of mine were wrong and measured so before publishing:** a
+   "magenta cluster" (zero magenta pixels in the frame, so no error shader) and
+   a "pink object" (the only pinkish blocks are the stop sign and the caption).
+
+1. **THE VERDICT HAS AMBIGUOUS KEYS AND NOTHING HAD EVER LOOKED — 30 same-line
+   and 5 cross-line, measured.** `tools/verdict-dupkeys.py` is new and reports
+   them; `verify.py` runs its selftest as a gate and prints the file's counts.
+
+   **The two that mattered are fixed.** `collidingWorldText` read **5** on the
+   glyphs line and **9** on the done line of one run — the glyphs line was
+   emitted on **day 2** of a seventeen-day run while its peaks kept rising for
+   another fifteen days, so it has been publishing a partial as a summary since
+   it was written. It is emitted at the end of the run now. And `clean=`
+   appeared TWICE on the done line, 310 from the purse and 0 from the Act III
+   snapshot; the snapshot's pair is `a3clean`/`a3dirty` now.
+
+   **What is left is a real backlog.** The remaining same-line hits are lines
+   carrying several sub-records at once — `Traffic: wheels` puts a dimension
+   and a ratio both under `hi=`, and two lines repeat a whole per-walker record
+   three times. A grep gets an arbitrary one of three. **The fix is one line
+   per record**, as the sky readings already do.
+
+   **AND THE GATE IS NOT ON YET, ON PURPOSE.** The landed verdict still carries
+   the collisions — it came from the build before the repair, so gating now
+   would go red on arrival (rule 5b's corollary). **Turn the file check into a
+   gate once a verdict lands clean.**
 
 1. **THE DISTRICT TOUR LANDED, AND THE OUTER DISTRICTS LOOK UNBUILT — BUT
    THAT IS A HYPOTHESIS, NOT A MEASUREMENT.** *(on screen)* Seven frames now
    exist, `district_*.jpg`, the first pictures ever taken of six of them.
-   `district_downtown` and `district_fairview` read as a road with four cars
-   on a vast empty grey plain, under a distant skyline of pale towers well
-   outside the noir palette. The Hook, beside them, has terraces, signs,
-   props and people.
+   `district_downtown` and `district_fairview` read as a road with four cars on
+   a vast empty grey plain under a skyline of pale towers well outside the noir
+   palette. The Hook beside them has terraces, signs, props and people.
 
    **A pixel statistic over those frames CANNOT tell them apart** — block
    spread 37-44 and flat ground 5-8% in all seven, because textured ground
-   varies as much as a street does. I chose a metric blind to the question,
-   which is why the claim above is still marked as an impression.
+   varies as much as a street does. A metric blind to the question, which is
+   why the claim above is still an impression.
 
    **So the count comes from the builder.** `parcelsByDistrict=[...]` ships
    next build, incremented where the parcel is placed. **Read it against the
@@ -167,54 +206,36 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    comparable, the fault is in what a parcel LOOKS like out there, which is a
    different job entirely.
 
-1. **THE VERDICT STEP IS 400 CHARS OFF A HARD CEILING AND FAILS AT DISPATCH,
-   NOT AT COMMIT.** *(CI)* Adding one paragraph took it 815 over the largest
-   step that has ever dispatched; `workflow-size` caught it and four rounds of
-   trimming prose bought it back. A 422 at dispatch means NO Windows build at
-   all. **The real fix is extraction**, as `sim-shots-stage.sh` already
-   proves: move the step body to a script file and the YAML stops being the
-   constraint. Until then every comment added there is a coin flip.
+   **THE FIRST VERSION OF THAT COUNTER WAS WRONG AND AGREED WITH ME.** It
+   asked `StreetMap.DistrictAt` where each parcel STOOD and read `none:268 /
+   the_Hook:56 / Ironside:18 / the_Parade:16 / Gullwing:7 / Copper_Row:6 /
+   the_Exchange:5` — 71% of 376 parcels in no district, Fairview absent. The
+   ordering looked like the finding I expected and was ranking BLOCK SPACING:
+   the margin is a flat 12m, blocks run 20-34m, so the Hook keeps the most
+   only because its blocks are tightest. Caught because 71% `none` is
+   impossible, not because it was surprising. **It attributes by the BLOCK's
+   district now**, which the builder already knows.
 
-1. **THE FIRST MANHUNT FRAME IS BAD, AND IT IS THE FIRST ONE ANYONE HAS
-   SEEN.** *(on screen)* `hunt_day13_noon` shows three things at once:
-   about fifteen people packed shoulder to shoulder in the road, a dozen
-   NAMEPLATES stacked in an overlapping heap, and a giant red `... you ...`
-   caption across a building face.
+1. **`StreetMap.DistrictAt`'s MARGIN IS A FLAT 12m AND SHOULD BE HALF A BLOCK
+   — correct, measured, and NOT SHIPPED because it wedges traffic.** Evidence
+   in the item above. This is not a reporting fix: `Traffic.LocalJunctions`
+   keeps journeys local with it, the patrol beat decides where police work
+   with it, and `PopulationHost` places people with it — all against boxes
+   too small in six of seven districts.
 
-   **`collidingNames=0` on the same run.** The counter says no nameplates
-   overlap; the picture shows a heap of them. A number reading zero against a
-   frame that contradicts it — the exact class this project keeps finding,
-   and now with the picture in hand to work from.
+   **Why it is queued rather than landed.** Widening it to
+   `max(12, widestBlockGap / 2)` moved junction locality, the beat and
+   placement together and wedged a bicycle in the 14-vehicle traffic gate.
+   **Measured before blaming it:** a ten-seed sweep at 28 vehicles wedges at
+   least one on 4 of 10 seeds on UNMODIFIED code, seed 5 wedging five. So
+   wedging is a standing fragility of a busier map — but the widening still
+   made the shipping density go red, so it does not land until the wedge is
+   fixed. **Order: fix the wedge first, then widen.** Do not loosen the gate.
 
-   **Two visual reads of mine were WRONG and measured so before publishing:**
-   a "magenta cluster" (zero magenta-ish pixels in the whole frame, so no
-   error shader) and a "pink object" in the crowd (the only pinkish blocks
-   are the stop sign and the caption text). Rule 4's second half, twice in
-   one frame.
-
-1. **A DISTRICT TOUR NOW PHOTOGRAPHS ALL SEVEN — awaiting its first build.**
-   `shotDistricts=[the_Hook:20]` said all twenty shots of every run were in
-   one district; Copper Row, Ironside, the Exchange, the Parade, Fairview and
-   Gullwing had never been photographed at all, having been the largest world
-   change in weeks. Seven frames once a run, day 3 noon, elevated and aimed
-   along each district's middle avenue — the day stills' composition, so they
-   are comparable with them.
-
-   **Deliberately outside every statistic.** The tour teleports the camera to
-   seven arbitrary crossings, which is right for looking at districts and
-   wrong for the patrol means, the shot-district histogram and the
-   blocked-frame series — all of which describe where the GAME put the
-   camera. Folding seven teleports in would be a regime change inside one
-   run, which is the fault that cost the patrol work three builds.
-
-   **All three staging sites taught the prefix this time** — the workflow
-   copy glob, `sim-shots-stage.sh` and `report-frame.py`. Missing one of them
-   is how the `hunt_` pair came back rendered and never committed.
-
-   **Noted, not chased:** `vehiclesKitted=26/33` where the fleet is 28.
-   `VehiclesBodied` counts bodies BUILT and rebalancing rebuilds them, so the
-   denominator stopped meaning "vehicles in the world". Ratio honest, name
-   not.
+1. ~~**`vehiclesKitted=26/33` WHERE THE FLEET IS 28**~~ — **RENAMED** to
+   `bodiesKitted=`, with `fleetNow=` beside it. Both sides count bodies BUILT
+   over the run and rebalancing rebuilds them, so 33 for 28 vehicles is the
+   rebalance working. The arithmetic was never wrong; the name was.
 
 1. **THE FRAME GATE IS RED AND THE COST HAS MOVED — this item was two regime
    changes stale.** **Read the breakdown, not the mean**: `mean=666.4ms` is a
@@ -222,19 +243,12 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    is a 104% overrun in OUR code.
 
    Current: `npcs=9.48 bodyLod=4.68 mix=3.75 traffic=2.51 sun=1.27
-   population=1.40 rigs=1.25`. **`npcs` is now the dominant cost** and this
-   item used to say `npcs=2.77` with bodyLod on top — the series says npcs has
-   tripled (~2.3-3.3 → ~4.4 → ~8.6-9.5 across three regimes) while `game` went
-   14→18→24ms. Start there, not at bodyLod.
-
-   **`sun` is settled and the old paragraph here was wrong.** It read 3.15ms
-   because the whole audio mix ran inside the sun's timer; `mix` was split out
-   of it and `sun` is 1.27ms now, with the landed series confirming the step.
-   Nothing to chase.
-
-   bodyLod is a once-a-second FULL pass, so spreading it round-robin needs the
-   measurement split from the sweep first or every count becomes a peak over
-   partial passes. Tune on the PC, not CI.
+   population=1.40 rigs=1.25`. **`npcs` is now the dominant cost** — the series
+   says it tripled (~2.3-3.3 → ~4.4 → ~8.6-9.5 across three regimes) while
+   `game` went 14→18→24ms. Start there, not at bodyLod (a once-a-second FULL
+   pass; spreading it round-robin needs the measurement split from the sweep
+   first, and tuning belongs on the PC). **`sun` is settled** — it read 3.15ms
+   only because the audio mix ran inside its timer.
 
 1. **THE BUBBLE STACK'S SCREEN PASS BARELY RUNS.** `bubblesScreenLifted=1` of
    `bubblesMade=54` with `bubblesAtCeiling=16`. Two reasons, both in
@@ -248,8 +262,15 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
 3. **THE DWELL FIX TRADES A VISIBLE FAULT FOR AN INVISIBLE SAVING.**
    `bodyLodMs=4.68` against `populationMs=1.40` — the LOD pass costs three
    times the reband it hides inside. **Decide against `gameShare`, not
-   milliseconds:** at `render+rest=641.83ms` on a software runner a few ms is
-   noise here and real on a player's machine, which is why this is undone.
+   milliseconds.**
+
+8. **SWEEP THE GAME LAYER FOR DEAD MEASUREMENTS THE REACH LEDGER CANNOT
+   SEE.** The ledger covers public Core APIs; a PRIVATE method with no caller
+   is invisible to it. Listing every value-returning measurement in
+   `SimDirector` and grepping each for a call site found `FrameLuma` — a full
+   640x360 off-screen render plus a ReadPixels, never once called, duplicating
+   `FrameShot(cam).Mean` which has ten call sites. Deleted. **Do the same
+   sweep for the other Game-layer files**; it is two minutes each.
 
 8. **KEEP RETIRING THE REACH LEDGER — 37 entries.** **READ THE ENTRY'S
    REASON, NOT JUST ITS NAME**: three were wrong on 4 August, describing a
@@ -275,18 +296,12 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
    a detective — plausible and never checked against the design.
 
 12. **THE REST OF WHAT `gates --constant` FOUND — a work list.** Sixty keys
-   have never been anything but zero. Most are fault counters doing their
-   job; these are not: **`threat` has only ever seen one outcome**
-   (`brandishes=1` a run, so `called`/`complied`/`undraw` cannot be sampled —
-   plant several, at people with different nerve); **`departed=0` and
-   `carriedOut=0`**; **`groundless=False`** — a carry has never been
-   groundless; **`summonsTaken=0`**, fixed and awaiting its own build, with
-   the plant deliberately NOT in the same build so a moving number is
-   attributable.
-
-   **The rule for all of them is rule 5b's corollary: PLANT the condition,
-   never loosen the bound.** One or two at a time — a build carrying five new
-   staged behaviours cannot attribute a red gate to any of them.
+   have never been anything but zero. Most are fault counters doing their job;
+   these are not: **`threat` has only ever seen one outcome** (`brandishes=1` a
+   run, so `called`/`complied`/`undraw` cannot be sampled); **`departed=0`**;
+   **`carriedOut=0`**; **`groundless=False`**; **`summonsTaken=0`**, fixed and
+   awaiting its own build. **PLANT the condition, never loosen the bound** —
+   one or two at a time, or a red gate cannot be attributed.
 
 ## Next
 
@@ -321,45 +336,34 @@ box in day2_night's plaza is the bar sign's bare back face, one line.
 ## How to keep this file honest
 
 - **Dispatch, then immediately take item 1 of Now.** A build in flight is a
-  reason to switch tasks, never a reason to stop. **Arming a watcher is the
-  PRECONDITION for ending a turn, not permission to end one** — both are
-  required and only one of them feels like progress.
-- **Batch Game-layer changes**; each build keeps its own verdict under
-  `sim-shots/runs/<sha>.txt`, but the single Personal licence seat means one
+  reason to switch tasks, never a reason to stop.
+- **Batch Game-layer changes**; the single Personal licence seat means one
   build at a time. **And prefer a local answer** — before dispatching, ask
   whether the question is actually about Unity. Item 1 above is not.
 
 ## Standing work
 
-**This section never empties, and that is its entire job.** The queue ran dry
-on 3 August because every item was sized to fit one build round trip, so an
-hour of good work consumed the list and an empty list read as an empty
-afternoon. When `## Now` has nothing startable, decompose one of these into it
-— running out of short items is a refill signal, not a stop signal.
+**This section never empties, and that is its entire job.** When `## Now` has
+nothing startable, decompose one of these into it — running out of short items
+is a refill signal, not a stop signal.
 
 ### THE FIVE THINGS THE DESIGN DOC DEFINES AND NOBODY HAD PLANNED (18 Aug)
 
-Jafar asked for the design doc to be checked for anything defined and never
-planned. Five, each now placed in a milestone and each startable without CI or
-his machine. Full statements in `roadmap.md`; `design-doc.md` §18 has the
-account and the denominator of what was checked and found sound.
+Five, each placed in a milestone and startable without CI or Jafar's machine.
+Full statements in `roadmap.md`; the account is in `design-doc.md` §18.
 
-1. ~~**The session-hook guarantee** (M22)~~ — **BUILT AND HOLDING.**
-   `looseEnds=6/0/[Owed:6]`: six evenings closed, none empty, so the guarantee
-   is real. What is open is the READING, not the tiers — see `## Now`.
-2. ~~**Romance** (M18)~~ — **PROMOTED TO ITS OWN MILESTONE, M18.5, 18 Aug by
-   Jafar.** Statement, done-when and risk are in `roadmap.md`.
-3. **Smuggling** (M21) — a port town whose Act III threat is Customs and Excise,
-   with no smuggling to be caught at. Runs on the `Racket` substrate the other
-   three use.
+1. ~~**The session-hook guarantee** (M22)~~ — **BUILT AND HOLDING.** What is
+   open is the READING, not the tiers — see `## Now`.
+2. ~~**Romance** (M18)~~ — **PROMOTED TO M18.5, 18 Aug by Jafar.**
+3. **Smuggling** (M21) — a port town whose Act III threat is Customs and
+   Excise, with no smuggling to be caught at. Runs on the `Racket` substrate.
 4. **The other day-job tracks** (M18) — `Core/DayJob` is the courier round,
    singular; the doc offers bar/courier/office on the first morning.
 5. **Interiors beyond the pub** (M20) — every other door is a threshold.
 
-**And one now unblocked:** reaction animation (flinch, greet, turn-to-look) read
-"blocked on the Mixamo clip session" for weeks. That session ran on 18 August;
-`flinch`, `greet`, `wave`, `glance`, `point` and `head_no` are on disk and the
-perception events they wire to already fire. Wiring, not sourcing.
+**And one now unblocked:** reaction animation. `flinch`, `greet`, `wave`,
+`glance`, `point` and `head_no` are on disk since 18 August and the perception
+events they wire to already fire. Wiring, not sourcing.
 
 ### The quality ladder (standing order 16 Aug: best available, not first working)
 
@@ -383,17 +387,14 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 - **M22, the shape of a playthrough.** Onboarding, pacing, replayability and
   succession — also unbuilt and also Core-shaped.
 - **Read a system and write down what it actually does.** Every system here has
-  at least one comment that is now false — three found in one day, one in the
-  file being edited at the time. The supply is unlimited and each one found is
-  a bug that would otherwise have been believed.
+  at least one comment that is now false — the supply is unlimited, and each
+  one found is a bug that would otherwise have been believed. **Read the code
+  that produces a number too**: three faults in `CollidingNames` on 20 August,
+  found by reading rather than by any reading it produced.
 - **Turn a still into a number.** Five faults found by opening a frame and none
-  by a gate — the newest, rumour text printed backwards across `day5_night`
-  while three orientation metrics read perfect. Anything a frame shows that no
-  metric names is a metric worth adding.
-
-- **THE DROP PIPELINE, AND WHAT IS LEFT OF IT.** Two of six windows miss in a
-  typical run. The first cause was the waypoint's own collider sitting thirty
-  centimetres outside its completion radius, now fixed; the second — steered
-  the whole window, stalled seven metres out — has no explanation and
-  `stalled=` lands next build. **Deliberately not loosened**: accepting a run
-  that never exercised the pipeline is rule 6 exactly.
+  by a gate. Anything a frame shows that no metric names is a metric worth
+  adding.
+- **THE DROP PIPELINE.** Two of six windows miss in a typical run. The
+  waypoint-collider cause is fixed; the second — steered the whole window,
+  stalled seven metres out — has no explanation and `stalled=` lands next
+  build. **Deliberately not loosened** (rule 6).
