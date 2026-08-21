@@ -28,6 +28,20 @@ namespace Ledger.EditorTools
 
         static void Build(BuildTarget target, string outputPath)
         {
+            // M17.10 V1.5 — LINEAR COLOUR SPACE, the one-line half of a
+            // whole-game calibration. The project has no ProjectSettings
+            // asset (CI generates the project), so it has rendered in the
+            // engine's default GAMMA space for its entire life and every
+            // hand-tuned colour, the filmic tonemap and the grade all sit on
+            // that assumption. Linear is what every reference title uses and
+            // what the tonemap maths presumes. THIS COMMIT IS DELIBERATELY
+            // ALONE so the before/after stills against the previous build
+            // are the flip and nothing else; revert is deleting this line.
+            // Set before any import/build work so texture sampling and
+            // lighting agree about it.
+            PlayerSettings.colorSpace = ColorSpace.Linear;
+            Debug.Log($"CiBuild: colorSpace={PlayerSettings.colorSpace}");
+
             // The prefab that makes the body reachable from `Resources`,
             // rebuilt every run so it cannot drift from the model it came from.
             // It also EXTRACTS the embedded textures, which is why it now goes
