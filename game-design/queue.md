@@ -104,10 +104,31 @@ parked — no DirectML on the Air.
    holds bytes that are also named `Standing Arguing`, at 20.80s against a
    2.00s median, so it asks for `Grabbing Pistol` first now.
 
+   **WHAT EMPTYING THOSE FIVE ACTUALLY COSTS ON SCREEN: ONE OF THEM.** Grepped
+   rather than assumed. The activity islands are 14 named slots in
+   `CharacterPrefab.ActivitySlots`, and of the five now empty only `smoke` is
+   among them — `NpcWalker` hands it out to one walker in four. `thinking`,
+   `pockets` and `sit_drink` have **zero** references anywhere in Game or
+   Editor code and `block_hold` has one, in an import loop-mode list. So four
+   of the five were screened, argued about and re-picked twice while nothing
+   could ever play them: rule 6 at asset scale, and worth a sweep of the other
+   62 before any more clip work.
+
+   **A PREDICTION FOR THE BUILD IN FLIGHT, written before it lands so it
+   cannot be reinterpreted afterwards:** `activity states` should read **13 of
+   14** where it read 14 of 14, and `activityRefused` should be non-zero and
+   roughly a quarter of the walkers who were offered an activity — that is the
+   counter added this morning doing the job it was added for. If refusals come
+   back at zero, either nobody was offered a smoke in this run or the counter
+   is not wired, and those are different faults: read `activityAsked` beside
+   it before concluding either.
+
    **NEXT, AND IT IS JAFAR'S:** one more `REPICK.bat`. Ten patterns that could
    never fire now can, so `block_hold`, `pockets`, `rummage` and `sit_drink`
    get their first real attempt, and `draw_reach` sidesteps the duplicate.
    `smoke` and `thinking` stay a harvest hole — every name they have travels.
+   **`smoke` is the only one of those worth a re-harvest**, on the evidence
+   above.
 
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
    NARROW.** *(rule 12)* The camera steps back off anything filling more than
