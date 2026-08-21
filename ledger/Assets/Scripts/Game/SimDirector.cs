@@ -706,6 +706,44 @@ namespace Ledger.Game
                         sam.Loyalty = 0.5; // the week's favors, staged
                         _game.Empire.RecruitByNeed(sam, "Sam", 120, _game.Wallet, now, _game.Gossip?.Mill);
                         _game.Empire.Establish(_game.Empire.RacketOf("collection"), _game.Empire.CrewOf("Sam"), now);
+                        // SAM'S ENVELOPE IS LIGHT, AND THAT IS A PLANT WITH
+                        // ARITHMETIC BEHIND IT.
+                        //
+                        // The Crew loose-end tier has never been offered in the
+                        // project's recorded history. Two builds of measurement
+                        // said why, and neither answer was the one expected:
+                        // loyalty at the END of a run reads 0.325 against a
+                        // floor of 0.400 — the condition met — while the
+                        // per-evening series reads `0of3/best0.750/worst0.475`.
+                        // The crew exists for only three of six evenings and
+                        // never dips below the floor while an evening can see
+                        // it. Nothing is broken; the run ends before the
+                        // crossing.
+                        //
+                        // Rule 5b's corollary: PLANT the condition, never
+                        // loosen the bound. So the sim does the thing the
+                        // design says costs loyalty, through the real API,
+                        // rather than the floor moving to meet it.
+                        //
+                        // THE NUMBERS ARE THE POINT. A skimmed envelope is
+                        // -0.05 per PAYDAY (counted where the fifteen is
+                        // taken, not where the policy is set), Sam is staged at
+                        // 0.5, so two paydays reach 0.40 — which the tier
+                        // accepts, its test being `<=`. Four more reach 0.20,
+                        // where a need-route runner quits outright; that is a
+                        // second never-fired branch and it is downstream of
+                        // this one rather than a separate plant.
+                        //
+                        // ROCCO STAYS ON FAIR, deliberately. One skimmed and
+                        // one not is a control: if both slid, the cause could
+                        // be anything the run does to everybody.
+                        //
+                        // `SetCut` had exactly one call site before this — a
+                        // player choice in dialogue — so the whole cut
+                        // mechanic has never once run in CI. Rule 6: built is
+                        // not running.
+                        _game.Empire.SetCut(_game.Empire.CrewOf("Sam"), "skim",
+                                            _game.Gossip?.Mill, now);
                     }
                     var shop = _game.Empire.BusinessOf("pawnshop");
                     _game.Wallet.EarnDirty(300); // the bot funds the marker
@@ -7657,6 +7695,28 @@ namespace Ledger.Game
         /// at the emission.
         int _crewLoyaltyRead;
 
+        /// Paydays that actually took a skim, summed over the crew. Counted
+        /// by `Empire` where the money moves, so a policy set on a runner with
+        /// no racket contributes nothing — which is the honest reading.
+        static int CrewDaysSkimmed(GameController game)
+        {
+            if (game?.Empire?.Crew == null) return -1;
+            int n = 0;
+            foreach (var c in game.Empire.Crew) if (c != null) n += c.DaysSkimmed;
+            return n;
+        }
+
+        /// Crew who walked. `departed` has never once moved in the recorded
+        /// history — see `gates --constant` — and skimming is the designed way
+        /// it does.
+        static int CrewDeparted(GameController game)
+        {
+            if (game?.Empire?.Crew == null) return -1;
+            int n = 0;
+            foreach (var c in game.Empire.Crew) if (c != null && c.Departed) n++;
+            return n;
+        }
+
         /// The least loyal crew member's loyalty, or -1 if nobody qualifies.
         ///
         /// LOYALTY LIVES ON THE GOSSIPER, NOT ON THE CREW MEMBER — a crew
@@ -11866,6 +11926,19 @@ namespace Ledger.Game
                       // late collapse look different.
                       $"crewWorstLoyalty={crewWorst:0.000} crewFloor={crewFloor:0.000} " +
                       $"crewEvenings=[{GameController.LooseEndsTally.CrewLine()}] " +
+                      // AND WHETHER THE PLANT LANDED OR OVERSHOT. Sam is
+                      // skimmed from recruitment; `crewDaysSkimmed` is counted
+                      // where the fifteen is actually taken, so it is the
+                      // number of paydays that moved loyalty rather than the
+                      // days since the policy was set. At -0.05 each from a
+                      // staged 0.5, two reach the floor and six reach the quit
+                      // threshold — so this number says which of those
+                      // happened, and `crewDeparted` says whether the runner
+                      // walked. Overshoot is as much a failure as undershoot:
+                      // a crew that quits before an evening can read it leaves
+                      // the tier exactly as unfired as before.
+                      $"crewDaysSkimmed={CrewDaysSkimmed(_game)} " +
+                      $"crewDeparted={CrewDeparted(_game)} " +
                       $"crewLoyaltyRead={crewRead} " +
                       $"looseEndsFed={GameController.LooseEndTiersFed}/{GameController.LooseEndTiers} " +
                       $"sheetTiles={ClipSheet.Tiles} " +

@@ -90,12 +90,24 @@ parked — no DirectML on the Air.
    construction — my own number could not answer the question it was added
    for.
 
-   **So the tally now records the evenings themselves** — `crewEvenings` as
-   `<belowFloor>of<read>/best/worst`, recorded whether or not the Crew tier
-   won, because a tier that loses to a higher one still had its condition
-   evaluated and counting only winners makes "never fires" and "never true"
-   identical. **Read it next build**: if no evening is ever below the floor,
-   the plant is a change to what erodes loyalty during the run, not a nudge.
+   **The per-evening series answered it: `0of3/best0.750/worst0.475`.** The
+   crew exists for only three of six evenings and never dips below the floor
+   while an evening can see it. Nothing is broken — the run ends before the
+   crossing.
+
+   **PLANTED, with arithmetic rather than a nudge.** A skimmed envelope costs
+   0.05 per PAYDAY and Sam is staged at 0.5, so two paydays reach 0.40, which
+   the tier accepts (its test is `<=`). Sam is skimmed from recruitment;
+   **Rocco stays on fair as a control**, so a slide in both would mean the
+   cause is something the run does to everybody. `SetCut` had exactly one call
+   site before this — a player choice in dialogue — so the cut mechanic had
+   never once run in CI (rule 6).
+
+   **Overshoot is as much a failure as undershoot**: four more paydays reach
+   0.20, where a need-route runner quits, and a crew that walks before an
+   evening reads it leaves the tier as unfired as before. `crewDaysSkimmed`
+   and `crewDeparted` say which happened — and `departed` is itself a counter
+   that has never moved.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the
