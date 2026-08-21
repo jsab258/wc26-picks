@@ -1,7 +1,7 @@
 {
   "guard": {
     "tier": "A",
-    "found": "Fight Idle_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Fight Idle_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
     "exact": true,
     "pattern": "\\bfight idle\\b"
   },
@@ -25,9 +25,10 @@
   },
   "block_hold": {
     "tier": "A",
-    "found": "Standing Block Idle_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": true,
-    "pattern": "\\bstanding block idle\\b"
+    "found": null,
+    "tried": [
+      "\\bstanding block idle\\b"
+    ]
   },
   "block_end": {
     "tier": "A",
@@ -109,13 +110,13 @@
   },
   "idle": {
     "tier": "A",
-    "found": "Breathing Idle_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Mutant Breathing Idle_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
     "pattern": "\\bbreathing idle\\b"
   },
   "walk": {
     "tier": "A",
-    "found": "Walking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Walking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
     "exact": true,
     "pattern": "^walking\\b"
   },
@@ -145,7 +146,7 @@
   },
   "talk": {
     "tier": "B",
-    "found": "Talking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Talking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
     "exact": true,
     "pattern": "^talking\\b"
   },
@@ -175,7 +176,7 @@
   },
   "walk_start": {
     "tier": "B",
-    "found": "Start Walking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Start Walking Backwards_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
     "exact": true,
     "pattern": "^start walking\\b"
   },
@@ -235,7 +236,7 @@
   },
   "carry_bag": {
     "tier": "B",
-    "found": "Walking With Shopping Bag_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Walking With Shopping Bag_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
     "exact": true,
     "pattern": "^walking with shopping bag\\b"
   },
@@ -253,9 +254,10 @@
   },
   "argue": {
     "tier": "B",
-    "found": "Standing Arguing_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": true,
-    "pattern": "^standing arguing\\b"
+    "found": null,
+    "tried": [
+      "^standing arguing\\b"
+    ]
   },
   "phone_box": {
     "tier": "B",
@@ -283,33 +285,38 @@
   },
   "smoke": {
     "tier": "C",
-    "found": "Smoking_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": true,
-    "pattern": "^smoking\\b"
+    "found": null,
+    "tried": [
+      "^smoking\\b",
+      "\\bsmok(e|ing)\\b"
+    ]
   },
   "work_counter": {
     "tier": "C",
-    "found": "Bartending_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Bartending_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
     "exact": true,
     "pattern": "\\bbartending\\b"
   },
   "collapse": {
     "tier": "C",
-    "found": "Dying_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Dying_7f3f4e32-2b70-4c69-9a3d-0bdac6188241",
     "exact": true,
     "pattern": "^dying\\b"
   },
   "fall_stairs": {
     "tier": "C",
-    "found": "Falling From Losing Balance_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": true,
-    "pattern": "\\bfalling from losing balance\\b"
+    "found": "Falling Down_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "exact": false,
+    "pattern": "\\bfalling down\\b"
   },
   "lie_still": {
     "tier": "C",
-    "found": "Lying Down_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": true,
-    "pattern": "\\blying down\\b"
+    "found": null,
+    "tried": [
+      "\\blying down\\b",
+      "\\blying\\b",
+      "\\bdead\\b"
+    ]
   },
   "walk_f": {
     "tier": "B",
@@ -319,7 +326,7 @@
   },
   "jog": {
     "tier": "B",
-    "found": "Jog Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "found": "Jog Forward Diagonal_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
     "pattern": "^jog forward\\b"
   },
@@ -343,19 +350,20 @@
   },
   "thinking": {
     "tier": "D",
-    "found": "Thinking_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": true,
-    "pattern": "^thinking\\b"
+    "found": null,
+    "tried": [
+      "^thinking\\b"
+    ]
   },
   "laugh": {
     "tier": "D",
-    "found": "Laughing_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Laughing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
     "exact": true,
     "pattern": "^laughing\\b"
   },
   "yell": {
     "tier": "D",
-    "found": "Yelling_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Yelling Out_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
     "pattern": "^yelling\\b"
   },
@@ -373,15 +381,17 @@
   },
   "pockets": {
     "tier": "D",
-    "found": "Searching Pockets_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": true,
-    "pattern": "^searching pockets\\b"
+    "found": null,
+    "tried": [
+      "^searching pockets\\b"
+    ]
   },
   "rummage": {
     "tier": "D",
-    "found": "Rummaging_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": true,
-    "pattern": "^rummaging\\b"
+    "found": null,
+    "tried": [
+      "^rummaging\\b"
+    ]
   },
   "lift": {
     "tier": "D",
@@ -391,14 +401,15 @@
   },
   "sit_talk": {
     "tier": "D",
-    "found": "Sitting Talking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Sitting Talking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
     "exact": true,
     "pattern": "^sitting talking\\b"
   },
   "sit_drink": {
     "tier": "D",
-    "found": "Sitting Drinking_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": true,
-    "pattern": "^sitting drinking\\b"
+    "found": null,
+    "tried": [
+      "^sitting drinking\\b"
+    ]
   }
 }
