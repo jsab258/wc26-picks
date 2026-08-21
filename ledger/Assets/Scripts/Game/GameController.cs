@@ -2431,7 +2431,8 @@ namespace Ledger.Game
                 // loyalty of zero, which would read as maximum disloyalty.
                 LooseEndsTally.SawCrew(
                     string.IsNullOrEmpty(evening.CrewNearestBreaking) ? -1 : evening.CrewLoyalty,
-                    evening.CrewBreakingPoint);
+                    evening.CrewBreakingPoint,
+                    tonight.Of == LooseEnds.Kind.Crew);
                 if (tonight.Any)
                 {
                     _ui?.Toast(tonight.Line, 9f);

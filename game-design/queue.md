@@ -103,11 +103,20 @@ parked — no DirectML on the Air.
    site before this — a player choice in dialogue — so the cut mechanic had
    never once run in CI (rule 6).
 
-   **Overshoot is as much a failure as undershoot**: four more paydays reach
-   0.20, where a need-route runner quits, and a crew that walks before an
-   evening reads it leaves the tier as unfired as before. `crewDaysSkimmed`
-   and `crewDeparted` say which happened — and `departed` is itself a counter
-   that has never moved.
+   **The plant landed and revealed the next layer.** `crewDaysSkimmed=3`,
+   `crewDeparted=0` (no overshoot), and the evenings moved `0of3` to
+   **`1of3/worst0.375`** — below the 0.400 floor. `open` went `2of6` to
+   `3of6`, so the Crew tier IS open. **It still did not take a night.**
+
+   Only Law outranks Crew, so either the below-floor evening was the single
+   Law evening or something else is wrong — and those want opposite work.
+   **`crewEvenings` now carries `lost<n>`**, counting evenings where the
+   condition held and another tier won. **If masking is confirmed it may be
+   structural, not luck**: Law opens when the inquiry names you, a late-run
+   event, and a crew skimmed from recruitment crosses the floor late too. Two
+   things that both become true near the end collide by construction. The fix
+   would then be an earlier crossing, not a change to the ranking — the
+   ranking is deliberate and Law genuinely is the bigger news.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the

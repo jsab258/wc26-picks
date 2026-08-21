@@ -321,11 +321,30 @@ namespace Ledger.Core
             /// `loyalty` below zero means nothing was readable — no crew, or
             /// nobody with an opinion yet — and is counted as an evening with
             /// no reading rather than as a loyal one.
-            public void SawCrew(double loyalty, double floor)
+            /// Evenings where the crew condition HELD and some other tier
+            /// still took the night. Only Law outranks Crew, so this is the
+            /// difference between "the condition never happens" and "it
+            /// happens and is masked" — two findings that want opposite work
+            /// and that the tally could not tell apart.
+            ///
+            /// It matters because the masking may be STRUCTURAL rather than
+            /// bad luck: the Law tier opens when the inquiry names you, which
+            /// is a late-run event, and a crew skimmed from recruitment
+            /// crosses the floor late too. Two things that both become true
+            /// near the end collide by construction, not by coincidence.
+            public int CrewOpenButLost { get; private set; }
+
+            public void SawCrew(double loyalty, double floor) => SawCrew(loyalty, floor, false);
+
+            public void SawCrew(double loyalty, double floor, bool crewTookTheNight)
             {
                 if (loyalty < 0) return;
                 CrewEvenings++;
-                if (loyalty <= floor) CrewEveningsBelowFloor++;
+                if (loyalty <= floor)
+                {
+                    CrewEveningsBelowFloor++;
+                    if (!crewTookTheNight) CrewOpenButLost++;
+                }
                 if (CrewBestEvening < 0 || loyalty > CrewBestEvening) CrewBestEvening = loyalty;
                 if (CrewWorstEvening < 0 || loyalty < CrewWorstEvening) CrewWorstEvening = loyalty;
             }
@@ -336,6 +355,7 @@ namespace Ledger.Core
                 CrewEvenings == 0
                     ? "noEveningRead"
                     : $"{CrewEveningsBelowFloor}of{CrewEvenings}"
+                      + $"/lost{CrewOpenButLost}"
                       + $"/best{CrewBestEvening:0.000}/worst{CrewWorstEvening:0.000}";
 
             public int Count(Kind k) => _byKind[(int)k];

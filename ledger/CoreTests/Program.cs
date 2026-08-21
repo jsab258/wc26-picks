@@ -15685,6 +15685,30 @@ namespace Ledger.CoreTests
             Check(!crewT.CrewLine().Contains(" "),
                 "and the crew line carries no space", crewT.CrewLine());
 
+            // MASKED IS NOT ABSENT, and the tally could not tell them apart.
+            //
+            // The plant worked — one evening in three came in below the floor —
+            // and the Crew tier STILL did not take a night. Only Law outranks
+            // Crew, so either the below-floor evening was the one Law took, or
+            // something else is wrong. Those want opposite work, so the tally
+            // counts evenings where the condition HELD and another tier won.
+            //
+            // Both directions: a masked evening must count, and a won evening
+            // must not.
+            var maskT = new LooseEnds.Tally();
+            maskT.SawCrew(0.35, 0.4, crewTookTheNight: false);
+            Check(maskT.CrewOpenButLost == 1,
+                "a below-floor evening that another tier took is counted as masked",
+                maskT.CrewLine());
+            maskT.SawCrew(0.35, 0.4, crewTookTheNight: true);
+            Check(maskT.CrewOpenButLost == 1,
+                "and an evening the crew tier actually took is not",
+                maskT.CrewLine());
+            maskT.SawCrew(0.9, 0.4, crewTookTheNight: false);
+            Check(maskT.CrewOpenButLost == 1,
+                "and a loyal evening cannot be masked, having nothing to mask",
+                maskT.CrewLine());
+
             var none = new LooseEnds.Tally();
             none.Saw(LooseEnds.Tonight(quiet));
             Check(none.Line().Contains("none"),
