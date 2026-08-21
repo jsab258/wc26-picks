@@ -93,9 +93,27 @@ namespace Ledger.Core
             // 57% of pixels — rides the light, not the exposure, and keeps.
             // Night terms untouched; the noon/night gap widens, which is the
             // direction every instrument wants.
-            double e = 1.0 + 0.28 * (1 - night) - 0.08 * night
+            // LINEAR COLOUR SPACE RE-ARM (M17.10 V1.5, the retune half).
+            // The flip's own A/B, two landed builds apart with only the flip
+            // between them, moved both ends the wrong way: noon scene mean
+            // fell 0.205 -> 0.172 while the night AO pass's off-mean rose
+            // 0.092 -> 0.255 — a NIGHT brighter than its own NOON, failing
+            // the one bound this function's history keeps re-learning. The
+            // gamma curve had been quietly lifting mid-tones for every
+            // number here; in linear the day arm buys less and the night's
+            // window emissives buy far more.
+            //
+            // Day up, sized from the measured ratio (restore noon ~0.24).
+            // The night arm stops down only to the TESTED floor — the first
+            // draft went to 0.58 and the CoreTests bound at 0.85 refused it,
+            // correctly: the night's excess is mostly the gamma-authored
+            // window emissives running hot in linear, and crushing the
+            // aperture past its floor would buy their fix by darkening the
+            // unlit corners the floor exists to protect. The emissives are
+            // dimmed at their source instead (WindowGlow).
+            double e = 1.0 + 0.52 * (1 - night) - 0.14 * night
                        - 0.15 * rain * (1 - night) + 0.06 * rain * night;
-            return Feel.Clamp(e, 0.7, 1.35);
+            return Feel.Clamp(e, 0.7, 1.6);
         }
 
         // ---- bloom ----------------------------------------------------------
@@ -570,7 +588,13 @@ namespace Ledger.Core
             // raise is the second half, and the ceiling stays under the
             // CoreTests bound (0.42 + 0.38 = 0.80 < 0.85).
             double ambientness = Math.Max(n, r * 0.8);
-            return 0.42 + 0.38 * ambientness;
+            // Base 0.42 → 0.30 and the swing trimmed for LINEAR (V1.5): the
+            // pow-0.6 output curve was shaped against gamma's mid-tone lift,
+            // and the flip's A/B read the night AO delta 0.0127 → 0.0280
+            // with a peak round darkening 86.8% of the frame — the pass went
+            // from invisible to heavy in one build with no AO change at all.
+            // Ceiling 0.30 + 0.30 = 0.60, still under the CoreTests bound.
+            return 0.30 + 0.30 * ambientness;
         }
 
         /// Whether a sample counts. A sample far in FRONT of the surface is

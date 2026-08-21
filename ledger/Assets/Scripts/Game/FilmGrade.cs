@@ -186,7 +186,12 @@ namespace Ledger.Game
             // light, which is both true of film and exactly when we need it
             // to hide banding in a dark sky.
             float night = GameController.NightAmount;
-            float grain = (0.020f + 0.045f * night + 0.020f * Weather.Rain) * s.GrainAmount;
+            // Night grain 0.045 → 0.028 for LINEAR (V1.5): the amount was
+            // sized against gamma's lifted shadows; in linear the darks sit
+            // lower and the same grain reads as static over the whole night
+            // frame (the first linear night still is mostly noise floor).
+            // Day and rain terms hold — the day frame carries them fine.
+            float grain = (0.020f + 0.028f * night + 0.020f * Weather.Rain) * s.GrainAmount;
             // FROM CORE, where it is stated as "how dark are the corners"
             // and tested. The 0.34/0.16 that used to live here put the
             // corners at 10% of centre by day and at exactly zero at night —

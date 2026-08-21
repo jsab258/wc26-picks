@@ -155,7 +155,16 @@ namespace Ledger.Game
         /// How much brighter than the source a lit window renders. Named
         /// because `WindowLit` is built from it and the probe sweeps around
         /// it; the six-point series that chose 3.0 is above.
-        public const float WindowGlowMultiplier = 3.0f;
+        ///
+        /// 3.0 → 1.8 for LINEAR (M17.10 V1.5): the whole six-point series
+        /// above was swept in gamma, where the display lifted every emissive
+        /// mid-tone. The flip's A/B put the night scene mean at 0.255
+        /// against noon's 0.172 — night brighter than day — and the first
+        /// linear night still shows every window blooming a halo. The
+        /// aperture cannot take the excess (its tested floor refused, see
+        /// Exposure); the source is the honest knob, cut by roughly the
+        /// measured overshoot. Re-swept when the retune build lands.
+        public const float WindowGlowMultiplier = 1.8f;
 
         public static void SetWindowGlow(float multiplier)
         {
