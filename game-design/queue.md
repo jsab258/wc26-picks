@@ -74,49 +74,39 @@ parked — no DirectML on the Air.
    the blocked-frame series excluded the district tour. The `Add` sat outside
    that block, so seven teleported frames had been going into it.
 
-1. **THE CREW TIER OF `looseEnds` NEVER OPENS, AND NOTHING SAID HOW CLOSE IT
-   GETS.** `looseEnds` reads `[Law:1,Owed:5]` over six evenings — the Crew
-   tier has never once been offered. It needs the least loyal crew member at
-   or below the poach floor, and **no loyalty reading existed anywhere in the
-   verdict**, so a tier missing by a hundredth and one missing by half looked
-   identical. Those want completely different work.
+1. ~~**THE CREW TIER NEVER FIRES**~~ — **REACHABLE AND MASKED, NOT BROKEN;
+   what is left is sim COVERAGE.** Three builds of measurement, each answering
+   a question the previous one could not:
 
-   **The measurement shipped first and immediately paid.** It came back
-   `crewWorstLoyalty=0.325` against `crewFloor=0.400` — **the condition MET,
-   and the tier still never offered.** That looked like a wiring bug and is
-   not: the Crew branch outranks Owed, so an evening where it held would have
-   won one of the five Owed evenings. Loyalty crosses the floor AFTER the last
-   evening summary, and an end-of-run reading is blind to that by
-   construction — my own number could not answer the question it was added
-   for.
+   - End-of-run loyalty read **0.325 against a 0.400 floor** — condition met,
+     tier never offered. That looked like broken wiring and was not: an
+     end-of-run number cannot see a per-evening condition.
+   - Per evening it read **`0of3`** — the crew exists for only three of six
+     evenings and never dipped below the floor while an evening could see it.
+   - Skimming Sam through the real `SetCut` path (`-0.05` a payday, staged
+     0.5, so two paydays reach the floor) moved it to **`1of3/worst0.375`**,
+     `crewDaysSkimmed=3`, `crewDeparted=0` — landed, no overshoot.
+   - And it STILL lost the night: **`lost1`** against exactly one Law evening
+     in the run. The below-floor evening WAS the Law evening.
 
-   **The per-evening series answered it: `0of3/best0.750/worst0.475`.** The
-   crew exists for only three of six evenings and never dips below the floor
-   while an evening can see it. Nothing is broken — the run ends before the
-   crossing.
+   **That is the predicted structural collision, not bad luck.** Law opens when
+   the inquiry names you — late — and a crew recruited at the day-8 open-mode
+   switch crosses the floor late too. The sim gives the crew a three-evening
+   window and Law lands inside it.
 
-   **PLANTED, with arithmetic rather than a nudge.** A skimmed envelope costs
-   0.05 per PAYDAY and Sam is staged at 0.5, so two paydays reach 0.40, which
-   the tier accepts (its test is `<=`). Sam is skimmed from recruitment;
-   **Rocco stays on fair as a control**, so a slide in both would mean the
-   cause is something the run does to everybody. `SetCut` had exactly one call
-   site before this — a player choice in dialogue — so the cut mechanic had
-   never once run in CI (rule 6).
+   **Do not reorder the tiers.** Law outranking Crew is deliberate: on a night
+   the law is asking about you, that is the thread to show. Rearranging to make
+   a counter move is loosening the bound in a different coat.
 
-   **The plant landed and revealed the next layer.** `crewDaysSkimmed=3`,
-   `crewDeparted=0` (no overshoot), and the evenings moved `0of3` to
-   **`1of3/worst0.375`** — below the 0.400 floor. `open` went `2of6` to
-   `3of6`, so the Crew tier IS open. **It still did not take a night.**
+   **What is left is coverage:** a real player recruits and skims across many
+   more evenings than this sim's three, so the tier is reachable in play.
+   Widening the sim's window means moving recruitment before the open-mode
+   switch, which is a campaign-structure change and not worth making for a
+   counter. **Revisit if the evening cadence or open-mode day changes.**
 
-   Only Law outranks Crew, so either the below-floor evening was the single
-   Law evening or something else is wrong — and those want opposite work.
-   **`crewEvenings` now carries `lost<n>`**, counting evenings where the
-   condition held and another tier won. **If masking is confirmed it may be
-   structural, not luck**: Law opens when the inquiry names you, a late-run
-   event, and a crew skimmed from recruitment crosses the floor late too. Two
-   things that both become true near the end collide by construction. The fix
-   would then be an earlier crossing, not a change to the ranking — the
-   ranking is deliberate and Law genuinely is the bigger news.
+   **Two never-fired branches remain downstream:** `departed` (a skimmed
+   need-route runner quits below 0.2 — Sam ended at 0.225, close) and the
+   poach path.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the
