@@ -1,0 +1,227 @@
+#!/usr/bin/env python3
+"""M17.10 visual-bar fetches: street furniture, the grime layer, the skies.
+
+The sources and every verification tag are in
+`game-design/visual-bar-sources.md` — this script downloads the curated
+subset of that table. Three classes, three destinations:
+
+  ledger/Assets/Props/base-mesh/   ~30 CC0 GLBs from The Base Mesh (via the
+                                   M3-org GitHub mirror — the ONE host that
+                                   was fetch-verified from the dev container
+                                   itself): bollards, bins, a builder's
+                                   skip, benches, pallets, chimney pots,
+                                   awnings, drain covers, fingerposts.
+  ledger/Assets/Decals/ambientcg/  the V2 grime layer: leaking stains, worn
+                                   road lines, manhole covers, asphalt
+                                   damage, imperfection/scratch masks, moss.
+  ledger/Assets/Sky/polyhaven/     four 2k HDRIs, one per hour of the day
+                                   the sim photographs.
+
+EVERY RULE HERE IS INHERITED FROM fetch_props.py AND THE VOICE PIPELINE:
+fail soft per item and loudly at the end; the run prints what it decided;
+nothing is deleted; a haul of zero exits non-zero because a fetch that
+banked nothing must not read as green; attribution is written beside the
+files in the same run that fetches them.
+
+CC0 ONLY in this script. The one CC-BY source in the research (Poly Pizza's
+Google Poly archive) is deliberately NOT fetched here — per-item licence
+reads need eyes, not a loop.
+"""
+import io
+import json
+import pathlib
+import sys
+import urllib.request
+import zipfile
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
+HERE = pathlib.Path(__file__).resolve().parent
+
+BASE_MESH_DIR = ROOT / "ledger" / "Assets" / "Props" / "base-mesh"
+DECALS_DIR = ROOT / "ledger" / "Assets" / "Decals" / "ambientcg"
+SKY_DIR = ROOT / "ledger" / "Assets" / "Sky" / "polyhaven"
+
+RAW = "https://raw.githubusercontent.com/M3-org/base-meshes/main/models"
+
+#: The Base Mesh picks — untextured real-scale GLBs; SurfaceSpec tints them
+#: like everything else, which is why untextured is a feature here.
+BASE_MESH = [
+    "decorative_bollard_01", "decorative_bollard_02", "rounded_concrete_bollard",
+    "wooden_square_bollard", "outdoor_bin", "mesh_bin", "swing_bin",
+    "cigarette_bin", "skip", "park_bench", "garden_bench_01", "ornate_bench",
+    "curved_stone_bench", "lamp_post_01", "traffic_cone_01", "traffic_cone_02",
+    "pavement_sign", "finger_post_sign_01", "finger_post_sign_02",
+    "finger_post_sign_03", "drain_cover_01", "drainage_grate_01",
+    "crowd_control_barrier", "pallet", "small_pallet", "large_pallet",
+    "oil_barrel", "wood_barrel", "wooden_crate_01", "wooden_crate_02",
+    "roll_top_chimney", "weathertop_chimney", "awning_01", "awning_02",
+    "trunk_protection_railing", "poster", "framed_poster",
+]
+
+#: ambientCG ids, fetched as `get?file=<ID>_2K-<FMT>.zip`. Decals ship PNG
+#: (colour + opacity); the imperfection/scratch masks and moss ship JPG.
+#: Both formats are tried in the order given, per item.
+AMBIENTCG = [
+    ("Leaking005", ["PNG", "JPG"]),
+    ("LeakingSubstance001", ["PNG", "JPG"]),
+    ("RoadLines001", ["PNG", "JPG"]),
+    ("RoadLines004", ["PNG", "JPG"]),
+    ("RoadLines007", ["PNG", "JPG"]),
+    ("RoadLines010", ["PNG", "JPG"]),
+    ("RoadLines011", ["PNG", "JPG"]),
+    ("RoadLines018", ["PNG", "JPG"]),
+    ("ManholeCover011", ["PNG", "JPG"]),
+    ("AsphaltDamageSet001", ["PNG", "JPG"]),
+    ("Sticker001", ["PNG", "JPG"]),
+    ("SurfaceImperfections001", ["JPG", "PNG"]),
+    ("SurfaceImperfections003", ["JPG", "PNG"]),
+    ("SurfaceImperfections007", ["JPG", "PNG"]),
+    ("SurfaceImperfections012", ["JPG", "PNG"]),
+    ("Scratches003", ["JPG", "PNG"]),
+    ("Moss001", ["JPG", "PNG"]),
+]
+
+#: Poly Haven 2k HDRIs — the four hours the sim photographs. The overcast
+#: primary is literally shot near Belfast, which is the palette.
+HDRIS = [
+    "belfast_open_field",
+    "industrial_sunset_puresky",
+    "kloppenheim_04",
+    "misty_farm_road",
+]
+HDRI_URL = "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/{slug}_2k.hdr"
+
+
+def fetch(url: str) -> bytes:
+    req = urllib.request.Request(
+        url, headers={"User-Agent": "Mozilla/5.0 LEDGER-visual-fetch/1.0"})
+    with urllib.request.urlopen(req, timeout=180) as r:
+        return r.read()
+
+
+def run() -> int:
+    banked = 0
+    failures: list[str] = []
+    manifest: dict[str, list[str]] = {"base-mesh": [], "ambientcg": [], "polyhaven": []}
+
+    print("=== The Base Mesh (CC0, M3-org mirror) ===", flush=True)
+    BASE_MESH_DIR.mkdir(parents=True, exist_ok=True)
+    for name in BASE_MESH:
+        dest = BASE_MESH_DIR / f"{name}.glb"
+        if dest.exists():
+            print(f"  have    {name}.glb")
+            manifest["base-mesh"].append(dest.name)
+            continue
+        try:
+            blob = fetch(f"{RAW}/{name}/{name}.glb")
+            # glTF-binary magic, so an HTML error page cannot land as a mesh.
+            if blob[:4] != b"glTF":
+                raise ValueError(f"not a GLB ({blob[:12]!r})")
+            dest.write_bytes(blob)
+            banked += 1
+            manifest["base-mesh"].append(dest.name)
+            print(f"  fetched {name}.glb ({len(blob) / 1024:.0f} KB)")
+        except Exception as e:
+            failures.append(f"base-mesh/{name}: {e}")
+            print(f"  FAILED  {name}: {e}")
+
+    print("\n=== ambientCG decals + masks (CC0) ===", flush=True)
+    DECALS_DIR.mkdir(parents=True, exist_ok=True)
+    for aid, fmts in AMBIENTCG:
+        dest_dir = DECALS_DIR / aid
+        if dest_dir.exists() and any(dest_dir.iterdir()):
+            n = len(list(dest_dir.iterdir()))
+            print(f"  have    {aid} ({n} file(s))")
+            manifest["ambientcg"].append(aid)
+            continue
+        got = False
+        for fmt in fmts:
+            url = f"https://ambientcg.com/get?file={aid}_2K-{fmt}.zip"
+            try:
+                blob = fetch(url)
+                zf = zipfile.ZipFile(io.BytesIO(blob))
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                kept = 0
+                for zn in zf.namelist():
+                    base = pathlib.Path(zn).name
+                    if not base or zn.endswith("/"):
+                        continue
+                    if not base.lower().endswith((".png", ".jpg", ".jpeg")):
+                        continue
+                    (dest_dir / base).write_bytes(zf.read(zn))
+                    kept += 1
+                if kept == 0:
+                    raise ValueError("zip held no images")
+                banked += kept
+                manifest["ambientcg"].append(aid)
+                print(f"  fetched {aid} ({fmt}, {kept} image(s), "
+                      f"{len(blob) / 1e6:.1f} MB)")
+                got = True
+                break
+            except Exception as e:
+                print(f"    {fmt} miss: {e}")
+        if not got:
+            failures.append(f"ambientcg/{aid}: no format worked")
+            print(f"  FAILED  {aid}")
+
+    print("\n=== Poly Haven HDRIs (CC0) ===", flush=True)
+    SKY_DIR.mkdir(parents=True, exist_ok=True)
+    for slug in HDRIS:
+        dest = SKY_DIR / f"{slug}_2k.hdr"
+        if dest.exists():
+            print(f"  have    {dest.name}")
+            manifest["polyhaven"].append(dest.name)
+            continue
+        try:
+            blob = fetch(HDRI_URL.format(slug=slug))
+            # Radiance-HDR magic.
+            if not blob.startswith(b"#?"):
+                raise ValueError(f"not a Radiance HDR ({blob[:12]!r})")
+            dest.write_bytes(blob)
+            banked += 1
+            manifest["polyhaven"].append(dest.name)
+            print(f"  fetched {dest.name} ({len(blob) / 1e6:.1f} MB)")
+        except Exception as e:
+            failures.append(f"polyhaven/{slug}: {e}")
+            print(f"  FAILED  {slug}: {e}")
+
+    (HERE / "visual_manifest.json").write_text(json.dumps(manifest, indent=1))
+    write_attribution(manifest)
+
+    print(f"\nTOTAL banked this run: {banked} file(s); {len(failures)} failure(s)")
+    for f in failures:
+        print(f"  FAILED: {f}")
+    have_any = (any(BASE_MESH_DIR.glob("*.glb"))
+                or any(DECALS_DIR.glob("*/*"))
+                or any(SKY_DIR.glob("*.hdr")))
+    if banked == 0 and not have_any:
+        print("NOTHING BANKED AND NOTHING ON DISK — this run says so.")
+        return 1
+    return 0
+
+
+def write_attribution(manifest: dict) -> None:
+    """Human-readable rows beside the files, same pact as fetch_props."""
+    BASE_MESH_DIR.mkdir(parents=True, exist_ok=True)
+    (BASE_MESH_DIR / "THIRD-PARTY.md").write_text(
+        "# Third-party models — The Base Mesh\n\n"
+        "Every .glb in this directory is CC0 1.0 from The Base Mesh\n"
+        "(https://thebasemesh.com), fetched via the M3-org GitHub mirror\n"
+        "(https://github.com/M3-org/base-meshes) by tools/props/fetch_visual.py.\n"
+        f"\n{len(manifest['base-mesh'])} file(s) at last fetch.\n")
+    DECALS_DIR.parent.mkdir(parents=True, exist_ok=True)
+    (DECALS_DIR.parent / "THIRD-PARTY.md").write_text(
+        "# Third-party decal textures — ambientCG\n\n"
+        "Every image under ambientcg/ is CC0 1.0 from ambientCG\n"
+        "(https://ambientcg.com), fetched by tools/props/fetch_visual.py.\n"
+        f"\nSets at last fetch: {', '.join(manifest['ambientcg']) or 'none'}.\n")
+    SKY_DIR.parent.mkdir(parents=True, exist_ok=True)
+    (SKY_DIR.parent / "THIRD-PARTY.md").write_text(
+        "# Third-party skies — Poly Haven\n\n"
+        "Every .hdr under polyhaven/ is CC0 1.0 from Poly Haven\n"
+        "(https://polyhaven.com), fetched by tools/props/fetch_visual.py.\n"
+        f"\nFiles at last fetch: {', '.join(manifest['polyhaven']) or 'none'}.\n")
+
+
+if __name__ == "__main__":
+    sys.exit(run())

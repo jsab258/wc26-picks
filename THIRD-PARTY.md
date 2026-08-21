@@ -160,12 +160,42 @@ quiet, which is exactly how the project ended up not knowing it had no font.
 
 ## Textures, props, vehicles — NOTHING YET
 
-No image files exist in the project; every surface is generated at runtime by
-`ProceduralTexture.Generate`. When M17.6–17.8 land, each pack gets a row here
-with its source, licence and a link, **before** it is committed.
+*(This heading is a LOG of the pre-M17.6 state and its first sentence stopped
+being true on 1 Aug when the surface set landed; the live rows are the
+sections around it.)* `AssetLibrary` reads packs from
+`StreamingAssets/CityPack`, so the attribution requirement attaches to that
+directory.
 
-`AssetLibrary` reads packs from `StreamingAssets/CityPack`, so the attribution
-requirement attaches to that directory.
+## Street furniture — The Base Mesh, CC0
+
+| | |
+|---|---|
+| **Source** | **The Base Mesh** (https://thebasemesh.com), fetched via the M3-org GitHub mirror (https://github.com/M3-org/base-meshes) by `tools/props/fetch_visual.py` |
+| **Licence** | CC0 1.0 Universal — thebasemesh.com states all assets are CC0, no attribution required |
+| **Where** | `ledger/Assets/Props/base-mesh/`, one `.glb` per model, untextured by design (SurfaceSpec tints them) |
+| **What** | bollards, bins, a builder's skip, benches, pallets, barrels, crates, chimney pots, awnings, drain covers, fingerposts, a lamp post, traffic cones, poster boards |
+
+Attribution not required; recorded anyway under this file's standing rule.
+
+## Grime and decal textures — ambientCG, CC0
+
+| | |
+|---|---|
+| **Source** | **ambientCG** (https://ambientcg.com), fetched by `tools/props/fetch_visual.py` via the site's direct `get?file=` endpoint |
+| **Licence** | CC0 1.0 Universal — ambientcg.com/license |
+| **Where** | `ledger/Assets/Decals/ambientcg/<AssetID>/` |
+| **What** | leaking-stain decals, worn road-line decals, manhole covers, an asphalt damage set, sticker decals, surface-imperfection and scratch masks, moss — the M17.10 V2 surface-history layer |
+
+Same source as the M17.6 surface set; same licence, same recording rule.
+
+## Skies — Poly Haven, CC0
+
+| | |
+|---|---|
+| **Source** | **Poly Haven** (https://polyhaven.com), fetched by `tools/props/fetch_visual.py` from dl.polyhaven.org |
+| **Licence** | CC0 1.0 Universal — polyhaven.com/license |
+| **Where** | `ledger/Assets/Sky/polyhaven/`, four 2k `.hdr` files |
+| **What** | one sky per photographed hour: overcast noon (shot near Belfast), industrial sunset, overcast night glow, misty morning — reference and, where V6 chooses, ambient source |
 
 ## What this project made itself
 

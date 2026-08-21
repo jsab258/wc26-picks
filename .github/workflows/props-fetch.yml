@@ -32,6 +32,7 @@ on:
     paths:
       - ".github/workflows/props-fetch.yml"
       - "tools/props/fetch_props.py"
+      - "tools/props/fetch_visual.py"
   workflow_dispatch:
 
 # WRITE, OR THE COMMIT STEP IS THEATRE. The repo's default workflow
@@ -62,6 +63,15 @@ jobs:
         continue-on-error: true
         run: python3 tools/props/fetch_props.py --fetch
 
+      # M17.10 — furniture, the grime layer and the skies. Its own step so
+      # a Kenney outage cannot hide a Base Mesh haul or the reverse; each
+      # reports its own denominator and the commit step below banks
+      # whatever any of them landed.
+      - name: Fetch the visual-bar set
+        id: visual
+        continue-on-error: true
+        run: python3 tools/props/fetch_visual.py
+
       - name: Attribution still holds
         id: attribution
         continue-on-error: true
@@ -82,7 +92,8 @@ jobs:
           fi
           git config user.name  "Claude"
           git config user.email "noreply@anthropic.com"
-          git add ledger/Assets/Props tools/props/listings.json 2>/dev/null || true
+          git add ledger/Assets/Props ledger/Assets/Decals ledger/Assets/Sky \
+                  tools/props/listings.json tools/props/visual_manifest.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "nothing arrived that was not already committed"
             exit 0

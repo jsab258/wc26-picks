@@ -61,6 +61,12 @@ WATCHED = {
     # is named, and Props/ATTRIBUTION.json + THIRD-PARTY.md are written by
     # the same fetch that writes the models, so they cannot drift apart.
     "ledger/Assets/Props": "Kenney",
+    # M17.10: the visual-bar fetches. base-mesh sits INSIDE Props but is not
+    # Kenney, so it carries its own row — the sweep whitelists by path
+    # containment and the token check is per-row, so both hold.
+    "ledger/Assets/Props/base-mesh": "The Base Mesh",
+    "ledger/Assets/Decals": "ambientCG",
+    "ledger/Assets/Sky": "Poly Haven",
     # A single file, not a directory — the shipped face sits in `Resources`
     # beside code and prefabs, so there is no folder to name that would not
     # also swallow half the project. The token is the licence, because that is

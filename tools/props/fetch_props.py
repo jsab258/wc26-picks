@@ -53,6 +53,9 @@ KITS = [
     "city-kit-commercial",
     "city-kit-suburban",
     "city-kit-roads",
+    # M17.10: the docklands backbone — warehouses, factory chimneys, the
+    # storage tank. A port town's skyline is made of exactly these.
+    "city-kit-industrial",
 ]
 
 # What gets EXTRACTED this run, per kit, as filename regexes matched
@@ -92,6 +95,11 @@ WANT = {
     ],
     "city-kit-roads": [
         r"lamp", r"light", r"barrier", r"cone", r"sign", r"\.png$",
+    ],
+    # Everything: 25 models, all of them dock-relevant, and the listing
+    # is the point on a first fetch.
+    "city-kit-industrial": [
+        r"\.fbx$", r"\.png$",
     ],
 }
 
