@@ -11,9 +11,13 @@ subset of that table. Three classes, three destinations:
                                    itself): bollards, bins, a builder's
                                    skip, benches, pallets, chimney pots,
                                    awnings, drain covers, fingerposts.
-  ledger/Assets/Decals/ambientcg/  the V2 grime layer: leaking stains, worn
+  ledger/Assets/StreamingAssets/Decals/ambientcg/
+                                   the V2 grime layer: leaking stains, worn
                                    road lines, manhole covers, asphalt
                                    damage, imperfection/scratch masks, moss.
+                                   StreamingAssets because DecalLayer reads
+                                   them at RUNTIME via File IO + LoadImage,
+                                   the CityPack pattern.
   ledger/Assets/Sky/polyhaven/     four 2k HDRIs, one per hour of the day
                                    the sim photographs.
 
@@ -38,7 +42,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 HERE = pathlib.Path(__file__).resolve().parent
 
 BASE_MESH_DIR = ROOT / "ledger" / "Assets" / "Props" / "base-mesh"
-DECALS_DIR = ROOT / "ledger" / "Assets" / "Decals" / "ambientcg"
+DECALS_DIR = ROOT / "ledger" / "Assets" / "StreamingAssets" / "Decals" / "ambientcg"
 SKY_DIR = ROOT / "ledger" / "Assets" / "Sky" / "polyhaven"
 
 RAW = "https://raw.githubusercontent.com/M3-org/base-meshes/main/models"

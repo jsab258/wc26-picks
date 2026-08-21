@@ -65,7 +65,7 @@ WATCHED = {
     # Kenney, so it carries its own row — the sweep whitelists by path
     # containment and the token check is per-row, so both hold.
     "ledger/Assets/Props/base-mesh": "The Base Mesh",
-    "ledger/Assets/Decals": "ambientCG",
+    "ledger/Assets/StreamingAssets/Decals": "ambientCG",
     "ledger/Assets/Sky": "Poly Haven",
     # A single file, not a directory — the shipped face sits in `Resources`
     # beside code and prefabs, so there is no folder to name that would not
