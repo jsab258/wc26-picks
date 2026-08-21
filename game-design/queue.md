@@ -74,11 +74,18 @@ parked — no DirectML on the Air.
    the blocked-frame series excluded the district tour. The `Add` sat outside
    that block, so seven teleported frames had been going into it.
 
-1. **THE CREW TIER OF `looseEnds` NEVER OPENS** — `crew=2`, nobody below the
-   poach floor, so it has never once fired in the project's recorded history.
-   Same shape as the Law tier, off for entire runs until the denominator
-   caught it (fixed, landed `[Law:1,Owed:5]/open7/2of6`). **Plant the
-   condition, do not loosen the floor.**
+1. **THE CREW TIER OF `looseEnds` NEVER OPENS, AND NOTHING SAID HOW CLOSE IT
+   GETS.** `looseEnds` reads `[Law:1,Owed:5]` over six evenings — the Crew
+   tier has never once been offered. It needs the least loyal crew member at
+   or below the poach floor, and **no loyalty reading existed anywhere in the
+   verdict**, so a tier missing by a hundredth and one missing by half looked
+   identical. Those want completely different work.
+
+   **The measurement ships first, deliberately**: `crewWorstLoyalty` beside
+   `crewFloor`, with `crewLoyaltyRead` as the denominator so "nobody is on the
+   crew" cannot read as "the crew is loyal". Rule 5b's corollary says plant the
+   condition rather than loosen the bound — and you cannot plant well without
+   the distance. **Read it next build, then decide.**
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the

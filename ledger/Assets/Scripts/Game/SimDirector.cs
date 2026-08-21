@@ -7652,6 +7652,35 @@ namespace Ledger.Game
             return string.Join("/", parts);
         }
 
+        /// How many crew members had a readable loyalty when the done line
+        /// was written. The denominator for `crewWorstLoyalty` — see the note
+        /// at the emission.
+        int _crewLoyaltyRead;
+
+        /// The least loyal crew member's loyalty, or -1 if nobody qualifies.
+        ///
+        /// LOYALTY LIVES ON THE GOSSIPER, NOT ON THE CREW MEMBER — a crew
+        /// member is a person on this street who happens to work for you, and
+        /// `GameController` already resolves it that way for the loose-end
+        /// tally. This walks the same path deliberately rather than inventing
+        /// a second definition, because two ways of asking "how loyal" is the
+        /// shape that has produced most of this file's wrong readings.
+        double CrewWorstLoyalty(GameController game)
+        {
+            _crewLoyaltyRead = 0;
+            double worst = -1;
+            if (game?.Empire?.Crew == null) return -1;
+            foreach (var c in game.Empire.Crew)
+            {
+                if (c == null || c.Departed) continue;
+                var g = game.Gossip?.Mill?.Get(c.Id);
+                if (g == null) continue;
+                _crewLoyaltyRead++;
+                if (worst < 0 || g.Loyalty < worst) worst = g.Loyalty;
+            }
+            return worst;
+        }
+
         /// Which districts the twenty shots were taken in, busiest first.
         /// No spaces: a verdict value may not contain one.
         string ShotDistrictLine()
@@ -10794,6 +10823,17 @@ namespace Ledger.Game
             NameTags.CloseTextStats();
             FootIk.Close();
 
+            // COMPUTED BEFORE THE STRING, NOT INSIDE IT. `CrewWorstLoyalty`
+            // sets `_crewLoyaltyRead` as a side effect, and the first draft
+            // emitted the value and its denominator as two separate holes in
+            // one interpolated string — correct only because C# evaluates
+            // holes left to right. Anybody reordering those two keys for
+            // tidiness would have silently emptied the denominator, which is
+            // the fault this project keeps finding wearing a new hat.
+            double crewWorst = _game?.Empire != null ? CrewWorstLoyalty(_game) : -1;
+            int crewRead = _crewLoyaltyRead;
+            double crewFloor = _game?.Empire != null ? _game.Empire.PoachLoyaltyFloor : -1;
+
             float bubbleMedian = -1f;
             if (_bubbleOverlap.Count > 0)
             {
@@ -11791,6 +11831,30 @@ namespace Ledger.Game
                       // reachable while Mickey's book has somebody in it", not
                       // "five tiers are dead", and only one of those is a bug.
                       $"looseEnds={GameController.LooseEndsTally.Line()} " +
+                      // WHY THE CREW TIER HAS NEVER FIRED, WHICH THE TALLY
+                      // CANNOT SAY.
+                      //
+                      // `looseEnds` reads `[Law:1,Owed:5]` over six evenings:
+                      // the Crew tier has never once been offered in the
+                      // project's recorded history. It needs the least loyal
+                      // crew member at or below the poach floor, and NOTHING
+                      // IN THE VERDICT SAYS HOW CLOSE THAT GETS. A tier that
+                      // misses by a hundredth and one that misses by half want
+                      // completely different work — a nudge to the sim against
+                      // a redesign of what erodes loyalty — and a zero with no
+                      // denominator cannot tell them apart (rule 3b).
+                      //
+                      // So this is the MEASUREMENT, deliberately shipped
+                      // before any attempt to make the tier fire. Rule 5b's
+                      // corollary says plant the condition rather than loosen
+                      // the bound, and you cannot plant well without knowing
+                      // the distance. The floor travels with it so the pair is
+                      // read together rather than against a constant somebody
+                      // has to remember. `crewLoyaltyRead` is the denominator:
+                      // -1 with a read of 0 means nobody is on the crew, which
+                      // is a different world from a crew that is simply loyal.
+                      $"crewWorstLoyalty={crewWorst:0.000} crewFloor={crewFloor:0.000} " +
+                      $"crewLoyaltyRead={crewRead} " +
                       $"looseEndsFed={GameController.LooseEndTiersFed}/{GameController.LooseEndTiers} " +
                       $"sheetTiles={ClipSheet.Tiles} " +
                       $"sheetWhy=[{ClipSheet.Why.Replace(' ', '_')}] " +
