@@ -265,6 +265,18 @@ namespace Ledger.Game
             _mat.SetFloat("_TempR", (float)tempR);
             _mat.SetFloat("_TempB", (float)tempB);
             LastTempR = tempR; LastTempB = tempB;
+
+            // THE FINISH (M17.10): split-tone by day, a milky blue-black
+            // floor by night, chroma draining with distance. All three ride
+            // GameController.NightAmount — the one clock dusk already runs
+            // on — and the desat is ZEROED whenever DepthNormals is off, so
+            // the shader never reads an unbound depth texture on Low.
+            float night01 = GameController.NightAmount;
+            _mat.SetFloat("_SplitAmt", Mathf.Lerp(1.0f, 0.45f, night01));
+            _mat.SetFloat("_LiftAmt", 0.045f * Mathf.SmoothStep(0f, 1f, night01));
+            bool depthBound = Ledger.Core.Detail.PostOcclusion(
+                Ledger.Core.Detail.Parse(GameSettings.Current.Detail));
+            _mat.SetFloat("_DesatFar", depthBound ? 0.18f : 0f);
             // A grain that does not move is dirt on the lens. Seeded per
             // frame off unscaled time so it keeps crawling even when the
             // game is paused behind a panel.

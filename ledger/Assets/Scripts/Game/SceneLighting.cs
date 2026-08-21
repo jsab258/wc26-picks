@@ -45,6 +45,8 @@ namespace Ledger.Game
         static readonly int SkyTopId     = Shader.PropertyToID("_SkyColor");
         static readonly int SkyHorizonId = Shader.PropertyToID("_HorizonColor");
         static readonly int SkyGroundId  = Shader.PropertyToID("_GroundColor");
+        static readonly int CloudColorId    = Shader.PropertyToID("_CloudColor");
+        static readonly int CloudCoverageId = Shader.PropertyToID("_CloudCoverage");
 
         static Color C((double r, double g, double b) c) =>
             new Color((float)c.r, (float)c.g, (float)c.b, 1f);
@@ -235,6 +237,15 @@ namespace Ledger.Game
                 _sky.SetColor(SkyTopId, C(LightModel.SkyColour(night, rain)));
                 _sky.SetColor(SkyHorizonId, RenderSettings.fogColor);
                 _sky.SetColor(SkyGroundId, C(LightModel.GroundColour(night, rain)));
+                // Clouds keep the dome's own palette: a shade below the
+                // zenith with a touch of warmth, so they read as mass rather
+                // than as stains. Coverage rises with rain — a wet day IS a
+                // cloud deck — and the night sky keeps structure too (lit
+                // from below by the town, which kloppenheim-style skies show).
+                var top = C(LightModel.SkyColour(night, rain));
+                _sky.SetColor(CloudColorId, new Color(
+                    top.r * 0.86f + 0.02f, top.g * 0.85f + 0.012f, top.b * 0.83f));
+                _sky.SetFloat(CloudCoverageId, Mathf.Lerp(0.60f, 0.85f, rain));
 
                 // What a DRY window reflects only updates when this is called
                 // — assigning `RenderSettings.skybox` refreshes nothing on

@@ -31,6 +31,14 @@ Shader "Hidden/LedgerSky"
         _GroundColor  ("Ground (below)", Color) = (0.30, 0.28, 0.26, 1)
         _SkyCurve     ("Sky curve",      Float) = 1.7
         _GroundCurve  ("Ground curve",   Float) = 1.2
+        // CLOUD STRUCTURE (M17.10 V6, pulled early because an empty gradient
+        // dome is the loudest remaining sky tell). Value-noise FBM on a
+        // virtual plane; the colour and coverage are driven per frame from
+        // SceneLighting so the clouds keep the dome's own palette.
+        _CloudColor    ("Cloud colour",  Color) = (0.50, 0.56, 0.64, 1)
+        _CloudCoverage ("Cloud coverage", Range(0, 1)) = 0.65
+        _CloudScale    ("Cloud scale",   Float) = 1.6
+        _CloudWind     ("Cloud wind xy", Vector) = (0.006, 0.0035, 0, 0)
     }
 
     SubShader
@@ -52,6 +60,39 @@ Shader "Hidden/LedgerSky"
             fixed4 _GroundColor;
             float  _SkyCurve;
             float  _GroundCurve;
+            fixed4 _CloudColor;
+            float  _CloudCoverage;
+            float  _CloudScale;
+            float4 _CloudWind;
+
+            // Value noise + 3-octave FBM with one domain warp. Hash-based
+            // because CG has no Perlin; good enough for cloud MASSES — the
+            // grade and the fog eat the small-scale detail anyway.
+            float vhash(float2 p)
+            {
+                return frac(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);
+            }
+            float vnoise(float2 p)
+            {
+                float2 i = floor(p), f = frac(p);
+                f = f * f * (3.0 - 2.0 * f);
+                float a = vhash(i);
+                float b = vhash(i + float2(1, 0));
+                float c = vhash(i + float2(0, 1));
+                float d = vhash(i + float2(1, 1));
+                return lerp(lerp(a, b, f.x), lerp(c, d, f.x), f.y);
+            }
+            float fbm(float2 p)
+            {
+                float n = 0.0, amp = 0.55;
+                for (int o = 0; o < 3; o++)
+                {
+                    n += vnoise(p) * amp;
+                    p = p * 2.13 + 17.7;
+                    amp *= 0.5;
+                }
+                return n;
+            }
 
             struct appdata { float4 vertex : POSITION; };
             struct v2f
@@ -72,11 +113,35 @@ Shader "Hidden/LedgerSky"
 
             fixed4 frag(v2f i) : SV_Target
             {
-                float h = normalize(i.dir).y;
+                float3 nd = normalize(i.dir);
+                float h = nd.y;
                 float up = pow(saturate(h), _SkyCurve);
                 float dn = pow(saturate(-h), _GroundCurve);
                 fixed4 c = lerp(_HorizonColor, _SkyColor, up);
                 c = lerp(c, _GroundColor, dn);
+
+                // CLOUDS on a virtual plane overhead. The projection divides
+                // by the view's up-component, so masses compress toward the
+                // horizon the way a real cloud deck does. One domain warp
+                // breaks the value-noise blockiness.
+                //
+                // FADED OUT AT THE HORIZON BY `up`, which keeps the standing
+                // guarantee this file exists for: the horizon band stays
+                // EXACTLY the fog colour, so the fogged-street-to-sky seam
+                // remains impossible by construction. Clouds live in the
+                // upper sky; the marine haze owns the bottom.
+                if (h > 0.02)
+                {
+                    float2 uv = nd.xz / max(h, 0.08) * _CloudScale
+                              + _CloudWind.xy * _Time.y;
+                    float2 warp = float2(fbm(uv * 0.7 + 31.4), fbm(uv * 0.7 - 12.9));
+                    float n = fbm(uv + (warp - 0.5) * 0.9);
+                    // Coverage remaps the noise band into cloud opacity:
+                    // higher coverage pulls more of the mid-band into cloud.
+                    float cl = smoothstep(1.0 - _CloudCoverage - 0.25,
+                                          1.0 - _CloudCoverage + 0.25, n);
+                    c.rgb = lerp(c.rgb, _CloudColor.rgb, cl * up * 0.85);
+                }
                 c.a = 1;
                 return c;
             }

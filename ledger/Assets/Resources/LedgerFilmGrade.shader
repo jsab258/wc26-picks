@@ -33,6 +33,12 @@ Shader "Hidden/LedgerFilmGrade"
         // LedgerAo.shader, which owns the depth-normals sampler and the
         // projection matrix. This file only multiplies by what comes back.
         sampler2D _AoTex;
+        // For the distance desaturation. Declared here as well as in the AO
+        // shader — each compilation unit needs its own declaration of the
+        // global Unity binds when DepthNormals mode is on; the C# drive
+        // zeroes _DesatFar whenever that mode is off, so this is never
+        // sampled undefined.
+        sampler2D _CameraDepthNormalsTexture;
         float _Threshold, _Bloom, _Grain, _Vignette, _Seed, _Exposure;
         // EXPOSED COOLS, HIDDEN WARMS. Two multipliers rather than a colour,
         // because green is deliberately untouched: a tint that moves all three
@@ -41,6 +47,9 @@ Shader "Hidden/LedgerFilmGrade"
         // they feel it. LightModel.TemperatureSwing is 0.008 — under one
         // percent — and computed in Core so a test can hold it.
         float _TempR, _TempB;
+        // The GTA-recognisable finish (M17.10): split-tone and lifted night
+        // blacks, both display-referred, both driven per frame from C#.
+        float _SplitAmt, _LiftAmt, _DesatFar;
         float _AoStrength, _AoRelief, _AoFloor;
         float4 _Dir;
 
@@ -128,7 +137,40 @@ Shader "Hidden/LedgerFilmGrade"
                 // the light, and the effect would vanish in the highlights —
                 // which are exactly the lit areas it exists to cool.
                 col.rgb *= float3(_TempR, 1.0, _TempB);
+
+                // DISTANCE DESATURATION, scene-referred, before the curve —
+                // aerial perspective on top of the exp2 fog. The fog already
+                // pulls far colour toward its own; this drains the CHROMA on
+                // the way, which is the half real haze does that fog alone
+                // cannot. Depth from the same DepthNormals the AO pass binds.
+                float dnDepth;
+                float3 dnN;
+                DecodeDepthNormal(tex2D(_CameraDepthNormalsTexture, i.uv), dnDepth, dnN);
+                float farness = pow(saturate(dnDepth), 1.5) * _DesatFar;
+                float preLum = dot(col.rgb, float3(0.299, 0.587, 0.114));
+                col.rgb = lerp(col.rgb, float3(preLum, preLum, preLum), farness);
+
                 col.rgb = aces(col.rgb * _Exposure);
+
+                // SPLIT-TONE, display-referred: cool shadows, warm
+                // highlights, by luminance. The recognisable filmic finish —
+                // GTA's daylight signature is exactly this warm-key/cool-fill
+                // split carried into the grade.
+                float stLum = dot(col.rgb, float3(0.299, 0.587, 0.114));
+                col.rgb *= lerp(float3(1.0 - 0.03 * _SplitAmt,
+                                       1.0,
+                                       1.0 + 0.06 * _SplitAmt),
+                                float3(1.0 + 0.05 * _SplitAmt,
+                                       1.0,
+                                       1.0 - 0.05 * _SplitAmt), stLum);
+
+                // LIFTED BLACKS, blue-biased — the night floor. A true zero
+                // black reads as a hole in the frame; GTA's night sits on a
+                // faint milky blue floor and the sodium lamps read warm
+                // against it. Zero by day (the C# drive), so noon contrast
+                // is untouched.
+                col.rgb = col.rgb * (1.0 - _LiftAmt)
+                        + _LiftAmt * float3(0.70, 0.80, 1.00);
 
                 // VIGNETTE. Pulls the eye to the middle and makes the frame
                 // feel photographed. Squared so it stays off the centre
