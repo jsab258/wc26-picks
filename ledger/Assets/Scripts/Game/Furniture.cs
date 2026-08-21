@@ -25,6 +25,12 @@ namespace Ledger.Game
         public static readonly Dictionary<string, int> ByKind =
             new Dictionary<string, int>();
 
+        /// Where the park benches stand — read by `NpcWalker.BenchSeatNear`,
+        /// which turns a stop beside one into the `sit` activity. A bench
+        /// nobody can sit on is set dressing; this list is what makes it
+        /// furniture.
+        public static readonly List<Vector3> BenchSeats = new List<Vector3>();
+
         static readonly Dictionary<string, GameObject> _prefabs =
             new Dictionary<string, GameObject>();
         static Material _yellow;
@@ -39,7 +45,7 @@ namespace Ledger.Game
 
         public static void Build()
         {
-            Placed = 0; YellowLines = 0; ByKind.Clear();
+            Placed = 0; YellowLines = 0; ByKind.Clear(); BenchSeats.Clear();
             // The probe: if the flagship mesh is missing, every other lookup
             // will be too — one legible reason instead of thirty misses.
             if (Prefab("outdoor_bin") == null)
@@ -119,6 +125,7 @@ namespace Ledger.Game
                             // Benches face the road.
                             var yaw = Quaternion.LookRotation(-across * side);
                             PlaceAt(parent, "park_bench", pos, yaw);
+                            BenchSeats.Add(pos);
                         }
                     }
                 }

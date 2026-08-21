@@ -1311,8 +1311,12 @@ namespace Ledger.Game
             }
             else if (WaitingAsHost)
             {
-                // Somebody who promised to wait looks like somebody waiting.
-                _body.Activity = (ActivityHash() & 1) == 0 ? "lean_wall" : "idle_bored";
+                // Somebody who promised to wait looks like somebody waiting
+                // — against a wall, against a post, or just standing. Three
+                // ways, per person, so two hosts on one corner differ.
+                int hw = ActivityHash() % 3;
+                _body.Activity = hw == 0 ? "lean_wall"
+                               : hw == 1 ? "idle_bored" : "lean";
             }
             else
             {
@@ -1332,7 +1336,8 @@ namespace Ledger.Game
                 if (_activityAtPlace == null)
                 {
                     _activityStopAt = here;
-                    _activityAtPlace = ActivityForPlaceNear(here) ?? "";
+                    _activityAtPlace = BenchSeatNear(here)
+                                     ?? ActivityForPlaceNear(here) ?? "";
                 }
                 _body.Activity = _activityAtPlace.Length > 0 ? _activityAtPlace : null;
             }
@@ -1400,17 +1405,33 @@ namespace Ledger.Game
             }
             if (best == null) return null;
             int h = ActivityHash();
+            // TWO PLACES ARE MORE SPECIFIC THAN THEIR KIND, and both came out
+            // of the reach sweep (clip-reach.py): `phone_box` and `drink`
+            // were states built into every controller that no writer had
+            // ever asked for. The letter stall is where the town's one
+            // outdoor line stands — WorldBuilder puts the box there — so
+            // somebody stopped at the stall is sometimes ON it; and the pub
+            // door is where people drink standing up.
+            if (best.Id == "letter_stall" && (h & 3) == 0) return "phone_box";
+            if (best.Id == "bar_door")
+                return (h & 3) == 0 ? "drink"
+                     : (h & 3) == 1 ? "lean_wall" : null;
             switch (best.Kind)
             {
                 case "business":
-                    // Behind the counter or waiting to be served — the split
-                    // is per person, so a shop has both in it.
+                    // Behind the counter, waiting to be served, or carrying
+                    // stock in — the split is per person, so a shop has all
+                    // three in it.
                     return (h & 3) == 0 ? "work_counter"
-                         : (h & 3) == 1 ? "carry_bag" : null;
+                         : (h & 3) == 1 ? "carry_bag"
+                         : (h & 3) == 2 ? "carry" : null;
                 case "landmark":
                     return (h & 3) == 0 ? "look_around" : null;
                 case "corner":
-                    // A shelter is where people wait, smoke and lean.
+                    // A shelter is where people wait, smoke and lean. The
+                    // smoke slice stands even though the harvest hole means
+                    // the ask is refused today: when the clip lands, the
+                    // corners light up with no further wiring.
                     return (h & 3) == 0 ? "smoke"
                          : (h & 3) == 1 ? "lean_wall"
                          : (h & 3) == 2 ? "idle_bored" : null;
@@ -1419,6 +1440,21 @@ namespace Ledger.Game
                 default:
                     return null;
             }
+        }
+
+        /// A BENCH IS AN INVITATION. `Furniture` records every park bench it
+        /// places; somebody who stops within a couple of metres of one takes
+        /// the seat — which is the whole social reason benches exist, and
+        /// the `sit` clip's first consumer (it was STATE-ONLY in the reach
+        /// sweep: built into every controller, never once entered).
+        string BenchSeatNear(Vector3 here)
+        {
+            foreach (var seat in Furniture.BenchSeats)
+            {
+                double dx = seat.x - here.x, dz = seat.z - here.z;
+                if (dx * dx + dz * dz < 2.0 * 2.0) return "sit";
+            }
+            return null;
         }
 
         /// A stable number per person, for choosing WHICH activity they do.

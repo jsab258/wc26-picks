@@ -40,46 +40,30 @@ parked — no DirectML on the Air.
    decomposition and research in `visual-bar-spec.md`. The look is carried by
    surface history, density, depth, light, atmosphere — in that order; his
    overcast reference frame proves dirt+depth+density carry a frame with no
-   interesting light. Current build step: **V0+V1 in one dispatch** — the
-   shadow probe (no number has EVER said a shadow reached a frame; AO
-   measures 0.7% of luma, invisible), region-variance metrics, and the
-   sun:ambient rebalance captured as an in-run A/B so the same build that
-   changes the look proves what changed.
+   interesting light.
 
-   **WHAT THE BATCH CARRIES (dispatched 21 Aug evening):** the shadow probe
-   (peak darkened fraction + drop, hour captured at the peak, quality/sun/
-   ambient state line incl. active quality level and pixel-light count, fog
-   read at probe time AND after LateUpdate); road and facade luma-spread
-   baselines for the decal phase; the sun:ambient rebalance — ambient day
-   fill scaled to **0.45** of the sky dome via new `Ambient*` accessors
-   (night bit-identical, CoreTests hold it; 0.60 was my first number and the
-   technique research, computing through our own tonemap, put the GTA noon
-   band at share 0.45 + strength 0.93), sun noon 1.15→1.65, shadow strength
-   0.75→**0.93**, AO radius 0.55→0.85 and base 0.32→0.42, the master shadow
-   switch and pixel-light count SET for the first time ever; and the dead
-   ambient writes deleted — GameController wrote three ambient colours every
-   frame and SceneLighting's LateUpdate overwrote all three a moment later,
-   so the values being tuned were a corpse's.
+   **LANDED (two builds, 21 Aug night):** V0+V1 — the shadow probe's first
+   real run confirmed every prediction (a strong noon shadow fraction, the
+   quality state line, and the fog pair proving the single-owner fix held);
+   sun:ambient rebalance at share 0.45 / strength 0.93 / sun 1.65; AO
+   deepened; the day aperture opened. Batch B — cloud cookie, grade split
+   (split-tone + lifted blacks + distance desat), decal WIRING (correctly
+   read `fetch not landed`, the files moved after the runner took its
+   commit), exposure re-anchors. day2_noon shows real cast shadows and
+   sunlit-vs-shaded form for the first time. Noted for later phases: the
+   flat black shopfront void (V4's job), the blank sky dome (V6).
 
-   **AND THE RESEARCH FOUND THE PROJECT RENDERS IN GAMMA COLOUR SPACE** — no
-   ProjectSettings, engine default, so the filmic tonemap is a contrast
-   curve rather than a photometric one. Linear is one line in CiBuild and a
-   whole-game re-tune of every hand-tuned colour; scheduled as V1.5, its own
-   revertible commit with before/after stills, BEFORE the grade/decal phases
-   stack more tuning onto the gamma assumption.
+   **IN FLIGHT (build D):** street furniture from the fetched kits + double
+   yellows; the 17 decal sets now where DecalLayer reads them; chimney pots
+   + TV aerials; the six-clip reaction set (below). Read on landing:
+   `furniture/yellowLines/roadDecals/wallDecals/decalWhy/aerials/reactions`
+   — and every still before any gate.
 
-   **PREDICTION, written before the dispatch:** shadowHit lands an order of
-   magnitude above aoHit's 0.7% and the noon still shows the lamp post lying
-   on the pavement. shadowHit≈0 with `lightState` reading `q=All/dist=70`
-   means shadows render and something else eats them — the state line and the
-   two fog readings are there to say what. The fog pair will NOT match each
-   other: two writers still fight over fog (GameController's calibrated day
-   values at probe time, LightModel's after LateUpdate), that fight is
-   DELIBERATELY not resolved this build, and the two printed values are the
-   evidence the next build's single-owner fix argues from.
-
-   Next after this build: V2 decal layer + V3 furniture fetch (agent research
-   tabled in the spec), then V4 depth + the grade move.
+   **NEXT, in order:** V1.5 linear colour space — one line in CiBuild, its
+   OWN revertible commit + build with before/after stills, BEFORE more grade
+   tuning stacks onto the gamma assumption (the project renders in GAMMA —
+   engine default, no ProjectSettings file). Then V4 shopfront depth +
+   albedo variety + the grade move; V5 vehicles/ground; V6 sky dome.
 
 1. ~~**ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION**~~ — **CLOSED TO
    FIVE EMPTY SLOTS AND NONE WRONG after three re-picks, 21 Aug.** Audited
@@ -88,11 +72,16 @@ parked — no DirectML on the Air.
    refused-but-shipped. The full chronicle — the set-aside path, the
    known-bad fixture, ten dead patterns, two harvester duplicates, the
    frozen-root preference — is in `roadmap-history.md` (21 Aug) and
-   `clip-findings.txt`. **Open remainders:** a reachability sweep (four of
-   five emptied slots were never playable by any code — rule 6 at asset
-   scale; nothing counts which of the 65 any code reaches), and the landed
-   build confirmed the predictions: `activity states 13 of 14`,
-   `activityRefused=9` of 54 asks, `sheetSlid=60/186`.
+   `clip-findings.txt`. **The reachability sweep is BUILT AND ACTED ON
+   (`tools/clip-reach.py`, 21 Aug night):** 18 activity islands play, 6
+   clips tree-played, **0 state-only** — the five it found (carry, drink,
+   lean, phone_box, sit) were wired the same hour: benches seat people,
+   the pub door drinks, the letter stall phones, shops carry stock in.
+   **41 clips are DISK-ONLY** — the combat set (blocks, strikes,
+   take_hit, knockdown, guard), the stairs set, walk transitions, and the
+   one-shots (laugh, yell, shake_hands, hands_up, pockets, rummage,
+   sit_drink, sit_talk, lie_still, get_up). Combat-with-no-body-animation
+   is the biggest item there and is milestone-scale, not a wire.
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
    NARROW.** *(rule 12)* The camera steps back off anything filling more than
    a quarter of the frame at arm's length, bound from a measured bimodal
@@ -287,9 +276,13 @@ parked — no DirectML on the Air.
    singular; the doc offers bar/courier/office on the first morning.
 5. **Interiors beyond the pub** (M20) — every other door is a threshold.
 
-**And one now unblocked:** reaction animation. `flinch`, `greet`, `wave`,
-`glance`, `point` and `head_no` are on disk since 18 August and the perception
-events they wire to already fire. Wiring, not sourcing.
+**~~And one now unblocked:~~ WIRED, 21 Aug night, riding build D.** The six
+reaction clips play off the events that were already firing: knocks flinch,
+noticing blood or a weapon recoils, loiterers get looked at, heard sounds get
+the turn before the walk, Confronts points, barks perform their own prose
+("waves from the counter" waves), confab pairs shake a head now and then. A
+reaction halts the walk for its moment or it could never be seen. Read
+`reactions`/`reactRefused`/`reactBy` when D lands — every kind prints at zero.
 
 ### The quality ladder (standing order 16 Aug: best available, not first working)
 
