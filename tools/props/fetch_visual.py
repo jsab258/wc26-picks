@@ -191,6 +191,7 @@ def run() -> int:
 
     (HERE / "visual_manifest.json").write_text(json.dumps(manifest, indent=1))
     write_attribution(manifest)
+    write_inventory()
 
     print(f"\nTOTAL banked this run: {banked} file(s); {len(failures)} failure(s)")
     for f in failures:
@@ -202,6 +203,36 @@ def run() -> int:
         print("NOTHING BANKED AND NOTHING ON DISK — this run says so.")
         return 1
     return 0
+
+
+def write_inventory() -> None:
+    """The mirror's FULL model list, committed as a file in the repo.
+
+    Rule 12: the dev container cannot enumerate the mirror — the GitHub
+    API and the Pages index are both unreachable from there, and probing
+    model names one guess at a time produced five 404s for "bicycle" on
+    21 Aug. This runner CAN ask, so the answer becomes a file anything
+    can read. The immediate customer is the vehicle gap (`vehicleFellBack
+    =[bus,bike x6]`): whether the mirror holds a bicycle or a bus is
+    decided by this list, not by another round of guessing.
+
+    Fails soft like everything else here — an inventory miss must never
+    cost the fetch its haul.
+    """
+    try:
+        blob = fetch("https://api.github.com/repos/M3-org/base-meshes/contents/models")
+        entries = json.loads(blob)
+        names = sorted(e["name"] for e in entries if isinstance(e, dict) and "name" in e)
+        (HERE / "base_mesh_inventory.txt").write_text("\n".join(names) + "\n")
+        wheels = [n for n in names
+                  if any(k in n.lower() for k in
+                         ("bike", "bicycle", "bus", "cycle", "moto", "cart",
+                          "van", "truck", "vehicle", "scooter"))]
+        print(f"\n=== mirror inventory: {len(names)} model dir(s) written to "
+              f"base_mesh_inventory.txt ===")
+        print(f"  vehicle-ish: {', '.join(wheels) if wheels else 'none in the mirror'}")
+    except Exception as e:
+        print(f"\n=== mirror inventory FAILED (haul unaffected): {e} ===")
 
 
 def write_attribution(manifest: dict) -> None:

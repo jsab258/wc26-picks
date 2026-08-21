@@ -163,8 +163,11 @@ namespace Ledger.Game
         /// linear night still shows every window blooming a halo. The
         /// aperture cannot take the excess (its tested floor refused, see
         /// Exposure); the source is the honest knob, cut by roughly the
-        /// measured overshoot. Re-swept when the retune build lands.
-        public const float WindowGlowMultiplier = 1.8f;
+        /// measured overshoot. Round two: 1.8 read night 0.241 against day
+        /// 0.195 — still inverted on 7 of 10 days — so another step down;
+        /// the night still at 1.8 already reads as lamps, not floodlights,
+        /// and the halo margin is there to spend.
+        public const float WindowGlowMultiplier = 1.4f;
 
         public static void SetWindowGlow(float multiplier)
         {

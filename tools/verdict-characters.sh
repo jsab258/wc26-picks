@@ -23,11 +23,17 @@ set -uo pipefail
 
 LOG="${1:-build-log/unity.log}"
 MAX="${2:-40}"
-# `PropPrefab: ` joined 21 Aug: `furniture=0` was diagnosed BLIND because
-# the prop pipeline's own log lines never reached the verdict — the one
-# readable channel (rule 12). The summary line and per-model lines both
-# match the prefix.
-PATTERN="CharacterAudit: |CharacterPrefab: |CharacterMaterials: |PropPrefab: "
+# `PropPrefab: ` joined 21 Aug — and then evicted the audit within one
+# build. The prop pass logs ~90 per-model lines BETWEEN CharacterPrefab
+# and CharacterAudit in CiBuild's order, so one shared cap kept the
+# prefab lines, filled up on props, and cut every audit line — verdict
+# keys `clips/humanoid/importerRan/lastImported` vanished and the key
+# manifest caught it minutes after the build landed. One idea, two
+# implementations: the summary line was protected from the cap and the
+# audit was not. Each family now has its OWN grep and its own cap, so
+# volume in one can never evict another.
+CHAR_PATTERN="CharacterAudit: |CharacterPrefab: |CharacterMaterials: "
+PROP_PATTERN="PropPrefab: "
 
 if [ ! -f "$LOG" ]; then
   echo
@@ -35,24 +41,28 @@ if [ ! -f "$LOG" ]; then
   exit 0
 fi
 
-TOTAL=$(grep -cE "$PATTERN" "$LOG" || true)
-TOTAL=${TOTAL:-0}
+CHAR_TOTAL=$(grep -cE "$CHAR_PATTERN" "$LOG" || true)
+CHAR_TOTAL=${CHAR_TOTAL:-0}
+PROP_TOTAL=$(grep -cE "$PROP_PATTERN" "$LOG" || true)
+PROP_TOTAL=${PROP_TOTAL:-0}
 
 echo
-if [ "$TOTAL" -eq 0 ]; then
+if [ "$CHAR_TOTAL" -eq 0 ] && [ "$PROP_TOTAL" -eq 0 ]; then
   # THE DENOMINATOR, rule 3b. "No lines" and "the audit ran and had nothing to
   # say" are different states and a blank space cannot tell them apart.
   echo "CharacterAudit: (no line in $(wc -l < "$LOG") log lines — the audit did not run)"
   exit 0
 fi
 
-grep -E "$PATTERN" "$LOG" | head -"$MAX"
-if [ "$TOTAL" -gt "$MAX" ]; then
-  echo "CharacterAudit: (+$((TOTAL - MAX)) more character lines not shown)"
+grep -E "$CHAR_PATTERN" "$LOG" | head -"$MAX"
+if [ "$CHAR_TOTAL" -gt "$MAX" ]; then
+  echo "CharacterAudit: (+$((CHAR_TOTAL - MAX)) more character lines not shown)"
 fi
-# THE PROP SUMMARY, ALWAYS. It is printed AFTER ~90 per-model lines, so the
-# cap above cuts precisely the one line that says how many prefabs were
-# written and how many files would not import — the number `furniture=`
-# needs beside it. Grepped again on its own so the cap cannot eat it.
+# Props: a handful of per-model lines for spot-reading, then ALWAYS the
+# summary — it prints last in the log, exactly where a cap bites.
+grep -E "$PROP_PATTERN" "$LOG" | head -8
+if [ "$PROP_TOTAL" -gt 8 ]; then
+  echo "PropPrefab: (+$((PROP_TOTAL - 8)) more prop lines not shown)"
+fi
 grep -E "PropPrefab: [0-9]+ prefab" "$LOG" | tail -1
 exit 0

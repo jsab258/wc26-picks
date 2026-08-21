@@ -111,9 +111,15 @@ namespace Ledger.Core
             // aperture past its floor would buy their fix by darkening the
             // unlit corners the floor exists to protect. The emissives are
             // dimmed at their source instead (WindowGlow).
-            double e = 1.0 + 0.52 * (1 - night) - 0.14 * night
+            // Round two, from round one's measured response: +0.24 of day
+            // arm bought +0.023 of noon mean (0.172 -> 0.195, target ~0.24)
+            // — the tonemap rolls off, so the arm buys less than linear.
+            // Up again with the clamp raised to let it land; night arm still
+            // floor-bound, its remaining excess handled at the sources
+            // (WindowGlow round two, grain round two).
+            double e = 1.0 + 0.72 * (1 - night) - 0.14 * night
                        - 0.15 * rain * (1 - night) + 0.06 * rain * night;
-            return Feel.Clamp(e, 0.7, 1.6);
+            return Feel.Clamp(e, 0.7, 1.85);
         }
 
         // ---- bloom ----------------------------------------------------------
@@ -588,13 +594,12 @@ namespace Ledger.Core
             // raise is the second half, and the ceiling stays under the
             // CoreTests bound (0.42 + 0.38 = 0.80 < 0.85).
             double ambientness = Math.Max(n, r * 0.8);
-            // Base 0.42 → 0.30 and the swing trimmed for LINEAR (V1.5): the
-            // pow-0.6 output curve was shaped against gamma's mid-tone lift,
-            // and the flip's A/B read the night AO delta 0.0127 → 0.0280
-            // with a peak round darkening 86.8% of the frame — the pass went
-            // from invisible to heavy in one build with no AO change at all.
-            // Ceiling 0.30 + 0.30 = 0.60, still under the CoreTests bound.
-            return 0.30 + 0.30 * ambientness;
+            // The linear bracket, two rounds in: 0.42+0.38 read delta 0.028
+            // with an 86.8% peak round (heavy), 0.30+0.30 read 0.0037
+            // (invisible again) — the response is far steeper than the base
+            // cut, so the midpoint is measured rather than assumed. Ceiling
+            // 0.36 + 0.34 = 0.70, still under the CoreTests bound.
+            return 0.36 + 0.34 * ambientness;
         }
 
         /// Whether a sample counts. A sample far in FRONT of the surface is

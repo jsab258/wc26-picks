@@ -847,16 +847,27 @@ namespace Ledger.Game
                 // exactly this, so the staging spends a person the cast
                 // authored for the job. Cargoes land days 12 and 16, so the
                 // paperwork exists before the audit reads the books.
+                //
+                // EVERY BRANCH IS NAMED IN `smug=`, because the first landed
+                // run came back `cargoes=0` and this block had shipped with
+                // three silent failure paths (no such gossiper, the wallet,
+                // the loyalty floor) and no way to say which fired — my own
+                // rule 3b violation, one build old.
+                string smug = "no_candidate";
                 if (m != null && _game.Empire.SmugglingSignerId == null)
                     foreach (var name in new[] { "Victor", "Vesna", "Marla" })
                     {
                         var g = m.Get(name);
-                        if (g == null || _game.Empire.CrewOf(name) != null) continue;
+                        if (g == null) { smug = "no_gossiper"; continue; }
+                        if (_game.Empire.CrewOf(name) != null) { smug = "already_crew"; continue; }
                         g.Loyalty = System.Math.Max(g.Loyalty, 0.7);
-                        _game.Empire.RecruitByNeed(g, name, 100, _game.Wallet, now, m);
-                        if (_game.Empire.Establish(_game.Empire.RacketOf("smuggling"),
-                                                   _game.Empire.CrewOf(name), now))
-                            _game.Empire.AssignSigner(m.Get("Tibor") != null ? "Tibor" : null);
+                        bool rec = _game.Empire.RecruitByNeed(g, name, 100, _game.Wallet, now, m);
+                        bool est = rec && _game.Empire.Establish(
+                            _game.Empire.RacketOf("smuggling"), _game.Empire.CrewOf(name), now);
+                        if (est && m.Get("Tibor") != null) _game.Empire.AssignSigner("Tibor");
+                        smug = $"{name}:rec={rec}:est={est}"
+                             + $":signer={_game.Empire.SmugglingSignerId ?? "none"}"
+                             + $":clean={_game.Wallet.Clean}:dirty={_game.Wallet.Dirty}";
                         break;
                     }
 
@@ -893,6 +904,7 @@ namespace Ledger.Game
                     $"biz={_game.Empire.Businesses.FindAll(b => b.Owned).Count} " +
                     $"rax={_game.Empire.Rackets.FindAll(r => r.Established).Count} " +
                     $"crew={_game.Empire.Crew.FindAll(c => !c.Departed).Count} " +
+                    $"smug={smug} " +
                     $"a3clean={_game.Wallet.Clean} a3dirty={_game.Wallet.Dirty}";
             }
 
