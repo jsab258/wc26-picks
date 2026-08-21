@@ -54,6 +54,17 @@ namespace Ledger.Game
                 Id = "fencing", Name = "fencing line", IncomePerDay = 100, BaseRisk = 0.4,
                 RequiresBusinessId = "pawnshop",
             });
+            // The port's own racket (M21). `IncomePerDay` is the PER-CARGO
+            // lump — a boat lands every `EmpireBook.CargoEveryDays` days and
+            // the line is silent between them, so the long-run rate is the
+            // collection round's with all of its risk packed into one hour
+            // at the shed. `BaseRisk` is per CARGO for the same reason, and
+            // the signer halves it or its absence doubles it (Core owns the
+            // whole shape; see the smuggling block in EmpireBook).
+            e.Rackets.Add(new Racket
+            {
+                Id = "smuggling", Name = "smuggling line", IncomePerDay = 140, BaseRisk = 0.3,
+            });
 
             // The organizations are made of people who already walk this street
             // (§6.5). Recruiting any of them is poaching, with consequences —

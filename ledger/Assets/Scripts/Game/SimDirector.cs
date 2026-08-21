@@ -840,6 +840,26 @@ namespace Ledger.Game
                     _game.Empire.Establish(_game.Empire.RacketOf("fencing"), _game.Empire.CrewOf("Rocco"), now);
                 }
 
+                // AND THE SMUGGLING LINE, PLANTED (rule 5b's twin: a racket
+                // whose cargo days and manifests no run ever produces is a
+                // system nothing can ever read). First free tier-2 face runs
+                // it; Tibor signs — the customs hand whose SECRET is already
+                // exactly this, so the staging spends a person the cast
+                // authored for the job. Cargoes land days 12 and 16, so the
+                // paperwork exists before the audit reads the books.
+                if (m != null && _game.Empire.SmugglingSignerId == null)
+                    foreach (var name in new[] { "Victor", "Vesna", "Marla" })
+                    {
+                        var g = m.Get(name);
+                        if (g == null || _game.Empire.CrewOf(name) != null) continue;
+                        g.Loyalty = System.Math.Max(g.Loyalty, 0.7);
+                        _game.Empire.RecruitByNeed(g, name, 100, _game.Wallet, now, m);
+                        if (_game.Empire.Establish(_game.Empire.RacketOf("smuggling"),
+                                                   _game.Empire.CrewOf(name), now))
+                            _game.Empire.AssignSigner(m.Get("Tibor") != null ? "Tibor" : null);
+                        break;
+                    }
+
                 // The Table, answered. Somebody at a summit wanted a room and
                 // got an answer; which answer does not matter to Act III.
                 if (!_game.ActTwo.TableFired)
@@ -11203,6 +11223,13 @@ namespace Ledger.Game
                       $"openMode={_game.Campaign.OpenMode} falls={_game.Campaign.Falls} cutOff={_game.Campaign.OutfitCutOff} " +
                       $"daysClosed={_game.Campaign.DaysClosed} openModeOk={openModeOk} fallOk={fallOk} verdictSane={verdictSane} " +
                       $"empireOk={empireOk} racketIncome={_game.Empire.TotalRacketIncome} rivalStage={_game.Empire.Rival.Stage} " +
+                      // The smuggling line's lifetime counts (M21). Both are
+                      // cumulative and read at the end of the run; equal
+                      // numbers mean every cargo was signed, cargoes>0 with
+                      // manifests=0 means the line ran unsigned at double
+                      // shed odds, and 0/0 with the racket established means
+                      // the staging or the cargo rhythm is broken.
+                      $"cargoes={_game.Empire.CargoesLanded} manifests={_game.Empire.ManifestsSigned} " +
                       $"coverageOk={coverageOk} openModeForced={_openModeForced} endScreen={_endScreenDismissed} " +
                       $"daysSkipped={_daysSkipped} endDay={_endDay} " +
                       $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} cutOffDay={_cutOffDay} cutOffNights={_cutOffNights} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} streetBodies={_streetBodies} streetBodiesNear={_streetBodiesNear} streetBodiesLive={_streetBodiesLive} streetBodiesSkinned={_streetBodiesSkinned} millAgents={millCount} crowdMill={crowdMill} strandedEmpty={strandedEmpty} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +

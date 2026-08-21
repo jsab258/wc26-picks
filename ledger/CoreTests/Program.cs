@@ -2404,6 +2404,81 @@ namespace Ledger.CoreTests
             Check(WitnessPattern(101) == WitnessPattern(101),
                 "empire: while one world's luck is its own and repeatable");
 
+            // ---- the smuggling line (M21): a cargo, a shed, an hour, a
+            // person who signs. BaseRisk pinned to zero so no assertion here
+            // rides the roll stream; the risk shape is held still as a pure
+            // function and tested as one. ----
+            {
+                (EmpireBook, GossipMill) BuildPort(bool withSigner)
+                {
+                    var mill = new GossipMill(new SocialGraph());
+                    var runner = new Gossiper("vik", "Victor", new MemoryStore("vik"), new KnowledgeBase(),
+                        new SuspicionTracker(), "night", 0.6, 0.5, 0.9);
+                    mill.Add(runner);
+                    if (withSigner)
+                        mill.Add(new Gossiper("tibor", "Tibor", new MemoryStore("tibor"), new KnowledgeBase(),
+                            new SuspicionTracker(), "day", 0.4, 0.4, 0.45));
+                    var e = new EmpireBook();
+                    e.Rackets.Add(new Racket { Id = "smuggling", Name = "smuggling line", IncomePerDay = 140, BaseRisk = 0.0 });
+                    e.RecruitByNeed(runner, "Victor", 50, new Wallet(1000), now);
+                    e.Establish(e.RacketOf("smuggling"), e.CrewOf("vik"), now);   // day 8
+                    if (withSigner) e.AssignSigner("tibor");
+                    return (e, mill);
+                }
+
+                var (eS, mS) = BuildPort(true);
+                var wS = new Wallet(0);
+                // Metered on the racket's OWN ledger, not the wallet: the
+                // rival arms tax and fee the same wallet on their own days
+                // (the first run of this test read six "paying" days, and
+                // three of them were the dockside arm collecting).
+                int payingDays = 0;
+                for (int d = 9; d <= 20; d++)
+                {
+                    int tookWas = eS.TotalRacketIncome;
+                    eS.DailyTick(new GameTime(d, 8, 0), wS, mS);
+                    if (eS.TotalRacketIncome != tookWas) payingDays++;
+                }
+                // Established day 8, so the boats land on days 12, 16 and 20.
+                Check(eS.CargoesLanded == 3 && payingDays == 3,
+                    "smuggling: silent between boats, and the boats keep the rhythm",
+                    $"cargoes {eS.CargoesLanded}, paying days {payingDays}");
+                Check(eS.ManifestsSigned == 3
+                      && eS.TotalRacketIncome == 3 * (140 - EmpireBook.SignerFeePerCargo),
+                    "smuggling: one manifest per signed cargo, the fee off the top",
+                    $"manifests {eS.ManifestsSigned}, take {eS.TotalRacketIncome}");
+                // The paperwork IS the exposure: a day-circle signer holding
+                // distinct manifests is exactly the heat the Act III audit
+                // reads, corroborating under the noisy-or.
+                Check(mS.DayCircleHeat() > 0.0,
+                    "smuggling: the manifests are day-circle heat the audit can land on",
+                    $"heat {mS.DayCircleHeat():F2}");
+
+                var (eU, mU) = BuildPort(false);
+                var wU = new Wallet(0);
+                for (int d = 9; d <= 20; d++) eU.DailyTick(new GameTime(d, 8, 0), wU, mU);
+                Check(eU.CargoesLanded == 3 && eU.ManifestsSigned == 0
+                      && eU.TotalRacketIncome == 3 * 140,
+                    "smuggling: unsigned cargoes land whole and leave no paper",
+                    $"cargoes {eU.CargoesLanded}, manifests {eU.ManifestsSigned}, take {eU.TotalRacketIncome}");
+                Check(EmpireBook.SmugglingRiskFactor(false) == 2.0
+                      && EmpireBook.SmugglingRiskFactor(true) == 0.65,
+                    "smuggling: unsigned doubles the shed odds, a signature quiets them");
+
+                // The signer and both lifetime counts survive a save — THROUGH
+                // THE JSON, not a dictionary handed to itself: `GetInt` only
+                // reads parsed doubles, so an in-process Capture->Restore
+                // shortcut passes the string field and silently zeroes every
+                // int (this test's first run proved it). The serializer is
+                // part of what "survives a save" means.
+                var eBack = new EmpireBook();
+                eBack.Rackets.Add(new Racket { Id = "smuggling", Name = "smuggling line", IncomePerDay = 140, BaseRisk = 0.0 });
+                eBack.Restore(MiniJson.AsObject(MiniJson.Deserialize(MiniJson.Serialize(eS.Capture()))));
+                Check(eBack.SmugglingSignerId == "tibor" && eBack.CargoesLanded == 3 && eBack.ManifestsSigned == 3,
+                    "smuggling: the signer and the lifetime counts survive a save",
+                    $"signer {eBack.SmugglingSignerId}, cargoes {eBack.CargoesLanded}, manifests {eBack.ManifestsSigned}");
+            }
+
             // The clean route: clean money only, and it buys goodwill.
             var (e1, m1, ruta1, _) = Build(0.5, 0.4);
             var b1 = e1.BusinessOf("pawnshop");

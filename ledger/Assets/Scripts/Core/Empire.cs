@@ -232,6 +232,49 @@ namespace Ledger.Core
         /// New crew accepted: a round you staff but do not fully collect from.
         public string SharedRacketId;
 
+        // ---- the smuggling line (M21): a cargo, a shed, an hour, a person
+        // who signs ----
+        //
+        // The port town's missing racket, and the one with the most natural
+        // exposure anatomy of the five. It runs on this same substrate —
+        // established like the others, paid through the same cut and rot and
+        // tax pipeline — with one different rhythm and one extra person:
+        //
+        //   THE RHYTHM. Nothing moves between boats. Every CargoEveryDays
+        //   days from establishment a cargo lands, `IncomePerDay` arrives as
+        //   that one lump, and every risk this line carries is concentrated
+        //   into that hour at the shed — which is what makes it smuggling
+        //   rather than a fourth collection round.
+        //
+        //   THE SIGNER. A customs hand who stamps the count. Signed, the
+        //   witness odds at the shed drop and £SignerFeePerCargo comes off
+        //   the top — but every stamp files a manifest fact on the SIGNER,
+        //   true by construction, in whatever circle they live in. A
+        //   day-circle signer therefore feeds `DayCircleHeat` — the exact
+        //   number the Act III audit reads — one distinct story per cargo,
+        //   corroborating under the noisy-or. The paperwork IS the exposure:
+        //   quiet at the shed today, evidence in the ledger for ever.
+        //   Unsigned, the counts don't add up and anybody can see the boat:
+        //   the shed roll runs at double odds instead.
+        //
+        //   Leashing the signer hushes the manifests like any other rumour —
+        //   an emergent strategy, not a special case: the leash guards every
+        //   heat path already.
+        public string SmugglingSignerId;
+        public int CargoesLanded;
+        public int ManifestsSigned;
+        public const int CargoEveryDays = 4;
+        public const int SignerFeePerCargo = 10;
+
+        /// The shed-roll multiplier, pure so a test can hold it still:
+        /// signed cargo is quiet work, unsigned cargo is a boat in plain
+        /// sight with a count that does not add up.
+        public static double SmugglingRiskFactor(bool signed) => signed ? 0.65 : 2.0;
+
+        /// Point the line's paperwork at a customs hand. Null clears it —
+        /// a signer who departs or turns is a line back to double odds.
+        public void AssignSigner(string gossiperId) => SmugglingSignerId = gossiperId;
+
         /// Resolve the summit. Accept costs something permanent, defiance costs
         /// peace, a counter costs nothing but requires you to matter already.
         public void ResolveTable(string armId, string answer, GossipMill mill, GameTime now)
@@ -646,7 +689,52 @@ namespace Ledger.Core
                 var runner = CrewOf(r.RunnerId);
                 if (runner == null) { r.Established = false; r.RunnerId = null; continue; }
 
+                // The smuggling line is silent between boats: no envelope, no
+                // loyalty movement, no shed roll — those all belong to the
+                // cargo day, when IncomePerDay arrives as one lump. See the
+                // field block above for the whole shape.
+                bool cargoDay = false;
+                if (r.Id == "smuggling")
+                {
+                    int since = now.Day - r.EstablishedDay;
+                    cargoDay = since > 0 && since % CargoEveryDays == 0;
+                    if (!cargoDay) continue;
+                }
+
                 int income = (int)Math.Round(r.IncomePerDay * street);
+                bool manifestSigned = false;
+                if (cargoDay)
+                {
+                    CargoesLanded++;
+                    // The docks are the dockside syndicate's waters, and a
+                    // boat they did not land is an insult they can count.
+                    Rival.Attention = Math.Clamp(Rival.Attention + RivalPerEvent, 0, 1);
+                    var signer = SmugglingSignerId != null ? mill.Get(SmugglingSignerId) : null;
+                    if (signer != null)
+                    {
+                        manifestSigned = true;
+                        ManifestsSigned++;
+                        income -= SignerFeePerCargo;
+                        // TRUE BY CONSTRUCTION and filed on the signer: they
+                        // stamped it, so they hold it — one distinct story
+                        // per cargo for the noisy-or, which is what the Act
+                        // III audit's heat reading corroborates over.
+                        mill.Witness(SmugglingSignerId,
+                            new Fact("player", $"smuggling_manifest_d{now.Day}", "signed"),
+                            $"I stamped a count for {Owner.InTalk(mill)} that was not the count on the boat",
+                            true, now, 0.9);
+                        if (CargoesLanded % 3 == 0)
+                            signer.Memory.Append(new MemoryEvent(now, "observation", 0.7,
+                                "Another stamp. Twenty years of clean counts and now my initials are on every crooked one. I dream about audits."));
+                        events.Add(new EmpireEvent { Kind = "income", ActorId = SmugglingSignerId,
+                            Text = $"The boat lands at the shed after dark. The count is stamped before the crates touch the ground." });
+                    }
+                    else
+                    {
+                        events.Add(new EmpireEvent { Kind = "income", ActorId = runner.Id,
+                            Text = $"The boat lands at the shed after dark. Nobody stamps anything, and the count that reaches the office will not add up." });
+                    }
+                }
                 var runnerG = mill.Get(runner.Id);
                 // The cut, paid daily (§6.5): generosity is bought loyalty; a
                 // skimmed envelope is counted, remembered, and eventually repaid.
@@ -728,6 +816,11 @@ namespace Ledger.Core
 
                 // Witnesses: competence shades both the odds and how sure the story is.
                 double risk = r.BaseRisk * (1.35 - runner.Competence);
+                // The shed roll only happens on cargo day (the line already
+                // `continue`d otherwise), and the signature is what it buys:
+                // quiet odds signed, double odds for a boat whose count will
+                // not add up.
+                if (r.Id == "smuggling") risk *= SmugglingRiskFactor(manifestSigned);
                 if (rng.NextDouble() < risk)
                 {
                     var pool = mill.Agents.Where(a => a.Id != runner.Id && !a.Leashed).ToList();
@@ -982,6 +1075,9 @@ namespace Ledger.Core
             { "racketIncome", TotalRacketIncome },
             { "tributeShare", TributeShare }, { "frontsCapped", FrontsCapped },
             { "sharedRacket", SharedRacketId ?? "" },
+            { "smugglingSigner", SmugglingSignerId ?? "" },
+            { "cargoesLanded", CargoesLanded },
+            { "manifestsSigned", ManifestsSigned },
         };
 
         public void Restore(Dictionary<string, object> data)
@@ -1056,6 +1152,12 @@ namespace Ledger.Core
             FrontsCapped = Is(data, "frontsCapped");
             var shared = MiniJson.GetString(data, "sharedRacket");
             SharedRacketId = string.IsNullOrEmpty(shared) ? null : shared;
+            var signer = MiniJson.GetString(data, "smugglingSigner");
+            SmugglingSignerId = string.IsNullOrEmpty(signer) ? null : signer;
+            // Clamped at zero like DaysSkimmed, for the same SaveChaos
+            // reason: a negative lifetime count would read as "never".
+            CargoesLanded = Math.Max(0, MiniJson.GetInt(data, "cargoesLanded"));
+            ManifestsSigned = Math.Max(0, MiniJson.GetInt(data, "manifestsSigned"));
         }
 
         static bool Is(Dictionary<string, object> d, string key) =>
