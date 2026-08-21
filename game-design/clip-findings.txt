@@ -1,6 +1,6 @@
 # THE ANIMATION CLIP DEBT — measured, and counting down only.
 #
-# STATUS — LIVE, verified 2026-08-18.
+# STATUS — LIVE, verified 2026-08-21.
 #
 # `tools/clip-motion.py` reads every clip FBX we ship and reports the two
 # faults a file can prove on its own: two slots holding the SAME BYTES, and a
@@ -21,7 +21,7 @@
 # LOWER THIS NUMBER WHEN THE FINDINGS DROP. Never raise it to make red go
 # away; that is the move rule 2 forbids.
 
-clipFindings=3
+clipFindings=2
 
 # CLOSED 2026-08-18, ON THE FIRST RUN OF THE GUARD THAT FOUND IT:
 #
@@ -42,18 +42,49 @@ clipFindings=3
 #    carried the whole repair. The specific fix was wrong and the general one
 #    worked, which is the argument for having written the general one.
 #
-# WHAT THE REMAINING THREE ARE:
+# CLOSED 2026-08-21 BY THE RE-PICK, AND NOT THE WAY THIS FILE PREDICTED:
 #
-# 1-3. FROZEN ROOT: `walk_start` (Start Walking), `lean` (Leaning),
-#    `block_end` (Standing Block End). The hips are the root of a Mixamo rig
-#    and carry the body's whole world motion, so a clip whose hips move less
-#    than a centimetre and turn less than two degrees is animated from the
-#    waist up. For a Standing Block End that is arguable. For a START WALKING
-#    it is not: that clip should carry more root travel than any other in the
-#    set, and it carries 0.30cm over 3.1 seconds.
-#    The catalogue holds no alternate name for any of the three, so these need
-#    a re-download rather than a re-pick, and none of the three is wired to
-#    anything today.
+# 1. FROZEN ROOT: `walk_start` (Start Walking). The paragraph below said all
+#    three needed a re-download because "the catalogue holds no alternate name
+#    for any of the three". That was true of the NAME and the fix did not come
+#    from a name — the travel screen refused `Start Walking` (0.00m in a GOES
+#    slot) and `pick` fell through to the next candidate under the same
+#    pattern. `walk_start` now reads 97.96cm of hip motion over 5.0s, travels
+#    0.94m. Audited, not assumed: `clipFindings=2 duplicates=0 frozen=2`.
+#
+#    AND THE CLIP IT FELL THROUGH TO IS `Start Walking Backwards`.
+#    Which is the screen working exactly as designed and producing a clip
+#    nobody wants: a man setting off is going to set off backwards. THE TRAVEL
+#    AXIS IS UNSIGNED — `travel` is `hypot(endX-startX, endZ-startZ)`, a
+#    distance — so forwards and backwards are the same number to it and always
+#    will be. It is not a bound to tighten; it is a question the metric cannot
+#    be asked. Direction needs the sign of the displacement along the body's
+#    own facing, which the reader already has the data for.
+#
+#    NOT FILED AS A FINDING, because `clip-motion` reports only what the FILES
+#    prove and this file proves nothing wrong — it is a correct Start Walking
+#    Backwards. Filed here so the next person does not read `frozen=2` as
+#    "walk_start is fine".
+#
+#    SECOND OBSERVATION, UNRESOLVED: its hips sit at 145/148/150cm where every
+#    other upright clip in the set reads 88-104. It is a `4f5d21e1` export and
+#    most of the set is `2dee24f8`, so this is a differently-scaled rig rather
+#    than a body standing on something. Humanoid retargeting normalises scale,
+#    so this is probably nothing — but "probably" is doing the work, nothing
+#    has looked, and the posture band cannot see it: `upright` is anything at
+#    or above 39cm, so 148 passes as easily as 95.
+#
+# WHAT THE REMAINING TWO ARE:
+#
+# 1-2. FROZEN ROOT: `lean` (Leaning), `block_end` (Standing Block End). The
+#    hips are the root of a Mixamo rig and carry the body's whole world
+#    motion, so a clip whose hips move less than a centimetre and turn less
+#    than two degrees is animated from the waist up. For a Standing Block End
+#    and for a Leaning that is arguable — both are motions a body performs
+#    without going anywhere, which is why these two are the ones left after
+#    the walk did not survive its own name.
+#    The catalogue holds no alternate name for either, so these need a
+#    re-download rather than a re-pick, and neither is wired to anything today.
 #
 # THE FIRST CONTACT SHEET WAS THE INSTRUMENT'S FAULT, NOT THE GAME'S — 18 Aug.
 # `clips.jpg` on 340e958 drew all 67 clips and every one of them showed the same

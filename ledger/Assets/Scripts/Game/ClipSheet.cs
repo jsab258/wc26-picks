@@ -94,15 +94,28 @@ namespace Ledger.Game
         /// guess, which is what two wrong diagnoses in a row are worth.
         public static float Settle = -1f;
 
-        /// HOW MANY TILES NEEDED RE-CENTRING, AND BY HOW FAR, in metres.
+        /// HOW MANY SAMPLES NEEDED RE-CENTRING, AND BY HOW FAR, in metres.
         ///
-        /// Its denominator is `Tiles` (rule 3b): "the bodies are all in frame"
-        /// and "nothing was ever measured" have to look different, and a
-        /// re-centre that never fires is indistinguishable from one that is
-        /// not wired. Zero is the EXPECTED reading — `applyRootMotion` is
-        /// false, so in principle nothing accumulates — and the point of
-        /// printing it is that "in principle" has never been checked here.
+        /// A re-centre that never fires is indistinguishable from one that is
+        /// not wired, so this needs a denominator (rule 3b). It had one and it
+        /// was the WRONG POPULATION: the comment here named `Tiles`, and the
+        /// first run to be read closely printed `sheetSlid=73 sheetTiles=67` —
+        /// a fraction above one, which is the tell. `Tiles` counts SLOTS; the
+        /// re-centre runs once per slot per phase, and `PhasesPerClip` is 3.
+        /// The two were never divisible.
+        ///
+        /// `SlidOf` is therefore COUNTED where the sample is taken rather than
+        /// derived as `Tiles * PhasesPerClip`, because a derived denominator
+        /// would quietly include the samples that never happened — the block
+        /// is skipped entirely when a body has no hips bone.
+        ///
+        /// Zero was called the EXPECTED reading, on the grounds that
+        /// `applyRootMotion` is false so in principle nothing accumulates. It
+        /// is not zero. 73 of the samples moved more than 5cm and the worst
+        /// was 0.20m, so the hips do drift and "in principle" was worth
+        /// checking.
         public static int Slid = 0;
+        public static int SlidOf = 0;
         public static float SlidWorst = 0f;
 
         /// Renders the sheet into `outDir`. Returns the number of clips drawn.
@@ -181,6 +194,7 @@ namespace Ledger.Game
                 // run's total is the shape of fault this file is a monument
                 // to — cheap to prevent, invisible when it happens.
                 Slid = 0;
+                SlidOf = 0;
                 SlidWorst = 0f;
                 // ALWAYS ANIMATE, for the reason the body prefab already
                 // carries it: the sim never renders a live camera, so a
@@ -397,9 +411,20 @@ namespace Ledger.Game
                         // false and NOTHING has ever confirmed that the hips
                         // therefore stay over the origin — the clips that do
                         // travel (Talking 2.77m, Standing Arguing 3.75m) would
-                        // be the ones to drift. `sheetSlid=0` is the expected
-                        // reading and is worth having; anything else is a
-                        // finding that was invisible before.
+                        // be the ones to drift.
+                        //
+                        // THE ANSWER CAME BACK AND IT WAS NOT ZERO, which the
+                        // paragraph that used to sit here called the expected
+                        // reading. 73 samples moved more than 5cm and the
+                        // worst was 0.20m. So the retargeter absorbs most of a
+                        // 3.75m hip track but not all of it, and this is a
+                        // re-centre that does real work rather than a probe
+                        // confirming a guarantee. The 0.20m is also the number
+                        // that says a travelling clip in a STANDING slot costs
+                        // roughly a boot-width of drift on the sheet — not the
+                        // metres its hips move, which is what makes the travel
+                        // screen a fingerprint of the wrong motion rather than
+                        // a prediction of how far a body slides.
                         //
                         // XZ ONLY, deliberately. Y is information: a clip that
                         // ends on the ground SHOULD sit low in frame, and a
@@ -411,6 +436,7 @@ namespace Ledger.Game
                             d.y = 0f;
                             body.transform.position -= d;
                             float slid = d.magnitude;
+                            SlidOf++;
                             if (slid > SlidWorst) SlidWorst = slid;
                             if (slid > 0.05f) Slid++;
                         }

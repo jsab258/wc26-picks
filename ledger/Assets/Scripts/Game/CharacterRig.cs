@@ -645,6 +645,25 @@ namespace Ledger.Game
         /// second.
         public static int ActivityAsked;
 
+        /// HOW MANY OF THOSE ASKS THE CONTROLLER COULD NOT SERVE, which is the
+        /// half `ActivityAsked` was described as carrying and did not.
+        ///
+        /// The comment above says the refusals are the whole point, and they
+        /// were counted INTO the total and never out of it — so 42 asks could
+        /// be 42 people talking or 42 people asking a controller that cannot,
+        /// and the only other activity number on the line is `ActivityPeak`,
+        /// which is a peak of CONCURRENT plays and cannot be divided by a
+        /// cumulative total.
+        ///
+        /// It becomes load-bearing on the next re-pick. A slot the picker
+        /// cannot fill is now EMPTIED rather than left holding the clip the
+        /// screen refused, which is the right trade — `HasState` sends the
+        /// body back to the locomotion tree, so it stands there normally
+        /// instead of playing somebody else's motion — but it is a trade, and
+        /// without this number the street going quieter looks like nothing
+        /// happening.
+        public static int ActivityRefused;
+
         string _activityPlaying;
 
         /// Cross-fade into the activity state, or back to the locomotion
@@ -661,7 +680,7 @@ namespace Ledger.Game
             {
                 ActivityAsked++;
                 int hash = Animator.StringToHash(ActivityStatePrefix + want);
-                if (!_animator.HasState(0, hash)) { Activity = null; return; }
+                if (!_animator.HasState(0, hash)) { ActivityRefused++; Activity = null; return; }
                 _animator.CrossFade(hash, 0.25f, 0);
                 if (string.IsNullOrEmpty(_activityPlaying)) ActivityNow++;
                 if (ActivityNow > ActivityPeak) ActivityPeak = ActivityNow;

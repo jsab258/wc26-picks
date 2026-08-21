@@ -26,6 +26,13 @@ DOC = ROOT / "THIRD-PARTY.md"
 # the row is what the check is for.
 WATCHED = {
     "ledger/Assets/Characters": "Mixamo",
+    # THE PICKER'S REJECTING CASE. Four Mixamo clips that shipped under
+    # `Characters` until the posture and travel screen caught them, kept out of
+    # the build so a re-pick cannot replace them — they are the only files the
+    # screen is guaranteed to have something to refuse. Same corpus and the
+    # same obligation as the shipped picks; the only difference is that these
+    # are the ones the game does NOT play.
+    "tools/mixamo-pick/known-bad": "Mixamo",
     "game-design/picked-clips": "VCTK",
     "voice-candidates": "VCTK",
     # THE SYNTHESISED BARKS, AND THEY BELONG HERE RATHER THAN IN `OURS`.

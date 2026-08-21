@@ -11855,6 +11855,7 @@ namespace Ledger.Game
                       // quiet street — which is exactly what happened on the
                       // first build of this feature.
                       $"activityAsked={CharacterRig.ActivityAsked} " +
+                      $"activityRefused={CharacterRig.ActivityRefused} " +
                       // THE CONTACT SHEET, AND ITS DENOMINATOR. `sheetTiles` is
                       // how many clips were drawn; `sheetWhy` says why when
                       // that is not all of them. `-1` means the pass threw and
@@ -11955,6 +11956,7 @@ namespace Ledger.Game
                       // (Talking 2.77m, Standing Arguing 3.75m) are where it
                       // would show.
                       $"sheetSlid={ClipSheet.Slid} " +
+                      $"sheetSlidOf={ClipSheet.SlidOf} " +
                       $"sheetSlidWorst={ClipSheet.SlidWorst:0.00} " +
                       $"undressed={WorldBuilder.UndressedRenderers} " +
                       $"undressedWho=[{WorldBuilder.UndressedWho}] " +

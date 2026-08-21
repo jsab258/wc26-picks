@@ -211,6 +211,33 @@ namespace Ledger.EditorTools
                       + $"[{(cartoonWho.Count == 0 ? "none" : string.Join(",", cartoonWho))}], "
                       + $"{unmeasured} unmeasured but kept "
                       + $"[{(unmeasuredWho.Count == 0 ? "none" : string.Join(",", unmeasuredWho))}]");
+
+            // THE CANONICAL CONTROLLER, ONCE, AFTER EVERY BODY HAS BEEN THROUGH.
+            //
+            // These two are CANONICAL-ONLY statics — both are written under
+            // `if (canonical)` in `MakeController`, which says so in its own
+            // closing comment — and they used to be printed on the per-body
+            // line inside `BuildOne`. One shared fact, fourteen lines, and the
+            // value each line got depended only on whether that body happened
+            // to be built before or after the canonical controller: six read
+            // `clipsBound=-1 controller=not_tried` off the initialiser and
+            // eight read the canonical result. Neither half described its own
+            // body, and on 21 August the first half was read as six bodies
+            // with no controller.
+            //
+            // `Variants` is the denominator (rule 3b): `not tried` is exactly
+            // what this prints when no body reached the builder, so without a
+            // count beside it a run that built nothing is indistinguishable
+            // from one whose canonical body simply came last.
+            // AND THE SPACES COME OUT, because a verdict value may not contain
+            // one. `ok (idle+walk+run)` and `not tried` both do, and the
+            // reader takes the first whitespace-delimited token — so the
+            // earlier reading of this key was literally `controller=not`,
+            // which is the truncation that looks like a finding.
+            Debug.Log($"CharacterPrefab: canonical controller "
+                      + $"clipsBound={ClipsBound} "
+                      + $"why=[{ControllerWhy.Replace(' ', '_')}] "
+                      + $"of={Variants} body prefab(s)");
         }
 
         /// THE THREE BONE HEIGHTS `Proportion` NEEDS, off the imported model.
@@ -473,9 +500,24 @@ namespace Ledger.EditorTools
                     // the fallback path on the run that introduces it.
                     if (isDefault)
                         PrefabUtility.SaveAsPrefabAsset(instance, BodyPrefab, out _);
+                    // PER-BODY FACTS ONLY. `ClipsBound` and `ControllerWhy`
+                    // used to sit on this line and they are CANONICAL-ONLY
+                    // statics — written under `if (canonical)`, as the comment
+                    // at the bottom of `MakeController` says outright — while
+                    // this line prints once per body. So the six bodies built
+                    // before the canonical controller showed `clipsBound=-1
+                    // controller=not_tried`, the eight built after showed
+                    // `clipsBound=3 controller=ok`, and NEITHER group was
+                    // describing its own body: one half was reading the
+                    // initialiser and the other half was reading somebody
+                    // else's result. It reads as six broken bodies, which is
+                    // what it was read as on 21 August.
+                    //
+                    // A last-wins static printed per item is the `namesTracked`
+                    // fault with a loop around it. They are whole-run facts, so
+                    // they go on their own line, once.
                     Debug.Log($"CharacterPrefab: wrote {mine} ok={ok} "
-                              + $"avatar={avatar.name} human={avatar.isHuman} "
-                              + $"clipsBound={ClipsBound} controller={ControllerWhy}");
+                              + $"avatar={avatar.name} human={avatar.isHuman}");
                 }
                 finally
                 {

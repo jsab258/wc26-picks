@@ -51,6 +51,37 @@ parked — no DirectML on the Air.
    sitting clips read 18, 94 and 96, so there is no correct example to set a
    band from. Account in `clip-findings.txt`.
 
+   **JAFAR RAN IT (21 Aug): 59 copied, 3 substituted, 8 missing** — fifteen
+   slots replaced, and every one of the thirteen clips it removed fails the
+   screen, so the screen drove all of it. Three things came out of reading the
+   result, and the second is the one that was on screen:
+
+   - **The selftest's rejecting half went red for the best possible reason.**
+     It named six shipped slots and asserted the screen refused them; the
+     re-pick fixed five. The rejecting case now lives in
+     `tools/mixamo-pick/known-bad/` — four real clips the re-pick removed, one
+     per branch — where no future re-pick can empty it. Both outcomes watched,
+     five ways.
+   - **A MISSING SLOT KEPT SERVING THE CLIP THE SCREEN HAD JUST REFUSED.** The
+     picker clears a slot before copying, under a comment saying two files in
+     one slot means the wrong one is as likely to play as the right one — and
+     the FAILURE path had no such step, so the refused clip stayed and was
+     certain to play. Eight slots were in that state: `lie_still` on a clip
+     whose hips travel 2.18m, `smoke` on 0.68m, `argue` on 3.75m. `set_aside`
+     now renames those to `.rejected` — kept, not deleted, and only when the
+     SCREEN refuses them, so a clip the patterns merely stopped naming is not
+     ratcheted away.
+   - **Six of the eight holes had alternatives the patterns never tried.**
+     Widened; `--dryrun` now reads 65 exact / 2 substitute / **0 missing**.
+     That is a claim about NAMES only — the dryrun has no files, so whether
+     those candidates survive the screen is decided on Jafar's machine.
+     `smoke` and `thinking` have exactly one name each in all 2,846 and both
+     travel, so those two are a harvest hole, not a pick hole.
+
+   **NEXT, AND IT IS JAFAR'S:** re-run `REPICK.bat`. It fills up to six slots
+   and sets aside whatever is still wrong, which is also the first real run of
+   the set-aside path.
+
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
    NARROW.** *(rule 12)* The camera steps back off anything filling more than
    a quarter of the frame at arm's length, bound from a measured bimodal
@@ -107,6 +138,34 @@ parked — no DirectML on the Air.
    **Two never-fired branches remain downstream:** `departed` (a skimmed
    need-route runner quits below 0.2 — Sam ended at 0.225, close) and the
    poach path.
+
+1. ~~**SIX OF THE FOURTEEN BOUGHT BODIES BUILT NO ANIMATOR CONTROLLER**~~ —
+   **REFUTED IN THE HOUR IT WAS WRITTEN, AND THE REAL FAULT IS THE LINE.**
+   *(21 Aug)* The prefab lines read `clipsBound=-1 controller=not_tried` for
+   six bodies and `clipsBound=3 controller=ok_(idle+walk+run)` for eight, and
+   I wrote the item above off that split before opening the file. Opening it
+   took a minute and the split is not about the bodies at all.
+
+   **Both fields are CANONICAL-ONLY statics.** `MakeController` writes them
+   under `if (canonical)` — `arch == "default" && idleKey == "idle"` — and its
+   own closing comment says outright that "the done-line statics describe only
+   the canonical controller". `BuildOne` printed them once per body anyway. So
+   the value on each line depended only on whether that body was built before
+   or after the canonical one: six read the initialiser, eight read somebody
+   else's result, and **neither half described its own body.** A last-wins
+   static printed per item is the `namesTracked` fault with a loop round it.
+
+   Fixed by moving them to their own line, once, after every body is through,
+   with `Variants` beside them as the denominator — `not tried` is exactly
+   what prints when no body reached the builder, so without a count a run that
+   built nothing looks like one whose canonical body came last. **And the
+   spaces come out**: `controller=ok (idle+walk+run)` is a verdict value with
+   a space in it, which is why the reading was literally `controller=not`.
+
+   **STILL OPEN, and it is the original question:** nothing reports whether a
+   given body got a working controller. The new line says only what the shared
+   one did. Needs a per-body fact on the per-body line — cheap, but it is a
+   Game-layer change and wants batching.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the

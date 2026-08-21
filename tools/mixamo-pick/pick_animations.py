@@ -21,6 +21,7 @@ Nothing is deleted and nothing is moved. The harvest stays where it is.
 """
 
 import argparse
+import contextlib
 import glob
 import hashlib
 import json
@@ -57,7 +58,8 @@ WANTS = [
                            r"\bfight idle to action idle\b"]),
     ("guard_exit",   "A", [r"\bfight idle to standing idle\b"]),
     ("block_start",  "A", [r"\bstanding block start\b", r"\bstanding block\b"]),
-    ("block_hold",   "A", [r"\bstanding block idle\b"]),
+    ("block_hold",   "A", [r"\bstanding block idle\b", r"^blocking\\b",
+                            r"^standing block\\b", r"^block\\b", r"^center block\\b"]),
     ("block_end",    "A", [r"\bstanding block end\b"]),
     ("block_broken", "A", [r"\bstanding block react large\b"]),
     ("strike",       "A", [r"\bcross punch\b", r"\bcombo punch\b", r"\bjab\b"]),
@@ -133,7 +135,8 @@ WANTS = [
     ("carry_bag",    "B", [r"^walking with shopping bag\b"]),
     ("idle_bored",   "B", [r"^bored\b"]),
     ("idle_2",       "B", [r"^standing idle 0?1\b", r"^neutral idle\b"]),
-    ("argue",        "B", [r"^standing arguing\b"]),
+    ("argue",        "B", [r"^standing arguing\b", r"^angry gesture\b",
+                            r"^angry point\b", r"^standing yell\b", r"^angry\\b"]),
     # Payphones exist in this world; pocket phones do not. The pattern is
     # anchored so "Talking On A Cell Phone" and "Texting" can never match.
     ("phone_box",    "B", [r"^talking on phone\b"]),
@@ -151,7 +154,8 @@ WANTS = [
     # actually depicts losing your footing rather than a generic drop.
     ("fall_stairs",  "C", [r"\bfalling from losing balance\b",
                            r"\bfall(ing)? down stairs\b", r"\bfalling down\b"]),
-    ("lie_still",    "C", [r"\blying down\b", r"\blying\b", r"\bdead\b"]),
+    ("lie_still",    "C", [r"^laying idle\b", r"^laying\\b", r"^laying breathless\b",
+                            r"\blying down\b", r"\blying\b", r"\bdead\b"]),
 
     # ---- TIER B3: HALF THIS TOWN IS WOMEN AND ALL OF THEM WALK LIKE A MAN.
     #
@@ -192,11 +196,13 @@ WANTS = [
     ("yell",         "D", [r"^yelling\b", r"^yelling while standing\b"]),
     ("head_no",      "D", [r"^shaking head no\b"]),
     ("glance",       "D", [r"^look over shoulder\b"]),
-    ("pockets",      "D", [r"^searching pockets\b"]),
-    ("rummage",      "D", [r"^rummaging\b"]),
+    ("pockets",      "D", [r"^searching pockets\b", r"^patting\\b"]),
+    ("rummage",      "D", [r"^rummaging\b", r"^picking up object\b",
+                            r"^picking up\\b", r"^digging\\b"]),
     ("lift",         "D", [r"^lifting object\b", r"^lifting\b"]),
     ("sit_talk",     "D", [r"^sitting talking\b"]),
-    ("sit_drink",    "D", [r"^sitting drinking\b"]),
+    ("sit_drink",    "D", [r"^sitting drinking\b", r"^sitting dazed\b",
+                            r"^sitting\\b"]),
 ]
 
 FLAT = re.compile(r"[^a-z0-9]+")
@@ -331,6 +337,53 @@ STAYS = {"idle", "idle_2", "idle_old", "idle_bored", "talk", "argue", "greet",
          "work_counter", "phone_box", "shake_hands", "sit", "sit_talk",
          "sit_drink", "block_hold", "block_start", "guard", "lie_still"}
 
+#: THE REJECTING CASE FOR THE SCREEN, KEPT WHERE A RE-PICK CANNOT REACH IT.
+#: Each entry is (file under `known-bad/`, the slot to ask it as, a fragment of
+#: `why` that names the branch), one per branch of `posture_ok`.
+#:
+#: It lives in a fixture directory because the rejecting half used to point at
+#: the SHIPPED clips, and that only failed once the guard worked: the 21 August
+#: re-pick replaced five of the six bad clips it named, so five assertions went
+#: red for the best possible reason. The sixth survived only because
+#: `lie_still` found no replacement and its bad file stayed on disk — fix that
+#: slot and the rejecting half tests nothing while still printing PASSED, since
+#: a loop over absent slots runs zero times. Rule 5b's corollary: plant the
+#: condition, do not loosen the bound.
+#:
+#: Two are asked under a slot that is not their own because `posture_ok` runs
+#: the motion axis FIRST, so no clip can reach the hip axis under a slot the
+#: motion axis already refuses. See known-bad/README.md.
+KNOWN_BAD = [
+    ("walk__Walking_2dee24f8-3b49-48af-b735-c6377509eaac.fbx",
+     "walk", "clip that stays put"),
+    ("laugh__Laughing_2dee24f8-3b49-48af-b735-c6377509eaac.fbx",
+     "laugh", "clip that goes somewhere"),
+    ("jog__Jog Forward_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493.fbx",
+     "hands_up", "not upright"),
+    ("walk__Walking_2dee24f8-3b49-48af-b735-c6377509eaac.fbx",
+     "lie_still", "not on the floor"),
+    ("fall_stairs__Falling From Losing Balance"
+     "_2dee24f8-3b49-48af-b735-c6377509eaac.fbx",
+     "collapse", "never goes from standing to the floor"),
+]
+
+
+def screens(slot):
+    """Which axes `posture_ok` will actually apply to this slot.
+
+    An empty list means the slot is UNCHECKED — it can neither pass nor fail,
+    so counting it as an accepting case pads the denominator with a test that
+    did not happen. `get_up` sat in the accepting list doing exactly that: it
+    reads 8..11cm hips through a clip called Stand Up, and passed every run,
+    because it is in neither POSTURE nor GOES/STAYS on purpose.
+    """
+    axes = []
+    if slot in GOES or slot in STAYS:
+        axes.append("motion")
+    if slot in POSTURE:
+        axes.append(POSTURE[slot])
+    return axes
+
 
 def _motion():
     """`tools/clip-motion.py`, loaded by path because its filename is not an
@@ -388,7 +441,21 @@ def travel_m(path):
 
 
 def motion_ok(slot, path):
-    """(ok, why). Does the clip go somewhere, when its name says it should."""
+    """(ok, why). Does the clip go somewhere, when its name says it should.
+
+    WHAT THE TRAVEL READING IS, because the wording here used to overclaim and
+    the overclaim was pointed the wrong way. "it walks off" is a statement
+    about what a player would SEE, and the game sets `applyRootMotion = false`,
+    so the retargeter absorbs most of the hip track: a clip whose hips run
+    3.75m measured 0.20m of drift at worst on the contact sheet.
+
+    So the reading is a FINGERPRINT OF WHICH MOTION THE FILE HOLDS, not a
+    prediction of how far a body slides — and that is the stronger claim, not
+    the weaker one. A file called Smoking whose hips travel 0.68m is not a man
+    smoking with a drift problem; it is a different animation under that name,
+    which is exactly the fault the screen exists for and which the contact
+    sheet confirmed independently for `jog` and `lie_still`.
+    """
     goes, stays = slot in GOES, slot in STAYS
     if not goes and not stays:
         return True, ""
@@ -396,9 +463,11 @@ def motion_ok(slot, path):
     if d is None:
         return True, ""                 # unreadable is not a fault
     if goes and d < TRAVELS_MIN:
-        return False, f"travels {d:.2f}m — it does not go anywhere"
+        return False, (f"hips travel {d:.2f}m — a locomotion slot holding a "
+                       f"clip that stays put")
     if stays and d > STILL_MAX:
-        return False, f"travels {d:.2f}m — it walks off"
+        return False, (f"hips travel {d:.2f}m — a standing slot holding a "
+                       f"clip that goes somewhere")
     return True, ""
 
 
@@ -465,6 +534,49 @@ def pick(items, patterns, taken=None, cache=None, slot=None):
                 continue
             return hit, depth, digest
     return None, -1, None
+
+
+def set_aside(out, slot):
+    """A slot that found nothing must not keep serving the clip it refused.
+
+    THE FAILURE PATH HAD NO SLOT-CLEARING STEP. The success path clears the
+    slot before copying, under a comment saying that two files in one slot
+    means the wrong one is as likely to play as the right one. Every word of
+    that is worse here: when the pick fails, the file left behind is the ONLY
+    one, so it is certain to play, and it is the clip the screen has just
+    refused. On 21 August that was eight slots at once — a corpse whose hips
+    travel 2.18m, a man smoking who drifts 0.68m — every one reported MISSING
+    in `_picks.json` and every one still loading, because the game reads
+    filenames and nothing reads the manifest.
+
+    THE TEST IS THE SCREEN, NOT THE PICK. A clip the patterns stopped naming
+    may still be a perfectly good clip, and discarding it because a regex moved
+    is the ratchet rule 5 forbids — a guard that cannot tell a regression from
+    an improvement. Only a clip `posture_ok` REFUSES is set aside.
+
+    AND SET ASIDE RATHER THAN DELETED, because rule 5 is also the 24 clips a
+    cancelled CI run destroyed. `.rejected` is not an extension Unity imports,
+    so the file leaves the build and stays on the disk.
+
+    Returns the list of (filename, why) moved, so the caller has a denominator.
+    """
+    moved = []
+    for old in sorted(glob.glob(os.path.join(out, "*", f"{slot}__*.fbx"))):
+        ok, why = posture_ok(slot, old)
+        if ok:
+            print(f"  kept      {os.path.basename(old)} — no pattern names it "
+                  f"now, but the screen still passes it")
+            continue
+        # `os.replace`, NOT `os.rename`. This runs on Jafar's Windows machine,
+        # where renaming onto an existing path raises FileExistsError — and the
+        # target exists on the SECOND run for the same slot, which is exactly
+        # the run this is for. `replace` overwrites on both platforms, and what
+        # it overwrites is a previously-rejected copy of the same slot that is
+        # already in git history.
+        os.replace(old, old + ".rejected")
+        moved.append((os.path.basename(old), why))
+        print(f"  set aside {os.path.basename(old)} — {why}")
+    return moved
 
 
 #: Where the last real harvest's listing lives once it has been committed.
@@ -593,12 +705,12 @@ def selftest():
             failures.append("a slot with only a duplicate candidate was "
                             "given it anyway")
 
-        # THE POSTURE CHECK, BOTH WAYS, against the clips actually shipped.
-        # A fixture proves nothing here: the whole point is that a file's
-        # CONTENTS disagree with its name, and only a real harvest file has
-        # contents. Accepting cases first, and `run` is the important one —
-        # it reads 74cm, inside the crouch band, and any bound tightened far
-        # enough to catch `walk_stop` at 76 would reject it.
+        # THE POSTURE CHECK, BOTH WAYS. Neither half uses a synthetic file:
+        # the whole fault being screened for is that a file's CONTENTS
+        # disagree with its name, and only a real harvest file has contents.
+        # The two halves point at different real files on purpose — accepting
+        # at what SHIPS, so a bad re-pick goes red here; rejecting at
+        # `known-bad/`, so a good re-pick cannot empty it.
         shipped = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                "..", "..", "ledger", "Assets", "Characters")
         def one(slot):
@@ -606,45 +718,138 @@ def selftest():
                 d = os.path.join(shipped, folder)
                 if not os.path.isdir(d):
                     continue
-                for f in os.listdir(d):
+                for f in sorted(os.listdir(d)):
                     if f.startswith(slot + "__") and f.endswith(".fbx"):
                         return os.path.join(d, f)
             return None
 
-        # ACCEPTING CASES, AND `walk` IS NO LONGER ONE. It was, until the
-        # travel axis landed and showed that the shipped `walk` clip does not
-        # go anywhere and renders as a stationary guard pose. A fixture that
-        # asserts a KNOWN-BAD clip is good would freeze the bug in place, which
-        # is the shape of rule 5b failing in the other direction.
+        # ACCEPTING: the shipped clips, INCLUDING the five the 21 August
+        # re-pick fixed. They were the rejecting case until that morning, and
+        # moving them across is the whole point — this half must track what
+        # ships, so a future re-pick that lands a stationary walk goes red.
         #
-        # `run` remains the load-bearing accepting case for posture: it reads
-        # 74cm, inside the crouch band, and any hip bound tight enough to catch
-        # `walk_stop` at 76 would reject it.
-        checked = 0
-        for slot in ("run", "walk_f", "knockdown", "get_up"):
+        # `run` is the load-bearing one for the hip axis: it reads 74cm, inside
+        # the crouch band, and any bound tight enough to catch `walk_stop` at
+        # 76 would reject it.
+        accepted, axes_seen = 0, set()
+        for slot in ("run", "walk_f", "knockdown", "walk", "idle", "talk",
+                     "jog", "collapse"):
             f = one(slot)
             if f is None:
+                continue            # a missing slot is --dryrun's report, not this one
+            axes = screens(slot)
+            if not axes:
+                failures.append("%s is in the accepting list but the screen "
+                                "examines no axis on it, so it passes for free"
+                                % slot)
                 continue
-            checked += 1
+            accepted += 1
+            axes_seen.update(axes)
             ok, why = posture_ok(slot, f)
             if not ok:
-                failures.append("posture rejected %s, which is correct: %s"
-                                % (slot, why))
-        # REJECTING CASES, one per axis so a broken axis cannot hide behind the
-        # other: jog and lie_still fail on hips, walk and idle on travel,
-        # collapse on the falls test.
-        for slot in ("jog", "lie_still", "collapse", "walk", "idle", "talk"):
-            f = one(slot)
-            if f is None:
+                failures.append("the shipped %s clip is refused by the screen: "
+                                "%s" % (slot, why))
+        # The denominator, and it is a COVERAGE one rather than a count,
+        # because the question is "was any axis left with nothing to accept"
+        # and a count cannot answer that. `floor` is deliberately absent: the
+        # only floor slot is `lie_still` and it is still holding a bad clip, so
+        # there is no honest accepting case for that branch yet.
+        short = {"motion", "upright", "falls"} - axes_seen
+        if short:
+            failures.append("the accepting case never exercised the %s "
+                            "axis — a screen with nothing to accept on an axis "
+                            "is untested on it" % "/".join(sorted(short)))
+
+        # REJECTING: the preserved bad clips, one per branch of `posture_ok`.
+        # A MISSING FIXTURE IS A FAILURE, NOT A SKIP — the old version skipped
+        # absent slots, which is how a re-pick could silently retire five
+        # assertions at once and still print PASSED.
+        bad_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "known-bad")
+        refused = 0
+        for fname, slot, branch in KNOWN_BAD:
+            p = os.path.join(bad_dir, fname)
+            if not os.path.isfile(p):
+                failures.append("known-bad/%s is not there — the rejecting "
+                                "case for the %r branch cannot run"
+                                % (fname, branch))
                 continue
-            checked += 1
-            ok, _why = posture_ok(slot, f)
+            ok, why = posture_ok(slot, p)
             if ok:
-                failures.append("accepted %s, which the contact sheet and the "
-                                "file both say is the wrong motion" % slot)
-        if checked == 0:
-            failures.append("the posture check ran against nothing — no "
-                            "shipped clips found, so neither case was tested")
+                failures.append("the screen accepted known-bad/%s asked as %s"
+                                % (fname, slot))
+                continue
+            # A REFUSAL FOR THE WRONG REASON IS A PASSING TEST ON A BROKEN
+            # AXIS. The motion axis runs first and refuses most of these files
+            # under their own names, so without this the hip and falls
+            # branches could both be dead and every line here still green.
+            if branch not in why:
+                failures.append("known-bad/%s was refused as %s on the wrong "
+                                "branch — %r does not mention %r"
+                                % (fname, slot, why, branch))
+                continue
+            refused += 1
+        if accepted or refused:
+            print("  posture screen: %d shipped clip(s) accepted across the "
+                  "%s axes, %d known-bad clip(s) refused on %d branch(es)"
+                  % (accepted, "/".join(sorted(axes_seen)) or "no",
+                     refused, len(set(b for _f, _s, b in KNOWN_BAD))))
+
+        # SET-ASIDE, BOTH WAYS. It moves a file, so the case it must NOT act on
+        # is the expensive one: a slot the patterns stopped naming may still
+        # hold a good clip, and moving that is the ratchet rule 5 forbids.
+        good = one("run")
+        bad = os.path.join(bad_dir, KNOWN_BAD[0][0])
+        if good is None or not os.path.isfile(bad):
+            failures.append("set-aside was not tested — need a shipped `run` "
+                            "clip and known-bad/%s" % KNOWN_BAD[0][0])
+        else:
+            pen = os.path.join(tmp, "pen")
+            os.makedirs(os.path.join(pen, "A"))
+            keep = os.path.join(pen, "A", "run__" + os.path.basename(good))
+            drop = os.path.join(pen, "A", "walk__Walking.fbx")
+            shutil.copy2(good, keep)
+            shutil.copy2(bad, drop)
+
+            # ACCEPTING (i.e. leaving alone): the screen passes it, so it stays.
+            with open(os.devnull, "w") as null:
+                with contextlib.redirect_stdout(null):
+                    kept_moved = set_aside(pen, "run")
+                    bad_moved = set_aside(pen, "walk")
+            if kept_moved:
+                failures.append("set-aside moved the shipped run clip, which "
+                                "the screen passes — that is the ratchet")
+            if not os.path.isfile(keep):
+                failures.append("set-aside removed a clip the screen passes")
+
+            # REJECTING: the screen refuses it, so it leaves the build.
+            if len(bad_moved) != 1:
+                failures.append("set-aside left a refused clip in the slot — "
+                                "the game would go on loading it")
+            if os.path.isfile(drop):
+                failures.append("the refused clip is still a .fbx, so Unity "
+                                "would still import it")
+            if not os.path.isfile(drop + ".rejected"):
+                failures.append("the refused clip was destroyed rather than "
+                                "set aside")
+
+            # AND THE SECOND RUN, which is the one that would break. The
+            # `.rejected` target now exists, and `os.rename` onto an existing
+            # path raises FileExistsError on Windows — where this actually
+            # runs. A tool that works once and throws the next time is the
+            # accepting case going unrun in its most expensive form.
+            shutil.copy2(bad, drop)
+            try:
+                with open(os.devnull, "w") as null:
+                    with contextlib.redirect_stdout(null):
+                        again = set_aside(pen, "walk")
+                if len(again) != 1 or os.path.isfile(drop):
+                    failures.append("the second set-aside for a slot did not "
+                                    "move the clip")
+            except OSError as e:
+                failures.append("the second set-aside for a slot raised %s — "
+                                "it would fail on Jafar's machine, not here"
+                                % e.__class__.__name__)
 
         # AND AN UNREADABLE FILE IS NOT A FAULT (rule 3b): a reader that
         # cannot open something has not found anything.
@@ -744,7 +949,7 @@ def main():
     print(f"wrote the full catalogue to {listing}")
 
     report = OrderedDict()
-    copied = missing = substituted = 0
+    copied = missing = substituted = stale = 0
     # {content hash: the slot that claimed it}, so a collision can name the
     # other slot rather than just refusing.
     taken, hash_cache = {}, {}
@@ -753,10 +958,13 @@ def main():
             continue
         hit, depth, digest = pick(items, patterns, taken, hash_cache, slot=slot)
         if hit is None:
-            report[slot] = {"tier": tier, "found": None,
-                            "tried": patterns}
-            missing += 1
             print(f"  MISSING  [{tier}] {slot:14s} — none of {len(patterns)} patterns matched")
+            aside = set_aside(out, slot)
+            report[slot] = {"tier": tier, "found": None,
+                            "tried": patterns,
+                            "setAside": [n for n, _why in aside]}
+            missing += 1
+            stale += len(aside)
             continue
         _flat, stem, path = hit
         dest_dir = os.path.join(out, tier)
@@ -791,7 +999,8 @@ def main():
         json.dump(report, fh, indent=2)
 
     print()
-    print(f"copied {copied}, substituted {substituted}, missing {missing}")
+    print(f"copied {copied}, substituted {substituted}, missing {missing}, "
+          f"set aside {stale}")
     print(f"picks -> {out}")
     print()
     print("Commit and push BOTH the fbx files and _catalogue.txt / _picks.json.")
@@ -800,6 +1009,17 @@ def main():
         print()
         print("Missing slots are listed in _picks.json. Do not go hunting for")
         print("them by hand — send the catalogue and I will pick the real names.")
+    if stale:
+        # SAY WHAT A SET-ASIDE MEANS FOR THE GAME, not just that it happened.
+        # The line above already says a slot is missing, and for eight slots on
+        # 21 August that read as "nothing changed" while the game went on
+        # loading a refused clip. An empty slot and a wrongly-filled one need
+        # different next actions, so they have to look different here.
+        print()
+        print(f"{stale} clip(s) renamed to .rejected: a slot found nothing and")
+        print("the clip already in it fails the posture/travel screen, so it")
+        print("was serving the wrong motion. Those slots are now EMPTY rather")
+        print("than wrong. Commit the renames along with everything else.")
     return 0
 
 
