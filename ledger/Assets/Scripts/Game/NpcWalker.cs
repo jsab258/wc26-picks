@@ -749,6 +749,7 @@ namespace Ledger.Game
         public StanceKind Stance = StanceKind.Indifferent;
         Transform _player;
         float _nextAvoidStep;
+        float _nextConfrontPoint;
 
         public void SetPlayer(Transform player) => _player = player;
 
@@ -972,6 +973,15 @@ namespace Ledger.Game
                 // see fire is rule 6's "built is not running".
                 if (notable == Notable.BloodOnClothes) Perceivers.BloodNotices++;
                 if (notable == Notable.WeaponVisible) Perceivers.WeaponNotices++;
+                // AND THE NOTICE SHOWS. Realising the man beside you carries
+                // a knife is a recoil; clocking a loiterer is a look. These
+                // ride the same edge the counters do, so a notice that fires
+                // is a notice a bystander could SEE fire — which is what the
+                // whole perception ladder has lacked on screen.
+                if (notable == Notable.BloodOnClothes || notable == Notable.WeaponVisible)
+                    React("flinch", 1.5f);
+                else if (notable == Notable.Loitering || notable == Notable.RunningAtNight)
+                    React("glance", 1.6f);
             }
             // KEPT ACROSS A LOOK-AWAY, and resetting it was an over-count.
             //
@@ -1070,6 +1080,10 @@ namespace Ledger.Game
                 _investigateUntil = Time.time + 8f;
                 Perceivers.NoiseInvestigations++;
                 if (believed.metres < metres - 0.01) Perceivers.BeliefsShortened++;
+                // Heard it, TURNED, went — the glance halts them a beat
+                // before the walk toward the sound begins, which is the
+                // order a person does it in.
+                React("glance", 1.2f);
             }
             else if (what == Reacted.Alarm)
             {
@@ -1077,6 +1091,9 @@ namespace Ledger.Game
                 // came from. Panic propagates through the hearing model rather
                 // than through a system built for it.
                 Perceivers.Emit(current, Reaction.LoudnessOf(Reacted.Alarm), "alarm");
+                // And the body does what the voice does: the Scared clip is
+                // the shout made visible.
+                React("flinch", 1.5f);
             }
         }
 
@@ -1144,7 +1161,14 @@ namespace Ledger.Game
             if (away.sqrMagnitude > 0.001f)
                 _stagger = away.normalized * (float)Bumps.Stagger(relativeSpeed);
             _staredUntil = Time.time + (float)Bumps.AttentionSeconds(kind);
-            if (Bumps.WorthRemembering(kind)) BumpsWorthRemembering++;
+            if (Bumps.WorthRemembering(kind))
+            {
+                BumpsWorthRemembering++;
+                // A knock is the one contact everybody agrees deserves a
+                // visible startle. The flinch starts as the stagger decays,
+                // which reads as impact first, recoil after.
+                React("flinch", 1.2f);
+            }
         }
 
         /// Knocks and shoves only. Read by the sim so "you barge through this
@@ -1154,6 +1178,49 @@ namespace Ledger.Game
         CharacterRig _body;
         Vector3 _lastBodyPos;
         double _gaitPhase;
+
+        // ---- momentary reactions (M17.4 T3: the street answers back) ------
+        //
+        // Six clips sat on disk since 18 August with no consumer — flinch,
+        // glance, greet, wave, point, head_no — while the perception events
+        // they belong to fired invisibly. This is the wire: a REACTION is a
+        // timed activity override. It outranks the standing repertoire for a
+        // second or two, halts the walk so it can actually be seen (an
+        // activity only plays while the body is still), and then everything
+        // resumes as if it had not happened.
+        string _reaction;
+        float _reactionUntil;
+        float _reactionCooldownUntil;
+        int _headNoWindow = -1;
+
+        /// Played and refused, run-cumulative, read on the done line. The
+        /// refusals matter for the same reason `ActivityRefused` exists: a
+        /// street that never reacts and a controller that cannot are
+        /// different faults with identical screenshots (rule 3b).
+        public static int ReactionsPlayed, ReactionsRefused;
+        public static readonly Dictionary<string, int> ReactByKind =
+            new Dictionary<string, int>();
+
+        /// Play a momentary clip: flinch, glance, greet, wave, point,
+        /// head_no. Capability is checked HERE, at the ask, so a slot the
+        /// controller cannot serve is one counted refusal rather than a
+        /// refusal per frame inside `DriveActivity` — and the cooldown keeps
+        /// a walker from chaining reactions into a fit.
+        public void React(string slot, float seconds)
+        {
+            if (Time.time < _reactionCooldownUntil) return;
+            if (_body == null || !_body.HasActivityState(slot))
+            {
+                ReactionsRefused++;
+                return;
+            }
+            _reaction = slot;
+            _reactionUntil = Time.time + seconds;
+            _reactionCooldownUntil = Time.time + 6f;
+            ReactionsPlayed++;
+            int c; ReactByKind.TryGetValue(slot, out c);
+            ReactByKind[slot] = c + 1;
+        }
 
         /// The gait, from distance actually covered rather than from whether
         /// the walk state says "walking". Somebody shoved sideways, steering
@@ -1221,9 +1288,26 @@ namespace Ledger.Game
             {
                 _body.Activity = null;
             }
+            else if (_reaction != null && Time.time < _reactionUntil)
+            {
+                // A reaction outranks the standing repertoire for its moment
+                // — somebody mid-lean who flinches at a shout should flinch,
+                // and the lean resumes by itself when the window closes.
+                _body.Activity = _reaction;
+            }
             else if (InConfab)
             {
                 _body.Activity = (ActivityHash() & 3) == 0 ? "argue" : "talk";
+                // AND THE ODD SHAKE OF THE HEAD. Two people who talk for a
+                // minute without one disagreement read as a mime act. Once
+                // per window, a quarter of windows, deterministic per person
+                // — rare enough to stay a character beat rather than a tic.
+                int w = (int)(Time.time / 24f);
+                if (w != _headNoWindow)
+                {
+                    _headNoWindow = w;
+                    if (((ActivityHash() ^ w) & 3) == 0) React("head_no", 1.4f);
+                }
             }
             else if (WaitingAsHost)
             {
@@ -1551,6 +1635,20 @@ namespace Ledger.Game
                 }
             }
 
+            // AND THE TOP OF THE LADDER MAKES IT PERSONAL. `Confronts` has
+            // always been a word in the stance enum and a line of dialogue;
+            // now the body stops, comes round, and POINTS — the accusation
+            // made visible from across a street, no interface at all. Long
+            // per-person cooldown so it lands as an event, not a loop.
+            if (_player != null && Stance == StanceKind.Confronts
+                && Time.time > _nextConfrontPoint
+                && Vector3.Distance(current, _player.position) < 8f)
+            {
+                _nextConfrontPoint = Time.time + 25f;
+                _staredUntil = Mathf.Max(_staredUntil, Time.time + 2f);
+                React("point", 1.8f);
+            }
+
             // WALKING TOWARD A NOISE, which spec §8 calls the highest-value
             // behaviour in the whole system — it turns one sound into a moving
             // problem, and it explains itself to the player with no interface
@@ -1665,6 +1763,12 @@ namespace Ledger.Game
             }
 
             bool moving = (flatTarget - current).sqrMagnitude > 0.04f;
+            // A REACTION HALTS THE WALK for its second or two — the activity
+            // layer only plays on a still body, so without this a flinch on
+            // somebody mid-stride would simply never appear (rule 6 at the
+            // scale of one clip). The stagger above still displaces them: a
+            // shove pushes you WHILE you flinch, which is the right order.
+            if (Time.time < _reactionUntil) moving = false;
             if (moving)
             {
                 var waypoint = Steer(current, flatTarget);

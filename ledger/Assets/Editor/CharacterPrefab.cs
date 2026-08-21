@@ -95,6 +95,10 @@ namespace Ledger.EditorTools
             "talk", "argue", "greet", "phone_box", "lean_wall", "lean",
             "smoke", "drink", "sit", "carry", "carry_bag", "work_counter",
             "idle_bored", "look_around",
+            // THE REACTION SET (queue: "wiring, not sourcing"). Clips on
+            // disk since 18 August; `NpcWalker.React` is the consumer, so
+            // adding a name here without a call site over there is rule 6.
+            "flinch", "glance", "wave", "point", "head_no",
         };
 
         /// How many activity states the canonical controller carries.
@@ -546,10 +550,10 @@ namespace Ledger.EditorTools
         ///
         /// Deliberately the smallest thing that stops the body being a statue,
         /// and deliberately keyed on a quantity `CharacterRig` already has.
-        /// Everything else the forty-one clips could do — the greeting, the
-        /// flinch, the smoke, sitting at a counter — is a later layer, and
-        /// building all of it before seeing one frame of a walk cycle would be
-        /// the same mistake as the systems this project keeps finding unrun.
+        /// Everything else the clips can do — the greeting, the flinch, the
+        /// smoke, sitting at a counter — lives in the activity states below,
+        /// which arrived as the later layer this paragraph once promised
+        /// (activities first, the reaction set on 21 Aug).
         ///
         /// THRESHOLDS FROM THE GAME, NOT INVENTED. `Rig`'s own gait model and
         /// the walker's `MoveSpeed` put an ordinary walk at about 1.4 m/s,

@@ -7561,6 +7561,23 @@ namespace Ledger.Game
             return Math.Sqrt(Math.Max(0, sumSq / n - mean * mean));
         }
 
+        /// The reaction counts per kind, in a FIXED order so runs diff
+        /// cleanly, slash-joined because a verdict value may not contain a
+        /// space. A kind at zero still prints: "never fired" must be
+        /// legible per kind, not hidden inside a healthy total (rule 3b).
+        static string ReactBySummary()
+        {
+            var kinds = new[] { "flinch", "glance", "greet", "wave", "point", "head_no" };
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                if (i > 0) sb.Append('/');
+                int c; NpcWalker.ReactByKind.TryGetValue(kinds[i], out c);
+                sb.Append(kinds[i]).Append(':').Append(c);
+            }
+            return sb.ToString();
+        }
+
         struct FrameStats
         {
             public double Mean, Bright, Variance, EdgeRatio, LocalSpread;
@@ -11996,6 +12013,14 @@ namespace Ledger.Game
                       // first build of this feature.
                       $"activityAsked={CharacterRig.ActivityAsked} " +
                       $"activityRefused={CharacterRig.ActivityRefused} " +
+                      // THE REACTION SET, run-cumulative, on the done line
+                      // because both are lifetime counts. `reactRefused`
+                      // counts asks the controller could not serve (no body
+                      // yet, or the state never built) — one per ask, so it
+                      // stays divisible against `reactions`.
+                      $"reactions={NpcWalker.ReactionsPlayed} " +
+                      $"reactRefused={NpcWalker.ReactionsRefused} " +
+                      $"reactBy=[{ReactBySummary()}] " +
                       // THE CONTACT SHEET, AND ITS DENOMINATOR. `sheetTiles` is
                       // how many clips were drawn; `sheetWhy` says why when
                       // that is not all of them. `-1` means the pass threw and

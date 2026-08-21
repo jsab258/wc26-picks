@@ -666,6 +666,17 @@ namespace Ledger.Game
 
         string _activityPlaying;
 
+        /// Whether the controller can serve a slot RIGHT NOW — asked by the
+        /// walker BEFORE it commits to a reaction, so a missing state is one
+        /// counted refusal at the ask rather than a refusal per frame for
+        /// the length of the reaction window (which would have poisoned
+        /// `ActivityRefused`'s meaning: it is load-bearing for the re-pick).
+        public bool HasActivityState(string slot)
+        {
+            return _animator != null
+                && _animator.HasState(0, Animator.StringToHash(ActivityStatePrefix + slot));
+        }
+
         /// Cross-fade into the activity state, or back to the locomotion
         /// tree when it clears. GUARDED BY `HasState`: an archetype
         /// controller carries no activity islands and a clip that never

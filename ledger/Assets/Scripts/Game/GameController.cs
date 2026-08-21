@@ -1101,9 +1101,11 @@ namespace Ledger.Game
                 if (_barkDay.TryGetValue(name, out var d) && d == Now.Day) continue;
                 if (_lastWarnDay.TryGetValue(name, out var wd) && wd == Now.Day) continue; // warnings outrank barks
                 if (Vector3.Distance(npc.transform.position, _player.transform.position) > 5f) continue;
-                var line = BarkFor(name);
+                var line = BarkFor(name, out var gesture);
                 if (line == null) continue;
                 _barkDay[name] = Now.Day;
+                // The body performs what the toast says, in the same beat.
+                if (gesture != null) npc.React(gesture, 1.8f);
                 // AMBIENT: a bark is colour of its moment. It must never eat
                 // a queued beat, and a bark held back until the queue drains
                 // would land about somebody who has already walked away — so
@@ -1791,8 +1793,14 @@ namespace Ledger.Game
             SaveNow(quiet: true);
         }
 
-        string BarkFor(string name)
+        /// `gesture` is the clip slot the LINE ITSELF describes, or null.
+        /// The prose is the spec here: "waves from the counter" hands back
+        /// "wave", "tips two fingers" a greeting — and the sour lines hand
+        /// back nothing, because a warm gesture under a wary sentence would
+        /// be the text and the body disagreeing in the same second.
+        string BarkFor(string name, out string gesture)
         {
+            gesture = null;
             if (name == "Ellis")
                 return EllisSpawned ? "Ellis watches you pass. She doesn't pretend otherwise." : null;
             var g = _gossip.Mill.Get(name);
@@ -1803,23 +1811,35 @@ namespace Ledger.Game
             // Empire-aware greetings: the street remembers HOW things became yours.
             var crewBark = Empire.CrewOf(name);
             if (crewBark != null)
-                return crewBark.Route == "hook" || g.Loyalty < 0.35
-                    ? $"{name} nods the way people nod at debts. \"Boss.\""
-                    : $"{name} tips two fingers, easy. \"Boss.\"";
+            {
+                if (crewBark.Route == "hook" || g.Loyalty < 0.35)
+                    return $"{name} nods the way people nod at debts. \"Boss.\"";
+                gesture = "greet";
+                return $"{name} tips two fingers, easy. \"Boss.\"";
+            }
             foreach (var b in Empire.Businesses)
                 if (b.Owned && b.OwnerId == name)
-                    return b.AcquiredVia == "clean"
-                        ? $"{name} waves from the counter that used to be theirs. No hard feelings; you paid in full."
-                        : b.AcquiredVia == "hook"
+                {
+                    if (b.AcquiredVia == "clean")
+                    {
+                        gesture = "wave";
+                        return $"{name} waves from the counter that used to be theirs. No hard feelings; you paid in full.";
+                    }
+                    return b.AcquiredVia == "hook"
                         ? $"{name} straightens as you pass, the way people do near ice."
                         : $"{name} watches you pass their old shop and says nothing at all.";
+                }
 
             bool carries = false;
             foreach (var l in _gossip.Mill.Leads("player"))
                 if (l.HolderId == name) { carries = true; break; }
             if (carries && g.Suspicion.Level == SuspicionLevel.Uneasy)
                 return $"{name} gives you a thin nod. Something's behind it.";
-            if (g.Loyalty >= 0.7) return $"{name} raises a hand as you pass. \"Boss.\"";
+            if (g.Loyalty >= 0.7)
+            {
+                gesture = "wave";
+                return $"{name} raises a hand as you pass. \"Boss.\"";
+            }
             return null;
         }
 
