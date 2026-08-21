@@ -2497,6 +2497,8 @@ namespace Ledger.Game
         /// Whoever set `AutoMoveTarget` last this tick.
         string _targetOwner = "none";
         readonly Dictionary<string, int> _jobOwnerTicks = new Dictionary<string, int>();
+        /// Window ticks, and how many of them the run flag was actually up.
+        int _jobTicks, _jobRanTicks;
 
         /// How many loiter holds ended early because a drop opened under them.
         int _loitersCutShort;
@@ -2620,6 +2622,7 @@ namespace Ledger.Game
                     _jobLongestStall = 0;
                     _jobStallCrowd = 0; _jobStallWhere = "nowhere";
                     _jobStillRun = 0;
+                    _jobTicks = 0; _jobRanTicks = 0;
                 }
                 else
                 {
@@ -2634,6 +2637,20 @@ namespace Ledger.Game
                     float step = Vector3.Distance(flatNow, flatWas);
                     _jobMetresWalked += step;
                     _jobLastPos = p0;
+
+                    // HOW MANY TICKS THE WINDOW ACTUALLY HAD, AND HOW MANY OF
+                    // THEM HE RAN. bd925df's d1 printed `held:job=10` — TEN
+                    // ticks total, in a trace whose own comments budget "the
+                    // window is 21 ticks and buys about 24 metres". A drop
+                    // posted at 29m against a ten-tick window was unreachable
+                    // at a flat run before he took a step, and nothing in the
+                    // trace could say whether the window was short or the
+                    // ownership tally was. And `walked=18.6m` over ten ticks
+                    // is 1.86 m/s — BETWEEN the walk and the run, which reads
+                    // as the run flag flapping; `ran=` says so directly
+                    // instead of leaving speed to be inferred from a ratio.
+                    _jobTicks++;
+                    if (_player.AutoMoveRun) _jobRanTicks++;
 
                     // AND WHETHER HE WAS STANDING STILL, WHICH THE TOTAL CANNOT
                     // SAY AND IS THE LAST QUESTION THIS TRACE CANNOT ANSWER.
@@ -2739,6 +2756,10 @@ namespace Ledger.Game
                           // a brisk one that stopped halfway.
                           + $"stalled={_jobLongestStall} "
                           + $"stalledWith={_jobStallCrowd}@{_jobStallWhere} "
+                          // Window size and run coverage, so a short window
+                          // and a flapping run flag stop hiding inside the
+                          // ownership tally (see the tick counter's comment).
+                          + $"ticks={_jobTicks} ran={_jobRanTicks} "
                           + $"held:{OwnerTally()}]");
         }
 
