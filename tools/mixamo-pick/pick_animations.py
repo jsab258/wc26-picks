@@ -58,8 +58,8 @@ WANTS = [
                            r"\bfight idle to action idle\b"]),
     ("guard_exit",   "A", [r"\bfight idle to standing idle\b"]),
     ("block_start",  "A", [r"\bstanding block start\b", r"\bstanding block\b"]),
-    ("block_hold",   "A", [r"\bstanding block idle\b", r"^blocking\\b",
-                            r"^standing block\\b", r"^block\\b", r"^center block\\b"]),
+    ("block_hold",   "A", [r"\bstanding block idle\b", r"^blocking\b",
+                            r"^standing block\b", r"^block\b", r"^center block\b"]),
     ("block_end",    "A", [r"\bstanding block end\b"]),
     ("block_broken", "A", [r"\bstanding block react large\b"]),
     ("strike",       "A", [r"\bcross punch\b", r"\bcombo punch\b", r"\bjab\b"]),
@@ -86,8 +86,32 @@ WANTS = [
     ("stagger",      "A", [r"\bstanding react large\b", r"\bstumbl(e|ing)\b"]),
     ("knockdown",    "A", [r"\bknocked out\b", r"\bfalling back death\b"]),
     ("get_up",       "A", [r"\bstand(ing)? up\b", r"\bgetting up\b", r"\bget up\b"]),
-    ("draw_reach",   "A", [r"\bunarmed equip underarm\b", r"\bdraw sword 1\b",
-                           r"\bdraw(ing)? sword\b"]),
+    # `Grabbing Pistol` FIRST, AND IT IS THE SECOND HARVESTER DUPLICATE.
+    #
+    # `Unarmed Equip Underarm_4f5d21e1` and `Standing Arguing_4f5d21e1` are
+    # byte-identical — the content check found it on the 21 August re-pick and
+    # skipped `argue` onto `Angry Gesture`, because tier A runs first and
+    # `draw_reach` had already claimed the bytes. So the collision was
+    # REPORTED and resolved in favour of the slot that happened to go first,
+    # which is not the same as resolved correctly.
+    #
+    # Which name is right cannot be read out of the bytes, exactly as with
+    # `Shove Reaction` / `Talking`. The DURATION can be read, and it says this
+    # is not a draw: 20.80s, third longest in the whole set, against a median
+    # of 2.00s and a p90 of 7.57s. The only two longer clips are a sitting
+    # conversation and a phone call, both loops that are meant to run. Every
+    # other one-shot gesture in the set — strike, shove, take_hit, draw_gun —
+    # sits near the median. A man reaching under his coat does not take twenty
+    # seconds; a man arguing does.
+    #
+    # `Grabbing Pistol` is a third name for the motion actually wanted, and the
+    # game already draws a pistol (`draw_gun` <- `Drawing Gun`). Taking it
+    # sidesteps the collision with no re-download, which is the `Shoved` move
+    # that worked last time. Verified present in the catalogue — the selftest
+    # now names any pattern that matches nothing, so a dead alternative cannot
+    # sit here looking like a fallback.
+    ("draw_reach",   "A", [r"\bgrabbing pistol\b", r"\bunarmed equip underarm\b",
+                           r"\bdraw sword 1\b", r"\bdraw(ing)? sword\b"]),
     ("draw_holster", "A", [r"\bsheath sword 1\b", r"\bsheathing sword\b",
                            r"\bsheath"]),
     ("draw_gun",     "A", [r"\bdrawing gun\b"]),
@@ -136,7 +160,7 @@ WANTS = [
     ("idle_bored",   "B", [r"^bored\b"]),
     ("idle_2",       "B", [r"^standing idle 0?1\b", r"^neutral idle\b"]),
     ("argue",        "B", [r"^standing arguing\b", r"^angry gesture\b",
-                            r"^angry point\b", r"^standing yell\b", r"^angry\\b"]),
+                            r"^angry point\b", r"^standing yell\b", r"^angry\b"]),
     # Payphones exist in this world; pocket phones do not. The pattern is
     # anchored so "Talking On A Cell Phone" and "Texting" can never match.
     ("phone_box",    "B", [r"^talking on phone\b"]),
@@ -154,7 +178,7 @@ WANTS = [
     # actually depicts losing your footing rather than a generic drop.
     ("fall_stairs",  "C", [r"\bfalling from losing balance\b",
                            r"\bfall(ing)? down stairs\b", r"\bfalling down\b"]),
-    ("lie_still",    "C", [r"^laying idle\b", r"^laying\\b", r"^laying breathless\b",
+    ("lie_still",    "C", [r"^laying idle\b", r"^laying\b", r"^laying breathless\b",
                             r"\blying down\b", r"\blying\b", r"\bdead\b"]),
 
     # ---- TIER B3: HALF THIS TOWN IS WOMEN AND ALL OF THEM WALK LIKE A MAN.
@@ -196,13 +220,13 @@ WANTS = [
     ("yell",         "D", [r"^yelling\b", r"^yelling while standing\b"]),
     ("head_no",      "D", [r"^shaking head no\b"]),
     ("glance",       "D", [r"^look over shoulder\b"]),
-    ("pockets",      "D", [r"^searching pockets\b", r"^patting\\b"]),
+    ("pockets",      "D", [r"^searching pockets\b", r"^patting\b"]),
     ("rummage",      "D", [r"^rummaging\b", r"^picking up object\b",
-                            r"^picking up\\b", r"^digging\\b"]),
+                            r"^picking up\b", r"^digging\b"]),
     ("lift",         "D", [r"^lifting object\b", r"^lifting\b"]),
     ("sit_talk",     "D", [r"^sitting talking\b"]),
     ("sit_drink",    "D", [r"^sitting drinking\b", r"^sitting dazed\b",
-                            r"^sitting\\b"]),
+                            r"^sitting\b"]),
 ]
 
 FLAT = re.compile(r"[^a-z0-9]+")
@@ -587,6 +611,32 @@ CATALOGUE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          "_catalogue.txt")
 
 
+def dead_patterns(catalogue_path=CATALOGUE):
+    """Every (slot, index, pattern) that matches NO catalogued name.
+
+    `dryrun` asks whether a SLOT found something, which a slot passes on any
+    one of its patterns. This asks the question of each pattern separately,
+    because that is the level the answer was hiding at: ten doubled backslashes
+    sat next to working patterns and no check could see them.
+
+    Returns None when there is no catalogue, so "nothing dead" and "nothing
+    read" are different answers (rule 3b).
+    """
+    if not os.path.isfile(catalogue_path):
+        return None
+    with open(catalogue_path, encoding="utf-8") as fh:
+        flat = [flatten(line.strip()) for line in fh if line.strip()]
+    if not flat:
+        return None
+    dead = []
+    for slot, _tier, patterns in WANTS:
+        for i, pat in enumerate(patterns):
+            rx = re.compile(pat)
+            if not any(rx.search(name) for name in flat):
+                dead.append((slot, i, pat))
+    return dead
+
+
 def dryrun(catalogue_path=CATALOGUE, verbose=True):
     """WHICH SLOTS WOULD FIND A CLIP, checked against the committed listing
     rather than against the harvest — which lives on a machine this container
@@ -733,7 +783,7 @@ def selftest():
         # 76 would reject it.
         accepted, axes_seen = 0, set()
         for slot in ("run", "walk_f", "knockdown", "walk", "idle", "talk",
-                     "jog", "collapse"):
+                     "jog", "collapse", "lie_still"):
             f = one(slot)
             if f is None:
                 continue            # a missing slot is --dryrun's report, not this one
@@ -751,10 +801,16 @@ def selftest():
                                 "%s" % (slot, why))
         # The denominator, and it is a COVERAGE one rather than a count,
         # because the question is "was any axis left with nothing to accept"
-        # and a count cannot answer that. `floor` is deliberately absent: the
-        # only floor slot is `lie_still` and it is still holding a bad clip, so
-        # there is no honest accepting case for that branch yet.
-        short = {"motion", "upright", "falls"} - axes_seen
+        # and a count cannot answer that.
+        #
+        # `floor` JOINED THE LIST ON 21 AUGUST and was deliberately out of it
+        # before: the only floor slot is `lie_still`, it was holding a clip
+        # whose hips sat at 96cm and travelled 2.18m, and requiring an axis
+        # that nothing could satisfy would have been a red gate demanding a
+        # clip the harvest had not produced. The second re-pick landed
+        # `Laying Idle` — 13.6cm, travel zero — so there is now an honest
+        # accepting case and the axis is required.
+        short = {"motion", "upright", "falls", "floor"} - axes_seen
         if short:
             failures.append("the accepting case never exercised the %s "
                             "axis — a screen with nothing to accept on an axis "
@@ -862,20 +918,41 @@ def selftest():
         if len(set(cache.values())) < 3:
             failures.append("three distinct files did not hash to three values")
 
-    # A `$` ANCHOR CAN NEVER MATCH, so a pattern carrying one is a bug however
-    # right it looks. The rule was prose at the top of this file and prose does
-    # not run; fourteen slots were lost to it in one afternoon.
+    # TWO WAYS OF WRITING A PATTERN THAT CAN NEVER MATCH, and both are
+    # mechanical — no name in a Mixamo catalogue can satisfy either, so there
+    # is no false positive to weigh.
+    #
+    # A `$` ANCHOR: the harvester appends the character id, so `^walking$` can
+    # never see the end of "walking x bot". Fourteen slots went in one
+    # afternoon.
+    #
+    # A DOUBLED BACKSLASH: `r"^sitting\\b"` is backslash-then-b, which asks for
+    # a literal backslash in an animation name. Ten patterns across six slots,
+    # all mine, all made while replacing the `$` anchors above with `\b` —
+    # the fix for one impossible form written in another.
     for slot, _tier, patterns in WANTS:
         for pat in patterns:
             if pat.rstrip().endswith("$"):
                 failures.append("%s: pattern %r ends in $ — the harvester "
                                 "appends the character id, so it cannot match"
                                 % (slot, pat))
+            if "\\\\" in pat:
+                failures.append("%s: pattern %r has a doubled backslash, so it "
+                                "asks for a literal one in a clip name"
+                                % (slot, pat))
 
-    # AND EVERY SLOT MUST MATCH A REAL NAME. The `$` rule catches one way of
-    # writing an impossible pattern; this catches all of them, including the
-    # ones nobody has thought of, by trying them against the 2,846 names the
-    # last harvest actually produced.
+    # EVERY SLOT MUST MATCH A REAL NAME, tried against the names the last
+    # harvest actually produced.
+    #
+    # THIS USED TO CLAIM IT CAUGHT "ALL OF THEM, INCLUDING THE ONES NOBODY HAS
+    # THOUGHT OF", and it was wrong the day it was written. It asks whether a
+    # SLOT matched, and a slot is satisfied by any one of its patterns — so a
+    # dead pattern sitting beside a live one is invisible to it. That is how
+    # ten doubled backslashes shipped: `sit_drink` reported `none of 3 patterns
+    # matched` while only two of the three could ever have matched anything,
+    # and `block_hold` was down to one live pattern out of five. The widening
+    # written to fill those exact holes was inert for the exact slots it was
+    # for.
     missing, _sub, matched = dryrun(verbose=False)
     if missing is None:
         failures.append("no committed catalogue to check the patterns against")
@@ -888,6 +965,21 @@ def selftest():
             failures.append("only %d slot(s) matched the catalogue — the "
                             "listing or the reader is wrong, not the patterns"
                             % len(matched))
+
+        # AND THE SAME QUESTION ONE LEVEL DOWN, REPORTED RATHER THAN FAILED.
+        # A pattern matching nothing is not automatically a bug — eight of them
+        # are honest alternates this harvest happens not to carry, like
+        # `\bsurrender\b` for `hands_up`. It is only a bug when the pattern is
+        # impossible, which the two checks above already catch. So this prints
+        # the count and the names: a silently-discarded alternative stops being
+        # indistinguishable from one that was tried and lost.
+        dead = dead_patterns()
+        if dead is not None:
+            live = sum(len(p) for _s, _t, p in WANTS) - len(dead)
+            print("  patterns: %d of %d match at least one catalogued name; "
+                  "%d match none" % (live, live + len(dead), len(dead)))
+            for slot, _i, pat in dead:
+                print("      no name for %-12s %r" % (slot, pat))
 
     for f in failures:
         print("  FAIL: %s" % f)

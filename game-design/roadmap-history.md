@@ -2616,3 +2616,49 @@ Cut from `queue.md` at the length cap.
    noir multiply, push bar dropped by name. `vehiclesKitted` 18/28 -> 21/28.
    `ambulance` and `firetruck` stay out — both mid-slate in this palette.
 
+## Retired from the queue, 21 August 2026
+
+Two items closed and moved out to keep `queue.md` under the 400-line
+cap `docs-check` enforces on a LIVE plan. Both are closed; neither is
+waiting on anything.
+
+1. ~~**THE CREW TIER NEVER FIRES**~~ — **REACHABLE AND MASKED, NOT BROKEN;
+   what is left is sim COVERAGE.** Three builds of measurement, each answering
+   a question the previous one could not:
+
+   - End-of-run loyalty read **0.325 against a 0.400 floor** — condition met,
+     tier never offered. That looked like broken wiring and was not: an
+     end-of-run number cannot see a per-evening condition.
+   - Per evening it read **`0of3`** — the crew exists for only three of six
+     evenings and never dipped below the floor while an evening could see it.
+   - Skimming Sam through the real `SetCut` path (`-0.05` a payday, staged
+     0.5, so two paydays reach the floor) moved it to **`1of3/worst0.375`**,
+     `crewDaysSkimmed=3`, `crewDeparted=0` — landed, no overshoot.
+   - And it STILL lost the night: **`lost1`** against exactly one Law evening
+     in the run. The below-floor evening WAS the Law evening.
+
+   **That is the predicted structural collision, not bad luck.** Law opens when
+   the inquiry names you — late — and a crew recruited at the day-8 open-mode
+   switch crosses the floor late too. The sim gives the crew a three-evening
+   window and Law lands inside it.
+
+   **Do not reorder the tiers.** Law outranking Crew is deliberate: on a night
+   the law is asking about you, that is the thread to show. Rearranging to make
+   a counter move is loosening the bound in a different coat.
+
+   **What is left is coverage:** a real player recruits and skims across many
+   more evenings than this sim's three, so the tier is reachable in play.
+   Widening the sim's window means moving recruitment before the open-mode
+   switch, which is a campaign-structure change and not worth making for a
+   counter. **Revisit if the evening cadence or open-mode day changes.**
+
+   **Two never-fired branches remain downstream:** `departed` (a skimmed
+   need-route runner quits below 0.2 — Sam ended at 0.225, close) and the
+   poach path.
+
+1. ~~**A STREET PLATE FILLS HALF THE MANHUNT FRAME**~~ — **GONE, AND NOT
+   BECAUSE ANYONE AIMED AT IT.** `worstWorldFrac=0.037` with the plate named,
+   and the new `hunt_day13_noon` shows "Quay" small at the right edge. The
+   camera moved as a side-effect of the district fix. **The metric agrees with
+   the frame, which is the point** — it now exists for the next time, and the
+   raycast blindness it was written for is real regardless.

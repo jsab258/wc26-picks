@@ -76,6 +76,28 @@ CURVE_KEYS = 20000
 FROZEN_CM = 1.0
 FROZEN_DEG = 2.0
 
+#: SLOTS WHERE A FROZEN ROOT IS THE CORRECT ANSWER, not a finding.
+#:
+#: The frozen rule catches a clip animated from the waist up, and for a walk
+#: that is decisive. For a body lying still on the floor it is the definition
+#: of the clip, and on 21 August the ledger proved it the expensive way: the
+#: second re-pick replaced `lie_still` — a corpse whose hips travelled 2.18m —
+#: with `Laying Idle`, 0.36cm over 12.50s, which is exactly right. The debt
+#: ROSE, 2 to 3, because the slot got BETTER, and the ratchet correctly
+#: refused the commit.
+#:
+#: That is rule 5's ratchet: a guard that cannot tell a regression from an
+#: improvement. The fix is not to raise the allowed number — that is the move
+#: rule 2 forbids — it is to stop asking a question this slot cannot fail.
+#:
+#: DELIBERATELY ONE ENTRY. `lean` and `block_end` are NOT here: leaning and
+#: ending a block are transitions a body performs, and their stillness is
+#: arguable rather than definitional. `STAYS` in the picker is the wrong list
+#: to reuse — it asks whether a body TRAVELS, and a talking clip stays put
+#: while its hips still shift and turn. This asks whether the root moves at
+#: all, which is a stricter and different question.
+STILL_BY_DEFINITION = {"lie_still"}
+
 
 def _load_parser():
     """The FBX reader from `body-proportions.py`, loaded by path because
@@ -341,7 +363,15 @@ def main():
     else:
         print("no two clips share content")
 
-    frozen = [r for r in read if r["frozen"]]
+    frozen = [r for r in read
+              if r["frozen"] and r["slot"] not in STILL_BY_DEFINITION]
+    # AND THE EXEMPTED ONES ARE PRINTED, NOT SWALLOWED. An exemption nobody is
+    # told about is indistinguishable from a finding that was never made — the
+    # `head -3` fault in a filter's clothing. Saying which slot was excused and
+    # what it read means a slot going still for the WRONG reason still shows
+    # up, as a line somebody can read, rather than vanishing from the count.
+    excused = [r for r in read
+               if r["frozen"] and r["slot"] in STILL_BY_DEFINITION]
     if frozen:
         findings += len(frozen)
         print("FROZEN ROOT — the hips neither move nor turn across the whole")
@@ -352,12 +382,19 @@ def main():
                      r["turnedDeg"], r["duration"]))
     else:
         print("no frozen roots in %d clips" % len(read))
+    for r in sorted(excused, key=lambda r: r["slot"]):
+        print("    still by definition, not counted: %-12s %-24s "
+              "%.2fcm %.1f° over %.2fs"
+              % (r["slot"], r["mixamo"][:24], r["movedCm"],
+                 r["turnedDeg"], r["duration"]))
 
     # THE MACHINE-READABLE LINE, AND IT CARRIES ITS DENOMINATOR (rule 3b).
     # `clipFindings=0` out of two clips read and out of fifty-two are very
     # different claims and the number alone cannot tell them apart.
-    print("clipFindings=%d duplicates=%d frozen=%d clipsRead=%d"
-          % (findings, len(dups), len(frozen), len(read)))
+    # `stillByDesign` is on it for the same reason: the exemption is part of
+    # how the count was reached, so it belongs beside the count.
+    print("clipFindings=%d duplicates=%d frozen=%d stillByDesign=%d clipsRead=%d"
+          % (findings, len(dups), len(frozen), len(excused), len(read)))
 
     if args.selftest:
         return selftest(rows)

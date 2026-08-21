@@ -1,6 +1,6 @@
 # The work stack
 
-> **STATUS — LIVE**, verified 2026-08-15. What gets picked up next, in order.
+> **STATUS — LIVE**, verified 2026-08-21. What gets picked up next, in order.
 > The plan is `roadmap.md` and it wins; this is the next few hours of it.
 
 ## Why this file exists, and how to use it
@@ -24,8 +24,10 @@ failing. Full account in CLAUDE.md under AUTO MODE.
 ### Where the street got to
 
 The Mixamo harvest landed complete — 67 clips — and the street came alive with
-it: people talk, argue, lean, smoke, work counters, carry shopping. **But
-twenty-one of the 67 play the wrong motion — item 1.** Accounts in
+it: people talk, argue, lean, work counters, carry shopping. Twenty-one of the
+67 played the wrong motion; after two re-picks **nothing in the game plays a
+clip the screen refuses** — 62 filled and passing, 5 empty and standing
+normally, 0 wrong. Item 1 has what is left, and it is small. Accounts in
 `roadmap-history.md`. NEXT: T3 queue points and standing destinations.
 
 **THE PLAYTEST IS DEPRIORITISED (18 Aug, Jafar):** *"Don't worry about
@@ -35,8 +37,9 @@ parked — no DirectML on the Air.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
-1. **ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION — twenty-one of
-   sixty-seven.** *(on screen; the re-pick runs on Jafar's machine)* Found by
+1. ~~**ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION**~~ — **DOWN TO
+   FIVE EMPTY SLOTS AND NONE WRONG, after two re-picks.** *(on screen; the
+   re-pick runs on Jafar's machine)* Found by
    the travel column I had written off the day before: `Walking` reads 0.00m
    and `Standing Arguing` 3.75m. **`walk` is a stationary guard pose with the
    hands up**, so the slot the whole street is named after does not contain a
@@ -78,9 +81,33 @@ parked — no DirectML on the Air.
      `smoke` and `thinking` have exactly one name each in all 2,846 and both
      travel, so those two are a harvest hole, not a pick hole.
 
-   **NEXT, AND IT IS JAFAR'S:** re-run `REPICK.bat`. It fills up to six slots
-   and sets aside whatever is still wrong, which is also the first real run of
-   the set-aside path.
+   **HE RAN IT AGAIN (21 Aug): 62 copied, 5 substituted, 5 missing, 5 SET
+   ASIDE — and the headline is that NOTHING IN THE GAME NOW PLAYS A CLIP THE
+   SCREEN REFUSES.** Audited slot by slot: 62 filled and passing, 5 empty, 0
+   refused-but-shipped. The set-aside path ran for real and moved exactly the
+   five it should. `lie_still` went from a corpse whose hips travel 2.18m to
+   `Laying Idle` at 13.6cm and no travel — which also gives the screen's
+   `floor` branch its first honest accepting case, so that axis is required by
+   the selftest now instead of excused.
+
+   **AND READING IT FOUND TWO THINGS NO CHECK COULD SEE.** Ten of my own
+   patterns could never match anything — a doubled backslash asking for a
+   literal one in a clip name, all ten made in the single edit that replaced
+   the `$` anchors, which is one impossible form fixed by writing another.
+   `block_hold` was down to one live pattern of five, so the widening written
+   for those holes was inert for exactly those holes. The guard claimed to
+   catch "all of them, including the ones nobody has thought of" and was wrong
+   the day it was written: it asks whether a SLOT matched, and a dead pattern
+   beside a live one is structurally invisible. Both fixed — a mechanical
+   doubled-backslash check, and a per-pattern report reading 137 of 145 live.
+   And a second harvester duplicate landed on a combat slot: `draw_reach`
+   holds bytes that are also named `Standing Arguing`, at 20.80s against a
+   2.00s median, so it asks for `Grabbing Pistol` first now.
+
+   **NEXT, AND IT IS JAFAR'S:** one more `REPICK.bat`. Ten patterns that could
+   never fire now can, so `block_hold`, `pockets`, `rummage` and `sit_drink`
+   get their first real attempt, and `draw_reach` sidesteps the duplicate.
+   `smoke` and `thinking` stay a harvest hole — every name they have travels.
 
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
    NARROW.** *(rule 12)* The camera steps back off anything filling more than
@@ -104,40 +131,6 @@ parked — no DirectML on the Air.
    **Also fixed while in there:** the `!_touring` block's own comment claimed
    the blocked-frame series excluded the district tour. The `Add` sat outside
    that block, so seven teleported frames had been going into it.
-
-1. ~~**THE CREW TIER NEVER FIRES**~~ — **REACHABLE AND MASKED, NOT BROKEN;
-   what is left is sim COVERAGE.** Three builds of measurement, each answering
-   a question the previous one could not:
-
-   - End-of-run loyalty read **0.325 against a 0.400 floor** — condition met,
-     tier never offered. That looked like broken wiring and was not: an
-     end-of-run number cannot see a per-evening condition.
-   - Per evening it read **`0of3`** — the crew exists for only three of six
-     evenings and never dipped below the floor while an evening could see it.
-   - Skimming Sam through the real `SetCut` path (`-0.05` a payday, staged
-     0.5, so two paydays reach the floor) moved it to **`1of3/worst0.375`**,
-     `crewDaysSkimmed=3`, `crewDeparted=0` — landed, no overshoot.
-   - And it STILL lost the night: **`lost1`** against exactly one Law evening
-     in the run. The below-floor evening WAS the Law evening.
-
-   **That is the predicted structural collision, not bad luck.** Law opens when
-   the inquiry names you — late — and a crew recruited at the day-8 open-mode
-   switch crosses the floor late too. The sim gives the crew a three-evening
-   window and Law lands inside it.
-
-   **Do not reorder the tiers.** Law outranking Crew is deliberate: on a night
-   the law is asking about you, that is the thread to show. Rearranging to make
-   a counter move is loosening the bound in a different coat.
-
-   **What is left is coverage:** a real player recruits and skims across many
-   more evenings than this sim's three, so the tier is reachable in play.
-   Widening the sim's window means moving recruitment before the open-mode
-   switch, which is a campaign-structure change and not worth making for a
-   counter. **Revisit if the evening cadence or open-mode day changes.**
-
-   **Two never-fired branches remain downstream:** `departed` (a skimmed
-   need-route runner quits below 0.2 — Sam ended at 0.225, close) and the
-   poach path.
 
 1. ~~**SIX OF THE FOURTEEN BOUGHT BODIES BUILT NO ANIMATOR CONTROLLER**~~ —
    **REFUTED IN THE HOUR IT WAS WRITTEN, AND THE REAL FAULT IS THE LINE.**
@@ -236,13 +229,6 @@ parked — no DirectML on the Air.
    rule-4 mistake of treating a picture as evidence of WHAT. **The measurement
    is a brightness comparison between kit props and the town palette, on the
    frame**, not another look.
-
-1. ~~**A STREET PLATE FILLS HALF THE MANHUNT FRAME**~~ — **GONE, AND NOT
-   BECAUSE ANYONE AIMED AT IT.** `worstWorldFrac=0.037` with the plate named,
-   and the new `hunt_day13_noon` shows "Quay" small at the right edge. The
-   camera moved as a side-effect of the district fix. **The metric agrees with
-   the frame, which is the point** — it now exists for the next time, and the
-   raycast blindness it was written for is real regardless.
 
 1. **THE BUBBLE OVERLAP MEDIAN IS A PER-TICK NUMBER AND I READ IT AS A
    PER-FRAME ONE.** *(instrument)* `SampleBubbles` runs per tick and

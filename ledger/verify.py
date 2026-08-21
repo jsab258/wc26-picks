@@ -182,10 +182,21 @@ def clip_audit():
     the move rule 2 forbids."""
     tools = ROOT.parent / "tools"
     code, out = run(["python3", str(tools / "clip-motion.py"), "--selftest", "--quiet"])
-    m = re.search(r"clipFindings=(\d+) duplicates=(\d+) frozen=(\d+) clipsRead=(\d+)", out)
-    if not m:
-        return False, "clip-motion did not report a count"
-    found, dups, frozen, read = (int(g) for g in m.groups())
+    # READ THE KEYS, DO NOT MATCH THE LINE. The first version of this pinned
+    # the whole line — `clipFindings=(\d+) duplicates=(\d+) frozen=(\d+)
+    # clipsRead=(\d+)` — so adding `stillByDesign` between the third and
+    # fourth broke it. It failed loudly, which is the only reason this is a
+    # footnote rather than an afternoon: a positional reader that silently
+    # returns the wrong field is the `grep -o` fault, and this one could not.
+    #
+    # Keyed lookups instead, so a new field is a new field rather than a
+    # breakage, and a MISSING one is still named.
+    keys = dict(re.findall(r"\b(clipFindings|duplicates|frozen|clipsRead)=(\d+)", out))
+    want = ("clipFindings", "duplicates", "frozen", "clipsRead")
+    absent = [k for k in want if k not in keys]
+    if absent:
+        return False, "clip-motion did not report " + ", ".join(absent)
+    found, dups, frozen, read = (int(keys[k]) for k in want)
     if "SELFTEST PASSED" not in out:
         bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
         return False, "CLIPS: " + (bad[0][:90] if bad else "selftest did not pass")

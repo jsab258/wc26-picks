@@ -42,6 +42,56 @@ clipFindings=2
 #    carried the whole repair. The specific fix was wrong and the general one
 #    worked, which is the argument for having written the general one.
 #
+# THE SECOND RE-PICK, 21 Aug: 62 copied, 5 substituted, 5 missing, 5 SET ASIDE.
+# NOTHING IN THE GAME NOW PLAYS A CLIP THE SCREEN REFUSES — audited slot by
+# slot, 62 filled and passing, 5 empty, 0 refused-but-shipped. The five empty
+# ones fall back to the locomotion tree, so those people stand normally rather
+# than playing somebody else's motion.
+#
+# TWO THINGS CAME OUT OF READING IT, AND BOTH WERE INVISIBLE TO EVERY CHECK.
+#
+# A. TEN OF MY OWN PATTERNS COULD NEVER MATCH ANYTHING — a doubled backslash,
+#    `r"^sitting\\b"`, which asks for a literal backslash in a clip name. All
+#    ten were made in one edit: replacing the `$` anchors that had cost
+#    fourteen slots, with the paragraph explaining why `$` cannot match sitting
+#    directly above. One impossible form fixed by writing another.
+#
+#    `block_hold` was down to ONE live pattern out of five and `sit_drink` to
+#    two of three — so the widening written to fill those exact holes was inert
+#    for the exact slots it was for, and the run still reported `none of 5
+#    patterns matched`, which reads as a harvest with nothing to offer.
+#
+#    THE GUARD SAID IT CAUGHT THIS AND THE CLAIM WAS FALSE THE DAY IT WAS
+#    WRITTEN: "the `$` rule catches one way of writing an impossible pattern;
+#    this catches all of them, including the ones nobody has thought of". It
+#    asks whether a SLOT matched, and a slot is satisfied by any one of its
+#    patterns, so a dead pattern beside a live one is structurally invisible to
+#    it. Fixed both ways — a mechanical doubled-backslash check next to the `$`
+#    one, and a per-PATTERN report with its denominator, which reads 137 of 145
+#    live. The 8 dead ones are honest alternates this harvest lacks
+#    (`\bsurrender\b` for hands_up); they are printed, not failed, because a
+#    pattern matching nothing is only a bug when it is impossible.
+#
+# B. A SECOND HARVESTER DUPLICATE, AND IT LANDED ON A COMBAT SLOT.
+#    `Unarmed Equip Underarm_4f5d21e1` and `Standing Arguing_4f5d21e1` are
+#    byte-identical. The content check found it and skipped `argue` onto
+#    `Angry Gesture` — correctly, but only because tier A runs first and
+#    `draw_reach` had already claimed the bytes. Reported and resolved in
+#    favour of whoever went first is not resolved correctly.
+#
+#    WHICH NAME IS RIGHT CANNOT BE READ FROM THE BYTES. The DURATION can:
+#    20.80s, third longest of 62, against a median of 2.00s and a p90 of 7.57s.
+#    The only two longer clips are a sitting conversation and a phone call,
+#    both loops meant to run. Every other one-shot in the set — strike, shove,
+#    take_hit, draw_gun — sits near the median. A man reaching under his coat
+#    does not take twenty seconds; a man arguing does.
+#
+#    `draw_reach` now asks for `Grabbing Pistol` first, a third name for the
+#    motion actually wanted, which sidesteps the collision with no re-download.
+#    NOT COUNTED IN `clipFindings`: only one of the two names ships, so the
+#    duplicate audit correctly reads `duplicates=0`. It is a naming collision
+#    upstream, not two slots sharing bytes here.
+#
 # CLOSED 2026-08-21 BY THE RE-PICK, AND NOT THE WAY THIS FILE PREDICTED:
 #
 # 1. FROZEN ROOT: `walk_start` (Start Walking). The paragraph below said all
