@@ -166,6 +166,46 @@ namespace Ledger.Game
         }
         static int _baseW, _baseH;
 
+        /// A soft tiling noise for the sun's cookie — cloud shadow passing
+        /// over the street. Alpha only; the floor keeps the modulation
+        /// subtle (a British overcast dims, it does not strobe). Built once,
+        /// 256px, three octaves of Perlin, seams avoided by sampling the
+        /// noise on a torus via two offset reads blended at the edges —
+        /// cheap and invisible under bilinear + the projection's scale.
+        public static Texture2D BuildCloudCookie()
+        {
+            const int N = 256;
+            var tex = new Texture2D(N, N, TextureFormat.Alpha8, true)
+            { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear };
+            var px = new Color32[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float u = x / (float)N, v = y / (float)N;
+                    // Tileable-ish: blend four phase-shifted reads by edge
+                    // proximity so opposite borders agree.
+                    float n = 0f;
+                    float amp = 0.55f, freq = 3f;
+                    for (int o = 0; o < 3; o++)
+                    {
+                        float a = Mathf.PerlinNoise(u * freq, v * freq);
+                        float b = Mathf.PerlinNoise((u + 1f) * freq, v * freq);
+                        float c = Mathf.PerlinNoise(u * freq, (v + 1f) * freq);
+                        float d = Mathf.PerlinNoise((u + 1f) * freq, (v + 1f) * freq);
+                        float ab = Mathf.Lerp(a, b, u), cd = Mathf.Lerp(c, d, u);
+                        n += Mathf.Lerp(ab, cd, v) * amp;
+                        amp *= 0.5f; freq *= 2.1f;
+                    }
+                    // Map to [0.74, 1.0]: at most a quarter of the sun lost
+                    // under the thickest cloud in the tile.
+                    float k = Mathf.Lerp(0.74f, 1.0f, Mathf.Clamp01(n));
+                    px[y * N + x] = new Color32(255, 255, 255, (byte)(k * 255));
+                }
+            tex.SetPixels32(px);
+            tex.Apply(true, true);
+            return tex;
+        }
+
         void LateUpdate()
         {
             float night = GameController.NightAmount;

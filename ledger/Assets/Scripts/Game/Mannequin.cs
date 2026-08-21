@@ -112,6 +112,12 @@ namespace Ledger.Game
             m.enabled = true;
             m.Shape = Physique.For(string.IsNullOrEmpty(who) ? host.name : who);
             m.Assemble(skin, cloth);
+            // The contact blob rides the HOST, not the mannequin's pieces, so
+            // it survives Teardown and the tier swap to a skinned body —
+            // every walker passes through here at least once, which makes
+            // this the one attach site that covers the whole street. The
+            // ground sits SoleBelowOrigin under the host origin.
+            BlobShadow.Attach(host, -SoleBelowOrigin);
             return m;
         }
 

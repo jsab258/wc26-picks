@@ -87,25 +87,21 @@ Shader "Hidden/LedgerFilmGrade"
             {
                 fixed4 col = tex2D(_MainTex, i.uv);
 
-                // BLOOM. Added, not lerped: a lamp does not replace what is
-                // behind it, it spills over it. This is also what recovers
-                // the colour that low-dynamic-range clipping takes off a
-                // neon sign, by spreading hue into the pixels AROUND the
-                // highlight rather than only inside it.
-                fixed3 bloom = tex2D(_BloomTex, i.uv).rgb;
-                col.rgb += bloom * _Bloom;
-
-                // AMBIENT OCCLUSION, and it goes here — scene-referred,
-                // BEFORE the tonemap. Darkening after the curve subtracts
-                // display values and grinds contact shadows to mud; before
-                // it, the curve rolls them off the way it rolls off
-                // everything else, and a corner reads as less light rather
-                // than as a stain.
+                // AMBIENT OCCLUSION FIRST, THEN BLOOM — the old order was
+                // backwards BY ITS OWN ARGUMENT. The comment that stood here
+                // said "bloom is light spilling from elsewhere and does not
+                // care whether the surface it lands on is in a corner", and
+                // then the code added bloom INTO col and multiplied the sum
+                // by the occlusion — occluding the bloom, the exact thing
+                // the sentence says must not happen. At night that ate the
+                // lamp glow in every corner the AO found. Occlude what the
+                // surface receives; spill the lens light over the result.
                 //
-                // It also goes on before bloom would have been a mistake:
-                // bloom is light spilling from elsewhere and does not care
-                // whether the surface it lands on is in a corner. So bloom
-                // first, then occlude what the surface itself receives.
+                // Still scene-referred, BEFORE the tonemap: darkening after
+                // the curve subtracts display values and grinds contact
+                // shadows to mud; before it, the curve rolls them off like
+                // everything else and a corner reads as less light rather
+                // than as a stain.
                 float aoRaw = tex2D(_AoTex, i.uv).r;
                 float aoLum = dot(col.rgb, float3(0.299, 0.587, 0.114));
                 // Mirrors Core/LightModel.AoMultiplier, which is where these
@@ -113,6 +109,14 @@ Shader "Hidden/LedgerFilmGrade"
                 float ao = 1.0 - saturate(aoRaw) * _AoStrength
                                 * (1.0 - _AoRelief * saturate(aoLum));
                 col.rgb *= max(ao, _AoFloor);
+
+                // BLOOM. Added, not lerped: a lamp does not replace what is
+                // behind it, it spills over it. This is also what recovers
+                // the colour that low-dynamic-range clipping takes off a
+                // neon sign, by spreading hue into the pixels AROUND the
+                // highlight rather than only inside it.
+                fixed3 bloom = tex2D(_BloomTex, i.uv).rgb;
+                col.rgb += bloom * _Bloom;
 
                 // EXPOSURE then TONEMAP, in that order and before anything
                 // else. Exposure is a scene-referred operation and vignette

@@ -1350,7 +1350,15 @@ namespace Ledger.Game
             SampleMix();
             SampleBubbles();
             SampleCrowding();
-            if (!_tookDayShot && now.Hour == 12) { _tookDayShot = true; Shot($"day{now.Day}_noon"); }
+            if (!_tookDayShot && now.Hour == 12)
+            {
+                _tookDayShot = true;
+                // Noon by construction — the one place the sun-shadow probe
+                // can run. Before the shot, so the still shows the same
+                // lighting state the probe measured.
+                ProbeSunShadow();
+                Shot($"day{now.Day}_noon");
+            }
             // AND ONE FRAME OF EVERY DISTRICT, ONCE A RUN. See `DistrictTour`:
             // `shotDistricts=[the_Hook:20]` says all twenty shots of every run
             // are in one of seven districts, and the other six have never been
@@ -7056,53 +7064,15 @@ namespace Ledger.Game
             var noAo = FrameShot(cam);
             FilmGrade.AmbientOcclusion = true;
 
-            // SUN SHADOWS, THE SAME WAY (M17.10 V0). Toggle at the LIGHT, not
-            // the quality settings — flipping the master enum would also stop
-            // the lamps' shadows at night and the question here is the sun's.
-            var sunGo = GameObject.Find("Sun");
-            var sunL = sunGo != null ? sunGo.GetComponent<Light>() : null;
-            if (sunL != null && sunL.intensity > 0.2f)
-            {
-                var wasSh = sunL.shadows;
-                sunL.shadows = LightShadows.None;
-                var noShadow = FrameShot(cam);
-                sunL.shadows = wasSh;
-                var (shFrac, shDrop) = ImageStats.Darkened(all.Luma, noShadow.Luma,
-                                                           ImageStats.QuantisationStep);
-                if (shFrac > _shadowFraction)
-                {
-                    _shadowFraction = shFrac;
-                    _shadowDrop = shDrop;
-                    // The hour CAPTURED AT THE PEAK, so the pair is one
-                    // instant rather than a peak beside a last-wins.
-                    _shadowWhen = _game != null ? _game.Now.Hour : -1;
-                }
-
-                // The one-time daylight state and surface-variance sample.
-                if (_lightState == null && GameController.NightAmount < 0.3f)
-                {
-                    var am = RenderSettings.ambientSkyColor;
-                    _lightState =
-                        $"[q={QualitySettings.shadows}" +
-                        $"/lvl={QualitySettings.GetQualityLevel()}" +
-                        $"/px={QualitySettings.pixelLightCount}" +
-                        $"/dist={QualitySettings.shadowDistance:0}" +
-                        $"/casc={QualitySettings.shadowCascades}" +
-                        $"/sunI={sunL.intensity:0.00}" +
-                        $"/sunElev={sunL.transform.eulerAngles.x:0}" +
-                        $"/str={sunL.shadowStrength:0.00}" +
-                        $"/ambLuma={ImageStats.Luma(am.r, am.g, am.b):0.000}]";
-                    var fc = RenderSettings.fogColor;
-                    _fogAtProbe = $"({fc.r:0.000}/{fc.g:0.000}/{fc.b:0.000})";
-                    StartCoroutine(FogAfterFrame());
-
-                    // Road band = lower rows of the 640x360 probe frame
-                    // (ReadPixels row 0 is the bottom), facade band = middle.
-                    // Stddev, one sample, by construction.
-                    _roadSpread = BandSpread(all.Luma, 640, 0.05, 0.28);
-                    _facadeSpread = BandSpread(all.Luma, 640, 0.45, 0.65);
-                }
-            }
+            // THE SUN-SHADOW PROBE WAS BORN HERE AND NEVER FIRED ONCE.
+            // `MeasureAoOnce` runs at NIGHT — its own header says so, the AO
+            // question needs a dark frame — so a probe guarded on daylight
+            // inside it was dead on arrival: the first landed run printed
+            // every field at its initialiser while the stills showed the
+            // shadows plainly. Rule 5b's corollary, self-inflicted: a probe
+            // needs a run in which the thing it measures CAN happen. It
+            // lives in `ProbeSunShadow` now, called from the noon-shot site,
+            // where daylight holds by construction.
 
             FilmGrade.Bloom = false;
             var noBloom = FrameShot(cam);
@@ -7499,6 +7469,62 @@ namespace Ledger.Game
             }
         }
 
+
+        /// THE SUN-SHADOW PROBE (M17.10 V0), at noon by construction — its
+        /// first home was inside `MeasureAoOnce`, which runs at night, so its
+        /// daylight guard never passed and the first landed run printed every
+        /// field at its initialiser. Toggle at the LIGHT, not the quality
+        /// settings: flipping the master enum would also stop the lamps'
+        /// shadows, and the question here is the sun's.
+        void ProbeSunShadow()
+        {
+            var cam = Camera.main;
+            if (cam == null) return;
+            var sunGo = GameObject.Find("Sun");
+            var sunL = sunGo != null ? sunGo.GetComponent<Light>() : null;
+            if (sunL == null || sunL.intensity <= 0.2f) return;
+
+            var all = FrameShot(cam);
+            var wasSh = sunL.shadows;
+            sunL.shadows = LightShadows.None;
+            var noShadow = FrameShot(cam);
+            sunL.shadows = wasSh;
+            var (shFrac, shDrop) = ImageStats.Darkened(all.Luma, noShadow.Luma,
+                                                       ImageStats.QuantisationStep);
+            if (shFrac > _shadowFraction)
+            {
+                _shadowFraction = shFrac;
+                _shadowDrop = shDrop;
+                // The hour CAPTURED AT THE PEAK, so the pair is one instant
+                // rather than a peak beside a last-wins.
+                _shadowWhen = _game != null ? _game.Now.Hour : -1;
+            }
+
+            // The one-time daylight state and surface-variance sample.
+            if (_lightState == null)
+            {
+                var am = RenderSettings.ambientSkyColor;
+                _lightState =
+                    $"[q={QualitySettings.shadows}" +
+                    $"/lvl={QualitySettings.GetQualityLevel()}" +
+                    $"/px={QualitySettings.pixelLightCount}" +
+                    $"/dist={QualitySettings.shadowDistance:0}" +
+                    $"/casc={QualitySettings.shadowCascades}" +
+                    $"/sunI={sunL.intensity:0.00}" +
+                    $"/sunElev={sunL.transform.eulerAngles.x:0}" +
+                    $"/str={sunL.shadowStrength:0.00}" +
+                    $"/ambLuma={ImageStats.Luma(am.r, am.g, am.b):0.000}]";
+                var fc = RenderSettings.fogColor;
+                _fogAtProbe = $"({fc.r:0.000}/{fc.g:0.000}/{fc.b:0.000})";
+                StartCoroutine(FogAfterFrame());
+
+                // Road band = lower rows of the 640x360 probe frame
+                // (ReadPixels row 0 is the bottom), facade band = middle.
+                // Stddev, one sample, by construction.
+                _roadSpread = BandSpread(all.Luma, 640, 0.05, 0.28);
+                _facadeSpread = BandSpread(all.Luma, 640, 0.45, 0.65);
+            }
+        }
 
         /// Fog colour after every LateUpdate has run — end of frame is the
         /// only moment that is unambiguously after both fog writers. In a
@@ -12338,6 +12364,11 @@ namespace Ledger.Game
                       // silently failed to attach would otherwise look
                       // exactly like one that was never asked for.
                       $"walkerBodies={RealBody.Extra} " +
+                      // M17.10 — the contact blobs, with rule 3b's denominator:
+                      // zero blobs beside a street of walkers means Attach never
+                      // ran or the shader failed, and blobWhy says which.
+                      $"blobShadows={BlobShadow.Count} " +
+                      $"blobWhy=[{BlobShadow.Why.Replace(' ', '_')}] " +
                       $"walkerBodyCap={NpcWalker.RealBodyCap} " +
                       $"walkerBodiesFailed={RealBody.ExtraFailed} " +
                       $"walkerBodyWhy=[{RealBody.ExtraWhy}] " +

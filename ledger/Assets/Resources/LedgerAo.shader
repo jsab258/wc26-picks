@@ -114,31 +114,48 @@ Shader "Hidden/LedgerAo"
                 // everything far away is uniformly grey.
                 float scale = _AoRadius / max(0.1, p.z);
 
+                // TWO SCALES (M17.10). One radius answers one question:
+                // 0.85m finds the seam where a bin meets a wall and cannot
+                // find the pool under a car or the gloom of a shop recess,
+                // because those are metre-scale cavities. Every third tap
+                // reaches 2.8x further, weighted down, so the seam and the
+                // pool come from one pass. The reference frames carry both.
                 float occ = 0;
                 [unroll] for (int t = 0; t < 12; t++)
                 {
+                    float far2 = (t % 3 == 2) ? 2.8 : 1.0;
                     float2 o = float2(kTaps[t].x * rc.x - kTaps[t].y * rc.y,
                                       kTaps[t].x * rc.y + kTaps[t].y * rc.x);
-                    float2 uv = i.uv + o * scale;
+                    float2 uv = i.uv + o * scale * far2;
                     float3 sn;
                     float3 sp = ViewPos(uv, sn);
                     float3 d = sp - p;
-                    float len = length(d);
-                    if (len < 1e-4) continue;
 
-                    // How far the sample sits ABOVE this surface's plane.
-                    // Negative means behind it, which is not occlusion.
-                    float above = dot(n, d / len);
-                    // The range check from Core/LightModel.AoRangeCheck: a
-                    // sample metres in front belongs to another object, and
-                    // counting it draws the dark halo round every silhouette
-                    // that gives cheap occlusion away.
-                    float range = saturate(1.0 - max(0, len - _AoRadius) / _AoRadius);
-                    // A small bias, or a flat surface occludes itself into a
-                    // grey haze from depth-buffer precision alone.
-                    occ += max(0, above - 0.035) * range;
+                    // THE ALCHEMY/SAO ESTIMATOR, replacing the flat
+                    // above-the-plane count. `dot(n,d)` over `dot(d,d)` is
+                    // distance-weighted occlusion: a sample RIGHT AT the
+                    // surface contributes hard, one at the radius barely —
+                    // which is what makes contact seams DARK instead of the
+                    // whole disc contributing one grey wash. The measured
+                    // effect of the old form was 0.7% of frame luminance:
+                    // invisible by construction, not by tuning. The
+                    // depth-proportional beta term is the self-occlusion
+                    // bias, doing the old flat 0.035's job without flattening
+                    // genuine shallow corners near the camera.
+                    float rr = _AoRadius * far2;
+                    float range = saturate(1.0 - max(0, length(d) - rr) / rr);
+                    occ += max(0, dot(n, d) - 0.002 * p.z)
+                           / (dot(d, d) + 0.01)
+                           * range * ((t % 3 == 2) ? 0.45 : 1.0);
                 }
-                return fixed4(saturate(occ / 12.0 * 2.4), 0, 0, 1);
+                // THE POWER CURVE IS THE VISIBILITY LEVER. Shipped SSAO
+                // (Kino, MiniEngine) runs pow 0.6 on the accumulated term:
+                // it lifts the mid-band — raw 0.1 becomes 0.25 — which is
+                // where every corner this street owns actually lives. A
+                // linear scale starves exactly that band, which is the other
+                // half of the 0.7% reading.
+                float a2 = saturate(occ * _AoRadius * 0.55);
+                return fixed4(pow(a2, 0.6), 0, 0, 1);
             }
             ENDCG
         }

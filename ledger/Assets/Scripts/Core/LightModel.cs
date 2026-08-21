@@ -325,14 +325,34 @@ namespace Ledger.Core
         /// reads as "untextured game" rather than "photograph".
         public static (double r, double g, double b) FogColour(double night, double rain = 0)
         {
-            var (hr, hg, hb) = HorizonColour(night, rain);
-            // Slightly brighter than the horizon and pulled toward the lamps,
-            // because fog is lit from inside the scene rather than from the
-            // sky.
-            double warm = 0.65 * Feel.Clamp01(night);
-            return (Feel.Clamp01(hr * 1.15 + 0.055 * warm),
-                    Feel.Clamp01(hg * 1.10 + 0.032 * warm),
-                    Feel.Clamp01(hb * 1.05 + 0.010 * warm));
+            night = Feel.Clamp01(night); rain = Feel.Clamp01(rain);
+            // THE DAY ARM IS THE CALIBRATED ONE, MOVED HERE FROM THE WRITER
+            // THAT WAS LOSING (M17.10). Two systems wrote fog every frame:
+            // GameController in Update carried these calibrated values — the
+            // "sky at ~1.8x the scene mean, not 2.6x" fix — and SceneLighting
+            // in LateUpdate overwrote them with this function's old output.
+            // The comment beside the calibration claimed GameController "runs
+            // last"; Update runs BEFORE LateUpdate, so the calibration
+            // reached only the probes that render mid-Update, and the
+            // composited frame kept the old bright sky. One owner now: this
+            // function carries both arms, and nothing else writes fog.
+            //
+            // Cool overcast day, pulled slightly flatter and cooler when wet
+            // (a wet noon must not jump brighter than a clear one).
+            double dr = Mix(0.415, 0.401, rain);
+            double dg = Mix(0.446, 0.421, rain);
+            double db = Mix(0.484, 0.442, rain);
+
+            // The night arm is unchanged: slightly brighter than the horizon
+            // and pulled toward the lamps, because night fog is lit from
+            // inside the scene rather than from the sky — the CoreTest that
+            // holds it warmer than the horizon is the guard.
+            var (hr, hg, hb) = HorizonColour(1.0, rain);
+            double nr = Feel.Clamp01(hr * 1.15 + 0.055 * 0.65);
+            double ng = Feel.Clamp01(hg * 1.10 + 0.032 * 0.65);
+            double nb = Feel.Clamp01(hb * 1.05 + 0.010 * 0.65);
+
+            return (Mix(dr, nr, night), Mix(dg, ng, night), Mix(db, nb, night));
         }
 
         // ---- volumetrics --------------------------------------------------

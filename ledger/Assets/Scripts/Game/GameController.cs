@@ -3071,6 +3071,26 @@ namespace Ledger.Game
             // SAME number the sun uses. Two independent notions of "how dark
             // is it" would drift, and the grain would peak at the wrong hour.
             NightAmount = 1f - daylight;
+            // The contact blobs fade off the SAME number the sun and grade
+            // use — the blob proxies the sun's contact shadow, so it must
+            // dim on the sun's own clock.
+            BlobShadow.Tick(NightAmount);
+
+            // CLOUD SHADOWS, VIA THE LIGHT'S COOKIE (M17.10) — sun and cloud
+            // modulation in one shadow path is the frame-study shape, and in
+            // built-in it is a texture on the directional light. Built once;
+            // the slow lateral drift below scrolls the projection, because a
+            // directional cookie is anchored to the light's POSITION even
+            // though its illumination is not. Wrapped modulo the cookie tile
+            // so a nine-day sim cannot walk the float off its precision.
+            if (_sun.cookie == null)
+            {
+                var ck = SceneLighting.BuildCloudCookie();
+                if (ck != null) { _sun.cookie = ck; _sun.cookieSize = 220f; }
+            }
+            float ct = Time.time;
+            _sun.transform.position =
+                new Vector3((ct * 1.6f) % 220f, 0f, (ct * 0.9f) % 220f);
             // The mix moved to `UpdateMix`, called on the very next line of
             // `Update` and reading `NightAmount` which is set four lines up —
             // so light and sound still come off the SAME number and dusk still
@@ -3110,14 +3130,13 @@ namespace Ledger.Game
             // frame by a wide margin, with the buildings crushed into a narrow
             // band below it.
             //
-            // AND THIS IS THE CODE THAT ACTUALLY CONTROLS IT. `SceneLighting`
-            // also writes `RenderSettings.fogColor`, from `LightModel.FogColour`
-            // — and the values above match THESE constants exactly, to three
-            // decimals, including the rainy-day lerp. So GameController runs
-            // last and LightModel's fog colour never reaches the screen. Noted
-            // rather than restructured: two owners is the fault, but reordering
-            // the lighting at this hour to fix a duplication would risk the
-            // night, and the night is the half that already looks right.
+            // THE PARAGRAPH THAT STOOD HERE HAD THE CAUSALITY BACKWARDS.
+            // It reasoned that because the measured fog matched LightModel's
+            // constants, "GameController runs last" — but this is Update and
+            // SceneLighting writes fog in LateUpdate, so LateUpdate's
+            // LightModel values win the composited frame and the calibrated
+            // write that stood below won only mid-Update probe renders. The
+            // 1.8x calibration is IN LightModel.FogColour now, single owner.
             //
             // Scaled to sit at ~1.8x the scene mean instead of 2.6x: an
             // overcast port-town sky is a shade above the street, not a
@@ -3127,15 +3146,16 @@ namespace Ledger.Game
             //
             // NIGHT IS UNTOUCHED. It reads well and nothing here needs to
             // change it.
-            var fogNight = new Color(0.045f, 0.065f, 0.10f);
-            var fogDay = new Color(0.415f, 0.446f, 0.484f);
-            RenderSettings.fogColor = Color.Lerp(
-                Color.Lerp(fogNight, fogDay, daylight),
-                // The rainy-day end scaled by the same factor as `fogDay`, so a
-                // wet noon stays slightly flatter and cooler than a clear one
-                // rather than jumping brighter than it.
-                Color.Lerp(new Color(0.10f, 0.12f, 0.15f), new Color(0.401f, 0.421f, 0.442f), daylight),
-                Weather.Rain);
+            // THE FOG WRITE THAT STOOD HERE IS GONE, AND ITS CALIBRATION
+            // LIVES ON IN `LightModel.FogColour` (M17.10). The comment above
+            // this block claimed GameController "runs last" and LightModel's
+            // fog "never reaches the screen" — BACKWARDS: this is Update,
+            // SceneLighting writes fog in LateUpdate, so the calibrated
+            // values written here lost the composited frame every frame and
+            // won only the probes that render mid-Update. That is exactly
+            // the split the landed fog readings showed. One owner now:
+            // SceneLighting writes `LightModel.FogColour`, which carries the
+            // calibrated day arm and the warm sodium night arm both.
 
             // FOG DISTANCE USED TO BE SET HERE AND UNITY NEVER READ IT.
             //
@@ -3170,7 +3190,13 @@ namespace Ledger.Game
                 cam.clearFlags = SceneLighting.SkyboxLive
                     ? CameraClearFlags.Skybox
                     : CameraClearFlags.SolidColor;
-                cam.backgroundColor = RenderSettings.fogColor;
+                // From the MODEL, not from RenderSettings: with the fog
+                // single-ownered into SceneLighting.LateUpdate, reading
+                // RenderSettings here in Update would hand back the previous
+                // frame's value — harmless, but a second reader of shared
+                // mutable state where a direct call is one line.
+                var fbg = Ledger.Core.LightModel.FogColour(NightAmount, Weather.Rain);
+                cam.backgroundColor = new Color((float)fbg.r, (float)fbg.g, (float)fbg.b);
             }
             WorldBuilder.SetLampsEnabled(daylight < 0.25f);
             WorldBuilder.TickNeon(daylight < 0.35f, Time.time);
