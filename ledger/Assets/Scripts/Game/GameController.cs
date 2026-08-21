@@ -2419,6 +2419,19 @@ namespace Ledger.Game
                 var evening = EveningState(Now.Day - 1);
                 var tonight = LooseEnds.Tonight(evening);
                 LooseEndsTally.Saw(tonight, LooseEnds.OpenCount(evening));
+                // AND THE CREW READING FROM THIS SAME EVENING, whether or not
+                // the Crew tier won it. A tier that loses to a higher-ranked
+                // one still had its condition evaluated, and counting only
+                // winners makes "never fires" and "never true" identical —
+                // which is precisely the ambiguity that left this tier
+                // unexplained for the project's whole recorded history.
+                //
+                // Empty name means no crew member is nearest-to-breaking, so
+                // there is nothing to read; -1 says so rather than passing a
+                // loyalty of zero, which would read as maximum disloyalty.
+                LooseEndsTally.SawCrew(
+                    string.IsNullOrEmpty(evening.CrewNearestBreaking) ? -1 : evening.CrewLoyalty,
+                    evening.CrewBreakingPoint);
                 if (tonight.Any)
                 {
                     _ui?.Toast(tonight.Line, 9f);

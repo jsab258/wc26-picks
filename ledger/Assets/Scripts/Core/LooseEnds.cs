@@ -274,6 +274,33 @@ namespace Ledger.Core
             public int OpenMost { get; private set; }
             readonly int[] _byKind = new int[Enum.GetValues(typeof(Kind)).Length];
 
+            /// WHAT THE CREW LOOKED LIKE ON EACH EVENING, which no
+            /// end-of-run number can say.
+            ///
+            /// The Crew tier has never once been offered across the project's
+            /// recorded history. The first measurement of why was taken at the
+            /// END of the run and read `crewWorstLoyalty=0.325` against a floor
+            /// of 0.400 — the condition MET, and the tier still never fired.
+            ///
+            /// That looked like a wiring bug and it is not. The Crew branch
+            /// sits second, above Owed, so an evening where the condition held
+            /// would have beaten the five Owed evenings that did fire. The
+            /// condition was therefore false on those evenings and true at the
+            /// end: loyalty crosses the floor after the last summary, and one
+            /// reading taken at the end cannot see that.
+            ///
+            /// So the tally records the evenings themselves. `CrewEvenings` is
+            /// the denominator — evenings where a crew loyalty could be read at
+            /// all — and without it "never below the floor" cannot be told from
+            /// "there was no crew yet".
+            public int CrewEvenings { get; private set; }
+            public int CrewEveningsBelowFloor { get; private set; }
+            /// The best and worst an evening ever saw. A single worst cannot
+            /// say whether loyalty is drifting down all run or sat flat and
+            /// dropped at the end, and those want different work.
+            public double CrewBestEvening { get; private set; } = -1;
+            public double CrewWorstEvening { get; private set; } = -1;
+
             public void Saw(Thread t) => Saw(t, 0);
 
             public void Saw(Thread t, int openTonight)
@@ -284,6 +311,32 @@ namespace Ledger.Core
                 OpenSum += openTonight;
                 if (openTonight > OpenMost) OpenMost = openTonight;
             }
+
+            /// The evening's crew reading, recorded whether or not the Crew
+            /// tier won. That is the whole point: a tier that loses to a
+            /// higher one still had its condition evaluated, and only counting
+            /// the winners makes a never-fires tier indistinguishable from a
+            /// never-true one.
+            ///
+            /// `loyalty` below zero means nothing was readable — no crew, or
+            /// nobody with an opinion yet — and is counted as an evening with
+            /// no reading rather than as a loyal one.
+            public void SawCrew(double loyalty, double floor)
+            {
+                if (loyalty < 0) return;
+                CrewEvenings++;
+                if (loyalty <= floor) CrewEveningsBelowFloor++;
+                if (CrewBestEvening < 0 || loyalty > CrewBestEvening) CrewBestEvening = loyalty;
+                if (CrewWorstEvening < 0 || loyalty < CrewWorstEvening) CrewWorstEvening = loyalty;
+            }
+
+            /// The crew story as one spaceless value: evenings read, of those
+            /// how many were at or below the floor, then best and worst seen.
+            public string CrewLine() =>
+                CrewEvenings == 0
+                    ? "noEveningRead"
+                    : $"{CrewEveningsBelowFloor}of{CrewEvenings}"
+                      + $"/best{CrewBestEvening:0.000}/worst{CrewWorstEvening:0.000}";
 
             public int Count(Kind k) => _byKind[(int)k];
 

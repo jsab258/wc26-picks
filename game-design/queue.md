@@ -81,11 +81,21 @@ parked — no DirectML on the Air.
    verdict**, so a tier missing by a hundredth and one missing by half looked
    identical. Those want completely different work.
 
-   **The measurement ships first, deliberately**: `crewWorstLoyalty` beside
-   `crewFloor`, with `crewLoyaltyRead` as the denominator so "nobody is on the
-   crew" cannot read as "the crew is loyal". Rule 5b's corollary says plant the
-   condition rather than loosen the bound — and you cannot plant well without
-   the distance. **Read it next build, then decide.**
+   **The measurement shipped first and immediately paid.** It came back
+   `crewWorstLoyalty=0.325` against `crewFloor=0.400` — **the condition MET,
+   and the tier still never offered.** That looked like a wiring bug and is
+   not: the Crew branch outranks Owed, so an evening where it held would have
+   won one of the five Owed evenings. Loyalty crosses the floor AFTER the last
+   evening summary, and an end-of-run reading is blind to that by
+   construction — my own number could not answer the question it was added
+   for.
+
+   **So the tally now records the evenings themselves** — `crewEvenings` as
+   `<belowFloor>of<read>/best/worst`, recorded whether or not the Crew tier
+   won, because a tier that loses to a higher one still had its condition
+   evaluated and counting only winners makes "never fires" and "never true"
+   identical. **Read it next build**: if no evening is ever below the floor,
+   the plant is a change to what erodes loyalty during the run, not a nudge.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the

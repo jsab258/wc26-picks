@@ -15642,6 +15642,49 @@ namespace Ledger.CoreTests
             Check(!tally.Line().Contains(" "), "and its verdict value carries no space", tally.Line());
             Check(tally.Line().StartsWith("3/1/["), "and reads count/empty/breakdown", tally.Line());
 
+            // THE CREW READING, PER EVENING, AND ITS DENOMINATOR.
+            //
+            // The Crew tier has never been offered in the project's recorded
+            // history. The first attempt to explain that measured loyalty at
+            // the END of a run — 0.325 against a floor of 0.400, the condition
+            // MET — which looked like the tier being broken. It is not: the
+            // Crew branch outranks Owed, so an evening where it held would
+            // have won one of the five Owed evenings. Loyalty crosses the
+            // floor after the last summary, and an end-of-run number is blind
+            // to that by construction.
+            //
+            // So this records the evenings. Both directions, because "never
+            // below the floor" and "no crew to read" are the same zero:
+            var crewT = new LooseEnds.Tally();
+            Check(crewT.CrewLine() == "noEveningRead",
+                "with no evening read, the crew line says so rather than reading clean",
+                crewT.CrewLine());
+            crewT.SawCrew(-1, 0.4);
+            Check(crewT.CrewEvenings == 0,
+                "an evening with no crew to read is not an evening with a loyal crew",
+                $"{crewT.CrewEvenings}");
+            crewT.SawCrew(0.9, 0.4);
+            crewT.SawCrew(0.5, 0.4);
+            Check(crewT.CrewEvenings == 2 && crewT.CrewEveningsBelowFloor == 0,
+                "two evenings read, neither below the floor",
+                $"{crewT.CrewEveningsBelowFloor}of{crewT.CrewEvenings}");
+            crewT.SawCrew(0.325, 0.4);
+            Check(crewT.CrewEveningsBelowFloor == 1,
+                "and an evening at 0.325 against a floor of 0.400 counts as below it",
+                crewT.CrewLine());
+            // ON the floor is below it — the tier's own test is `<=`, and a
+            // guard that disagreed with the branch it measures would be
+            // reporting its own opinion.
+            crewT.SawCrew(0.4, 0.4);
+            Check(crewT.CrewEveningsBelowFloor == 2,
+                "and exactly on the floor counts too, as the tier's own rule does",
+                crewT.CrewLine());
+            Check(crewT.CrewBestEvening > crewT.CrewWorstEvening,
+                "best and worst are told apart, so a drift and a late collapse differ",
+                crewT.CrewLine());
+            Check(!crewT.CrewLine().Contains(" "),
+                "and the crew line carries no space", crewT.CrewLine());
+
             var none = new LooseEnds.Tally();
             none.Saw(LooseEnds.Tonight(quiet));
             Check(none.Line().Contains("none"),

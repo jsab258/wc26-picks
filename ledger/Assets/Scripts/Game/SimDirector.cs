@@ -11853,7 +11853,19 @@ namespace Ledger.Game
                       // has to remember. `crewLoyaltyRead` is the denominator:
                       // -1 with a read of 0 means nobody is on the crew, which
                       // is a different world from a crew that is simply loyal.
+                      // AND THE PER-EVENING STORY, WHICH IS THE ONE THAT
+                      // ANSWERS THE QUESTION. `crewWorstLoyalty` is taken at
+                      // the END of the run and read 0.325 against a floor of
+                      // 0.400 — the condition met, the tier never fired. That
+                      // is not a contradiction and not a wiring bug: the Crew
+                      // branch outranks Owed, so an evening where it held
+                      // would have won, and loyalty simply crosses the floor
+                      // after the last summary. One end-of-run reading cannot
+                      // see that; `crewEvenings` counts the evenings
+                      // themselves, with best and worst so a slow drift and a
+                      // late collapse look different.
                       $"crewWorstLoyalty={crewWorst:0.000} crewFloor={crewFloor:0.000} " +
+                      $"crewEvenings=[{GameController.LooseEndsTally.CrewLine()}] " +
                       $"crewLoyaltyRead={crewRead} " +
                       $"looseEndsFed={GameController.LooseEndTiersFed}/{GameController.LooseEndTiers} " +
                       $"sheetTiles={ClipSheet.Tiles} " +
