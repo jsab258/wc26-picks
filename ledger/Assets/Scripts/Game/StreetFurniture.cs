@@ -31,6 +31,10 @@ namespace Ledger.Game
             }
             BuildLaneSigns();
             BuildOverheadCables();
+            // The surface-history layer builds in the same phase as the
+            // cables and reads the same street map, prosperity constants and
+            // deterministic rolls — one dressing pass, several vocabularies.
+            DecalLayer.Build();
         }
 
         /// How many cables got strung. Read by the sim, for the same reason

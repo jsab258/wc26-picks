@@ -79,6 +79,13 @@ namespace Ledger.Game
             // cost of a skinned mesh on a GPU-less runner has been measured.
             if (!RealBody.TryAttach(go))
                 Mannequin.Build(go, new Color(0.72f, 0.58f, 0.47f), new Color(0.30f, 0.32f, 0.38f));
+            // The player grounds like everyone else. Walkers get theirs in
+            // Mannequin.Build; a player whose skinned attach SUCCEEDS never
+            // passes through there, so the blob is attached explicitly —
+            // idempotent, so the fallback branch doubling through is fine.
+            // Controller height 1.8 about a zero centre puts the soles at
+            // local -0.9, the walkers' own convention.
+            BlobShadow.Attach(go, -0.9f);
 
             var cc = go.AddComponent<CharacterController>();
             cc.height = 1.8f;

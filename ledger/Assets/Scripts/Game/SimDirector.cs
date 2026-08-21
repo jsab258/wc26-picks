@@ -12369,6 +12369,14 @@ namespace Ledger.Game
                       // ran or the shader failed, and blobWhy says which.
                       $"blobShadows={BlobShadow.Count} " +
                       $"blobWhy=[{BlobShadow.Why.Replace(' ', '_')}] " +
+                      // The V2 layer's own denominator: zero with a reason is
+                      // "the fetch has not landed", zero without one would be
+                      // indistinguishable from wired-and-dead (rule 3b). The
+                      // road/facade luma spreads above are what these exist
+                      // to move.
+                      $"roadDecals={DecalLayer.RoadDecals} " +
+                      $"wallDecals={DecalLayer.WallDecals} " +
+                      $"decalWhy=[{DecalLayer.Why.Replace(' ', '_')}] " +
                       $"walkerBodyCap={NpcWalker.RealBodyCap} " +
                       $"walkerBodiesFailed={RealBody.ExtraFailed} " +
                       $"walkerBodyWhy=[{RealBody.ExtraWhy}] " +
