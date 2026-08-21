@@ -292,12 +292,12 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 | aspect | rung now | known next rung, free |
 |---|---|---|
 | textures | 2K colour+normal landed; roughness wired on walls | ground roughness (SetWetness must drive _GlossMapScale); AO maps |
-| buildings | procedural terraces, photo surfaces | window reveals/sills relief; per-district trim |
+| buildings | procedural terraces, photo surfaces, pots+aerials | window reveals/sills relief; shopfront depth (V4) |
 | vehicles | Kenney kit + town paints | curated higher-fidelity CC0 set (Quaternius/Sketchfab), same pipeline |
-| props | Kenney kits, partial coverage | fill the miss list (benches!); higher-tier swaps |
-| characters | Mixamo bodies, gait archetypes | Jafar's clip session; reaction anims (T3) |
-| lighting | gradient sky, noir grade, wet streets | clouds (T4); noon shadows/AO; HDRP post-playtest |
-| animation feel | walk/idle variants | flinch/greeting/turn-to-look wired to perception |
+| props | Kenney + Base Mesh furniture, yellows (build D) | dock clutter density read; higher-tier swaps |
+| characters | Mixamo bodies, gait archetypes | Jafar's clip session; combat set is disk-only |
+| lighting | REAL noon shadows + deepened AO + grade (landed) | linear colour space (V1.5, next build); sky dome (V6) |
+| animation feel | walk/idles + 18 activities + 6 reactions wired | smoke/thinking re-harvest; walk transitions (disk-only) |
 | audio | foley, barks, procedural score | voices into build (Thu); positional street sounds |
 
 - **M21, the two ledgers.** Empire growth, law as a tool, what expansion costs

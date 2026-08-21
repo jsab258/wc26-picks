@@ -2842,6 +2842,15 @@ namespace Ledger.Game
             // bound goes anywhere near this until it has been read (rule 2).
             _crowdReadings.Clear();
             int considered = 0;
+            // THE PALEST FIGURE, WITH A NAME ON IT. The "white pills" have
+            // been identified wrong six times from pictures alone, and the
+            // reason is structural: the median path below throws away WHO
+            // was bright. Tracked here per shot, kept as a run peak below —
+            // so the next pale figure in a still arrives pre-named, with
+            // its body tier and the crowd median FROM THE SAME INSTANT
+            // beside it (the at-worst rule).
+            double shotBestLum = -1; string shotBestWho = null;
+            bool shotBestReal = false;
             if (_npcs != null)
                 foreach (var n in _npcs)
                 {
@@ -2850,7 +2859,14 @@ namespace Ledger.Game
                     if (_crowdReadings.Count >= 24) break;
                     var rr = n.GetComponentInChildren<Renderer>();
                     if (!Average(rr, out double l, out double sa, out int c)) continue;
-                    _crowdReadings.Add(new Vector2((float)(l / c), (float)(sa / c)));
+                    double lum = l / c;
+                    _crowdReadings.Add(new Vector2((float)lum, (float)(sa / c)));
+                    if (lum > shotBestLum)
+                    {
+                        shotBestLum = lum;
+                        shotBestWho = n.DisplayName ?? n.name;
+                        shotBestReal = n.HasRealBody;
+                    }
                 }
             _crowdConsidered = considered;
 
@@ -2953,6 +2969,21 @@ namespace Ledger.Game
                 // reports how often the player is the brightest thing rather
                 // than whether they were in one photograph.
                 if (lums.Count > 0) _bodyOutshone.Add((float)below / lums.Count);
+
+                // The run-peak update, AFTER the median exists so the
+                // comparand really is from the same instant. `bodyBrightest`
+                // is a PEAK over per-shot brightest body-rect lumas — it
+                // answers "who was the palest figure any frame had", never
+                // "how bright is the crowd" (that is `crowdReadLum`'s
+                // median, and the two must not be divided).
+                if (shotBestLum > _bodyBrightest && shotBestWho != null)
+                {
+                    _bodyBrightest = shotBestLum;
+                    _bodyBrightestWho = shotBestWho.Replace(' ', '_');
+                    _bodyBrightestTier = shotBestReal ? "real" : "mannequin";
+                    _bodyBrightestWhen = _lastShotName;
+                    _bodyBrightestCrowdMed = _crowdLum;
+                }
             }
         }
 
@@ -3085,6 +3116,12 @@ namespace Ledger.Game
         int _windowsShopLitAtShot = -1, _windowsHourAtShot = -1;
 
         double _playerLum = -1, _playerSat = -1, _crowdLum = -1, _crowdSat = -1;
+        /// Run PEAK of per-shot brightest body-rect luma, with the name,
+        /// tier, shot and crowd median captured AT that instant — the white
+        /// pills, pre-named. -1 means no shot ever sampled a body.
+        double _bodyBrightest = -1, _bodyBrightestCrowdMed = -1;
+        string _bodyBrightestWho = "none", _bodyBrightestTier = "none",
+               _bodyBrightestWhen = "never";
         int _playerPixels, _crowdSampled, _crowdConsidered;
         string _crowdLumRange = "none", _crowdSatRange = "none";
         /// Which committed frame the body/crowd reading came off. See the note
@@ -12281,6 +12318,12 @@ namespace Ledger.Game
                       // "three bodies read like this".
                       $"crowdReadLum={_crowdLum:0.0} crowdReadSat={_crowdSat:0.000} crowdRead={_crowdSampled} " +
                       $"crowdConsidered={_crowdConsidered} crowdLumRange={_crowdLumRange} " +
+                      // The palest figure any frame had, pre-named: a PEAK,
+                      // with its comparand from the same instant. See
+                      // MeasureBodyRead — this is the white-pill catcher.
+                      $"bodyBrightest={_bodyBrightest:0.0} bodyBrightestWho={_bodyBrightestWho} " +
+                      $"bodyBrightestTier={_bodyBrightestTier} bodyBrightestWhen={_bodyBrightestWhen} " +
+                      $"bodyBrightestCrowdMed={_bodyBrightestCrowdMed:0.0} " +
                       $"crowdSatRange={_crowdSatRange} " +
                       $"bodyChoices={RealBody.BodyChoices} " +
                       // Kit-model props that actually reached the world.
