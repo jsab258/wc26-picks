@@ -27,7 +27,14 @@
     "tier": "A",
     "found": null,
     "tried": [
-      "\\bstanding block idle\\b"
+      "\\bstanding block idle\\b",
+      "^blocking\\\\b",
+      "^standing block\\\\b",
+      "^block\\\\b",
+      "^center block\\\\b"
+    ],
+    "setAside": [
+      "block_hold__Standing Block Idle_2dee24f8-3b49-48af-b735-c6377509eaac.fbx"
     ]
   },
   "block_end": {
@@ -254,10 +261,9 @@
   },
   "argue": {
     "tier": "B",
-    "found": null,
-    "tried": [
-      "^standing arguing\\b"
-    ]
+    "found": "Angry Gesture_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": false,
+    "pattern": "^angry gesture\\b"
   },
   "phone_box": {
     "tier": "B",
@@ -289,6 +295,9 @@
     "tried": [
       "^smoking\\b",
       "\\bsmok(e|ing)\\b"
+    ],
+    "setAside": [
+      "smoke__Smoking_2dee24f8-3b49-48af-b735-c6377509eaac.fbx"
     ]
   },
   "work_counter": {
@@ -311,12 +320,9 @@
   },
   "lie_still": {
     "tier": "C",
-    "found": null,
-    "tried": [
-      "\\blying down\\b",
-      "\\blying\\b",
-      "\\bdead\\b"
-    ]
+    "found": "Laying Idle_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^laying idle\\b"
   },
   "walk_f": {
     "tier": "B",
@@ -353,6 +359,9 @@
     "found": null,
     "tried": [
       "^thinking\\b"
+    ],
+    "setAside": [
+      "thinking__Thinking_2dee24f8-3b49-48af-b735-c6377509eaac.fbx"
     ]
   },
   "laugh": {
@@ -383,15 +392,18 @@
     "tier": "D",
     "found": null,
     "tried": [
-      "^searching pockets\\b"
+      "^searching pockets\\b",
+      "^patting\\\\b"
+    ],
+    "setAside": [
+      "pockets__Searching Pockets_2dee24f8-3b49-48af-b735-c6377509eaac.fbx"
     ]
   },
   "rummage": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^rummaging\\b"
-    ]
+    "found": "Picking Up Object_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": false,
+    "pattern": "^picking up object\\b"
   },
   "lift": {
     "tier": "D",
@@ -409,7 +421,12 @@
     "tier": "D",
     "found": null,
     "tried": [
-      "^sitting drinking\\b"
+      "^sitting drinking\\b",
+      "^sitting dazed\\b",
+      "^sitting\\\\b"
+    ],
+    "setAside": [
+      "sit_drink__Sitting Drinking_2dee24f8-3b49-48af-b735-c6377509eaac.fbx"
     ]
   }
 }
