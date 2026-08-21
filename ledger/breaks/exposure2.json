@@ -2,7 +2,7 @@
   {
     "name": "day and night exposed identically -- the defect the ordering check called a near miss",
     "file": "Assets/Scripts/Core/LightModel.cs",
-    "old": "            double e = 1.0 + 0.12 * (1 - night) - 0.08 * night\n                       - 0.15 * rain * (1 - night) + 0.06 * rain * night;",
+    "old": "            double e = 1.0 + 0.28 * (1 - night) - 0.08 * night\n                       - 0.15 * rain * (1 - night) + 0.06 * rain * night;",
     "new": "            double e = 1.0 + 0.01 * (1 - night) - 0.005 * night\n                       - 0.15 * rain * (1 - night) + 0.06 * rain * night;"
   }
 ]

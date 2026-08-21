@@ -82,9 +82,20 @@ namespace Ledger.Core
             // So the aperture now moves in both directions around noon, and
             // the gap between them is the thing being asserted rather than
             // either end.
-            double e = 1.0 + 0.12 * (1 - night) - 0.08 * night
+            // Day term 0.12 → 0.28 (M17.10, after the shadow batch landed).
+            // The ambient share and shadow strength changes pulled the noon
+            // scene mean 0.289 → 0.252 → 0.205 across three landed builds —
+            // the shade got RIGHT and the lit surfaces sank with it, which is
+            // the opposite of the reference: GTA noon is bright with deep
+            // shade, not dim with deep shade. Opening the day aperture
+            // restores the lit side while the shadowed:lit RATIO — the thing
+            // the whole rebalance was for, measured at 0.21 mean drop over
+            // 57% of pixels — rides the light, not the exposure, and keeps.
+            // Night terms untouched; the noon/night gap widens, which is the
+            // direction every instrument wants.
+            double e = 1.0 + 0.28 * (1 - night) - 0.08 * night
                        - 0.15 * rain * (1 - night) + 0.06 * rain * night;
-            return Feel.Clamp(e, 0.7, 1.25);
+            return Feel.Clamp(e, 0.7, 1.35);
         }
 
         // ---- bloom ----------------------------------------------------------
