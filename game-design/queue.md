@@ -315,7 +315,15 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 - **Turn a still into a number.** Five faults found by opening a frame and none
   by a gate. Anything a frame shows that no metric names is a metric worth
   adding.
-- **THE DROP PIPELINE.** Two of six windows miss in a typical run. The
-  waypoint-collider cause is fixed; the second — steered the whole window,
-  stalled seven metres out — has no explanation and `stalled=` lands next
-  build. **Deliberately not loosened** (rule 6).
+- **THE DROP PIPELINE — MEASURED AT LAST (21 Aug night, two builds of
+  instrumentation).** The window is **6–10 watcher ticks, not the comments'
+  21** — a drop posted at 29m is unreachable by construction, and the run
+  flag never flaps (ran==ticks on every window; the earlier speed inference
+  was wrong because the tick count was). The remaining misses split clean:
+  (a) posting distance exceeds what the real window buys — read how DayJob
+  windows map to sim ticks before touching either (the sim's time
+  compression may be shrinking a window a real player would find fair —
+  rule 3, suspect the harness); (b) one drop was a hard BODY-BLOCK: zero
+  metres walked in nine ticks, one person at arm's length, 6m from the
+  target — the bot's MoveTowards has no way around a body standing in the
+  path. **Still deliberately not loosened** (rule 6).
