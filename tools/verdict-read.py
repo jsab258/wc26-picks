@@ -40,15 +40,55 @@ ROOT = Path(__file__).resolve().parent.parent
 SHOTS = ROOT / "game-design" / "sim-shots"
 
 
+def run_stamp_of_text(first_line):
+    """The stamp itself, over TEXT, so the selftest can drive it without
+    inventing files on disk — the same split `lint_text` has."""
+    m = re.search(r"@(\d{6,})", first_line or "")
+    return int(m.group(1)) if m else 0
+
+
+def run_stamp(path):
+    """The run's OWN timestamp, off its header line, not the file's mtime.
+
+    `# Sim verdict — <sha7> @<epoch>` is written by the build that produced
+    it, so it travels with the content. Returns 0 when the header is absent,
+    which sorts such a file last rather than dropping it silently.
+    """
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            first = fh.readline()
+    except OSError:
+        return 0
+    return run_stamp_of_text(first)
+
+
 def newest_measuring_run():
     """The newest per-run verdict whose sim actually ran.
 
     A build that dies on a licence seat or a compile error still commits a
     verdict, so "newest file" and "newest answer" are different questions —
     the same distinction `landed.py` had to learn.
+
+    NEWEST BY THE RUN'S OWN STAMP, NOT BY FILE MTIME, AND THAT DISTINCTION
+    COST A WRONG ANSWER TODAY.
+    ---------------------------------------------------------------------
+    This sorted by `st_mtime`. Mtime is a property of this container's disk,
+    not of the run: a fresh clone, a `git checkout`, or the `git reset --hard`
+    that repairs a container rollback rewrites every file's mtime to roughly
+    the same instant, in whatever order git happened to write them.
+
+    The container rolled back twice in one session — the fifth and sixth times
+    this project has seen it — and after the repair this function returned a
+    run from seventeen days earlier. It printed the filename it had chosen,
+    which is the only reason it was caught, and it presented that run's numbers
+    as the answer to a question about the newest build.
+
+    That is the exact class this whole file exists to prevent, one layer down:
+    a confident wrong answer with nothing in the output marking it as a
+    choice. The header stamp cannot drift, because the build that measured the
+    run is what wrote it.
     """
-    runs = sorted((SHOTS / "runs").glob("*.txt"),
-                  key=lambda p: p.stat().st_mtime, reverse=True)
+    runs = sorted((SHOTS / "runs").glob("*.txt"), key=run_stamp, reverse=True)
     for p in runs:
         if "NO PLAYER LOG" not in p.read_text(encoding="utf-8", errors="replace"):
             return p
@@ -180,7 +220,29 @@ def selftest():
     --selftest`: the expensive failure mode for a validator is not that it
     misses something, it is that nothing survives it and the run lands nothing.
     """
+    # WHICH RUN GETS READ, BOTH WAYS, BECAUSE MTIME LIED ONCE ALREADY.
+    #
+    # `run_stamp` reads the header the build wrote; the old version sorted by
+    # file mtime, which is a property of this container's disk. A container
+    # rollback plus the `git reset --hard` that repairs it rewrites every mtime
+    # at once, and this function returned a run seventeen days stale while
+    # presenting it as the newest answer.
+    #
+    # Rejecting case FIRST here because it is the one that regressed: a run
+    # whose header is newer must win even when its file is the oldest on disk.
     ok = True
+    if run_stamp_of_text("# Sim verdict — abc1234 @1787247881") != 1787247881:
+        ok = False
+        print("verdict-read --selftest: run stamp not read from the header")
+    if run_stamp_of_text("# Sim verdict — abc1234") != 0:
+        ok = False
+        print("verdict-read --selftest: a header with no stamp must sort last, "
+              "not crash or win")
+    if not (run_stamp_of_text("# Sim verdict — a @1787247881")
+            > run_stamp_of_text("# Sim verdict — b @1787003600")):
+        ok = False
+        print("verdict-read --selftest: newer header must outrank older header")
+
     good = lint_text(SELFTEST_GOOD)
     if good:
         ok = False
