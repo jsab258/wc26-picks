@@ -1073,21 +1073,66 @@ namespace Ledger.Game
             // a capping slab, standing on the roofline at each party wall.
             // Emitted here because the generator makes specs and geometry
             // belongs to the build pass.
-            int cn = 0;
+            int cn = 0, aerials = 0;
             foreach (var (cpos, baseY) in TerraceChimneys)
             {
                 MakeBox($"Chimney_{cn}", cpos + new Vector3(0, baseY + 0.65f, 0),
                     new Vector3(0.85f, 1.3f, 0.85f), AssetLibrary.BrickRed);
                 MakeBox($"ChimneyCap_{cn}", cpos + new Vector3(0, baseY + 1.38f, 0),
                     new Vector3(1.05f, 0.16f, 1.05f), AssetLibrary.Concrete);
+                // CHIMNEY POTS — two squat clay cylinders per stack, which is
+                // what turns "a box on a roof" into a British terrace at a
+                // glance (M17.10, the Britishness pass).
+                foreach (float px in new[] { -0.22f, 0.22f })
+                    MakeBox($"ChimneyPot_{cn}_{(px < 0 ? "a" : "b")}",
+                        cpos + new Vector3(px, baseY + 1.62f, 0),
+                        new Vector3(0.20f, 0.34f, 0.20f), AssetLibrary.BrickRed);
+                // AND A TV AERIAL ON MOST OF THEM — it is the late eighties,
+                // so every roofline carries one. A mast lashed to the stack,
+                // a boom, three elements; members kept chunky enough (3.5cm)
+                // to survive 1280x720 rather than shimmer away like the first
+                // cables did.
+                if (Ledger.Core.Dressing.Roll(cpos.x, cpos.z, 51) < 0.62)
+                {
+                    float my = baseY + 1.4f;
+                    var mast = cpos + new Vector3(0.38f, my + 0.9f, 0.1f);
+                    MakeBox($"AerialMast_{cn}", mast,
+                        new Vector3(0.035f, 1.8f, 0.035f), AssetLibrary.Metal);
+                    float ay = my + 1.68f;
+                    float yaw = (float)Ledger.Core.Dressing.Roll(cpos.x, cpos.z, 52);
+                    // The boom points roughly one way per street (everyone
+                    // aims at the same transmitter), with a little scatter.
+                    bool ew = yaw < 0.7f;
+                    var boomSize = ew ? new Vector3(1.1f, 0.035f, 0.035f)
+                                      : new Vector3(0.035f, 0.035f, 1.1f);
+                    MakeBox($"AerialBoom_{cn}",
+                        new Vector3(mast.x, ay, mast.z), boomSize, AssetLibrary.Metal);
+                    for (int el = 0; el < 3; el++)
+                    {
+                        float t = -0.42f + el * 0.36f;
+                        var epos = ew
+                            ? new Vector3(mast.x + t, ay, mast.z)
+                            : new Vector3(mast.x, ay, mast.z + t);
+                        var esize = ew ? new Vector3(0.035f, 0.035f, 0.55f - el * 0.09f)
+                                       : new Vector3(0.55f - el * 0.09f, 0.035f, 0.035f);
+                        MakeBox($"AerialEl_{cn}_{el}", epos, esize, AssetLibrary.Metal);
+                    }
+                    aerials++;
+                }
                 cn++;
             }
             ChimneyCount = cn;
+            AerialCount = aerials;
         }
 
         /// How many chimney stacks the build pass actually emitted — the
         /// denominator smokeStacks was missing when it read 2.
         public static int ChimneyCount;
+
+        /// How many of those stacks carry a TV aerial (M17.10 Britishness
+        /// pass) — the roll is 0.62 so this should sit near two-thirds of
+        /// ChimneyCount; zero with chimneys present means the branch died.
+        public static int AerialCount;
 
         /// THE BACK OF A BLOCK, WHICH HAS BINS AND DRAINPIPES AND NO SHAPE.
         ///
