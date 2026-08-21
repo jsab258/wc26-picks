@@ -234,10 +234,18 @@ namespace Ledger.EditorTools
             // reader takes the first whitespace-delimited token — so the
             // earlier reading of this key was literally `controller=not`,
             // which is the truncation that looks like a finding.
+            // NAMED `canonController*`, NOT `why` AND `of`. The first version
+            // used those two bare words, and the key ledger took them as new
+            // verdict keys — which they are, and they are the worst possible
+            // ones: `why=` and `of=` are words that will be wanted again by
+            // the next system that needs to say why something happened, and
+            // then two unrelated numbers share a key and every reader that
+            // greps for one silently gets the other. The dupkeys tool exists
+            // because that already happened 30 times on one line.
             Debug.Log($"CharacterPrefab: canonical controller "
-                      + $"clipsBound={ClipsBound} "
-                      + $"why=[{ControllerWhy.Replace(' ', '_')}] "
-                      + $"of={Variants} body prefab(s)");
+                      + $"canonClipsBound={ClipsBound} "
+                      + $"canonControllerWhy=[{ControllerWhy.Replace(' ', '_')}] "
+                      + $"canonBodies={Variants}");
         }
 
         /// THE THREE BONE HEIGHTS `Proportion` NEEDS, off the imported model.

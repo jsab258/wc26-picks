@@ -110,8 +110,30 @@ WANTS = [
     # that worked last time. Verified present in the catalogue — the selftest
     # now names any pattern that matches nothing, so a dead alternative cannot
     # sit here looking like a fallback.
-    ("draw_reach",   "A", [r"\bgrabbing pistol\b", r"\bunarmed equip underarm\b",
-                           r"\bdraw sword 1\b", r"\bdraw(ing)? sword\b"]),
+    # AND `Grabbing Pistol` WAS THE WRONG REPLACEMENT, MEASURED ONE RUN LATER.
+    # The duplicate half above was right — `argue` took `Standing Arguing`
+    # back and it reads 20.80s, 26.84cm of hip motion, 39 degrees of turn,
+    # hips 96/97/99, travel 0.00, which is an argument exactly. The clip I
+    # sent here instead is a man ON THE FLOOR: hips 46/46/47cm flat for 6.70
+    # seconds, against 88-104 for every other upright clip in the set. It is
+    # somebody crouching to pick a pistol up off the ground, and it tripped
+    # the frozen-root rule because a crouched body holding still is frozen.
+    #
+    # NOT EXEMPTED, and the temptation to was the whole lesson: a frozen root
+    # IS definitional for `lie_still`, and reasoning from what the slot name
+    # means would have waved this through on the same argument. The hip
+    # reading is what separated them, and it took ten seconds to look at.
+    #
+    # `Draw Sword 1` instead — the sibling of `Sheath Sword 1`, which
+    # `draw_holster` already uses and which reads 52..99cm, a body standing up
+    # into a reach. No swords in a British port town; what is wanted is the
+    # BODY motion of reaching across yourself, and the neighbouring slot has
+    # been getting it from this family since it was picked.
+    #
+    # `unarmed equip underarm` stays, LAST, so it can never outrank `argue`
+    # for those bytes again.
+    ("draw_reach",   "A", [r"\bdraw sword 1\b", r"\bdraw(ing)? sword\b",
+                           r"\bgrabbing pistol\b", r"\bunarmed equip underarm\b"]),
     ("draw_holster", "A", [r"\bsheath sword 1\b", r"\bsheathing sword\b",
                            r"\bsheath"]),
     ("draw_gun",     "A", [r"\bdrawing gun\b"]),
@@ -464,6 +486,28 @@ def travel_m(path):
         return None
 
 
+def frozen_root(path):
+    """(is_frozen, movedCm, turnedDeg). (None, 0, 0) when unreadable.
+
+    THE READING COMES FROM `clip-motion`, NOT FROM A SECOND COPY OF THE RULE.
+    Its `measure()` already returns the flag and both bounds, and this module
+    already loads it for hips and travel — so asking it one more question costs
+    nothing, while re-deriving "moved less than a centimetre and turned less
+    than two degrees" here would be the one-idea-two-implementations fault this
+    project keeps paying for.
+    """
+    global _CM
+    try:
+        if _CM is None:
+            _CM = _motion()
+        r = _CM.measure(path)
+        if "error" in r or "frozen" not in r:
+            return None, 0.0, 0.0
+        return r["frozen"], r["movedCm"], r["turnedDeg"]
+    except Exception:
+        return None, 0.0, 0.0
+
+
 def motion_ok(slot, path):
     """(ok, why). Does the clip go somewhere, when its name says it should.
 
@@ -518,7 +562,43 @@ def posture_ok(slot, path):
     if want == "falls" and not (lo < FLOOR_CM and hi >= 80.0):
         return False, (f"hips run {lo:.0f}..{hi:.0f}cm — it never goes from "
                        f"standing to the floor")
+
     return True, ""
+
+
+def frozen_but_usable(slot, path):
+    """(is_second_best, why). A frozen root is a PREFERENCE, never a refusal.
+
+    `clip-motion` has flagged frozen roots for weeks and the picker never
+    asked, so a frozen clip could be chosen and only the post-hoc audit caught
+    it — one idea, two implementations, the screening half missing the check.
+    It cost a round trip: `draw_reach` took `Grabbing Pistol`, somebody
+    crouched on the floor picking a pistol up, hips 46cm flat for 6.70 seconds
+    against 88-104 for every other upright clip. `posture_ok` passed it because
+    `upright` is anything at or above 39cm.
+
+    THE FIRST VERSION OF THIS WAS A REFUSAL AND WOULD HAVE BEEN A RATCHET.
+    Run against the shipped set it also refused `lean` and `block_end` — the
+    two entries the debt ledger has carried for days and describes as ARGUABLE,
+    because ending a block and leaning are things a body does without its hips
+    going anywhere. The catalogue holds no alternate name for either, so
+    refusing them empties the slots, and `lean` is one of the fourteen the
+    street actually plays. A guard that empties a visible slot to fix one
+    nothing calls is rule 5's ratchet wearing a new coat.
+
+    So: a frozen candidate is passed over while a cleaner one might still be
+    found, and taken anyway if nothing better exists. `draw_reach` gets
+    `Draw Sword 1`; `lean` keeps `Leaning` and stays on the ledger where it
+    was already recorded and explained.
+
+    The exemption list is `clip-motion`'s own, read rather than restated, so
+    `lie_still` stays legal in both tools by construction.
+    """
+    frozen, moved, turned = frozen_root(path)
+    if not frozen or slot in getattr(_CM, "STILL_BY_DEFINITION", ()):
+        return False, ""
+    return True, (f"hips move {moved:.2f}cm and turn {turned:.1f}° in the "
+                  f"whole clip — animated from the waist up")
 
 
 def pick(items, patterns, taken=None, cache=None, slot=None):
@@ -540,6 +620,7 @@ def pick(items, patterns, taken=None, cache=None, slot=None):
     does not, the slot goes MISSING, which is a report rather than a silent
     wrong answer.
     """
+    fallback = None
     for depth, pat in enumerate(patterns):
         rx = re.compile(pat)
         hits = [it for it in items if rx.search(it[0])]
@@ -556,7 +637,22 @@ def pick(items, patterns, taken=None, cache=None, slot=None):
             if not ok:
                 print(f"    wrong posture: {hit[1]} — {why} — skipping")
                 continue
+            # HELD BACK, NOT REFUSED. A frozen root is second-best rather than
+            # wrong: for `lean` and `block_end` the catalogue offers nothing
+            # else and the debt ledger already carries them as arguable, so
+            # refusing outright would empty a slot the street plays. The first
+            # one seen is kept and used only if every pattern runs dry.
+            second, sw = frozen_but_usable(slot, hit[2])
+            if second:
+                if fallback is None:
+                    fallback = (hit, depth, digest, sw)
+                print(f"    frozen root: {hit[1]} — {sw} — looking for better")
+                continue
             return hit, depth, digest
+    if fallback is not None:
+        hit, depth, digest, sw = fallback
+        print(f"    nothing better than {hit[1]} — taking it ({sw})")
+        return hit, depth, digest
     return None, -1, None
 
 
@@ -850,6 +946,43 @@ def selftest():
                   "%s axes, %d known-bad clip(s) refused on %d branch(es)"
                   % (accepted, "/".join(sorted(axes_seen)) or "no",
                      refused, len(set(b for _f, _s, b in KNOWN_BAD))))
+
+        # THE FROZEN PREFERENCE, BOTH WAYS, and the SECOND case is the one that
+        # matters: a refusal here empties `lean`, which the street plays and
+        # for which the catalogue offers nothing else.
+        froz, clean = one("lean"), one("run")
+        if froz is None or clean is None:
+            failures.append("the frozen preference was not tested — need the "
+                            "shipped `lean` and `run` clips")
+        else:
+            fd = os.path.join(tmp, "froz")
+            os.makedirs(fd)
+            # The frozen one gets the SHORTER name, so preferring the clean one
+            # has to beat the shortest-name tiebreak rather than ride on it.
+            shutil.copy2(froz, os.path.join(fd, "Zed.fbx"))
+            shutil.copy2(clean, os.path.join(fd, "Zed Longer Name.fbx"))
+            with open(os.devnull, "w") as null:
+                with contextlib.redirect_stdout(null):
+                    hit, _d, _g = pick(catalogue(fd), [r"^zed\b"], {}, {},
+                                       slot="hands_up")
+            if hit is None:
+                failures.append("the frozen preference refused a slot outright "
+                                "when a clean candidate existed")
+            elif hit[1] != "Zed Longer Name":
+                failures.append("the frozen preference took %r over the clean "
+                                "candidate" % hit[1])
+
+            # AND TAKEN WHEN IT IS THE ONLY THING THERE.
+            od = os.path.join(tmp, "onlyfroz")
+            os.makedirs(od)
+            shutil.copy2(froz, os.path.join(od, "Zed.fbx"))
+            with open(os.devnull, "w") as null:
+                with contextlib.redirect_stdout(null):
+                    hit, _d, _g = pick(catalogue(od), [r"^zed\b"], {}, {},
+                                       slot="hands_up")
+            if hit is None:
+                failures.append("a frozen clip with no alternative was refused "
+                                "— that empties `lean`, which the street plays")
 
         # SET-ASIDE, BOTH WAYS. It moves a file, so the case it must NOT act on
         # is the expensive one: a slot the patterns stopped naming may still
