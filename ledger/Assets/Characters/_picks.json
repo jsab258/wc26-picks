@@ -25,17 +25,9 @@
   },
   "block_hold": {
     "tier": "A",
-    "found": null,
-    "tried": [
-      "\\bstanding block idle\\b",
-      "^blocking\\\\b",
-      "^standing block\\\\b",
-      "^block\\\\b",
-      "^center block\\\\b"
-    ],
-    "setAside": [
-      "block_hold__Standing Block Idle_2dee24f8-3b49-48af-b735-c6377509eaac.fbx"
-    ]
+    "found": "Blocking_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "exact": false,
+    "pattern": "^blocking\\b"
   },
   "block_end": {
     "tier": "A",
@@ -99,9 +91,9 @@
   },
   "draw_reach": {
     "tier": "A",
-    "found": "Unarmed Equip Underarm_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "found": "Grabbing Pistol_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": true,
-    "pattern": "\\bunarmed equip underarm\\b"
+    "pattern": "\\bgrabbing pistol\\b"
   },
   "draw_holster": {
     "tier": "A",
@@ -261,9 +253,9 @@
   },
   "argue": {
     "tier": "B",
-    "found": "Angry Gesture_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": false,
-    "pattern": "^angry gesture\\b"
+    "found": "Standing Arguing_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "exact": true,
+    "pattern": "^standing arguing\\b"
   },
   "phone_box": {
     "tier": "B",
@@ -296,9 +288,7 @@
       "^smoking\\b",
       "\\bsmok(e|ing)\\b"
     ],
-    "setAside": [
-      "smoke__Smoking_2dee24f8-3b49-48af-b735-c6377509eaac.fbx"
-    ]
+    "setAside": []
   },
   "work_counter": {
     "tier": "C",
@@ -360,9 +350,7 @@
     "tried": [
       "^thinking\\b"
     ],
-    "setAside": [
-      "thinking__Thinking_2dee24f8-3b49-48af-b735-c6377509eaac.fbx"
-    ]
+    "setAside": []
   },
   "laugh": {
     "tier": "D",
@@ -390,14 +378,9 @@
   },
   "pockets": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^searching pockets\\b",
-      "^patting\\\\b"
-    ],
-    "setAside": [
-      "pockets__Searching Pockets_2dee24f8-3b49-48af-b735-c6377509eaac.fbx"
-    ]
+    "found": "Patting_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
+    "exact": false,
+    "pattern": "^patting\\b"
   },
   "rummage": {
     "tier": "D",
@@ -419,14 +402,8 @@
   },
   "sit_drink": {
     "tier": "D",
-    "found": null,
-    "tried": [
-      "^sitting drinking\\b",
-      "^sitting dazed\\b",
-      "^sitting\\\\b"
-    ],
-    "setAside": [
-      "sit_drink__Sitting Drinking_2dee24f8-3b49-48af-b735-c6377509eaac.fbx"
-    ]
+    "found": "Sitting_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": false,
+    "pattern": "^sitting\\b"
   }
 }
