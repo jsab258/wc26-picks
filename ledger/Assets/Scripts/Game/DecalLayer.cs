@@ -46,7 +46,15 @@ namespace Ledger.Game
         public static void Build()
         {
             RoadDecals = 0; WallDecals = 0;
-            var root = Path.Combine(Application.streamingAssetsPath, "Decals");
+            // `ambientcg` IS PART OF THE PATH. fetch_visual.py banks each set
+            // under Decals/ambientcg/<ID> and this loader joined Decals/<ID>
+            // — two implementations of one layout, and the first run with
+            // files on disk (98d8683) read `dir_present,_no_set_loaded`
+            // because every per-set Directory.Exists missed by one segment.
+            // Rule 5b's twin: the loader had no run in which the files
+            // existed until the fetch landed, so both halves looked right.
+            var root = Path.Combine(Application.streamingAssetsPath,
+                                    "Decals", "ambientcg");
             if (!Directory.Exists(root))
             {
                 Why = "no decal dir; fetch not landed";

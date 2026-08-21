@@ -50,13 +50,25 @@ namespace Ledger.EditorTools
             if (!AssetDatabase.IsValidFolder(ResourceDir))
                 AssetDatabase.CreateFolder("Assets/Resources", "Props");
 
-            foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { SourceDir }))
+            // BY EXTENSION, NOT BY `t:Model`. The type filter only matches
+            // Unity's native ModelImporter output (.fbx and friends); glTFast
+            // imports .glb through a ScriptedImporter whose main asset is a
+            // plain GameObject, so the first build with 37 GLBs on disk found
+            // ZERO of them (`furniture=0`, 98d8683) while every FBX kit
+            // passed. Files on disk are the ground truth the fetch commits;
+            // the importer's opinion of each is what `noAsset` then reports.
+            int noAsset = 0;
+            var exts = new[] { ".fbx", ".obj", ".glb", ".gltf" };
+            foreach (var file in System.IO.Directory.GetFiles(
+                         SourceDir, "*.*", System.IO.SearchOption.AllDirectories))
             {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var ext = System.IO.Path.GetExtension(file).ToLowerInvariant();
+                if (System.Array.IndexOf(exts, ext) < 0) continue;
+                var path = file.Replace('\\', '/');
                 ModelsFound++;
                 try
                 {
-                    BuildOne(path);
+                    if (!BuildOne(path)) noAsset++;
                 }
                 catch (System.Exception e)
                 {
@@ -66,14 +78,22 @@ namespace Ledger.EditorTools
                 }
             }
             AssetDatabase.SaveAssets();
+            // `noAsset` is the denominator rule 3b demands: "the package did
+            // not import the file" and "the file is not there" must not both
+            // print as zero prefabs.
             Debug.Log($"PropPrefab: {PrefabsWritten} prefab(s) written from "
-                      + $"{ModelsFound} model(s) under {SourceDir}");
+                      + $"{ModelsFound} model file(s) under {SourceDir}, "
+                      + $"{noAsset} with no importable main asset");
         }
 
-        static void BuildOne(string modelPath)
+        /// False when the path yields no GameObject main asset — for a .glb
+        /// that means glTFast is absent or failed to import it, and the
+        /// caller counts those separately from files that are simply not
+        /// there.
+        static bool BuildOne(string modelPath)
         {
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
-            if (model == null) return;
+            if (model == null) return false;
 
             var rel = modelPath.Substring(SourceDir.Length + 1);
             var slash = rel.IndexOf('/');
@@ -82,7 +102,7 @@ namespace Ledger.EditorTools
             var key = Key(kit, stem);
 
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(model);
-            if (instance == null) return;
+            if (instance == null) return false;
             try
             {
                 instance.name = "Prop_" + key;
@@ -110,6 +130,7 @@ namespace Ledger.EditorTools
             {
                 Object.DestroyImmediate(instance);
             }
+            return true;
         }
     }
 }

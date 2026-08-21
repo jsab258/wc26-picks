@@ -23,7 +23,11 @@ set -uo pipefail
 
 LOG="${1:-build-log/unity.log}"
 MAX="${2:-40}"
-PATTERN="CharacterAudit: |CharacterPrefab: |CharacterMaterials: "
+# `PropPrefab: ` joined 21 Aug: `furniture=0` was diagnosed BLIND because
+# the prop pipeline's own log lines never reached the verdict — the one
+# readable channel (rule 12). The summary line and per-model lines both
+# match the prefix.
+PATTERN="CharacterAudit: |CharacterPrefab: |CharacterMaterials: |PropPrefab: "
 
 if [ ! -f "$LOG" ]; then
   echo
@@ -46,4 +50,9 @@ grep -E "$PATTERN" "$LOG" | head -"$MAX"
 if [ "$TOTAL" -gt "$MAX" ]; then
   echo "CharacterAudit: (+$((TOTAL - MAX)) more character lines not shown)"
 fi
+# THE PROP SUMMARY, ALWAYS. It is printed AFTER ~90 per-model lines, so the
+# cap above cuts precisely the one line that says how many prefabs were
+# written and how many files would not import — the number `furniture=`
+# needs beside it. Grepped again on its own so the cap cannot eat it.
+grep -E "PropPrefab: [0-9]+ prefab" "$LOG" | tail -1
 exit 0
