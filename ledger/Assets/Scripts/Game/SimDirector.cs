@@ -12377,6 +12377,9 @@ namespace Ledger.Game
                       $"roadDecals={DecalLayer.RoadDecals} " +
                       $"wallDecals={DecalLayer.WallDecals} " +
                       $"decalWhy=[{DecalLayer.Why.Replace(' ', '_')}] " +
+                      $"furniture={Furniture.Placed} " +
+                      $"furnitureWhy=[{Furniture.Why.Replace(' ', '_')}] " +
+                      $"yellowLines={Furniture.YellowLines} " +
                       $"walkerBodyCap={NpcWalker.RealBodyCap} " +
                       $"walkerBodiesFailed={RealBody.ExtraFailed} " +
                       $"walkerBodyWhy=[{RealBody.ExtraWhy}] " +

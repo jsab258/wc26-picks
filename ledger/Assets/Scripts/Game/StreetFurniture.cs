@@ -35,6 +35,9 @@ namespace Ledger.Game
             // cables and reads the same street map, prosperity constants and
             // deterministic rolls — one dressing pass, several vocabularies.
             DecalLayer.Build();
+            // And the objects themselves: bins, bollards, benches, dock
+            // clutter, double yellows — same phase, same rolls.
+            Furniture.Build();
         }
 
         /// How many cables got strung. Read by the sim, for the same reason

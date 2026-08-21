@@ -299,7 +299,7 @@ namespace Ledger.Core
             }
         }
 
-        static double WarehouseShare(string district)
+        public static double WarehouseShare(string district)
         {
             switch (district)
             {
