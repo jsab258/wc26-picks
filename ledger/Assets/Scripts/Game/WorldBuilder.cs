@@ -2749,7 +2749,18 @@ namespace Ledger.Game
             var sun = go.AddComponent<Light>();
             sun.type = LightType.Directional;
             sun.shadows = LightShadows.Soft;
-            sun.shadowStrength = 0.75f;
+            // 0.75 → 0.93 (M17.10 V1). At 0.75 a shadowed pixel kept a
+            // quarter of the sun ON TOP of the old over-bright ambient, which
+            // together is most of why no noon still has ever shown a shadow
+            // worth pointing at. The built-in term is lerp(1, map, strength),
+            // so what strength leaves behind is DIRECT sun-coloured leak that
+            // also desaturates the cool ambient fill inside the shadow —
+            // 0.93 leaves 7%, and the research arithmetic through our own
+            // tonemap puts the shadowed:lit display ratio near the 0.5 the
+            // GTA reference noons read at. Not 1.0: with ambient at 0.45 of
+            // the dome there is fill to catch, but a fully-black direct term
+            // still risks reading as a hole on dark albedo.
+            sun.shadowStrength = 0.93f;
             return sun;
         }
 

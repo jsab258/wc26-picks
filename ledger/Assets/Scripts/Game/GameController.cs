@@ -3079,21 +3079,27 @@ namespace Ledger.Game
             // Rain flattens and cools the key light — an overcast sky is a big
             // soft source, not a small hard one (art pass 2026-07-28).
             float wet = Weather.Rain;
-            _sun.intensity = Mathf.Lerp(0.02f, 1.15f, daylight) * Mathf.Lerp(1f, 0.45f, wet);
+            // 1.15 → 1.65 at clear noon (M17.10 V1): against the new ambient
+            // share the key:fill ratio lands near 4:1, which is what makes
+            // the reference frames' noon read as DIRECTIONAL — a lamp post
+            // lying on the pavement instead of a street lit from nowhere.
+            // The wet multiplier stays: overcast really does flatten the key.
+            _sun.intensity = Mathf.Lerp(0.02f, 1.65f, daylight) * Mathf.Lerp(1f, 0.45f, wet);
             _sun.color = Color.Lerp(
                 Color.Lerp(new Color(1f, 0.55f, 0.35f), Color.white, daylight),
                 new Color(0.72f, 0.78f, 0.88f), wet);
 
-            // Gradient ambient (sky/equator/ground) + fog, lerped night→day. Richer than
-            // a single flat ambient colour: surfaces pick up sky tint from above and a
-            // warm bounce from the ground.
-            // A RESTRICTED PALETTE, held deliberately (stylised noir). Night is
-            // a deep blue-teal so the sodium lamps and neon read as warm
-            // against it — the contrast IS the look, and it is what keeps a
-            // rainy street inviting rather than grim.
-            RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.045f, 0.075f, 0.11f), new Color(0.52f, 0.60f, 0.74f), daylight);
-            RenderSettings.ambientEquatorColor = Color.Lerp(new Color(0.05f, 0.06f, 0.085f), new Color(0.44f, 0.45f, 0.47f), daylight);
-            RenderSettings.ambientGroundColor = Color.Lerp(new Color(0.035f, 0.03f, 0.035f), new Color(0.24f, 0.21f, 0.18f), daylight);
+            // THE AMBIENT WRITES THAT USED TO SIT HERE WERE DEAD CODE, AND
+            // THE VALUES BEING TUNED WERE THE CORPSE'S (M17.10 V1).
+            // `SceneLighting.LateUpdate` has written all three ambient
+            // colours from `LightModel` every frame since it gained its
+            // LateUpdate — and LateUpdate runs after Update, so the three
+            // `RenderSettings.ambient*` assignments here lost the frame,
+            // every frame. One idea, two implementations; the live one is
+            // `LightModel.Ambient*` via SceneLighting, and it is now the
+            // ONLY one. The restricted-palette reasoning that stood here
+            // lives on in `LightModel`'s colour functions, which are the
+            // tested copy.
             // THE DAYTIME SKY WAS 2.6x THE SCENE, MEASURED.
             //
             // The first run whose diagnostics could be read reported, at clear

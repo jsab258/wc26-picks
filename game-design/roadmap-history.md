@@ -2662,3 +2662,128 @@ waiting on anything.
    camera moved as a side-effect of the district fix. **The metric agrees with
    the frame, which is the point** — it now exists for the next time, and the
    raycast blindness it was written for is real regardless.
+
+### Retired 21 Aug (evening): the controller-line misread, closed
+
+1. ~~**SIX OF THE FOURTEEN BOUGHT BODIES BUILT NO ANIMATOR CONTROLLER**~~ —
+   **REFUTED IN THE HOUR IT WAS WRITTEN, AND THE REAL FAULT IS THE LINE.**
+   *(21 Aug)* The prefab lines read `clipsBound=-1 controller=not_tried` for
+   six bodies and `clipsBound=3 controller=ok_(idle+walk+run)` for eight, and
+   I wrote the item above off that split before opening the file. Opening it
+   took a minute and the split is not about the bodies at all.
+
+   **Both fields are CANONICAL-ONLY statics.** `MakeController` writes them
+   under `if (canonical)` — `arch == "default" && idleKey == "idle"` — and its
+   own closing comment says outright that "the done-line statics describe only
+   the canonical controller". `BuildOne` printed them once per body anyway. So
+   the value on each line depended only on whether that body was built before
+   or after the canonical one: six read the initialiser, eight read somebody
+   else's result, and **neither half described its own body.** A last-wins
+   static printed per item is the `namesTracked` fault with a loop round it.
+
+   Fixed by moving them to their own line, once, after every body is through,
+   with `Variants` beside them as the denominator — `not tried` is exactly
+   what prints when no body reached the builder, so without a count a run that
+   built nothing looks like one whose canonical body came last. **And the
+   spaces come out**: `controller=ok (idle+walk+run)` is a verdict value with
+   a space in it, which is why the reading was literally `controller=not`.
+
+   **STILL OPEN, and it is the original question:** nothing reports whether a
+   given body got a working controller. The new line says only what the shared
+   one did. Needs a per-body fact on the per-body line — cheap, but it is a
+   Game-layer change and wants batching.
+
+### Retired 21 Aug (late): the clip re-pick chronicle, closed
+
+1. ~~**ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION**~~ — **DOWN TO
+   FIVE EMPTY SLOTS AND NONE WRONG, after two re-picks.** *(on screen; the
+   re-pick runs on Jafar's machine)* Found by
+   the travel column I had written off the day before: `Walking` reads 0.00m
+   and `Standing Arguing` 3.75m. **`walk` is a stationary guard pose with the
+   hands up**, so the slot the whole street is named after does not contain a
+   walk. The picker screens on both axes now — hips for upright-or-floor,
+   travel for does-it-move — with bounds from the measured gap. Twenty-one
+   rejected, forty-six accepted.
+
+   **For Friday:** the re-pick REFUSES a candidate whose contents contradict
+   its name and tries the next; a slot the catalogue cannot fill reports
+   MISSING. **Holes are the right outcome and they are the information.**
+   **Not caught, and said so:** `sit` renders standing at 96cm and the three
+   sitting clips read 18, 94 and 96, so there is no correct example to set a
+   band from. Account in `clip-findings.txt`.
+
+   **JAFAR RAN IT (21 Aug): 59 copied, 3 substituted, 8 missing** — fifteen
+   slots replaced, and every one of the thirteen clips it removed fails the
+   screen, so the screen drove all of it. Three things came out of reading the
+   result, and the second is the one that was on screen:
+
+   - **The selftest's rejecting half went red for the best possible reason.**
+     It named six shipped slots and asserted the screen refused them; the
+     re-pick fixed five. The rejecting case now lives in
+     `tools/mixamo-pick/known-bad/` — four real clips the re-pick removed, one
+     per branch — where no future re-pick can empty it. Both outcomes watched,
+     five ways.
+   - **A MISSING SLOT KEPT SERVING THE CLIP THE SCREEN HAD JUST REFUSED.** The
+     picker clears a slot before copying, under a comment saying two files in
+     one slot means the wrong one is as likely to play as the right one — and
+     the FAILURE path had no such step, so the refused clip stayed and was
+     certain to play. Eight slots were in that state: `lie_still` on a clip
+     whose hips travel 2.18m, `smoke` on 0.68m, `argue` on 3.75m. `set_aside`
+     now renames those to `.rejected` — kept, not deleted, and only when the
+     SCREEN refuses them, so a clip the patterns merely stopped naming is not
+     ratcheted away.
+   - **Six of the eight holes had alternatives the patterns never tried.**
+     Widened; `--dryrun` now reads 65 exact / 2 substitute / **0 missing**.
+     That is a claim about NAMES only — the dryrun has no files, so whether
+     those candidates survive the screen is decided on Jafar's machine.
+     `smoke` and `thinking` have exactly one name each in all 2,846 and both
+     travel, so those two are a harvest hole, not a pick hole.
+
+   **HE RAN IT AGAIN (21 Aug): 62 copied, 5 substituted, 5 missing, 5 SET
+   ASIDE — and the headline is that NOTHING IN THE GAME NOW PLAYS A CLIP THE
+   SCREEN REFUSES.** Audited slot by slot: 62 filled and passing, 5 empty, 0
+   refused-but-shipped. The set-aside path ran for real and moved exactly the
+   five it should. `lie_still` went from a corpse whose hips travel 2.18m to
+   `Laying Idle` at 13.6cm and no travel — which also gives the screen's
+   `floor` branch its first honest accepting case, so that axis is required by
+   the selftest now instead of excused.
+
+   **AND READING IT FOUND TWO THINGS NO CHECK COULD SEE.** Ten of my own
+   patterns could never match anything — a doubled backslash asking for a
+   literal one in a clip name, all ten made in the single edit that replaced
+   the `$` anchors, which is one impossible form fixed by writing another.
+   `block_hold` was down to one live pattern of five, so the widening written
+   for those holes was inert for exactly those holes. The guard claimed to
+   catch "all of them, including the ones nobody has thought of" and was wrong
+   the day it was written: it asks whether a SLOT matched, and a dead pattern
+   beside a live one is structurally invisible. Both fixed — a mechanical
+   doubled-backslash check, and a per-pattern report reading 137 of 145 live.
+   And a second harvester duplicate landed on a combat slot: `draw_reach`
+   holds bytes that are also named `Standing Arguing`, at 20.80s against a
+   2.00s median, so it asks for `Grabbing Pistol` first now.
+
+   **WHAT EMPTYING THOSE FIVE ACTUALLY COSTS ON SCREEN: ONE OF THEM.** Grepped
+   rather than assumed. The activity islands are 14 named slots in
+   `CharacterPrefab.ActivitySlots`, and of the five now empty only `smoke` is
+   among them — `NpcWalker` hands it out to one walker in four. `thinking`,
+   `pockets` and `sit_drink` have **zero** references anywhere in Game or
+   Editor code and `block_hold` has one, in an import loop-mode list. So four
+   of the five were screened, argued about and re-picked twice while nothing
+   could ever play them: rule 6 at asset scale, and worth a sweep of the other
+   62 before any more clip work.
+
+   **A PREDICTION FOR THE BUILD IN FLIGHT, written before it lands so it
+   cannot be reinterpreted afterwards:** `activity states` should read **13 of
+   14** where it read 14 of 14, and `activityRefused` should be non-zero and
+   roughly a quarter of the walkers who were offered an activity — that is the
+   counter added this morning doing the job it was added for. If refusals come
+   back at zero, either nobody was offered a smoke in this run or the counter
+   is not wired, and those are different faults: read `activityAsked` beside
+   it before concluding either.
+
+   **NEXT, AND IT IS JAFAR'S:** one more `REPICK.bat`. Ten patterns that could
+   never fire now can, so `block_hold`, `pockets`, `rummage` and `sit_drink`
+   get their first real attempt, and `draw_reach` sidesteps the duplicate.
+   `smoke` and `thinking` stay a harvest hole — every name they have travels.
+   **`smoke` is the only one of those worth a re-harvest**, on the evidence
+   above.

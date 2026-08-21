@@ -256,6 +256,55 @@ namespace Ledger.Core
             return Desaturate(r, g, b, 0.20 * rain);
         }
 
+        // ---- ambient fill, SEPARATED from the sky dome (M17.10 V1) --------
+
+        /// THE AMBIENT IS NOT THE SKY, and one function was feeding both.
+        ///
+        /// `SkyColour`/`HorizonColour`/`GroundColour` are used twice over:
+        /// painted onto the skybox dome (where their honest daytime
+        /// brightness is correct — an overcast sky IS bright) and written
+        /// into `RenderSettings.ambient*` as the diffuse fill on every
+        /// surface. Reusing the dome brightness as fill put daytime ambient
+        /// luma around 0.6 against a sun of 1.15 — a shaded pixel kept most
+        /// of a lit pixel's light, which is why the noon still shows no
+        /// shadow anyone can point at and why the AO pass, whose relief
+        /// deliberately backs off on bright pixels, measured 0.7% of frame
+        /// luma. The GTA V reference noon is strongly directional: the fill
+        /// is a fraction of the key.
+        ///
+        /// So the ambient WRITES get their own accessors: same hues, same
+        /// night values (night ambient was tuned AS ambient and is kept
+        /// bit-identical), with the DAY portion scaled to `AmbientDayShare`
+        /// of the dome. Rain lifts the share back toward the dome, because
+        /// overcast really is a big soft source — that is frame 3 of the
+        /// reference set, where AO and surface detail carry the image.
+        /// 0.60 → 0.45 same day, off the technique research rather than my
+        /// first guess: worked through the shipped tonemap's own constants,
+        /// share 0.60 with the new sun lands the shadowed:lit display ratio
+        /// near 0.69 — a visible shadow, but above the ~0.45-0.55 band read
+        /// off the GTA reference noons, where a cast shadow is roughly HALF
+        /// the lit brightness. 0.45 with shadow strength 0.93 computes to
+        /// ~0.5. The probe's shadowHit/shadowDrop plus the stills judge it.
+        public const double AmbientDayShare = 0.45;
+
+        static (double r, double g, double b) AmbientOf(
+            (double r, double g, double b) dome, double night, double rain)
+        {
+            night = Feel.Clamp01(night); rain = Feel.Clamp01(rain);
+            // Day share rises toward 1.0 with rain; night is left alone.
+            double share = Mix(Mix(AmbientDayShare, 0.95, rain), 1.0, night);
+            return (dome.r * share, dome.g * share, dome.b * share);
+        }
+
+        public static (double r, double g, double b) AmbientSky(double night, double rain = 0)
+            => AmbientOf(SkyColour(night, rain), night, rain);
+
+        public static (double r, double g, double b) AmbientHorizon(double night, double rain = 0)
+            => AmbientOf(HorizonColour(night, rain), night, rain);
+
+        public static (double r, double g, double b) AmbientGround(double night, double rain = 0)
+            => AmbientOf(GroundColour(night, rain), night, rain);
+
         // ---- fog ----------------------------------------------------------
 
         /// Exponential-squared density. Fog is not weather here, it is DEPTH
@@ -462,7 +511,14 @@ namespace Ledger.Core
         /// Contact-scale, not room-scale: this is meant to darken the seam
         /// where two things meet, and a large radius produces a soft grey
         /// wash that reads as dirt.
-        public const double AoRadiusMetres = 0.55;
+        ///
+        /// 0.55 → 0.85 for M17.10 V1: the reference frames carry visible
+        /// darkening UNDER cars and INSIDE shop recesses, which are
+        /// 0.5-1.0m cavities, not 10cm seams. The wash risk the paragraph
+        /// above names is real and the aoDelta instrument in the sim is what
+        /// decides — if the next run reads as smudge, this number comes back
+        /// down, not the comment.
+        public const double AoRadiusMetres = 0.85;
 
         /// HOW MUCH, from the light. Strong under a flat overcast or at
         /// night under fill, weak under hard sun — because AO is an
@@ -474,8 +530,16 @@ namespace Ledger.Core
             double n = Feel.Clamp01(night), r = Feel.Clamp01(rain);
             // Overcast (rain) flattens daylight into ambient, so AO matters
             // MORE in the rain even at noon.
+            //
+            // Base 0.32 → 0.42 for M17.10 V1. The measured effect of the
+            // whole pass was 0.00135..0.00694 of frame luma — invisible —
+            // and most of that loss is the relief backing off on a frame
+            // where the OLD ambient fill made every pixel bright. The
+            // ambient share fix upstream does the heavy lifting; this base
+            // raise is the second half, and the ceiling stays under the
+            // CoreTests bound (0.42 + 0.38 = 0.80 < 0.85).
             double ambientness = Math.Max(n, r * 0.8);
-            return 0.32 + 0.38 * ambientness;
+            return 0.42 + 0.38 * ambientness;
         }
 
         /// Whether a sample counts. A sample far in FRONT of the surface is

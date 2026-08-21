@@ -68,7 +68,32 @@ namespace Ledger.Game
             // nothing — Core/Detail already refuses to take it to zero,
             // because a city with no shadows reads as broken rather than as
             // cheap.
+            // THE MASTER SWITCH, EXPLICITLY (M17.10 V0). Everything around
+            // this line tunes shadows — cascades, projection, resolution,
+            // distance — and nothing ever SET `QualitySettings.shadows`. The
+            // repo carries no QualitySettings.asset (CI generates the
+            // project), so the master enum was whatever Unity defaulted the
+            // active quality level to: unread by anyone, unproven by any
+            // number. The sim's shadow probe now reports what this actually
+            // was at runtime; this line makes it a decision instead of a
+            // default.
+            QualitySettings.shadows = ShadowQuality.All;
+            // AND THE REST OF THE REGENERATION LOTTERY (M17.10 V0). With no
+            // QualitySettings.asset in the repo, Unity regenerates one, and
+            // the two default shapes seen in the wild disagree: the classic
+            // six-level ladder gives desktop pixelLightCount 4 and 2x MSAA,
+            // the modern single-level template gives 2 and none. Which one a
+            // given CI run got has never been known. Every value the frame
+            // depends on is now set here, explicitly, and the probe prints
+            // the active level so the lottery is visible if it ever returns.
+            QualitySettings.pixelLightCount = 8;
+            QualitySettings.shadowNearPlaneOffset = 3f;
+            QualitySettings.anisotropicFiltering = AnisotropicFiltering.ForceEnable;
             QualitySettings.shadowCascades = 4;
+            // Spend the cascade budget NEAR the camera — a street, not a
+            // landscape: crisp on the person three metres away, and the
+            // fourth cascade still covers the far end of the block.
+            QualitySettings.shadowCascade4Split = new Vector3(0.06f, 0.18f, 0.42f);
             QualitySettings.shadowProjection = ShadowProjection.StableFit;
             QualitySettings.shadowResolution = ShadowResolution.High;
             QualitySettings.softParticles = true;
@@ -149,9 +174,14 @@ namespace Ledger.Game
             Wetness = (float)LightModel.Wetness(Wetness, rain, Time.deltaTime);
             AssetLibrary.SetWetness(Wetness);
 
-            RenderSettings.ambientSkyColor = C(LightModel.SkyColour(night, rain));
-            RenderSettings.ambientEquatorColor = C(LightModel.HorizonColour(night, rain));
-            RenderSettings.ambientGroundColor = C(LightModel.GroundColour(night, rain));
+            // AMBIENT FROM `Ambient*`, NOT FROM THE DOME COLOURS (M17.10 V1).
+            // The dome functions kept feeding the fill their honest daytime
+            // brightness, which held sun:ambient near 2:1 and washed the
+            // shadows out of every noon still. The Ambient* accessors are the
+            // same hues with the DAY share scaled down; night is untouched.
+            RenderSettings.ambientSkyColor = C(LightModel.AmbientSky(night, rain));
+            RenderSettings.ambientEquatorColor = C(LightModel.AmbientHorizon(night, rain));
+            RenderSettings.ambientGroundColor = C(LightModel.AmbientGround(night, rain));
 
             RenderSettings.fogColor = C(LightModel.FogColour(night, rain));
             RenderSettings.fogDensity = (float)LightModel.FogDensity(night, rain);

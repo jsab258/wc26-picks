@@ -34,8 +34,14 @@ Two more that belong with it, for the same reason:
   Jafar's account and a token he supplies. When something is missing the
   answer is to fetch it, never to price it.
 - **The moat is social memory, consequence persistence, and information** —
-  unmistakably deeper than KCD2 while looking unmistakably worse, and at
-  peace with that trade.
+  unmistakably deeper than KCD2. **The visual half of the old framing is
+  RETIRED — 21 Aug, Jafar, his words: "matches GTA 5 is absolutely the
+  target. it's a 13 year old game."** The trade this file used to describe
+  ("looking unmistakably worse, and at peace with that") was raised twice in
+  one conversation and overruled twice; that is a decision, not a mood. The
+  bar is GTA V on PS3, on Meridian's content — a British port town in the
+  late-analog years, not Los Santos. Plan: `roadmap.md` M17.10; decomposition
+  and research in `visual-bar-spec.md`.
 
 ---
 
@@ -1218,10 +1224,23 @@ down"*, not the name of the metric that measured it.
 Jafar: *"it has to be EXCEPTIONALLY GOOD from a game feel and UI/UX point of
 view. we don't ship low quality / AI slop here."*
 
-And the framing every plan is judged against: unmistakably deeper than KCD2
-while looking unmistakably worse, and at peace with that trade. The moat is
-social memory 93, consequence persistence 95, information 90 — against a
-best-in-class of 60, 85 and 65. Everything else is in service of it.
+And the framing every plan is judged against: unmistakably deeper than KCD2.
+The moat is social memory 93, consequence persistence 95, information 90 —
+against a best-in-class of 60, 85 and 65. Everything else is in service of it.
+
+**AND SINCE 21 AUG THE VISUAL BAR IS GTA V (PS3, 2013), by Jafar's direct
+order, given twice in one conversation over my hedging.** His words: *"matches
+GTA 5 is absolutely the target. it's a 13 year old game and you are literally
+the best AI in the world... before you start building a tiny thing here and
+fixing something here, I want you to really understand what the goal is, think
+about how we can get there, do the necessary research, set up a proper plan,
+and then build."* The old "looking unmistakably worse, and at peace with that
+trade" framing is retired — it had become a licence for flat lighting and
+naked streets, which is not a trade, just unfinished. What GTA's palms,
+posters and hydrants do for Los Santos, Meridian's chimney pots, double-yellow
+lines, phone boxes and dock clutter must do for a British port town. The plan
+is M17.10 in `roadmap.md`; the frame decomposition, asset sources and
+technique research live in `game-design/visual-bar-spec.md`.
 
 **And the standing order underneath both, 16 Aug, his words: "use creativity
 and skill and available resources to get the best possible result in all

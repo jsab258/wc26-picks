@@ -11042,6 +11042,29 @@ namespace Ledger.CoreTests
                 "but it is never off and never total",
                 $"{LightModel.AoStrength(0, 0):0.00}..{LightModel.AoStrength(1, 1):0.00}");
 
+            // ---- THE AMBIENT IS NOT THE SKY (M17.10 V1) ----
+            //
+            // One set of colour functions used to feed both the skybox dome
+            // and the diffuse fill; the dome's honest daytime brightness as
+            // fill is why the noon stills never showed a shadow. The Ambient*
+            // accessors are the fill's OWN values: same hues, day scaled,
+            // night bit-identical.
+            double L3((double r, double g, double b) c) => c.r + c.g + c.b;
+            Check(L3(LightModel.AmbientSky(0)) < L3(LightModel.SkyColour(0)),
+                "the day FILL is dimmer than the dome it derives from — a sky can be "
+                + "bright without every shaded wall being bright",
+                $"fill {L3(LightModel.AmbientSky(0)):0.000} vs dome {L3(LightModel.SkyColour(0)):0.000}");
+            Check(Math.Abs(L3(LightModel.AmbientSky(1)) - L3(LightModel.SkyColour(1))) < 1e-9
+                && Math.Abs(L3(LightModel.AmbientGround(1)) - L3(LightModel.GroundColour(1))) < 1e-9,
+                "night ambient is bit-identical to the night colours — night was tuned "
+                + "AS ambient and this change must not touch the half that already reads right");
+            Check(L3(LightModel.AmbientSky(0, 1)) > L3(LightModel.AmbientSky(0, 0)) * 1.2,
+                "rain lifts the day fill back toward the dome, because a true overcast "
+                + "really is one big soft source — that is the reference set's third frame",
+                $"wet {L3(LightModel.AmbientSky(0, 1)):0.000} vs dry {L3(LightModel.AmbientSky(0, 0)):0.000}");
+            Check(L3(LightModel.AmbientGround(0)) < L3(LightModel.AmbientHorizon(0)),
+                "and the three bands keep their order through the scaling");
+
             // THE RANGE CHECK is what separates AO from a dark halo traced
             // round every silhouette — the single most recognisable tell of
             // screen-space occlusion done cheaply.

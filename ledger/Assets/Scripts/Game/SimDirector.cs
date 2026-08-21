@@ -6735,6 +6735,37 @@ namespace Ledger.Game
         /// Every round's fraction, not just the largest. See `aoOk`.
         readonly List<double> _aoFractions = new List<double>();
 
+        /// SUN SHADOWS, MEASURED AT LAST (M17.10 V0). Three call sites tune
+        /// shadows — `BuildSun`, `SceneLighting.ApplyQuality`, the Detail
+        /// preset — and until this probe NO NUMBER had ever said whether one
+        /// shadow reached one frame. The noon stills show a street where the
+        /// lamp post casts nothing, and every gate was green.
+        ///
+        /// Same instrument shape as the occlusion probe: toggle the sun's
+        /// shadows off, render, compare. `_shadowFraction` is the PEAK
+        /// fraction of pixels the shadows darken (the question is "do they
+        /// ever land", and a peak answers ever); `_shadowWhen` is the hour
+        /// the peak came from, captured AT THE PEAK so the pair cannot be
+        /// two different instants.
+        double _shadowFraction = -1, _shadowDrop = -1;
+        int _shadowWhen = -1;
+        /// One-time daylight state: what the quality settings, sun and
+        /// ambient ACTUALLY were at a daytime render — the generated project
+        /// has no QualitySettings.asset, so nothing about the master shadow
+        /// switch can be asserted from source. Bracketed, space-free.
+        string _lightState;
+        /// Luma stddev over the road band and the facade band of one daytime
+        /// probe frame, single sample by construction (the first daylight
+        /// probe). The decal phase (V2) exists to move these; they are the
+        /// "no surface is one flat tone" claim as numbers.
+        double _roadSpread = -1, _facadeSpread = -1;
+        /// Fog colour as seen by a probe-time render (post-Update) vs after
+        /// LateUpdate, once, in daylight. Two writers fight over the fog —
+        /// GameController.Update and SceneLighting.LateUpdate — and which one
+        /// a given render sees depends on where in the frame the render
+        /// happens. These two readings are that fight, printed.
+        string _fogAtProbe, _fogAfterLate;
+
         /// The middle round, for the question a maximum cannot answer.
         double AoTypicalFraction
         {
@@ -7024,6 +7055,54 @@ namespace Ledger.Game
             FilmGrade.AmbientOcclusion = false;
             var noAo = FrameShot(cam);
             FilmGrade.AmbientOcclusion = true;
+
+            // SUN SHADOWS, THE SAME WAY (M17.10 V0). Toggle at the LIGHT, not
+            // the quality settings — flipping the master enum would also stop
+            // the lamps' shadows at night and the question here is the sun's.
+            var sunGo = GameObject.Find("Sun");
+            var sunL = sunGo != null ? sunGo.GetComponent<Light>() : null;
+            if (sunL != null && sunL.intensity > 0.2f)
+            {
+                var wasSh = sunL.shadows;
+                sunL.shadows = LightShadows.None;
+                var noShadow = FrameShot(cam);
+                sunL.shadows = wasSh;
+                var (shFrac, shDrop) = ImageStats.Darkened(all.Luma, noShadow.Luma,
+                                                           ImageStats.QuantisationStep);
+                if (shFrac > _shadowFraction)
+                {
+                    _shadowFraction = shFrac;
+                    _shadowDrop = shDrop;
+                    // The hour CAPTURED AT THE PEAK, so the pair is one
+                    // instant rather than a peak beside a last-wins.
+                    _shadowWhen = _game != null ? _game.Now.Hour : -1;
+                }
+
+                // The one-time daylight state and surface-variance sample.
+                if (_lightState == null && GameController.NightAmount < 0.3f)
+                {
+                    var am = RenderSettings.ambientSkyColor;
+                    _lightState =
+                        $"[q={QualitySettings.shadows}" +
+                        $"/lvl={QualitySettings.GetQualityLevel()}" +
+                        $"/px={QualitySettings.pixelLightCount}" +
+                        $"/dist={QualitySettings.shadowDistance:0}" +
+                        $"/casc={QualitySettings.shadowCascades}" +
+                        $"/sunI={sunL.intensity:0.00}" +
+                        $"/sunElev={sunL.transform.eulerAngles.x:0}" +
+                        $"/str={sunL.shadowStrength:0.00}" +
+                        $"/ambLuma={ImageStats.Luma(am.r, am.g, am.b):0.000}]";
+                    var fc = RenderSettings.fogColor;
+                    _fogAtProbe = $"({fc.r:0.000}/{fc.g:0.000}/{fc.b:0.000})";
+                    StartCoroutine(FogAfterFrame());
+
+                    // Road band = lower rows of the 640x360 probe frame
+                    // (ReadPixels row 0 is the bottom), facade band = middle.
+                    // Stddev, one sample, by construction.
+                    _roadSpread = BandSpread(all.Luma, 640, 0.05, 0.28);
+                    _facadeSpread = BandSpread(all.Luma, 640, 0.45, 0.65);
+                }
+            }
 
             FilmGrade.Bloom = false;
             var noBloom = FrameShot(cam);
@@ -7420,6 +7499,41 @@ namespace Ledger.Game
             }
         }
 
+
+        /// Fog colour after every LateUpdate has run — end of frame is the
+        /// only moment that is unambiguously after both fog writers. In a
+        /// batchmode run WaitForEndOfFrame may never fire; the field then
+        /// stays null and the done line says `not_captured` rather than
+        /// letting an unread value read as a reading (rule 3b).
+        System.Collections.IEnumerator FogAfterFrame()
+        {
+            yield return new WaitForEndOfFrame();
+            var fc = RenderSettings.fogColor;
+            _fogAfterLate = $"({fc.r:0.000}/{fc.g:0.000}/{fc.b:0.000})";
+        }
+
+        /// Luma standard deviation over a horizontal band of a probe frame.
+        /// `rowFrom`/`rowTo` are fractions of frame height, bottom-up — the
+        /// probe's ReadPixels puts row 0 at the BOTTOM, so the road band is
+        /// the LOW fractions. Stddev because the claim under test is "this
+        /// surface is one flat tone": a mean cannot see flatness, a spread is
+        /// flatness.
+        static double BandSpread(double[] luma, int width, double rowFrom, double rowTo)
+        {
+            if (luma == null || luma.Length < width) return -1;
+            int rows = luma.Length / width;
+            int r0 = (int)(rows * rowFrom), r1 = (int)(rows * rowTo);
+            double sum = 0, sumSq = 0; int n = 0;
+            for (int r = r0; r < r1; r++)
+                for (int c = 0; c < width; c++)
+                {
+                    double l = luma[r * width + c];
+                    sum += l; sumSq += l * l; n++;
+                }
+            if (n == 0) return -1;
+            double mean = sum / n;
+            return Math.Sqrt(Math.Max(0, sumSq / n - mean * mean));
+        }
 
         struct FrameStats
         {
@@ -12519,6 +12633,18 @@ namespace Ledger.Game
                       $"aoTypical={100 * AoTypicalFraction:0.00} " +
                       $"aoRounds2=[{string.Join(" ", _aoFractions.ConvertAll(x => (100 * x).ToString("0.0")))}] " +
                       $"aoHit={100 * _aoFraction:0.00} aoDrop={_aoDrop:0.0000} " +
+                      // M17.10 V0 — the sun-shadow probe and the surface
+                      // spreads. shadowHit is a PEAK ("did they ever land"),
+                      // shadowWhen the hour captured AT that peak; the
+                      // spreads are one daylight sample by construction.
+                      $"shadowHit={100 * _shadowFraction:0.00} " +
+                      $"shadowDrop={_shadowDrop:0.0000} " +
+                      $"shadowWhen={_shadowWhen} " +
+                      $"lightState={(_lightState ?? "[not_captured]")} " +
+                      $"fogAtProbe={(_fogAtProbe ?? "(not_captured)")} " +
+                      $"fogAfterLate={(_fogAfterLate ?? "(not_captured)")} " +
+                      $"roadLumaSpread={_roadSpread:0.0000} " +
+                      $"facadeLumaSpread={_facadeSpread:0.0000} " +
                       $"reflHit={100 * _reflFraction:0.00} reflRise={_reflRise:0.0000} " +
                       $"reflSeen={reflSeen} reflWetAtAb={SceneLighting.Wetness:0.00} " +
                       $"specHit={100 * _specFraction:0.00} specRise={_specRise:0.0000} " +

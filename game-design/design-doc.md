@@ -51,7 +51,11 @@ Blade), and the winning position is *the game that does one thing no AAA studio 
 currently do, at a polish level that reads as excellent*.
 
 The comparison that governs scope is KCD2: unmistakably deeper in social memory,
-consequence and information, and unmistakably worse-looking, at peace with that trade.
+consequence and information. **The visual bar changed 21 Aug 2026, by Jafar's
+direct order: match GTA V (PS3, 2013).** The old "worse-looking, at peace with
+that trade" framing is retired — depth stays the moat, but the street has to
+hold up next to a thirteen-year-old console game, on Meridian's own content.
+Plan in `roadmap.md` M17.10; decomposition in `visual-bar-spec.md`.
 
 ---
 
