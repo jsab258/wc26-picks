@@ -291,14 +291,14 @@ it owes the player is the ability to SEE the shape forming.
 **The empire grows in DEPTH, not area.** Four businesses on a street where you
 know every face beats twelve across a map.
 
-**Two of the five rackets do not exist, and nobody had planned them** (18 Aug
-audit). §6.5 names five; `EmpireSetup` builds collection, protection and
-fencing. **Smuggling is the conspicuous one**: a port town whose Act III threat
-is Customs and Excise, with nothing to be caught smuggling — and it has the
-most natural exposure profile of any of them (a cargo, a shed, an hour, a
-person who signs). **Done when** a smuggling round runs on the same `Racket`
-substrate as the other three and an Act III audit can land on its paperwork.
-Gambling is the weaker of the two and waits behind it.
+**Smuggling is BUILT, 21 Aug night — the done condition is met.** Same
+`Racket` substrate: a cargo every fourth day, one lump through the shared
+pipeline, silent between boats. Tibor signs — his authored secret made real —
+and every stamp files a manifest fact on him, one distinct story per cargo
+feeding the exact day-circle heat the Act III audit reads; unsigned runs at
+double shed odds, leashing the signer hushes the paper. Sim stages it day 8;
+six CoreTests; the done line counts cargoes/manifests. **Remainders:** a
+player verb to recruit the signer; gambling still waits behind it.
 
 **The rival is a person, not a stage counter — and she rings you as of 4 August**:
 being unreachable is a position you can take and the first thing that charges

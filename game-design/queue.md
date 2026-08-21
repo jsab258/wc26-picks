@@ -270,8 +270,10 @@ parked — no DirectML on the Air.
 1. ~~**The session-hook guarantee** (M22)~~ — **BUILT AND HOLDING.** What is
    open is the READING, not the tiers — see `## Now`.
 2. ~~**Romance** (M18)~~ — **PROMOTED TO M18.5, 18 Aug by Jafar.**
-3. **Smuggling** (M21) — a port town whose Act III threat is Customs and
-   Excise, with no smuggling to be caught at. Runs on the `Racket` substrate.
+3. ~~**Smuggling** (M21)~~ — **BUILT 21 Aug night** on the `Racket`
+   substrate: cargo rhythm, Tibor signs, manifests feed the audit's heat,
+   sim stages it, six CoreTests. Remainders: a player verb to recruit the
+   signer; gambling waits behind it. Read `cargoes`/`manifests` next build.
 4. **The other day-job tracks** (M18) — `Core/DayJob` is the courier round,
    singular; the doc offers bar/courier/office on the first morning.
 5. **Interiors beyond the pub** (M20) — every other door is a threshold.
