@@ -43,17 +43,20 @@ converter+timer shipped to his machine 22 Aug. If his number clears
 ~1.0x: the backend needs Float16 binds and edge conversions (it is
 fp32-typed today). `put-voices-in-build.py` now carries the `-fp16`
 siblings when present and NAMES any graph it sees but will not ship
-(16 selftest checks, both ways) — the silent-drop trap is closed. The `probe.py` listen page is
-REPAIRED (the API-drift crash and the stale route text) —
-it confused the one person it ran for. `playtest-plan.md` carries the
+(16 selftest checks, both ways) — the silent-drop trap is closed.
+The `probe.py` listen page is repaired. `playtest-plan.md` carries the
 session runbook; keep the speech self-checks green on every landing.
 **THE RUNNER IS REGISTERED AND FLIPPED (22 Aug): `ledger-pc` on his
 machine picked up the probe build in seconds** — and the probe found
 the two tools the cloud image had and his PC does not: no `pwsh` (the
 verdict step's own shell) and no python3 in Git-bash. The workflow
-shims python3 now; pwsh needs a real install —
-`tools/runner/3 FINISH THE BUILD MACHINE.bat` does it in one admin
-click and pushes `tools/runner/DEPS.txt`. **A watcher is armed on
+shims python3 (self-verified), finds installed pwsh through a stale
+service PATH, and fails in the FIRST minute naming the repair when
+either is truly absent. The install: bat 3, now a plain DOUBLE-CLICK
+that self-elevates with no silently-closable window and no
+TEMP-self-copy (right-click gave "nothing happens" on his PC, 22 Aug
+— antivirus on the dropper-shaped stub is the leading suspect). It
+pushes `tools/runner/DEPS.txt`. **A watcher is armed on
 that marker: when it lands (or he says "deps installed"), dispatch
 the first real build** — one-time Unity install (~15-25 min), then
 the ~6-10 min era and the first honest frame-gate reading. Revert
@@ -213,8 +216,7 @@ exactly this run.
    beacon lit stays in frame where six crossings do not — feature, not knob.
 
 1. ~~**THE VERDICT STEP IS 416 CHARS OFF A HARD CEILING**~~ — **STALE:
-   measured 22 Aug at 17,088 UNDER it** (the extraction already happened;
-   the item outlived it — rule 3). `verify.py` gates every commit on it.
+   17,088 UNDER it, measured 22 Aug (rule 3); `verify.py` gates it.**
 
 1. **THE DISTANT SKYLINE WAS PALE LAVENDER OVER A NOIR STREET.** *(on screen,
    `district_strip` — the top third of the frame)* Kit props arrive wearing

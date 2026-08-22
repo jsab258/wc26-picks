@@ -12,8 +12,19 @@ REM  scripts on this machine.
 REM ===================================================================
 if /i "%~1"=="--fromtemp" goto :begin
 copy /y "%~f0" "%TEMP%\ledger-update.bat" >nul
+if not exist "%TEMP%\ledger-update.bat" (
+  echo  Could not stage a working copy in %TEMP% - antivirus may have
+  echo  blocked it. Tell Claude what this window says.
+  pause & exit /b 1
+)
 "%TEMP%\ledger-update.bat" --fromtemp
-exit /b %errorlevel%
+REM Only reached when the working copy failed to START - on success the
+REM line above transfers control and never returns. A window that closes
+REM before it can speak is the one failure a launcher must not have.
+echo  The working copy would not start - antivirus may have blocked it.
+echo  Tell Claude what this window says.
+pause
+exit /b 1
 :begin
 
 set "REPO=%USERPROFILE%\wc26-picks"
