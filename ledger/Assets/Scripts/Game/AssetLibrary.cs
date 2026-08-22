@@ -38,6 +38,7 @@ namespace Ledger.Game
         public const string Metal    = "metal";
         public const string Glass    = "glass";
         public const string Window   = "window"; // emissive-capable; lit at night via MPB
+        public const string Interior = "interior"; // the lit room behind shop glass
 
         static bool _initialized;
         static string _packRoot;
@@ -688,6 +689,17 @@ namespace Ledger.Game
                                             // see the field's own comment. WinBox tiles this
                                             // procedural sash per window instead.
                                             s.ProceduralOnly = true; break;
+                // THE ROOM BEHIND THE SHOP GLASS (M17.10 V4). Warm and dim by
+                // day; at night the occupancy sweep drives its emission like
+                // any registered window, and the shelf silhouettes in front
+                // turn the glow into an interior instead of a panel. Flat
+                // because the walls are solid boxes — a recess would sit
+                // inside the brick — and a lit backdrop behind real glass,
+                // mullions and silhouettes is exactly what the PS3-era
+                // reference ships. Non-black emission for the keyword, as
+                // with Window; the glow itself rides the property block.
+                case AssetLibrary.Interior: s = Make(new Color(0.30f,0.22f,0.14f), 0.10f, 0f, new Vector2(2,1),"noise");
+                                            s.Emission = new Color(0.02f,0.02f,0.02f); break;
                 default:                    s = Make(new Color(0.5f,0.5f,0.5f), 0.1f, 0f, new Vector2(2,2), "noise"); break;
             }
             return s;

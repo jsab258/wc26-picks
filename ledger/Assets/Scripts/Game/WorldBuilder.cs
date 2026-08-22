@@ -1210,6 +1210,10 @@ namespace Ledger.Game
         /// emitted — four per shop, so this over four disagreeing with the
         /// shop count means a branch died.
         public static int ShopSurrounds;
+        /// Interior backdrops built behind shop glass (V4) — the denominator
+        /// for "the voids are gone": zero with shops present is the wire
+        /// broken, not the streets shopless.
+        public static int ShopInteriors;
 
         /// Rear lean-to extensions actually built. The roadmap's last open
         /// line for 17.7 — "the back of a block gets bins and drainpipes
@@ -1619,6 +1623,36 @@ namespace Ledger.Game
                 var stallSz = alongX ? new Vector3(0.24f, 0.55f, width * 0.92f)
                                      : new Vector3(width * 0.92f, 0.55f, 0.24f);
                 Trim("stall", face + outward * 0.11f + new Vector3(0, 0.30f, 0), stallSz);
+
+                // THE ROOM BEHIND THE GLASS (M17.10 V4 — the flat black
+                // shopfront void, named in the first V0 pass and open
+                // since). The walls are solid boxes, so a true recess would
+                // sit inside the brick; instead the interior is LAYERED
+                // where the depth cue actually reads from the street: a
+                // warm backdrop just off the wall, two dark shelf
+                // silhouettes in front of it, the real glass, mullions and
+                // trim in front of those. At night the backdrop registers
+                // like any shop window and glows on shop hours, and the
+                // silhouettes carve it into an interior; by day it is a dim
+                // warm room behind dark glass. The proper recessed room is
+                // the ladder's next rung, not this one.
+                var inw = alongX ? new Vector3(0.03f, 2.3f, width * 0.86f)
+                                 : new Vector3(width * 0.86f, 2.3f, 0.03f);
+                var room = MakeBox($"{tag}_interior", face + outward * 0.02f
+                        + new Vector3(0, 1.75f, 0), inw, AssetLibrary.Interior);
+                var rc = room.GetComponent<Collider>();
+                if (rc != null) Object.Destroy(rc);
+                AddWindow(room.GetComponent<Renderer>(), shopfront: true);
+                for (int sh = 0; sh < 2; sh++)
+                {
+                    var shSz = alongX ? new Vector3(0.04f, 0.10f, width * 0.78f)
+                                      : new Vector3(width * 0.78f, 0.10f, 0.04f);
+                    var shelf = MakeBox($"{tag}_shelf{sh}", face + outward * 0.03f
+                            + new Vector3(0, 1.25f + sh * 0.6f, 0), shSz, AssetLibrary.Roof);
+                    var sc2 = shelf.GetComponent<Collider>();
+                    if (sc2 != null) Object.Destroy(sc2);
+                }
+                ShopInteriors++;
             }
 
             // An awning over a shop window (kit mesh, town-plan T2): scaled
