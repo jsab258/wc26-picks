@@ -61,5 +61,9 @@
   "industrial_sunset_puresky_2k.hdr",
   "kloppenheim_04_2k.hdr",
   "misty_farm_road_2k.hdr"
+ ],
+ "oga-vehicles": [
+  "free-low-poly-vehicles-pack",
+  "lowpoly-public-transport"
  ]
 }
