@@ -319,8 +319,10 @@ parked — no DirectML on the Air.
    it is excluded from terracing and takes the legacy block path. The
    industrial quarter is nearly undressed. Noted, not chased.
 
-1. **THE FRAME GATE IS RED AND THE COST HAS MOVED — this item was two regime
-   changes stale.** **Read the breakdown, not the mean**: `mean=666.4ms` is a
+1. **THE DRESSING GATE WENT GREEN ON BUILD T** — the far city carries
+   382 pieces where it carried 37; the fractional-slot fix, account in
+   the dressing commit. **THE FRAME GATE STAYS RED AND THE COST HAS
+   MOVED — this item was two regime changes stale.** **Read the breakdown, not the mean**: `mean=666.4ms` is a
    software rasteriser and says nothing; `game=24.53ms` against a 12ms budget
    is a 104% overrun in OUR code.
 
@@ -384,14 +386,12 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 - **Turn a still into a number.** Five faults found by opening a frame and none
   by a gate. Anything a frame shows that no metric names is a metric worth
   adding.
-- **THE DROP PIPELINE — THE CASE IS CLOSED AND THE FIX RIDES T.** Build
-  S measured `markerClear=0/0/0` on every drop: nobody could stand at
-  any posted marker, even as a point. Three rounds of bot fixes moved
-  nothing because the bot was never the fault — the two-direction
-  sidestep failed its whole candidate set every run and fell back to
-  the blocked raw point silently. The marker now ring-searches eight
-  directions out to 7.5m for standable ground off the carriageway, and
-  a drop it still cannot place counts on the done line. Read T:
-  markerClear should be 1/1/1 and the first DONE in the project's
-  recorded history is genuinely possible. Radius, window, gate all
-  stand where they were (rule 6, held throughout).
+- **THE FIRST DROPS EVER DELIVERED — build T, two of five.** The ring
+  search landed (every marker standable, none blocked) and the run
+  completed two drops, the first in the project's recorded history,
+  with the radius, window and gate never moved. The three remaining
+  misses are two shapes: a half-metre near-miss (3.0m against the 2.5m
+  radius, six ticks) and two far-spawn days where prep never closed
+  the gap (open at 18m and 32m; one walked 16m without closing ANY
+  distance, which wants one more trace read before any change). The
+  gate goes green the first run where prep wins every day.
