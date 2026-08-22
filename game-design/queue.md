@@ -47,6 +47,11 @@ truncation family's favourite shape. The `probe.py` listen page is
 REPAIRED (the API-drift crash and the stale route text) —
 it confused the one person it ran for. `playtest-plan.md` carries the
 session runbook; keep the speech self-checks green on every landing.
+**WHEN `tools/runner/READY.txt` LANDS ON THE BRANCH: flip the build
+workflow's `runs-on: windows-latest` to `[self-hosted, ledger-pc]`
+and dispatch a probe build** — his PC becomes the build machine
+(~28 min to ~6-10; setup bats in `tools/runner/`, plan in
+`playtest-plan.md`). Revert the same line if his runner goes away.
 **AND BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT (Jafar, 22 Aug:
 "a full ultracode audit before playtesting is a good idea. rememver
 that").** A multi-agent sweep of the whole codebase — every system
@@ -115,10 +120,9 @@ exactly this run.
    the frame while sitting past the arm's-length test. Same repair as
    the night case: measure occlusion at the distances that blind a
    frame, not only at arm's length.
-   **And V's traffic line contradicts itself:** offRoad=1 beside
-   offRoadWho=[none] and vehiclesOffRoad=0 — three numbers for one
-   question, sampled at different instants. Establish which moment each
-   samples (the at-worst rule) before believing any of the three.
+   **The traffic self-contradiction is RESOLVED** (the tally named a
+   taxi dwelling at its rank; dwelling and dormant vehicles are exempt
+   since AC and the gate went green).
 
    **The tour pair landed and its pre-written prediction held (V):**
    `tourDepthBy` spreads 18.7 (Downtown) to 28.6 (Fairview) — real

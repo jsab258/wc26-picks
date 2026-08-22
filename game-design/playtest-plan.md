@@ -33,6 +33,19 @@ lives on that machine from the bark-rendering sessions.
    counters and the backend's own printed reason are the first things
    to read if anything is silent.
 
+## Faster builds — the runner on Jafar's PC (optional, 22 Aug)
+
+`tools\runner\1 SET UP THE BUILD RUNNER.bat` (right-click, Run as
+administrator) moves the Windows builds onto his PC: the GPU renders
+the sim ~20x faster than the cloud machine's software rasteriser and
+the Unity install caches between builds, so the ~28-minute round trip
+drops to roughly 6-10 after the first run. One paste from him (a
+registration token GitHub shows behind his login); the script pushes
+`tools/runner/READY.txt` and **the loop then flips the build
+workflow's `runs-on` to `[self-hosted, ledger-pc]` by itself** —
+that marker landing is the signal. Builds queue while his PC is off;
+`2 REMOVE THE RUNNER.bat` plus a one-line revert undoes everything.
+
 ## The old Mac plan (historical)
 
 The section below planned the 19 August Air session: no DirectML, so
