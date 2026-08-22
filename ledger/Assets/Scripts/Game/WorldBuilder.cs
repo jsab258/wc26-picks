@@ -25,6 +25,13 @@ namespace Ledger.Game
         /// which is which; the honest thing is to keep the answer rather than
         /// re-derive it from a string.
         static readonly List<bool> WindowIsShop = new List<bool>();
+        /// Per-window glow strength, filled beside the other two lists in
+        /// `AddWindow` and read by the lit sweep. Small windows burn at full
+        /// strength; a band wider than a room gets a hashed dimming so a
+        /// far wall reads as a patchwork of different rooms instead of one
+        /// glowing sheet — the wall-of-light fix that survived the emission
+        /// mask's death, because it rides the COLOUR, which provably works.
+        static readonly List<float> WindowGlowScale = new List<float>();
         /// Warm interior glow, HDR emission.
         ///
         /// A SUSPECT, NOT A VERDICT, and it is written down so nobody — me
@@ -198,6 +205,7 @@ namespace Ledger.Game
             FireEscapes = 0;
             Mullions = 0;
             WindowIsShop.Clear();
+            WindowGlowScale.Clear();
             Masses.Clear();
             PrimaryMasses.Clear();
             Masses.AddRange(BuildBlockSpecs());
@@ -1767,15 +1775,10 @@ namespace Ledger.Game
             // are, which is what it did before either schedule existed.
             if (r == null) return;
             AddWindow(r, shopfront: false);
-            // AND NOT A SASH. The shared window material carries the
-            // pane-grid emission mask, which would cut a lamp's glow into
-            // four dots behind a dark cross. Plain white on this renderer
-            // puts the full-quad glow back — read-modify-write, like every
-            // other writer on this block, so nothing gets stomped.
-            var mpb = new MaterialPropertyBlock();
-            r.GetPropertyBlock(mpb);
-            mpb.SetTexture("_EmissionMap", Texture2D.whiteTexture);
-            r.SetPropertyBlock(mpb);
+            // No emission-map override any more — no map is bound anywhere
+            // (see AddWindow), and a headlamp's bounds are far under the
+            // band threshold, so the scale lands at full strength on its
+            // own.
         }
 
         /// How many window renderers the city built, and how many of those are
@@ -1796,23 +1799,37 @@ namespace Ledger.Game
         {
             Windows.Add(r);
             WindowIsShop.Add(shopfront);
-            // WHITE FOR NOW, AND THE PROBE DECIDES WHAT COMES BACK. The
-            // panes mask has now zeroed every building window's glow through
-            // BOTH binds — the material slot (b112e5d) and this per-renderer
-            // block (87d95c0), the sweep reading 0.00% lit at every
-            // multiplier both times — while the lamps' built-in white
-            // through the identical block glowed on the same shared
-            // material. So the fault is the runtime-generated TEXTURE in
-            // the emission slot, not the binding path, and theorising has
-            // been wrong twice at a build apiece. `MeasureEmissionSlot`
-            // renders five quads and prints which texture sources this
-            // player's emission slot actually samples; until it lands,
-            // white keeps the night alive (the V look: whole-band glow
-            // behind the drawn sash albedo) rather than a black city.
-            var mpb = new MaterialPropertyBlock();
-            r.GetPropertyBlock(mpb);
-            mpb.SetTexture("_EmissionMap", Texture2D.whiteTexture);
-            r.SetPropertyBlock(mpb);
+            // NO EMISSION MAP, EVER, AND THE SENTENCE IS EARNED. Three
+            // landed builds each killed the glow a different way the theory
+            // said was safe: the panes mask through the material slot, the
+            // panes mask through this block, and finally BUILT-IN WHITE
+            // through this block — night means 0.087, 0.080, 0.075 against
+            // 0.130 unbound, the sweep reading zero lit at every multiplier
+            // all three times. The scene's own control closed the case: the
+            // glow worked for weeks with the slot UNBOUND, and no texture
+            // in that slot survives this player's shader set. The lit look
+            // therefore rides _EmissionColor alone, and the sash structure
+            // lives in the albedo by day and in the per-window SCALE below
+            // by night. If somebody re-attempts a mask, it must ship as an
+            // imported build-time asset and prove itself on a landed still
+            // before anything else stacks on it.
+            //
+            // The scale: a window smaller than a room burns at full
+            // strength — a 1.4m sash glowing whole IS a lit sash. A band
+            // wider than that gets a hashed dimming, deterministic in its
+            // position, so a wide wall reads as rooms in different states
+            // instead of one glowing sheet.
+            float scale = 1f;
+            var b = r.bounds;
+            float across = Mathf.Max(b.size.x, b.size.z);
+            if (across > 3f)
+            {
+                int h = ((int)(b.center.x * 13.7f) * 73856093)
+                      ^ ((int)(b.center.z * 13.7f) * 19349663)
+                      ^ ((int)(b.center.y * 7.3f) * 83492791);
+                scale = 0.35f + 0.55f * (Mathf.Abs(h) % 1000 / 999f);
+            }
+            WindowGlowScale.Add(scale);
         }
 
         static Renderer WinBox(string name, Vector3 center, Vector3 size)
@@ -3160,7 +3177,8 @@ namespace Ledger.Game
                     : Ledger.Core.Occupancy.WindowLit(win.name, q));
                 if (on) { WindowsLit++; if (shop) WindowsShopLit++; }
                 win.GetPropertyBlock(mpb);
-                mpb.SetColor("_EmissionColor", on ? WindowLit : WindowDark);
+                float ws = i < WindowGlowScale.Count ? WindowGlowScale[i] : 1f;
+                mpb.SetColor("_EmissionColor", on ? WindowLit * ws : WindowDark);
                 win.SetPropertyBlock(mpb);
             }
         }

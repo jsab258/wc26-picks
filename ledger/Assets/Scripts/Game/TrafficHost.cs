@@ -1147,15 +1147,10 @@ namespace Ledger.Game
                     head.transform.localScale = new Vector3(0.34f, 0.8f, 0.34f);
                     var hr = head.GetComponent<Renderer>();
                     hr.sharedMaterial = AssetLibrary.Material(AssetLibrary.Window);
-                    // The shared window material now carries the pane-grid
-                    // emission mask; a signal head is a LAMP and must glow
-                    // whole, not as four panes behind a cross. Same override
-                    // as RegisterNightLight, and TickSignals reads the block
-                    // before writing, so this survives every phase change.
-                    var hmpb = new MaterialPropertyBlock();
-                    hr.GetPropertyBlock(hmpb);
-                    hmpb.SetTexture("_EmissionMap", Texture2D.whiteTexture);
-                    hr.SetPropertyBlock(hmpb);
+                    // No emission-map override — no map is bound anywhere
+                    // any more: any texture in this player's emission slot
+                    // kills the glow (WorldBuilder.AddWindow has the full
+                    // account), and TickSignals drives the colour directly.
                     var hcol = head.GetComponent<Collider>();
                     if (hcol != null) Destroy(hcol);
 

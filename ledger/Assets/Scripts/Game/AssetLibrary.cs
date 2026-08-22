@@ -42,13 +42,6 @@ namespace Ledger.Game
 
         static bool _initialized;
         static string _packRoot;
-        static Texture2D _panesMask;
-        /// The window emission mask, generated once and shared by the
-        /// material bind and every per-renderer property-block bind — two
-        /// textures here would be two copies of one idea that could drift.
-        public static Texture2D WindowEmissionMask =>
-            _panesMask != null ? _panesMask
-                               : (_panesMask = ProceduralTexture.PanesMask());
         static AssetBundle _propBundle;
         static readonly Dictionary<string, Material> _materials = new Dictionary<string, Material>();
         static readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
@@ -308,27 +301,16 @@ namespace Ledger.Game
                 mat.EnableKeyword("_EMISSION");
                 mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
                 mat.SetColor("_EmissionColor", spec.Emission);
-                // A DEDICATED MASK, NOT THE ALBEDO. The Standard shader
-                // MULTIPLIES _EmissionColor by this map, and the pane glass
-                // texels are the dark noir tint (~0.1) — the albedo as mask
-                // would have quietly divided the calibrated window glow by
-                // ten and undone the six-point multiplier series without a
-                // line of red anywhere. White glass / black frame passes the
-                // MPB glow through at exactly its measured value, and
-                // emission UVs follow the main ST, so the per-window tiling
-                // sizes the glowing panes along with the drawn ones.
-                //
-                // AND THE MATERIAL-LEVEL BIND IS NOT ENOUGH IN THE BUILT
-                // PLAYER. On b112e5d it zeroed every building window's glow
-                // (the sweep read lit=0.00% at every multiplier) while the
-                // vehicle lamps' per-renderer property-block override glowed
-                // on this same shared material — so the registered windows
-                // now carry the mask on their blocks too (see AddWindow),
-                // which is the path the build provably samples. This bind
-                // stays for authoring consistency, and any future user of
-                // the window surface should register, not rely on it.
-                if (spec.Pattern == "panes")
-                    mat.SetTexture("_EmissionMap", WindowEmissionMask);
+                // NO EMISSION MAP — DELIBERATELY, AND KEEP IT THAT WAY. Three
+                // landed builds proved that binding ANY texture into this
+                // player's emission slot — the panes mask via the material,
+                // the panes mask via a property block, even built-in white
+                // via a property block — kills the emission term outright,
+                // while the unbound slot glowed for weeks. The full account
+                // is on `WorldBuilder.AddWindow`. The sash structure lives
+                // in the albedo; the night variation rides the per-window
+                // colour scale. A future mask attempt must be an imported
+                // build-time asset proven on a landed still first.
             }
             return mat;
         }
@@ -807,11 +789,7 @@ namespace Ledger.Game
         }
 
         /// Whether a texel sits on the sash: the outer frame plus one central
-        /// mullion and transom, so a tile is a 2x2 of panes. ONE predicate for
-        /// the albedo drawer and the emission mask below — two copies of this
-        /// geometry is the SpeechBubble/NpcWalker fault waiting to happen, and
-        /// if they ever disagreed the day frames and the night glow would show
-        /// different windows on the same wall.
+        /// mullion and transom, so a tile is a 2x2 of panes.
         static bool PaneFrame(int x, int y)
         {
             int edge = Mathf.Max(1, Size * 5 / 100);
@@ -823,10 +801,12 @@ namespace Ledger.Game
         }
 
         /// A window tile: glass with a dark frame, drawn by `PaneFrame`. The
-        /// point is the wall-of-light problem — the slab catcher's 1480
-        /// seven-to-eleven-metre single quads — solved at zero geometry cost
-        /// on a runner whose software rasteriser is why the far city keeps
-        /// single bands at all. The night half is `PanesMask`.
+        /// day half of the wall-of-light fix — the slab catcher's 1480
+        /// seven-to-eleven-metre single quads — at zero geometry cost. The
+        /// night half is the per-window glow SCALE in WorldBuilder: an
+        /// emission-mask twin of this drawer shipped, killed the glow in
+        /// the built player (any texture in that slot does — three landed
+        /// builds), and was deleted rather than explained.
         static void Panes(Color32[] px, Color baseCol)
         {
             var glass = (Color32)baseCol;
@@ -834,32 +814,6 @@ namespace Ledger.Game
             for (int y = 0; y < Size; y++)
                 for (int x = 0; x < Size; x++)
                     px[y * Size + x] = PaneFrame(x, y) ? frame : glass;
-        }
-
-        /// The window material's emission map: white where glass, black where
-        /// sash, so the MPB-driven glow keeps its calibrated value on the
-        /// panes and dies on the frames. The four panes get slightly unequal
-        /// whites so a lit sash reads as a room behind glass rather than as
-        /// four identical tiles of amber — curtains and depth for free, and
-        /// invisible by day because only the emission samples this.
-        public static Texture2D PanesMask()
-        {
-            var tex = new Texture2D(Size, Size, TextureFormat.RGBA32, true) { name = "proc_panes_mask" };
-            var px = new Color32[Size * Size];
-            var dark = new Color32(0, 0, 0, 255);
-            for (int y = 0; y < Size; y++)
-                for (int x = 0; x < Size; x++)
-                {
-                    byte v = x < Size / 2
-                        ? (y < Size / 2 ? (byte)232 : (byte)255)
-                        : (y < Size / 2 ? (byte)189 : (byte)214);
-                    px[y * Size + x] = PaneFrame(x, y) ? dark : new Color32(v, v, v, 255);
-                }
-            tex.SetPixels32(px);
-            tex.Apply(true);
-            tex.wrapMode = TextureWrapMode.Repeat;
-            tex.filterMode = FilterMode.Bilinear;
-            return tex;
         }
 
         // fractal Brownian motion from Perlin octaves, 0..1
