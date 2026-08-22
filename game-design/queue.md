@@ -91,23 +91,12 @@ parked — no DirectML on the Air.
    metric, riding S); telegraph poles ride R (`poles=`). The 13
    remaining MPB colour sites wait on the wash verdict's next reading.
 
-1. ~~**ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION**~~ — **CLOSED TO
-   FIVE EMPTY SLOTS AND NONE WRONG after three re-picks, 21 Aug.** Audited
-   slot by slot: 65 filled and passing, 2 genuinely empty (`smoke`,
-   `thinking` — a harvest hole: every name they have travels), 0
-   refused-but-shipped. The full chronicle — the set-aside path, the
-   known-bad fixture, ten dead patterns, two harvester duplicates, the
-   frozen-root preference — is in `roadmap-history.md` (21 Aug) and
-   `clip-findings.txt`. **The reachability sweep is BUILT AND ACTED ON
-   (`tools/clip-reach.py`, 21 Aug night):** 18 activity islands play, 6
-   clips tree-played, **0 state-only** — the five it found (carry, drink,
-   lean, phone_box, sit) were wired the same hour: benches seat people,
-   the pub door drinks, the letter stall phones, shops carry stock in.
-   **41 clips are DISK-ONLY** — the combat set (blocks, strikes,
-   take_hit, knockdown, guard), the stairs set, walk transitions, and the
-   one-shots (laugh, yell, shake_hands, hands_up, pockets, rummage,
-   sit_drink, sit_talk, lie_still, get_up). Combat-with-no-body-animation
-   is the biggest item there and is milestone-scale, not a wire.
+1. ~~**ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION**~~ — **CLOSED,
+   21 Aug: 65 filled and passing, 2 empty harvest holes, 0 wrong.** Full
+   chronicle in `roadmap-history.md` and `clip-findings.txt`; the reach
+   sweep wired the five state-only clips the same hour. **41 clips are
+   DISK-ONLY** — combat, stairs, walk transitions, one-shots — and
+   combat-with-no-body-animation is milestone-scale, not a wire.
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
    NARROW.** *(rule 12)* The camera steps back off anything filling more than
    a quarter of the frame at arm's length, bound from a measured bimodal
@@ -146,14 +135,23 @@ parked — no DirectML on the Air.
    asphalt, the look this game is about — and snaps the seed's dry
    state back before the 23:00 night gates. Read the frame when it
    lands; it also answers the "black scratches at eye level" item.
+   **Correction from V's own stills:** day 1 IS wet this run (streaks
+   in the dusk and night frames), so "the seed pins both review days
+   dry" was overstated — day 2 is the dry one, and the plant's value
+   is the guarantee at street level, not an impossibility ended.
 
    **THE CAPSULES STAY FIXED** (zero on P, Q, R and S — closed). **THE
-   FLOATING BRICK SLAB is not a building**: the grounded sweep over the
-   recorded primary bodies reads 0 of 384 afloat, twice. The slab
-   catcher rides U — every renderer ≥6m across with its base above
-   head height, minus roofs/tiers/skyline/wires, BY NAME — and the
-   next verdict names the family instead of leaving a frame nobody can
-   act on.
+   FLOATING BRICK SLAB IS SOLVED (build V):** the widest-four catcher
+   names the family — one building's cornice, fascia and two 23m
+   window bands, all aloft BY DESIGN — and the day1 noon frame shows
+   the real fault: window bands wear the pack's window texture, which
+   is a whole FACADE photograph (brick piers and a six-by-six sash
+   grid), so a band at close range reads as a floating brick wall.
+   The pane-grid fix riding the next build retextures exactly these
+   quads: dark glass, drawn frames, one sash per 1.5m. Judge on its
+   stills. **The night glow baseline is banked from V** (first series,
+   eleven shots, worst blob 3.4% of frame, median 1.7%) — the pane
+   fix should cut both; read the pair as an A/B.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the
