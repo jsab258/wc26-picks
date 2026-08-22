@@ -8212,6 +8212,32 @@ namespace Ledger.Game
             return sb.ToString();
         }
 
+        /// Every measured kit-prop family and its albedo, brightest first,
+        /// slash-joined, `city_kit_` stripped for legibility. Capped at ten
+        /// WITH the cap announced inside the bracket — a cap nobody is told
+        /// about is indistinguishable from a finding (rule 3b) — and safe
+        /// here because the question is "is anything too bright": whatever
+        /// the cap trims is dimmer than everything it shows. The empty case
+        /// prints words, not a plausible value, so "no props measured"
+        /// cannot read as clean.
+        static string KitAlbedoSummary()
+        {
+            var rows = new List<KeyValuePair<string, float>>();
+            foreach (var kv in AssetLibrary.PropAlbedos) rows.Add(kv);
+            if (rows.Count == 0) return "[none-measured]";
+            rows.Sort((a, b) => b.Value.CompareTo(a.Value));
+            var sb = new System.Text.StringBuilder("[");
+            int shown = Mathf.Min(10, rows.Count);
+            for (int i = 0; i < shown; i++)
+            {
+                if (i > 0) sb.Append('/');
+                sb.Append(rows[i].Key.Replace("city_kit_", ""))
+                  .Append(':').Append(rows[i].Value.ToString("0.00"));
+            }
+            if (rows.Count > shown) sb.Append("/+").Append(rows.Count - shown).Append("more");
+            return sb.Append(']').ToString();
+        }
+
         struct FrameStats
         {
             public double Mean, Bright, Variance, EdgeRatio, LocalSpread;
@@ -13106,6 +13132,19 @@ namespace Ledger.Game
                       // right means the branch died).
                       $"facadeGrades={AssetLibrary.GradedAssignments}/{AssetLibrary.GradeCalls} " +
                       $"skyline={WorldBuilder.SkylineKitted}/{WorldBuilder.SkylineBlocks} skylineRepainted={WorldBuilder.SkylineRepainted} " +
+                      // Which kit-prop families are BRIGHTER than the town
+                      // they stand in — the skyline's fault, measured for
+                      // every family instead of re-found by eye. Brightest
+                      // first, so the cap cannot hide a positive: anything
+                      // trimmed is dimmer than everything shown. The
+                      // awning/car/skyline entries are PRE-repaint values
+                      // (their repaints have their own counters); the
+                      // unrepainted families — bench, bin, light, crate —
+                      // carry their live albedo. townWallAlbedo is the four
+                      // wall surfaces through the same maths, so the two
+                      // sides of the comparison are one instrument.
+                      $"townWallAlbedo={AssetLibrary.TownWallAlbedo():0.00} kitAlbedo={KitAlbedoSummary()} " +
+                      $"kitAlbedoUnread={AssetLibrary.PropAlbedoUnread} " +
                       // BODIES BUILT, NOT VEHICLES PRESENT, and the old name
                       // said the wrong one. It read `vehiclesKitted=26/33` on
                       // a fleet of 28, which scans as "seven vehicles have no

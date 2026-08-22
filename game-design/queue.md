@@ -47,11 +47,17 @@ truncation family's favourite shape. The `probe.py` listen page is
 REPAIRED (the API-drift crash and the stale route text) —
 it confused the one person it ran for. `playtest-plan.md` carries the
 session runbook; keep the speech self-checks green on every landing.
-**WHEN `tools/runner/READY.txt` LANDS ON THE BRANCH: flip the build
-workflow's `runs-on: windows-latest` to `[self-hosted, ledger-pc]`
-and dispatch a probe build** — his PC becomes the build machine
-(~28 min to ~6-10; setup bats in `tools/runner/`, plan in
-`playtest-plan.md`). Revert the same line if his runner goes away.
+**THE RUNNER IS REGISTERED AND FLIPPED (22 Aug): `ledger-pc` on his
+machine picked up the probe build in seconds** — and the probe found
+the two tools the cloud image had and his PC does not: no `pwsh` (the
+verdict step's own shell) and no python3 in Git-bash. The workflow
+shims python3 now; pwsh needs a real install —
+`tools/runner/3 FINISH THE BUILD MACHINE.bat` does it in one admin
+click and pushes `tools/runner/DEPS.txt`. **A watcher is armed on
+that marker: when it lands (or he says "deps installed"), dispatch
+the first real build** — one-time Unity install (~15-25 min), then
+the ~6-10 min era and the first honest frame-gate reading. Revert
+`runs-on` to `windows-latest` if his runner ever goes away.
 **AND BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT (Jafar, 22 Aug:
 "a full ultracode audit before playtesting is a good idea. rememver
 that").** A multi-agent sweep of the whole codebase — every system
@@ -104,11 +110,8 @@ exactly this run.
    wash verdict's next reading.
 
 1. ~~**ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION**~~ — **CLOSED,
-   21 Aug: 65 filled and passing, 2 empty harvest holes, 0 wrong.** Full
-   chronicle in `roadmap-history.md` and `clip-findings.txt`; the reach
-   sweep wired the five state-only clips the same hour. **41 clips are
-   DISK-ONLY** — combat, stairs, walk transitions, one-shots — and
-   combat-with-no-body-animation is milestone-scale, not a wire.
+   21 Aug: 65 filled, 0 wrong** (`roadmap-history.md`; 41 clips stay
+   disk-only — combat-with-no-body-animation is milestone-scale).
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
    NARROW.** *(rule 12; the step-back and depth series are landed —
    account in `roadmap-history.md`.)* **The night half is ADDRESSED:
@@ -198,29 +201,20 @@ exactly this run.
    darker than the band because a multiply only subtracts. A limit, not a bug.
    **`RealBodyCap = 12` needs a PC measurement**, not a CI one.
 
-1. **THE BUS AND BICYCLE ARE LANDED** (CC0 re-verified at fetch;
-   `vehicleFellBack=[none]` on every run since P; seven kinds live).
-   Open judgment: the bicycle rides RIDERLESS — if a ghost bike reads
-   worse than the primitive did, next rung is a mannequin rider or
-   parked-only. Shared pack stems mint one key each, split only if a
-   pack choice ever matters.
+1. **THE BUS AND BICYCLE ARE LANDED** (seven kinds live, zero fallbacks
+   since P). Open judgment: the bicycle rides RIDERLESS — if a ghost bike
+   reads worse than the primitive did, next rung is a rider or parked-only.
 
-1. **PATROL DENSITY FOLLOWS THE INQUIRY — and the measurement of whether it
-   READS is still not finished.** Weight by stage (None 1 ... Manhunt 5),
-   converted only on parked cars, routed to a beat in the player's district,
-   stood down when the inquiry clears. Every link fires. Account and the four
-   wrong theories in `roadmap-history.md`.
+1. **PATROL DENSITY FOLLOWS THE INQUIRY — whether it READS is unfinished.**
+   Every link fires (account + four wrong theories in `roadmap-history.md`).
+   Open: `patrolOnBeatMean=0.00` over 3 shots against `0.18` over 17 — zero
+   of three separates nothing; the `hunt_` pair photographs the manhunt now,
+   so the next build has frames to judge from. A patrol PARKED with its
+   beacon lit stays in frame where six crossings do not — feature, not knob.
 
-   **What is open:** `patrolOnBeatMean=0.00` over 3 shots against `0.18` over
-   17 — zero of three separates nothing. The `hunt_` pair photographs the
-   manhunt now, so the next build has frames to judge from. **Still unread:**
-   six cars that never stop are six brief crossings; a patrol PARKED with its
-   beacon lit stays in frame. A feature, not a knob.
-
-1. **THE VERDICT STEP IS 416 CHARS OFF A HARD CEILING AND FAILS AT DISPATCH,
-   NOT AT COMMIT.** *(CI)* A 422 at dispatch means NO Windows build at all.
-   **The real fix is extraction**, as `sim-shots-stage.sh` proves: move the
-   step body to a script file. Until then every comment there is a coin flip.
+1. ~~**THE VERDICT STEP IS 416 CHARS OFF A HARD CEILING**~~ — **STALE:
+   measured 22 Aug at 17,088 UNDER it** (the extraction already happened;
+   the item outlived it — rule 3). `verify.py` gates every commit on it.
 
 1. **THE DISTANT SKYLINE WAS PALE LAVENDER OVER A NOIR STREET.** *(on screen,
    `district_strip` — the top third of the frame)* Kit props arrive wearing
@@ -237,14 +231,19 @@ exactly this run.
    that read as wrong. `skylineRepainted` ships beside `skyline=n/m` so the
    repaint cannot silently stop running, which is how this survived.
 
-1. **AND FOUR MORE KIT-PROP SITES ARE UNPAINTED — A QUESTION, NOT A FIX.**
-   Awnings and cars go through a repaint; benches, bins, street lights and the
-   crate stack do not. **Deliberately not mass-repainted:** the skyline was
-   wrong because it was BRIGHTER than everything around it at distance, and a
-   green bench is perfectly plausible. Acting on the resemblance alone is the
-   rule-4 mistake of treating a picture as evidence of WHAT. **The measurement
-   is a brightness comparison between kit props and the town palette, on the
-   frame**, not another look.
+1. **AND FOUR MORE KIT-PROP SITES ARE UNPAINTED — THE MEASUREMENT IS BUILT,
+   READ IT ON THE NEXT LANDING.** *(rides next dispatch)* Benches, bins,
+   street lights and the crate stack take no repaint — deliberately: a green
+   bench is plausible, and mass-repainting on resemblance is the rule-4
+   mistake. The instrument: `kitAlbedo=[family:val/...]` on the done line,
+   every kit family's mean material albedo (linear tint x GPU-blitted texture
+   mean, measured once per key at the `TryInstantiateProp` choke point),
+   brightest first so the ten-family cap cannot hide a positive, beside
+   `townWallAlbedo` — the four wall surfaces through the SAME maths.
+   Awning/car/skyline entries are pre-repaint (their repaints have their own
+   counters); the unrepainted four carry live values. **Judgment when it
+   lands:** any unrepainted family clearly above `townWallAlbedo` gets the
+   skyline treatment; anything at or below it closes this item.
 
 1. **THE BUBBLE OVERLAP MEDIAN IS A PER-TICK NUMBER AND I READ IT AS A
    PER-FRAME ONE.** *(instrument)* `SampleBubbles` runs per tick and

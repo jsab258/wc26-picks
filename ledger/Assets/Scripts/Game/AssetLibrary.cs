@@ -600,6 +600,7 @@ namespace Ledger.Game
         /// the miss falls through to a primitive rather than to an error.
         public static GameObject TryInstantiateProp(string name, Vector3 position, Quaternion rotation)
         {
+            var key = name.ToLowerInvariant().Replace(" ", "_").Replace("-", "_");
             if (_propBundle != null)
             {
                 var packed = _propBundle.LoadAsset<GameObject>(name);
@@ -611,14 +612,16 @@ namespace Ledger.Game
                 if (packed != null)
                 {
                     PropsPlaced++;
-                    return Object.Instantiate(packed, position, rotation);
+                    var inst = Object.Instantiate(packed, position, rotation);
+                    NotePropAlbedo(key, inst);
+                    return inst;
                 }
             }
-            var key = name.ToLowerInvariant().Replace(" ", "_").Replace("-", "_");
             var prefab = Resources.Load<GameObject>("Props/Prop_" + key);
             if (prefab == null) return null;
             var go = Object.Instantiate(prefab, position, rotation);
             PropsPlaced++;
+            NotePropAlbedo(key, go);
             return go;
         }
 
@@ -627,6 +630,98 @@ namespace Ledger.Game
         /// mesh stood on the street" are different facts and this project
         /// has shipped that difference before (rule 6).
         public static int PropsPlaced;
+
+        /// KIT PROPS ARRIVE WEARING WHATEVER THEIR AUTHOR PAINTED THEM, and
+        /// the skyline proved what that costs: towers in holiday-brochure
+        /// pastel over a noir street, brighter than everything near them.
+        /// Awnings, cars and the skyline now go through repaints; benches,
+        /// bins, street lights and the crate stack do not — deliberately,
+        /// because a green bench is plausible and mass-repainting on
+        /// resemblance alone is the rule-4 mistake. What was missing is the
+        /// MEASUREMENT: which families are actually brighter than the town
+        /// they stand in. Measured once per distinct key, at instantiate
+        /// time — so for the repainted families (awning/car/skyline) the
+        /// number is the PRE-repaint albedo; their repaints are proven by
+        /// their own counters. The unrepainted four, the question being
+        /// asked, carry their live value.
+        ///
+        /// The statistic: mean over the instance's shared materials of
+        /// (linear tint luma x mean texture luma), texture read through an
+        /// 8x8 GPU blit so bundle textures need no CPU readability. Equal
+        /// weight per material, not per square metre — good enough to rank
+        /// families against the wall reference computed by the SAME maths.
+        static void NotePropAlbedo(string key, GameObject inst)
+        {
+            if (inst == null || _propAlbedo.ContainsKey(key)) return;
+            float sum = 0f; int n = 0;
+            foreach (var r in inst.GetComponentsInChildren<Renderer>(true))
+                foreach (var m in r.sharedMaterials)
+                {
+                    if (m == null) continue;
+                    sum += MatAlbedo(m); n++;
+                }
+            if (n > 0) _propAlbedo[key] = sum / n;
+        }
+        static readonly Dictionary<string, float> _propAlbedo = new Dictionary<string, float>();
+        public static IEnumerable<KeyValuePair<string, float>> PropAlbedos => _propAlbedo;
+        public static int PropAlbedoUnread;   // textures the blit could not read
+
+        static float MatAlbedo(UnityEngine.Material m)
+        {
+            var tint = m.HasProperty("_Color") ? m.color.linear : UnityEngine.Color.white;
+            float tl = 0.2126f * tint.r + 0.7152f * tint.g + 0.0722f * tint.b;
+            return tl * MeanTexLuma(m.mainTexture);
+        }
+
+        /// The town reference the props are compared against: the four wall
+        /// surfaces' FINAL materials (grade x pack photograph), through the
+        /// same helper — one instrument on both sides of the comparison, or
+        /// the comparison is two instruments arguing.
+        public static float TownWallAlbedo()
+        {
+            float sum = 0f; int n = 0;
+            foreach (var logical in new[] { BrickRed, BrickGrey, Plaster, Concrete })
+            {
+                var m = Material(logical);
+                if (m == null) continue;
+                sum += MatAlbedo(m); n++;
+            }
+            return n > 0 ? sum / n : -1f;
+        }
+
+        static float MeanTexLuma(Texture t)
+        {
+            if (t == null) return 1f;
+            if (_texLuma.TryGetValue(t, out var cached)) return cached;
+            float mean = 1f;   // unreadable counts as white: a false ALARM, never a false pass
+            RenderTexture rt = null;
+            var old = RenderTexture.active;
+            try
+            {
+                rt = RenderTexture.GetTemporary(8, 8, 0, RenderTextureFormat.ARGB32,
+                                                RenderTextureReadWrite.Linear);
+                Graphics.Blit(t, rt);
+                var small = new Texture2D(8, 8, TextureFormat.RGBA32, false, true);
+                RenderTexture.active = rt;
+                small.ReadPixels(new Rect(0, 0, 8, 8), 0, 0);
+                small.Apply(false);
+                var px = small.GetPixels();
+                float sum = 0f;
+                for (int i = 0; i < px.Length; i++)
+                    sum += 0.2126f * px[i].r + 0.7152f * px[i].g + 0.0722f * px[i].b;
+                mean = sum / px.Length;
+                Object.Destroy(small);
+            }
+            catch (System.Exception) { PropAlbedoUnread++; }
+            finally
+            {
+                RenderTexture.active = old;
+                if (rt != null) RenderTexture.ReleaseTemporary(rt);
+            }
+            _texLuma[t] = mean;
+            return mean;
+        }
+        static readonly Dictionary<Texture, float> _texLuma = new Dictionary<Texture, float>();
     }
 
     /// Per-surface appearance: tint, PBR params, tiling, procedural pattern kind,
