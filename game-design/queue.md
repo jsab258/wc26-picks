@@ -144,15 +144,13 @@ parked — no DirectML on the Air.
    with camera height, or accept that the tour vantage exaggerates and
    judge at street level — which still needs its own wet frame.
 
-   **THE CAPSULES ARE ADJUDICATED — a spawn-frame flash, not a tint.**
-   Build O's catcher named five spawn-fresh residents
-   (`capsulesLoose=5`): Destroy is end-of-frame, so a walker spawned in
-   the frame a shot lands renders its bare capsule into exactly that
-   frame — a spawn wave meeting a screenshot. Teardown knew to disable
-   before destroying; Build and RealBody's handover were the second and
-   third implementations without the line. Both fixed, riding P; the
-   catcher expects ZERO. If it still fires, the population is bigger
-   than the flash and the names say where.
+   **THE CAPSULES STAY FIXED** (zero on P, Q, R and S — closed). **THE
+   FLOATING BRICK SLAB is not a building**: the grounded sweep over the
+   recorded primary bodies reads 0 of 384 afloat, twice. The slab
+   catcher rides U — every renderer ≥6m across with its base above
+   head height, minus roofs/tiers/skyline/wires, BY NAME — and the
+   next verdict names the family instead of leaving a frame nobody can
+   act on.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the
@@ -386,14 +384,14 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 - **Turn a still into a number.** Five faults found by opening a frame and none
   by a gate. Anything a frame shows that no metric names is a metric worth
   adding.
-- **THE DROP PIPELINE — the slide works and the question moved to the
-  ADDRESS.** Build R: day 1 went five dead ticks to zero stalls — and
-  all three drops still ended 3.7–4.9m out after walking the full
-  distance. Movement without arrival at a consistent radius reads as a
-  target nothing can stand at: the sidestep falls back to the RAW point
-  when every candidate fails, so a drop against a wall stays against
-  the wall silently. Build S's trace prints the marker's position and
-  standability at three radii — read that before moving anything. If
-  the marker is standable and the bot still orbits, the slide needs a
-  progress guard; if it is not, the ADDRESS moves (and rule 6 holds:
-  the radius and window stay).
+- **THE DROP PIPELINE — THE CASE IS CLOSED AND THE FIX RIDES T.** Build
+  S measured `markerClear=0/0/0` on every drop: nobody could stand at
+  any posted marker, even as a point. Three rounds of bot fixes moved
+  nothing because the bot was never the fault — the two-direction
+  sidestep failed its whole candidate set every run and fell back to
+  the blocked raw point silently. The marker now ring-searches eight
+  directions out to 7.5m for standable ground off the carriageway, and
+  a drop it still cannot place counts on the done line. Read T:
+  markerClear should be 1/1/1 and the first DONE in the project's
+  recorded history is genuinely possible. Radius, window, gate all
+  stand where they were (rule 6, held throughout).
