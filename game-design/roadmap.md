@@ -329,11 +329,11 @@ systems-first project is most likely to skip.
   is untested. The Director and the gossip mill are what could make it true.
 - **Legacy & succession, 40 → 70.** Succession exists only at the ending; a
   hand-over that matters mid-game is what turns a campaign into a dynasty.
-- **The session-hook guarantee — HALF BUILT 18 Aug.** The design doc's only
-  retention claim had no implementation and no owner; `Core/LooseEnds` picks
-  the evening's thread and the day close shows it, three of six sources fed.
-  **Done when** all six are fed, no closed day ends with nothing outstanding,
-  and the run NAMES the thread rather than counting it.
+- **The session-hook guarantee — ALL SIX SOURCES FED 22 Aug.** `Core/LooseEnds`
+  picks the evening's thread, the day close shows it, and the promise tier
+  needed the world changed, not a wire: late asks name tomorrow night, so an
+  unhad evening can exist at a close. **Done when** the landed run reads 6of6
+  with the lower tiers reachable, and no closed day ends with nothing open.
 
 **Done when.** Two full playthroughs by somebody who has not read the design
 docs, with notes, and a measured difference between them.
