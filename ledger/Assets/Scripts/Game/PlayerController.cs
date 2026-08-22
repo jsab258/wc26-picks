@@ -163,6 +163,34 @@ namespace Ledger.Game
                     // overshoot possible in a way instant velocity never did.
                     float far = want.magnitude;
                     if (far > 0.001f) want /= far;
+                    // THE WALL-SLIDE, and it exists because the stall probe
+                    // finally named its target: `stalledOn=Building_44@0.1m`
+                    // — the bot beelines, and a CharacterController pushed
+                    // face-first into a wall has no tangential velocity to
+                    // slide with, so it stood dead for five ticks with the
+                    // drop 4.8m away round the corner. When the way ahead is
+                    // blocked inside a stride, steer along the obstacle's
+                    // face instead — the strafe any player would do without
+                    // thinking. People count as obstacles too: the d2 trace
+                    // walked 0.0m into a pub crowd, and stepping round a
+                    // body is the same instinct. Skipped inside 1.5m of the
+                    // target so the approach ease-off keeps owning arrival.
+                    if (far > 1.5f
+                        && Physics.SphereCast(transform.position + Vector3.up * 0.9f,
+                               0.3f, want, out var block, 0.9f)
+                        && block.collider != null
+                        && block.collider.transform.root != transform.root)
+                    {
+                        var n = block.normal; n.y = 0;
+                        if (n.sqrMagnitude > 0.001f)
+                        {
+                            n.Normalize();
+                            var slide = want - n * Vector3.Dot(want, n);
+                            if (slide.sqrMagnitude < 0.01f)
+                                slide = new Vector3(-n.z, 0, n.x);
+                            want = slide.normalized;
+                        }
+                    }
                     want *= Mathf.Clamp01(far / 2f);
                     _yaw += 20f * dt; // slow camera sweep for varied screenshots
                     running = AutoMoveRun;

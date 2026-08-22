@@ -1433,10 +1433,17 @@ namespace Ledger.Game
             // ONE DUSK FRAME PER RUN (M17.10 V6). The dailies photograph
             // noon and 23:00, so the crossover — where the dusk warmth and
             // the low sun glow live — was invisible to CI by construction:
-            // work on it could not be judged by anything. Hour 17 is where
-            // this sim's NightAmount sits near 0.6, deep enough into the
-            // transition to show the warm haze against lit windows.
-            if (!_tookDuskShot && now.Day == 1 && now.Hour == 17)
+            // work on it could not be judged by anything.
+            //
+            // HOUR 16, MOVED FROM 17 BY THE FIRST FRAME'S OWN SKY LINE. I
+            // computed night≈0.6 for hour 17 and the landed reading said
+            // otherwise: the ambient was a tenth of noon's and the frame
+            // was black with two street names in it. The warmth WAS there —
+            // the fog read warm, red over blue — but there was nothing left
+            // to light. An hour earlier buys the light back; the sky line
+            // prints per shot, so the reading decides again if 16 is wrong
+            // too.
+            if (!_tookDuskShot && now.Day == 1 && now.Hour == 16)
             {
                 _tookDuskShot = true;
                 Shot("day1_dusk");
