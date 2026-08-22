@@ -158,6 +158,7 @@ namespace Ledger.EditorTools
         public static void Build()
         {
             ExtractTextures();
+            SurveyMaterials();
             Variants = 0;
             _locomotions.Clear();
             int mannequins = 0, cartoons = 0, unmeasured = 0;
@@ -382,6 +383,44 @@ namespace Ledger.EditorTools
                 // Windows pipeline goes through.
                 Debug.Log($"CharacterMaterials: extraction FAILED "
                           + $"{e.GetType().Name}: {e.Message}");
+            }
+        }
+
+        /// WHAT EVERY CHARACTER MATERIAL ACTUALLY IS — name, shader, render
+        /// mode, gloss, bound texture — printed once per build. The close-up
+        /// probe photographed hair rendering as flat white glossy shards,
+        /// and the fix needs the hair materials' real names and import
+        /// settings, which exist only on the runner: the embedded materials
+        /// live inside FBXs this container cannot open. Survey first, so
+        /// the cutout-and-matte repair keys off what imported rather than
+        /// off a guess about Mixamo naming.
+        static void SurveyMaterials()
+        {
+            try
+            {
+                var sb = new System.Text.StringBuilder("CharacterMaterials: survey");
+                foreach (var path in BodyModels())
+                {
+                    var mats = new System.Collections.Generic.List<string>();
+                    foreach (var a in AssetDatabase.LoadAllAssetsAtPath(path))
+                    {
+                        var m = a as Material;
+                        if (m == null) continue;
+                        var tex = m.HasProperty("_MainTex") ? m.GetTexture("_MainTex") : null;
+                        float gloss = m.HasProperty("_Glossiness") ? m.GetFloat("_Glossiness") : -1f;
+                        float mode = m.HasProperty("_Mode") ? m.GetFloat("_Mode") : -1f;
+                        mats.Add($"{m.name}(mode:{mode:0} gl:{gloss:0.00} "
+                                 + $"tex:{(tex != null ? tex.name : "none")})");
+                    }
+                    sb.Append($"\nCharacterMaterials:   "
+                              + System.IO.Path.GetFileNameWithoutExtension(path)
+                              + ": " + string.Join(" ", mats));
+                }
+                Debug.Log(sb.ToString());
+            }
+            catch (System.Exception e)
+            {
+                Debug.Log($"CharacterMaterials: survey FAILED {e.GetType().Name}: {e.Message}");
             }
         }
 
