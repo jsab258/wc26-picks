@@ -4681,6 +4681,10 @@ namespace Ledger.Game
         string _denounceMark = "none";
         float _slamAt = -1f;
         bool _loiterApproaching;
+        /// Why the loiter's morning window ticked by without staging — one
+        /// count per blocked tick, named by clause — and how many ticks the
+        /// approach itself consumed once it began.
+        int _loiterBlockDrop, _loiterBlockJob, _loiterBlockNobody, _loiterApproachTicks;
         Vector3 _loiterTarget;
         int _investigationsBeforeSlam, _slamInvestigations = -1;
         bool? _ringOk;
@@ -5062,11 +5066,24 @@ namespace Ledger.Game
             // gate is measuring — "a probe must not alter the outcome
             // measured beside it", pointed at both neighbours this time.
             bool dropOpen = _game.ActiveJobPos.HasValue;
-            if (!_loiterStaged && !dropOpen && _game.DayJobTargetPos == null
-                && now.Day >= 8 && now.Hour >= 9 && now.Hour < 11 && nearest != null)
+            // TALLIED, NOT JUST TESTED (rule 3b). The morning window staged
+            // the loiter on one run and not the next under identical rules,
+            // and `loiterStaged=False` cannot say which clause ate the
+            // window's ticks — the drop, the shift marker, an empty street,
+            // or an approach that walked and never arrived. Each blocked
+            // tick now names its blocker, and the approach counts its own
+            // ticks; the next flaky run reads as a story instead of a coin.
+            if (!_loiterStaged && !_loiterApproaching
+                && now.Day >= 8 && now.Hour >= 9 && now.Hour < 11)
             {
-                _loiterApproaching = true;
-                _loiterTarget = nearest.transform.position;
+                if (dropOpen) _loiterBlockDrop++;
+                else if (_game.DayJobTargetPos != null) _loiterBlockJob++;
+                else if (nearest == null) _loiterBlockNobody++;
+                else
+                {
+                    _loiterApproaching = true;
+                    _loiterTarget = nearest.transform.position;
+                }
             }
 
             // NAME SOMEBODY TO THE LAW, once, on a day when the street has had
@@ -5382,6 +5399,7 @@ namespace Ledger.Game
             }
             if (_loiterApproaching)
             {
+                _loiterApproachTicks++;
                 target = _loiterTarget;
                 _targetOwner = "loiter-walk";
                 if (nearestDist <= 8f)
@@ -12017,7 +12035,8 @@ namespace Ledger.Game
                       // reached, and neither was in the report — so two builds
                       // were spent inferring it from a -1.
                       $"lastDay={_lastSeenDay} endDayReached={_endDay} " +
-                      $"loiterStaged={_loiterStaged} loiterRetries={_loiterRetries} "
+                      $"loiterStaged={_loiterStaged} loiterRetries={_loiterRetries} " +
+                      $"loiterWhy=[drop:{_loiterBlockDrop}/job:{_loiterBlockJob}/nobody:{_loiterBlockNobody}/approach:{_loiterApproachTicks}] "
                       + $"slams={_slams} " +
                       $"nightRunStaged={_nightRunStaged} " +
                       $"denounced={LawHost.Denounced} marksFiled={LawHost.MarksFiled} " +
