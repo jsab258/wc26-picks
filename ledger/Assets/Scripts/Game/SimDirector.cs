@@ -7764,7 +7764,37 @@ namespace Ledger.Game
                 }
             }
             _boxesAfloatWho = who.Count > 0 ? string.Join("/", who.ToArray()) : "none";
+
+            // AND THE SLAB CATCHER, because the buildings were acquitted
+            // (0/384 grounded-check) while the noon frame still shows a
+            // wide brick panel hovering over the street. Whatever it is, it
+            // is LARGE (a facade's width), ELEVATED (sky under its bottom
+            // edge) and not a roof or a setback tier — so: any renderer
+            // six metres or more across whose base floats above head
+            // height, minus the families that live up there by design,
+            // printed BY NAME. The names classify; nothing here judges.
+            _slabsAloft = 0;
+            var slabWho = new List<string>();
+            foreach (var mf in FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
+            {
+                if (mf == null) continue;
+                var n = mf.name;
+                if (n.StartsWith("Roof") || n.Contains("_up") || n.Contains("_tank")
+                    || n.StartsWith("Skyline") || n.StartsWith("Cable")
+                    || n.StartsWith("PoleWire")) continue;
+                var r = mf.GetComponent<Renderer>();
+                if (r == null || !r.enabled) continue;
+                var b = r.bounds;
+                float widest = Mathf.Max(b.size.x, b.size.z);
+                if (widest < 6f || b.min.y < 2f) continue;
+                _slabsAloft++;
+                if (slabWho.Count < 4)
+                    slabWho.Add($"{n}@y{b.min.y:0.0}w{widest:0}");
+            }
+            _slabsAloftWho = slabWho.Count > 0 ? string.Join("/", slabWho.ToArray()) : "none";
         }
+        int _slabsAloft;
+        string _slabsAloftWho = "none";
 
         void ProbeSunShadow()
         {
@@ -11612,6 +11642,10 @@ namespace Ledger.Game
                       // P's noon frame, asked of the world instead of the
                       // picture. -1 means the sweep never ran (no noon).
                       $"boxesAfloat={_boxesAfloat}/{_boxesGroundChecked} boxesAfloatWho=[{_boxesAfloatWho}] " +
+                      // Wide elevated panels that are not roofs, tiers or the
+                      // skyline — the family the hovering-facade frame
+                      // belongs to, named so it can be classified.
+                      $"slabsAloft={_slabsAloft} slabsAloftWho=[{_slabsAloftWho}] " +
                       $"carArrived={_witnessesWhenCarArrived >= 0} dropWithCar={sawADropWithTheCar} " +
                       $"injuries={_game.Harm.All.Count} feuds={_game.Harm.Feuds.Count} " +
                       $"samScars={_game.Harm.ScarsOf("Sam")} samCap={_game.Harm.Capability("Sam", _game.Now.Day):0.00} " +
