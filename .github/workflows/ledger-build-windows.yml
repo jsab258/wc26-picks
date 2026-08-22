@@ -269,6 +269,12 @@ jobs:
         with:
           version-file: ledger/ProjectSettings/ProjectVersion.txt
           build-targets: StandaloneWindows64
+          # The Hub updater elevates with -Verb RunAs, and a service session
+          # cannot show the prompt — run 32595957001 died exactly there
+          # (ENOENT on Unity Hub.exe after a silent non-install). Hub and the
+          # editor are preinstalled once by tools/runner/4 INSTALL UNITY ON
+          # THE BUILD MACHINE.bat; this step only resolves them.
+          auto-update-hub: false
 
       # ACTIVATION IS THE FLAKY STEP, AND IT COSTS A WHOLE ROUND TRIP.
       #

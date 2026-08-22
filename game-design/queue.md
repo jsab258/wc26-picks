@@ -23,9 +23,8 @@ failing. Full account in CLAUDE.md under AUTO MODE.
 
 ### Where the street got to
 
-Clips: 65 filled and passing, 2 harvest holes, 0 wrong (three re-picks,
-21 Aug). The street talks, argues, leans, works counters. **The front
-is M17.10: the visual bar is GTA V** — item 1.
+Clips: 65 filled, 0 wrong. The street talks, argues, leans, works
+counters. **The front is M17.10: the visual bar is GTA V** — item 1.
 
 **THE PLAYTEST IS RETARGETED (22 Aug, Jafar):** *"I'll try to run it on
 my windows machine after visual stuff is done. live voices/speech should
@@ -56,11 +55,13 @@ when either is truly absent. The install: bat 3, a plain DOUBLE-CLICK,
 self-elevating, no silently-closable window, and NO INSTALLERS — the
 pwsh MSI died at 92% "Access is denied" on his PC, so both tools land
 as plain zips (Program Files, falling back to `C:\LedgerTools`, both
-probed by the shims). It pushes `tools/runner/DEPS.txt`. **A watcher is armed on
-that marker: when it lands (or he says "deps installed"), dispatch
-the first real build** — one-time Unity install (~15-25 min), then
-the ~6-10 min era and the first honest frame-gate reading. Revert
-`runs-on` to `windows-latest` if his runner ever goes away.
+probed by the shims). It pushes `tools/runner/DEPS.txt` (landed; tool parity DONE — four
+layers deep). **The last admin-shaped piece is Unity** (a service
+cannot elevate, run 32595957001): bat 4 preinstalls Hub + editor +
+licence-folder grant and pushes `tools/runner/UNITY.txt` — watcher
+armed; on landing, dispatch (then the ~6-10 min era and the first
+honest frame-gate reading). `auto-update-hub` off in the workflow.
+Revert `runs-on` to `windows-latest` if his runner goes away.
 **AND BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT (Jafar, 22 Aug:
 "a full ultracode audit before playtesting is a good idea. rememver
 that").** A multi-agent sweep of the whole codebase — every system
@@ -112,9 +113,8 @@ exactly this run.
    time of day. The 13 remaining MPB colour sites still wait on the
    wash verdict's next reading.
 
-1. ~~**ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION**~~ — **CLOSED,
-   21 Aug: 65 filled, 0 wrong** (`roadmap-history.md`; 41 clips stay
-   disk-only — combat-with-no-body-animation is milestone-scale).
+1. ~~**A THIRD OF THE CLIPS WERE THE WRONG ANIMATION**~~ — **CLOSED, 21
+   Aug: 65 filled, 0 wrong** (`roadmap-history.md`; 41 stay disk-only).
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
    NARROW.** *(rule 12; the step-back and depth series are landed —
    account in `roadmap-history.md`.)* **The night half is ADDRESSED:
@@ -172,7 +172,7 @@ exactly this run.
    chase: worst glow blob 9.9% is one close-range window; two dim
    noons read brighter-than-night (d6/d8) inside the 8-of-10 gate.
 
-1. **RAIN AT EYE LEVEL: wet frames now land every run** — judge the
+1. **RAIN AT EYE LEVEL: wet frames land every run** — judge the
    old black-scratches report against them; the magenta half is
    REFUTED, and the first landed wet frames read as streaks in lamp
    cones, not scratches.
