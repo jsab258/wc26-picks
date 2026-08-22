@@ -298,7 +298,7 @@ and every stamp files a manifest fact on him, one distinct story per cargo
 feeding the exact day-circle heat the Act III audit reads; unsigned runs at
 double shed odds, leashing the signer hushes the paper. Sim stages it day 8;
 six CoreTests; the done line counts cargoes/manifests. **Remainders:** a
-player verb to recruit the signer; gambling still waits behind it.
+leverage route through Tibor's secret (plain ask shipped); gambling waits. The rhythm counts CLOSES, not days — the sim calendar jumps.
 
 **The rival is a person, not a stage counter — and she rings you as of 4 August**:
 being unreachable is a position you can take and the first thing that charges
