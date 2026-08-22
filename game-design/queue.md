@@ -41,9 +41,9 @@ already EXISTS in the backend (follower, pump, underrun arithmetic),
 gated on a sustainability test his card misses by ~15%; the one-click
 converter+timer shipped to his machine 22 Aug. If his number clears
 ~1.0x: the backend needs Float16 binds and edge conversions (it is
-fp32-typed today), and `put-voices-in-build.py`'s fixed GRAPHS list
-must learn the `-fp16` names or it silently drops them — the
-truncation family's favourite shape. The `probe.py` listen page is
+fp32-typed today). `put-voices-in-build.py` now carries the `-fp16`
+siblings when present and NAMES any graph it sees but will not ship
+(16 selftest checks, both ways) — the silent-drop trap is closed. The `probe.py` listen page is
 REPAIRED (the API-drift crash and the stale route text) —
 it confused the one person it ran for. `playtest-plan.md` carries the
 session runbook; keep the speech self-checks green on every landing.

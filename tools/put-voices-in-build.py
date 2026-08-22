@@ -193,6 +193,39 @@ def run(build, say):
             moved += 1
             say(f"  {part.name}  {part.stat().st_size / 1e6:.0f} MB")
 
+    # THE fp16 SIBLINGS TRAVEL TOO, WHEN THEY EXIST. `convert-fp16.py`
+    # lands `t3-step-fp16.onnx` (and friends) BESIDE the fp32 graphs, and
+    # a fixed three-name list would silently leave them on this machine —
+    # the truncation family's favourite shape: the game-side fp16 work
+    # would then find nothing in the build and the failure would read as
+    # a missing backend rather than a missing copy. Copied whenever
+    # present, so a staged build is ready the moment the backend learns
+    # Float16; absent is normal (the converter not run) and says nothing.
+    for g in GRAPHS:
+        half = g[:-len(".onnx")] + "-fp16.onnx"
+        for part in sorted(GRAPHS_SRC.glob(half + "*")):
+            target = dest / "models" / part.name
+            shutil.copy2(part, target)
+            if not target.exists() or target.stat().st_size != part.stat().st_size:
+                say(f"  COPY FAILED: {part.name} did not land whole")
+                return 1
+            moved += 1
+            say(f"  {part.name}  {part.stat().st_size / 1e6:.0f} MB (fp16)")
+
+    # AND ANYTHING ELSE GRAPH-SHAPED IS NAMED, NOT DROPPED. A filter
+    # nobody is told about is indistinguishable from a finding (rule 3b):
+    # `s3gen-chunk.onnx` is deliberately unshipped (streaming is closed on
+    # these weights), and whatever else an export leaves behind must not
+    # vanish silently either — this line is how the NEXT new graph name
+    # announces that this list has gone stale.
+    taken = {p.name for g in GRAPHS for pat in (g, g[:-len(".onnx")] + "-fp16.onnx")
+             for p in GRAPHS_SRC.glob(pat + "*")}
+    left = [p.name for p in sorted(GRAPHS_SRC.glob("*.onnx*"))
+            if p.name not in taken]
+    if left:
+        say(f"  seen but not copied (the backend opens none of these): "
+            f"{', '.join(left)}")
+
     # The vocabulary and the voices SHOULD already be there — CI stages them
     # into the build — but a build from before that step, or one assembled by
     # hand, would be missing them and the failure reads as a mute game rather
@@ -284,6 +317,35 @@ def selftest():
     check((models / (GRAPHS[2] + ".data")).exists(),
           "and a graph's external weights travel with it, which a "
           "name-by-name copy would have dropped")
+    check(not any("-fp16" in f.name for f in models.iterdir()),
+          "and with no fp16 graphs on this machine, none are invented")
+
+    # ---- THE fp16 SIBLINGS AND THE LEFTOVER LINE, both ways ----
+    #
+    # The converter lands `<stem>-fp16.onnx` beside the fp32 graphs; a
+    # fixed name list dropped them silently until 22 Aug. The accepting
+    # case: they travel, external weights included. The announcing case: a
+    # graph the tool deliberately does not ship is NAMED in the output,
+    # because a filter nobody is told about reads as a clean result.
+    (fake_src / "t3-step-fp16.onnx").write_bytes(b"h" * 1024)
+    (fake_src / "s3gen-decode-fp16.onnx").write_bytes(b"h" * 2048)
+    (fake_src / "s3gen-decode-fp16.onnx.data").write_bytes(b"w" * 4096)
+    (fake_src / "s3gen-chunk.onnx").write_bytes(b"n" * 512)
+    quiet2 = []
+    GRAPHS_SRC = fake_src
+    try:
+        rc = run(build, quiet2.append)
+    finally:
+        GRAPHS_SRC = keep
+    check(rc == 0 and (models / "t3-step-fp16.onnx").exists()
+          and (models / "s3gen-decode-fp16.onnx.data").exists(),
+          "fp16 siblings travel when present, external weights included")
+    check(any("s3gen-chunk.onnx" in line and "not copied" in line
+              for line in quiet2),
+          "and a graph the tool will not ship is named, not dropped",
+          next((l.strip() for l in quiet2 if "not copied" in l), "no line")[:70])
+    check(not (models / "s3gen-chunk.onnx").exists(),
+          "named is not shipped: the chunk graph stays out of the build")
 
     # ---- THE SEARCH, BOTH WAYS. Rule 5b: a finder that never finds is
     # ---- indistinguishable from an empty disk, so the ACCEPTING case is
