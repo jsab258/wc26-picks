@@ -53,11 +53,9 @@ parked — no DirectML on the Air.
    sunlit-vs-shaded form for the first time. Noted for later phases: the
    flat black shopfront void (V4's job), the blank sky dome (V6).
 
-   **IN FLIGHT (build D):** street furniture from the fetched kits + double
-   yellows; the 17 decal sets now where DecalLayer reads them; chimney pots
-   + TV aerials; the six-clip reaction set (below). Read on landing:
-   `furniture/yellowLines/roadDecals/wallDecals/decalWhy/aerials/reactions`
-   — and every still before any gate.
+   **LANDED (build D and since):** kit street furniture, double yellows,
+   the decal sets, chimney pots and aerials, and the reaction set — all
+   confirmed by counts in later verdicts and visible in the stills.
 
    **AND A LINEAR CLASS-FAULT UNDER TEST:** MaterialPropertyBlock colours
    skip the gamma-to-linear conversion, so every MPB-set tint authored in
@@ -110,19 +108,22 @@ parked — no DirectML on the Air.
    night frame needs a "how much of the frame is EMISSIVE at point-blank"
    read, or the night shot picker needs to prefer a vantage that sees the
    street. Turn the frame into a number before tuning anything.
+   **The day twin landed on V:** day2_noon stepped back from 0.44 to
+   0.24 near-fraction — passing the 0.25 bound — and the frame is still
+   half wooden hoarding: a MID-DISTANCE occluder a few metres out fills
+   the frame while sitting past the arm's-length test. Same repair as
+   the night case: measure occlusion at the distances that blind a
+   frame, not only at arm's length.
+   **And V's traffic line contradicts itself:** offRoad=1 beside
+   offRoadWho=[none] and vehiclesOffRoad=0 — three numbers for one
+   question, sampled at different instants. Establish which moment each
+   samples (the at-worst rule) before believing any of the three.
 
-   **And the tour got its own pair**, `tourDepthBy=[...]` keyed by district and
-   sorted shortest-first, because "which districts look unbuilt" needs the name
-   attached to the number and a sorted series structurally cannot carry one.
-   **A prediction is written into the emitter before the run**: the tour camera
-   is 14m up and 34m back at about 20 degrees down, so flat empty ground should
-   read north of 40m and a built street ten to twenty. If all seven come back
-   within a few metres of each other the ground plane is dominating and the
-   metric is the wrong shape — say so, do not reinterpret it.
-
-   **Also fixed while in there:** the `!_touring` block's own comment claimed
-   the blocked-frame series excluded the district tour. The `Add` sat outside
-   that block, so seven teleported frames had been going into it.
+   **The tour pair landed and its pre-written prediction held (V):**
+   `tourDepthBy` spreads 18.7 (Downtown) to 28.6 (Fairview) — real
+   district differences, not the ground plane dominating — so the
+   metric has shape and Downtown reads as the most built. (The
+   `!_touring` comment fix from the same pass also landed.)
 
 1. **THE RAIN'S HEIGHT-COVERAGE SCALING IS BUILT AND THE WET FRAME IS
    PLANTED.** The emitter box and rate already grow with camera height
