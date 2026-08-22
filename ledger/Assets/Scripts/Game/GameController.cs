@@ -485,6 +485,16 @@ namespace Ledger.Game
             new Vector3(14, 0, -12), new Vector3(-16, 0, -11), new Vector3(12, 0, 10),
         };
 
+        /// Where tonight's drop WILL post, knowable before 22:00. The
+        /// rotation is deterministic by day, which in-fiction is a pattern
+        /// any runner learns inside a week — and it is what lets the sim
+        /// bot pre-position instead of starting a 29m walk the moment a
+        /// window that lasts twelve real seconds opens (the measured cause
+        /// of most jobRan misses: the harness's 20-minutes-per-second
+        /// compression makes a four-hour window physically unfair to a bot
+        /// that only learns the address when the marker spawns).
+        public Vector3 DropPointFor(int day) => DropPoints[day % DropPoints.Length];
+
         public GossipDirector Gossip => _gossip;
         public PlayerController Player => _player;
         public Vector3? ActiveJobPos => _jobMarker != null ? (Vector3?)_jobMarker.transform.position : null;

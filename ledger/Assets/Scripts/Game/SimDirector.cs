@@ -1192,6 +1192,23 @@ namespace Ledger.Game
                 jobPos = null;
             }
             var job = jobPos ?? _game.DayJobTargetPos; // night drops outrank; mornings go to parcels
+            // PRE-POSITIONING, which is the drop fix the trace argued for.
+            // At 20 game-minutes per real second, the 22:00-02:00 window is
+            // ~12 real seconds — a ~30m run budget the measured windows
+            // spend on steering losses and probe steals, so a drop posted
+            // at 29m was lost before the first step. A runner who has seen
+            // the rotation walks there EARLY; from 20:00 the idle bot does
+            // the same, so the marker spawns onto somebody already close.
+            // Only when nothing else owns the bot (a real job target or a
+            // beat outranks it), and never on a cut-off outfit, whose
+            // silence is the consequence.
+            if (!job.HasValue && now.Hour >= 20 && now.Hour < 22
+                && _game.Campaign.Verdict == Verdict.Ongoing
+                && !_game.Campaign.OutfitCutOff)
+            {
+                job = _game.DropPointFor(now.Day);
+                _dropPrepTicks++;
+            }
             var target = beatSpot.HasValue
                 ? new Vector3(beatSpot.Value.x, 0, beatSpot.Value.z)
                 : job.HasValue ? new Vector3(job.Value.x, 0, job.Value.z) : Waypoints[_waypointIndex];
@@ -2545,6 +2562,10 @@ namespace Ledger.Game
         /// people who noticed the player RUNNING, and this adds a second reason
         /// to be running.
         int _dropRuns;
+        /// Ticks spent walking to tonight's drop point BEFORE the window
+        /// opens — separate from `_dropRuns` (in-window run ticks) because
+        /// folding them together would change what that number asks.
+        int _dropPrepTicks;
 
         /// GROUND COVERED DURING THE WINDOW, which is the number the owner
         /// tally could not supply and the second half of the answer.
@@ -11477,7 +11498,7 @@ namespace Ledger.Game
                       $"slamRings=[{(_slamRingSkips.Count == 0 ? "no slams staged" : string.Join(" ", _slamRingSkips))}] " +
                       $"slamsDeferred={_slamsDeferred} " +
                       $"loitersCutShort={_loitersCutShort} " +
-                      $"dropRuns={_dropRuns} " +
+                      $"dropRuns={_dropRuns} dropPrep={_dropPrepTicks} " +
                       $"ringSeen={100 * _ringSeenFraction:0.0000} ringRise={_ringSeenRise:0.0000} " +
                       $"ringLedger={100 * _ringSeenLedger:0.0000} " +
                       $"ringSprites={100 * _ringSeenSprites:0.0000} " +
