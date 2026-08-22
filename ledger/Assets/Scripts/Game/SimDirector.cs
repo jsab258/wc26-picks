@@ -2623,6 +2623,9 @@ namespace Ledger.Game
         /// and injury are ruled out — and `d13` ruled both out.
         int _jobStallCrowd;
         string _jobStallWhere = "nowhere";
+        /// Named collider ahead of the bot at the worst stall (see the
+        /// record site) — reset per window with the rest.
+        string _jobStallBlocker = "nothing";
 
         /// Called once per tick, after every stage has had its chance at the
         /// target. Only while a drop is open: outside the window the bot is
@@ -2699,6 +2702,7 @@ namespace Ledger.Game
                     _jobWorstSeverity = 0;
                     _jobLongestStall = 0;
                     _jobStallCrowd = 0; _jobStallWhere = "nowhere";
+                    _jobStallBlocker = "nothing";
                     _jobStillRun = 0;
                     _jobTicks = 0; _jobRanTicks = 0;
                 }
@@ -2793,6 +2797,27 @@ namespace Ledger.Game
                                 }
                             var p = _player.transform.position;
                             _jobStallWhere = $"{p.x:0}/{p.z:0}";
+                            // AND WHAT IS PHYSICALLY IN THE WAY, named. Build
+                            // O's d1 stalled five ticks with ZERO people near
+                            // (`stalledWith=0@-16/-6`) — geometry, and the
+                            // trace could say where but not what. A sphere at
+                            // the bot's own radius, cast toward the target,
+                            // sees the bin or the kerb a thin ray would
+                            // thread between two colliders.
+                            _jobStallBlocker = "nothing";
+                            var castFrom = p + Vector3.up * 0.9f;
+                            var castTo = new Vector3(pos.Value.x, castFrom.y, pos.Value.z);
+                            var castDir = castTo - castFrom;
+                            if (castDir.sqrMagnitude > 0.01f)
+                            {
+                                castDir.Normalize();
+                                if (Physics.SphereCast(castFrom, 0.3f, castDir,
+                                        out var blockHit, 2.0f)
+                                    && blockHit.collider != null
+                                    && blockHit.collider.transform.root != _player.transform.root)
+                                    _jobStallBlocker =
+                                        $"{blockHit.collider.name}@{blockHit.distance:0.0}m";
+                            }
                         }
                     }
                     else _jobStillRun = 0;
@@ -2834,6 +2859,12 @@ namespace Ledger.Game
                           // a brisk one that stopped halfway.
                           + $"stalled={_jobLongestStall} "
                           + $"stalledWith={_jobStallCrowd}@{_jobStallWhere} "
+                          // The named collider a bot-radius sphere hits
+                          // toward the target at the worst stall — the
+                          // question build O's d1 left open ("alone and
+                          // stuck", on what?). "nothing" with a stall means
+                          // the block is behind or beside, not ahead.
+                          + $"stalledOn={_jobStallBlocker} "
                           // Window size and run coverage, so a short window
                           // and a flapping run flag stop hiding inside the
                           // ownership tally (see the tick counter's comment).
