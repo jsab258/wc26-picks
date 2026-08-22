@@ -1425,6 +1425,7 @@ namespace Ledger.Game
                 // and gated is taken before any A/B has touched the scene,
                 // so no future probe added here can quietly darken it.
                 Shot($"day{now.Day}_night");
+                ProbeNightFloor();
                 // LATCHED AT THE SHOT, BECAUSE THE COUNTERS ARE LAST-WINS AND
                 // THE STILL IS NOT.
                 //
@@ -7606,6 +7607,38 @@ namespace Ledger.Game
         /// field at its initialiser. Toggle at the LIGHT, not the quality
         /// settings: flipping the master enum would also stop the lamps'
         /// shadows, and the question here is the sun's.
+        /// WHO HOLDS THE NIGHT FLOOR. Three tune rounds moved the window
+        /// glow, the grain and the lamp intensities and the night frame's
+        /// darkest tenth barely moved (0.149 -> 0.145 measured off the
+        /// landed JPEGs) — so the lift is coming from something none of
+        /// those knobs touch, and guessing has been wrong at every step of
+        /// this hunt. Same discipline as the sun probe: render the same
+        /// instant with each suspect toggled and print the ladder. The
+        /// residual after all three is the scene itself — sky, fog,
+        /// ambient — which the ladder then implicates by elimination.
+        string _nightFloor = "not_probed";
+        bool _nightFloorDone;
+
+        void ProbeNightFloor()
+        {
+            if (_nightFloorDone) return;
+            var cam = Camera.main;
+            if (cam == null) return;
+            _nightFloorDone = true;
+            var all = FrameShot(cam);
+            FilmGrade.Grain = false;
+            var noGrain = FrameShot(cam);
+            FilmGrade.Grain = true;
+            FilmGrade.Lift = false;
+            var noLift = FrameShot(cam);
+            FilmGrade.Lift = true;
+            WorldBuilder.SetLampsEnabled(false);
+            var noLamps = FrameShot(cam);
+            WorldBuilder.SetLampsEnabled(true);
+            _nightFloor = $"[all:{all.Mean:0.000}/noGrain:{noGrain.Mean:0.000}"
+                        + $"/noLift:{noLift.Mean:0.000}/noLamps:{noLamps.Mean:0.000}]";
+        }
+
         void ProbeSunShadow()
         {
             var cam = Camera.main;
@@ -12441,6 +12474,7 @@ namespace Ledger.Game
                       $"bodyBrightestTier={_bodyBrightestTier} bodyBrightestWhen={_bodyBrightestWhen} " +
                       $"bodyBrightestCrowdMed={_bodyBrightestCrowdMed:0.0} " +
                       $"bodyBrightestPart={_bodyBrightestPart} " +
+                      $"nightFloor={_nightFloor} " +
                       $"crowdSatRange={_crowdSatRange} " +
                       $"bodyChoices={RealBody.BodyChoices} " +
                       // Kit-model props that actually reached the world.

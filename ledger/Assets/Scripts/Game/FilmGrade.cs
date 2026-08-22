@@ -152,6 +152,10 @@ namespace Ledger.Game
         /// pixels, and it caught the whole stack being dead the first time it
         /// ran. Every effect here now has one.
         public static bool Grain = true, Vignette = true, Bloom = true;
+        /// The night black-lift's A/B switch, same contract as the three
+        /// above: not an option, exists so the night-floor probe can render
+        /// one frame without the lift and say what the lift costs.
+        public static bool Lift = true;
 
         /// How lit the player currently is, 0..1 — set by the game each frame
         /// from the same `Perceivers.LevelAt` the NPCs read.
@@ -278,7 +282,8 @@ namespace Ledger.Game
             // the shader never reads an unbound depth texture on Low.
             float night01 = GameController.NightAmount;
             _mat.SetFloat("_SplitAmt", Mathf.Lerp(1.0f, 0.45f, night01));
-            _mat.SetFloat("_LiftAmt", 0.045f * Mathf.SmoothStep(0f, 1f, night01));
+            _mat.SetFloat("_LiftAmt",
+                Lift ? 0.045f * Mathf.SmoothStep(0f, 1f, night01) : 0f);
             bool depthBound = Ledger.Core.Detail.PostOcclusion(
                 Ledger.Core.Detail.Parse(GameSettings.Current.Detail));
             _mat.SetFloat("_DesatFar", depthBound ? 0.18f : 0f);
