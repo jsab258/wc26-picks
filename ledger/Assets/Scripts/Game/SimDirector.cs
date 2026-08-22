@@ -3033,11 +3033,20 @@ namespace Ledger.Game
             if (px == null) return;
             const int W = 640, H = 360;
 
-            bool Average(Renderer r, out double lum, out double sat, out int n)
+            bool Average(Renderer r, out double lum, out double sat, out int n, float inset = 0f)
             {
                 lum = sat = 0; n = 0;
                 if (r == null || !r.isVisible) return false;
                 if (!NameTags.ScreenRect(cam, r.bounds, out var rect)) return false;
+                // Optional CENTRE CROP, for callers whose rects are small
+                // enough that the background behind them wins the average.
+                // Below 0.5 the rect stays non-empty by construction.
+                if (inset > 0f)
+                {
+                    float ix = rect.width * inset, iy = rect.height * inset;
+                    rect = Rect.MinMaxRect(rect.xMin + ix, rect.yMin + iy,
+                                           rect.xMax - ix, rect.yMax - iy);
+                }
                 int x0 = Mathf.Clamp((int)(rect.xMin * W / Screen.width), 0, W - 1);
                 int x1 = Mathf.Clamp((int)(rect.xMax * W / Screen.width), 0, W - 1);
                 int y0 = Mathf.Clamp((int)(rect.yMin * H / Screen.height), 0, H - 1);
@@ -3254,10 +3263,22 @@ namespace Ledger.Game
                     // standing suspect) instead of a seventh guess.
                     if (shotBestWalker != null)
                     {
+                        // CENTRE THIRD ONLY (22 Aug). The first answer this
+                        // gave — a foot at 226 — was the instrument, not the
+                        // body: a part's screen rect is mostly whatever
+                        // stands behind it, part rects vary in size, so the
+                        // background-dilution bias the body probe's comment
+                        // admits gets WORSE here, and a small mesh on sunlit
+                        // pavement wins on the pavement's luma. The centre
+                        // third is mostly mesh for the compact parts (hair
+                        // and head, the standing suspects); a thin diagonal
+                        // limb can still let background through its middle —
+                        // the residual bias, named rather than hidden. NOT
+                        // comparable with readings before this change.
                         double partBest = -1; string partName = "none";
                         foreach (var pr in shotBestWalker.GetComponentsInChildren<Renderer>())
                         {
-                            if (!Average(pr, out double pl2, out _, out int pc2)) continue;
+                            if (!Average(pr, out double pl2, out _, out int pc2, inset: 1f / 3f)) continue;
                             double plum = pl2 / pc2;
                             if (plum > partBest) { partBest = plum; partName = pr.name; }
                         }
