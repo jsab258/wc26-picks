@@ -336,13 +336,17 @@ parked — no DirectML on the Air.
    singular; the doc offers bar/courier/office on the first morning.
 5. **Interiors beyond the pub** (M20) — every other door is a threshold.
 
-**Reactions are LIVE — 75 played on build O** (flinch 9, glance 61, wave 4,
-point 1) with 313 refused. **greet and head_no read ZERO and the counter
-cannot say why**: never asked, or always refused — different faults in
-different systems (bark gesture wiring vs the rig's slot table). Build P
-prints played-of-asked per kind; read it before touching either wire. If
-greet shows 0of0 the bark lines with greeting prose never fire near a
-skinned body; 0ofN means the slot ask fails on bodies that should have it.
+**Reactions are LIVE and the asks are measured** (build P: 82 played;
+flinch 11of61, glance 62of284, wave 4of8, point 1of2, head_no 4of6 —
+most refusals are glance cooldowns, which is the cooldown doing its
+job). **greet reads 0of0 and that is the SIM'S ECONOMY, not a wire
+fault**: the gesture fires only for a loyal (≥0.35), need-route crew
+member passing the player, and the sim skims — worst loyalty 0.225 —
+so the condition never exists in a run. Deliberately NOT planted: a
+staged loyal runner would pollute the crew-decay gates that measure
+skimming. The wire is proven by the other five kinds sharing its code
+path. If a future run's crew stays loyal, greet gets its first ask
+free.
 
 ### The quality ladder (standing order 16 Aug: best available, not first working)
 

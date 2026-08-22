@@ -7694,8 +7694,49 @@ namespace Ledger.Game
                         + $"/noLift:{noLift.Mean:0.000}/noLamps:{noLamps.Mean:0.000}]";
         }
 
+        /// EVERY PRIMARY BUILDING BOX SITS ON THE GROUND, measured off what
+        /// is DRAWN rather than off the mass table — build P's noon frame
+        /// shows a brick facade that reads as hovering over the road, and a
+        /// picture is good evidence that something is wrong and poor
+        /// evidence of what (rule 4). Setback tiers, roof tanks, roofs and
+        /// doorstep pads legitimately start above ground and are excluded
+        /// by name; everything else with its rendered base half a metre up
+        /// is a floater, named. Zero with the denominator beside it means
+        /// the bodies are grounded and the frame's slab is one of the
+        /// excluded kinds or an optical read — either way the next step is
+        /// known, which is what the number is for.
+        int _boxesAfloat = -1, _boxesGroundChecked;
+        string _boxesAfloatWho = "none";
+        void MeasureAfloatOnce()
+        {
+            if (_boxesAfloat >= 0) return;
+            _boxesAfloat = 0; _boxesGroundChecked = 0;
+            var who = new List<string>();
+            foreach (var mf in FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
+            {
+                if (mf == null) continue;
+                var n = mf.name;
+                bool building = n.StartsWith("Building_")
+                    && !n.Contains("_up") && !n.Contains("_tank");
+                bool district = n.StartsWith("District_")
+                    && !n.Contains("_roof") && !n.Contains("_step");
+                if (!building && !district) continue;
+                var r = mf.GetComponent<Renderer>();
+                if (r == null) continue;
+                _boxesGroundChecked++;
+                float baseY = r.bounds.min.y;
+                if (baseY > 0.5f)
+                {
+                    _boxesAfloat++;
+                    if (who.Count < 4) who.Add($"{n}@y{baseY:0.0}");
+                }
+            }
+            _boxesAfloatWho = who.Count > 0 ? string.Join("/", who.ToArray()) : "none";
+        }
+
         void ProbeSunShadow()
         {
+            MeasureAfloatOnce();
             var cam = Camera.main;
             if (cam == null) return;
             var sunGo = GameObject.Find("Sun");
@@ -11457,6 +11498,11 @@ namespace Ledger.Game
                       // somebody nudges an avenue array, and it names the
                       // street when it does.
                       $"massInRoad=[{string.Join(" ", Ledger.Core.StreetMap.MassOverlaps())}] " +
+                      // Rendered building bases off the ground, of how many
+                      // examined — the hovering-facade question from build
+                      // P's noon frame, asked of the world instead of the
+                      // picture. -1 means the sweep never ran (no noon).
+                      $"boxesAfloat={_boxesAfloat}/{_boxesGroundChecked} boxesAfloatWho=[{_boxesAfloatWho}] " +
                       $"carArrived={_witnessesWhenCarArrived >= 0} dropWithCar={sawADropWithTheCar} " +
                       $"injuries={_game.Harm.All.Count} feuds={_game.Harm.Feuds.Count} " +
                       $"samScars={_game.Harm.ScarsOf("Sam")} samCap={_game.Harm.Capability("Sam", _game.Now.Day):0.00} " +
