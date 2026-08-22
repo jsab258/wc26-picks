@@ -128,16 +128,37 @@ namespace Ledger.Game
             // the scene for every vantage this game actually uses; at
             // street level the player is still comfortably inside it.
             var cam = Camera.main;
+            float coverage = 1f;
             if (cam != null)
             {
                 var fwd = cam.transform.forward; fwd.y = 0;
                 if (fwd.sqrMagnitude > 0.01f) fwd.Normalize(); else fwd = Vector3.zero;
-                transform.position = cam.transform.position + fwd * 12f + Vector3.up * 14f;
+                // AND THE FIELD GROWS WITH THE CAMERA'S HEIGHT. The first wet
+                // tour frame (the Hook, build R) showed why a fixed box
+                // cannot serve two vantages: at street level 38m surrounds
+                // the player completely, and from 14m up the same box is a
+                // swarm patch in one corner of a view that sees sixty. The
+                // box widens with height — about 2.3x at the tour's 14m —
+                // and the rate rises LINEARLY with it, not with area, so an
+                // elevated view gets a thinner field that covers the frame:
+                // which is also what height does to real rain, the far half
+                // of a downpour being mostly haze.
+                float hi = Mathf.Max(0f, cam.transform.position.y - 2f);
+                coverage = Mathf.Clamp(1f + hi * 0.11f, 1f, 2.5f);
+                transform.position = cam.transform.position
+                    + fwd * (12f * coverage) + Vector3.up * 14f;
+                if (_rainFx != null)
+                {
+                    var shape = _rainFx.shape;
+                    shape.scale = new Vector3(38f * coverage, 0.2f, 38f * coverage);
+                }
             }
             if (_rainFx != null)
             {
                 var em = _rainFx.emission;
-                em.rateOverTime = Rain * 2200f;
+                em.rateOverTime = Rain * 2200f * coverage;
+                var main2 = _rainFx.main;
+                main2.maxParticles = Mathf.RoundToInt(3000 * coverage);
             }
 
             // AND YOU CAN HEAR IT. The art pass shipped a downpour you could
