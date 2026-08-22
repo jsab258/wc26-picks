@@ -1599,7 +1599,8 @@ namespace Ledger.Game
             {
                 if (_dispatchMarker == null)
                 {
-                    _dispatchMarker = SpawnGlowMarker(DispatchBoard, new Color(0.35f, 0.72f, 0.78f), "DispatchBoard");
+                    TryStandable(DispatchBoard, out var boardAt);
+                    _dispatchMarker = SpawnGlowMarker(boardAt, new Color(0.35f, 0.72f, 0.78f), "DispatchBoard");
                     if (_dispatchToastDay != Now.Day)
                     {
                         _dispatchToastDay = Now.Day;
@@ -1610,14 +1611,19 @@ namespace Ledger.Game
             else if (_dispatchMarker != null) { Destroy(_dispatchMarker); _dispatchMarker = null; }
 
             var p = _player.transform.position;
+            // MEASURED TO THE MARKER, not the authored constant — the ring
+            // search can move the board, and a check against the raw point
+            // would be the drops' one-target-two-positions fault reborn.
+            var boardPos = _dispatchMarker != null ? _dispatchMarker.transform.position : Vector3.zero;
             if (_dispatchMarker != null &&
-                Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(DispatchBoard.x, 0, DispatchBoard.z)) < 2.5f
+                Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(boardPos.x, 0, boardPos.z)) < 2.5f
                 && Job.Accept(Now))
             {
                 Destroy(_dispatchMarker);
                 _dispatchMarker = null;
                 _shiftStop = 0;
-                _shiftMarker = SpawnGlowMarker(ShiftStops[0], new Color(0.35f, 0.72f, 0.78f), "ShiftStop");
+                TryStandable(ShiftStops[0], out var stop0);
+                _shiftMarker = SpawnGlowMarker(stop0, new Color(0.35f, 0.72f, 0.78f), "ShiftStop");
                 ToastLine("Zlata drops the satchel into your arms mid-sentence. \"Market corner first, and don't let Marla feed you, you'll never leave. Back before dark.\"", 10f);
             }
 
@@ -1643,7 +1649,8 @@ namespace Ledger.Game
                     else
                     {
                         _shiftStop++;
-                        _shiftMarker = SpawnGlowMarker(ShiftStops[_shiftStop], new Color(0.35f, 0.72f, 0.78f), "ShiftStop");
+                        TryStandable(ShiftStops[_shiftStop], out var stopNext);
+                        _shiftMarker = SpawnGlowMarker(stopNext, new Color(0.35f, 0.72f, 0.78f), "ShiftStop");
                     }
                 }
             }
@@ -1669,7 +1676,8 @@ namespace Ledger.Game
             if (!Job.Accept(Now)) return false;
             if (_dispatchMarker != null) { Destroy(_dispatchMarker); _dispatchMarker = null; }
             _shiftStop = 0;
-            _shiftMarker = SpawnGlowMarker(ShiftStops[0], new Color(0.35f, 0.72f, 0.78f), "ShiftStop");
+            TryStandable(ShiftStops[0], out var stagedStop);
+            _shiftMarker = SpawnGlowMarker(stagedStop, new Color(0.35f, 0.72f, 0.78f), "ShiftStop");
             return true;
         }
 
@@ -3124,35 +3132,38 @@ namespace Ledger.Game
         /// search below — the counter that stops this failing silently again.
         public static int DropMarkersBlocked;
 
+        /// A RING SEARCH for standable ground, because authored marker
+        /// positions and built geometry drift apart and the failure is
+        /// silent. Build S measured it on the drops: `markerClear=0/0/0`
+        /// on all three windows — no one could stand at any posted drop,
+        /// even as a point, which is why three runs of bot fixes moved
+        /// the miss distance not at all. Eight directions, steps out to
+        /// 7.5m, nearest standable spot off the carriageway wins; the raw
+        /// point is tried first so an already-good address never moves.
+        /// SHARED by every glowing destination — the dispatch board and
+        /// the shift stops had the identical fault one function over,
+        /// found by the grep the drop fix demanded.
+        static bool TryStandable(Vector3 pos, out Vector3 at)
+        {
+            at = pos;
+            if (WorldBuilder.PointClear(pos, 1.2f)) return true;
+            for (float step = 1.5f; step <= 7.5f; step += 1.5f)
+                for (int dir = 0; dir < 8; dir++)
+                {
+                    float ang = dir * Mathf.PI / 4f;
+                    var c = new Vector3(pos.x + Mathf.Cos(ang) * step, 0,
+                                        pos.z + Mathf.Sin(ang) * step);
+                    if (!WorldBuilder.PointClear(c, 1.2f)) continue;
+                    if (Ledger.Core.StreetMap.OnRoad(c.x, c.z)) continue;
+                    at = c;
+                    return true;
+                }
+            return false;
+        }
+
         void SpawnJobMarker(Vector3 pos)
         {
-            // A RING SEARCH, because the two-direction version failed on
-            // every drop of every run and fell back to the blocked point
-            // without a word. Build S measured it: `markerClear=0/0/0` on
-            // all three windows — no one could stand at any posted drop,
-            // even as a point, which is why three runs of bot fixes moved
-            // the miss distance not at all. Eight directions, steps out to
-            // 7.5m, nearest standable spot wins; the raw point is still
-            // tried first so an already-good address never moves.
-            var at = pos;
-            bool found = false;
-            if (WorldBuilder.PointClear(pos, 1.2f)) { found = true; }
-            else
-            {
-                for (float step = 1.5f; step <= 7.5f && !found; step += 1.5f)
-                    for (int dir = 0; dir < 8 && !found; dir++)
-                    {
-                        float ang = dir * Mathf.PI / 4f;
-                        var c = new Vector3(pos.x + Mathf.Cos(ang) * step, 0,
-                                            pos.z + Mathf.Sin(ang) * step);
-                        // Standable AND not in a carriageway — a drop in the
-                        // middle of the road solves one fault with another.
-                        if (!WorldBuilder.PointClear(c, 1.2f)) continue;
-                        if (Ledger.Core.StreetMap.OnRoad(c.x, c.z)) continue;
-                        at = c; found = true;
-                    }
-            }
-            if (!found) DropMarkersBlocked++;
+            if (!TryStandable(pos, out var at)) DropMarkersBlocked++;
             _jobMarker = SpawnGlowMarker(at, new Color(1f, 0.55f, 0.15f), "JobDrop");
         }
 
