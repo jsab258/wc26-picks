@@ -135,9 +135,14 @@ parked — no DirectML on the Air.
    the blocked-frame series excluded the district tour. The `Add` sat outside
    that block, so seven teleported frames had been going into it.
 
-1. **THE RAIN ANCHOR FIX RIDES BUILD P** *(was: scribble cloud from the
-   tour camera)* — the emitter now centres over the viewed scene, not the
-   camera's head. Needs a WET run to judge, same as the eye-level item.
+1. **THE RAIN GOT ITS WET TOUR FRAME (build R, the Hook)** — the anchor
+   fix holds (the field sits over the scene now, not behind the camera)
+   and the remaining fault is COVERAGE: a 38m box centred 12m ahead
+   cannot fill an elevated view that sees sixty-plus metres, so the rain
+   reads as a swarm patch against the sky, upper right, with dry street
+   beyond it. Next rung: scale the emitter box (and particle budget)
+   with camera height, or accept that the tour vantage exaggerates and
+   judge at street level — which still needs its own wet frame.
 
    **THE CAPSULES ARE ADJUDICATED — a spawn-frame flash, not a tint.**
    Build O's catcher named five spawn-fresh residents
@@ -381,11 +386,14 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 - **Turn a still into a number.** Five faults found by opening a frame and none
   by a gate. Anything a frame shows that no metric names is a metric worth
   adding.
-- **THE DROP PIPELINE — build Q NAMED the stall and the fix rides R.**
-  `stalledOn=Building_44@0.1m`: the bot beelines, and a CharacterController
-  pushed face-first into a wall has no tangential velocity to slide with.
-  The auto-move now strafes along a blocking face (people included — the
-  d2 pub-crowd stall is the same case). Read R's trace: d1 and d2 should
-  walk round; d8's one-tick-short window remains the open question — read
-  how DayJob windows map to sim ticks before touching either. **The
-  window, radius and gate stand exactly where they were** (rule 6).
+- **THE DROP PIPELINE — the slide works and the question moved to the
+  ADDRESS.** Build R: day 1 went five dead ticks to zero stalls — and
+  all three drops still ended 3.7–4.9m out after walking the full
+  distance. Movement without arrival at a consistent radius reads as a
+  target nothing can stand at: the sidestep falls back to the RAW point
+  when every candidate fails, so a drop against a wall stays against
+  the wall silently. Build S's trace prints the marker's position and
+  standability at three radii — read that before moving anything. If
+  the marker is standable and the bot still orbits, the slide needs a
+  progress guard; if it is not, the ADDRESS moves (and rule 6 holds:
+  the radius and window stay).
