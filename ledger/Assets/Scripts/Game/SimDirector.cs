@@ -140,6 +140,7 @@ namespace Ledger.Game
         bool _harmSampled, _harmStillHurt, _harmTurned, _harmFeudLive, _harmFeudBlocks;
         bool _planStaged, _planRan;
         bool _dayJobStaged;
+        int _dayJobStageDay = -1;
         bool _openModeForced;
         int _lastSeenDay = -1, _daysSkipped;
         /// Latched the moment a witness can describe the car. Read once per
@@ -721,9 +722,20 @@ namespace Ledger.Game
             // cross three districts in that. The ROUND is not staged — it still
             // walks all three stops and back to Zlata to be paid, which is the
             // half that can break.
-            if (!_dayJobStaged && _game.Campaign.OpenMode && now.Hour >= 8 && now.Hour < 11)
+            // DAILY, NOT ONCE. The latch gave the whole run exactly one
+            // attempt at the parcel round, so a single stolen morning — a
+            // perception probe or a callbox owning the bot's legs for the
+            // window — locked `shifts=0` in for the run and reddened the
+            // gate on 72 of 251 runs. Core's `CanAccept` already refuses
+            // same-day re-accepts and allows next-day ones, which is also
+            // what a person who missed yesterday's round does: go back to
+            // the board. Stops once one shift lands — the gate asks >= 1,
+            // and the sim's mornings have other work to exercise.
+            if (_game.Campaign.OpenMode && now.Hour >= 8 && now.Hour < 11
+                && _dayJobStageDay != now.Day && _game.Job.ShiftsWorked == 0)
             {
-                _dayJobStaged = _game.StageDayJobShift();
+                _dayJobStageDay = now.Day;
+                if (_game.StageDayJobShift()) _dayJobStaged = true;
             }
 
             // Empire v1 in CI: the moment the city opens, the bot plays one
@@ -11706,6 +11718,12 @@ namespace Ledger.Game
                       $"actThreeOk={actThreeOk} " +
                       $"npcs={(_npcs != null ? _npcs.Length : 0)} populationOk={populationOk} " +
                       $"shifts={_game.Job.ShiftsWorked} dayJobStaged={_dayJobStaged} dayJobOk={dayJobOk} " +
+                      // WHERE THE SHIFT DIES, because `shifts=0` has been red
+                      // on 72 of 251 runs and says nothing about which stop
+                      // or how far short. Reached is a run total; end is the
+                      // LAST shift's outcome (last-wins by design — with the
+                      // daily restage a run keeps trying until one lands).
+                      $"shiftStopsReached={_game.ShiftStopsReached} shiftEnd={_game.ShiftEnd} " +
                       $"street={_game.Economy.Prosperity:0.00} prices={_game.Economy.PriceLevel:0.00} " +
                       $"takingsFactor={_game.Economy.TakingsFactor:0.00} economyOk={economyOk} " +
                       $"directorPending={_game.Directorate.Pending.Count} directorFired={_directorFired} directorOk={directorOk} " +

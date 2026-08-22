@@ -114,6 +114,13 @@ namespace Ledger.Game
         GameObject _dispatchMarker, _shiftMarker;
         int _dispatchToastDay;
         int _shiftStop;
+        /// Shift-round instrument (rule 3b): `shifts=0` alone cannot say
+        /// whether the bot never reached stop one or died a metre from the
+        /// board. Reached is a run total over every staged or real shift;
+        /// End is the LAST shift's outcome — "done", or where it lapsed and
+        /// how far the player stood from the marker at that moment.
+        public int ShiftStopsReached;
+        public string ShiftEnd = "none";
         static readonly Vector3 DispatchBoard = new Vector3(20, 0, 8);
         static readonly Vector3[] ShiftStops =
         {
@@ -1631,6 +1638,11 @@ namespace Ledger.Game
             {
                 if (Job.Lapse(Now))
                 {
+                    // Which stop, and how far short — the number `shifts=0`
+                    // never carried. Distance flat, like the arrival test.
+                    var lm = _shiftMarker.transform.position;
+                    float shy = Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(lm.x, 0, lm.z));
+                    ShiftEnd = $"lapsed@stop{_shiftStop}:{shy:0}m";
                     Destroy(_shiftMarker);
                     _shiftMarker = null;
                     ToastLine("Evening, and the parcels go back on Zlata's shelf unsigned. She doesn't say anything. She writes something.", 8f);
@@ -1639,11 +1651,13 @@ namespace Ledger.Game
                 var m = _shiftMarker.transform.position;
                 if (Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(m.x, 0, m.z)) < 2.5f)
                 {
+                    ShiftStopsReached++;
                     Destroy(_shiftMarker);
                     _shiftMarker = null;
                     if (Job.Advance(ShiftStops.Length))
                     {
                         int pay = Job.Complete(Wallet, Now);
+                        ShiftEnd = "done";
                         ToastLine($"Zlata initials your sheet without looking up. \"+£{pay}. You're not bad at this. Worrying, for a man with a bar.\"", 9f);
                     }
                     else
@@ -1667,9 +1681,10 @@ namespace Ledger.Game
         /// district that is now three districts wide does not fit in that.
         ///
         /// So the ACCEPT is staged and the round is not: the bot still has to
-        /// walk all three stops and get back to Zlata to be paid, which is the
-        /// half that can actually break. Never called from the game — the real
-        /// door is standing at the board while the chalk is wet.
+        /// walk the round — the market corner, then back to the board where
+        /// Zlata pays (two stops, and the second IS the return) — which is
+        /// the half that can actually break. Never called from the game — the
+        /// real door is standing at the board while the chalk is wet.
         public bool StageDayJobShift()
         {
             if (!Campaign.OpenMode || _shiftMarker != null) return false;
