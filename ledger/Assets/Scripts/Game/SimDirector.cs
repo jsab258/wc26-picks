@@ -2924,7 +2924,7 @@ namespace Ledger.Game
             // its body tier and the crowd median FROM THE SAME INSTANT
             // beside it (the at-worst rule).
             double shotBestLum = -1; string shotBestWho = null;
-            bool shotBestReal = false;
+            bool shotBestReal = false; NpcWalker shotBestWalker = null;
             if (_npcs != null)
                 foreach (var n in _npcs)
                 {
@@ -2940,6 +2940,7 @@ namespace Ledger.Game
                         shotBestLum = lum;
                         shotBestWho = n.DisplayName ?? n.name;
                         shotBestReal = n.HasRealBody;
+                        shotBestWalker = n;
                     }
                 }
             _crowdConsidered = considered;
@@ -3057,6 +3058,24 @@ namespace Ledger.Game
                     _bodyBrightestTier = shotBestReal ? "real" : "mannequin";
                     _bodyBrightestWhen = _lastShotName;
                     _bodyBrightestCrowdMed = _crowdLum;
+                    // WHICH RENDERER carries the glow, read at the same
+                    // instant. The wash conversion darkened the crowd median
+                    // 19.7 -> 8.2 and the peak did not move (223 -> 224), so
+                    // the pale body's brightest part is something the wash
+                    // never touches — this names it (the white hair is the
+                    // standing suspect) instead of a seventh guess.
+                    if (shotBestWalker != null)
+                    {
+                        double partBest = -1; string partName = "none";
+                        foreach (var pr in shotBestWalker.GetComponentsInChildren<Renderer>())
+                        {
+                            if (!Average(pr, out double pl2, out _, out int pc2)) continue;
+                            double plum = pl2 / pc2;
+                            if (plum > partBest) { partBest = plum; partName = pr.name; }
+                        }
+                        _bodyBrightestPart =
+                            $"{partName.Replace(' ', '_')}:{partBest:0.0}";
+                    }
                 }
             }
         }
@@ -3195,7 +3214,7 @@ namespace Ledger.Game
         /// pills, pre-named. -1 means no shot ever sampled a body.
         double _bodyBrightest = -1, _bodyBrightestCrowdMed = -1;
         string _bodyBrightestWho = "none", _bodyBrightestTier = "none",
-               _bodyBrightestWhen = "never";
+               _bodyBrightestWhen = "never", _bodyBrightestPart = "none";
         int _playerPixels, _crowdSampled, _crowdConsidered;
         string _crowdLumRange = "none", _crowdSatRange = "none";
         /// Which committed frame the body/crowd reading came off. See the note
@@ -12421,6 +12440,7 @@ namespace Ledger.Game
                       $"bodyBrightest={_bodyBrightest:0.0} bodyBrightestWho={_bodyBrightestWho} " +
                       $"bodyBrightestTier={_bodyBrightestTier} bodyBrightestWhen={_bodyBrightestWhen} " +
                       $"bodyBrightestCrowdMed={_bodyBrightestCrowdMed:0.0} " +
+                      $"bodyBrightestPart={_bodyBrightestPart} " +
                       $"crowdSatRange={_crowdSatRange} " +
                       $"bodyChoices={RealBody.BodyChoices} " +
                       // Kit-model props that actually reached the world.
