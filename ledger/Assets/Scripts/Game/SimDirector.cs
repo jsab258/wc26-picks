@@ -9154,6 +9154,28 @@ namespace Ledger.Game
                           + $"{RenderSettings.ambientSkyColor.b:0.000}");
 
                 var fp = Fingerprint(tex, name);
+                // THE GLOW-BLOB READ, night and dusk frames only. Two night
+                // stills read as walls of amber light while brightPct called
+                // one of them 1.23 — the eye's objection is one CONTIGUOUS
+                // warm shape owning the frame, and no per-pixel fraction can
+                // see contiguity. Largest connected warm component instead:
+                // the Python twin of this test, run on the landed stills,
+                // put the wall-of-light frame at 0.121 and a healthy night
+                // street at 0.007 — an order of magnitude between the eye's
+                // verdicts. Restricted to dark hours because sunlit brick is
+                // warm too, and the question here is emission.
+                if (name.Contains("night") || name.Contains("dusk"))
+                {
+                    var glow = WarmBlob(tex);
+                    _glowBlobs.Add((float)glow.blobFrac);
+                    if (glow.blobFrac > _glowBlobWorst)
+                    {
+                        _glowBlobWorst = glow.blobFrac;
+                        _glowBlobWorstShot = name;
+                    }
+                    Debug.Log($"SimDirector: glow {name} warmFrac={glow.warmFrac:0.000} "
+                              + $"blob={glow.blobFrac:0.000} blobs={glow.blobs}");
+                }
                 _screenshots.Add(new Dictionary<string, object>
                 {
                     { "path", path }, { "bytes", info.Exists ? info.Length : 0 },
@@ -9237,6 +9259,61 @@ namespace Ledger.Game
         /// the JSON report is stable across locales. Reading them back needs
         /// the same culture, or a machine with a comma decimal separator
         /// parses 0.35 as 35 and every gate here inverts.
+        /// Per-shot glow-blob fractions over the run (dark hours only) and
+        /// the worst with its shot's name. A PEAK beside a MEDIAN, declared
+        /// as such: the worst answers "did any frame degenerate into a wall
+        /// of light", the median answers "is that how nights look", and
+        /// neither answers the other.
+        readonly List<float> _glowBlobs = new List<float>();
+        double _glowBlobWorst;
+        string _glowBlobWorstShot = "none";
+
+        /// Largest 4-connected warm-bright component of a frame, on a
+        /// 4x-downsampled grid. Warm-bright: red past half, red clearly
+        /// over blue, luma past 0.35 — sodium windows and neon match,
+        /// starlight and blue-grey walls do not.
+        static (double warmFrac, double blobFrac, int blobs) WarmBlob(Texture2D tex)
+        {
+            var px = tex.GetPixels32();
+            int w = tex.width, h = tex.height;
+            const int S = 4;
+            int gw = w / S, gh = h / S;
+            if (gw < 2 || gh < 2) return (0, 0, 0);
+            var mask = new bool[gw * gh];
+            int warm = 0;
+            for (int gy = 0; gy < gh; gy++)
+                for (int gx = 0; gx < gw; gx++)
+                {
+                    var c = px[(gy * S) * w + gx * S];
+                    double l = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255.0;
+                    bool m = c.r > 128 && c.r > c.b * 1.8 && l > 0.35;
+                    mask[gy * gw + gx] = m;
+                    if (m) warm++;
+                }
+            var seen = new bool[gw * gh];
+            var stack = new Stack<int>();
+            int best = 0, blobs = 0;
+            for (int i = 0; i < mask.Length; i++)
+            {
+                if (!mask[i] || seen[i]) continue;
+                blobs++;
+                int size = 0;
+                stack.Push(i); seen[i] = true;
+                while (stack.Count > 0)
+                {
+                    int j = stack.Pop(); size++;
+                    int x = j % gw, y = j / gw;
+                    if (x > 0 && mask[j - 1] && !seen[j - 1]) { seen[j - 1] = true; stack.Push(j - 1); }
+                    if (x < gw - 1 && mask[j + 1] && !seen[j + 1]) { seen[j + 1] = true; stack.Push(j + 1); }
+                    if (y > 0 && mask[j - gw] && !seen[j - gw]) { seen[j - gw] = true; stack.Push(j - gw); }
+                    if (y < gh - 1 && mask[j + gw] && !seen[j + gw]) { seen[j + gw] = true; stack.Push(j + gw); }
+                }
+                if (size > best) best = size;
+            }
+            double n = mask.Length;
+            return (warm / n, best / n, blobs);
+        }
+
         static double ShotNum(Dictionary<string, object> shot, string key)
         {
             if (shot == null || !shot.TryGetValue(key, out var v)) return -1;
@@ -12587,6 +12664,14 @@ namespace Ledger.Game
                       $"bodyBrightestCrowdMed={_bodyBrightestCrowdMed:0.0} " +
                       $"bodyBrightestPart={_bodyBrightestPart} " +
                       $"nightFloor={_nightFloor} " +
+                      // Largest contiguous warm glow patch in a dark-hour
+                      // frame: the worst (with its shot named) beside the
+                      // median, because "did any frame become a wall of
+                      // light" and "is that how nights look" are different
+                      // questions. Python twin on landed stills: 0.121 for
+                      // the wall, 0.007 for a healthy street.
+                      $"nightGlowWorst={_glowBlobWorst:0.000} nightGlowWorstShot={_glowBlobWorstShot} " +
+                      $"nightGlowMedian={MedianOf(_glowBlobs):0.000} nightGlowShots={_glowBlobs.Count} " +
                       $"crowdSatRange={_crowdSatRange} " +
                       $"bodyChoices={RealBody.BodyChoices} " +
                       // Kit-model props that actually reached the world.
