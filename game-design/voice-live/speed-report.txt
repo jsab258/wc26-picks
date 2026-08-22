@@ -1,14 +1,23 @@
-LEDGER — a few lines, more than one voice
-ran on Jafar-Desktop (Windows), 2026-08-12 16:00 UTC
+LEDGER — how long one spoken line actually takes
+ran on Jafar-Desktop (Windows) as Jafar, 2026-08-22 12:10 UTC
 
-  TEXT GRAPHS: FP16
-  19 voices precomputed, speaking with 2: rocco, ada
+  providers available: DmlExecutionProvider, CPUExecutionProvider
   using: DmlExecutionProvider
-  three sessions in 42.0s
-  1. rocco: 19 tokens, 0.8s of speech, 2.5s to make — "No."
-  2. ada: 4 tokens, 0.2s of speech, 2.0s to make — "Seen the van again. Thursday, same as last Thursday."
-  3. rocco: 99 tokens, 4.0s of speech, 4.7s to make — "You want me to say that in front of Rocco?"
-  4. ada: 80 tokens, 3.2s of speech, 3.9s to make — "Forty-two crates, and not one of them opened where I could see it."
-  5. rocco: 110 tokens, 4.4s of speech, 5.1s to make — "I was nowhere near the yard, and you know it, and so does he."
-  5 of 5 lines spoken, 18s of work in 2 voice(s), 2 row(s) of odds — classifier-free guidance
-  wrote spoken.wav — 725 KB, 15.5s, 5 lines with 0.5s between them
+  opened t3-prefill in 3.1s
+  opened t3-step in 2.8s
+  opened s3gen-decode in 36.0s
+  three sessions in 41.9s total
+  the line is 36 tokens: "Seen the van again. Thursday, same as last Thursday."
+  prefill: 0.32s (second run 0.08s — the gap between them is one-time warm-up, the second is the real cost)
+  the graph gives 2 row(s) of odds — classifier-free guidance
+  92 steps in 4.4s — first 157ms, median 42ms, slowest 157ms
+  92 acoustic tokens kept
+  one step, Dml: 57ms   CPU: 76ms   (CPU session opened in 2.2s)
+  -> the card is 1.3x faster per step; the old 4.4x CPU reading does not hold on these graphs
+  decode on CPU: 4.88s (session opened in 36.5s)
+  -> the CPU is 2.9x SLOWER at this stage — DirectML is the right place for it
+  wrote spoken.wav — 196 KB, 4.2s, through the SHIPPED graphs
+  decode: 1.68s for 3.7s of audio
+
+  ONE LINE: 6.4s of work for 3.7s of speech — 1.7x real time
+  split: prefill 0.3s, 92 steps 4.4s, decode 1.7s
