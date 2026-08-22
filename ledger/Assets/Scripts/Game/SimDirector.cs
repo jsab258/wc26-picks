@@ -237,6 +237,10 @@ namespace Ledger.Game
         }
 
         bool _tookDayShot, _tookNightShot;
+        /// Once per RUN, not per day — deliberately outside the daily reset
+        /// on `_shotDay`: one crossover frame is the instrument, nine would
+        /// be eight more files answering the same question.
+        bool _tookDuskShot;
         int _shotDay = -1;
         int _waypointIndex;
         static readonly Vector3[] Waypoints =
@@ -1425,6 +1429,17 @@ namespace Ledger.Game
             {
                 _tookTour = true;
                 DistrictTour();
+            }
+            // ONE DUSK FRAME PER RUN (M17.10 V6). The dailies photograph
+            // noon and 23:00, so the crossover — where the dusk warmth and
+            // the low sun glow live — was invisible to CI by construction:
+            // work on it could not be judged by anything. Hour 17 is where
+            // this sim's NightAmount sits near 0.6, deep enough into the
+            // transition to show the warm haze against lit windows.
+            if (!_tookDuskShot && now.Day == 1 && now.Hour == 17)
+            {
+                _tookDuskShot = true;
+                Shot("day1_dusk");
             }
             if (!_tookNightShot && now.Hour == 23)
             {

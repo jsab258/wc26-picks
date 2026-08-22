@@ -3058,6 +3058,12 @@ namespace Ledger.Game
         /// 0 at noon, 1 in the dead of night. Read by the film grade.
         public static float NightAmount { get; private set; }
 
+        /// Unit vector TOWARD the sun, published beside `NightAmount` for
+        /// the same reason it exists: the sky dome paints its glow where
+        /// the shadows say the sun is, and two notions of "where is the
+        /// sun" would drift. Set every frame with the light's rotation.
+        public static Vector3 SunwardDir { get; private set; } = Vector3.up;
+
         /// THE AUDIO MIX, LIFTED OUT OF `UpdateSun` SO THE BUDGET CAN NAME IT.
         ///
         /// Every line here ran inside the `sun` timer, which is why that line
@@ -3113,6 +3119,7 @@ namespace Ledger.Game
             float elev = Mathf.Sin(dayT * Mathf.PI) * 52f;
             float azim = Mathf.Lerp(70f, 290f, dayT);
             _sun.transform.rotation = Quaternion.Euler(elev, azim, 0);
+            SunwardDir = -_sun.transform.forward;
 
             float daylight = Mathf.Clamp01(Mathf.Sin(dayFraction * Mathf.PI * 2f - Mathf.PI / 2f) + 0.15f);
             // Published so the film grade pushes the stock at night off the

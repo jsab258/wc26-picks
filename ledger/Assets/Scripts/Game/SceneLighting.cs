@@ -47,6 +47,9 @@ namespace Ledger.Game
         static readonly int SkyGroundId  = Shader.PropertyToID("_GroundColor");
         static readonly int CloudColorId    = Shader.PropertyToID("_CloudColor");
         static readonly int CloudCoverageId = Shader.PropertyToID("_CloudCoverage");
+        static readonly int SunDirId        = Shader.PropertyToID("_SunDir");
+        static readonly int SunGlowColorId  = Shader.PropertyToID("_SunGlowColor");
+        static readonly int SunGlowAmtId    = Shader.PropertyToID("_SunGlowAmt");
 
         /// CONVERTED FOR LINEAR AT THE ONE FUNNEL (M17.10 V1.5, round
         /// three). Every LightModel colour is authored in display terms,
@@ -260,9 +263,28 @@ namespace Ledger.Game
                 // cloud deck — and the night sky keeps structure too (lit
                 // from below by the town, which kloppenheim-style skies show).
                 var top = C(LightModel.SkyColour(night, rain));
-                _sky.SetColor(CloudColorId, new Color(
-                    top.r * 0.86f + 0.02f, top.g * 0.85f + 0.012f, top.b * 0.83f));
+                // NIGHT SODIUM ON THE DECK (V6): a town's low cloud is lit
+                // from below by its own lamps, so the night clouds pull
+                // toward a dim amber instead of scaling the zenith blue.
+                // Values kept LOW on purpose — the deck covers most of the
+                // sky and the night mean 0.128 was measured into place.
+                var cloud = new Color(
+                    top.r * 0.86f + 0.02f, top.g * 0.85f + 0.012f, top.b * 0.83f);
+                cloud = Color.Lerp(cloud, new Color(0.085f, 0.055f, 0.028f),
+                                   night * 0.6f);
+                _sky.SetColor(CloudColorId, cloud);
                 _sky.SetFloat(CloudCoverageId, Mathf.Lerp(0.60f, 0.85f, rain));
+
+                // THE SUN'S GLOW (V6): direction is the real sun's, so the
+                // bright patch sits where the shadows point. Warmer and
+                // stronger through the crossover (`Dusk`), gone at night,
+                // muted by rain — an overcast dusk is grey here too.
+                float dusk = (float)LightModel.Dusk(night);
+                _sky.SetVector(SunDirId, GameController.SunwardDir);
+                _sky.SetColor(SunGlowColorId, Color.Lerp(
+                    new Color(1f, 0.98f, 0.92f), new Color(1f, 0.52f, 0.26f), dusk));
+                _sky.SetFloat(SunGlowAmtId,
+                    Mathf.Lerp(0.16f, 0.50f, dusk) * (1f - night) * (1f - 0.6f * rain));
 
                 // What a DRY window reflects only updates when this is called
                 // — assigning `RenderSettings.skybox` refreshes nothing on

@@ -10896,6 +10896,24 @@ namespace Ledger.CoreTests
             Check(dfr + dfg + dfb > fr + fg + fb, "and day fog is brighter than night fog");
             Check(fr <= 1 && fg <= 1 && fb <= 1, "fog never leaves the colour range");
 
+            // ---- DUSK (M17.10 V6): the crossover is its own colour ----
+            Check(LightModel.Dusk(0) == 0 && LightModel.Dusk(1) == 0,
+                "dusk is zero at full day and full night — it is the crossover, not a tint");
+            Check(Math.Abs(LightModel.Dusk(0.5) - 1.0) < 1e-9, "and peaks at the half-lit moment");
+            Check(Math.Abs(LightModel.Dusk(0.3) - LightModel.Dusk(0.7)) < 1e-9,
+                "symmetrically — dawn and dusk are the same sky in this model");
+            var (xr, xg, xb) = LightModel.FogColour(0.5);
+            Check(xr > xb,
+                "THE DUSK HAZE IS WARM — red over blue at the crossover, where a "
+                + "plain mix of the cool day arm and the sodium night arm would sit "
+                + "between them instead of looking like a low sun",
+                $"dusk fog r={xr:0.000} b={xb:0.000}");
+            Check(dfr < dfb, "while the day fog it came from stays cool");
+            var (duskWetR, _, duskWetB) = LightModel.FogColour(0.5, 1.0);
+            Check(duskWetR - duskWetB < (xr - xb) * 0.5,
+                "and rain flattens the warmth — an overcast dusk is grey",
+                $"wet gap {duskWetR - duskWetB:0.000} vs clear gap {xr - xb:0.000}");
+
             // ---- VOLUMETRICS ----
             Check(LightModel.Transmittance(0, 0.02) == 1.0, "nothing is absorbed at zero distance");
             Check(LightModel.Transmittance(50, 0.02) < LightModel.Transmittance(5, 0.02),

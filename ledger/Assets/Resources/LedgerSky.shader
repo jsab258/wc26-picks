@@ -39,6 +39,14 @@ Shader "Hidden/LedgerSky"
         _CloudCoverage ("Cloud coverage", Range(0, 1)) = 0.65
         _CloudScale    ("Cloud scale",   Float) = 1.6
         _CloudWind     ("Cloud wind xy", Vector) = (0.006, 0.0035, 0, 0)
+        // THE SUN'S PLACE IN THE SKY (M17.10 V6). Not a disc — a glow: the
+        // pale bright patch an overcast sky carries where the sun is, which
+        // is what ties the dome to the shadows on the ground. Direction is
+        // the REAL sun's, published by GameController, so the bright patch
+        // and the shadow direction cannot disagree.
+        _SunDir       ("Toward the sun", Vector) = (0, 1, 0, 0)
+        _SunGlowColor ("Sun glow colour", Color) = (1, 0.98, 0.92, 1)
+        _SunGlowAmt   ("Sun glow amount", Range(0, 1)) = 0.2
     }
 
     SubShader
@@ -64,6 +72,9 @@ Shader "Hidden/LedgerSky"
             float  _CloudCoverage;
             float  _CloudScale;
             float4 _CloudWind;
+            float4 _SunDir;
+            fixed4 _SunGlowColor;
+            float  _SunGlowAmt;
 
             // Value noise + 3-octave FBM with one domain warp. Hash-based
             // because CG has no Perlin; good enough for cloud MASSES — the
@@ -130,6 +141,7 @@ Shader "Hidden/LedgerSky"
                 // EXACTLY the fog colour, so the fogged-street-to-sky seam
                 // remains impossible by construction. Clouds live in the
                 // upper sky; the marine haze owns the bottom.
+                float cl = 0.0;
                 if (h > 0.02)
                 {
                     float2 uv = nd.xz / max(h, 0.08) * _CloudScale
@@ -138,10 +150,24 @@ Shader "Hidden/LedgerSky"
                     float n = fbm(uv + (warp - 0.5) * 0.9);
                     // Coverage remaps the noise band into cloud opacity:
                     // higher coverage pulls more of the mid-band into cloud.
-                    float cl = smoothstep(1.0 - _CloudCoverage - 0.25,
-                                          1.0 - _CloudCoverage + 0.25, n);
+                    cl = smoothstep(1.0 - _CloudCoverage - 0.25,
+                                    1.0 - _CloudCoverage + 0.25, n);
                     c.rgb = lerp(c.rgb, _CloudColor.rgb, cl * up * 0.85);
                 }
+
+                // THE SUN'S GLOW, after the clouds so the deck attenuates
+                // it — a thick patch of deck mutes the patch, a break lets
+                // it through, which is what an overcast sky actually does.
+                // FADED TO NOTHING BELOW h=0.10, so the horizon band stays
+                // exactly the fog colour and the seam guarantee this file
+                // exists for survives the glow: at street level the
+                // roofline hides those degrees anyway, and a dusk sun
+                // reads as the warm patch just above the roofs.
+                float toSun = saturate(dot(nd, normalize(_SunDir.xyz)));
+                float glow = pow(toSun, 32.0) + 0.35 * pow(toSun, 6.0);
+                c.rgb += _SunGlowColor.rgb
+                       * (glow * _SunGlowAmt * (1.0 - cl * 0.75)
+                          * smoothstep(0.0, 0.10, h));
                 c.a = 1;
                 return c;
             }

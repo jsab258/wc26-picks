@@ -374,6 +374,18 @@ namespace Ledger.Core
             return 0.0085 + 0.0060 * night + 0.0130 * rain;
         }
 
+        /// How deep into the day-night CROSSOVER the sky is — zero at full
+        /// day and full night, one at the half-lit moment. The bell is what
+        /// gives dusk its own colour instead of being a grey average of the
+        /// two arms it sits between (M17.10 V6): a linear Mix passes through
+        /// the midpoint of day and night, and no real sky does.
+        public static double Dusk(double night)
+        {
+            night = Feel.Clamp01(night);
+            double d = 4.0 * night * (1.0 - night);
+            return d * d * d;
+        }
+
         /// Fog takes the colour of what is lighting it, which is why a night
         /// fog under sodium lamps is warm and a day fog is not. Getting this
         /// wrong — grey fog at night — is the single most common way a scene
@@ -407,7 +419,20 @@ namespace Ledger.Core
             double ng = Feel.Clamp01(hg * 1.10 + 0.032 * 0.65);
             double nb = Feel.Clamp01(hb * 1.05 + 0.010 * 0.65);
 
-            return (Mix(dr, nr, night), Mix(dg, ng, night), Mix(db, nb, night));
+            double r = Mix(dr, nr, night), g = Mix(dg, ng, night), b = Mix(db, nb, night);
+
+            // DUSK WARMTH (M17.10 V6). The crossover pulls the haze toward
+            // low-sun amber — and because the dome's horizon stop reads
+            // `RenderSettings.fogColor`, the sky warms WITH the street by
+            // the same mechanism that keeps the fog seam impossible; no
+            // second owner appears. Rain flattens it: an overcast dusk is
+            // grey, and the wet-noon rule (never brighter than clear)
+            // extends to the crossover unchanged.
+            double dusk = Dusk(night) * (1.0 - 0.7 * rain);
+            r = Mix(r, 0.470, 0.55 * dusk);
+            g = Mix(g, 0.360, 0.55 * dusk);
+            b = Mix(b, 0.285, 0.55 * dusk);
+            return (r, g, b);
         }
 
         // ---- volumetrics --------------------------------------------------
