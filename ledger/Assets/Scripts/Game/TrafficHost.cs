@@ -513,11 +513,14 @@ namespace Ledger.Game
         /// purpose: the per-vehicle offset into this list is what stops
         /// every car on the street being the same car.
         ///
-        /// CONFIRMED AGAINST tools/props/listings.json, 16 Aug: every name
-        /// below exists in the fetched Car Kit. Two kinds stay primitive
-        /// by evidence, not oversight — the kit has NO BUS (a van scaled
-        /// to 10.5m reads worse than our glass-band box), and no bicycle
-        /// with rider.
+        /// CONFIRMED AGAINST tools/props/listings.json, 16 Aug: every
+        /// car_kit_ name below exists in the fetched Car Kit. The bus and
+        /// the bicycle come from the OGA haul of 22 Aug instead (CC0,
+        /// licence re-read at fetch time) — both packs ship a Bus.fbx and
+        /// they share one prefab key, last write wins, either is a bus.
+        /// FULL PREFAB KEYS since that haul: two kits supply vehicles now,
+        /// so a baked car_kit_ prefix would make every other kit
+        /// unreachable from here.
         ///
         /// `police` USED TO BE ON THE NEVER-REFERENCED LIST, with the karts
         /// and the race cars, under "wrong era, wrong town". That was a guess
@@ -532,19 +535,20 @@ namespace Ledger.Game
         {
             switch (kindId)
             {
-                case Ledger.Core.VehicleKinds.PoliceId: return new[] { "police" };
+                case Ledger.Core.VehicleKinds.PoliceId: return new[] { "car_kit_police" };
                 // `taxi`, not "cab" — the id is `taxi` and only the NAME
                 // is "cab". This branch was dead from the day it was
                 // written and every cab in the city got a plain sedan.
-                case Ledger.Core.VehicleKinds.TaxiId: return new[] { "taxi", "sedan" };
-                case Ledger.Core.VehicleKinds.VanId:  return new[] { "van", "delivery" };
-                case Ledger.Core.VehicleKinds.TruckId: return new[] { "truck", "delivery_flat", "truck_flat" };
-                // No bus and no bicycle exist in the kit — all 50 of its
-                // models are extracted and neither is among them, so these
-                // two fall back on purpose and `vehicleFellBack` names them.
-                case Ledger.Core.VehicleKinds.BusId:  return System.Array.Empty<string>();
-                case Ledger.Core.VehicleKinds.BikeId: return System.Array.Empty<string>();
-                default:      return new[] { "sedan", "suv", "hatchback_sports", "sedan_sports" };
+                case Ledger.Core.VehicleKinds.TaxiId: return new[] { "car_kit_taxi", "car_kit_sedan" };
+                case Ledger.Core.VehicleKinds.VanId:  return new[] { "car_kit_van", "car_kit_delivery" };
+                case Ledger.Core.VehicleKinds.TruckId: return new[] { "car_kit_truck", "car_kit_delivery_flat", "car_kit_truck_flat" };
+                // From the OGA haul — the Car Kit has neither. The school
+                // bus stays out: yellow American, wrong town. The two
+                // bicycle models are one with a square frame and one
+                // without; either reads as a bike at street distance.
+                case Ledger.Core.VehicleKinds.BusId:  return new[] { "oga_vehicles_bus" };
+                case Ledger.Core.VehicleKinds.BikeId: return new[] { "oga_vehicles_bicycle", "oga_vehicles_squareframebicycle" };
+                default:      return new[] { "car_kit_sedan", "car_kit_suv", "car_kit_hatchback_sports", "car_kit_sedan_sports" };
             }
         }
 
@@ -572,7 +576,7 @@ namespace Ledger.Game
             var candidates = KitCandidates(v.Kind.Id);
             for (int c = 0; c < candidates.Length && kitBody == null; c++)
                 kitBody = AssetLibrary.TryInstantiateProp(
-                    "car_kit_" + candidates[(v.Id + c) % candidates.Length],
+                    candidates[(v.Id + c) % candidates.Length],
                     Vector3.zero, Quaternion.identity);
 
             // WHICH VEHICLES ACTUALLY GOT A MESH, AND WHICH DID NOT.
