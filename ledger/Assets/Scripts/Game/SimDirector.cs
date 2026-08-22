@@ -5073,8 +5073,16 @@ namespace Ledger.Game
             // or an approach that walked and never arrived. Each blocked
             // tick now names its blocker, and the approach counts its own
             // ticks; the next flaky run reads as a story instead of a coin.
+            // 9-11 -> 9-15, from the tally's own first landing: `job:9`
+            // said the parcel round owned nearly the whole morning window
+            // on eligible days, and the shift walk is a morning creature by
+            // its own accept rules. The afternoon is free real estate, the
+            // loiter only needs somebody to notice the player standing
+            // about, and the hold still ends hours before the drop prep
+            // takes the evening. Planting the condition wider, bound
+            // untouched.
             if (!_loiterStaged && !_loiterApproaching
-                && now.Day >= 8 && now.Hour >= 9 && now.Hour < 11)
+                && now.Day >= 8 && now.Hour >= 9 && now.Hour < 15)
             {
                 if (dropOpen) _loiterBlockDrop++;
                 else if (_game.DayJobTargetPos != null) _loiterBlockJob++;
@@ -9905,7 +9913,20 @@ namespace Ledger.Game
                 foreach (var v in traffic.Vehicles)
                 {
                     kinds.Add(v.Kind.Id);
-                    if (!v.Kind.UsesLanes && !StreetMap.OnRoad(v.X, v.Z, margin: 1.5))
+                    // DWELLING AND DORMANT ARE NOT "ON THE PAVEMENT". The
+                    // tally's first landing named the recurring red:
+                    // `taxi@64_22` — a cab standing at the ferry-stop rank,
+                    // which is exactly where a cab belongs, counted as a
+                    // fault by a test written for vehicles that should be
+                    // DRIVING. Same family as the three ferry-stop gap
+                    // events: the rank sits beside the road polygon, not on
+                    // it. A vehicle mid-dwell (bus at a stop, taxi on a
+                    // rank) or parked for the night is stationary by
+                    // design; the pavement test keeps its bound for
+                    // everything that moves.
+                    bool parkedByDesign = v.Dormant || traffic.Clock < v.DwellUntil;
+                    if (!v.Kind.UsesLanes && !parkedByDesign
+                        && !StreetMap.OnRoad(v.X, v.Z, margin: 1.5))
                     {
                         offRoad++;
                         if (offRoadAtGate.Length > 0) offRoadAtGate += "/";
