@@ -121,6 +121,11 @@ jobs:
           exit /b 1
           :pwshok
           echo tool PATH bootstrap done.
+          REM Explicit, because cmd exits with the LAST-SET errorlevel and
+          REM echo/goto never clear one: a failed `where` above left 1 behind,
+          REM and run 32595203790 did every append right, printed done, and
+          REM still reported failure - skipping the whole build after it.
+          exit /b 0
 
       # SELF-HOSTED PARITY: the cloud image ships `python3` on bash's
       # PATH and Jafar's PC does not (Git-bash knows only `python` and
