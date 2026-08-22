@@ -1145,7 +1145,17 @@ namespace Ledger.Game
                     head.name = $"SignalHead_{n.Id}_{k}";
                     head.transform.position = pos + new Vector3(0, 3.2f, 0);
                     head.transform.localScale = new Vector3(0.34f, 0.8f, 0.34f);
-                    head.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Window);
+                    var hr = head.GetComponent<Renderer>();
+                    hr.sharedMaterial = AssetLibrary.Material(AssetLibrary.Window);
+                    // The shared window material now carries the pane-grid
+                    // emission mask; a signal head is a LAMP and must glow
+                    // whole, not as four panes behind a cross. Same override
+                    // as RegisterNightLight, and TickSignals reads the block
+                    // before writing, so this survives every phase change.
+                    var hmpb = new MaterialPropertyBlock();
+                    hr.GetPropertyBlock(hmpb);
+                    hmpb.SetTexture("_EmissionMap", Texture2D.whiteTexture);
+                    hr.SetPropertyBlock(hmpb);
                     var hcol = head.GetComponent<Collider>();
                     if (hcol != null) Destroy(hcol);
 

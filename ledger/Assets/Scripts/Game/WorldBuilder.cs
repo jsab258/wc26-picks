@@ -1731,7 +1731,17 @@ namespace Ledger.Game
             // which is neither a flat's occupancy nor a shop's opening hours —
             // so it takes the residential path and is lit whenever the lamps
             // are, which is what it did before either schedule existed.
-            if (r != null) AddWindow(r, shopfront: false);
+            if (r == null) return;
+            AddWindow(r, shopfront: false);
+            // AND NOT A SASH. The shared window material carries the
+            // pane-grid emission mask, which would cut a lamp's glow into
+            // four dots behind a dark cross. Plain white on this renderer
+            // puts the full-quad glow back — read-modify-write, like every
+            // other writer on this block, so nothing gets stomped.
+            var mpb = new MaterialPropertyBlock();
+            r.GetPropertyBlock(mpb);
+            mpb.SetTexture("_EmissionMap", Texture2D.whiteTexture);
+            r.SetPropertyBlock(mpb);
         }
 
         /// How many window renderers the city built, and how many of those are
@@ -1757,6 +1767,18 @@ namespace Ledger.Game
         static Renderer WinBox(string name, Vector3 center, Vector3 size)
         {
             var go = MakeBox(name, center, size, AssetLibrary.Window);
+            // ONE TEXTURE REPEAT IS ONE SASH (a 2x2 of panes, drawn and
+            // emission-masked by the same predicate). INTEGER repeats, so
+            // every band edge lands on a frame instead of cutting a pane
+            // mid-glass: a 1.4m near window gets one sash, a nine-metre far
+            // band gets six — which is what turns the wall-of-light slabs
+            // into rows of windows at zero geometry cost. Written before
+            // the glow sweeps ever run, and both they and SetTiling are
+            // read-modify-write on the same property block, so neither
+            // stomps the other (checked at all three writers, 22 Aug).
+            float across = Mathf.Max(size.x, size.z);
+            SetTiling(go, Mathf.Max(1f, Mathf.Round(across / 1.5f)),
+                          Mathf.Max(1f, Mathf.Round(size.y / 1.4f)));
             return go.GetComponent<Renderer>();
         }
 
