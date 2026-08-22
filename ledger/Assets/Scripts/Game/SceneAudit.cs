@@ -157,7 +157,15 @@ namespace Ledger.Game
                 var s = t.lossyScale;
                 float big = Mathf.Max(Mathf.Abs(s.x), Mathf.Max(Mathf.Abs(s.y), Mathf.Abs(s.z)));
                 float small = Mathf.Min(Mathf.Abs(s.x), Mathf.Min(Mathf.Abs(s.y), Mathf.Abs(s.z)));
-                if (small > 100f || big < 0.0005f) Note(found, "absurdScale", r.name);
+                // WITH THE VALUE, because `absurdScale:1@pallet` has been
+                // failing the bodies gate for days and the name alone cannot
+                // say by how much. The Base Mesh GLBs all carry a baked x100
+                // node (centimetre meshes), which this test deliberately
+                // does not flag at exactly 100 — so the one that flags is
+                // above it, and the number says whether that is a fit-scale
+                // times the node (a small real bug) or a hundredfold error.
+                if (small > 100f || big < 0.0005f)
+                    Note(found, "absurdScale", $"{r.name}(x{big:0.#}/{small:0.####})");
 
                 // BURIED. Something entirely below the pavement is either
                 // mispositioned or the ground moved under it. The ground plane
