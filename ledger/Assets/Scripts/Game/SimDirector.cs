@@ -1136,6 +1136,7 @@ namespace Ledger.Game
                 }
             }
             TraceJob(now);
+            SampleWeekShape(now);
             // PLANT THE MISSED DROPS, because nothing else ever has.
             //
             // `gates.py --constant` across a hundred and thirty-one kept runs
@@ -2675,6 +2676,32 @@ namespace Ledger.Game
             foreach (var kv in _jobOwnerTicks) parts.Add($"{kv.Key}={kv.Value}");
             parts.Sort(System.StringComparer.Ordinal);
             return string.Join(",", parts);
+        }
+
+        /// THE FELT SHAPE OF THE WEEK (M22's unmeasured pacing row). The
+        /// roadmap says whether the authored curve holds is unmeasured
+        /// because the balance lab tests outcomes rather than the shape —
+        /// so: per-day DELTAS of the events a player actually feels
+        /// (confrontations, noise investigations, door slams) plus the
+        /// heat standing at each close. A SERIES to read, deliberately
+        /// unbounded: whether day seven is louder than day one is the
+        /// question, and the answer is the row of numbers, not a gate.
+        int _weekDay = -1;
+        int _wkConfronts, _wkInvest, _wkSlams;
+        readonly List<string> _weekShape = new List<string>();
+
+        void SampleWeekShape(GameTime now)
+        {
+            if (_game == null || _weekDay == now.Day) return;
+            if (_weekDay >= 0 && _weekShape.Count < 24)
+                _weekShape.Add($"d{_weekDay}:cf{_game.TotalConfrontations - _wkConfronts}"
+                    + $".iv{Perceivers.NoiseInvestigations - _wkInvest}"
+                    + $".sl{_slams - _wkSlams}"
+                    + $".ht{_game.CurrentHeat:0.00}");
+            _weekDay = now.Day;
+            _wkConfronts = _game.TotalConfrontations;
+            _wkInvest = Perceivers.NoiseInvestigations;
+            _wkSlams = _slams;
         }
 
         void TraceJob(GameTime now)
@@ -11815,6 +11842,10 @@ namespace Ledger.Game
                       $"slamsDeferred={_slamsDeferred} " +
                       $"loitersCutShort={_loitersCutShort} " +
                       $"dropRuns={_dropRuns} dropPrep={_dropPrepTicks} " +
+                      // Per-day event deltas plus the heat at each close —
+                      // the pacing series M22 calls unmeasured. Read the
+                      // row: does the week escalate toward the audit.
+                      $"weekShape=[{string.Join("/", _weekShape.ToArray())}] " +
                       // Drops the ring search could not find standing room
                       // for — zero means every posted marker is standable,
                       // which build S proved was false for every drop.
