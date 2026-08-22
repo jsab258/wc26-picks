@@ -175,11 +175,20 @@ namespace Ledger.Game
                     // walked 0.0m into a pub crowd, and stepping round a
                     // body is the same instinct. Skipped inside 1.5m of the
                     // target so the approach ease-off keeps owning arrival.
-                    if (far > 1.5f
-                        && Physics.SphereCast(transform.position + Vector3.up * 0.9f,
-                               0.3f, want, out var block, 0.9f)
-                        && block.collider != null
-                        && block.collider.transform.root != transform.root)
+                    // TWO HEIGHTS, BECAUSE THE OBSTACLE THAT PINNED d8 ON V
+                    // WAS AT CHEST LEVEL. One cast at 0.9m covers 0.6-1.2m
+                    // of the capsule, and a ground-floor window band spans
+                    // about 1.35-2.65 — so the controller collided with a
+                    // quad the probe passed clean under, and the bot ran
+                    // twelve ticks against a window closing 1.1 metres. The
+                    // capsule collides wherever it is tall; the probe has to
+                    // cover the same span.
+                    bool Blocked(float h, out RaycastHit b) =>
+                        Physics.SphereCast(transform.position + Vector3.up * h,
+                            0.3f, want, out b, 0.9f)
+                        && b.collider != null
+                        && b.collider.transform.root != transform.root;
+                    if (far > 1.5f && (Blocked(0.9f, out var block) || Blocked(1.5f, out block)))
                     {
                         var n = block.normal; n.y = 0;
                         if (n.sqrMagnitude > 0.001f)

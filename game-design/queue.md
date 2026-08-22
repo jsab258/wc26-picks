@@ -388,12 +388,12 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 - **Turn a still into a number.** Five faults found by opening a frame and none
   by a gate. Anything a frame shows that no metric names is a metric worth
   adding.
-- **THE FIRST DROPS EVER DELIVERED — build T, two of five.** The ring
-  search landed (every marker standable, none blocked) and the run
-  completed two drops, the first in the project's recorded history,
-  with the radius, window and gate never moved. The three remaining
-  misses are two shapes: a half-metre near-miss (3.0m against the 2.5m
-  radius, six ticks) and two far-spawn days where prep never closed
-  the gap (open at 18m and 32m; one walked 16m without closing ANY
-  distance, which wants one more trace read before any change). The
-  gate goes green the first run where prep wins every day.
+- **DROPS DELIVER EVERY RUN NOW (T:2, U:4, V:3) and V's two misses
+  are named.** d8: pinned on a ground-floor window band — the
+  wall-slide probe cast at hip height only and the quad sits at chest;
+  a second cast at 1.5m rides the next build. d12: `held:waypoint=11
+  ran=0` — the job NEVER owned the target that night, yet
+  `dropsSkipped=2` says the missed-drop plant skipped only days 10-11.
+  Something else nulled the d12 target or the drop was never activated:
+  read TraceJob's window source against ActiveJobPos timing before any
+  change. The gate goes green the first run every window is owned.
