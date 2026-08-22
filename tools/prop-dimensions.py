@@ -219,6 +219,34 @@ CAR_KIT = os.path.join(os.path.normpath(PROPS), "car-kit")
 SCRIPTS = os.path.join(HERE, "..", "ledger", "Assets", "Scripts")
 
 
+def kit_key_paths():
+    """{PropPrefab key: model path} over everything under Assets/Props.
+
+    `KitCandidates` speaks FULL prefab keys since the OGA vehicle haul
+    (two kits supply vehicles, so the old car_kit_ prefix assumption
+    broke the moment the second kit arrived — this tool failed on the
+    first run after the wire, correctly, because it was still gluing
+    candidates onto the Kenney directory). Mirrors PropPrefab.Key: kit
+    is the first directory under Props, stem is the filename, lowercase,
+    spaces and dashes to underscores. The walk is sorted so two files
+    minting one key resolve the way Unity's enumeration does — the later
+    path wins, which both vehicle packs exercise with their Bus.fbx.
+    """
+    out = {}
+    root = os.path.normpath(PROPS)
+    for dirpath, dirnames, filenames in sorted(os.walk(root)):
+        dirnames.sort()
+        for fn in sorted(filenames):
+            stem, ext = os.path.splitext(fn)
+            if ext.lower() not in (".fbx", ".obj", ".glb", ".gltf"):
+                continue
+            rel = os.path.relpath(os.path.join(dirpath, fn), root)
+            kit = rel.split(os.sep)[0] if os.sep in rel else "misc"
+            key = (kit + "_" + stem).lower().replace(" ", "_").replace("-", "_")
+            out[key] = os.path.join(dirpath, fn)
+    return out
+
+
 def read_kind_table():
     """{id: (length, width, height)} read out of Core/Traffic.cs."""
     src = open(os.path.join(SCRIPTS, "Core", "Traffic.cs"),
@@ -338,13 +366,22 @@ def selftest():
           "%d kinds mapped" % len(models))
 
     squash = []
+    keypaths = kit_key_paths()
     for kid, (L, W, H) in sorted(kinds.items()):
         model = models.get(kid)
         if not model:
             continue
-        path = os.path.join(CAR_KIT, model.replace("_", "-") + ".fbx")
-        if not os.path.exists(path):
+        path = keypaths.get(model)
+        if path is None:
             check(False, "kit model for %s exists" % kid, model)
+            continue
+        if not path.lower().endswith(".fbx"):
+            # The FBX reader is the only parser here; the game loads OBJ
+            # and GLB through Unity's importers, which this tool does not
+            # have. Noted rather than failed — and noted VISIBLY, because
+            # a skip nobody is told about reads as a measurement (rule 3b).
+            print("  .. %s: first candidate %s ships as %s — not measurable here"
+                  % (kid, model, os.path.splitext(path)[1]))
             continue
         parts = assemble(_bp.parse_fbx(path, max_array=VERT_CAP)[0])
         # The game drops the push bar before it measures, so this must too.
