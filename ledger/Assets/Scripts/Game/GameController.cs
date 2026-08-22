@@ -1164,6 +1164,7 @@ namespace Ledger.Game
                 CheckBarks();
                 CheckOsseiInterviews();
                 CheckOnboarding();
+                CheckMoneyHint();
                 CheckActOne();
                 CheckActTwo();
                 CheckActThree();
@@ -1233,6 +1234,25 @@ namespace Ledger.Game
                 _onboardStep = 4;
                 _ui.Toast($"Tonight the outfit will want its first drop made. {keys.Key("Coat")} toggles the runner's coat — harder to name in the dark, harder to explain in daylight.", 10f);
             }
+        }
+
+        // EVENT-DRIVEN FOLLOW-UPS to the first morning's timed four (M22
+        // onboarding). The clock sequence teaches walking, talking, the
+        // ledger and the coat — and the two things it structurally cannot
+        // teach are the two-money economy and the day cycle, because a hint
+        // about money not yet held or a close not yet lived teaches
+        // nothing. These fire at the first occurrence instead, once per
+        // save (both flags ride the save's extra block), never in sim.
+        bool _hintedDirty, _hintedClose;
+
+        void CheckMoneyHint()
+        {
+            if (SimMode.Days > 0 || _ui == null || _hintedDirty) return;
+            if (Wallet == null || Wallet.Dirty <= 0) return;
+            _hintedDirty = true;
+            _ui.Toast("That money is dirty. It spends on the street and fails every honest "
+                + "question. The laundrette turns it clean, a little at a time. You keep "
+                + "two books now: what you have, and what you can explain.", 12f);
         }
 
         void CheckOsseiInterviews()
@@ -2225,7 +2245,7 @@ namespace Ledger.Game
                 Id = id, HostId = best.Id, Title = $"An evening with {best.DisplayName}", Day = eveDay,
                 StartHour = 21, EndHour = 24,
                 InviteText = tomorrow
-                    ? $"{best.DisplayName} catches you on the street, almost shy about it: \"Come by tomorrow night. Nine, after you close. Nothing formal — I just haven't seen you properly in weeks.\""
+                    ? $"{best.DisplayName} catches you on the street, almost shy about it: \"Come by tomorrow night. Nine, after you close. Nothing formal. I just haven't seen you properly in weeks.\""
                     : $"{best.DisplayName} catches you on the street, almost shy about it: \"Come by tonight. Nine, after you close. Nothing formal — I just haven't seen you properly in weeks.\"",
             };
             Beats.Add(invite);
@@ -2598,6 +2618,15 @@ namespace Ledger.Game
                             a.Suspicion.Lower(0.02, "steady work reads honest");
 
                 if (Campaign.Verdict != Verdict.Ongoing) { EndCampaign(); return; }
+                // The day cycle can only be taught at the first close lived
+                // through — see CheckMoneyHint's comment for the family.
+                if (SimMode.Days == 0 && !_hintedClose && _ui != null)
+                {
+                    _hintedClose = true;
+                    _ui.Toast("That was the morning close: yesterday counted, the till read, "
+                        + "the day written down. It is also the save. Every day on this "
+                        + "street ends by being written into somebody's book. Yours included.", 12f);
+                }
                 SaveNow(quiet: true); // the morning close is the autosave point
             }
 
@@ -2865,6 +2894,7 @@ namespace Ledger.Game
             { "pp1", ActOne.Pp1Fired }, { "pp2", ActOne.Pp2Fired }, { "pp4", ActOne.Pp4Fired },
             { "posture", ActOne.Posture ?? "" },
             { "noorDrawers", ActOne.NoorDrawersEngaged }, { "noorBroken", ActOne.NoorDrawersBroken },
+            { "hintedDirty", _hintedDirty }, { "hintedClose", _hintedClose },
         };
 
         public string CaptureSave() =>
@@ -2970,6 +3000,8 @@ namespace Ledger.Game
                 }
                 Now = now;
                 WearingCoat = FlagB(extra, "wearingCoat");
+                _hintedDirty = FlagB(extra, "hintedDirty");
+                _hintedClose = FlagB(extra, "hintedClose");
                 TotalTakings = FlagI(extra, "totalTakings");
                 LastTakings = FlagI(extra, "lastTakings");
                 NightWitnesses = FlagI(extra, "nightWitnesses");
