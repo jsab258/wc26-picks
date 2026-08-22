@@ -12491,6 +12491,11 @@ namespace Ledger.Game
                       // or the name candidates missed — the difference
                       // between a pipeline and a street (rule 6).
                       $"propsPlaced={AssetLibrary.PropsPlaced} variantSurfaces={AssetLibrary.VariantsUsed} " +
+                      // Non-neutral facade grades handed out / boxes asked
+                      // (rule 6 wiring proof for the V4 albedo-variety pass;
+                      // ~3/4 of calls should grade, and zero left of a city
+                      // right means the branch died).
+                      $"facadeGrades={AssetLibrary.GradedAssignments}/{AssetLibrary.GradeCalls} " +
                       $"skyline={WorldBuilder.SkylineKitted}/{WorldBuilder.SkylineBlocks} skylineRepainted={WorldBuilder.SkylineRepainted} " +
                       // BODIES BUILT, NOT VEHICLES PRESENT, and the old name
                       // said the wrong one. It read `vehiclesKitted=26/33` on

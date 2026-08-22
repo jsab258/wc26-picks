@@ -1069,7 +1069,12 @@ namespace Ledger.Game
                 {
                     var upper = new Vector3(size.x * 0.62f, 3.2f, size.z * 0.62f);
                     var upBase = size.y + 0.3f;
-                    var upBody = MakeBox($"Building_{i}_up", pos + new Vector3(0, upBase + upper.y / 2f, 0), upper, facade);
+                    // Through the SAME variant+grade pick as the body (same
+                    // `pos`, same hash) — plain MakeBox here gave the setback
+                    // tier the base material while the body below it could be
+                    // wearing the pack's `_b` texture, a mismatch inside one
+                    // building that the grade pass would have widened.
+                    var upBody = MakeBoxVaried($"Building_{i}_up", pos + new Vector3(0, upBase + upper.y / 2f, 0), upper, facade, pos);
                     SetTiling(upBody, Mathf.Max(1, Mathf.RoundToInt(upper.x / 3.5f)), 1);
                     MakeBox($"Roof_{i}_up", pos + new Vector3(0, upBase + upper.y + 0.1f, 0), new Vector3(upper.x + 0.3f, 0.2f, upper.z + 0.3f), AssetLibrary.Roof);
                     // A rooftop water tank / AC box for texture-of-life on the skyline.
@@ -2348,9 +2353,11 @@ namespace Ledger.Game
                 // the two would report a number nobody can act on.
                 if (faceInStreet && !faceInRoad) PlaceFacesInLane++;
 
-                // Same position hash as BuildBuildings, same reason.
+                // Same position hash as BuildBuildings, same reason — and
+                // through the variant+grade pick too, so a registered place
+                // is not the one flat-coated building on its street.
                 var facade = facades[FacadePick(pos)];
-                var body = MakeBox($"District_{place.Id}", pos + new Vector3(0, size.y / 2f, 0), size, facade);
+                var body = MakeBoxVaried($"District_{place.Id}", pos + new Vector3(0, size.y / 2f, 0), size, facade, pos);
                 SetTiling(body, Mathf.Max(1, Mathf.RoundToInt(size.x / 3.5f)), Mathf.Max(1, Mathf.RoundToInt(size.y / 3.5f)));
                 MakeBox($"District_{place.Id}_roof", pos + new Vector3(0, size.y + 0.12f, 0),
                     new Vector3(size.x + 0.4f, 0.25f, size.z + 0.4f), AssetLibrary.Roof);
@@ -3330,10 +3337,12 @@ namespace Ledger.Game
             return go;
         }
 
-        /// A box wearing one of its surface's VARIANTS, chosen by position.
-        /// Same determinism as `FacadePick` and the same argument: a city
-        /// where every brick wall is the same photograph reads as repetition
-        /// once there are enough walls to compare, and 60 parcels became 376.
+        /// A box wearing one of its surface's VARIANTS and one of four albedo
+        /// GRADES, both chosen by position. Same determinism as `FacadePick`
+        /// and the same argument: a city where every brick wall is the same
+        /// photograph at the same brightness reads as repetition once there
+        /// are enough walls to compare, and 60 parcels became 376. The grade
+        /// story is on `AssetLibrary.FacadeGrades`.
         static GameObject MakeBoxVaried(string name, Vector3 center, Vector3 size,
                                         string material, Vector3 at)
         {
@@ -3343,7 +3352,7 @@ namespace Ledger.Game
             go.transform.localScale = size;
             int h = Mathf.Abs(Mathf.RoundToInt(at.x * 7.3f + at.z * 3.1f));
             go.GetComponent<Renderer>().sharedMaterial =
-                AssetLibrary.MaterialVariant(material, h);
+                AssetLibrary.MaterialGraded(material, h);
             return go;
         }
 

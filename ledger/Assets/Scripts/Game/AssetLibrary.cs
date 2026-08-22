@@ -97,6 +97,68 @@ namespace Ledger.Game
         /// back" cannot read the same on the done line.
         public static int VariantsUsed;
 
+        /// THE ALBEDO-VARIETY RUNG OF V4. Every building of a given surface
+        /// shared one bit-identical material, so a whole street of BrickRed
+        /// was one brick — the texture variant pass doubled the choices when
+        /// the pack ships `_b` files, and stopped there. Four grade steps,
+        /// taken off the same position hash as the variant pick, give a
+        /// terrace the look of houses painted and sooted in different
+        /// decades, while staying SHARED materials (at most surfaces x
+        /// variants x 3 copies exist), so batching survives.
+        ///
+        /// The steps average ~1.0 per channel ON PURPOSE: V1.5 just landed
+        /// the noon calibration, and a variety pass that moved the street's
+        /// MEAN would re-open it. Only the spread moves. The magnitudes are
+        /// art values judged on stills; in linear space a step reads about
+        /// half as strong as it would have pre-flip, which is why they are
+        /// not 5% apart.
+        static readonly Color[] FacadeGrades =
+        {
+            new Color(1.00f, 1.00f, 1.00f),   // as built
+            new Color(0.84f, 0.84f, 0.86f),   // sooted
+            new Color(1.12f, 1.10f, 1.04f),   // limewashed, slightly warm
+            new Color(0.96f, 0.99f, 1.06f),   // cool, weathered
+        };
+
+        public static Material MaterialGraded(string logical, int hash)
+        {
+            var baseMat = MaterialVariant(logical, hash);
+            GradeCalls++;
+            int g = (hash >> 1) & 3;
+            if (g == 0) return baseMat;
+            GradedAssignments++;
+            var key = baseMat.name + "#g" + g;
+            if (_graded.TryGetValue(key, out var cached) && cached != null) return cached;
+            var mat = new Material(baseMat) { name = key };
+            // Dry colour from the same rule BuildMaterial uses, NOT from
+            // baseMat.color — the base may already carry a wet darkening,
+            // and copying that would bake today's weather into the paint.
+            var dry = baseMat.mainTexture != null ? TextureGrade : SurfaceSpec.For(logical).Tint;
+            var grade = FacadeGrades[g];
+            mat.color = new Color(dry.r * grade.r, dry.g * grade.g, dry.b * grade.b, dry.a);
+            _graded[key] = mat;
+            // Wet-driven surfaces change colour and gloss globally in
+            // SetWetness, which walks `_materials` by name and cannot see
+            // this copy — so the copy registers itself, or a graded concrete
+            // wall would stay dry in the rain while the pavement beside it
+            // darkened. If the rain got there first, re-apply it now.
+            if (System.Array.IndexOf(WetSurfaces, logical) >= 0)
+            {
+                _gradedWet.Add((logical, mat, grade));
+                if (_wetness > 0f) { var w = _wetness; _wetness = -1f; SetWetness(w); }
+            }
+            return mat;
+        }
+        static readonly Dictionary<string, Material> _graded = new Dictionary<string, Material>();
+        static readonly List<(string logical, Material mat, Color grade)> _gradedWet
+            = new List<(string, Material, Color)>();
+
+        /// Wiring proof for the grade pass (rule 6): non-neutral grades
+        /// handed out / calls made. Zero on the left with a city on the
+        /// right means the hash or the branch died, not that every street
+        /// happened to choose the neutral coat.
+        public static int GradeCalls, GradedAssignments;
+
         public static Material Material(string logical)
         {
             if (!_initialized) Initialize();
@@ -272,6 +334,18 @@ namespace Ledger.Game
                 var baseCol = mat.mainTexture != null ? TextureGrade : spec.Tint;
                 mat.color = new Color(baseCol.r * (float)albedo, baseCol.g * (float)albedo,
                                       baseCol.b * (float)albedo, baseCol.a);
+            }
+            // The graded copies of wet surfaces, same treatment with the
+            // grade folded in — registered at creation, see MaterialGraded.
+            foreach (var (name, mat, grade) in _gradedWet)
+            {
+                if (mat == null) continue;
+                var spec = SurfaceSpec.For(name);
+                mat.SetFloat("_Glossiness", (float)LightModel.Smoothness(spec.Smoothness, wetness));
+                var baseCol = mat.mainTexture != null ? TextureGrade : spec.Tint;
+                mat.color = new Color(baseCol.r * grade.r * (float)albedo,
+                                      baseCol.g * grade.g * (float)albedo,
+                                      baseCol.b * grade.b * (float)albedo, baseCol.a);
             }
         }
         static float _wetness = -1f;
