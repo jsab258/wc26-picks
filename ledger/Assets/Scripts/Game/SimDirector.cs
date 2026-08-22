@@ -12579,6 +12579,7 @@ namespace Ledger.Game
                       $"terraceBlocks={WorldBuilder.TerracedBlocks} legacyBlocks={WorldBuilder.LegacyBlocks} " +
                       $"terraceParcels={WorldBuilder.TerraceParcels} chimneys={WorldBuilder.ChimneyCount} " +
                       $"aerials={WorldBuilder.AerialCount} " +
+                      $"shopSurrounds={WorldBuilder.ShopSurrounds} " +
                       // PER DISTRICT, because the totals cannot say whether
                       // the Exchange is built. The tour frames suggest it is a
                       // road on a field; a pixel statistic over them could not

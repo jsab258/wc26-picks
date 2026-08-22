@@ -1191,6 +1191,11 @@ namespace Ledger.Game
         /// about the density ramp rather than about mullions.
         public static int Mullions { get; private set; }
 
+        /// Surround pieces (jambs, headers, stallrisers) the V4 depth pass
+        /// emitted — four per shop, so this over four disagreeing with the
+        /// shop count means a branch died.
+        public static int ShopSurrounds;
+
         /// Rear lean-to extensions actually built. The roadmap's last open
         /// line for 17.7 — "the back of a block gets bins and drainpipes
         /// but no geometry of its own" — is about building MASS: a back
@@ -1563,6 +1568,42 @@ namespace Ledger.Game
                     WorldText.Adopt(tm);
                     ShopNamesPainted++;
                 }
+            }
+
+            // THE SHOPFRONT SURROUND (M17.10 V4) — depth, at last. Every
+            // frontage has been a flat plane with paint-thin dressing, and
+            // the reference frames' ground floors are LAYERED: glass behind
+            // a frame, a stallriser under it, all of it throwing real
+            // shadow lines now the sun works. Proud geometry rather than a
+            // true recess, deliberately: moving the glass plane would touch
+            // `Windows` and the occupancy logic, and a 25cm-proud surround
+            // reads as the same depth from across a street — the fascia
+            // above made the identical trade and reads as a ledge.
+            //
+            // Jambs, header, and the stallriser — the low panel under the
+            // glass that every British shopfront actually has. Dark trim,
+            // no colliders (10cm of trim must not stop a player).
+            if (kind == Ledger.Core.Dressing.Premises.Shop)
+            {
+                var along = alongX ? new Vector3(0, 0, 1) : new Vector3(1, 0, 0);
+                void Trim(string part, Vector3 at, Vector3 sz)
+                {
+                    var b = MakeBox($"{tag}_{part}", at, sz, AssetLibrary.Roof);
+                    var c2 = b.GetComponent<Collider>();
+                    if (c2 != null) Object.Destroy(c2);
+                    ShopSurrounds++;
+                }
+                float half = width * 0.45f;
+                var jambSz = alongX ? new Vector3(0.28f, 2.9f, 0.22f)
+                                    : new Vector3(0.22f, 2.9f, 0.28f);
+                Trim("jambL", face + outward * 0.12f - along * half + new Vector3(0, 1.45f, 0), jambSz);
+                Trim("jambR", face + outward * 0.12f + along * half + new Vector3(0, 1.45f, 0), jambSz);
+                var headSz = alongX ? new Vector3(0.26f, 0.24f, width * 0.92f)
+                                    : new Vector3(width * 0.92f, 0.24f, 0.26f);
+                Trim("head", face + outward * 0.12f + new Vector3(0, 2.95f, 0), headSz);
+                var stallSz = alongX ? new Vector3(0.24f, 0.55f, width * 0.92f)
+                                     : new Vector3(width * 0.92f, 0.55f, 0.24f);
+                Trim("stall", face + outward * 0.11f + new Vector3(0, 0.30f, 0), stallSz);
             }
 
             // An awning over a shop window (kit mesh, town-plan T2): scaled
