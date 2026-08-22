@@ -103,7 +103,16 @@ def backends():
 
     def directml():
         import torch_directml
-        return f"torch-directml, {torch_directml.device_count()} device(s)"
+        try:
+            return f"torch-directml, {torch_directml.device_count()} device(s)"
+        except AttributeError:
+            # The count API moved between torch-directml releases — Jafar's
+            # install has no module-level device_count, and this line took
+            # route B down with an AttributeError that read like a missing
+            # GPU. A device that CONSTRUCTS is the capability actually being
+            # asked about, so ask that instead when the count is absent.
+            torch_directml.device()
+            return "torch-directml, device constructs (count API absent)"
 
     def onnxrt():
         import onnxruntime as ort
@@ -244,9 +253,11 @@ def cmd_run(args):
                      "note": f"Not attempted. {f.get('torch-directml')}", "file": None})
 
     rows.append({"route": "A — chatterbox exported to ONNX, on DirectML",
-                 "note": "Not attempted yet: the export itself is the experiment and it "
-                         "needs its own session. This probe exists to decide whether that "
-                         "day is worth spending.", "file": None})
+                 "note": "This route SHIPPED since this page was written: the three game "
+                         "graphs exported on this machine and passed their audit, and "
+                         "'7 TIME A LINE.bat' measures them end to end (last reading: "
+                         "1.7x real time). '3 HEAR IT SPEAK.bat' plays the result. This "
+                         "page does not rerun the export.", "file": None})
     rows.append({"route": "C — a small model with the voice baked in",
                  "note": "Needs a training run, not an install. Only worth doing if A and B "
                          "both fail, because it is the only route that risks the quality bar.",
