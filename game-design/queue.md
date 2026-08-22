@@ -28,10 +28,16 @@ plays a clip the screen refuses** — 65 filled and passing, 2 empty (a harvest
 hole), 0 wrong. The street talks, argues, leans, works counters. **And since
 this evening the front is M17.10: the visual bar is GTA V** — item 1.
 
-**THE PLAYTEST IS DEPRIORITISED (18 Aug, Jafar):** *"Don't worry about
-timelines or the near goal or play testing. Just keep building."*
-`playtest-plan.md` stays live as the Mac setup record. Live speech stays
-parked — no DirectML on the Air.
+**THE PLAYTEST IS RETARGETED (22 Aug, Jafar):** *"I'll try to run it on
+my windows machine after visual stuff is done. live voices/speech should
+be working too."* Live speech is UN-PARKED — his PC has the GPU and
+DirectML the Air lacked, the backend already prefers DirectML with a
+printed fallback reason, and the numbered one-click export pipeline
+lives on that machine from the bark sessions. `playtest-plan.md` now
+carries the Windows session runbook. Before his session, from here:
+keep the speech self-checks green in verify, and read the speech
+counters on every landing so a silent regression cannot ambush the
+one session that matters.
 
 ### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
 
@@ -42,16 +48,11 @@ parked — no DirectML on the Air.
    overcast reference frame proves dirt+depth+density carry a frame with no
    interesting light.
 
-   **LANDED (two builds, 21 Aug night):** V0+V1 — the shadow probe's first
-   real run confirmed every prediction (a strong noon shadow fraction, the
-   quality state line, and the fog pair proving the single-owner fix held);
-   sun:ambient rebalance at share 0.45 / strength 0.93 / sun 1.65; AO
-   deepened; the day aperture opened. Batch B — cloud cookie, grade split
-   (split-tone + lifted blacks + distance desat), decal WIRING (correctly
-   read `fetch not landed`, the files moved after the runner took its
-   commit), exposure re-anchors. day2_noon shows real cast shadows and
-   sunlit-vs-shaded form for the first time. Noted for later phases: the
-   flat black shopfront void (V4's job), the blank sky dome (V6).
+   **LANDED (21 Aug night, two builds):** V0+V1 whole — shadows, the
+   sun:ambient rebalance, deeper AO, the opened day aperture, cloud
+   cookie, grade split, decal wiring, exposure re-anchors; day2_noon
+   showed real cast shadows for the first time. Still open from that
+   pass: the shopfront void (V4) and the sky dome (V6).
 
    **LANDED (build D and since):** kit street furniture, double yellows,
    the decal sets, chimney pots and aerials, and the reaction set — all

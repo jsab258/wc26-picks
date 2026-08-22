@@ -1,10 +1,44 @@
-# The playtest plan — Wednesday 19 August, a MacBook Air, three players
+# The playtest plan — Jafar's Windows machine, live voices on
 
-> **STATUS — LIVE**, verified 2026-08-15. The plan for the four days between
-> now and the playtest. Supersedes queue order until Wednesday; `queue.md`
-> points here. History and working-out live in the git log, not here.
+> **STATUS — LIVE**, verified 2026-08-22. Retargeted by Jafar's own words
+> ("I'll try to run it on my windows machine after visual stuff is done.
+> live voices/speech should be working too"). The Mac-Air framing below
+> this section is HISTORICAL — kept because it is the argument for work
+> that shipped, not a description of the next session.
 
 ## The goal
+
+Jafar plays LEDGER on his Windows machine once the visual pass settles.
+Live voice generation is ON: his machine has the GPU and DirectML the
+Air lacked, the game's speech backend already prefers DirectML and
+falls back to CPU with a printed reason, and the whole export pipeline
+lives on that machine from the bark-rendering sessions.
+
+## The Windows session, step by step
+
+1. **Pull the repo** on the PC (`wc26-picks` in the user folder, from
+   the bark days) so the voice tools are current.
+2. **Run `tools\voice-live\CAN THE CAST SPEAK.bat`** — the one-click
+   end-to-end check. If it asks for the environment, `1 RESTORE THE
+   ENVIRONMENT.bat` first (or `2 TRY THE EXPORT.bat` rebuilds it
+   unattended). The one-time model export for the game is
+   `5 EXPORT FOR THE GAME.bat`; `7 TIME A LINE.bat` then says in a
+   minute whether the GPU makes speech real-time.
+3. **Download the game**: the `LEDGER-Windows` artifact on the newest
+   green build run, unzip anywhere.
+4. **Run `9 PUT THE VOICES IN THE GAME.bat`** — it finds the unzipped
+   build itself (Downloads, Desktop, home), installs the models and
+   voices, and names what it picked.
+5. **Start the build and walk up to somebody.** The done-line's speech
+   counters and the backend's own printed reason are the first things
+   to read if anything is silent.
+
+## The old Mac plan (historical)
+
+The section below planned the 19 August Air session: no DirectML, so
+live voice was off and the recorded bank carried conversations. That
+constraint died with the machine change; nothing else in it is load-
+bearing for the Windows session.
 
 Jafar and two friends play LEDGER Wednesday–Friday, on a MacBook Air,
 passing the laptop around. The build has to launch, look like a place
