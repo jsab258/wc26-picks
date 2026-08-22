@@ -119,10 +119,21 @@ namespace Ledger.Game
             float dryRate = Rain > 0.05f ? 0.25f : 0.012f;
             Wetness = Mathf.MoveTowards(Wetness, Rain > 0.05f ? 1f : 0f, Time.deltaTime * dryRate);
 
-            // Rain follows the player, above head height.
+            // Rain sits over what the camera LOOKS AT, not over its head.
+            // The Hook tour frame caught the difference: the tour camera is
+            // 14m up and 34m back, so a box anchored above the CAMERA hung
+            // in the upper middle of the frame as a scribble cloud behind
+            // the street it was supposed to be raining on. Twelve metres
+            // down the flattened view direction centres the 38m box over
+            // the scene for every vantage this game actually uses; at
+            // street level the player is still comfortably inside it.
             var cam = Camera.main;
             if (cam != null)
-                transform.position = cam.transform.position + Vector3.up * 14f;
+            {
+                var fwd = cam.transform.forward; fwd.y = 0;
+                if (fwd.sqrMagnitude > 0.01f) fwd.Normalize(); else fwd = Vector3.zero;
+                transform.position = cam.transform.position + fwd * 12f + Vector3.up * 14f;
+            }
             if (_rainFx != null)
             {
                 var em = _rainFx.emission;
