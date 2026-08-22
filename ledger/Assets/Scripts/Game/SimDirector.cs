@@ -1446,6 +1446,22 @@ namespace Ledger.Game
             if (!_tookDuskShot && now.Day == 1 && now.Hour == 16)
             {
                 _tookDuskShot = true;
+                // AIMED AT THE SUNSET, because that is what the frame is
+                // FOR. Two landed dusk stills in a row stared down a dark
+                // wall with the sky out of frame — the warmth was in the
+                // fog numbers and invisible in the picture, which judges
+                // nothing. The camera turns toward the sun's own published
+                // direction, slightly up so the horizon band and roofline
+                // carry the frame; the player controller re-asserts its
+                // yaw next frame, so nothing needs restoring.
+                var dcam = Camera.main;
+                if (dcam != null)
+                {
+                    var toSun = GameController.SunwardDir; toSun.y = 0;
+                    if (toSun.sqrMagnitude > 0.01f)
+                        dcam.transform.rotation = Quaternion.LookRotation(
+                            (toSun.normalized + Vector3.up * 0.08f).normalized);
+                }
                 Shot("day1_dusk");
             }
             if (!_tookNightShot && now.Hour == 23)
