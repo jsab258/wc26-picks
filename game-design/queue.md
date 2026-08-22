@@ -36,11 +36,15 @@ real time** on DirectML: 6.4s of work for 3.7s of speech — prefill
 0.3s, 92 steps 4.4s (median 42ms), decode 1.7s. Token generation alone
 is ~25/s against ~25/s consumption, so the overhang is the SERIAL
 stages, not the model: the speech stage's first work item is
-**streaming overlap in OnnxSpeech** (play the head of a line while the
-tail generates; the decode graph was exported and proven bit-identical
-chunked for exactly this), with fp16 conversion as the second lever.
-Also: retire/repair the stale `probe.py` listen page (route B dies on
-a torch_directml API drift and route A's text predates the export) —
+**the fp16 lever, measured on his card first.** The streaming overlap
+already EXISTS in the backend (follower, pump, underrun arithmetic),
+gated on a sustainability test his card misses by ~15%; the one-click
+converter+timer shipped to his machine 22 Aug. If his number clears
+~1.0x: the backend needs Float16 binds and edge conversions (it is
+fp32-typed today), and `put-voices-in-build.py`'s fixed GRAPHS list
+must learn the `-fp16` names or it silently drops them — the
+truncation family's favourite shape. The `probe.py` listen page is
+REPAIRED (the API-drift crash and the stale route text) —
 it confused the one person it ran for. `playtest-plan.md` carries the
 session runbook; keep the speech self-checks green on every landing.
 
@@ -106,12 +110,8 @@ session runbook; keep the speech self-checks green on every landing.
    DISK-ONLY** — combat, stairs, walk transitions, one-shots — and
    combat-with-no-body-animation is milestone-scale, not a wire.
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
-   NARROW.** *(rule 12)* The camera steps back off anything filling more than
-   a quarter of the frame at arm's length, bound from a measured bimodal
-   series, exercised on a real 0.83 case. Account in `roadmap-history.md`.
-   **`shotDepthMedian` LANDED on build O**: median 6.6m, tightest 2.7m at
-   day3_night, tour medians 18.7–28.5 keyed by district — a first series,
-   no bound yet. **And day1_night found the case both metrics pass while
+   NARROW.** *(rule 12; the step-back and depth series are landed —
+   account in `roadmap-history.md`.)* **And day1_night found the case both metrics pass while
    the frame fails**: the camera stands against a wall of large lit
    warehouse windows, the whole frame amber glow — near-fraction low
    (windows are past arm's length), depth plausible, still unusable. A
