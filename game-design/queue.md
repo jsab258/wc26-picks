@@ -29,14 +29,20 @@ is M17.10: the visual bar is GTA V** — item 1.
 
 **THE PLAYTEST IS RETARGETED (22 Aug, Jafar):** *"I'll try to run it on
 my windows machine after visual stuff is done. live voices/speech should
-be working too."* Live speech is UN-PARKED — his PC has the GPU and
-DirectML the Air lacked, the backend already prefers DirectML with a
-printed fallback reason, and the numbered one-click export pipeline
-lives on that machine from the bark sessions. `playtest-plan.md` now
-carries the Windows session runbook. Before his session, from here:
-keep the speech self-checks green in verify, and read the speech
-counters on every landing so a silent regression cannot ambush the
-one session that matters.
+be working too."* **AND HE RAN THE PIPELINE THE SAME HOUR.** The
+export audit came back ALL CLEAR (all three graphs on his disk, thirty
+structural checks green, real audio out), and the timing read **1.7x
+real time** on DirectML: 6.4s of work for 3.7s of speech — prefill
+0.3s, 92 steps 4.4s (median 42ms), decode 1.7s. Token generation alone
+is ~25/s against ~25/s consumption, so the overhang is the SERIAL
+stages, not the model: the speech stage's first work item is
+**streaming overlap in OnnxSpeech** (play the head of a line while the
+tail generates; the decode graph was exported and proven bit-identical
+chunked for exactly this), with fp16 conversion as the second lever.
+Also: retire/repair the stale `probe.py` listen page (route B dies on
+a torch_directml API drift and route A's text predates the export) —
+it confused the one person it ran for. `playtest-plan.md` carries the
+session runbook; keep the speech self-checks green on every landing.
 
 ### Startable right now — JAFAR'S SEQUENCE (22 Aug, his words):
 ### "1. visual, 2. voices/speech, 3. playtest, then feedback/fixes and
@@ -176,30 +182,21 @@ one session that matters.
    reading now deserves belief; next: is the peak body simply whoever
    stands in full sun, which the same-instant crowd median can say.
 
-   **The white pills are unidentified and NO COMMITTED STILL HAS ONE.** The
-   pale figures in `review_street.jpg` measure `#5d626f`/`#66676a` against
-   buildings at `#7f838f` — DARKER than the walls — and that frame's brightest
-   1% is entirely the harbour. I called them white off the picture, the sixth
-   wrong identification. **Next step is a measurement that fires WHILE one is
-   on screen.** The T-pose in that frame is real and separate — `armStreet`'s
-   tail, which a median cannot see.
+   **The white pills are unidentified and NO COMMITTED STILL HAS ONE** —
+   the pale figures measured DARKER than the walls (sixth wrong call off
+   a picture). Next step stays: a measurement that fires WHILE one is on
+   screen. The T-pose in that frame is separate and real.
 
    **`bodyWashUnreached=534` against `bodyTinted=1326`** — 40% of bodies render
    darker than the band because a multiply only subtracts. A limit, not a bug.
    **`RealBodyCap = 12` needs a PC measurement**, not a CI one.
 
-1. **THE BUS AND BICYCLE ARE FETCHED AND WIRED — riding build P.** The
-   first OGA fetch run (22 Aug, CC0 re-verified on-page at fetch time)
-   banked a bus in each of the two packs and two bicycles; KitCandidates
-   speaks full prefab keys now. Read `vehicleFellBack` (expect none) and
-   the stills: the bicycle arrives RIDERLESS — if a ghost bike gliding
-   at car speed reads worse than the primitive did, the next rung is a
-   mannequin rider or dropping the bike kind to parked-only. The two
-   packs' shared stems (Bus/Taxi/Ambulance) mint one key each, last
-   write wins — fine while either is acceptable, worth splitting if a
-   pack choice ever matters. Bicycle probe results (CC0 candidates for
-   more kinds) print in the fetch run's log, unread — the committed
-   haul made them moot for now.
+1. **THE BUS AND BICYCLE ARE LANDED** (CC0 re-verified at fetch;
+   `vehicleFellBack=[none]` on every run since P; seven kinds live).
+   Open judgment: the bicycle rides RIDERLESS — if a ghost bike reads
+   worse than the primitive did, next rung is a mannequin rider or
+   parked-only. Shared pack stems mint one key each, split only if a
+   pack choice ever matters.
 
 1. **PATROL DENSITY FOLLOWS THE INQUIRY — and the measurement of whether it
    READS is still not finished.** Weight by stage (None 1 ... Manhunt 5),
