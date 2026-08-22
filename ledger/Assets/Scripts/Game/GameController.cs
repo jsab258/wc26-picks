@@ -3088,16 +3088,39 @@ namespace Ledger.Game
         /// longer spawn inside a bin, a bench or the new shopfront trim,
         /// which the furniture pass made possible for the first time this
         /// week. Fixed search order, so the pick is stable per night.
+        /// How many drops were posted somewhere nobody can stand, after the
+        /// search below — the counter that stops this failing silently again.
+        public static int DropMarkersBlocked;
+
         void SpawnJobMarker(Vector3 pos)
         {
+            // A RING SEARCH, because the two-direction version failed on
+            // every drop of every run and fell back to the blocked point
+            // without a word. Build S measured it: `markerClear=0/0/0` on
+            // all three windows — no one could stand at any posted drop,
+            // even as a point, which is why three runs of bot fixes moved
+            // the miss distance not at all. Eight directions, steps out to
+            // 7.5m, nearest standable spot wins; the raw point is still
+            // tried first so an already-good address never moves.
             var at = pos;
-            foreach (var step in new[] { 0f, 1.5f, 3f, 4.5f })
+            bool found = false;
+            if (WorldBuilder.PointClear(pos, 1.2f)) { found = true; }
+            else
             {
-                var c = new Vector3(pos.x + step, 0, pos.z);
-                if (WorldBuilder.PointClear(c, 1.2f)) { at = c; break; }
-                c = new Vector3(pos.x - step, 0, pos.z + step);
-                if (WorldBuilder.PointClear(c, 1.2f)) { at = c; break; }
+                for (float step = 1.5f; step <= 7.5f && !found; step += 1.5f)
+                    for (int dir = 0; dir < 8 && !found; dir++)
+                    {
+                        float ang = dir * Mathf.PI / 4f;
+                        var c = new Vector3(pos.x + Mathf.Cos(ang) * step, 0,
+                                            pos.z + Mathf.Sin(ang) * step);
+                        // Standable AND not in a carriageway — a drop in the
+                        // middle of the road solves one fault with another.
+                        if (!WorldBuilder.PointClear(c, 1.2f)) continue;
+                        if (Ledger.Core.StreetMap.OnRoad(c.x, c.z)) continue;
+                        at = c; found = true;
+                    }
             }
+            if (!found) DropMarkersBlocked++;
             _jobMarker = SpawnGlowMarker(at, new Color(1f, 0.55f, 0.15f), "JobDrop");
         }
 

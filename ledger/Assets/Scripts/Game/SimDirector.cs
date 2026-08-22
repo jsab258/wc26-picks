@@ -11765,6 +11765,10 @@ namespace Ledger.Game
                       $"slamsDeferred={_slamsDeferred} " +
                       $"loitersCutShort={_loitersCutShort} " +
                       $"dropRuns={_dropRuns} dropPrep={_dropPrepTicks} " +
+                      // Drops the ring search could not find standing room
+                      // for — zero means every posted marker is standable,
+                      // which build S proved was false for every drop.
+                      $"dropMarkersBlocked={GameController.DropMarkersBlocked} " +
                       $"ringSeen={100 * _ringSeenFraction:0.0000} ringRise={_ringSeenRise:0.0000} " +
                       $"ringLedger={100 * _ringSeenLedger:0.0000} " +
                       $"ringSprites={100 * _ringSeenSprites:0.0000} " +
