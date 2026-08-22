@@ -1200,6 +1200,14 @@ namespace Ledger.Game
         public static int ReactionsPlayed, ReactionsRefused;
         public static readonly Dictionary<string, int> ReactByKind =
             new Dictionary<string, int>();
+        /// Asks per kind, tallied before any gate — d3aafab printed
+        /// `greet:0` and `head_no:0` and the play counts alone cannot say
+        /// whether those kinds were never asked for or always refused,
+        /// which are different faults in different systems (the bark
+        /// gesture wiring against the rig's slot table). Rule 3b again:
+        /// a zero ships with its denominator.
+        public static readonly Dictionary<string, int> ReactAsksByKind =
+            new Dictionary<string, int>();
 
         /// Play a momentary clip: flinch, glance, greet, wave, point,
         /// head_no. Capability is checked HERE, at the ask, so a slot the
@@ -1208,6 +1216,8 @@ namespace Ledger.Game
         /// a walker from chaining reactions into a fit.
         public void React(string slot, float seconds)
         {
+            int a; ReactAsksByKind.TryGetValue(slot, out a);
+            ReactAsksByKind[slot] = a + 1;
             if (Time.time < _reactionCooldownUntil) return;
             if (_body == null || !_body.HasActivityState(slot))
             {

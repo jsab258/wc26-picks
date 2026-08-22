@@ -7737,6 +7737,9 @@ namespace Ledger.Game
         /// cleanly, slash-joined because a verdict value may not contain a
         /// space. A kind at zero still prints: "never fired" must be
         /// legible per kind, not hidden inside a healthy total (rule 3b).
+        /// Played-of-asked per kind, so `greet:0of0` (the barks never
+        /// offered one) and `greet:0of31` (offered and always refused)
+        /// stop printing identically — d3aafab could not tell them apart.
         static string ReactBySummary()
         {
             var kinds = new[] { "flinch", "glance", "greet", "wave", "point", "head_no" };
@@ -7745,7 +7748,8 @@ namespace Ledger.Game
             {
                 if (i > 0) sb.Append('/');
                 int c; NpcWalker.ReactByKind.TryGetValue(kinds[i], out c);
-                sb.Append(kinds[i]).Append(':').Append(c);
+                int a; NpcWalker.ReactAsksByKind.TryGetValue(kinds[i], out a);
+                sb.Append(kinds[i]).Append(':').Append(c).Append("of").Append(a);
             }
             return sb.ToString();
         }

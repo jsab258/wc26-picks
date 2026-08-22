@@ -103,8 +103,19 @@ namespace Ledger.Game
 
             // The capsule mesh goes. Its renderer, not the object — anything
             // holding a reference to the transform still has one.
+            //
+            // DISABLED BEFORE DESTROYED — Teardown below says why in as many
+            // words ("end-of-frame destruction means the old body renders
+            // through the frame") and this block was the second
+            // implementation of the same removal without the same line. A
+            // walker spawned in the frame a screenshot lands renders its
+            // bare capsule into exactly that frame: the Hook tour still
+            // showed five pale pills down the street, and the catcher named
+            // five spawn-fresh residents (`capsulesLoose=5`) — a spawn WAVE
+            // meeting a shot. The catcher adjudicates next run: zero, if
+            // this is the whole population of the fault.
             var own = host.GetComponent<MeshRenderer>();
-            if (own != null) Destroy(own);
+            if (own != null) { own.enabled = false; Destroy(own); }
             var ownMesh = host.GetComponent<MeshFilter>();
             if (ownMesh != null) Destroy(ownMesh);
 

@@ -955,9 +955,13 @@ namespace Ledger.Game
             // above the code I was copying the shape of.
             //
             // The renderer, not the object — anything holding the transform
-            // still holds it.
+            // still holds it. And DISABLED first: Destroy is end-of-frame,
+            // so a host handed over in the frame a screenshot lands would
+            // draw its bare capsule into that frame — the fault the
+            // `capsulesLoose` catcher caught on the mannequin path, whose
+            // removal block is this block's other implementation.
             var mesh = host.GetComponent<MeshRenderer>();
-            if (mesh != null) Object.Destroy(mesh);
+            if (mesh != null) { mesh.enabled = false; Object.Destroy(mesh); }
             var filter = host.GetComponent<MeshFilter>();
             if (filter != null) Object.Destroy(filter);
             // DOWN, NOT UP, AND THE SIGN IS THE WHOLE THING. The host's origin
