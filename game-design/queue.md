@@ -158,15 +158,17 @@ session runbook; keep the speech self-checks green on every landing.
    the real fault: window bands wear the pack's window texture, which
    is a whole FACADE photograph (brick piers and a six-by-six sash
    grid), so a band at close range reads as a floating brick wall.
-   The pane grid landed BY DAY on W (sash grids on every building,
-   the brick-slab read gone) and killed the glow BY NIGHT through both
-   binds (sweep 0.00% lit at every multiplier on W and X alike, night
-   mean 0.130 to 0.077, bloom collapsed 0.064 to 0.010) — while the
-   lamps' built-in white glowed through the identical block. **The
-   six-box emission probe rides Y** and names whose texture, which
-   bind, or the mip chain; windows carry plain white until it answers
-   (V's whole-band night look returns as the interim). The V4
-   interior backdrops ride the dispatch after, on proven paths only.
+   The pane grid landed BY DAY on W (sash grids everywhere, the
+   brick-slab read gone). BY NIGHT the case is CLOSED after three
+   builds: **any texture bound into this player's emission slot kills
+   the glow — built-in white included** (night means 0.087/0.080/0.075
+   against 0.130 unbound; the probe built to separate the hypotheses
+   failed its own accepting case and was deleted). Every emission-map
+   bind is removed; night structure now rides the per-window GLOW
+   SCALE (small sashes whole, wide bands hashed 0.35-1.0, so far
+   walls read as rooms in different states) — **riding Z with the V4
+   interior backdrops. Read Z's night stills first**: glow back near
+   0.13, patchwork visible, interiors warm behind shop glass.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the
@@ -389,12 +391,8 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 - **Turn a still into a number.** Five faults found by opening a frame and none
   by a gate. Anything a frame shows that no metric names is a metric worth
   adding.
-- **DROPS DELIVER EVERY RUN NOW (T:2, U:4, V:3) and V's two misses
-  are named.** d8: pinned on a ground-floor window band — the
-  wall-slide probe cast at hip height only and the quad sits at chest;
-  a second cast at 1.5m rides the next build. d12: `held:waypoint=11
-  ran=0` — the job NEVER owned the target that night, yet
-  `dropsSkipped=2` says the missed-drop plant skipped only days 10-11.
-  Something else nulled the d12 target or the drop was never activated:
-  read TraceJob's window source against ActiveJobPos timing before any
-  change. The gate goes green the first run every window is owned.
+- **DROPS DELIVER EVERY RUN (T:2, U:4, V:3, X:1, Y:2).** The chest-cast
+  landed for the window-band pin. Open: the d12 shape — a night whose
+  window the job never owned (`held:waypoint`, ran=0) while the skip
+  plant's count says it stopped at day 11. Trace-first: read TraceJob's
+  window source against the active-job timing before any change.
