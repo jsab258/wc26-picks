@@ -9869,13 +9869,30 @@ namespace Ledger.Game
             bool trafficOk = traffic != null && traffic.Vehicles.Count >= 10;
             double tightest = traffic != null ? traffic.TightestGap() : 0;
             int offRoad = 0, kindsSeen = 0;
+            // WHO, FROM THE SAME LOOP AS THE COUNT. The traffic gate has
+            // been red on `offRoad=1` while `offRoadWho=[none]` and
+            // `vehiclesOffRoad=0` sat beside it — three instruments, three
+            // definitions, three instants: this count is NON-LANE vehicles
+            // at gate time, the peak is drawn vehicles per frame, and the
+            // who described the peak's worst frame, which never saw this
+            // culprit. The at-worst rule, broken across three keys. The
+            // culprit is now named by the very loop that counts it; the
+            // bound stays where it is until the name says whether a
+            // pavement bicycle is a fault or the margin is a rule about
+            // cars applied to bikes.
+            string offRoadAtGate = "";
             if (traffic != null)
             {
                 var kinds = new HashSet<string>();
                 foreach (var v in traffic.Vehicles)
                 {
                     kinds.Add(v.Kind.Id);
-                    if (!v.Kind.UsesLanes && !StreetMap.OnRoad(v.X, v.Z, margin: 1.5)) offRoad++;
+                    if (!v.Kind.UsesLanes && !StreetMap.OnRoad(v.X, v.Z, margin: 1.5))
+                    {
+                        offRoad++;
+                        if (offRoadAtGate.Length > 0) offRoadAtGate += "/";
+                        offRoadAtGate += $"{v.Kind.Id}@{v.X:0}_{v.Z:0}";
+                    }
                 }
                 kindsSeen = kinds.Count;
                 // NOBODY INSIDE ANYBODY, ASKED OVER THE RUN INSTEAD OF AT AN
@@ -11796,6 +11813,7 @@ namespace Ledger.Game
                       $"tailsBehindStart={(traffic != null ? traffic.TailsBehindStart : -1)} " +
                       $"gapWhy=[{(traffic != null ? traffic.TightestGapWhy : "no traffic")}] " +
                       $"offRoad={offRoad} offRoadWho=[{GameController.OffRoadWorstDesc}] " +
+                      $"offRoadAtGate=[{(offRoadAtGate.Length > 0 ? offRoadAtGate : "none")}] " +
                       $"yields={(traffic != null ? traffic.YieldsToPeople : 0)} trafficOk={trafficOk} " +
                       // `signs` answers "how much sign FURNITURE stands in the
                       // street" — under the town plan the name plates moved onto
