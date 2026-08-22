@@ -90,6 +90,12 @@ jobs:
             mkdir -p "$RUNNER_TEMP/shim"
             if command -v python >/dev/null 2>&1; then
               printf '#!/usr/bin/env bash\nexec python "$@"\n' > "$RUNNER_TEMP/shim/python3"
+            elif command -v py >/dev/null 2>&1; then
+              printf '#!/usr/bin/env bash\nexec py -3 "$@"\n' > "$RUNNER_TEMP/shim/python3"
+            elif [ -x "/c/LedgerTools/python312/python.exe" ]; then
+              # bat 3's no-installer landing zone: python.org's zip build,
+              # placed there because the MSI service is blocked on that PC.
+              printf '#!/usr/bin/env bash\nexec /c/LedgerTools/python312/python.exe "$@"\n' > "$RUNNER_TEMP/shim/python3"
             else
               printf '#!/usr/bin/env bash\nexec py -3 "$@"\n' > "$RUNNER_TEMP/shim/python3"
             fi
@@ -122,7 +128,7 @@ jobs:
         shell: bash
         run: |
           if command -v pwsh >/dev/null 2>&1; then exit 0; fi
-          for d in "/c/Program Files/PowerShell/7" "/c/Program Files/PowerShell/7-preview"; do
+          for d in "/c/Program Files/PowerShell/7" "/c/Program Files/PowerShell/7-preview" "/c/LedgerTools/pwsh7"; do
             if [ -x "$d/pwsh.exe" ]; then
               cygpath -w "$d" >> "$GITHUB_PATH"
               echo "pwsh found at $d and put on the job PATH"

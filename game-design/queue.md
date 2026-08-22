@@ -50,13 +50,13 @@ session runbook; keep the speech self-checks green on every landing.
 machine picked up the probe build in seconds** — and the probe found
 the two tools the cloud image had and his PC does not: no `pwsh` (the
 verdict step's own shell) and no python3 in Git-bash. The workflow
-shims python3 (self-verified), finds installed pwsh through a stale
-service PATH, and fails in the FIRST minute naming the repair when
-either is truly absent. The install: bat 3, now a plain DOUBLE-CLICK
-that self-elevates with no silently-closable window and no
-TEMP-self-copy (right-click gave "nothing happens" on his PC, 22 Aug
-— antivirus on the dropper-shaped stub is the leading suspect). It
-pushes `tools/runner/DEPS.txt`. **A watcher is armed on
+shims python3 (self-verified), probes pwsh at absolute paths past a
+stale service PATH, and fails in the FIRST minute naming the repair
+when either is truly absent. The install: bat 3, a plain DOUBLE-CLICK,
+self-elevating, no silently-closable window, and NO INSTALLERS — the
+pwsh MSI died at 92% "Access is denied" on his PC, so both tools land
+as plain zips (Program Files, falling back to `C:\LedgerTools`, both
+probed by the shims). It pushes `tools/runner/DEPS.txt`. **A watcher is armed on
 that marker: when it lands (or he says "deps installed"), dispatch
 the first real build** — one-time Unity install (~15-25 min), then
 the ~6-10 min era and the first honest frame-gate reading. Revert

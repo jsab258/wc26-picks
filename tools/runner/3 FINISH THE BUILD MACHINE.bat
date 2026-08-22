@@ -3,25 +3,19 @@ setlocal
 title LEDGER - finish the build machine
 REM ===================================================================
 REM  The first build on this PC found the two tools the cloud machine
-REM  had and this one does not. This installs them:
+REM  had and this one does not: PowerShell 7 ("pwsh") and a Python the
+REM  build service can see. This puts both in place.
 REM
-REM    - PowerShell 7 ("pwsh") - the build's own steps run on it
-REM    - Python, machine-wide - the build service is a machine
-REM      account and cannot see a per-user Python, so "it works when
-REM      I run it" is not proof it works for the service
+REM  NO INSTALLERS. The PowerShell installer died at 92% with "Access
+REM  is denied" on this PC (22 Aug) - Windows' installer service is
+REM  blocked by something. Both tools also ship as plain zips, so this
+REM  script only downloads and unpacks files, verifies each landing,
+REM  and falls back to C:\LedgerTools when Program Files refuses. The
+REM  build probes every landing zone by absolute path.
 REM
 REM  JUST DOUBLE-CLICK THIS FILE. It asks Windows for administrator
-REM  permission itself, and every window it opens STAYS OPEN and says
-REM  what happened - the right-click way showed "nothing happens" on
-REM  this machine, so nothing here is allowed to fail silently.
-REM
-REM  One-time. A build is dispatched automatically when it finishes.
-REM
-REM  (No self-copy to TEMP here, deliberately: this script never
-REM  pulls, so it cannot be rewritten mid-read - and a script that
-REM  copies itself to TEMP and relaunches is the one shape antivirus
-REM  loves to kill without a word, which is the leading suspect for
-REM  the silent failure above.)
+REM  permission itself, and every window STAYS OPEN and says what
+REM  happened. One-time; a build is dispatched when it finishes.
 REM ===================================================================
 
 net session >nul 2>&1
@@ -61,47 +55,85 @@ exit /b 0
 :main
 set "REPO=%USERPROFILE%\wc26-picks"
 set "BRANCH=claude/game-dev-ai-automation-2h67ix"
+set "TOOLS=C:\LedgerTools"
 
 echo.
 echo  LEDGER - finish the build machine
 echo  =================================
 echo.
 
-where winget >nul 2>&1
+REM ---- PowerShell 7: plain zip, no installer -------------------------
+set "PWSHDIR="
+if exist "C:\Program Files\PowerShell\7\pwsh.exe" set "PWSHDIR=C:\Program Files\PowerShell\7"
+if not defined PWSHDIR if exist "%TOOLS%\pwsh7\pwsh.exe" set "PWSHDIR=%TOOLS%\pwsh7"
+if defined PWSHDIR (
+  echo  PowerShell 7 is already at %PWSHDIR%
+  goto :python
+)
+
+echo  ---- fetching PowerShell 7 as a plain zip, about 110 MB ------------
+curl.exe -L --fail --retry 2 --retry-delay 3 -o "%TEMP%\ledger-pwsh7.zip" "https://github.com/PowerShell/PowerShell/releases/download/v7.4.6/PowerShell-7.4.6-win-x64.zip"
 if errorlevel 1 (
-  echo  winget is missing on this PC. Install "App Installer" from the
-  echo  Microsoft Store once, then run this again.
+  echo.
+  echo  The download FAILED - the reason is above. Is the internet up?
+  echo  Tell Claude what it says.
   pause
   exit /b 1
 )
 
-if exist "C:\Program Files\PowerShell\7\pwsh.exe" (
-  echo  PowerShell 7 is already installed.
-) else (
-  echo  ---- installing PowerShell 7 - a few minutes -----------------------
-  winget install --id Microsoft.PowerShell -e --scope machine --accept-source-agreements --accept-package-agreements
-  if not exist "C:\Program Files\PowerShell\7\pwsh.exe" goto :pwshfail
-  echo  PowerShell 7 installed.
+echo  ---- unpacking (a minute or two) -----------------------------------
+powershell -NoProfile -Command "Expand-Archive -LiteralPath '%TEMP%\ledger-pwsh7.zip' -DestinationPath 'C:\Program Files\PowerShell\7' -Force"
+if exist "C:\Program Files\PowerShell\7\pwsh.exe" set "PWSHDIR=C:\Program Files\PowerShell\7"
+if not defined PWSHDIR (
+  echo  Program Files would not take it - trying %TOOLS%\pwsh7 instead.
+  powershell -NoProfile -Command "Expand-Archive -LiteralPath '%TEMP%\ledger-pwsh7.zip' -DestinationPath '%TOOLS%\pwsh7' -Force"
+  if exist "%TOOLS%\pwsh7\pwsh.exe" set "PWSHDIR=%TOOLS%\pwsh7"
 )
+if not defined PWSHDIR (
+  echo.
+  echo  Neither folder would take the files - antivirus is blocking
+  echo  writes. Tell Claude, and say which antivirus this PC runs.
+  pause
+  exit /b 1
+)
+"%PWSHDIR%\pwsh.exe" -NoProfile -Command "'PowerShell ' + $PSVersionTable.PSVersion.ToString() + ' unpacked and working.'"
 
-REM The build service cannot see a per-user Python, so the test is a
-REM machine location - C:\Windows\py.exe, the all-users launcher - and
-REM never "where python", which answers for the wrong account.
+:python
+REM ---- Python: the build service is a machine account and cannot see
+REM ---- a per-user Python, so machine locations only - and the zip
+REM ---- build needs no installer either. The build's own scripts use
+REM ---- nothing outside the standard library, which the zip carries.
 if exist "C:\Windows\py.exe" (
   echo  Python's machine-wide launcher is already here.
-) else (
-  echo  ---- installing Python machine-wide --------------------------------
-  winget install --id Python.Python.3.12 -e --scope machine --accept-source-agreements --accept-package-agreements
-  if exist "C:\Windows\py.exe" (
-    echo  Python installed machine-wide.
-  ) else (
-    echo  Python still is not machine-wide - carrying on; if the build
-    echo  needs it, its first step will say so in plain words.
-  )
+  goto :service
+)
+if exist "%TOOLS%\python312\python.exe" (
+  echo  Python is already at %TOOLS%\python312
+  goto :service
 )
 
+echo  ---- fetching Python as a plain zip, about 11 MB -------------------
+curl.exe -L --fail --retry 2 --retry-delay 3 -o "%TEMP%\ledger-py312.zip" "https://www.python.org/ftp/python/3.12.8/python-3.12.8-embed-amd64.zip"
+if errorlevel 1 (
+  echo.
+  echo  The download FAILED - the reason is above. Is the internet up?
+  echo  Tell Claude what it says.
+  pause
+  exit /b 1
+)
+powershell -NoProfile -Command "Expand-Archive -LiteralPath '%TEMP%\ledger-py312.zip' -DestinationPath '%TOOLS%\python312' -Force"
+if not exist "%TOOLS%\python312\python.exe" (
+  echo.
+  echo  Could not unpack Python - antivirus is blocking writes.
+  echo  Tell Claude, and say which antivirus this PC runs.
+  pause
+  exit /b 1
+)
+"%TOOLS%\python312\python.exe" --version
+
+:service
 echo.
-echo  ---- restarting the build service so it sees the new tools ---------
+echo  ---- restarting the build service so it starts fresh ---------------
 powershell -NoProfile -Command "$s = Get-Service 'actions.runner.*' -ErrorAction SilentlyContinue; if ($s) { $s | Restart-Service; 'runner service restarted' } else { 'NO runner service found - was bat 1 run on this PC?' }"
 
 echo.
@@ -127,11 +159,3 @@ echo  DONE. This window can be closed.
 echo.
 pause
 exit /b 0
-
-:pwshfail
-echo.
-echo  The PowerShell 7 install FAILED - the reason is printed above
-echo  this line. Tell Claude what it says.
-echo.
-pause
-exit /b 1
