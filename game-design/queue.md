@@ -136,11 +136,14 @@ parked — no DirectML on the Air.
    darker than the band because a multiply only subtracts. A limit, not a bug.
    **`RealBodyCap = 12` needs a PC measurement**, not a CI one.
 
-1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — the remaining primitives.**
-   `vehicleFellBack=[bus,bike x6]`. All 50 car-kit models ARE extracted and
-   neither is among them, so this is a sourcing gap: another CC0 kit, not more
-   code. One bicycle model closes almost all of it. (The police car is in;
-   account in `roadmap-history.md`.)
+1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — and the Base Mesh mirror is
+   now RULED OUT.** `vehicleFellBack=[bus,bike x6]`; all 50 car-kit models
+   extracted, neither among them. The mirror inventory (fetched by CI,
+   901 models, committed 21 Aug night) holds no bicycle, bus, or motorcycle
+   either. Next step is a CI-side fetch from another CC0 source — the
+   fetch runner has open network where the dev container 403s; Quaternius'
+   vehicle packs are the lead candidate, licence checked per pack before
+   any download lands (CC0 only auto-fetches, per the sources doc).
 
 1. **PATROL DENSITY FOLLOWS THE INQUIRY — and the measurement of whether it
    READS is still not finished.** Weight by stage (None 1 ... Manhunt 5),
