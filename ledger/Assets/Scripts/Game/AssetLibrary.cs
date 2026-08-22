@@ -268,7 +268,24 @@ namespace Ledger.Game
             // COURSES OF BRICK rather than as a photograph of one — and at
             // player height, standing next to walls is most of the game.
             // Same ST as the albedo, so the two cannot drift.
-            var nrm = tex != null && !spec.ProceduralOnly ? ResolveNormal(logical) : null;
+            // THE KEYWORD SET IS LOAD-BEARING IN THE BUILT PLAYER, and this
+            // line is where three builds of dead night glow actually began.
+            // Dropping the pack normal and gloss for the window surface
+            // changed its keywords from the {emission, normalmap, glossmap}
+            // trio — which the build has a compiled variant for, proven by
+            // weeks of glowing windows — to emission alone, for which it
+            // has none: Unity then silently falls back to a variant WITHOUT
+            // emission, and no amount of mask/bind/revert surgery could
+            // matter because the shader running had no emission term at
+            // all. (It also explains the six-box probe reading flat:
+            // fresh emission-only materials hit the same missing variant.)
+            // So the maps stay bound even on a procedural-albedo surface:
+            // the window keeps the pack's window normal and gloss — the
+            // relief is a facade photograph's, invisible behind dark glass
+            // at street distance — and the interior borrows the same maps
+            // for the same keyword trio.
+            string mapsFrom = logical == Interior ? Window : logical;
+            var nrm = tex != null ? ResolveNormal(mapsFrom) : null;
             if (nrm != null)
             {
                 mat.SetTexture("_BumpMap", nrm);
@@ -283,8 +300,8 @@ namespace Ledger.Game
             // four surfaces it was calibrated for. Ground stays scalar until
             // SetWetness learns `_GlossMapScale` (on the quality ladder).
             bool wetDriven = System.Array.IndexOf(WetSurfaces, logical) >= 0;
-            var gls = tex != null && !wetDriven && !spec.ProceduralOnly
-                ? ResolveGloss(logical, (byte)Mathf.RoundToInt(spec.Metallic * 255f))
+            var gls = tex != null && !wetDriven
+                ? ResolveGloss(mapsFrom, (byte)Mathf.RoundToInt(spec.Metallic * 255f))
                 : null;
             if (gls != null)
             {
@@ -622,12 +639,14 @@ namespace Ledger.Game
         public Vector2 Tiling;
         public Color Emission;
         public string Pattern; // noise | slab | brick | plank | flat | panes
-        /// Never replaced by a pack photograph. The pack's `window.jpg` is a
-        /// whole FACADE — brick piers around a six-by-six grid of sashes —
-        /// so on a window-only quad it rendered as a squeezed micro-facade,
-        /// and its normal/roughness maps describe that facade, not glass.
-        /// A surface that sets this keeps its procedural texture and skips
-        /// the pack's albedo, normal and gloss for this logical name.
+        /// ALBEDO never replaced by a pack photograph. The pack's
+        /// `window.jpg` is a whole FACADE — brick piers around a grid of
+        /// sashes — so on a window-only quad it rendered as a squeezed
+        /// micro-facade. THE ALBEDO ONLY: the first version of this flag
+        /// also skipped the pack normal and gloss, which changed the
+        /// material's keyword set and silently killed the emission variant
+        /// in the built player for three builds (the story is at the map
+        /// resolution in BuildMaterial). The maps stay bound.
         public bool ProceduralOnly;
 
         public static SurfaceSpec For(string logical)
