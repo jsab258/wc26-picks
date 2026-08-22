@@ -1208,7 +1208,10 @@ namespace Ledger.Game
             // prep closes about ten metres, half of what the spawn
             // distances need. Four hours is the same walk a person with an
             // evening errand actually makes.
-            if (!job.HasValue && now.Hour >= 18 && now.Hour < 22
+            // 18:00 -> 17:00: the widened prep's landed run opened d1 at
+            // 12m and the courier still missed by 4.8 — one more hour of
+            // approach is the measured shortfall, no more.
+            if (!job.HasValue && now.Hour >= 17 && now.Hour < 22
                 && _game.Campaign.Verdict == Verdict.Ongoing
                 && !_game.Campaign.OutfitCutOff)
             {

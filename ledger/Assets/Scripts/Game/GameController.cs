@@ -2988,8 +2988,26 @@ namespace Ledger.Game
             _ui?.ShowEnd(Campaign);
         }
 
-        void SpawnJobMarker(Vector3 pos) =>
-            _jobMarker = SpawnGlowMarker(pos, new Color(1f, 0.55f, 0.15f), "JobDrop");
+        /// The drop marker steps aside from GEOMETRY — `PointClear` tests
+        /// scenery, not people, so this cannot dodge a crowd (the courier's
+        /// nine-tick stall beside the pub is addressed upstream: the prep
+        /// walk now starts at 17:00, so the bot is away from the evening
+        /// confab before it forms). What this does buy: a marker can no
+        /// longer spawn inside a bin, a bench or the new shopfront trim,
+        /// which the furniture pass made possible for the first time this
+        /// week. Fixed search order, so the pick is stable per night.
+        void SpawnJobMarker(Vector3 pos)
+        {
+            var at = pos;
+            foreach (var step in new[] { 0f, 1.5f, 3f, 4.5f })
+            {
+                var c = new Vector3(pos.x + step, 0, pos.z);
+                if (WorldBuilder.PointClear(c, 1.2f)) { at = c; break; }
+                c = new Vector3(pos.x - step, 0, pos.z + step);
+                if (WorldBuilder.PointClear(c, 1.2f)) { at = c; break; }
+            }
+            _jobMarker = SpawnGlowMarker(at, new Color(1f, 0.55f, 0.15f), "JobDrop");
+        }
 
         GameObject SpawnGlowMarker(Vector3 pos, Color color, string name)
         {
