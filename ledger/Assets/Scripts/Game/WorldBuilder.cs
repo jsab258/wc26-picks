@@ -199,6 +199,7 @@ namespace Ledger.Game
             Mullions = 0;
             WindowIsShop.Clear();
             Masses.Clear();
+            PrimaryMasses.Clear();
             Masses.AddRange(BuildBlockSpecs());
             _windowsLit = false;
             WindowPanes = 0; WindowBands = 0;
@@ -975,6 +976,14 @@ namespace Ledger.Game
         }
 
         static readonly List<(Vector3 pos, Vector3 size)> Masses = new List<(Vector3, Vector3)>();
+        /// The primary building BODIES, recorded at creation — the honest
+        /// population for any question about buildings as wholes. The first
+        /// grounded-buildings sweep matched names instead and caught 553
+        /// windows, mullions and shopfront heads, every one of which lives
+        /// above ground by design: an allow-list of suffixes would decay
+        /// the same way, and this list cannot, because the two call sites
+        /// that make a body are the two lines that append to it.
+        public static readonly List<GameObject> PrimaryMasses = new List<GameObject>();
 
         /// True when the straight XZ line from a to b crosses no building mass.
         /// Masses containing either endpoint are ignored so characters can step
@@ -1055,6 +1064,7 @@ namespace Ledger.Game
                 // pattern that was stamped.
                 var facade = facades[FacadePick(pos)];
                 var body = MakeBoxVaried($"Building_{i}", pos + new Vector3(0, size.y / 2f, 0), size, facade, pos);
+                PrimaryMasses.Add(body);
                 // Tile the façade at roughly one texture repeat per 3.5m so brick keeps a
                 // consistent scale across differently-sized buildings.
                 SetTiling(body, Mathf.Max(1, Mathf.RoundToInt(size.x / 3.5f)), Mathf.Max(1, Mathf.RoundToInt(size.y / 3.5f)));
@@ -2358,6 +2368,7 @@ namespace Ledger.Game
                 // is not the one flat-coated building on its street.
                 var facade = facades[FacadePick(pos)];
                 var body = MakeBoxVaried($"District_{place.Id}", pos + new Vector3(0, size.y / 2f, 0), size, facade, pos);
+                PrimaryMasses.Add(body);
                 SetTiling(body, Mathf.Max(1, Mathf.RoundToInt(size.x / 3.5f)), Mathf.Max(1, Mathf.RoundToInt(size.y / 3.5f)));
                 MakeBox($"District_{place.Id}_roof", pos + new Vector3(0, size.y + 0.12f, 0),
                     new Vector3(size.x + 0.4f, 0.25f, size.z + 0.4f), AssetLibrary.Roof);

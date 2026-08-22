@@ -2633,6 +2633,10 @@ namespace Ledger.Game
         /// Named collider ahead of the bot at the worst stall (see the
         /// record site) — reset per window with the rest.
         string _jobStallBlocker = "nothing";
+        /// The marker's own position and whether a person can stand there,
+        /// taken at window open — see the note at the capture site.
+        string _jobMarkerWhere = "nowhere";
+        string _jobMarkerClear = "-";
 
         /// Called once per tick, after every stage has had its chance at the
         /// target. Only while a drop is open: outside the window the bot is
@@ -2696,6 +2700,22 @@ namespace Ledger.Game
                     _jobOpen = true;
                     _jobOpenDay = now.Day;
                     _jobOpenDist = d;
+                    // WHERE THE MARKER STANDS, AND WHETHER ANYONE CAN. Build
+                    // R's three misses all ended 3.7-4.9m out after walking
+                    // the full distance with no stall — the wall-slide turned
+                    // the old stand-dead-against-Building-44 into movement,
+                    // and movement without arrival at a consistent radius
+                    // reads as a target nothing can stand at. The sidestep
+                    // falls back to the RAW point when every candidate fails,
+                    // so a drop against a wall stays against the wall and
+                    // nothing said so. Three radii: standing room for a
+                    // point, a person, a person with elbows.
+                    var mk = new Vector3(pos.Value.x, 0, pos.Value.z);
+                    _jobMarkerWhere = $"{mk.x:0}/{mk.z:0}";
+                    _jobMarkerClear =
+                        $"{(WorldBuilder.PointClear(mk, 0f) ? 1 : 0)}"
+                        + $"/{(WorldBuilder.PointClear(mk, 0.6f) ? 1 : 0)}"
+                        + $"/{(WorldBuilder.PointClear(mk, 1.2f) ? 1 : 0)}";
                     _jobNearest = d;
                     _jobNearestHour = now.Hour;
                     _jobDoneAtOpen = _game.Campaign.JobsDone;
@@ -2872,6 +2892,11 @@ namespace Ledger.Game
                           // stuck", on what?). "nothing" with a stall means
                           // the block is behind or beside, not ahead.
                           + $"stalledOn={_jobStallBlocker} "
+                          // Where the marker stood and whether anyone can
+                          // stand there (point/person/elbows) — the reading
+                          // that says whether a chronic near-miss is the
+                          // bot's fault or the address's.
+                          + $"marker={_jobMarkerWhere} markerClear={_jobMarkerClear} "
                           // Window size and run coverage, so a short window
                           // and a flapping run flag stop hiding inside the
                           // ownership tally (see the tick counter's comment).
@@ -7719,23 +7744,23 @@ namespace Ledger.Game
             if (_boxesAfloat >= 0) return;
             _boxesAfloat = 0; _boxesGroundChecked = 0;
             var who = new List<string>();
-            foreach (var mf in FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
+            // OVER THE RECORDED BODIES, NOT OVER NAMES. The first run of
+            // this sweep matched name prefixes and read 553/1119 — every
+            // hit a window, mullion or shopfront head, all above ground by
+            // design. `PrimaryMasses` is appended at the two lines that
+            // create a building body, so the population is right by
+            // construction and cannot decay into an allow-list.
+            foreach (var go in WorldBuilder.PrimaryMasses)
             {
-                if (mf == null) continue;
-                var n = mf.name;
-                bool building = n.StartsWith("Building_")
-                    && !n.Contains("_up") && !n.Contains("_tank");
-                bool district = n.StartsWith("District_")
-                    && !n.Contains("_roof") && !n.Contains("_step");
-                if (!building && !district) continue;
-                var r = mf.GetComponent<Renderer>();
+                if (go == null) continue;
+                var r = go.GetComponent<Renderer>();
                 if (r == null) continue;
                 _boxesGroundChecked++;
                 float baseY = r.bounds.min.y;
                 if (baseY > 0.5f)
                 {
                     _boxesAfloat++;
-                    if (who.Count < 4) who.Add($"{n}@y{baseY:0.0}");
+                    if (who.Count < 4) who.Add($"{go.name}@y{baseY:0.0}");
                 }
             }
             _boxesAfloatWho = who.Count > 0 ? string.Join("/", who.ToArray()) : "none";
