@@ -124,6 +124,17 @@ parked — no DirectML on the Air.
    per pass, only 6.5 inside the 34m band, so half the people you can see can
    never be skinned.
 
+   **The pale-body hunt, 22 Aug 03:00 state:** the catcher names bodies
+   (Ferko, Sam, Katarina — all real-tier) and its part probe's first answer
+   (a foot mesh at 226) is an INSTRUMENT ARTIFACT: a small renderer's
+   screen rect is mostly the sunlit pavement behind it, so the part probe
+   inherits the background-dilution bias the body probe's own comment
+   warns about — worse, because part rects vary in size. The shoe/flesh
+   theory is dead (the flesh wordlist never matched "foot"). Next rung for
+   the instrument: centre-weighted or body-masked sampling before any
+   conclusion about WHICH part glows. The peak body may simply be the one
+   standing in full sun on bright pavement.
+
    **The white pills are unidentified and NO COMMITTED STILL HAS ONE.** The
    pale figures in `review_street.jpg` measure `#5d626f`/`#66676a` against
    buildings at `#7f838f` — DARKER than the walls — and that frame's brightest
