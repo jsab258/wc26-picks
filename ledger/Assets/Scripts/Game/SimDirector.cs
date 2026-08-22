@@ -58,9 +58,17 @@ namespace Ledger.Game
         readonly List<object> _samples = new List<object>();
         readonly List<object> _screenshots = new List<object>();
 
-        /// How many stills get committed for review. Four: noon and night on
-        /// the first two days the sim shoots. See `Shot`.
-        const int MaxReviewStills = 4;
+        /// How many stills get committed for review. SIX, BECAUSE THE ROSTER
+        /// GREW AND THE CAP DID NOT SAY IT WAS BITING (22 Aug): the dusk
+        /// shot joined at four-of-four, so day2_night silently stopped
+        /// rendering — every run since committed a STALE day2_night while
+        /// comments cited it as evidence — and the planted day2_wet was
+        /// refused on its first run the same way, with only the missing
+        /// file to say so. Rule 3b's truncation clause, in the shot system
+        /// itself: a cap must say when it bites, and this one could not.
+        /// The roster is day1 noon/dusk/night + day2 noon/wet/night; the
+        /// cost of the two regained slots is ~300KB a build. See `Shot`.
+        const int MaxReviewStills = 6;
         int _reviewStills;
         int _streetStills;
         /// How many people are in the street photograph, counted through the
@@ -7709,8 +7717,16 @@ namespace Ledger.Game
             // state it was measuring changes the build it reports on, and the
             // four stills are taken after this runs — so a forgotten restore
             // here would put the wrong windows in every frame Jafar looks at.
+            //
+            // THE SHIPPED CONSTANT, NOT A LITERAL. This line restored 3.0
+            // for weeks while the shipped multiplier walked 3.0 -> 1.8 ->
+            // 1.4 -> 1.7 — the comment above was true the day it was
+            // written and the constant moved out from under it, so every
+            // still taken between this probe and the next hourly window
+            // sweep showed a glow nothing ships. Comment decay in a
+            // RESTORE, which is the worst place for it.
             WorldBuilder.WindowEmissive = was;
-            WorldBuilder.SetWindowGlow(3.0f);
+            WorldBuilder.SetWindowGlow(WorldBuilder.WindowGlowMultiplier);
         }
 
         /// The pixels the WINDOWS added, and their colour.

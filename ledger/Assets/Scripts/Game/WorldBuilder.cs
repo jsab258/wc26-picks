@@ -1762,6 +1762,20 @@ namespace Ledger.Game
         {
             Windows.Add(r);
             WindowIsShop.Add(shopfront);
+            // THE MASK RIDES THE PROPERTY BLOCK, NOT ONLY THE MATERIAL. On
+            // b112e5d the material-level _EmissionMap zeroed every building
+            // window's glow in the built player — the sweep read 0.00% lit
+            // at every multiplier and the night mean fell by a third —
+            // while the vehicle lamps' per-renderer WHITE override glowed
+            // on the same shared material. The per-renderer override is
+            // therefore the path the build provably samples, and the panes
+            // mask takes it too. Read-modify-write, like every other writer
+            // on these blocks; RegisterNightLight overwrites this with
+            // plain white for lamps, in that order, on purpose.
+            var mpb = new MaterialPropertyBlock();
+            r.GetPropertyBlock(mpb);
+            mpb.SetTexture("_EmissionMap", AssetLibrary.WindowEmissionMask);
+            r.SetPropertyBlock(mpb);
         }
 
         static Renderer WinBox(string name, Vector3 center, Vector3 size)

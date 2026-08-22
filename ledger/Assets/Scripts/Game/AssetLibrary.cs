@@ -41,6 +41,13 @@ namespace Ledger.Game
 
         static bool _initialized;
         static string _packRoot;
+        static Texture2D _panesMask;
+        /// The window emission mask, generated once and shared by the
+        /// material bind and every per-renderer property-block bind — two
+        /// textures here would be two copies of one idea that could drift.
+        public static Texture2D WindowEmissionMask =>
+            _panesMask != null ? _panesMask
+                               : (_panesMask = ProceduralTexture.PanesMask());
         static AssetBundle _propBundle;
         static readonly Dictionary<string, Material> _materials = new Dictionary<string, Material>();
         static readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
@@ -309,8 +316,18 @@ namespace Ledger.Game
                 // MPB glow through at exactly its measured value, and
                 // emission UVs follow the main ST, so the per-window tiling
                 // sizes the glowing panes along with the drawn ones.
+                //
+                // AND THE MATERIAL-LEVEL BIND IS NOT ENOUGH IN THE BUILT
+                // PLAYER. On b112e5d it zeroed every building window's glow
+                // (the sweep read lit=0.00% at every multiplier) while the
+                // vehicle lamps' per-renderer property-block override glowed
+                // on this same shared material — so the registered windows
+                // now carry the mask on their blocks too (see AddWindow),
+                // which is the path the build provably samples. This bind
+                // stays for authoring consistency, and any future user of
+                // the window surface should register, not rely on it.
                 if (spec.Pattern == "panes")
-                    mat.SetTexture("_EmissionMap", ProceduralTexture.PanesMask());
+                    mat.SetTexture("_EmissionMap", WindowEmissionMask);
             }
             return mat;
         }
