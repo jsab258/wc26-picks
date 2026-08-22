@@ -105,6 +105,20 @@ echo.
 echo  Unity editor installed.
 
 :acl
+REM THE EDITOR EXE LANDS BEFORE ITS MODULES FINISH, and the first
+REM dispatch raced exactly that gap (run 32597391311): Unity.exe
+REM existed, the marker went out, and the build collided with the
+REM still-downloading IL2CPP module. The module directory is the
+REM thing to wait for, not the exe.
+if not exist "C:\Program Files\Unity\Hub\Editor\6000.0.58f1\Editor\Data\PlaybackEngines\windowsstandalonesupport\Variations\il2cpp" (
+  echo.
+  echo  Unity's editor is here but its Windows build module is still
+  echo  installing. Let Unity Hub finish, then run this again - it
+  echo  takes five seconds once everything is in place.
+  pause
+  exit /b 1
+)
+
 REM The build service activates Unity's licence at build time and the
 REM licence file lives under ProgramData\Unity - which the service
 REM account cannot create. Granted once here, so the first licensed
