@@ -393,11 +393,13 @@ namespace Ledger.Game
         /// the point (rule 3b). `Rumour` never appearing in a run's breakdown
         /// means "no rumours were in flight" only if the rumour tier is wired;
         /// otherwise it means nothing at all, and the two read identically.
-        /// Three of six today: the law, the crew and Mickey's book. The
-        /// promise, the talk and the change of heart need accessors that do
-        /// not exist yet as single reads, and inventing them here would be
-        /// three more numbers nobody had measured.
-        public const int LooseEndTiersFed = 3;
+        /// ALL SIX as of 22 Aug: the law, the crew and Mickey's book from
+        /// the start; then the promise (late asks target tomorrow, so a
+        /// pending invitation can exist at a close — the tier was
+        /// structurally dead before that), the talk (the mill's own leads
+        /// about the player, counted whole), and the change of heart (a
+        /// loyalty baseline taken at each close and diffed at the next).
+        public const int LooseEndTiersFed = 6;
         public const int LooseEndTiers = 6;
 
         /// THE EVENING, ASSEMBLED FROM WHAT THE GAME ACTUALLY HOLDS.
@@ -467,8 +469,62 @@ namespace Ledger.Game
                 e.OwedLastAskedDay = biggest.LastAskedDay;
             }
 
+            // THE PROMISE. A pending invitation for a night still to come —
+            // which exists at a close only because late asks now target
+            // tomorrow (see OfferEvening): same-day invitations resolve
+            // before any close can see them, so this tier was structurally
+            // dead until the asking changed shape.
+            foreach (var b in Beats.All)
+            {
+                if (b.State != BeatState.Pending || b.Day < dayClosed) continue;
+                e.PromisedTo = HostName(b.HostId);
+                // The ask precedes the evening by at most a day here; the
+                // beat's own day is the nearest honest anchor the book holds.
+                e.PromisedOnDay = System.Math.Min(b.Day, dayClosed);
+                break;
+            }
+
+            // THE TALK. Stories about the player still held around the
+            // street — the mill's own leads list, counted whole. The topic
+            // stays empty on purpose: the Core line then says "about you",
+            // which is true, where a raw topic key would be a debug string
+            // wearing a sentence's clothes. A phrase table is the next rung.
+            var leads = _gossip?.Mill?.Leads("player");
+            if (leads != null)
+                e.RumoursInFlight = leads.Count;
+
+            // THE CHANGE OF HEART. The person whose loyalty fell furthest
+            // since the last close, off the snapshot taken there — two reads
+            // of the same population a day apart, which is what "today" has
+            // to mean for a number to carry the tier's sentence. Day one has
+            // no baseline and stays silent, honestly.
+            double worstFall = 0;
+            if (_gossip?.Mill != null)
+            {
+                foreach (var kv in _loyaltyAtClose)
+                {
+                    var was = kv.Value;
+                    var agent = _gossip.Mill.Get(kv.Key);
+                    if (agent == null) continue;
+                    double fall = was - agent.Loyalty;
+                    if (fall > worstFall)
+                    {
+                        worstFall = fall;
+                        e.TrustFell = agent.DisplayName;
+                        e.TrustFellBy = fall;
+                    }
+                }
+                // Tomorrow's baseline, taken after today's diff.
+                _loyaltyAtClose.Clear();
+                foreach (var a in _gossip.Mill.Agents)
+                    _loyaltyAtClose[a.Id] = a.Loyalty;
+            }
+
             return e;
         }
+        /// Loyalty per agent at the last day close — the baseline the
+        /// Standing tier diffs against. See the note in EveningState.
+        readonly Dictionary<string, double> _loyaltyAtClose = new Dictionary<string, double>();
         Inquiry _lastInquiry = Inquiry.None;
 
         // Suspicion escalation (§6.4): Confronting NPCs block the player's path and
@@ -2154,13 +2210,30 @@ namespace Ledger.Game
             if (best == null || best.Loyalty < 0.5) return;
 
             ActTwo.LastEveningDay = Now.Day;
-            var id = $"evening_d{Now.Day}";
-            Beats.Add(new Beat
+            // A LATE ASK IS FOR TOMORROW, and that is what makes the Promise
+            // tier of the evening thread real. Same-day invitations resolve
+            // (attended or stood up) before any day close can see them, so
+            // "somebody asked and has not had their evening" was a state the
+            // game could never be in at the moment it reports threads —
+            // a tier that could only fire on a lucky run. An afternoon ask
+            // for tomorrow night is also just how people ask.
+            int eveDay = Now.Hour >= 15 ? Now.Day + 1 : Now.Day;
+            var id = $"evening_d{eveDay}";
+            bool tomorrow = eveDay != Now.Day;
+            var invite = new Beat
             {
-                Id = id, HostId = best.Id, Title = $"An evening with {best.DisplayName}", Day = Now.Day,
+                Id = id, HostId = best.Id, Title = $"An evening with {best.DisplayName}", Day = eveDay,
                 StartHour = 21, EndHour = 24,
-                InviteText = $"{best.DisplayName} catches you on the street, almost shy about it: \"Come by tonight. Nine, after you close. Nothing formal — I just haven't seen you properly in weeks.\"",
-            });
+                InviteText = tomorrow
+                    ? $"{best.DisplayName} catches you on the street, almost shy about it: \"Come by tomorrow night. Nine, after you close. Nothing formal — I just haven't seen you properly in weeks.\""
+                    : $"{best.DisplayName} catches you on the street, almost shy about it: \"Come by tonight. Nine, after you close. Nothing formal — I just haven't seen you properly in weeks.\"",
+            };
+            Beats.Add(invite);
+            // The ask happens NOW, in person, whichever night it names — so
+            // a tomorrow-invitation toasts at the ask and the per-day toast
+            // below is marked done for it.
+            if (tomorrow && _beatInvited.Add(id))
+                _ui?.Toast(invite.InviteText, 10f);
         }
 
         void UpdateBeats()
