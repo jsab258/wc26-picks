@@ -23,10 +23,9 @@ failing. Full account in CLAUDE.md under AUTO MODE.
 
 ### Where the street got to
 
-The Mixamo harvest landed and after three re-picks **nothing in the game
-plays a clip the screen refuses** — 65 filled and passing, 2 empty (a harvest
-hole), 0 wrong. The street talks, argues, leans, works counters. **And since
-this evening the front is M17.10: the visual bar is GTA V** — item 1.
+Clips: 65 filled and passing, 2 harvest holes, 0 wrong (three re-picks,
+21 Aug). The street talks, argues, leans, works counters. **The front
+is M17.10: the visual bar is GTA V** — item 1.
 
 **THE PLAYTEST IS RETARGETED (22 Aug, Jafar):** *"I'll try to run it on
 my windows machine after visual stuff is done. live voices/speech should
@@ -39,7 +38,11 @@ keep the speech self-checks green in verify, and read the speech
 counters on every landing so a silent regression cannot ambush the
 one session that matters.
 
-### Startable right now, ORDERED BY WHAT SHOWS ON SCREEN
+### Startable right now — JAFAR'S SEQUENCE (22 Aug, his words):
+### "1. visual, 2. voices/speech, 3. playtest, then feedback/fixes and
+### then continue w roadmap." Within a stage, order by what shows on
+### screen. Nothing from a later stage starts while an earlier one has
+### startable work, except reading a landed verdict, which is free.
 
 1. **M17.10 — THE VISUAL BAR IS GTA V (PS3). Jafar's order, 21 Aug, twice.**
    *(the most on-screen thing there is)* Plan in `roadmap.md` 17.10,
@@ -166,16 +169,12 @@ one session that matters.
    per pass, only 6.5 inside the 34m band, so half the people you can see can
    never be skinned.
 
-   **The pale-body hunt, 22 Aug 03:00 state:** the catcher names bodies
-   (Ferko, Sam, Katarina — all real-tier) and its part probe's first answer
-   (a foot mesh at 226) is an INSTRUMENT ARTIFACT: a small renderer's
-   screen rect is mostly the sunlit pavement behind it, so the part probe
-   inherits the background-dilution bias the body probe's own comment
-   warns about — worse, because part rects vary in size. The shoe/flesh
-   theory is dead (the flesh wordlist never matched "foot"). Next rung for
-   the instrument: centre-weighted or body-masked sampling before any
-   conclusion about WHICH part glows. The peak body may simply be the one
-   standing in full sun on bright pavement.
+   **The pale-body hunt:** the part probe's foot-at-226 answer was the
+   instrument (background dilution through a small rect on sunlit
+   pavement; the shoe/flesh theory is dead). The centre-third sampler
+   landed on W and still read FootMesh — with the crop in place that
+   reading now deserves belief; next: is the peak body simply whoever
+   stands in full sun, which the same-instant crowd median can say.
 
    **The white pills are unidentified and NO COMMITTED STILL HAS ONE.** The
    pale figures in `review_street.jpg` measure `#5d626f`/`#66676a` against

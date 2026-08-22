@@ -1153,7 +1153,12 @@ keep the behaviour fix, because a metric nobody can interpret is worth less
 than the hours it takes to interpret it. Exception, and only this one: the
 number is load-bearing for a gate that is currently red.
 
-**3. ORDER THE QUEUE BY WHAT SHOWS ON SCREEN.** Not by what is open, not by
+**3. ORDER THE QUEUE BY JAFAR'S SEQUENCE, THEN BY WHAT SHOWS ON SCREEN.**
+His order, 22 Aug, verbatim: *"1. visual, 2. voices/speech, 3. playtest,
+then feedvack/fixes and then continue w roadmap."* The visual bar
+finishes first, then live speech readiness for his Windows session, then
+the playtest itself, then whatever it surfaces, and only then the rest
+of the roadmap. Within a stage the old rule holds: not by what is open, not by
 what is nearly finished, not by what I happen to be holding in my head. The
 standard is immersion first, so the top of `## Now` is the item a player would
 notice, every time. Everything else is below it whatever its state.
