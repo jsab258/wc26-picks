@@ -47,6 +47,14 @@ truncation family's favourite shape. The `probe.py` listen page is
 REPAIRED (the API-drift crash and the stale route text) —
 it confused the one person it ran for. `playtest-plan.md` carries the
 session runbook; keep the speech self-checks green on every landing.
+**AND BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT (Jafar, 22 Aug:
+"a full ultracode audit before playtesting is a good idea. rememver
+that").** A multi-agent sweep of the whole codebase — every system
+against every rule in CLAUDE.md, every claim against its code, reach
+and comment decay included — run as its own workflow when the visual
+and speech stages close, with findings triaged into the queue before
+he downloads the build. Token-heavy by design; he has pre-approved
+exactly this run.
 
 ### Startable right now — JAFAR'S SEQUENCE (22 Aug, his words):
 ### "1. visual, 2. voices/speech, 3. playtest, then feedback/fixes and
@@ -98,13 +106,9 @@ session runbook; keep the speech self-checks green on every landing.
    combat-with-no-body-animation is milestone-scale, not a wire.
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
    NARROW.** *(rule 12; the step-back and depth series are landed —
-   account in `roadmap-history.md`.)* **And day1_night found the case both metrics pass while
-   the frame fails**: the camera stands against a wall of large lit
-   warehouse windows, the whole frame amber glow — near-fraction low
-   (windows are past arm's length), depth plausible, still unusable. A
-   night frame needs a "how much of the frame is EMISSIVE at point-blank"
-   read, or the night shot picker needs to prefer a vantage that sees the
-   street. Turn the frame into a number before tuning anything.
+   account in `roadmap-history.md`.)* **The night half is ADDRESSED:
+   the night shutter now aims down the longest clear sightline (eight
+   compass rays, rides AE) — judge on its landing.**
    **The day twin landed on V:** day2_noon stepped back from 0.44 to
    0.24 near-fraction — passing the 0.25 bound — and the frame is still
    half wooden hoarding: a MID-DISTANCE occluder a few metres out fills
