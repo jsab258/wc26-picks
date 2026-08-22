@@ -67,11 +67,23 @@ parked — no DirectML on the Air.
    that verdict rather than a theory-driven mass edit — if the wash read
    overcorrects, the theory is wrong at one site instead of fourteen.
 
-   **NEXT, in order:** V1.5 linear colour space — one line in CiBuild, its
-   OWN revertible commit + build with before/after stills, BEFORE more grade
-   tuning stacks onto the gamma assumption (the project renders in GAMMA —
-   engine default, no ProjectSettings file). Then V4 shopfront depth +
-   albedo variety + the grade move; V5 vehicles/ground; V6 sky dome.
+   **V1.5 LINEAR IS CLOSED — 22 Aug 04:00, one flip + five measured
+   rounds.** The flip landed alone for a clean A/B, then every
+   display-authored value got re-armed off landed readings: exposure arms,
+   AO, grain, window glow, the fog/ambient conversion funnel, the wash's
+   property-block conversion, the day sky/horizon/ground bands, and — the
+   ladder's verdict — the post-tonemap black-lift, ONE additive constant
+   that held nearly half the night mean. Final: noon mean 0.206 with a
+   readable shade (median tripled off its void), night 0.128 with true
+   blacks, **night darker than noon on 8 of 10 days — the lighting gate
+   green for the first time since the flip.** Instruments built on the
+   way: the night-floor A/B ladder, the palest-body catcher + part probe
+   (part probe needs body-masked sampling), per-still histogram reads.
+
+   **NEXT, in order:** V4 shopfront depth (the void shopfronts are now the
+   worst thing in a noon frame) + albedo variety; V5 vehicles/ground; V6
+   sky dome. The 13 remaining MPB colour sites wait on the wash verdict's
+   next reading before any mass conversion.
 
 1. ~~**ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION**~~ — **CLOSED TO
    FIVE EMPTY SLOTS AND NONE WRONG after three re-picks, 21 Aug.** Audited
