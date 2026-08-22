@@ -1298,6 +1298,7 @@ namespace Ledger.Game
                 {
                     _skippingDropDay = now.Day;
                     _dropsSkipped++;
+                    _plantedDropDays.Add(now.Day);
                     Debug.Log($"SimDirector: staging a missed drop on day {now.Day} "
                               + $"({_dropsSkipped}, up to {SkipDropsMax}) — nothing has ever "
                               + "let the reliability rule fire.");
@@ -3089,7 +3090,16 @@ namespace Ledger.Game
             // also vanish without either counter changing — the campaign ending
             // mid-window does exactly that — and calling every disappearance a
             // miss would invent a fault out of a legitimate ending.
+            // A PLANTED MISS SAYS SO. The reliability plant nulls the bot's
+            // target on its chosen days, and the trace printed those as
+            // plain MISSED — which sent a whole investigation at d12's
+            // "held:waypoint, ran=0" before the skip counter's arithmetic
+            // acquitted it (the plant took days 10 and 12 because 11
+            // carried no drop; the counter counts plant DAYS, not a
+            // contiguous range). The label now carries the fact the code
+            // knew all along, so the next reader is not the next me.
             string how = _game.Campaign.JobsDone > _jobDoneAtOpen ? "done"
+                       : _plantedDropDays.Contains(_jobOpenDay) ? "PLANTED"
                        : _game.Campaign.JobsMissed > _jobMissedAtOpen ? "MISSED"
                        : "gone";
             _jobTrace.Add($"d{_jobOpenDay}:{how}[from={_jobOpenDist:0}m "
@@ -4629,6 +4639,7 @@ namespace Ledger.Game
         const int SkipDropsMax = 5;
         int _dropsSkipped;
         int _skippingDropDay = -1;
+        readonly HashSet<int> _plantedDropDays = new HashSet<int>();
 
         /// M21: the run has to actually NAME somebody, or the informer verb is
         /// tested Core with no call site — which is the state it shipped in an
@@ -4778,7 +4789,7 @@ namespace Ledger.Game
         /// Why the loiter's morning window ticked by without staging — one
         /// count per blocked tick, named by clause — and how many ticks the
         /// approach itself consumed once it began.
-        int _loiterBlockDrop, _loiterBlockJob, _loiterBlockNobody, _loiterApproachTicks;
+        int _loiterBlockDrop, _loiterBlockNobody, _loiterApproachTicks;
         Vector3 _loiterTarget;
         int _investigationsBeforeSlam, _slamInvestigations = -1;
         bool? _ringOk;
@@ -5175,11 +5186,20 @@ namespace Ledger.Game
             // about, and the hold still ends hours before the drop prep
             // takes the evening. Planting the condition wider, bound
             // untouched.
+            // THE JOB CLAUSE IS GONE, ON ITS OWN TALLY'S EVIDENCE, TWICE.
+            // First landing: job:9 ate the narrow window. Widened to 9-15,
+            // second landing: job:72 — on a run where the parcel round kept
+            // failing, the daily restage held a marker through the entire
+            // widened window and the loiter starved for the whole fortnight.
+            // The loiter needs the bot for one short walk and a half-minute
+            // hold; the shift has until evening, and completed beside a
+            // staged loiter on the runs where both ran. So the loiter no
+            // longer defers to the shift at all — only to a live night
+            // drop, whose window cannot even overlap this one.
             if (!_loiterStaged && !_loiterApproaching
                 && now.Day >= 8 && now.Hour >= 9 && now.Hour < 15)
             {
                 if (dropOpen) _loiterBlockDrop++;
-                else if (_game.DayJobTargetPos != null) _loiterBlockJob++;
                 else if (nearest == null) _loiterBlockNobody++;
                 else
                 {
@@ -12151,7 +12171,7 @@ namespace Ledger.Game
                       // were spent inferring it from a -1.
                       $"lastDay={_lastSeenDay} endDayReached={_endDay} " +
                       $"loiterStaged={_loiterStaged} loiterRetries={_loiterRetries} " +
-                      $"loiterWhy=[drop:{_loiterBlockDrop}/job:{_loiterBlockJob}/nobody:{_loiterBlockNobody}/approach:{_loiterApproachTicks}] "
+                      $"loiterWhy=[drop:{_loiterBlockDrop}/nobody:{_loiterBlockNobody}/approach:{_loiterApproachTicks}] "
                       + $"slams={_slams} " +
                       $"nightRunStaged={_nightRunStaged} " +
                       $"denounced={LawHost.Denounced} marksFiled={LawHost.MarksFiled} " +

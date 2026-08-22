@@ -13,7 +13,14 @@ permissions:
 
 jobs:
   build-windows:
-    runs-on: windows-latest
+    # JAFAR'S PC, SINCE 22 AUG — he registered `ledger-pc` and its READY
+    # marker landed. His GPU renders the sim ~20x faster than the cloud
+    # machine's software rasteriser and the Unity install caches between
+    # builds, so the round trip drops from ~28 minutes toward 6-10.
+    # Builds queue while his PC is off; revert this one line to
+    # `windows-latest` to move back to the cloud (and after any revert,
+    # remember his machine holds the Library cache, not the cloud).
+    runs-on: [self-hosted, ledger-pc]
     # GitHub's default job timeout is six hours. A stuck step therefore burns an
     # afternoon before anyone finds out, which is exactly what happened on run
     # 30218422533: the Unity install sat for thirty minutes with nothing to stop

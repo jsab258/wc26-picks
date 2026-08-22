@@ -124,11 +124,8 @@ exactly this run.
    taxi dwelling at its rank; dwelling and dormant vehicles are exempt
    since AC and the gate went green).
 
-   **The tour pair landed and its pre-written prediction held (V):**
-   `tourDepthBy` spreads 18.7 (Downtown) to 28.6 (Fairview) — real
-   district differences, not the ground plane dominating — so the
-   metric has shape and Downtown reads as the most built. (The
-   `!_touring` comment fix from the same pass also landed.)
+   **The tour pair landed and its prediction held** (real district
+   spread 18.7-28.6, the metric has shape, Downtown most built).
 
 1. **THE RAIN'S HEIGHT-COVERAGE SCALING IS BUILT AND THE WET FRAME IS
    PLANTED.** The emitter box and rate already grow with camera height
