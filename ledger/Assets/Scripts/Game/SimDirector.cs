@@ -250,7 +250,62 @@ namespace Ledger.Game
         /// on `_shotDay`: one crossover frame is the instrument, nine would
         /// be eight more files answering the same question.
         bool _tookDuskShot;
-        bool _wetForced, _tookWetShot;
+        bool _wetForced, _tookWetShot, _tookCloseShot;
+
+        /// The wall at arm's length, rendered by its own camera. The Shot
+        /// path's step-back would refuse this framing — that guard is right
+        /// for review stills and wrong for a material probe, so this one
+        /// borrows nothing from it. Writes a review_ name so the staging
+        /// globs carry it like any other still.
+        void CloseupStill()
+        {
+            if (_game == null || _game.Player == null) return;
+            var p = _game.Player.transform.position;
+            Renderer best = null;
+            float bestD = float.MaxValue;
+            foreach (var go in WorldBuilder.PrimaryMasses)
+            {
+                if (go == null) continue;
+                var r = go.GetComponent<Renderer>();
+                if (r == null) continue;
+                float d = Vector3.Distance(r.bounds.ClosestPoint(p), p);
+                if (d < bestD) { bestD = d; best = r; }
+            }
+            if (best == null) return;
+            var eyeP = new Vector3(p.x, 1.6f, p.z);
+            var facePoint = best.bounds.ClosestPoint(eyeP);
+            var outward = eyeP - facePoint; outward.y = 0;
+            if (outward.sqrMagnitude < 0.01f) outward = Vector3.forward;
+            outward.Normalize();
+            var rig = new GameObject("CloseupCam");
+            rig.transform.position = new Vector3(facePoint.x, 1.6f, facePoint.z)
+                                     + outward * 1.6f;
+            rig.transform.rotation = Quaternion.LookRotation(-outward, Vector3.up);
+            var cam = rig.AddComponent<Camera>();
+            RenderTexture rt = null; Texture2D tex = null;
+            try
+            {
+                rt = new RenderTexture(1280, 720, 24);
+                cam.targetTexture = rt;
+                cam.Render();
+                RenderTexture.active = rt;
+                tex = new Texture2D(1280, 720, TextureFormat.RGB24, false);
+                tex.ReadPixels(new Rect(0, 0, 1280, 720), 0, 0);
+                tex.Apply();
+                System.IO.File.WriteAllBytes("sim-out/review_day2_close.jpg",
+                                             tex.EncodeToJPG(70));
+                Debug.Log($"SimDirector: closeup wall={best.name} from {bestD:0.0}m");
+            }
+            catch (Exception e) { _errors.Add("CloseupStill: " + e.Message); }
+            finally
+            {
+                RenderTexture.active = null;
+                cam.targetTexture = null;
+                if (rt != null) Destroy(rt);
+                if (tex != null) Destroy(tex);
+                Destroy(rig);
+            }
+        }
         int _shotDay = -1;
         int _waypointIndex;
         static readonly Vector3[] Waypoints =
@@ -1541,6 +1596,18 @@ namespace Ledger.Game
                 _tookWetShot = true;
                 Shot("day2_wet");
                 Weather.ForceRain(-1f);
+            }
+            // ONE CLOSE-UP OF A WALL, because "close-range material depth"
+            // has sat on the visual list judged from street-distance frames
+            // that structurally cannot answer it. Taken OUTSIDE the Shot
+            // machinery on purpose: its step-back exists to refuse exactly
+            // this composition. Own camera, arm's length, eye height, at
+            // the nearest primary mass — the surface a player stands next
+            // to, which is most of the game.
+            if (!_tookCloseShot && now.Day == 2 && now.Hour == 13)
+            {
+                _tookCloseShot = true;
+                CloseupStill();
             }
             if (!_tookNightShot && now.Hour == 23)
             {
