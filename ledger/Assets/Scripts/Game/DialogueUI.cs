@@ -729,18 +729,33 @@ namespace Ledger.Game
                 return;
             }
 
-            // THE SIGNER (M21's player verb). Tibor is the customs hand
-            // whose authored secret is exactly this signature; with a
-            // smuggling line running and nobody on the manifests, talking
-            // to him IS the ask. No coercion machinery in v1 — his price
-            // is the per-cargo fee Core already takes off the top, and the
-            // leverage route through his secret is the next rung, named in
-            // the queue rather than half-built here.
+            // THE SIGNER (M21's player verb), both routes now. The plain
+            // ask costs the per-cargo fee Core takes off the top. The
+            // LEVERAGE route goes through his authored secret — he already
+            // doctors counts for friends, and a player who has learned that
+            // does not need to pay him. Same choice mechanism as the
+            // business acquisitions: the player picked leverage as the
+            // mode, and the hook is whatever `UsableHook` holds on him. A
+            // shameful hook is one-shot and this spends it — becoming the
+            // standing signer IS the one big favour. What it costs instead
+            // of money is filed where everything in this game is filed: in
+            // what he now thinks of you.
             if (id == "Tibor" && (e.RacketOf("smuggling")?.Established ?? false)
                 && e.SmugglingSignerId == null)
             {
-                e.AssignSigner("Tibor");
-                Narrate("Tibor looks at the count, then at you, then stamps it. \"The numbers will agree,\" he says. \"They always agree.\"");
+                if (leverage && hook != null)
+                {
+                    if (!hook.Strong) hook.SpendWeak();
+                    e.AssignSigner("Tibor", hooked: true);
+                    g?.Memory.Append(new MemoryEvent(_game.Now, "observation", 0.9,
+                        "He knew about the counts. Didn't threaten, didn't need to. I stamp what he puts in front of me now, and nobody pays me anything."));
+                    Narrate("You mention the tickets that never got written, the counts that agreed anyway. Tibor goes very still. \"The numbers will agree,\" he says finally. There is no handshake.");
+                }
+                else
+                {
+                    e.AssignSigner("Tibor");
+                    Narrate("Tibor looks at the count, then at you, then stamps it. \"The numbers will agree,\" he says. \"They always agree.\"");
+                }
                 return;
             }
 

@@ -261,6 +261,11 @@ namespace Ledger.Core
         //   an emergent strategy, not a special case: the leash guards every
         //   heat path already.
         public string SmugglingSignerId;
+        /// The signer signs because of what the player KNOWS, not what the
+        /// player pays — the leverage route through his authored secret.
+        /// A hooked signer takes no fee; what he takes instead is filed in
+        /// his own memory, which is the currency this game actually runs on.
+        public bool SmugglingSignerHooked;
         public int CargoesLanded;
         public int ManifestsSigned;
         /// Daily closes seen while the line is established — the cargo
@@ -287,7 +292,11 @@ namespace Ledger.Core
 
         /// Point the line's paperwork at a customs hand. Null clears it —
         /// a signer who departs or turns is a line back to double odds.
-        public void AssignSigner(string gossiperId) => SmugglingSignerId = gossiperId;
+        public void AssignSigner(string gossiperId, bool hooked = false)
+        {
+            SmugglingSignerId = gossiperId;
+            SmugglingSignerHooked = gossiperId != null && hooked;
+        }
 
         /// Resolve the summit. Accept costs something permanent, defiance costs
         /// peace, a counter costs nothing but requires you to matter already.
@@ -731,7 +740,9 @@ namespace Ledger.Core
                     {
                         manifestSigned = true;
                         ManifestsSigned++;
-                        income -= SignerFeePerCargo;
+                        // A hooked signer keeps no fee — the hook was the
+                        // payment, made once, by the player, in knowledge.
+                        if (!SmugglingSignerHooked) income -= SignerFeePerCargo;
                         // TRUE BY CONSTRUCTION and filed on the signer: they
                         // stamped it, so they hold it — one distinct story
                         // per cargo for the noisy-or, which is what the Act
@@ -742,7 +753,9 @@ namespace Ledger.Core
                             true, now, 0.9);
                         if (CargoesLanded % 3 == 0)
                             signer.Memory.Append(new MemoryEvent(now, "observation", 0.7,
-                                "Another stamp. Twenty years of clean counts and now my initials are on every crooked one. I dream about audits."));
+                                SmugglingSignerHooked
+                                    ? "Another stamp, and no envelope. He doesn't pay me; he knows about the counts. I sign, and I keep my own ledger of what this is costing."
+                                    : "Another stamp. Twenty years of clean counts and now my initials are on every crooked one. I dream about audits."));
                         events.Add(new EmpireEvent { Kind = "income", ActorId = SmugglingSignerId,
                             Text = $"The boat lands at the shed after dark. The count is stamped before the crates touch the ground." });
                     }
@@ -1093,6 +1106,7 @@ namespace Ledger.Core
             { "tributeShare", TributeShare }, { "frontsCapped", FrontsCapped },
             { "sharedRacket", SharedRacketId ?? "" },
             { "smugglingSigner", SmugglingSignerId ?? "" },
+            { "smugglingSignerHooked", SmugglingSignerHooked },
             { "cargoesLanded", CargoesLanded },
             { "manifestsSigned", ManifestsSigned },
             { "smugglingCloses", SmugglingCloses },
@@ -1172,6 +1186,7 @@ namespace Ledger.Core
             SharedRacketId = string.IsNullOrEmpty(shared) ? null : shared;
             var signer = MiniJson.GetString(data, "smugglingSigner");
             SmugglingSignerId = string.IsNullOrEmpty(signer) ? null : signer;
+            SmugglingSignerHooked = SmugglingSignerId != null && Is(data, "smugglingSignerHooked");
             // Clamped at zero like DaysSkimmed, for the same SaveChaos
             // reason: a negative lifetime count would read as "never".
             CargoesLanded = Math.Max(0, MiniJson.GetInt(data, "cargoesLanded"));

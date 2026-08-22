@@ -2482,6 +2482,30 @@ namespace Ledger.CoreTests
                 Check(eBack.SmugglingSignerId == "tibor" && eBack.CargoesLanded == 6 && eBack.ManifestsSigned == 6,
                     "smuggling: the signer and the lifetime counts survive a save",
                     $"signer {eBack.SmugglingSignerId}, cargoes {eBack.CargoesLanded}, manifests {eBack.ManifestsSigned}");
+
+                // THE LEVERAGE ROUTE: a hooked signer stamps for nothing.
+                // Same port, same twelve closes — the only difference is HOW
+                // he was assigned, so the only difference in the take must
+                // be exactly the fee, six times. The manifests still land:
+                // coercion changes who pays, never what the paper says.
+                var (eH, mH) = BuildPort(true);
+                eH.AssignSigner("tibor", hooked: true);
+                var wH = new Wallet(0);
+                for (int d = 9; d <= 20; d++) eH.DailyTick(new GameTime(d, 8, 0), wH, mH);
+                Check(eH.ManifestsSigned == 6 && eH.TotalRacketIncome == 6 * 140,
+                    "smuggling: a hooked signer signs every cargo and keeps no fee",
+                    $"manifests {eH.ManifestsSigned}, take {eH.TotalRacketIncome}");
+                Check(eH.TotalRacketIncome - eS.TotalRacketIncome
+                      == 6 * EmpireBook.SignerFeePerCargo,
+                    "smuggling: the hook is worth exactly the fee, per cargo, nothing else");
+                var eHBack = new EmpireBook();
+                eHBack.Rackets.Add(new Racket { Id = "smuggling", Name = "smuggling line", IncomePerDay = 140, BaseRisk = 0.0 });
+                eHBack.Restore(MiniJson.AsObject(MiniJson.Deserialize(MiniJson.Serialize(eH.Capture()))));
+                Check(eHBack.SmugglingSignerHooked,
+                    "smuggling: the hook survives a save through the real JSON");
+                eH.AssignSigner(null);
+                Check(!eH.SmugglingSignerHooked,
+                    "smuggling: clearing the signer clears the hook — a departed signer takes the arrangement with him");
             }
 
             // The clean route: clean money only, and it buys goodwill.
