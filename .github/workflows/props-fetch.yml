@@ -94,7 +94,7 @@ jobs:
           git config user.email "noreply@anthropic.com"
           git add ledger/Assets/Props ledger/Assets/StreamingAssets/Decals ledger/Assets/Sky \
                   tools/props/listings.json tools/props/visual_manifest.json \
-                  tools/props/base_mesh_inventory.txt 2>/dev/null || true
+                  tools/props/base_mesh_inventory.txt tools/props/oga_probe.txt 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "nothing arrived that was not already committed"
             exit 0

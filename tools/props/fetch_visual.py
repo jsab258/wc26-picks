@@ -216,6 +216,15 @@ def probe_bicycles() -> None:
         if not slugs:
             print("  page fetched, zero /content/ links found — selector "
                   "may be stale, say so rather than 'no bicycles exist'")
+        # COMMITTED, NOT ONLY PRINTED (rule 12): the job log is a fixed
+        # 4KB tail this environment cannot read past, so the first probe's
+        # answer evaporated with its run. The same move as the mirror
+        # inventory — the runner can ask, the repo can remember.
+        (HERE / "oga_probe.txt").write_text(
+            "# OGA search results for 'bicycle', page 1 — written by the\n"
+            "# fetch runner. Curation stays by eye: PAGE-CONFIRM licence\n"
+            "# before any slug graduates to the fetch list.\n"
+            + "\n".join(f"opengameart.org/content/{s}" for s in slugs) + "\n")
     except Exception as e:
         print(f"\n=== bicycle probe FAILED (haul unaffected): {e} ===")
 
