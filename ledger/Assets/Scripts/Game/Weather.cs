@@ -35,6 +35,25 @@ namespace Ledger.Game
         GameController _game;
         int _decidedForDay = -1;
         float _targetRain;
+        static float _forcedRain = -1f;
+
+        /// THE WEATHER PLANT (rule 5b's corollary: plant the condition, never
+        /// wait for a lucky run). The daily roll is seeded off the day number,
+        /// so the review days 1 and 2 are pinned dry on every run there will
+        /// ever be — both open rain findings were waiting on a wet frame the
+        /// seed structurally cannot produce. A diagnostic still needs the
+        /// STATE, not the transition, so forcing SNAPS Rain and Wetness
+        /// instead of ramping them; a negative clears the pin and snaps back
+        /// to the day's own rolled target, so the 23:00 night gates measure
+        /// the street the seed chose, not the plant's leftovers.
+        public static void ForceRain(float target)
+        {
+            _forcedRain = target;
+            float snap = target >= 0f ? target
+                       : _instance != null ? _instance._targetRain : 0f;
+            Rain = snap;
+            Wetness = snap > 0.05f ? 1f : 0f;
+        }
 
         public static void Ensure(GameController game)
         {
@@ -113,7 +132,8 @@ namespace Ledger.Game
                             : 0.9f;
             }
 
-            Rain = Mathf.MoveTowards(Rain, _targetRain, Time.deltaTime * 0.08f);
+            float goal = _forcedRain >= 0f ? _forcedRain : _targetRain;
+            Rain = Mathf.MoveTowards(Rain, goal, Time.deltaTime * 0.08f);
             // Wetness lags rain in both directions: it takes a while to soak,
             // and much longer to dry. The look lives in that tail.
             float dryRate = Rain > 0.05f ? 0.25f : 0.012f;

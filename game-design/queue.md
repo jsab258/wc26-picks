@@ -135,14 +135,17 @@ parked — no DirectML on the Air.
    the blocked-frame series excluded the district tour. The `Add` sat outside
    that block, so seven teleported frames had been going into it.
 
-1. **THE RAIN GOT ITS WET TOUR FRAME (build R, the Hook)** — the anchor
-   fix holds (the field sits over the scene now, not behind the camera)
-   and the remaining fault is COVERAGE: a 38m box centred 12m ahead
-   cannot fill an elevated view that sees sixty-plus metres, so the rain
-   reads as a swarm patch against the sky, upper right, with dry street
-   beyond it. Next rung: scale the emitter box (and particle budget)
-   with camera height, or accept that the tour vantage exaggerates and
-   judge at street level — which still needs its own wet frame.
+1. **THE RAIN'S HEIGHT-COVERAGE SCALING IS BUILT AND THE WET FRAME IS
+   PLANTED.** The emitter box and rate already grow with camera height
+   (the Hook swarm-patch fix, in Weather since the last batch) — what
+   was left was a frame to judge it by, and "wait for a wet run" could
+   never end: the daily roll is seeded off the day number, so review
+   days 1-2 are dry on every run there will ever be. Planted instead
+   (rule 5b's corollary): the sim forces a downpour at day 2 hour 21,
+   takes `day2_wet` at 22 street-level after dark — sodium lamps on wet
+   asphalt, the look this game is about — and snaps the seed's dry
+   state back before the 23:00 night gates. Read the frame when it
+   lands; it also answers the "black scratches at eye level" item.
 
    **THE CAPSULES STAY FIXED** (zero on P, Q, R and S — closed). **THE
    FLOATING BRICK SLAB is not a building**: the grounded sweep over the
@@ -154,9 +157,9 @@ parked — no DirectML on the Air.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the
-   player's eyes, likely sized for a downward view. **Every run since has come
-   back dry — this needs a WET run, not another look.** The magenta half of
-   that report is REFUTED.
+   player's eyes, likely sized for a downward view. **The wet run is now
+   planted — judge this on `day2_wet` when it lands** (see the rain item
+   above). The magenta half of that report is REFUTED.
 
 1. **THE BODY BUDGET IS CLOSED AT 87.8% — account in `roadmap-history.md`.**
    Three things stay live. **The band, not the budget:** 13.1 walkers in frame

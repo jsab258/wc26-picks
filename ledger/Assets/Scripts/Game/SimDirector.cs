@@ -241,6 +241,7 @@ namespace Ledger.Game
         /// on `_shotDay`: one crossover frame is the instrument, nine would
         /// be eight more files answering the same question.
         bool _tookDuskShot;
+        bool _wetForced, _tookWetShot;
         int _shotDay = -1;
         int _waypointIndex;
         static readonly Vector3[] Waypoints =
@@ -1496,6 +1497,30 @@ namespace Ledger.Game
                             (toSun.normalized + Vector3.up * 0.08f).normalized);
                 }
                 Shot("day1_dusk");
+            }
+            // ONE WET FRAME PER RUN, PLANTED. The weather roll is seeded off
+            // the day number, so the review days are dry on every run there
+            // will ever be — and both open rain findings ("swarm patch from
+            // the tour vantage", "black scratches at eye level") had been
+            // waiting on a wet frame the seed structurally cannot produce.
+            // Rule 5b's corollary: plant the condition, never wait for the
+            // lucky run. Forced a game hour before the shot so the particle
+            // box fills (an hour is ~9 frames here; the streaks live 1.1s),
+            // cleared the moment the frame is taken — Wetness snaps dry and
+            // the last streaks die within four frames, so the 23:00 night
+            // gates measure the street the seed chose. Street level and
+            // after dark on purpose: wet asphalt under the sodium lamps is
+            // the whole look this exists to judge.
+            if (!_wetForced && now.Day == 2 && now.Hour == 21)
+            {
+                _wetForced = true;
+                Weather.ForceRain(0.9f);
+            }
+            if (!_tookWetShot && now.Day == 2 && now.Hour == 22)
+            {
+                _tookWetShot = true;
+                Shot("day2_wet");
+                Weather.ForceRain(-1f);
             }
             if (!_tookNightShot && now.Hour == 23)
             {
