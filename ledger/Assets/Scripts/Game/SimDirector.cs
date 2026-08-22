@@ -12115,6 +12115,17 @@ namespace Ledger.Game
                       // counts asks the controller could not serve (no body
                       // yet, or the state never built) — one per ask, so it
                       // stays divisible against `reactions`.
+                      // The smuggling racket's state AT RUN END, because
+                      // `smug=` (staging succeeded: rec/est/signer all true)
+                      // and `cargoes=0` cannot both be explained from the
+                      // staging side — either the establishment was undone
+                      // mid-run (a save-restore, a departed runner) or the
+                      // cargo rhythm never saw its day, and this line says
+                      // which without a fifth hypothesis.
+                      $"smugEnd=[est:{_game.Empire.RacketOf("smuggling")?.Established ?? false}" +
+                      $"/day:{_game.Empire.RacketOf("smuggling")?.EstablishedDay ?? -1}" +
+                      $"/runner:{_game.Empire.RacketOf("smuggling")?.RunnerId ?? "none"}" +
+                      $"/signer:{_game.Empire.SmugglingSignerId ?? "none"}/nowDay:{_game.Now.Day}] " +
                       $"reactions={NpcWalker.ReactionsPlayed} " +
                       $"reactRefused={NpcWalker.ReactionsRefused} " +
                       $"reactBy=[{ReactBySummary()}] " +

@@ -599,7 +599,10 @@ namespace Ledger.Core
             // (invisible again) — the response is far steeper than the base
             // cut, so the midpoint is measured rather than assumed. Ceiling
             // 0.36 + 0.34 = 0.70, still under the CoreTests bound.
-            return 0.36 + 0.34 * ambientness;
+            // Round three: the bracket reads 0.30 -> 0.0037, 0.36 -> 0.0076,
+            // 0.42 -> 0.028 of night delta — convex, so the target band
+            // (~0.015) sits nearer the top: 0.39.
+            return 0.39 + 0.34 * ambientness;
         }
 
         /// Whether a sample counts. A sample far in FRONT of the surface is

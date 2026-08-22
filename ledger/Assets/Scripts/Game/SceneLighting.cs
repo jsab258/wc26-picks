@@ -48,8 +48,25 @@ namespace Ledger.Game
         static readonly int CloudColorId    = Shader.PropertyToID("_CloudColor");
         static readonly int CloudCoverageId = Shader.PropertyToID("_CloudCoverage");
 
-        static Color C((double r, double g, double b) c) =>
-            new Color((float)c.r, (float)c.g, (float)c.b, 1f);
+        /// CONVERTED FOR LINEAR AT THE ONE FUNNEL (M17.10 V1.5, round
+        /// three). Every LightModel colour is authored in display terms,
+        /// and `RenderSettings` colour globals set from script are applied
+        /// raw — the same asymmetry the body wash hit. The measured tell:
+        /// two tune rounds moved the window glow and the grain and the
+        /// night scene mean did not budge (0.241 -> 0.242), because the
+        /// night is mostly FOG by area, and night fog authored at ~0.13
+        /// display was rendering near 0.4. One conversion here covers
+        /// ambient sky/equator/ground and the fog; the camera background
+        /// in GameController is the same class, converted at its own site.
+        /// If the next build's night collapses instead of converging, Unity
+        /// does convert these globals internally and this reverts — the
+        /// bracket is instrumented either way.
+        static Color C((double r, double g, double b) c)
+        {
+            var col = new Color((float)c.r, (float)c.g, (float)c.b, 1f);
+            return QualitySettings.activeColorSpace == ColorSpace.Linear
+                ? col.linear : col;
+        }
 
         void ApplyOnce()
         {

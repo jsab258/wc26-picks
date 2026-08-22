@@ -3216,7 +3216,13 @@ namespace Ledger.Game
                 // frame's value — harmless, but a second reader of shared
                 // mutable state where a direct call is one line.
                 var fbg = Ledger.Core.LightModel.FogColour(NightAmount, Weather.Rain);
-                cam.backgroundColor = new Color((float)fbg.r, (float)fbg.g, (float)fbg.b);
+                var fbgc = new Color((float)fbg.r, (float)fbg.g, (float)fbg.b);
+                // Same conversion as SceneLighting's C() funnel, same reason
+                // (display-authored colour, raw script assignment, linear
+                // project) — and the background MUST agree with the fog it
+                // mirrors or the horizon seam returns.
+                cam.backgroundColor = QualitySettings.activeColorSpace == ColorSpace.Linear
+                    ? fbgc.linear : fbgc;
             }
             WorldBuilder.SetLampsEnabled(daylight < 0.25f);
             WorldBuilder.TickNeon(daylight < 0.35f, Time.time);

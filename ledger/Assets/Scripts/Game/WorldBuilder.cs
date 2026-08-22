@@ -167,7 +167,14 @@ namespace Ledger.Game
         /// 0.195 — still inverted on 7 of 10 days — so another step down;
         /// the night still at 1.8 already reads as lamps, not floodlights,
         /// and the halo margin is there to spend.
-        public const float WindowGlowMultiplier = 1.4f;
+        ///
+        /// Round three REVERSES half of round two: cutting 1.8 -> 1.4 moved
+        /// the night scene mean not at all (0.241 -> 0.242) — the windows
+        /// are small by AREA and the mean lives in the fog, which round
+        /// three converts at its own site. What the cut DID buy was a
+        /// flatter, less atmospheric night still. Back up to 1.7: inside
+        /// the measured do-no-harm band, chosen for the halo.
+        public const float WindowGlowMultiplier = 1.7f;
 
         public static void SetWindowGlow(float multiplier)
         {
