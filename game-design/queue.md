@@ -79,18 +79,10 @@ session runbook; keep the speech self-checks green on every landing.
    that verdict rather than a theory-driven mass edit — if the wash read
    overcorrects, the theory is wrong at one site instead of fourteen.
 
-   **V1.5 LINEAR IS CLOSED — 22 Aug 04:00, one flip + five measured
-   rounds.** The flip landed alone for a clean A/B, then every
-   display-authored value got re-armed off landed readings: exposure arms,
-   AO, grain, window glow, the fog/ambient conversion funnel, the wash's
-   property-block conversion, the day sky/horizon/ground bands, and — the
-   ladder's verdict — the post-tonemap black-lift, ONE additive constant
-   that held nearly half the night mean. Final: noon mean 0.206 with a
-   readable shade (median tripled off its void), night 0.128 with true
-   blacks, **night darker than noon on 8 of 10 days — the lighting gate
-   green for the first time since the flip.** Instruments built on the
-   way: the night-floor A/B ladder, the palest-body catcher + part probe
-   (part probe needs body-masked sampling), per-still histogram reads.
+   **V1.5 LINEAR IS CLOSED** (one flip + five measured rounds; every
+   display-authored value re-armed off landed readings; noon 0.206,
+   night 0.128, the lighting gate green — full account in
+   `roadmap-history.md`).
 
    **V6 FIRST SLICE LANDED** (dusk warmth in fog and sky, sun glow,
    sodium deck, the dusk shot at hour 16 aimed sunward — all judged on
@@ -169,23 +161,28 @@ session runbook; keep the speech self-checks green on every landing.
    chase: worst glow blob 9.9% is one close-range window; two dim
    noons read brighter-than-night (d6/d8) inside the 8-of-10 gate.
 
-1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
-   dfefd62)* Fine from the elevated camera, dense dark striation from the
-   player's eyes, likely sized for a downward view. **The wet run is now
-   planted — judge this on `day2_wet` when it lands** (see the rain item
-   above). The magenta half of that report is REFUTED.
+1. **RAIN AT EYE LEVEL: wet frames now land every run** — judge the
+   old black-scratches report against them; the magenta half is
+   REFUTED, and the first landed wet frames read as streaks in lamp
+   cones, not scratches.
 
 1. **THE BODY BUDGET IS CLOSED AT 87.8% — account in `roadmap-history.md`.**
    Three things stay live. **The band, not the budget:** 13.1 walkers in frame
    per pass, only 6.5 inside the 34m band, so half the people you can see can
    never be skinned.
 
-   **The pale-body hunt:** the part probe's foot-at-226 answer was the
-   instrument (background dilution through a small rect on sunlit
-   pavement; the shoe/flesh theory is dead). The centre-third sampler
-   landed on W and still read FootMesh — with the crop in place that
-   reading now deserves belief; next: is the peak body simply whoever
-   stands in full sun, which the same-instant crowd median can say.
+   **The pale-body hunt — THE HAIR IS CAUGHT (AD's close-up).** The
+   arm's-length frame put a walker in shot and the hair renders as
+   flat white glossy shards — unshaded or wrongly shaded at close
+   range, the standing suspect photographed at last. Next: the hair
+   meshes' material path in RealBody/CharacterPrefab (shader, gloss,
+   or a missing texture on hair submeshes). The centre-third FootMesh
+   reading stays open beside it. **Also from that frame:** the
+   waist-lean posture confirmed up close (armStreet tail family), an
+   unlit window band at point-blank reads as a void slab (accepted
+   street-distance trade, noted), and the wall material at arm's
+   length is GOOD — the close-range question is answered positively.
+   Next rung for the probe: aim at an unoccluded wall patch.
 
    **The white pills are unidentified and NO COMMITTED STILL HAS ONE** —
    the pale figures measured DARKER than the walls (sixth wrong call off
