@@ -1197,7 +1197,17 @@ namespace Ledger.Game
         /// refusals matter for the same reason `ActivityRefused` exists: a
         /// street that never reacts and a controller that cannot are
         /// different faults with identical screenshots (rule 3b).
+        ///
+        /// REFUSED IS THE SUM OF ITS REASONS NOW (22 Aug). The cooldown
+        /// return used to exit without touching any counter, so on V the
+        /// arithmetic did not close: 466 asks, 63 played, 337 refused, 66
+        /// vanished. `ReactionsRefused` therefore CHANGED MEANING — it was
+        /// "no capability" only and is now every ask that did not play —
+        /// and the two reasons print separately, because a street kept
+        /// quiet by its own cooldown and one whose rigs lack the state
+        /// want opposite fixes (a tuning constant against clip wiring).
         public static int ReactionsPlayed, ReactionsRefused;
+        public static int ReactRefusedCooldown, ReactRefusedNoState;
         public static readonly Dictionary<string, int> ReactByKind =
             new Dictionary<string, int>();
         /// Asks per kind, tallied before any gate — d3aafab printed
@@ -1218,10 +1228,16 @@ namespace Ledger.Game
         {
             int a; ReactAsksByKind.TryGetValue(slot, out a);
             ReactAsksByKind[slot] = a + 1;
-            if (Time.time < _reactionCooldownUntil) return;
+            if (Time.time < _reactionCooldownUntil)
+            {
+                ReactionsRefused++;
+                ReactRefusedCooldown++;
+                return;
+            }
             if (_body == null || !_body.HasActivityState(slot))
             {
                 ReactionsRefused++;
+                ReactRefusedNoState++;
                 return;
             }
             _reaction = slot;

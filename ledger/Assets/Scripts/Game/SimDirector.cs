@@ -12610,6 +12610,13 @@ namespace Ledger.Game
                       $"/closes:{_game.Empire.SmugglingCloses}/nowDay:{_game.Now.Day}] " +
                       $"reactions={NpcWalker.ReactionsPlayed} " +
                       $"reactRefused={NpcWalker.ReactionsRefused} " +
+                      // WHY, split by reason, so played + cooldown + noState
+                      // equals the asks total and the arithmetic closes — on
+                      // V it did not (466 asked, 400 accounted), because the
+                      // cooldown return counted nothing. A street kept quiet
+                      // by its own cooldown and one whose rigs lack the clip
+                      // want opposite fixes.
+                      $"reactWhy=[cooldown:{NpcWalker.ReactRefusedCooldown}/noState:{NpcWalker.ReactRefusedNoState}] " +
                       $"reactBy=[{ReactBySummary()}] " +
                       // THE CONTACT SHEET, AND ITS DENOMINATOR. `sheetTiles` is
                       // how many clips were drawn; `sheetWhy` says why when
