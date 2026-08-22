@@ -436,7 +436,15 @@ namespace Ledger.Game
 
         static Material Mat(Color c)
         {
-            var m = AssetLibrary.Opaque(c);
+            // Converted for linear like the real-body wash (RealBody.Tint):
+            // the mannequin tier's skin and cloth are display-authored, and
+            // leaving them raw in a linear project renders the whole crowd
+            // a step paler than the wash-converted named cast standing next
+            // to them. The buildings deliberately do NOT get this — the
+            // scene converged with their raw values and re-breaking it to
+            // satisfy a theory is the thing the tune rounds kept refusing.
+            var m = AssetLibrary.Opaque(
+                QualitySettings.activeColorSpace == ColorSpace.Linear ? c.linear : c);
             return m;
         }
     }

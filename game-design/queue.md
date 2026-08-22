@@ -125,6 +125,17 @@ parked — no DirectML on the Air.
    the blocked-frame series excluded the district tour. The `Add` sat outside
    that block, so seven teleported frames had been going into it.
 
+1. **THE RAIN GOT ITS WET FRAME AND IT IS WRONG FROM ABOVE TOO** *(the
+   Hook tour frame, 22 Aug dawn)*: from the elevated tour camera the rain
+   is a dense white scribble CLOUD hanging over the upper middle of the
+   frame, not a falling field — mis-anchored or mis-sized for any camera
+   that is not the review vantage. And the same frame shows five-plus pale
+   capsule figures down the street — smooth pills, not articulated
+   mannequins — which is either the crowd tier rendering pale in linear
+   (the mannequin tint conversion shipped 22 Aug dawn; read the next
+   frames) or a walker path that still leaves a raw primitive. Do not
+   identify from the picture; the catcher and the next stills adjudicate.
+
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the
    player's eyes, likely sized for a downward view. **Every run since has come
