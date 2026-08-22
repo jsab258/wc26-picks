@@ -68,6 +68,39 @@ namespace Ledger.Game
             LastRead = "she has not rung";
         }
 
+        /// THE INTERACTIVE PATH: the player stood at a ringing line at nine
+        /// at night and chose. Same counters, same `Apply`, same street
+        /// memory as `Nightly` — one event, one bookkeeping shape — and the
+        /// third outcome exists at last: `Answered.Refused` has been in the
+        /// model since the file was written, with this comment's
+        /// predecessor saying it "needs a prompt and belongs with the UI".
+        /// The prompt is in `PhoneUI`; nobody in CI ever reaches this
+        /// (the sim's bot takes the `Nightly` path), so the sim's gates and
+        /// counters read exactly as before.
+        ///
+        /// No double-count with `Nightly`, by the model's own clock:
+        /// `Apply` moves the arm's LastActDay, and `Due` refuses to place
+        /// another call within its spacing — so a call answered live is a
+        /// call the close cannot place again.
+        public static void Live(GameController game, Summons call, Answered answer)
+        {
+            if (game == null || call == null) return;
+            Placed++;
+            if (answer == Answered.Took) Taken++;
+            else if (answer == Answered.Refused) Refused++;
+            else MissedCalls++;
+            MissWhy = "";
+            Summoning.Apply(game.Empire, call, answer, game.Now.Day);
+            LastRead = Summoning.ReadOf(call, answer);
+            var mill = game.Gossip != null ? game.Gossip.Mill : null;
+            var arm = game.Empire != null ? game.Empire.ArmOf(call.ArmId) : null;
+            if (mill != null && arm != null)
+                foreach (var id in arm.Members)
+                    mill.Get(id)?.Memory.Append(
+                        new MemoryEvent(game.Now, "heard", 0.8, LastRead));
+            Debug.Log($"SummonsHost: {LastRead} (live, answered at the box)");
+        }
+
         /// Once a day, at the close. Returns true when a call was placed.
         public static bool Nightly(GameController game)
         {

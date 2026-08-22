@@ -1026,6 +1026,25 @@ namespace Ledger.Game
                 {
                     PlayerAtRing = _player.transform.position;
                     PlayerAtRingDay = Now.Day;
+
+                    // THE LIVE RING (M21's third answer). Interactive only:
+                    // the sim's bot keeps the retroactive `Nightly` path, so
+                    // CI's counters and gates read exactly as before. If she
+                    // has reason to call tonight, the line the player is
+                    // standing near starts ringing NOW — and picking up and
+                    // saying no becomes a thing a player can actually do,
+                    // which `Summoning` has modelled since it was written.
+                    if (SimMode.Days == 0)
+                    {
+                        _liveSummons = Ledger.Core.Summoning.Due(
+                            Empire != null ? Empire.Rival : null, Now.Day, Now.Hour);
+                        _liveSummonsDay = _liveSummons != null ? Now.Day : -1;
+                        if (_liveSummons != null && NearAnyPhone())
+                        {
+                            _ui?.Toast("The telephone is ringing.", 10f);
+                            Audio.Ui("page");
+                        }
+                    }
                 }
             }
 
@@ -3063,6 +3082,38 @@ namespace Ledger.Game
         /// the shadows say the sun is, and two notions of "where is the
         /// sun" would drift. Set every frame with the light's rotation.
         public static Vector3 SunwardDir { get; private set; } = Vector3.up;
+
+        // ---- the rival's live ring (M21) --------------------------------
+        Ledger.Core.Summons _liveSummons;
+        int _liveSummonsDay = -1;
+
+        /// The call ringing RIGHT NOW, or null. Only during its own hour,
+        /// only on the day it was placed — a summons is not a voicemail.
+        public Ledger.Core.Summons LiveSummons =>
+            _liveSummons != null && _liveSummonsDay == Now.Day
+            && Now.Hour == Ledger.Core.Summoning.RingsAtHour ? _liveSummons : null;
+
+        /// Is the player standing near any telephone line at all — the
+        /// same per-line proximity test the phone panel uses.
+        public bool NearAnyPhone()
+        {
+            if (_player == null || Phones == null) return false;
+            foreach (var p in Phones.All)
+                if (PhoneNear(p.PlaceId, _player.transform.position)) return true;
+            return false;
+        }
+
+        /// The player picked up the ringing line and chose. Applies through
+        /// `SummonsHost.Live` so the counters, the arm and the street hear
+        /// about it exactly the way the missed-call path reports.
+        public void AnswerSummons(Ledger.Core.Answered answer)
+        {
+            var call = LiveSummons;
+            if (call == null) return;
+            _liveSummons = null; _liveSummonsDay = -1;
+            SummonsHost.Live(this, call, answer);
+            _ui?.Toast(SummonsHost.LastRead, 9f);
+        }
 
         /// THE AUDIO MIX, LIFTED OUT OF `UpdateSun` SO THE BUDGET CAN NAME IT.
         ///

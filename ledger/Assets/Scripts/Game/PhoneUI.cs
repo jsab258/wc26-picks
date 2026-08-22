@@ -31,6 +31,9 @@ namespace Ledger.Game
         Button _phoneMessage, _phoneClose;
         string _phonePlaceId;
         Call _lastCall;
+        /// The rival is ringing THIS line right now, so the panel is her
+        /// call, not the directory. Set on open, cleared on answer/close.
+        bool _phoneIncoming;
 
         /// The line the player is standing next to, or null.
         string LineInReach()
@@ -56,6 +59,11 @@ namespace Ledger.Game
                     return;
                 }
                 _phonePlaceId = line;
+                // An incoming call outranks the directory: if she is
+                // ringing this hour and you are standing at a line, the
+                // receiver in your hand is HER receiver. The directory
+                // comes back the moment the call is dealt with.
+                _phoneIncoming = _game.LiveSummons != null;
             }
             if (_phonePanel == null) BuildPhonePanel();
 
@@ -106,6 +114,31 @@ namespace Ledger.Game
             var phone = _game.Phones.AtPlace(_phonePlaceId);
             if (phone == null) return;
 
+            // HER CALL, not the directory (M21's third answer). Two rows:
+            // hear her out, or say no to her face — and the panel says
+            // plainly what each is, because `Summoning` prices them very
+            // differently and a hidden cost is a lie. Walking away is the
+            // third choice and needs no button; the close key names it.
+            var incoming = _phoneIncoming ? _game.LiveSummons : null;
+            if (incoming != null)
+            {
+                _phoneTitle.text = $"{incoming.HeadName.ToUpperInvariant()} IS ON THE LINE";
+                _phoneBody.text = incoming.Terms;
+                for (int i = 0; i < _phoneRows.Count; i++)
+                {
+                    _phoneRows[i].gameObject.SetActive(i < 2);
+                    if (i >= 2) continue;
+                    _phoneRows[i].GetComponentInChildren<Text>().text =
+                        i == 0 ? "Pick up and hear her out"
+                               : "Pick up and tell her no";
+                    _phoneRows[i].interactable = true;
+                }
+                _phoneResult.text = "";
+                _phoneMessage.gameObject.SetActive(false);
+                _phoneClose.GetComponentInChildren<Text>().text = "Leave it ringing";
+                return;
+            }
+
             _phoneTitle.text = phone.PlaceName.ToUpperInvariant();
             _phoneBody.text = phone.LiveAt(_game.Now.Hour)
                 ? "Who do you want?"
@@ -138,6 +171,19 @@ namespace Ledger.Game
 
         void RingRow(int index)
         {
+            // Answering HER call. Taking it applies the model and then the
+            // conversation opens — the line damps what either of you can
+            // read, same as any call. Refusing applies and hangs up: she
+            // has her answer, and so does everyone in the room with her.
+            if (_phoneIncoming && _game.LiveSummons != null)
+            {
+                _phoneIncoming = false;
+                _game.AnswerSummons(index == 0 ? Answered.Took : Answered.Refused);
+                TogglePhone();
+                return;
+            }
+            _phoneIncoming = false;
+
             var phone = _game.Phones.AtPlace(_phonePlaceId);
             if (phone == null || index >= phone.Regulars.Count) return;
 
