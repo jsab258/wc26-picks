@@ -578,27 +578,59 @@ namespace Ledger.Game
                     // indelible one must be refused by name.
                     string topic = null, value = null; double before = 0;
                     string hardTopic = null, hardValue = null;
-                    foreach (var a8 in mill8.Agents)
-                        if (a8.Circle == "day")
-                            foreach (var r8 in a8.Rumors)
-                            {
-                                if (!r8.Sensitive) continue;
-                                if (r8.Indelible)
+                    void ScanDayCircle()
+                    {
+                        topic = null; value = null; before = 0;
+                        foreach (var a8 in mill8.Agents)
+                            if (a8.Circle == "day")
+                                foreach (var r8 in a8.Rumors)
                                 {
-                                    if (hardTopic == null)
-                                    { hardTopic = r8.TopicKey; hardValue = r8.Content.Value; }
-                                    continue;
+                                    if (!r8.Sensitive) continue;
+                                    if (r8.Indelible)
+                                    {
+                                        if (hardTopic == null)
+                                        { hardTopic = r8.TopicKey; hardValue = r8.Content.Value; }
+                                        continue;
+                                    }
+                                    if (r8.Confidence > before)
+                                    { before = r8.Confidence; topic = r8.TopicKey; value = r8.Content.Value; }
                                 }
-                                if (r8.Confidence > before)
-                                { before = r8.Confidence; topic = r8.TopicKey; value = r8.Content.Value; }
-                            }
+                    }
+                    ScanDayCircle();
+
+                    if (topic == null)
+                    {
+                        // PLANT THE CONDITION, NEVER LOOSEN THE BOUND. Six of
+                        // 249 runs — two of them today — arrived at day 8 with
+                        // no deniable sensitive story left in the day circle:
+                        // the organic supply (the warehouse story, night-job
+                        // witnesses) can decay or harden by then, and rare
+                        // unexplained red teaches everyone to read red as
+                        // noise. The gate tests the DISCREDIT MECHANISM, not
+                        // the street's storytelling, so an empty run gets a
+                        // story to deny, planted into a day-circle witness
+                        // and named in the log as planted.
+                        foreach (var planter in mill8.Agents)
+                        {
+                            if (planter.Circle != "day") continue;
+                            mill8.Witness(planter.Id,
+                                new Fact("player", "discredit_probe_story", "seen_late_at_the_shed"),
+                                "somebody swears they saw the new owner at the shed after hours again",
+                                true, _game.Now, 0.7);
+                            Debug.Log($"SimDirector: discredit planted its story into {planter.Id} "
+                                      + "(day circle arrived empty — the mechanism still gets tested)");
+                            break;
+                        }
+                        ScanDayCircle();
+                    }
 
                     bool deniableOk;
                     if (topic == null)
                     {
-                        // Nothing deniable to deny. That is a finding about the
-                        // run, not a pass — the same "an absent measurement is
-                        // not a passing one" the frame gate learned.
+                        // Nothing deniable even after planting. That is a
+                        // finding about the run, not a pass — the same "an
+                        // absent measurement is not a passing one" the frame
+                        // gate learned.
                         deniableOk = false;
                         Debug.Log("SimDirector: discredit had no deniable sensitive story in the day circle");
                     }
