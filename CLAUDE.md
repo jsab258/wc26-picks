@@ -949,16 +949,34 @@ voices to build speech technology, and **no identifiable public figures, ever.**
 
 ---
 
-## AUTO MODE
+## AUTO MODE — THE CEREMONY IS RETIRED, THE WORK IS NOT (22 Aug, Jafar)
 
-Jafar's name for it. He will say **"start auto mode"** or **"stop auto mode"**,
-and both must work from a cold session — which is why this is here and not only
-in a trigger prompt. The container is ephemeral; a file in the repository is the
-only thing that survives it.
+His words: *"yeah drop the updates, we said no more automode (you can still
+keep working as discussed, judt drop the automode rules)"*. What that
+changes and what it does not, decided the day he said it so no future
+session re-derives it differently:
 
-**What it is.** Continuous autonomous building, around the clock, with a short
-plain update six times a day. Not a cycle. Not a cadence. Jafar's words, after
-I got it wrong twice: *"non stop, no idle time."*
+- **SCHEDULED UPDATES ARE OFF.** No six-a-day reports, no report slots, no
+  header-line format, no silence-vs-slot arithmetic. Message Jafar when
+  something genuinely needs him, when he asks, or when a deliverable he is
+  waiting on (a named build, a settled visual pass) is ready — with a frame
+  when a frame says it better. Nothing on a clock.
+- **THE CONTINUOUS WORK CONTINUES**, in his priority sequence (visual →
+  voices/speech → playtest → feedback fixes → roadmap; see rule 3 below).
+  Everything operational in this section — the queue discipline, the
+  ancestry watchers, batching, one-build-at-a-time, verify-before-commit,
+  stills before gates — stays in force: those are working rules, not the
+  ceremony he retired.
+- **The watchdog trigger stays enabled** as the restart mechanism only: the
+  container is ephemeral and a dead chain with no watchdog is a silently
+  stopped project, which is the opposite of "keep working". Its prompt no
+  longer carries report instructions.
+
+The section below is kept as the operating manual for the loop; read
+"report" anywhere in it as retired.
+
+Jafar's original framing, for history: continuous autonomous building,
+around the clock. *"non stop, no idle time."*
 
 ### Starting it
 
@@ -1193,12 +1211,15 @@ above. The cron exists for exactly one case — the chain dying (container
 reclaimed, a turn erroring out, a watcher lost) — and restarts it. Without it,
 one bad turn ends the project silently.
 
-### Reporting
+### Reporting — RETIRED 22 Aug by Jafar ("drop the updates")
 
-Six times a day, daytime only: **07:00, 10:00, 13:00, 16:00, 19:00 and 22:00
-CEST** — UTC hours 05, 08, 11, 14, 17, 20. Run `date -u +%H` and check before
-writing anything. Every other firing works in SILENCE and ends with no
-user-facing message. The 07:00 report is the overnight summary.
+No scheduled reports of any kind. Message him only when something needs
+him, when he asks, or when a deliverable he waits on is ready. The style
+lessons below survive for THOSE messages — they were learned expensively
+and apply to any message he reads.
+
+The retired schedule, for history: six times a day at 07:00, 10:00, 13:00,
+16:00, 19:00 and 22:00 CEST.
 
 **It opens with a header line so it can be FOUND**, then five to seven short
 plain sentences:
