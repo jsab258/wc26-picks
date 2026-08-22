@@ -729,6 +729,21 @@ namespace Ledger.Game
                 return;
             }
 
+            // THE SIGNER (M21's player verb). Tibor is the customs hand
+            // whose authored secret is exactly this signature; with a
+            // smuggling line running and nobody on the manifests, talking
+            // to him IS the ask. No coercion machinery in v1 — his price
+            // is the per-cargo fee Core already takes off the top, and the
+            // leverage route through his secret is the next rung, named in
+            // the queue rather than half-built here.
+            if (id == "Tibor" && (e.RacketOf("smuggling")?.Established ?? false)
+                && e.SmugglingSignerId == null)
+            {
+                e.AssignSigner("Tibor");
+                Narrate("Tibor looks at the count, then at you, then stamps it. \"The numbers will agree,\" he says. \"They always agree.\"");
+                return;
+            }
+
             var crew = e.CrewOf(id);
             if (crew != null && crew.Assignment == null)
             {
