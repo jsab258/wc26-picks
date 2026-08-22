@@ -100,13 +100,11 @@ if not defined PWSHDIR (
 
 :python
 REM ---- Python: the build service is a machine account and cannot see
-REM ---- a per-user Python, so machine locations only - and the zip
-REM ---- build needs no installer either. The build's own scripts use
-REM ---- nothing outside the standard library, which the zip carries.
-if exist "C:\Windows\py.exe" (
-  echo  Python's machine-wide launcher is already here.
-  goto :service
-)
+REM ---- a per-user Python. C:\Windows\py.exe is NOT proof either - the
+REM ---- launcher can be machine-wide while every interpreter it knows
+REM ---- is per-user, which is exactly what the second build found. So:
+REM ---- the zip build in a fixed folder, always, unless already there.
+REM ---- The build's scripts use only the standard library it carries.
 if exist "%TOOLS%\python312\python.exe" (
   echo  Python is already at %TOOLS%\python312
   goto :service
@@ -122,6 +120,7 @@ if errorlevel 1 (
   exit /b 1
 )
 powershell -NoProfile -Command "Expand-Archive -LiteralPath '%TEMP%\ledger-py312.zip' -DestinationPath '%TOOLS%\python312' -Force"
+del /q "%TOOLS%\python312\python312._pth" 2>nul
 if not exist "%TOOLS%\python312\python.exe" (
   echo.
   echo  Could not unpack Python - antivirus is blocking writes.

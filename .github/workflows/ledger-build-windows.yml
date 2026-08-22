@@ -139,32 +139,45 @@ jobs:
         run: |
           if ! command -v python3 >/dev/null 2>&1; then
             mkdir -p "$RUNNER_TEMP/shim"
-            if command -v python >/dev/null 2>&1; then
-              printf '#!/usr/bin/env bash\nexec python "$@"\n' > "$RUNNER_TEMP/shim/python3"
-            elif command -v py >/dev/null 2>&1; then
-              printf '#!/usr/bin/env bash\nexec py -3 "$@"\n' > "$RUNNER_TEMP/shim/python3"
-            elif [ -x "/c/LedgerTools/python312/python.exe" ]; then
-              # bat 3's no-installer landing zone: python.org's zip build,
-              # placed there because the MSI service is blocked on that PC.
-              printf '#!/usr/bin/env bash\nexec /c/LedgerTools/python312/python.exe "$@"\n' > "$RUNNER_TEMP/shim/python3"
+            # CANDIDATES ARE TESTED BY RUNNING THEM, never by existence. Run
+            # 32595552209: C:\Windows\py.exe existed (machine-wide LAUNCHER)
+            # but its registered interpreters were per-user, so `py -3` had
+            # nothing to launch under the service account — a launcher on a
+            # machine path proves nothing about the interpreter behind it.
+            try() { "$@" --version >/dev/null 2>&1; }
+            pick=""
+            if try python; then pick="python"
+            elif try py -3; then pick="py -3"
+            elif try /c/LedgerTools/python312/python.exe; then pick="/c/LedgerTools/python312/python.exe"
             else
-              printf '#!/usr/bin/env bash\nexec py -3 "$@"\n' > "$RUNNER_TEMP/shim/python3"
+              # SELF-HEALING, so no round trips through a person's mouse:
+              # python.org's zip build needs no installer (the MSI service
+              # is blocked on this PC) and lands where the next run finds
+              # it cached. Everything the runner executes is single-file
+              # stdlib (checked 22 Aug), which the zip carries; its ._pth
+              # is removed so script-directory imports work if one ever
+              # grows a sibling.
+              echo "no machine-visible python - fetching python.org's zip build (11 MB, one-time)"
+              curl -sSL --retry 2 --retry-delay 3 -o "$RUNNER_TEMP/py-embed.zip" \
+                "https://www.python.org/ftp/python/3.12.8/python-3.12.8-embed-amd64.zip"
+              mkdir -p /c/LedgerTools/python312
+              /c/Windows/System32/tar.exe -xf "$(cygpath -w "$RUNNER_TEMP/py-embed.zip")" -C "C:\\LedgerTools\\python312"
+              rm -f /c/LedgerTools/python312/python312._pth
+              if try /c/LedgerTools/python312/python.exe; then pick="/c/LedgerTools/python312/python.exe"; fi
             fi
+            if [ -z "$pick" ]; then
+              echo "NO WORKING PYTHON and the zip fallback failed - the reason is above."
+              exit 1
+            fi
+            printf '#!/usr/bin/env bash\nexec %s "$@"\n' "$pick" > "$RUNNER_TEMP/shim/python3"
             chmod +x "$RUNNER_TEMP/shim/python3"
-            # PROVE THE SHIM RUNS before anything depends on it. The build
-            # service is a machine account: a per-user Python that answered
-            # `where python` for a person is invisible to it, and the shim
-            # would exec a command that is not there — failing later, at
-            # Lint, as a confusing "py: command not found". Fail HERE with
-            # the repair named instead.
+            # PROVE THE SHIM'S OWN PRODUCT RUNS before anything depends on it.
             if ! "$RUNNER_TEMP/shim/python3" --version >/dev/null 2>&1; then
-              echo "NO MACHINE-VISIBLE PYTHON on this runner. Run"
-              echo "'tools/runner/3 FINISH THE BUILD MACHINE.bat' once on it"
-              echo "(installs Python machine-wide), then dispatch again."
+              echo "the python3 shim did not run (picked: $pick)"
               exit 1
             fi
             echo "$RUNNER_TEMP/shim" >> "$GITHUB_PATH"
-            echo "python3 shimmed for this machine"
+            echo "python3 -> $pick"
           fi
 
       # Runs in a second, before eight minutes of Unity install. Catches the one
