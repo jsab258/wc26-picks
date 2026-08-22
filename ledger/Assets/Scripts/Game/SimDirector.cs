@@ -12146,7 +12146,12 @@ namespace Ledger.Game
                       $"smugEnd=[est:{_game.Empire.RacketOf("smuggling")?.Established ?? false}" +
                       $"/day:{_game.Empire.RacketOf("smuggling")?.EstablishedDay ?? -1}" +
                       $"/runner:{_game.Empire.RacketOf("smuggling")?.RunnerId ?? "none"}" +
-                      $"/signer:{_game.Empire.SmugglingSignerId ?? "none"}/nowDay:{_game.Now.Day}] " +
+                      $"/signer:{_game.Empire.SmugglingSignerId ?? "none"}" +
+                      // closes vs nowDay is the day-jump detector: nine days
+                      // established with fewer than nine closes seen means
+                      // the calendar jumped, which is what killed the old
+                      // modulo-on-days rhythm.
+                      $"/closes:{_game.Empire.SmugglingCloses}/nowDay:{_game.Now.Day}] " +
                       $"reactions={NpcWalker.ReactionsPlayed} " +
                       $"reactRefused={NpcWalker.ReactionsRefused} " +
                       $"reactBy=[{ReactBySummary()}] " +

@@ -263,6 +263,14 @@ namespace Ledger.Core
         public string SmugglingSignerId;
         public int CargoesLanded;
         public int ManifestsSigned;
+        /// Daily closes seen while the line is established — the cargo
+        /// rhythm counts THESE, not calendar arithmetic. The first landed
+        /// run established on day 8, kept its runner and its signer to day
+        /// 17, and landed zero cargoes: `since % 4` assumes every calendar
+        /// day gets a close, and the sim's calendar JUMPS (a Fall skips
+        /// days), so the multiples can simply never be visited. A count of
+        /// closes cannot be jumped over.
+        public int SmugglingCloses;
         public const int CargoEveryDays = 4;
         public const int SignerFeePerCargo = 10;
 
@@ -696,8 +704,11 @@ namespace Ledger.Core
                 bool cargoDay = false;
                 if (r.Id == "smuggling")
                 {
-                    int since = now.Day - r.EstablishedDay;
-                    cargoDay = since > 0 && since % CargoEveryDays == 0;
+                    // Every CargoEveryDays-th CLOSE, not calendar day — see
+                    // the SmugglingCloses field for the run that proved the
+                    // difference matters.
+                    SmugglingCloses++;
+                    cargoDay = SmugglingCloses % CargoEveryDays == 0;
                     if (!cargoDay) continue;
                 }
 
@@ -1078,6 +1089,7 @@ namespace Ledger.Core
             { "smugglingSigner", SmugglingSignerId ?? "" },
             { "cargoesLanded", CargoesLanded },
             { "manifestsSigned", ManifestsSigned },
+            { "smugglingCloses", SmugglingCloses },
         };
 
         public void Restore(Dictionary<string, object> data)
@@ -1158,6 +1170,7 @@ namespace Ledger.Core
             // reason: a negative lifetime count would read as "never".
             CargoesLanded = Math.Max(0, MiniJson.GetInt(data, "cargoesLanded"));
             ManifestsSigned = Math.Max(0, MiniJson.GetInt(data, "manifestsSigned"));
+            SmugglingCloses = Math.Max(0, MiniJson.GetInt(data, "smugglingCloses"));
         }
 
         static bool Is(Dictionary<string, object> d, string key) =>

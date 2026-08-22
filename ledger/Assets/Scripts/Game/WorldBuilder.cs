@@ -333,7 +333,14 @@ namespace Ledger.Game
                 // which is the more truthful model anyway. A neon tube is not
                 // very bright; it just looks it against a dark wet street,
                 // and the light on the asphalt is what the eye actually reads.
-                light.intensity = 2.9f;
+                // 2.9 → 2.1 for LINEAR (V1.5 round four): point lights
+                // render hotter in linear, and the landed night still
+                // measured a floor of 0.15 luma across its darkest tenth —
+                // a night with no darks, held up by overlapping light
+                // pools. One consistent ~0.7x trim across lamps, neon and
+                // kerb lights keeps their ratios; "the lamps do the
+                // lifting" survives, just in honest units.
+                light.intensity = 2.1f;
                 // Neon throws a shorter, brighter shaft than a street lamp —
                 // a tube is a small source and its cone is tight.
                 LightShaft.Attach(light, 0.7f);
@@ -2882,7 +2889,9 @@ namespace Ledger.Game
                     var klight = kgo.AddComponent<Light>();
                     klight.type = LightType.Point;
                     klight.range = 12;
-                    klight.intensity = 1.4f;
+                    // The kit lamp takes the same linear trim as its
+                    // procedural twin below — one ratio, both sites.
+                    klight.intensity = 0.95f;
                     klight.color = new Color(1f, 0.82f, 0.55f);
                     klight.enabled = false;
                     LightShaft.Attach(klight, 1.0f);
@@ -2899,7 +2908,9 @@ namespace Ledger.Game
             var light = go.AddComponent<Light>();
             light.type = LightType.Point;
             light.range = 12;
-            light.intensity = 1.4f;
+            // 1.4 → 0.95: the linear trim, same reason and ratio as the
+            // neon's — see that comment for the measured night floor.
+            light.intensity = 0.95f;
             light.color = new Color(1f, 0.82f, 0.55f);
             light.enabled = false;
             LightShaft.Attach(light, 1.0f);

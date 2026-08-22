@@ -320,7 +320,15 @@ namespace Ledger.Core
         /// off the GTA reference noons, where a cast shadow is roughly HALF
         /// the lit brightness. 0.45 with shadow strength 0.93 computes to
         /// ~0.5. The probe's shadowHit/shadowDrop plus the stills judge it.
-        public const double AmbientDayShare = 0.45;
+        /// 0.45 → 0.75 for LINEAR (V1.5 round four). The 0.45 was computed
+        /// through the tonemap in GAMMA; with the ambient bands now
+        /// converted at the application funnel they mean what they say, and
+        /// what they said at 0.45 left half the noon frame BLACK — measured
+        /// off the landed still itself: noon median 0.051 against p90
+        /// 0.643, void shade under bright lit faces. The share rises so the
+        /// fill in honest units does what the 0.45 did in dishonest ones;
+        /// night keeps share 1.0 through the Mix, bit-identical as before.
+        public const double AmbientDayShare = 0.75;
 
         static (double r, double g, double b) AmbientOf(
             (double r, double g, double b) dome, double night, double rain)
