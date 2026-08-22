@@ -80,12 +80,16 @@ parked — no DirectML on the Air.
    way: the night-floor A/B ladder, the palest-body catcher + part probe
    (part probe needs body-masked sampling), per-still histogram reads.
 
-   **NEXT, in order:** V6 sky dome (the four HDRIs are on disk). V4
-   surrounds landed (488 pieces); albedo variety rides build P — read
-   `facadeGrades` and whether `facadeLumaSpread` moves off its 0.1961
-   baseline. V5 vehicles: FETCHED AND WIRED (below), riding P. The 13
-   remaining MPB colour sites wait on the wash verdict's next reading
-   before any mass conversion.
+   **V6 FIRST SLICE LANDED (build Q) and its own frame corrected it:**
+   dusk warmth is IN the fog (red over blue at the crossover, measured)
+   but hour 17 in this clock is near-night — the first dusk still was
+   black. The shot moves to hour 16 (rides R); the sky line per shot
+   decides again. Sun glow + sodium deck landed too; the night A/B
+   floor rose 0.115→0.196 with the deck (full-frame night mean
+   unmoved, gate green) — watch it, do not chase it. **NEXT:** read
+   R's dusk frame and the first `nightGlow` series (the wall-of-light
+   metric, riding S); telegraph poles ride R (`poles=`). The 13
+   remaining MPB colour sites wait on the wash verdict's next reading.
 
 1. ~~**ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION**~~ — **CLOSED TO
    FIVE EMPTY SLOTS AND NONE WRONG after three re-picks, 21 Aug.** Audited
@@ -377,13 +381,11 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 - **Turn a still into a number.** Five faults found by opening a frame and none
   by a gate. Anything a frame shows that no metric names is a metric worth
   adding.
-- **THE DROP PIPELINE — build O narrows it to two faults.** With the 17:00
-  prep in, d8 walked 13.5 of 16m unhindered and missed at 3.9m — the
-  window ran out ONE TICK short of a clean walk, which is the
-  window-to-compression question and now the dominant cause. d1 stalled 5
-  ticks with NOBODY near (`stalledWith=0`) — a geometry block, not a
-  crowd; d2 walked 0.0m from tick one. So: (a) read how DayJob windows
-  map to sim ticks (the compression shrinks a window a player would find
-  fair — rule 3, suspect the harness); (b) find what the bot is stuck ON
-  when nobody is beside it — the stall coordinates print in the trace.
-  **Still deliberately not loosened** (rule 6).
+- **THE DROP PIPELINE — build Q NAMED the stall and the fix rides R.**
+  `stalledOn=Building_44@0.1m`: the bot beelines, and a CharacterController
+  pushed face-first into a wall has no tangential velocity to slide with.
+  The auto-move now strafes along a blocking face (people included — the
+  d2 pub-crowd stall is the same case). Read R's trace: d1 and d2 should
+  walk round; d8's one-tick-short window remains the open question — read
+  how DayJob windows map to sim ticks before touching either. **The
+  window, radius and gate stand exactly where they were** (rule 6).
