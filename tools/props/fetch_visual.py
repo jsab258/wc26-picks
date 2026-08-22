@@ -95,6 +95,130 @@ HDRIS = [
 ]
 HDRI_URL = "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/{slug}_2k.hdr"
 
+VEHICLES_DIR = ROOT / "ledger" / "Assets" / "Props" / "oga-vehicles"
+
+#: OpenGameArt pages holding the two vehicle kinds no owned kit has (the
+#: bus and, per its page listing, further body styles the era needs). Both
+#: PAGE-CONFIRMED CC0 in `visual-bar-sources.md` §C — and confirmed AGAIN
+#: at fetch time below: nothing from a page is banked unless the page's
+#: own licence block links CC0, so a relicensed page refuses itself.
+OGA_VEHICLE_PAGES = [
+    ("free-low-poly-vehicles-pack",
+     "https://opengameart.org/content/free-low-poly-vehicles-pack"),
+    ("lowpoly-public-transport",
+     "https://opengameart.org/content/lowpoly-public-transport"),
+]
+CC0_MARK = "creativecommons.org/publicdomain/zero"
+
+#: What leaves an archive: the formats PropPrefab enumerates (plus .mtl,
+#: which an .obj is blind without) and the textures they reference.
+MODEL_EXTS = (".glb", ".gltf", ".fbx", ".obj", ".mtl", ".bin",
+              ".png", ".jpg", ".jpeg")
+
+
+def fetch_oga_vehicles(manifest: dict, failures: list) -> int:
+    """Scrape the confirmed OGA pages, bank their archives' model files.
+
+    Same pact as every stage here: per-item fail-soft, loud totals, the
+    page's attachment list printed IN FULL so an archive this code cannot
+    extract (rar/7z) is a named finding rather than a silent absence —
+    the `head -3` lesson, one layer up.
+    """
+    import re
+    banked = 0
+    VEHICLES_DIR.mkdir(parents=True, exist_ok=True)
+    for pack, page_url in OGA_VEHICLE_PAGES:
+        dest_dir = VEHICLES_DIR / pack
+        if dest_dir.exists() and any(dest_dir.iterdir()):
+            n = len(list(dest_dir.rglob("*")))
+            print(f"  have    {pack} ({n} file(s))")
+            manifest["oga-vehicles"].append(pack)
+            continue
+        try:
+            html = fetch(page_url).decode("utf-8", "replace")
+        except Exception as e:
+            failures.append(f"oga-vehicles/{pack}: page fetch: {e}")
+            print(f"  FAILED  {pack}: page fetch: {e}")
+            continue
+        # The licence gate. A page can be re-licensed after the research
+        # that confirmed it, so the run re-reads the licence block every
+        # time and refuses the whole page on a miss.
+        if CC0_MARK not in html:
+            failures.append(f"oga-vehicles/{pack}: page shows no CC0 licence "
+                            "mark — REFUSED, re-check the page by eye")
+            print(f"  REFUSED {pack}: no CC0 mark on page")
+            continue
+        atts = sorted(set(re.findall(
+            r'https://opengameart\.org/sites/default/files/[^"\'<>\s]+', html)))
+        arch = [a for a in atts if a.lower().endswith(".zip")]
+        other = [a for a in atts if not a.lower().endswith(
+            (".zip", ".png", ".jpg", ".jpeg", ".gif"))]
+        print(f"  {pack}: {len(atts)} attachment link(s), "
+              f"{len(arch)} zip(s), {len(other)} non-zip archive-ish")
+        for a in other:
+            print(f"    NOT EXTRACTABLE HERE: {a}")
+        got = 0
+        for url in arch:
+            try:
+                blob = fetch(url)
+                zf = zipfile.ZipFile(io.BytesIO(blob))
+                kept = 0
+                for zn in zf.namelist():
+                    base = pathlib.Path(zn).name
+                    if not base or zn.endswith("/"):
+                        continue
+                    if not base.lower().endswith(MODEL_EXTS):
+                        continue
+                    # Flatten to <pack>/<basename>: PropPrefab keys on
+                    # kit+stem, and zip paths full of spaces and unicode
+                    # have burnt the importer before.
+                    safe = base.replace(" ", "_")
+                    (dest_dir / safe).parent.mkdir(parents=True, exist_ok=True)
+                    (dest_dir / safe).write_bytes(zf.read(zn))
+                    kept += 1
+                got += kept
+                print(f"    banked {kept} file(s) from {pathlib.Path(url).name} "
+                      f"({len(blob) / 1e6:.1f} MB)")
+            except Exception as e:
+                failures.append(f"oga-vehicles/{pack}/{pathlib.Path(url).name}: {e}")
+                print(f"    FAILED {pathlib.Path(url).name}: {e}")
+        if got:
+            manifest["oga-vehicles"].append(pack)
+            banked += got
+        else:
+            failures.append(f"oga-vehicles/{pack}: nothing banked from "
+                            f"{len(arch)} zip(s)")
+    return banked
+
+
+def probe_bicycles() -> None:
+    """Report-only: what does OGA hold for 'bicycle'? No download.
+
+    The bicycle has no confirmed source anywhere in the research — every
+    candidate pack was bus-and-cars. This runner can search where the dev
+    container cannot, so the search result becomes printed evidence for
+    the next curation pass (which PAGE-CONFIRMS a pick by eye before any
+    fetch list grows — licence per item needs eyes, not a loop).
+    """
+    import re
+    try:
+        html = fetch("https://opengameart.org/art-search-advanced?keys=bicycle"
+                     ).decode("utf-8", "replace")
+        slugs = []
+        for m in re.findall(r'href="/content/([a-z0-9\-]+)"', html):
+            if m not in slugs:
+                slugs.append(m)
+        print(f"\n=== bicycle probe: {len(slugs)} result slug(s) on page 1 ===")
+        for s in slugs[:20]:
+            print(f"  candidate: opengameart.org/content/{s}")
+        if len(slugs) > 20:
+            print(f"  (+{len(slugs) - 20} more not shown)")
+        if not slugs:
+            print("  page fetched, zero /content/ links found — selector "
+                  "may be stale, say so rather than 'no bicycles exist'")
+    except Exception as e:
+        print(f"\n=== bicycle probe FAILED (haul unaffected): {e} ===")
+
 
 def fetch(url: str) -> bytes:
     req = urllib.request.Request(
@@ -106,7 +230,8 @@ def fetch(url: str) -> bytes:
 def run() -> int:
     banked = 0
     failures: list[str] = []
-    manifest: dict[str, list[str]] = {"base-mesh": [], "ambientcg": [], "polyhaven": []}
+    manifest: dict[str, list[str]] = {"base-mesh": [], "ambientcg": [],
+                                      "polyhaven": [], "oga-vehicles": []}
 
     print("=== The Base Mesh (CC0, M3-org mirror) ===", flush=True)
     BASE_MESH_DIR.mkdir(parents=True, exist_ok=True)
@@ -189,6 +314,10 @@ def run() -> int:
             failures.append(f"polyhaven/{slug}: {e}")
             print(f"  FAILED  {slug}: {e}")
 
+    print("\n=== OGA vehicle packs (CC0, licence re-read per page) ===", flush=True)
+    banked += fetch_oga_vehicles(manifest, failures)
+    probe_bicycles()
+
     (HERE / "visual_manifest.json").write_text(json.dumps(manifest, indent=1))
     write_attribution(manifest)
     write_inventory()
@@ -198,7 +327,8 @@ def run() -> int:
         print(f"  FAILED: {f}")
     have_any = (any(BASE_MESH_DIR.glob("*.glb"))
                 or any(DECALS_DIR.glob("*/*"))
-                or any(SKY_DIR.glob("*.hdr")))
+                or any(SKY_DIR.glob("*.hdr"))
+                or (VEHICLES_DIR.exists() and any(VEHICLES_DIR.rglob("*"))))
     if banked == 0 and not have_any:
         print("NOTHING BANKED AND NOTHING ON DISK — this run says so.")
         return 1
@@ -256,6 +386,15 @@ def write_attribution(manifest: dict) -> None:
         "Every .hdr under polyhaven/ is CC0 1.0 from Poly Haven\n"
         "(https://polyhaven.com), fetched by tools/props/fetch_visual.py.\n"
         f"\nFiles at last fetch: {', '.join(manifest['polyhaven']) or 'none'}.\n")
+    if manifest.get("oga-vehicles"):
+        VEHICLES_DIR.mkdir(parents=True, exist_ok=True)
+        (VEHICLES_DIR / "THIRD-PARTY.md").write_text(
+            "# Third-party vehicle models — OpenGameArt\n\n"
+            "Every model under this directory is CC0 1.0, fetched from the\n"
+            "OpenGameArt pages below by tools/props/fetch_visual.py, which\n"
+            "verifies the CC0 licence mark on each page at fetch time:\n\n"
+            + "".join(f"- https://opengameart.org/content/{p}\n"
+                      for p in manifest["oga-vehicles"]))
 
 
 if __name__ == "__main__":
