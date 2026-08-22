@@ -31,6 +31,7 @@ namespace Ledger.Game
             }
             BuildLaneSigns();
             BuildOverheadCables();
+            BuildTelegraphPoles();
             // The surface-history layer builds in the same phase as the
             // cables and reads the same street map, prosperity constants and
             // deterministic rolls — one dressing pass, several vocabularies.
@@ -84,6 +85,96 @@ namespace Ledger.Game
                     if (!Dressing.CableAt(x, z, prosperity, e.Width)) continue;
                     if (Cable(x, z, dx, dz, e.Width)) CableCount++;
                 }
+            }
+        }
+
+        public static int PoleCount { get; private set; }
+        public static int PoleWireCount { get; private set; }
+
+        /// TELEGRAPH POLES ALONG THE AVENUES (M17.10 V3's named gap). The
+        /// cross-street cables partition the town with `CableAt`: lanes and
+        /// streets string building-to-building, and a wide avenue stays bare
+        /// because a cable across a main road reads as a mistake. But the
+        /// reference frames carry pole-borne wires ALONG their wide streets
+        /// — the avenues are where the camera lives, and they were the one
+        /// place with empty sky by design rather than by look. A wooden
+        /// pole every thirty metres down one side, two wires sagging
+        /// span to span. One side per avenue, chosen from the edge's own
+        /// endpoints so it cannot flip between builds; a pole that cannot
+        /// stand clear of the furniture drops its span rather than standing
+        /// in a doorway (the wire line resumes at the next pole).
+        static void BuildTelegraphPoles()
+        {
+            PoleCount = 0; PoleWireCount = 0;
+            foreach (var e in StreetMap.Edges)
+            {
+                if (e.Kind != "avenue") continue;
+                var a = StreetMap.Node(e.A);
+                var b = StreetMap.Node(e.B);
+                if (a == null || b == null) continue;
+                double dx = b.X - a.X, dz = b.Z - a.Z;
+                double len = System.Math.Sqrt(dx * dx + dz * dz);
+                if (len < 45) continue;   // a short stub gets no line
+                dx /= len; dz /= len;
+                var across = new Vector3((float)-dz, 0, (float)dx);
+                int side = ((Mathf.RoundToInt((float)(a.X + b.Z)) & 1) == 0) ? 1 : -1;
+                // Past the kerb onto the pavement — the road half plus a
+                // pole's own stand-off, inside the building setback.
+                float off = (float)e.Width * 0.5f + 0.9f;
+                Vector3? prevTop = null;
+                for (double s = 14.0; s < len - 14.0; s += 30.0)
+                {
+                    var basePos = new Vector3((float)(a.X + dx * s), 0,
+                                              (float)(a.Z + dz * s))
+                                  + across * (side * off);
+                    if (!WorldBuilder.PointClear(basePos, 0f)) { prevTop = null; continue; }
+                    Pole(basePos, across);
+                    PoleCount++;
+                    var top = basePos + Vector3.up * 6.6f;
+                    if (prevTop.HasValue)
+                    {
+                        Wires(prevTop.Value, top, across);
+                        PoleWireCount += 2;
+                    }
+                    prevTop = top;
+                }
+            }
+        }
+
+        /// A pole is a post and a crossarm; the arm runs perpendicular to
+        /// the wires, which is what spreads the pair apart. Wood, because
+        /// a late-analog British pole is creosoted timber, and the tint
+        /// system already owns the colour.
+        static void Pole(Vector3 basePos, Vector3 across)
+        {
+            var post = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            post.name = $"Pole_{basePos.x:0}_{basePos.z:0}";
+            post.transform.position = basePos + Vector3.up * 3.5f;
+            post.transform.localScale = new Vector3(0.18f, 3.5f, 0.18f);
+            post.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Wood);
+            Strip(post.GetComponent<Collider>());
+            var arm = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            arm.name = post.name + "_arm";
+            arm.transform.position = basePos + Vector3.up * 6.5f;
+            arm.transform.rotation = Quaternion.FromToRotation(Vector3.right, across.normalized);
+            arm.transform.localScale = new Vector3(1.4f, 0.09f, 0.09f);
+            arm.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Wood);
+            Strip(arm.GetComponent<Collider>());
+        }
+
+        /// Two wires between crossarm ends, each sagging through a low
+        /// middle — the same two-segment weight trick the cross-street
+        /// cables use, for the same reason.
+        static void Wires(Vector3 fromTop, Vector3 toTop, Vector3 across)
+        {
+            var d = across.normalized;
+            foreach (float w in new[] { -0.5f, 0.5f })
+            {
+                var f = fromTop + d * w;
+                var t = toTop + d * w;
+                var low = (f + t) * 0.5f - Vector3.up * 0.5f;
+                Segment($"PoleWire_{f.x:0}_{f.z:0}_{w:0.0}a", f, low);
+                Segment($"PoleWire_{f.x:0}_{f.z:0}_{w:0.0}b", low, t);
             }
         }
 

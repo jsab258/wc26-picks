@@ -12914,6 +12914,10 @@ namespace Ledger.Game
                       $"dressed={WorldBuilder.Dressed} dressedInRoad={WorldBuilder.DressedInRoad} dressedPulled={WorldBuilder.DressedPulled} dressedStuck={WorldBuilder.DressedStuckInRoad} dressedWorstPull={WorldBuilder.DressedWorstPull:0.00} dressedRoadWidth=[{RoadDepthRead()}] dressedStuckOn=[{string.Join(" ", WorldBuilder.DressedStuckOn)}] addressesSetBack={Ledger.Core.StreetMap.AddressesSetBack} addressesRefused={Ledger.Core.StreetMap.AddressesRefused} addressesLeftInRoad={Ledger.Core.StreetMap.AddressesLeftInRoad} addressDriftWorst={Ledger.Core.StreetMap.AddressDriftWorst:0.00} addressDriftMedian={Ledger.Core.StreetMap.AddressDriftMedian:0.00} placeStopsInRoad={WorldBuilder.PlaceStopsInRoad} placeFacesInRoad={WorldBuilder.PlaceFacesInRoad} placeFacesInLane={WorldBuilder.PlaceFacesInLane} placeFacesInRoadWho=[{string.Join(" ", WorldBuilder.PlaceFacesInRoadWho)}] doors={WorldBuilder.Doors} premises=[shop{WorldBuilder.PremisesBuilt[0]} house{WorldBuilder.PremisesBuilt[1]} tenement{WorldBuilder.PremisesBuilt[2]} shed{WorldBuilder.PremisesBuilt[3]}] premisesByDistrict=[{WorldBuilder.PremisesByDistrictLine()}] perNear={perNear:0.00} perFar={perFar:0.00} " +
                       $"winPaned={WorldBuilder.WindowPanes} winBanded={WorldBuilder.WindowBands} " +
                       $"cables={StreetFurniture.CableCount} " +
+                      // Avenue pole lines (V3 gap): posts stood / wire spans
+                      // strung. Zero poles with avenues on the map means the
+                      // clearance check ate the line, not that nobody built.
+                      $"poles={StreetFurniture.PoleCount} poleWires={StreetFurniture.PoleWireCount} " +
                       // The back of a block has a shape now. Zero means the
                       // near-core test rejected everything, which is a finding
                       // about the density ramp rather than about fire escapes.
