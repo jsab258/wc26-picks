@@ -158,11 +158,15 @@ session runbook; keep the speech self-checks green on every landing.
    the real fault: window bands wear the pack's window texture, which
    is a whole FACADE photograph (brick piers and a six-by-six sash
    grid), so a band at close range reads as a floating brick wall.
-   The pane-grid fix riding the next build retextures exactly these
-   quads: dark glass, drawn frames, one sash per 1.5m. Judge on its
-   stills. **The night glow baseline is banked from V** (first series,
-   eleven shots, worst blob 3.4% of frame, median 1.7%) — the pane
-   fix should cut both; read the pair as an A/B.
+   The pane grid landed BY DAY on W (sash grids on every building,
+   the brick-slab read gone) and killed the glow BY NIGHT through both
+   binds (sweep 0.00% lit at every multiplier on W and X alike, night
+   mean 0.130 to 0.077, bloom collapsed 0.064 to 0.010) — while the
+   lamps' built-in white glowed through the identical block. **The
+   six-box emission probe rides Y** and names whose texture, which
+   bind, or the mip chain; windows carry plain white until it answers
+   (V's whole-band night look returns as the interim). The V4
+   interior backdrops ride the dispatch after, on proven paths only.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the
@@ -369,7 +373,7 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 | props | Kenney + Base Mesh furniture, yellows (build D) | dock clutter density read; higher-tier swaps |
 | characters | Mixamo bodies, gait archetypes | Jafar's clip session; combat set is disk-only |
 | lighting | REAL noon shadows + deepened AO + grade (landed) | linear colour space (V1.5, next build); sky dome (V6) |
-| animation feel | walk/idles + 18 activities + 6 reactions wired | smoke/thinking re-harvest; walk transitions (disk-only) |
+| animation feel | walk/idles + 18 activities + 6 reactions wired | reaction states for the rigs that refuse them — X's reactWhy reads noState:339 against cooldown:97, so most asks die on a controller with no state for the slot; then smoke/thinking re-harvest; walk transitions (disk-only) |
 | audio | foley, barks, procedural score | voices into build (Thu); positional street sounds |
 
 - **M21, the two ledgers.** Empire growth, law as a tool, what expansion costs
