@@ -282,8 +282,16 @@ namespace Ledger.Game
             // the shader never reads an unbound depth texture on Low.
             float night01 = GameController.NightAmount;
             _mat.SetFloat("_SplitAmt", Mathf.Lerp(1.0f, 0.45f, night01));
+            // 0.045 → 0.004 (V1.5, the ladder's verdict). The night-floor
+            // A/B read all:0.256 / noLift:0.141 — this one additive constant
+            // held nearly HALF the night mean, because it was authored for a
+            // display-space framebuffer and the flip made the buffer linear:
+            // post-tonemap +0.045 linear encodes to ~+0.23 sRGB in the
+            // blacks, five times its intent. 0.004 linear encodes to ~0.05
+            // display, which is the milky floor the grade wanted. The lamps
+            // the last round trimmed contributed 0.008 of mean — innocent.
             _mat.SetFloat("_LiftAmt",
-                Lift ? 0.045f * Mathf.SmoothStep(0f, 1f, night01) : 0f);
+                Lift ? 0.004f * Mathf.SmoothStep(0f, 1f, night01) : 0f);
             bool depthBound = Ledger.Core.Detail.PostOcclusion(
                 Ledger.Core.Detail.Parse(GameSettings.Current.Detail));
             _mat.SetFloat("_DesatFar", depthBound ? 0.18f : 0f);

@@ -264,9 +264,17 @@ namespace Ledger.Core
             night = Feel.Clamp01(night); rain = Feel.Clamp01(rain);
             // Day: a pale, slightly cool overcast. Night: deep blue, never
             // black — a black sky reads as a missing skybox.
-            double r = Mix(0.55, 0.045, night);
-            double g = Mix(0.62, 0.055, night);
-            double b = Mix(0.72, 0.105, night);
+            //
+            // DAY ARMS RAISED FOR LINEAR (V1.5): these are display-authored
+            // and the application funnel now converts them, so what 0.55
+            // used to put on screen needs ~0.80 authored. The measure that
+            // forced it: noon MEDIAN 0.051-0.063 across three landed
+            // builds — half the frame void-black shade — read off the JPEGs
+            // themselves. Night arms hold (the night's fill was measured
+            // right after the same conversion).
+            double r = Mix(0.78, 0.045, night);
+            double g = Mix(0.84, 0.055, night);
+            double b = Mix(0.90, 0.105, night);
             return Desaturate(r, g, b, 0.35 * rain);
         }
 
@@ -276,18 +284,22 @@ namespace Ledger.Core
             // The band that does the work. At night this is the sodium glow
             // of a city bouncing off low cloud, and it is what stops the
             // middle distance going to a flat void.
-            double r = Mix(0.58, 0.135, night);
-            double g = Mix(0.58, 0.095, night);
-            double b = Mix(0.60, 0.080, night);
+            // Day arms up with SkyColour's, same ratio, same measured
+            // reason — the ambient trilight derives from these three.
+            double r = Mix(0.82, 0.135, night);
+            double g = Mix(0.82, 0.095, night);
+            double b = Mix(0.85, 0.080, night);
             return Desaturate(r, g, b, 0.25 * rain);
         }
 
         public static (double r, double g, double b) GroundColour(double night, double rain = 0)
         {
             night = Feel.Clamp01(night); rain = Feel.Clamp01(rain);
-            double r = Mix(0.30, 0.050, night);
-            double g = Mix(0.28, 0.045, night);
-            double b = Mix(0.26, 0.048, night);
+            // Day arms up with SkyColour's, same ratio, same measured
+            // reason.
+            double r = Mix(0.44, 0.050, night);
+            double g = Mix(0.41, 0.045, night);
+            double b = Mix(0.38, 0.048, night);
             return Desaturate(r, g, b, 0.20 * rain);
         }
 
