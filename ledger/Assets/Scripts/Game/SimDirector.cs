@@ -2669,11 +2669,13 @@ namespace Ledger.Game
 
         /// How many loiter holds ended early because a drop opened under them.
         int _loitersCutShort;
-        /// Evenings the loiter probe had to give up and try again, because a
-        /// drop opened under it before anybody looked. Non-zero is a finding
-        /// about the schedule rather than a failure; four is the cap, and
-        /// hitting it means the drop window and the loiter window overlap by
-        /// design and one of them has to move.
+        /// Attempts the loiter probe had to give up and retry, because a drop
+        /// opened under the hold before anybody looked. The window DID move
+        /// (22 Aug): evenings from 19:00 could never fit the ~10.7-game-hour
+        /// hold ahead of the 22:00 drop on any drop night, and V burned all
+        /// three retries proving it. Staged 9:00-11:00 now, which clears
+        /// 22:00 — so any non-zero reading here is news again, and the cap
+        /// of four still bounds a run whose schedule has gone strange.
         int _loiterRetries;
         /// Ticks the bot spent running because a drop was open and the job owned
         /// the target. Printed so `nightRunNotices` can still be read: it counts
@@ -5037,23 +5039,23 @@ namespace Ledger.Game
             // cast's evening schedules simply do not coincide. A probe that has
             // to be lucky is not a probe, so this one WALKS to the nearest
             // person and then stands still.
-            // AND NOT WHILE THE OUTFIT'S DROP IS OPEN. This probe walks the bot
-            // to somebody and then HOLDS IT STILL for `LoiterSeconds`, and it
-            // may start at any hour from 19:00 — which overlaps the 22:00-02:00
-            // drop window on every day it can fire.
-            //
-            // The job trace is what caught it: `d8:MISSED[from=18m nearest=17m]`
-            // — eighteen metres away when the drop opened, seventeen at its
-            // closest, so the bot never went. Day 8 is the first day this probe
-            // is allowed to stage, which is not a coincidence.
-            //
-            // "A probe that alters the outcome measured beside it is not a
-            // probe" is already written in this file, about staging a
-            // confrontation inside the campaign week. Same fault, second site.
-            // The loiter has twenty other hours of the day and the drop has
-            // four, so the drop wins and nothing is lost.
+            // MID-MORNING, BECAUSE THE ARITHMETIC ALLOWS NOTHING ELSE. The
+            // hold is `LoiterSeconds` + 2 = 32 REAL seconds, which is ~10.7
+            // game hours under the sim clock — so a loiter staged at 19:00
+            // was still holding when the 22:00 drop opened on EVERY drop
+            // night, got cut short by its own drop guard, and retried into
+            // the identical collision the next evening. V read
+            // `loiterRetries=3 loiterStaged=False` and the perception gate
+            // red on `loiter` after burning every evening it had: the
+            // evening window was impossible BY CONSTRUCTION, not unlucky.
+            // A 9:00-11:00 start is the one stretch that fits: the hold
+            // ends by ~21:40, clear of the drop window, and the morning
+            // shift check below keeps this probe off the legs the dayJob
+            // gate is measuring — "a probe must not alter the outcome
+            // measured beside it", pointed at both neighbours this time.
             bool dropOpen = _game.ActiveJobPos.HasValue;
-            if (!_loiterStaged && !dropOpen && now.Day >= 8 && now.Hour >= 19 && nearest != null)
+            if (!_loiterStaged && !dropOpen && _game.DayJobTargetPos == null
+                && now.Day >= 8 && now.Hour >= 9 && now.Hour < 11 && nearest != null)
             {
                 _loiterApproaching = true;
                 _loiterTarget = nearest.transform.position;
