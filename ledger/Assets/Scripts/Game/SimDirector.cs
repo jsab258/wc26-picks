@@ -1612,6 +1612,33 @@ namespace Ledger.Game
             if (!_tookNightShot && now.Hour == 23)
             {
                 _tookNightShot = true;
+                // AIM DOWN THE STREET, NOT INTO THE WALL. The queue item
+                // "the metric is too narrow" named this frame's failure
+                // mode: the step-back keeps the camera off surfaces at
+                // arm's length, and nothing ever asked whether the VIEW has
+                // any depth — three landed night stills in a row stood
+                // against a facade, all metrics green. Eight compass rays
+                // pick the longest clear sightline; the rotation only
+                // happens when somewhere is genuinely open, and the player
+                // controller re-asserts its yaw next frame, so nothing
+                // needs restoring (the dusk shot's own note).
+                var ncam = Camera.main;
+                if (ncam != null)
+                {
+                    float bestClear = -1f;
+                    var bestDir = ncam.transform.forward;
+                    for (int k = 0; k < 8; k++)
+                    {
+                        var dir = Quaternion.Euler(0, k * 45f, 0) * Vector3.forward;
+                        float clear = Physics.Raycast(
+                            ncam.transform.position + Vector3.up * 0.5f, dir,
+                            out var hitInfo, 40f) ? hitInfo.distance : 40f;
+                        if (clear > bestClear) { bestClear = clear; bestDir = dir; }
+                    }
+                    if (bestClear > 8f)
+                        ncam.transform.rotation =
+                            Quaternion.LookRotation(bestDir, Vector3.up);
+                }
                 // THE SHOT FIRST. Belt and braces on top of the immediate
                 // restore in LightShaft.Enabled: the frame that gets saved
                 // and gated is taken before any A/B has touched the scene,
