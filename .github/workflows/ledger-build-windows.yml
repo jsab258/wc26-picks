@@ -76,6 +76,52 @@ jobs:
           # and the one step that pushes carries its own.
           persist-credentials: false
 
+      # THE SERVICE PATH IS THE MACHINE PATH, AND THE MACHINE PATH HAS NO
+      # BASH. The first probe run resolved bash only because the freshly
+      # configured service still carried the configuring user's PATH; the
+      # first service RESTART (bat 3, 22 Aug) washed it back to the clean
+      # machine environment and every `shell: bash` step died in zero
+      # seconds with "bash: command not found". cmd.exe is the one shell
+      # Windows always resolves, so it bootstraps the rest: probe the
+      # absolute install locations and hand the winners to every later
+      # step via GITHUB_PATH — which is also how later `shell:` binaries
+      # are resolved. Fail fast, named, when a tool is truly absent: the
+      # alternative is dying at the first pwsh step with a twenty-minute
+      # Unity install already spent. No-op on the cloud image.
+      - name: tool PATH bootstrap (self-hosted parity)
+        timeout-minutes: 1
+        shell: cmd
+        run: |
+          where bash >nul 2>nul
+          if not errorlevel 1 goto :bashok
+          if exist "C:\Program Files\Git\bin\bash.exe" (
+            >>"%GITHUB_PATH%" echo C:\Program Files\Git\bin
+            echo bash found at C:\Program Files\Git\bin and put on the job PATH
+            goto :bashok
+          )
+          echo NO bash ON THIS MACHINE - Git for Windows normally provides it.
+          echo Reinstall Git for Windows on this runner, then dispatch again.
+          exit /b 1
+          :bashok
+          where pwsh >nul 2>nul
+          if not errorlevel 1 goto :pwshok
+          if exist "C:\Program Files\PowerShell\7\pwsh.exe" (
+            >>"%GITHUB_PATH%" echo C:\Program Files\PowerShell\7
+            echo pwsh found at C:\Program Files\PowerShell\7 and put on the job PATH
+            goto :pwshok
+          )
+          if exist "C:\LedgerTools\pwsh7\pwsh.exe" (
+            >>"%GITHUB_PATH%" echo C:\LedgerTools\pwsh7
+            echo pwsh found at C:\LedgerTools\pwsh7 and put on the job PATH
+            goto :pwshok
+          )
+          echo NO pwsh ON THIS MACHINE - the build and verdict steps run on it.
+          echo Run "tools/runner/3 FINISH THE BUILD MACHINE.bat" once on this
+          echo runner, then dispatch again.
+          exit /b 1
+          :pwshok
+          echo tool PATH bootstrap done.
+
       # SELF-HOSTED PARITY: the cloud image ships `python3` on bash's
       # PATH and Jafar's PC does not (Git-bash knows only `python` and
       # `py`). The very first self-hosted run died in the lint step on
@@ -115,30 +161,6 @@ jobs:
             echo "$RUNNER_TEMP/shim" >> "$GITHUB_PATH"
             echo "python3 shimmed for this machine"
           fi
-
-      # `shell: pwsh` steps need the real binary before any step code runs,
-      # so pwsh cannot be shimmed the way python3 is — and a service whose
-      # PATH predates the install misses a machine-wide PowerShell 7 that is
-      # sitting right there. Probe the standard install locations and put
-      # the winner on the job PATH. If pwsh is truly absent, fail HERE, in
-      # the first minute: the alternative is dying at the first pwsh step
-      # with a twenty-minute Unity install already spent.
-      - name: pwsh path shim (self-hosted parity)
-        timeout-minutes: 1
-        shell: bash
-        run: |
-          if command -v pwsh >/dev/null 2>&1; then exit 0; fi
-          for d in "/c/Program Files/PowerShell/7" "/c/Program Files/PowerShell/7-preview" "/c/LedgerTools/pwsh7"; do
-            if [ -x "$d/pwsh.exe" ]; then
-              cygpath -w "$d" >> "$GITHUB_PATH"
-              echo "pwsh found at $d and put on the job PATH"
-              exit 0
-            fi
-          done
-          echo "NO pwsh ON THIS MACHINE — the build and verdict steps run on it."
-          echo "Run 'tools/runner/3 FINISH THE BUILD MACHINE.bat' once on this"
-          echo "runner (installs PowerShell 7 machine-wide), then dispatch again."
-          exit 1
 
       # Runs in a second, before eight minutes of Unity install. Catches the one
       # compile error nothing else in the pipeline can see: LINQ used in
