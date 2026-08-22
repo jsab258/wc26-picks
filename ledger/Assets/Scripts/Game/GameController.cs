@@ -1636,20 +1636,28 @@ namespace Ledger.Game
 
             if (_shiftMarker != null)
             {
-                if (Job.Lapse(Now))
+                // ARRIVAL BEFORE LAPSE. The shift instrument's very first
+                // landed reading was `lapsed@stop1:0m` — the bot standing ON
+                // the final marker as the evening struck, the finished round
+                // binned because this block asked the clock before it asked
+                // the feet. A person at the board with the parcels IS done;
+                // the strike of six is a technicality.
+                var m = _shiftMarker.transform.position;
+                if (!(Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(m.x, 0, m.z)) < 2.5f))
                 {
-                    // Which stop, and how far short — the number `shifts=0`
-                    // never carried. Distance flat, like the arrival test.
-                    var lm = _shiftMarker.transform.position;
-                    float shy = Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(lm.x, 0, lm.z));
-                    ShiftEnd = $"lapsed@stop{_shiftStop}:{shy:0}m";
-                    Destroy(_shiftMarker);
-                    _shiftMarker = null;
-                    ToastLine("Evening, and the parcels go back on Zlata's shelf unsigned. She doesn't say anything. She writes something.", 8f);
+                    if (Job.Lapse(Now))
+                    {
+                        // Which stop, and how far short — the number
+                        // `shifts=0` never carried. Distance flat, like the
+                        // arrival test.
+                        float shy = Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(m.x, 0, m.z));
+                        ShiftEnd = $"lapsed@stop{_shiftStop}:{shy:0}m";
+                        Destroy(_shiftMarker);
+                        _shiftMarker = null;
+                        ToastLine("Evening, and the parcels go back on Zlata's shelf unsigned. She doesn't say anything. She writes something.", 8f);
+                    }
                     return;
                 }
-                var m = _shiftMarker.transform.position;
-                if (Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(m.x, 0, m.z)) < 2.5f)
                 {
                     ShiftStopsReached++;
                     Destroy(_shiftMarker);

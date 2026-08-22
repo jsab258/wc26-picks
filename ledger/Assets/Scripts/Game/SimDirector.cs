@@ -7644,10 +7644,100 @@ namespace Ledger.Game
         /// Restores 3.0 before returning. A probe that leaves the world in the
         /// state it was measuring is a probe that changes the build it reports
         /// on, and the stills are taken after this runs.
+        /// WHICH TEXTURE SOURCES THIS PLAYER'S EMISSION SLOT ACTUALLY
+        /// SAMPLES. The panes mask has zeroed the window glow through BOTH
+        /// binds — the material slot on b112e5d and the per-renderer block
+        /// on 87d95c0 — while the lamps' built-in white glowed through the
+        /// identical block on the same shared material. Two theories have
+        /// now each cost a build, so this stops theorising: six boxes in a
+        /// void, one emission source each, one render apiece, six numbers.
+        ///
+        /// `white` doubles as the probe's own accepting case (rule 5b): if
+        /// the built-in white reads near zero the PROBE is broken, and no
+        /// other number in the line may be believed. `none` is the
+        /// unbound-slot default that carried every glow before the mask
+        /// existed. The pairs then separate every hypothesis left:
+        /// mask-vs-albedo says whether my texture or any runtime texture is
+        /// at fault, material-vs-block says whether the bind path matters
+        /// after all, and flat-vs-mask says whether the mip chain is what
+        /// the sampler cannot digest.
+        ///
+        /// A CUBE, NOT A QUAD, because a quad's facing is a fact I would be
+        /// guessing, and a probe condemned by its own back face would read
+        /// exactly like the fault it hunts. And the renderer is DISABLED
+        /// before Destroy — all six run in one frame, Destroy is end-of-
+        /// frame, and a still-visible predecessor would bleed into the next
+        /// reading (the capsule-flash family, fourth sighting).
+        string _emitProbe = "not-run";
+        void MeasureEmissionSlot()
+        {
+            var rig = new GameObject("EmitProbeCam");
+            rig.transform.position = new Vector3(0, -500f, 0);
+            var cam = rig.AddComponent<Camera>();
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = Color.black;
+            var winMat = AssetLibrary.Material(AssetLibrary.Window);
+            var albedo = winMat != null ? winMat.mainTexture : null;
+            var mask = AssetLibrary.WindowEmissionMask;
+            Texture2D flat = null;
+            if (mask != null)
+            {
+                flat = new Texture2D(mask.width, mask.height, TextureFormat.RGBA32, false);
+                flat.SetPixels32(mask.GetPixels32());
+                flat.Apply(false);
+            }
+            var sb = new StringBuilder();
+            void One(string label, Texture tex, bool viaBlock)
+            {
+                var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                var col = box.GetComponent<Collider>();
+                if (col != null) Destroy(col);
+                box.transform.position = rig.transform.position + rig.transform.forward * 2f;
+                box.transform.localScale = new Vector3(3f, 3f, 0.1f);
+                var r = box.GetComponent<Renderer>();
+                var m = new Material(Shader.Find("Standard")) { color = Color.black };
+                m.EnableKeyword("_EMISSION");
+                m.SetColor("_EmissionColor", Color.white);
+                if (!viaBlock && tex != null) m.SetTexture("_EmissionMap", tex);
+                r.sharedMaterial = m;
+                if (viaBlock && tex != null)
+                {
+                    var b = new MaterialPropertyBlock();
+                    b.SetTexture("_EmissionMap", tex);
+                    r.SetPropertyBlock(b);
+                }
+                var px = FramePixels(cam);
+                double lum = 0; int n = 0;
+                if (px != null)
+                    for (int y = 120; y < 240; y++)
+                        for (int x = 210; x < 430; x++)
+                        {
+                            var c = px[y * 640 + x];
+                            lum += (c.r + c.g + c.b) / 3.0; n++;
+                        }
+                if (sb.Length > 0) sb.Append('/');
+                sb.Append(label).Append(':')
+                  .Append(n > 0 ? (lum / n / 255.0).ToString("0.00") : "unread");
+                r.enabled = false;
+                Destroy(box);
+                Destroy(m);
+            }
+            One("white", Texture2D.whiteTexture, false);
+            One("maskMat", mask, false);
+            One("albMat", albedo, false);
+            One("albMpb", albedo, true);
+            One("flatMpb", flat, true);
+            One("none", null, false);
+            _emitProbe = sb.ToString();
+            Debug.Log($"SimDirector: emitProbe=[{_emitProbe}]");
+            Destroy(rig);
+        }
+
         void MeasureWindowGlow()
         {
             var cam = Camera.main;
             if (cam == null) return;
+            if (_emitProbe == "not-run") MeasureEmissionSlot();
             // DARK FIRST, AS THE REFERENCE. Everything the windows are not —
             // lamps, neon, headlamps, the sky — is in this frame too, and the
             // first version of this probe averaged all of it and reported the
@@ -12624,6 +12714,7 @@ namespace Ledger.Game
                       // the calendar jumped, which is what killed the old
                       // modulo-on-days rhythm.
                       $"/closes:{_game.Empire.SmugglingCloses}/nowDay:{_game.Now.Day}] " +
+                      $"emitProbe=[{_emitProbe}] " +
                       $"reactions={NpcWalker.ReactionsPlayed} " +
                       $"reactRefused={NpcWalker.ReactionsRefused} " +
                       // WHY, split by reason, so played + cooldown + noState

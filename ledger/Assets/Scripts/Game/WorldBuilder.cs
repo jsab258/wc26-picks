@@ -1762,19 +1762,22 @@ namespace Ledger.Game
         {
             Windows.Add(r);
             WindowIsShop.Add(shopfront);
-            // THE MASK RIDES THE PROPERTY BLOCK, NOT ONLY THE MATERIAL. On
-            // b112e5d the material-level _EmissionMap zeroed every building
-            // window's glow in the built player — the sweep read 0.00% lit
-            // at every multiplier and the night mean fell by a third —
-            // while the vehicle lamps' per-renderer WHITE override glowed
-            // on the same shared material. The per-renderer override is
-            // therefore the path the build provably samples, and the panes
-            // mask takes it too. Read-modify-write, like every other writer
-            // on these blocks; RegisterNightLight overwrites this with
-            // plain white for lamps, in that order, on purpose.
+            // WHITE FOR NOW, AND THE PROBE DECIDES WHAT COMES BACK. The
+            // panes mask has now zeroed every building window's glow through
+            // BOTH binds — the material slot (b112e5d) and this per-renderer
+            // block (87d95c0), the sweep reading 0.00% lit at every
+            // multiplier both times — while the lamps' built-in white
+            // through the identical block glowed on the same shared
+            // material. So the fault is the runtime-generated TEXTURE in
+            // the emission slot, not the binding path, and theorising has
+            // been wrong twice at a build apiece. `MeasureEmissionSlot`
+            // renders five quads and prints which texture sources this
+            // player's emission slot actually samples; until it lands,
+            // white keeps the night alive (the V look: whole-band glow
+            // behind the drawn sash albedo) rather than a black city.
             var mpb = new MaterialPropertyBlock();
             r.GetPropertyBlock(mpb);
-            mpb.SetTexture("_EmissionMap", AssetLibrary.WindowEmissionMask);
+            mpb.SetTexture("_EmissionMap", Texture2D.whiteTexture);
             r.SetPropertyBlock(mpb);
         }
 
