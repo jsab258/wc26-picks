@@ -1202,7 +1202,13 @@ namespace Ledger.Game
             // Only when nothing else owns the bot (a real job target or a
             // beat outranks it), and never on a cut-off outfit, whose
             // silence is the consequence.
-            if (!job.HasValue && now.Hour >= 20 && now.Hour < 22
+            // FROM 18:00, NOT 20:00 — the first landed run of this prep
+            // read dropPrep=15 (~5 ticks per drop night at the sim's ~2
+            // ticks per hour) and d1 still opened 22m out: two hours of
+            // prep closes about ten metres, half of what the spawn
+            // distances need. Four hours is the same walk a person with an
+            // evening errand actually makes.
+            if (!job.HasValue && now.Hour >= 18 && now.Hour < 22
                 && _game.Campaign.Verdict == Verdict.Ongoing
                 && !_game.Campaign.OutfitCutOff)
             {
