@@ -76,6 +76,28 @@ jobs:
           # and the one step that pushes carries its own.
           persist-credentials: false
 
+      # SELF-HOSTED PARITY: the cloud image ships `python3` on bash's
+      # PATH and Jafar's PC does not (Git-bash knows only `python` and
+      # `py`). The very first self-hosted run died in the lint step on
+      # exactly this, ninety seconds in. A shim on GITHUB_PATH maps the
+      # name once for every later bash step; on the cloud image this
+      # whole step is a no-op.
+      - name: python3 shim (self-hosted parity)
+        timeout-minutes: 1
+        shell: bash
+        run: |
+          if ! command -v python3 >/dev/null 2>&1; then
+            mkdir -p "$RUNNER_TEMP/shim"
+            if command -v python >/dev/null 2>&1; then
+              printf '#!/usr/bin/env bash\nexec python "$@"\n' > "$RUNNER_TEMP/shim/python3"
+            else
+              printf '#!/usr/bin/env bash\nexec py -3 "$@"\n' > "$RUNNER_TEMP/shim/python3"
+            fi
+            chmod +x "$RUNNER_TEMP/shim/python3"
+            echo "$RUNNER_TEMP/shim" >> "$GITHUB_PATH"
+            echo "python3 shimmed for this machine"
+          fi
+
       # Runs in a second, before eight minutes of Unity install. Catches the one
       # compile error nothing else in the pipeline can see: LINQ used in
       # extension form in a file that does not import System.Linq. Unity is the
