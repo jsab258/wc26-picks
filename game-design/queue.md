@@ -80,10 +80,12 @@ parked — no DirectML on the Air.
    way: the night-floor A/B ladder, the palest-body catcher + part probe
    (part probe needs body-masked sampling), per-still histogram reads.
 
-   **NEXT, in order:** V4 shopfront depth (the void shopfronts are now the
-   worst thing in a noon frame) + albedo variety; V5 vehicles/ground; V6
-   sky dome. The 13 remaining MPB colour sites wait on the wash verdict's
-   next reading before any mass conversion.
+   **NEXT, in order:** V6 sky dome (the four HDRIs are on disk). V4
+   surrounds landed (488 pieces); albedo variety rides build P — read
+   `facadeGrades` and whether `facadeLumaSpread` moves off its 0.1961
+   baseline. V5 vehicles: FETCHED AND WIRED (below), riding P. The 13
+   remaining MPB colour sites wait on the wash verdict's next reading
+   before any mass conversion.
 
 1. ~~**ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION**~~ — **CLOSED TO
    FIVE EMPTY SLOTS AND NONE WRONG after three re-picks, 21 Aug.** Audited
@@ -106,11 +108,15 @@ parked — no DirectML on the Air.
    NARROW.** *(rule 12)* The camera steps back off anything filling more than
    a quarter of the frame at arm's length, bound from a measured bimodal
    series, exercised on a real 0.83 case. Account in `roadmap-history.md`.
-   **The median ray distance SHIPS THIS BUILD.** Same 84-ray grid, one pass,
-   both numbers: the fraction still answers "is the camera against a wall" and
-   `shotDepthMedian` answers "can it see the street" — which is what
-   `review_day5_noon` needed, slabs across the middle at ten metres reading
-   near zero on the fraction. No bound on it: there is no landed series yet.
+   **`shotDepthMedian` LANDED on build O**: median 6.6m, tightest 2.7m at
+   day3_night, tour medians 18.7–28.5 keyed by district — a first series,
+   no bound yet. **And day1_night found the case both metrics pass while
+   the frame fails**: the camera stands against a wall of large lit
+   warehouse windows, the whole frame amber glow — near-fraction low
+   (windows are past arm's length), depth plausible, still unusable. A
+   night frame needs a "how much of the frame is EMISSIVE at point-blank"
+   read, or the night shot picker needs to prefer a vantage that sees the
+   street. Turn the frame into a number before tuning anything.
 
    **And the tour got its own pair**, `tourDepthBy=[...]` keyed by district and
    sorted shortest-first, because "which districts look unbuilt" needs the name
@@ -125,16 +131,19 @@ parked — no DirectML on the Air.
    the blocked-frame series excluded the district tour. The `Add` sat outside
    that block, so seven teleported frames had been going into it.
 
-1. **THE RAIN GOT ITS WET FRAME AND IT IS WRONG FROM ABOVE TOO** *(the
-   Hook tour frame, 22 Aug dawn)*: from the elevated tour camera the rain
-   is a dense white scribble CLOUD hanging over the upper middle of the
-   frame, not a falling field — mis-anchored or mis-sized for any camera
-   that is not the review vantage. And the same frame shows five-plus pale
-   capsule figures down the street — smooth pills, not articulated
-   mannequins — which is either the crowd tier rendering pale in linear
-   (the mannequin tint conversion shipped 22 Aug dawn; read the next
-   frames) or a walker path that still leaves a raw primitive. Do not
-   identify from the picture; the catcher and the next stills adjudicate.
+1. **THE RAIN ANCHOR FIX RIDES BUILD P** *(was: scribble cloud from the
+   tour camera)* — the emitter now centres over the viewed scene, not the
+   camera's head. Needs a WET run to judge, same as the eye-level item.
+
+   **THE CAPSULES ARE ADJUDICATED — a spawn-frame flash, not a tint.**
+   Build O's catcher named five spawn-fresh residents
+   (`capsulesLoose=5`): Destroy is end-of-frame, so a walker spawned in
+   the frame a shot lands renders its bare capsule into exactly that
+   frame — a spawn wave meeting a screenshot. Teardown knew to disable
+   before destroying; Build and RealBody's handover were the second and
+   third implementations without the line. Both fixed, riding P; the
+   catcher expects ZERO. If it still fires, the population is bigger
+   than the flash and the names say where.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the
@@ -170,14 +179,18 @@ parked — no DirectML on the Air.
    darker than the band because a multiply only subtracts. A limit, not a bug.
    **`RealBodyCap = 12` needs a PC measurement**, not a CI one.
 
-1. **NO BUS AND NO BICYCLE EXIST IN THE KIT — and the Base Mesh mirror is
-   now RULED OUT.** `vehicleFellBack=[bus,bike x6]`; all 50 car-kit models
-   extracted, neither among them. The mirror inventory (fetched by CI,
-   901 models, committed 21 Aug night) holds no bicycle, bus, or motorcycle
-   either. Next step is a CI-side fetch from another CC0 source — the
-   fetch runner has open network where the dev container 403s; Quaternius'
-   vehicle packs are the lead candidate, licence checked per pack before
-   any download lands (CC0 only auto-fetches, per the sources doc).
+1. **THE BUS AND BICYCLE ARE FETCHED AND WIRED — riding build P.** The
+   first OGA fetch run (22 Aug, CC0 re-verified on-page at fetch time)
+   banked a bus in each of the two packs and two bicycles; KitCandidates
+   speaks full prefab keys now. Read `vehicleFellBack` (expect none) and
+   the stills: the bicycle arrives RIDERLESS — if a ghost bike gliding
+   at car speed reads worse than the primitive did, the next rung is a
+   mannequin rider or dropping the bike kind to parked-only. The two
+   packs' shared stems (Bus/Taxi/Ambulance) mint one key each, last
+   write wins — fine while either is acceptable, worth splitting if a
+   pack choice ever matters. Bicycle probe results (CC0 candidates for
+   more kinds) print in the fetch run's log, unread — the committed
+   haul made them moot for now.
 
 1. **PATROL DENSITY FOLLOWS THE INQUIRY — and the measurement of whether it
    READS is still not finished.** Weight by stage (None 1 ... Manhunt 5),
@@ -323,13 +336,13 @@ parked — no DirectML on the Air.
    singular; the doc offers bar/courier/office on the first morning.
 5. **Interiors beyond the pub** (M20) — every other door is a threshold.
 
-**~~And one now unblocked:~~ WIRED, 21 Aug night, riding build D.** The six
-reaction clips play off the events that were already firing: knocks flinch,
-noticing blood or a weapon recoils, loiterers get looked at, heard sounds get
-the turn before the walk, Confronts points, barks perform their own prose
-("waves from the counter" waves), confab pairs shake a head now and then. A
-reaction halts the walk for its moment or it could never be seen. Read
-`reactions`/`reactRefused`/`reactBy` when D lands — every kind prints at zero.
+**Reactions are LIVE — 75 played on build O** (flinch 9, glance 61, wave 4,
+point 1) with 313 refused. **greet and head_no read ZERO and the counter
+cannot say why**: never asked, or always refused — different faults in
+different systems (bark gesture wiring vs the rig's slot table). Build P
+prints played-of-asked per kind; read it before touching either wire. If
+greet shows 0of0 the bark lines with greeting prose never fire near a
+skinned body; 0ofN means the slot ask fails on bodies that should have it.
 
 ### The quality ladder (standing order 16 Aug: best available, not first working)
 
@@ -360,15 +373,13 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 - **Turn a still into a number.** Five faults found by opening a frame and none
   by a gate. Anything a frame shows that no metric names is a metric worth
   adding.
-- **THE DROP PIPELINE — MEASURED AT LAST (21 Aug night, two builds of
-  instrumentation).** The window is **6–10 watcher ticks, not the comments'
-  21** — a drop posted at 29m is unreachable by construction, and the run
-  flag never flaps (ran==ticks on every window; the earlier speed inference
-  was wrong because the tick count was). The remaining misses split clean:
-  (a) posting distance exceeds what the real window buys — read how DayJob
-  windows map to sim ticks before touching either (the sim's time
-  compression may be shrinking a window a real player would find fair —
-  rule 3, suspect the harness); (b) one drop was a hard BODY-BLOCK: zero
-  metres walked in nine ticks, one person at arm's length, 6m from the
-  target — the bot's MoveTowards has no way around a body standing in the
-  path. **Still deliberately not loosened** (rule 6).
+- **THE DROP PIPELINE — build O narrows it to two faults.** With the 17:00
+  prep in, d8 walked 13.5 of 16m unhindered and missed at 3.9m — the
+  window ran out ONE TICK short of a clean walk, which is the
+  window-to-compression question and now the dominant cause. d1 stalled 5
+  ticks with NOBODY near (`stalledWith=0`) — a geometry block, not a
+  crowd; d2 walked 0.0m from tick one. So: (a) read how DayJob windows
+  map to sim ticks (the compression shrinks a window a player would find
+  fair — rule 3, suspect the harness); (b) find what the bot is stuck ON
+  when nobody is beside it — the stall coordinates print in the trace.
+  **Still deliberately not loosened** (rule 6).

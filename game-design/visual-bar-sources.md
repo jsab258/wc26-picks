@@ -66,8 +66,8 @@ Poly Haven has NO decal category — confirmed absent; do not wait for it.
 | pack | fetch | licence | contents |
 |---|---|---|---|
 | Kenney Car Kit 3.1 (owned) [URL-IN-USE] | already in repo | CC0 | sedan/hatchback/van/delivery/truck/taxi + **15 debris parts** (bumper, door, tire) — stripped/crashed cars for a crime game |
-| **OGA Free Low Poly Vehicles Pack** [PAGE-CONFIRMED] | scrape `opengameart.org/content/free-low-poly-vehicles-pack` | CC0 | sedan, hatchback, van, taxi, bus, truck+trailer, pickup, limo, 4 police variants — separated wheels suit TrafficSim |
-| **Quaternius Public Transport** via OGA mirror [PAGE-CONFIRMED] | scrape `opengameart.org/content/lowpoly-public-transport` | CC0 | 12 vehicles incl. THE BUS — repaint to regional livery |
+| **OGA Free Low Poly Vehicles Pack** [FETCHED 22 Aug, CC0 re-verified on page] | fetch_visual.py | CC0 | sedan, hatchback, van, taxi, bus, truck+trailer, pickup, limo, 4 police variants — separated wheels suit TrafficSim |
+| **Quaternius Public Transport** via OGA [FETCHED 22 Aug, CC0 re-verified on page] | fetch_visual.py | CC0 | 12 vehicles incl. THE BUS — repaint to regional livery |
 | OGA Low Poly Vehicles / 3D Vehicles packs [PAGE-CONFIRMED] | scrape pages | CC0 | estate car ("wagon" — very 80s Britain), lorries, untextured clay variants |
 | KayKit cars [FETCHED] | with the KayKit clone | CC0 | hatchback, sedan, stationwagon, taxi, police — separate wheels |
 | Quaternius Cars Pack | via `poly.pizza/bundle/Cars-Bundle-FE5IWe6OMk` scrape | CC0 | 8 semi-realistic 2018-era shapes (boxier than modern) — NOT in the GitHub mirror (checked) |
