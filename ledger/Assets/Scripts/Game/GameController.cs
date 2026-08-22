@@ -3245,6 +3245,12 @@ namespace Ledger.Game
         /// sun" would drift. Set every frame with the light's rotation.
         public static Vector3 SunwardDir { get; private set; } = Vector3.up;
 
+        /// The calendar day, published beside the two above for the same
+        /// consumer: the sky dome seeds each day's cloud character off it,
+        /// so two Tuesdays a week apart wear different decks while a
+        /// reloaded save keeps the sky it had. Set where the sun updates.
+        public static int TodayNumber { get; private set; } = 1;
+
         // ---- the rival's live ring (M21) --------------------------------
         Ledger.Core.Summons _liveSummons;
         int _liveSummonsDay = -1;
@@ -3333,6 +3339,7 @@ namespace Ledger.Game
             float azim = Mathf.Lerp(70f, 290f, dayT);
             _sun.transform.rotation = Quaternion.Euler(elev, azim, 0);
             SunwardDir = -_sun.transform.forward;
+            TodayNumber = Now.Day;
 
             float daylight = Mathf.Clamp01(Mathf.Sin(dayFraction * Mathf.PI * 2f - Mathf.PI / 2f) + 0.15f);
             // Published so the film grade pushes the stock at night off the

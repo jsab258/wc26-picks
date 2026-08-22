@@ -273,7 +273,17 @@ namespace Ledger.Game
                 cloud = Color.Lerp(cloud, new Color(0.085f, 0.055f, 0.028f),
                                    night * 0.6f);
                 _sky.SetColor(CloudColorId, cloud);
-                _sky.SetFloat(CloudCoverageId, Mathf.Lerp(0.60f, 0.85f, rain));
+                // EACH DAY WEARS ITS OWN DECK (V6's remainder). Coverage
+                // varied only with rain, so every dry day in the game's
+                // history has worn the identical 0.60 — and the V6 done
+                // condition asks that the dailies read as different DAYS.
+                // Seeded off the calendar day, same idea as the weather
+                // roll: deterministic per day, stable across a reload,
+                // ranging from a scattered morning-blue deck to a heavy
+                // grey one, and rain still drags any day toward overcast.
+                uint dayHash = (uint)GameController.TodayNumber * 2654435761u;
+                float dayCover = 0.35f + 0.40f * (dayHash % 1000u / 999f);
+                _sky.SetFloat(CloudCoverageId, Mathf.Lerp(dayCover, 0.85f, rain));
 
                 // THE SUN'S GLOW (V6): direction is the real sun's, so the
                 // bright patch sits where the shadows point. Warmer and
