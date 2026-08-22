@@ -88,6 +88,31 @@ namespace Ledger.Core
             return (int)Feel.Clamp(Math.Floor(slots), 0, MaxPerFacade);
         }
 
+        /// THE SEEDED BUDGET, and the reason it exists is the far city.
+        ///
+        /// `Math.Floor` above is a systematic bias, not a rounding: a short
+        /// terrace facade at the concentration's far floor computes about a
+        /// quarter of a slot, and a quarter floors to zero EVERY time — so
+        /// the far half of the city read 37 pieces over 453 facades (0.08
+        /// per wall) against a gate floor of 0.2, red for days, while the
+        /// arithmetic's own expectation was honest. The fractional slot now
+        /// becomes one extra piece with probability equal to the fraction,
+        /// rolled off the facade's own position so the same wall gets the
+        /// same answer forever. Expected density is exactly `slots`; the
+        /// floor's bias is gone; the concentration design is untouched
+        /// (near walls still carry several times a far wall's pieces).
+        public static int BudgetFor(double lengthMetres, double prosperity,
+                                    bool alley, double detail,
+                                    double seedX, double seedZ)
+        {
+            double slots = lengthMetres / MetresPerPiece * Density(prosperity, alley)
+                           * Feel.Clamp01(detail);
+            int whole = (int)Math.Floor(slots);
+            if (whole < MaxPerFacade && Roll(seedX, seedZ, 11) < slots - whole)
+                whole++;
+            return (int)Feel.Clamp(whole, 0, MaxPerFacade);
+        }
+
         // ---- WHERE THE DETAIL GOES (the-gap.md §4, the scope call) ---------
 
         /// Seven districts of graybox exist. The strategy doc says stop
@@ -444,7 +469,9 @@ namespace Ledger.Core
             double nx = dz, nz = -dx;
             double facing = Feel.HeadingDegrees(nx, nz);
 
-            int budget = BudgetFor(length, prosperity, alley, detail);
+            // Seeded off the wall's own start, so the fractional slot is a
+            // fact about the wall rather than a shuffle — see BudgetFor.
+            int budget = BudgetFor(length, prosperity, alley, detail, ax, az);
             if (budget <= 0) return placed;
             // The per-slot roll now chooses WHERE along the wall rather than
             // how many — the budget decides how many, and this decides which

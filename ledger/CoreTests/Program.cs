@@ -15453,6 +15453,43 @@ namespace Ledger.CoreTests
             Check(Dressing.BudgetFor(1e6, 0.0, true) <= Dressing.MaxPerFacade,
                 "and it is bounded above");
 
+            // ---- THE FRACTIONAL SLOT (the far-city fix) ----
+            // A short far facade computes about a quarter of a slot and
+            // Math.Floor made that zero every time — 37 pieces over 453 far
+            // facades, red for days on a gate whose expectation was honest.
+            // The seeded budget turns the fraction into that probability.
+            {
+                // The case that was impossible: a wall whose unseeded budget
+                // is zero gets dressed on SOME positions now.
+                double farDetail = Dressing.DetailAt(9999);
+                Check(Dressing.BudgetFor(6, 0.55, false, farDetail) == 0,
+                    "a short far facade floors to zero without the seed — the measured fault");
+                int dressedSomewhere = 0, trials = 400;
+                for (int i = 0; i < trials; i++)
+                    if (Dressing.BudgetFor(6, 0.55, false, farDetail, i * 3.7, i * 1.3) > 0)
+                        dressedSomewhere++;
+                double exact = 6 / Dressing.MetresPerPiece
+                               * Dressing.Density(0.55, false) * farDetail;
+                Check(dressedSomewhere > trials * exact * 0.5
+                      && dressedSomewhere < trials * exact * 1.6,
+                    "seeded, the fraction of far walls dressed tracks the arithmetic's own "
+                    + "expectation instead of flooring to never",
+                    $"{dressedSomewhere}/{trials} dressed, expectation {exact:0.00}");
+                // Deterministic: the same wall gets the same answer forever.
+                Check(Dressing.BudgetFor(6, 0.55, false, farDetail, 12.5, 88.0)
+                      == Dressing.BudgetFor(6, 0.55, false, farDetail, 12.5, 88.0),
+                    "and the fractional slot is a fact about the wall, not a shuffle");
+                // Never below the floor version, never more than one above.
+                bool banded = true;
+                for (int i = 0; i < 50; i++)
+                {
+                    int plain = Dressing.BudgetFor(30, 0.3, false, 0.7);
+                    int seeded = Dressing.BudgetFor(30, 0.3, false, 0.7, i * 2.1, i * 5.3);
+                    if (seeded < plain || seeded > plain + 1) { banded = false; break; }
+                }
+                Check(banded, "the seed adds at most the fractional piece — the whole part is untouched");
+            }
+
             // ---- AGAINST THE WALL, NEVER IN THE ROAD ----
             // Building at z<0, street at z>0, so everything should sit just
             // off the wall on the street side and nowhere near the middle.
