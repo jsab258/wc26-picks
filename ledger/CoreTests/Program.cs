@@ -2439,12 +2439,17 @@ namespace Ledger.CoreTests
                     eS.DailyTick(new GameTime(d, 8, 0), wS, mS);
                     if (eS.TotalRacketIncome != tookWas) payingDays++;
                 }
-                // Established day 8, so the boats land on days 12, 16 and 20.
-                Check(eS.CargoesLanded == 3 && payingDays == 3,
+                // Twelve closes (d9..20) at a cargo every second close: six
+                // boats. The rhythm counts CLOSES, not calendar days — in
+                // this test the two coincide because every day closes, which
+                // is exactly what the sim's jumping calendar does NOT do
+                // (nine days, three closes, measured) and why the rule and
+                // the cadence both changed.
+                Check(eS.CargoesLanded == 6 && payingDays == 6,
                     "smuggling: silent between boats, and the boats keep the rhythm",
                     $"cargoes {eS.CargoesLanded}, paying days {payingDays}");
-                Check(eS.ManifestsSigned == 3
-                      && eS.TotalRacketIncome == 3 * (140 - EmpireBook.SignerFeePerCargo),
+                Check(eS.ManifestsSigned == 6
+                      && eS.TotalRacketIncome == 6 * (140 - EmpireBook.SignerFeePerCargo),
                     "smuggling: one manifest per signed cargo, the fee off the top",
                     $"manifests {eS.ManifestsSigned}, take {eS.TotalRacketIncome}");
                 // The paperwork IS the exposure: a day-circle signer holding
@@ -2457,8 +2462,8 @@ namespace Ledger.CoreTests
                 var (eU, mU) = BuildPort(false);
                 var wU = new Wallet(0);
                 for (int d = 9; d <= 20; d++) eU.DailyTick(new GameTime(d, 8, 0), wU, mU);
-                Check(eU.CargoesLanded == 3 && eU.ManifestsSigned == 0
-                      && eU.TotalRacketIncome == 3 * 140,
+                Check(eU.CargoesLanded == 6 && eU.ManifestsSigned == 0
+                      && eU.TotalRacketIncome == 6 * 140,
                     "smuggling: unsigned cargoes land whole and leave no paper",
                     $"cargoes {eU.CargoesLanded}, manifests {eU.ManifestsSigned}, take {eU.TotalRacketIncome}");
                 Check(EmpireBook.SmugglingRiskFactor(false) == 2.0
@@ -2474,7 +2479,7 @@ namespace Ledger.CoreTests
                 var eBack = new EmpireBook();
                 eBack.Rackets.Add(new Racket { Id = "smuggling", Name = "smuggling line", IncomePerDay = 140, BaseRisk = 0.0 });
                 eBack.Restore(MiniJson.AsObject(MiniJson.Deserialize(MiniJson.Serialize(eS.Capture()))));
-                Check(eBack.SmugglingSignerId == "tibor" && eBack.CargoesLanded == 3 && eBack.ManifestsSigned == 3,
+                Check(eBack.SmugglingSignerId == "tibor" && eBack.CargoesLanded == 6 && eBack.ManifestsSigned == 6,
                     "smuggling: the signer and the lifetime counts survive a save",
                     $"signer {eBack.SmugglingSignerId}, cargoes {eBack.CargoesLanded}, manifests {eBack.ManifestsSigned}");
             }

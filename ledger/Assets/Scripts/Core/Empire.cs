@@ -271,7 +271,13 @@ namespace Ledger.Core
         /// days), so the multiples can simply never be visited. A count of
         /// closes cannot be jumped over.
         public int SmugglingCloses;
-        public const int CargoEveryDays = 4;
+        /// In CLOSES (see SmugglingCloses). 4 → 2 after the jump detector
+        /// landed its first reading: nine calendar days produced THREE
+        /// daily closes, so a four-close rhythm is a cargo per twelve-plus
+        /// calendar days — a racket invisible inside a seventeen-day run.
+        /// Two closes is roughly a boat a week at the measured close rate,
+        /// which is what "every fourth day" was reaching for.
+        public const int CargoEveryDays = 2;
         public const int SignerFeePerCargo = 10;
 
         /// The shed-roll multiplier, pure so a test can hold it still:
