@@ -157,14 +157,21 @@ namespace Ledger.Game
                 var s = t.lossyScale;
                 float big = Mathf.Max(Mathf.Abs(s.x), Mathf.Max(Mathf.Abs(s.y), Mathf.Abs(s.z)));
                 float small = Mathf.Min(Mathf.Abs(s.x), Mathf.Min(Mathf.Abs(s.y), Mathf.Abs(s.z)));
-                // WITH THE VALUE, because `absurdScale:1@pallet` has been
-                // failing the bodies gate for days and the name alone cannot
-                // say by how much. The Base Mesh GLBs all carry a baked x100
-                // node (centimetre meshes), which this test deliberately
-                // does not flag at exactly 100 — so the one that flags is
-                // above it, and the number says whether that is a fit-scale
-                // times the node (a small real bug) or a hundredfold error.
-                if (small > 100f || big < 0.0005f)
+                // WITH THE VALUE, because `absurdScale:1@pallet` had been
+                // failing the bodies gate for days and the name alone could
+                // not say by how much. The value answered on e411ea6:
+                // `x100/100` under a four-decimal format — the pallet is the
+                // baked x100 Base Mesh node this test deliberately exempts,
+                // pushed past `> 100f` by nothing but lossyScale's float
+                // multiply accumulating an epsilon. The instrument, not the
+                // subject (rule 3). The bound gets a unit of headroom: the
+                // class being hunted is a FACTOR OF A HUNDRED — the real
+                // faults read 10000 (a unit mismatch on an already-scaled
+                // mesh) or 120-plus (a fit-scale times the node) — and no
+                // real fault lives within one part in a hundred of exactly
+                // 100, so nothing this exists to catch can hide in the
+                // headroom.
+                if (small > 101f || big < 0.0005f)
                     Note(found, "absurdScale", $"{r.name}(x{big:0.#}/{small:0.####})");
 
                 // BURIED. Something entirely below the pavement is either
