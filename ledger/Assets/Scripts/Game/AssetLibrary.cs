@@ -699,7 +699,11 @@ namespace Ledger.Game
                 // mullions and silhouettes is exactly what the PS3-era
                 // reference ships. Non-black emission for the keyword, as
                 // with Window; the glow itself rides the property block.
-                case AssetLibrary.Interior: s = Make(new Color(0.30f,0.22f,0.14f), 0.10f, 0f, new Vector2(2,1),"noise");
+                // 0.30 -> 0.18: the first landed noon frame showed the card
+                // as a bright gold panel in daylight, louder than the shop
+                // around it. Darker reads as a shut interior by day and
+                // changes nothing at night, where the emission carries it.
+                case AssetLibrary.Interior: s = Make(new Color(0.18f,0.13f,0.08f), 0.10f, 0f, new Vector2(2,1),"noise");
                                             s.Emission = new Color(0.02f,0.02f,0.02f); break;
                 default:                    s = Make(new Color(0.5f,0.5f,0.5f), 0.1f, 0f, new Vector2(2,2), "noise"); break;
             }

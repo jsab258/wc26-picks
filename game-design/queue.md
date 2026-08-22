@@ -92,16 +92,11 @@ session runbook; keep the speech self-checks green on every landing.
    way: the night-floor A/B ladder, the palest-body catcher + part probe
    (part probe needs body-masked sampling), per-still histogram reads.
 
-   **V6 FIRST SLICE LANDED (build Q) and its own frame corrected it:**
-   dusk warmth is IN the fog (red over blue at the crossover, measured)
-   but hour 17 in this clock is near-night — the first dusk still was
-   black. The shot moves to hour 16 (rides R); the sky line per shot
-   decides again. Sun glow + sodium deck landed too; the night A/B
-   floor rose 0.115→0.196 with the deck (full-frame night mean
-   unmoved, gate green) — watch it, do not chase it. **NEXT:** read
-   R's dusk frame and the first `nightGlow` series (the wall-of-light
-   metric, riding S); telegraph poles ride R (`poles=`). The 13
-   remaining MPB colour sites wait on the wash verdict's next reading.
+   **V6 FIRST SLICE LANDED** (dusk warmth in fog and sky, sun glow,
+   sodium deck, the dusk shot at hour 16 aimed sunward — all judged on
+   landed frames). Open from V6: the sky dome's cloud structure per
+   time of day. The 13 remaining MPB colour sites still wait on the
+   wash verdict's next reading.
 
 1. ~~**ABOUT A THIRD OF THE CLIPS ARE THE WRONG ANIMATION**~~ — **CLOSED,
    21 Aug: 65 filled and passing, 2 empty harvest holes, 0 wrong.** Full
@@ -158,17 +153,21 @@ session runbook; keep the speech self-checks green on every landing.
    the real fault: window bands wear the pack's window texture, which
    is a whole FACADE photograph (brick piers and a six-by-six sash
    grid), so a band at close range reads as a floating brick wall.
-   The pane grid landed BY DAY on W (sash grids everywhere, the
-   brick-slab read gone). BY NIGHT the case is CLOSED after three
-   builds: **any texture bound into this player's emission slot kills
-   the glow — built-in white included** (night means 0.087/0.080/0.075
-   against 0.130 unbound; the probe built to separate the hypotheses
-   failed its own accepting case and was deleted). Every emission-map
-   bind is removed; night structure now rides the per-window GLOW
-   SCALE (small sashes whole, wide bands hashed 0.35-1.0, so far
-   walls read as rooms in different states) — **riding Z with the V4
-   interior backdrops. Read Z's night stills first**: glow back near
-   0.13, patchwork visible, interiors warm behind shop glass.
+   **THE WINDOW ARC IS CLOSED (AA, 22 Aug) and the real killer was
+   the KEYWORD SET**: dropping the pack normal/gloss changed the
+   window material's shader keywords to a combination the built
+   player has no variant for, and Unity silently fell back to a
+   no-emission variant — the mask, the white, and the bind-revert
+   were all surgery on a shader that was not running (the emission
+   case's four theories and their falsifications are in the commit
+   log; the lesson: A RUNTIME MATERIAL'S KEYWORD SET MUST MATCH A
+   VARIANT THE BUILD CONTAINS, and the pack maps are load-bearing
+   for that). AA landed: night 0.142, glow restored, sashes with
+   dark frames near, hashed patchwork on wide bands, 122 interiors
+   visible, wet frame the project's best, **1 of 72 gates red** —
+   the frame budget, which is Jafar's-machine work. Watch, do not
+   chase: worst glow blob 9.9% is one close-range window; two dim
+   noons read brighter-than-night (d6/d8) inside the 8-of-10 gate.
 
 1. **THE RAIN READS AS BLACK SCRATCHES AT EYE LEVEL.** *(player-height frame,
    dfefd62)* Fine from the elevated camera, dense dark striation from the
