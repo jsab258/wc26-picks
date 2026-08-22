@@ -37,10 +37,16 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-# WHAT THE JOB WRITES WHEN THE BUILD NEVER PRODUCED A PLAYER. Quoted from the
-# workflow rather than paraphrased — a marker this tool matches loosely is a
-# marker that stops matching the day somebody rewords the sentence.
-NO_SIM = "NO PLAYER LOG"
+# WHAT THE JOB WRITES WHEN A RUN MEASURED NOTHING. Quoted from
+# sim-shots-commit.sh rather than paraphrased — a marker this tool matches
+# loosely is a marker that stops matching the day somebody rewords the
+# sentence. TWO spellings, because the committer has two branches: no
+# player.log at all ("NO PLAYER LOG"), and a player.log that exists but
+# holds no sim lines — the first desktop-session run on Jafar's PC booted
+# the player, logged a display failure, and wrote the SECOND spelling,
+# which this tool had never seen: every sim key came back GONE against a
+# verdict that only ever contained the character survey.
+NO_SIM = ("NO PLAYER LOG", "(no SimDirector lines matched)")
 
 VERDICT = ROOT / "game-design" / "sim-shots" / "verdict.txt"
 MANIFEST = ROOT / "game-design" / "sim-shots" / "verdict-keys.json"
@@ -247,7 +253,7 @@ def newest_run_text():
         if sha not in have:
             continue
         text = have[sha].read_text(encoding="utf-8", errors="replace")
-        if NO_SIM in text:
+        if any(m in text for m in NO_SIM):
             skipped.append(sha)
             continue
         note = sha if not skipped else f"{sha} (skipped {len(skipped)} no-sim: {', '.join(skipped)})"
@@ -277,7 +283,7 @@ def main():
     # Not silent: it says which commit produced nothing, because a build that
     # fails to build is worth knowing about even though it is not this tool's
     # business to fail on.
-    if NO_SIM in text:
+    if any(m in text for m in NO_SIM):
         print(f"verdict-keys: the landed verdict ran no sim "
               f"({VERDICT.name} line 1: {text.splitlines()[0].strip()}) — nothing to check")
         newer, why = newest_run_text()

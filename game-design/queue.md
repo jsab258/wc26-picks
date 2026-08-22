@@ -55,13 +55,13 @@ when either is truly absent. The install: bat 3, a plain DOUBLE-CLICK,
 self-elevating, no silently-closable window, and NO INSTALLERS — the
 pwsh MSI died at 92% "Access is denied" on his PC, so both tools land
 as plain zips (Program Files, falling back to `C:\LedgerTools`, both
-probed by the shims). It pushes `tools/runner/DEPS.txt` (landed; tool parity DONE — four
-layers deep). **The last admin-shaped piece is Unity** (a service
-cannot elevate, run 32595957001): bat 4 preinstalls Hub + editor +
-licence-folder grant and pushes `tools/runner/UNITY.txt` — watcher
-armed; on landing, dispatch (then the ~6-10 min era and the first
-honest frame-gate reading). `auto-update-hub` off in the workflow.
-Revert `runs-on` to `windows-latest` if his runner goes away.
+probed by the shims). It pushes `tools/runner/DEPS.txt` (landed). Unity: bat 4 + a duplicate
+`-x86_64` install removed by hand — licence then activated FIRST
+try, the player BUILT in 3m18 (run 32598027391). The wall that run
+found: a SERVICE has no display — "DX11 could not switch resolution"
+— so bat 5 moves the agent into his desktop session (the only place
+frames measure honestly) and pushes `tools/runner/DISPLAY.txt` —
+watcher armed; dispatch on landing. Revert `runs-on` if he bows out.
 **AND BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT (Jafar, 22 Aug:
 "a full ultracode audit before playtesting is a good idea. rememver
 that").** A multi-agent sweep of the whole codebase — every system
