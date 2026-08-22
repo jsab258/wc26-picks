@@ -59,6 +59,14 @@ parked — no DirectML on the Air.
    `furniture/yellowLines/roadDecals/wallDecals/decalWhy/aerials/reactions`
    — and every still before any gate.
 
+   **AND A LINEAR CLASS-FAULT UNDER TEST:** MaterialPropertyBlock colours
+   skip the gamma-to-linear conversion, so every MPB-set tint authored in
+   display terms weakened at the flip. The BODY WASH is fixed first because
+   the palest-body catcher can verify it empirically (real bodies read
+   213-223 against a crowd median of ~20); thirteen other MPB sites wait on
+   that verdict rather than a theory-driven mass edit — if the wash read
+   overcorrects, the theory is wrong at one site instead of fourteen.
+
    **NEXT, in order:** V1.5 linear colour space — one line in CiBuild, its
    OWN revertible commit + build with before/after stills, BEFORE more grade
    tuning stacks onto the gamma assumption (the project renders in GAMMA —

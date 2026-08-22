@@ -665,7 +665,18 @@ namespace Ledger.Game
                                       out double wh, out double ws, out double wv);
             var c = Color.HSVToRGB((float)wh, (float)ws, (float)wv);
             r.GetPropertyBlock(_tint);
-            _tint.SetColor(TintId, c);
+            // CONVERTED BY HAND IN LINEAR, because a MaterialPropertyBlock
+            // colour skips the gamma->linear conversion Material.SetColor
+            // performs — a known Unity asymmetry, and the V1.5 flip turned
+            // it into a live fault: every wash multiplier the wardrobe
+            // computes in display terms was being applied raw in linear,
+            // so a 0.46 wash darkened to ~0.63 on screen and the whole
+            // wardrobe quietly weakened. The palest-body catcher reading
+            // real bodies at 213-223 luma against a crowd median of ~20 is
+            // this asymmetry plus a near-white sheet the wash is anchored
+            // not to touch.
+            _tint.SetColor(TintId,
+                QualitySettings.activeColorSpace == ColorSpace.Linear ? c.linear : c);
             r.SetPropertyBlock(_tint);
             Tinted++;
 
