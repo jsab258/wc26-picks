@@ -7848,8 +7848,13 @@ namespace Ledger.Game
             // six metres or more across whose base floats above head
             // height, minus the families that live up there by design,
             // printed BY NAME. The names classify; nothing here judges.
+            // THE WIDEST FOUR, not the first four — the first run of this
+            // catcher counted 1480 and showed four arbitrary band windows,
+            // which is the truncation-reads-as-finding trap with the count
+            // attached: the interesting object in a wide-panel sweep is the
+            // WIDEST panel, and a first-four cap can never surface it.
             _slabsAloft = 0;
-            var slabWho = new List<string>();
+            var slabTop = new List<(float w, string who)>();
             foreach (var mf in FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
             {
                 if (mf == null) continue;
@@ -7863,9 +7868,11 @@ namespace Ledger.Game
                 float widest = Mathf.Max(b.size.x, b.size.z);
                 if (widest < 6f || b.min.y < 2f) continue;
                 _slabsAloft++;
-                if (slabWho.Count < 4)
-                    slabWho.Add($"{n}@y{b.min.y:0.0}w{widest:0}");
+                slabTop.Add((widest, $"{n}@y{b.min.y:0.0}w{widest:0}"));
             }
+            slabTop.Sort((p, q) => q.w.CompareTo(p.w));
+            var slabWho = new List<string>();
+            for (int i = 0; i < slabTop.Count && i < 4; i++) slabWho.Add(slabTop[i].who);
             _slabsAloftWho = slabWho.Count > 0 ? string.Join("/", slabWho.ToArray()) : "none";
         }
         int _slabsAloft;
