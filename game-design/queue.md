@@ -57,19 +57,23 @@ models, and the repaint proven by STILL** — the MPB tint wrote a
 `_Color` no glTFast shader reads (116 calls, zero effect, counter
 counted calls); materials now REPLACED. Before/after pair sent to
 Jafar. **CLIP SHEET CLOSED**: file lands (edcf16a and 3a4ea5e).
-dayJob the one red, now TRACED (eb99877/f4a1243): the courier runs
-all morning with the job holding his legs and grinds on Building_69's
-corner — first a window sill (collider removed, stall 197->27), now
-the mass itself; walked 82m on a 23m line, never accepted. THE WALK
-NEEDS THE STREET GRAPH, not a longer slide. **noonFacade ladder ran
-twice: stack ACQUITTED (post/AO/vignette <0.01), glass ACQUITTED
-(winOff 0.094->0.110), ambEq=0.414 so the fill is real** — what is
-left is the surfaces: dark-authored fascia/awning/trim plus shaded
-brick. Next instrument: a left-third RAY CENSUS naming which material
-each pixel is. The white kerbside bin was Furniture.cs — a SECOND
-untinted, unmeasured placer, now routed through the pipeline; its
-RoadStuck=25 says narrow junctions defeat the r=5.5 ring — widen on
-stuck. Revert `runs-on` if he bows out.
+**dayJob GREEN FOR THE FIRST TIME (08d6472, shifts=1)** — the walk
+rides StreetMap.Route when the job owns the legs (two traced mornings
+had the slide grinding on a sill, then Building_69's corner). Same
+run: **beats red for the FIRST time in 271 runs** — the routed job
+walks leave the bot mid-town when invitations open and the direct
+chase (40/40s burned, closest 4.2m) hits the corners the courier did;
+the chase is now routed too, plus a 90-tick unreachable-node skip
+(d13 stood 507 ticks at one node) and the stall cast aims at the
+STEERING target, not the goal. **noonFacade CLOSED AS A QUESTION:
+census reads the dark third as 60% grey brick / 39% mat_roof** — the
+shopfront surrounds (jambs/head/stall) and clutter awnings were
+built from roof felt; now painted joinery (ShopfrontPaints) and
+canvas via Opaque() — an MPB colour multiplies onto Roof's
+dark-baked texture, the glTFast trap one shader family over. Ladder
+judges the landing. Furniture RoadStuck=25: narrow junctions defeat
+the r=5.5 ring — widen on stuck (open). Revert `runs-on` if he bows
+out.
 **AND BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT (Jafar, 22 Aug:
 "a full ultracode audit before playtesting is a good idea. rememver
 that").** A multi-agent sweep of the whole codebase — every system
@@ -111,14 +115,9 @@ exactly this run.
    Ch38_Shoes) on both tiers. Read the part table again next landing,
    then rule on the 13 sites.
 
-   **V6 FIRST SLICE LANDED** (dusk warmth in fog and sky, sun glow,
-   sodium deck, the dusk shot at hour 16 aimed sunward — all judged on
-   landed frames). Open from V6: the sky dome's cloud structure per
-   time of day. The 13 remaining MPB colour sites still wait on the
-   wash verdict's next reading.
-
-1. ~~**A THIRD OF THE CLIPS WERE THE WRONG ANIMATION**~~ — **CLOSED, 21
-   Aug: 65 filled, 0 wrong** (`roadmap-history.md`; 41 stay disk-only).
+   **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck —
+   judged on frames). Open from V6: the sky dome's cloud structure
+   per time of day.
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
    NARROW.** *(rule 12; the step-back and depth series are landed —
    account in `roadmap-history.md`.)* **The night half is ADDRESSED:

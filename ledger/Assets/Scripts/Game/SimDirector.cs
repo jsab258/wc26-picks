@@ -1358,10 +1358,17 @@ namespace Ledger.Game
             // the board never reached. The graph and its Dijkstra already
             // exist (Traffic drives on StreetMap.Route); the bot now walks
             // node to node when the job owns his legs and the goal is far,
-            // and goes direct for the last stretch. Job targets only: the
-            // probes that steal the legs stage their own approaches, and a
+            // and goes direct for the last stretch. Job targets only at
+            // first — then `beats` went red for the FIRST time in 271 runs
+            // on the router's landing run (40/40 budget seconds burned,
+            // closest 4.2m): the routed job walks put the bot out on real
+            // streets when an invitation opens, where the direct chase hits
+            // the same corners the courier did, instead of conveniently
+            // stuck near the bar the porches adjoin. The beat chase gets
+            // the same legs. Probes still steer their own approaches — a
             // router under a probe would move what it measures.
-            if (_targetOwner == "job") target = RouteStep(_player.transform.position, target);
+            if (_targetOwner == "job" || _targetOwner == "beat")
+                target = RouteStep(_player.transform.position, target);
             _player.AutoMoveTarget = target;
             NoteTargetOwner();
             // After the owner is final for the tick, so the shift trace's
@@ -3175,8 +3182,8 @@ namespace Ledger.Game
         /// engages and a router that fixed the walk read identically from
         /// `shifts=1` alone.
         List<StreetNode> _route; int _routeIdx;
-        Vector3 _routeGoal;
-        int _routeRecomputes, _routeNodeTicks;
+        Vector3 _routeGoal, _routeLastPos;
+        int _routeRecomputes, _routeNodeTicks, _routeStuckTicks, _routeSkips;
 
         Vector3 RouteStep(Vector3 from, Vector3 goal)
         {
@@ -3193,6 +3200,8 @@ namespace Ledger.Game
                     ? Ledger.Core.StreetMap.Route(a.Id, b.Id) : null;
                 _routeIdx = 0;
                 _routeGoal = flatGoal;
+                _routeStuckTicks = 0;
+                _routeLastPos = flatFrom;
                 _routeRecomputes++;
             }
             if (_route == null || _route.Count == 0) return goal;
@@ -3200,7 +3209,24 @@ namespace Ledger.Game
             {
                 var n = _route[_routeIdx];
                 var np = new Vector3((float)n.X, 0, (float)n.Z);
-                if (Vector3.Distance(flatFrom, np) < 3f) { _routeIdx++; continue; }
+                if (Vector3.Distance(flatFrom, np) < 3f) { _routeIdx++; _routeStuckTicks = 0; continue; }
+                // SKIP A NODE NOBODY CAN REACH. 08d6472's d13 stood 507
+                // ticks at one spot with the job holding his legs and
+                // nothing ahead toward the GOAL — the nearest-by-euclid
+                // node can sit on the far side of a wall from where the
+                // bot stands, and a router with no escape from that walks
+                // into brick until evening. Ninety near-still ticks
+                // (~2s real) is a stop, not a squeeze past a walker.
+                if (Vector3.Distance(flatFrom, _routeLastPos) < 0.05f)
+                {
+                    if (++_routeStuckTicks > 90)
+                    {
+                        _routeIdx++; _routeStuckTicks = 0; _routeSkips++;
+                        continue;
+                    }
+                }
+                else _routeStuckTicks = 0;
+                _routeLastPos = flatFrom;
                 _routeNodeTicks++;
                 return np;
             }
@@ -3307,7 +3333,14 @@ namespace Ledger.Game
                     _shiftTrStallAt = $"{p0.x:0}/{p0.z:0}";
                     _shiftTrStallOn = "nothing";
                     var castFrom = p0 + Vector3.up * 0.9f;
-                    var castTo = new Vector3(mk.x, castFrom.y, mk.z);
+                    // AT THE STEERING TARGET, NOT THE GOAL. 08d6472's d13
+                    // printed on:nothing for a 507-tick stall because the
+                    // cast aimed at the distant board while the bot walked
+                    // into whatever stood between him and his ROUTED node —
+                    // the question is "what is he walking into", and that
+                    // is wherever his legs are actually pointed.
+                    var steer = _player.AutoMoveTarget ?? mk;
+                    var castTo = new Vector3(steer.x, castFrom.y, steer.z);
                     var castDir = castTo - castFrom;
                     if (castDir.sqrMagnitude > 0.01f)
                     {
@@ -12408,10 +12441,11 @@ namespace Ledger.Game
                       // daily restage a run keeps trying until one lands).
                       $"shiftStopsReached={_game.ShiftStopsReached} shiftEnd={_game.ShiftEnd} " +
                       $"shiftTrace={_shiftTrace} " +
-                      // recomputes/node-steer ticks: zero/zero means the
-                      // router never engaged, which must not read as "the
-                      // walk needed no routing" (rule 3b).
-                      $"jobRoute={_routeRecomputes}/{_routeNodeTicks} " +
+                      // recomputes/node-steer ticks/unreachable-node skips:
+                      // zeros must not read as "the walk needed no routing"
+                      // (rule 3b), and skips at zero beside a long stall
+                      // says the stall was NOT an unreachable node.
+                      $"jobRoute={_routeRecomputes}/{_routeNodeTicks}/{_routeSkips} " +
                       $"street={_game.Economy.Prosperity:0.00} prices={_game.Economy.PriceLevel:0.00} " +
                       $"takingsFactor={_game.Economy.TakingsFactor:0.00} economyOk={economyOk} " +
                       $"directorPending={_game.Directorate.Pending.Count} directorFired={_directorFired} directorOk={directorOk} " +

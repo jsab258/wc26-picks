@@ -1642,9 +1642,23 @@ namespace Ledger.Game
             if (kind == Ledger.Core.Dressing.Premises.Shop)
             {
                 var along = alongX ? new Vector3(0, 0, 1) : new Vector3(1, 0, 0);
+                // PAINTED JOINERY, NOT ROOF FELT. The noon facade census
+                // (08d6472) read the dark left third as 39% mat_roof — and
+                // this surround was most of it: jambs, head and stall riser
+                // in the palette's darkest material (~0.026 linear) on the
+                // most street-facing joinery the game has. A British
+                // shopfront surround is PAINTED — the awning palette's
+                // hues, lifted to joinery values. One colour per shop,
+                // hashed like the awning's. Opaque() rather than Tint(),
+                // because an MPB colour MULTIPLIES onto Roof's dark-baked
+                // texture and can only darken further — the same trap as
+                // the glTFast furniture, one shader family over.
+                var joinery = ShopfrontPaints[
+                    System.Math.Abs((int)(pos.x * 13 + pos.z * 5)) % ShopfrontPaints.Length];
                 void Trim(string part, Vector3 at, Vector3 sz)
                 {
                     var b = MakeBox($"{tag}_{part}", at, sz, AssetLibrary.Roof);
+                    b.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Opaque(joinery);
                     var c2 = b.GetComponent<Collider>();
                     if (c2 != null) Object.Destroy(c2);
                     ShopSurrounds++;
@@ -2041,6 +2055,19 @@ namespace Ledger.Game
             new Color(0.18f, 0.26f, 0.24f),   // sea green
             new Color(0.30f, 0.16f, 0.16f),   // oxblood
             new Color(0.20f, 0.22f, 0.30f),   // washed navy
+        };
+
+        /// The same vocabulary at JOINERY values — gloss-painted wood reads
+        /// a step and a half brighter than canvas. Sized from the census
+        /// arithmetic: these display ~0.3-0.4, so the 39% of the dark band
+        /// they cover should carry the left-third median visibly without
+        /// reading as fresh paint (the ladder judges the landing).
+        static readonly Color[] ShopfrontPaints =
+        {
+            new Color(0.48f, 0.39f, 0.32f),   // tan, gloss-worn
+            new Color(0.30f, 0.43f, 0.39f),   // sea green
+            new Color(0.47f, 0.27f, 0.26f),   // oxblood
+            new Color(0.33f, 0.36f, 0.48f),   // washed navy
         };
 
         /// TOWN-PLAN.MD T2 item 7: parked cars, the cheapest lived-in signal
@@ -2886,8 +2913,16 @@ namespace Ledger.Game
                             new Vector3(0.9f * sc, 0.06f, 0.9f * sc), AssetLibrary.Concrete);
                         break;
                     case Ledger.Core.Clutter.Awning:
-                        MakeBox($"Awning_{id}", at + new Vector3(0, 2.9f, 0),
+                        // Canvas, not roof felt — the other half of the
+                        // census's 39% mat_roof beside the shopfront
+                        // surround. Same palette the kit awnings wear,
+                        // hashed the same way; Opaque() because an MPB
+                        // colour multiplies onto the dark-baked texture.
+                        var awnBox = MakeBox($"Awning_{id}", at + new Vector3(0, 2.9f, 0),
                             new Vector3(2.6f, 0.1f, 1.1f), AssetLibrary.Roof);
+                        awnBox.GetComponent<Renderer>().sharedMaterial =
+                            AssetLibrary.Opaque(AwningPaints[
+                                System.Math.Abs((int)(at.x * 13 + at.z * 5)) % AwningPaints.Length]);
                         break;
                     case Ledger.Core.Clutter.Puddle:
                         // Flat, dark and SMOOTH: a puddle is only a puddle
