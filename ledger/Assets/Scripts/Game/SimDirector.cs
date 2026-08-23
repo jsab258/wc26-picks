@@ -10196,6 +10196,23 @@ namespace Ledger.Game
                             // been a build spent on the wrong suspect.
                             // Nearest body's blocker wins, so the name
                             // describes the closest person the frame lost.
+                            //
+                            // ANSWERED, 7b207b2: `Building_78`. Not a parked
+                            // car, not another walker, not the furniture —
+                            // a BUILDING. The near people are round the
+                            // corner or behind a wall: inside the camera's
+                            // cone, which is a volume, and behind solid
+                            // geometry, which the cone does not care about.
+                            // That is what standing on a street looks like,
+                            // not a placement fault, and the parked-car
+                            // theory this probe was built to test was
+                            // wrong. `streetBodiesSeenNear=0` on this shot
+                            // is therefore EXPECTED and is not evidence of
+                            // a thin crowd — the review stills, which do
+                            // show people, are the frames to judge that on.
+                            // Left measuring so a future change that puts
+                            // a car or a bin in front of the lens is still
+                            // caught by name.
                             if (vp.z <= 25f && vp.z < _streetSeenBlockAt)
                             {
                                 _streetSeenBlockAt = vp.z;
