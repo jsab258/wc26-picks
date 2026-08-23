@@ -151,6 +151,13 @@ namespace Ledger.Game
                 // Worn municipal yellow, not hazard yellow.
                 _yellow.color = new Color(0.78f, 0.66f, 0.18f);
                 _yellow.SetFloat("_Glossiness", 0.05f);
+                // 284 strips, one material, one flag — the same omission
+                // AssetLibrary's textured path had. Standard supports
+                // instancing; the custom shaders (blob, decal, ring,
+                // worldtext) would each need a multi_compile pragma in the
+                // shader before the flag bought them anything, so they are
+                // deliberately left for a change that can prove itself.
+                _yellow.enableInstancing = true;
             }
             foreach (var e in StreetMap.Edges)
             {

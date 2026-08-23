@@ -313,6 +313,36 @@ namespace Ledger.Game
             mat.SetFloat("_Glossiness", spec.Smoothness);
             mat.SetFloat("_Metallic", spec.Metallic);
 
+            // GPU INSTANCING, WHICH EVERY SURFACE IN THE TOWN WAS MISSING.
+            //
+            // `sceneRenderers=19786` against `frame[game=4.46ms
+            // render+rest=20.61ms]`: the game logic is cheap and the RENDER
+            // is four fifths of the frame, on geometry that is almost
+            // entirely axis-aligned boxes sharing a dozen materials. That
+            // is the draw-call signature, not a fill-rate one.
+            //
+            // The flat-colour path has had this since it was written (see
+            // `Opaque`, "one flag") and every textured surface — brick,
+            // plaster, concrete, road, kerb, roof, window, the whole town —
+            // has not, because the flag lives on the MATERIAL and nobody
+            // added it to the other constructor. One idea, two
+            // implementations, and the one nobody looked at was missing
+            // the line: the shape this file keeps finding.
+            //
+            // Safe with the property blocks already in use — per-instance
+            // MPB colour is what instancing is FOR — and `MaterialVariant`
+            // and `MaterialGraded` copy from this material with
+            // `new Material(baseMat)`, which carries the flag, so the
+            // variants and grades inherit it rather than needing a third
+            // copy of this decision.
+            //
+            // Judged on `meanFrame` against the desktop era's own series:
+            // 24.67-25.84ms across twelve runs, a tight band on one
+            // machine. The cloud-era 200-1000ms readings are a different
+            // regime (software rendering, no GPU) and no aggregate spans
+            // the two.
+            mat.enableInstancing = true;
+
             if (spec.Emission != Color.black)
             {
                 mat.EnableKeyword("_EMISSION");
