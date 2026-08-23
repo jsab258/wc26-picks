@@ -1517,22 +1517,26 @@ namespace Ledger.Game
             var go = MakeBox(name, at, sz, AssetLibrary.Concrete);
             var c = go.GetComponent<Collider>();
             if (c != null) Object.Destroy(c);
-            // NOT A SHADOW CASTER — AN EXPERIMENT WITH A NAMED REVERT.
+            // SHADOW CASTING STAYS ON, AND THE EXPERIMENT THAT TURNED IT
+            // OFF IS REVERTED HERE RATHER THAN LEFT IN.
             //
-            // The ladder's shadow rung went 5.1ms -> 6.4ms on the build
-            // that added these, and 2,133 new casters in the sun's shadow
-            // map is the obvious reason: they are most of the frame's 4.4ms
-            // drift across today.
+            // The claim was that 2,133 new casters in the sun's shadow map
+            // were most of the day's 4.4ms frame drift. Turning them off
+            // moved `meanFrame` 29.43 -> 30.27 (the wrong way) and the
+            // ladder's shadow rung 6.4 -> 6.1ms. It bought nothing, so a
+            // sill that casts no shadow is strictly worse for free.
             //
-            // What a sill buys is a LEDGE — a lit top surface and a
-            // silhouette breaking the flat of the wall — and under this
-            // town's soft overcast key the line it throws below itself is
-            // the smaller half. That is a claim, not a fact, so it is being
-            // tested rather than assumed: if the next landing's facade
-            // reads flatter, this comes back on and the 1.3ms is the price
-            // of the effect, stated.
-            go.GetComponent<Renderer>().shadowCastingMode =
-                UnityEngine.Rendering.ShadowCastingMode.Off;
+            // WHAT THE SERIES ACTUALLY SAYS, read across sixteen landed
+            // desktop runs: nine at 26.5-27.7, then a step to 28.4-28.9 on
+            // the build that added sills — so the sills cost ~1.5ms, and
+            // it is the extra renderers, not their shadows. The 29.4 and
+            // 30.3 after that are NOISE: 29.43 came off a
+            // COMMENT-ONLY build, which cannot cost a millisecond.
+            //
+            // So `meanFrame` carries about 1ms of run-to-run variance on
+            // this machine, and a single-run difference of that size means
+            // nothing. Three attributions today were made against
+            // differences at or under it.
             SillCount++;
         }
 
