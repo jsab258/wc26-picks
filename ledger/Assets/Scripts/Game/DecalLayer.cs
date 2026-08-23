@@ -126,7 +126,27 @@ namespace Ledger.Game
                     dx /= len; dz /= len;
                     var across = new Vector3((float)-dz, 0, (float)dx);
                     float half = (float)e.Width * 0.5f + WorldBuilder.BlockSetback;
-                    for (double s = 5.0; s < len - 5.0; s += 9.0)
+                    // 9m -> 6m, and the per-side gate 0.6 -> 0.8. SURFACE
+                    // HISTORY IS THE VISUAL SPEC'S FIRST-RANKED ITEM ("the
+                    // look is carried by surface history, density, depth,
+                    // light, atmosphere -- in that order"), and 216 marks
+                    // across a town with 376 doors and 46 terrace blocks is
+                    // about one per building face: present in the counters,
+                    // invisible in the frames. Roughly doubles the count.
+                    //
+                    // Bounded on purpose rather than opened up: the
+                    // placement rules that make these read as weathering
+                    // rather than as stickers -- streaks under the
+                    // roofline, damp at the base, a MassAt test so nothing
+                    // scribbles over a gap, prosperity thinning the good
+                    // streets -- all still apply to every one of them. This
+                    // multiplies opportunities, it does not relax a rule.
+                    //
+                    // Judged on the stills with meanFrame as the guard.
+                    // These are alpha-blended quads and the render ladder
+                    // has no decal rung, so if the frame moves the count
+                    // comes back down and the rung gets written first.
+                    for (double s = 5.0; s < len - 5.0; s += 6.0)
                     {
                         double x = a.X + dx * s, z = a.Z + dz * s;
                         double prosperity = e.Kind == "lane" ? 0.15 : 0.55;
@@ -135,7 +155,7 @@ namespace Ledger.Game
                         var mid = new Vector3((float)x, 0, (float)z);
                         foreach (int side in new[] { -1, 1 })
                         {
-                            if (Dressing.Roll(x, z, 17 + side) > 0.6) continue;
+                            if (Dressing.Roll(x, z, 17 + side) > 0.8) continue;
                             var wall = mid + across * (half * side);
                             // A wall must actually be there — the cables
                             // learned this the hard way (scribbles over
