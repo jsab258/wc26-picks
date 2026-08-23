@@ -14251,7 +14251,7 @@ namespace Ledger.Game
                       // about the density ramp rather than about fire escapes.
                       $"fireEscapes={WorldBuilder.FireEscapes} " +
                       $"leanTos={WorldBuilder.LeanTos} " +
-                      $"mullions={WorldBuilder.Mullions} " +
+                      $"mullions={WorldBuilder.Mullions} sills={WorldBuilder.SillCount} " +
                       // THE SKYLINE, AND ITS CAUSE ON THE SAME LINE. A third of
                       // the windows lit is right at nine in the evening and a
                       // fault at four in the morning, and only the fraction

@@ -233,6 +233,9 @@ namespace Ledger.Game
             Windows.Clear();
             FireEscapes = 0;
             Mullions = 0;
+            // Per BUILD, like every counter beside it — a static that
+            // survives a rebuild reports the sum of two towns.
+            SillCount = 0;
             WindowIsShop.Clear();
             WindowGlowScale.Clear();
             Masses.Clear();
@@ -1443,28 +1446,78 @@ namespace Ledger.Game
                     float off = ground ? 0f : -runZ / 2f + paneZ / 2f + k * (paneZ + gap);
                     float w = ground ? runZ * 0.92f : paneZ;
                     if (Open(pos.x + size.x / 2f + 0.3f, pos.z + off))
-                        AddWindow(WinBox($"{tag}_win_xP_{floor}_{k}",
-                            new Vector3(pos.x + size.x / 2f + proud, y, pos.z + off),
-                            new Vector3(0.08f, bandH, w)), ground);
+                    {
+                        var wc = new Vector3(pos.x + size.x / 2f + proud, y, pos.z + off);
+                        var ws = new Vector3(0.08f, bandH, w);
+                        AddWindow(WinBox($"{tag}_win_xP_{floor}_{k}", wc, ws), ground);
+                        if (near) Sill($"{tag}_sill_xP_{floor}_{k}", wc, ws, bandH);
+                    }
                     if (Open(pos.x - size.x / 2f - 0.3f, pos.z + off))
-                        AddWindow(WinBox($"{tag}_win_xN_{floor}_{k}",
-                            new Vector3(pos.x - size.x / 2f - proud, y, pos.z + off),
-                            new Vector3(0.08f, bandH, w)), ground);
+                    {
+                        var wc = new Vector3(pos.x - size.x / 2f - proud, y, pos.z + off);
+                        var ws = new Vector3(0.08f, bandH, w);
+                        AddWindow(WinBox($"{tag}_win_xN_{floor}_{k}", wc, ws), ground);
+                        if (near) Sill($"{tag}_sill_xN_{floor}_{k}", wc, ws, bandH);
+                    }
                 }
                 for (int k = 0; k < (ground ? 1 : nx); k++)
                 {
                     float off = ground ? 0f : -runX / 2f + paneX / 2f + k * (paneX + gap);
                     float w = ground ? runX * 0.92f : paneX;
                     if (Open(pos.x + off, pos.z + size.z / 2f + 0.3f))
-                        AddWindow(WinBox($"{tag}_win_zP_{floor}_{k}",
-                            new Vector3(pos.x + off, y, pos.z + size.z / 2f + proud),
-                            new Vector3(w, bandH, 0.08f)), ground);
+                    {
+                        var wc = new Vector3(pos.x + off, y, pos.z + size.z / 2f + proud);
+                        var ws = new Vector3(w, bandH, 0.08f);
+                        AddWindow(WinBox($"{tag}_win_zP_{floor}_{k}", wc, ws), ground);
+                        if (near) Sill($"{tag}_sill_zP_{floor}_{k}", wc, ws, bandH);
+                    }
                     if (Open(pos.x + off, pos.z - size.z / 2f - 0.3f))
-                        AddWindow(WinBox($"{tag}_win_zN_{floor}_{k}",
-                            new Vector3(pos.x + off, y, pos.z - size.z / 2f - proud),
-                            new Vector3(w, bandH, 0.08f)), ground);
+                    {
+                        var wc = new Vector3(pos.x + off, y, pos.z - size.z / 2f - proud);
+                        var ws = new Vector3(w, bandH, 0.08f);
+                        AddWindow(WinBox($"{tag}_win_zN_{floor}_{k}", wc, ws), ground);
+                        if (near) Sill($"{tag}_sill_zN_{floor}_{k}", wc, ws, bandH);
+                    }
                 }
             }
+        }
+
+        /// A LEDGE UNDER EVERY PANE, which is the quality ladder's named
+        /// next rung for buildings ("window reveals/sills relief").
+        ///
+        /// A facade of flush panes is the flattest thing in these frames:
+        /// the windows stand 0.08 proud of the brick and cast nothing. A
+        /// sill projects far enough to throw a hard line across the wall
+        /// under each opening, and a row of those lines is most of what
+        /// reads as MASONRY rather than as a painted elevation. One box per
+        /// window, no new material, no new pass.
+        ///
+        /// NEAR BUILDINGS ONLY. Far blocks carry a single window BAND per
+        /// face by design — a smudge in fog — and a sill under a band is a
+        /// ledge under a stripe, which is not a thing. `near` is the flag
+        /// the pane/band split already uses, so this inherits that decision
+        /// rather than inventing a second distance rule.
+        ///
+        /// Sized off the window it serves rather than by constants: as wide
+        /// as the opening, 0.06 tall, projecting 0.20 against the pane's
+        /// 0.08 so the ledge clears the glass and the shadow lands on
+        /// brick. Collider dropped — a sill is scenery, and the window's
+        /// own collider went for the same reason after the courier spent
+        /// 197 ticks against one.
+        /// Read by the sim: a sill pass that silently placed none and one
+        /// that dressed the town read identically from a still at street
+        /// distance (rule 3b).
+        public static int SillCount;
+        static void Sill(string name, Vector3 winCentre, Vector3 winSize, float bandH)
+        {
+            bool alongZ = winSize.x < winSize.z;
+            var sz = alongZ ? new Vector3(0.20f, 0.06f, winSize.z * 1.02f)
+                            : new Vector3(winSize.x * 1.02f, 0.06f, 0.20f);
+            var at = new Vector3(winCentre.x, winCentre.y - bandH / 2f - 0.03f, winCentre.z);
+            var go = MakeBox(name, at, sz, AssetLibrary.Concrete);
+            var c = go.GetComponent<Collider>();
+            if (c != null) Object.Destroy(c);
+            SillCount++;
         }
 
         /// A STREET-LEVEL FLOOR THAT IS NOT THE SAME AS THE FLOORS ABOVE IT.
