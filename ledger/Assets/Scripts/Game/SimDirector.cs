@@ -79,6 +79,8 @@ namespace Ledger.Game
         /// In frustum AND with a clear line from the lens. See the linecast
         /// in the street shot for why the frustum count alone misleads.
         int _streetBodiesSeen = -1, _streetBodiesSeenNear = -1;
+        float _streetSeenBlockAt = float.MaxValue;
+        string _streetSeenBlockBy = "nothing";
         int _streetBodiesSkinned = -1;
         /// Noon and night of one rest day, on top of the four. Two,
         /// because a Saturday needs the same pair of lighting
@@ -10132,6 +10134,8 @@ namespace Ledger.Game
                     _streetBodiesSkinned = 0;
                     _streetBodiesSeen = 0;
                     _streetBodiesSeenNear = 0;
+                    _streetSeenBlockAt = float.MaxValue;
+                    _streetSeenBlockBy = "nothing";
                     foreach (var w in NpcWalker.Live)
                     {
                         if (w == null) continue;
@@ -10181,7 +10185,23 @@ namespace Ledger.Game
                         {
                             if (h.collider == null) continue;
                             if (h.collider.transform.IsChildOf(w.transform)) continue;
-                            clear = false; break;
+                            clear = false;
+                            // WHAT SCREENS THE NEAR CROWD, named rather than
+                            // guessed. 2eb39ef reads streetBodiesNear=3 with
+                            // streetBodiesSeenNear=0 — every person inside
+                            // 25m hidden, while the three that ARE visible
+                            // are all further out. That is a specific thing
+                            // standing in a specific place, and the next
+                            // step after such a reading has twice this week
+                            // been a build spent on the wrong suspect.
+                            // Nearest body's blocker wins, so the name
+                            // describes the closest person the frame lost.
+                            if (vp.z <= 25f && vp.z < _streetSeenBlockAt)
+                            {
+                                _streetSeenBlockAt = vp.z;
+                                _streetSeenBlockBy = h.collider.name.Replace(' ', '_');
+                            }
+                            break;
                         }
                         if (clear)
                         {
@@ -12694,7 +12714,7 @@ namespace Ledger.Game
                       $"cargoes={_game.Empire.CargoesLanded} manifests={_game.Empire.ManifestsSigned} " +
                       $"coverageOk={coverageOk} openModeForced={_openModeForced} endScreen={_endScreenDismissed} " +
                       $"daysSkipped={_daysSkipped} endDay={_endDay} " +
-                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} cutOffDay={_cutOffDay} cutOffNights={_cutOffNights} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} streetBodies={_streetBodies} streetBodiesNear={_streetBodiesNear} streetBodiesLive={_streetBodiesLive} streetBodiesSkinned={_streetBodiesSkinned} streetBodiesSeen={_streetBodiesSeen} streetBodiesSeenNear={_streetBodiesSeenNear} millAgents={millCount} crowdMill={crowdMill} strandedEmpty={strandedEmpty} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
+                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} cutOffDay={_cutOffDay} cutOffNights={_cutOffNights} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} streetBodies={_streetBodies} streetBodiesNear={_streetBodiesNear} streetBodiesLive={_streetBodiesLive} streetBodiesSkinned={_streetBodiesSkinned} streetBodiesSeen={_streetBodiesSeen} streetBodiesSeenNear={_streetBodiesSeenNear} streetSeenBlockBy={_streetSeenBlockBy} millAgents={millCount} crowdMill={crowdMill} strandedEmpty={strandedEmpty} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} opened={_game.ActThree.Opened} [{_actThreeWhy}] " +
                       $"ending={_actThreeEnding} handed={_actThreeHandedOver} " +
