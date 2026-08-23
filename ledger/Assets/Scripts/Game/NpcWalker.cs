@@ -254,7 +254,20 @@ namespace Ledger.Game
         /// measurement of how many people are out of doors within earshot at
         /// midday. A dozen skinned bodies is roughly 280k vertices, which is
         /// the order the rest of this scene is built at.
-        public const int RealBodyCap = 12;
+        // Follows `CrowdWalkerCap` up, 12 -> 28, and for the same measured
+        // reason: the render ladder's `noBodies` rung came back 0.9ms
+        // SLOWER than the full frame, so skinned bodies were not costing
+        // what the vertex arithmetic above assumed. That estimate — "a
+        // dozen skinned bodies is roughly 280k vertices, the order the
+        // rest of this scene is built at" — was reasoning about the right
+        // quantity and never checked against a timed frame; the frame is
+        // held by shadows and per-pixel lights instead.
+        //
+        // It stays EQUAL to `CrowdWalkerCap` on purpose. The two numbers
+        // have always been the same value for the same reason, and a
+        // crowd where most of the visible people are mannequins is the
+        // thing `streetBodiesSkinned=2 of 12` was reporting.
+        public const int RealBodyCap = 28;
         public static int RealBodies;
 
         /// SWAPS, BOTH WAYS, AND THE FAILURES. A body budget spent on the

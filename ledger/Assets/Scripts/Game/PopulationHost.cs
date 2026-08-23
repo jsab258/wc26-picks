@@ -56,7 +56,32 @@ namespace Ledger.Game
         // ~3.5k over square kilometres; this city is about a tenth of one.
         // 700 puts roughly a dozen people out of doors within earshot at
         // midday, which is a street rather than a demonstration.
-        public const int CrowdWalkerCap = 12;
+        // 12 -> 28, AND THE OLD NUMBER WAS NEVER A PERFORMANCE BOUND.
+        //
+        // The paragraph above is about CROWDING — 3000 residents put 333
+        // people within 34m of the bar door and they spawned on top of the
+        // player. That argument constrains the RESIDENT COUNT, which stays
+        // at 700, and it says nothing about how many of them may be on
+        // screen at a comfortable spacing.
+        //
+        // What settles that is `frameCost`, the render's toggle ladder:
+        //   all:22.4 / noShadow:17.3 / noPixLights:18.0 / noBodies:23.3
+        // Hiding EVERY skinned body did not make the frame cheaper — it
+        // came back 0.9ms slower, which is noise around zero. The frame is
+        // held by sun shadows (5.1ms) and per-pixel lights (4.4ms); the
+        // crowd is not in the bill at all. And the standing complaint
+        // about the stills is that the street reads as empty next to the
+        // reference, with `crowdRead` at 1-7 people in frame.
+        //
+        // So the cap rises to a number the measurement supports and the
+        // pictures ask for. NOT a free extrapolation: the ladder measured
+        // bodies at the OLD count costing nothing, and 28 is more than 12
+        // — the next landing's `frameCost` and `meanFrame` are what
+        // confirm it, and the `crowd` gate's own spacing bounds
+        // (`crowdTightest`, `crowdGapMedian`) are what say whether this
+        // became the mob the paragraph above warns about. If either
+        // objects, the number comes back down with a reason attached.
+        public const int CrowdWalkerCap = 28;
         public const int CrowdMillCap = 60;
         /// Re-banding is not free (it sorts the whole population), so it happens
         /// on a timer rather than a frame — the player cannot outrun three

@@ -391,6 +391,7 @@
   "fogRGB",
   "fontless",
   "frameAvgMs",
+  "frameCost",
   "frameWorstMs",
   "framedBeats",
   "frames",
