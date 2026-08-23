@@ -45,7 +45,8 @@ namespace Ledger.Game
 
         public static void Build()
         {
-            Placed = 0; YellowLines = 0; ByKind.Clear(); BenchSeats.Clear();
+            Placed = 0; YellowLines = 0; RoadNudged = 0; RoadStuck = 0;
+            ByKind.Clear(); BenchSeats.Clear();
             // The probe: if the flagship mesh is missing, every other lookup
             // will be too — one legible reason instead of thirty misses.
             if (Prefab("outdoor_bin") == null)
@@ -188,13 +189,32 @@ namespace Ledger.Game
             }
         }
 
+        /// How many corner spots the road check had to move, and how many it
+        /// could not save (all eight angles on tarmac — placed anyway,
+        /// counted, so the still's bin-in-the-road has a number).
+        public static int RoadNudged, RoadStuck;
+
         static Vector3 CornerSpot(StreetNode n, int salt)
         {
             double ang = Dressing.Roll(n.X, n.Z, salt) * System.Math.PI * 2;
-            // Off the junction centre onto the pavement ring.
+            // Off the junction centre onto the pavement ring — WITH A ROAD
+            // CHECK, which the first version skipped: the 3a4ea5e noon still
+            // has a swing bin standing in the carriageway beside a parked
+            // car, because a ring point at a junction lands on tarmac about
+            // as often as not. Walk the ring in eighths until off-road.
             float r = 5.5f;
-            return new Vector3((float)(n.X + System.Math.Cos(ang) * r), 0,
-                               (float)(n.Z + System.Math.Sin(ang) * r));
+            var first = new Vector3((float)(n.X + System.Math.Cos(ang) * r), 0,
+                                    (float)(n.Z + System.Math.Sin(ang) * r));
+            if (!StreetMap.OnRoad(first.x, first.z)) return first;
+            for (int step = 1; step < 8; step++)
+            {
+                double a2 = ang + step * System.Math.PI / 4;
+                var cand = new Vector3((float)(n.X + System.Math.Cos(a2) * r), 0,
+                                       (float)(n.Z + System.Math.Sin(a2) * r));
+                if (!StreetMap.OnRoad(cand.x, cand.z)) { RoadNudged++; return cand; }
+            }
+            RoadStuck++;
+            return first;
         }
 
         static Quaternion RandomYaw(StreetNode n, int salt) =>
@@ -205,12 +225,32 @@ namespace Ledger.Game
 
         static void PlaceAt(Transform parent, string stem, Vector3 pos, Quaternion rot)
         {
-            var pf = Prefab(stem);
-            if (pf == null) return;
-            var go = Object.Instantiate(pf, pos, rot, parent);
+            // THROUGH THE PROP PIPELINE, NOT A PRIVATE Resources.Load — the
+            // private path made every placement here invisible to kitAlbedo
+            // (the families read 1.00 and the listing could not say which
+            // placer), and it skipped the repaint: the 3a4ea5e noon still
+            // has a factory-white swing bin from this file surviving the
+            // build in which WorldBuilder's bins went metal. Same models,
+            // same key scheme, one instrumented door.
+            var go = AssetLibrary.TryInstantiateProp("base_mesh_" + stem, pos, rot);
+            if (go == null) return;
+            go.transform.SetParent(parent, true);
             go.name = "F_" + stem;
+            // The fallback surfaces' own tints, from the same constants
+            // WorldBuilder's placer uses. The fingerpost keeps municipal
+            // paint — a British fingerpost IS painted white, just not
+            // albedo-1.0 white.
+            WorldBuilder.TintFurniture(go,
+                stem == "park_bench" || stem == "pallet" ? WorldBuilder.FurnitureWood
+                : stem == "finger_post_sign_01" ? FurniturePaint
+                : WorldBuilder.FurnitureMetal);
             Placed++;
             ByKind[stem] = ByKind.TryGetValue(stem, out var c) ? c + 1 : 1;
         }
+
+        /// Worn municipal paint for the fingerpost: off-white at roughly
+        /// half the blown 1.00 the untextured mesh shipped with, below the
+        /// brightPct instrument's 0.60 "bright pixel" line.
+        static readonly Color FurniturePaint = new Color(0.55f, 0.54f, 0.50f);
     }
 }

@@ -2356,7 +2356,11 @@ namespace Ledger.Game
         /// — the boxes these replaced were Wood and Metal — rather than to
         /// an invented colour. Counted so the repaint cannot silently stop.
         public static int FurnitureRepainted;
-        static void TintFurniture(GameObject go, Color c)
+        // Public because Furniture.cs is the SECOND placer of these props —
+        // found by a white swing bin standing in the road through a repaint
+        // that moved 116 renderer sets: one idea, two implementations, and
+        // the one nobody looked at was the one missing the line.
+        public static void TintFurniture(GameObject go, Color c)
         {
             if (go == null) return;
             // MATERIAL REPLACEMENT, NOT AN MPB TINT — the first version set
@@ -2381,8 +2385,10 @@ namespace Ledger.Game
             FurnitureRepainted++;
         }
         // The fallback surfaces' own tints (SurfaceSpec Wood and Metal).
-        static readonly Color FurnitureWood  = new Color(0.28f, 0.22f, 0.18f);
-        static readonly Color FurnitureMetal = new Color(0.30f, 0.31f, 0.33f);
+        // Public for Furniture.cs, so the two placers cannot drift apart
+        // on what wood and metal mean.
+        public static readonly Color FurnitureWood  = new Color(0.28f, 0.22f, 0.18f);
+        public static readonly Color FurnitureMetal = new Color(0.30f, 0.31f, 0.33f);
 
         static void Bench(Vector3 pos, bool alongZ = false)
         {

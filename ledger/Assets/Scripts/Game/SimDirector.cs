@@ -13568,6 +13568,9 @@ namespace Ledger.Game
                       $"decalWhy=[{DecalLayer.Why.Replace(' ', '_')}] " +
                       $"furniture={Furniture.Placed} " +
                       $"furnitureWhy=[{Furniture.Why.Replace(' ', '_')}] " +
+                      // nudged/stuck: corner spots the road check moved, and
+                      // the ones every angle failed for (placed anyway).
+                      $"furnitureRoad={Furniture.RoadNudged}/{Furniture.RoadStuck} " +
                       $"yellowLines={Furniture.YellowLines} " +
                       $"walkerBodyCap={NpcWalker.RealBodyCap} " +
                       $"walkerBodiesFailed={RealBody.ExtraFailed} " +

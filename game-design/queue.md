@@ -58,15 +58,22 @@ as plain zips (Program Files, falling back to `C:\LedgerTools`, both
 probed by the shims). Unity via bat 4, desktop session via bat 5.
 **ALL 72 GATES GREEN (23 Aug, ec26862) — first time ever, on his
 GPU.** ~17 min/round vs cloud ~28. `meanFrame` stable 25.6-25.8ms
-(~39fps twice — vsync cap suspect). **HAIR CLOSED**: cutout remap
-proven in number (hairCutout=2 on 13 bodies) and pixels (close-up:
-dark textured hair, both characters). dayJob FLAKY not systematic
-(red then green, same code — watch --flaky). **TOP OPEN, on screen:
-NOON STREET HOLDS ~2 PEOPLE** (`crowdRead=1` then `2` vs cloud ~13;
-frame-coupled accumulation suspect — read the spawner). Near facade
-still near-black at noon (second sample). CLIP SHEET: drawn
-64/64 both runs, file never lands — committer now lists the dir on
-a miss — read it next run. Revert `runs-on` if he bows out.
+(~39fps twice — vsync cap suspect). **HAIR CLOSED** (cutout remap,
+number + pixels). **FURNITURE CLOSED (3a4ea5e): real bench/bin/crate
+models, and the repaint proven by STILL** — the MPB tint wrote a
+`_Color` no glTFast shader reads (116 calls, zero effect, counter
+counted calls); materials now REPLACED. Before/after pair sent to
+Jafar. **CLIP SHEET CLOSED**: file lands (edcf16a and 3a4ea5e).
+dayJob still the one red — `lapsed@stop0:9m/auth:8m` third sample,
+displacement acquitted; **shiftTrace armed (eb99877)**: stall length,
+named blocker, held: tally, final-address standability. **NOON NEAR
+FACADE near-black, third sample — noonFacade ladder armed
+(eb99877)**: all/noPost/noAO/noVig/sunOff left-third medians at the
+day1_noon vantage; frames.tsv gains lumaThirds per shot. NEW eye
+item: a WHITE kerbside object near the parked car, identical in
+edcf16a and 3a4ea5e noon frames — survived a repaint that moved 116
+renderer sets, so it comes from a placer TintFurniture never sees.
+Identify in code, not by squinting. Revert `runs-on` if he bows out.
 **AND BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT (Jafar, 22 Aug:
 "a full ultracode audit before playtesting is a good idea. rememver
 that").** A multi-agent sweep of the whole codebase — every system
@@ -89,28 +96,19 @@ exactly this run.
    overcast reference frame proves dirt+depth+density carry a frame with no
    interesting light.
 
-   **LANDED (21 Aug night, two builds):** V0+V1 whole — shadows, the
-   sun:ambient rebalance, deeper AO, the opened day aperture, cloud
-   cookie, grade split, decal wiring, exposure re-anchors; day2_noon
-   showed real cast shadows for the first time. Still open from that
-   pass: the shopfront void (V4) and the sky dome (V6).
+   **LANDED, accounts in `roadmap-history.md`:** V0+V1 whole (shadows,
+   sun:ambient, AO, day aperture, cookie, grade split, decals, exposure
+   re-anchors — day2_noon showed real cast shadows first time); build D's
+   kit furniture, double yellows, chimney pots, aerials, reactions; and
+   **V1.5 LINEAR CLOSED** (one flip + five measured rounds, noon 0.206,
+   night 0.128, lighting gate green). Open from those passes: shopfront
+   void (V4), sky dome (V6).
 
-   **LANDED (build D and since):** kit street furniture, double yellows,
-   the decal sets, chimney pots and aerials, and the reaction set — all
-   confirmed by counts in later verdicts and visible in the stills.
-
-   **AND A LINEAR CLASS-FAULT UNDER TEST:** MaterialPropertyBlock colours
-   skip the gamma-to-linear conversion, so every MPB-set tint authored in
-   display terms weakened at the flip. The BODY WASH is fixed first because
-   the palest-body catcher can verify it empirically (real bodies read
-   213-223 against a crowd median of ~20); thirteen other MPB sites wait on
-   that verdict rather than a theory-driven mass edit — if the wash read
-   overcorrects, the theory is wrong at one site instead of fourteen.
-
-   **V1.5 LINEAR IS CLOSED** (one flip + five measured rounds; every
-   display-authored value re-armed off landed readings; noon 0.206,
-   night 0.128, the lighting gate green — full account in
-   `roadmap-history.md`).
+   **LINEAR MPB CLASS-FAULT UNDER TEST:** MPB colours skip
+   gamma-to-linear, so display-authored MPB tints weakened at the flip.
+   BODY WASH fixed first (empirically checkable: real bodies 213-223 vs
+   crowd ~20); the 13 other MPB sites wait on the wash verdict, so a
+   wrong theory dies at one site instead of fourteen.
 
    **V6 FIRST SLICE LANDED** (dusk warmth in fog and sky, sun glow,
    sodium deck, the dusk shot at hour 16 aimed sunward — all judged on
