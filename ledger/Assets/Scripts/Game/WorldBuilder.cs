@@ -1517,6 +1517,22 @@ namespace Ledger.Game
             var go = MakeBox(name, at, sz, AssetLibrary.Concrete);
             var c = go.GetComponent<Collider>();
             if (c != null) Object.Destroy(c);
+            // NOT A SHADOW CASTER — AN EXPERIMENT WITH A NAMED REVERT.
+            //
+            // The ladder's shadow rung went 5.1ms -> 6.4ms on the build
+            // that added these, and 2,133 new casters in the sun's shadow
+            // map is the obvious reason: they are most of the frame's 4.4ms
+            // drift across today.
+            //
+            // What a sill buys is a LEDGE — a lit top surface and a
+            // silhouette breaking the flat of the wall — and under this
+            // town's soft overcast key the line it throws below itself is
+            // the smaller half. That is a claim, not a fact, so it is being
+            // tested rather than assumed: if the next landing's facade
+            // reads flatter, this comes back on and the 1.3ms is the price
+            // of the effect, stated.
+            go.GetComponent<Renderer>().shadowCastingMode =
+                UnityEngine.Rendering.ShadowCastingMode.Off;
             SillCount++;
         }
 
