@@ -9630,8 +9630,19 @@ namespace Ledger.Game
                                 .Append("# Compared against the previous run's committed copy by\n")
                                 .Append("# tools/frame-drift.py, whose output goes into verdict.txt.\n")
                                 .Append("shot\tmeanLuma\tmaxLuma\tbrightPct\tsatPct\t")
-                                .Append("satStrength\tmeanRgb\tbrightRgb\n");
+                                .Append("satStrength\tmeanRgb\tbrightRgb\t")
+                                // WHERE THE CAMERA STOOD, because the desktop
+                                // era's first noon frames held two people where
+                                // the cloud's held six — same fifty walkers, and
+                                // the frames show two different street corners.
+                                // The step-back picks the vantage off measured
+                                // occlusion, and nothing recorded where it
+                                // landed, so run-to-run vantage drift could only
+                                // be argued from pictures. frame-drift carries
+                                // unknown columns without comparing them.
+                                .Append("camX\tcamZ\tcamYaw\n");
                 _frameRows++;
+                var ct = Camera.main != null ? Camera.main.transform : null;
                 _frameLedger.Append(name).Append('\t')
                             .Append(fp.luma).Append('\t')
                             .Append(fp.maxLuma).Append('\t')
@@ -9639,7 +9650,10 @@ namespace Ledger.Game
                             .Append(fp.satPct).Append('\t')
                             .Append(fp.satRgb).Append('\t')
                             .Append(fp.rgb).Append('\t')
-                            .Append(fp.brightRgb).Append('\n');
+                            .Append(fp.brightRgb).Append('\t')
+                            .Append(ct != null ? ct.position.x.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) : "none").Append('\t')
+                            .Append(ct != null ? ct.position.z.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) : "none").Append('\t')
+                            .Append(ct != null ? ct.eulerAngles.y.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : "none").Append('\n');
                 System.IO.File.WriteAllText("sim-out/frames.tsv", _frameLedger.ToString());
             }
             catch (Exception e) { _errors.Add("LedgerRow: " + e.Message); }
