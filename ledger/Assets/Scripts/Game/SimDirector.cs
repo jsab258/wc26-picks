@@ -78,7 +78,7 @@ namespace Ledger.Game
         int _streetBodies = -1, _streetBodiesNear = -1, _streetBodiesLive = -1;
         /// In frustum AND with a clear line from the lens. See the linecast
         /// in the street shot for why the frustum count alone misleads.
-        int _streetBodiesSeen = -1;
+        int _streetBodiesSeen = -1, _streetBodiesSeenNear = -1;
         int _streetBodiesSkinned = -1;
         /// Noon and night of one rest day, on top of the four. Two,
         /// because a Saturday needs the same pair of lighting
@@ -10131,6 +10131,7 @@ namespace Ledger.Game
                     _streetBodiesLive = 0;
                     _streetBodiesSkinned = 0;
                     _streetBodiesSeen = 0;
+                    _streetBodiesSeenNear = 0;
                     foreach (var w in NpcWalker.Live)
                     {
                         if (w == null) continue;
@@ -10182,7 +10183,27 @@ namespace Ledger.Game
                             if (h.collider.transform.IsChildOf(w.transform)) continue;
                             clear = false; break;
                         }
-                        if (clear) _streetBodiesSeen++;
+                        if (clear)
+                        {
+                            _streetBodiesSeen++;
+                            // AND WITHIN THE DISTANCE THE QUESTION IS ABOUT.
+                            //
+                            // `streetBodies=19 streetBodiesSeen=2` reads as a
+                            // town hiding almost everybody, and the near/far
+                            // split says otherwise: only FOUR of the nineteen
+                            // are inside 25m. The other fifteen are 25-70m
+                            // down a street, where a parked car, a lamp
+                            // column or another walker legitimately crosses
+                            // the line — that is a street in perspective, not
+                            // a fault.
+                            //
+                            // So the seen count gets the same near cut the
+                            // in-cone count already has, and the pair that
+                            // means something is seenNear/near. Conflating
+                            // the two is how "2 of 19" nearly became a
+                            // placement hunt this evening.
+                            if (vp.z <= 25f) _streetBodiesSeenNear++;
+                        }
                     }
 
                     cam.Render();
@@ -12673,7 +12694,7 @@ namespace Ledger.Game
                       $"cargoes={_game.Empire.CargoesLanded} manifests={_game.Empire.ManifestsSigned} " +
                       $"coverageOk={coverageOk} openModeForced={_openModeForced} endScreen={_endScreenDismissed} " +
                       $"daysSkipped={_daysSkipped} endDay={_endDay} " +
-                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} cutOffDay={_cutOffDay} cutOffNights={_cutOffNights} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} streetBodies={_streetBodies} streetBodiesNear={_streetBodiesNear} streetBodiesLive={_streetBodiesLive} streetBodiesSkinned={_streetBodiesSkinned} streetBodiesSeen={_streetBodiesSeen} millAgents={millCount} crowdMill={crowdMill} strandedEmpty={strandedEmpty} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
+                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} cutOffDay={_cutOffDay} cutOffNights={_cutOffNights} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} streetBodies={_streetBodies} streetBodiesNear={_streetBodiesNear} streetBodiesLive={_streetBodiesLive} streetBodiesSkinned={_streetBodiesSkinned} streetBodiesSeen={_streetBodiesSeen} streetBodiesSeenNear={_streetBodiesSeenNear} millAgents={millCount} crowdMill={crowdMill} strandedEmpty={strandedEmpty} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} opened={_game.ActThree.Opened} [{_actThreeWhy}] " +
                       $"ending={_actThreeEnding} handed={_actThreeHandedOver} " +
