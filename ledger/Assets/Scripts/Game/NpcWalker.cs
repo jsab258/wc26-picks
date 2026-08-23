@@ -2192,7 +2192,34 @@ namespace Ledger.Game
         /// about this mob were both wrong.
         Vector3 Steer(Vector3 cur, Vector3 target)
         {
-            if (WorldBuilder.SegmentClear(cur, target)) { SteerDirect++; return target; }
+            // A ROAD IS NOT AN OBSTACLE, WHICH IS WHY EVERYONE WAS IN IT.
+            //
+            // This branch asks only whether anything SOLID stands between
+            // here and there, and tarmac does not, so any walker with line
+            // of sight to its destination walked straight at it — across
+            // the carriageway, and diagonally ALONG it whenever the
+            // destination sat up the street. `steerDirect` is the biggest
+            // branch in the tally by far, the pavement logic below it only
+            // ever ran when something was in the way, and the day-2 noon
+            // still shows the result: thirteen people in convoy down the
+            // middle of the road, `headingIntoRoad=13`, `huddleMoving=13`
+            // with nobody talking or standing. Not a gathering — a shared
+            // desire line nothing was pulling off the tarmac.
+            //
+            // People DO cross roads, so the test is not "any road". It is
+            // how far the line RUNS ON one: a perpendicular crossing of
+            // the widest street here is 8m of tarmac (avenue width, from
+            // StreetMap), and anything much past that is walking along the
+            // carriageway rather than over it. 12m allows the widest
+            // crossing with margin and refuses the diagonal.
+            //
+            // Refusal falls through to the pavement branches below, which
+            // already know how to route — this adds no new path, it just
+            // stops the shortcut from pre-empting them. Counted, because a
+            // guard that never fires and a guard that fixed the street
+            // read identically from the still alone.
+            if (WorldBuilder.SegmentClear(cur, target) && !RunsAlongRoad(cur, target))
+            { SteerDirect++; return target; }
 
             // BOUNDED BY THE PAVEMENT, NOT BY `SpreadOffset`'S OWN SIZE.
             //
@@ -2224,6 +2251,37 @@ namespace Ledger.Game
             if (j == null) { SteerOrigin++; return new Vector3(0, cur.y, 0) + lane; }
             SteerJunction++;
             return new Vector3((float)j.X, cur.y, (float)j.Z) + lane;
+        }
+
+        /// How much of a straight walk lies on tarmac, against the bound a
+        /// legitimate crossing needs. Sampled at half-metre steps: finer
+        /// buys nothing against an 8m street and this runs per walker per
+        /// steer.
+        ///
+        /// `SteerDirectOnRoad` counts the refusals. A zero there means the
+        /// direct branch was never the reason people were in the road and
+        /// this whole change is wrong — which is the point of counting it
+        /// rather than asserting it.
+        public static int SteerDirectOnRoad;
+        const float RoadRunMetres = 12f;
+
+        static bool RunsAlongRoad(Vector3 a, Vector3 b)
+        {
+            var d = b - a; d.y = 0;
+            float len = d.magnitude;
+            if (len < RoadRunMetres) return false;
+            d /= len;
+            float onRoad = 0f;
+            for (float t = 0f; t <= len; t += 0.5f)
+            {
+                var p = a + d * t;
+                if (Ledger.Core.StreetMap.OnRoad(p.x, p.z))
+                {
+                    onRoad += 0.5f;
+                    if (onRoad > RoadRunMetres) { SteerDirectOnRoad++; return true; }
+                }
+            }
+            return false;
         }
 
         /// Closest point on any street, pulled a little toward the pavement so

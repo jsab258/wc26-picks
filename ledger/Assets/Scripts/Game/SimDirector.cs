@@ -13068,7 +13068,7 @@ namespace Ledger.Game
                       // destination. The others all share an aim point, and
                       // `junction` shares one across a whole neighbourhood,
                       // which is the shape a forty-one body knot has.
-                      $"steerDirect={NpcWalker.SteerDirect} " +
+                      $"steerDirect={NpcWalker.SteerDirect} steerDirectOnRoad={NpcWalker.SteerDirectOnRoad} " +
                       $"steerTargetStreet={NpcWalker.SteerTargetStreet} " +
                       $"steerOwnStreet={NpcWalker.SteerOwnStreet} " +
                       $"steerJunction={NpcWalker.SteerJunction} " +
