@@ -55,13 +55,16 @@ when either is truly absent. The install: bat 3, a plain DOUBLE-CLICK,
 self-elevating, no silently-closable window, and NO INSTALLERS — the
 pwsh MSI died at 92% "Access is denied" on his PC, so both tools land
 as plain zips (Program Files, falling back to `C:\LedgerTools`, both
-probed by the shims). It pushes `tools/runner/DEPS.txt` (landed). Unity: bat 4 + a duplicate
-`-x86_64` install removed by hand — licence then activated FIRST
-try, the player BUILT in 3m18 (run 32598027391). The wall that run
-found: a SERVICE has no display — "DX11 could not switch resolution"
-— so bat 5 moves the agent into his desktop session (the only place
-frames measure honestly) and pushes `tools/runner/DISPLAY.txt` —
-watcher armed; dispatch on landing. Revert `runs-on` if he bows out.
+probed by the shims). It **THE MACHINE WORKS END TO END (23 Aug, 3c6d160): sim on his GPU, 29
+shots, errors=0, 1 of 72 red.** First honest `meanFrame=25.84ms
+p95=47.75ms` (~39fps — vsync cap or sim CPU?). Judge next runs:
+dayJob RED (`lapsed@stop0:9m`, stops=0 — green x3 on cloud), noon
+DARK + sparse (`crowdRead=2` vs ~13), heavy grain — the real pipeline
+reads differently from the rasteriser everything was tuned on.
+`kitAlbedo`: bikes 0.37, cars 0.31 (pre-repaint) vs walls 0.15 —
+read the unrepainted four next. The CLIP SHEET did not render on
+desktop (canon* keys gone; marked run-conditional in verdict-keys —
+find why the pass skipped). Revert `runs-on` if he bows out.
 **AND BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT (Jafar, 22 Aug:
 "a full ultracode audit before playtesting is a good idea. rememver
 that").** A multi-agent sweep of the whole codebase — every system
@@ -204,19 +207,16 @@ exactly this run.
    darker than the band because a multiply only subtracts. A limit, not a bug.
    **`RealBodyCap = 12` needs a PC measurement**, not a CI one.
 
-1. **THE BUS AND BICYCLE ARE LANDED** (seven kinds live, zero fallbacks
-   since P). Open judgment: the bicycle rides RIDERLESS — if a ghost bike
-   reads worse than the primitive did, next rung is a rider or parked-only.
+1. **BUS AND BICYCLE LANDED** (seven kinds, zero fallbacks since P). Open
+   judgment: the RIDERLESS bike — if it reads wrong, rider or parked-only.
 
 1. **PATROL DENSITY FOLLOWS THE INQUIRY — whether it READS is unfinished.**
-   Every link fires (account + four wrong theories in `roadmap-history.md`).
-   Open: `patrolOnBeatMean=0.00` over 3 shots against `0.18` over 17 — zero
-   of three separates nothing; the `hunt_` pair photographs the manhunt now,
-   so the next build has frames to judge from. A patrol PARKED with its
-   beacon lit stays in frame where six crossings do not — feature, not knob.
+   Links fire (`roadmap-history.md`). Open: `patrolOnBeatMean=0.00` over 3
+   shots vs `0.18` over 17 — zero of three separates nothing; judge the
+   `hunt_` pair. A PARKED beacon reads where six crossings do not.
 
-1. ~~**THE VERDICT STEP IS 416 CHARS OFF A HARD CEILING**~~ — **STALE:
-   17,088 UNDER it, measured 22 Aug (rule 3); `verify.py` gates it.**
+1. ~~**VERDICT STEP NEAR THE DISPATCH CEILING**~~ — **STALE: 17,088
+   under, measured 22 Aug (rule 3); `verify.py` gates it.**
 
 1. **THE DISTANT SKYLINE WAS PALE LAVENDER OVER A NOIR STREET.** *(on screen,
    `district_strip` — the top third of the frame)* Kit props arrive wearing
