@@ -95,11 +95,42 @@ namespace Ledger.Core
         /// person happens to be. That is the "characters appear suddenly"
         /// playtest note, and it is the same bug as "too many characters":
         /// rank with no ceiling always fills the quota (2026-07-28).
-        public double NearMetres = 34;
+        /// 34 -> 70, AND THE CEILING ITSELF IS NOT WHAT CHANGES.
+        ///
+        /// The paragraph above is the fix for "characters appear suddenly":
+        /// rank with no ceiling always fills the quota, so the 28th-nearest
+        /// person got a body however absurdly far away they were. That
+        /// argument demands a ceiling; it does not fix the ceiling at 34.
+        ///
+        /// What 34 costs is now measured. `crowdWalkers=8` against a cap of
+        /// 28 says the CAP stopped binding and this radius took over: only
+        /// eight of seven hundred residents are inside 34m at any moment,
+        /// so nothing beyond a block of the player is ever drawn, and the
+        /// middle distance of every committed still is empty street. That
+        /// is the standing complaint about the frames, located.
+        ///
+        /// 70m is about two blocks and comfortably inside `MidMetres`, so
+        /// the mill still owns everything past it and the "materialises
+        /// across the district" failure stays fixed — a person entering an
+        /// empty district now appears at up to 70m, which is further away
+        /// and therefore LESS visible as pop-in, not more.
+        ///
+        /// Affordable on the render ladder rather than on faith:
+        /// `noBodies:21.0` against `all:22.1` puts the whole drawn crowd at
+        /// ~1.1ms with 21 bodies, while sun shadows cost 5.1ms. `NearCap`
+        /// bounds the count at 28 whatever the radius, so the ceiling on
+        /// this change's cost is about a millisecond and a half.
+        public double NearMetres = 70;
         public double MidMetres = 130;
         /// Hysteresis: once you have a body you keep it a little past the
         /// ceiling, so somebody walking the boundary does not strobe.
-        public double BandSlack = 6;
+        /// 6 -> 12 WITH THE BAND, because `PopulationHost` spends this as a
+        /// PROPORTION — `slackRanks = RealBodyCap * (BandSlack /
+        /// NearMetres)`, described there as "about a sixth further out than
+        /// it needed to earn it". Left at 6 on a 70m band that sixth
+        /// silently becomes a twelfth and the anti-thrash budget halves,
+        /// which is the quiet way a derived relationship dies.
+        public double BandSlack = 12;
 
         // ---- generation ----
 
