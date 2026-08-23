@@ -218,6 +218,12 @@ def selftest():
             fails.append(label)
 
     d = pathlib.Path(tempfile.mkdtemp())
+    # CLEANED ON EXIT, HOWEVER THE RUN ENDS — the sibling without this
+    # pair leaked 17GB of 68MB temp dirs in a day (verify runs these
+    # selftests on every commit) and red-walled the disk mid-verify.
+    # Same two lines export-decode.py has carried since its own leak.
+    import atexit as _ax, shutil as _sh
+    _ax.register(_sh.rmtree, d, True)
     head = ("shot\tmeanLuma\tmaxLuma\tbrightPct\tsatPct\tsatStrength\t"
             "meanRgb\tbrightRgb\n")
 

@@ -1910,8 +1910,24 @@ namespace Ledger.Game
 
         static void BuildProps()
         {
-            // Crate stack outside the bar — try a pack prop first, else primitives.
-            if (AssetLibrary.TryInstantiateProp("crate_stack", new Vector3(4.5f, 0f, 9.3f), Quaternion.identity) == null)
+            // Crate stack outside the bar. "crate_stack" named a prop that
+            // never existed (kitAlbedo's full listing found it, with the
+            // benches and bins) — the real crates are `base_mesh_wooden_
+            // crate_01/02`, stacked here the same way the fallback boxes
+            // were, and the boxes remain the fallback on a miss.
+            // Probe with the first crate: if it lands the family exists and
+            // the rest follow; only a full miss falls back, so a partial
+            // landing can never stack primitive boxes on real crates.
+            bool crates = AssetLibrary.TryInstantiateProp("base_mesh_wooden_crate_01",
+                new Vector3(4.2f, 0f, 9f), Quaternion.identity) != null;
+            if (crates)
+            {
+                AssetLibrary.TryInstantiateProp("base_mesh_wooden_crate_02",
+                    new Vector3(4.9f, 0f, 9.6f), Quaternion.Euler(0, 35f, 0));
+                AssetLibrary.TryInstantiateProp("base_mesh_wooden_crate_01",
+                    new Vector3(4.5f, 0.82f, 9.3f), Quaternion.Euler(0, 70f, 0));
+            }
+            if (!crates)
             {
                 MakeBox("Crate_1", new Vector3(4.2f, 0.4f, 9f), Vector3.one * 0.8f, AssetLibrary.Wood);
                 MakeBox("Crate_2", new Vector3(4.9f, 0.4f, 9.6f), Vector3.one * 0.8f, AssetLibrary.Wood);
@@ -2331,14 +2347,20 @@ namespace Ledger.Game
 
         static void Bench(Vector3 pos, bool alongZ = false)
         {
-            // A kit bench when one has arrived (max-polish order, 16 Aug);
-            // the three boxes below are the fallback that shipped every
-            // build until now. The kit candidates are provisional until the
-            // first props-fetch commits its listings — a miss costs a
-            // lookup and falls through, same rule as the vehicles.
-            var mesh = AssetLibrary.TryInstantiateProp("city_kit_commercial_bench",
+            // THE PROVISIONAL NAMES WERE WRONG FOR A WEEK AND NOTHING SAID
+            // SO until kitAlbedo's first full listing had no bench in it:
+            // the city-kit shipped no furniture, so `city_kit_*_bench`
+            // missed on every call and the fallback boxes were the only
+            // bench Meridian ever had — while FOUR real benches sat in the
+            // build under `base_mesh_*` (rule 6, found by an absence). The
+            // real names, hashed by position so streets vary; a miss still
+            // falls through to the boxes.
+            string[] benches = { "base_mesh_park_bench", "base_mesh_curved_stone_bench",
+                                 "base_mesh_ornate_bench", "base_mesh_garden_bench_01" };
+            int pick = System.Math.Abs((int)(pos.x * 13.7f + pos.z * 7.3f)) % benches.Length;
+            var mesh = AssetLibrary.TryInstantiateProp(benches[pick],
                            pos, Quaternion.Euler(0, alongZ ? 0f : 90f, 0))
-                    ?? AssetLibrary.TryInstantiateProp("city_kit_suburban_bench",
+                    ?? AssetLibrary.TryInstantiateProp(benches[(pick + 1) % benches.Length],
                            pos, Quaternion.Euler(0, alongZ ? 0f : 90f, 0));
             if (mesh != null) return;
 
@@ -2753,12 +2775,18 @@ namespace Ledger.Game
                 switch (d.Kind)
                 {
                     case Ledger.Core.Clutter.Bin:
-                        // A kit bin when one has arrived; the box is the
-                        // fallback that shipped every build until 16 Aug.
-                        // Same provisional-candidates rule as the vehicles.
-                        if (AssetLibrary.TryInstantiateProp("city_kit_commercial_trash_can", at,
+                        // `city_kit_*_trash_can` never existed — the kit has
+                        // no furniture — so every bin was the fallback box
+                        // while four real bins sat unused in the build (same
+                        // find as the benches: kitAlbedo's full listing had
+                        // no bin family in it). Real names, hashed for
+                        // variety; a miss still falls through to the box.
+                        string[] bins = { "base_mesh_outdoor_bin", "base_mesh_mesh_bin",
+                                          "base_mesh_swing_bin", "base_mesh_cigarette_bin" };
+                        int binPick = System.Math.Abs((int)(at.x * 11.3f + at.z * 5.1f)) % bins.Length;
+                        if (AssetLibrary.TryInstantiateProp(bins[binPick], at,
                                 Quaternion.Euler(0, (at.x * 61f) % 360f, 0)) != null) break;
-                        if (AssetLibrary.TryInstantiateProp("city_kit_suburban_trash_can", at,
+                        if (AssetLibrary.TryInstantiateProp(bins[(binPick + 1) % bins.Length], at,
                                 Quaternion.Euler(0, (at.x * 61f) % 360f, 0)) != null) break;
                         MakeBox($"Bin_{id}_{at.x:0.0}", at + new Vector3(0, 0.55f * sc, 0),
                             new Vector3(0.75f, 1.1f, 0.7f) * sc, AssetLibrary.Metal);

@@ -67,6 +67,12 @@ def selftest():
     from stft_patch import patched
 
     tmp = pathlib.Path(tempfile.mkdtemp())
+    # CLEANED ON EXIT, HOWEVER THE RUN ENDS — the sibling without this
+    # pair leaked 17GB of 68MB temp dirs in a day (verify runs these
+    # selftests on every commit) and red-walled the disk mid-verify.
+    # Same two lines export-decode.py has carried since its own leak.
+    import atexit as _ax, shutil as _sh
+    _ax.register(_sh.rmtree, tmp, True)
     torch.manual_seed(20260807)
     # THE SHIPPED CONFIGURATION, NOT THE CLASS DEFAULTS. `S3Token2Wav` builds
     # this vocoder with explicit arguments and every one of them differs from

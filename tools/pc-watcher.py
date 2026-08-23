@@ -751,6 +751,12 @@ def selftest():
     # a real result.
     import tempfile
     tmp = pathlib.Path(tempfile.mkdtemp())
+    # CLEANED ON EXIT, HOWEVER THE RUN ENDS — the sibling without this
+    # pair leaked 17GB of 68MB temp dirs in a day (verify runs these
+    # selftests on every commit) and red-walled the disk mid-verify.
+    # Same two lines export-decode.py has carried since its own leak.
+    import atexit as _ax, shutil as _sh
+    _ax.register(_sh.rmtree, tmp, True)
     write_result(tmp, ["job: x", "id: y", "",
                        f"RESULT: STARTED at {stamp()} — still running here"])
     started = (tmp / RESULT.relative_to(ROOT)).read_text(encoding="utf-8")
@@ -772,6 +778,10 @@ def selftest():
     def repos():
         import tempfile as tf
         home = pathlib.Path(tf.mkdtemp())
+        # Same exit-cleanup as the temp above — this one builds three git
+        # repositories per selftest and leaked with the rest.
+        import atexit as _ax2, shutil as _sh2
+        _ax2.register(_sh2.rmtree, home, True)
         far = home / "origin.git"
         git("init", "-q", "--bare", str(far))
         for name in ("watcher", "mine"):

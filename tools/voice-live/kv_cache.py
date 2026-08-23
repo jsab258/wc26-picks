@@ -275,6 +275,12 @@ def selftest():
     torch.manual_seed(20260806)
     D, L = 64, 4
     tmp = pathlib.Path(tempfile.mkdtemp())
+    # CLEANED ON EXIT, HOWEVER THE RUN ENDS — the sibling without this
+    # pair leaked 17GB of 68MB temp dirs in a day (verify runs these
+    # selftests on every commit) and red-walled the disk mid-verify.
+    # Same two lines export-decode.py has carried since its own leak.
+    import atexit as _ax, shutil as _sh
+    _ax.register(_sh.rmtree, tmp, True)
 
     class CacheLike:
         """Wears HuggingFace's shape: parallel key and value lists, and the
