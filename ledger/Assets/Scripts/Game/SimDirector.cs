@@ -8301,7 +8301,8 @@ namespace Ledger.Game
             var sunGo = GameObject.Find("Sun");
             var sunL = sunGo != null ? sunGo.GetComponent<Light>() : null;
             double all = -1, noPost = -1, noShadow = -1, noShafts = -1,
-                   noBodies = -1, noPixelLights = -1;
+                   noBodies = -1, noPixelLights = -1, shadow45 = -1;
+            float keptShadowDist = QualitySettings.shadowDistance;
             var keptShadows = QualitySettings.shadows;
             int keptPixelLights = QualitySettings.pixelLightCount;
             // CAPTURED, NOT ASSUMED. `ProbeSunShadow` next door restores
@@ -8343,18 +8344,33 @@ namespace Ledger.Game
                 QualitySettings.pixelLightCount = 0;
                 noPixelLights = TimeRenders(cam);
                 QualitySettings.pixelLightCount = keptPixelLights;
+
+                // AND WHAT THE SHADOW DISTANCE ITSELF COSTS, because
+                // `noShadow` prices the whole system (5.1ms) and nobody
+                // would ship a street with no shadows at all. 45m is the
+                // Medium preset's existing value, so this rung asks a
+                // question the game can actually act on rather than a
+                // hypothetical: what would High cost if it borrowed
+                // Medium's distance? The four cascades then concentrate on
+                // the near field, so the trade may buy sharper close
+                // shadows as well as time — judged on the stills, not from
+                // this number alone.
+                QualitySettings.shadowDistance = 45f;
+                shadow45 = TimeRenders(cam);
+                QualitySettings.shadowDistance = keptShadowDist;
             }
             finally
             {
                 FilmGrade.Bypass = false;
                 QualitySettings.shadows = keptShadows;
                 QualitySettings.pixelLightCount = keptPixelLights;
+                QualitySettings.shadowDistance = keptShadowDist;
                 if (sunL != null) sunL.shadows = keptSunShadows;
                 LightShaft.Enabled = true;
             }
             _frameCost = $"[all:{all:0.0}/noPost:{noPost:0.0}/noShadow:{noShadow:0.0}"
                        + $"/noShafts:{noShafts:0.0}/noBodies:{noBodies:0.0}"
-                       + $"/noPixLights:{noPixelLights:0.0}]";
+                       + $"/noPixLights:{noPixelLights:0.0}/shadow45:{shadow45:0.0}]";
             Debug.Log("SimDirector: frameCost " + _frameCost);
         }
 
