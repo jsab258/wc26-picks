@@ -202,17 +202,20 @@ namespace Ledger.Game
             // has a swing bin standing in the carriageway beside a parked
             // car, because a ring point at a junction lands on tarmac about
             // as often as not. Walk the ring in eighths until off-road.
-            float r = 5.5f;
-            var first = new Vector3((float)(n.X + System.Math.Cos(ang) * r), 0,
-                                    (float)(n.Z + System.Math.Sin(ang) * r));
+            // Three rings, not one: the first landing read RoadStuck=25 —
+            // where two avenues meet, the junction apron swallows the whole
+            // r=5.5 ring and every angle is tarmac. Widen before giving up.
+            var first = new Vector3((float)(n.X + System.Math.Cos(ang) * 5.5), 0,
+                                    (float)(n.Z + System.Math.Sin(ang) * 5.5));
             if (!StreetMap.OnRoad(first.x, first.z)) return first;
-            for (int step = 1; step < 8; step++)
-            {
-                double a2 = ang + step * System.Math.PI / 4;
-                var cand = new Vector3((float)(n.X + System.Math.Cos(a2) * r), 0,
-                                       (float)(n.Z + System.Math.Sin(a2) * r));
-                if (!StreetMap.OnRoad(cand.x, cand.z)) { RoadNudged++; return cand; }
-            }
+            foreach (float r in new[] { 5.5f, 7.5f, 9.5f })
+                for (int step = 1; step < 8; step++)
+                {
+                    double a2 = ang + step * System.Math.PI / 4;
+                    var cand = new Vector3((float)(n.X + System.Math.Cos(a2) * r), 0,
+                                           (float)(n.Z + System.Math.Sin(a2) * r));
+                    if (!StreetMap.OnRoad(cand.x, cand.z)) { RoadNudged++; return cand; }
+                }
             RoadStuck++;
             return first;
         }

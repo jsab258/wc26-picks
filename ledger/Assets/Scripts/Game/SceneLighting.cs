@@ -241,9 +241,23 @@ namespace Ledger.Game
             // brightness, which held sun:ambient near 2:1 and washed the
             // shadows out of every noon still. The Ambient* accessors are the
             // same hues with the DAY share scaled down; night is untouched.
-            RenderSettings.ambientSkyColor = C(LightModel.AmbientSky(night, rain));
-            RenderSettings.ambientEquatorColor = C(LightModel.AmbientHorizon(night, rain));
-            RenderSettings.ambientGroundColor = C(LightModel.AmbientGround(night, rain));
+            // ...AND FROM THE CLOUD-MIXED DOME (V6's last sentence). The
+            // per-day deck landed and the fill ignored it, so a scattered
+            // morning and a heavy grey one lit the street identically —
+            // the one seam left between the sky you see and the light you
+            // stand in. Scaled around the HISTORICAL deck (~0.60): the
+            // factor is 1.0 there by construction, so every measured noon
+            // mean this project has tuned against stays put, and the new
+            // variation is ±~7% across the day-coverage range. Day only —
+            // the night fill was measured bit-identical and the deck's
+            // night look is the sodium cloud colour's job.
+            uint coverHash = (uint)GameController.TodayNumber * 2654435761u;
+            float coverToday = 0.35f + 0.40f * (coverHash % 1000u / 999f);
+            float deck = Mathf.Lerp(coverToday, 0.85f, rain);
+            float deckFill = Mathf.Lerp(Mathf.Lerp(1.06f, 0.90f, deck), 1f, night);
+            RenderSettings.ambientSkyColor = C(LightModel.AmbientSky(night, rain)) * deckFill;
+            RenderSettings.ambientEquatorColor = C(LightModel.AmbientHorizon(night, rain)) * deckFill;
+            RenderSettings.ambientGroundColor = C(LightModel.AmbientGround(night, rain)) * deckFill;
 
             RenderSettings.fogColor = C(LightModel.FogColour(night, rain));
             RenderSettings.fogDensity = (float)LightModel.FogDensity(night, rain);
@@ -281,9 +295,11 @@ namespace Ledger.Game
                 // roll: deterministic per day, stable across a reload,
                 // ranging from a scattered morning-blue deck to a heavy
                 // grey one, and rain still drags any day toward overcast.
-                uint dayHash = (uint)GameController.TodayNumber * 2654435761u;
-                float dayCover = 0.35f + 0.40f * (dayHash % 1000u / 999f);
-                _sky.SetFloat(CloudCoverageId, Mathf.Lerp(dayCover, 0.85f, rain));
+                // `deck` computed once above, where the ambient drinks from
+                // it — one idea, ONE implementation, because the whole point
+                // of the coupling is that the dome and the fill cannot
+                // disagree about today's cover.
+                _sky.SetFloat(CloudCoverageId, deck);
 
                 // THE SUN'S GLOW (V6): direction is the real sun's, so the
                 // bright patch sits where the shadows point. Warmer and
