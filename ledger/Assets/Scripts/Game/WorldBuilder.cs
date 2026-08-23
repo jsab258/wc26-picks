@@ -2359,12 +2359,24 @@ namespace Ledger.Game
         static void TintFurniture(GameObject go, Color c)
         {
             if (go == null) return;
-            var mpb = new MaterialPropertyBlock();
+            // MATERIAL REPLACEMENT, NOT AN MPB TINT — the first version set
+            // `_Color` through a property block and `furnitureRepainted=116`
+            // landed beside a crate stack exactly as white as before: the
+            // base-mesh props import through glTFast (manifest:
+            // com.unity.cloud.gltfast), whose shader has no `_Color` to
+            // read, so the counter counted calls while nothing changed — a
+            // wiring proof that proved the CALL, not the EFFECT. These
+            // props are untextured (notex=1 in every PropPrefab line), so
+            // swapping to the palette's own Standard flat material loses
+            // nothing and its shader variant ships already (every body
+            // wears it). The proof that can't lie is the next still plus
+            // the family's kitAlbedo staying measured at instantiate.
             foreach (var rr in go.GetComponentsInChildren<Renderer>(true))
             {
-                rr.GetPropertyBlock(mpb);
-                mpb.SetColor("_Color", c);
-                rr.SetPropertyBlock(mpb);
+                var mats = rr.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++)
+                    mats[i] = AssetLibrary.Opaque(c);
+                rr.sharedMaterials = mats;
             }
             FurnitureRepainted++;
         }
