@@ -35,20 +35,12 @@ measured on his card** (one-click converter+timer shipped 22 Aug). The
 streaming overlap exists in the backend, gated on a sustainability test
 his card misses by ~15%; if his number clears ~1.0x the backend needs
 Float16 binds and edge conversions (fp32-typed today).
-`put-voices-in-build.py` carries `-fp16` siblings and NAMES leftovers
-(16 selftest checks). `playtest-plan.md` has the session runbook; keep
-speech self-checks green on every landing.
-**THE RUNNER IS REGISTERED AND FLIPPED (22 Aug): `ledger-pc` on his
-machine picked up the probe build in seconds** — and the probe found
-the two tools the cloud image had and his PC does not: no `pwsh` (the
-verdict step's own shell) and no python3 in Git-bash. The workflow
-shims python3 (self-verified), probes pwsh at absolute paths past a
-stale service PATH, and fails in the FIRST minute naming the repair
-when either is truly absent. The install: bat 3, a plain DOUBLE-CLICK,
-self-elevating, no silently-closable window, and NO INSTALLERS — the
-pwsh MSI died at 92% "Access is denied" on his PC, so both tools land
-as plain zips (Program Files, falling back to `C:\LedgerTools`, both
-probed by the shims). Unity via bat 4, desktop session via bat 5.
+`playtest-plan.md` has the session runbook; keep speech self-checks
+green on every landing.
+**THE RUNNER IS REGISTERED AND FLIPPED (22 Aug): `ledger-pc` builds
+on his machine** via bats 3/4/5 (double-click, self-elevating, NO
+INSTALLERS — pwsh/python as plain zips). Account in
+`roadmap-history.md`.
 **ALL 72 GATES GREEN and holding (23 Aug).** ~17.6 min/round on his
 GPU vs cloud 33-41 — measured over 11 consecutive rounds; the BUILD
 is no longer the bottleneck, the ~35 min dispatch cadence is (my
@@ -61,27 +53,24 @@ noonFacade-as-a-question (census: 60% grey brick / 39% mat_roof, the
 shopfront surrounds and awnings built from roof felt, now painted
 joinery + canvas via Opaque()).
 
-**THE PERFORMANCE PICTURE IS MEASURED, AND TWO GUESSES DIED.**
-`frameCost` toggle ladder: all:22.4 noPost:22.0 noShadow:17.3
-noShafts:22.9 noBodies:23.3 noPixLights:18.0. **Sun shadows 5.1ms and
-per-pixel lights 4.4ms hold the frame; the crowd is not in the bill
-at all** (hiding every body came back SLOWER). Draw-call theory died
-first (instancing on every town surface — a real missing flag, kept —
-moved meanFrame 0.00 against a 24.67-25.84 band). If headroom is ever
-needed it is bought from shadows, not from people. meanFrame now
-~27.4ms and drifting up with density; perfOk still green.
+**THE PERFORMANCE PICTURE IS MEASURED; THREE GUESSES DIED.**
+`frameCost` ladder: all:22.4 noShadow:17.3 noPixLights:18.0
+noBodies:23.3. **Shadows 5.1ms and per-pixel lights 4.4ms hold the
+frame; the crowd is not in the bill** (hiding every body came back
+SLOWER). Dead: draw calls (instancing — a real missing flag, kept —
+moved meanFrame 0.00), vertex budget, shadow reach. meanFrame ~27.5ms
+and drifting with density; perfOk green.
 
 **THE STREET WAS NEVER AS EMPTY AS THE PICTURES.** Caps 12->28 bought
-density near the player (seen20 10.4->13.5, bodyLodNear 14->33) and
-did nothing for the frames, because `crowdWalkers=8` against cap 28
-said the cap had stopped binding — `Population.NearMetres=34` had.
-Nothing beyond a block of the player was DRAWN. 34->70 (BandSlack
-6->12 with it, since PopulationHost spends it as a proportion) took
-crowdWalkers to 22. Frames still looked empty, so the counter itself
+density near the player but not frames, because `crowdWalkers=8`
+against cap 28 said the cap had stopped binding —
+`Population.NearMetres=34` had: nothing beyond a block of the player
+was DRAWN. 34->70 (BandSlack 6->12 with it, spent as a proportion)
+took crowdWalkers to 22. Frames still looked empty, so the counter
 went under suspicion: **`streetBodies` was a viewport-RECTANGLE test
 counting people through walls.** `streetBodiesSeen` (linecast, the
-occlusion test `Shot` already ran for the player and was never
-pointed at the crowd) landed at **19 in cone / 3 visible**.
+test `Shot` already ran for the player and never pointed at the
+crowd) landed at **19 in cone / 3 visible**.
 **The sparse street was substantially a PHOTOGRAPHY problem.**
 `midFrac` (2..7m band, added this morning) sorted across 28 shots is
 bimodal — nights and district tours at 0.00-0.25, almost every DAY
@@ -96,6 +85,27 @@ these filenames). Day frames are NOT like-for-like across this
 change. Also open: Furniture RoadStuck 25->2 after widening rings to
 7.5/9.5m; `crowdInside` (overlapping PAIRS, not people indoors — I
 misread it once) at 18 is a clipping risk density will amplify.
+**23 Aug evening — THE CROWD BEHAVES, AND THE FRAME IS A SEPARATE
+QUESTION.** Weathering went into the TEXTURE (vertical run-off on
+brick/plaster/concrete, signed so albedo holds at 0.15;
+facadeLumaSpread 0.191 -> 0.207, no frame cost) after doubling wall
+decals to 368 moved the count and not the picture. Then the density
+finally showed — as 13 people in convoy down the CARRIAGEWAY
+(huddleMoving=13, huddleTalking=0: a shared desire line, not a
+gathering). Cause: `Steer`'s first branch tests only whether
+something SOLID blocks the line, and tarmac does not, so every
+walker with line of sight cut across and along the road and the
+pavement rules below it were unreachable in the common case. Guard
+added on how far a line RUNS ON road (12m, from the 8m avenue width
+— a crossing is fine, a diagonal is not): steerDirectOnRoad=27910
+refusals, crowdTightest 0.04 -> 0.23, huddleWorst 13 -> 10, road
+clear in the still. **But the frame then showed 1-2 people again:
+correct behaviour, fewer visible.** DO NOT chase this by loosening
+the guard — the next lever is where walkers' ROUTES go, not whether
+they may use the road. Open: huddleWorst 10 persists;
+headingIntoRoad=13 unchanged (different sample, check before
+acting). Shadow distance was PRICED and REJECTED (shadow45 21.2 vs
+all 21.6 — 0.4ms of the 5.1ms, not worth a metre of quality).
 Revert `runs-on` if he bows out.
 **BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT** (Jafar, 22 Aug:
 "a full ultracode audit before playtesting is a good idea. rememver
@@ -326,19 +336,15 @@ build. Pre-approved; token-heavy by design.
    industrial quarter is nearly undressed. Noted, not chased.
 
 1. **THE DRESSING GATE WENT GREEN ON BUILD T** — the far city carries
-   382 pieces where it carried 37; the fractional-slot fix, account in
-   the dressing commit. **THE FRAME GATE STAYS RED AND THE COST HAS
-   MOVED — this item was two regime changes stale.** **Read the breakdown, not the mean**: `mean=666.4ms` is a
-   software rasteriser and says nothing; `game=24.53ms` against a 12ms budget
-   is a 104% overrun in OUR code.
-
-   Current: `npcs=9.48 bodyLod=4.68 mix=3.75 traffic=2.51 sun=1.27
-   population=1.40 rigs=1.25`. **`npcs` is now the dominant cost** — the series
-   says it tripled (~2.3-3.3 → ~4.4 → ~8.6-9.5 across three regimes) while
-   `game` went 14→18→24ms. Start there, not at bodyLod (a once-a-second FULL
-   pass; spreading it round-robin needs the measurement split from the sweep
-   first, and tuning belongs on the PC). **`sun` is settled** — it read 3.15ms
-   only because the audio mix ran inside its timer.
+   382 pieces where it carried 37. **THE FRAME ITEM BELOW IT IS RETIRED
+   (23 Aug): it was three regime changes stale.** It argued from
+   `mean=666.4ms` (a software rasteriser) and `game=24.53ms` against a
+   12ms budget, and named `npcs` as the dominant cost to attack. On the
+   real GPU the frame is `game=5.6ms` of `meanFrame ~27.5ms` with
+   `perfOk` green, and the render — not our code — is four fifths of it.
+   The live account is the `frameCost` ladder in `## Now`: shadows
+   5.1ms, per-pixel lights 4.4ms, crowd nothing. Anything that still
+   wants doing here starts from that ladder, not from these numbers.
 
 1. ~~**The session-hook guarantee** (M22)~~ — **BUILT AND HOLDING.** What is
    open is the READING, not the tiers — see `## Now`.
@@ -351,17 +357,13 @@ build. Pre-approved; token-heavy by design.
    singular; the doc offers bar/courier/office on the first morning.
 5. **Interiors beyond the pub** (M20) — every other door is a threshold.
 
-**Reactions are LIVE and the asks are measured** (build P: 82 played;
-flinch 11of61, glance 62of284, wave 4of8, point 1of2, head_no 4of6 —
-most refusals are glance cooldowns, which is the cooldown doing its
-job). **greet reads 0of0 and that is the SIM'S ECONOMY, not a wire
-fault**: the gesture fires only for a loyal (≥0.35), need-route crew
-member passing the player, and the sim skims — worst loyalty 0.225 —
-so the condition never exists in a run. Deliberately NOT planted: a
-staged loyal runner would pollute the crew-decay gates that measure
-skimming. The wire is proven by the other five kinds sharing its code
-path. If a future run's crew stays loyal, greet gets its first ask
-free.
+**Reactions are LIVE and measured** (flinch/glance/wave/point/head_no
+all firing; most refusals are glance cooldowns doing their job).
+**greet reads 0of0 and that is the SIM'S ECONOMY, not a wire fault**:
+it needs a loyal (≥0.35) need-route crew member passing the player and
+the sim skims, so the condition never exists. Deliberately NOT
+planted — a staged loyal runner would pollute the crew-decay gates.
+The wire is proven by the five kinds sharing its path.
 
 ### The quality ladder (standing order 16 Aug: best available, not first working)
 
@@ -384,16 +386,15 @@ one? Take the next rung or name it here. A blank next rung is a research task.
   trip. This is the largest piece of unwritten game left.
 - **M22, the shape of a playthrough.** Onboarding, pacing, replayability and
   succession — also unbuilt and also Core-shaped.
-- **Read a system and write down what it actually does.** Every system here has
-  at least one comment that is now false — the supply is unlimited, and each
-  one found is a bug that would otherwise have been believed. **Read the code
-  that produces a number too**: three faults in `CollidingNames` on 20 August,
-  found by reading rather than by any reading it produced.
+- **Read a system and write down what it actually does.** Every system
+  here has at least one comment that is now false, and each one found is
+  a bug that would otherwise have been believed. **Read the code that
+  produces a number too** — three faults in `CollidingNames` came from
+  reading it, not from its readings.
 - **Turn a still into a number.** Five faults found by opening a frame and none
   by a gate. Anything a frame shows that no metric names is a metric worth
   adding.
-- **DROPS DELIVER EVERY RUN (T:2, U:4, V:3, X:1, Y:2).** The chest-cast
-  landed for the window-band pin. Open: the d12 shape — a night whose
-  window the job never owned (`held:waypoint`, ran=0) while the skip
-  plant's count says it stopped at day 11. Trace-first: read TraceJob's
-  window source against the active-job timing before any change.
+- **DROPS DELIVER EVERY RUN.** Open: the d12 shape — a night the job
+  never owned (`held:waypoint`, ran=0) while the skip plant says it
+  stopped at day 11. Trace-first: read TraceJob's window source against
+  the active-job timing before any change.
