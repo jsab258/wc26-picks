@@ -1353,6 +1353,9 @@ namespace Ledger.Game
             StageTheCallbox(now, ref target);
             _player.AutoMoveTarget = target;
             NoteTargetOwner();
+            // After the owner is final for the tick, so the shift trace's
+            // held: tally names whoever actually won the legs.
+            TraceShift(now);
 
             // RUN FOR THE DROP, WHICH IS PLANTING THE CONDITION RATHER THAN
             // LOOSENING THE BOUND.
@@ -3130,6 +3133,146 @@ namespace Ledger.Game
                           + $"held:{OwnerTally()}]");
         }
 
+        /// THE SHIFT WALK GETS THE DROP'S TRACE. Three landed shifts read
+        /// `lapsed@stop0:9m/auth:8m` — both distances large, so the
+        /// marker-displacement suspect is acquitted and the walk itself is
+        /// the question. TraceJob answered exactly this question for the
+        /// night drops (stall length, the named blocker, who held the
+        /// target, whether the address is standable) and the parcels run
+        /// through the same legs with none of it. A compact twin rather
+        /// than a refactor: TraceJob is the master copy, and its fields
+        /// stay per-drop while these are per-shift-day.
+        bool _shiftTrOpen; int _shiftTrDay = -1;
+        double _shiftTrFrom, _shiftTrNearest;
+        float _shiftTrWalked, _shiftTrWorstSev;
+        int _shiftTrStillRun, _shiftTrLongestStall, _shiftTrStallWith;
+        int _shiftTrTicks, _shiftTrRan, _shiftTrStops;
+        string _shiftTrStallOn = "nothing", _shiftTrStallAt = "nowhere";
+        string _shiftTrClearEnd = "n/a", _shiftEndAtOpen = "";
+        int _shiftsAtOpen;
+        Vector3 _shiftTrLastPos, _shiftTrLastTarget;
+        readonly Dictionary<string, int> _shiftTrOwners = new Dictionary<string, int>();
+        /// Last-wins by design, like ShiftEnd beside it: with the daily
+        /// restage the last attempt is the one the gate judged.
+        string _shiftTrace = "none";
+
+        void TraceShift(GameTime now)
+        {
+            if (_game == null || _player == null) return;
+            // Mornings only — a live night drop has its own trace, and the
+            // two never overlap by their windows.
+            var pos = _game.DayJobTargetPos;
+            if (!pos.HasValue || _game.ActiveJobPos.HasValue)
+            {
+                if (!_shiftTrOpen) return;
+                _shiftTrOpen = false;
+                // WHICH COUNTER MOVED, not which one we hoped moved —
+                // TraceJob's rule. A board that expired unvisited moves
+                // neither counter and must not read as a lapse.
+                string how = _game.Job.ShiftsWorked > _shiftsAtOpen ? "done"
+                           : _game.ShiftEnd != _shiftEndAtOpen ? _game.ShiftEnd
+                           : "noaccept";
+                var owners = new List<string>();
+                foreach (var kv in _shiftTrOwners) owners.Add($"{kv.Key}={kv.Value}");
+                owners.Sort();
+                _shiftTrace = $"[d{_shiftTrDay}:{how}/from:{_shiftTrFrom:0}m"
+                            + $"/nearest:{_shiftTrNearest:0.0}m/walked:{_shiftTrWalked:0}m"
+                            + $"/stops:{_shiftTrStops}/hurt:{_shiftTrWorstSev:0.00}"
+                            + $"/stalled:{_shiftTrLongestStall}"
+                            + $"/with:{_shiftTrStallWith}@{_shiftTrStallAt}"
+                            + $"/on:{_shiftTrStallOn}"
+                            // Standability of the FINAL target — for a lapse
+                            // at stop N that is stop N, the address in
+                            // question. point/person/elbows, like TraceJob.
+                            + $"/clearEnd:{_shiftTrClearEnd}"
+                            + $"/ticks:{_shiftTrTicks}/ran:{_shiftTrRan}"
+                            + $"/held:{(owners.Count > 0 ? string.Join(",", owners.ToArray()) : "unwatched")}]";
+                Debug.Log("SimDirector: shiftTrace " + _shiftTrace);
+                return;
+            }
+
+            var p0 = _player.transform.position;
+            var flatNow = new Vector3(p0.x, 0, p0.z);
+            var mk = new Vector3(pos.Value.x, 0, pos.Value.z);
+            double d = Vector3.Distance(flatNow, mk);
+            if (!_shiftTrOpen || _shiftTrDay != now.Day)
+            {
+                _shiftTrOpen = true;
+                _shiftTrDay = now.Day;
+                _shiftTrFrom = d; _shiftTrNearest = d;
+                _shiftTrWalked = 0; _shiftTrWorstSev = 0;
+                _shiftTrStillRun = 0; _shiftTrLongestStall = 0; _shiftTrStallWith = 0;
+                _shiftTrTicks = 0; _shiftTrRan = 0; _shiftTrStops = 0;
+                _shiftTrStallOn = "nothing"; _shiftTrStallAt = "nowhere";
+                _shiftTrOwners.Clear();
+                _shiftTrLastPos = p0;
+                _shiftTrLastTarget = mk;
+                _shiftEndAtOpen = _game.ShiftEnd;
+                _shiftsAtOpen = _game.Job.ShiftsWorked;
+                _shiftTrClearEnd =
+                    $"{(WorldBuilder.PointClear(mk, 0f) ? 1 : 0)}"
+                    + $"/{(WorldBuilder.PointClear(mk, 0.6f) ? 1 : 0)}"
+                    + $"/{(WorldBuilder.PointClear(mk, 1.2f) ? 1 : 0)}";
+                return;
+            }
+
+            // The target jumping is a stop advancing (or board -> stop 0):
+            // re-read standability so clearEnd describes the current address.
+            if (Vector3.Distance(mk, _shiftTrLastTarget) > 3f)
+            {
+                _shiftTrStops++;
+                _shiftTrLastTarget = mk;
+                _shiftTrClearEnd =
+                    $"{(WorldBuilder.PointClear(mk, 0f) ? 1 : 0)}"
+                    + $"/{(WorldBuilder.PointClear(mk, 0.6f) ? 1 : 0)}"
+                    + $"/{(WorldBuilder.PointClear(mk, 1.2f) ? 1 : 0)}";
+            }
+
+            if (d < _shiftTrNearest) _shiftTrNearest = d;
+            float step = Vector3.Distance(flatNow,
+                new Vector3(_shiftTrLastPos.x, 0, _shiftTrLastPos.z));
+            _shiftTrWalked += step;
+            _shiftTrLastPos = p0;
+            _shiftTrTicks++;
+            if (_player.AutoMoveRun) _shiftTrRan++;
+            _shiftTrOwners.TryGetValue(_targetOwner, out int n);
+            _shiftTrOwners[_targetOwner] = n + 1;
+            float sev = _player.SeverityNow;
+            if (sev > _shiftTrWorstSev) _shiftTrWorstSev = sev;
+            if (step < 0.05f)
+            {
+                _shiftTrStillRun++;
+                if (_shiftTrStillRun > _shiftTrLongestStall)
+                {
+                    _shiftTrLongestStall = _shiftTrStillRun;
+                    _shiftTrStallWith = 0;
+                    if (_npcs != null)
+                        foreach (var w in _npcs)
+                        {
+                            if (w == null || !w.isActiveAndEnabled) continue;
+                            if ((w.transform.position - p0).sqrMagnitude <= 4f)
+                                _shiftTrStallWith++;
+                        }
+                    _shiftTrStallAt = $"{p0.x:0}/{p0.z:0}";
+                    _shiftTrStallOn = "nothing";
+                    var castFrom = p0 + Vector3.up * 0.9f;
+                    var castTo = new Vector3(mk.x, castFrom.y, mk.z);
+                    var castDir = castTo - castFrom;
+                    if (castDir.sqrMagnitude > 0.01f)
+                    {
+                        castDir.Normalize();
+                        if (Physics.SphereCast(castFrom, 0.3f, castDir, out var hit, 3f)
+                            && hit.collider != null
+                            && hit.collider.transform.root != _player.transform.root)
+                            // A verdict value may not contain a space, and a
+                            // clone's name can ("Big Vegas(Clone)").
+                            _shiftTrStallOn =
+                                $"{hit.collider.name.Replace(' ', '_')}@{hit.distance:0.0}m";
+                    }
+                }
+            }
+            else _shiftTrStillRun = 0;
+        }
 
         /// HOW THE PLAYER READS AGAINST THE CROWD, in rendered pixels.
         ///
@@ -8028,6 +8171,90 @@ namespace Ledger.Game
                         + $"/noLift:{noLift.Mean:0.000}/noLamps:{noLamps.Mean:0.000}]";
         }
 
+        /// WHO HOLDS THE NOON FACADE DOWN. The 3a4ea5e noon still has its
+        /// left half near-black — a shaded wall whose expected chain
+        /// (albedo 0.15 x ambient 0.42 x exposure ~1.6, sRGB-encoded) puts
+        /// it around 0.27 display, an order of magnitude above what landed.
+        /// Five multipliers could each hold the gap (post stack, AO,
+        /// vignette, the ambient never reaching a vertical face, the wall
+        /// not being the material assumed) and guessing has been wrong at
+        /// every step of the night-floor hunt that this ladder copies: same
+        /// instant, each suspect toggled, LEFT-THIRD MIDDLE-BAND MEDIAN per
+        /// rung — regional, because the question is a wall, and the same
+        /// region lumaThirds reports for the committed frame. Runs at the
+        /// day-1 noon review shot, from its exact vantage, once per run.
+        string _noonFacade = "not_probed";
+        bool _noonFacadeDone;
+
+        void ProbeNoonFacade(Camera cam)
+        {
+            if (_noonFacadeDone || cam == null) return;
+            _noonFacadeDone = true;
+            var sunGo = GameObject.Find("Sun");
+            var sunL = sunGo != null ? sunGo.GetComponent<Light>() : null;
+            double all = -1, noPost = -1, noAo = -1, noVig = -1, sunOff = -1;
+            try
+            {
+                all = LeftThirdMedian(FrameShot(cam));
+                FilmGrade.Bypass = true;
+                noPost = LeftThirdMedian(FrameShot(cam));
+                FilmGrade.Bypass = false;
+                FilmGrade.AmbientOcclusion = false;
+                noAo = LeftThirdMedian(FrameShot(cam));
+                FilmGrade.AmbientOcclusion = true;
+                FilmGrade.Vignette = false;
+                noVig = LeftThirdMedian(FrameShot(cam));
+                FilmGrade.Vignette = true;
+                if (sunL != null)
+                {
+                    sunL.enabled = false;
+                    sunOff = LeftThirdMedian(FrameShot(cam));
+                    sunL.enabled = true;
+                }
+            }
+            finally
+            {
+                // A throw mid-ladder must not strand a toggle: the frames
+                // after this one are the run's evidence, not the probe's.
+                FilmGrade.Bypass = false;
+                FilmGrade.AmbientOcclusion = true;
+                FilmGrade.Vignette = true;
+                if (sunL != null) sunL.enabled = true;
+            }
+            _noonFacade = $"[all:{all:0.000}/noPost:{noPost:0.000}/noAO:{noAo:0.000}"
+                        + $"/noVig:{noVig:0.000}/sunOff:{sunOff:0.000}]";
+            Debug.Log("SimDirector: noonFacade " + _noonFacade);
+        }
+
+        /// Median luma of the frame's left third, rows 25%..75% — the same
+        /// region Fingerprint's lumaThirds reports first, so the ladder and
+        /// the frame ledger describe one patch of the picture. -1 for a
+        /// failed render, which cannot read as a dark wall (rule 3b).
+        static double LeftThirdMedian(FrameStats st)
+        {
+            var luma = st.Luma;
+            if (luma == null || luma.Length == 0) return -1;
+            int w2 = 640, rows = luma.Length / w2;
+            if (rows < 4) return -1;
+            var hist = new int[256];
+            int n = 0;
+            for (int r = rows / 4; r < (3 * rows) / 4; r++)
+                for (int c = 0; c < w2 / 3; c++)
+                {
+                    int bin = (int)(luma[r * w2 + c] * 255.0);
+                    hist[bin < 0 ? 0 : (bin > 255 ? 255 : bin)]++;
+                    n++;
+                }
+            if (n == 0) return -1;
+            int half = n / 2, seen = 0;
+            for (int b = 0; b < 256; b++)
+            {
+                seen += hist[b];
+                if (seen > half) return b / 255.0;
+            }
+            return -1;
+        }
+
         /// EVERY PRIMARY BUILDING BOX SITS ON THE GROUND, measured off what
         /// is DRAWN rather than off the mass table — build P's noon frame
         /// shows a brick facade that reads as hovering over the road, and a
@@ -9552,6 +9779,10 @@ namespace Ledger.Game
                           + $"{RenderSettings.ambientSkyColor.b:0.000}");
 
                 var fp = Fingerprint(tex, name);
+                // The facade ladder, from THIS vantage: the camera is at the
+                // step-back's final position and the frame just encoded is
+                // the one whose left half the ladder explains.
+                if (name == "day1_noon") ProbeNoonFacade(cam);
                 // THE GLOW-BLOB READ, night and dusk frames only. Two night
                 // stills read as walls of amber light while brightPct called
                 // one of them 1.23 — the eye's objection is one CONTIGUOUS
@@ -9629,7 +9860,8 @@ namespace Ledger.Game
         /// formatted these invariantly, so they are passed through as text
         /// rather than re-parsed and re-printed.
         void LedgerRow(string name, (string luma, string rgb, string maxLuma, string brightPct,
-                                     string brightRgb, string satPct, string satRgb) fp)
+                                     string brightRgb, string satPct, string satRgb,
+                                     string lumaThirds) fp)
         {
             try
             {
@@ -9648,7 +9880,11 @@ namespace Ledger.Game
                                 // landed, so run-to-run vantage drift could only
                                 // be argued from pictures. frame-drift carries
                                 // unknown columns without comparing them.
-                                .Append("camX\tcamZ\tcamYaw\n");
+                                // Median luma of the frame's left/centre/right
+                                // thirds, middle band only — the near-facade
+                                // number. Appended LAST so frame-drift's known
+                                // columns keep their positions.
+                                .Append("camX\tcamZ\tcamYaw\tlumaThirds\n");
                 _frameRows++;
                 var ct = Camera.main != null ? Camera.main.transform : null;
                 _frameLedger.Append(name).Append('\t')
@@ -9661,7 +9897,8 @@ namespace Ledger.Game
                             .Append(fp.brightRgb).Append('\t')
                             .Append(ct != null ? ct.position.x.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) : "none").Append('\t')
                             .Append(ct != null ? ct.position.z.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) : "none").Append('\t')
-                            .Append(ct != null ? ct.eulerAngles.y.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : "none").Append('\n');
+                            .Append(ct != null ? ct.eulerAngles.y.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : "none").Append('\t')
+                            .Append(fp.lumaThirds).Append('\n');
                 System.IO.File.WriteAllText("sim-out/frames.tsv", _frameLedger.ToString());
             }
             catch (Exception e) { _errors.Add("LedgerRow: " + e.Message); }
@@ -9738,7 +9975,7 @@ namespace Ledger.Game
         /// is visible in CI, where the PNG artifact host is unreachable) plus mean
         /// luminance and RGB for the JSON report.
         static (string luma, string rgb, string maxLuma, string brightPct, string brightRgb,
-                string satPct, string satRgb) Fingerprint(Texture2D tex, string name)
+                string satPct, string satRgb, string lumaThirds) Fingerprint(Texture2D tex, string name)
         {
             const int cols = 64, rows = 24;
             const string ramp = " .:-=+*#%@"; // dark -> bright
@@ -9779,12 +10016,32 @@ namespace Ledger.Game
             // frame is coloured and how coloured it is — two scalars, neither
             // of which can be washed out by mixing.
             long sc = 0; double satSum = 0;
+            // PER-THIRD MEDIAN LUMA, MIDDLE BAND. The whole-frame mean cannot
+            // say WHERE the light is: review_day1_noon at 3a4ea5e has its left
+            // half filled by one near-black facade beside a normally lit
+            // street, and meanLuma launders the two against each other. Thirds
+            // by column answer "what is the typical tone of this region" —
+            // a median question, deliberately: a wall is a population, not an
+            // event. The band is rows 25%..75% of frame height so sky and
+            // road do not vote on a facade — and it is vertically SYMMETRIC
+            // on purpose, so GetPixels32 being bottom-up cannot invert it.
+            var thirdHist = new int[3, 256];
+            var thirdN = new int[3];
+            int bandLo = h / 4, bandHi = (3 * h) / 4;
             for (int i = 0; i < px.Length; i++)
             {
                 var c = px[i];
                 double l = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255.0;
                 if (l > maxLuma) maxLuma = l;
                 if (l > 0.60) { brightCount++; br += c.r; bg += c.g; bb += c.b; }
+                int py = i / w;
+                if (py >= bandLo && py < bandHi)
+                {
+                    int third = Math.Min(2, (i % w) * 3 / w);
+                    int bin = Mathf.Clamp((int)(l * 255.0), 0, 255);
+                    thirdHist[third, bin]++;
+                    thirdN[third]++;
+                }
                 int mx = Math.Max(c.r, Math.Max(c.g, c.b));
                 if (mx >= 40)
                 {
@@ -9799,6 +10056,24 @@ namespace Ledger.Game
             double satPct = 100.0 * sc / px.Length;
             string satRgb = (sc > 0 ? satSum / sc : 0.0).ToString("0.00",
                 System.Globalization.CultureInfo.InvariantCulture);
+            // Slash-joined L/C/R; the empty case prints words (rule 3b).
+            string lumaThirds;
+            {
+                var parts = new string[3];
+                for (int t = 0; t < 3; t++)
+                {
+                    if (thirdN[t] == 0) { parts[t] = "none"; continue; }
+                    int half = thirdN[t] / 2, seen = 0, med = 0;
+                    for (int b2 = 0; b2 < 256; b2++)
+                    {
+                        seen += thirdHist[t, b2];
+                        if (seen > half) { med = b2; break; }
+                    }
+                    parts[t] = (med / 255.0).ToString("0.000",
+                        System.Globalization.CultureInfo.InvariantCulture);
+                }
+                lumaThirds = string.Join("/", parts);
+            }
             var art = new StringBuilder(cols * rows + rows + 64);
             art.Append($"\n--- render[{name}] {cols}x{rows} ascii-luma ---\n");
             for (int ry = 0; ry < rows; ry++)
@@ -9831,7 +10106,8 @@ namespace Ledger.Game
             var inv = System.Globalization.CultureInfo.InvariantCulture;
             art.Append($"render[{name}] meanLuma={luma:0.000} maxLuma={maxLuma:0.000} " +
                        $"bright(>0.6)%={brightPct:0.00} meanRgb={(int)mr},{(int)mg},{(int)mb} " +
-                       $"brightRgb={brightRgb} sat(>0.35)%={satPct:0.00} satStrength={satRgb}\n");
+                       $"brightRgb={brightRgb} sat(>0.35)%={satPct:0.00} satStrength={satRgb} " +
+                       $"lumaThirds={lumaThirds}\n");
             Debug.Log(art.ToString());
             return (
                 luma.ToString("0.000", inv),
@@ -9840,7 +10116,8 @@ namespace Ledger.Game
                 brightPct.ToString("0.00", inv),
                 brightRgb,
                 satPct.ToString("0.00", inv),
-                satRgb);
+                satRgb,
+                lumaThirds);
         }
 
         void Finish()
@@ -11971,6 +12248,7 @@ namespace Ledger.Game
                       // LAST shift's outcome (last-wins by design — with the
                       // daily restage a run keeps trying until one lands).
                       $"shiftStopsReached={_game.ShiftStopsReached} shiftEnd={_game.ShiftEnd} " +
+                      $"shiftTrace={_shiftTrace} " +
                       $"street={_game.Economy.Prosperity:0.00} prices={_game.Economy.PriceLevel:0.00} " +
                       $"takingsFactor={_game.Economy.TakingsFactor:0.00} economyOk={economyOk} " +
                       $"directorPending={_game.Directorate.Pending.Count} directorFired={_directorFired} directorOk={directorOk} " +
@@ -13133,6 +13411,7 @@ namespace Ledger.Game
                       $"bodyBrightestCrowdMed={_bodyBrightestCrowdMed:0.0} " +
                       $"bodyBrightestPart={_bodyBrightestPart} " +
                       $"nightFloor={_nightFloor} " +
+                      $"noonFacade={_noonFacade} " +
                       // Largest contiguous warm glow patch in a dark-hour
                       // frame: the worst (with its shot named) beside the
                       // median, because "did any frame become a wall of
