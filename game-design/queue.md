@@ -42,70 +42,77 @@ on his machine** via bats 3/4/5 (double-click, self-elevating, NO
 INSTALLERS — pwsh/python as plain zips). Account in
 `roadmap-history.md`.
 **ALL 72 GATES GREEN and holding (23 Aug).** ~17.6 min/round on his
-GPU vs cloud 33-41 — measured over 11 consecutive rounds; the BUILD
-is no longer the bottleneck, the ~35 min dispatch cadence is (my
-read+write time). CLOSED today: hair, furniture (models + repaint
-proven by still), clip sheet, **dayJob** (courier rides
-StreetMap.Route; two traced mornings had the slide grinding on a
-window sill then Building_69's corner), **beats** (same router, after
-it went red for the first time in 271 runs on the routing build),
-noonFacade-as-a-question (census: 60% grey brick / 39% mat_roof, the
-shopfront surrounds and awnings built from roof felt, now painted
-joinery + canvas via Opaque()).
+GPU vs cloud 33-41 over 11 rounds; the BUILD is no longer the
+bottleneck, the ~35 min dispatch cadence is. CLOSED today: hair,
+furniture, clip sheet, **dayJob** (courier rides StreetMap.Route
+after two traced mornings grinding on a window sill then a building
+corner), **beats** (same router), noonFacade-as-a-question (census:
+60% grey brick / 39% mat_roof — shopfront surrounds and awnings were
+built from roof felt, now painted joinery + canvas via Opaque()).
 
-**THE PERFORMANCE PICTURE IS MEASURED; THREE GUESSES DIED.**
-`frameCost` ladder: all:22.4 noShadow:17.3 noPixLights:18.0
-noBodies:23.3. **Shadows 5.1ms and per-pixel lights 4.4ms hold the
-frame; the crowd is not in the bill** (hiding every body came back
-SLOWER). Dead: draw calls (instancing — a real missing flag, kept —
-moved meanFrame 0.00), vertex budget, shadow reach. meanFrame ~27.5ms
-and drifting with density; perfOk green.
+**PERFORMANCE IS MEASURED; THREE GUESSES DIED.** `frameCost` ladder:
+all:22.4 noShadow:17.3 noPixLights:18.0 noBodies:23.3. **Shadows
+5.1ms and per-pixel lights 4.4ms hold the frame; the crowd is not in
+the bill** (hiding every body came back SLOWER). Dead: draw calls
+(instancing — a real missing flag, kept — moved meanFrame 0.00),
+vertex budget, shadow reach (shadow45 21.2 vs all 21.6 — 0.4ms of
+5.1, rejected). The ladder's ABSOLUTES are not a frame time (its RT
++ ReadPixels carry per-object cost the composited frame does not);
+only the rungs' differences are.
 
-**THE STREET WAS NEVER AS EMPTY AS THE PICTURES.** Caps 12->28 bought
-density near the player but not frames, because `crowdWalkers=8`
-against cap 28 said the cap had stopped binding —
-`Population.NearMetres=34` had: nothing beyond a block of the player
-was DRAWN. 34->70 (BandSlack 6->12 with it, spent as a proportion)
-took crowdWalkers to 22. Frames still looked empty, so the counter
-went under suspicion: **`streetBodies` was a viewport-RECTANGLE test
-counting people through walls.** `streetBodiesSeen` (linecast, the
-test `Shot` already ran for the player and never pointed at the
-crowd) landed at **19 in cone / 3 visible**.
-**The sparse street was substantially a PHOTOGRAPHY problem.**
-`midFrac` (2..7m band, added this morning) sorted across 28 shots is
-bimodal — nights and district tours at 0.00-0.25, almost every DAY
-street shot 0.35-0.69 — so `ShotMidBlockedAt=0.30` sits in the widest
-gap, exactly as `ShotBlockedAt` was placed in its own. Landed:
-**12 of 13 triggered shots fixed** (day2_noon 0.37->0.14, day12_noon
-0.69->0.17); day2_noon now shows 7-8 people, a cast shadow and a
-legible shopfront — pair sent to Jafar. OPEN: `day1_noon` is the one
-that gave up (wedged in a canyon, 8x1.5m straight back cannot escape;
-straight-back-never-re-aimed is deliberate — a dozen findings cite
-these filenames). Day frames are NOT like-for-like across this
-change. Also open: Furniture RoadStuck 25->2 after widening rings to
-7.5/9.5m; `crowdInside` (overlapping PAIRS, not people indoors — I
-misread it once) at 18 is a clipping risk density will amplify.
-**23 Aug evening — THE CROWD BEHAVES, AND THE FRAME IS A SEPARATE
-QUESTION.** Weathering went into the TEXTURE (vertical run-off on
-brick/plaster/concrete, signed so albedo holds at 0.15;
-facadeLumaSpread 0.191 -> 0.207, no frame cost) after doubling wall
-decals to 368 moved the count and not the picture. Then the density
-finally showed — as 13 people in convoy down the CARRIAGEWAY
-(huddleMoving=13, huddleTalking=0: a shared desire line, not a
-gathering). Cause: `Steer`'s first branch tests only whether
-something SOLID blocks the line, and tarmac does not, so every
-walker with line of sight cut across and along the road and the
-pavement rules below it were unreachable in the common case. Guard
-added on how far a line RUNS ON road (12m, from the 8m avenue width
-— a crossing is fine, a diagonal is not): steerDirectOnRoad=27910
-refusals, crowdTightest 0.04 -> 0.23, huddleWorst 13 -> 10, road
-clear in the still. **But the frame then showed 1-2 people again:
-correct behaviour, fewer visible.** DO NOT chase this by loosening
-the guard — the next lever is where walkers' ROUTES go, not whether
-they may use the road. Open: huddleWorst 10 persists;
-headingIntoRoad=13 unchanged (different sample, check before
-acting). Shadow distance was PRICED and REJECTED (shadow45 21.2 vs
-all 21.6 — 0.4ms of the 5.1ms, not worth a metre of quality).
+**THE STREET WAS NEVER AS EMPTY AS THE PICTURES.** Three faults, all
+found by measuring: (1) `Population.NearMetres=34` meant nothing past
+a block of the player was DRAWN — now 70 (BandSlack 6->12 with it,
+spent as a proportion), crowdWalkers 8 -> 22; (2) **`streetBodies`
+was a viewport-RECTANGLE test counting people through walls** —
+`streetBodiesSeen` (linecast, the test `Shot` already ran for the
+player and never pointed at the crowd) read **19 in cone / 3
+visible**; (3) the cameras stood badly — `midFrac` (2..7m band)
+sorted across 28 shots was bimodal (nights/tours 0.00-0.25, day
+street shots 0.35-0.69), so `ShotMidBlockedAt=0.30` sits in the
+widest gap as `ShotBlockedAt` does in its own. **12 of 13 triggered
+shots fixed**; day1_noon is the one that gave up (canyon;
+straight-back-never-re-aimed is deliberate — findings cite these
+filenames). The street shot ALSO fled the crowd by design (slid along
+until nobody within 2.5m, any direction) — now 1.6m and in-front
+only. Day frames are NOT like-for-like across these.
+
+**23 Aug evening — THE DAY NOW READS AS DAY.** The biggest single
+win of the day and it was a MEASUREMENT, not taste: day3_noon was
+0.206 mean against day3_night 0.165 — a midday a quarter brighter
+than a midnight. `Exposure` had been revised six times chasing this,
+each time a chosen number read against one frame. `exposureCurve`
+printed the response instead (x1.00:0.199 x1.50:0.256 x2.00:0.302
+x3.00:0.373 — roll-off real but gentle, so the aperture IS the
+lever). Target bounded by landed readings on BOTH sides: 0.44-0.49 /
+40-48% bright was measured and rejected as "seaside-morning white",
+0.206 reads as night. Day arm 0.72 -> 2.44 lands noons 0.30-0.41 at
+12-33% bright, nights untouched at 0.14-0.18, noon:night 1.25 ->
+2.35:1. **Two things would have eaten it silently: the Clamp ceiling
+(1.85 against a noon of 1.72 — raised to 3.6) and the rain term
+(scaled with the arm or "an overcast day loses light" halves).**
+Three break fixtures re-anchored.
+
+**SILLS ARE IN AND FREE** (2133; sceneRenderers 19810 -> 21983 with
+render+rest UNCHANGED at ~21.4ms — this scene is not
+submission-bound). Near buildings only, reusing the pane/band `near`
+flag; no collider, per the courier's 197 ticks against a window box.
+Weathering moved into the TEXTURE first (vertical run-off on
+brick/plaster/concrete, signed so albedo holds at 0.15) after
+doubling decals to 368 moved the count and not the picture.
+
+**THE CROWD BEHAVES.** Density showed up as 13 people in convoy down
+the CARRIAGEWAY; cause was `Steer`'s first branch testing only for
+SOLID blockers, so tarmac never stopped anyone and the pavement rules
+below were unreachable. Guard on how far a line RUNS ON road (12m,
+from the 8m avenue width): headingIntoRoad 13 -> 5, crowdTightest
+0.04 -> 0.23, road clear. **Its sampling cost 1.9ms of npcsMs until
+coarsened 0.5m -> 1.5m (npcsMs 5.99 -> 4.85).** The frame then showed
+1-2 people again: correct behaviour, fewer visible. DO NOT chase by
+loosening the guard — the lever is where ROUTES go. meanFrame ~28.4ms
+(from ~25 this morning) for all of today's density+sills; perfOk
+green. `places` went red once and recovered untouched (3/289 flaky) —
+if it returns, suspect the routing change, not the ledges.
 Revert `runs-on` if he bows out.
 **BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT** (Jafar, 22 Aug:
 "a full ultracode audit before playtesting is a good idea. rememver
@@ -126,24 +133,17 @@ build. Pre-approved; token-heavy by design.
    overcast reference frame proves dirt+depth+density carry a frame with no
    interesting light.
 
-   **LANDED, accounts in `roadmap-history.md`:** V0+V1 whole (shadows,
-   sun:ambient, AO, day aperture, cookie, grade split, decals, exposure
-   re-anchors — day2_noon showed real cast shadows first time); build D's
-   kit furniture, double yellows, chimney pots, aerials, reactions; and
-   **V1.5 LINEAR CLOSED** (one flip + five measured rounds, noon 0.206,
-   night 0.128, lighting gate green). Open from those passes: shopfront
-   void (V4), sky dome (V6).
+   **LANDED, accounts in `roadmap-history.md`:** V0+V1 whole; build D's
+   kit furniture, yellows, chimney pots, aerials, reactions; **V1.5
+   LINEAR CLOSED**. Open from those passes: sky dome (V6).
 
    **LINEAR MPB CLASS-FAULT UNDER TEST:** MPB colours skip
    gamma-to-linear, so display-authored MPB tints weakened at the flip.
-   BODY WASH fixed first; the 13 other MPB sites wait on the wash
-   verdict. **23 Aug: the verdict was blocked by its own instrument** —
-   the palest-part table named BlobShadow at 223-232 four runs running,
-   and the blob is a multiply-blend quad whose pixels ARE the pavement
-   behind it; attribution now skips Hidden/-shader renderers. What
-   remains real in the table: feet and shoes at 224-234 (FootMesh,
-   Ch38_Shoes) on both tiers. Read the part table again next landing,
-   then rule on the 13 sites.
+   BODY WASH fixed first; 13 other MPB sites wait on the verdict, which
+   was itself **blocked by its own instrument** until 23 Aug — the
+   palest-part table named BlobShadow (a multiply quad sampling the
+   pavement) four runs running; attribution now skips Hidden/ shaders.
+   Real remainder: feet and shoes at 224-234, both tiers.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck —
    judged on frames). Open from V6: the sky dome's cloud structure
