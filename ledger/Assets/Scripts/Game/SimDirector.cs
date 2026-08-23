@@ -8268,6 +8268,110 @@ namespace Ledger.Game
                         + $"/noLift:{noLift.Mean:0.000}/noLamps:{noLamps.Mean:0.000}]";
         }
 
+        /// WHERE THE TWENTY MILLISECONDS GO — the render's own toggle
+        /// ladder, and it exists because a confident guess was wrong.
+        ///
+        /// `sceneRenderers=19786` beside `game=4.46ms render+rest=20.61ms`
+        /// reads as a draw-call ceiling, so GPU instancing went on every
+        /// town surface (it had been set on one of the two material
+        /// constructors and not the other, which is a real defect and
+        /// stays fixed). The landed frame: 25.00ms against a 24.67-25.84ms
+        /// desktop band. Dead centre. It bought NOTHING, and the diagnosis
+        /// was a picture-shaped inference — rule 4's "a visual judgement is
+        /// a hypothesis", applied to a number.
+        ///
+        /// So: the same technique that settled the facade. Render one
+        /// frame per suspect with that suspect off, time each, print the
+        /// ladder. The absolute values are inflated by the probe's own
+        /// RenderTexture and ReadPixels — that overhead is CONSTANT across
+        /// rungs by construction, so the DIFFERENCES are the reading and
+        /// the absolutes are not comparable with `meanFrame`. Median of
+        /// three per rung: one render is a sample, not a measurement, and
+        /// the first rung also warms every shader the others reuse.
+        string _frameCost = "not_probed";
+        bool _frameCostDone;
+
+        void ProbeFrameCost(Camera cam)
+        {
+            if (_frameCostDone || cam == null) return;
+            _frameCostDone = true;
+            var sunGo = GameObject.Find("Sun");
+            var sunL = sunGo != null ? sunGo.GetComponent<Light>() : null;
+            double all = -1, noPost = -1, noShadow = -1, noShafts = -1,
+                   noBodies = -1, noPixelLights = -1;
+            var keptShadows = QualitySettings.shadows;
+            int keptPixelLights = QualitySettings.pixelLightCount;
+            // CAPTURED, NOT ASSUMED. `ProbeSunShadow` next door restores
+            // `wasSh` for exactly this reason; writing back a literal Soft
+            // would silently re-author the sun for the rest of the run if
+            // it were ever set to anything else.
+            var keptSunShadows = sunL != null ? sunL.shadows : LightShadows.None;
+            try
+            {
+                all = TimeRenders(cam);
+                FilmGrade.Bypass = true;
+                noPost = TimeRenders(cam);
+                FilmGrade.Bypass = false;
+
+                QualitySettings.shadows = ShadowQuality.Disable;
+                if (sunL != null) sunL.shadows = LightShadows.None;
+                noShadow = TimeRenders(cam);
+                QualitySettings.shadows = keptShadows;
+                if (sunL != null) sunL.shadows = keptSunShadows;
+
+                LightShaft.Enabled = false;
+                noShafts = TimeRenders(cam);
+                LightShaft.Enabled = true;
+
+                // Every skinned body hidden: the crowd is the thing a
+                // population increase would multiply, so its slice is the
+                // one that decides whether more people are affordable.
+                var hidden = new List<Renderer>();
+                if (_npcs != null)
+                    foreach (var w in _npcs)
+                    {
+                        if (w == null) continue;
+                        foreach (var r in w.GetComponentsInChildren<Renderer>(true))
+                            if (r.enabled) { r.enabled = false; hidden.Add(r); }
+                    }
+                noBodies = TimeRenders(cam);
+                foreach (var r in hidden) if (r != null) r.enabled = true;
+
+                QualitySettings.pixelLightCount = 0;
+                noPixelLights = TimeRenders(cam);
+                QualitySettings.pixelLightCount = keptPixelLights;
+            }
+            finally
+            {
+                FilmGrade.Bypass = false;
+                QualitySettings.shadows = keptShadows;
+                QualitySettings.pixelLightCount = keptPixelLights;
+                if (sunL != null) sunL.shadows = keptSunShadows;
+                LightShaft.Enabled = true;
+            }
+            _frameCost = $"[all:{all:0.0}/noPost:{noPost:0.0}/noShadow:{noShadow:0.0}"
+                       + $"/noShafts:{noShafts:0.0}/noBodies:{noBodies:0.0}"
+                       + $"/noPixLights:{noPixelLights:0.0}]";
+            Debug.Log("SimDirector: frameCost " + _frameCost);
+        }
+
+        /// Median of three timed renders, in milliseconds. ReadPixels
+        /// forces the GPU to finish, so this includes GPU time rather than
+        /// just the submission cost a bare `Render()` would measure.
+        double TimeRenders(Camera cam)
+        {
+            var ms = new List<double>();
+            for (int i = 0; i < 3; i++)
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                FrameShot(cam);
+                sw.Stop();
+                ms.Add(sw.Elapsed.TotalMilliseconds);
+            }
+            ms.Sort();
+            return ms[1];
+        }
+
         /// WHO HOLDS THE NOON FACADE DOWN. The 3a4ea5e noon still has its
         /// left half near-black — a shaded wall whose expected chain
         /// (albedo 0.15 x ambient 0.42 x exposure ~1.6, sRGB-encoded) puts
@@ -9967,7 +10071,7 @@ namespace Ledger.Game
                 // The facade ladder, from THIS vantage: the camera is at the
                 // step-back's final position and the frame just encoded is
                 // the one whose left half the ladder explains.
-                if (name == "day1_noon") ProbeNoonFacade(cam);
+                if (name == "day1_noon") { ProbeNoonFacade(cam); ProbeFrameCost(cam); }
                 // THE GLOW-BLOB READ, night and dusk frames only. Two night
                 // stills read as walls of amber light while brightPct called
                 // one of them 1.23 — the eye's objection is one CONTIGUOUS
@@ -13610,6 +13714,10 @@ namespace Ledger.Game
                       $"nightFloor={_nightFloor} " +
                       $"noonFacade={_noonFacade} " +
                       $"noonFacadeOf={_noonFacadeOf} " +
+                      // Probe-render milliseconds per rung, NOT comparable
+                      // with meanFrame (the probe's own RT and ReadPixels
+                      // inflate every rung equally). Read the differences.
+                      $"frameCost={_frameCost} " +
                       // Largest contiguous warm glow patch in a dark-hour
                       // frame: the worst (with its shot named) beside the
                       // median, because "did any frame become a wall of
