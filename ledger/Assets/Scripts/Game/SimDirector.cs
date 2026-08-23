@@ -1351,6 +1351,17 @@ namespace Ledger.Game
             StageProvenance(now);
             StagePerception(now, ref target);
             StageTheCallbox(now, ref target);
+            // THE JOB WALK RIDES THE STREET GRAPH. Two traced mornings say
+            // the straight-line slide cannot round a building: first 197
+            // ticks pressed against a window sill, then — sill fixed — 27
+            // against Building_69's own corner, 82m of path on a 23m line,
+            // the board never reached. The graph and its Dijkstra already
+            // exist (Traffic drives on StreetMap.Route); the bot now walks
+            // node to node when the job owns his legs and the goal is far,
+            // and goes direct for the last stretch. Job targets only: the
+            // probes that steal the legs stage their own approaches, and a
+            // router under a probe would move what it measures.
+            if (_targetOwner == "job") target = RouteStep(_player.transform.position, target);
             _player.AutoMoveTarget = target;
             NoteTargetOwner();
             // After the owner is final for the tick, so the shift trace's
@@ -3155,6 +3166,46 @@ namespace Ledger.Game
         /// Last-wins by design, like ShiftEnd beside it: with the daily
         /// restage the last attempt is the one the gate judged.
         string _shiftTrace = "none";
+
+        /// Node-to-node steering for a far job target, over the street
+        /// graph that already routes the traffic. Recomputed only when the
+        /// goal moves (a stop advances) — the graph is ~fifty nodes and the
+        /// Dijkstra is cheap, but a per-tick recompute would still be a
+        /// per-tick allocation. Counted (rule 6): a router that never
+        /// engages and a router that fixed the walk read identically from
+        /// `shifts=1` alone.
+        List<StreetNode> _route; int _routeIdx;
+        Vector3 _routeGoal;
+        int _routeRecomputes, _routeNodeTicks;
+
+        Vector3 RouteStep(Vector3 from, Vector3 goal)
+        {
+            var flatFrom = new Vector3(from.x, 0, from.z);
+            var flatGoal = new Vector3(goal.x, 0, goal.z);
+            // Close enough that the slide handles it: the measured failure
+            // begins when a whole building stands between the two.
+            if (Vector3.Distance(flatFrom, flatGoal) < 18f) { _route = null; return goal; }
+            if (_route == null || Vector3.Distance(flatGoal, _routeGoal) > 3f)
+            {
+                var a = Ledger.Core.StreetMap.NearestNode(from.x, from.z);
+                var b = Ledger.Core.StreetMap.NearestNode(goal.x, goal.z);
+                _route = a != null && b != null && a.Id != b.Id
+                    ? Ledger.Core.StreetMap.Route(a.Id, b.Id) : null;
+                _routeIdx = 0;
+                _routeGoal = flatGoal;
+                _routeRecomputes++;
+            }
+            if (_route == null || _route.Count == 0) return goal;
+            while (_routeIdx < _route.Count)
+            {
+                var n = _route[_routeIdx];
+                var np = new Vector3((float)n.X, 0, (float)n.Z);
+                if (Vector3.Distance(flatFrom, np) < 3f) { _routeIdx++; continue; }
+                _routeNodeTicks++;
+                return np;
+            }
+            return goal;
+        }
 
         void TraceShift(GameTime now)
         {
@@ -8197,6 +8248,7 @@ namespace Ledger.Game
         /// region lumaThirds reports for the committed frame. Runs at the
         /// day-1 noon review shot, from its exact vantage, once per run.
         string _noonFacade = "not_probed";
+        string _noonFacadeOf = "not_probed";
         bool _noonFacadeDone;
 
         void ProbeNoonFacade(Camera cam)
@@ -8250,6 +8302,52 @@ namespace Ledger.Game
                         + $"/noVig:{noVig:0.000}/sunOff:{sunOff:0.000}"
                         + $"/winOff:{winOff:0.000}]";
             Debug.Log("SimDirector: noonFacade " + _noonFacade);
+
+            // THE CENSUS, after the ladder acquitted everything else. Two
+            // landings of toggles cleared the post stack (each rung <0.01),
+            // the glass (winOff +0.016) and the fill (ambEq=0.414) — what
+            // remains is WHICH surfaces the dark third is made of, and that
+            // is a naming question no toggle can answer. One ray per patch
+            // of the same left-third middle band the medians describe;
+            // materials named as found, sky counted as sky. Windows carry
+            // no colliders, so a ray through glass names the wall behind
+            // it — the surface whose lighting is in question.
+            var census = new Dictionary<string, int>();
+            int rayN = 0;
+            for (int cx = 0; cx < 8; cx++)
+                for (int cy = 0; cy < 6; cy++)
+                {
+                    var vp = new Vector3((cx + 0.5f) / 24f,
+                                         0.25f + (cy + 0.5f) / 12f, 0f);
+                    var ray = cam.ViewportPointToRay(vp);
+                    rayN++;
+                    string what = "sky";
+                    if (Physics.Raycast(ray, out var ch, 400f, ~0,
+                                        QueryTriggerInteraction.Ignore))
+                    {
+                        var rr2 = ch.collider.GetComponent<Renderer>()
+                               ?? ch.collider.GetComponentInParent<Renderer>();
+                        what = rr2 != null && rr2.sharedMaterial != null
+                            ? rr2.sharedMaterial.name.Replace(' ', '_')
+                            : ch.collider.name.Replace(' ', '_');
+                    }
+                    census.TryGetValue(what, out int cN);
+                    census[what] = cN + 1;
+                }
+            var rows2 = new List<KeyValuePair<string, int>>(census);
+            rows2.Sort((a, b) => b.Value.CompareTo(a.Value));
+            var sb2 = new System.Text.StringBuilder("[");
+            int shown2 = Math.Min(6, rows2.Count);
+            for (int i = 0; i < shown2; i++)
+            {
+                if (i > 0) sb2.Append('/');
+                sb2.Append(rows2[i].Key).Append(':')
+                   .Append(100 * rows2[i].Value / Math.Max(1, rayN)).Append('%');
+            }
+            if (rows2.Count > shown2)
+                sb2.Append("/+").Append(rows2.Count - shown2).Append("more");
+            _noonFacadeOf = sb2.Append(']').ToString();
+            Debug.Log("SimDirector: noonFacadeOf " + _noonFacadeOf);
         }
 
         /// Median luma of the frame's left third, rows 25%..75% — the same
@@ -12310,6 +12408,10 @@ namespace Ledger.Game
                       // daily restage a run keeps trying until one lands).
                       $"shiftStopsReached={_game.ShiftStopsReached} shiftEnd={_game.ShiftEnd} " +
                       $"shiftTrace={_shiftTrace} " +
+                      // recomputes/node-steer ticks: zero/zero means the
+                      // router never engaged, which must not read as "the
+                      // walk needed no routing" (rule 3b).
+                      $"jobRoute={_routeRecomputes}/{_routeNodeTicks} " +
                       $"street={_game.Economy.Prosperity:0.00} prices={_game.Economy.PriceLevel:0.00} " +
                       $"takingsFactor={_game.Economy.TakingsFactor:0.00} economyOk={economyOk} " +
                       $"directorPending={_game.Directorate.Pending.Count} directorFired={_directorFired} directorOk={directorOk} " +
@@ -13473,6 +13575,7 @@ namespace Ledger.Game
                       $"bodyBrightestPart={_bodyBrightestPart} " +
                       $"nightFloor={_nightFloor} " +
                       $"noonFacade={_noonFacade} " +
+                      $"noonFacadeOf={_noonFacadeOf} " +
                       // Largest contiguous warm glow patch in a dark-hour
                       // frame: the worst (with its shot named) beside the
                       // median, because "did any frame become a wall of
