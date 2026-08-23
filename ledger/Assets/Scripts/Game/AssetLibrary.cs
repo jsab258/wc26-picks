@@ -858,20 +858,36 @@ namespace Ledger.Game
                 case "plank": Plank(px, spec.Tint); break;
                 case "flat":  Flat(px, spec.Tint);  break;
                 case "panes": Panes(px, spec.Tint); break;
-                default:      Noise(px, spec.Tint, 0.10f); break;
+                // WALLS WEATHER, ROADS DO NOT. Plaster and concrete are
+                // the vertical faces that reach this branch and they get
+                // the run-off; asphalt and kerb reach it too and a
+                // vertical rain stain down a carriageway would be
+                // nonsense. Named rather than inferred from the pattern
+                // string, because "noise" is what the two groups share and
+                // is exactly why one generator serves both.
+                default:
+                    Noise(px, spec.Tint, 0.10f,
+                          logical == AssetLibrary.Plaster
+                          || logical == AssetLibrary.Concrete ? 0.09f : 0f);
+                    break;
             }
             tex.SetPixels32(px);
             tex.Apply(true);
             return tex;
         }
 
-        static void Noise(Color32[] px, Color baseCol, float amp)
+        /// `streak` is the weathering amplitude — plaster and concrete get
+        /// it because they are walls that rain runs down; the ground
+        /// surfaces pass 0 because a vertical run-off stain on a road is
+        /// nonsense, and the same generator serves both.
+        static void Noise(Color32[] px, Color baseCol, float amp, float streak = 0f)
         {
             for (int y = 0; y < Size; y++)
                 for (int x = 0; x < Size; x++)
                 {
                     float n = Fbm(x * 0.05f, y * 0.05f);
                     float d = (n - 0.5f) * 2f * amp;
+                    if (streak > 0f) d += Streak(x, y) * streak;
                     px[y * Size + x] = Shade(baseCol, d);
                 }
         }
@@ -895,7 +911,13 @@ namespace Ledger.Game
                     int cell = ((y / bh) * 977 + ((x + offset) / bw) * 131) & 255;
                     float tone = (cell / 255f - 0.5f) * 0.16f;
                     float n = (Fbm(x * 0.08f, y * 0.08f) - 0.5f) * 0.10f;
-                    px[y * Size + x] = Shade(baseCol, tone + n);
+                    // Run-off over the courses. 0.11 sits just under the
+                    // per-brick tone spread (0.16) so the brick still reads
+                    // as brick with weather on it rather than as a stained
+                    // sheet — the streak is the second-loudest thing on the
+                    // wall, not the first.
+                    float w = Streak(x, y) * 0.11f;
+                    px[y * Size + x] = Shade(baseCol, tone + n + w);
                 }
             }
         }
@@ -974,6 +996,35 @@ namespace Ledger.Game
                 freq *= 2f; amp *= 0.5f;
             }
             return Mathf.Clamp01(v);
+        }
+
+        /// WEATHERING IN THE TEXTURE, WHICH IS THE ONLY PLACE IT SCALES.
+        ///
+        /// The visual spec ranks surface history FIRST ("surface history,
+        /// density, depth, light, atmosphere -- in that order") and the
+        /// decal layer is the only thing delivering any. Doubled to 368
+        /// wall marks it still reads clean in the frames, because 368
+        /// two-metre quads over a town of hundreds of large faces is a
+        /// mark here and there, not weather. Every wall needs it, and the
+        /// texture is the one layer every wall already has.
+        ///
+        /// VERTICAL STREAKS, and vertical is what makes them tile. A
+        /// base-to-eaves gradient cannot live in a tiling albedo -- the
+        /// facade repeats it 3-4 times up and bands -- but dirt washed
+        /// DOWN a wall is self-similar at every height, so a streak field
+        /// stretched in Y reads as decades of rain wherever the tile
+        /// lands. Sampled at low frequency across and high along, which is
+        /// the shape of a run-off stain.
+        ///
+        /// Signed and centred on zero so it darkens and lightens rather
+        /// than dimming the surface: the albedo work of 15 Aug is what
+        /// pulled this city out of greybox and a weathering pass that
+        /// quietly subtracted 10% of it would be that regression by
+        /// another route.
+        static float Streak(float x, float y)
+        {
+            float s = Fbm(x * 0.35f, y * 0.045f);
+            return (s - 0.5f) * 2f;
         }
 
         static float Jitter(int x, int y)
