@@ -13154,6 +13154,10 @@ namespace Ledger.Game
                       // right means the branch died).
                       $"facadeGrades={AssetLibrary.GradedAssignments}/{AssetLibrary.GradeCalls} " +
                       $"skyline={WorldBuilder.SkylineKitted}/{WorldBuilder.SkylineBlocks} skylineRepainted={WorldBuilder.SkylineRepainted} " +
+                      // The furniture repaint's wiring proof (rule 6): zero
+                      // with benches landing means the tint stopped running,
+                      // and white furniture is what that looks like.
+                      $"furnitureRepainted={WorldBuilder.FurnitureRepainted} " +
                       // Which kit-prop families are BRIGHTER than the town
                       // they stand in — the skyline's fault, measured for
                       // every family instead of re-found by eye. Brightest

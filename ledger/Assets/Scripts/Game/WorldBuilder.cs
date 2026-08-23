@@ -1918,14 +1918,16 @@ namespace Ledger.Game
             // Probe with the first crate: if it lands the family exists and
             // the rest follow; only a full miss falls back, so a partial
             // landing can never stack primitive boxes on real crates.
-            bool crates = AssetLibrary.TryInstantiateProp("base_mesh_wooden_crate_01",
-                new Vector3(4.2f, 0f, 9f), Quaternion.identity) != null;
+            var crate0 = AssetLibrary.TryInstantiateProp("base_mesh_wooden_crate_01",
+                new Vector3(4.2f, 0f, 9f), Quaternion.identity);
+            bool crates = crate0 != null;
             if (crates)
             {
-                AssetLibrary.TryInstantiateProp("base_mesh_wooden_crate_02",
-                    new Vector3(4.9f, 0f, 9.6f), Quaternion.Euler(0, 35f, 0));
-                AssetLibrary.TryInstantiateProp("base_mesh_wooden_crate_01",
-                    new Vector3(4.5f, 0.82f, 9.3f), Quaternion.Euler(0, 70f, 0));
+                TintFurniture(crate0, FurnitureWood);
+                TintFurniture(AssetLibrary.TryInstantiateProp("base_mesh_wooden_crate_02",
+                    new Vector3(4.9f, 0f, 9.6f), Quaternion.Euler(0, 35f, 0)), FurnitureWood);
+                TintFurniture(AssetLibrary.TryInstantiateProp("base_mesh_wooden_crate_01",
+                    new Vector3(4.5f, 0.82f, 9.3f), Quaternion.Euler(0, 70f, 0)), FurnitureWood);
             }
             if (!crates)
             {
@@ -2345,6 +2347,31 @@ namespace Ledger.Game
             return go;
         }
 
+        /// KIT FURNITURE SHIPS WHITE AND UNTEXTURED. The run the benches,
+        /// bins and crates first landed, `kitAlbedo` read every one of them
+        /// at 1.00 against walls at 0.15, and the noon still showed the
+        /// crate stack glowing in the foreground — the skyline fault, one
+        /// street closer. Same repair, same mechanism (the skyline's MPB
+        /// tint), and tinted to agree with each prop's own FALLBACK surface
+        /// — the boxes these replaced were Wood and Metal — rather than to
+        /// an invented colour. Counted so the repaint cannot silently stop.
+        public static int FurnitureRepainted;
+        static void TintFurniture(GameObject go, Color c)
+        {
+            if (go == null) return;
+            var mpb = new MaterialPropertyBlock();
+            foreach (var rr in go.GetComponentsInChildren<Renderer>(true))
+            {
+                rr.GetPropertyBlock(mpb);
+                mpb.SetColor("_Color", c);
+                rr.SetPropertyBlock(mpb);
+            }
+            FurnitureRepainted++;
+        }
+        // The fallback surfaces' own tints (SurfaceSpec Wood and Metal).
+        static readonly Color FurnitureWood  = new Color(0.28f, 0.22f, 0.18f);
+        static readonly Color FurnitureMetal = new Color(0.30f, 0.31f, 0.33f);
+
         static void Bench(Vector3 pos, bool alongZ = false)
         {
             // THE PROVISIONAL NAMES WERE WRONG FOR A WEEK AND NOTHING SAID
@@ -2362,7 +2389,7 @@ namespace Ledger.Game
                            pos, Quaternion.Euler(0, alongZ ? 0f : 90f, 0))
                     ?? AssetLibrary.TryInstantiateProp(benches[(pick + 1) % benches.Length],
                            pos, Quaternion.Euler(0, alongZ ? 0f : 90f, 0));
-            if (mesh != null) return;
+            if (mesh != null) { TintFurniture(mesh, FurnitureWood); return; }
 
             var seat = alongZ ? new Vector3(0.45f, 0.08f, 1.6f) : new Vector3(1.6f, 0.08f, 0.45f);
             var leg = new Vector3(alongZ ? 0.4f : 0.12f, 0.42f, alongZ ? 0.12f : 0.4f);
@@ -2784,10 +2811,11 @@ namespace Ledger.Game
                         string[] bins = { "base_mesh_outdoor_bin", "base_mesh_mesh_bin",
                                           "base_mesh_swing_bin", "base_mesh_cigarette_bin" };
                         int binPick = System.Math.Abs((int)(at.x * 11.3f + at.z * 5.1f)) % bins.Length;
-                        if (AssetLibrary.TryInstantiateProp(bins[binPick], at,
-                                Quaternion.Euler(0, (at.x * 61f) % 360f, 0)) != null) break;
-                        if (AssetLibrary.TryInstantiateProp(bins[(binPick + 1) % bins.Length], at,
-                                Quaternion.Euler(0, (at.x * 61f) % 360f, 0)) != null) break;
+                        var binGo = AssetLibrary.TryInstantiateProp(bins[binPick], at,
+                                        Quaternion.Euler(0, (at.x * 61f) % 360f, 0))
+                                 ?? AssetLibrary.TryInstantiateProp(bins[(binPick + 1) % bins.Length], at,
+                                        Quaternion.Euler(0, (at.x * 61f) % 360f, 0));
+                        if (binGo != null) { TintFurniture(binGo, FurnitureMetal); break; }
                         MakeBox($"Bin_{id}_{at.x:0.0}", at + new Vector3(0, 0.55f * sc, 0),
                             new Vector3(0.75f, 1.1f, 0.7f) * sc, AssetLibrary.Metal);
                         break;
