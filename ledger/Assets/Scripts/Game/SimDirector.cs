@@ -9981,13 +9981,37 @@ namespace Ledger.Game
                         var alongStreet = aim.normalized;
                         for (int g = 0; g < 10; g++)
                         {
+                            // IN FRONT AND CLOSE, NOT MERELY NEAR — because a
+                            // guard written to remove one silhouette was
+                            // walking this camera away from the crowd it
+                            // exists to photograph.
+                            //
+                            // 850623e: `streetBodies=19 streetBodiesSeen=2`
+                            // for this shot, and `review_street.jpg` came
+                            // back an empty road. The loop below slides the
+                            // lens along the street until nobody is within
+                            // 2.5m IN ANY DIRECTION — behind it, beside it,
+                            // out of frame entirely — so the emptier the
+                            // spot, the sooner it stops. The street
+                            // photograph was seeking empty street by
+                            // construction.
+                            //
+                            // The original complaint is kept exactly:
+                            // `Ch27_Body:1.63m@1.3` was a walker 1.3m from
+                            // the lens filling the shot. That needs a
+                            // radius a little past 1.3m and a test for
+                            // being AHEAD of the camera; somebody 2.4m to
+                            // the side is not in the picture, and somebody
+                            // four metres up the street is the subject.
                             bool crowded = false;
                             foreach (var w in NpcWalker.Live)
                             {
                                 if (w == null) continue;
                                 var d = w.transform.position - eye;
                                 d.y = 0;
-                                if (d.sqrMagnitude < 2.5f * 2.5f) { crowded = true; break; }
+                                if (d.sqrMagnitude >= 1.6f * 1.6f) continue;
+                                if (Vector3.Dot(d, alongStreet) <= 0f) continue;
+                                crowded = true; break;
                             }
                             // AND A VEHICLE, WHICH IS THE FOURTH THING TO STAND
                             // IN THIS FRAME. Wall, lamp column, walker, and now
