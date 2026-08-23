@@ -3547,6 +3547,19 @@ namespace Ledger.Game
                         double partBest = -1; string partName = "none";
                         foreach (var pr in shotBestWalker.GetComponentsInChildren<Renderer>())
                         {
+                            // A COMPOSITING QUAD'S PIXELS ARE THE BACKGROUND.
+                            // The blob shadow blends DstColor*Zero — a
+                            // multiply over whatever it covers — so its rect
+                            // samples the (darkened) pavement, and it won
+                            // this table at 223-232 across four runs while
+                            // the centre-third inset stood guard against
+                            // exactly this bias on opaque parts. Skip
+                            // renderers on Hidden/ shaders (the blob is the
+                            // only one a body carries); cutout hair stays,
+                            // its pixels are its own.
+                            var sm = pr.sharedMaterial;
+                            if (sm != null && sm.shader != null
+                                && sm.shader.name.StartsWith("Hidden/")) continue;
                             if (!Average(pr, out double pl2, out _, out int pc2, inset: 1f / 3f)) continue;
                             double plum = pl2 / pc2;
                             if (plum > partBest) { partBest = plum; partName = pr.name; }

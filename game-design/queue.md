@@ -28,23 +28,16 @@ counters. **The front is M17.10: the visual bar is GTA V** — item 1.
 
 **THE PLAYTEST IS RETARGETED (22 Aug, Jafar):** *"I'll try to run it on
 my windows machine after visual stuff is done. live voices/speech should
-be working too."* **AND HE RAN THE PIPELINE THE SAME HOUR.** The
-export audit came back ALL CLEAR (all three graphs on his disk, thirty
-structural checks green, real audio out), and the timing read **1.7x
-real time** on DirectML: 6.4s of work for 3.7s of speech — prefill
-0.3s, 92 steps 4.4s (median 42ms), decode 1.7s. Token generation alone
-is ~25/s against ~25/s consumption, so the overhang is the SERIAL
-stages, not the model: the speech stage's first work item is
-**the fp16 lever, measured on his card first.** The streaming overlap
-already EXISTS in the backend (follower, pump, underrun arithmetic),
-gated on a sustainability test his card misses by ~15%; the one-click
-converter+timer shipped to his machine 22 Aug. If his number clears
-~1.0x: the backend needs Float16 binds and edge conversions (it is
-fp32-typed today). `put-voices-in-build.py` now carries the `-fp16`
-siblings when present and NAMES any graph it sees but will not ship
-(16 selftest checks, both ways) — the silent-drop trap is closed.
-The `probe.py` listen page is repaired. `playtest-plan.md` carries the
-session runbook; keep the speech self-checks green on every landing.
+be working too."* His pipeline run came back ALL CLEAR at **1.7x real
+time** on DirectML — the overhang is the SERIAL stages, not the model
+(~25 tok/s both ways). Speech stage's first item: **the fp16 lever,
+measured on his card** (one-click converter+timer shipped 22 Aug). The
+streaming overlap exists in the backend, gated on a sustainability test
+his card misses by ~15%; if his number clears ~1.0x the backend needs
+Float16 binds and edge conversions (fp32-typed today).
+`put-voices-in-build.py` carries `-fp16` siblings and NAMES leftovers
+(16 selftest checks). `playtest-plan.md` has the session runbook; keep
+speech self-checks green on every landing.
 **THE RUNNER IS REGISTERED AND FLIPPED (22 Aug): `ledger-pc` on his
 machine picked up the probe build in seconds** — and the probe found
 the two tools the cloud image had and his PC does not: no `pwsh` (the
@@ -64,16 +57,19 @@ models, and the repaint proven by STILL** — the MPB tint wrote a
 `_Color` no glTFast shader reads (116 calls, zero effect, counter
 counted calls); materials now REPLACED. Before/after pair sent to
 Jafar. **CLIP SHEET CLOSED**: file lands (edcf16a and 3a4ea5e).
-dayJob still the one red — `lapsed@stop0:9m/auth:8m` third sample,
-displacement acquitted; **shiftTrace armed (eb99877)**: stall length,
-named blocker, held: tally, final-address standability. **NOON NEAR
-FACADE near-black, third sample — noonFacade ladder armed
-(eb99877)**: all/noPost/noAO/noVig/sunOff left-third medians at the
-day1_noon vantage; frames.tsv gains lumaThirds per shot. NEW eye
-item: a WHITE kerbside object near the parked car, identical in
-edcf16a and 3a4ea5e noon frames — survived a repaint that moved 116
-renderer sets, so it comes from a placer TintFurniture never sees.
-Identify in code, not by squinting. Revert `runs-on` if he bows out.
+dayJob the one red, now TRACED (eb99877/f4a1243): the courier runs
+all morning with the job holding his legs and grinds on Building_69's
+corner — first a window sill (collider removed, stall 197->27), now
+the mass itself; walked 82m on a 23m line, never accepted. THE WALK
+NEEDS THE STREET GRAPH, not a longer slide. **noonFacade ladder ran
+twice: stack ACQUITTED (post/AO/vignette <0.01), glass ACQUITTED
+(winOff 0.094->0.110), ambEq=0.414 so the fill is real** — what is
+left is the surfaces: dark-authored fascia/awning/trim plus shaded
+brick. Next instrument: a left-third RAY CENSUS naming which material
+each pixel is. The white kerbside bin was Furniture.cs — a SECOND
+untinted, unmeasured placer, now routed through the pipeline; its
+RoadStuck=25 says narrow junctions defeat the r=5.5 ring — widen on
+stuck. Revert `runs-on` if he bows out.
 **AND BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT (Jafar, 22 Aug:
 "a full ultracode audit before playtesting is a good idea. rememver
 that").** A multi-agent sweep of the whole codebase — every system
@@ -106,9 +102,14 @@ exactly this run.
 
    **LINEAR MPB CLASS-FAULT UNDER TEST:** MPB colours skip
    gamma-to-linear, so display-authored MPB tints weakened at the flip.
-   BODY WASH fixed first (empirically checkable: real bodies 213-223 vs
-   crowd ~20); the 13 other MPB sites wait on the wash verdict, so a
-   wrong theory dies at one site instead of fourteen.
+   BODY WASH fixed first; the 13 other MPB sites wait on the wash
+   verdict. **23 Aug: the verdict was blocked by its own instrument** —
+   the palest-part table named BlobShadow at 223-232 four runs running,
+   and the blob is a multiply-blend quad whose pixels ARE the pavement
+   behind it; attribution now skips Hidden/-shader renderers. What
+   remains real in the table: feet and shoes at 224-234 (FootMesh,
+   Ch38_Shoes) on both tiers. Read the part table again next landing,
+   then rule on the 13 sites.
 
    **V6 FIRST SLICE LANDED** (dusk warmth in fog and sky, sun glow,
    sodium deck, the dusk shot at hour 16 aimed sunward — all judged on
@@ -129,9 +130,10 @@ exactly this run.
    the frame while sitting past the arm's-length test. Same repair as
    the night case: measure occlusion at the distances that blind a
    frame, not only at arm's length.
-   **Traffic self-contradiction RESOLVED** (a taxi dwelling at its rank;
-   dwelling/dormant exempt since AC, gate green). **Tour pair landed,
-   prediction held** (spread 18.7-28.6, Downtown most built).
+   **Traffic contradiction RESOLVED** (dwelling/dormant exempt, gate
+   green); **tour pair landed, prediction held** (Downtown most built).
+   **midFrac column landed f4a1243: day1_noon reads 0.49** — the series
+   the mid-distance bound will come from.
 
 1. **THE RAIN'S HEIGHT-COVERAGE SCALING IS BUILT AND THE WET FRAME IS
    PLANTED.** The emitter box and rate already grow with camera height
