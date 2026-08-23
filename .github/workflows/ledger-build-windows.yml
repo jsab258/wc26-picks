@@ -137,7 +137,14 @@ jobs:
         timeout-minutes: 1
         shell: bash
         run: |
-          if ! command -v python3 >/dev/null 2>&1; then
+          # THE OUTER GUARD TESTS BY EFFECT TOO. `command -v python3`
+          # SUCCEEDS on any interactive Windows account, because Microsoft
+          # ships a python3.exe App Execution Alias that exists solely to
+          # open the Store when run — the desktop-session agent's first run
+          # (32620912473) found it, skipped the shim, and Lint died in zero
+          # seconds. The service account never had the alias, which is why
+          # a night of service-session runs never met it.
+          if ! python3 --version >/dev/null 2>&1; then
             mkdir -p "$RUNNER_TEMP/shim"
             # CANDIDATES ARE TESTED BY RUNNING THEM, never by existence. Run
             # 32595552209: C:\Windows\py.exe existed (machine-wide LAUNCHER)
