@@ -8227,7 +8227,15 @@ namespace Ledger.Game
             if (rows.Count == 0) return "[none-measured]";
             rows.Sort((a, b) => b.Value.CompareTo(a.Value));
             var sb = new System.Text.StringBuilder("[");
-            int shown = Mathf.Min(10, rows.Count);
+            // 24, NOT 10. The first landing showed ten entries, all of them
+            // repainted vehicles at 0.31-0.37, and the four unrepainted
+            // families this instrument EXISTS FOR sat inside "+9more" —
+            // brightest-first only protects the question when the reference
+            // is near the top of the range, and townWallAlbedo landed at
+            // 0.15: everything between 0.15 and 0.31 was a hidden positive.
+            // 24 covers every family the street has; the clause survives as
+            // a guard against a future explosion, not as a working cap.
+            int shown = Mathf.Min(24, rows.Count);
             for (int i = 0; i < shown; i++)
             {
                 if (i > 0) sb.Append('/');

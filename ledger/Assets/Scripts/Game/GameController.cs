@@ -1651,7 +1651,21 @@ namespace Ledger.Game
                         // `shifts=0` never carried. Distance flat, like the
                         // arrival test.
                         float shy = Vector3.Distance(new Vector3(p.x, 0, p.z), new Vector3(m.x, 0, m.z));
-                        ShiftEnd = $"lapsed@stop{_shiftStop}:{shy:0}m";
+                        // AND THE AUTHORED POINT'S DISTANCE BESIDE THE
+                        // MARKER'S. Desktop reds read 9m and 16m short at
+                        // day's end — near-misses, not absences — and the
+                        // marker is TryStandable-displaced from the authored
+                        // stop while whatever steers the bot may aim at the
+                        // authored point: one target, two positions, the
+                        // fault this block's own comment already names for
+                        // the accept check. auth≈0 with marker 9-16m out
+                        // convicts that split in one landed number; both
+                        // large acquits it and points at the walk itself.
+                        float authShy = _shiftStop < ShiftStops.Length
+                            ? Vector3.Distance(new Vector3(p.x, 0, p.z),
+                                new Vector3(ShiftStops[_shiftStop].x, 0, ShiftStops[_shiftStop].z))
+                            : -1f;
+                        ShiftEnd = $"lapsed@stop{_shiftStop}:{shy:0}m/auth:{authShy:0}m";
                         Destroy(_shiftMarker);
                         _shiftMarker = null;
                         ToastLine("Evening, and the parcels go back on Zlata's shelf unsigned. She doesn't say anything. She writes something.", 8f);
