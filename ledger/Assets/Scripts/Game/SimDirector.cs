@@ -8192,7 +8192,8 @@ namespace Ledger.Game
             _noonFacadeDone = true;
             var sunGo = GameObject.Find("Sun");
             var sunL = sunGo != null ? sunGo.GetComponent<Light>() : null;
-            double all = -1, noPost = -1, noAo = -1, noVig = -1, sunOff = -1;
+            double all = -1, noPost = -1, noAo = -1, noVig = -1, sunOff = -1,
+                   winOff = -1;
             try
             {
                 all = LeftThirdMedian(FrameShot(cam));
@@ -8211,6 +8212,16 @@ namespace Ledger.Game
                     sunOff = LeftThirdMedian(FrameShot(cam));
                     sunL.enabled = true;
                 }
+                // eb99877's first ladder acquitted the stack outright (post,
+                // AO, vignette each <0.01) and left "the scene is dark" —
+                // but the left third is glass and fascia as much as brick,
+                // and day glass is AUTHORED near-black (~0.01 linear). One
+                // rung says which surface holds the darkness: windows
+                // hidden, wall behind showing. Jumps -> the glass; doesn't
+                // -> the wall's own light x albedo.
+                WorldBuilder.HideWindowsForCapture();
+                winOff = LeftThirdMedian(FrameShot(cam));
+                WorldBuilder.RestoreWindowsAfterCapture();
             }
             finally
             {
@@ -8220,9 +8231,11 @@ namespace Ledger.Game
                 FilmGrade.AmbientOcclusion = true;
                 FilmGrade.Vignette = true;
                 if (sunL != null) sunL.enabled = true;
+                WorldBuilder.RestoreWindowsAfterCapture();
             }
             _noonFacade = $"[all:{all:0.000}/noPost:{noPost:0.000}/noAO:{noAo:0.000}"
-                        + $"/noVig:{noVig:0.000}/sunOff:{sunOff:0.000}]";
+                        + $"/noVig:{noVig:0.000}/sunOff:{sunOff:0.000}"
+                        + $"/winOff:{winOff:0.000}]";
             Debug.Log("SimDirector: noonFacade " + _noonFacade);
         }
 
@@ -8361,6 +8374,13 @@ namespace Ledger.Game
             if (_lightState == null)
             {
                 var am = RenderSettings.ambientSkyColor;
+                // The equator and ground bands beside the sky's: a VERTICAL
+                // face is fed mostly by the equator band, so `ambLuma` alone
+                // cannot say what fill a facade gets — the noonFacade
+                // ladder's sunOff rung (0.075 on eb99877) needs these to
+                // apportion blame between the bands and the albedo.
+                var ae = RenderSettings.ambientEquatorColor;
+                var ag = RenderSettings.ambientGroundColor;
                 _lightState =
                     $"[q={QualitySettings.shadows}" +
                     $"/lvl={QualitySettings.GetQualityLevel()}" +
@@ -8370,7 +8390,9 @@ namespace Ledger.Game
                     $"/sunI={sunL.intensity:0.00}" +
                     $"/sunElev={sunL.transform.eulerAngles.x:0}" +
                     $"/str={sunL.shadowStrength:0.00}" +
-                    $"/ambLuma={ImageStats.Luma(am.r, am.g, am.b):0.000}]";
+                    $"/ambLuma={ImageStats.Luma(am.r, am.g, am.b):0.000}" +
+                    $"/ambEq={ImageStats.Luma(ae.r, ae.g, ae.b):0.000}" +
+                    $"/ambGnd={ImageStats.Luma(ag.r, ag.g, ag.b):0.000}]";
                 var fc = RenderSettings.fogColor;
                 _fogAtProbe = $"({fc.r:0.000}/{fc.g:0.000}/{fc.b:0.000})";
                 StartCoroutine(FogAfterFrame());
@@ -8679,7 +8701,7 @@ namespace Ledger.Game
             if (eye == null) return 0f;
             var player = _game != null && _game.Player != null
                 ? _game.Player.transform : null;
-            int nearHits = 0, rays = 0;
+            int nearHits = 0, midHits = 0, rays = 0;
             var depths = new List<float>();
             for (int gx = 0; gx < 12; gx++)
                 for (int gy = 0; gy < 7; gy++)
@@ -8703,11 +8725,30 @@ namespace Ledger.Game
                         if (!mine && h.distance < freeD) freeD = h.distance;
                     }
                     if (anyD <= 2f && !anyIsPlayer) nearHits++;
+                    // THE BAND THE ARM'S-LENGTH TEST SKIPS. day2_noon on V
+                    // passed the 0.25 near bound at 0.24 and is still half
+                    // wooden hoarding — a slab a few metres out fills a frame
+                    // while sitting past every ray's 2m line. Fraction of
+                    // rays whose nearest non-player hit is 2..7m; a series
+                    // first, per rule 2 — no bound until runs have printed it.
+                    if (freeD > 2f && freeD <= 7f) midHits++;
                     depths.Add(freeD);
                 }
             depthMedian = Median(depths);
-            return rays > 0 ? (float)nearHits / rays : 0f;
+            // Written to fields on EVERY call: the step-back loop re-asks
+            // this at each candidate standoff, so the values left behind
+            // describe the vantage that was actually kept — the one the
+            // frame ledger row is about.
+            _keptNearFrac = rays > 0 ? (float)nearHits / rays : 0f;
+            _keptMidFrac = rays > 0 ? (float)midHits / rays : 0f;
+            return _keptNearFrac;
         }
+        /// The kept vantage's near (<=2m) and mid-band (2..7m) frustum-hit
+        /// fractions, for the frame ledger. Last-wins by construction and
+        /// that is the point: the last sightline sweep is the kept camera.
+        /// (`_shotNearFrac`, plural list, is the existing per-shot SERIES —
+        /// the name collision was caught by ShapeCheck before it shipped.)
+        float _keptNearFrac = -1f, _keptMidFrac = -1f;
 
         /// This shot was written to disk, so its framing is EVIDENCE.
         ///
@@ -9884,7 +9925,12 @@ namespace Ledger.Game
                                 // thirds, middle band only — the near-facade
                                 // number. Appended LAST so frame-drift's known
                                 // columns keep their positions.
-                                .Append("camX\tcamZ\tcamYaw\tlumaThirds\n");
+                                .Append("camX\tcamZ\tcamYaw\tlumaThirds\t")
+                                // Frustum-hit fractions at the kept vantage:
+                                // near is the step-back's own <=2m test, mid
+                                // is the 2..7m band a hoarding fills while
+                                // near passes. Series first; no bound yet.
+                                .Append("nearFrac\tmidFrac\n");
                 _frameRows++;
                 var ct = Camera.main != null ? Camera.main.transform : null;
                 _frameLedger.Append(name).Append('\t')
@@ -9898,7 +9944,9 @@ namespace Ledger.Game
                             .Append(ct != null ? ct.position.x.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) : "none").Append('\t')
                             .Append(ct != null ? ct.position.z.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) : "none").Append('\t')
                             .Append(ct != null ? ct.eulerAngles.y.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : "none").Append('\t')
-                            .Append(fp.lumaThirds).Append('\n');
+                            .Append(fp.lumaThirds).Append('\t')
+                            .Append(_keptNearFrac.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\t')
+                            .Append(_keptMidFrac.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\n');
                 System.IO.File.WriteAllText("sim-out/frames.tsv", _frameLedger.ToString());
             }
             catch (Exception e) { _errors.Add("LedgerRow: " + e.Message); }

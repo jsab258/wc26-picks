@@ -198,6 +198,35 @@ namespace Ledger.Game
         static readonly Color WindowDark = new Color(0.02f, 0.02f, 0.02f);
         static bool _windowsLit;
 
+        /// Hide every window renderer for one probe render, restoring the
+        /// EXACT prior state after — snapshot rather than blanket re-enable,
+        /// so a renderer some other system disabled stays disabled. For the
+        /// noonFacade ladder's winOff rung: day glass is authored near-black
+        /// (Window tint ~0.01 linear), and whether the dark left third is
+        /// the GLASS or the WALL decides which fix is next.
+        static bool[] _winWasEnabled;
+        public static void HideWindowsForCapture()
+        {
+            _winWasEnabled = new bool[Windows.Count];
+            for (int i = 0; i < Windows.Count; i++)
+            {
+                var r = Windows[i];
+                if (r == null) continue;
+                _winWasEnabled[i] = r.enabled;
+                r.enabled = false;
+            }
+        }
+        public static void RestoreWindowsAfterCapture()
+        {
+            if (_winWasEnabled == null) return;
+            for (int i = 0; i < Windows.Count && i < _winWasEnabled.Length; i++)
+            {
+                var r = Windows[i];
+                if (r != null) r.enabled = _winWasEnabled[i];
+            }
+            _winWasEnabled = null;
+        }
+
         public static void BuildBlock()
         {
             Lamps.Clear();
@@ -1835,6 +1864,16 @@ namespace Ledger.Game
         static Renderer WinBox(string name, Vector3 center, Vector3 size)
         {
             var go = MakeBox(name, center, size, AssetLibrary.Window);
+            // NO COLLIDER ON A WINDOW. MakeBox's primitive ships one, and a
+            // ground-floor window's box sits at exactly chest height on the
+            // face of the wall: shiftTrace's first landing has the courier
+            // dead still for 197 consecutive ticks pressed 0.1m against
+            // `Bldg69_win_zP_0_0`, running the whole time, nobody near him —
+            // the wall-slide rounds the building but not the sill bolted to
+            // it. The mass's own collider is centimetres behind, so nothing
+            // walks through a wall; sight rays and shot probes hit the wall
+            // instead of the glass, the same answer a street away.
+            Object.Destroy(go.GetComponent<Collider>());
             // ONE TEXTURE REPEAT IS ONE SASH (a 2x2 of panes, drawn and
             // emission-masked by the same predicate). INTEGER repeats, so
             // every band edge lands on a frame instead of cutting a pane
