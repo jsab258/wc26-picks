@@ -55,16 +55,18 @@ when either is truly absent. The install: bat 3, a plain DOUBLE-CLICK,
 self-elevating, no silently-closable window, and NO INSTALLERS — the
 pwsh MSI died at 92% "Access is denied" on his PC, so both tools land
 as plain zips (Program Files, falling back to `C:\LedgerTools`, both
-probed by the shims). It **THE MACHINE WORKS END TO END (23 Aug, 3c6d160): sim on his GPU, 29
-shots, errors=0, 1 of 72 red.** First honest `meanFrame=25.84ms
-p95=47.75ms` (~39fps — vsync cap or sim CPU?). Judge next runs:
-dayJob RED (`lapsed@stop0:9m`, stops=0 — green x3 on cloud), noon
-DARK + sparse (`crowdRead=2` vs ~13), heavy grain — the real pipeline
-reads differently from the rasteriser everything was tuned on.
-`kitAlbedo`: bikes 0.37, cars 0.31 (pre-repaint) vs walls 0.15 —
-read the unrepainted four next. The CLIP SHEET did not render on
-desktop (canon* keys gone; marked run-conditional in verdict-keys —
-find why the pass skipped). Revert `runs-on` if he bows out.
+probed by the shims). Unity via bat 4, desktop session via bat 5.
+**ALL 72 GATES GREEN (23 Aug, ec26862) — first time ever, on his
+GPU.** ~17 min/round vs cloud ~28. `meanFrame` stable 25.6-25.8ms
+(~39fps twice — vsync cap suspect). **HAIR CLOSED**: cutout remap
+proven in number (hairCutout=2 on 13 bodies) and pixels (close-up:
+dark textured hair, both characters). dayJob FLAKY not systematic
+(red then green, same code — watch --flaky). **TOP OPEN, on screen:
+NOON STREET HOLDS ~2 PEOPLE** (`crowdRead=1` then `2` vs cloud ~13;
+frame-coupled accumulation suspect — read the spawner). Near facade
+still near-black at noon (second sample). CLIP SHEET: drawn
+64/64 both runs, file never lands — committer now lists the dir on
+a miss — read it next run. Revert `runs-on` if he bows out.
 **AND BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT (Jafar, 22 Aug:
 "a full ultracode audit before playtesting is a good idea. rememver
 that").** A multi-agent sweep of the whole codebase — every system
@@ -129,12 +131,9 @@ exactly this run.
    the frame while sitting past the arm's-length test. Same repair as
    the night case: measure occlusion at the distances that blind a
    frame, not only at arm's length.
-   **The traffic self-contradiction is RESOLVED** (the tally named a
-   taxi dwelling at its rank; dwelling and dormant vehicles are exempt
-   since AC and the gate went green).
-
-   **The tour pair landed and its prediction held** (real district
-   spread 18.7-28.6, the metric has shape, Downtown most built).
+   **Traffic self-contradiction RESOLVED** (a taxi dwelling at its rank;
+   dwelling/dormant exempt since AC, gate green). **Tour pair landed,
+   prediction held** (spread 18.7-28.6, Downtown most built).
 
 1. **THE RAIN'S HEIGHT-COVERAGE SCALING IS BUILT AND THE WET FRAME IS
    PLANTED.** The emitter box and rate already grow with camera height
