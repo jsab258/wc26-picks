@@ -76,6 +76,9 @@ namespace Ledger.Game
         /// which is a different fact from 0 — "it ran and the street was
         /// empty" — and the two must never come out looking the same.
         int _streetBodies = -1, _streetBodiesNear = -1, _streetBodiesLive = -1;
+        /// In frustum AND with a clear line from the lens. See the linecast
+        /// in the street shot for why the frustum count alone misleads.
+        int _streetBodiesSeen = -1;
         int _streetBodiesSkinned = -1;
         /// Noon and night of one rest day, on top of the four. Two,
         /// because a Saturday needs the same pair of lighting
@@ -10006,6 +10009,7 @@ namespace Ledger.Game
                     _streetBodiesNear = 0;
                     _streetBodiesLive = 0;
                     _streetBodiesSkinned = 0;
+                    _streetBodiesSeen = 0;
                     foreach (var w in NpcWalker.Live)
                     {
                         if (w == null) continue;
@@ -10027,6 +10031,37 @@ namespace Ledger.Game
                         // says how many of them are in the PHOTOGRAPH, which
                         // is the only place it matters.
                         if (w.HasRealBody) _streetBodiesSkinned++;
+
+                        // AND HOW MANY ARE ACTUALLY VISIBLE, which is a
+                        // different question from "inside the frustum" and
+                        // is the one the eye asks.
+                        //
+                        // 47f683d printed `streetBodies=7` for a noon frame
+                        // with TWO people in it, and `review_street.jpg`
+                        // came back an empty road entirely. Both were
+                        // honest: the test above is a viewport-rectangle
+                        // test, and a person standing behind the unlit
+                        // corner that fills the left third of that frame is
+                        // squarely inside the rectangle. Every crowd number
+                        // this project has tuned against was counting
+                        // people through walls.
+                        //
+                        // A linecast from the camera to the chest, ignoring
+                        // the walker's own colliders — the same shape as
+                        // `Shot`'s occlusion test, which had this right for
+                        // the player and was never pointed at the crowd.
+                        var eyeAt = cam.transform.position;
+                        var toBody = at - eyeAt;
+                        bool clear = true;
+                        foreach (var h in Physics.RaycastAll(eyeAt, toBody.normalized,
+                                              toBody.magnitude, ~0,
+                                              QueryTriggerInteraction.Ignore))
+                        {
+                            if (h.collider == null) continue;
+                            if (h.collider.transform.IsChildOf(w.transform)) continue;
+                            clear = false; break;
+                        }
+                        if (clear) _streetBodiesSeen++;
                     }
 
                     cam.Render();
@@ -12516,7 +12551,7 @@ namespace Ledger.Game
                       $"cargoes={_game.Empire.CargoesLanded} manifests={_game.Empire.ManifestsSigned} " +
                       $"coverageOk={coverageOk} openModeForced={_openModeForced} endScreen={_endScreenDismissed} " +
                       $"daysSkipped={_daysSkipped} endDay={_endDay} " +
-                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} cutOffDay={_cutOffDay} cutOffNights={_cutOffNights} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} streetBodies={_streetBodies} streetBodiesNear={_streetBodiesNear} streetBodiesLive={_streetBodiesLive} streetBodiesSkinned={_streetBodiesSkinned} millAgents={millCount} crowdMill={crowdMill} strandedEmpty={strandedEmpty} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
+                      $"weekLostAs={_weekLostVerdict} frozenCloses={_frozenCloses} cutOffDay={_cutOffDay} cutOffNights={_cutOffNights} walkers={walkerCount} crowdWalkers={_game.CrowdWalkerCount} streetBodies={_streetBodies} streetBodiesNear={_streetBodiesNear} streetBodiesLive={_streetBodiesLive} streetBodiesSkinned={_streetBodiesSkinned} streetBodiesSeen={_streetBodiesSeen} millAgents={millCount} crowdMill={crowdMill} strandedEmpty={strandedEmpty} heapMb={heapMb} frameAvgMs={avgMs:0.0} frameWorstMs={_frameWorst * 1000.0:0} " +
                       $"actTwoOpened={a2.Opened} actTwoOk={act2Ok} actTwoMissed=[{string.Join(",", act2Missed)}] " +
                       $"actThree={_actThreeStaged} opened={_game.ActThree.Opened} [{_actThreeWhy}] " +
                       $"ending={_actThreeEnding} handed={_actThreeHandedOver} " +
