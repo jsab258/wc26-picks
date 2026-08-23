@@ -49,39 +49,59 @@ self-elevating, no silently-closable window, and NO INSTALLERS — the
 pwsh MSI died at 92% "Access is denied" on his PC, so both tools land
 as plain zips (Program Files, falling back to `C:\LedgerTools`, both
 probed by the shims). Unity via bat 4, desktop session via bat 5.
-**ALL 72 GATES GREEN (23 Aug, ec26862) — first time ever, on his
-GPU.** ~17 min/round vs cloud ~28. `meanFrame` stable 25.6-25.8ms
-(~39fps twice — vsync cap suspect). **HAIR CLOSED** (cutout remap,
-number + pixels). **FURNITURE CLOSED (3a4ea5e): real bench/bin/crate
-models, and the repaint proven by STILL** — the MPB tint wrote a
-`_Color` no glTFast shader reads (116 calls, zero effect, counter
-counted calls); materials now REPLACED. Before/after pair sent to
-Jafar. **CLIP SHEET CLOSED**: file lands (edcf16a and 3a4ea5e).
-**dayJob GREEN FOR THE FIRST TIME (08d6472, shifts=1)** — the walk
-rides StreetMap.Route when the job owns the legs (two traced mornings
-had the slide grinding on a sill, then Building_69's corner). Same
-run: **beats red for the FIRST time in 271 runs** — the routed job
-walks leave the bot mid-town when invitations open and the direct
-chase (40/40s burned, closest 4.2m) hits the corners the courier did;
-the chase is now routed too, plus a 90-tick unreachable-node skip
-(d13 stood 507 ticks at one node) and the stall cast aims at the
-STEERING target, not the goal. **noonFacade CLOSED AS A QUESTION:
-census reads the dark third as 60% grey brick / 39% mat_roof** — the
-shopfront surrounds (jambs/head/stall) and clutter awnings were
-built from roof felt; now painted joinery (ShopfrontPaints) and
-canvas via Opaque() — an MPB colour multiplies onto Roof's
-dark-baked texture, the glTFast trap one shader family over. Ladder
-judges the landing. Furniture RoadStuck=25: narrow junctions defeat
-the r=5.5 ring — widen on stuck (open). Revert `runs-on` if he bows
-out.
-**AND BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT (Jafar, 22 Aug:
+**ALL 72 GATES GREEN and holding (23 Aug).** ~17.6 min/round on his
+GPU vs cloud 33-41 — measured over 11 consecutive rounds; the BUILD
+is no longer the bottleneck, the ~35 min dispatch cadence is (my
+read+write time). CLOSED today: hair, furniture (models + repaint
+proven by still), clip sheet, **dayJob** (courier rides
+StreetMap.Route; two traced mornings had the slide grinding on a
+window sill then Building_69's corner), **beats** (same router, after
+it went red for the first time in 271 runs on the routing build),
+noonFacade-as-a-question (census: 60% grey brick / 39% mat_roof, the
+shopfront surrounds and awnings built from roof felt, now painted
+joinery + canvas via Opaque()).
+
+**THE PERFORMANCE PICTURE IS MEASURED, AND TWO GUESSES DIED.**
+`frameCost` toggle ladder: all:22.4 noPost:22.0 noShadow:17.3
+noShafts:22.9 noBodies:23.3 noPixLights:18.0. **Sun shadows 5.1ms and
+per-pixel lights 4.4ms hold the frame; the crowd is not in the bill
+at all** (hiding every body came back SLOWER). Draw-call theory died
+first (instancing on every town surface — a real missing flag, kept —
+moved meanFrame 0.00 against a 24.67-25.84 band). If headroom is ever
+needed it is bought from shadows, not from people. meanFrame now
+~27.4ms and drifting up with density; perfOk still green.
+
+**THE STREET WAS NEVER AS EMPTY AS THE PICTURES.** Caps 12->28 bought
+density near the player (seen20 10.4->13.5, bodyLodNear 14->33) and
+did nothing for the frames, because `crowdWalkers=8` against cap 28
+said the cap had stopped binding — `Population.NearMetres=34` had.
+Nothing beyond a block of the player was DRAWN. 34->70 (BandSlack
+6->12 with it, since PopulationHost spends it as a proportion) took
+crowdWalkers to 22. Frames still looked empty, so the counter itself
+went under suspicion: **`streetBodies` was a viewport-RECTANGLE test
+counting people through walls.** `streetBodiesSeen` (linecast, the
+occlusion test `Shot` already ran for the player and was never
+pointed at the crowd) landed at **19 in cone / 3 visible**.
+**The sparse street was substantially a PHOTOGRAPHY problem.**
+`midFrac` (2..7m band, added this morning) sorted across 28 shots is
+bimodal — nights and district tours at 0.00-0.25, almost every DAY
+street shot 0.35-0.69 — so `ShotMidBlockedAt=0.30` sits in the widest
+gap, exactly as `ShotBlockedAt` was placed in its own. Landed:
+**12 of 13 triggered shots fixed** (day2_noon 0.37->0.14, day12_noon
+0.69->0.17); day2_noon now shows 7-8 people, a cast shadow and a
+legible shopfront — pair sent to Jafar. OPEN: `day1_noon` is the one
+that gave up (wedged in a canyon, 8x1.5m straight back cannot escape;
+straight-back-never-re-aimed is deliberate — a dozen findings cite
+these filenames). Day frames are NOT like-for-like across this
+change. Also open: Furniture RoadStuck 25->2 after widening rings to
+7.5/9.5m; `crowdInside` (overlapping PAIRS, not people indoors — I
+misread it once) at 18 is a clipping risk density will amplify.
+Revert `runs-on` if he bows out.
+**BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT** (Jafar, 22 Aug:
 "a full ultracode audit before playtesting is a good idea. rememver
-that").** A multi-agent sweep of the whole codebase — every system
-against every rule in CLAUDE.md, every claim against its code, reach
-and comment decay included — run as its own workflow when the visual
-and speech stages close, with findings triaged into the queue before
-he downloads the build. Token-heavy by design; he has pre-approved
-exactly this run.
+that"). Multi-agent sweep of the whole codebase against every rule in
+CLAUDE.md, findings triaged into the queue before he downloads the
+build. Pre-approved; token-heavy by design.
 
 ### Startable right now — JAFAR'S SEQUENCE (22 Aug, his words):
 ### "1. visual, 2. voices/speech, 3. playtest, then feedback/fixes and
@@ -165,45 +185,26 @@ exactly this run.
    were all surgery on a shader that was not running (the emission
    case's four theories and their falsifications are in the commit
    log; the lesson: A RUNTIME MATERIAL'S KEYWORD SET MUST MATCH A
-   VARIANT THE BUILD CONTAINS, and the pack maps are load-bearing
-   for that). AA landed: night 0.142, glow restored, sashes with
-   dark frames near, hashed patchwork on wide bands, 122 interiors
-   visible, wet frame the project's best, **1 of 72 gates red** —
-   the frame budget, which is Jafar's-machine work. Watch, do not
-   chase: worst glow blob 9.9% is one close-range window; two dim
-   noons read brighter-than-night (d6/d8) inside the 8-of-10 gate.
+   VARIANT THE BUILD CONTAINS). AA landed: night 0.142, glow
+   restored, 122 interiors visible. Watch, do not chase: worst glow
+   blob is one close-range window.
 
-1. **RAIN AT EYE LEVEL: wet frames land every run** — judge the
-   old black-scratches report against them; the magenta half is
-   REFUTED, and the first landed wet frames read as streaks in lamp
-   cones, not scratches.
+1. **RAIN AT EYE LEVEL: wet frames land every run** — the magenta
+   half is REFUTED; landed wet frames read as streaks in lamp cones.
 
 1. **THE BODY BUDGET IS CLOSED AT 87.8% — account in `roadmap-history.md`.**
-   Three things stay live. **The band, not the budget:** 13.1 walkers in frame
-   per pass, only 6.5 inside the 34m band, so half the people you can see can
-   never be skinned.
-
-   **The pale-body hunt — THE HAIR IS CAUGHT (AD's close-up).** The
-   arm's-length frame put a walker in shot and the hair renders as
-   flat white glossy shards — unshaded or wrongly shaded at close
-   range, the standing suspect photographed at last. Next: the hair
-   meshes' material path in RealBody/CharacterPrefab (shader, gloss,
-   or a missing texture on hair submeshes). The centre-third FootMesh
-   reading stays open beside it. **Also from that frame:** the
-   waist-lean posture confirmed up close (armStreet tail family), an
-   unlit window band at point-blank reads as a void slab (accepted
-   street-distance trade, noted), and the wall material at arm's
-   length is GOOD — the close-range question is answered positively.
-   Next rung for the probe: aim at an unoccluded wall patch.
-
-   **The white pills are unidentified and NO COMMITTED STILL HAS ONE** —
-   the pale figures measured DARKER than the walls (sixth wrong call off
-   a picture). Next step stays: a measurement that fires WHILE one is on
-   screen. The T-pose in that frame is separate and real.
-
-   **`bodyWashUnreached=534` against `bodyTinted=1326`** — 40% of bodies render
-   darker than the band because a multiply only subtracts. A limit, not a bug.
-   **`RealBodyCap = 12` needs a PC measurement**, not a CI one.
+   The band question is ANSWERED (23 Aug): the 34m draw radius was the
+   binding constraint, now 70m, and `RealBodyCap` got its PC
+   measurement at last — the render ladder priced the whole drawn
+   crowd at ~1.1ms, so 12 -> 28. **Hair CLOSED** (cutout remap, proven
+   in number and close-up pixels). Still live: the centre-third foot
+   reading (FootMesh 234, Ch38_Shoes 224 — the blob-shadow entry that
+   outranked them was a multiply quad sampling the pavement, now
+   excluded); the white pills remain unidentified with NO COMMITTED
+   STILL holding one, and the next step is still a measurement that
+   fires WHILE one is on screen. `bodyWashUnreached` ~500 against
+   `bodyTinted` 2048 — bodies rendering darker than their band because
+   a multiply only subtracts. A limit, not a bug.
 
 1. **BUS AND BICYCLE LANDED** (seven kinds, zero fallbacks since P). Open
    judgment: the RIDERLESS bike — if it reads wrong, rider or parked-only.
