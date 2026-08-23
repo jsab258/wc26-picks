@@ -2271,13 +2271,25 @@ namespace Ledger.Game
             float len = d.magnitude;
             if (len < RoadRunMetres) return false;
             d /= len;
+            // 0.5m -> 1.5m STEPS, AND THE COST IS WHY. This runs per walker
+            // per steer, and the first landing put `npcsMs` at 5.99 against
+            // 4.08 the build before — most of the 1.7ms the frame gained,
+            // spent inside this loop rather than on anything anyone can
+            // see. A guard against a visual fault that costs more than the
+            // fault is a bad trade.
+            //
+            // Resolution is still sufficient by construction: the bound is
+            // 12m and a step is 1.5m, so eight consecutive on-road samples
+            // are needed to trip it. The failure being caught is a walk
+            // ALONG a carriageway — tens of metres — not a sliver, and no
+            // legitimate crossing gets near eight.
             float onRoad = 0f;
-            for (float t = 0f; t <= len; t += 0.5f)
+            for (float t = 0f; t <= len; t += 1.5f)
             {
                 var p = a + d * t;
                 if (Ledger.Core.StreetMap.OnRoad(p.x, p.z))
                 {
-                    onRoad += 0.5f;
+                    onRoad += 1.5f;
                     if (onRoad > RoadRunMetres) { SteerDirectOnRoad++; return true; }
                 }
             }
