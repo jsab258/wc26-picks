@@ -8873,6 +8873,24 @@ namespace Ledger.Game
         /// `0.00 x13 0.05 0.06 0.10 | 0.37 0.48 0.60 1.00`, and this sits in
         /// the widest empty stretch of that series.
         const float ShotBlockedAt = 0.25f;
+
+        /// The same bound for the MID band (2..7m), off its own landed
+        /// series rather than by analogy. 2082bb4's twenty-eight shots,
+        /// sorted:
+        ///
+        ///   0.00 x9  0.01 0.06 0.07 0.12 0.13 0.19 0.25 0.25 |
+        ///   0.35 0.35 0.37 0.37 0.37 0.38 0.40 0.50 0.52 0.63 0.68 0.69
+        ///
+        /// Bimodal, with the widest empty stretch in the series between
+        /// 0.25 and 0.35 — so the bound sits in it, exactly where
+        /// `ShotBlockedAt` was placed in its own gap. The split is not
+        /// arbitrary in content either: the low group is the night frames
+        /// and the district tour vantages, the high group is almost every
+        /// DAY street shot. The review stills are systematically boxed in
+        /// at mid distance, which is what `streetBodies=19` beside
+        /// `streetBodiesSeen=3` measures from the other end — nineteen
+        /// people in the cone, three not behind a building.
+        const float ShotMidBlockedAt = 0.30f;
         /// How far a sight-line ray is allowed to run before it counts as
         /// "sees the horizon". Not a threshold on the answer — it is the
         /// ceiling on the RAY, and it exists so a ray that reaches nothing has
@@ -9000,6 +9018,12 @@ namespace Ledger.Game
         /// (`_shotNearFrac`, plural list, is the existing per-shot SERIES —
         /// the name collision was caught by ShapeCheck before it shipped.)
         float _keptNearFrac = -1f, _keptMidFrac = -1f;
+        /// Worst mid-band fraction seen BEFORE any step-back, and how many
+        /// shots the mid test alone pulled in — without the second number a
+        /// quiet mid trigger and a mid test that never fires read the same
+        /// (rule 3b).
+        float _shotMidBefore = -1f;
+        int _shotMidTriggered;
 
         /// This shot was written to disk, so its framing is EVIDENCE.
         ///
@@ -9305,25 +9329,39 @@ namespace Ledger.Game
                 // loop working or nothing having been in the way — the
                 // missing denominator, applied to a repair rather than to a
                 // count.
-                if (nearFrac > ShotBlockedAt)
+                // EITHER BAND CAN BLOCK A FRAME. The near test alone let
+                // every noon still through — day1_noon sat at nearFrac 0.07
+                // and midFrac 0.49, so nothing was against the lens and
+                // half the cone was a building corner four metres out. That
+                // is the frame Jafar has been looking at.
+                float midFrac = _keptMidFrac;
+                if (nearFrac > ShotBlockedAt || midFrac > ShotMidBlockedAt)
                 {
                     if (nearFrac > _shotNearBefore) _shotNearBefore = nearFrac;
+                    if (midFrac > _shotMidBefore) _shotMidBefore = midFrac;
+                    _shotMidTriggered += midFrac > ShotMidBlockedAt ? 1 : 0;
                     var back = blockCam.transform.forward;
                     back.y = 0f;
                     if (back.sqrMagnitude > 0.0001f)
                     {
                         back = -back.normalized;
                         var stood = blockCam.transform.position;
-                        float best = nearFrac;
+                        float best = nearFrac, bestMid = midFrac;
                         for (int step = 0; step < 8; step++)
                         {
                             blockCam.transform.position += back * 1.5f;
                             _shotNudges++;
                             float now = ShotSightlines(blockCam, out _);
+                            float nowMid = _keptMidFrac;
                             if (now < best) best = now;
-                            if (now <= ShotBlockedAt) { best = now; break; }
+                            if (nowMid < bestMid) bestMid = nowMid;
+                            // BOTH bands have to be clear to stop early, or
+                            // a step that fixed the lens while leaving the
+                            // corner in place would call the frame good.
+                            if (now <= ShotBlockedAt && nowMid <= ShotMidBlockedAt)
+                            { best = now; bestMid = nowMid; break; }
                         }
-                        if (best > ShotBlockedAt)
+                        if (best > ShotBlockedAt || bestMid > ShotMidBlockedAt)
                         {
                             // NOTHING HELPED, SO PUT IT BACK. A camera that
                             // has walked eight steps into a building it could
@@ -13120,7 +13158,7 @@ namespace Ledger.Game
                       // camera walked eight steps and could not get clear, so
                       // it was put back and the frame is blocked anyway.
                       $"shotNearBefore={_shotNearBefore:0.00} " +
-                      $"shotNudges={_shotNudges} " +
+                      $"shotNudges={_shotNudges} shotMidBefore={_shotMidBefore:0.00} shotMidTriggered={_shotMidTriggered} " +
                       $"shotNudgesWorked={_shotNudgesWorked} " +
                       $"shotNudgesGaveUp={_shotNudgesGaveUp} " +
                       // HOW FAR THE CAMERA COULD SEE, which is the half of
