@@ -180,6 +180,23 @@ namespace Ledger.Game
         /// the first question to ask and there was no way to ask it.
         public static bool Bypass = false;
 
+        /// A/B multiplier on the aperture, for the sim's exposure response
+        /// ladder ONLY — never a setting and never written by the game.
+        ///
+        /// `Exposure`'s own history is six revisions of somebody choosing a
+        /// number, landing a build, and reading one frame: the comments on
+        /// it record 0.55 -> 0.10 -> below zero on the night arm alone, and
+        /// a day arm moved three times because "the tonemap rolls off, so
+        /// the arm buys less than linear". Nobody has ever printed the
+        /// CURVE. day3_noon at meanLuma 0.206 against day3_night 0.165 is
+        /// the cost: our midday is a quarter brighter than our midnight,
+        /// and a real overcast noon frame sits near 0.35-0.50.
+        ///
+        /// So the sim renders the same noon instant at several apertures
+        /// and reports what each produced. Then the number comes off the
+        /// series instead of off an argument.
+        public static float ExposureScale = 1f;
+
         void OnRenderImage(RenderTexture src, RenderTexture dst)
         {
             Frames++;
@@ -253,7 +270,8 @@ namespace Ledger.Game
             _mat.SetFloat("_Vignette", Vignette ? vignette : 0f);
             // The aperture opens at night and closes in daylight rain, from
             // the same curve the scene lighting uses.
-            _mat.SetFloat("_Exposure", (float)Ledger.Core.LightModel.Exposure(night, Weather.Rain));
+            _mat.SetFloat("_Exposure",
+                (float)Ledger.Core.LightModel.Exposure(night, Weather.Rain) * ExposureScale);
             // EXPOSED COOLS, HIDDEN WARMS — the only prospective signal in the
             // grade, and it has never once run.
             //

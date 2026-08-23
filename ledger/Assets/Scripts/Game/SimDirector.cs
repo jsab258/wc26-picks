@@ -8391,6 +8391,49 @@ namespace Ledger.Game
             return ms[1];
         }
 
+        /// THE APERTURE'S RESPONSE CURVE, printed instead of argued.
+        ///
+        /// day3_noon reads meanLuma 0.206 against day3_night 0.165 — a
+        /// midday a quarter brighter than a midnight, when a real overcast
+        /// noon frame sits near 0.35-0.50. `Exposure` has been revised six
+        /// times to chase this and every revision was somebody choosing a
+        /// number and reading one landed frame; its own comments say "the
+        /// tonemap rolls off, so the arm buys less than linear" without
+        /// ever saying by how much.
+        ///
+        /// Five apertures on the same instant, whole-frame mean each. The
+        /// tonemap's roll-off is then visible AS a curve — if 2.0x buys
+        /// much less than twice what 1.25x buys, the aperture is the wrong
+        /// lever and the answer is upstream in the light or the grade,
+        /// which is a different fix and worth knowing before spending a
+        /// build on the wrong one.
+        string _exposureCurve = "not_probed";
+        bool _exposureCurveDone;
+
+        void ProbeExposureCurve(Camera cam)
+        {
+            if (_exposureCurveDone || cam == null) return;
+            _exposureCurveDone = true;
+            var scales = new[] { 1.0f, 1.25f, 1.5f, 2.0f, 3.0f };
+            var sb = new System.Text.StringBuilder("[");
+            try
+            {
+                for (int i = 0; i < scales.Length; i++)
+                {
+                    FilmGrade.ExposureScale = scales[i];
+                    var st = FrameShot(cam);
+                    if (i > 0) sb.Append('/');
+                    sb.Append("x").Append(scales[i].ToString("0.00",
+                            System.Globalization.CultureInfo.InvariantCulture))
+                      .Append(':').Append(st.Mean.ToString("0.000",
+                            System.Globalization.CultureInfo.InvariantCulture));
+                }
+            }
+            finally { FilmGrade.ExposureScale = 1f; }
+            _exposureCurve = sb.Append(']').ToString();
+            Debug.Log("SimDirector: exposureCurve " + _exposureCurve);
+        }
+
         /// WHO HOLDS THE NOON FACADE DOWN. The 3a4ea5e noon still has its
         /// left half near-black — a shaded wall whose expected chain
         /// (albedo 0.15 x ambient 0.42 x exposure ~1.6, sRGB-encoded) puts
@@ -10184,7 +10227,8 @@ namespace Ledger.Game
                 // The facade ladder, from THIS vantage: the camera is at the
                 // step-back's final position and the frame just encoded is
                 // the one whose left half the ladder explains.
-                if (name == "day1_noon") { ProbeNoonFacade(cam); ProbeFrameCost(cam); }
+                if (name == "day1_noon")
+                { ProbeNoonFacade(cam); ProbeFrameCost(cam); ProbeExposureCurve(cam); }
                 // THE GLOW-BLOB READ, night and dusk frames only. Two night
                 // stills read as walls of amber light while brightPct called
                 // one of them 1.23 — the eye's objection is one CONTIGUOUS
@@ -13831,6 +13875,10 @@ namespace Ledger.Game
                       // with meanFrame (the probe's own RT and ReadPixels
                       // inflate every rung equally). Read the differences.
                       $"frameCost={_frameCost} " +
+                      // Whole-frame mean at each aperture multiple, same
+                      // instant. Read the SHAPE: a curve that flattens says
+                      // the aperture is the wrong lever.
+                      $"exposureCurve={_exposureCurve} " +
                       // Largest contiguous warm glow patch in a dark-hour
                       // frame: the worst (with its shot named) beside the
                       // median, because "did any frame become a wall of
