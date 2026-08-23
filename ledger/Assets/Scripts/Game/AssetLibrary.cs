@@ -299,8 +299,28 @@ namespace Ledger.Game
             // that scalar — the wet-street look would silently die on the
             // four surfaces it was calibrated for. Ground stays scalar until
             // SetWetness learns `_GlossMapScale` (on the quality ladder).
-            bool wetDriven = System.Array.IndexOf(WetSurfaces, logical) >= 0;
-            var gls = tex != null && !wetDriven
+            // THE GROUND GETS ITS ROUGHNESS MAP AT LAST. The quality
+            // ladder's named next rung for textures: ground roughness,
+            // gated on SetWetness learning _GlossMapScale.
+            //
+            // (Written without quoting the ladder's own wording, because
+            // slopcheck extracts C# strings and a QUOTED span inside a
+            // comment reads to it as a string literal. Citing a line that
+            // contains an em dash therefore lands an em dash in the prose
+            // count. Same shape as this file's rule that an interpolated
+            // string is code: the extractor cannot see intent, only
+            // quotes.)
+            //
+            // asphalt_r, kerb_r and concrete_r have been on disk, fetched
+            // and unused, because binding `_METALLICGLOSSMAP` makes the
+            // Standard shader ignore `_Glossiness` — and `_Glossiness` is
+            // the scalar `SetWetness` drives, so the wet-street look
+            // calibrated on those four surfaces would have died silently.
+            // `SetWetness` now drives `_GlossMapScale` instead when a map
+            // is bound, normalised by the map's own mean so the CALIBRATED
+            // LEVEL is unchanged and only the per-texel variation is new.
+            // The account is on `SetWetness`.
+            var gls = tex != null
                 ? ResolveGloss(mapsFrom, (byte)Mathf.RoundToInt(spec.Metallic * 255f))
                 : null;
             if (gls != null)
@@ -373,6 +393,36 @@ namespace Ledger.Game
         /// shinier and DARKER. Shiny-but-not-darker is polished plastic, and
         /// it is why so many rainy game streets look like a car showroom
         /// floor.
+        /// WRITE THE SMOOTHNESS WHEREVER THIS SHADER IS ACTUALLY READING IT.
+        ///
+        /// Unity's Standard shader ignores `_Glossiness` the moment
+        /// `_METALLICGLOSSMAP` is bound — it reads the map's alpha times
+        /// `_GlossMapScale`. That is exactly why the ground surfaces were
+        /// kept off the roughness maps: `SetWetness` drives the scalar, and
+        /// binding a map would have made every wet-street value it writes a
+        /// no-op WITHOUT changing a line of this function. A dead write
+        /// that still looks like a working one.
+        ///
+        /// NORMALISED BY THE MAP'S OWN MEAN, so this is not a re-tuning.
+        /// The calibrated target is an ABSOLUTE smoothness; a scale is a
+        /// MULTIPLIER on map alpha, so writing the target straight into the
+        /// scale would land the surface at target x mean — darker than
+        /// every value the wet look was judged on. Dividing by the mean
+        /// makes the surface AVERAGE the target and lets the map supply the
+        /// variation around it, which is the whole point of having it.
+        ///
+        /// Clamped at 4 because a map whose mean is near zero would
+        /// otherwise ask for an unbounded scale, and `_glossMean` falls
+        /// back to 0.5 when a map arrived without pixels to average.
+        static void SetSmoothness(Material mat, string logical, float target)
+        {
+            if (mat.IsKeywordEnabled("_METALLICGLOSSMAP")
+                && _glossMean.TryGetValue(logical, out var mean) && mean > 0.01f)
+                mat.SetFloat("_GlossMapScale", Mathf.Min(4f, target / mean));
+            else
+                mat.SetFloat("_Glossiness", target);
+        }
+
         public static void SetWetness(float wetness)
         {
             if (!_initialized) return;
@@ -384,7 +434,7 @@ namespace Ledger.Game
             {
                 if (!_materials.TryGetValue(name, out var mat) || mat == null) continue;
                 var spec = SurfaceSpec.For(name);
-                mat.SetFloat("_Glossiness", (float)LightModel.Smoothness(spec.Smoothness, wetness));
+                SetSmoothness(mat, name, (float)LightModel.Smoothness(spec.Smoothness, wetness));
                 // Darken the GRADE, not the tint — the wet ground is textured,
                 // so its base colour is `TextureGrade` (see BuildMaterial), and
                 // scaling the tint here would reintroduce the crush this
@@ -399,7 +449,7 @@ namespace Ledger.Game
             {
                 if (mat == null) continue;
                 var spec = SurfaceSpec.For(name);
-                mat.SetFloat("_Glossiness", (float)LightModel.Smoothness(spec.Smoothness, wetness));
+                SetSmoothness(mat, name, (float)LightModel.Smoothness(spec.Smoothness, wetness));
                 var baseCol = mat.mainTexture != null ? TextureGrade : spec.Tint;
                 mat.color = new Color(baseCol.r * grade.r * (float)albedo,
                                       baseCol.g * grade.g * (float)albedo,
@@ -544,13 +594,21 @@ namespace Ledger.Game
                             && TextureFit.IsCleanShape(raw.width, raw.height))
                         {
                             var px = raw.GetPixels32();
+                            long smoothSum = 0;
                             for (int i = 0; i < px.Length; i++)
                             {
                                 px[i].a = (byte)(255 - px[i].r);
                                 px[i].r = metallic;
                                 px[i].g = 0;
                                 px[i].b = 0;
+                                smoothSum += px[i].a;
                             }
+                            // THE MAP'S MEAN SMOOTHNESS, banked while the
+                            // pixels are already in hand. `SetWetness` needs
+                            // it to keep the wet-street calibration when the
+                            // ground stops using the scalar — see there.
+                            _glossMean[logical] = px.Length > 0
+                                ? smoothSum / (float)px.Length / 255f : 0.5f;
                             result = new Texture2D(raw.width, raw.height,
                                                    TextureFormat.RGBA32, true, true)
                             { name = "packgls_" + logical,
@@ -570,6 +628,8 @@ namespace Ledger.Game
             return result;
         }
         static readonly Dictionary<string, Texture2D> _gloss = new Dictionary<string, Texture2D>();
+        /// Mean smoothness of each bound gloss map, 0..1.
+        static readonly Dictionary<string, float> _glossMean = new Dictionary<string, float>();
 
         static Texture2D LoadPackTexture(string logical)
         {
