@@ -301,7 +301,31 @@ jobs:
       # So: try twice, with a pause long enough for another job's licence to be
       # returned. The first attempt cannot fail the job; the second can, so two
       # genuine failures still stop the build rather than running it unlicensed.
+      #
+      # UNLESS THE MACHINE IS ALREADY LICENSED. The desktop-session agent runs
+      # as the account that signed into Unity Hub, which holds an entitlement
+      # licence of its own — run 32621431902 tried to activate a second
+      # licence on top of it, failed both attempts in a second each, and its
+      # cleanup then choked on the account's Asset Store entitlement
+      # ("Unsupported license type"). Probe first; skip activation (and its
+      # deactivating cleanup) when Unity Personal is already on the machine.
+      # On the cloud image no licence pre-exists and activation runs as before.
+      - name: Licence already present? (self-hosted parity)
+        id: lic_probe
+        timeout-minutes: 1
+        shell: bash
+        run: |
+          CLIENT="/c/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe"
+          if [ -x "$CLIENT" ] && "$CLIENT" --showEntitlements 2>/dev/null | grep -q "Product Name: Unity Personal"; then
+            echo "licensed=true" >> "$GITHUB_OUTPUT"
+            echo "Unity Personal already licensed on this machine - activation skipped"
+          else
+            echo "licensed=false" >> "$GITHUB_OUTPUT"
+            echo "no licence on this machine - activation will run"
+          fi
+
       - name: Activate Unity license
+        if: steps.lic_probe.outputs.licensed != 'true'
         id: unity_license
         timeout-minutes: 2
         continue-on-error: true
@@ -460,6 +484,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LICENSE_FIRST: ${{ steps.unity_license.outcome }}
           LICENSE_RETRY: ${{ steps.unity_license_retry.outcome || 'not needed' }}
+          # THE WORK TREE OUTLIVES THE ACCOUNT THAT MADE IT. The service era
+          # left _work owned by NETWORK SERVICE; the desktop-session agent
+          # runs as the person, and git refuses a repo owned by somebody
+          # else ("dubious ownership") — run 32621431902 burned all six push
+          # retries on it. actions/checkout dodges this with its own temp
+          # HOME; this step gets the same trust through env, scoped to the
+          # step instead of written into anyone's real gitconfig.
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: "*"
         run: |
           # The 400-line body lives in tools/sim-shots-commit.sh — moved
           # there because this step sat 416 characters under the hard
