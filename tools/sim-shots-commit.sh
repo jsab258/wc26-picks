@@ -58,7 +58,12 @@ if [ -f sim-run/sim-out/clips.jpg ]; then
   CLIPS_MINE=1
   say "clip sheet rendered ($(du -k sim-run/sim-out/clips.jpg | cut -f1) KB)"
 else
-  say "no clip sheet — the animation pass did not render"
+  # NAME WHAT IS THERE INSTEAD. Run 3c6d160 printed this line while the
+  # sim's own verdict said sheetTiles=64 — drawn but never landed here —
+  # so a miss now lists the directory it looked in, which separates
+  # "the pass never ran" from "it wrote somewhere else" and from "the
+  # encode died after drawing" (rule 3b: a zero needs a denominator).
+  say "no clip sheet — sim-run/sim-out holds: $(ls sim-run/sim-out 2>/dev/null | head -8 | tr '\n' ' ' || echo 'nothing — no such directory')"
 fi
 ls -la game-design/sim-shots/
 

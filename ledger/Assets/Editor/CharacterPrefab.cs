@@ -424,6 +424,78 @@ namespace Ledger.EditorTools
             }
         }
 
+        /// THE HAIR RENDERS AS A BLOWN-WHITE BLOB, AND THE SURVEY SAYS WHY.
+        /// Run 3c6d160's close-up photographed it point-blank on real
+        /// hardware — two characters, faces textured and shaded correctly,
+        /// hair a pure unshaded white mass — and the survey printed every
+        /// hair material as mode:3 (Transparent/Fade) with gloss 0.45: the
+        /// classic Mixamo import, whose blended transparency compounds sky
+        /// and specular into white under this lighting. The repair is the
+        /// standard one: CUTOUT, not Fade — alpha-tested, z-writing, lit
+        /// like every other surface — with the gloss capped low.
+        ///
+        /// Done as REAL MATERIAL ASSETS the prefab references, not runtime
+        /// keyword edits: the emission arc proved a runtime keyword set the
+        /// build never compiled a variant for falls back silently, and a
+        /// material asset that exists at player-build time ships its
+        /// variant by construction. Keyed off the surveyed names — every
+        /// hair material's name contains "hair" (Ch08_hair, Hairmat, ...);
+        /// brows/mouth/eye overlays keep their transparency untouched.
+        static readonly System.Collections.Generic.Dictionary<Material, Material>
+            _hairRepairs = new System.Collections.Generic.Dictionary<Material, Material>();
+
+        static Material RepairedHair(Material src)
+        {
+            if (_hairRepairs.TryGetValue(src, out var done) && done != null) return done;
+            if (!AssetDatabase.IsValidFolder("Assets/Characters"))
+                AssetDatabase.CreateFolder("Assets", "Characters");
+            if (!AssetDatabase.IsValidFolder("Assets/Characters/Materials"))
+                AssetDatabase.CreateFolder("Assets/Characters", "Materials");
+            var m = new Material(Shader.Find("Standard")) { name = src.name + "_cutout" };
+            if (src.HasProperty("_MainTex")) m.mainTexture = src.mainTexture;
+            if (src.HasProperty("_Color")) m.color = src.color;
+            m.SetFloat("_Mode", 1f);
+            m.EnableKeyword("_ALPHATEST_ON");
+            m.DisableKeyword("_ALPHABLEND_ON");
+            m.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            m.SetOverrideTag("RenderType", "TransparentCutout");
+            m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+            m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
+            m.SetInt("_ZWrite", 1);
+            m.renderQueue = 2450;
+            m.SetFloat("_Cutoff", 0.5f);
+            m.SetFloat("_Glossiness", 0.10f);
+            m.SetFloat("_Metallic", 0f);
+            // The count suffix keeps two same-named hair materials from two
+            // models apart; BodyModels() is sorted, so it is deterministic.
+            var path = $"Assets/Characters/Materials/hair_{_hairRepairs.Count}_{m.name}.mat";
+            AssetDatabase.CreateAsset(m, path);
+            _hairRepairs[src] = m;
+            return m;
+        }
+
+        static int RepairHair(GameObject instance)
+        {
+            int n = 0;
+            foreach (var r in instance.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                bool touched = false;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null) continue;
+                    if (m.name.IndexOf("hair", System.StringComparison.OrdinalIgnoreCase) < 0)
+                        continue;
+                    mats[i] = RepairedHair(m);
+                    touched = true;
+                    n++;
+                }
+                if (touched) r.sharedMaterials = mats;
+            }
+            return n;
+        }
+
         /// `isDefault` writes the extra copy at `Body.prefab`, which is what
         /// `RealBody` falls back to and what every existing gate names.
         static void BuildOne(string modelPath, bool isDefault)
@@ -540,6 +612,11 @@ namespace Ledger.EditorTools
                     // the difference between a character and a mannequin.
                     animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 
+                    // Hair to cutout BEFORE the save, so the prefab that ships
+                    // references the repaired assets (rule 6: the count on the
+                    // per-body line below is the proof the remap ran).
+                    int hairFixed = RepairHair(instance);
+
                     var stem = System.IO.Path.GetFileNameWithoutExtension(modelPath)
                         .Replace(" ", "");
                     var mine = $"{ResourceDir}/Body_{stem}.prefab";
@@ -568,7 +645,8 @@ namespace Ledger.EditorTools
                     // fault with a loop around it. They are whole-run facts, so
                     // they go on their own line, once.
                     Debug.Log($"CharacterPrefab: wrote {mine} ok={ok} "
-                              + $"avatar={avatar.name} human={avatar.isHuman}");
+                              + $"avatar={avatar.name} human={avatar.isHuman} "
+                              + $"hairCutout={hairFixed}");
                 }
                 finally
                 {
