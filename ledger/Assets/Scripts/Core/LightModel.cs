@@ -117,9 +117,49 @@ namespace Ledger.Core
             // Up again with the clamp raised to let it land; night arm still
             // floor-bound, its remaining excess handled at the sources
             // (WindowGlow round two, grain round two).
-            double e = 1.0 + 0.72 * (1 - night) - 0.14 * night
-                       - 0.15 * rain * (1 - night) + 0.06 * rain * night;
-            return Feel.Clamp(e, 0.7, 1.85);
+            // ROUND SEVEN, AND THE FIRST ONE OFF A CURVE INSTEAD OF A GUESS.
+            //
+            // The six revisions above each chose a number and read one
+            // landed frame. b024736 printed the aperture's actual response
+            // at the day1_noon instant:
+            //
+            //   x1.00:0.199  x1.25:0.230  x1.50:0.256  x2.00:0.302  x3.00:0.373
+            //
+            // So the roll-off this function's comments kept citing is real
+            // but gentle — tripling the aperture buys 1.87x of frame mean —
+            // and the aperture IS the lever, which was the thing nobody had
+            // established before spending a build on it.
+            //
+            // THE TARGET IS BOUNDED ON BOTH SIDES BY LANDED READINGS, not
+            // by my taste. Too bright is measured: run edbce5b's noons came
+            // back 0.44-0.49 mean with 40-48% of pixels bright and were
+            // rejected as "seaside-morning white, not overcast port"
+            // (TextureGrade's own comment). Too dark is measured here:
+            // day3_noon 0.206 against day3_night 0.165, a midday a quarter
+            // brighter than a midnight, which is the defect the CoreTest
+            // below this calls "impossible" to a photographer. x2.00 lands
+            // 0.302 — mid-band, and the first point on the curve where noon
+            // reads clearly above night (1.8:1 rather than 1.2:1).
+            //
+            // The day arm carries it: 0.72 -> 2.44 puts noon at 3.44, twice
+            // today's 1.72. The night arm is untouched, so every night
+            // reading this file has tuned against still holds.
+            //
+            // THE RAIN TERM TRAVELS WITH IT. -0.15 was 9% of a 1.72 day
+            // aperture; against 3.44 it would be 4%, and "an overcast day
+            // loses light" would quietly become half the statement it is.
+            // Scaled by the same 3.389 to -0.508 so the proportion holds.
+            //
+            // AND THE CLAMP, WHICH WOULD OTHERWISE HAVE EATEN ALL OF THIS.
+            // The ceiling was 1.85 against a noon of 1.72 — raising the arm
+            // alone would have bought 0.13 and looked like the curve lying.
+            // This file's own history has a line reading "up again with the
+            // clamp raised to let it land", so it has been the silent
+            // ceiling before. 3.6 clears the new noon with room for the
+            // rain term to move under it.
+            double e = 1.0 + 2.44 * (1 - night) - 0.14 * night
+                       - 0.508 * rain * (1 - night) + 0.06 * rain * night;
+            return Feel.Clamp(e, 0.7, 3.6);
         }
 
         // ---- bloom ----------------------------------------------------------
