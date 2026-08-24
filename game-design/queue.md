@@ -372,8 +372,8 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 
 | aspect | rung now | known next rung, free |
 |---|---|---|
-| textures | 2K colour+normal landed; roughness wired on walls | ground roughness (SetWetness must drive _GlossMapScale); AO maps |
-| buildings | procedural terraces, photo surfaces, pots+aerials | window reveals/sills relief; shopfront depth (V4) |
+| textures | 2K colour+normal; roughness on walls AND ground (24 Aug, normalised so the wet calibration held: reflMax 0.89 unchanged); vertical run-off streaks in brick/plaster/concrete | AO maps; a second albedo variant per surface |
+| buildings | procedural terraces, photo surfaces, pots+aerials, shopfront depth (V4), painted joinery, window SILLS (24 Aug, 2133) | window REVEALS (a recess needs an opening in the mass, not a proud box); door furniture |
 | vehicles | Kenney kit + town paints | curated higher-fidelity CC0 set (Quaternius/Sketchfab), same pipeline |
 | props | Kenney + Base Mesh furniture, yellows (build D) | dock clutter density read; higher-tier swaps |
 | characters | Mixamo bodies, gait archetypes | Jafar's clip session; combat set is disk-only |
