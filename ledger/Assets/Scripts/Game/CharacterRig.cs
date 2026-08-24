@@ -1018,6 +1018,21 @@ namespace Ledger.Game
                 {
                     ArmSplaySampled++;
                     if (splay > ArmSplayWorst) ArmSplayWorst = splay;
+                    // A PEAK CANNOT TELL A WAVE FROM A SCARECROW, AND THE
+                    // FIRST LANDING PROVED IT: `armSplayWorst=120.1` over
+                    // 496,687 samples. 120 degrees is an arm thirty degrees
+                    // ABOVE horizontal and out to the side — damning if it
+                    // is a resting pose and completely correct if it is the
+                    // `wave` reaction, which is wired and firing.
+                    //
+                    // So the distribution ships beside the peak, which is
+                    // this project's own rule stated plainly: a peak answers
+                    // "did it ever", a median answers "is this normal", and
+                    // neither answers the other. A median near the rest
+                    // angle with a high peak is a street of people standing
+                    // properly and someone waving; a median UP at the peak
+                    // is a street of scarecrows.
+                    if (_splaySamples.Count < 20000) _splaySamples.Add(splay);
                 }
 
                 // THE SCARECROW LATCH, per body, because every arm number
@@ -1397,6 +1412,25 @@ namespace Ledger.Game
         /// like a street of people standing properly.
         public static float ArmSplayWorst;
         public static int ArmSplaySampled;
+
+        /// The splay DISTRIBUTION, capped like `_armMedians` beside it — a
+        /// diagnostic must not grow without bound over a seventeen-day run.
+        static readonly List<float> _splaySamples = new List<float>();
+        public static double ArmSplayMedian => MedianOf(_splaySamples);
+        /// The ninth decile, because the interesting population here is a
+        /// MINORITY: a median is structurally blind to a fault affecting
+        /// fewer than half the samples, which is how three T-poses survived
+        /// a street whose medians read healthy.
+        public static double ArmSplayP90
+        {
+            get
+            {
+                if (_splaySamples.Count == 0) return -1;
+                var sorted = new List<float>(_splaySamples);
+                sorted.Sort();
+                return sorted[(int)(0.9 * (sorted.Count - 1))];
+            }
+        }
 
         static readonly List<float> _crowdArmWidest = new List<float>();
 

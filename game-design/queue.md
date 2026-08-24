@@ -143,31 +143,30 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **THE 0.5 TARGET IS FOR CAST SHADOWS, AND HALF MY READINGS WERE NOT ONE —
-   RESOLVED, AND THE ANSWER IS THE DOME.** The `on:` stamp earned itself in
-   one run: both series read **`on:mat_concrete_b#g1`**, identical x1 rungs
-   (0.039|0.424), and that wall is the SUN-PERPENDICULAR one (`nSun:0.00`).
-   **On it `sunSeries` shade is FROZEN** — 0.039/0.039/0.039/0.039/0.035
-   while the lit side falls 0.424 -> 0.184. The key contributes nothing
-   there, and `shadowStrength` cannot help either: no direct sun to remove.
-   **Two physically different situations had one target.** A cast shadow is
-   a sunlit surface with the sun blocked (~0.5 is right, `shadowSeries` is
-   the lever, dispatched). A wall FACING AWAY is sky-lit by nature and
-   genuinely darker — a north-facing wall at noon is not a bug. The probe
-   photographs whichever the step-back faces, which is why readings swung
-   26%, why the ratio is 0.25 on brick and 0.092 on concrete, and why each
-   lever behaved differently. **Split the judgment by `nSun`.**
-   **AND THE FILL IS GENUINELY CAPPED — I checked a way round and there
-   isn't one.** The CoreTest constrains `AmbientSky` vs `SkyColour`, the
-   UPWARD band, while a vertical wall is lit by `ambientEquatorColor` =
-   `AmbientHorizon` — a different band, which looked like headroom. It is
-   not: `HorizonColour(0)` sums to 2.49 against `SkyColour(0)`'s 2.52, so
-   the equator band has the same ~x1.33 room and the same physical argument
-   (a surface cannot receive more than its sky emits). Splitting the share
-   gains nothing. **So a sky-lit wall is dark because the SKY is only as
-   bright as it is, and the fill must stay under it. Raising it means
-   raising the DOME — which is the visible sky, a look decision with its own
-   evidence, not a share to tune.** That is the item, properly stated.
+1. **ALL THREE LIGHT LEVERS ARE MEASURED ON ONE WALL, AND TWO ARE NULL.** The
+   `on:` stamp confirms every series ran on the same surface —
+   `on:mat_concrete_b#g1`, the SUN-PERPENDICULAR wall (`nSun:0.00`):
+   - **shadow strength 0.93 -> 0.55: shade 0.039 -> 0.043.** Null. My written
+     prediction was "raises the shaded side, leaves the lit untouched" — the
+     lit half is CONFIRMED (0.420 -> 0.424) and the shade half is REFUTED.
+   - **key x1.00 -> x0.40: shade FROZEN at 0.039** while lit falls 0.420 ->
+     0.180. Null on shade, ruinous on the picture.
+   - **fill x1 -> x4: 0.039 -> 0.518.** The only lever that moves it, capped
+     below share 1.0 by a CoreTest defending something true (a wall seeing
+     PART of the hemisphere cannot receive the whole sky).
+   **Both null results are explained by the same fact and that is the
+   finding: there is no direct sun on that wall to remove.** A cast shadow is
+   a sunlit surface with the sun blocked, and ~0.5 is right for it. A wall
+   facing AWAY is sky-lit by nature and genuinely much darker — a
+   north-facing wall at noon is not a bug, and 0.092 may simply be correct
+   for it. Two physically different situations were being given one target;
+   the probe photographs whichever the step-back faces, which is why the
+   readings swung 26% and the ratios differ per wall (0.25 brick, 0.092
+   concrete).
+   **Next: split by `nSun` and stop setting one constant from a fixture that
+   is sometimes one case and sometimes the other.** `shadowSeries` still
+   needs a run that lands on a genuinely SHADOWED sunlit wall to be read at
+   all — plant that fixture rather than re-running and hoping.
 
 1. **`farFrac` CARRIES THE SIGNAL THE OTHER TWO BANDS MISS — SERIES LANDED.**
    *(rule 12; step-back and depth series in `roadmap-history.md`.)* First
@@ -278,23 +277,24 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    `review_street`. The green bicycle left is `oga-vehicles`, which goes
    through no paint site — the variant design working, not a miss.
 
-1. **THE ARM METRIC COULD NOT TELL A WALK FROM A SCARECROW — THE LATERAL
-   HALF IS BUILT.** *(on screen, `review_day2_close`: a figure with both
-   arms out to the SIDES.)* The numbers acquit the rig and could not answer
-   the picture: `restArmDrop=8.0` (the bind is right, no T-pose),
-   `preArmDrop=103.4` (the pre-solve posture that metric exists to expose),
-   `armWidest=55.1`, `armStreet=36.6`, `armStreetWorst=52.5`.
-   **The gap: all of them are the angle from STRAIGHT DOWN**, so a fore/aft
-   swing and a sideways splay give the same number — a walking arm 45deg
-   forward reads exactly like a scarecrow's 45deg out.
-   **`ArmSplayNow` drops the forward component** (projects onto the plane
-   facing the body) so only the splay survives, and
-   `armSplayWorst`/`armSplaySampled` land next build — a peak with its
-   denominator, because "is ANYBODY" is not a median question and every
-   neighbour up there is a median or a max over medians, which is what let
-   three T-poses through on 4 Aug. **Not a rig change:** `restArmDrop=8.0`
-   already says the bind is right, so whatever this is belongs to the
-   animation or the solve. Read the pair before touching either.
+1. **THE SPLAY METRIC LANDED AND ITS PEAK CANNOT TELL A WAVE FROM A
+   SCARECROW.** *(on screen, `review_day2_close`: arms out to the SIDES.)*
+   Every other arm number is an angle from straight DOWN, so a fore/aft swing
+   and a sideways splay read alike. `ArmSplayNow` projects onto the plane
+   facing the body so only the splay survives — and the first landing reads
+   **`armSplayWorst=120.1` over 496,687 samples.**
+   **120 degrees is an arm thirty degrees ABOVE horizontal and out to the
+   side: damning as a resting pose, entirely correct as the `wave` reaction,
+   which is wired and firing.** A peak alone cannot separate those, which is
+   the trap this project keeps walking into — a peak answers "did it ever"
+   and a median answers "is this normal".
+   **So `armSplayMedian` and `armSplayP90` ship beside it** (capped list,
+   like `_armMedians`). A median near the rest angle with a high peak is a
+   street standing properly plus someone waving; a median up at the peak is a
+   street of scarecrows. P90 as well, because the population of interest is a
+   MINORITY and a median is structurally blind to one — which is how three
+   T-poses survived a street whose medians read healthy.
+   **Not a rig fault either way:** `restArmDrop=8.0` says the bind is right.
 
 1. **THE DECLUTTER: `namesClipped=0/83` — RAN, FOUND NOTHING, AND THE TEST
    IS SOUND.** *(on screen)* `collidingNames=3` over 26 samples; `PinAll`

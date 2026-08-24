@@ -14178,6 +14178,18 @@ namespace Ledger.Game
                       // question and every neighbour above is a median.
                       $"armSplayWorst={CharacterRig.ArmSplayWorst:0.0} " +
                       $"armSplaySampled={CharacterRig.ArmSplaySampled} " +
+                      // THE DISTRIBUTION BESIDE THE PEAK. First landing read
+                      // `armSplayWorst=120.1` over 496,687 samples, and 120deg
+                      // is an arm above horizontal out to the side — damning
+                      // as a resting pose, correct as the `wave` reaction,
+                      // which is wired and firing. The peak alone cannot tell
+                      // those apart. A median near rest with a high peak is a
+                      // street standing properly plus someone waving; a median
+                      // up at the peak is a street of scarecrows. P90 too,
+                      // because the population of interest is a MINORITY and a
+                      // median is structurally blind to one.
+                      $"armSplayMedian={CharacterRig.ArmSplayMedian:0.0} " +
+                      $"armSplayP90={CharacterRig.ArmSplayP90:0.0} " +
                       // AND THE WIDEST BODY, because both of the above are
                       // medians across bodies and the night frame plainly shows
                       // three people in a T-pose. A minority is invisible to a
