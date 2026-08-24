@@ -2936,3 +2936,13 @@ primitive's free collider, and a theory refuted by its own counter.
    list decays on every rename and an entry nobody re-reads is the reach
    ledger's own failure mode. It also catches a gate listed BOTH bare and
    detailed — a mistake I made today adding `perf`.
+
+1. **FRAME COMPARISONS ARE CONDITIONED ON THE CAMERA NOW** — 9 of 29 rows
+   comparable, 20 moved; the confound is YAW as much as position (-0.80 vs
+   -0.68 on `day2_noon`) and the pinned district tour is the photometric
+   series this project already had. Account in `roadmap-history.md`.
+   **Open: the 7/7 darkening.** All seven districts moved -0.0005..-0.0050
+   and `day1_noon` -0.0065 in one batch, with the WRONG SIGN for the shadow
+   lever (0.93 -> 0.85 lightens). Two landings and many commits, magnitude at
+   the tour's own p90 — **read it again after a few more landings, then
+   bisect.**

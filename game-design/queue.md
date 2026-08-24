@@ -102,10 +102,18 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
      post-chain setting, never measured before. Builder task: print the
      grain amplitude the chain actually applies, then set it from the ref
      band's series — not taste.
-   - **THE NOON ROAD IS THE FLATTEST GROUND PLANE IN THE 22-IMAGE SET**
-     (`groundPatch=0.052` vs ref 0.205-0.382). 17 decal sets are fetched
-     and wired — reach question first: do ANY land on the CARRIAGEWAY?
-     This is V2's number and frame 3's killer argument.
+   - **THE ROAD IS BELOW THE REFERENCE FLOOR AND THE CAUSE IS FOUND: ALL
+     569 ROAD DECALS ARE BURIED 2cm INSIDE THE ASPHALT SLAB** (placed at
+     the slab's CENTRE height, 78 consecutive runs, while `roadDecals=569`
+     counted construction, not visibility). Fix + `decalsBuried` instrument
+     with a builder. *Premise corrected by the reach-auditor: the "0.052,
+     flattest in the set" reading was one photograph from a non-pose-stable
+     frame — the current reading is 0.150, still under the 0.205 reference
+     floor, so the direction stands and the magnitude was a sampling
+     artefact. Anchor `groundPatch` claims on the district series only.*
+     Secondary faults queued with it: multiply blend cannot draw white
+     paint (5/6 RoadLines sets near-invisible), grayscale masks loaded as
+     colour (floored at 0.80), one inverted-alpha set, thin coverage.
    - **Shadow contrast in-band on exactly one still** (day1_noon 0.304;
      districts 0.02-0.15 vs ref 0.157-0.388). Districts are the pinned
      series, so this is readable per landing.
@@ -168,15 +176,10 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    in `roadmap-history.md`). **Read `rainLowest` (should rise toward -4 after
    the spawn-curtain fix) and `skyVsWall` next landing.**
 
-1. **FRAME COMPARISONS ARE CONDITIONED ON THE CAMERA NOW** — 9 of 29 rows
-   comparable, 20 moved; the confound is YAW as much as position (-0.80 vs
-   -0.68 on `day2_noon`) and the pinned district tour is the photometric
-   series this project already had. Account in `roadmap-history.md`.
-   **Open: the 7/7 darkening.** All seven districts moved -0.0005..-0.0050
-   and `day1_noon` -0.0065 in one batch, with the WRONG SIGN for the shadow
-   lever (0.93 -> 0.85 lightens). Two landings and many commits, magnitude at
-   the tour's own p90 — **read it again after a few more landings, then
-   bisect.**
+1. **FRAME COMPARISONS ARE CAMERA-CONDITIONED** (`frame-drift` labels every
+   row; `ref-bench` marks pose-stable stills `*`; account in
+   `roadmap-history.md`). **Open: the 7/7 district darkening** — re-read
+   after more landings, then bisect.
 
 1. **EVERY PINNED SHOT DARKENED IN THE LATEST BATCH, WITH THE WRONG SIGN FOR
    THE SHADOW LEVER.** All seven districts moved -0.0005 to -0.0050 and
