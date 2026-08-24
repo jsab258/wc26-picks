@@ -8469,6 +8469,13 @@ namespace Ledger.Game
         /// move. 1.00 anchors the series to today, same as the fill's.
         static readonly float[] SunRungs = { 1.0f, 0.85f, 0.70f, 0.55f, 0.40f };
         string _sunSeries = "not_probed";
+        /// Cast-shadow strengths. 0.93 is what ships and anchors the
+        /// series; the rest walk down toward a shadow that keeps more of
+        /// the key. Not below 0.40 — a shadow that removes less than half
+        /// the sun stops reading as a shadow at all, and the point is a
+        /// visible one at roughly half the lit brightness.
+        static readonly float[] ShadowStrengthRungs = { 0.93f, 0.85f, 0.75f, 0.65f, 0.55f };
+        string _shadowSeries = "not_probed";
         string _ambientSeries = "not_probed";
         string _districtGround = "not_probed";
         bool _noonFacadeDone;
@@ -8563,6 +8570,7 @@ namespace Ledger.Game
             bool keepFog = RenderSettings.fog;
             var ambSeries = new System.Text.StringBuilder();
             var sunSeries = new System.Text.StringBuilder();
+            var shadowSeries = new System.Text.StringBuilder();
             try
             {
                 all = LeftThirdMedian(FrameShot(cam));
@@ -8687,6 +8695,35 @@ namespace Ledger.Game
                         sunSeries.Append($"x{k:0.00}:{sh2:0.000}|{lit2:0.000}");
                     }
                     sunL.intensity = keepSun;
+
+                    // THE THIRD LEVER, AND THE LADDER HAD ALREADY NAMED IT.
+                    // `shadowOff:0.310` against `all:0.102` says the cast
+                    // shadow is doing most of the darkening — turning
+                    // shadows off TRIPLES the shaded third — and
+                    // `shadowStrength` is exactly the dial for "how much of
+                    // the key is removed in shadow". It ships at 0.93, which
+                    // takes 93% of the sun out.
+                    //
+                    // IT IS BETTER THAN THE OTHER TWO ON ITS OWN TERMS. The
+                    // fill is capped by physics (a wall seeing part of the
+                    // hemisphere cannot receive the whole sky, and a CoreTest
+                    // enforces it). The key buys ratio by destroying the
+                    // picture — `sunSeries` moves the shade 21% while
+                    // collapsing the lit side 66%. This one raises the
+                    // shaded side and leaves the LIT side untouched, so the
+                    // ratio's denominator cannot drift with the lever, which
+                    // is the one thing the other two series could not
+                    // promise.
+                    float keepStr = sunL.shadowStrength;
+                    foreach (float k in ShadowStrengthRungs)
+                    {
+                        sunL.shadowStrength = k;
+                        var fs3 = FrameShot(cam);
+                        double sh3 = LeftThirdMedian(fs3), lit3 = RightThirdMedian(fs3);
+                        if (shadowSeries.Length > 0) shadowSeries.Append('/');
+                        shadowSeries.Append($"s{k:0.00}:{sh3:0.000}|{lit3:0.000}");
+                    }
+                    sunL.shadowStrength = keepStr;
                 }
 
                 QualitySettings.shadows = ShadowQuality.Disable;
@@ -8758,6 +8795,8 @@ namespace Ledger.Game
                 ? $"[on:{onWall}/" + ambSeries + "]" : "[not_probed]";
             _sunSeries = sunSeries.Length > 0
                 ? $"[on:{onWall}/" + sunSeries + "]" : "[not_probed]";
+            _shadowSeries = shadowSeries.Length > 0
+                ? $"[on:{onWall}/" + shadowSeries + "]" : "[not_probed]";
             Debug.Log("SimDirector: ambientSeries " + _ambientSeries
                       + " sunSeries " + _sunSeries);
             Debug.Log("SimDirector: noonFacade " + _noonFacade);
@@ -14291,6 +14330,7 @@ namespace Ledger.Game
                       $"noonFacadeMat={_noonFacadeMat} " +
                       $"ambientSeries={_ambientSeries} " +
                       $"sunSeries={_sunSeries} " +
+                      $"shadowSeries={_shadowSeries} " +
                       $"districtGround={_districtGround} " +
                       // Probe-render milliseconds per rung, NOT comparable
                       // with meanFrame (the probe's own RT and ReadPixels

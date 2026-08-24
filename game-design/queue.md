@@ -143,28 +143,36 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **THE SHADED THIRD IS NOT A FIXTURE, AND I QUOTED A RATIO OFF IT TO THREE
-   DIGITS.** Both series landed. Their x1 rungs are the same nominal scene:
-   the **LIT third agrees to 1.0%** (0.408 vs 0.404) and the **SHADED third
-   differs by 26%** (0.102 vs 0.075) — because "the left third" is whatever
-   wall the camera faces, and `noonFacadeMat` had already shown that change
-   between builds (`mat_concrete_b` nSun 0.00, then `mat_brick_grey_b` nSun
-   0.62). So a ratio built on it carries 26% of noise in its numerator, and
-   "x2.0 lands 0.495" was three digits off a moving foundation.
-   **`on:<material>` is stamped INTO both series now** so two of them cannot
-   be compared without seeing whether they looked at the same wall — the
-   `bodyReadWhen` repair, after one metric read 35.7 and 10.8 with no code
-   change because one was noon and the other midnight. *(The first version
-   read `_noonFacadeMat`, which is assigned seventy lines further down, so
-   it would have stamped "not_probed" on everything for ever — a stamp
-   that never varies looks like agreement. It gets its own ray.)*
-   **AND MY WRITTEN PREDICTION IS REFUTED.** I expected the answer to be
-   "mostly key, not fill". `sunSeries` says the key is a BAD lever: dimming
-   it moves the shade only **-21%** (0.075 -> 0.059) while collapsing the
-   lit side **-66%** (0.404 -> 0.137). It buys ratio by destroying the
-   picture — at x0.40 the ratio is 0.431 and the frame is dark.
-   **So: fill capped by physics, key ruinous, fixture unstable. Set nothing
-   until the fixture is stable** — that is the next step, not another rung.
+1. **THE SHADOW RATIO: TWO LEVERS MEASURED AND REJECTED, THE THIRD ONE
+   DISPATCHED.** Target is a cast shadow near HALF the lit brightness; today
+   it is 0.25.
+   - **Fill: capped by physics.** `ambientSeries` says x2.0 lands 0.50, and a
+     CoreTest refuses it — the day fill must stay dimmer than the dome it
+     derives from, because a wall seeing PART of the hemisphere cannot get
+     what the whole sky emits. Caps near x1.33, about 0.32.
+   - **Key: ruinous.** `sunSeries` moves the shade only **-21%** while
+     collapsing the lit side **-66%**. It buys ratio by destroying the
+     picture. My written prediction that the answer was "mostly key" is
+     REFUTED.
+   - **Shadow strength: dispatched, and the ladder had already named it.**
+     `shadowOff:0.310` against `all:0.102` — shadows do most of the
+     darkening. `sun.shadowStrength` ships at **0.93**, removing 93% of the
+     key in shadow. `shadowSeries` walks 0.93/0.85/0.75/0.65/0.55. **It is
+     better than the other two on its own terms: it raises the shaded side
+     and leaves the LIT side untouched, so the ratio's denominator cannot
+     drift with the lever** — the one thing neither other series could
+     promise.
+   **AND THE FIXTURE ITSELF MOVES, which undercut a number I quoted to three
+   digits.** The two series' x1 rungs agree to 1.0% on the LIT third and
+   differ by **26%** on the SHADED one, because the probe runs at the
+   step-back's final position — its own call site says so — and the step-back
+   moves by however much occlusion it found. So "x2.0 lands 0.495" was three
+   digits off a moving foundation. `on:<material>` is stamped INTO each
+   series now so two of them cannot be compared without seeing whether they
+   looked at the same wall. *(The first version read `_noonFacadeMat`,
+   assigned seventy lines further down — it would have stamped "not_probed"
+   on everything for ever, and a stamp that never varies looks like
+   agreement. It gets its own ray.)*
 
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS.** *(rule 12; step-back and
    depth series landed — account in `roadmap-history.md`.)* `farFrac`
