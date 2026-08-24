@@ -224,3 +224,12 @@ our own work or goes quiet about somebody else's.
 4. No identifiable public figure's voice, likeness or name, ever.
 5. `tools/attribution-check.py` runs in CI and fails on an asset directory with
    no entry here.
+
+## Visual reference frames — Rockstar Games
+
+`game-design/reference/` holds five screenshots of Grand Theft Auto V
+(Rockstar Games, 2013), supplied by the project owner as the visual quality
+bar (roadmap M17.10). They are internal development references for
+comparison only: not assets, not shipped with any build, not redistributed,
+and no content derived from them is generated into the game. The done-test
+they serve is a side-by-side judgment by a person.

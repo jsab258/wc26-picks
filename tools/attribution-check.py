@@ -67,6 +67,13 @@ WATCHED = {
     "ledger/Assets/Props/base-mesh": "The Base Mesh",
     "ledger/Assets/StreamingAssets/Decals": "ambientCG",
     "ledger/Assets/Resources/Sky": "Poly Haven",
+    # NOT AN ASSET DROP — the visual bar's reference frames. Five GTA V
+    # screenshots supplied by Jafar, committed byte-exact after the project
+    # spent three days with its visual target existing only as a prose
+    # description of itself (the pixels lived in a chat context that got
+    # compacted). They are internal comparison references, never shipped,
+    # never redistributed; the row in THIRD-PARTY.md says exactly that.
+    "game-design/reference": "Rockstar Games",
     # A single file, not a directory — the shipped face sits in `Resources`
     # beside code and prefabs, so there is no folder to name that would not
     # also swallow half the project. The token is the licence, because that is
@@ -102,7 +109,13 @@ ASSET_SUFFIXES = {".fbx", ".png", ".jpg", ".jpeg", ".tga", ".psd", ".wav",
                   # a clean result that cannot tell "nothing there" from
                   # "nothing looked at", on the one check whose entire job
                   # is noticing somebody else's files.
-                  ".hdr", ".exr"}
+                  ".hdr", ".exr",
+                  # And .webp, found missing the SAME DAY .hdr was: the
+                  # reference frames landed as four .webp and one .png, and
+                  # the sweep reported "1 asset file(s) attributed" over a
+                  # directory of five. A suffix allow-list silently discards
+                  # every format nobody thought of — twice in one day now.
+                  ".webp"}
 
 _fails = []
 
