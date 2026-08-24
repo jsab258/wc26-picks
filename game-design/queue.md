@@ -160,42 +160,40 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    *(`jobsDone=2` beside `shifts=0` is NOT a contradiction: `JobsDone` is the
    racket's drops, `ShiftsWorked` the courier's rounds. Checked.)*
 
-1. **SIX TOOLS COMPARED `%h` TO A 7-CHAR RUN FILENAME; THE ABBREVIATION HAD
-   GROWN TO 8.** Measured: **0 of 333 run files matched 400 commits.** Nothing
-   failed — unmatched runs fall into a bucket sorted by SHA — and every tool
-   printed plausible output. Fixed at all six sites with `%H` matched by
-   prefix. **Cost:** `--flaky`'s recent window and every "last N runs ago"
-   were arbitrary; `landed.py` named an arbitrary run as newest (watchers
-   still FIRED — the ancestry test uses `merge-base`); and
-   `verdict-keys.py` printed "no run file matches any recent commit", which
-   **was this bug reporting itself and I read it as a note.**
-   **Corrected gate picture, much better than I published:** one live gate,
-   `dayJob` 4/40 = 10% recent vs 27.3% lifetime, improving. All else quiet;
-   `claims` absent. "Five gates at 15-38%" and "`claims` WORSENING" are
-   **withdrawn** — the second wrong conclusion from a bad sort in one
-   session, both from trusting an ordering because it was the tool's own.
+1. **SIX TOOLS COMPARED A GIT ABBREVIATION TO A RUN FILENAME BY EQUALITY.**
+   `%h` sizes itself to stay unambiguous; as the repo grew it went **7 -> 8**
+   while run files kept 7, so every `sha in have` stopped matching — **0 of
+   333 against 400 commits** — and nothing failed, because unmatched runs
+   fall into a bucket sorted by SHA. Fixed at all six sites.
+   **The cause was `==`, not `%h`, and my first guard could not have caught
+   it:** tested against the broken state it passed identically (122 hits
+   either way), because a prefix match happily compares 8 chars to 7. Replaced
+   with the invariant that really broke — abbreviation width vs stem width,
+   FALSE today (8 vs 7), reported as a warning since the tools prefix-match
+   now. **Corrected gate picture:** one live gate, `dayJob` 10% recent vs
+   27.3% lifetime, improving; all else quiet. "Five gates at 15-38%" and
+   "`claims` WORSENING" **withdrawn**.
 
-1. **A RUN TRUNCATED AT 4 SHOTS OF 29 — AND IT REDDENED `verify` AS A LOST
-   METRIC.** `3e3cdc2` ran the sim step **24 min for 4 shots**; the run before
-   did **29 in 12**. No `NO PLAYER LOG`, no gates line, no `sunSeries`.
-   **My code is cleared by counting:** that commit adds two `FrameShot` calls
-   OUTSIDE the rung loop and a <=12x7 sweep with early exit — ~2 renders and
-   ~170 raycasts, once. Not twelve minutes. **The runner is Jafar's desktop
-   and the run began 09:14 his time on a Monday.** A hypothesis, not a
-   finding: **do not chase a truncated run as a code bug until a second
-   truncates at the same point**; if truncation clusters in his working hours
-   the fix is WHEN we dispatch.
-   **The instrument fault it exposed is the real prize.** `verify` went red
-   with `VERDICT KEYS GONE: SimDirector: done.` — a truncated run has no done
-   line, so every measurement written at the end reads as DELETED FROM THE
-   CODE. `verdict-keys.py` already skipped no-sim runs for exactly this
-   reason; truncated runs now skip the same way and it walks back to the
-   newest COMPLETE run (0 missing). **`--learn` against that file would have
-   rebaselined off a run with no done line and dropped protection from every
-   key on it** — the ratchet the tool's own comments warn about.
-   *(Also: a red GATE marks the whole job `failure` — the failing step is the
-   sim and everything after it succeeds. Two of three recent "failures" were
-   fine. In CLAUDE.md now.)*
+1. **TWO RUNS TRUNCATED AT EXACTLY 4 SHOTS — IT IS MY PROBE, NOT THE
+   MACHINE.** Both stopped after day1_noon/dusk/night + day2_noon, and
+   **exactly one Game-layer commit separates them from the last COMPLETE
+   build** (`3e3cdc2`, the probe change). Same point twice = deterministic.
+   **I had said the arithmetic cleared my code — that was wrong.** I counted
+   operations and concluded cost; the fault is not cost. **Retract the
+   suggestion that Jafar's desktop was to blame.**
+   **Two faults found in that commit by reading the ordering:** the guard's
+   two extra `FrameShot` calls ran AFTER the rung loop, so they measured at
+   `shadowStrength` 0.55 rather than the shipped 0.93 — a wrong anchor AND
+   two needless full render+ReadPixels stalls. `ShadowStrengthRungs[0]` IS
+   0.93, so the anchor was already measured; both renders deleted.
+   **And the structural fix: the probe is wrapped in try/catch now.** Twenty
+   five shots, every gate and the whole done line were lost twice to a
+   diagnostic that only describes them. `probeFailure=[...]` ships beside the
+   others so a silent probe and a crashed one stay distinguishable — and a
+   caught throw will NAME the fault, which is what neither truncated run
+   could do. **This is containment, not a diagnosis: if it truncates again
+   with `probeFailure=none`, the cause is elsewhere and the run survives to
+   say so.**
 
 1. **THE SHADOW RATIO IS 0.06 AND THE MISSING QUANTITY IS INDIRECT LIGHT.**
    With the y-flip fixed, lit holds at 0.129 across every rung — the

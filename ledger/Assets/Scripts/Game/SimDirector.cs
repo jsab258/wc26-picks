@@ -8459,6 +8459,10 @@ namespace Ledger.Game
         string _noonFacade = "not_probed";
         string _noonFacadeOf = "not_probed";
         string _noonFacadeMat = "not_probed";
+        /// What killed the probe, if anything did. `none` is the healthy
+        /// reading and it ships with the others so a silent probe and a
+        /// crashed one stay distinguishable (rule 3b).
+        string _probeFailure = "none";
         /// The fill multipliers the shade/lit series is taken at. 1.0 is
         /// included on purpose: a series whose first point is not TODAY's
         /// value has no anchor, and every landed reading in this project's
@@ -8770,12 +8774,24 @@ namespace Ledger.Game
                         _shadowPairOn = $"[shadeVp:{shVp.x:0.00},{shVp.y:0.00}"
                             + $"/litVp:{liVp.x:0.00},{liVp.y:0.00}"
                             + $"/shade:{shOn}/lit:{liOn}]";
+                        // THE ANCHOR IS THE FIRST RUNG, not two more renders.
+                        // The guard below used to take its own pair of
+                        // `FrameShot` calls, and they were wrong twice over:
+                        // they ran AFTER the loop, so `shadowStrength` was
+                        // still at the last rung (0.55) rather than the
+                        // shipped 0.93, and they cost two more full
+                        // render+ReadPixels stalls in a frame that already
+                        // carries dozens. `ShadowStrengthRungs[0]` IS the
+                        // shipped value, so the anchor is already measured —
+                        // the extra work was buying a worse number.
+                        double sAnchor = -1, lAnchor = -1;
                         foreach (float k in ShadowStrengthRungs)
                         {
                             sunL.shadowStrength = k;
                             var fs3 = FrameShot(cam);
                             double sh3 = BoxMedian(fs3, shVp, 0.03f);
                             double lit3 = BoxMedian(fs3, liVp, 0.03f);
+                            if (sAnchor < 0) { sAnchor = sh3; lAnchor = lit3; }
                             if (shadowSeries.Length > 0) shadowSeries.Append('/');
                             shadowSeries.Append($"s{k:0.00}:{sh3:0.000}|{lit3:0.000}");
                         }
@@ -8786,8 +8802,6 @@ namespace Ledger.Game
                         // this is the pair-of-maxima fault in a new costume,
                         // so it is named in the output rather than left for
                         // somebody to divide.
-                        double sAnchor = BoxMedian(FrameShot(cam), shVp, 0.03f);
-                        double lAnchor = BoxMedian(FrameShot(cam), liVp, 0.03f);
                         if (lAnchor <= sAnchor)
                             shadowSeries.Append("/LIT_DARKER_THAN_SHADE-denominator_unusable");
                     }
@@ -10855,7 +10869,41 @@ namespace Ledger.Game
                 // step-back's final position and the frame just encoded is
                 // the one whose left half the ladder explains.
                 if (name == "day1_noon")
-                { ProbeNoonFacade(cam); ProbeFrameCost(cam); ProbeExposureCurve(cam); }
+                {
+                    // A DIAGNOSTIC MUST NEVER COST THE RUN IT DECORATES, and
+                    // it has now cost two.
+                    //
+                    // Both truncated at EXACTLY four shots — day1_noon,
+                    // day1_dusk, day1_night, day2_noon — and exactly one
+                    // Game-layer commit separates them from the last complete
+                    // build: the one that touched these probes. Twenty-five
+                    // shots, every gate, and the whole done line were lost
+                    // twice over to a measurement that exists to describe
+                    // them.
+                    //
+                    // These three run ONCE, at one shot, and produce numbers
+                    // nothing downstream requires. The run is the product;
+                    // they are commentary on it. So a throw here is caught,
+                    // named in the verdict, and the sim carries on — which is
+                    // the same argument the ladder's own `finally` already
+                    // makes about not stranding a toggle, one level out.
+                    //
+                    // NOT A DIAGNOSIS. This does not explain what went wrong,
+                    // and a caught exception will now SAY what it was instead
+                    // of the run simply ending — which is the thing neither
+                    // truncated run could tell me.
+                    try
+                    {
+                        ProbeNoonFacade(cam);
+                        ProbeFrameCost(cam);
+                        ProbeExposureCurve(cam);
+                    }
+                    catch (System.Exception e)
+                    {
+                        _probeFailure = $"{e.GetType().Name}:{(e.Message ?? "").Replace(' ', '_')}";
+                        Debug.Log("SimDirector: probeFailure " + _probeFailure);
+                    }
+                }
                 // THE GLOW-BLOB READ, night and dusk frames only. Two night
                 // stills read as walls of amber light while brightPct called
                 // one of them 1.23 — the eye's objection is one CONTIGUOUS
@@ -14568,6 +14616,7 @@ namespace Ledger.Game
                       $"noonFacade={_noonFacade} " +
                       $"noonFacadeOf={_noonFacadeOf} " +
                       $"noonFacadeMat={_noonFacadeMat} " +
+                      $"probeFailure=[{_probeFailure}] " +
                       $"ambientSeries={_ambientSeries} " +
                       $"sunSeries={_sunSeries} " +
                       $"shadowSeries={_shadowSeries} " +

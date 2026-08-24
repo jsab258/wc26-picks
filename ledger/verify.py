@@ -1246,6 +1246,60 @@ def verdict_dupkeys():
     return True, head.replace("verdict-dupkeys: ", "dupkeys ok (selftest); landed verdict: ")
 
 
+def runs_map_to_commits():
+    """Two checks about run files and commits, and the second one is the point.
+
+    THE FAULT: six tools ordered runs by commit with `sha in have` — exact
+    equality between `git log --format=%h` and a run file's stem. Git sizes
+    that abbreviation to whatever stays unambiguous, and as this repository
+    grew it went from SEVEN characters to EIGHT while run files kept seven.
+    Every one of those comparisons stopped matching: 0 of 333 run files
+    against 400 commits, measured 24 Aug. Nothing failed, because unmatched
+    runs fall into a fallback sorted by SHA, which is sorted by nothing, and
+    every tool kept printing plausible numbers.
+
+    AND MY FIRST GUARD FOR IT COULD NOT HAVE CAUGHT IT. I wrote one that
+    counts prefix matches and called it the fix. Tested against the exact
+    broken state it passed identically — 122 hits either way — because a
+    PREFIX match is happy to compare an eight-character hash to a
+    seven-character stem. That is the whole repair; `%H` merely makes it
+    unconditional. A guard whose rejecting case does not exist is rule 5b's
+    own failure, so it is replaced rather than kept for the comfort of it.
+
+    What actually broke is an invariant nobody stated: the abbreviation git
+    hands out is the same width as the names we file runs under. That is
+    checkable, it has a real rejecting case (it is FALSE today — 8 against 7),
+    and it is what would have fired the day it changed. It is a WARNING and
+    not a failure, because the tools use prefix matching now and are immune;
+    it exists so the next person who writes `==` against a stem is told.
+    """
+    runs = ROOT.parent / "game-design" / "sim-shots" / "runs"
+    if not runs.is_dir():
+        return True, "no runs directory yet"
+    stems = {p.stem for p in runs.glob("*.txt")}
+    if not stems:
+        return True, "no run files yet"
+    code, out = run(["git", "-C", str(ROOT.parent), "log", "--format=%H", "-400"])
+    if code != 0 or not out.strip():
+        return True, f"runs ok ({len(stems)} file(s), no git history to check against)"
+    log = out.split()
+    hit = sum(1 for full in log for stem in stems if full.startswith(stem))
+    if hit == 0:
+        return False, (f"NO RUN FILE MATCHES ANY COMMIT: {len(stems)} run file(s) "
+                       f"against {len(log)} commit(s) — the naming convention and "
+                       f"the log format have diverged entirely.")
+    # The invariant that actually broke, reported rather than gated.
+    ab, abbrev = run(["git", "-C", str(ROOT.parent), "log", "--format=%h", "-1"])
+    stem_len = len(next(iter(stems)))
+    note = ""
+    if ab == 0 and abbrev.strip():
+        n = len(abbrev.strip())
+        if n != stem_len:
+            note = (f"; NOTE abbrev is {n} chars and run files are {stem_len} — "
+                    f"compare by PREFIX, never by equality")
+    return True, f"runs map to commits ({hit} of {len(stems)} within {len(log)}){note}"
+
+
 def verdict_emit_dupkeys():
     """The same fault, caught in the SOURCE instead of one round trip later.
 
@@ -1366,7 +1420,7 @@ def main():
                static_instance, raw_avenues, filename_as_type, namespace_as_value, workflow_size,
                powershell_steps, sheet_read, prop_dimensions,
                frame_drift, verdict_keys, verdict_format, verdict_dupkeys,
-               verdict_emit_dupkeys, save_chaos, soak,
+               verdict_emit_dupkeys, runs_map_to_commits, save_chaos, soak,
                adversary, stale_anchors, clip_audit, picker_selftest, core_tests):
         ok, text = fn()
         all_ok &= ok
