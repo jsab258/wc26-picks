@@ -143,31 +143,31 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **THE 0.5 TARGET IS FOR CAST SHADOWS, AND HALF MY READINGS WERE NOT ONE.**
-   *(This reframes the item; the levers were the wrong argument.)* The `on:`
-   stamp earned itself on its first landing: both series read
-   **`on:mat_concrete_b#g1`** with identical x1 rungs (0.039|0.424), so they
-   are comparable — and that wall is the SUN-PERPENDICULAR one (`nSun:0.00`),
-   not a shadowed one.
-   **On it, `sunSeries` shade is FROZEN: 0.039 / 0.039 / 0.039 / 0.039 /
-   0.035 while the lit side falls 0.424 -> 0.184.** The key contributes
-   NOTHING to that wall, so dimming it cannot raise the shade — and
-   `shadowStrength` cannot either, because there is no direct sun there to
-   remove. On this fixture the fill is the ONLY lever and it is capped below
-   share 1.0 by a CoreTest defending something true.
-   **THE INSIGHT: two physically different situations were being given one
-   target.** A CAST SHADOW is a sunlit surface with the sun blocked, and the
-   GTA reference puts it near half the lit brightness. A wall FACING AWAY
-   from the sun is sky-lit by nature and genuinely much darker — a
-   north-facing wall at noon is not a bug. The probe photographs whichever
-   the step-back's camera happens to face, which is why the readings swung
-   26%, why the ratios differ per wall (0.25 on brick, 0.092 on concrete),
-   and why the levers behaved differently in each.
-   **Next: split the question by `nSun`.** Judge cast shadows against ~0.5
-   with `shadowStrength` as the lever (`shadowSeries` is dispatched), and
-   judge sun-perpendicular walls on their own terms with the fill. **Do not
-   set one constant from a fixture that is sometimes one and sometimes the
-   other.**
+1. **THE 0.5 TARGET IS FOR CAST SHADOWS, AND HALF MY READINGS WERE NOT ONE —
+   RESOLVED, AND THE ANSWER IS THE DOME.** The `on:` stamp earned itself in
+   one run: both series read **`on:mat_concrete_b#g1`**, identical x1 rungs
+   (0.039|0.424), and that wall is the SUN-PERPENDICULAR one (`nSun:0.00`).
+   **On it `sunSeries` shade is FROZEN** — 0.039/0.039/0.039/0.039/0.035
+   while the lit side falls 0.424 -> 0.184. The key contributes nothing
+   there, and `shadowStrength` cannot help either: no direct sun to remove.
+   **Two physically different situations had one target.** A cast shadow is
+   a sunlit surface with the sun blocked (~0.5 is right, `shadowSeries` is
+   the lever, dispatched). A wall FACING AWAY is sky-lit by nature and
+   genuinely darker — a north-facing wall at noon is not a bug. The probe
+   photographs whichever the step-back faces, which is why readings swung
+   26%, why the ratio is 0.25 on brick and 0.092 on concrete, and why each
+   lever behaved differently. **Split the judgment by `nSun`.**
+   **AND THE FILL IS GENUINELY CAPPED — I checked a way round and there
+   isn't one.** The CoreTest constrains `AmbientSky` vs `SkyColour`, the
+   UPWARD band, while a vertical wall is lit by `ambientEquatorColor` =
+   `AmbientHorizon` — a different band, which looked like headroom. It is
+   not: `HorizonColour(0)` sums to 2.49 against `SkyColour(0)`'s 2.52, so
+   the equator band has the same ~x1.33 room and the same physical argument
+   (a surface cannot receive more than its sky emits). Splitting the share
+   gains nothing. **So a sky-lit wall is dark because the SKY is only as
+   bright as it is, and the fill must stay under it. Raising it means
+   raising the DOME — which is the visible sky, a look decision with its own
+   evidence, not a share to tune.** That is the item, properly stated.
 
 1. **`farFrac` CARRIES THE SIGNAL THE OTHER TWO BANDS MISS — SERIES LANDED.**
    *(rule 12; step-back and depth series in `roadmap-history.md`.)* First
