@@ -292,25 +292,23 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    — the variant design working, not a miss. **Judge the saloon's
    saturation against the 0.385 the rest of that frame sits under.**
 
-1. **THE ARM METRIC CANNOT TELL A WALK FROM A SCARECROW.** *(on screen,
-   `review_day2_close`: a figure with both arms out to the SIDES.)* The
-   numbers acquit the rig and cannot answer the picture. `restArmDrop=8.0`
-   — the bought body's rest pose has arms at its sides, so there is no
-   T-pose; `preArmDrop=103.4` is the pre-solve posture the metric exists to
-   show; `armWidest=55.1` is the widest ANY body stands, well short of a
-   T-pose's 90; `armStreet=36.6` median with `armStreetWorst=52.5`.
-   **The gap: every one of these is the angle between the upper arm and
-   STRAIGHT DOWN, so a natural fore/aft swing and an unnatural lateral
-   splay produce the same number.** A walking arm swinging forward 40-50deg
-   is correct and reads identically to an arm held 50deg out sideways,
-   which is not. The frame shows lateral; 55.1 cannot say.
-   **Next step is the LATERAL component** — the same angle projected onto
-   the body's right axis — beside the existing total. Do not touch the rig
-   until that lands: `restArmDrop=8.0` says the rest pose is right, so
-   whatever this is, it is the animation or the solve and not the bind.
-   *(And read `armWidest`, not `armStreet`, for this question — the file's
-   own comment says the medians closed the scarecrow question at 10.6 on
-   4 Aug and the night frame two builds later had three T-poses in it.)*
+1. **THE ARM METRIC COULD NOT TELL A WALK FROM A SCARECROW — THE LATERAL
+   HALF IS BUILT.** *(on screen, `review_day2_close`: a figure with both
+   arms out to the SIDES.)* The numbers acquit the rig and could not answer
+   the picture: `restArmDrop=8.0` (the bind is right, no T-pose),
+   `preArmDrop=103.4` (the pre-solve posture that metric exists to expose),
+   `armWidest=55.1`, `armStreet=36.6`, `armStreetWorst=52.5`.
+   **The gap: all of them are the angle from STRAIGHT DOWN**, so a fore/aft
+   swing and a sideways splay give the same number — a walking arm 45deg
+   forward reads exactly like a scarecrow's 45deg out.
+   **`ArmSplayNow` drops the forward component** (projects onto the plane
+   facing the body) so only the splay survives, and
+   `armSplayWorst`/`armSplaySampled` land next build — a peak with its
+   denominator, because "is ANYBODY" is not a median question and every
+   neighbour up there is a median or a max over medians, which is what let
+   three T-poses through on 4 Aug. **Not a rig change:** `restArmDrop=8.0`
+   already says the bind is right, so whatever this is belongs to the
+   animation or the solve. Read the pair before touching either.
 
 1. **THE DECLUTTER: NAMEPLATES AND BUBBLES, MEASURED, OPEN.** *(on screen)*
    `collidingNames=3` over 26 samples — five labels at the peak, 3 of their

@@ -762,6 +762,50 @@ namespace Ledger.Game
             return Vector3.Angle(arm.normalized, down);
         }
 
+        /// HOW FAR OUT TO THE SIDE, WHICH IS THE HALF `ArmDropNow` CANNOT SAY.
+        ///
+        /// That one is the angle from straight DOWN, so it adds the fore/aft
+        /// swing and the lateral splay together and reports one number. A
+        /// walking arm swinging forty-five degrees FORWARD is correct and
+        /// produces exactly the reading of an arm held forty-five degrees out
+        /// SIDEWAYS, which is a scarecrow. `review_day2_close` on 7cee59d has
+        /// a figure with both arms out to the sides and `armWidest=55.1`
+        /// beside it — a number that acquits the rig (`restArmDrop=8.0` says
+        /// the bind is right) and cannot answer the picture.
+        ///
+        /// So: the same arm vector, projected onto the body's own RIGHT axis
+        /// and measured against down in that plane. Fore/aft contributes
+        /// nothing to it by construction, which is the entire point — a
+        /// number that moves only when an arm goes out to the side.
+        ///
+        /// SIGNED MAGNITUDE, not the raw component: the left arm splaying
+        /// left and the right arm splaying right are the same fault, and a
+        /// signed reading would cancel them if anything ever averaged the
+        /// pair. This measures the LEFT arm, like its twin above, and takes
+        /// the absolute angle.
+        float ArmSplayNow()
+        {
+            if (_lUpperArm == null) return -1f;
+            var arm = _lForearm != null
+                ? (_lForearm.position - _lUpperArm.position)
+                : -_lUpperArm.up;
+            if (arm.sqrMagnitude <= 1e-6f) return -1f;
+            arm = arm.normalized;
+            var down = -transform.up;
+            // Drop the forward component: what is left is the arm as seen
+            // from directly in front, where a swing is invisible and a splay
+            // is the whole picture.
+            var flat = Vector3.ProjectOnPlane(arm, transform.forward);
+            if (flat.sqrMagnitude <= 1e-6f) return 0f;
+            flat = flat.normalized;
+            // `Vector3.Angle` is already unsigned, which is what is wanted:
+            // an arm out to the left and one out to the right are the same
+            // fault and must not cancel. (`right` is not needed for that —
+            // an earlier version multiplied by a ternary with 1f in both
+            // branches, which did nothing while looking like it did.)
+            return Vector3.Angle(flat, down);
+        }
+
         /// HOW FAR OUT TO THE SIDE, WHICH THE DROP ANGLE CANNOT TELL YOU.
         ///
         /// `ArmDropNow` measures the forearm against straight DOWN, so an arm
@@ -958,6 +1002,23 @@ namespace Ledger.Game
             if (mine >= 0f)
             {
                 _armsThisFrame.Add(mine);
+
+                // THE LATERAL HALF, sampled wherever the total already is.
+                // `ArmDropNow` measures from straight DOWN and therefore adds
+                // the fore/aft swing to the sideways splay — a walking arm
+                // forty-five degrees forward reads exactly like a scarecrow's
+                // forty-five degrees out. `ArmSplayNow` drops the forward
+                // component so only the splay survives.
+                // A PEAK WITH ITS DENOMINATOR: "is ANYBODY standing like a
+                // scarecrow" is not a median question, and every other arm
+                // number here is a median or a max over medians, which is
+                // what let three T-poses through on 4 August.
+                float splay = ArmSplayNow();
+                if (splay >= 0f)
+                {
+                    ArmSplaySampled++;
+                    if (splay > ArmSplayWorst) ArmSplayWorst = splay;
+                }
 
                 // THE SCARECROW LATCH, per body, because every arm number
                 // above is a median or a percentile and a MINORITY is
@@ -1330,6 +1391,13 @@ namespace Ledger.Game
         }
 
         static readonly List<float> _crowdArmsThisFrame = new List<float>();
+        /// The widest any arm has stood OUT TO THE SIDE, and how many arms
+        /// were looked at. The denominator is the point: zero splay with
+        /// zero sampled is the measurement not running, and reads exactly
+        /// like a street of people standing properly.
+        public static float ArmSplayWorst;
+        public static int ArmSplaySampled;
+
         static readonly List<float> _crowdArmWidest = new List<float>();
 
         /// The widest body in a frame WITHOUT the player in the sample. Read

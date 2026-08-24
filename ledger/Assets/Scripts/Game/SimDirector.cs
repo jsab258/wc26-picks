@@ -14167,6 +14167,17 @@ namespace Ledger.Game
                       $"tposeWhy=[{CharacterRig.TposeWhy}] " +
                       $"tposeWho={CharacterRig.TposeWho} " +
                       $"armStreetWorst={CharacterRig.ArmDropStreetWorst:0.0} " +
+                      // THE LATERAL HALF. Every other arm number here is an
+                      // angle from straight DOWN, so a fore/aft swing and a
+                      // sideways splay produce the same reading — a walking
+                      // arm 45deg forward is correct and indistinguishable
+                      // from a scarecrow's 45deg out. `review_day2_close` on
+                      // 7cee59d shows the sideways case beside an
+                      // `armWidest=55.1` that cannot name it. Worst over
+                      // sampled, because "is ANYBODY" is not a median
+                      // question and every neighbour above is a median.
+                      $"armSplayWorst={CharacterRig.ArmSplayWorst:0.0} " +
+                      $"armSplaySampled={CharacterRig.ArmSplaySampled} " +
                       // AND THE WIDEST BODY, because both of the above are
                       // medians across bodies and the night frame plainly shows
                       // three people in a T-pose. A minority is invisible to a
