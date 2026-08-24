@@ -93,34 +93,17 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 ### screen. Nothing from a later stage starts while an earlier one has
 ### startable work, except reading a landed verdict, which is free.
 
-1. **THE BENCHMARK EXISTS AND ITS FIRST TABLE REDIRECTS THE VISUAL QUEUE.**
-   `tools/ref-bench.py`: one instrument on the five committed GTA frames and
-   every still; 201 of 272 readings outside the reference band. Three
-   steering findings, in fix order:
-   - **FILM GRAIN IS 3-7x THE NOISIEST GTA FRAME** (`grainSigma` 5-7 on
-     districts vs ref 0.23-2.05) and pollutes every edge reading. ONE
-     post-chain setting, never measured before. Builder task: print the
-     grain amplitude the chain actually applies, then set it from the ref
-     band's series — not taste.
-   - **THE ROAD IS BELOW THE REFERENCE FLOOR AND THE CAUSE IS FOUND: ALL
-     569 ROAD DECALS ARE BURIED 2cm INSIDE THE ASPHALT SLAB** (placed at
-     the slab's CENTRE height, 78 consecutive runs, while `roadDecals=569`
-     counted construction, not visibility). Fix + `decalsBuried` instrument
-     with a builder. *Premise corrected by the reach-auditor: the "0.052,
-     flattest in the set" reading was one photograph from a non-pose-stable
-     frame — the current reading is 0.150, still under the 0.205 reference
-     floor, so the direction stands and the magnitude was a sampling
-     artefact. Anchor `groundPatch` claims on the district series only.*
-     Secondary faults queued with it: multiply blend cannot draw white
-     paint (5/6 RoadLines sets near-invisible), grayscale masks loaded as
-     colour (floored at 0.80), one inverted-alpha set, thin coverage.
-   - **Shadow contrast in-band on exactly one still** (day1_noon 0.304;
-     districts 0.02-0.15 vs ref 0.157-0.388). Districts are the pinned
-     series, so this is readable per landing.
-   `groundPatch` is the surface-history proxy (grain-immune); `edgeGround`
-   may never be quoted without `grainSigma` beside it — the naive metric
-   scored an all-black frame denser than every GTA reference.
-
+1. **TWO OF THE BENCHMARK'S THREE GAPS CLOSED IN ONE BUILD (cd48c19).**
+   Grain: districts 5.2-7.5 -> **0.9-2.8** against ref 0.23-2.05; detail
+   readings 0.37-0.43 -> **0.21-0.29, in-band** (the old numbers were grain
+   pollution, as diagnosed); `decalsBuried=0`, `roadDecals=1081`, frame cost
+   in band. **The remaining gap is SHADOW CONTRAST** (districts 0.02-0.15 vs
+   ref 0.157-0.388) — **and it has a regime problem to settle FIRST (rule
+   2): the district tour shoots at rain 0.90**, so its shadow numbers are
+   overcast-wet compared against five DRY references. Either the tour goes
+   dry (a regime change for the whole pinned series — decide deliberately,
+   it resets comparability) or ref-bench marks the rows rain-mismatched.
+   Measurement-auditor question before any lighting lever moves.
 1. **M17.10 — THE VISUAL BAR IS GTA V (PS3). Jafar's order, 21 Aug, twice.**
    *(the most on-screen thing there is)* Plan in `roadmap.md` 17.10,
    decomposition and research in `visual-bar-spec.md`. The look is carried by

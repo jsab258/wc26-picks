@@ -2946,3 +2946,33 @@ primitive's free collider, and a theory refuted by its own counter.
    lever (0.93 -> 0.85 lightens). Two landings and many commits, magnitude at
    the tour's own p90 — **read it again after a few more landings, then
    bisect.**
+
+### The benchmark's first table, 24 Aug (redirected the visual queue)
+
+1. **THE BENCHMARK'S FIRST TABLE (history: it redirected the visual queue).**
+   `tools/ref-bench.py`: one instrument on the five committed GTA frames and
+   every still; 201 of 272 readings outside the reference band. Three
+   steering findings, in fix order:
+   - **FILM GRAIN IS 3-7x THE NOISIEST GTA FRAME** (`grainSigma` 5-7 on
+     districts vs ref 0.23-2.05) and pollutes every edge reading. ONE
+     post-chain setting, never measured before. Builder task: print the
+     grain amplitude the chain actually applies, then set it from the ref
+     band's series — not taste.
+   - **THE ROAD IS BELOW THE REFERENCE FLOOR AND THE CAUSE IS FOUND: ALL
+     569 ROAD DECALS ARE BURIED 2cm INSIDE THE ASPHALT SLAB** (placed at
+     the slab's CENTRE height, 78 consecutive runs, while `roadDecals=569`
+     counted construction, not visibility). Fix + `decalsBuried` instrument
+     with a builder. *Premise corrected by the reach-auditor: the "0.052,
+     flattest in the set" reading was one photograph from a non-pose-stable
+     frame — the current reading is 0.150, still under the 0.205 reference
+     floor, so the direction stands and the magnitude was a sampling
+     artefact. Anchor `groundPatch` claims on the district series only.*
+     Secondary faults queued with it: multiply blend cannot draw white
+     paint (5/6 RoadLines sets near-invisible), grayscale masks loaded as
+     colour (floored at 0.80), one inverted-alpha set, thin coverage.
+   - **Shadow contrast in-band on exactly one still** (day1_noon 0.304;
+     districts 0.02-0.15 vs ref 0.157-0.388). Districts are the pinned
+     series, so this is readable per landing.
+   `groundPatch` is the surface-history proxy (grain-immune); `edgeGround`
+   may never be quoted without `grainSigma` beside it — the naive metric
+   scored an all-black frame denser than every GTA reference.
