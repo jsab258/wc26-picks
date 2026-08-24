@@ -241,23 +241,29 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    shots vs `0.18` over 17 — zero of three separates nothing; judge the
    `hunt_` pair. A PARKED beacon reads where six crossings do not.
 
-1. **THE DISTANT SKYLINE — CLOSED FROM A DOC, AND THE CAUSE IS THE REPAINT
-   ITEM.** The far tower is the most saturated thing in `district_downtown`
-   (**0.469** vs brick 0.324, sky 0.222); fog cannot account for it, since
-   `fogRGB` sits near 0.196 and a fogged object cannot be MORE saturated
-   than the fog. `SkylineHaze` is a good desaturated grey-blue (sat 0.15)
-   and `skylineRepainted=23` says it applied — **a multiply cannot
-   desaturate**, so the kit's hue survived. Same fix: grey the atlas.
-   **Fixed on the way:** `SkylineRepainted` incremented the moment the kit
-   existed, BEFORE the paint was attempted. It counts acceptances now.
+1. **THE DISTANT SKYLINE: GREYING HELPED, DID NOT CLOSE IT.** The tower was
+   the most saturated thing in `district_downtown` at **0.469**; after the
+   atlas grey it reads **0.394** — a 16% cut, and still above the brick
+   beside it at 0.324. `SkylineHaze` is sat 0.15 and a greyed texture times
+   it should land near that, so something is adding saturation back: fog
+   (fogRGB sits near 0.196) or the patch containing sky rather than tower.
+   **Next: measure a NAMED tower via `SurfaceUnder` rather than a screen
+   patch** — the same fix the light series needed, for the same reason.
+   *(`SkylineRepainted` also used to increment before the paint was
+   attempted, reporting success for a step it had never checked. Fixed.)*
 
-1. ~~**THE PAVING BLOWOUT**~~ — **DIAGNOSED BY ITS PROBE AND FIXED.**
-   `districtGround` returned `mat_asphalt ... glossScale:4.00`, pinned at
-   the clamp — the code giving up, not a scale. A near-mirror target from a
-   rough map whose mean is a quarter of it multiplies the map's VARIANCE by
-   four (spread 0.654 against 0.141 for the road beside it). A wet surface's
-   smoothness is the WATER, so past that point the uniform scalar is right.
-   **`glossDropped=5 glossRestored=5`** — both directions, not a ratchet.
+1. **THE PAVING BLOWOUT: LEVEL HALVED, VARIANCE BARELY MOVED.** `districtGround`
+   returned `mat_asphalt ... glossScale:4.00` — pinned at the clamp, the code
+   giving up rather than a scale — and the fix (uniform scalar once the wet
+   target outruns the map) landed with `glossDropped=5 glossRestored=5`, both
+   directions, not a ratchet. **Judged on the frame, like-for-like:** the
+   strip's median **0.434 -> 0.219** (from 7x the adjacent road to 3.8x) but
+   its p10-p90 spread only **0.654 -> 0.571**, against brick's 0.385. So the
+   gloss scale owned the LEVEL and something else owns the VARIANCE — the
+   texture's own contrast, or the wet reflection layer. It is still the
+   highest-variance surface in the frame. **Next: `districtGround` again on
+   the landing to see what `glossScale` reads now, then the reflection
+   layer's strength — do not re-tune the gloss, it did its part.**
 
 1. **EIGHTY-NINE FETCHED MODELS ON DISK, SIX REFERENCED — 25 OF THEM
    INDUSTRIAL BUILDINGS FOR A PORT TOWN.** Counted: industrial 25, roads 47,
@@ -284,13 +290,11 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    its author's colour and this town has to repaint it.
 
 1. ~~**THE REPAINTS CANNOT DESATURATE**~~ — **GREY SWAP IN AND RAN.**
-   `kitPaint=1997/0` refuted the glTFast theory; the atlases named the real
-   cause (a multiply moves top-decile saturation only 0.820 -> 0.788,
-   because it preserves channel ratios). **`kitGrey=2/0/1974`** on the
-   landing and the mint saloon is gone from `review_street`. The green
-   bicycle that remains is `oga-vehicles`, which goes through no paint site
-   — the variant design working, not a miss. **Judge the saloon's
-   saturation against the 0.385 the rest of that frame sits under.**
+   `kitPaint=1997/0` refuted the glTFast theory; the atlases named the cause
+   (a multiply moves top-decile saturation only 0.820 -> 0.788, preserving
+   channel ratios). **`kitGrey=2/0/1974`** and the mint saloon is gone from
+   `review_street`. The green bicycle left is `oga-vehicles`, which goes
+   through no paint site — the variant design working, not a miss.
 
 1. **THE ARM METRIC COULD NOT TELL A WALK FROM A SCARECROW — THE LATERAL
    HALF IS BUILT.** *(on screen, `review_day2_close`: a figure with both
