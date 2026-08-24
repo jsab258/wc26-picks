@@ -12757,8 +12757,24 @@ namespace Ledger.Game
                 ("knowledge", knowledgeWorks), ("launder", launderWorks), ("disguise", disguiseWorks),
                 ("beats", beatsResolved), ("ossei", osseiOk), ("saveLoad", saveLoadOk),
                 ("actOne", actOneOk), ("openMode", openModeOk), ("fall", fallOk), ("empire", empireOk),
-                ("population", populationOk), ("dayJob", dayJobOk), ("economy", economyOk),
+                ("population", populationOk),
+                // TWENTY GATES HERE SAY ONLY THEIR OWN NAME WHEN THEY FAIL,
+                // and this file already carries the argument against that —
+                // written for ONE gate, applied to ONE gate, and twenty left
+                // as they were. `dayJob` is the second most common failure on
+                // the board (22.5% of the last forty runs, 83 of 307 ever)
+                // and has never once printed a reason, which is precisely why
+                // nobody has ever diagnosed it: there was nothing to read.
+                // Its three operands, so the next red explains itself.
+                ($"dayJob[open={_game.Campaign.OpenMode} days={SimMode.Days} "
+                 + $"shifts={_game.Job.ShiftsWorked}]", dayJobOk),
+                ("economy", economyOk),
                 ("director", directorOk), ("crowd", crowdOk), ("access", accessOk), ("ops", opsOk),
+                // Same repair, same reason: `perf` gates ONE subsystem's cost
+                // and said nothing about which half of the condition failed —
+                // an absent sampler and a slow one are different faults.
+                ($"perf[samples={(trafficCost != null ? trafficCost.Samples : -1)} "
+                 + $"meanMs={(trafficCost != null ? trafficCost.MeanMs : -1.0):0.00} limit=4.00]", perfOk),
                 // ITS OWN NUMBERS, LIKE EVERY OTHER GATE HERE. This one has
                 // failed four times in sixty kept runs and said nothing but its
                 // name each time, which is the exact thing this file's own
@@ -12788,7 +12804,7 @@ namespace Ledger.Game
                 // `vehicles` alone cannot separate them because the whole point
                 // of the LOD is that most of them are asleep.
                 ($"traffic[vehicles={(traffic != null ? traffic.Vehicles.Count : -1)} awake={(traffic != null ? traffic.AwakeCount() : -1)} kinds={kindsSeen} offRoad={offRoad} tightest={tightest:0.0} clamps={(traffic != null ? traffic.OverlapsResolved : -1)} metres={(traffic != null ? traffic.TotalDistance : -1):0} why={(traffic != null ? traffic.TightestGapWhy : "none")}]", trafficOk),
-                ("perf", perfOk), ("witnessCar", witnessCarOk),
+                ("witnessCar", witnessCarOk),
                 // NAMED CLAUSE BY CLAUSE, because this gate went red as the
                 // single word "harm".
                 //
@@ -12844,7 +12860,23 @@ namespace Ledger.Game
                                      && WorldText.Refused == 0)),
                 ($"law[denounced={LawHost.Denounced} marks={LawHost.MarksFiled} ignored={_denounceIgnored} stuck={_denounceStuck} backers={_denounceWitnesses} redirected={LawHost.Redirected} pointedAt={(string.IsNullOrEmpty(_game.Homicides.PointedAt) ? "nobody" : _game.Homicides.PointedAt)} {LawHost.LastVerdict}]", lawOk),
                 ($"allegiance[pledged={_pledged} refused={_pledgeRefused} broke={_brokeWith} poached={_poached} moves={GameController.AllegianceChanges} poachHeard={(_game?.Empire != null ? _game.Empire.PoachesHeard : -1)}]", allegianceOk),
-                ($"claims[made={LawHost.ClaimsMade} caught={LawHost.ClaimsCaught} held={_claimHeld}]", claimsOk),
+                // THE GATE'S OWN OPERANDS, which this line did not carry.
+                // `claimsOk` reads `_claimHeld && _claimCaught && ClaimsMade
+                // >= 2`, and the detail printed `LawHost.ClaimsCaught` — a
+                // DIFFERENT quantity with nearly the same name: an int
+                // counting contradictions over the run, against a bool set by
+                // one specific `Claim` call. So a red `claims` showed
+                // `caught=1`, which looks healthy, while the condition that
+                // actually failed was the bool, and nothing on the line could
+                // say so. (`claimCaught` does sit on the done line — a
+                // different line, which is the cross-line ambiguity
+                // `verdict-read.py` refuses for exactly this reason.)
+                // Found while investigating why `claims` is the one gate
+                // getting WORSE: 15% of the last forty runs against 7.5%
+                // lifetime. A gate that cannot explain its own failure is
+                // why it went uninvestigated.
+                ($"claims[made={LawHost.ClaimsMade} caught={_claimCaught} "
+                 + $"held={_claimHeld} contradictions={LawHost.ClaimsCaught}]", claimsOk),
                 ("budgets", budgetsOk),
                 ("actTwo", act2Ok), ("actThree", actThreeOk), ("coverage", coverageOk),
                 ($"lighting[{string.Join("|", lightingWhy)}]", lightingOk),

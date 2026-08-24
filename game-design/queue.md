@@ -143,11 +143,11 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **FIVE GATES FAIL 15-38% OF RECENT RUNS AND `claims` IS WORSENING.**
-   `--flaky` ranked by a LIFETIME rate with only "how long ago" for recency,
-   so `dayJob` read `27.0% ... last 3 runs ago` with no way to ask what it
-   does NOW. It prints a recent window beside the lifetime one now, ranks by
-   it, and flags drift BOTH ways:
+1. **EIGHTEEN GATES SAY ONLY THEIR OWN NAME WHEN THEY FAIL — WHICH IS WHY
+   THE TOP FAILURES HAVE NEVER BEEN DIAGNOSED.** `--flaky` now prints a
+   recent window beside the lifetime rate and ranks by it (it ranked by
+   lifetime before, so `dayJob` read `27.0% ... last 3 runs ago` with no way
+   to ask what it does NOW):
    | gate | lifetime | recent 40 |
    |---|---|---|
    | frame | 47.2% | 37.5% |
@@ -155,15 +155,20 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    | dayJob | 27.0% | 22.5% |
    | dressing | 22.5% | 22.5% |
    | claims | 7.5% | **15.0% WORSENING** |
-   **`claims` doubling is what the lifetime view hid**, and it failed on the
-   newest run. **`dayJob` and `jobRan` are not one fault twice** — they
-   overlap in 2 of 4 reds, each fails alone, and today's red is `dayJob`
-   WITHOUT `jobRan`: the courier ran and the assertion still failed.
-   **Plant the conditions, do not loosen the bounds.**
-   *(My first recent-window measure used `ls -t` and read ~8% for
-   everything: `git pull` rewrites every run file, so mtime is pull order.
-   `ordered_runs()` sorts by commit. A wrong ordering made five broken gates
-   look fixed.)*
+   **`dayJob` had NO detail string at all** — 83 reds over the project's life
+   and not one of them printed a reason, so there was never anything to
+   diagnose. Now `dayJob[open= days= shifts=]`, its three operands.
+   **`claims` printed the WRONG operand:** the gate tests `_claimCaught` (a
+   bool from one `Claim` call) and the line printed `LawHost.ClaimsCaught`
+   (an int counting contradictions) — same name, different quantity, so a red
+   showed a healthy-looking `caught=1` and could not explain itself. Both
+   ship now, named apart. `perf` likewise (an absent sampler and a slow one
+   were the same red).
+   **This file already argued the point, for ONE gate, and left twenty.**
+   Sixteen bare gates remain — do them when each next goes red, and never add
+   a gate without its operands.
+   *(My first recent-window measure used `ls -t`; `git pull` rewrites every
+   run file, so mtime is pull order. `ordered_runs()` sorts by commit.)*
 
 1. **THE SHADOW RATIO IS 0.06 AND THE MISSING QUANTITY IS INDIRECT LIGHT.**
    With the y-flip fixed the denominator finally behaves — **lit is constant
@@ -308,20 +313,15 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    before calling it: 43 degrees at the ninth decile is a wide-ish idle, not
    a T-pose. `restArmDrop=8.0` says the bind is right either way.
 
-1. **THE DECLUTTER: `namesClipped=0/83` — RAN, FOUND NOTHING, AND THE TEST
-   IS SOUND.** *(on screen)* `collidingNames=3` over 26 samples; `PinAll`
-   runs at shot time and three pairs still overlap — read `namesPinnedSum`
-   (106) against `shotFixups` (27) before tuning.
-   **The edge test landed with a real denominator: 83 labels examined, zero
-   clipped, `namesClipWorst=0.00`** — while an earlier `review_day2_wet`
-   plainly showed "Ellis" cut in half by the corner. I suspected the test
-   was blind (a clamp inside `ScreenRect` would report an off-screen label
-   as inside) and **read it instead of assuming: there is no clamp.** It
-   returns false only when a label is FULLY off-screen, which is right —
-   fully off-screen is absent, not clipped — and a partially clipped one
-   reaches the edge check intact. So the zero is honest and this run's
-   vantages simply had no clipped label. **Leave it for a few landings; it
-   is a rare-event counter and one frame is not a rate.**
+1. **THE DECLUTTER: `namesClipped=0/83` — RAN, FOUND NOTHING, TEST IS SOUND.**
+   `collidingNames=3` over 26 samples; `PinAll` runs at shot time and three
+   pairs still overlap — read `namesPinnedSum` (106) against `shotFixups`
+   (27) before tuning. The edge test landed with a real denominator: 83
+   labels examined, zero clipped. I suspected it was blind and **read
+   `ScreenRect` instead of assuming: there is no clamp** — it returns false
+   only when a label is FULLY off-screen, which is right, and a partially
+   clipped one reaches the check intact. Rare-event counter; one frame is
+   not a rate.
 
 1. **FIVE OF SEVEN DISTRICTS HAD NO SHOPS AT ALL.** `the_Hook:shop73
    Copper_Row:shop4` and **zero everywhere else** — the Exchange is the
