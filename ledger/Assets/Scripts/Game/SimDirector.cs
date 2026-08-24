@@ -14903,6 +14903,11 @@ namespace Ledger.Game
                       // rule 3b's pair — no drops under the eye and no rain
                       // today are the same zero otherwise.
                       $"rainLowest={Weather.RainLowest:0.0} " +
+                      // THE STREAK, IN METRES, computed from what the renderer
+                      // was actually given. 0.575 was four times the distance a
+                      // 9 m/s drop covers while the shutter is open, and the
+                      // frame showed it as white lines the height of a shopfront.
+                      $"rainStreak={Weather.RainStreakMetres:0.000} " +
                       $"rainBelow={Weather.RainBelow}/{Weather.RainAlive} " +
                       // THE GREY SWAP, WITH ITS DENOMINATOR. `kitPaint`
                       // proved the paint lands on every renderer and the

@@ -142,8 +142,44 @@ namespace Ledger.Game
 
             var renderer = fx.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Stretch;
-            renderer.velocityScale = 0.06f;
+            // 0.06 -> 0.013, AND IT IS THE SAME LEFTOVER THE SPEED WAS.
+            //
+            // The comment above `startSpeed` names the trap exactly — "26 was a
+            // horizontal THROW speed; pointing the emitter down changes what
+            // the number means" — and then retuned the speed and left these two
+            // alone. `velocityScale` MULTIPLIES the speed, so it is a second
+            // implementation of the same idea and it is the one nobody looked
+            // at. One idea, two sites, and the fix landed on one.
+            //
+            // DERIVED, NOT PICKED, and deliberately not from the picture. In
+            // Unity's Stretch mode a streak is
+            //     startSize * lengthScale + startSpeed * velocityScale
+            // which at 0.010 * 3.5 + 9 * 0.06 was 0.575m of white line per
+            // drop, 94% of it from the velocity term. What it SHOULD be is the
+            // distance a drop covers while the shutter is open: 9 m/s at
+            // 45-60fps is 0.15-0.20m. So 0.010 * 3.5 + 9 * 0.013 = 0.152m,
+            // roughly a quarter of what was there.
+            //
+            // WHY THE ARITHMETIC AND NOT A MEASUREMENT OFF THE STILL, which is
+            // how the WIDTH was settled and would have been the obvious echo:
+            // I tried, and the instrument could not separate rain from
+            // architecture. Bright-and-desaturated catches white render, so a
+            // frame of pale buildings read as a downpour; adding a thinness
+            // filter fixed that and then `review_day2_noon` — rain=0.00 —
+            // still scored HIGHER than the rainy frame, because window
+            // mullions are thin bright vertical lines too. Two contradictions
+            // is where a measurement gets dropped rather than explained, and
+            // this length is fully determined by two constants and a physical
+            // fact, neither of which needs a JPEG.
+            renderer.velocityScale = 0.013f;
             renderer.lengthScale = 3.5f;
+            // AND THE RESULT, AS A NUMBER THE RUN PRINTS, computed from what
+            // was actually assigned rather than from the literals above. A
+            // derivation that lives only in a comment is a claim with no test
+            // attached, and this file is a list of those going quietly false;
+            // if somebody retunes the speed again, this moves and says so.
+            RainStreakMetres = main.startSize.constant * renderer.lengthScale
+                             + main.startSpeed.constant * renderer.velocityScale;
             // SPRITES/DEFAULT, NOT THE GLASS SHEET. Glass is a lit opaque
             // surface material for WINDOWS; on stretched particles it
             // ignores the translucent startColor above and renders every
@@ -173,6 +209,11 @@ namespace Ledger.Game
         /// down here" is not a median question, and a median over a column
         /// of falling rain describes the middle of the column, which is
         /// exactly the part that was never in doubt.
+        /// How long one rain streak is, in metres, as the renderer will draw
+        /// it. Target is the distance a drop covers while the shutter is open
+        /// — 9 m/s at 45-60fps is 0.15-0.20m — and it was 0.575m until 24 Aug.
+        public static float RainStreakMetres;
+
         public static float RainLowest = 999f;
         public static int RainAlive, RainBelow;
         static ParticleSystem.Particle[] _rainBuf;
