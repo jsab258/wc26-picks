@@ -123,16 +123,43 @@ namespace Ledger.Game
             _dusk = Take(DuskName, missing);
             MissingNames = missing.Count == 0 ? "none" : string.Join("/", missing);
             var first = _day ?? _clear ?? _wet ?? _dusk;
-            LoadedAs = first == null ? "nothing loaded" : first.dimension.ToString();
+            // After the shape gate above, a non-null here IS a cube, so this
+            // reads `Cube` on success and `all rejected — see skyMissing` when
+            // the importer regressed; the per-name entries carry the shapes.
+            LoadedAs = first == null
+                ? (Asked > 0 && missing.Count == Asked ? "all-rejected-see-skyMissing"
+                                                       : "nothing-loaded")
+                : first.dimension.ToString();
         }
 
         static Texture Take(string name, System.Collections.Generic.List<string> missing)
         {
             Asked++;
             var tex = Resources.Load<Texture>(LoadRoot + name);
-            if (tex != null) { Found++; return tex; }
-            missing.Add(name);
-            return null;
+            if (tex == null)
+            {
+                missing.Add(name);
+                return null;
+            }
+            // FAIL CLOSED ON SHAPE, AND THIS LINE IS WHY THE 24 AUG STALL
+            // CANNOT RECUR. `customReflectionTexture` accepts only a cube;
+            // a capture that imported as 2D — which is Unity's DEFAULT for
+            // an .hdr, and what every capture was before `SkyImport`
+            // existed — throws at BIND time, once per frame, and one run
+            // wrote 593,328 log lines and died at its kill cap having
+            // taken one screenshot. A wrong-shaped texture is treated as
+            // missing and NAMED with its shape, so the verdict says
+            // `skyMissing=belfast_open_field_2k(2D)` instead of the log
+            // saying nothing legible at all. The procedural cubemap is the
+            // fallback either way, which is the pre-sky behaviour: worse
+            // reflections, working game.
+            if (tex.dimension != UnityEngine.Rendering.TextureDimension.Cube)
+            {
+                missing.Add(name + "(" + tex.dimension + ")");
+                return null;
+            }
+            Found++;
+            return tex;
         }
 
         /// Bind the source that matches the hour and the weather.
