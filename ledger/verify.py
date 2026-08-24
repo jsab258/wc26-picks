@@ -22,6 +22,8 @@ So the footer comes from here, and if a check is red this prints the failure
 instead of a number.
 """
 import argparse
+import datetime
+import os
 import pathlib
 import re
 import subprocess
@@ -1530,6 +1532,416 @@ def stale_anchors():
     return True, "0 stale anchors"
 
 
+# --------------------------------------------------------- director cadence
+# CLAUDE.md, THE HYBRID RESIDENT (24 Aug). The resident session runs on Opus;
+# Fable is the on-demand `studio-director`. These four constants are the whole
+# contract, in one place, because the check and its fixtures must not be able
+# to disagree about it.
+DIRECTOR_MIN_LINES = 100                      # MORE than this is "substantial"
+DIRECTOR_SCRIPTS = "ledger/Assets/Scripts/"   # git paths are repo-root relative
+DIRECTOR_LOG = ".claude/agent-log.tsv"
+DIRECTOR_AGENT = "studio-director"
+
+
+def _git(repo, *args):
+    """git stdout ONLY, uncontaminated — deliberately not `run()` above.
+
+    `run()` returns stdout+stderr concatenated, which is right for a build log
+    and wrong here: one `hint:` or `warning:` line from git lands in the middle
+    of a `--numstat` parse and gets counted as a file. The numbers this feeds
+    decide whether a commit is blocked, so the channel is kept clean."""
+    p = subprocess.run(["git", "-C", str(repo)] + list(args),
+                       capture_output=True, text=True)
+    return p.returncode, p.stdout
+
+
+def _cadence_epoch(text):
+    """One ISO8601 UTC stamp -> epoch seconds, or None when it cannot be dated.
+
+    UNDATEABLE IS ABSENT, NEVER FRESH. The expensive direction of a lenient
+    parser here is a corrupt row certifying a review that never happened, so
+    anything this cannot read is counted as an unparsable row and excluded
+    from the freshness count rather than guessed at."""
+    s = (text or "").strip()
+    if not s:
+        return None
+    if s.endswith(("Z", "z")):                       # 3.9/3.10 fromisoformat
+        s = s[:-1] + "+00:00"                        # cannot read a bare Z
+    for attempt in (s, s.replace(" ", "T", 1)):
+        try:
+            dt = datetime.datetime.fromisoformat(attempt)
+        except ValueError:
+            continue
+        if dt.tzinfo is None:        # the log's own contract is UTC (log-agent.sh)
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        return dt.timestamp()
+    return None
+
+
+def _cadence_read(repo):
+    """The reading, as a dict — ONE implementation, shared by the check, the
+    `--cadence` printer and every fixture in the selftest.
+
+    What each number is a statistic OF, because a number whose statistic is
+    unnamed is the thing this project keeps mis-reading:
+
+      changed   CUMULATIVE adds+dels over the PENDING diff (staged+unstaged)
+                against HEAD, restricted to `ledger/Assets/Scripts/`
+      rows      COUNT of data rows in the agent log — the denominator every
+                zero below is meaningless without
+      since     COUNT of `studio-director` rows dated strictly AFTER HEAD's
+                commit time; the numerator, taken from the same read of the
+                same file as `rows`
+      stale     COUNT of `studio-director` rows dated at or before HEAD
+      unparsed  COUNT of rows that could not be dated — treated as ABSENT
+      untracked LINES in untracked files under Assets/Scripts. NOT gated: the
+                contract is `git diff HEAD`, which cannot see them. Reported
+                as a note so "the diff is small" cannot quietly mean "the diff
+                is large and unstaged".
+
+    KNOWN BLIND SPOT, stated rather than discovered later: a director row
+    newer than HEAD proves a spawn happened after the last commit, not that it
+    reviewed THESE lines. It cannot distinguish those, and it is not trying
+    to — the failure it exists for is the review that never happened at all.
+    """
+    repo = pathlib.Path(repo)
+    r = {"changed": 0, "files": 0, "binary": 0, "rows": 0, "since": 0,
+         "stale": 0, "unparsed": 0, "unparsed_dir": 0, "untracked": 0,
+         "untracked_files": 0, "log": True, "newest_dir": "", "head_iso": "",
+         "state": "ok"}
+
+    code, out = _git(repo, "show", "-s", "--format=%ct", "HEAD")
+    head_ct = None
+    if code == 0 and out.strip().isdigit():
+        head_ct = int(out.strip())
+        r["head_iso"] = datetime.datetime.fromtimestamp(
+            head_ct, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if head_ct is None:
+        r["state"] = "nohead"
+        r["summary"] = ("director cadence: no HEAD commit — nothing measured "
+                        "(0 changed lines, 0 log rows examined)")
+        r["ok"] = True
+        return r
+
+    code, out = _git(repo, "diff", "HEAD", "--numstat")
+    for line in out.splitlines():
+        cols = line.split("\t")
+        if len(cols) < 3:
+            continue
+        adds, dels, path = cols[0], cols[1], "\t".join(cols[2:])
+        # A rename printed as `a/{x => y}/f.cs` only matches when the literal
+        # prefix survives it. Pure renames carry 0/0 lines anyway, so the
+        # worst case is a rename OUT of Scripts reading as 0 — noted, not
+        # papered over.
+        if DIRECTOR_SCRIPTS not in path:
+            continue
+        r["files"] += 1
+        if adds == "-" or dels == "-":           # binary: no line count exists
+            r["binary"] += 1
+            continue
+        r["changed"] += int(adds) + int(dels)
+
+    code, out = _git(repo, "ls-files", "--others", "--exclude-standard")
+    for rel in out.splitlines():
+        if DIRECTOR_SCRIPTS not in rel:
+            continue
+        r["untracked_files"] += 1
+        try:
+            r["untracked"] += len((repo / rel).read_text(
+                encoding="utf-8", errors="replace").splitlines())
+        except OSError:
+            pass
+
+    log = repo / DIRECTOR_LOG
+    if not log.exists():
+        r["log"] = False
+    else:
+        first = True
+        for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
+            if not line.strip():
+                continue
+            cols = line.split("\t")
+            if first and cols[0].strip() == "when":
+                first = False                      # the header is not a row
+                continue
+            first = False
+            r["rows"] += 1
+            when = cols[0] if cols else ""
+            agent = cols[1].strip().lower() if len(cols) > 1 else ""
+            ts = _cadence_epoch(when)
+            if ts is None:
+                r["unparsed"] += 1
+                if agent == DIRECTOR_AGENT:
+                    r["unparsed_dir"] += 1
+                continue
+            if agent != DIRECTOR_AGENT:
+                continue
+            if ts > head_ct:
+                r["since"] += 1
+            else:
+                r["stale"] += 1
+            if not r["newest_dir"] or ts > _cadence_epoch(r["newest_dir"]):
+                r["newest_dir"] = when.strip()
+
+    substantial = r["changed"] > DIRECTOR_MIN_LINES
+    if substantial and not r["log"]:
+        r["state"] = "logmissing"
+    elif substantial and r["since"] == 0:
+        r["state"] = "unspawned"
+    r["ok"] = r["state"] == "ok"
+    r["summary"] = _cadence_summary(r)
+    return r
+
+
+def _cadence_summary(r):
+    """One line, and it ALWAYS carries the denominators (rule 3b).
+
+    Three zeroes live in this reading and each would read as health on its
+    own: no changed lines, no director rows, no log rows. So every branch
+    prints the changed count beside its threshold and the director count
+    beside the number of rows examined — and a log with no rows at all says
+    "nothing measured" in those words, because "we looked at eight rows and
+    found no director" and "we looked at nothing" are different facts with
+    different next actions."""
+    lines = "%d changed line(s) vs %d threshold under Assets/Scripts" % (
+        r["changed"], DIRECTOR_MIN_LINES)
+    if not r["log"]:
+        rows = "agent log ABSENT (%s) — nothing measured" % DIRECTOR_LOG
+    elif r["rows"] == 0:
+        rows = "0 log rows examined — nothing measured (log has no rows)"
+    else:
+        rows = "%d director row(s) since HEAD of %d log row(s) examined" % (
+            r["since"], r["rows"])
+    notes = ""
+    if r["unparsed"]:
+        notes += "; %d unparsable row(s) treated as absent (%d studio-director)" % (
+            r["unparsed"], r["unparsed_dir"])
+    if r["untracked"]:
+        notes += ("; NOTE %d untracked line(s) in %d file(s) under Assets/Scripts "
+                  "are invisible to `git diff HEAD` — stage them to be counted" % (
+                      r["untracked"], r["untracked_files"]))
+    if r["binary"]:
+        notes += "; %d binary file(s) counted as 0 lines" % r["binary"]
+
+    if r["state"] == "logmissing":
+        return ("DIRECTOR LOG MISSING: %s, %s — an absent instrument is not "
+                "compliance; spawn studio-director and let the hook write the "
+                "row%s" % (lines, rows, notes))
+    if r["state"] == "unspawned":
+        seen = ""
+        if r["stale"]:
+            seen = " (%d director row(s) in the log, all older; newest %s vs HEAD %s)" % (
+                r["stale"], r["newest_dir"] or "?", r["head_iso"])
+        return ("DIRECTOR NOT SPAWNED: %s, %s%s — spawn studio-director for the "
+                "batch review, then re-run verify%s" % (lines, rows, seen, notes))
+    # THE WORD TRACKS THE NUMBER IT NAMES. "REVIEWED" is a claim about director
+    # rows, so it is computed from `since` and not from the line count — a mutant
+    # that disables the gate printed "REVIEWED" beside `0 director rows` while
+    # this read the changed lines instead, which is the same defect as two
+    # numbers derived from one variable, wearing an adjective.
+    if r["changed"] > DIRECTOR_MIN_LINES:
+        verdict = "over threshold, REVIEWED" if r["since"] else "over threshold"
+    else:
+        verdict = "under threshold, review not required"
+    return "director cadence ok (%s, %s; %s)%s" % (lines, verdict, rows, notes)
+
+
+def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True):
+    """One throwaway repo: a commit at a PINNED time, then a pending change.
+
+    The commit date is pinned so "newer than HEAD" is arithmetic rather than a
+    race with the wall clock — a fixture that passes because the test ran fast
+    is a fixture that will fail on a slow machine and teach everyone to re-run
+    the suite until it goes green."""
+    d = work / name
+    (d / "ledger" / "Assets" / "Scripts").mkdir(parents=True)
+    (d / "game-design").mkdir(parents=True, exist_ok=True)
+    env = dict(os.environ, GIT_AUTHOR_DATE="%d +0000" % CADENCE_FIXED_CT,
+               GIT_COMMITTER_DATE="%d +0000" % CADENCE_FIXED_CT,
+               GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
+               GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
+    subprocess.run(["git", "init", "-q", "-b", "main", str(d)],
+                   capture_output=True, text=True)
+    target = (d / "ledger" / "Assets" / "Scripts" / "Sim.cs") if in_scripts \
+        else (d / "game-design" / "notes.md")
+    target.write_text("baseline\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(d), "add", "-A"], capture_output=True, text=True)
+    subprocess.run(["git", "-C", str(d), "commit", "-q", "-m", "base"],
+                   capture_output=True, text=True, env=env)
+    if added:
+        with target.open("a", encoding="utf-8") as fh:
+            fh.write("".join("line %d\n" % i for i in range(added)))
+    if log is not None and log is not False:
+        p = d / DIRECTOR_LOG
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("when\tagent\n" + "".join("%s\t%s\n" % (w, a) for w, a in rows),
+                     encoding="utf-8")
+    return d
+
+
+# FAIL READABLE: one exit code per outcome for `--cadence`, so a caller can
+# tell "no fresh director row" from "the log is not there" without parsing
+# prose. Asserted in the selftest, not just written down here.
+CADENCE_EXIT = {"ok": 0, "nohead": 0, "unspawned": 1, "logmissing": 2}
+
+CADENCE_FIXED_CT = 1700000000          # 2023-11-14T22:13:20Z, the fixtures' HEAD
+CADENCE_FRESH = "2023-11-14T23:13:20Z"  # +1h  — after HEAD
+CADENCE_STALE = "2023-11-14T21:13:20Z"  # -1h  — before HEAD
+
+
+def _cadence_selftest():
+    """Rule 5b, both ways, on a temp repo — ACCEPTING CASES FIRST.
+
+    The accepting cases go first because this guard can block every commit in
+    the project: the expensive failure here is not a review that slips through,
+    it is a validator nothing survives. Two of the accepting cases exist only
+    because of that — a large diff OUTSIDE Assets/Scripts, and a fresh row
+    written with an offset instead of a Z.
+
+    Returns (passed, failed, lines)."""
+    import atexit
+    import shutil
+    import tempfile
+    work = pathlib.Path(tempfile.mkdtemp(prefix="director-cadence-"))
+    # CLEANED ON EXIT, HOWEVER THE RUN ENDS. The pair of lines below is the
+    # one `frame-drift.py` carries: the sibling that lacked it leaked 17GB of
+    # temp dirs in a day, because verify runs these selftests on every commit.
+    atexit.register(shutil.rmtree, work, True)
+
+    lines, passed, failed = [], 0, 0
+
+    def say(cond, label, detail=""):
+        nonlocal passed, failed
+        if cond:
+            passed += 1
+            lines.append("  ok   " + label)
+        else:
+            failed += 1
+            lines.append("  FAIL " + label + (" — " + detail if detail else ""))
+
+    d = _cadence_fixture(work, "a1-small-no-director", 5,
+                         [(CADENCE_FRESH, "systems-builder")])
+    a1 = _cadence_read(d)
+    say(a1["ok"] and a1["state"] == "ok",
+        "ACCEPT small diff with no director row", a1["summary"])
+    say("5 changed line(s) vs 100 threshold" in a1["summary"]
+        and "1 log row(s) examined" in a1["summary"],
+        "ACCEPT summary carries both denominators", a1["summary"])
+
+    d = _cadence_fixture(work, "a2-large-fresh", 150,
+                         [(CADENCE_STALE, "systems-builder"),
+                          (CADENCE_FRESH, "studio-director")])
+    a2 = _cadence_read(d)
+    say(a2["ok"] and a2["since"] == 1 and "REVIEWED" in a2["summary"],
+        "ACCEPT large diff with a fresh director row", a2["summary"])
+
+    d = _cadence_fixture(work, "a3-exactly-100", 100, [])
+    a3 = _cadence_read(d)
+    say(a3["ok"] and a3["changed"] == 100,
+        "ACCEPT exactly 100 changed lines (the bound is MORE than 100)", a3["summary"])
+
+    d = _cadence_fixture(work, "a4-large-outside", 500, [], in_scripts=False)
+    a4 = _cadence_read(d)
+    say(a4["ok"] and a4["changed"] == 0,
+        "ACCEPT 500 lines outside Assets/Scripts", a4["summary"])
+
+    d = _cadence_fixture(work, "a5-small-no-log", 5, [], log=False)
+    a5 = _cadence_read(d)
+    say(a5["ok"] and "nothing measured" in a5["summary"],
+        "ACCEPT small diff with no log, and it says nothing measured", a5["summary"])
+
+    d = _cadence_fixture(work, "a6-offset-stamp", 150,
+                         [("2023-11-14T23:13:20.482+00:00", "studio-director")])
+    a6 = _cadence_read(d)
+    say(a6["ok"] and a6["since"] == 1,
+        "ACCEPT a fresh row stamped +00:00 with fractional seconds", a6["summary"])
+
+    # REJECTING — the four states the escalation rule actually decays into.
+    d = _cadence_fixture(work, "r1-101-no-director", 101,
+                         [(CADENCE_FRESH, "instrument-builder")])
+    r1 = _cadence_read(d)
+    say(not r1["ok"] and r1["state"] == "unspawned" and r1["changed"] == 101,
+        "REJECT 101 changed lines with no director row", r1["summary"])
+
+    d = _cadence_fixture(work, "r2-stale-only", 150,
+                         [(CADENCE_STALE, "studio-director"),
+                          (CADENCE_STALE, "studio-director")])
+    r2 = _cadence_read(d)
+    say(not r2["ok"] and r2["since"] == 0 and r2["stale"] == 2
+        and "all older" in r2["summary"],
+        "REJECT large diff with only STALE director rows", r2["summary"])
+
+    d = _cadence_fixture(work, "r3-empty-log", 150, [])
+    r3 = _cadence_read(d)
+    say(not r3["ok"] and r3["rows"] == 0 and "nothing measured" in r3["summary"],
+        "REJECT large diff with a header-only log", r3["summary"])
+    # RULE 3b, ASSERTED RATHER THAN HOPED FOR: examined-nothing and
+    # examined-rows-found-no-director must not print the same sentence.
+    say("nothing measured" in r3["summary"] and "nothing measured" not in r1["summary"],
+        "REJECT 0-rows-examined reads differently from no-director-found",
+        r3["summary"] + " || " + r1["summary"])
+
+    d = _cadence_fixture(work, "r4-no-log", 150, [], log=False)
+    r4 = _cadence_read(d)
+    say(not r4["ok"] and r4["state"] == "logmissing"
+        and "an absent instrument is not compliance" in r4["summary"],
+        "REJECT large diff with the log file missing", r4["summary"])
+
+    d = _cadence_fixture(work, "r5-unparsable", 150,
+                         [("yesterday afternoon", "studio-director")])
+    r5 = _cadence_read(d)
+    say(not r5["ok"] and r5["unparsed_dir"] == 1 and "unparsable" in r5["summary"],
+        "REJECT a director row whose timestamp cannot be dated", r5["summary"])
+
+    # The exit-code contract, asserted rather than documented: every accepting
+    # case exits 0, and the two reds are DISTINCT from each other.
+    say(all(CADENCE_EXIT[x["state"]] == 0 for x in (a1, a2, a3, a4, a5, a6)),
+        "every accepting case exits 0")
+    say(CADENCE_EXIT[r1["state"]] == 1 and CADENCE_EXIT[r4["state"]] == 2
+        and len(set(CADENCE_EXIT.values())) == 3,
+        "the two reds carry different exit codes (1 unspawned, 2 log missing)",
+        "%s vs %s" % (r1["state"], r4["state"]))
+
+    return passed, failed, lines
+
+
+def director_cadence():
+    """The director gets spawned for a substantial change, or the commit blocks.
+
+    WHY, in the owner's words on 24 Aug: "no point in having a fable director
+    if it's never called upon." The HYBRID RESIDENT section makes escalation
+    mechanical rather than judged — builder-batch review before commit, queue
+    reordering, a landing that changes a conclusion, anything touching the
+    premise. A mandatory review with no instrument decays into an optional one,
+    and this file is a list of rules that decayed exactly that way.
+
+    So: RED when a substantial change (more than DIRECTOR_MIN_LINES = 100
+    changed lines under Assets/Scripts, staged+unstaged, adds+dels summed) is
+    pending and the agent log holds no `studio-director` row newer than HEAD's
+    commit. A MISSING log is RED too on a substantial diff — the instrument
+    being absent must not read as compliance, which is the same fault as a zero
+    with no denominator.
+
+    WHERE THE 100 CAME FROM, measured before it was written down rather than
+    defended afterwards: per-commit changed lines under `ledger/Assets/Scripts`
+    over the last 60 commits are 37 zeroes, then 19 21 22 23 29 35 36 38 46 48
+    48 49 55 58 81, then 107 128 130 132 302 352 359 415. Nothing at all lands
+    between 81 and 107, so the bound sits in a real gap in this project's own
+    distribution: eight commits in sixty are "substantial", and the largest
+    thing it calls small is 81 lines.
+
+    The fixture suite runs FIRST and its accepting cases run before its
+    rejecting ones, because a broken version of this check blocks every commit
+    in the project rather than letting one through."""
+    passed, failed, lines = _cadence_selftest()
+    if failed:
+        first = next((l.strip() for l in lines if l.strip().startswith("FAIL")), "?")
+        return False, ("DIRECTOR CADENCE CHECK BROKEN: %d/%d fixtures failed — %s"
+                       % (failed, passed + failed, first[:120]))
+    r = _cadence_read(ROOT.parent)
+    return r["ok"], r["summary"] + " [%d/%d selftest fixtures]" % (passed, passed + failed)
+
+
 def breaks(spec):
     path = ROOT / "breaks" / (spec if spec.endswith(".json") else spec + ".json")
     if not path.exists():
@@ -1549,10 +1961,38 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--breaks", action="append", default=[],
                     help="also run this break spec (repeatable)")
+    ap.add_argument("--selftest", action="store_true",
+                    help="run director_cadence's fixture suite, both ways, and exit")
+    ap.add_argument("--cadence", action="store_true",
+                    help="print the director-cadence reading for this tree and exit")
     args = ap.parse_args()
 
+    # THE CHEAP MODES MUST SURVIVE A PIPE. `--cadence | head -1` is the way
+    # anybody will actually read this, and a correct run that ends in a
+    # BrokenPipeError traceback costs twenty minutes before somebody notices it
+    # worked. The full run is left alone: it is not a pipe-into-head tool.
+    if args.selftest or args.cadence:
+        try:
+            import signal
+            signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+        except (ImportError, AttributeError, ValueError):
+            pass
+
+    if args.selftest:
+        passed, failed, lines = _cadence_selftest()
+        for l in lines:
+            print(l)
+        print("director-cadence selftest: %d passed, %d failed" % (passed, failed))
+        return 0 if failed == 0 else 1
+
+    if args.cadence:
+        r = _cadence_read(ROOT.parent)
+        print(r["summary"])
+        return CADENCE_EXIT[r["state"]]        # 0 green / 1 unspawned / 2 no log
+
     parts, all_ok = [], True
-    for fn in (lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
+    for fn in (director_cadence,
+               lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, raw_avenues, filename_as_type, namespace_as_value, workflow_size,

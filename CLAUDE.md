@@ -1002,7 +1002,25 @@ much."*
   stop-hook's nagging; the tree goes clean in one reviewed commit per
   builder report.
 
-**REPORTING (same date):** when Jafar asks for an update — any wording —
+**THE HYBRID RESIDENT (24 Aug, Jafar: "hybrid is ok for me but we need
+to be 100% sure it works"):** the resident session runs on Opus; Fable is
+the on-demand `studio-director` agent. Escalation is MECHANICAL, never
+judged — the director MUST be spawned at: builder-batch review before
+commit, queue reordering/refill, a landing that changes a conclusion or
+closes/opens an item, any verifier-vs-builder disagreement, any close-out,
+anything touching premise/roadmap/CLAUDE.md. The watchdog forces a dailies
+review if the agent log shows none in 12h. Enforcement has teeth:
+`director_cadence` in verify goes RED — blocking the commit — when a
+substantial code change (>100 changed lines under ledger/Assets/Scripts)
+has no `studio-director` row in `.claude/agent-log.tsv` newer than HEAD's
+commit. The spawn log is the instrument; the verify footer carries the
+count into every commit message, so the commit feed shows the cadence.
+
+**REPORTING — HIGH LEVEL AND JUDGMENT, 24 Aug, his words: "don't need
+details, but high level info and judgment".** Not a status dump: what
+changed at the level a person cares about, and THE ASSESSMENT — is it
+closer, is it working, what do I think. Facts he can check are welcome;
+lists of what was done are not. When Jafar asks for an update — any wording —
 he gets the compact shape: one plain line each for Visual, Voice, Rest of
 roadmap (what changed, what is next, anything needing him), plus a current
 frame when the street looks different. Simple terms, no shas, no metric
