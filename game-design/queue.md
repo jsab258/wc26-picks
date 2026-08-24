@@ -61,58 +61,51 @@ vertex budget, shadow reach (shadow45 21.2 vs all 21.6 — 0.4ms of
 only the rungs' differences are.
 
 **THE STREET WAS NEVER AS EMPTY AS THE PICTURES.** Three faults, all
-found by measuring: (1) `Population.NearMetres=34` meant nothing past
-a block of the player was DRAWN — now 70 (BandSlack 6->12 with it,
-spent as a proportion), crowdWalkers 8 -> 22; (2) **`streetBodies`
-was a viewport-RECTANGLE test counting people through walls** —
-`streetBodiesSeen` (linecast, the test `Shot` already ran for the
-player and never pointed at the crowd) read **19 in cone / 3
-visible**; (3) the cameras stood badly — `midFrac` (2..7m band)
-sorted across 28 shots was bimodal (nights/tours 0.00-0.25, day
-street shots 0.35-0.69), so `ShotMidBlockedAt=0.30` sits in the
-widest gap as `ShotBlockedAt` does in its own. **12 of 13 triggered
-shots fixed**; day1_noon is the one that gave up (canyon;
-straight-back-never-re-aimed is deliberate — findings cite these
-filenames). The street shot ALSO fled the crowd by design (slid along
-until nobody within 2.5m, any direction) — now 1.6m and in-front
-only. Day frames are NOT like-for-like across these.
+found by measuring, all closed: the draw radius stopped at 34m (now
+70); `streetBodies` was a viewport-RECTANGLE test counting people
+THROUGH WALLS (`streetBodiesSeen` linecasts, and its near split says
+`seenNear/near` is the pair that means anything — 19-in-cone was
+mostly distance); and the cameras stood badly (`ShotMidBlockedAt=0.30`
+off its own bimodal series, 12 of 13 shots fixed; the street shot also
+FLED the crowd until its guard was narrowed to 1.6m and in-front).
+`streetSeenBlockBy` named the near-crowd screen as Building_78 — a
+wall, not cars: expected, not a fault. Day frames are NOT like-for-like
+across these.
 
-**23 Aug evening — THE DAY NOW READS AS DAY.** The biggest single
-win of the day and it was a MEASUREMENT, not taste: day3_noon was
-0.206 mean against day3_night 0.165 — a midday a quarter brighter
-than a midnight. `Exposure` had been revised six times chasing this,
-each time a chosen number read against one frame. `exposureCurve`
-printed the response instead (x1.00:0.199 x1.50:0.256 x2.00:0.302
-x3.00:0.373 — roll-off real but gentle, so the aperture IS the
-lever). Target bounded by landed readings on BOTH sides: 0.44-0.49 /
-40-48% bright was measured and rejected as "seaside-morning white",
-0.206 reads as night. Day arm 0.72 -> 2.44 lands noons 0.30-0.41 at
-12-33% bright, nights untouched at 0.14-0.18, noon:night 1.25 ->
+**23 Aug — THE DAY NOW READS AS DAY**, and it was a MEASUREMENT not
+taste. day3_noon 0.206 against day3_night 0.165: a midday a quarter
+brighter than a midnight. `Exposure` had been revised SIX times, each
+a chosen number read against one frame; `exposureCurve` printed the
+response instead (x1.00:0.199 x2.00:0.302 x3.00:0.373 — roll-off real
+but gentle, so the aperture IS the lever). Target bounded by landed
+readings BOTH sides: 0.44-0.49 at 40-48% bright was measured and
+rejected as seaside-morning white; 0.206 reads as night. Day arm 0.72
+-> 2.44 lands noons 0.30-0.41, nights untouched, noon:night 1.25 ->
 2.35:1. **Two things would have eaten it silently: the Clamp ceiling
-(1.85 against a noon of 1.72 — raised to 3.6) and the rain term
-(scaled with the arm or "an overcast day loses light" halves).**
-Three break fixtures re-anchored.
+(1.85 against a noon of 1.72 — now 3.6) and the rain term (scaled
+with the arm, or "an overcast day loses light" halves).** Three break
+fixtures re-anchored.
 
-**SILLS ARE IN AND FREE** (2133; sceneRenderers 19810 -> 21983 with
-render+rest UNCHANGED at ~21.4ms — this scene is not
-submission-bound). Near buildings only, reusing the pane/band `near`
-flag; no collider, per the courier's 197 ticks against a window box.
-Weathering moved into the TEXTURE first (vertical run-off on
-brick/plaster/concrete, signed so albedo holds at 0.15) after
-doubling decals to 368 moved the count and not the picture.
+**SILLS ARE IN AND FREE** (2133; +2173 renderers with render+rest
+UNCHANGED — this scene is not submission-bound). Near buildings only,
+reusing the pane/band `near` flag; no collider. Turning their shadow
+casting OFF bought nothing and was reverted. Weathering went into the
+TEXTURE (vertical run-off, signed so albedo holds at 0.15) after
+doubling decals to 368 moved the count and not the picture. **Ground
+roughness maps bound (24 Aug), normalised by each map's own mean so
+the wet calibration held — reflMax 0.89 unchanged.**
 
-**THE CROWD BEHAVES.** Density showed up as 13 people in convoy down
-the CARRIAGEWAY; cause was `Steer`'s first branch testing only for
-SOLID blockers, so tarmac never stopped anyone and the pavement rules
-below were unreachable. Guard on how far a line RUNS ON road (12m,
-from the 8m avenue width): headingIntoRoad 13 -> 5, crowdTightest
-0.04 -> 0.23, road clear. **Its sampling cost 1.9ms of npcsMs until
-coarsened 0.5m -> 1.5m (npcsMs 5.99 -> 4.85).** The frame then showed
-1-2 people again: correct behaviour, fewer visible. DO NOT chase by
-loosening the guard — the lever is where ROUTES go. meanFrame ~28.4ms
-(from ~25 this morning) for all of today's density+sills; perfOk
-green. `places` went red once and recovered untouched (3/289 flaky) —
-if it returns, suspect the routing change, not the ledges.
+**THE CROWD BEHAVES.** Density arrived as 13 people in convoy down the
+CARRIAGEWAY: `Steer`'s first branch tested only for SOLID blockers, so
+tarmac stopped nobody and the pavement rules below were unreachable.
+Guard on how far a line RUNS ON road (12m, from the 8m avenue width):
+headingIntoRoad 13 -> 5, crowdTightest 0.04 -> 0.23. **Its sampling
+cost 1.9ms until coarsened 0.5m -> 1.5m.** The frame then showed 1-2
+people: correct behaviour, fewer visible. DO NOT chase by loosening
+the guard — the lever is where ROUTES go. meanFrame ~28.4ms with a
+~1ms NOISE FLOOR (a comment-only build moved it 0.9ms), so sills cost
+~1.5ms and single-run diffs under 1ms mean nothing. `places` went red
+once and recovered untouched (3/289 flaky).
 Revert `runs-on` if he bows out.
 **BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT** (Jafar, 22 Aug:
 "a full ultracode audit before playtesting is a good idea. rememver
@@ -136,6 +129,28 @@ build. Pre-approved; token-heavy by design.
    **LANDED, accounts in `roadmap-history.md`:** V0+V1 whole; build D's
    kit furniture, yellows, chimney pots, aerials, reactions; **V1.5
    LINEAR CLOSED**. Open from those passes: sky dome (V6).
+
+   **FOUR SKY HDRIs ARE FETCHED AND WIRED TO NOTHING** (24 Aug).
+   `ledger/Assets/Sky/polyhaven/` holds 23MB of 2k captures — belfast
+   open field, kloppenheim, misty farm road, industrial sunset — banked
+   and attributed by `fetch_visual.py` on 23 Aug, and `grep` finds ZERO
+   references from the Game layer. Built and not running (rule 6), on
+   the one element in every outdoor frame.
+   **NOT a wiring job, and that is why it is written down instead of
+   done at speed.** Two obstacles, both real:
+   (a) `Resources.Load` cannot reach `Assets/Sky`, and StreamingAssets
+   cannot help because `LoadImage` reads PNG/JPG, not .hdr — so they
+   must MOVE under `Assets/Resources`, which also moves the directory
+   `attribution-check.py` maps to Poly Haven.
+   (b) The procedural dome is CONTINUOUS: `LightModel` drives it per
+   frame through dusk warmth, night sodium and a per-day cloud deck the
+   ambient now reads from. Four fixed captures cannot do that, so a
+   straight swap trades a continuous day for photographic detail and
+   POPS between four states. The honest shapes are: HDRI as the
+   reflection/environment source only (leaving the visible dome alone),
+   or a blend of two captures across the hour with the dome's own
+   colours still driving the tint. Pick one deliberately, on a still,
+   before touching the asset paths.
 
    **LINEAR MPB CLASS-FAULT UNDER TEST:** MPB colours skip
    gamma-to-linear, so display-authored MPB tints weakened at the flip.
@@ -164,40 +179,11 @@ build. Pre-approved; token-heavy by design.
    **midFrac column landed f4a1243: day1_noon reads 0.49** — the series
    the mid-distance bound will come from.
 
-1. **THE RAIN'S HEIGHT-COVERAGE SCALING IS BUILT AND THE WET FRAME IS
-   PLANTED.** The emitter box and rate already grow with camera height
-   (the Hook swarm-patch fix, in Weather since the last batch) — what
-   was left was a frame to judge it by, and "wait for a wet run" could
-   never end: the daily roll is seeded off the day number, so review
-   days 1-2 are dry on every run there will ever be. Planted instead
-   (rule 5b's corollary): the sim forces a downpour at day 2 hour 21,
-   takes `day2_wet` at 22 street-level after dark — sodium lamps on wet
-   asphalt, the look this game is about — and snaps the seed's dry
-   state back before the 23:00 night gates. Read the frame when it
-   lands; it also answers the "black scratches at eye level" item.
-   **Correction from V's own stills:** day 1 IS wet this run (streaks
-   in the dusk and night frames), so "the seed pins both review days
-   dry" was overstated — day 2 is the dry one, and the plant's value
-   is the guarantee at street level, not an impossibility ended.
-
-   **THE CAPSULES STAY FIXED** (zero on P, Q, R and S — closed). **THE
-   FLOATING BRICK SLAB IS SOLVED (build V):** the widest-four catcher
-   names the family — one building's cornice, fascia and two 23m
-   window bands, all aloft BY DESIGN — and the day1 noon frame shows
-   the real fault: window bands wear the pack's window texture, which
-   is a whole FACADE photograph (brick piers and a six-by-six sash
-   grid), so a band at close range reads as a floating brick wall.
-   **THE WINDOW ARC IS CLOSED (AA, 22 Aug) and the real killer was
-   the KEYWORD SET**: dropping the pack normal/gloss changed the
-   window material's shader keywords to a combination the built
-   player has no variant for, and Unity silently fell back to a
-   no-emission variant — the mask, the white, and the bind-revert
-   were all surgery on a shader that was not running (the emission
-   case's four theories and their falsifications are in the commit
-   log; the lesson: A RUNTIME MATERIAL'S KEYWORD SET MUST MATCH A
-   VARIANT THE BUILD CONTAINS). AA landed: night 0.142, glow
-   restored, 122 interiors visible. Watch, do not chase: worst glow
-   blob is one close-range window.
+1. **RAIN: height-coverage scaling built, wet frame PLANTED** (the
+   daily roll is seeded off the day number, so review days 1-2 are dry
+   on every run there will ever be — the sim forces a downpour at day 2
+   hour 21 and takes `day2_wet` at 22, street-level, sodium on wet
+   asphalt). Landed and judged; account in `roadmap-history.md`.
 
 1. **RAIN AT EYE LEVEL: wet frames land every run** — the magenta
    half is REFUTED; landed wet frames read as streaks in lamp cones.
