@@ -143,50 +143,51 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **FIVE GATES ARE FAILING 15-38% OF RECENT RUNS AND `claims` IS GETTING
-   WORSE.** *(instrument first, then the gates.)* `--flaky` ranked by a
-   LIFETIME rate with only "how long ago" for recency, so `dayJob` printed
-   `27.0% ... last 3 runs ago` — chronic and live — with no way to ask what
-   it is doing NOW. It prints a recent window beside the lifetime one now and
-   ranks by it, the same shape `--series` has had all along, and flags drift
-   in BOTH directions because a gate getting worse is the urgent case:
+1. **FIVE GATES FAIL 15-38% OF RECENT RUNS AND `claims` IS WORSENING.**
+   `--flaky` ranked by a LIFETIME rate with only "how long ago" for recency,
+   so `dayJob` read `27.0% ... last 3 runs ago` with no way to ask what it
+   does NOW. It prints a recent window beside the lifetime one now, ranks by
+   it, and flags drift BOTH ways:
    | gate | lifetime | recent 40 |
    |---|---|---|
    | frame | 47.2% | 37.5% |
    | jobRan | 23.8% | **25.0%** |
    | dayJob | 27.0% | 22.5% |
    | dressing | 22.5% | 22.5% |
-   | claims | 7.5% | **15.0% — WORSENING** |
-   **`claims` doubling is the finding the lifetime view hid**, and it failed
-   on the newest run. **`dayJob` and `jobRan` are NOT one fault seen twice** —
-   checked: they overlap in 2 of 4 recent reds and each also fails alone, and
-   today's red is `dayJob` WITHOUT `jobRan`, so the courier ran and the
-   assertion still failed. Narrower than "the job never went out".
-   **Plant the conditions, do not loosen the bounds** — five gates at this
-   rate is what teaches everybody to read red as noise, and this session has
-   twice been within one step of doing exactly that.
-   *(I first measured the recent window with `ls -t` and got 8% for
-   everything, which was wrong: `git pull` rewrites every run file, so mtime
-   order is the pull order and means nothing. `ordered_runs()` sorts by
-   commit. A wrong ordering made five broken gates look fixed.)*
+   | claims | 7.5% | **15.0% WORSENING** |
+   **`claims` doubling is what the lifetime view hid**, and it failed on the
+   newest run. **`dayJob` and `jobRan` are not one fault twice** — they
+   overlap in 2 of 4 reds, each fails alone, and today's red is `dayJob`
+   WITHOUT `jobRan`: the courier ran and the assertion still failed.
+   **Plant the conditions, do not loosen the bounds.**
+   *(My first recent-window measure used `ls -t` and read ~8% for
+   everything: `git pull` rewrites every run file, so mtime is pull order.
+   `ordered_runs()` sorts by commit. A wrong ordering made five broken gates
+   look fixed.)*
 
-1. **THE SHADOW LEVER IS REAL, AND THE BROKEN DENOMINATOR WAS A Y-FLIP.**
-   `FindShadowPair` sweeps for a wall facing the sun WITH geometry between it
-   and the sun, plus an unblocked one for the denominator, both in one sweep.
-   It found a proper pair (`mat_brick_grey_b`, `nSun:0.62`, 10.6m) and
-   **`shadowSeries` moves monotonically 0.043 / 0.071 / 0.098 / 0.122 / 0.145
-   as strength walks 0.93 -> 0.55 — a 3.4x lift.** The three earlier nulls
-   were all one bad fixture (`nSun:0.00`, a wall the sun never reaches).
-   **The lit box read 0.000-0.004 on the SAME wall — impossible, and the
-   impossibility was the clue.** `GetPixels32` lays rows out BOTTOM-up and
-   viewport y is bottom-up too, so `BoxMedian`'s `(1 - vp.y)` sampled the
-   MIRRORED point: high in the frame lands low in the buffer, sky becomes
-   road, and a bright wall reports black. The third-medians beside it cannot
-   catch this — they sample a band symmetric about the middle, so mirroring
-   changes nothing — and this is the first sampler that reads a POINT.
-   Fixed, with the `LIT_DARKER_THAN_SHADE` guard kept for the next
-   regression. **Set `shadowStrength` from the next landing's full series,
-   ratio included.**
+1. **THE SHADOW RATIO IS 0.06 AND THE MISSING QUANTITY IS INDIRECT LIGHT.**
+   With the y-flip fixed the denominator finally behaves — **lit is constant
+   at 0.129 across every rung**, exactly as physics demands of a lever that
+   only touches shadows — and the honest numbers are much smaller than the
+   broken ones: shade **0.008 -> 0.016** as strength walks 0.93 -> 0.55, so
+   the ratio moves **0.062 -> 0.124** against a 0.5 target. *(My "3.4x lift,
+   0.043 -> 0.145" was measured through the y-flip and is withdrawn.)*
+   **THE CAUSE IS ARCHITECTURAL, and checked rather than guessed: this scene
+   has NO indirect light of any kind** — no lightmaps (the world is built at
+   runtime, so they are impossible), no realtime GI, no light probes; the
+   only `lightProbeUsage` in the Game layer sets it OFF. So a cast shadow
+   receives AMBIENT ALONE: `lit = sun*N + ambient`, `shade = ambient`.
+   **Which makes the target reachable after all, and by the lever I wrongly
+   rejected.** A ratio of 0.5 requires ambient to EQUAL the sun's
+   contribution — that is not exotic, it is the definition of OVERCAST, and
+   Meridian is an overcast British port. Lowering the KEY raises the ratio by
+   lowering `lit` while `shade` does not move at all. `sunSeries` looked
+   useless only because it ran on the thirds, where the left third was a
+   `nSun:0.00` wall whose shade could never respond to the sun.
+   **Both series run on the same found pair now** (one sweep, one moment) and
+   `sunSeries` is stamped `pair/` or `thirds/` so the two can never be
+   confused. **Read the pair series next: expect shade flat and lit falling —
+   that is the ratio rising, and it is what overcast means.**
 
 1. **`farFrac` CARRIES THE SIGNAL THE OTHER TWO BANDS MISS — SERIES LANDED.**
    *(rule 12; step-back and depth series in `roadmap-history.md`.)* First

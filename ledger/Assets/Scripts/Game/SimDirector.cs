@@ -8686,16 +8686,47 @@ namespace Ledger.Game
                 // CAPTURED value, not an assumed one.
                 if (sunL != null)
                 {
+                    // THE PAIR IS FOUND ONCE AND BOTH SERIES USE IT. It was
+                    // found further down for the shadow series alone, which
+                    // meant the sun series was still reading thirds — the
+                    // very fixture that made it look useless. One sweep, one
+                    // pair, one moment, both levers judged on it.
+                    bool onPair = FindShadowPair(cam, out var shVp, out var liVp,
+                                                 out var shOn, out var liOn);
                     float keepSun = sunL.intensity;
+                    // ON THE PAIR WHEN THERE IS ONE, and this is the lever
+                    // I rejected on a fixture that could not test it.
+                    //
+                    // `sunSeries` used to read the left and right THIRDS, and
+                    // the left third kept landing on `nSun:0.00` — a wall the
+                    // sun never reaches. Its shade was frozen across every
+                    // rung, so dimming the key looked like it bought nothing
+                    // but a collapsed lit side, and it was written off.
+                    //
+                    // THE ARITHMETIC SAYS IT IS THE LEVER. With no GI of any
+                    // kind in this scene — no lightmaps, no realtime GI, no
+                    // probes; checked, the only `lightProbeUsage` in the Game
+                    // layer sets it OFF — a cast shadow receives AMBIENT
+                    // ALONE. So `lit = sun*N + ambient` and `shade = ambient`,
+                    // and a ratio of 0.5 requires ambient to EQUAL the sun's
+                    // contribution. That is not an exotic condition: it is the
+                    // definition of OVERCAST, and Meridian is an overcast
+                    // British port. Lowering the key raises the ratio by
+                    // lowering `lit` while `shade` does not move — which is
+                    // the correct physical behaviour, not a lost denominator.
                     foreach (float k in SunRungs)
                     {
                         sunL.intensity = keepSun * k;
                         var fs2 = FrameShot(cam);
-                        double sh2 = LeftThirdMedian(fs2), lit2 = RightThirdMedian(fs2);
+                        double sh2 = onPair ? BoxMedian(fs2, shVp, 0.03f) : LeftThirdMedian(fs2);
+                        double lit2 = onPair ? BoxMedian(fs2, liVp, 0.03f) : RightThirdMedian(fs2);
                         if (sunSeries.Length > 0) sunSeries.Append('/');
                         sunSeries.Append($"x{k:0.00}:{sh2:0.000}|{lit2:0.000}");
                     }
                     sunL.intensity = keepSun;
+                    // Say which fixture it ran on, so a reading from the pair
+                    // is never compared with one from the thirds.
+                    sunSeries.Insert(0, onPair ? "pair/" : "thirds/");
 
                     // THE THIRD LEVER, AND THE LADDER HAD ALREADY NAMED IT.
                     // `shadowOff:0.310` against `all:0.102` says the cast
@@ -8726,8 +8757,7 @@ namespace Ledger.Game
                     // denominator — both from one sweep, so the pair shares a
                     // frame and a moment.
                     float keepStr = sunL.shadowStrength;
-                    if (FindShadowPair(cam, out var shVp, out var liVp,
-                                       out var shOn, out var liOn))
+                    if (onPair)
                     {
                         // WHERE the two points are, not just what they are.
                         // First landing found a geometrically perfect pair —
