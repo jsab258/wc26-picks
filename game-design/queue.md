@@ -294,27 +294,21 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    10 pairs overlapping. `PinAll` runs at shot time and three still overlap:
    read `namesPinnedSum` (106) against `shotFixups` (27) before tuning;
    `bubblesLiftedSum=1` says the de-overlap moved a bubble once in a run.
-   The bubble median mixed two samplers (71 tick vs 26 shot readings) and is
-   split now. **I read a 0.33 -> 0.00 move as the fix working** when what
-   moved was the street. **Also:** `review_day2_wet` renders "Ellis" half
-   off the bottom-right edge — a CLIPPED nameplate is a different fault from
-   two overlapping, and nothing measures it.
-
-1. **THE NAMEPLATE HEAP IS MEASURED AND THE INSTRUMENTS AGREE WITH THE
-   PICTURE.** *(on screen)* `collidingNames=3` over 26 samples: five labels
-   at the peak, 3 of their 10 pairs overlapping — a heap, as the frame
-   shows, and the "counter says 0, picture says heap" argument is over
-   (account in `roadmap-history.md`). **Open is the DECLUTTER**: `PinAll`
-   runs at shot time and three pairs still overlap. Read `namesPinnedSum`
-   against `shotFixups` next build before anyone tunes it.
-
-1. ~~**THE VERDICT HAS AMBIGUOUS KEYS**~~ — **GATED AT SOURCE.** The old
-   plan was "gate once a verdict lands clean"; it went 30 -> 34 -> 35
-   instead. `tools/verdict-emit-dupkeys.py` reads the SOURCE and hard-fails
-   in `verify.py`. It exists because wiring `DoorSwing` added a second
-   `doors=` 300 lines from `WorldBuilder.Doors`; the landed verdict read 35,
-   confirming the harm, and **16 after the fix**. Open: the remainder are
-   DATA collisions (`key=` inside bracketed values), a different fix.
+   The bubble median mixed two samplers (71 tick vs 26 shot) and is split
+   now — **I read a 0.33 -> 0.00 move as the fix working** when what moved
+   was the street.
+   **AND THE FRAME EDGE IS A COLLIDER TOO, which this vocabulary did not
+   have.** `review_day2_wet` renders "Ellis" cut in half by the bottom-right
+   corner — found by opening the still, which is where five of this
+   project's faults have come from and none from a gate.
+   `namesClipped=n/tested` with `namesClipWorst` (overhang as a fraction of
+   the label's OWN width, because "12 pixels off" means nothing without
+   knowing whether the label is 20 or 200 wide) lands next build.
+   **MEASURED, NOT FIXED, deliberately:** sliding a label inward detaches a
+   nameplate from the person it names, which is a worse lie than a clipped
+   one; hiding it is the other repair, and a name you cannot read may not be
+   serving anybody. Which is right depends on how OFTEN and by how much, and
+   neither number existed. Rule 2 — print the series, then choose.
 
 1. **AND THE SAME COUNTER IMMEDIATELY FOUND A BIGGER ONE: FIVE OF SEVEN
    DISTRICTS HAD NO SHOPS AT ALL.** `the_Hook:shop73 Copper_Row:shop4` and

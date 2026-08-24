@@ -620,6 +620,15 @@ namespace Ledger.Game
         /// rather than trusted: `NamePinFloor` is the smallest scale ever
         /// applied, and a floor that keeps falling is this assumption breaking.
         public const float PinFrac = 0.12f;
+        /// How many labels ran off the frame edge, out of how many were
+        /// looked at, and the worst overhang as a fraction of the label's own
+        /// width. The denominator is the point: zero clipped with zero tested
+        /// is the re-pin not running, and reads nothing like a tidy frame
+        /// (rule 3b). `NamesClipWorst` is a MAXIMUM and says so — "is any
+        /// label falling off" is not a median question.
+        public static int NamesClipped, NamesEdgeTested;
+        public static float NamesClipWorst;
+
         public static int NamesPinned { get; private set; }
         public static float NamePinFloor { get; private set; } = 1f;
 
@@ -704,6 +713,40 @@ namespace Ledger.Game
                 if (r == null || !ScreenRect(cam, r.bounds, out var rect)) continue;
                 Pin(label, rect.height / Mathf.Max(1f, cam.pixelHeight));
                 pinned++;
+
+                // A LABEL HALF OFF THE FRAME IS A DIFFERENT FAULT FROM TWO
+                // OVERLAPPING, AND NOTHING MEASURED IT. `review_day2_wet`
+                // renders "Ellis" cut in half by the bottom-right corner —
+                // found by opening the still, which is where five of this
+                // project's faults have come from and none from a gate.
+                // The declutter's whole vocabulary is about labels colliding
+                // with EACH OTHER; the frame edge is a collider too and it
+                // was not in the vocabulary.
+                //
+                // MEASURED, NOT FIXED, and that is deliberate. The obvious
+                // repair — slide it inward — detaches a nameplate from the
+                // person it names, which is a worse lie than a clipped one;
+                // the other repair is to hide it, and a name you cannot read
+                // is arguably not serving anybody. Which is right depends on
+                // how OFTEN this happens and by how much, and neither number
+                // exists yet. Rule 2: print the series, then choose.
+                //
+                // Overhang as a FRACTION of the label's own width, because
+                // "12 pixels off" means nothing without knowing whether the
+                // label is 20 pixels wide or 200.
+                float over = Mathf.Max(
+                    Mathf.Max(0f, -rect.xMin),
+                    Mathf.Max(0f, rect.xMax - cam.pixelWidth));
+                over = Mathf.Max(over, Mathf.Max(
+                    Mathf.Max(0f, -rect.yMin),
+                    Mathf.Max(0f, rect.yMax - cam.pixelHeight)));
+                NamesEdgeTested++;
+                if (over > 0.5f)
+                {
+                    NamesClipped++;
+                    float frac = over / Mathf.Max(1f, rect.width);
+                    if (frac > NamesClipWorst) NamesClipWorst = frac;
+                }
             }
             return pinned;
         }

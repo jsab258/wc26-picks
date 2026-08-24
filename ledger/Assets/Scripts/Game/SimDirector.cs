@@ -14313,6 +14313,16 @@ namespace Ledger.Game
                       // were — a white bin wants the skyline tint, a
                       // textureless one wants a texture.
                       $"kitAlbedoUnread={AssetLibrary.PropAlbedoUnread} " +
+                      // LABELS RUNNING OFF THE FRAME EDGE. `review_day2_wet`
+                      // renders "Ellis" cut in half by the bottom-right
+                      // corner, and the declutter's whole vocabulary is about
+                      // labels colliding with EACH OTHER — the frame edge is
+                      // a collider too and was not in it. Clipped/tested with
+                      // the worst overhang as a fraction of the label's own
+                      // width, because "12 pixels off" means nothing without
+                      // knowing whether the label is 20 or 200 wide.
+                      $"namesClipped={NameTags.NamesClipped}/{NameTags.NamesEdgeTested} " +
+                      $"namesClipWorst={NameTags.NamesClipWorst:0.00} " +
                       $"kitAlbedoNoTex={AssetLibrary.PropAlbedoNoTex} " +
                       // BODIES BUILT, NOT VEHICLES PRESENT, and the old name
                       // said the wrong one. It read `vehiclesKitted=26/33` on
