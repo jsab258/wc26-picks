@@ -207,21 +207,17 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    is on screen.
 
 1. **THE INQUIRY RUNS NOW; TWO THINGS GATED ON IT STILL DO NOT.** *(moat:
-   information. Not started — stage 1 has startable work; recorded so the
-   stage does not open by re-deriving it.)* CLAUDE.md says the detective
-   "has never once opened an investigation into the player in the entire
-   recorded history of this project", and that is **stale**: read 24 Aug,
-   `inquiry=Manhunt` — it escalates to the loudest state the game has.
-   Corrected in place, because the next session would otherwise be sent at
-   work that is already running.
-   **What is still zero is narrower and more interesting:**
-   `summonsTaken=0` and `redirectRelief=0.00` while the inquiry reaches
-   Manhunt. So the documented phone-line cause for `summonsTaken` (a
-   `Public` flag saved, restored and read by nothing) stands, and the
-   inquiry cause does not — the two had been read as one thing.
-   *(`findingKinds=none` is NOT part of this. It belongs to `SceneAudit`,
-   where `clean=True findings=0` is a fault counter doing its job — checked
-   after guessing otherwise.)*
+   information. Not started — stage 1 has startable work.)* CLAUDE.md said
+   the detective "has never once opened an investigation in the entire
+   recorded history of this project"; read 24 Aug, **`inquiry=Manhunt`**.
+   Corrected in place, because that sentence would send the next session at
+   work already running. **Still zero and now better specified:**
+   `summonsTaken=0` and `redirectRelief=0.00` WHILE the inquiry reaches
+   Manhunt — so the documented phone-line cause for `summonsTaken` stands
+   and the inquiry cause does not; the two had been read as one.
+   *(`findingKinds=none` is NOT part of this — it is `SceneAudit`'s, where
+   `clean=True findings=0` is a fault counter working. Checked after
+   guessing otherwise.)*
 
 1. **STAGE 2 (SPEECH): THE RUNTIME WAS NEVER THE PROBLEM — IT IS THE MODEL.**
    *(not started; stage 1 has startable work. The rule-12 half is DONE.)*
@@ -255,34 +251,26 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    **Fixed on the way:** `SkylineRepainted` incremented the moment the kit
    existed, BEFORE the paint was attempted. It counts acceptances now.
 
-1. **THE PAVING BLOWOUT: DIAGNOSED BY ITS PROBE AND FIXED, BOTH DIRECTIONS
-   FIRING.** `districtGround` came back `mat_asphalt ... glossScale:4.00` —
-   pinned at its clamp, which is the code giving up rather than a scale. The
-   wet target wants a near-mirror from a rough-asphalt map whose mean is a
-   quarter of it, so x4 multiplies the map's **variance**, not its level: a
-   p10-p90 luma spread of 0.654 against 0.141 for the road beside it. A wet
-   surface's smoothness is the WATER, so past that point the uniform scalar
-   is the right instrument and the map is not. **`glossDropped=5
-   glossRestored=5` on the landing — it drops and restores in equal measure,
-   so it is not the ratchet a one-way switch would have been.** Judge the
-   strip on the frame next.
+1. ~~**THE PAVING BLOWOUT**~~ — **DIAGNOSED BY ITS PROBE AND FIXED.**
+   `districtGround` returned `mat_asphalt ... glossScale:4.00`, pinned at
+   the clamp — the code giving up, not a scale. A near-mirror target from a
+   rough map whose mean is a quarter of it multiplies the map's VARIANCE by
+   four (spread 0.654 against 0.141 for the road beside it). A wet surface's
+   smoothness is the WATER, so past that point the uniform scalar is right.
+   **`glossDropped=5 glossRestored=5`** — both directions, not a ratchet.
 
-1. **EIGHTY-NINE FETCHED MODELS ON DISK, SIX REFERENCED — 25 OF THE UNUSED
-   ARE INDUSTRIAL BUILDINGS FOR A PORT TOWN.** *(rule 6 aimed at art; the
-   standing order is the best AVAILABLE result.)* Counted: industrial 25,
-   roads 47, suburban 13, commercial 10 = **95 on disk, six referenced** —
-   two awnings, `city_kit_roads_light_curved` for every lamp post in town,
-   and three `low-detail-building-*` for the skyline. Unused is exactly the
-   density the bar is about: construction barriers, cones and lights; four
-   more lamp variants beside the single curved one the town wears; 47 road
-   pieces; 25 industrial buildings for a town whose identity is its docks.
-   Nothing to fetch, nothing to buy. **Next step is a READ, not a build:**
-   put a handful through `TryInstantiateProp` and read `kitAlbedo` first,
-   because the twelve `base_mesh_*` families at 1.00 are standing proof that
-   a fetched model is not automatically a usable one.
-   *(I first reported these as ENTIRELY unused, which was wrong: the code
-   addresses props by underscored key, so a hyphenated grep found nothing
-   and I concluded from its absence. One spelling searched is not a search.)*
+1. **EIGHTY-NINE FETCHED MODELS ON DISK, SIX REFERENCED — 25 OF THEM
+   INDUSTRIAL BUILDINGS FOR A PORT TOWN.** Counted: industrial 25, roads 47,
+   suburban 13, commercial 10 = **95 on disk, six referenced** (two awnings,
+   `city_kit_roads_light_curved` for every lamp in town, three skyline
+   buildings). Unused is the density the bar is about: barriers, cones,
+   four more lamp variants, 47 road pieces, 25 industrial buildings for a
+   town whose identity is its docks. Nothing to fetch or buy. **Next step
+   is a READ:** put a handful through `TryInstantiateProp` and check
+   `kitAlbedo`/`kitAlbedoNoTex` first — 30 materials already carry no albedo
+   map, so a fetched model is not automatically a usable one.
+   *(I first said ENTIRELY unused, wrongly: the code uses underscored keys,
+   so a hyphenated grep found nothing and I read the absence as an answer.)*
 
 1. **TWELVE PROP FAMILIES AT ALBEDO 1.00 ARE UNTEXTURED — `kitAlbedoNoTex=30`
    SAYS SO.** `kitAlbedo` had them at exactly 1.00 against
@@ -295,17 +283,34 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    hunt**, and it is the same shape as the skyline: a kit prop arrives in
    its author's colour and this town has to repaint it.
 
-1. **THE REPAINTS ALL APPLY AND CANNOT DO THE JOB — THE GREY SWAP IS IN AND
-   RAN.** My glTFast theory was REFUTED by its own probe (`kitPaint=1997/0`,
-   refused by `[none]`), and the atlases themselves named the real cause: a
-   multiply by `SkylineHaze` moves top-decile saturation **0.820 -> 0.788**
-   (`car-kit`) and **0.733 -> 0.686** (`city-kit-commercial`) — four to six
-   per cent, because a multiply preserves channel ratios. **`kitGrey=2/0/1974`
-   on the landing: both atlases greyed, none failed, 1974 renderers moved
-   onto greyed variants.** Luma-weighted so the modelling and slate stripe
-   survive; a cached VARIANT so props we deliberately never repaint are
-   untouched. **Judge on the frame:** re-measure the saloon's saturation
-   against the 0.385 the rest of `review_street` sits under.
+1. ~~**THE REPAINTS CANNOT DESATURATE**~~ — **GREY SWAP IN AND RAN.**
+   `kitPaint=1997/0` refuted the glTFast theory; the atlases named the real
+   cause (a multiply moves top-decile saturation only 0.820 -> 0.788,
+   because it preserves channel ratios). **`kitGrey=2/0/1974`** on the
+   landing and the mint saloon is gone from `review_street`. The green
+   bicycle that remains is `oga-vehicles`, which goes through no paint site
+   — the variant design working, not a miss. **Judge the saloon's
+   saturation against the 0.385 the rest of that frame sits under.**
+
+1. **THE ARM METRIC CANNOT TELL A WALK FROM A SCARECROW.** *(on screen,
+   `review_day2_close`: a figure with both arms out to the SIDES.)* The
+   numbers acquit the rig and cannot answer the picture. `restArmDrop=8.0`
+   — the bought body's rest pose has arms at its sides, so there is no
+   T-pose; `preArmDrop=103.4` is the pre-solve posture the metric exists to
+   show; `armWidest=55.1` is the widest ANY body stands, well short of a
+   T-pose's 90; `armStreet=36.6` median with `armStreetWorst=52.5`.
+   **The gap: every one of these is the angle between the upper arm and
+   STRAIGHT DOWN, so a natural fore/aft swing and an unnatural lateral
+   splay produce the same number.** A walking arm swinging forward 40-50deg
+   is correct and reads identically to an arm held 50deg out sideways,
+   which is not. The frame shows lateral; 55.1 cannot say.
+   **Next step is the LATERAL component** — the same angle projected onto
+   the body's right axis — beside the existing total. Do not touch the rig
+   until that lands: `restArmDrop=8.0` says the rest pose is right, so
+   whatever this is, it is the animation or the solve and not the bind.
+   *(And read `armWidest`, not `armStreet`, for this question — the file's
+   own comment says the medians closed the scarecrow question at 10.6 on
+   4 Aug and the night frame two builds later had three T-poses in it.)*
 
 1. **THE DECLUTTER: NAMEPLATES AND BUBBLES, MEASURED, OPEN.** *(on screen)*
    `collidingNames=3` over 26 samples — five labels at the peak, 3 of their
