@@ -566,6 +566,18 @@ never executed: the paper naming you, the redirect having anything to relieve.
 `summonsTaken=0` was another, and its cause was a `Public` flag set on three
 phone lines, saved, restored, and read by nothing at all.
 
+**AND THE INQUIRY HALF OF THAT IS NOW STALE, which is the paragraph proving
+its own point. Read 24 Aug: `inquiry=Manhunt`.** The detective opens
+investigations and escalates them to the loudest state the game has, so
+"everything gated on that stage has never executed" would send the next
+session at work that is already running. What is STILL zero is narrower and
+more interesting: `summonsTaken=0` and `redirectRelief=0.00` sit at zero
+while the inquiry reaches Manhunt — so the phone-line cause above stands and
+the inquiry cause does not, and the two were being read as one thing.
+(`findingKinds=none` is NOT part of this: it belongs to `SceneAudit`, where
+`clean=True findings=0` is a fault counter doing its job. Checked, after
+guessing otherwise.)
+
 Most of what it prints is healthy — `errors=0` and `idLeaks=0` are fault
 counters doing their job — and the tool cannot tell those from a branch nobody
 has entered. **That judgement needs to know what the number is FOR, which is a

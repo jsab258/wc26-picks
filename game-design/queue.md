@@ -198,6 +198,23 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    STILL holding one, so the next step is a measurement that fires WHILE one
    is on screen.
 
+1. **THE INQUIRY RUNS NOW; TWO THINGS GATED ON IT STILL DO NOT.** *(moat:
+   information. Not started — stage 1 has startable work; recorded so the
+   stage does not open by re-deriving it.)* CLAUDE.md says the detective
+   "has never once opened an investigation into the player in the entire
+   recorded history of this project", and that is **stale**: read 24 Aug,
+   `inquiry=Manhunt` — it escalates to the loudest state the game has.
+   Corrected in place, because the next session would otherwise be sent at
+   work that is already running.
+   **What is still zero is narrower and more interesting:**
+   `summonsTaken=0` and `redirectRelief=0.00` while the inquiry reaches
+   Manhunt. So the documented phone-line cause for `summonsTaken` (a
+   `Public` flag saved, restored and read by nothing) stands, and the
+   inquiry cause does not — the two had been read as one thing.
+   *(`findingKinds=none` is NOT part of this. It belongs to `SceneAudit`,
+   where `clean=True findings=0` is a fault counter doing its job — checked
+   after guessing otherwise.)*
+
 1. **STAGE 2 (SPEECH): THE LIVE ROUTE HAS NEVER ONCE RUN, IN 301 BUILDS —
    AND THE REASON IS NOW A VERDICT LINE.** *(the stage itself is not
    started; stage 1 has startable work. This part is rule 12, which
@@ -252,26 +269,22 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    `glossDropped`/`glossRestored` — one count cannot tell "wet" from "never
    dried again".
 
-1. **EIGHTY-NINE FETCHED MODELS ARE ON DISK AND UNUSED, AND 25 OF THEM ARE
-   INDUSTRIAL BUILDINGS FOR A PORT TOWN.** *(rule 6 aimed at art, and the
-   standing order: best AVAILABLE result, not the first working one.)*
-   Counted 24 Aug: `city-kit-industrial` 25 models, `city-kit-roads` 47,
-   `city-kit-suburban` 13, `city-kit-commercial` 10 — **95 on disk, six
-   referenced**: two awnings, `city_kit_roads_light_curved` for the lamp
-   posts, and three `low-detail-building-*` for the skyline.
-   **What is sitting unused is exactly the density the GTA-V bar is about:**
-   construction barriers, cones and lights; `light-square`,
-   `light-*-double`, `light-*-cross` lamp variants beside the one curved
-   lamp the whole town wears; 47 road pieces; and 25 industrial buildings
-   for a town whose identity is its docks. Nothing to fetch, nothing to buy.
-   **Next step is a read, not a build:** open a handful in the sim's own
-   pipeline (`TryInstantiateProp` + `kitAlbedo`) and see whether they arrive
-   at a usable albedo, because the twelve `base_mesh_*` families at 1.00
-   above say a fetched model is not automatically a usable one.
-   *(And I first reported these as ENTIRELY unused, which was wrong: the
-   code uses underscored keys — `city_kit_roads_light_curved` — so a
-   hyphenated grep found nothing and I concluded from its absence. Rule 1:
-   one spelling searched is not a search.)*
+1. **EIGHTY-NINE FETCHED MODELS ON DISK, SIX REFERENCED — 25 OF THE UNUSED
+   ARE INDUSTRIAL BUILDINGS FOR A PORT TOWN.** *(rule 6 aimed at art; the
+   standing order is the best AVAILABLE result.)* Counted: industrial 25,
+   roads 47, suburban 13, commercial 10 = **95 on disk, six referenced** —
+   two awnings, `city_kit_roads_light_curved` for every lamp post in town,
+   and three `low-detail-building-*` for the skyline. Unused is exactly the
+   density the bar is about: construction barriers, cones and lights; four
+   more lamp variants beside the single curved one the town wears; 47 road
+   pieces; 25 industrial buildings for a town whose identity is its docks.
+   Nothing to fetch, nothing to buy. **Next step is a READ, not a build:**
+   put a handful through `TryInstantiateProp` and read `kitAlbedo` first,
+   because the twelve `base_mesh_*` families at 1.00 are standing proof that
+   a fetched model is not automatically a usable one.
+   *(I first reported these as ENTIRELY unused, which was wrong: the code
+   addresses props by underscored key, so a hyphenated grep found nothing
+   and I concluded from its absence. One spelling searched is not a search.)*
 
 1. **TWELVE PROP FAMILIES SIT AT ALBEDO 1.00 AGAINST A TOWN AT 0.15.** The
    `kitAlbedo` measurement landed and nobody had read it: swing bin, oil
@@ -303,23 +316,15 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 1. **THE DECLUTTER: NAMEPLATES AND BUBBLES, MEASURED, OPEN.** *(on screen)*
    `collidingNames=3` over 26 samples — five labels at the peak, 3 of their
    10 pairs overlapping. `PinAll` runs at shot time and three still overlap:
-   read `namesPinnedSum` (106) against `shotFixups` (27) before tuning;
-   `bubblesLiftedSum=1` says the de-overlap moved a bubble once in a run.
-   The bubble median mixed two samplers (71 tick vs 26 shot) and is split
-   now — **I read a 0.33 -> 0.00 move as the fix working** when what moved
-   was the street.
-   **AND THE FRAME EDGE IS A COLLIDER TOO, which this vocabulary did not
-   have.** `review_day2_wet` renders "Ellis" cut in half by the bottom-right
-   corner — found by opening the still, which is where five of this
-   project's faults have come from and none from a gate.
-   `namesClipped=n/tested` with `namesClipWorst` (overhang as a fraction of
-   the label's OWN width, because "12 pixels off" means nothing without
-   knowing whether the label is 20 or 200 wide) lands next build.
-   **MEASURED, NOT FIXED, deliberately:** sliding a label inward detaches a
-   nameplate from the person it names, which is a worse lie than a clipped
-   one; hiding it is the other repair, and a name you cannot read may not be
-   serving anybody. Which is right depends on how OFTEN and by how much, and
-   neither number existed. Rule 2 — print the series, then choose.
+   read `namesPinnedSum` (106) against `shotFixups` (27) before tuning.
+   **AND THE FRAME EDGE IS A COLLIDER TOO, which this vocabulary lacked** —
+   `review_day2_wet` renders "Ellis" cut in half by the bottom-right corner,
+   found by opening the still. `namesClipped=n/tested` and `namesClipWorst`
+   (overhang as a fraction of the label's OWN width) land next build.
+   **Measured, NOT fixed, deliberately:** sliding a label inward detaches a
+   nameplate from the person it names — a worse lie than a clipped one — and
+   hiding it is the other repair. Which is right depends on how often and by
+   how much, and neither number existed. Rule 2.
 
 1. **FIVE OF SEVEN DISTRICTS HAD NO SHOPS AT ALL.** `the_Hook:shop73
    Copper_Row:shop4` and **zero everywhere else** — the Exchange is the
