@@ -46,6 +46,18 @@
           }
         ]
       }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "AGENT_LOG=.claude/agent-log.tsv bash .claude/hooks/log-agent.sh",
+            "timeout": 15
+          }
+        ]
+      }
     ]
   }
 }

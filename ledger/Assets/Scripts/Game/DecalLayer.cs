@@ -23,29 +23,131 @@ namespace Ledger.Game
     public static class DecalLayer
     {
         public static int RoadDecals, WallDecals;
+        /// A COUNT over every road decal placed this run — not a peak, not a
+        /// last-wins. Its denominator is `RoadDecals` printed beside it on the
+        /// done line, and its whole job is to make ONE regression loud: see
+        /// `RoadTopY` below for the incident. Reads 0 when the layer is right.
+        public static int BuriedRoadDecals;
         public static string Why = "not tried";
+
+        /// The road slab's TOP SURFACE. WorldBuilder.cs:464-465 centres the
+        /// slab at y=0.02 with height 0.04, so the tarmac a player sees is
+        /// this plane. NOT a free number and NOT a guess — read it out of
+        /// WorldBuilder before changing it, and if the slab ever moves,
+        /// `decalsBuried` on the done line is what says so.
+        const float RoadTopY = 0.04f;
+
+        /// THE BURIAL. Road decals were placed at y=0.02f — the slab's CENTRE,
+        /// two centimetres UNDER the surface — for 78 consecutive runs, while
+        /// `roadDecals=569` counted them present in every one of those
+        /// verdicts. The shader is `ZWrite Off` with `Offset -1,-1`, which
+        /// wins a coplanar tie and cannot bridge 2cm, so every one of the 569
+        /// failed the depth test against the tarmac above it. A COUNT PROVES
+        /// CONSTRUCTION, NOT VISIBILITY, and nothing else in the verdict was
+        /// asking the second question.
+        ///
+        /// 0.045 is where the yellow lines already sit (WorldBuilder.cs:495):
+        /// 5mm proud of the slab, and UNDER the centre dashes (0.05) and the
+        /// zebra stripes (0.055) so fresh paint still reads over grime rather
+        /// than the other way round.
+        ///
+        /// It is also exactly COPLANAR with a junction pad's top surface
+        /// (WorldBuilder.cs:552-553 centres those at 0.025 with height 0.04),
+        /// which is fine and is the case the shader was already built for:
+        /// `ZWrite Off` with `ZTest LEqual` and `Offset -1,-1` wins a tie
+        /// deterministically. A tie it wins; 2cm it cannot.
+        const float RoadDecalY = 0.045f;
+
+        /// The multiply tint a grayscale MASK gets when it is loaded as alpha
+        /// — see LoadSet. 0.35 is 2^-1.5, one and a half stops: about the
+        /// darkest a wet oil stain takes asphalt down by, and a physical
+        /// derivation rather than a dial. At road strength 0.8 the darkest
+        /// REACHABLE multiplier becomes 1-0.8*0.65 = 0.48; measured over the
+        /// actual masks, the darkest pixel each one contains moves
+        /// SurfaceImperfections003 0.800 -> 0.543, 012 0.800 -> 0.479,
+        /// and on walls at 0.7, 001 0.825 -> 0.619, 007 and Scratches003
+        /// 0.825 -> 0.544. Those 0.80/0.825 numbers are not a coincidence,
+        /// they are the arithmetic in LoadSet's comment.
+        const byte MaskTint = 89;   // 0.35 * 255
 
         static readonly List<Material> _mats = new List<Material>();
         static readonly List<Texture2D> _roadTex = new List<Texture2D>();
+        static readonly List<int> _roadWeight = new List<int>();
         static readonly List<Texture2D> _wallTex = new List<Texture2D>();
         static Mesh _quad;
 
         /// Which fetched sets dress ROADS and which dress WALLS. Names match
         /// the ambientCG ids fetch_visual.py banks; a set that has not
         /// arrived is skipped and counted absent.
+        ///
+        /// `RoadLines001` IS DELIBERATELY NOT HERE. It is the one road set
+        /// that shipped with no Opacity map, so LoadSet took the inverse-luma
+        /// fallback below — and on a photograph of road paint the asphalt is
+        /// the DARK half and the lines are the light half, so the fallback
+        /// made the asphalt opaque and the lines transparent. Measured over
+        /// its own pixels: meanAlpha 0.446 against meanLuma 0.554, ink 0.231
+        /// — the highest "ink" of any road set in the bank and every drop of
+        /// it the background. It was not drawing worn paint, it was stamping
+        /// a dark rectangle on the road. Dropped rather than special-cased
+        /// because a correct alpha for it would have to be authored, not
+        /// derived, and the other five RoadLines sets ship real Opacity maps.
         static readonly string[] RoadSets =
-            { "RoadLines001", "RoadLines004", "RoadLines007", "RoadLines010",
+            { "RoadLines004", "RoadLines007", "RoadLines010",
               "RoadLines011", "RoadLines018", "AsphaltDamageSet001",
               "ManholeCover011", "SurfaceImperfections003",
               "SurfaceImperfections012" };
+        /// `LeakingSubstance001` was named here for weeks and has never been
+        /// on disk — `fetch_visual.py:70` asks for it, the fetch has never
+        /// landed it, and the loader skipped it silently while the array read
+        /// as 6-of-6. Removed rather than commented-out: this array is the
+        /// roster of what dresses walls, and an entry that has never existed
+        /// makes every reading of its Length a small lie. The fetch gap is
+        /// the fetcher's business and it is still recorded there.
         static readonly string[] WallSets =
-            { "Leaking005", "LeakingSubstance001", "Moss001",
+            { "Leaking005", "Moss001",
               "SurfaceImperfections001", "SurfaceImperfections007",
               "Scratches003" };
 
+        /// HOW OFTEN EACH ROAD SET IS PICKED, relative to the others. A
+        /// uniform pick was giving 60% of every placement to paint-line sets
+        /// that a MULTIPLY decal structurally cannot draw — the lines are the
+        /// WHITE part of the texture, and white is the multiply identity.
+        ///
+        /// Measured over the shipped 2K files, as mean(alpha*(1-luma)) times
+        /// the road strength 0.8 — the actual darkening the shader lays down
+        /// per pixel — AFTER the mask retint in LoadSet, whole series, not a
+        /// summary:
+        ///
+        ///   ManholeCover011 0.372   AsphaltDamageSet001 0.113
+        ///   SurfaceImperfections003 0.071   SurfaceImperfections012 0.061
+        ///   RoadLines004 0.045   RoadLines018 0.041   RoadLines011 0.014
+        ///   RoadLines010 0.009   RoadLines007 0.006
+        ///
+        /// So the top two carry 30x the bottom two and were getting the same
+        /// share of the street. The weights follow that ordering with ONE
+        /// deliberate departure: ink-proportional would hand ManholeCover011
+        /// 51% of all placements, and a manhole cover is an OBJECT, not
+        /// grime — at the 1.4-3.6m sizes and random yaw this loop uses, one
+        /// every other decal reads as absurd rather than as dirty. Capped at
+        /// 3/22 (14%).
+        ///
+        /// An unlisted set gets 1, the line tier, on purpose: a newly fetched
+        /// set cannot flood the street before somebody has measured its ink.
+        static int RoadWeight(string set)
+        {
+            switch (set)
+            {
+                case "AsphaltDamageSet001": return 6;
+                case "SurfaceImperfections003": return 4;
+                case "SurfaceImperfections012": return 4;
+                case "ManholeCover011": return 3;
+                default: return 1;
+            }
+        }
+
         public static void Build()
         {
-            RoadDecals = 0; WallDecals = 0;
+            RoadDecals = 0; WallDecals = 0; BuriedRoadDecals = 0;
             // `ambientcg` IS PART OF THE PATH. fetch_visual.py banks each set
             // under Decals/ambientcg/<ID> and this loader joined Decals/<ID>
             // — two implementations of one layout, and the first run with
@@ -67,7 +169,12 @@ namespace Ledger.Game
             foreach (var set in RoadSets)
             {
                 var t = LoadSet(Path.Combine(root, set));
-                if (t != null) { _roadTex.Add(t); loaded++; }
+                // Weight appended in the SAME statement as the texture, so
+                // the two lists cannot drift out of alignment when a set
+                // fails to load — the parallel-array fault this project has
+                // already paid for twice.
+                if (t != null)
+                { _roadTex.Add(t); _roadWeight.Add(RoadWeight(set)); loaded++; }
             }
             foreach (var set in WallSets)
             {
@@ -90,10 +197,25 @@ namespace Ledger.Game
                     double len = System.Math.Sqrt(dx * dx + dz * dz);
                     if (len < 8) continue;
                     dx /= len; dz /= len;
-                    // Every seven metres, the same cadence as the cables and
-                    // for the same reason: close enough that a block reads
-                    // dressed, far enough that it never reads tiled.
-                    for (double s = 4.0; s < len - 4.0; s += 7.0)
+                    // 7m -> 3.5m. The seven-metre cadence was borrowed from
+                    // the cables, which hang across a street; grime lies
+                    // ALONG one, and at 7m a block read as a handful of
+                    // stamps rather than as a dirty road. Halved, not opened
+                    // further: every placement still goes through the same
+                    // prosperity gate below, so this multiplies opportunities
+                    // rather than relaxing a rule. The step is the only thing
+                    // that changed, so the arithmetic says close to twice the
+                    // 569 this has been printing — but that is a PREDICTION,
+                    // and `roadDecals` on the next landing is what says.
+                    //
+                    // Same standing deal as the wall loop below, and for the
+                    // same reason: these are unbatched quads and the render
+                    // ladder still has no decal rung, so `meanFrame` is the
+                    // guard. It has sat at 28.3-30.5ms across the last
+                    // twenty-five landed runs; if this moves it out of that
+                    // band the cadence comes back up and the rung gets
+                    // written first.
+                    for (double s = 4.0; s < len - 4.0; s += 3.5)
                     {
                         double x = a.X + dx * s, z = a.Z + dz * s;
                         // Poorer streets are dirtier — the same prosperity
@@ -101,16 +223,29 @@ namespace Ledger.Game
                         double prosperity = e.Kind == "lane" ? 0.15 : 0.55;
                         double chance = 0.25 + Dressing.Density(prosperity, false) * 0.55;
                         if (Dressing.Roll(x, z, 11) >= chance) continue;
-                        // Lateral drift keeps them off the centreline crown.
-                        double off = (Dressing.Roll(x, z, 12) - 0.5) * (e.Width * 0.6);
+                        // Lateral drift keeps them off the centreline crown —
+                        // widened from +/-30% of the width to +/-42%, because
+                        // GTA's road grime lives in the WHEEL TRACKS and in
+                        // the gutter, not in a band down the middle. 42% and
+                        // not 50%: this drifts the decal's CENTRE and the
+                        // slab ends at 50%, so 42% keeps every centre 8% of
+                        // the width inside the tarmac — 40cm on a 5m lane,
+                        // 80cm on a 10m spine — while the quad itself, 1.4
+                        // to 3.6m across, still spills into the gutter,
+                        // which is exactly where it belongs.
+                        double off = (Dressing.Roll(x, z, 12) - 0.5) * (e.Width * 0.84);
                         var pos = new Vector3(
-                            (float)(x - dz * off), 0.02f, (float)(z + dx * off));
-                        int pick = (int)(Dressing.Roll(x, z, 13) * _roadTex.Count);
+                            (float)(x - dz * off), RoadDecalY, (float)(z + dx * off));
+                        int pick = PickRoad(Dressing.Roll(x, z, 13));
                         float size = 1.4f + (float)Dressing.Roll(x, z, 14) * 2.2f;
                         float yaw = (float)Dressing.Roll(x, z, 15) * 360f;
-                        Place(parent, _roadTex[Mathf.Min(pick, _roadTex.Count - 1)],
+                        Place(parent, _roadTex[pick],
                               pos, Quaternion.Euler(90f, yaw, 0), size, 0.8f);
                         RoadDecals++;
+                        // Read off the position that was actually PLACED, not
+                        // off the constant, so a future camber or per-street
+                        // offset cannot slip under this.
+                        if (pos.y <= RoadTopY) BuriedRoadDecals++;
                     }
                 }
 
@@ -181,6 +316,27 @@ namespace Ledger.Game
                 }
         }
 
+        /// Weighted pick over the sets that actually LOADED, from one
+        /// `Dressing.Roll` so placement stays deterministic and a street is
+        /// dirty in the same places every run.
+        ///
+        /// The total is summed here rather than cached: nine adds per
+        /// placement is nothing, and a cached total is one more thing that
+        /// can go stale when the set list changes.
+        static int PickRoad(double roll)
+        {
+            int total = 0;
+            for (int i = 0; i < _roadWeight.Count; i++) total += _roadWeight[i];
+            if (total <= 0) return 0;
+            int want = (int)(roll * total);
+            for (int i = 0; i < _roadWeight.Count; i++)
+            {
+                want -= _roadWeight[i];
+                if (want < 0) return i;
+            }
+            return _roadWeight.Count - 1;
+        }
+
         static void Place(Transform parent, Texture2D tex, Vector3 pos,
                           Quaternion rot, float size, float strength)
         {
@@ -213,8 +369,15 @@ namespace Ledger.Game
 
         /// Colour + Opacity combined into one RGBA, ambientCG's convention:
         /// a set directory holds `<ID>_2K_Color.png` beside
-        /// `<ID>_2K_Opacity.png`; masks (JPG sets) arrive as a single
-        /// grayscale image and become their own alpha.
+        /// `<ID>_2K_Opacity.png`.
+        ///
+        /// THREE cases, and the middle one is the one that was wrong. A set
+        /// with a real colour map and a real opacity map is the easy path. A
+        /// set that ships ONE grayscale image under both names is a mask
+        /// pretending to be a colour map and is re-tinted below. A set with
+        /// no opacity map at all falls back to inverse luminance — which is
+        /// right for exactly one thing and disastrous for another, so the
+        /// fallback carries its own warning.
         static Texture2D LoadSet(string dir)
         {
             if (!Directory.Exists(dir)) return null;
@@ -240,7 +403,47 @@ namespace Ledger.Game
                 {
                     var c = tex.GetPixels32();
                     var o = op.GetPixels32();
-                    for (int i = 0; i < c.Length; i++) c[i].a = o[i].r;
+                    // A MASK SHIPPED TWICE IS NOT A COLOUR MAP. Five of the
+                    // fourteen sets this layer names — SurfaceImperfections
+                    // 001/003/007/012 and Scratches003 — bank the SAME
+                    // grayscale image under both `_Color` and `_Opacity`
+                    // (byte-identical, checked with md5). Loaded so, that
+                    // makes rgb == a, and the shader's
+                    //     mul = lerp(1, rgb, a * strength) = 1 - s*g*(1-g)
+                    // has its minimum where g(1-g) peaks, at g=0.5, giving
+                    // 1 - 0.8*0.25 = 0.80 on roads and 0.825 on walls. So the
+                    // stain could never take a surface below 80% however
+                    // black the mask was — and the CORE of every mark, where
+                    // the mask is fully white and fully opaque, multiplied by
+                    // white, which is the identity. The darkest part of every
+                    // stain was the invisible part.
+                    //
+                    // Detected rather than name-listed, so it cannot go stale
+                    // when a set is refetched. Measured over the shipped
+                    // files, |luma(colour) - opacity.r| is exactly 0 for all
+                    // five and at least 174 for every genuine colour map
+                    // (Leaking005 174, RoadLines018 206, ManholeCover011
+                    // 236) — a separation wide enough that the test needs no
+                    // tolerance at all.
+                    bool maskOnly = true;
+                    for (int i = 0; i < c.Length; i++)
+                    {
+                        if (maskOnly
+                            && (c[i].r * 30 + c[i].g * 59 + c[i].b * 11) / 100
+                               != o[i].r)
+                            maskOnly = false;
+                        c[i].a = o[i].r;
+                    }
+                    // The mask becomes SHAPE over a fixed dark tint: alpha
+                    // already carries where the dirt is, and the tint carries
+                    // how dark it gets. Floor drops 0.80 -> 0.48 on roads.
+                    if (maskOnly)
+                        for (int i = 0; i < c.Length; i++)
+                        {
+                            c[i].r = MaskTint;
+                            c[i].g = MaskTint;
+                            c[i].b = MaskTint;
+                        }
                     tex.SetPixels32(c);
                     tex.Apply(true);
                 }
@@ -248,8 +451,20 @@ namespace Ledger.Game
             }
             else
             {
-                // Single grayscale mask: darkness IS the stain, so alpha is
-                // the inverse luminance — white paper means nothing there.
+                // NO OPACITY MAP. Alpha becomes inverse luminance: darkness
+                // IS the stain, light means nothing there.
+                //
+                // TRUE FOR ONE SET AND ONE ONLY. `Moss001` is the sole set
+                // that reaches this branch now, and it earns it — the dark
+                // clumps are the moss, the light gaps are the stone under it
+                // (measured meanAlpha 0.505, ink 0.197 at the wall strength
+                // 0.7 — the same units as RoadWeight's series above, and the
+                // most ink of any wall set). `RoadLines001` used
+                // to reach it too and it is the counter-example that got it
+                // dropped from RoadSets: on a photo of road paint the DARK
+                // half is the asphalt, so this rule stamped the background
+                // and hid the lines. Before adding a set with no Opacity
+                // map, ask which half of it is the subject.
                 var c = tex.GetPixels32();
                 for (int i = 0; i < c.Length; i++)
                 {

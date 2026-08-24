@@ -16,7 +16,12 @@ namespace Ledger.Core
     /// variance of a night street is dominated by the difference between the
     /// sky and the lamps: about 0.03, against a grain contribution nearer
     /// 0.0001. The signal was three hundred times under the noise floor of
-    /// its own ruler, and the gate passed for two months anyway.
+    /// its own ruler, and the gate passed for two months anyway. (Both
+    /// figures are from July, at the amplitude of the day. `FilmGrade`
+    /// quartered the grain on 24 Aug and this term goes as its SQUARE, so
+    /// the same argument is now sixteen times stronger — which is the point:
+    /// the wrong ruler gets worse every time the thing it cannot see gets
+    /// smaller, and it still reports a number.)
     ///
     /// Then it went NEGATIVE, which is the useful part. Additive noise cannot
     /// reduce spread — but grain clamped at black can. Half the pixels in a

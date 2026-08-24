@@ -174,6 +174,29 @@ namespace Ledger.Game
         /// how the model they come from spent weeks written and unwired.
         public static double LastTempR = 1.0, LastTempB = 1.0;
 
+        /// THE GRAIN AMPLITUDE THAT ACTUALLY REACHED THE SHADER, for the
+        /// verdict — added 24 Aug because the amount this chain applies had
+        /// never once been printed, and the first instrument pointed at it
+        /// (`tools/ref-bench.py`) read our stills at three to seven times the
+        /// noisiest GTA reference frame. A number the render is built on that
+        /// nobody outside this file can see is a number nobody can calibrate.
+        ///
+        /// `LastGrain` is LAST-WINS: the value `_Grain` was set from on the
+        /// most recently graded frame. `GrainLo`/`GrainHi` are the run's
+        /// minimum and maximum of it, and they are needed because ONE
+        /// expression below drives day, night and rain — a single sample
+        /// cannot show that span, and the span is the whole question.
+        ///
+        /// The AUTHORED amount, read BEFORE the `Grain` A/B switch: the sim
+        /// renders half its measurement frames with grain forced off, and a
+        /// field recording what was PUSHED would read 0.000 on exactly those
+        /// frames — which is also what "the grade never ran" looks like.
+        ///
+        /// -1 until the grade has run once, so "nothing measured" cannot be
+        /// mistaken for "no grain" (rule 3b: a zero needs a denominator, and
+        /// here the denominator is whether the pass executed at all).
+        public static double LastGrain = -1, GrainLo = -1, GrainHi = -1;
+
         /// Pass the frame straight through — no tonemap, no exposure, no
         /// anything. For the sim's light-attribution probe: "is the night
         /// frame bright before the grade touches it, or because of it?" is
@@ -207,12 +230,74 @@ namespace Ledger.Game
             // light, which is both true of film and exactly when we need it
             // to hide banding in a dark sky.
             float night = GameController.NightAmount;
-            // Night grain 0.045 → 0.028 → 0.022 for LINEAR (V1.5, two
-            // rounds): sized against gamma's lifted shadows, it read as
-            // static over the whole first linear night frame, and the
-            // second round's night mean is still carrying a noise floor the
-            // lighting gate can see. Day and rain terms hold.
-            float grain = (0.020f + 0.022f * night + 0.020f * Weather.Rain) * s.GrainAmount;
+            // CALIBRATED AGAINST THE GTA REFERENCE FRAMES — EVERY TERM /4
+            // (24 Aug). The night term's own ladder before that was
+            // 0.045 → 0.028 → 0.022 for LINEAR (V1.5, two rounds), each step
+            // taken off one night frame by eye; the day and rain terms had
+            // never been moved at all. This is the first time any of the
+            // three has been set against a measurement of somebody else's
+            // film stock rather than against our own last frame.
+            //
+            // WHERE THE FOUR COMES FROM. `tools/ref-bench.py --series` on
+            // this checkout's stills, Immerkaer noise sigma over the ground
+            // band in 0..255 levels:
+            //
+            //   the five GTA refs   0.23 · 0.85 · 0.89 · 1.71 · 2.05
+            //   the seven districts 5.21 · 5.54 · 5.65 · 5.66 · 5.99
+            //                       · 6.43 · 7.51
+            //
+            // The districts are the calibration target and not the review
+            // stills, for two reasons that are both about them being a
+            // SERIES: they are the pose-stable frames (one fixed camera per
+            // district, the same spot every build), and all seven are shot at
+            // noon in rain 0.90 — one hour, one weather, seven samples, so
+            // 0.020 + 0.020*0.90 = 0.038 of amplitude produced that row. The
+            // worst of them against the reference ceiling is 7.51 / 2.05 =
+            // 3.66, so a quarter puts the whole row inside the band the
+            // references describe, with margin for the 5.21..7.51 the row
+            // itself spans.
+            //
+            // LINEAR IN THE AMPLITUDE, MEASURED RATHER THAN SUPPOSED: uniform
+            // noise of amplitude a, sRGB-encoded over the district ground
+            // band's own luma and read back with ref-bench's own estimator,
+            // falls 3.80x (mid luma) to 4.65x (the dark end, where the encode
+            // is steep and the negative half clips at zero) for a 4x cut in
+            // a. Four is therefore the conservative end of that range and the
+            // districts should land at 1.1..1.9.
+            //
+            // WHAT JUDGES THIS: `grainSigma` in ref-bench on the next
+            // landing, read across all seven districts. It is NOT a
+            // closed-form calibration — the stills are JPEG q60 and DCT
+            // quantisation attenuates a per-pixel noise field non-linearly
+            // (measured: a flat synthetic field loses 45% of its sigma to q60
+            // at the old amplitude and 92% at the new one), so the landed
+            // number may fall further than the ratio alone predicts. If it
+            // lands under the reference floor of 0.23 the cut was too deep
+            // and the next number comes off that series, not off an argument.
+            //
+            // ONE GLOBAL EXPRESSION SCALES DAY AND NIGHT ALIKE. There is no
+            // separate night amplitude to set: the noir shape is preserved
+            // exactly — grain still rises with the dark and with the rain,
+            // at a quarter the size. So the night frames stay above the
+            // reference band on purpose (day2_night 9.15 → ~2.3, the wet
+            // night day2_wet 13.12 → ~3.3), because all five references are
+            // daylight or dusk and there is no night reference to judge a
+            // night frame against. Trimming the night term further would be
+            // choosing a number with nothing to check it, which is the thing
+            // rule 2 forbids; getting a night reference frame is the fix and
+            // it belongs on the queue, not here.
+            //
+            // THE TWIN: `SimDirector`'s grain gate derives its floor from
+            // this same day amplitude (`const double GrainAmplitude`). It
+            // moved with this change — a floor left at the old amount is a
+            // tuned constant wearing a derivation's clothes.
+            float grain = (0.0050f + 0.0055f * night + 0.0050f * Weather.Rain) * s.GrainAmount;
+            // LAST-WINS, plus the run's span. Recorded here rather than at
+            // the `SetFloat` below so it is the AUTHORED amount and not what
+            // the A/B switch let through — see the field's own comment.
+            LastGrain = grain;
+            if (GrainLo < 0 || grain < GrainLo) GrainLo = grain;
+            if (grain > GrainHi) GrainHi = grain;
             // FROM CORE, where it is stated as "how dark are the corners"
             // and tested. The 0.34/0.16 that used to live here put the
             // corners at 10% of centre by day and at exactly zero at night —

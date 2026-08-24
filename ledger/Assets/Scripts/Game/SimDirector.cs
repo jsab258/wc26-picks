@@ -2279,6 +2279,12 @@ namespace Ledger.Game
         double _aoOn = -1, _aoOff = -1;
         double _bloomDelta = -1, _grainDelta = -1, _vigOn = -1, _vigOff = -1;
         double _aoDeltaMin, _aoDeltaMax, _grainDeltaMin, _grainDeltaMax;
+        /// The grain amplitude the grade applied AT THE INSTANT `_grainDelta`
+        /// was taken, so the pair can be read as one measurement. Last-wins
+        /// over the A/B's rounds, exactly as `_grainDelta` is — they overwrite
+        /// together, which is what keeps them the same moment. -1 if the A/B
+        /// never ran.
+        double _grainAmpAtAb = -1;
 
         double _nightFull = -1, _nightNoShafts = -1, _nightRaw = -1, _nightNoBloom = -1;
         string _beatBotTried;
@@ -8033,6 +8039,12 @@ namespace Ledger.Game
             _bloomRise = bRise;
             _bloomHadHighlights = all.Bright;
             _grainDelta = grainD;
+            // AND WHAT AMPLITUDE PRODUCED IT, captured here rather than at the
+            // done line, because the done line is written hours of game time
+            // later and the amplitude moves with the hour and the rain. A
+            // delta divided by an amplitude from a different moment is the
+            // two-maxima fault with one of them a clock.
+            _grainAmpAtAb = FilmGrade.LastGrain;
             // A vignette makes the corners darker RELATIVE to the centre, so
             // the ratio must FALL when it is on. Comparing absolute corner
             // brightness would have been fooled by anything that changed the
@@ -12766,15 +12778,32 @@ namespace Ledger.Game
             // Grain is uniform noise of amplitude `a`, so its standard
             // deviation is a/sqrt(3) and it adds 2*sigma^2 to the mean
             // squared difference between neighbours. The shader asks for
-            // roughly 0.02 by day rising to 0.065 at night and in rain; the
+            // 0.0050 by day rising to 0.0155 at night and in rain; the
             // A/B runs at 21:00, so take the day figure and keep a wide
             // margin for the clamping at black that eats part of it.
+            //
+            // AND IT MOVES WITH `FilmGrade`'s AMPLITUDE — 0.020 → 0.005 on
+            // 24 Aug, when the grain was calibrated against the GTA reference
+            // band (see `FilmGrade.OnRenderImage` for the derivation). This
+            // constant is the twin that had to move with it, and it is a twin
+            // precisely because it claims to be derived: a floor left at the
+            // old amount would be a tuned number wearing a derivation's
+            // clothes, and the sentence above it would be false.
+            //
+            // The gate keeps its margin, because both sides fall together.
+            // `grainD` is a spread, so it falls as the SQUARE of the
+            // amplitude, and so does this floor: the last ten landed runs
+            // read 0.00705..0.01024 against a floor of 6.7e-5, and a quarter
+            // of the amplitude puts them near 0.00054 against 4.2e-6. That is
+            // also the band this same gate passed in for its first ~230 runs,
+            // before the linear flip moved the whole series up — the floor
+            // has been this formula since 29 July and it held there too.
             //
             // A threshold that follows from the amount the shader was asked
             // for can be defended the day it starts failing. A constant
             // nobody can derive gets lowered instead, which is how a gate
             // stops being one.
-            const double GrainAmplitude = 0.020;
+            const double GrainAmplitude = 0.0050;
             double grainFloor = ImageStats.SpreadFromNoise(GrainAmplitude / Math.Sqrt(3.0)) * 0.25;
             bool grainOk = _grainDelta > grainFloor;
             // The ratio must FALL when the vignette is on: corners darker
@@ -15044,6 +15073,16 @@ namespace Ledger.Game
                       // road/facade luma spreads above are what these exist
                       // to move.
                       $"roadDecals={DecalLayer.RoadDecals} " +
+                      // A COUNT of road decals placed at or below the road
+                      // slab's top surface, over the whole run; `roadDecals`
+                      // immediately above is its denominator, same run, same
+                      // line. IT SHOULD READ 0 FOR EVER. It reads anything
+                      // else because 569 decals spent 78 consecutive runs
+                      // buried 2cm inside the tarmac while `roadDecals=569`
+                      // reported them present every time — a count proves
+                      // CONSTRUCTION, not visibility, and nothing here was
+                      // asking the second question.
+                      $"decalsBuried={DecalLayer.BuriedRoadDecals} " +
                       $"wallDecals={DecalLayer.WallDecals} " +
                       $"decalWhy=[{DecalLayer.Why.Replace(' ', '_')}] " +
                       $"furniture={Furniture.Placed} " +
@@ -15372,6 +15411,23 @@ namespace Ledger.Game
                       $"bloomD={_bloomDelta:0.0000} bloomHit={100 * _bloomFraction:0.00} " +
                       $"bloomRise={_bloomRise:0.0000} bloomLit={100 * _bloomHadHighlights:0.0} " +
                       $"grainD={_grainDelta:0.00000} vig={_vigOn:0.000}/{_vigOff:0.000} " +
+                      // THE AMPLITUDE THE GRADE ACTUALLY APPLIED, which this
+                      // project rendered for months without ever printing —
+                      // and the first instrument pointed at it read our
+                      // stills at 3-7x the noisiest GTA reference frame.
+                      //
+                      // Three numbers, one moment each, in the verdict's
+                      // `value/lo..hi` shape (no spaces, so the reader
+                      // consumes it whole):
+                      //   the first is the amplitude AT THE INSTANT `grainD`
+                      //     above was measured, so the two are one reading;
+                      //   `lo..hi` is the run's whole span, because ONE
+                      //     expression in `FilmGrade` drives day, night and
+                      //     rain — the day figure alone cannot show that a
+                      //     wet night is three times it.
+                      // All -1.00000 means the grade never ran a frame, which
+                      // is a different fault from grain being off.
+                      $"grainAmp={_grainAmpAtAb:0.00000}/{FilmGrade.GrainLo:0.00000}..{FilmGrade.GrainHi:0.00000} " +
                       // THE TEMPERATURE NUDGE, PROVEN TO BE MOVING. Both
                       // at exactly 1.000 means `LitAmount` never changes
                       // or the call never runs, and those look identical
