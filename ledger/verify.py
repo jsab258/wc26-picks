@@ -1246,6 +1246,46 @@ def verdict_dupkeys():
     return True, head.replace("verdict-dupkeys: ", "dupkeys ok (selftest); landed verdict: ")
 
 
+def verdict_emit_dupkeys():
+    """The same fault, caught in the SOURCE instead of one round trip later.
+
+    `verdict_dupkeys` above reads the landed verdict. That is correct and it is
+    a quarter of an hour too late: the collision is written in C#, dispatched,
+    built, committed and pulled before anything can see it.
+
+    MEASURED, on the commit this ships beside. Wiring `Core/DoorSwing` added
+    `doors={DoorHost.Count}/...` to the done line, and `doors=` was already
+    there — `WorldBuilder.Doors`, three hundred lines further down the SAME
+    `Debug.Log`. Nothing would have failed. The damage is not to the new key
+    but to the OLD one, which had been readable for weeks and would silently
+    have stopped being. It was caught by eye, and this file is a list of what
+    happens when a rule depends on that.
+
+    GATED ON BOTH HALVES, unlike its landed-verdict sibling, and that is the
+    difference rule 5b asks about: the accepting case EXISTS here. The two real
+    hits — `Traffic: wheels` under `dia/hi=`, and three sub-records sharing
+    `eyes=`/`noticed=`/`considered=` on the places line — are repaired in the
+    same commit, so the whole repository reads zero today and any new one is a
+    red. There is no baseline list to decay."""
+    tool = str(ROOT.parent / "tools" / "verdict-emit-dupkeys.py")
+    code, out = run(["python3", tool, "--selftest"])
+    if code != 0:
+        first = next((l.strip() for l in out.splitlines()
+                      if "Error" in l or "assert" in l),
+                     "see verdict-emit-dupkeys --selftest")
+        return False, "EMIT DUPKEY CHECK BROKEN: " + first[:110]
+    code, out = run(["python3", tool, str(ROOT / "Assets" / "Scripts")])
+    head = next((l.strip() for l in out.splitlines()
+                 if l.startswith("verdict-emit-dupkeys:")), "")
+    if not head:
+        return False, "EMIT DUPKEY CHECK READ NOTHING: " + out.strip()[:110]
+    if code != 0:
+        hits = [l.strip() for l in out.splitlines() if " — emitted twice" in l]
+        return False, "SAME KEY EMITTED TWICE ON ONE LINE: " + "; ".join(hits)[:160]
+    return True, head.replace("verdict-emit-dupkeys: ", "emit dupkeys ok (")\
+                    .replace(" same-line duplicate key(s) (", ", ") + ")"
+
+
 def frame_drift():
     """Layer 3 of the testing system: the instrument that reads the render.
 
@@ -1325,7 +1365,8 @@ def main():
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, raw_avenues, filename_as_type, namespace_as_value, workflow_size,
                powershell_steps, sheet_read, prop_dimensions,
-               frame_drift, verdict_keys, verdict_format, verdict_dupkeys, save_chaos, soak,
+               frame_drift, verdict_keys, verdict_format, verdict_dupkeys,
+               verdict_emit_dupkeys, save_chaos, soak,
                adversary, stale_anchors, clip_audit, picker_selftest, core_tests):
         ok, text = fn()
         all_ok &= ok

@@ -48,6 +48,65 @@ namespace Ledger.Game
 
         public static bool PackPresent { get; private set; }
 
+        /// HOW MANY OF THE PAINT CALLS ACTUALLY LANDED.
+        ///
+        /// Measured off `review_street.jpg`, 24 Aug: one car in that frame
+        /// sits at 0.713 median saturation when nothing else in it exceeds
+        /// 0.385 — a holiday-brochure mint saloon parked on a noir street,
+        /// with lilac wheels. The paint system is not missing; `TrafficHost`
+        /// has a whole paragraph about repainting the kit's mint into navy,
+        /// black, burgundy, bottle, grey and stone, and most of the fleet
+        /// wears them.
+        ///
+        /// What is missing is the DENOMINATOR. Both paint sites did
+        /// `mpb.SetColor("_Color", paint)` over every renderer and neither
+        /// asked whether the shader HAS a `_Color` — and this project
+        /// already has it written down that glTFast's shaders do not, so the
+        /// property block is a silent no-op on any kit that came in that
+        /// way. A paint that lands and a paint that evaporates produce the
+        /// identical call, the identical log, and no complaint.
+        ///
+        /// So it goes through here instead, and the run reports both halves.
+        /// `PaintRefusedBy` names the first shader that refused, because
+        /// "three refused" and "three refused, all Unlit/glTF" are different
+        /// amounts of work.
+        public static int PaintTook, PaintRefused;
+        public static string PaintRefusedBy = "";
+
+        public static void ResetPaint()
+        {
+            PaintTook = PaintRefused = 0;
+            PaintRefusedBy = "";
+        }
+
+        /// Paint a kit prop's renderers, counting what the shader accepted.
+        /// ONE implementation, called from both sites — the repeated shape
+        /// of this codebase's worst bugs is one idea with two copies, and
+        /// the copy nobody looks at is the one missing a line.
+        public static void PaintKit(Renderer[] rends, Color c)
+        {
+            if (rends == null) return;
+            var mpb = new MaterialPropertyBlock();
+            mpb.SetColor("_Color", c);
+            foreach (var r in rends)
+            {
+                if (r == null) continue;
+                var sm = r.sharedMaterial;
+                if (sm != null && sm.HasProperty("_Color"))
+                {
+                    r.SetPropertyBlock(mpb);
+                    PaintTook++;
+                }
+                else
+                {
+                    PaintRefused++;
+                    if (PaintRefusedBy.Length == 0)
+                        PaintRefusedBy = sm != null && sm.shader != null
+                            ? sm.shader.name.Replace(' ', '_') : "no_material";
+                }
+            }
+        }
+
         public static void Initialize()
         {
             if (_initialized) return;

@@ -245,6 +245,7 @@ namespace Ledger.Game
             WindowPanes = 0; WindowBands = 0;
             Doors = 0;
             DoorHost.Reset();
+            AssetLibrary.ResetPaint();
             System.Array.Clear(PremisesBuilt, 0, PremisesBuilt.Length);
             PremisesByDistrict.Clear();
             AssetLibrary.Initialize();
@@ -2247,9 +2248,7 @@ namespace Ledger.Game
                     bo = rends[0].bounds;
                     foreach (var r in rends) bo.Encapsulate(r.bounds);
                     kit.transform.position += Vector3.up * (p.y - bo.min.y);
-                    var mpb = new MaterialPropertyBlock();
-                    mpb.SetColor("_Color", paint);
-                    foreach (var r in rends) r.SetPropertyBlock(mpb);
+                    AssetLibrary.PaintKit(rends, paint);
                     foreach (var c in kit.GetComponentsInChildren<Collider>())
                         Object.Destroy(c);
                     return;

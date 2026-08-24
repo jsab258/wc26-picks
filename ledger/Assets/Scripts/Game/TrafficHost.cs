@@ -131,10 +131,16 @@ namespace Ledger.Game
                 if (v.Kind == null || !seen.Add(v.Kind.Id)) continue;
                 float hi = (float)v.Kind.Height, len = (float)v.Kind.Length;
                 float r = Mathf.Clamp(hi * 0.20f, 0.22f, 0.55f);
+                // `diaPerHi`, NOT `dia/hi`, and the slash is the whole reason.
+                // `verdict-read.py` finds a key with `(?<![\w])KEY=`, and a
+                // slash is not a word character — so a read of `hi=` matched
+                // INSIDE `dia/hi=` and this line carried two values under one
+                // name. CLAUDE.md's own table of ambiguous readings names
+                // `Traffic: wheels`; this is that entry closed.
                 Debug.Log($"Traffic: wheels {v.Kind.Id} len={len:0.00} hi={hi:0.00} "
                           + $"radius={r:0.000} diameter={r * 2f:0.000} "
-                          + $"dia/hi={(hi > 0 ? r * 2f / hi : 0):0.00} "
-                          + $"dia/len={(len > 0 ? r * 2f / len : 0):0.00}");
+                          + $"diaPerHi={(hi > 0 ? r * 2f / hi : 0):0.00} "
+                          + $"diaPerLen={(len > 0 ? r * 2f / len : 0):0.00}");
             }
         }
 
@@ -607,10 +613,8 @@ namespace Ledger.Game
                 // burgundy, bottle, grey, stone — the wardrobe's vocabulary,
                 // stable per vehicle. The cab is black, because a British
                 // cab is a black cab.
-                var paintMpb = new MaterialPropertyBlock();
-                paintMpb.SetColor("_Color", KitPaint(v));
-                foreach (var kr0 in kitBody.GetComponentsInChildren<Renderer>())
-                    kr0.SetPropertyBlock(paintMpb);
+                AssetLibrary.PaintKit(
+                    kitBody.GetComponentsInChildren<Renderer>(), KitPaint(v));
 
                 // THE PUSH BAR IS THE ONLY AMERICAN THING ABOUT THE PATROL CAR,
                 // and it is one named child. The kit calls it `grill` and puts

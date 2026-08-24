@@ -38,53 +38,34 @@ Float16 binds and edge conversions (fp32-typed today).
 `playtest-plan.md` has the session runbook; keep speech self-checks
 green on every landing.
 **THE RUNNER IS REGISTERED AND FLIPPED (22 Aug): `ledger-pc` builds
-on his machine** via bats 3/4/5 (double-click, self-elevating, NO
-INSTALLERS — pwsh/python as plain zips). Account in
-`roadmap-history.md`.
-**ALL 72 GATES GREEN and holding (23 Aug).** ~17.6 min/round on his
-GPU vs cloud 33-41 over 11 rounds; the BUILD is no longer the
-bottleneck, the ~35 min dispatch cadence is. CLOSED today: hair,
-furniture, clip sheet, **dayJob** (courier rides StreetMap.Route
-after two traced mornings grinding on a window sill then a building
-corner), **beats** (same router), noonFacade-as-a-question (census:
-60% grey brick / 39% mat_roof — shopfront surrounds and awnings were
-built from roof felt, now painted joinery + canvas via Opaque()).
+on his machine**; account in `roadmap-history.md`. **ALL 72 GATES
+GREEN and holding.** ~17.6 min/round on his GPU vs cloud 33-41 over
+11 rounds; the BUILD is no longer the bottleneck, the dispatch
+cadence is. Closed 23 Aug: hair, furniture, clip sheet, dayJob and
+beats (both onto StreetMap.Route), shopfront joinery.
 
 **PERFORMANCE IS MEASURED; THREE GUESSES DIED.** `frameCost` ladder:
 all:22.4 noShadow:17.3 noPixLights:18.0 noBodies:23.3. **Shadows
 5.1ms and per-pixel lights 4.4ms hold the frame; the crowd is not in
-the bill** (hiding every body came back SLOWER). Dead: draw calls
-(instancing — a real missing flag, kept — moved meanFrame 0.00),
-vertex budget, shadow reach (shadow45 21.2 vs all 21.6 — 0.4ms of
-5.1, rejected). The ladder's ABSOLUTES are not a frame time (its RT
-+ ReadPixels carry per-object cost the composited frame does not);
-only the rungs' differences are.
+the bill** (hiding every body came back SLOWER). Dead: draw calls,
+vertex budget, shadow reach. Only the rungs' DIFFERENCES are a frame
+time — the absolutes carry the probe's own RT+ReadPixels cost.
 
 **THE STREET WAS NEVER AS EMPTY AS THE PICTURES.** Three faults, all
 found by measuring, all closed: the draw radius stopped at 34m (now
-70); `streetBodies` was a viewport-RECTANGLE test counting people
-THROUGH WALLS (`streetBodiesSeen` linecasts, and its near split says
-`seenNear/near` is the pair that means anything — 19-in-cone was
-mostly distance); and the cameras stood badly (`ShotMidBlockedAt=0.30`
-off its own bimodal series, 12 of 13 shots fixed; the street shot also
-FLED the crowd until its guard was narrowed to 1.6m and in-front).
-`streetSeenBlockBy` named the near-crowd screen as Building_78 — a
-wall, not cars: expected, not a fault. Day frames are NOT like-for-like
-across these.
+70); `streetBodies` counted people THROUGH WALLS (linecast now); and
+the cameras stood badly (`ShotMidBlockedAt=0.30` off its own bimodal
+series, 12 of 13 shots fixed; the street shot also FLED the crowd).
+Day frames are NOT like-for-like across these.
 
 **23 Aug — THE DAY NOW READS AS DAY**, and it was a MEASUREMENT not
-taste. day3_noon 0.206 against day3_night 0.165: a midday a quarter
-brighter than a midnight. `Exposure` had been revised SIX times, each
-a chosen number read against one frame; `exposureCurve` printed the
-response instead (x1.00:0.199 x2.00:0.302 x3.00:0.373 — roll-off real
-but gentle, so the aperture IS the lever). Target bounded by landed
-readings BOTH sides: 0.44-0.49 at 40-48% bright was measured and
-rejected as seaside-morning white; 0.206 reads as night. Day arm 0.72
--> 2.44 lands noons 0.30-0.41, nights untouched, noon:night 1.25 ->
-2.35:1. **Two things would have eaten it silently: the Clamp ceiling
-(1.85 against a noon of 1.72 — now 3.6) and the rain term (scaled
-with the arm, or "an overcast day loses light" halves).** Three break
-fixtures re-anchored.
+taste: a midday only a quarter brighter than a midnight. `Exposure`
+had been revised SIX times off single frames; `exposureCurve` printed
+the response instead, so the aperture was shown to be the lever. Day
+arm 0.72 -> 2.44 lands noons 0.30-0.41, nights untouched, noon:night
+1.25 -> **2.35:1**. **Two things would have eaten it silently: the
+Clamp ceiling (1.85 against a noon of 1.72 — now 3.6) and the rain
+term.** Three break fixtures re-anchored.
 
 **SILLS ARE IN AND FREE** (2133; +2173 renderers with render+rest
 UNCHANGED — this scene is not submission-bound). Near buildings only,
@@ -163,6 +144,35 @@ build. Pre-approved; token-heavy by design.
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck —
    judged on frames). Open from V6: the sky dome's cloud structure
    per time of day.
+1. **A THIRD OF THE NOON FRAME IS A BLACK WALL, AND IT IS NOT THE CAMERA.**
+   *(on screen, `review_day1_noon` — the whole left third)* Measured 24 Aug:
+   the frame's column thirds read **0.047 / 0.396 / 0.431**, a nine-fold
+   split inside one midday frame. Four things are already ruled OUT, each by
+   a number rather than a guess:
+   - not framing — `nearFrac=0.00 midFrac=0.27`, both inside their bounds,
+     so the wall is beyond 7m and the step-back has nothing to step back from;
+   - not the texture — `concrete_b.jpg` has a mean luma of **0.366**, an
+     ordinary mid-grey, and the census says the third is **85%
+     `mat_concrete_b`**;
+   - not the post stack, AO, vignette, sun or glass — every rung of the
+     landed `noonFacade` ladder sits between 0.035 and 0.047;
+   - and the arithmetic says it should be fine: albedo x ambient x exposure
+     comes to ~0.43 display, which is exactly what the RIGHT third reads.
+
+   **An eleven-fold shortfall cannot hide in a rung that moves 0.004, so it
+   is not in that ladder — and a ladder is an allow-list.** Four rungs added
+   and dispatched: `ambOff`, `amb4x`, `shadowOff`, `fogOff`. `amb4x` is the
+   one that matters and it is the only rung that turns something UP: if the
+   third scales, the wall takes ambient and the fill is not reaching a
+   vertical face; if it does not move, the surface is refusing light and the
+   answer is in the material. No off-rung can separate those two.
+
+   **`noonFacadeMat` lands in the same run** so the second half needs no
+   second round trip — material, shader, `_Color`, texture, distance, normal
+   vs up and vs sun, AND the **MaterialPropertyBlock**, which `sharedMaterial`
+   cannot see and which this project already has open as a linear-conversion
+   suspect at thirteen sites.
+
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
    NARROW.** *(rule 12; the step-back and depth series are landed —
    account in `roadmap-history.md`.)* **The night half is ADDRESSED:
@@ -210,24 +220,13 @@ build. Pre-approved; token-heavy by design.
    shots vs `0.18` over 17 — zero of three separates nothing; judge the
    `hunt_` pair. A PARKED beacon reads where six crossings do not.
 
-1. ~~**VERDICT STEP NEAR THE DISPATCH CEILING**~~ — **STALE: 17,088
-   under, measured 22 Aug (rule 3); `verify.py` gates it.**
-
-1. **THE DISTANT SKYLINE WAS PALE LAVENDER OVER A NOIR STREET.** *(on screen,
-   `district_strip` — the top third of the frame)* Kit props arrive wearing
-   whatever their author painted them, and `BuildSkyline`'s kit branch kept
-   them while its own `else` branch built the same tower out of
-   `AssetLibrary.Concrete` and looked right. **The fix already existed one
-   system over:** `TrafficHost` repaints kit cars for exactly this reason —
-   its comment says the kit ships "holiday-brochure mint" and the first stills
-   had every car wearing it. Same shape, and the skyline never got it.
-
-   Tinted to agree with its own fallback rather than to an invented colour,
-   and darker than the near town because these stand at the map's far edge —
-   a skyline brighter than the street in front of it is the specific thing
-   that read as wrong. `skylineRepainted` ships beside `skyline=n/m` so the
-   repaint cannot silently stop running, which is how this survived.
-
+1. ~~**THE DISTANT SKYLINE WAS PALE LAVENDER OVER A NOIR STREET**~~ —
+   **FIXED.** Kit props arrive wearing whatever their author painted them,
+   and `BuildSkyline`'s kit branch kept them while its own `else` branch
+   built the same tower out of `AssetLibrary.Concrete` and looked right —
+   the fix existed one branch away. The general lesson is the item below:
+   a kit prop's paint is never the author's, and a repaint that silently
+   fails to apply looks exactly like one that was never asked for.
 1. **AND FOUR MORE KIT-PROP SITES ARE UNPAINTED — THE MEASUREMENT IS BUILT,
    READ IT ON THE NEXT LANDING.** *(rides next dispatch)* Benches, bins,
    street lights and the crate stack take no repaint — deliberately: a green
@@ -241,6 +240,20 @@ build. Pre-approved; token-heavy by design.
    counters); the unrepainted four carry live values. **Judgment when it
    lands:** any unrepainted family clearly above `townWallAlbedo` gets the
    skyline treatment; anything at or below it closes this item.
+
+   **AND A CAR THAT IS REPAINTED IS STILL MINT, WHICH IS A DIFFERENT FAULT
+   AND A WORSE ONE.** Measured off `review_street.jpg`: one saloon at
+   **0.713** median saturation in a frame where nothing else passes 0.385,
+   with lilac wheels. The repaint is not missing — `TrafficHost` has six
+   town paints and most of the fleet wears them. Both paint sites set
+   `_Color` through a property block **without asking whether the shader has
+   one**, and this project already has it written down that glTFast's
+   shaders do not, so the call evaporates in silence and looks identical to
+   a paint that landed. One helper now — `AssetLibrary.PaintKit` — with
+   `kitPaint=took/refused` and the first refusing shader NAMED, because
+   "refused" and "refused by Unlit/glTF" are different amounts of work.
+   Read it next landing; if refusals are non-zero the fix is replacing the
+   material, not tinting it.
 
 1. **THE BUBBLE OVERLAP MEDIAN IS A PER-TICK NUMBER AND I READ IT AS A
    PER-FRAME ONE.** *(instrument)* `SampleBubbles` runs per tick and
@@ -268,38 +281,37 @@ build. Pre-approved; token-heavy by design.
    median lands: a pass that fires once may be broken, or starved by a
    measurement that could not see it.
 
-1. **THE NAMEPLATE HEAP IS MEASURED AT LAST AND THE INSTRUMENTS AGREE WITH
-   THE PICTURE.** *(on screen)* `collidingNames=3` over 26 samples, worst at
-   `day13_noon`; `worstNamePair=[Noor|Sam]`, `namesAtWorstName=5`,
-   `textPersonLabels=10`. Five labels projected at the peak, **3 of their 10
-   possible pairs overlapping** — a heap, as the frame shows. The
-   "counter says 0, picture says heap" argument is over; account in
-   `roadmap-history.md`. **What is open is the DECLUTTER**: `PinAll` runs at
-   shot time and three pairs still overlap. Read `namesPinnedSum` against
-   `shotFixups` next build before anyone tunes it.
+1. **THE NAMEPLATE HEAP IS MEASURED AND THE INSTRUMENTS AGREE WITH THE
+   PICTURE.** *(on screen)* `collidingNames=3` over 26 samples: five labels
+   at the peak, 3 of their 10 pairs overlapping — a heap, as the frame
+   shows, and the "counter says 0, picture says heap" argument is over
+   (account in `roadmap-history.md`). **Open is the DECLUTTER**: `PinAll`
+   runs at shot time and three pairs still overlap. Read `namesPinnedSum`
+   against `shotFixups` next build before anyone tunes it.
 
-1. **THE VERDICT HAS AMBIGUOUS KEYS AND NOTHING HAD EVER LOOKED — 30 same-line
-   and 5 cross-line, measured.** `tools/verdict-dupkeys.py` is new and reports
-   them; `verify.py` runs its selftest as a gate and prints the file's counts.
+1. ~~**THE VERDICT HAS AMBIGUOUS KEYS**~~ — **THE EMITTER IS CLEAN AND
+   GATED, 24 Aug.** The old plan here was "turn the file check into a gate
+   once a verdict lands clean"; it went 30 same-line -> 34 instead, so that
+   condition was never going to arrive and the decision had decayed.
 
-   **The two that mattered are fixed.** `collidingWorldText` read **5** on the
-   glyphs line and **9** on the done line of one run — the glyphs line was
-   emitted on **day 2** of a seventeen-day run while its peaks kept rising for
-   another fifteen days, so it has been publishing a partial as a summary since
-   it was written. It is emitted at the end of the run now. And `clean=`
-   appeared TWICE on the done line, 310 from the purse and 0 from the Act III
-   snapshot; the snapshot's pair is `a3clean`/`a3dirty` now.
+   **The gate that exists now reads the SOURCE, not the landed file** —
+   `tools/verdict-emit-dupkeys.py`, in `verify.py`, hard-failing. It answers
+   in a second what the landed check answers one round trip later, and it
+   was written because wiring `DoorSwing` added a second `doors=` to the done
+   line three hundred lines from `WorldBuilder.Doors`. Nothing would have
+   failed; the damage is to the OLD key, which had been readable for weeks.
+   Caught by eye, which is what this file is a list of the consequences of.
+   Confirmed against the actual colliding commit before being believed.
 
-   **What is left is a real backlog.** The remaining same-line hits are lines
-   carrying several sub-records at once — `Traffic: wheels` puts a dimension
-   and a ratio both under `hi=`, and two lines repeat a whole per-walker record
-   three times. A grep gets an arbitrary one of three. **The fix is one line
-   per record**, as the sky readings already do.
-
-   **AND THE GATE IS NOT ON YET, ON PURPOSE.** The landed verdict still carries
-   the collisions — it came from the build before the repair, so gating now
-   would go red on arrival (rule 5b's corollary). **Turn the file check into a
-   gate once a verdict lands clean.**
+   **Two real hits fixed, no baseline list.** `Traffic: wheels` had `dia/hi=`
+   beside `hi=` (a slash is not a word character, so `verdict-read.py`
+   matched inside it) — now `diaPerHi`/`diaPerLen`; the §4.7 places line put
+   three sub-records under one set of names and each key carries its place
+   now, staying on ONE line deliberately. **And the tool's first version
+   reported a key the file uses once** — the second was in a comment QUOTING
+   it; comments are blanked now and that case is a selftest. Open: the
+   landed-verdict backlog is still 34, and those are DATA collisions
+   (`key=` inside bracketed values), a different fix from this one.
 
 1. **AND THE SAME COUNTER IMMEDIATELY FOUND A BIGGER ONE: FIVE OF SEVEN
    DISTRICTS HAD NO SHOPS AT ALL.** `the_Hook:shop73 Copper_Row:shop4` and
@@ -360,6 +372,7 @@ one? Take the next rung or name it here. A blank next rung is a research task.
 |---|---|---|
 | textures | 2K colour+normal; roughness on walls AND ground (24 Aug, normalised so the wet calibration held: reflMax 0.89 unchanged); vertical run-off streaks in brick/plaster/concrete | AO maps; a second albedo variant per surface |
 | buildings | procedural terraces, photo surfaces, pots+aerials, shopfront depth (V4), painted joinery, window SILLS (24 Aug, 2133) | window REVEALS (a recess needs an opening in the mass, not a proud box); door furniture |
+| doors | 376 leaves on real hinges, damped-spring swing, latch + creak, opens on a DOORWAY approach not a radius (24 Aug) | a shove — `HitStop` is unreachable at the shipped damping (8.4% overshoot vs a 15% stop, pinned by two CoreTests), so the thump needs a door pushed rather than eased; then walkers using doors |
 | vehicles | Kenney kit + town paints | curated higher-fidelity CC0 set (Quaternius/Sketchfab), same pipeline |
 | props | Kenney + Base Mesh furniture, yellows (build D) | dock clutter density read; higher-tier swaps |
 | characters | Mixamo bodies, gait archetypes | Jafar's clip session; combat set is disk-only |

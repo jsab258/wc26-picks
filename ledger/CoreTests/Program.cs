@@ -16793,6 +16793,41 @@ namespace Ledger.CoreTests
             Check(slam.Angle <= slam.OpenAngle * 1.15 + 1e-9,
                 "and never swings through its own frame", $"{slam.Angle:0.0}");
 
+            // ...AND THE DOOR THAT SHIPS DOES NOT, WHICH NOTHING HAD ASKED.
+            // The test above proves `HitStop` fires — with Stiffness 30 and
+            // Damping 0.15, a fixture no door in the game uses. The DEFAULTS
+            // are 7.0 and 0.62, and a second-order system at damping 0.62
+            // overshoots by exp(-pi*z/sqrt(1-z^2)) = 8.4%, against a stop
+            // that sits at 15%. So the branch is unreachable on every door
+            // Meridian actually builds, and it was measured before it was
+            // asserted: the run that wired `DoorHost` came back
+            // `doors=376/5/5/0/1` — five opened, five latched, ZERO stops.
+            //
+            // That zero is honest and it is not a fault. A spring easing a
+            // door open should not slam it into the wall; the stop is what a
+            // SHOVE would find, and nothing in the game shoves a door yet.
+            // What was wrong was that nobody could tell those two readings
+            // apart, which is rule 3b — a zero needs the thing that would
+            // make it non-zero named beside it.
+            var shipped = new DoorSwing();
+            shipped.Set(true);
+            double shippedPeak = 0; bool shippedHit = false;
+            for (int i = 0; i < 900; i++)
+            {
+                shipped.Tick(1.0 / 60.0);
+                shippedPeak = Math.Max(shippedPeak, shipped.Angle);
+                if (shipped.HitStop) shippedHit = true;
+            }
+            Check(!shippedHit,
+                "a door at the SHIPPED damping eases open and never slams — "
+                + "the stop is what a shove would find, not what a spring does",
+                $"peak {shippedPeak / shipped.OpenAngle:0.000}x open, "
+                + $"stop at 1.150x");
+            Check(shippedPeak > shipped.OpenAngle * 1.04
+                  && shippedPeak < shipped.OpenAngle * 1.12,
+                "but it does overshoot visibly, which is the whole point of "
+                + "a damping under 1", $"{shippedPeak / shipped.OpenAngle:0.000}x");
+
             // Frame-rate independence: a door must not be heavier at 30fps.
             var d30 = new DoorSwing(); var d240 = new DoorSwing();
             d30.Set(true); d240.Set(true);

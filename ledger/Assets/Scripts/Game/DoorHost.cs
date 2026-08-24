@@ -147,6 +147,17 @@ namespace Ledger.Game
                 // hitting its frame; both go through `Impact`, which is
                 // material-matched, pitch-varied and BUDGETED — the one bus
                 // that can refuse a sound when the street is busy.
+                //
+                // `Stops` READS ZERO AND THAT IS CORRECT, which is worth
+                // saying here because a zero next to four moving numbers is
+                // exactly what an unwired branch looks like. At `DoorSwing`'s
+                // shipped damping of 0.62 the spring overshoots by 8.4% and
+                // the stop sits at 15%, so it is unreachable — proved by
+                // simulation at 30 and 60fps, and pinned by two CoreTests
+                // that the `Damping = 0.15` slam fixture never asked. A
+                // spring easing a door open SHOULD not slam it; the stop is
+                // what a shove would find, and nothing shoves a door yet.
+                // That is the next rung, and it is on the ladder by name.
                 if (leaf.Swing.Latched) { Latches++; Audio.Impact("metal", 0.30f); }
                 if (leaf.Swing.HitStop) { Stops++; Audio.Impact("wood", 0.55f); }
                 leaf.Hinge.localRotation =

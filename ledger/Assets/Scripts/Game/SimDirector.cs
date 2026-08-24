@@ -7309,13 +7309,21 @@ namespace Ledger.Game
             // alley with nobody in line of sight producing sighted witnesses —
             // the disagreement is between the staging and the resolver, and
             // this line is the only place it would be visible.
+            // THREE SUB-RECORDS ON ONE LINE, SO THE KEYS CARRY THEIR PLACE.
+            // `eyes=` appeared three times here with three different values and
+            // a reader got an arbitrary one — which is worse than useless on
+            // THIS line in particular, because the whole reason it prints all
+            // four columns is that reading one of them alone once moved a gate
+            // onto a worse metric and had to be moved back. Staying on one line
+            // is deliberate for the same reason: the three places only mean
+            // anything beside each other.
             Debug.Log($"SimDirector: §4.7 places — "
-                      + $"alley eyes={_placesAlley.Eyes} noticed={_placesAlley.Noticed} "
-                      + $"named={_placesAlley.Named} considered={_placesAlley.Considered} (open {alleyOpen}) | "
-                      + $"market eyes={_placesMarket.Eyes} noticed={_placesMarket.Noticed} "
-                      + $"named={_placesMarket.Named} considered={_placesMarket.Considered} (open {marketOpen}) | "
-                      + $"enclosed eyes={_placesEnclosed.Eyes} noticed={_placesEnclosed.Noticed} "
-                      + $"named={_placesEnclosed.Named} (blocked {enclosedBlocked}) — {_placesWhy}");
+                      + $"alleyEyes={_placesAlley.Eyes} alleyNoticed={_placesAlley.Noticed} "
+                      + $"alleyNamed={_placesAlley.Named} alleyConsidered={_placesAlley.Considered} (open {alleyOpen}) | "
+                      + $"marketEyes={_placesMarket.Eyes} marketNoticed={_placesMarket.Noticed} "
+                      + $"marketNamed={_placesMarket.Named} marketConsidered={_placesMarket.Considered} (open {marketOpen}) | "
+                      + $"enclosedEyes={_placesEnclosed.Eyes} enclosedNoticed={_placesEnclosed.Noticed} "
+                      + $"enclosedNamed={_placesEnclosed.Named} (blocked {enclosedBlocked}) — {_placesWhy}");
         }
 
         /// A place nobody can see, found by looking rather than assumed.
@@ -8450,6 +8458,7 @@ namespace Ledger.Game
         /// day-1 noon review shot, from its exact vantage, once per run.
         string _noonFacade = "not_probed";
         string _noonFacadeOf = "not_probed";
+        string _noonFacadeMat = "not_probed";
         bool _noonFacadeDone;
 
         void ProbeNoonFacade(Camera cam)
@@ -8459,7 +8468,17 @@ namespace Ledger.Game
             var sunGo = GameObject.Find("Sun");
             var sunL = sunGo != null ? sunGo.GetComponent<Light>() : null;
             double all = -1, noPost = -1, noAo = -1, noVig = -1, sunOff = -1,
-                   winOff = -1;
+                   winOff = -1, ambOff = -1, amb4x = -1, shadowOff = -1,
+                   fogOff = -1;
+            // CAPTURED, NOT ASSUMED — the same lesson `ProbeFrameCost` had to
+            // learn about `QualitySettings.shadows`. Restoring a value this
+            // function guessed at would leave the run's own evidence frames
+            // lit by the probe's idea of the scene.
+            var keepSky = RenderSettings.ambientSkyColor;
+            var keepEq = RenderSettings.ambientEquatorColor;
+            var keepGnd = RenderSettings.ambientGroundColor;
+            var keepShadows = QualitySettings.shadows;
+            bool keepFog = RenderSettings.fog;
             try
             {
                 all = LeftThirdMedian(FrameShot(cam));
@@ -8488,6 +8507,54 @@ namespace Ledger.Game
                 WorldBuilder.HideWindowsForCapture();
                 winOff = LeftThirdMedian(FrameShot(cam));
                 WorldBuilder.RestoreWindowsAfterCapture();
+
+                // FOUR RUNGS THE LADDER NEVER HAD, AND THE ARITHMETIC SAYS
+                // ONE OF THEM OWNS THE WHOLE GAP. Measured 24 Aug off the
+                // landed f7ab4d0 frame: `concrete_b.jpg` has a mean luma of
+                // 0.366 — a normal mid-grey, not a dark texture — and the
+                // census says the dark third is 85% `mat_concrete_b`. With
+                // the sun already acquitted (sunOff moves it 0.004), the
+                // chain that remains is albedo x ambient x exposure, and
+                // that product comes to about 0.43 display. The RIGHT third
+                // of the same frame reads 0.431, which is the arithmetic
+                // landing exactly where it should. The left reads 0.039.
+                //
+                // An eleven-fold shortfall cannot hide in a rung that moves
+                // things by 0.004, so it is not in this ladder — and a
+                // ladder is an ALLOW-LIST of suspects, which discards
+                // everything nobody thought of and looks identical to a
+                // clean result. These are the four nobody thought of.
+                //
+                // AND ONE OF THEM GOES THE OTHER WAY ON PURPOSE. Every rung
+                // above turns something OFF, which can only ever show that a
+                // suspect is absent. `amb4x` turns the fill UP: if the third
+                // scales with it, the wall IS taking ambient and the fill is
+                // simply not reaching a vertical face; if it does not move,
+                // the surface is refusing the light and the answer is in the
+                // material. No off-rung can separate those two.
+                RenderSettings.ambientSkyColor = Color.black;
+                RenderSettings.ambientEquatorColor = Color.black;
+                RenderSettings.ambientGroundColor = Color.black;
+                ambOff = LeftThirdMedian(FrameShot(cam));
+                RenderSettings.ambientSkyColor = keepSky * 4f;
+                RenderSettings.ambientEquatorColor = keepEq * 4f;
+                RenderSettings.ambientGroundColor = keepGnd * 4f;
+                amb4x = LeftThirdMedian(FrameShot(cam));
+                RenderSettings.ambientSkyColor = keepSky;
+                RenderSettings.ambientEquatorColor = keepEq;
+                RenderSettings.ambientGroundColor = keepGnd;
+
+                QualitySettings.shadows = ShadowQuality.Disable;
+                shadowOff = LeftThirdMedian(FrameShot(cam));
+                QualitySettings.shadows = keepShadows;
+
+                // Fog should LIGHTEN this, not darken it — `fogRGB` is
+                // (0.140,0.160,0.187) and the third sits far below that — so
+                // a rung that moves it downward would say the surface is
+                // further away than the census believes.
+                RenderSettings.fog = false;
+                fogOff = LeftThirdMedian(FrameShot(cam));
+                RenderSettings.fog = keepFog;
             }
             finally
             {
@@ -8498,10 +8565,17 @@ namespace Ledger.Game
                 FilmGrade.Vignette = true;
                 if (sunL != null) sunL.enabled = true;
                 WorldBuilder.RestoreWindowsAfterCapture();
+                RenderSettings.ambientSkyColor = keepSky;
+                RenderSettings.ambientEquatorColor = keepEq;
+                RenderSettings.ambientGroundColor = keepGnd;
+                QualitySettings.shadows = keepShadows;
+                RenderSettings.fog = keepFog;
             }
             _noonFacade = $"[all:{all:0.000}/noPost:{noPost:0.000}/noAO:{noAo:0.000}"
                         + $"/noVig:{noVig:0.000}/sunOff:{sunOff:0.000}"
-                        + $"/winOff:{winOff:0.000}]";
+                        + $"/winOff:{winOff:0.000}/ambOff:{ambOff:0.000}"
+                        + $"/amb4x:{amb4x:0.000}/shadowOff:{shadowOff:0.000}"
+                        + $"/fogOff:{fogOff:0.000}]";
             Debug.Log("SimDirector: noonFacade " + _noonFacade);
 
             // THE CENSUS, after the ladder acquitted everything else. Two
@@ -8549,6 +8623,60 @@ namespace Ledger.Game
                 sb2.Append("/+").Append(rows2.Count - shown2).Append("more");
             _noonFacadeOf = sb2.Append(']').ToString();
             Debug.Log("SimDirector: noonFacadeOf " + _noonFacadeOf);
+
+            // AND WHAT THAT SURFACE ACTUALLY IS, in the same run, because
+            // the ladder above can only narrow it to "the material" and a
+            // second round trip to ask "which property" is half an hour for
+            // one string. One ray down the middle of the dark third.
+            //
+            // THE PROPERTY BLOCK IS READ, AND THAT IS THE POINT. A tint
+            // applied through a `MaterialPropertyBlock` is INVISIBLE in
+            // `sharedMaterial`, so a dump of the material alone would report
+            // a perfectly ordinary grey concrete and prove nothing. This
+            // project already has an open finding that MPB colours skip the
+            // gamma-to-linear conversion and came out weak at the linear
+            // flip — thirteen sites still waiting on a verdict — and a
+            // facade tinted that way is exactly the shape of an eleven-fold
+            // shortfall that no lighting toggle can move.
+            var midRay = cam.ViewportPointToRay(new Vector3(1f / 6f, 0.5f, 0f));
+            if (Physics.Raycast(midRay, out var mh, 400f, ~0,
+                                QueryTriggerInteraction.Ignore))
+            {
+                var rr3 = mh.collider.GetComponent<Renderer>()
+                       ?? mh.collider.GetComponentInParent<Renderer>();
+                var sm3 = rr3 != null ? rr3.sharedMaterial : null;
+                string shader = sm3 != null && sm3.shader != null
+                    ? sm3.shader.name.Replace(' ', '_') : "none";
+                Color matCol = sm3 != null && sm3.HasProperty("_Color")
+                    ? sm3.GetColor("_Color") : Color.magenta;
+                string tex = sm3 != null && sm3.HasProperty("_MainTex")
+                             && sm3.GetTexture("_MainTex") != null
+                    ? sm3.GetTexture("_MainTex").name.Replace(' ', '_') : "none";
+                string mpbCol = "unset";
+                if (rr3 != null && rr3.HasPropertyBlock())
+                {
+                    var mpb = new MaterialPropertyBlock();
+                    rr3.GetPropertyBlock(mpb);
+                    if (mpb.HasColor("_Color"))
+                    {
+                        var mc = mpb.GetColor("_Color");
+                        mpbCol = $"{mc.r:0.000},{mc.g:0.000},{mc.b:0.000}";
+                    }
+                }
+                // ONE LINE, NOT TWO. A second `Debug.Log` sharing this
+                // prefix would put the same facts on two verdict lines and
+                // hand `verdict-read.py` the cross-line ambiguity it exists
+                // to refuse — the fault this commit's other half is about.
+                _noonFacadeMat = $"[{(sm3 != null ? sm3.name.Replace(' ', '_') : "none")}"
+                    + $"/col:{matCol.r:0.00},{matCol.g:0.00},{matCol.b:0.00}"
+                    + $"/mpb:{mpbCol}/tex:{tex}/d:{mh.distance:0.0}"
+                    + $"/nUp:{Vector3.Dot(mh.normal, Vector3.up):0.00}"
+                    + $"/nSun:{Vector3.Dot(mh.normal, GameController.SunwardDir):0.00}"
+                    + $"/shader:{shader}"
+                    + $"/probes:{(rr3 != null ? (int)rr3.lightProbeUsage : -1)}]";
+            }
+            else _noonFacadeMat = "[no_hit_down_the_dark_third]";
+            Debug.Log("SimDirector: noonFacadeMat " + _noonFacadeMat);
         }
 
         /// Median luma of the frame's left third, rows 25%..75% — the same
@@ -9031,7 +9159,7 @@ namespace Ledger.Game
             if (eye == null) return 0f;
             var player = _game != null && _game.Player != null
                 ? _game.Player.transform : null;
-            int nearHits = 0, midHits = 0, rays = 0;
+            int nearHits = 0, midHits = 0, farHits = 0, rays = 0;
             var depths = new List<float>();
             for (int gx = 0; gx < 12; gx++)
                 for (int gy = 0; gy < 7; gy++)
@@ -9062,6 +9190,21 @@ namespace Ledger.Game
                     // rays whose nearest non-player hit is 2..7m; a series
                     // first, per rule 2 — no bound until runs have printed it.
                     if (freeD > 2f && freeD <= 7f) midHits++;
+                    // AND THE BAND BOTH OF THOSE SKIP, added 24 Aug for a
+                    // frame they both passed. `day1_noon` read
+                    // `nearFrac=0.00 midFrac=0.27` — inside both bounds, so
+                    // the shot was certified clear — while its left THIRD sat
+                    // at 0.047 luma against 0.431 on the right. A wall ten
+                    // metres out fills a frame exactly as thoroughly as one
+                    // two metres out; the only thing 7m buys is that the
+                    // metric stops looking. A SERIES FIRST, no bound: rule 2
+                    // is that a threshold comes from printed values, and the
+                    // last two bands each cost a build by being guessed at
+                    // before they were seen. It is a diagnosis either way —
+                    // a high `farFrac` on a dark third says the frame is
+                    // photographing a building, and a low one says the
+                    // darkness is lighting rather than framing.
+                    if (freeD > 7f && freeD <= 20f) farHits++;
                     depths.Add(freeD);
                 }
             depthMedian = Median(depths);
@@ -9071,6 +9214,7 @@ namespace Ledger.Game
             // frame ledger row is about.
             _keptNearFrac = rays > 0 ? (float)nearHits / rays : 0f;
             _keptMidFrac = rays > 0 ? (float)midHits / rays : 0f;
+            _keptFarFrac = rays > 0 ? (float)farHits / rays : 0f;
             return _keptNearFrac;
         }
         /// The kept vantage's near (<=2m) and mid-band (2..7m) frustum-hit
@@ -9078,7 +9222,7 @@ namespace Ledger.Game
         /// that is the point: the last sightline sweep is the kept camera.
         /// (`_shotNearFrac`, plural list, is the existing per-shot SERIES —
         /// the name collision was caught by ShapeCheck before it shipped.)
-        float _keptNearFrac = -1f, _keptMidFrac = -1f;
+        float _keptNearFrac = -1f, _keptMidFrac = -1f, _keptFarFrac = -1f;
         /// Worst mid-band fraction seen BEFORE any step-back, and how many
         /// shots the mid test alone pulled in — without the second number a
         /// quiet mid trigger and a mid test that never fires read the same
@@ -10393,7 +10537,7 @@ namespace Ledger.Game
                                 // near is the step-back's own <=2m test, mid
                                 // is the 2..7m band a hoarding fills while
                                 // near passes. Series first; no bound yet.
-                                .Append("nearFrac\tmidFrac\n");
+                                .Append("nearFrac\tmidFrac\tfarFrac\n");
                 _frameRows++;
                 var ct = Camera.main != null ? Camera.main.transform : null;
                 _frameLedger.Append(name).Append('\t')
@@ -10409,7 +10553,8 @@ namespace Ledger.Game
                             .Append(ct != null ? ct.eulerAngles.y.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : "none").Append('\t')
                             .Append(fp.lumaThirds).Append('\t')
                             .Append(_keptNearFrac.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\t')
-                            .Append(_keptMidFrac.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\n');
+                            .Append(_keptMidFrac.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\t')
+                            .Append(_keptFarFrac.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\n');
                 System.IO.File.WriteAllText("sim-out/frames.tsv", _frameLedger.ToString());
             }
             catch (Exception e) { _errors.Add("LedgerRow: " + e.Message); }
@@ -13929,6 +14074,7 @@ namespace Ledger.Game
                       $"nightFloor={_nightFloor} " +
                       $"noonFacade={_noonFacade} " +
                       $"noonFacadeOf={_noonFacadeOf} " +
+                      $"noonFacadeMat={_noonFacadeMat} " +
                       // Probe-render milliseconds per rung, NOT comparable
                       // with meanFrame (the probe's own RT and ReadPixels
                       // inflate every rung equally). Read the differences.
@@ -14085,12 +14231,28 @@ namespace Ledger.Game
                       // spring with no caller for a whole milestone, so this
                       // line is the proof the wire fires and not decoration:
                       // built / opened-this-run / latched / hit-the-stop /
-                      // most integrated in one frame. Count with zero swung is
+                      // most integrated in one frame. NOT `doors=`, which is
+                      // already taken by `WorldBuilder.Doors` further down the
+                      // same line — two keys with one name is the ambiguity
+                      // `verdict-read.py` exists to refuse, and it would have
+                      // made the EXISTING count unreadable, not just this one.
+                      // Count with zero swung is
                       // geometry that never moved; swung with zero latches is
                       // a door that opens and never shuts; a ticked peak equal
                       // to the count means the AtRest skip is not skipping.
-                      $"doors={DoorHost.Count}/{DoorHost.Swung}/{DoorHost.Latches}"
+                      $"doorSwing={DoorHost.Count}/{DoorHost.Swung}/{DoorHost.Latches}"
                           + $"/{DoorHost.Stops}/{DoorHost.TickedPeak} " +
+                      // WHAT THE PAINT ACTUALLY REACHED. `review_street.jpg`
+                      // has a mint saloon at 0.713 saturation in a frame
+                      // where nothing else passes 0.385, and both paint
+                      // sites set `_Color` through a property block without
+                      // asking whether the shader has one — glTFast's do
+                      // not, so the call no-ops in silence. Took/refused,
+                      // with the first refusing shader named, because
+                      // "refused" and "refused by Unlit/glTF" are different
+                      // amounts of work (rule 3b).
+                      $"kitPaint={AssetLibrary.PaintTook}/{AssetLibrary.PaintRefused} " +
+                      $"kitPaintRefusedBy=[{(AssetLibrary.PaintRefusedBy.Length > 0 ? AssetLibrary.PaintRefusedBy : "none")}] " +
                       $"blobShadows={BlobShadow.Count} " +
                       $"blobWhy=[{BlobShadow.Why.Replace(' ', '_')}] " +
                       // The V2 layer's own denominator: zero with a reason is
