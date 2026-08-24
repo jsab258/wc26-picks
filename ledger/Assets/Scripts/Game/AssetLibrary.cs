@@ -83,19 +83,28 @@ namespace Ledger.Game
         /// ONE implementation, called from both sites — the repeated shape
         /// of this codebase's worst bugs is one idea with two copies, and
         /// the copy nobody looks at is the one missing a line.
-        public static void PaintKit(Renderer[] rends, Color c)
+        public static int PaintKit(Renderer[] rends, Color c)
         {
-            if (rends == null) return;
+            if (rends == null) return 0;
+            int took = 0;
             var mpb = new MaterialPropertyBlock();
-            mpb.SetColor("_Color", c);
             foreach (var r in rends)
             {
                 if (r == null) continue;
                 var sm = r.sharedMaterial;
                 if (sm != null && sm.HasProperty("_Color"))
                 {
+                    // READ THE EXISTING BLOCK FIRST. `SetPropertyBlock` replaces
+                    // wholesale, so writing a fresh one would silently drop any
+                    // property another system had already put there — the
+                    // skyline path did this correctly and the two car paths did
+                    // not, and folding three call sites into one helper has to
+                    // keep the most careful of the three, not the commonest.
+                    r.GetPropertyBlock(mpb);
+                    mpb.SetColor("_Color", c);
                     r.SetPropertyBlock(mpb);
                     PaintTook++;
+                    took++;
                 }
                 else
                 {
@@ -105,6 +114,7 @@ namespace Ledger.Game
                             ? sm.shader.name.Replace(' ', '_') : "no_material";
                 }
             }
+            return took;
         }
 
         public static void Initialize()

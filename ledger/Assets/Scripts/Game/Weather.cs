@@ -29,8 +29,6 @@ namespace Ledger.Game
         public static float Wetness { get; private set; }
 
         static Weather _instance;
-        static Material _asphalt, _concrete;
-        static float _dryAsphaltSmooth, _dryConcreteSmooth;
         ParticleSystem _rainFx;
         GameController _game;
         int _decidedForDay = -1;
@@ -68,20 +66,46 @@ namespace Ledger.Game
         {
             // Cache the dry values ONCE. Reading them back after we have
             // already wetted the material would bake the rain in permanently.
-            _asphalt = AssetLibrary.Material(AssetLibrary.Asphalt);
-            _concrete = AssetLibrary.Material(AssetLibrary.Concrete);
-            if (_asphalt != null) _dryAsphaltSmooth = _asphalt.GetFloat("_Glossiness");
-            if (_concrete != null) _dryConcreteSmooth = _concrete.GetFloat("_Glossiness");
 
             // Rain as a particle system that follows the camera — a box of
             // falling streaks is indistinguishable from real rain at street
             // level and costs nothing.
             var fx = new GameObject("RainFX");
             fx.transform.SetParent(transform, false);
+            // POINTED DOWN, AND THAT ONE LINE IS THE WHOLE BUG. A Box shape
+            // emits along the shape's FORWARD, and nothing here ever rotated
+            // it — so world +Z it was, and the rain was being THROWN
+            // SIDEWAYS at street level rather than falling.
+            //
+            // The arithmetic, from the shipped numbers: the sheet sits 14m
+            // above the camera, a drop lives 1.1s, and at 1.4x gravity it
+            // falls 8.3m in that time while travelling 28.6m horizontally.
+            // So a drop DIES 5.7m OVER YOUR HEAD, every time, and not one of
+            // them can reach eye level. Measured off two landed frames
+            // before the code was read, with hue separating streaks from the
+            // sodium glow: bright desaturated pixels read 6.5% and 10.7% in
+            // the top third and 0.00-0.26% everywhere below it, in two
+            // different frames from two different cameras. The single wedge
+            // they occupy is the same fault seen sideways — every drop flies
+            // the same WORLD direction, so which part of the frame gets the
+            // rain depends on where the camera happens to be looking.
+            //
+            // The item this closes was called "RAIN AT EYE LEVEL" and was
+            // closed on "landed wet frames read as streaks in lamp cones".
+            // They do. The lamp cones are above the lamps.
+            fx.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             _rainFx = fx.AddComponent<ParticleSystem>();
             var main = _rainFx.main;
             main.startLifetime = 1.1f;
-            main.startSpeed = 26f;
+            // 9 m/s, NOT THE 26 THAT WAS HERE — and this is a rename as much
+            // as a retune. 26 was a horizontal THROW speed; pointing the
+            // emitter down changes what the number means, which is the trap
+            // where an instrument keeps its name after its question moves.
+            // Rain reaches terminal velocity at roughly 5-9 m/s, gravity
+            // adds the rest over the fall, and 26 straight down would read
+            // as tracer fire rather than weather. Judge it on `rainLowest`
+            // and the wet frame, and retune from the landed series.
+            main.startSpeed = 9f;
             main.startSize = 0.06f;
             main.startColor = new Color(0.75f, 0.8f, 0.9f, 0.45f);
             main.maxParticles = 3000;
@@ -110,6 +134,51 @@ namespace Ledger.Game
             // 0.45-alpha streak was always meant to be.
             renderer.material = new Material(Shader.Find("Sprites/Default"));
             _rainFx.Play();
+        }
+
+        /// WHERE THE RAIN ACTUALLY IS, relative to the eye that is meant to
+        /// be standing in it.
+        ///
+        /// `rainLowest` is the height of the LOWEST live drop above the
+        /// camera, in metres, and it is the number that would have caught
+        /// the sideways emitter on the day it shipped: as built it could not
+        /// go below +5.7m however hard it rained, and a positive reading
+        /// here means the weather is happening over your head. `rainBelow`
+        /// is how many drops are under eye height at all, against
+        /// `rainAlive` — rule 3b's denominator, because zero drops below the
+        /// eye and no rain today produce the same zero otherwise.
+        ///
+        /// A MINIMUM AND A COUNT, NOT A MEDIAN, deliberately: "is ANY of it
+        /// down here" is not a median question, and a median over a column
+        /// of falling rain describes the middle of the column, which is
+        /// exactly the part that was never in doubt.
+        public static float RainLowest = 999f;
+        public static int RainAlive, RainBelow;
+        static ParticleSystem.Particle[] _rainBuf;
+        int _rainSampleTick;
+
+        void SampleRain()
+        {
+            if (_rainFx == null || Rain <= 0.05f) return;
+            // Every thirtieth frame: `GetParticles` copies the whole buffer
+            // and this is a diagnostic, not a mechanic.
+            if (++_rainSampleTick % 30 != 0) return;
+            var cam = Camera.main;
+            if (cam == null) return;
+            int cap = _rainFx.main.maxParticles;
+            if (_rainBuf == null || _rainBuf.Length < cap)
+                _rainBuf = new ParticleSystem.Particle[cap];
+            int n = _rainFx.GetParticles(_rainBuf);
+            RainAlive = n;
+            int below = 0;
+            float camY = cam.transform.position.y;
+            for (int i = 0; i < n; i++)
+            {
+                float dy = _rainBuf[i].position.y - camY;
+                if (dy < RainLowest) RainLowest = dy;
+                if (dy < 0f) below++;
+            }
+            RainBelow = below;
         }
 
         void Update()
@@ -173,6 +242,7 @@ namespace Ledger.Game
                     shape.scale = new Vector3(38f * coverage, 0.2f, 38f * coverage);
                 }
             }
+            SampleRain();
             if (_rainFx != null)
             {
                 var em = _rainFx.emission;
@@ -194,18 +264,28 @@ namespace Ledger.Game
             // both colliding.
             Audio.Rain(Rain);
 
-            ApplyWetness();
         }
 
-        /// The whole trick: wet asphalt is SHINY asphalt. One float per
-        /// material and the street starts holding the lamps.
-        static void ApplyWetness()
-        {
-            if (_asphalt != null)
-                _asphalt.SetFloat("_Glossiness", Mathf.Lerp(_dryAsphaltSmooth, 0.82f, Wetness));
-            if (_concrete != null)
-                _concrete.SetFloat("_Glossiness", Mathf.Lerp(_dryConcreteSmooth, 0.55f, Wetness));
-        }
+        /// WET ASPHALT IS SHINY ASPHALT, AND THIS IS NO LONGER WHERE THAT
+        /// HAPPENS — the two lines that used to live here had stopped
+        /// working and nothing said so.
+        ///
+        /// They wrote `_Glossiness` straight onto the shared asphalt and
+        /// concrete materials. Since gloss MAPS were bound to every textured
+        /// surface, `_METALLICGLOSSMAP` is enabled on both, and the Standard
+        /// shader IGNORES `_Glossiness` entirely when it is — smoothness
+        /// comes from the map's alpha times `_GlossMapScale` instead. So
+        /// this ran every frame, cost two writes, and changed nothing.
+        ///
+        /// `AssetLibrary.SetWetness` is the one implementation, it covers
+        /// asphalt, sidewalk, kerb and concrete (`WetSurfaces`), and it goes
+        /// through `SetSmoothness`, which knows about the map and scales it
+        /// normalised by the map's own mean so the calibrated level holds.
+        /// `SceneLighting.LateUpdate` calls it every frame with the same
+        /// `Wetness` this class computes.
+        ///
+        /// Checked before deleting rather than after (rule 5): both surfaces
+        /// are in `WetSurfaces`, so nothing is lost with these lines.
 
         /// How much the weather closes the world in — read by the lighting
         /// driver so fog, rain and time of day are one decision.

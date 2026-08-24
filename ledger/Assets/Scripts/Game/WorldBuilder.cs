@@ -3532,7 +3532,6 @@ namespace Ledger.Game
                 if (kit != null)
                 {
                     SkylineKitted++;
-                    SkylineRepainted++;
                     kit.name = $"Skyline_{i}";
                     var r = kit.GetComponentInChildren<Renderer>();
                     if (r != null && r.bounds.size.y > 0.01f)
@@ -3570,14 +3569,20 @@ namespace Ledger.Game
                     // haze take the contrast out of anything real. A skyline
                     // that reads as BRIGHTER than the street in front of it is
                     // the specific thing that made the frame look wrong.
-                    var haze = SkylineHaze;
-                    var mpb = new MaterialPropertyBlock();
-                    foreach (var rr in kit.GetComponentsInChildren<Renderer>())
-                    {
-                        rr.GetPropertyBlock(mpb);
-                        mpb.SetColor("_Color", haze);
-                        rr.SetPropertyBlock(mpb);
-                    }
+                    //
+                    // AND `SkylineRepainted` USED TO BE INCREMENTED ABOVE,
+                    // the moment the kit existed and BEFORE the paint was
+                    // attempted — so it reported success for something it had
+                    // never checked, which is the most misleading form a
+                    // counter can take. It counts what the shader ACCEPTED
+                    // now. Measured 24 Aug on `district_downtown`: the far
+                    // tower is the most saturated thing in the frame (0.469
+                    // against brick 0.324 and sky 0.222), and fog cannot
+                    // explain it because the fog colour itself sits near
+                    // 0.196 — so this repaint may have been evaporating all
+                    // along, exactly like the mint saloon's.
+                    SkylineRepainted += AssetLibrary.PaintKit(
+                        kit.GetComponentsInChildren<Renderer>(), SkylineHaze) > 0 ? 1 : 0;
                     // `Object.Destroy`, not `Destroy` — this class is static
                     // and has no MonoBehaviour to inherit it from. Caught by
                     // the local Game-layer compile pass rather than by a

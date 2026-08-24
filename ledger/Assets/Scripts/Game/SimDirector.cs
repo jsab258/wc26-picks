@@ -14251,6 +14251,16 @@ namespace Ledger.Game
                       // with the first refusing shader named, because
                       // "refused" and "refused by Unlit/glTF" are different
                       // amounts of work (rule 3b).
+                      // WHERE THE RAIN IS, relative to the eye standing in
+                      // it. `rainLowest` is the lowest live drop's height
+                      // ABOVE the camera: positive means the weather is
+                      // happening over your head, and as the emitter shipped
+                      // it could not read below +5.7m however hard it rained
+                      // because the box threw drops sideways. Below/alive is
+                      // rule 3b's pair — no drops under the eye and no rain
+                      // today are the same zero otherwise.
+                      $"rainLowest={Weather.RainLowest:0.0} " +
+                      $"rainBelow={Weather.RainBelow}/{Weather.RainAlive} " +
                       $"kitPaint={AssetLibrary.PaintTook}/{AssetLibrary.PaintRefused} " +
                       $"kitPaintRefusedBy=[{(AssetLibrary.PaintRefusedBy.Length > 0 ? AssetLibrary.PaintRefusedBy : "none")}] " +
                       $"blobShadows={BlobShadow.Count} " +
