@@ -143,32 +143,34 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **EIGHTEEN GATES SAY ONLY THEIR OWN NAME WHEN THEY FAIL — WHICH IS WHY
-   THE TOP FAILURES HAVE NEVER BEEN DIAGNOSED.** `--flaky` now prints a
-   recent window beside the lifetime rate and ranks by it (it ranked by
-   lifetime before, so `dayJob` read `27.0% ... last 3 runs ago` with no way
-   to ask what it does NOW):
-   | gate | lifetime | recent 40 |
-   |---|---|---|
-   | frame | 47.2% | 37.5% |
-   | jobRan | 23.8% | **25.0%** |
-   | dayJob | 27.0% | 22.5% |
-   | dressing | 22.5% | 22.5% |
-   | claims | 7.5% | **15.0% WORSENING** |
-   **`dayJob` had NO detail string at all** — 83 reds over the project's life
-   and not one of them printed a reason, so there was never anything to
-   diagnose. Now `dayJob[open= days= shifts=]`, its three operands.
-   **`claims` printed the WRONG operand:** the gate tests `_claimCaught` (a
-   bool from one `Claim` call) and the line printed `LawHost.ClaimsCaught`
-   (an int counting contradictions) — same name, different quantity, so a red
-   showed a healthy-looking `caught=1` and could not explain itself. Both
-   ship now, named apart. `perf` likewise (an absent sampler and a slow one
-   were the same red).
-   **This file already argued the point, for ONE gate, and left twenty.**
-   Sixteen bare gates remain — do them when each next goes red, and never add
-   a gate without its operands.
-   *(My first recent-window measure used `ls -t`; `git pull` rewrites every
-   run file, so mtime is pull order. `ordered_runs()` sorts by commit.)*
+1. **`dayJob` IS DIAGNOSED: THE COURIER IS STUCK ON A DOOR I MADE SWING.**
+   *(2nd most common failure — 22.5% of the last 40, 83 of 307 ever, and
+   never once diagnosed because it printed no reason.)* Gave it its operands,
+   then read the tracer that already existed:
+   `shiftTrace=[d13:**noaccept**/from:23m/nearest:6.3m/walked:31m/**stalled:733**
+   of ticks:1257/**on:Bldg69_door@0.2m**]`. The courier spent **58% of the
+   run pressed against a door at 0.2m**, never got within 6.3m of the board,
+   and missed the noon accept window — so `ShiftsWorked` stayed 0.
+   **Cause is mine, from today:** `MakeBox` uses `CreatePrimitive`, which
+   ships a BoxCollider. A static door recessed 12cm into the facade kept it
+   harmlessly inside the wall; the moment `DoorHost` turns the hinge, ~1m of
+   collider sweeps across the PAVEMENT. Collider removed — the wall still
+   blocks, `DoorHost` uses distances not raycasts, and `WinBox` already did
+   this for the same reason. **Judge on `dayJob` and `stalled` next landing.**
+   *(This does not explain the 83 historical reds — doors only swung today —
+   so expect an improvement, not a cure, and keep reading the tracer.)*
+
+1. **EIGHTEEN GATES SAY ONLY THEIR OWN NAME WHEN THEY FAIL.** `--flaky` now
+   prints a recent window beside the lifetime rate and ranks by it: frame
+   37.5%, jobRan **25.0%**, dayJob 22.5%, dressing 22.5%, claims **15.0% and
+   WORSENING** (7.5% lifetime). **`claims` printed the WRONG operand** — it
+   tests `_claimCaught` (a bool) and printed `LawHost.ClaimsCaught` (an int
+   counting contradictions), so a red showed a healthy `caught=1`. Fixed and
+   named apart, with `perf` and `dayJob`. **This file already argued the
+   point for ONE gate and left twenty.** Sixteen remain: do each as it goes
+   red, and never add a gate without its operands.
+   *(My first recent-window measure used `ls -t`; `git pull` rewrites run
+   files, so mtime is pull order. `ordered_runs()` sorts by commit.)*
 
 1. **THE SHADOW RATIO IS 0.06 AND THE MISSING QUANTITY IS INDIRECT LIGHT.**
    With the y-flip fixed the denominator finally behaves — **lit is constant

@@ -1862,6 +1862,28 @@ namespace Ledger.Game
             hinge.transform.position = hingeAt;
             hinge.transform.rotation = Quaternion.LookRotation(outward, Vector3.up);
             leaf.transform.SetParent(hinge.transform, true);
+            // NO COLLIDER ON A LEAF THAT SWINGS, and this is a regression I
+            // introduced today rather than a tidy-up. `MakeBox` builds on
+            // `CreatePrimitive`, which ships a BoxCollider; a static door
+            // recessed 12cm into the facade kept that collider harmlessly
+            // inside the wall. The moment the hinge turns it, roughly a metre
+            // of collider sweeps out across the PAVEMENT — the surface the
+            // whole crowd walks on.
+            //
+            // Measured, not suspected: `shiftTrace` on the red `dayJob` run
+            // reads `d13:noaccept ... stalled:733 of ticks:1257 ...
+            // on:Bldg69_door@0.2m`. The courier spent 58% of the run pressed
+            // against a door at twenty centimetres, never got nearer than
+            // 6.3m to the job board, and missed the noon cutoff.
+            //
+            // Safe to remove, checked rather than assumed: the leaf sits
+            // INSIDE the facade, so the building's own collider still stops
+            // anyone walking at it; `DoorHost` uses distances, not raycasts;
+            // and `WinBox` already does exactly this, for exactly this
+            // reason. A door is scenery you walk through a doorway of, not a
+            // thing to be blocked by — especially one that opens for you.
+            foreach (var dc in leaf.GetComponentsInChildren<Collider>())
+                Object.Destroy(dc);
             DoorHost.Register(hinge.transform);
 
             var lr = leaf.GetComponent<Renderer>();
