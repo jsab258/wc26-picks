@@ -282,6 +282,34 @@ def prop_dimensions():
     return True, "prop reader ok (%d checks)" % n
 
 
+def prop_reach():
+    """Do the fetched kit models have a caller — the reach ledger, for art.
+
+    REPORTS A COUNT, RATCHETS NOTHING. An unused model is not a fault: the
+    fetches are deliberately broad, and a guard that failed the build for one
+    would be the ratchet rule 5 forbids — it cannot tell "we fetched more than
+    we needed" from "a kit stopped being placed".
+
+    What CAN fail is the instrument, and the check it runs is the one that
+    cannot be fooled by a fixture: every prop key the last landed sim actually
+    instantiated must be reported as reached. A reach tool that has drifted
+    from `TryInstantiateProp`'s normalisation would fail that immediately, and
+    a fixture written by the same hand as the tool would not catch it.
+    """
+    tool = ROOT.parent / "tools" / "prop-reach.py"
+    code, out = run(["python3", str(tool), "--selftest"])
+    if code != 0:
+        bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAILED")]
+        return False, "PROP REACH: " + (bad[0][7:98] if bad else "selftest did not pass")
+    code, rep = run(["python3", str(tool)])
+    head = rep.splitlines()[0] if rep.strip() else "prop-reach produced no report"
+    n = len([l for l in out.splitlines() if "passed" in l])
+    unreached = [l.strip() for l in rep.splitlines()
+                 if l.strip().startswith("ENTIRE KIT UNREACHED")]
+    tail = (" — " + unreached[0]) if unreached else ""
+    return True, head.replace("prop-reach: ", "prop reach ok, ") + tail
+
+
 def powershell_steps():
     """Do the workflow's pwsh steps parse.
 
@@ -1448,7 +1476,7 @@ def main():
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, raw_avenues, filename_as_type, namespace_as_value, workflow_size,
-               powershell_steps, sheet_read, prop_dimensions,
+               powershell_steps, sheet_read, prop_dimensions, prop_reach,
                frame_drift, verdict_keys, verdict_format, verdict_dupkeys,
                verdict_emit_dupkeys, runs_map_to_commits, gate_detail_ceiling,
                save_chaos, soak,
