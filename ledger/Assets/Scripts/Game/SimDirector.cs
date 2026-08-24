@@ -14081,6 +14081,16 @@ namespace Ledger.Game
                       // M17.10 — the contact blobs, with rule 3b's denominator:
                       // zero blobs beside a street of walkers means Attach never
                       // ran or the shader failed, and blobWhy says which.
+                      // M17 — the doors swing. `Core/DoorSwing` was a tested
+                      // spring with no caller for a whole milestone, so this
+                      // line is the proof the wire fires and not decoration:
+                      // built / opened-this-run / latched / hit-the-stop /
+                      // most integrated in one frame. Count with zero swung is
+                      // geometry that never moved; swung with zero latches is
+                      // a door that opens and never shuts; a ticked peak equal
+                      // to the count means the AtRest skip is not skipping.
+                      $"doors={DoorHost.Count}/{DoorHost.Swung}/{DoorHost.Latches}"
+                          + $"/{DoorHost.Stops}/{DoorHost.TickedPeak} " +
                       $"blobShadows={BlobShadow.Count} " +
                       $"blobWhy=[{BlobShadow.Why.Replace(' ', '_')}] " +
                       // The V2 layer's own denominator: zero with a reason is

@@ -244,6 +244,7 @@ namespace Ledger.Game
             _windowsLit = false;
             WindowPanes = 0; WindowBands = 0;
             Doors = 0;
+            DoorHost.Reset();
             System.Array.Clear(PremisesBuilt, 0, PremisesBuilt.Length);
             PremisesByDistrict.Clear();
             AssetLibrary.Initialize();
@@ -1843,6 +1844,25 @@ namespace Ledger.Game
             // a shadow in it, which is the same argument the window piers won.
             var leaf = MakeBox($"{tag}_door", face - outward * 0.12f
                     + new Vector3(0, dhgh * 0.5f, 0), doorSize, AssetLibrary.Wood);
+            // A LEAF THAT CAN ACTUALLY SWING. The box is centred on the
+            // opening, and a door hinges on its EDGE — rotating this
+            // transform would pivot it about its middle and read as a
+            // turnstile. So it gets a hinge parent at one jamb and hangs
+            // off it; `DoorHost` rotates the hinge and never touches the
+            // leaf. Costs one empty GameObject per door and no renderer.
+            // Its own offset, not the jambs' `off` — that is declared below
+            // this point and reusing it would be a use-before-declaration.
+            // Same arithmetic, half the leaf's width along the wall.
+            var hingeAxis = alongX ? new Vector3(0, 0, 1) : new Vector3(1, 0, 0);
+            var hingeAt = face - outward * 0.12f
+                        + hingeAxis * (alongX ? doorSize.z : doorSize.x) * 0.5f
+                        + new Vector3(0, dhgh * 0.5f, 0);
+            var hinge = new GameObject($"{tag}_hinge");
+            hinge.transform.position = hingeAt;
+            hinge.transform.rotation = Quaternion.LookRotation(outward, Vector3.up);
+            leaf.transform.SetParent(hinge.transform, true);
+            DoorHost.Register(hinge.transform);
+
             var lr = leaf.GetComponent<Renderer>();
             var lmpb = new MaterialPropertyBlock();
             lr.GetPropertyBlock(lmpb);

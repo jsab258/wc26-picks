@@ -3364,6 +3364,10 @@ namespace Ledger.Game
             // use — the blob proxies the sun's contact shadow, so it must
             // dim on the sun's own clock.
             BlobShadow.Tick(NightAmount);
+            // The doors swing here for the same reason the blob shadows do:
+            // one call site in the loop that already runs, rather than a
+            // component somebody has to remember to attach.
+            DoorHost.Tick(Time.deltaTime);
 
             // CLOUD SHADOWS, VIA THE LIGHT'S COOKIE (M17.10) — sun and cloud
             // modulation in one shadow path is the frame-study shape, and in

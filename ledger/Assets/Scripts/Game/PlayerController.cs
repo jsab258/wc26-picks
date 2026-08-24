@@ -58,6 +58,10 @@ namespace Ledger.Game
         /// in this game and two things that want to move it.
         public Camera Eye => _camera;
 
+        /// The player's position, or null before one exists. See the write
+        /// beside `FilmGrade.LitAmount`.
+        public static Vector3? Where;
+
         float _yaw = 0f;
         float _pitch = 18f;
         float _verticalVelocity;
@@ -365,6 +369,12 @@ namespace Ledger.Game
             // The visibility readout, from the same function the NPCs read so
             // the two can never disagree (FilmGrade.LitAmount).
             FilmGrade.LitAmount = (float)Perceivers.RefreshPlayerLight(transform.position);
+            // AND WHERE THE BODY IS, published the same way and for the same
+            // reason: one writer, every frame, so nothing downstream has to
+            // go looking for the player and no second copy can drift. Read
+            // by `DoorHost`, which needs a position and has no business
+            // holding a reference to this.
+            Where = transform.position;
             // Acceleration and turn rate MEASURED rather than passed through
             // from input: the locomotion model has momentum, so what the
             // player asked for and what the body is doing are different
