@@ -2900,3 +2900,39 @@ primitive's free collider, and a theory refuted by its own counter.
    Ch38_Shoes 224); the white pills remain unidentified with NO COMMITTED
    STILL holding one, so the next step is a measurement that fires WHILE one
    is on screen.
+
+1. **THE ONE STILL `5ee9330` PRODUCED HAS TWO VISIBLE FAULTS, BOTH NOW
+   MEASURED.** *(on screen, `review_day1_noon`.)*
+   - **RAIN FELL AS WHITE LINES THE HEIGHT OF A SHOPFRONT.** The streak is
+     `startSize*lengthScale + startSpeed*velocityScale` = **0.575m**, 94% of
+     it the velocity term — `velocityScale` was left at the horizontal-throw
+     era's 0.06 when the speed went 26 -> 9, the same leftover, the site
+     nobody looked at. A drop covers 0.15-0.20m while the shutter is open, so
+     0.013 gives 0.152m. **`rainStreak` prints it**, computed from what the
+     renderer was given. *A pixel measurement was tried and DROPPED: window
+     mullions are thin bright vertical lines too, and a rain-free frame
+     scored higher than the rainy one.*
+   - **A FACADE BRIGHTER THAN THE SKY: wall 0.619, sky 0.531, opposite wall
+     0.068.** Nine to one across one picture. `lumaThirds` cannot see it
+     (column thirds, rows 25-75%, sky excluded by construction) and
+     `townWallAlbedo` is a material property, not a luminance.
+     **`skyVsWall=sky/wall@x` + `wallOverSky` now print it**, nine patches
+     across so the one bad building is named rather than sampled past.
+     **NO BOUND YET (rule 2)** — a pale wall in direct sun really can beat an
+     overcast sky, so the bound comes from the series. **Read it next.**
+
+1. **EIGHTEEN GATES CANNOT NAME THEIR OWN FAILURE — A NINETEENTH IS REFUSED.**
+   `dayJob` failed **84 of 308 runs** and never printed a reason: its entry is
+   the bare tuple `("dayJob", dayJobOk)`. Undiagnosed for months not through
+   neglect but because there was nothing to read — and the moment it got its
+   three operands, the tracer beside it named the cause in one landing.
+   **`claims` was worse: it printed the WRONG operand** — the int
+   `LawHost.ClaimsCaught` while testing the bool `_claimCaught` — so a red
+   showed a healthy-looking `caught=1`. Both fixed, with `perf`.
+   **`tools/gate-detail.py` ratchets the count** (18, ceiling 18), in
+   `verify`. It does NOT demand the eighteen be fixed — each needs its
+   condition read and its operands chosen, which is judgement, not a rename —
+   it refuses an addition. **A count, not a list of blessed names**, because a
+   list decays on every rename and an entry nobody re-reads is the reach
+   ledger's own failure mode. It also catches a gate listed BOTH bare and
+   detailed — a mistake I made today adding `perf`.

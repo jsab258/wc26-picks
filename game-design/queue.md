@@ -93,6 +93,26 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 ### screen. Nothing from a later stage starts while an earlier one has
 ### startable work, except reading a landed verdict, which is free.
 
+1. **THE BENCHMARK EXISTS AND ITS FIRST TABLE REDIRECTS THE VISUAL QUEUE.**
+   `tools/ref-bench.py`: one instrument on the five committed GTA frames and
+   every still; 201 of 272 readings outside the reference band. Three
+   steering findings, in fix order:
+   - **FILM GRAIN IS 3-7x THE NOISIEST GTA FRAME** (`grainSigma` 5-7 on
+     districts vs ref 0.23-2.05) and pollutes every edge reading. ONE
+     post-chain setting, never measured before. Builder task: print the
+     grain amplitude the chain actually applies, then set it from the ref
+     band's series — not taste.
+   - **THE NOON ROAD IS THE FLATTEST GROUND PLANE IN THE 22-IMAGE SET**
+     (`groundPatch=0.052` vs ref 0.205-0.382). 17 decal sets are fetched
+     and wired — reach question first: do ANY land on the CARRIAGEWAY?
+     This is V2's number and frame 3's killer argument.
+   - **Shadow contrast in-band on exactly one still** (day1_noon 0.304;
+     districts 0.02-0.15 vs ref 0.157-0.388). Districts are the pinned
+     series, so this is readable per landing.
+   `groundPatch` is the surface-history proxy (grain-immune); `edgeGround`
+   may never be quoted without `grainSigma` beside it — the naive metric
+   scored an all-black frame denser than every GTA reference.
+
 1. **M17.10 — THE VISUAL BAR IS GTA V (PS3). Jafar's order, 21 Aug, twice.**
    *(the most on-screen thing there is)* Plan in `roadmap.md` 17.10,
    decomposition and research in `visual-bar-spec.md`. The look is carried by
@@ -143,25 +163,11 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **THE ONE STILL `5ee9330` PRODUCED HAS TWO VISIBLE FAULTS, BOTH NOW
-   MEASURED.** *(on screen, `review_day1_noon`.)*
-   - **RAIN FELL AS WHITE LINES THE HEIGHT OF A SHOPFRONT.** The streak is
-     `startSize*lengthScale + startSpeed*velocityScale` = **0.575m**, 94% of
-     it the velocity term — `velocityScale` was left at the horizontal-throw
-     era's 0.06 when the speed went 26 -> 9, the same leftover, the site
-     nobody looked at. A drop covers 0.15-0.20m while the shutter is open, so
-     0.013 gives 0.152m. **`rainStreak` prints it**, computed from what the
-     renderer was given. *A pixel measurement was tried and DROPPED: window
-     mullions are thin bright vertical lines too, and a rain-free frame
-     scored higher than the rainy one.*
-   - **A FACADE BRIGHTER THAN THE SKY: wall 0.619, sky 0.531, opposite wall
-     0.068.** Nine to one across one picture. `lumaThirds` cannot see it
-     (column thirds, rows 25-75%, sky excluded by construction) and
-     `townWallAlbedo` is a material property, not a luminance.
-     **`skyVsWall=sky/wall@x` + `wallOverSky` now print it**, nine patches
-     across so the one bad building is named rather than sampled past.
-     **NO BOUND YET (rule 2)** — a pale wall in direct sun really can beat an
-     overcast sky, so the bound comes from the series. **Read it next.**
+1. **THE `5ee9330` STILL'S TWO FAULTS: BOTH FIXED, AWAITING THE LANDING**
+   (rain streak 0.575m -> 0.152m derived; `skyVsWall` probe in; full account
+   in `roadmap-history.md`). **Read `rainLowest` (should rise toward -4 after
+   the spawn-curtain fix) and `skyVsWall` next landing.**
+
 1. **FRAME COMPARISONS ARE CONDITIONED ON THE CAMERA NOW** — 9 of 29 rows
    comparable, 20 moved; the confound is YAW as much as position (-0.80 vs
    -0.68 on `day2_noon`) and the pinned district tour is the photometric
@@ -182,21 +188,9 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    across seven independent shots is a thing the street frames could never
    have shown. Open: read it again after the next few landings, and if it
    holds, bisect the batch.
-1. **EIGHTEEN GATES CANNOT NAME THEIR OWN FAILURE — A NINETEENTH IS REFUSED.**
-   `dayJob` failed **84 of 308 runs** and never printed a reason: its entry is
-   the bare tuple `("dayJob", dayJobOk)`. Undiagnosed for months not through
-   neglect but because there was nothing to read — and the moment it got its
-   three operands, the tracer beside it named the cause in one landing.
-   **`claims` was worse: it printed the WRONG operand** — the int
-   `LawHost.ClaimsCaught` while testing the bool `_claimCaught` — so a red
-   showed a healthy-looking `caught=1`. Both fixed, with `perf`.
-   **`tools/gate-detail.py` ratchets the count** (18, ceiling 18), in
-   `verify`. It does NOT demand the eighteen be fixed — each needs its
-   condition read and its operands chosen, which is judgement, not a rename —
-   it refuses an addition. **A count, not a list of blessed names**, because a
-   list decays on every rename and an entry nobody re-reads is the reach
-   ledger's own failure mode. It also catches a gate listed BOTH bare and
-   detailed — a mistake I made today adding `perf`.
+1. **EIGHTEEN GATES CANNOT NAME THEIR OWN FAILURE — RATCHETED AT 18 by
+   `tools/gate-detail.py` in `verify`** (account in `roadmap-history.md`).
+   Fix each bare gate's operands as it goes red, not en masse.
 
 1. ~~**SIX TOOLS COMPARED A GIT ABBREVIATION TO A RUN FILENAME BY
    EQUALITY**~~ — **FIXED at all six sites** (account in
