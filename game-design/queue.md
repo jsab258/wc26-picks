@@ -144,33 +144,42 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
 1. **`dayJob` IS DIAGNOSED: THE COURIER IS STUCK ON A DOOR I MADE SWING.**
-   *(2nd most common failure — 22.5% of the last 40, 83 of 307 ever, and
-   never once diagnosed because it printed no reason.)* Gave it its operands,
-   then read the tracer that already existed:
-   `shiftTrace=[d13:**noaccept**/from:23m/nearest:6.3m/walked:31m/**stalled:733**
-   of ticks:1257/**on:Bldg69_door@0.2m**]`. The courier spent **58% of the
-   run pressed against a door at 0.2m**, never got within 6.3m of the board,
-   and missed the noon accept window — so `ShiftsWorked` stayed 0.
+   *(The one live gate: 10% of the last 40, 84 of 308 ever, never once
+   diagnosed because it printed no reason.)* Gave it its operands, then read
+   the tracer that already existed: `shiftTrace=[d13:**noaccept**/nearest:6.3m/
+   **stalled:733** of ticks:1257/**on:Bldg69_door@0.2m**]`. The courier spent
+   **58% of the run pressed against a door at 0.2m**, never got within 6.3m
+   of the board, missed the noon accept window, so `ShiftsWorked` stayed 0.
    **Cause is mine, from today:** `MakeBox` uses `CreatePrimitive`, which
-   ships a BoxCollider. A static door recessed 12cm into the facade kept it
-   harmlessly inside the wall; the moment `DoorHost` turns the hinge, ~1m of
-   collider sweeps across the PAVEMENT. Collider removed — the wall still
-   blocks, `DoorHost` uses distances not raycasts, and `WinBox` already did
-   this for the same reason. **Judge on `dayJob` and `stalled` next landing.**
-   *(This does not explain the 83 historical reds — doors only swung today —
-   so expect an improvement, not a cure, and keep reading the tracer.)*
+   ships a BoxCollider. Recessed 12cm into the facade it sat harmlessly
+   inside the wall; the moment `DoorHost` turns the hinge, ~1m of collider
+   sweeps the PAVEMENT. Removed — the wall still blocks, `DoorHost` uses
+   distances not raycasts, `WinBox` set the precedent. **Judge on `dayJob`
+   and `stalled` next landing.** *(Cannot explain the 84 historical reds —
+   doors swung only today — so expect improvement, not a cure.)*
+   *(`jobsDone=2` beside `shifts=0` is NOT a contradiction: `JobsDone` is the
+   racket's drops, `ShiftsWorked` the courier's rounds. Checked.)*
 
-1. **EIGHTEEN GATES SAY ONLY THEIR OWN NAME WHEN THEY FAIL.** `--flaky` now
-   prints a recent window beside the lifetime rate and ranks by it: frame
-   37.5%, jobRan **25.0%**, dayJob 22.5%, dressing 22.5%, claims **15.0% and
-   WORSENING** (7.5% lifetime). **`claims` printed the WRONG operand** — it
-   tests `_claimCaught` (a bool) and printed `LawHost.ClaimsCaught` (an int
-   counting contradictions), so a red showed a healthy `caught=1`. Fixed and
-   named apart, with `perf` and `dayJob`. **This file already argued the
-   point for ONE gate and left twenty.** Sixteen remain: do each as it goes
-   red, and never add a gate without its operands.
-   *(My first recent-window measure used `ls -t`; `git pull` rewrites run
-   files, so mtime is pull order. `ordered_runs()` sorts by commit.)*
+1. **`ordered_runs()` MATCHED NOTHING FOR WEEKS, AND EVERY "RECENT" NUMBER
+   THIS SESSION CAME OUT OF IT.** It ran `git log --format=%h` and compared
+   to the run file's stem. Git picks the abbreviation length dynamically and
+   as the repo grew it went **7 -> 8 characters**, so the comparison stopped
+   matching: measured, **0 of 333 run files matched 400 commits**. Nothing
+   failed — every run fell into the "older than the window" bucket, which is
+   sorted by SHA, i.e. by nothing — while the function's own docstring says
+   commit order is the only order in which "how long ago" means anything.
+   Now `%H` (full hash, fixed length) matched by prefix; 121 match, the rest
+   genuinely predate the window.
+   **THE CORRECTED PICTURE IS MUCH BETTER THAN WHAT I REPORTED.** One gate is
+   live: **`dayJob` 4/40 = 10% recent** against 27.3% lifetime, flagged
+   improving. Everything else is quiet — `frame` last red 48 runs ago,
+   `jobRan` 60, `bodies` 57, `traffic` 51, and **`claims` does not appear at
+   all**. My "five gates at 15-38%" and "`claims` is WORSENING" were both
+   artefacts of the broken ordering and are withdrawn.
+   **The gate-detail work stands on its own merits:** `dayJob` had no detail
+   string across 84 reds, and `claims` printed `LawHost.ClaimsCaught` (an int)
+   while testing `_claimCaught` (a bool). Both fixed, with `perf`. Sixteen
+   bare gates remain — do each as it goes red.
 
 1. **THE SHADOW RATIO IS 0.06 AND THE MISSING QUANTITY IS INDIRECT LIGHT.**
    With the y-flip fixed the denominator finally behaves — **lit is constant
@@ -261,30 +270,25 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    *(`SkylineRepainted` also used to increment before the paint was
    attempted, reporting success for a step it had never checked. Fixed.)*
 
-1. **THE PAVING BLOWOUT: LEVEL HALVED, VARIANCE BARELY MOVED.** `districtGround`
-   returned `mat_asphalt ... glossScale:4.00` — pinned at the clamp, the code
-   giving up rather than a scale — and the fix (uniform scalar once the wet
-   target outruns the map) landed with `glossDropped=5 glossRestored=5`, both
-   directions, not a ratchet. **Judged on the frame, like-for-like:** the
-   strip's median **0.434 -> 0.219** (from 7x the adjacent road to 3.8x) but
-   its p10-p90 spread only **0.654 -> 0.571**, against brick's 0.385. So the
-   gloss scale owned the LEVEL and something else owns the VARIANCE — the
-   texture's own contrast, or the wet reflection layer. It is still the
-   highest-variance surface in the frame. **Next: `districtGround` again on
-   the landing to see what `glossScale` reads now, then the reflection
-   layer's strength — do not re-tune the gloss, it did its part.**
+1. **THE PAVING BLOWOUT: LEVEL HALVED, VARIANCE BARELY MOVED.**
+   `districtGround` found `mat_asphalt ... glossScale:4.00` — pinned at the
+   clamp, the code giving up rather than a scale. Fixed (uniform scalar once
+   the wet target outruns the map; `glossDropped=5 glossRestored=5`, both
+   directions, not a ratchet). **Judged on the frame:** median **0.434 ->
+   0.219**, but spread only **0.654 -> 0.571** against brick's 0.385. The
+   gloss owned the LEVEL; the texture's contrast or the wet reflection owns
+   the VARIANCE. **Next: read `districtGround` again, then the reflection
+   strength — do not re-tune the gloss, it did its part.**
 
-1. **EIGHTY-NINE FETCHED MODELS ON DISK, SIX REFERENCED.** *(rule 6 aimed at
-   art.)* industrial 25, roads 47, suburban 13, commercial 10 = 95 on disk;
-   six used — two awnings, `city_kit_roads_light_curved` for every lamp in
-   town, three `low-detail-building-*` for the skyline. Unused is the density
-   the bar is about: barriers, cones, four more lamp variants, 47 road
-   pieces, **25 industrial buildings for a town whose identity is its
-   docks**. Nothing to fetch or buy. **Next is a READ:** put a handful
-   through `TryInstantiateProp` and check `kitAlbedo` first — twelve
-   `base_mesh_*` families at 1.00 prove a fetched model is not a usable one.
-   *(First reported as entirely unused, which was wrong: props are addressed
-   by underscored key and my hyphenated grep found nothing.)*
+1. **EIGHTY-NINE FETCHED MODELS ON DISK, SIX REFERENCED.** industrial 25,
+   roads 47, suburban 13, commercial 10 = 95; six used (two awnings, one lamp
+   for the whole town, three skyline buildings). Unused is the density the
+   bar is about: barriers, cones, four more lamp variants, 47 road pieces,
+   **25 industrial buildings for a town whose identity is its docks**.
+   **Next is a READ:** a handful through `TryInstantiateProp`, check
+   `kitAlbedo` first — twelve `base_mesh_*` at 1.00 prove a fetched model is
+   not a usable one. *(First called entirely unused, wrongly: props are
+   addressed by underscored key and my hyphenated grep found nothing.)*
 
 1. **TWELVE PROP FAMILIES AT ALBEDO 1.00 ARE UNTEXTURED — `kitAlbedoNoTex=30`
    SAYS SO.** `kitAlbedo` had them at exactly 1.00 against
@@ -315,15 +319,12 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    before calling it: 43 degrees at the ninth decile is a wide-ish idle, not
    a T-pose. `restArmDrop=8.0` says the bind is right either way.
 
-1. **THE DECLUTTER: `namesClipped=0/83` — RAN, FOUND NOTHING, TEST IS SOUND.**
-   `collidingNames=3` over 26 samples; `PinAll` runs at shot time and three
-   pairs still overlap — read `namesPinnedSum` (106) against `shotFixups`
-   (27) before tuning. The edge test landed with a real denominator: 83
-   labels examined, zero clipped. I suspected it was blind and **read
-   `ScreenRect` instead of assuming: there is no clamp** — it returns false
-   only when a label is FULLY off-screen, which is right, and a partially
-   clipped one reaches the check intact. Rare-event counter; one frame is
-   not a rate.
+1. **THE DECLUTTER: `namesClipped=0/83` — RAN, FOUND NOTHING, TEST SOUND.**
+   `collidingNames=3` over 26 samples; three pairs still overlap after
+   `PinAll` — read `namesPinnedSum` (106) against `shotFixups` (27) before
+   tuning. I suspected the edge test was blind and **read `ScreenRect`
+   instead of assuming: no clamp** — it rejects only FULLY off-screen
+   labels, so a partially clipped one reaches the check. Rare-event counter.
 
 1. **FIVE OF SEVEN DISTRICTS HAD NO SHOPS AT ALL.** `the_Hook:shop73
    Copper_Row:shop4` and **zero everywhere else** — the Exchange is the

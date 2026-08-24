@@ -102,14 +102,36 @@ def ordered_runs():
     evidence about the past, and silently discarding it would make the counts
     disagree with the runs directory for no visible reason.
     """
+    # FULL SHAS AND A PREFIX MATCH, because `%h` GREW AND SILENTLY BROKE THIS.
+    #
+    # This used `--format=%h` and compared it to the run file's stem with `in`.
+    # Git chooses the abbreviation length dynamically — enough characters to
+    # stay unambiguous — and as this repository grew it went from seven to
+    # EIGHT. Run files are named with seven. So the comparison stopped
+    # matching anything at all: measured 24 Aug, 333 run files against 400
+    # commits, ZERO matched.
+    #
+    # Nothing failed. Every run simply fell into the "older than the log
+    # window" bucket below, which is sorted by SHA — that is, by nothing —
+    # and this function's own docstring says commit order is the only order in
+    # which "how long ago" means anything. So every `last N runs ago` and
+    # every recent-window rate has been arbitrary since the day the
+    # abbreviation grew, and it looked exactly like working output.
+    #
+    # `%H` is the full hash and never changes length; the run file's stem is a
+    # prefix of it. That comparison cannot rot.
     have = {p.stem: p for p in RUNS.glob("*.txt")}
-    log = subprocess.run(["git", "-C", str(ROOT), "log", "--format=%h", "-400"],
+    log = subprocess.run(["git", "-C", str(ROOT), "log", "--format=%H", "-400"],
                          capture_output=True, text=True).stdout.split()
     out, seen = [], set()
-    for sha in log:
-        if sha in have:
-            out.append((sha, have[sha]))
-            seen.add(sha)
+    for full in log:
+        for stem in have:
+            if stem in seen:
+                continue
+            if full.startswith(stem):
+                out.append((stem, have[stem]))
+                seen.add(stem)
+                break
     out.extend((s, p) for s, p in sorted(have.items()) if s not in seen)
     # A BUILD THAT NEVER RAN A SIM IS NOT A RUN, and counting it as one makes
     # every gate look quieter than it is.
