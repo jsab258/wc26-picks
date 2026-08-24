@@ -21,5 +21,31 @@
       "mcp__Claude_Code_Remote__delete_trigger",
       "mcp__Claude_Code_Remote__update_trigger"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "QUEUE_FILE=game-design/queue.md bash .claude/hooks/session-start.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "VERIFY_FOOTER=ledger/.verify-footer bash .claude/hooks/verify-gate.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
   }
 }
