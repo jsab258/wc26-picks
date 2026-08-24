@@ -11,7 +11,7 @@ ALLOWLIST. A line the sim prints that matches nothing in that pattern is
 dropped, silently, with every step reporting success — and `verdict.txt` is the
 only channel out of CI this environment can read.
 
-It has now cost three separate pieces of work:
+It has now cost four separate pieces of work:
 
   - `windowWarmth` swept the source colour the window investigation had been
     parked on for want of it. Filtered out.
@@ -22,13 +22,32 @@ It has now cost three separate pieces of work:
     run, green, and not in the verdict. Written two hours after reading the
     workflow comment describing the first two.
 
+  - `dayMark`, the sim's once-a-day heartbeat, whose two consecutive lines are
+    the only thing in this project that can give a run's RATE. Filtered out —
+    so it reached the verdict only through the hang tail, i.e. only on runs
+    that were already broken, and there was no healthy baseline to compare
+    those against. Fixed 24 Aug, and by then this tool had been reading the
+    wrong file for two days and could not have said so.
+
 Each time the fix was the same one-word edit to the allowlist, and each time it
 was found by noticing a number was missing rather than by asking.
 
-WHAT IT DOES. Reads the `grep -E` allowlist straight out of the workflow — not a
-copy of it, because a copy is a second implementation that goes stale, which is
-the fault this repository keeps paying for — and matches it against every
-`Debug.Log` prefix in `SimDirector`.
+WHAT IT DOES. Reads the `grep -E` allowlist straight out of the script that
+applies it — not a copy of it, because a copy is a second implementation that
+goes stale, which is the fault this repository keeps paying for — and matches it
+against every `Debug.Log` prefix in `SimDirector`.
+
+AND "STRAIGHT OUT OF" IS NOT THE SAME AS "OUT OF THE RIGHT FILE". This read the
+workflow, which is where the allowlist lived until the step was moved wholesale
+into `tools/sim-shots-commit.sh` on 22 Aug (the step had grown to within 416
+characters of the hard expression ceiling that fails a workflow AT DISPATCH, so
+every comment edit in it was a coin flip against getting a build at all — the
+account is in that file's header). The grep left; the reader
+did not follow it, and from that commit onward every run of this tool printed
+"could not find the allowlist" and returned 0 — which is the refusal working
+exactly as designed, and nobody ran it to see. A tool that reads a file for its
+truth is only as current as the path, so the path is the part to check first
+when it goes quiet.
 
 WHAT IT DOES NOT DO. It does not fail anything, and it must not. Most of the
 dropped lines SHOULD be dropped: "staging a loiter beside the market" is
@@ -44,12 +63,16 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-WORKFLOW = ROOT / ".github" / "workflows" / "ledger-build-windows.yml"
+# The verdict-building step's body, moved out of the workflow on 22 Aug. The
+# allowlist moved with it.
+COMMIT_SH = ROOT / "tools" / "sim-shots-commit.sh"
 SIM = ROOT / "ledger" / "Assets" / "Scripts" / "Game" / "SimDirector.cs"
 
 # The allowlist is a `grep -E "..."` line followed by the log path on the next
 # line. Anchored on the path so a different grep in the same file cannot be
-# picked up by accident.
+# picked up by accident — and the same script now holds three other greps of
+# that log, two of them for the hang tails, so the anchor is load-bearing
+# rather than decorative.
 ALLOWLIST = re.compile(r'grep -E "([^"]+)"\s*\\\s*\n\s*sim-run/player\.log')
 
 # THE WHOLE STRING LITERAL, not the head up to the first interpolation.
@@ -69,7 +92,7 @@ LOGGED = re.compile(r'Debug\.Log(?:Error)?\(\s*\$?"((?:[^"\\]|\\.){0,400})"')
 
 
 def allow_patterns():
-    m = ALLOWLIST.search(WORKFLOW.read_text(encoding="utf-8"))
+    m = ALLOWLIST.search(COMMIT_SH.read_text(encoding="utf-8"))
     if not m:
         return None
     # Alternation, with grep's backslash escapes removed: `done\.` matches the
@@ -78,8 +101,8 @@ def allow_patterns():
 
 
 def main():
-    if not WORKFLOW.is_file() or not SIM.is_file():
-        print("verdict-reach: workflow or SimDirector not found")
+    if not COMMIT_SH.is_file() or not SIM.is_file():
+        print(f"verdict-reach: {COMMIT_SH.name} or SimDirector not found")
         return 0
     allow = allow_patterns()
     if allow is None:
@@ -87,8 +110,13 @@ def main():
         # would make every line look dropped; a failed parse reporting "nothing
         # is dropped" would be worse, and is the shape of every quiet failure
         # this repo has chased.
-        print("verdict-reach: could not find the allowlist in the workflow — "
-              "the grep may have been reformatted. NOT reporting a result.")
+        #
+        # AND IT NAMES THE FILE IT LOOKED IN, because the last time this fired
+        # the answer was not "the grep was reformatted" but "the grep is in
+        # another file now", and the message sent nobody there.
+        print(f"verdict-reach: could not find the allowlist in {COMMIT_SH} — "
+              "the grep may have been reformatted, or moved to another file. "
+              "NOT reporting a result.")
         return 0
 
     src = SIM.read_text(encoding="utf-8")

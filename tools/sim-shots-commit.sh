@@ -143,16 +143,26 @@ if [ -f sim-run/player.log ]; then
     # appears only in the threat gate's label — printed when the gate
     # FAILS. Backwards for a diagnostic: `hand=hand bone` on a GREEN
     # run is what proves the bought skeleton holds the object.
-    # AN ALLOWLIST THAT HAS SILENTLY EATEN THREE PIECES OF WORK:
-    # windowWarmth, ringGrowth, and — to the commit repairing this
-    # very channel — ALL GATES. Each built, ran, went green, never
-    # arrived. `[series]` is matched as a FAMILY so the next probe
-    # needs nobody to remember this file; anything else must be
+    # AN ALLOWLIST THAT HAS SILENTLY EATEN FOUR PIECES OF WORK:
+    # windowWarmth, ringGrowth, — to the commit repairing this very
+    # channel — ALL GATES, and `dayMark`. Each built, ran, went green,
+    # never arrived. `[series]` is matched as a FAMILY so the next
+    # probe needs nobody to remember this file; anything else must be
     # named. tools/verdict-reach.py reads this pattern and lists what
-    # the sim prints that never lands. Full account in its docstring:
-    # this step has a hard size limit and a longer version of this
-    # paragraph broke dispatch outright (422, max expression length).
-    grep -E "FAILING GATES|SimDirector: ALL GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |alley eyes=|Traffic: wheels |brandished a cosh|SimDirector: windowGlow|\[series\]|\[panel\]|SceneAudit: " \
+    # the sim prints that never lands. Full account in its docstring.
+    #
+    # `dayMark` IS THE FOURTH, AND IT WAS ONLY EVER READABLE ON A
+    # BROKEN RUN. It fires once per in-game day — eleven lines a run —
+    # carrying the wall clock and the frame count, and two consecutive
+    # ones give a RATE, which is the distinction the whole hang
+    # question turns on: a uniformly slow run has a constant
+    # seconds-per-day, a stalled one has a single enormous gap. The
+    # tail below picks those lines up when there is no done line, so
+    # the number existed for the sick case and was dropped for the
+    # healthy one — exactly backwards, because a baseline you only see
+    # while something is broken is not a baseline. ALL of them are
+    # kept, not a head: the gaps ARE the reading.
+    grep -E "FAILING GATES|SimDirector: ALL GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |SimDirector: dayMark |alley eyes=|Traffic: wheels |brandished a cosh|SimDirector: windowGlow|\[series\]|\[panel\]|SceneAudit: " \
       sim-run/player.log || echo "(no SimDirector lines matched)"
     # A filter that drops a line in silence is what made that cost a
     # round trip. This says it in the verdict, on the run it happens.
@@ -193,17 +203,36 @@ if [ -f sim-run/player.log ]; then
     # an allow-list silently discards everything nobody thought of, which is
     # the ShapeCheck fault in a different costume.
     #
-    # BOTH TAILS, not one. The filtered tail says where the SIM got to; the raw
+    # THREE TAILS, not one. The filtered tail says where the SIM got to; the raw
     # tail is the only thing that can show an engine-side death (a crash
     # handler, an out-of-memory) which by definition writes no `TypeName:` line.
     # And `hangTailOwn` is the denominator: filtered-to-nothing and
     # nothing-to-filter read identically without it (rule 3b).
+    #
+    # AND THE STRUCTURAL FILTER IS NOT NARROW ENOUGH ON ITS OWN, which the
+    # first tail it ever produced already showed. `TypeName: ` is the shape of
+    # OUR lines, and it is also the shape of a .NET exception — an
+    # `ArgumentException: ...` and its stack took three of the twenty lines
+    # that tail had to spend, 15% of the only window there was, on one
+    # throw. The next one is a loop and the window is gone.
+    #
+    # So: the structural tail is widened to 40 — it is the one that can show an
+    # exception at all, and it needs room for both that and the sim's own
+    # lines — and a THIRD tail keeps the last twelve `SimDirector: ` lines,
+    # which nothing engine-side can crowd out by construction. That is the one
+    # carrying `dayMark`, so a hang gets its rate however noisy the log is.
+    # `hangSimLines` is its denominator for the same reason `hangTailOwn` is
+    # the structural one's: twelve lines shown out of twelve and out of eleven
+    # hundred are different runs.
     if ! grep -q "SimDirector: done\." sim-run/player.log; then
-      echo "hangTail=[the sim produced no done line; a filtered tail and a raw tail follow]"
+      echo "hangTail=[the sim produced no done line; three tails follow — structural, sim-only, raw]"
       echo "hangTailLines=$(wc -l < sim-run/player.log | tr -d ' ')"
       echo "hangTailOwn=$(grep -cE '^[A-Za-z][A-Za-z0-9_]*: ' sim-run/player.log | tr -d ' ')"
+      echo "hangSimLines=$(grep -c '^SimDirector: ' sim-run/player.log | tr -d ' ')"
       grep -E '^[A-Za-z][A-Za-z0-9_]*: ' sim-run/player.log \
-        | tail -20 | tr -d '\r' | sed 's/^/hangOwn| /'
+        | tail -40 | tr -d '\r' | sed 's/^/hangOwn| /'
+      grep '^SimDirector: ' sim-run/player.log \
+        | tail -12 | tr -d '\r' | sed 's/^/hangSim| /'
       tail -12 sim-run/player.log | tr -d '\r' | sed 's/^/hangTail| /'
     fi
   } >> game-design/sim-shots/verdict.txt

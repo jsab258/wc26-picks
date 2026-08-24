@@ -208,11 +208,12 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    4). The thirty lines it printed were 28 repeats of Unity's IK warning and
    2 of an R8_SRGB fallback — **engine chatter drowned every line the sim
    wrote**, so the instrument built for this answered nothing (rule 12).
-   **`hangOwn` now tails the last 20 lines shaped `TypeName: `** — structural,
-   not a list of engine strings to maintain — with `hangTailOwn` as the
-   denominator and the raw tail kept, since an engine-side death writes no
-   `TypeName:` line at all. **Read `hangOwn` next truncation: it names the day
-   and phase reached, which nothing has ever said.**
+   **`hangOwn` now tails the last 40 lines shaped `TypeName: `** — structural,
+   not a list of engine strings — with `hangTailOwn` as the denominator and the
+   raw tail kept. **20 was not enough:** one `ArgumentException` and its stack
+   took 3 of them, .NET exceptions wearing our own line shape. A third tail
+   keeps 12 `SimDirector: ` lines (`hangSim|`/`hangSimLines`). **Read both next
+   truncation**, and `dayMark` now lands on healthy runs as the baseline rate.
    **NOT attributed to the sky change.** It is the obvious suspect — that
    commit made `reflectionIntensity` non-zero on dry frames for the first time
    — but two runs killed at 4 shots predate the code, so one landing cannot

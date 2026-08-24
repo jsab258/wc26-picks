@@ -310,6 +310,41 @@ def prop_reach():
     return True, head.replace("prop-reach: ", "prop reach ok, ") + tail
 
 
+def ref_bench():
+    """The visual-bar benchmark's instrument, not its verdict.
+
+    REPORTS NOTHING HERE AND GATES NOTHING, on purpose. `tools/ref-bench.py`
+    compares our stills against the five GTA V reference frames, and 202 of its
+    272 readings are currently outside the reference range — gating on that
+    would fail every commit until M17.10 finishes, which is the ratchet rule 5
+    forbids wearing an ambition's clothes. The report is read by a person; what
+    is checked here is that the instrument still works.
+
+    ITS SELFTEST IS WORTH RUNNING BECAUSE THE TOOL ALREADY CAUGHT ITSELF ONCE.
+    Built to spec, its edge-density row scored `district_downtown` — a frame
+    containing nothing but film grain — above all five references, and the
+    grain-immune row it grew in response scores the same frame below all five.
+    The check that pins that down is in there: a synthetic field of pure noise
+    must read dense to the edge metric and flat to GROUND PATCH. If those two
+    ever agree on noise, the paragraph in the docstring warning everyone not to
+    read one without the other has quietly stopped being true, and the number
+    that steers V2 has stopped meaning anything.
+
+    The rest is rule 3b and rule 5b: a missing directory must say NOTHING
+    MEASURED with its file count, a truncated JPEG must be named rather than
+    dropped, and the accepting case is the live directories — which is the one
+    fixture nobody can fake, because doing the work is what changes it."""
+    tool = ROOT.parent / "tools" / "ref-bench.py"
+    code, out = run(["python3", str(tool), "--selftest"])
+    m = re.search(r"selftest: (\d+) passed, (\d+) failed", out)
+    if not m:
+        return False, "REF BENCH: selftest did not report"
+    if m.group(2) != "0":
+        bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAILED")]
+        return False, "REF BENCH: " + (bad[0][7:98] if bad else "selftest failed")
+    return True, "%s ref-bench checks (%s failed)" % (m.group(1), m.group(2))
+
+
 def powershell_steps():
     """Do the workflow's pwsh steps parse.
 
@@ -1476,7 +1511,7 @@ def main():
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, raw_avenues, filename_as_type, namespace_as_value, workflow_size,
-               powershell_steps, sheet_read, prop_dimensions, prop_reach,
+               powershell_steps, sheet_read, prop_dimensions, prop_reach, ref_bench,
                frame_drift, verdict_keys, verdict_format, verdict_dupkeys,
                verdict_emit_dupkeys, runs_map_to_commits, gate_detail_ceiling,
                save_chaos, soak,

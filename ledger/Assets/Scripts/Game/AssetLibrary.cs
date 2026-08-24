@@ -1048,33 +1048,65 @@ namespace Ledger.Game
 
         /// WHAT THE FAMILY STANDS AT AFTER ITS REPAINT, against the arrival
         /// value above. Written by `WorldBuilder.TintFurniture` through the
-        /// key its caller passes, so a placer that repaints without saying
-        /// which family it repainted contributes nothing and is visible as an
-        /// absence rather than as agreement.
+        /// key its caller passes — and only once the repaint has actually
+        /// swapped a renderer's materials, so an entry here means the paint
+        /// landed rather than that somebody asked for it. A placer that
+        /// repaints without saying which family it repainted contributes
+        /// nothing to this dictionary and shows up as `kitPaintKeyless`
+        /// instead of as agreement.
         static readonly Dictionary<string, float> _propPainted = new Dictionary<string, float>();
         public static int PropPaintedKeys => _propPainted.Count;
 
         public static bool PaintedAlbedo(string key, out float luma) =>
             _propPainted.TryGetValue(key, out luma);
 
-        /// The colour a repaint actually applied, as the same linear luma the
-        /// arrival reading uses — ONE instrument on both sides, or the
-        /// comparison is two instruments arguing (the `TownWallAlbedo` rule,
-        /// applied to a before and an after instead of to two subjects).
-        public static void NotePropPainted(string key, UnityEngine.Color c)
+        /// What a repaint actually applied, read off the MATERIAL the renderers
+        /// were given and through the same `MatAlbedo` the arrival reading uses
+        /// — ONE instrument on both sides, or the comparison is two instruments
+        /// arguing (the `TownWallAlbedo` rule, applied to a before and an after
+        /// instead of to two subjects).
+        ///
+        /// AND IT USED TO TAKE THE REQUESTED COLOUR, WHICH IS NOT THE SAME
+        /// THING. `arrived` is tint x texture through `MatAlbedo`; `stands` was
+        /// the linear luma of the `Color` the caller asked for. Two different
+        /// maths printed either side of one arrow, so the comparison this
+        /// entry exists to make was between two instruments after all — and
+        /// the gap is not academic: `Opaque` caches on the colour ROUNDED TO 5
+        /// BITS A CHANNEL and the material wears the rounded value, so the
+        /// requested number was never quite the applied one. Reading the
+        /// material picks that up for nothing, along with anything else the
+        /// applied material turns out to carry.
+        ///
+        /// The paint materials are flat and untextured by construction, so this
+        /// does not touch `PropAlbedoNoTex` — that counter answers "how many
+        /// ARRIVAL materials had no albedo map", and a repaint bumping it would
+        /// make every painted prop look like a missing texture.
+        public static void NotePropPainted(string key, UnityEngine.Material m)
         {
-            if (string.IsNullOrEmpty(key) || _propPainted.ContainsKey(key)) return;
-            var lin = c.linear;
-            _propPainted[key] = 0.2126f * lin.r + 0.7152f * lin.g + 0.0722f * lin.b;
+            // A REPAINT WITH NO KEY WAS DROPPED IN SILENCE, and the comment on
+            // `TintFurniture`'s `key` parameter is the reason it can happen at
+            // all: the argument is defaulted so a future placer of a
+            // non-pipeline object compiles. Such a call repaints something real
+            // and attributes it to nobody, which reads in `kitPainted` exactly
+            // like a repaint that never ran. Counted, so the two stop looking
+            // identical (rule 3b).
+            if (string.IsNullOrEmpty(key)) { PropPaintKeyless++; return; }
+            if (m == null || _propPainted.ContainsKey(key)) return;
+            _propPainted[key] = MatAlbedo(m, false);
         }
+        /// Repaint calls that named no family. See `NotePropPainted`.
+        public static int PropPaintKeyless;
         public static int PropAlbedoUnread;   // textures the blit could not read
-        public static int PropAlbedoNoTex;    // materials with no texture at all
+        public static int PropAlbedoNoTex;    // ARRIVAL materials with no texture
 
-        static float MatAlbedo(UnityEngine.Material m)
+        /// `countAbsences` is false for the repaint side: see `NotePropPainted`.
+        /// The maths is identical either way — only the two absence counters,
+        /// which are about what the KIT shipped, stay on the arrival side.
+        static float MatAlbedo(UnityEngine.Material m, bool countAbsences = true)
         {
             var tint = m.HasProperty("_Color") ? m.color.linear : UnityEngine.Color.white;
             float tl = 0.2126f * tint.r + 0.7152f * tint.g + 0.0722f * tint.b;
-            return tl * MeanTexLuma(m.mainTexture);
+            return tl * MeanTexLuma(m.mainTexture, countAbsences);
         }
 
         /// The town reference the props are compared against: the four wall
@@ -1093,7 +1125,7 @@ namespace Ledger.Game
             return n > 0 ? sum / n : -1f;
         }
 
-        static float MeanTexLuma(Texture t)
+        static float MeanTexLuma(Texture t, bool countAbsences = true)
         {
             // A PROP WITH NO TEXTURE IS NOT A WHITE PROP, and until 24 Aug
             // this returned the same 1.0 for both without counting it.
@@ -1105,7 +1137,7 @@ namespace Ledger.Game
             // all. Those have different fixes: one wants the skyline tint,
             // the other wants a texture. Same shape as everything else in
             // this file — a fallback that reads identically to a finding.
-            if (t == null) { PropAlbedoNoTex++; return 1f; }
+            if (t == null) { if (countAbsences) PropAlbedoNoTex++; return 1f; }
             if (_texLuma.TryGetValue(t, out var cached)) return cached;
             float mean = 1f;   // unreadable counts as white: a false ALARM, never a false pass
             RenderTexture rt = null;
@@ -1126,7 +1158,7 @@ namespace Ledger.Game
                 mean = sum / px.Length;
                 Object.Destroy(small);
             }
-            catch (System.Exception) { PropAlbedoUnread++; }
+            catch (System.Exception) { if (countAbsences) PropAlbedoUnread++; }
             finally
             {
                 RenderTexture.active = old;

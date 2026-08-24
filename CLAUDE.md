@@ -975,6 +975,43 @@ voices to build speech technology, and **no identifiable public figures, ever.**
 
 ---
 
+## THE STUDIO SPLIT — WHO DOES WHAT (24 Aug, Jafar)
+
+Decided the day the studio structure was adopted, after a day of the main
+session doing builder work inline on the director's model and burning
+Jafar's usage doing it. His words: *"Tier 1 should be fable, not opus.
+Tier 2 and 3 should be opus"* and, on catching the non-conformance:
+*"everything on fable doesn't conform to what we agreed and consumes too
+much."*
+
+- **The main session is the DIRECTOR (tier 1).** It decides, reviews agent
+  diffs and reports, reads landings and stills, commits after review,
+  dispatches builds, and talks to Jafar. It does NOT implement features,
+  write instruments, or grind files — spawning is the default, not the
+  exception. The director may hand-apply only genuinely one-line
+  corrections where briefing an agent costs more than the fix.
+- **Tier 2 (Opus, read-only)** — the verifiers in `.claude/agents/`
+  (measurement-auditor, claim-auditor, artifact-reader, guard-tester,
+  reach-auditor). Their first two sweeps found 21 confirmed findings in one
+  day; run them as standing work, not on ceremony.
+- **Tier 3 (Opus)** — the builders (systems-builder, instrument-builder,
+  engine-specialist, content-wrangler). All implementation goes here, with
+  the finding/spec in the brief and "do not commit" standing: the director
+  reviews and commits.
+- Agents' uncommitted work-in-progress is NOT committed under them by a
+  stop-hook's nagging; the tree goes clean in one reviewed commit per
+  builder report.
+
+**REPORTING (same date):** when Jafar asks for an update — any wording —
+he gets the compact shape: one plain line each for Visual, Voice, Rest of
+roadmap (what changed, what is next, anything needing him), plus a current
+frame when the street looks different. Simple terms, no shas, no metric
+names. Between his asks: nothing on a clock (the 22 Aug rule stands), and
+his independent heartbeat is the branch's commit feed — if pushes are
+flowing, work is flowing.
+
+---
+
 ## AUTO MODE — THE CEREMONY IS RETIRED, THE WORK IS NOT (22 Aug, Jafar)
 
 His words: *"yeah drop the updates, we said no more automode (you can still

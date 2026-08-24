@@ -2086,6 +2086,24 @@ namespace Ledger.Game
         float _dryReflMin = 2f;
         int _dryReflSampled, _skyStolen, _skyOwned;
 
+        // AND WHAT WAS BOUND AT THE INSTANT OF THE MINIMUM.
+        //
+        // `dryReflMin` and `skyBound` sit four lines apart on the done line and
+        // are read as a pair, and they are not one: `skyBound` is LAST-WINS —
+        // whatever the cubemap binding happened to be when the run ended — while
+        // the minimum is a single frame somewhere in eleven days. So a run that
+        // spends its nights on the procedural sky and its days on the capture
+        // prints one binding beside a minimum taken under the other, with
+        // nothing in either number to say so, and "the reflection went to zero
+        // while the capture was bound" is a completely different fault from "it
+        // went to zero after the capture was handed back at dusk".
+        //
+        // Latched here, at the moment the minimum is lowered, which is the only
+        // instant that pair is one measurement (the `bubblesAtWorst` rule).
+        // Spaces stripped because a verdict value may not contain one — the
+        // reader splits on whitespace and would silently return the first word.
+        string _dryReflMinAt = "none";
+
         void SampleReflections()
         {
             if (_reflStartRefreshes < 0) _reflStartRefreshes = WetReflections.Refreshes;
@@ -2100,7 +2118,11 @@ namespace Ledger.Game
                 _reflDryFrames++;
                 _dryReflSampled++;
                 float now = RenderSettings.reflectionIntensity;
-                if (now < _dryReflMin) _dryReflMin = now;
+                if (now < _dryReflMin)
+                {
+                    _dryReflMin = now;
+                    _dryReflMinAt = (SkyEnvironment.Bound ?? "none").Replace(' ', '_');
+                }
                 // AND WHETHER ANYTHING ELSE TOOK THE BINDING. Counted only on
                 // frames where `SkyEnvironment` claims to own it, so night —
                 // which hands back to the procedural cubemap by design, there
@@ -14760,19 +14782,43 @@ namespace Ledger.Game
                       $"skyline={WorldBuilder.SkylineKitted}/{WorldBuilder.SkylineBlocks} skylineRepainted={WorldBuilder.SkylineRepainted} " +
                       // THE DOCKSIDE BAND, AND THE ONE NUMBER THAT SAYS
                       // WHETHER IT IS A QUARTER OR A WALL. `skylineFit` is the
-                      // widest placed footprint over the slot spacing: below 1
-                      // the masses stand apart, above 1 they interpenetrate.
+                      // WORST per-block ratio of footprint to the arc between
+                      // adjacent slot angles AT THAT BLOCK'S OWN RADIUS: below
+                      // 1 the masses stand apart along the ring, above 1 they
+                      // crowd each other's silhouette. Not interpenetration —
+                      // adjacent slots alternate rings 46m apart radially, so
+                      // a neighbour is separated in depth too; the account is
+                      // on `SkylineFitWorst`.
+                      //
                       // A ratio rather than two loose numbers because the
                       // width alone cannot answer it — the gap is half the
                       // question and this project has four bad pairs from
                       // printing halves side by side and dividing them by eye.
-                      $"skylineDock={WorldBuilder.SkylineDockside} " +
-                      $"skylineFit={(WorldBuilder.SkylineSlotGap > 0f ? WorldBuilder.SkylineWidest / WorldBuilder.SkylineSlotGap : -1f):0.00} " +
-                      $"skylineWidest={WorldBuilder.SkylineWidest:0.0}/{WorldBuilder.SkylineSlotGap:0.0} " +
+                      // `skylineWidest` is that ratio's OWN width and slot,
+                      // latched together at the block that produced it, so the
+                      // three numbers describe one prop rather than three.
+                      //
+                      // `skylineDock` is kitted/slots: the slot count is ring
+                      // geometry and reads the same on a build where the
+                      // industrial fetch produced nothing.
+                      $"skylineDock={WorldBuilder.SkylineDocksideKitted}/{WorldBuilder.SkylineDockside} " +
+                      $"skylineFit={(WorldBuilder.SkylineGapAtWorst > 0f ? WorldBuilder.SkylineFitWorst : -1f):0.00} " +
+                      $"skylineWidest={WorldBuilder.SkylineWidestAtWorst:0.0}/{WorldBuilder.SkylineGapAtWorst:0.0} " +
                       // The furniture repaint's wiring proof (rule 6): zero
                       // with benches landing means the tint stopped running,
                       // and white furniture is what that looks like.
-                      $"furnitureRepainted={WorldBuilder.FurnitureRepainted} " +
+                      //
+                      // PART OVER WHOLE, and the renderers beside it. The left
+                      // number is objects that had at least one renderer's
+                      // materials swapped, the right is calls that arrived with
+                      // an object at all — they part company when a prop has no
+                      // renderer under it, which is the case that used to count
+                      // as a repaint. `furnitureRenderers` is what the swap
+                      // actually touched, and it is the one that cannot be
+                      // faked: objects on the left with zero renderers here is
+                      // a silent no-op the object count alone reads as health.
+                      $"furnitureRepainted={WorldBuilder.FurnitureRepainted}/{WorldBuilder.FurnitureTinted} " +
+                      $"furnitureRenderers={WorldBuilder.FurnitureRenderers} " +
                       // Which kit-prop families are BRIGHTER than the town
                       // they stand in — the skyline's fault, measured for
                       // every family instead of re-found by eye. Brightest
@@ -14793,6 +14839,14 @@ namespace Ledger.Game
                       // repaints without naming its key contributes nothing
                       // and would be invisible without this count.
                       $"kitPainted={AssetLibrary.PropPaintedKeys} " +
+                      // AND THE REPAINTS THAT NAMED NOBODY. A call with no key
+                      // paints something real and records nothing, which reads
+                      // in `kitPainted` exactly like a repaint that never ran —
+                      // the same two-causes-one-number shape as the line above,
+                      // one layer further in. Zero is the expected value: every
+                      // live call site passes a key today, so this is a tripwire
+                      // for the next placer that does not.
+                      $"kitPaintKeyless={AssetLibrary.PropPaintKeyless} " +
                       // BOTH ABSENCES, NOT ONE. `unread` is the blit
                       // throwing; `noTex` is a material with no albedo map,
                       // which returns the same 1.00 and is not an exception,
@@ -15255,7 +15309,15 @@ namespace Ledger.Game
                       // arrived and a prefab whose shader silently refuses the
                       // colour are different faults with different fixes, and
                       // one counter cannot tell them apart.
-                      $"signalKit={GameController.SignalKits}/{GameController.SignalPrimitives} " +
+                      // PART OVER WHOLE, and it was part over part. The two
+                      // counters are disjoint — every signal post takes the
+                      // kit branch or the primitive branch, never both — so
+                      // `kits/primitives` is a ratio of one half to the other
+                      // on a line where every neighbour reads as "of the
+                      // total", and 12/4 and 120/40 are the same reading of
+                      // completely different streets. The denominator is the
+                      // signals placed.
+                      $"signalKit={GameController.SignalKits}/{GameController.SignalKits + GameController.SignalPrimitives} " +
                       $"signalPainted={GameController.SignalPainted} " +
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
@@ -15271,7 +15333,11 @@ namespace Ledger.Game
                       $"skyLoadedAs={SkyEnvironment.LoadedAs} " +
                       $"skyBound={SkyEnvironment.Bound} skyBinds={SkyEnvironment.Binds}/{SkyEnvironment.Rebinds} " +
                       $"skyOwned={_skyOwned} skyStolen={_skyStolen} " +
-                      $"dryReflMin={(_dryReflSampled > 0 ? _dryReflMin : -1f):0.00}/{_dryReflSampled} " +
+                      // THE MINIMUM, ITS DENOMINATOR, AND WHAT WAS BOUND WHEN
+                      // IT WAS TAKEN — one instant, three parts of one value,
+                      // because `skyBound` further up this line is last-wins and
+                      // cannot answer for a frame in the middle of the run.
+                      $"dryReflMin={(_dryReflSampled > 0 ? _dryReflMin : -1f):0.00}/{_dryReflSampled}@{_dryReflMinAt} " +
                       $"postFrames={FilmGrade.Frames} postOk={postOk} " +
                       $"framedBeats={FramedBeat.Begun} framingPush={PlayerController.TightestFraming:0.0000} framingOk={framingOk} " +
                       // THE WIND THE RUN ACTUALLY SAW. Both at 1.0000

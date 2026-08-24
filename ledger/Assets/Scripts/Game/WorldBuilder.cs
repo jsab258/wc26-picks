@@ -2533,11 +2533,26 @@ namespace Ledger.Game
         /// bins and crates first landed, `kitAlbedo` read every one of them
         /// at 1.00 against walls at 0.15, and the noon still showed the
         /// crate stack glowing in the foreground — the skyline fault, one
-        /// street closer. Same repair, same mechanism (the skyline's MPB
-        /// tint), and tinted to agree with each prop's own FALLBACK surface
-        /// — the boxes these replaced were Wood and Metal — rather than to
-        /// an invented colour. Counted so the repaint cannot silently stop.
-        public static int FurnitureRepainted;
+        /// street closer. Same repair as the skyline's, tinted to agree with
+        /// each prop's own FALLBACK surface — the boxes these replaced were
+        /// Wood and Metal — rather than to an invented colour. NOT the same
+        /// mechanism, and this line used to say it was: the skyline paints
+        /// through an MPB and these props swap the material outright, because
+        /// their glTFast shader has no `_Color` for a property block to set
+        /// (the account is in `TintFurniture`, which is where the MPB version
+        /// was found painting nothing).
+        ///
+        /// WHAT THE PAINT REACHED, AND WHAT IT WAS ASKED TO REACH.
+        /// `FurnitureRepainted` counts objects with at least one renderer
+        /// actually swapped; `FurnitureTinted` counts calls that arrived with
+        /// an object at all; `FurnitureRenderers` is the renderers swapped.
+        /// It used to be one unconditional `++` per call, which cannot tell a
+        /// prop whose meshes were repainted from a prop that had no renderer
+        /// under it — the same "proves the call, not the effect" fault the
+        /// paragraph in `TintFurniture` records fixing one layer down (rule
+        /// 3b: a zero, and a number that only ever counts up, need a
+        /// denominator).
+        public static int FurnitureRepainted, FurnitureTinted, FurnitureRenderers;
         // Public because Furniture.cs is the SECOND placer of these props —
         // found by a white swing bin standing in the road through a repaint
         // that moved 116 renderer sets: one idea, two implementations, and
@@ -2549,11 +2564,14 @@ namespace Ledger.Game
         /// repainting a non-pipeline object compiles; without a key the
         /// repaint is real but unattributed, and `kitAlbedo` then reports
         /// only the arrival albedo — the misreading that once put a finished
-        /// job back on the work stack.
+        /// job back on the work stack. That case is now COUNTED rather than
+        /// dropped in silence: `kitPaintKeyless` on the done line, expected
+        /// zero, and non-zero names the day a placer stopped saying who it
+        /// was painting.
         public static void TintFurniture(GameObject go, Color c, string key = null)
         {
             if (go == null) return;
-            AssetLibrary.NotePropPainted(key, c);
+            FurnitureTinted++;
             // MATERIAL REPLACEMENT, NOT AN MPB TINT — the first version set
             // `_Color` through a property block and `furnitureRepainted=116`
             // landed beside a crate stack exactly as white as before: the
@@ -2566,14 +2584,48 @@ namespace Ledger.Game
             // nothing and its shader variant ships already (every body
             // wears it). The proof that can't lie is the next still plus
             // the family's kitAlbedo staying measured at instantiate.
+            //
+            // THE MATERIAL ONCE, AND THE SAME OBJECT IS WHAT GETS NOTED.
+            // `Opaque` is a cache keyed on the colour rounded to 5 bits a
+            // channel, so calling it per material returned this same instance
+            // anyway — hoisting it makes the thing the note describes and the
+            // thing the renderers wear provably one object rather than two
+            // that ought to agree.
+            var paint = AssetLibrary.Opaque(c);
+            int swapped = 0;
             foreach (var rr in go.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = rr.sharedMaterials;
+                // A renderer with no material slots is not a repaint. Writing
+                // an empty array back changes nothing, and counting it would
+                // put the same reassuring number on the done line that the
+                // unconditional `++` used to.
+                if (mats.Length == 0) continue;
                 for (int i = 0; i < mats.Length; i++)
-                    mats[i] = AssetLibrary.Opaque(c);
+                    mats[i] = paint;
                 rr.sharedMaterials = mats;
+                swapped++;
             }
-            FurnitureRepainted++;
+            FurnitureRenderers += swapped;
+            // AFTER THE LOOP, AND ONLY IF THE LOOP DID SOMETHING.
+            //
+            // This ran FIRST, on the line above the comment block, so
+            // `kitAlbedo`'s `>stands` half was written the instant the repaint
+            // was ASKED for — before a single material had been touched, and
+            // regardless of whether the object had any renderer to touch. That
+            // is the exact fault the paragraph above records fixing in the
+            // mechanism: a wiring proof that proves the CALL, not the EFFECT,
+            // written by the same hand in the same function.
+            //
+            // A prop with no renderer under it now records nothing and shows
+            // up as an absence in `kitPainted`, which is the honest reading —
+            // an entry claiming a family stands at 0.19 when nothing was
+            // painted is worse than no entry, because it answers.
+            if (swapped > 0)
+            {
+                AssetLibrary.NotePropPainted(key, paint);
+                FurnitureRepainted++;
+            }
         }
         // The fallback surfaces' own tints (SurfaceSpec Wood and Metal).
         // Public for Furniture.cs, so the two placers cannot drift apart
@@ -3521,19 +3573,48 @@ namespace Ledger.Game
         /// firing — the models arrive through a fetch job, not through the
         /// repo.
         public static int SkylineBlocks, SkylineKitted;
-        /// How many skyline slots fell on the dockside arc, and the widest
-        /// FOOTPRINT any of them ended up with after the height scaling.
+        /// How many skyline slots fell on the dockside arc, and how many of
+        /// those actually stood a kit mesh there.
         ///
-        /// The width is the number that decides whether this band reads as an
-        /// industrial quarter or as one continuous wall: the slots are 46-72m
-        /// apart at this radius, and the industrial models are wide enough
-        /// that a careless height target makes them touch. Eyeballing that off
-        /// a 1280x720 horizon at 250m through fog is exactly the judgement
-        /// rule 4 says is a hypothesis, so it is measured instead — and the
-        /// SLOT SPACING is printed beside it, because a width means nothing
-        /// without the gap it has to fit into.
-        public static int SkylineDockside;
-        public static float SkylineWidest, SkylineSlotGap;
+        /// PART AND WHOLE, because the slot count alone answers a question
+        /// nobody is asking. `SkylineDockside` was incremented above the
+        /// `kit != null` guard, so it counted the arc's SLOTS — a number
+        /// decided entirely by the ring geometry and identical on a build with
+        /// no industrial models fetched at all. The kit is what the band is
+        /// made of; `skylineDock=k/s` says whether it arrived (rule 3b).
+        public static int SkylineDockside, SkylineDocksideKitted;
+
+        /// THE WORST TANGENTIAL FIT ON THE RING, and the width and slot it
+        /// came from — one instant, three numbers, so they can honestly be
+        /// divided (`bubblesAtWorst`'s rule).
+        ///
+        /// The fit is what decides whether this band reads as an industrial
+        /// quarter or as one continuous wall: the industrial models are wide
+        /// enough that a careless height target makes them touch. Eyeballing
+        /// that off a 1280x720 horizon at 250m through fog is exactly the
+        /// judgement rule 4 says is a hypothesis, so it is measured.
+        ///
+        /// PER PROP, AT THAT PROP'S OWN RADIUS, and the old version was not.
+        /// It kept the widest footprint over the whole ring and divided it by
+        /// ONE slot spacing — sampled at whichever block happened to
+        /// instantiate first — while `radius` runs 250m to 428m across the
+        /// two rings and the jitter. That is 1.71x, so the divisor could be
+        /// 46m or 79m with nothing in the reading to say which, and the
+        /// numerator was a maximum taken somewhere else entirely: two maxima
+        /// divided, which is the fault CLAUDE.md keeps a table of. Each
+        /// block now divides its own width by its own slot and the WORST
+        /// ratio is kept, with the pair that produced it.
+        ///
+        /// WHAT IT ANSWERS: whether a block is wider than the arc between two
+        /// adjacent slot ANGLES at its radius — tangential crowding, which is
+        /// the thing that turns a skyline into a wall.
+        ///
+        /// WHAT IT DOES NOT: whether two meshes actually interpenetrate.
+        /// Adjacent slots alternate rings 46m apart RADIALLY (`i % 2`), so
+        /// neighbours are separated in depth as well as along the arc and a
+        /// ratio above 1 is a silhouette-crowding warning, not a collision.
+        /// The same-ring neighbour is two slots away, at twice this arc.
+        public static float SkylineFitWorst, SkylineWidestAtWorst, SkylineGapAtWorst;
 
         /// What the distant towers are painted. See the note at the repaint:
         /// the kit ships its own bright materials and this branch kept them,
@@ -3584,8 +3665,9 @@ namespace Ledger.Game
         static void BuildSkyline()
         {
             if (!TownPlanEnabled) return;
-            SkylineBlocks = SkylineKitted = SkylineRepainted = SkylineDockside = 0;
-            SkylineWidest = SkylineSlotGap = 0f;
+            SkylineBlocks = SkylineKitted = SkylineRepainted = 0;
+            SkylineDockside = SkylineDocksideKitted = 0;
+            SkylineFitWorst = SkylineWidestAtWorst = SkylineGapAtWorst = 0f;
 
             // The outer ring sits near 112m after the topology stretch and the
             // docks run to z=-174, so this stands well outside both. Two loose
@@ -3684,6 +3766,11 @@ namespace Ledger.Game
                 if (kit != null)
                 {
                     SkylineKitted++;
+                    // INSIDE THE GUARD, unlike `SkylineDockside` above it: a
+                    // slot on the dockside arc and a shed standing on it are
+                    // different facts, and the fetch that supplies these
+                    // models can fail without the slot count moving at all.
+                    if (dockward) SkylineDocksideKitted++;
                     kit.name = $"Skyline_{i}";
                     var r = kit.GetComponentInChildren<Renderer>();
                     if (r != null && r.bounds.size.y > 0.01f)
@@ -3700,10 +3787,21 @@ namespace Ledger.Game
                     // width as though it were the placed one.
                     if (g != null)
                     {
+                        // THIS BLOCK'S WIDTH AGAINST THIS BLOCK'S SLOT. The
+                        // arc between two adjacent slot angles is
+                        // `2*pi*r/Count` and `r` is this prop's own radius —
+                        // a ring 178m further out has slots 79m apart where
+                        // the inner one has 46m, and dividing by the wrong one
+                        // is the whole 1.71x error the field comment records.
                         float w = Mathf.Max(g.bounds.size.x, g.bounds.size.z);
-                        if (w > SkylineWidest) SkylineWidest = w;
-                        if (SkylineSlotGap <= 0f)
-                            SkylineSlotGap = 2f * Mathf.PI * radius / Count;
+                        float slot = 2f * Mathf.PI * radius / Count;
+                        float fit = w / slot;
+                        if (fit > SkylineFitWorst)
+                        {
+                            SkylineFitWorst = fit;
+                            SkylineWidestAtWorst = w;
+                            SkylineGapAtWorst = slot;
+                        }
                     }
                     // REPAINTED INTO THE HAZE, BECAUSE THE KIT SHIPS ITS OWN
                     // MATERIALS AND THIS BRANCH WAS KEEPING THEM.
