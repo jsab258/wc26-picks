@@ -89,9 +89,16 @@ namespace Ledger.Game
         /// shape — a non-cube never reaches a bind (it threw per frame once,
         /// 593k log lines) — so this reads `Cube` on success, and on total
         /// rejection names the case; per-name shapes are in `skyMissing`.
-        public static string LoadedAs = "not tried";
+        public static string LoadedAs = "not-tried";
         /// Which capture is the environment right now, or `procedural`.
+        /// LAST-WINS BY DESIGN and the run ends after dark, so on the done
+        /// line this reads `procedural` on every completed run — which is why
+        /// `BoundDayLast` exists: the last CAPTURE ever bound, latched, so
+        /// "no capture was ever bound" and "the run ended at night" stop
+        /// printing identically (the measurement-auditor's F14; the same
+        /// latch-at-the-moment fix the windowsLit family needed).
         public static string Bound = "none";
+        public static string BoundDayLast = "never";
         /// How many times that changed. A source that never once changed across
         /// a thirteen-day run is a rule that is not running.
         public static int Binds;
@@ -226,6 +233,7 @@ namespace Ledger.Game
                 Binds++;
                 _bound = want;
                 Bound = want.name;
+                BoundDayLast = want.name;
             }
             Owning = true;
             if (changed || !ReferenceEquals(RenderSettings.customReflectionTexture, want))
@@ -250,6 +258,8 @@ namespace Ledger.Game
         }
 
         static bool _suspended;
+        static Texture _keepBound;
+        static string _keepBoundName;
 
         /// The A/B's off side. `SimDirector` turns reflections off to measure
         /// what they contribute, and that question includes this class — an
@@ -260,6 +270,13 @@ namespace Ledger.Game
         public static void Suspend()
         {
             _suspended = true;
+            // CAPTURED, NOT ASSUMED (the probe rule): Resume restores this
+            // state, so the next Apply sees an unchanged choice and does not
+            // count a phantom "capture change" — the A/B was inflating
+            // `skyBinds` by one per toggle (auditor H2), on a counter whose
+            // own doc says a toggle is not a capture change.
+            _keepBound = _bound;
+            _keepBoundName = Bound;
             _bound = null;
             Bound = "suspended";
             Live = false;
@@ -271,6 +288,11 @@ namespace Ledger.Game
         public static void Resume()
         {
             _suspended = false;
+            _bound = _keepBound;
+            Bound = _keepBoundName ?? "none";
+            // The SETTING is still whatever Suspend left; the next Apply's
+            // steal-check sees the mismatch and rewrites (a Rebind, which is
+            // what actually happened), without counting a Bind (which is not).
         }
 
         /// Re-read on demand, because `Live` is a claim about NOW and the sim
@@ -280,9 +302,10 @@ namespace Ledger.Game
         public static bool Stolen()
         {
             if (!Owning) return false;
-            Live = _bound != null
-                   && ReferenceEquals(RenderSettings.customReflectionTexture, _bound);
-            return !Live;
+            // No side effect: a reader that writes `Live` is a landmine for
+            // any second caller (auditor H3). `Live` is maintained by Apply.
+            return !(_bound != null
+                     && ReferenceEquals(RenderSettings.customReflectionTexture, _bound));
         }
     }
 }

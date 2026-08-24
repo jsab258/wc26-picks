@@ -138,7 +138,17 @@ namespace Ledger.Game
 
             var shape = _rainFx.shape;
             shape.shapeType = ParticleSystemShapeType.Box;
-            shape.scale = new Vector3(38f, 0.2f, 38f);
+            // (38, 38, 0.2), NOT (38, 0.2, 38) — and the wrong one shipped and
+            // was found by ARITHMETIC, not by eye. The transform above is
+            // rotated Euler(90,0,0) so the shape's LOCAL Z is world VERTICAL:
+            // with 0.2 in local Y the "thin" axis lay horizontal, and rain
+            // spawned across a 38m-TALL curtain exactly 0.2m deep — a plane
+            // of weather, spawning as low as 5m below the camera. That is why
+            // `rainLowest` sat at -28.5 while max fall (9*1.1 + 0.5g*1.4*1.1²)
+            // is 18.2m from an emitter 14m up: 24.3m of the reading was spawn
+            // geometry. The measurement-auditor's F2, proven before this line
+            // changed; judge the fix by `rainLowest` rising toward ~-4.
+            shape.scale = new Vector3(38f, 38f, 0.2f);
 
             var emission = _rainFx.emission;
             emission.rateOverTime = 0f;      // driven by Rain below
@@ -309,7 +319,10 @@ namespace Ledger.Game
                 if (_rainFx != null)
                 {
                     var shape = _rainFx.shape;
-                    shape.scale = new Vector3(38f * coverage, 0.2f, 38f * coverage);
+                    // The twin of the Build() fix — local Y is HORIZONTAL
+                    // under the 90-degree rotation, local Z is the thin
+                    // vertical axis. One idea, two sites, both now agree.
+                    shape.scale = new Vector3(38f * coverage, 38f * coverage, 0.2f);
                 }
             }
             SampleRain();
