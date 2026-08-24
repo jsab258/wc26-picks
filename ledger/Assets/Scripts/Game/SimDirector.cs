@@ -14691,6 +14691,17 @@ namespace Ledger.Game
                       // right means the branch died).
                       $"facadeGrades={AssetLibrary.GradedAssignments}/{AssetLibrary.GradeCalls} " +
                       $"skyline={WorldBuilder.SkylineKitted}/{WorldBuilder.SkylineBlocks} skylineRepainted={WorldBuilder.SkylineRepainted} " +
+                      // THE DOCKSIDE BAND, AND THE ONE NUMBER THAT SAYS
+                      // WHETHER IT IS A QUARTER OR A WALL. `skylineFit` is the
+                      // widest placed footprint over the slot spacing: below 1
+                      // the masses stand apart, above 1 they interpenetrate.
+                      // A ratio rather than two loose numbers because the
+                      // width alone cannot answer it — the gap is half the
+                      // question and this project has four bad pairs from
+                      // printing halves side by side and dividing them by eye.
+                      $"skylineDock={WorldBuilder.SkylineDockside} " +
+                      $"skylineFit={(WorldBuilder.SkylineSlotGap > 0f ? WorldBuilder.SkylineWidest / WorldBuilder.SkylineSlotGap : -1f):0.00} " +
+                      $"skylineWidest={WorldBuilder.SkylineWidest:0.0}/{WorldBuilder.SkylineSlotGap:0.0} " +
                       // The furniture repaint's wiring proof (rule 6): zero
                       // with benches landing means the tint stopped running,
                       // and white furniture is what that looks like.

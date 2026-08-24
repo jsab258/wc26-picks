@@ -151,13 +151,19 @@ namespace Ledger.Game
             new Dictionary<Texture, Texture2D>();
 
         /// A VARIANT, NOT A MUTATION OF THE SHARED MATERIAL, and that is a
-        /// safety decision rather than tidiness. Kit atlases are shared with
-        /// props this town DELIBERATELY does not repaint — a green bench is
-        /// plausible and mass-repainting on resemblance is the mistake this
-        /// project has a rule about. Editing the shared material would grey
-        /// them too, invisibly. One cached variant per source material keeps
-        /// batching (every painted renderer gets the SAME variant) and
-        /// cannot reach anything that never asked to be painted.
+        /// safety decision rather than tidiness. Kit atlases are SHARED across
+        /// families, so editing one in place reaches every prop that happens
+        /// to use it — including whatever is added next year by somebody who
+        /// never reads this. One cached variant per source material keeps
+        /// batching (every painted renderer gets the SAME variant) and cannot
+        /// reach anything that never asked to be painted.
+        ///
+        /// The example that used to be here was "a green bench is plausible,
+        /// and this town deliberately does not repaint benches". Benches ARE
+        /// repainted — `Bench` calls `TintFurniture` — and that same sentence
+        /// in `NotePropAlbedo` put a finished job back on the work stack for a
+        /// day. The safety argument never depended on it: it holds for any two
+        /// families sharing an atlas, which is why it is stated that way now.
         static Material GreyVariant(Material src)
         {
             if (src == null) return null;

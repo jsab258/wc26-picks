@@ -3519,6 +3519,19 @@ namespace Ledger.Game
         /// firing — the models arrive through a fetch job, not through the
         /// repo.
         public static int SkylineBlocks, SkylineKitted;
+        /// How many skyline slots fell on the dockside arc, and the widest
+        /// FOOTPRINT any of them ended up with after the height scaling.
+        ///
+        /// The width is the number that decides whether this band reads as an
+        /// industrial quarter or as one continuous wall: the slots are 46-72m
+        /// apart at this radius, and the industrial models are wide enough
+        /// that a careless height target makes them touch. Eyeballing that off
+        /// a 1280x720 horizon at 250m through fog is exactly the judgement
+        /// rule 4 says is a hypothesis, so it is measured instead — and the
+        /// SLOT SPACING is printed beside it, because a width means nothing
+        /// without the gap it has to fit into.
+        public static int SkylineDockside;
+        public static float SkylineWidest, SkylineSlotGap;
 
         /// What the distant towers are painted. See the note at the repaint:
         /// the kit ships its own bright materials and this branch kept them,
@@ -3569,7 +3582,8 @@ namespace Ledger.Game
         static void BuildSkyline()
         {
             if (!TownPlanEnabled) return;
-            SkylineBlocks = SkylineKitted = SkylineRepainted = 0;
+            SkylineBlocks = SkylineKitted = SkylineRepainted = SkylineDockside = 0;
+            SkylineWidest = SkylineSlotGap = 0f;
 
             // The outer ring sits near 112m after the topology stretch and the
             // docks run to z=-174, so this stands well outside both. Two loose
@@ -3581,6 +3595,49 @@ namespace Ledger.Game
                 "city-kit-commercial_low-detail-building-a",
                 "city-kit-commercial_low-detail-building-b",
                 "city-kit-commercial_low-detail-building-c",
+            };
+
+            // AN INDUSTRIAL BAND BEHIND THE DOCKS, AND IT IS A DIFFERENT
+            // SILHOUETTE RATHER THAN MORE OF THE SAME ONE.
+            //
+            // `city-kit-industrial` is 25 models and until now the Game layer
+            // named none of them — `tools/prop-reach.py` reports the whole kit
+            // unreached, on a town whose identity is its docks. That is rule 6
+            // pointed at art: fetched, imported, turned into prefabs by
+            // `PropPrefab`, and called by nothing.
+            //
+            // MEASURED BEFORE USE, and the numbers decided the design rather
+            // than confirming it. From `tools/prop-dimensions.py`, the three
+            // commercial models above are slim towers — 50 wide by 200-225
+            // tall, about 100 verts. The industrial buildings are the
+            // opposite: `building-a` is 208 wide by 147 tall, `building-h` is
+            // 132 by 73, and they run 474-1574 verts. Squat, wide masses.
+            //
+            // WHICH IS WHY THEY GET THEIR OWN HEIGHT TARGET INSTEAD OF THE
+            // TOWER BAND'S. Scaling a 208x147 mass to the tower target of
+            // 26-78m makes it up to 110m WIDE, and at this radius the slots
+            // are 46-72m apart — so reusing the target would have produced
+            // one continuous wall of overlapping geometry, which is a thing
+            // I would then have read off a still and mis-diagnosed. Sheds sit
+            // low and the CHIMNEYS carry the height, which is also what an
+            // industrial skyline actually looks like.
+            string[] industrial =
+            {
+                "city-kit-industrial_building-a", "city-kit-industrial_building-b",
+                "city-kit-industrial_building-c", "city-kit-industrial_building-d",
+                "city-kit-industrial_building-e", "city-kit-industrial_building-f",
+                "city-kit-industrial_building-g", "city-kit-industrial_building-h",
+                "city-kit-industrial_building-i", "city-kit-industrial_building-j",
+                "city-kit-industrial_building-k", "city-kit-industrial_building-l",
+                "city-kit-industrial_building-m", "city-kit-industrial_building-n",
+                "city-kit-industrial_building-o", "city-kit-industrial_building-p",
+                "city-kit-industrial_building-q", "city-kit-industrial_building-r",
+                "city-kit-industrial_building-s", "city-kit-industrial_building-t",
+            };
+            string[] stacks =
+            {
+                "city-kit-industrial_chimney-basic", "city-kit-industrial_chimney-medium",
+                "city-kit-industrial_chimney-small", "city-kit-industrial_chimney-large",
             };
 
             for (int i = 0; i < Count; i++)
@@ -3596,12 +3653,32 @@ namespace Ledger.Game
                 var dir = new Vector3(Mathf.Sin(ang), 0, Mathf.Cos(ang));
                 if (dir.z < -0.55f) continue;
 
-                float target = 26f + (h / 700 % 9) * 6.5f;        // 26..78m
+                // THE TWO FLANKS OF THE SEAWARD GAP. The docks run to z=-174,
+                // so negative z is seaward and the arc between the empty gap
+                // and the sides is where a port's industry stands — behind the
+                // wharves, not inland among the offices. Geometry decides it,
+                // not a hand-picked index list, so it stays right if the ring
+                // count or the jitter changes.
+                bool dockward = dir.z < 0f;
+
+                float target = dockward
+                    // Sheds low, stacks tall. Both bands measured off the
+                    // models rather than picked: at these proportions a shed
+                    // scaled past ~34m starts touching its neighbours.
+                    ? ((h / 700 % 3) == 0 ? 55f + (h / 90 % 5) * 10f      // a stack
+                                          : 16f + (h / 700 % 4) * 6f)     // a shed
+                    : 26f + (h / 700 % 9) * 6.5f;                         // 26..78m
                 var at = new Vector3(dir.x * radius, 0, dir.z * radius);
 
+                string pickFrom;
+                if (!dockward) pickFrom = models[h % models.Length];
+                else if ((h / 700 % 3) == 0) pickFrom = stacks[h % stacks.Length];
+                else pickFrom = industrial[h % industrial.Length];
+
                 var kit = AssetLibrary.TryInstantiateProp(
-                    models[h % models.Length], at, Quaternion.Euler(0, (h / 7) % 360, 0));
+                    pickFrom, at, Quaternion.Euler(0, (h / 7) % 360, 0));
                 SkylineBlocks++;
+                if (dockward) SkylineDockside++;
                 if (kit != null)
                 {
                     SkylineKitted++;
@@ -3612,6 +3689,20 @@ namespace Ledger.Game
                     // Grounded after scaling — the mesh knows where its feet are.
                     var g = kit.GetComponentInChildren<Renderer>();
                     if (g != null) kit.transform.position = at + Vector3.up * (at.y - g.bounds.min.y);
+                    // MEASURED AFTER THE SCALE, which is the only moment the
+                    // number exists: the model's own width says nothing until
+                    // the height target has stretched it. Read from `g`, the
+                    // post-scale bounds, and not from `r` — same renderer, but
+                    // `r.bounds` was sampled before `localScale` was written
+                    // and a stale read here would report the FBX's authored
+                    // width as though it were the placed one.
+                    if (g != null)
+                    {
+                        float w = Mathf.Max(g.bounds.size.x, g.bounds.size.z);
+                        if (w > SkylineWidest) SkylineWidest = w;
+                        if (SkylineSlotGap <= 0f)
+                            SkylineSlotGap = 2f * Mathf.PI * radius / Count;
+                    }
                     // REPAINTED INTO THE HAZE, BECAUSE THE KIT SHIPS ITS OWN
                     // MATERIALS AND THIS BRANCH WAS KEEPING THEM.
                     //

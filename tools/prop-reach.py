@@ -207,8 +207,19 @@ def selftest():
     check("not everything is unreached",
           sum(1 for r in route.values() if r != "none") > 20)
     # REJECTING. A kit nobody names must not be quietly counted as used.
-    check("an unnamed model is unreached", route.get("city_kit_industrial_building_a") == "none")
-    check("not everything is reached",
+    #
+    # SYNTHETIC, NOT A REAL FILENAME, and that is the point rather than
+    # laziness. The first version named `city_kit_industrial_building_a` — and
+    # went red within the hour, on the commit that put the industrial kit on
+    # the skyline. The guard was right and the assertion was wrong: a rejecting
+    # case pinned to a real asset asserts that the asset stays UNUSED, which is
+    # the opposite of what this project wants to be true, so doing the work the
+    # tool exists to prompt would break the tool every time. A key that is on
+    # no disk anywhere can never be reached by anyone.
+    fake = {"nosuchkit_nosuchmodel_zzz": ("nosuchkit", "nosuchmodel-zzz")}
+    check("a key nothing names is unreached",
+          classify(fake, lits)["nosuchkit_nosuchmodel_zzz"] == "none")
+    check("the real corpus still has unreached models",
           sum(1 for r in route.values() if r == "none") > 20)
 
     # THE ACCEPTING CASE THAT CANNOT BE FOOLED BY A FIXTURE: every key the sim
@@ -231,6 +242,16 @@ def selftest():
 
 
 def main():
+    # `| head` closes the pipe and Python turns that into a traceback, which in
+    # this project is not a cosmetic problem: a tool that prints a stack trace
+    # after a correct run is a tool somebody spends twenty minutes on before
+    # noticing it worked. Same reason every other instrument here says what it
+    # did rather than only what it found.
+    import signal
+    try:
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    except (AttributeError, ValueError):
+        pass                      # not POSIX, or not on the main thread
     if "--selftest" in sys.argv:
         return selftest()
     return report()
