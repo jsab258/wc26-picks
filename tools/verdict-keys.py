@@ -271,12 +271,22 @@ def newest_run_text():
             continue
         text = have[sha].read_text(encoding="utf-8", errors="replace")
         if any(m in text for m in NO_SIM):
-            skipped.append(sha)
+            skipped.append(sha + ":no-sim")
             continue
-        note = sha if not skipped else f"{sha} (skipped {len(skipped)} no-sim: {', '.join(skipped)})"
+        # AND A TRUNCATED RUN IS SKIPPED THE SAME WAY, for the same reason
+        # the paragraph above gives. A sim cut off partway leaves real content
+        # and no done line, so every measurement written at the end is absent
+        # — indistinguishable from a metric deleted from the code unless the
+        # difference is drawn here. Measured on `3e3cdc2`, whose sim ran 24
+        # minutes for 4 shots where the previous run did 29 in 12.
+        if "SimDirector: done." not in text:
+            skipped.append(sha + ":truncated")
+            continue
+        note = sha if not skipped else f"{sha} (skipped {len(skipped)}: {', '.join(skipped)})"
         return text, note
     if skipped:
-        return None, f"no commit has a verdict with a sim in it — {len(skipped)} ran no sim"
+        return None, (f"no commit has a COMPLETE verdict — {len(skipped)} skipped: "
+                      f"{', '.join(skipped)}")
     return None, "no run file matches any recent commit"
 
 def main():
@@ -307,6 +317,35 @@ def main():
         if newer is None:
             return 0
         print(f"verdict-keys: checking the newest commit that DID run one instead — {why}")
+        text = newer
+
+    # AND A SIM THAT STARTED AND NEVER FINISHED IS THE SAME PROBLEM WEARING A
+    # DIFFERENT FACE, which is why this sits directly under the block above
+    # rather than somewhere clever.
+    #
+    # A build whose sim is cut off partway commits a verdict with real content
+    # in it — sky readings, traffic rows, an audit — and NO done line, because
+    # the done line is written once at the end. Every measurement on that line
+    # is then reported GONE. Measured 24 Aug on `3e3cdc2`: the sim step ran 24
+    # minutes for 4 shots where the run before it did 29 in 12, and the check
+    # came back `VERDICT KEYS GONE: SimDirector: done.` — which reads as a
+    # metric deleted from the code and was nothing of the sort.
+    #
+    # The distinction is the one this file already draws for a build that
+    # never ran: "not measured" is not "measured and missing". A truncated run
+    # is not a baseline, and the correct response is emphatically NOT to
+    # `--learn` from it — that would rebaseline against a run missing the
+    # entire done line and quietly drop protection from every key on it.
+    if "SimDirector: done." not in text:
+        print(f"verdict-keys: the landed verdict is TRUNCATED — it has content "
+              f"but no done line, so the sim started and did not finish "
+              f"({VERDICT.name} line 1: {text.splitlines()[0].strip()})")
+        newer, why = newest_run_text()
+        if newer is None:
+            print(f"verdict-keys: and no complete run to fall back to ({why}) — "
+                  f"nothing to check against, which is NOT the same as clean")
+            return 0
+        print(f"verdict-keys: checking the newest COMPLETE run instead — {why}")
         text = newer
 
     # LEARNING USES THE NEWEST COMMIT'S RUN; CHECKING USES WHAT LANDED.

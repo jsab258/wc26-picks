@@ -793,6 +793,20 @@ string and false of an interpolated one. Every CS0119 in the done-line was
 invisible. One idea, two implementations, and the second was found only because
 the rejecting case was actually run.
 
+**A "FAILED" BUILD IS USUALLY A RED GATE, NOT A BROKEN BUILD.** Checked 24
+Aug after seeing two of the last three runs marked `failure` and briefly
+reading that as a broken channel: the failing STEP is "Run game simulation",
+and it ran its full twelve minutes and every step after it succeeded — stills
+committed, verdict written, artifact uploaded. The sim exits non-zero when a
+gate is red, which is correct, and GitHub then paints the whole job red.
+
+So the Actions list shows a wall of failures on a project whose builds are
+fine, and the distinction that matters is the one already in this file:
+**`NO PLAYER LOG` means the sim did not run; `failure` on its own usually
+means it ran and something it measured was out of bounds.** Read the verdict
+before reading the run's colour — the colour is the least informative thing
+about it.
+
 **THE COST IS NEVER THE ERROR, IT IS THE COMMITS ON TOP OF IT.** CS0426 landed
 and three more Game-layer commits went out before the verdict came back, so
 three separate answers each moved a round trip further away. When a build comes

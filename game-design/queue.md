@@ -160,29 +160,42 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    *(`jobsDone=2` beside `shifts=0` is NOT a contradiction: `JobsDone` is the
    racket's drops, `ShiftsWorked` the courier's rounds. Checked.)*
 
-1. **SIX TOOLS COMPARED `git log --format=%h` TO A 7-CHAR RUN FILENAME, AND
-   THE ABBREVIATION HAD GROWN TO 8.** Git sizes `%h` dynamically; as the repo
-   grew it went 7 -> 8, so every `sha in have` test stopped matching.
-   Measured: **0 of 333 run files matched 400 commits.** Nothing failed —
-   unmatched runs fall into a bucket sorted by SHA, i.e. by nothing — and
-   every tool kept printing plausible output. Fixed at all six sites with
-   `%H` (fixed length) matched by prefix; 121 match, the rest genuinely
-   predate the window.
-   **What it cost:** `--flaky`'s recent window and every "last N runs ago"
-   were arbitrary. `landed.py` named an arbitrary run as "newest" (the
-   ancestry test itself uses `merge-base`, so watchers still FIRED correctly).
-   `verdict-keys.py` printed "no run file matches any recent commit" — **it
-   was reporting this bug and I read it as a note.**
-   **The corrected gate picture is much better than I reported.** One live
-   gate: **`dayJob` 4/40 = 10% recent** against 27.3% lifetime, improving.
-   All else quiet — `frame` 48 runs ago, `jobRan` 60, `bodies` 57 — and
-   `claims` does not appear. My "five gates at 15-38%" and "`claims` is
-   WORSENING" are both **withdrawn**.
-   **Second wrong conclusion from a bad sort in one session:** when `ls -t`
-   failed (git pull rewrites mtimes) I switched to the tool's own ordering
-   and trusted it *because* it was the tool's, instead of checking it the
-   same way. Suspect the instrument applies hardest to the one you reach for
-   as the correction.
+1. **SIX TOOLS COMPARED `%h` TO A 7-CHAR RUN FILENAME; THE ABBREVIATION HAD
+   GROWN TO 8.** Measured: **0 of 333 run files matched 400 commits.** Nothing
+   failed — unmatched runs fall into a bucket sorted by SHA — and every tool
+   printed plausible output. Fixed at all six sites with `%H` matched by
+   prefix. **Cost:** `--flaky`'s recent window and every "last N runs ago"
+   were arbitrary; `landed.py` named an arbitrary run as newest (watchers
+   still FIRED — the ancestry test uses `merge-base`); and
+   `verdict-keys.py` printed "no run file matches any recent commit", which
+   **was this bug reporting itself and I read it as a note.**
+   **Corrected gate picture, much better than I published:** one live gate,
+   `dayJob` 4/40 = 10% recent vs 27.3% lifetime, improving. All else quiet;
+   `claims` absent. "Five gates at 15-38%" and "`claims` WORSENING" are
+   **withdrawn** — the second wrong conclusion from a bad sort in one
+   session, both from trusting an ordering because it was the tool's own.
+
+1. **A RUN TRUNCATED AT 4 SHOTS OF 29 — AND IT REDDENED `verify` AS A LOST
+   METRIC.** `3e3cdc2` ran the sim step **24 min for 4 shots**; the run before
+   did **29 in 12**. No `NO PLAYER LOG`, no gates line, no `sunSeries`.
+   **My code is cleared by counting:** that commit adds two `FrameShot` calls
+   OUTSIDE the rung loop and a <=12x7 sweep with early exit — ~2 renders and
+   ~170 raycasts, once. Not twelve minutes. **The runner is Jafar's desktop
+   and the run began 09:14 his time on a Monday.** A hypothesis, not a
+   finding: **do not chase a truncated run as a code bug until a second
+   truncates at the same point**; if truncation clusters in his working hours
+   the fix is WHEN we dispatch.
+   **The instrument fault it exposed is the real prize.** `verify` went red
+   with `VERDICT KEYS GONE: SimDirector: done.` — a truncated run has no done
+   line, so every measurement written at the end reads as DELETED FROM THE
+   CODE. `verdict-keys.py` already skipped no-sim runs for exactly this
+   reason; truncated runs now skip the same way and it walks back to the
+   newest COMPLETE run (0 missing). **`--learn` against that file would have
+   rebaselined off a run with no done line and dropped protection from every
+   key on it** — the ratchet the tool's own comments warn about.
+   *(Also: a red GATE marks the whole job `failure` — the failing step is the
+   sim and everything after it succeeds. Two of three recent "failures" were
+   fine. In CLAUDE.md now.)*
 
 1. **THE SHADOW RATIO IS 0.06 AND THE MISSING QUANTITY IS INDIRECT LIGHT.**
    With the y-flip fixed, lit holds at 0.129 across every rung — the
@@ -266,25 +279,19 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    *(`SkylineRepainted` also used to increment before the paint was
    attempted, reporting success for a step it had never checked. Fixed.)*
 
-1. **THE PAVING BLOWOUT: LEVEL HALVED, VARIANCE BARELY MOVED.**
-   `districtGround` found `mat_asphalt ... glossScale:4.00` — pinned at the
-   clamp, the code giving up rather than a scale. Fixed (uniform scalar once
-   the wet target outruns the map; `glossDropped=5 glossRestored=5`, both
-   directions, not a ratchet). **Judged on the frame:** median **0.434 ->
-   0.219**, but spread only **0.654 -> 0.571** against brick's 0.385. The
-   gloss owned the LEVEL; the texture's contrast or the wet reflection owns
-   the VARIANCE. **Next: read `districtGround` again, then the reflection
-   strength — do not re-tune the gloss, it did its part.**
+1. **PAVING BLOWOUT: LEVEL HALVED, VARIANCE BARELY MOVED.** `districtGround`
+   found `glossScale:4.00` — pinned at the clamp, the code giving up. Fixed
+   (uniform scalar once the wet target outruns the map; `glossDropped=5
+   glossRestored=5`, both directions). **On the frame:** median 0.434 ->
+   0.219, spread only 0.654 -> 0.571 vs brick 0.385. Gloss owned the LEVEL;
+   texture contrast or the wet reflection owns the VARIANCE. **Next: read
+   `districtGround` again, then reflection strength — do not re-tune gloss.**
 
-1. **EIGHTY-NINE FETCHED MODELS ON DISK, SIX REFERENCED.** industrial 25,
-   roads 47, suburban 13, commercial 10 = 95; six used (two awnings, one lamp
-   for the whole town, three skyline buildings). Unused is the density the
-   bar is about: barriers, cones, four more lamp variants, 47 road pieces,
-   **25 industrial buildings for a town whose identity is its docks**.
-   **Next is a READ:** a handful through `TryInstantiateProp`, check
-   `kitAlbedo` first — twelve `base_mesh_*` at 1.00 prove a fetched model is
-   not a usable one. *(First called entirely unused, wrongly: props are
-   addressed by underscored key and my hyphenated grep found nothing.)*
+1. **89 FETCHED MODELS ON DISK, SIX REFERENCED.** industrial 25, roads 47,
+   suburban 13, commercial 10 = 95; six used. Unused is the density the bar
+   is about — barriers, cones, four lamp variants, 47 road pieces, **25
+   industrial buildings for a town whose identity is its docks**. **Next is a
+   READ:** a handful through `TryInstantiateProp`, check `kitAlbedo` first.
 
 1. **TWELVE PROP FAMILIES AT ALBEDO 1.00 ARE UNTEXTURED — `kitAlbedoNoTex=30`
    SAYS SO.** `kitAlbedo` had them at exactly 1.00 against
@@ -315,12 +322,12 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    before calling it: 43 degrees at the ninth decile is a wide-ish idle, not
    a T-pose. `restArmDrop=8.0` says the bind is right either way.
 
-1. **THE DECLUTTER: `namesClipped=0/83` — RAN, FOUND NOTHING, TEST SOUND.**
+1. **DECLUTTER: `namesClipped=0/83` — RAN, FOUND NOTHING, TEST SOUND.**
    `collidingNames=3` over 26 samples; three pairs still overlap after
-   `PinAll` — read `namesPinnedSum` (106) against `shotFixups` (27) before
-   tuning. I suspected the edge test was blind and **read `ScreenRect`
-   instead of assuming: no clamp** — it rejects only FULLY off-screen
-   labels, so a partially clipped one reaches the check. Rare-event counter.
+   `PinAll` — read `namesPinnedSum` (106) vs `shotFixups` (27) before tuning.
+   I suspected the edge test was blind and **read `ScreenRect` rather than
+   assuming: no clamp** — it rejects only FULLY off-screen labels, so a
+   partially clipped one reaches the check. Rare-event counter.
 
 1. **FIVE OF SEVEN DISTRICTS HAD NO SHOPS AT ALL.** `the_Hook:shop73
    Copper_Row:shop4` and **zero everywhere else** — the Exchange is the
@@ -332,13 +339,11 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    from one); the Hook keeps 0.55 since frame-drift is calibrated on it.
    **Read `premisesByDistrict` next landing** — the mix is the judgment.
 
-1. **THE DRESSING GATE WENT GREEN ON BUILD T** — the far city carries 382
-   pieces where it carried 37. **The old frame item under it is RETIRED: it
-   was three regime changes stale**, arguing from a software rasteriser's
-   666ms. On the real GPU the frame is `game=5.6ms` of ~27.5ms with `perfOk`
-   green, and the render is four fifths of it. Anything here starts from the
-   `frameCost` ladder in `## Now`, not from those numbers.
-
+1. **THE DRESSING GATE WENT GREEN ON BUILD T** — 382 far-city pieces where it
+   carried 37. **The old frame item under it is RETIRED, three regime changes
+   stale** (it argued from a software rasteriser's 666ms). On the real GPU
+   the frame is `game=5.6ms` of ~27.5ms, `perfOk` green, render four fifths.
+   Start from the `frameCost` ladder in `## Now`.
 1. ~~**The session-hook guarantee** (M22)~~ — **BUILT AND HOLDING.** What is
    open is the READING, not the tiers — see `## Now`.
 2. ~~**Romance** (M18)~~ — **PROMOTED TO M18.5, 18 Aug by Jafar.**
