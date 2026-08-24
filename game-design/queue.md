@@ -143,60 +143,42 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **THE SHADOW RATIO: TWO LEVERS MEASURED AND REJECTED, THE THIRD ONE
-   DISPATCHED.** Target is a cast shadow near HALF the lit brightness; today
-   it is 0.25.
-   - **Fill: capped by physics.** `ambientSeries` says x2.0 lands 0.50, and a
-     CoreTest refuses it — the day fill must stay dimmer than the dome it
-     derives from, because a wall seeing PART of the hemisphere cannot get
-     what the whole sky emits. Caps near x1.33, about 0.32.
-   - **Key: ruinous.** `sunSeries` moves the shade only **-21%** while
-     collapsing the lit side **-66%**. It buys ratio by destroying the
-     picture. My written prediction that the answer was "mostly key" is
-     REFUTED.
-   - **Shadow strength: dispatched, and the ladder had already named it.**
-     `shadowOff:0.310` against `all:0.102` — shadows do most of the
-     darkening. `sun.shadowStrength` ships at **0.93**, removing 93% of the
-     key in shadow. `shadowSeries` walks 0.93/0.85/0.75/0.65/0.55. **It is
-     better than the other two on its own terms: it raises the shaded side
-     and leaves the LIT side untouched, so the ratio's denominator cannot
-     drift with the lever** — the one thing neither other series could
-     promise.
-   **AND THE FIXTURE ITSELF MOVES, which undercut a number I quoted to three
-   digits.** The two series' x1 rungs agree to 1.0% on the LIT third and
-   differ by **26%** on the SHADED one, because the probe runs at the
-   step-back's final position — its own call site says so — and the step-back
-   moves by however much occlusion it found. So "x2.0 lands 0.495" was three
-   digits off a moving foundation. `on:<material>` is stamped INTO each
-   series now so two of them cannot be compared without seeing whether they
-   looked at the same wall. *(The first version read `_noonFacadeMat`,
-   assigned seventy lines further down — it would have stamped "not_probed"
-   on everything for ever, and a stamp that never varies looks like
-   agreement. It gets its own ray.)*
+1. **THE 0.5 TARGET IS FOR CAST SHADOWS, AND HALF MY READINGS WERE NOT ONE.**
+   *(This reframes the item; the levers were the wrong argument.)* The `on:`
+   stamp earned itself on its first landing: both series read
+   **`on:mat_concrete_b#g1`** with identical x1 rungs (0.039|0.424), so they
+   are comparable — and that wall is the SUN-PERPENDICULAR one (`nSun:0.00`),
+   not a shadowed one.
+   **On it, `sunSeries` shade is FROZEN: 0.039 / 0.039 / 0.039 / 0.039 /
+   0.035 while the lit side falls 0.424 -> 0.184.** The key contributes
+   NOTHING to that wall, so dimming it cannot raise the shade — and
+   `shadowStrength` cannot either, because there is no direct sun there to
+   remove. On this fixture the fill is the ONLY lever and it is capped below
+   share 1.0 by a CoreTest defending something true.
+   **THE INSIGHT: two physically different situations were being given one
+   target.** A CAST SHADOW is a sunlit surface with the sun blocked, and the
+   GTA reference puts it near half the lit brightness. A wall FACING AWAY
+   from the sun is sky-lit by nature and genuinely much darker — a
+   north-facing wall at noon is not a bug. The probe photographs whichever
+   the step-back's camera happens to face, which is why the readings swung
+   26%, why the ratios differ per wall (0.25 on brick, 0.092 on concrete),
+   and why the levers behaved differently in each.
+   **Next: split the question by `nSun`.** Judge cast shadows against ~0.5
+   with `shadowStrength` as the lever (`shadowSeries` is dispatched), and
+   judge sun-perpendicular walls on their own terms with the fill. **Do not
+   set one constant from a fixture that is sometimes one and sometimes the
+   other.**
 
-1. **THE STILLS NO LONGER PHOTOGRAPH WALLS.** *(rule 12; step-back and
-   depth series landed — account in `roadmap-history.md`.)* `farFrac`
-   (7-20m) is added for the case that passes both existing bands. **And the
-   black-wall frame ACQUITTED this metric:** that wall sat at `d:6.8`,
-   inside the mid band and under its bound, and it was DARK rather than
-   badly framed — do not tighten the bound to chase it.
-
-1. **RAIN: THE DIRECTION FIX UNCOVERED A SIZE FAULT TWO ORDERS OUT.** *(on
-   screen, `review_street`)* A Box shape emits along the shape's FORWARD and
-   nothing rotated the emitter, so rain was thrown SIDEWAYS at 26m/s;
-   `rainLowest` went from a STRUCTURAL floor of **+5.7m** to **-28.5m**.
-   **And then the frame showed white BARS falling.** Measured: streaks a
-   **median 10 pixels wide**, bright-desaturated pixels **18.2% of the whole
-   frame**, against 6.5% in the top third alone before. `startSize` was 0.06
-   — a six-centimetre raindrop, about thirty times life size. It never
-   changed; what changed is that drops now pass the LENS instead of dying
-   5.7m overhead and 28m out, where 6cm subtends nothing. **The fix did not
-   cause this, it uncovered it** — two faults, one hiding the other.
-   0.06 -> **0.010**, the factor taken from the measurement (ten pixels
-   median wants one or two). **Judge it the way it was caught:** median run
-   width of bright desaturated pixels on the committed still.
-   **Coverage still open:** mid-band reached, frame edges not (top-right
-   0.00%) — the 38m box, the 12m forward offset, the 1.1s life.
+1. **`farFrac` CARRIES THE SIGNAL THE OTHER TWO BANDS MISS — SERIES LANDED.**
+   *(rule 12; step-back and depth series in `roadmap-history.md`.)* First
+   readings: `day2_wet near=0.00 mid=0.18 **far=0.73**`, `day1_noon
+   0.00/0.27/**0.54**`, `day2_noon 0.00/0.33/**0.43**`. Near is 0.00 on
+   every shot and mid sits inside its bound, while the 7-20m band runs
+   0.43-0.73 — and `review_day2_wet` is about 80% black wall, which no
+   existing metric could see. **No bound yet, on purpose (rule 2): this is
+   the series the bound comes from.** Judge it over a few more landings —
+   a street SHOULD have buildings at 7-20m, so the bound is not 0, and the
+   question is where "framed" becomes "photographing a wall".
 
 1. **THE BODY BUDGET IS CLOSED AT 87.8%** — account in `roadmap-history.md`.
    The 34m draw radius was the binding constraint (now 70m) and `RealBodyCap`
@@ -314,18 +296,20 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    already says the bind is right, so whatever this is belongs to the
    animation or the solve. Read the pair before touching either.
 
-1. **THE DECLUTTER: NAMEPLATES AND BUBBLES, MEASURED, OPEN.** *(on screen)*
-   `collidingNames=3` over 26 samples — five labels at the peak, 3 of their
-   10 pairs overlapping. `PinAll` runs at shot time and three still overlap:
-   read `namesPinnedSum` (106) against `shotFixups` (27) before tuning.
-   **AND THE FRAME EDGE IS A COLLIDER TOO, which this vocabulary lacked** —
-   `review_day2_wet` renders "Ellis" cut in half by the bottom-right corner,
-   found by opening the still. `namesClipped=n/tested` and `namesClipWorst`
-   (overhang as a fraction of the label's OWN width) land next build.
-   **Measured, NOT fixed, deliberately:** sliding a label inward detaches a
-   nameplate from the person it names — a worse lie than a clipped one — and
-   hiding it is the other repair. Which is right depends on how often and by
-   how much, and neither number existed. Rule 2.
+1. **THE DECLUTTER: `namesClipped=0/83` — RAN, FOUND NOTHING, AND THE TEST
+   IS SOUND.** *(on screen)* `collidingNames=3` over 26 samples; `PinAll`
+   runs at shot time and three pairs still overlap — read `namesPinnedSum`
+   (106) against `shotFixups` (27) before tuning.
+   **The edge test landed with a real denominator: 83 labels examined, zero
+   clipped, `namesClipWorst=0.00`** — while an earlier `review_day2_wet`
+   plainly showed "Ellis" cut in half by the corner. I suspected the test
+   was blind (a clamp inside `ScreenRect` would report an off-screen label
+   as inside) and **read it instead of assuming: there is no clamp.** It
+   returns false only when a label is FULLY off-screen, which is right —
+   fully off-screen is absent, not clipped — and a partially clipped one
+   reaches the edge check intact. So the zero is honest and this run's
+   vantages simply had no clipped label. **Leave it for a few landings; it
+   is a rare-event counter and one frame is not a rate.**
 
 1. **FIVE OF SEVEN DISTRICTS HAD NO SHOPS AT ALL.** `the_Hook:shop73
    Copper_Row:shop4` and **zero everywhere else** — the Exchange is the
