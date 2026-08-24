@@ -41,9 +41,10 @@ namespace Ledger.Game
     /// the next value comes from evidence rather than from this sentence.
     ///
     /// WHY THERE IS NO PIXEL READBACK IN THE MEASUREMENT. An imported `.hdr` is
-    /// not readable, and this project ships no `.meta` files — every import
-    /// setting is Unity's default, decided on the CI machine — so `GetPixels`
-    /// would throw rather than measure. What is checkable from here is the WIRE,
+    /// not readable from script, and while `SkyImport` (Editor) now authors the
+    /// import shape for these four files — the project still ships no `.meta`;
+    /// settings-as-code is the CharacterImport convention — it does not mark
+    /// them readable, so `GetPixels` would throw. What is checkable is the WIRE,
     /// and it is checked completely: how many captures were found against how
     /// many were asked for, what each loaded AS, which one is bound, and whether
     /// the binding is still live at the instant a frame is taken. The visual
@@ -84,9 +85,10 @@ namespace Ledger.Game
         /// Names that did not load, so one round trip says WHICH rather than
         /// that there was one.
         public static string MissingNames = "";
-        /// What the first capture loaded as. An `.hdr` is expected to import as
-        /// a Cube; if Unity's default gives a 2D texture instead, the binding
-        /// still succeeds and reflects garbage, so the dimension is the tell.
+        /// What the first ACCEPTED capture loaded as. `Take` fails closed on
+        /// shape — a non-cube never reaches a bind (it threw per frame once,
+        /// 593k log lines) — so this reads `Cube` on success, and on total
+        /// rejection names the case; per-name shapes are in `skyMissing`.
         public static string LoadedAs = "not tried";
         /// Which capture is the environment right now, or `procedural`.
         public static string Bound = "none";
@@ -269,15 +271,6 @@ namespace Ledger.Game
         public static void Resume()
         {
             _suspended = false;
-        }
-
-        /// Called by `WetReflections` when the street dries out, so the handover
-        /// has no gap. Restoring `Skybox` there instead — which is what it used
-        /// to do — would put the gradient back under every window for as long as
-        /// it took the next `Apply` to run, and component order is undefined.
-        public static void Restore(float night, float rain, float deck)
-        {
-            Apply(night, rain, deck);
         }
 
         /// Re-read on demand, because `Live` is a claim about NOW and the sim

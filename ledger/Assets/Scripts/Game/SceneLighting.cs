@@ -131,11 +131,16 @@ namespace Ledger.Game
             {
                 _sky = new Material(skyShader) { hideFlags = HideFlags.HideAndDontSave };
                 RenderSettings.skybox = _sky;
-                // What dry glossy surfaces (windows, glass) reflect. 64 is
-                // plenty for a three-colour gradient, and it is what keeps
-                // DynamicGI.UpdateEnvironment cheap enough to call while the
-                // light moves. Wet ground ignores this: WetReflections
-                // publishes its own scene capture as a custom cubemap.
+                // What dry glossy surfaces reflect AT NIGHT and on capture
+                // failure only, since 24 Aug: SkyEnvironment binds a 512/face
+                // Poly Haven cube on every dry daytime frame, so this 64px
+                // bake of the gradient is the night/fallback environment —
+                // there being no night capture — and what keeps
+                // DynamicGI.UpdateEnvironment cheap while the light moves.
+                // Wet ground ignores both: WetReflections publishes its own
+                // scene capture. (This comment previously described 64 as
+                // THE dry reflection; the claim-auditor caught it one system
+                // behind the code.)
                 RenderSettings.defaultReflectionResolution = 64;
             }
             else

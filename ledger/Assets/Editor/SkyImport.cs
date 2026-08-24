@@ -31,10 +31,18 @@ namespace Ledger.EditorTools
             // The captures are equirectangular panoramas; Auto detects the
             // layout from the aspect and wraps them onto the cube.
             imp.generateCubemap = TextureImporterGenerateCubemap.AutoCubemap;
-            // No convolution: these feed GLOSSY reflections through the
-            // standard shader's own mip selection. Specular convolution here
-            // would pre-blur the top mip that smoothness 0.90 glass reads.
-            imp.cubemapConvolution = TextureImporterCubemapConvolution.None;
+            // NO convolution line, deliberately — and there was one, and it
+            // cost this file's first round trip. `TextureImporter` in this
+            // Unity version has no `cubemapConvolution` member (CS1061 on
+            // CI; invisible locally, where the editor assembly never
+            // compiles — the constraint list's first entry, demonstrated by
+            // its newest file). The value we wanted is None, which is the
+            // importer's DEFAULT: no specular pre-blur, so the standard
+            // shader's own mip selection does the glossy falloff and the
+            // top mip that smoothness-0.90 glass reads stays sharp. If a
+            // landing shows the reflections convolved anyway, set it
+            // through TextureImporterSettings (Read/SetTextureSettings),
+            // not a direct member.
             // 512 per face. The reflection was a 64px gradient before, so
             // this is an 8x step up in the direction that matters while
             // keeping four cubemaps' GPU cost modest; raise it off a still

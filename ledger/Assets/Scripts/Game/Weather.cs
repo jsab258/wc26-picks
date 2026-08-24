@@ -64,8 +64,11 @@ namespace Ledger.Game
 
         void Build()
         {
-            // Cache the dry values ONCE. Reading them back after we have
-            // already wetted the material would bake the rain in permanently.
+            // Particle-system construction only. (The line here said "Cache
+            // the dry values ONCE" for weeks after the dry baseline moved to
+            // AssetLibrary.SetWetness — nothing in this method caches
+            // anything, and the claim-auditor's first sweep found the two
+            // comments disagreeing across one file.)
 
             // Rain as a particle system that follows the camera — a box of
             // falling streaks is indistinguishable from real rain at street
@@ -209,12 +212,17 @@ namespace Ledger.Game
         /// down here" is not a median question, and a median over a column
         /// of falling rain describes the middle of the column, which is
         /// exactly the part that was never in doubt.
-        /// How long one rain streak is, in metres, as the renderer will draw
-        /// it. Target is the distance a drop covers while the shutter is open
-        /// — 9 m/s at 45-60fps is 0.15-0.20m — and it was 0.575m until 24 Aug.
-        public static float RainStreakMetres;
-
         public static float RainLowest = 999f;
+
+        /// How long one rain streak is, in metres, as the renderer will draw
+        /// it. A DERIVED CONSTANT, not a sample — computed once in Build from
+        /// what the renderer was actually given. Target is the distance a
+        /// drop covers while the shutter is open — 9 m/s at 45-60fps is
+        /// 0.15-0.20m — and it was 0.575m until 24 Aug. (This field was
+        /// inserted mid-way through the lowest-drop doc block above, so the
+        /// prose about minimums briefly described a length; the
+        /// claim-auditor caught the misattachment on its first sweep.)
+        public static float RainStreakMetres;
         public static int RainAlive, RainBelow;
         static ParticleSystem.Particle[] _rainBuf;
         int _rainSampleTick;

@@ -2542,12 +2542,14 @@ namespace Ledger.Game
         // found by a white swing bin standing in the road through a repaint
         // that moved 116 renderer sets: one idea, two implementations, and
         // the one nobody looked at was the one missing the line.
-        /// `key` is the prop key this object was instantiated from, and it is
-        /// optional only because two call sites repaint objects that never came
-        /// from the prop pipeline. Pass it wherever there is one: without it
-        /// `kitAlbedo` can only report the albedo the family ARRIVED with, and
-        /// that number was read as the albedo it stands at for long enough to
-        /// put a finished job back on the work stack.
+        /// `key` is the prop key this object was instantiated from. Every
+        /// live call site passes one — the claim-auditor's first sweep caught
+        /// this comment saying two sites could not, in the very commit that
+        /// gave every site a key. It stays defaulted only so a FUTURE caller
+        /// repainting a non-pipeline object compiles; without a key the
+        /// repaint is real but unattributed, and `kitAlbedo` then reports
+        /// only the arrival albedo — the misreading that once put a finished
+        /// job back on the work stack.
         public static void TintFurniture(GameObject go, Color c, string key = null)
         {
             if (go == null) return;

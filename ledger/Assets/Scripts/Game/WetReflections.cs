@@ -89,8 +89,13 @@ namespace Ledger.Game
             _probe.size = new Vector3(48f, 18f, 48f);
             _probe.center = Vector3.zero;
 
-            // Only the things worth reflecting. Reflecting the player is both
-            // wrong (they are inside the probe) and expensive.
+            // EVERYTHING, including the player — and the comment here used to
+            // claim the opposite ("only the things worth reflecting") while
+            // the mask below has been ~0 since it landed: a filter described
+            // and never written, found by the claim-auditor's first sweep.
+            // Excluding the player is plausibly right (they stand inside the
+            // probe) and is a LADDER item, not a stealth fix: it changes what
+            // every wet frame shows and gets judged on a still.
             _probe.cullingMask = ~0;
 
             _probe.enabled = false;
