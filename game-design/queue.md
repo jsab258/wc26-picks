@@ -170,22 +170,23 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    order is the pull order and means nothing. `ordered_runs()` sorts by
    commit. A wrong ordering made five broken gates look fixed.)*
 
-1. **THE SHADOW LEVER IS REAL — THE THREE NULLS WERE ALL THE FIXTURE.**
+1. **THE SHADOW LEVER IS REAL, AND THE BROKEN DENOMINATOR WAS A Y-FLIP.**
    `FindShadowPair` sweeps for a wall facing the sun WITH geometry between it
-   and the sun, plus an unblocked one for the denominator, both from one
-   sweep. It found a proper pair (`mat_brick_grey_b`, `nSun:0.62`, 10.6m) and
-   **`shadowSeries` moves monotonically: 0.043 / 0.071 / 0.098 / 0.122 /
-   0.145 as strength walks 0.93 -> 0.55 — a 3.4x lift.** The earlier
-   `0.039 -> 0.043` null was entirely the old fixture (`nSun:0.00`, a wall
-   the sun never reaches), as were the key and shadow nulls before it.
-   **THE DENOMINATOR IS BROKEN AND IS NOT TO BE DIVIDED BY.** The lit box
-   reads 0.000-0.004 on a wall of the SAME material at the SAME `nSun:0.62`,
-   10.1m — a lit wall cannot be darker than itself in shadow, so the pair is
-   right and the SAMPLING is wrong. Viewport coords now ship in
-   `shadowPairOn`, and the series appends
-   `LIT_DARKER_THAN_SHADE-denominator_unusable` rather than printing a number
-   somebody might divide. **Fix the lit box, then set `shadowStrength` from
-   the series — do not set it from the shade column alone.**
+   and the sun, plus an unblocked one for the denominator, both in one sweep.
+   It found a proper pair (`mat_brick_grey_b`, `nSun:0.62`, 10.6m) and
+   **`shadowSeries` moves monotonically 0.043 / 0.071 / 0.098 / 0.122 / 0.145
+   as strength walks 0.93 -> 0.55 — a 3.4x lift.** The three earlier nulls
+   were all one bad fixture (`nSun:0.00`, a wall the sun never reaches).
+   **The lit box read 0.000-0.004 on the SAME wall — impossible, and the
+   impossibility was the clue.** `GetPixels32` lays rows out BOTTOM-up and
+   viewport y is bottom-up too, so `BoxMedian`'s `(1 - vp.y)` sampled the
+   MIRRORED point: high in the frame lands low in the buffer, sky becomes
+   road, and a bright wall reports black. The third-medians beside it cannot
+   catch this — they sample a band symmetric about the middle, so mirroring
+   changes nothing — and this is the first sampler that reads a POINT.
+   Fixed, with the `LIT_DARKER_THAN_SHADE` guard kept for the next
+   regression. **Set `shadowStrength` from the next landing's full series,
+   ratio included.**
 
 1. **`farFrac` CARRIES THE SIGNAL THE OTHER TWO BANDS MISS — SERIES LANDED.**
    *(rule 12; step-back and depth series in `roadmap-history.md`.)* First

@@ -8938,8 +8938,25 @@ namespace Ledger.Game
             if (luma == null || luma.Length == 0) return -1;
             int w2 = 640, rows = luma.Length / w2;
             if (rows < 4) return -1;
-            // Viewport y is bottom-up; the luma buffer is top-down.
-            int cx = (int)(vp.x * w2), cy = (int)((1f - vp.y) * rows);
+            // BOTH ARE BOTTOM-UP AND THE FIRST VERSION FLIPPED ONE OF THEM.
+            // Unity's `GetPixels32` lays pixels out left-to-right,
+            // BOTTOM-to-top, and viewport (0,0) is also bottom-left — so
+            // viewport y maps straight onto the row index with no flip. The
+            // `(1 - vp.y)` this used to carry sampled the vertically
+            // MIRRORED point.
+            //
+            // It went unnoticed because the third-medians beside this one
+            // cannot see the fault: they sample rows 25%-75%, a band
+            // symmetric about the middle, so mirroring it changes nothing.
+            // This is the first sampler here that reads a point rather than a
+            // band, and it inherited a comment that was wrong.
+            //
+            // The evidence was an impossibility, which is the useful kind: a
+            // "lit" wall reading 0.000 against the SAME wall in shadow at
+            // 0.043. A mirrored point high in the frame lands low in the
+            // buffer — sky becomes road — which is exactly a bright surface
+            // reporting black.
+            int cx = (int)(vp.x * w2), cy = (int)(vp.y * rows);
             int hx = (int)(half * w2), hy = (int)(half * rows);
             int c0 = Mathf.Max(0, cx - hx), c1 = Mathf.Min(w2, cx + hx + 1);
             int r0 = Mathf.Max(0, cy - hy), r1 = Mathf.Min(rows, cy + hy + 1);
