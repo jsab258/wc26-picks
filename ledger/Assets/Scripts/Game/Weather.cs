@@ -36,10 +36,26 @@ namespace Ledger.Game
         static float _forcedRain = -1f;
 
         /// THE WEATHER PLANT (rule 5b's corollary: plant the condition, never
-        /// wait for a lucky run). The daily roll is seeded off the day number,
-        /// so the review days 1 and 2 are pinned dry on every run there will
-        /// ever be — both open rain findings were waiting on a wet frame the
-        /// seed structurally cannot produce. A diagnostic still needs the
+        /// wait for a lucky run). The daily roll below is seeded off the day
+        /// number, so the schedule is a pure function of the day and the same
+        /// in every run there will ever be — but "review days 1 and 2 are
+        /// pinned dry", which this comment asserted, is NOT what it says.
+        /// Replayed off the arithmetic below and confirmed against the landed
+        /// `frames.tsv` rain and wet columns:
+        ///
+        ///     d1 rain 0.35 wet 1.00      d4 rain 0.00 wet 0.69
+        ///     d2 rain 0.00 wet 0.61      d5 rain 0.00 wet 0.00
+        ///     d3 rain 0.90 wet 1.00
+        ///
+        /// Day 1 rains outright. Day 2 is DRY-SKIED OVER A WET STREET — rain
+        /// 0.00 with wetness still 0.61 at noon, because `Wetness` decays at
+        /// 0.012/s against rain's 0.08 and the look lives in that tail. Day 5
+        /// is the week's only bone-dry noon, which is what the district tour
+        /// in `SimDirector` now shoots on. What the plant actually buys is a
+        /// downpour at a CHOSEN hour and vantage rather than wherever the
+        /// seed and the walk happen to leave the camera.
+        ///
+        /// A diagnostic still needs the
         /// STATE, not the transition, so forcing SNAPS Rain and Wetness
         /// instead of ramping them; a negative clears the pin and snaps back
         /// to the day's own rolled target, so the 23:00 night gates measure

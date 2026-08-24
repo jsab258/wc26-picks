@@ -93,17 +93,44 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 ### screen. Nothing from a later stage starts while an earlier one has
 ### startable work, except reading a landed verdict, which is free.
 
-1. **TWO OF THE BENCHMARK'S THREE GAPS CLOSED IN ONE BUILD (cd48c19).**
-   Grain: districts 5.2-7.5 -> **0.9-2.8** against ref 0.23-2.05; detail
-   readings 0.37-0.43 -> **0.21-0.29, in-band** (the old numbers were grain
-   pollution, as diagnosed); `decalsBuried=0`, `roadDecals=1081`, frame cost
-   in band. **The remaining gap is SHADOW CONTRAST** (districts 0.02-0.15 vs
-   ref 0.157-0.388) — **and it has a regime problem to settle FIRST (rule
-   2): the district tour shoots at rain 0.90**, so its shadow numbers are
-   overcast-wet compared against five DRY references. Either the tour goes
-   dry (a regime change for the whole pinned series — decide deliberately,
-   it resets comparability) or ref-bench marks the rows rain-mismatched.
-   Measurement-auditor question before any lighting lever moves.
+1. **THE SHADOW GAP IS MOSTLY REGIME, AND THE DRY TOUR IS DISPATCHED TO
+   PROVE IT. NO LIGHTING LEVER MOVES UNTIL IT LANDS.** Two of the benchmark's
+   three gaps closed in cd48c19 (grain 5.2-7.5 -> **0.9-2.8** vs ref
+   0.23-2.05; detail 0.37-0.43 -> **0.21-0.29, in band**; `decalsBuried=0`,
+   frame cost in band). The third read as a lighting fault and is not one.
+
+   **The verdict, measured not argued.** The weather roll is a pure function
+   of the day number: d1 rain 0.35/wet 1.00, d2 0.00/0.61, d3 **0.90**/1.00,
+   d4 0.00/0.69, d5 **0.00/0.00**. The tour fired on day 3, the wettest day
+   there is — **all 91 district rows in project history read rain 0.90**,
+   benchmarked against five DRY references. Split the landed stills by
+   weather and the gap mostly disappears: **the dry noons are already IN
+   BAND** (`day2_noon` 0.365, `day5_noon` 0.270, `day1_noon` 0.239, vs ref
+   0.157-0.388) and the rain-0.90 frames are the ones outside it (hook
+   0.067, strip 0.065, gullwing 0.070, `day2_wet` 0.091). Wet asphalt, not
+   a broken sun.
+
+   **Dispatched:** the tour moved to **day 5, the week's only bone-dry
+   noon**. Availability cost is zero — of the 15 `frames.tsv` revisions
+   carrying a rain column, 13 reached day 5 and the 2 that did not never
+   reached day 3 either. Also corrected: three comments claiming the review
+   days are dry (they are not), and ref-bench's stale 0.45-0.55 prose
+   target, a surface:surface ratio quoted at this row's p10/p90.
+
+   **THIS IS A DELIBERATE REGIME BREAK. Every `district_*` row before it
+   stops being comparable:** ref-bench's pose-stable series, frame-drift's
+   district rows (one huge drift, correctly), `tourDepth*`, `districtGround`,
+   and — easy to miss, it is in `FilmGrade` — the GRAIN calibration series,
+   whose amplitude falls 1.9x with the rain (0.0095 -> 0.0050).
+
+   **WHAT THE NEXT LANDING MUST SHOW, or it did not test this:** the district
+   rows in ref-bench's pose line must read **`rain=0.00 wet=0.00`** — if they
+   do not, the tour did not land dry and nothing below is readable. Then the
+   fork: **`shadowRatio` inside 0.157-0.388 => the gap was regime, close it
+   and move no lever**; still low at rain 0.00 => the lever is ambient fill
+   lifting `groundP10`. Also read `grainSigma` (predicted 1.8-2.2x down from
+   0.89-2.76) and the new `shadowPeakDay=D/rain`, which says which noon the
+   bimodal `shadowDrop` series peaked on.
 1. **M17.10 — THE VISUAL BAR IS GTA V (PS3). Jafar's order, 21 Aug, twice.**
    *(the most on-screen thing there is)* Plan in `roadmap.md` 17.10,
    decomposition and research in `visual-bar-spec.md`. The look is carried by
@@ -154,26 +181,23 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **THE `5ee9330` STILL'S TWO FAULTS: BOTH FIXED, AWAITING THE LANDING**
-   (rain streak 0.575m -> 0.152m derived; `skyVsWall` probe in; full account
-   in `roadmap-history.md`). **Read `rainLowest` (should rise toward -4 after
-   the spawn-curtain fix) and `skyVsWall` next landing.**
+1. **THE `5ee9330` STILL'S TWO FAULTS: LANDED AND READ.** `rainLowest=-5.8`
+   (from -28.5 — the spawn-curtain fix took; target was ~-4, so close, not
+   exact), `rainStreak=0.152`, `skyVsWall=0.286/0.855@0.92`. Closed;
+   account in `roadmap-history.md`.
 
-1. **FRAME COMPARISONS ARE CAMERA-CONDITIONED** (`frame-drift` labels every
-   row; `ref-bench` marks pose-stable stills `*`; account in
-   `roadmap-history.md`). **Open: the 7/7 district darkening** — re-read
-   after more landings, then bisect.
-
-1. **EVERY PINNED SHOT DARKENED IN THE LATEST BATCH, WITH THE WRONG SIGN FOR
-   THE SHADOW LEVER.** All seven districts moved -0.0005 to -0.0050 and
-   `day1_noon` -0.0065, 7/7 in one direction. But `shadowStrength` went
-   0.93 -> 0.85, which LIGHTENS shadows and should brighten a frame, so this
-   is something ELSE in the batch. **Not a conclusion — two landings carrying
-   many commits, and the magnitude sits right at the tour's own p90 of
-   0.0050.** What it does show is the instrument working: a consistent 0.003
-   across seven independent shots is a thing the street frames could never
-   have shown. Open: read it again after the next few landings, and if it
-   holds, bisect the batch.
+1. **THE 7/7 DISTRICT DARKENING: BASELINE VOIDED BY THE DRY TOUR, DO NOT
+   BISECT ACROSS IT.** All seven districts had moved -0.0005 to -0.0050 and
+   `day1_noon` -0.0065 in one direction, with `shadowStrength` moving the
+   WRONG way (0.93 -> 0.85 lightens), so the cause was something else in the
+   batch and the plan was to re-read then bisect. **That plan is dead as
+   written:** item 1 moves the tour from day 3 to day 5, so the pre-change
+   pinned rows are a different regime and a bisect spanning the break would
+   be reading weather as a code change. Restart the baseline from the first
+   dry landing. (`frame-drift` labels every row, `ref-bench` marks pose-stable
+   stills `*`; account in `roadmap-history.md`.) It did show the instrument
+   working: a consistent 0.003 across seven independent shots is a thing the
+   street frames could never have shown.
 1. **EIGHTEEN GATES CANNOT NAME THEIR OWN FAILURE — RATCHETED AT 18 by
    `tools/gate-detail.py` in `verify`** (account in `roadmap-history.md`).
    Fix each bare gate's operands as it goes red, not en masse.
@@ -206,10 +230,10 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    black wall that nothing else could see. **No bound yet (rule 2): this is
    the series a bound comes from.** A street SHOULD have buildings at 7-20m,
    so the question is where "framed" becomes "photographing a wall".
-1. **THE BODY BUDGET IS CLOSED AT 87.8%** — account in `roadmap-history.md`.
-   Draw radius 34m -> 70m was the binding constraint, `RealBodyCap` 12 -> 28,
-   hair CLOSED. **Still live:** the centre-third foot reading (FootMesh 234,
-   Ch38_Shoes 224), and the white pills with no committed still.
+1. **THE BODY BUDGET IS CLOSED AT 87.8%** — account in `roadmap-history.md`
+   (draw radius 34m -> 70m was the binding constraint; `RealBodyCap` 12 ->
+   28; hair CLOSED). **Still live:** the centre-third foot reading (FootMesh
+   234, Ch38_Shoes 224), and the white pills with no committed still.
 
 1. **THE INQUIRY RUNS NOW; TWO THINGS GATED ON IT STILL DO NOT.** *(moat:
    information. Not started — stage 1 has startable work.)* CLAUDE.md said
@@ -306,28 +330,24 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    before calling it: 43 degrees at the ninth decile is a wide-ish idle, not
    a T-pose. `restArmDrop=8.0` says the bind is right either way.
 
-1. **DECLUTTER: `namesClipped=0/83` — RAN, FOUND NOTHING, TEST SOUND.**
-   `collidingNames=3` over 26 samples; three pairs still overlap after
-   `PinAll` — read `namesPinnedSum` (106) vs `shotFixups` (27) before tuning.
-   I suspected the edge test was blind and **read `ScreenRect` rather than
-   assuming: no clamp** — it rejects only FULLY off-screen labels, so a
-   partially clipped one reaches the check. Rare-event counter.
+1. **DECLUTTER: RAN, TEST SOUND, NOW GREEN.** Latest landing reads
+   `collidingNames=0` over 27 samples (was 3/26) and `namesClipped=1/89`,
+   `namesClipWorst=0.63`. The edge test was checked rather than assumed —
+   `ScreenRect` has no clamp, it rejects only FULLY off-screen labels, so a
+   partially clipped one does reach the check. Rare-event counters; leave
+   until one goes non-zero.
 
-1. **FIVE OF SEVEN DISTRICTS HAD NO SHOPS AT ALL.** `the_Hook:shop73
-   Copper_Row:shop4` and **zero everywhere else** — the Exchange is the
-   financial district and had no commercial frontage; the Parade is the
-   entertainment strip and was 37 houses and 24 flats. Shops were gated on
-   `nearCore` alone and the dense cores sit in the Hook, so that flag had
-   been answering "is this the Hook". Found by reading the new counter's
-   OUTPUT, not the code. Two shares per district now (at a core and away
-   from one); the Hook keeps 0.55 since frame-drift is calibrated on it.
-   **Read `premisesByDistrict` next landing** — the mix is the judgment.
+1. **FIVE OF SEVEN DISTRICTS HAD NO SHOPS: FIXED AND READ** (account in
+   `roadmap-history.md`). Landed `premisesByDistrict`: Exchange 13, Parade
+   23, Gullwing 7, Copper_Row 6, Hook 73. Fairview and Ironside still
+   `shop0` — plausible for an industrial strip and a residential district,
+   so closed unless a frame says otherwise.
 
-1. **THE DRESSING GATE WENT GREEN ON BUILD T** — 382 far-city pieces where it
-   carried 37. **The old frame item under it is RETIRED, three regime changes
-   stale** (it argued from a software rasteriser's 666ms). On the real GPU
-   the frame is `game=5.6ms` of ~27.5ms, `perfOk` green, render four fifths.
-   Start from the `frameCost` ladder in `## Now`.
+1. **THE DRESSING GATE WENT GREEN ON BUILD T** — 382 far-city pieces where
+   it carried 37. The old frame item under it is RETIRED, three regime
+   changes stale (it argued from a software rasteriser's 666ms); on the real
+   GPU it is `game=5.6ms` of ~27.5ms, `perfOk` green. Start from the
+   `frameCost` ladder in `## Now`.
 1. **Smuggling** (M21) — **BUILT** (account in `roadmap-history.md`).
    Remainders: a player verb to recruit the signer, and gambling behind it.
    Read `cargoes`/`manifests` next build.

@@ -1580,7 +1580,62 @@ namespace Ledger.Game
             // `shotDistricts=[the_Hook:20]` says all twenty shots of every run
             // are in one of seven districts, and the other six have never been
             // photographed at all.
-            if (!_tookTour && now.Day >= 3 && now.Hour == 12)
+            //
+            // DAY 5, NOT DAY 3, AND THE CHANGE RESETS A SERIES ON PURPOSE.
+            // Day 3 is not "a day"; it is deterministically THE WETTEST DAY
+            // THE SIM HAS. `Weather.Update` rolls one `System.Random(day *
+            // 7717 + 3)` and buckets it, so the schedule is a pure function
+            // of the day number and identical in every run there will ever
+            // be. Replayed off the same arithmetic and confirmed against the
+            // landed `frames.tsv` rain/wet columns:
+            //
+            //     d1 rain 0.35 wet 1.00      d4 rain 0.00 wet 0.69
+            //     d2 rain 0.00 wet 0.61      d5 rain 0.00 wet 0.00
+            //     d3 rain 0.90 wet 1.00
+            //
+            // So every district frame this project has ever taken was shot
+            // in a downpour: 91 district rows across the 15 `frames.tsv`
+            // revisions that carry a rain column, and ALL 91 read rain 0.90.
+            // They were then benchmarked against five DRY GTA references,
+            // which is the regime confound `ref-bench`'s shadow-contrast row
+            // has been reporting as a lighting gap. Day 5 is the ONLY
+            // bone-dry noon in the schedule — d2, d4, d7 and d13 are
+            // dry-SKIED but still wet from the day before, and wetness is
+            // what the shadow reading actually responds to.
+            //
+            // AVAILABILITY COST IS ZERO, MEASURED RATHER THAN ASSUMED: of
+            // those 15 revisions, 13 reached `day5_noon` and the two that
+            // did not reached `day3_noon` either — they died before day 3.
+            // Nothing that could have toured at day 3 fails to tour at 5.
+            //
+            // THE REGIME DECLARATION, because a break no statistic can see
+            // is worse than a gap. EVERY `district_*` row before this commit
+            // belongs to a different regime and stops being comparable HERE,
+            // deliberately: `ref-bench`'s pose-stable series, `frame-drift`'s
+            // district rows (which will read this one landing as enormous
+            // drift, correctly), `tourDepth*` and `districtGround`. Read the
+            // next landing as a new baseline, not as a delta.
+            //
+            // AND THE BREAK REACHES THE GRAIN CALIBRATION, which is the part
+            // that is easy to miss because it is in another file. `FilmGrade`
+            // sets grain to `(0.0050 + 0.0055*night + 0.0050*Rain) *
+            // GrainAmount`, and the verdict's own `grainAmp=0.005..0.015`
+            // range confirms those constants. The tour was the calibration
+            // SERIES for that cut precisely because it was one hour and one
+            // weather — noon at rain 0.90, amplitude 0.0095. Dry noon is
+            // 0.0050, so this commit cuts the tour's grain amplitude 1.9x on
+            // top of everything else. `FilmGrade`'s own note says sigma falls
+            // 3.80x..4.65x for a 4x cut, so the districts' landed 0.89..2.76
+            // should come down roughly 1.8x..2.2x — a PREDICTION to read off
+            // `grainSigma` next landing, not a measurement.
+            //
+            // AND IT IS AN EXPERIMENT WITH A STATED FORK. If the district
+            // shadowRatio lands inside the references' measured 0.157..0.388
+            // once the tour is dry, the gap was REGIME and no lighting lever
+            // should move at all. If it stays low with rain=0.00 wet=0.00 in
+            // the pose line, the lever is ambient fill lifting groundP10 and
+            // the shadow reading is real.
+            if (!_tookTour && now.Day >= 5 && now.Hour == 12)
             {
                 _tookTour = true;
                 DistrictTour();
@@ -1620,10 +1675,29 @@ namespace Ledger.Game
                 Shot("day1_dusk");
             }
             // ONE WET FRAME PER RUN, PLANTED. The weather roll is seeded off
-            // the day number, so the review days are dry on every run there
-            // will ever be — and both open rain findings ("swarm patch from
-            // the tour vantage", "black scratches at eye level") had been
-            // waiting on a wet frame the seed structurally cannot produce.
+            // the day number, so the schedule is the same in every run there
+            // will ever be — but it is NOT the "the review days are dry on
+            // every run there will ever be" this comment claimed for weeks.
+            // That was false the day it was written. Replayed off
+            // `Weather.Update`'s arithmetic and confirmed against the landed
+            // `frames.tsv` rain and wet columns:
+            //
+            //     d1 rain 0.35 wet 1.00      d4 rain 0.00 wet 0.69
+            //     d2 rain 0.00 wet 0.61      d5 rain 0.00 wet 0.00
+            //     d3 rain 0.90 wet 1.00
+            //
+            // Day 1 RAINS and is soaked; day 2 has a dry sky over a street
+            // still wet from it. The only bone-dry noon in the week is day
+            // 5, which is why the district tour above moved on to it.
+            //
+            // Nor is a wet night something the seed cannot reach — d1, d3,
+            // d6, d8 and d12 all read wet at 23:00. What the seed cannot do
+            // is put one at a CHOSEN hour and a chosen vantage: the regular
+            // night shot stands wherever the walk left the camera, and which
+            // days a run reaches decides the rest. This plant pins a 0.90
+            // downpour to day 2 hour 22 at street level, which is what both
+            // open rain findings ("swarm patch from the tour vantage",
+            // "black scratches at eye level") had been waiting on.
             // Rule 5b's corollary: plant the condition, never wait for the
             // lucky run. Forced a game hour before the shot so the particle
             // box fills (an hour is ~9 frames here; the streaks live 1.1s),
@@ -7582,11 +7656,31 @@ namespace Ledger.Game
         /// Same instrument shape as the occlusion probe: toggle the sun's
         /// shadows off, render, compare. `_shadowFraction` is the PEAK
         /// fraction of pixels the shadows darken (the question is "do they
-        /// ever land", and a peak answers ever); `_shadowWhen` is the hour
-        /// the peak came from, captured AT THE PEAK so the pair cannot be
-        /// two different instants.
+        /// ever land", and a peak answers ever).
+        ///
+        /// `_shadowWhen` IS A CONSTANT WEARING A CAPTURE'S CLOTHES, and its
+        /// comment claimed to be the second half of a same-instant pair. It
+        /// is not. `ProbeSunShadow` has exactly one call site — inside the
+        /// `!_tookDayShot && now.Hour == 12` branch — so the hour it reads
+        /// can only ever be 12, or -1 when `_game` is null or no probe ever
+        /// cleared the sun-intensity guard. Three landed values are possible
+        /// and two of them mean "did not run". It is kept because -1 is a
+        /// real signal, but it answers "did the probe fire", never "when".
+        ///
+        /// `_shadowPeakDay` IS THE CAPTURE THAT WAS ACTUALLY MISSING. The
+        /// peak is a max over every noon a run reaches — ten of them in the
+        /// current ledger, spanning three weather buckets (rain 0.00 on d2,
+        /// d4, d5, d7, d13; 0.35 on d1, d6, d8; 0.90 on d3, d12). So the
+        /// landed `shadowDrop` series flips between a ~0.03-0.08 cluster and
+        /// a ~0.19-0.42 one run to run purely because the peak lands on a
+        /// different day, and nothing printed said which. The DAY and that
+        /// day's RAIN are taken at the instant the peak is taken — the same
+        /// rule as any numerator's denominator — so the pair is one moment
+        /// and the series becomes readable. `D/rain`, slash-separated
+        /// because a verdict value may not contain a space.
         double _shadowFraction = -1, _shadowDrop = -1;
         int _shadowWhen = -1;
+        string _shadowPeakDay = "none";
         /// One-time daylight state: what the quality settings, sun and
         /// ambient ACTUALLY were at a daytime render — the generated project
         /// has no QualitySettings.asset, so nothing about the master shadow
@@ -9354,9 +9448,17 @@ namespace Ledger.Game
             {
                 _shadowFraction = shFrac;
                 _shadowDrop = shDrop;
-                // The hour CAPTURED AT THE PEAK, so the pair is one instant
-                // rather than a peak beside a last-wins.
+                // Both CAPTURED AT THE PEAK, so each is one instant with the
+                // fraction rather than a peak beside a last-wins. The hour is
+                // structurally 12 here (see the field's comment); the DAY and
+                // its rain are the pair that actually carries information,
+                // because the peak is a max over noons in three different
+                // weathers and which one it landed on is the whole reading.
                 _shadowWhen = _game != null ? _game.Now.Hour : -1;
+                _shadowPeakDay = _game != null
+                    ? _game.Now.Day.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                      + "/" + Weather.Rain.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)
+                    : "none";
             }
 
             // The one-time daylight state and surface-variance sample.
@@ -11170,16 +11272,26 @@ namespace Ledger.Game
                             .Append(_keptMidFrac.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\t')
                             .Append(_keptFarFrac.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\t')
                             // WHAT WEATHER THIS SHOT WAS TAKEN IN, which no
-                            // committed number has ever said. `review_day1_noon`
-                            // on 9e0c3f2 has rain falling through it, and
-                            // `queue.md` states that the daily roll leaves days
-                            // 1-2 dry on every run there will ever be. One of
-                            // those is wrong and nothing in `verdict.txt` could
-                            // settle it — there is no `rain` key at all, and the
-                            // run-level `rainBelow` is a last-wins sample that
-                            // says nothing about a particular frame. Per-shot,
+                            // committed number said before this column. The
+                            // question it was added to settle: `review_day1_noon`
+                            // on 9e0c3f2 has rain falling through it, while
+                            // `queue.md` and two code comments stated the daily
+                            // roll left days 1-2 dry on every run there would
+                            // ever be. Nothing in `verdict.txt` could tell them
+                            // apart — there is no run-level `rain` key at all,
+                            // and `rainBelow` is a last-wins sample that says
+                            // nothing about a particular frame.
+                            //
+                            // IT IS SETTLED NOW, BY THIS COLUMN, AND THE DOCS
+                            // WERE THE WRONG ONES: d1 reads rain 0.35 wet 1.00
+                            // and d2 rain 0.00 wet 0.61 in every landed
+                            // `frames.tsv` that carries these fields. The
+                            // corrected schedule is written out at the district
+                            // tour and in `Weather.ForceRain`. Kept per-shot,
                             // beside the luma it explains: a dark frame and a
-                            // wet one are different findings.
+                            // wet one are different findings, and the district
+                            // tour's move to a dry day is read off exactly
+                            // these two fields.
                             .Append(Weather.Rain.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\t')
                             .Append(Weather.Wetness.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\n');
                 System.IO.File.WriteAllText("sim-out/frames.tsv", _frameLedger.ToString());
@@ -15440,12 +15552,17 @@ namespace Ledger.Game
                       $"aoRounds2=[{string.Join(" ", _aoFractions.ConvertAll(x => (100 * x).ToString("0.0")))}] " +
                       $"aoHit={100 * _aoFraction:0.00} aoDrop={_aoDrop:0.0000} " +
                       // M17.10 V0 — the sun-shadow probe and the surface
-                      // spreads. shadowHit is a PEAK ("did they ever land"),
-                      // shadowWhen the hour captured AT that peak; the
-                      // spreads are one daylight sample by construction.
+                      // spreads. shadowHit is a PEAK ("did they ever land");
+                      // the spreads are one daylight sample by construction.
+                      // shadowWhen is 12 or -1 and only says whether the
+                      // probe fired — shadowPeakDay=D/rain is the one that
+                      // says WHICH noon the peak came from, captured at the
+                      // same instant, and it is what makes the bimodal
+                      // shadowDrop series readable.
                       $"shadowHit={100 * _shadowFraction:0.00} " +
                       $"shadowDrop={_shadowDrop:0.0000} " +
                       $"shadowWhen={_shadowWhen} " +
+                      $"shadowPeakDay={_shadowPeakDay} " +
                       $"lightState={(_lightState ?? "[not_captured]")} " +
                       $"fogAtProbe={(_fogAtProbe ?? "(not_captured)")} " +
                       $"fogAfterLate={(_fogAfterLate ?? "(not_captured)")} " +

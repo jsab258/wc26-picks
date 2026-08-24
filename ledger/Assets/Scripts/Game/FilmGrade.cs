@@ -250,8 +250,18 @@ namespace Ledger.Game
             // stills, for two reasons that are both about them being a
             // SERIES: they are the pose-stable frames (one fixed camera per
             // district, the same spot every build), and all seven are shot at
-            // noon in rain 0.90 — one hour, one weather, seven samples, so
+            // one hour in one weather — seven samples of a single lighting
+            // state. WHICH WEATHER CHANGED, and the row above predates the
+            // change: the tour ran on day 3, the schedule's wettest day, so
             // 0.020 + 0.020*0.90 = 0.038 of amplitude produced that row. The
+            // tour now runs on day 5, the only bone-dry noon, for reasons
+            // that are about shadow contrast rather than grain — see the
+            // regime declaration at `SimDirector`'s tour site. At the shipped
+            // constants that is 0.0095 of amplitude before and 0.0050 after,
+            // so the districts' grain drops a further 1.9x and THIS ROW IS
+            // NOT COMPARABLE TO THE NEXT ONE. Re-measure before reasoning
+            // from it; the arithmetic below still describes the cut it
+            // argued for, not the series it was measured on. The
             // worst of them against the reference ceiling is 7.51 / 2.05 =
             // 3.66, so a quarter puts the whole row inside the band the
             // references describe, with margin for the 5.21..7.51 the row

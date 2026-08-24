@@ -94,10 +94,31 @@ WHAT IT MEASURES, and what each number is a statistic OF.
     the frame in the upper two thirds. Poles and WIRES, rank 2 of the §2
     decomposition, and what §3 says every avenue in this game lacks by design.
     A COUNT, not a peak: it answers "how many uprights", never "how tall".
- 7. SHADOW CONTRAST — ground-band p10/p90. §7 item 1 says GTA noons read a
-    shadowed:lit ratio near 0.45..0.55 and the eye segments at about 2:1; this
-    is that ratio off the pixels rather than off our tonemap constants. A PROXY:
-    a dark shop recess and a cast shadow are the same pixels to it.
+ 7. SHADOW CONTRAST — ground-band p10/p90, off the pixels rather than off our
+    tonemap constants. A PROXY: a dark shop recess and a cast shadow are the
+    same pixels to it.
+
+    THE TARGET IS THIS TOOL'S OWN MEASURED BAND, NOT THE PROSE FIGURE. The
+    line here used to cite `visual-bar-spec.md` §7 item 1 — "GTA noons read a
+    shadowed:lit ratio near 0.45..0.55, and the eye segments at about 2:1" —
+    as though it were the bound for this row. It is not, and quoting it as one
+    has already sent a reader looking for a lighting fault that the numbers do
+    not support.
+
+    TWO REASONS, AND THE SECOND IS THE REAL ONE. First, that figure predates
+    this instrument: it was written from frames read by eye, not from this
+    statistic on this crop at this resampling. Second and more important, IT
+    IS NOT THE SAME QUANTITY. The spec's number is a ratio between two
+    SURFACES — one lit patch against one shadowed patch, which is what our
+    tonemap constants are tuned against in `LightModel`. This row is a ratio
+    between two PERCENTILES of one band, p10 over p90, which sweeps in every
+    dark recess, doorway and unlit wall the ground band contains. They cannot
+    be expected to agree and neither is wrong.
+
+    The five references measured through the code below read **0.157..0.388**.
+    That is where the `ref lo..hi` column comes from and it is the only thing
+    any sim row is scored against here — read it off the table, which reprints
+    it every run rather than trusting this paragraph to stay true.
 
 --------------------------------------------------------------------------
 THE CUTS, TAKEN FROM THE SERIES AND NOT THE OTHER WAY ROUND (rule 2 — a bound

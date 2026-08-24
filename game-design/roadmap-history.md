@@ -2976,3 +2976,54 @@ primitive's free collider, and a theory refuted by its own counter.
    `groundPatch` is the surface-history proxy (grain-immune); `edgeGround`
    may never be quoted without `grainSigma` beside it — the naive metric
    scored an all-black frame denser than every GTA reference.
+
+## 2026-08-24 — five of seven districts had no shops at all (closed)
+
+`premisesByDistrict` shipped and its first reading was `the_Hook:shop73
+Copper_Row:shop4` and **zero everywhere else** — the Exchange is the
+financial district and had no commercial frontage; the Parade is the
+entertainment strip and was 37 houses and 24 flats.
+
+The cause: shops were gated on `nearCore` alone, and every dense core sits
+in the Hook, so that flag had been answering "is this the Hook" rather than
+"is this a commercial spot". Found by reading the new counter's OUTPUT, not
+the code — the flag looks correct at its definition.
+
+Fix: two shares per district, one at a core and one away from one; the Hook
+keeps 0.55 because `frame-drift` is calibrated on it. **Landed reading
+(cd48c19):** `the_Exchange:shop13`, `the_Parade:shop23`, `Gullwing:shop7`,
+`Copper_Row:shop6`, `the_Hook:shop73`. Fairview and Ironside still read
+`shop0` — Ironside is the industrial yard strip and plausibly has none;
+Fairview is residential. Judge the MIX, not the count, if it is reopened.
+
+## 2026-08-24 — the shadow-contrast gap was mostly regime (the dry tour)
+
+Kept because it is the record of a decision that deliberately broke a
+series. The benchmark's third gap read as a lighting fault: districts
+0.02-0.15 against a reference band of 0.157-0.388. It was not one.
+
+`Weather.Update` rolls one `System.Random(day * 7717 + 3)` and buckets it,
+so the schedule is a pure function of the day number — d1 rain 0.35/wet
+1.00, d2 0.00/0.61, d3 **0.90**/1.00, d4 0.00/0.69, d5 **0.00/0.00**. The
+district tour fired on day 3, the wettest day the sim has: all 91 district
+rows in the project's history read rain 0.90, and they were being compared
+against five DRY GTA references. Split the landed stills by weather and the
+dry noons are already in band (`day2_noon` 0.365, `day5_noon` 0.270,
+`day1_noon` 0.239) while the rain-0.90 frames are the ones outside it
+(hook 0.067, strip 0.065, gullwing 0.070, `day2_wet` 0.091).
+
+The tour moved to day 5, the week's only bone-dry noon. Availability cost
+measured rather than assumed: of the 15 `frames.tsv` revisions carrying a
+rain column, 13 reached day 5, and the 2 that did not never reached day 3
+either.
+
+**The regime break, declared deliberately:** every `district_*` row before
+that commit stops being comparable — ref-bench's pose-stable series,
+frame-drift's district rows, `tourDepth*`, `districtGround`, and the GRAIN
+calibration series in `FilmGrade`, whose noon amplitude falls from 0.0095
+to 0.0050 with the rain term. The 7/7 district darkening investigation was
+voided by it and had to restart from the first dry landing.
+
+Three comments claiming "the review days are dry on every run there will
+ever be" were false the day they were written and were corrected with the
+measured schedule (`SimDirector` twice, `Weather.ForceRain` once).

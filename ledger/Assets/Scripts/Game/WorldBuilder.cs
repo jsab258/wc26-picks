@@ -435,6 +435,25 @@ namespace Ledger.Game
             SceneLighting.Ensure();
         }
 
+        /// THE ROAD SLAB, and the only place its arithmetic lives. The tarmac
+        /// box is `RoadSlabH` thick with its BASE on y=0, so `MakeBox` centres
+        /// it at half that, and the surface a player walks on — the plane every
+        /// road-level decal, marking and probe must sit ABOVE — is exactly
+        /// `RoadTopY`. Both are read by the construction below, so the two
+        /// literals cannot disagree with each other.
+        ///
+        /// ONE NUMBER, NOT TWO COPIES, and the copy is why this is public.
+        /// `DecalLayer` carried its own `RoadTopY = 0.04f`, derived by hand from
+        /// the two literals here. That is the shape rule 1's third corollary
+        /// names — one idea, two implementations — with the nastiest possible
+        /// consequence attached: `decalsBuried` exists to catch road decals
+        /// sinking under the tarmac (569 of them did, for 78 runs), and it
+        /// compares a decal's y against that second copy. Move the slab and the
+        /// two go stale TOGETHER, so every decal sinks and the counter built to
+        /// say so keeps reading 0.
+        public const float RoadSlabH = 0.04f;
+        public const float RoadTopY = RoadSlabH;    // base on y=0, so top == thickness
+
         /// Roads, built from the network in Core rather than from two hardcoded
         /// axes. Every driveable edge becomes tarmac with a centre line, every
         /// junction gets a pad, and every block gets pavement and kerb around
@@ -461,8 +480,8 @@ namespace Ledger.Game
 
                 bool alongZ = Mathf.Abs(span.z) > Mathf.Abs(span.x);
                 float w = (float)e.Width;
-                var size = alongZ ? new Vector3(w, 0.04f, len) : new Vector3(len, 0.04f, w);
-                var road = MakeBox($"Road_{n}", mid + new Vector3(0, 0.02f, 0), size,
+                var size = alongZ ? new Vector3(w, RoadSlabH, len) : new Vector3(len, RoadSlabH, w);
+                var road = MakeBox($"Road_{n}", mid + new Vector3(0, RoadSlabH * 0.5f, 0), size,
                     e.Driveable ? AssetLibrary.Asphalt : AssetLibrary.Concrete);
                 SetTiling(road, alongZ ? 3 : Mathf.RoundToInt(len / 2f),
                                 alongZ ? Mathf.RoundToInt(len / 2f) : 3);
@@ -545,6 +564,16 @@ namespace Ledger.Game
 
             // 2. Junction pads, so crossings do not show a seam where two
             // strips of tarmac meet at right angles.
+            //
+            // 5mm PROUD OF THE ROAD, deliberately: same slab thickness as the
+            // tarmac above, centred 0.005 higher, so a pad's top lands on 0.045
+            // rather than on `RoadTopY` and the two never fight for the same
+            // depth. 0.045 is also where the yellow lines sit and where
+            // `DecalLayer.RoadDecalY` puts road grime — a coplanar tie the decal
+            // shader wins by design (`ZWrite Off`, `Offset -1,-1`). The literals
+            // are kept literal HERE because deriving 0.025 as RoadTopY/2 + 0.005
+            // would move the pad by a float rounding for no gain; if the slab
+            // ever changes thickness, these two are the second site to fix.
             foreach (var j in Ledger.Core.StreetMap.Nodes)
             {
                 if (!j.IsJunction) continue;

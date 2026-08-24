@@ -26,16 +26,9 @@ namespace Ledger.Game
         /// A COUNT over every road decal placed this run — not a peak, not a
         /// last-wins. Its denominator is `RoadDecals` printed beside it on the
         /// done line, and its whole job is to make ONE regression loud: see
-        /// `RoadTopY` below for the incident. Reads 0 when the layer is right.
+        /// `RoadDecalY` below for the incident. Reads 0 when the layer is right.
         public static int BuriedRoadDecals;
         public static string Why = "not tried";
-
-        /// The road slab's TOP SURFACE. WorldBuilder.cs:464-465 centres the
-        /// slab at y=0.02 with height 0.04, so the tarmac a player sees is
-        /// this plane. NOT a free number and NOT a guess — read it out of
-        /// WorldBuilder before changing it, and if the slab ever moves,
-        /// `decalsBuried` on the done line is what says so.
-        const float RoadTopY = 0.04f;
 
         /// THE BURIAL. Road decals were placed at y=0.02f — the slab's CENTRE,
         /// two centimetres UNDER the surface — for 78 consecutive runs, while
@@ -46,16 +39,24 @@ namespace Ledger.Game
         /// CONSTRUCTION, NOT VISIBILITY, and nothing else in the verdict was
         /// asking the second question.
         ///
-        /// 0.045 is where the yellow lines already sit (WorldBuilder.cs:495):
+        /// 0.045 is where the yellow lines already sit (WorldBuilder.cs:514):
         /// 5mm proud of the slab, and UNDER the centre dashes (0.05) and the
         /// zebra stripes (0.055) so fresh paint still reads over grime rather
         /// than the other way round.
         ///
         /// It is also exactly COPLANAR with a junction pad's top surface
-        /// (WorldBuilder.cs:552-553 centres those at 0.025 with height 0.04),
+        /// (WorldBuilder.cs:581 centres those at 0.025 with height 0.04),
         /// which is fine and is the case the shader was already built for:
         /// `ZWrite Off` with `ZTest LEqual` and `Offset -1,-1` wins a tie
         /// deterministically. A tie it wins; 2cm it cannot.
+        ///
+        /// THE PLANE IT IS COMPARED AGAINST IS NOT COPIED HERE ANY MORE.
+        /// `WorldBuilder.RoadTopY` is the slab's top and this file used to
+        /// carry its own `0.04f` beside a comment explaining the derivation —
+        /// two implementations of one number, and the counter that exists to
+        /// catch a sinking decal was reading the copy. Both would have gone
+        /// stale together, which is the one way `decalsBuried` could go quiet
+        /// while every decal it counts is under the tarmac.
         const float RoadDecalY = 0.045f;
 
         /// The multiply tint a grayscale MASK gets when it is loaded as alpha
@@ -74,6 +75,7 @@ namespace Ledger.Game
         static readonly List<Texture2D> _roadTex = new List<Texture2D>();
         static readonly List<int> _roadWeight = new List<int>();
         static readonly List<Texture2D> _wallTex = new List<Texture2D>();
+        static readonly List<int> _wallWeight = new List<int>();
         static Mesh _quad;
 
         /// Which fetched sets dress ROADS and which dress WALLS. Names match
@@ -85,10 +87,20 @@ namespace Ledger.Game
         /// fallback below — and on a photograph of road paint the asphalt is
         /// the DARK half and the lines are the light half, so the fallback
         /// made the asphalt opaque and the lines transparent. Measured over
-        /// its own pixels: meanAlpha 0.446 against meanLuma 0.554, ink 0.231
-        /// — the highest "ink" of any road set in the bank and every drop of
-        /// it the background. It was not drawing worn paint, it was stamping
-        /// a dark rectangle on the road. Dropped rather than special-cased
+        /// its own pixels (`tools/decal-ink.py --set RoadLines001`): meanAlpha
+        /// 0.448 against meanLuma 0.552, ink 0.187 at the road strength, and
+        /// every drop of it the background. It was not drawing worn paint, it
+        /// was stamping a dark rectangle on the road.
+        ///
+        /// An earlier version of this paragraph called that "the highest ink of
+        /// any road set in the bank", in units that were the UNSCALED 0.233
+        /// rather than the strength-scaled ones the weights use. Both readings
+        /// are wrong about the ranking: ManholeCover011 is 0.372 scaled and
+        /// 0.465 raw, above it either way. What is true is the part that
+        /// mattered — it is the highest of the RoadLines family by 4x, and its
+        /// ink is on the wrong half of the picture.
+        ///
+        /// Dropped rather than special-cased
         /// because a correct alpha for it would have to be authored, not
         /// derived, and the other five RoadLines sets ship real Opacity maps.
         static readonly string[] RoadSets =
@@ -133,6 +145,12 @@ namespace Ledger.Game
         ///
         /// An unlisted set gets 1, the line tier, on purpose: a newly fetched
         /// set cannot flood the street before somebody has measured its ink.
+        ///
+        /// THE SERIES IS RE-DERIVABLE NOW RATHER THAN QUOTED —
+        /// `python3 tools/decal-ink.py` prints every number above off the
+        /// shipped files in five seconds, reads this switch to show what share
+        /// each weight actually buys, and reproduces the hand measurement that
+        /// set them to three decimals. Before changing a weight, run it.
         static int RoadWeight(string set)
         {
             switch (set)
@@ -141,6 +159,43 @@ namespace Ledger.Game
                 case "SurfaceImperfections003": return 4;
                 case "SurfaceImperfections012": return 4;
                 case "ManholeCover011": return 3;
+                default: return 1;
+            }
+        }
+
+        /// THE SAME QUESTION FOR WALLS, and it was picking uniformly. Measured
+        /// the same way, `tools/decal-ink.py`, at the wall strength 0.7 — whole
+        /// series, and the damp strength 0.55 scales every one of them by 0.79
+        /// and reorders none, so one series answers both:
+        ///
+        ///   Moss001 0.197   SurfaceImperfections001 0.072   Leaking005 0.053
+        ///   SurfaceImperfections007 0.013   Scratches003 0.013
+        ///
+        /// 15x from top to bottom, all five getting a fifth of the wall.
+        ///
+        /// THE RULE IS sqrt(ink / weakest ink), ROUNDED, which is a deliberate
+        /// compression rather than the road pool's near-proportional ladder:
+        /// these five are the same KIND of mark at different intensities, so a
+        /// 15x ink spread turned into a 15x pick spread would make a street of
+        /// one stain. Square root turns it into 3.9 / 2.4 / 2.0 / 1.0 / 1.0.
+        ///
+        /// ONE DEPARTURE, and it is measured rather than felt: Moss001 rounds
+        /// to 4 and gets 3. It is the only wall set with no Opacity map, so
+        /// LoadSet gives it inverse-luma alpha and it covers `cover50=0.553` of
+        /// its quad against 0.004..0.020 for the other four. Equal ink from a
+        /// full-coverage texture and from a sparse one do not land equally on a
+        /// wall, and ink alone cannot see that — the coverage column can.
+        ///
+        /// So: 3/2/2/1/1, top share 33% against a road pool whose top is 27%,
+        /// and nothing below 1. Mild on purpose — this reorders the mix, it
+        /// does not replace it.
+        static int WallWeight(string set)
+        {
+            switch (set)
+            {
+                case "Moss001": return 3;
+                case "SurfaceImperfections001": return 2;
+                case "Leaking005": return 2;
                 default: return 1;
             }
         }
@@ -179,7 +234,10 @@ namespace Ledger.Game
             foreach (var set in WallSets)
             {
                 var t = LoadSet(Path.Combine(root, set));
-                if (t != null) { _wallTex.Add(t); loaded++; }
+                // Same statement, same reason as the road pool above: two lists
+                // appended apart is how a parallel array drifts.
+                if (t != null)
+                { _wallTex.Add(t); _wallWeight.Add(WallWeight(set)); loaded++; }
             }
             if (loaded == 0) { Why = "dir present, no set loaded"; return; }
             Why = $"{loaded}_set(s)";
@@ -236,7 +294,7 @@ namespace Ledger.Game
                         double off = (Dressing.Roll(x, z, 12) - 0.5) * (e.Width * 0.84);
                         var pos = new Vector3(
                             (float)(x - dz * off), RoadDecalY, (float)(z + dx * off));
-                        int pick = PickRoad(Dressing.Roll(x, z, 13));
+                        int pick = Pick(_roadWeight, Dressing.Roll(x, z, 13));
                         float size = 1.4f + (float)Dressing.Roll(x, z, 14) * 2.2f;
                         float yaw = (float)Dressing.Roll(x, z, 15) * 360f;
                         Place(parent, _roadTex[pick],
@@ -244,8 +302,10 @@ namespace Ledger.Game
                         RoadDecals++;
                         // Read off the position that was actually PLACED, not
                         // off the constant, so a future camber or per-street
-                        // offset cannot slip under this.
-                        if (pos.y <= RoadTopY) BuriedRoadDecals++;
+                        // offset cannot slip under this — and against the slab
+                        // top WorldBuilder itself builds from, so the test
+                        // cannot go stale in step with the thing it tests.
+                        if (pos.y <= WorldBuilder.RoadTopY) BuriedRoadDecals++;
                     }
                 }
 
@@ -297,7 +357,7 @@ namespace Ledger.Game
                             // gaps); same test, same reason.
                             if (!WorldBuilder.MassAt(wall + across * (side * 0.5f),
                                                      2.0f, out _, out _)) continue;
-                            int pick = (int)(Dressing.Roll(x, z, 19) * _wallTex.Count);
+                            int pick = Pick(_wallWeight, Dressing.Roll(x, z, 19));
                             bool streak = Dressing.Roll(x, z, 20) < 0.45;
                             // Streaks hang under the roofline; damp sits at
                             // the base. Both face the road.
@@ -308,7 +368,11 @@ namespace Ledger.Game
                             var pos = wall - across * (side * 0.06f)
                                     + Vector3.up * h;
                             var rot = Quaternion.LookRotation(across * side);
-                            Place(parent, _wallTex[Mathf.Min(pick, _wallTex.Count - 1)],
+                            // No clamp: `Pick` returns an index into the weight
+                            // list, which is appended in step with `_wallTex`,
+                            // and the loop above only runs when that is
+                            // non-empty. The road site indexes the same way.
+                            Place(parent, _wallTex[pick],
                                   pos, rot, size, streak ? 0.7f : 0.55f);
                             WallDecals++;
                         }
@@ -323,18 +387,26 @@ namespace Ledger.Game
         /// The total is summed here rather than cached: nine adds per
         /// placement is nothing, and a cached total is one more thing that
         /// can go stale when the set list changes.
-        static int PickRoad(double roll)
+        ///
+        /// ONE PICK FOR BOTH POOLS, and it takes the list because the walls
+        /// needed the same thing the roads already had. Copying this loop and
+        /// swapping `_roadWeight` for `_wallWeight` is the exact shape CLAUDE.md
+        /// rule 1's third corollary is a list of — one idea, two
+        /// implementations, and the one nobody looks at is the one missing a
+        /// line. Returns an index that is always inside `weight`, so no call
+        /// site needs a clamp.
+        static int Pick(List<int> weight, double roll)
         {
             int total = 0;
-            for (int i = 0; i < _roadWeight.Count; i++) total += _roadWeight[i];
+            for (int i = 0; i < weight.Count; i++) total += weight[i];
             if (total <= 0) return 0;
             int want = (int)(roll * total);
-            for (int i = 0; i < _roadWeight.Count; i++)
+            for (int i = 0; i < weight.Count; i++)
             {
-                want -= _roadWeight[i];
+                want -= weight[i];
                 if (want < 0) return i;
             }
-            return _roadWeight.Count - 1;
+            return weight.Count - 1;
         }
 
         static void Place(Transform parent, Texture2D tex, Vector3 pos,

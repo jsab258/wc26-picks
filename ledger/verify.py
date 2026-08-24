@@ -345,6 +345,51 @@ def ref_bench():
     return True, "%s ref-bench checks (%s failed)" % (m.group(1), m.group(2))
 
 
+def decal_ink():
+    """What each decal set lays down — the instrument, not a verdict on it.
+
+    GATES THE SELFTEST, REPORTS THE REST, the same split as `ref_bench` and for
+    the same reason. `tools/decal-ink.py` measures the ink, coverage, mask
+    detection and multiply floor of every fetched decal set; which sets are
+    worth what weight is a judgement made by a person off that table, and a
+    guard that failed the build when a texture came back darker than last time
+    would be the ratchet rule 5 forbids.
+
+    WHAT IS CHECKED IS THAT THE INSTRUMENT STILL AGREES WITH THE GAME. Three of
+    its assertions are about `DecalLayer.cs` rather than about pixels: the road
+    loop still places at strength 0.8, the wall loop at 0.7/0.55, and `LoadSet`
+    still retints a detected mask to 89. Every number the tool prints scales
+    with those, so a change there that this tool did not follow would silently
+    re-scale the whole series — and the series is what the pick weights were
+    derived from. The roster and the weights are read out of the C# for the same
+    reason: a table describing sets the game no longer names is worse than none.
+
+    THE ACCEPTING FIXTURE IS THE LIVE BANK, which is the one nobody can fake —
+    the sets are tracked, the game reads the same bytes, and doing the work this
+    tool prompts (fetching a set, moving one between pools) changes the fixture
+    rather than breaking it. The rejecting fixtures are synthetic and cover the
+    three faults that are invisible in the game: a dimension mismatch, which
+    makes `LoadSet` keep an opaque alpha and stamp a solid rectangle; a set with
+    no image at all; and a missing bank, which must say NOTHING MEASURED with a
+    denominator rather than print an empty table and exit clean (rule 3b)."""
+    tool = ROOT.parent / "tools" / "decal-ink.py"
+    code, out = run(["python3", str(tool), "--selftest"])
+    m = re.search(r"selftest: (\d+) passed, (\d+) failed", out)
+    if not m:
+        return False, "DECAL INK: selftest did not report"
+    if m.group(2) != "0":
+        bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAILED")]
+        return False, "DECAL INK: " + (bad[0][7:98] if bad else "selftest failed")
+    code, rep = run(["python3", str(tool)])
+    summary = [l for l in rep.splitlines() if l.startswith("decalInk scope=summary")]
+    tail = ""
+    if summary:
+        got = dict(t.split("=", 1) for t in summary[0].split()[1:] if "=" in t)
+        tail = (" — %s set(s), %s unnamed" % (got.get("setsExamined", "?"),
+                                              got.get("unnamed", "?")))
+    return True, "%s decal-ink checks (%s failed)%s" % (m.group(1), m.group(2), tail)
+
+
 def powershell_steps():
     """Do the workflow's pwsh steps parse.
 
@@ -1512,6 +1557,7 @@ def main():
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, raw_avenues, filename_as_type, namespace_as_value, workflow_size,
                powershell_steps, sheet_read, prop_dimensions, prop_reach, ref_bench,
+               decal_ink,
                frame_drift, verdict_keys, verdict_format, verdict_dupkeys,
                verdict_emit_dupkeys, runs_map_to_commits, gate_detail_ceiling,
                save_chaos, soak,
