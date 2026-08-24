@@ -143,6 +143,38 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
+1. ~~**THE SHADOW RATIO**~~ — **SET FROM A PRINTED RUNG: `shadowStrength`
+   0.93 -> 0.85, cast shadow 32% -> 47% of lit, target 50%.** `shadowSeries`
+   over a pair from `FindShadowPair`: `s0.93 0.043|0.133=0.32 / **s0.85
+   0.063|0.133=0.47** / s0.75 0.65 / s0.65 0.83 / s0.55 0.94`. **Lit CONSTANT
+   at 0.133 across every rung** — a lever that only touches shadows must not
+   move its denominator, and this one does not. That invariant is why this
+   reading is trustworthy where three earlier ones (taken off `nSun:0.00`
+   walls) were not. **It is the lever the other two are not:** fill is capped
+   by a CoreTest defending something true; the KEY moves both sides together
+   (`sunSeries` holds 0.30-0.36 while dimming everything), which **refutes my
+   written prediction** that shade would hold and the ratio climb.
+
+1. **RUN-TO-RUN FRAME NOISE IS +-0.07 MEAN LUMA — AS LARGE AS MOST VISUAL
+   CHANGES. ONE FRAME AGAINST ONE FRAME CANNOT JUDGE THEM.** `day2_noon` over
+   seven consecutive runs: **0.424 0.426 0.427 0.428 0.432 0.488 0.498** — a
+   0.074 spread with no code cause, and `3e3cdc2` hit 0.488 carrying no
+   lighting change at all.
+   **So the shadow landing is NOT confirmed by the frames**, though its run
+   sits highest (0.498): one sample in the high cluster is not evidence when
+   the shot goes there unaided. FrameDrift's +0.09 to +0.12 on other noons is
+   inside the same band.
+   **What IS trustworthy is the within-frame series** — all five rungs from
+   one camera at one instant, immune to drift. The lever is proven; its
+   effect on the committed stills is not yet.
+   **Rule for the visual programme: judge by a series taken WITHIN a frame,
+   or a MEDIAN over several landings — never one frame against one frame.**
+   The cameras step back, the weather rolls per day, and both are bigger than
+   the thing being measured.
+   *(I nearly published "figures twice as bright" off fixed pixel boxes
+   across two runs; the camera had moved, so the boxes sampled different
+   things. Fourth fixture-drift trap today.)*
+
 1. **EIGHTEEN GATES CANNOT NAME THEIR OWN FAILURE — A NINETEENTH IS REFUSED.**
    `dayJob` failed **84 of 308 runs** and never printed a reason: its entry is
    the bare tuple `("dayJob", dayJobOk)`. Undiagnosed for months not through
@@ -168,45 +200,31 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    set the precedent. **From `stalled=733` to `stalled=0` and a shift worked.**
 
 1. **SIX TOOLS COMPARED A GIT ABBREVIATION TO A RUN FILENAME BY EQUALITY.**
-   `%h` sizes itself to stay unambiguous; as the repo grew it went **7 -> 8**
-   while run files kept 7, so every `sha in have` stopped matching — **0 of
-   333 against 400 commits** — and nothing failed, because unmatched runs
-   fall into a bucket sorted by SHA. Fixed at all six sites.
+   `%h` sizes itself to stay unambiguous; the repo grew it **7 -> 8** while
+   run files kept 7, so every `sha in have` stopped matching — **0 of 333
+   against 400 commits** — and nothing failed, because unmatched runs fall
+   into a bucket sorted by SHA. Fixed at all six sites.
    **The cause was `==`, not `%h`, and my first guard could not have caught
-   it:** tested against the broken state it passed identically (122 hits
-   either way), because a prefix match happily compares 8 chars to 7. Replaced
-   with the invariant that really broke — abbreviation width vs stem width,
-   FALSE today (8 vs 7), reported as a warning since the tools prefix-match
-   now. **Corrected gate picture:** one live gate, `dayJob` 10% recent vs
-   27.3% lifetime, improving; all else quiet. "Five gates at 15-38%" and
-   "`claims` WORSENING" **withdrawn**.
-
-1. **THE SIM SOMETIMES OVERRUNS ITS 24-MIN KILL — INTERMITTENT, NOT
-   BISECTED.** `Wait-Process -Timeout 1440`; complete runs take ~12 min.
-   Three consecutive runs were killed (82/123/71 lines vs 159-161) and then
-   `10e8000` completed normally with no code change to the sim. **So my
-   "7 DONE then 3 TRUNC, unambiguous bisection to `3e3cdc2`" is WITHDRAWN** —
-   three in a row is unremarkable at a high failure rate, and I read a run of
-   bad luck as a boundary. That is the third over-read in this thread; the
-   other two were FrameDrift's *comparison* count taken as progress, and
-   blaming the machine from one data point.
-   **Ruled out by reading and still valid:** the probe runs ONCE, `BoxMedian`
-   is fully bounded, and a try/catch changed nothing — so a hang, not an
-   exception. **`hangTail` now lands the last 30 log lines whenever there is
-   no done line, so the next occurrence localises itself instead of being
-   inferred from which greps matched.** Do not act until it fires.
-
-1. **`farFrac` CARRIES THE SIGNAL THE OTHER TWO BANDS MISS — SERIES LANDED.**
-   *(rule 12; step-back and depth series in `roadmap-history.md`.)* First
-   readings: `day2_wet near=0.00 mid=0.18 **far=0.73**`, `day1_noon
-   0.00/0.27/**0.54**`, `day2_noon 0.00/0.33/**0.43**`. Near is 0.00 on
-   every shot and mid sits inside its bound, while the 7-20m band runs
-   0.43-0.73 — and `review_day2_wet` is about 80% black wall, which no
-   existing metric could see. **No bound yet, on purpose (rule 2): this is
-   the series the bound comes from.** Judge it over a few more landings —
-   a street SHOULD have buildings at 7-20m, so the bound is not 0, and the
-   question is where "framed" becomes "photographing a wall".
-
+   it:** against the broken state it passed identically (122 hits either
+   way), because a prefix match compares 8 chars to 7 happily. Replaced with
+   the invariant that really broke — abbreviation width vs stem width, FALSE
+   today, reported as a warning since the tools prefix-match now.
+1. **THE SIM SOMETIMES OVERRUNS ITS 24-MIN KILL — INTERMITTENT.**
+   `Wait-Process -Timeout 1440`; complete runs take ~12 min. Three runs were
+   killed (82/123/71 lines vs 159-161), then two completed with no sim change
+   — so **"7 DONE then 3 TRUNC, bisected to `3e3cdc2`" is WITHDRAWN.** Three
+   in a row is unremarkable at a high failure rate; I read bad luck as a
+   boundary. **Ruled out by reading and still valid:** the probe runs ONCE,
+   `BoxMedian` is fully bounded, a try/catch changed nothing (so a hang, not
+   an exception). **`hangTail` lands the last 30 log lines whenever there is
+   no done line — do not act until it fires.**
+1. **`farFrac` CARRIES THE SIGNAL THE OTHER BANDS MISS — SERIES LANDED.**
+   `day2_wet near=0.00 mid=0.18 **far=0.73**`, `day1_noon 0.00/0.27/**0.54**`,
+   `day2_noon 0.00/0.33/**0.43**`. Near is 0.00 everywhere and mid sits inside
+   bound, while the 7-20m band runs 0.43-0.73 — and `review_day2_wet` was ~80%
+   black wall that nothing else could see. **No bound yet (rule 2): this is
+   the series a bound comes from.** A street SHOULD have buildings at 7-20m,
+   so the question is where "framed" becomes "photographing a wall".
 1. **THE BODY BUDGET IS CLOSED AT 87.8%** — account in `roadmap-history.md`.
    The 34m draw radius was the binding constraint (now 70m) and `RealBodyCap`
    got its PC measurement: the drawn crowd costs ~1.1ms, so 12 -> 28. Hair
