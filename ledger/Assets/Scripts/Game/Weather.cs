@@ -106,7 +106,28 @@ namespace Ledger.Game
             // as tracer fire rather than weather. Judge it on `rainLowest`
             // and the wet frame, and retune from the landed series.
             main.startSpeed = 9f;
-            main.startSize = 0.06f;
+            // 0.06 -> 0.010, AND THE OLD SIZE WAS ONLY EVER INVISIBLE.
+            //
+            // Measured off `review_street.jpg` the moment the emitter was
+            // pointed down: rain streaks read a MEDIAN 10 PIXELS WIDE and
+            // bright-desaturated pixels covered 18.2% of the whole frame,
+            // against 6.5% in the top third alone before. That is not
+            // weather, it is white bars falling past the lens.
+            //
+            // The size never changed; what changed is that the drops now
+            // come near the camera. Thrown sideways at 26m/s they died 5.7m
+            // overhead and 28m out, where a 6cm drop subtends nothing. Fall
+            // them through the lens and 6cm at half a metre is a bar. A real
+            // raindrop is about 2mm, so 6cm was two orders out and hidden by
+            // a second fault the whole time — the fix did not cause this, it
+            // uncovered it.
+            //
+            // The factor comes from the measurement, not from taste: ten
+            // pixels median wants one or two, so six times thinner, and 0.010
+            // is that with a little left over for a drop being a smear rather
+            // than a line. Judge it the same way it was caught — the median
+            // run width of bright desaturated pixels on the committed still.
+            main.startSize = 0.010f;
             main.startColor = new Color(0.75f, 0.8f, 0.9f, 0.45f);
             main.maxParticles = 3000;
             main.simulationSpace = ParticleSystemSimulationSpace.World;

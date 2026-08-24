@@ -143,29 +143,28 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **THE BLACK NOON WALL: THE FILL IS CAPPED, AND A CoreTest SAID SO.**
-   `ambientSeries` measured shade|lit at six fill multipliers: `x1.0
-   0.102|0.408 = 0.25 / x1.5 0.35 / **x2.0 0.235|0.475 = 0.50** / x2.5 0.63
-   / x3.0 0.75 / x4.0 0.89`. x2.0 lands the ~0.5 the GTA noons show, so
-   `AmbientDayShare` was set to 1.50 — **and the day-fill test went red on
-   the spot**: "the day FILL is dimmer than the dome it derives from — a sky
-   can be bright without every shaded wall being bright". That is a physical
-   claim and it is right; `AmbientOf` returns `dome * share`, so any share
-   at or above 1.0 asserts a wall seeing PART of the hemisphere gets what
-   the WHOLE sky emits. Reverted to 0.75.
-   **So the ratio is not the fill's to fix alone — that is the finding.**
-   The fill tops out below share 1.0, about x1.33 of today, which the series
-   puts near 0.32: a real gain, not the target. **A ratio has a numerator.**
-   `sunSeries` measures the key DOWNWARD (x1.00/0.85/0.70/0.55/0.40) with
-   the same shade|lit pairs, because an overcast British port is exactly
-   where a low sun-to-sky ratio belongs — it is what overcast MEANS — and
-   that variable has never been measured. **Set the pair together when it
-   lands**, and expect the answer to be mostly key, not fill.
-   **Both builds photographed different walls**, said out loud: the earlier
-   one `mat_concrete_b nSun:0.00` (ambient-only, `shadowOff` moving nothing,
-   0.039), this one `mat_brick_grey_b nSun:0.62` with `shadowOff` TRIPLING
-   the third (0.102 -> 0.310) — a sunlit wall in a cast shadow. The ratio
-   target is about cast shadows, so it belongs to the second.
+1. **THE SHADED THIRD IS NOT A FIXTURE, AND I QUOTED A RATIO OFF IT TO THREE
+   DIGITS.** Both series landed. Their x1 rungs are the same nominal scene:
+   the **LIT third agrees to 1.0%** (0.408 vs 0.404) and the **SHADED third
+   differs by 26%** (0.102 vs 0.075) — because "the left third" is whatever
+   wall the camera faces, and `noonFacadeMat` had already shown that change
+   between builds (`mat_concrete_b` nSun 0.00, then `mat_brick_grey_b` nSun
+   0.62). So a ratio built on it carries 26% of noise in its numerator, and
+   "x2.0 lands 0.495" was three digits off a moving foundation.
+   **`on:<material>` is stamped INTO both series now** so two of them cannot
+   be compared without seeing whether they looked at the same wall — the
+   `bodyReadWhen` repair, after one metric read 35.7 and 10.8 with no code
+   change because one was noon and the other midnight. *(The first version
+   read `_noonFacadeMat`, which is assigned seventy lines further down, so
+   it would have stamped "not_probed" on everything for ever — a stamp
+   that never varies looks like agreement. It gets its own ray.)*
+   **AND MY WRITTEN PREDICTION IS REFUTED.** I expected the answer to be
+   "mostly key, not fill". `sunSeries` says the key is a BAD lever: dimming
+   it moves the shade only **-21%** (0.075 -> 0.059) while collapsing the
+   lit side **-66%** (0.404 -> 0.137). It buys ratio by destroying the
+   picture — at x0.40 the ratio is 0.431 and the frame is dark.
+   **So: fill capped by physics, key ruinous, fixture unstable. Set nothing
+   until the fixture is stable** — that is the next step, not another rung.
 
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS.** *(rule 12; step-back and
    depth series landed — account in `roadmap-history.md`.)* `farFrac`
@@ -174,21 +173,22 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    inside the mid band and under its bound, and it was DARK rather than
    badly framed — do not tighten the bound to chase it.
 
-1. **RAIN: DIRECTION FIXED; COVERAGE OPEN; AND IT RAINS ON A DAY THE DOC
-   CALLS DRY.** A Box shape emits along the shape's FORWARD and nothing
-   rotated the emitter, so rain was thrown SIDEWAYS at 26m/s. `rainLowest`
-   went from a STRUCTURAL floor of **+5.7m** to **-28.5m**. The item had
-   been closed on "wet frames read as streaks in lamp cones". They do. The
-   lamp cones are above the lamps.
-   **Coverage NOT fixed:** mid-left 0.26% -> 1.10%, mid-centre 1.38%, but
-   top-right 0.00% and bottom-left 0.03% — the 38m box, the 12m forward
-   offset, the 1.1s life.
-   **AND `review_day1_noon` NOW HAS RAIN IN IT** while this file says days
-   1-2 are dry on every run. Nothing committed could settle that: there is
-   no `rain` key in the verdict and `rainBelow` is a last-wins sample.
-   Likeliest: it always rained and the sideways emitter put it out of shot —
-   a hypothesis, written as one. `frames.tsv` carries `rain` and `wet` PER
-   SHOT now, because a dark frame and a wet one are different findings.
+1. **RAIN: THE DIRECTION FIX UNCOVERED A SIZE FAULT TWO ORDERS OUT.** *(on
+   screen, `review_street`)* A Box shape emits along the shape's FORWARD and
+   nothing rotated the emitter, so rain was thrown SIDEWAYS at 26m/s;
+   `rainLowest` went from a STRUCTURAL floor of **+5.7m** to **-28.5m**.
+   **And then the frame showed white BARS falling.** Measured: streaks a
+   **median 10 pixels wide**, bright-desaturated pixels **18.2% of the whole
+   frame**, against 6.5% in the top third alone before. `startSize` was 0.06
+   — a six-centimetre raindrop, about thirty times life size. It never
+   changed; what changed is that drops now pass the LENS instead of dying
+   5.7m overhead and 28m out, where 6cm subtends nothing. **The fix did not
+   cause this, it uncovered it** — two faults, one hiding the other.
+   0.06 -> **0.010**, the factor taken from the measurement (ten pixels
+   median wants one or two). **Judge it the way it was caught:** median run
+   width of bright desaturated pixels on the committed still.
+   **Coverage still open:** mid-band reached, frame edges not (top-right
+   0.00%) — the 38m box, the 12m forward offset, the 1.1s life.
 
 1. **THE BODY BUDGET IS CLOSED AT 87.8%** — account in `roadmap-history.md`.
    The 34m draw radius was the binding constraint (now 70m) and `RealBodyCap`
@@ -215,24 +215,19 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    where `clean=True findings=0` is a fault counter doing its job — checked
    after guessing otherwise.)*
 
-1. **STAGE 2 (SPEECH): THE LIVE ROUTE HAS NEVER ONCE RUN, IN 301 BUILDS —
-   AND THE REASON IS NOW A VERDICT LINE.** *(the stage itself is not
-   started; stage 1 has startable work. This part is rule 12, which
-   outranks the ordering: a blocked channel is the highest-leverage bug.)*
-   `gates.py --constant` finds twelve speech keys never anything but zero.
-   The router accounts for every ask (`Asked` is DERIVED): `speechAsked=205
-   speechBanked=176 speechLive=0 speechNoModel=29`, with
-   `speechStepsPerSec=unmeasured` separating "a slow card" from "never ran".
-   **What none of it could say is WHY**, because the `Fetch the speech
-   runtime` step is `continue-on-error` and its failure was one echo into a
-   job log this environment cannot tail — so "the fetch 404s", "the runtime
-   loaded but no voice model shipped" and "off by design" were
-   indistinguishable, with different next actions. The step tees its outcome
-   now and `sim-shots-commit.sh` emits `speechRuntime=[...]`, OUTSIDE the
-   player.log branch so a build that dies before the sim still answers it.
-   **Read it next landing; it decides what the speech stage opens with.**
-   **Why it matters:** as things stand the playtest would be the FIRST time
-   that path has ever run in a built game.
+1. **STAGE 2 (SPEECH): THE RUNTIME WAS NEVER THE PROBLEM — IT IS THE MODEL.**
+   *(not started; stage 1 has startable work. The rule-12 half is DONE.)*
+   The channel answered on its first run: **`speechRuntime=[Microsoft.AI.
+   DirectML 1.15.2: DirectML.dll (17.7 MB); speech runtime: 3 file(s),
+   LEDGER_ONNX defined in ledger/Assets/csc.rsp; RUNTIME_OK]`**. The fetch
+   works, the DLLs land, the define is set. So `speechLive=0` with
+   `speechNoModel=29` across 301 builds is **the voice MODEL not being in
+   the build**, not a broken runtime — which is exactly the distinction that
+   line was added to make, and it made it immediately.
+   **So the stage opens with the model, not the runtime.** Find what
+   `OnnxSpeech` loads and whether anything stages it into the Windows build
+   the way `voices-into-build` stages the banked clips. **Do not spend a
+   round trip re-testing the fetch** — it is green and named.
 
 1. **BUS AND BICYCLE LANDED** (seven kinds, zero fallbacks since P). Open:
    the RIDERLESS bike — if it reads wrong, rider or parked-only.
@@ -252,22 +247,17 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    **Fixed on the way:** `SkylineRepainted` incremented the moment the kit
    existed, BEFORE the paint was attempted. It counts acceptances now.
 
-1. **THE PAVING BLOWOUT: DIAGNOSED FIRST TIME BY ITS PROBE, AND FIXED.**
-   `districtGround` came back **`mat_asphalt ... glossScale:4.00`** — pinned
-   at its clamp, which is not a scale but the code giving up. The wet target
-   wants a near-mirror and `asphalt_r` is a rough-asphalt map whose mean is
-   a quarter of it, so multiplying by 4 does not raise the surface to the
-   target, it multiplies its **variance** by four — a p10-p90 luma spread of
-   0.654 against 0.141 for the road beside it.
-   **A wet surface's smoothness is the WATER, not the stone** — a film of
-   water is uniform, which is what makes it a mirror — so past the point
-   where the map cannot carry the target, `SetSmoothness` sets it aside for
-   the uniform scalar. Dry keeps the map. The threshold is not invented: it
-   is exactly where the old code began to clamp, i.e. where it started
-   lying. Restored when the target comes back in reach, or a street that
-   dried would stay uniform for ever (a ratchet). Read
-   `glossDropped`/`glossRestored` — one count cannot tell "wet" from "never
-   dried again".
+1. **THE PAVING BLOWOUT: DIAGNOSED BY ITS PROBE AND FIXED, BOTH DIRECTIONS
+   FIRING.** `districtGround` came back `mat_asphalt ... glossScale:4.00` —
+   pinned at its clamp, which is the code giving up rather than a scale. The
+   wet target wants a near-mirror from a rough-asphalt map whose mean is a
+   quarter of it, so x4 multiplies the map's **variance**, not its level: a
+   p10-p90 luma spread of 0.654 against 0.141 for the road beside it. A wet
+   surface's smoothness is the WATER, so past that point the uniform scalar
+   is the right instrument and the map is not. **`glossDropped=5
+   glossRestored=5` on the landing — it drops and restores in equal measure,
+   so it is not the ratchet a one-way switch would have been.** Judge the
+   strip on the frame next.
 
 1. **EIGHTY-NINE FETCHED MODELS ON DISK, SIX REFERENCED — 25 OF THE UNUSED
    ARE INDUSTRIAL BUILDINGS FOR A PORT TOWN.** *(rule 6 aimed at art; the
@@ -286,32 +276,28 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    addresses props by underscored key, so a hyphenated grep found nothing
    and I concluded from its absence. One spelling searched is not a search.)*
 
-1. **TWELVE PROP FAMILIES SIT AT ALBEDO 1.00 AGAINST A TOWN AT 0.15.** The
-   `kitAlbedo` measurement landed and nobody had read it: swing bin, oil
-   barrel, skip, park bench, finger post, garden bench, two crates, pallet,
-   three bins — **all exactly 1.00** against `townWallAlbedo=0.15`, 6.7x the
-   walls on objects down every street. **But 1.00 was also the instrument's
-   silence:** `MeanTexLuma` returns 1.0 for a null texture and
-   `PropAlbedoUnread` cannot see it, because a missing texture is an early
-   return rather than an exception — so "a white bin" and "a bin with no
-   albedo map" printed identically and want different fixes.
-   `kitAlbedoNoTex` splits them. **Read it before touching the twelve.**
+1. **TWELVE PROP FAMILIES AT ALBEDO 1.00 ARE UNTEXTURED — `kitAlbedoNoTex=30`
+   SAYS SO.** `kitAlbedo` had them at exactly 1.00 against
+   `townWallAlbedo=0.15`, and 1.00 was also the instrument's silence:
+   `MeanTexLuma` returns 1.0 for a null texture and `PropAlbedoUnread`
+   cannot see it, because a missing texture is an early return rather than
+   an exception. The split answered it — **30 materials carry no albedo map
+   at all**, so those bins, benches, crates and barrels are wearing their
+   material TINT and nothing else. **The fix is the tint, not a texture
+   hunt**, and it is the same shape as the skyline: a kit prop arrives in
+   its author's colour and this town has to repaint it.
 
-1. **THE REPAINTS ALL APPLY AND CANNOT DO THE JOB — A MULTIPLY CANNOT
-   DESATURATE. FIX SHIPPED; JUDGE ON THE LANDING.** My glTFast theory is
-   REFUTED by its own probe: **`kitPaint=1997/0`, refused by `[none]`**,
-   `skylineRepainted=23`. The paint lands everywhere and the objects are
-   still wrong. **Measured on the atlases:** multiplying by
-   `SkylineHaze(0.34,0.36,0.40)` moves top-decile saturation **0.820 ->
-   0.788** (`car-kit`) and **0.733 -> 0.686** (`city-kit-commercial`) —
-   four to six per cent, because a multiply preserves channel ratios.
-   `PatrolWhite`'s comment says so outright: a virtue there, the problem
-   here. **Shipped:** `GreyCopy` greys each atlas once, luma-weighted so the
-   modelling and slate stripe survive, as a cached VARIANT — atlases are
-   shared with props we deliberately do not repaint. Colour space
-   round-tripped, not converted. **Read `kitGrey=atlases/failed/renderers`;**
-   zero greyed beside non-zero `kitPaint` is the swap not running. **Do NOT
-   chase this with darker paints** — the saturation is the author's.
+1. **THE REPAINTS ALL APPLY AND CANNOT DO THE JOB — THE GREY SWAP IS IN AND
+   RAN.** My glTFast theory was REFUTED by its own probe (`kitPaint=1997/0`,
+   refused by `[none]`), and the atlases themselves named the real cause: a
+   multiply by `SkylineHaze` moves top-decile saturation **0.820 -> 0.788**
+   (`car-kit`) and **0.733 -> 0.686** (`city-kit-commercial`) — four to six
+   per cent, because a multiply preserves channel ratios. **`kitGrey=2/0/1974`
+   on the landing: both atlases greyed, none failed, 1974 renderers moved
+   onto greyed variants.** Luma-weighted so the modelling and slate stripe
+   survive; a cached VARIANT so props we deliberately never repaint are
+   untouched. **Judge on the frame:** re-measure the saloon's saturation
+   against the 0.385 the rest of `review_street` sits under.
 
 1. **THE DECLUTTER: NAMEPLATES AND BUBBLES, MEASURED, OPEN.** *(on screen)*
    `collidingNames=3` over 26 samples — five labels at the peak, 3 of their

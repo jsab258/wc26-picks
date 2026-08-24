@@ -8721,10 +8721,43 @@ namespace Ledger.Game
                         + $"/winOff:{winOff:0.000}/ambOff:{ambOff:0.000}"
                         + $"/amb4x:{amb4x:0.000}/shadowOff:{shadowOff:0.000}"
                         + $"/fogOff:{fogOff:0.000}]";
+            // WHICH WALL EACH SERIES LOOKED AT, STAMPED INTO THE SERIES.
+            //
+            // MEASURED 24 Aug, and it undercuts a number I had already
+            // quoted to three digits. The two series' x1 rungs are the same
+            // nominal scene and should agree: the LIT third does, to 1.0%
+            // (0.408 against 0.404). The SHADED third differs by 26% (0.102
+            // against 0.075) — because "the left third" is whatever wall the
+            // camera happens to face, and `noonFacadeMat` had already shown
+            // that changing between builds, `mat_concrete_b` at nSun 0.00
+            // one run and `mat_brick_grey_b` at nSun 0.62 the next.
+            //
+            // So the lit third is a fixture and the shaded third is not, and
+            // a RATIO built on it inherits 26% of noise in its numerator. I
+            // read "x2.0 lands 0.495" off that and called it the rung that
+            // was measured. It was, and the rung underneath it moves.
+            //
+            // The material travels WITH the numbers now rather than sitting
+            // on the same line hoping to be cross-read — `bodyReadWhen`
+            // exists for exactly this, after one metric read 35.7 and 10.8
+            // with no code change between them because one was noon and the
+            // other midnight. Two series with different `on:` are two
+            // questions and may not be compared.
+            // ITS OWN RAY, NOT `_noonFacadeMat`'s. That field is assigned
+            // seventy lines BELOW this point, so reading it here would have
+            // stamped the initialiser — "not_probed" — onto every series,
+            // for ever, and a stamp that is always the same is worse than
+            // no stamp because it looks like agreement. Caught by checking
+            // which line assigns it before trusting the name.
+            string onWall = "unknown";
+            {
+                var m0 = SurfaceUnder(cam, new Vector3(1f / 6f, 0.5f, 0f));
+                if (m0.Length > 1) onWall = m0.Substring(1).Split('/')[0];
+            }
             _ambientSeries = ambSeries.Length > 0
-                ? "[" + ambSeries + "]" : "[not_probed]";
+                ? $"[on:{onWall}/" + ambSeries + "]" : "[not_probed]";
             _sunSeries = sunSeries.Length > 0
-                ? "[" + sunSeries + "]" : "[not_probed]";
+                ? $"[on:{onWall}/" + sunSeries + "]" : "[not_probed]";
             Debug.Log("SimDirector: ambientSeries " + _ambientSeries
                       + " sunSeries " + _sunSeries);
             Debug.Log("SimDirector: noonFacade " + _noonFacade);
