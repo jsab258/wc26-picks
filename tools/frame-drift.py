@@ -47,6 +47,44 @@ FIELDS = ["meanLuma", "maxLuma", "brightPct", "satPct", "satStrength"]
 DECIMALS = {"meanLuma": 3, "maxLuma": 3, "brightPct": 2, "satPct": 2,
             "satStrength": 2}
 
+# WHERE THE CAMERA STOOD. Carried, never compared as a field — a camera that
+# moved is not a render that changed, and telling those two apart is the whole
+# job of the block below.
+POSE = ["camX", "camZ", "camYaw"]
+
+# WHAT COUNTS AS THE SAME VANTAGE, AND WHAT A MATCHED PAIR ACTUALLY AGREES TO.
+# Both measured, not chosen — rule 2, and the first version of this number was
+# a rounding that would have made the tool dismiss every real change.
+#
+# 50 landed ledgers give 49 CONSECUTIVE pairs, so both buckets below see the
+# same amount of code change between them; splitting all-pairs instead biases
+# the matched bucket toward temporally-adjacent runs and is how I first read
+# this backwards.
+#
+#     street, camera in the same place   n=135   median 0.0020  p90 0.0100
+#     street, camera moved               n=899   median 0.0130  p90 0.0650
+#     district tour, pinned by construction
+#                                        n=329   median 0.0020  p90 0.0050
+#
+# A factor of 6.5 in both the median and the p90, from the camera alone. And
+# the tour rows are the answer to "would pinning help": they are the only shots
+# in the ledger whose pose cannot move, and they are the quietest thing in it.
+POSE_SAME_M = 0.5      # the clustering in camX/camZ is far tighter than this
+POSE_SAME_DEG = 1.0    # yaw is quantised to whole degrees in the ledger
+
+# AND IT IS NOT A NOISE FLOOR, WHICH IS WHAT I FIRST CALLED IT. Every pair in
+# that 135 spans two CONSECUTIVE COMMITS, so the 0.010 contains render noise and
+# whatever those builds actually changed, mixed. It answers "how far does a
+# fixed-vantage frame normally move between two builds" and nothing more —
+# exceeding it means larger than a normal build step, not larger than noise.
+#
+# A real noise floor needs the same commit built twice and this project has
+# never done it; the block above already distinguishes that case and would say
+# so. Naming this `LUMA_FLOOR` would have been rule 2's fault one layer up: a
+# number whose NAME claims more than the measurement behind it, which is how
+# `crowdTightest` and `confabs` both went wrong.
+LUMA_STEP_P90 = 0.010  # p90 of the 135 pose-matched consecutive-landing pairs
+
 
 def commit_of(path):
     """The commit the build wrote this ledger from, if it is stamped.
@@ -100,7 +138,7 @@ def read(path):
             continue
         row, shot = {}, cells[0]
         for key, cell in zip(header[1:], cells[1:]):
-            if key not in FIELDS:
+            if key not in FIELDS and key not in POSE:
                 continue          # meanRgb/brightRgb are colours, carried not compared
             try:
                 row[key] = float(cell)
@@ -109,6 +147,37 @@ def read(path):
         rows[shot] = row
         order.append(shot)
     return rows, order, bad
+
+
+def vantage(a, b):
+    """Did the camera stand in the same place for both of these rows?
+
+    Returns (comparable, note). `comparable` is None when the pose was never
+    recorded, which is a THIRD answer and not a synonym for either of the other
+    two: ledgers written before the pose columns existed cannot be conditioned
+    at all, and saying "same vantage" about them would be inventing agreement.
+
+    WHY A DELTA WITHOUT THIS IS UNREADABLE. Across 50 landed ledgers every
+    street shot's brightness tracks where the camera happened to be standing:
+    `day2_noon` correlates -0.678 with camX and **-0.803 with yaw**, `day8_noon`
+    -0.795 with yaw, `day5_noon` -0.817. Which way you face at noon decides how
+    much sky and sun-facing wall is in the frame, so yaw is at least as strong a
+    confound as position — and the first version of this analysis looked only at
+    camX and missed it.
+
+    The camera moves because the shot follows the GAME: the player walks a
+    different route when the crowd, the day job or the steering changes, and the
+    step-back loop adds up to twelve metres on top. None of that is a render
+    change, and all of it lands in `meanLuma`.
+    """
+    if not all(k in a and k in b for k in POSE):
+        return None, "pose not recorded"
+    dx, dz = abs(a["camX"] - b["camX"]), abs(a["camZ"] - b["camZ"])
+    dyaw = abs(((a["camYaw"] - b["camYaw"]) + 180.0) % 360.0 - 180.0)
+    if dx < POSE_SAME_M and dz < POSE_SAME_M and dyaw < POSE_SAME_DEG:
+        return True, "same vantage"
+    moved = (dx * dx + dz * dz) ** 0.5
+    return False, f"CAMERA MOVED {moved:.1f}m yaw {dyaw:.0f}deg"
 
 
 def drift(old_path, new_path):
@@ -145,32 +214,43 @@ def drift(old_path, new_path):
                 "noise floor, and a Layer 3 tolerance may be derived from it.")
     elif ca and cb:
         # THE SPREAD IS A CAMERA CONFOUND, NOT NOISE — and I published it as
-        # noise first, which would have made this tool far too conservative.
+        # noise first, which would have made this tool far too conservative,
+        # then published the confound itself half-measured, which is the part
+        # worth keeping here.
         #
-        # `day2_noon` reads 0.424 to 0.503 across twelve landed runs, and I
-        # called that a +-0.07 noise floor. It is not. Recovering each run's
-        # camera from `frames.tsv` in git history and correlating against the
-        # same run's luma gives **-0.893**: the shot's brightness tracks where
-        # the step-back left the camera, almost perfectly.
+        # First reading: `day2_noon` spans 0.424-0.503 over twelve runs, I
+        # called it a +-0.07 noise floor, and correlating luma against camX
+        # gave -0.893. That was the right idea from too small a sample and only
+        # one axis. Over all 50 landed ledgers it is -0.678 against camX and
+        # **-0.803 against YAW**, which the first pass never looked at and which
+        # is the stronger term on several shots (day5_noon -0.817, day8_noon
+        # -0.795). Obvious in hindsight: which way you face at noon decides how
+        # much sky is in the frame.
         #
-        #     camX >= -1.8  (8 runs)  0.424-0.433   spread 0.009
-        #     camX <= -2.2  (4 runs)  0.488-0.503   spread 0.015
-        #     gap between the two vantages          0.067
+        # The floor itself needed the same correction. Selecting pose-matched
+        # pairs out of ALL pairs biases them toward temporally-adjacent runs,
+        # so they see less code change and look artificially quiet — I read the
+        # pinned district shots as the NOISIEST in the ledger off exactly that
+        # mistake. Restricted to CONSECUTIVE landings, so both buckets span the
+        # same code:
         #
-        # So the real floor is about 0.01, the 0.067 is a confound that is
-        # RECORDED on every row and was never controlled for, and a
-        # comparison becomes valid the moment two runs are matched on camX.
-        # Like-for-like at camX <= -2.2, shadowStrength 0.85 reads 0.503 and
-        # 0.498 against 0.93's 0.492 and 0.488 — about +0.010, which is a real
-        # effect at the edge of this instrument rather than the +0.07 the
-        # unconditioned numbers appeared to show.
+        #     street, same vantage    n=135  median 0.0020  p90 0.0100
+        #     street, camera moved    n=899  median 0.0130  p90 0.0650
+        #     district tour, pinned   n=329  median 0.0020  p90 0.0050
+        #
+        # Like-for-like at a matched vantage, shadowStrength 0.85 reads about
+        # +0.010 against 0.93 — a real effect at the edge of this instrument
+        # rather than the +0.07 the unconditioned numbers appeared to show.
         what = (f"{ca[:7]} -> {cb[:7]}, DIFFERENT COMMITS — these deltas are the "
-                "change plus the noise and cannot be read as either. AND CHECK "
-                "camX BEFORE READING ANY OF THEM: day2_noon's luma correlates "
-                "-0.893 with where the step-back left the camera, so two runs "
-                "at different vantages differ by ~0.067 for no reason at all, "
-                "while two at the SAME vantage agree to ~0.01. Match on camX, "
-                "or judge by a within-frame series instead.")
+                "change plus the noise. Each row below says whether the camera "
+                "stood in the same place for both, because a shot's brightness "
+                "tracks its vantage harder than it tracks any render change "
+                "(day2_noon correlates -0.68 with camX and -0.80 with yaw over "
+                "50 runs): pose-matched consecutive landings agree to 0.010 at "
+                "the p90 and pose-moved ones to 0.065, on the same code. Read "
+                "the same-vantage rows and the moved ones cannot be read as "
+                "either; a camera that walked took a different photograph, not "
+                "a different render.")
     else:
         what = ("commits unstamped, so these deltas cannot be told apart from "
                 "a code change.")
@@ -183,11 +263,48 @@ def drift(old_path, new_path):
         # and it is invisible in a per-field diff.
         out.append("FrameDrift:   SHOTS NO LONGER TAKEN: " + ", ".join(sorted(gone)))
 
-    # Biggest movers first. A twenty-row table sorted by shot name buries the
-    # one row that matters under nineteen that did not move.
-    ranked = sorted(shared, key=lambda s: -worst(old[s], new[s]))
-    for shot in ranked:
+    # HOW MANY OF THESE ROWS CAN ACTUALLY BE READ — the denominator, applied to
+    # a comparison rather than to a count (rule 3b). "20 shots compared" and
+    # "20 shots compared, 3 of them from the same vantage" are the same
+    # sentence to a reader and completely different evidence, and the first
+    # version of this block printed only the first one.
+    verdicts = {s: vantage(old[s], new[s]) for s in shared}
+    fixed = sum(1 for c, _ in verdicts.values() if c is True)
+    unknown = sum(1 for c, _ in verdicts.values() if c is None)
+    if shared:
+        if unknown == len(shared):
+            out.append("FrameDrift:   POSE NOT RECORDED on either ledger — nothing "
+                       "below can be conditioned on where the camera stood.")
+        else:
+            out.append(f"FrameDrift:   {fixed} of {len(shared)} shot(s) taken from the "
+                       f"SAME VANTAGE and comparable; {len(shared) - fixed - unknown} "
+                       f"moved, {unknown} unrecorded. A typical build-to-build step at "
+                       f"a fixed vantage is {LUMA_STEP_P90:.3f} at the p90.")
+            # NAMED, not just counted. A quiet comparable row does not sort to the
+            # top — only a loud one does — so without this the nine rows worth
+            # reading are scattered through twenty-nine and have to be found by
+            # eye every time. In practice they are the seven teleported district
+            # frames, whose pose is fixed by construction, plus day1_noon and
+            # day1_night, taken before the sim has diverged enough to move the
+            # player: the only photometric series this project has.
+            if fixed:
+                out.append("FrameDrift:   comparable: "
+                           + ", ".join(s for s in shared if verdicts[s][0] is True))
+
+    # Biggest movers first, but a READABLE mover outranks an unreadable one
+    # however large the unreadable one is — the ranking exists so a real change
+    # does not arrive at the bottom of a twenty-row table, and a delta from a
+    # camera that walked eight metres is not a real change, it is a different
+    # photograph.
+    def rank(s):
+        comparable, _ = verdicts[s]
+        loud = comparable is True and abs(new[s].get("meanLuma", 0.0)
+                                          - old[s].get("meanLuma", 0.0)) > LUMA_STEP_P90
+        return (0 if loud else 1, -worst(old[s], new[s]))
+
+    for shot in sorted(shared, key=rank):
         a, b = old[shot], new[shot]
+        comparable, note = verdicts[shot]
         parts = []
         for f in FIELDS:
             if f not in a or f not in b:
@@ -195,7 +312,12 @@ def drift(old_path, new_path):
             d = DECIMALS[f]
             delta = b[f] - a[f]
             parts.append(f"{f}={b[f]:.{d}f}({delta:+.{d}f})")
-        out.append("FrameDrift:   " + shot + " " + " ".join(parts))
+        tail = note
+        if comparable is True and "meanLuma" in a and "meanLuma" in b:
+            dl = abs(b["meanLuma"] - a["meanLuma"])
+            tail = ("same vantage, BIGGER THAN A NORMAL BUILD STEP"
+                    if dl > LUMA_STEP_P90 else "same vantage, a normal build step")
+        out.append("FrameDrift:   " + shot + " " + " ".join(parts) + "  [" + tail + "]")
     return out, 0
 
 
@@ -337,6 +459,77 @@ def selftest():
     short.write_text(head + "day1_noon\t0.1\n", encoding="utf-8")
     _, _, bad = read(str(short))
     check("reports a short row", any("cells" in x for x in bad))
+
+    # THE VANTAGE TEST, BOTH OUTCOMES AND THE THIRD ONE. Rule 5b: a guard
+    # ships only when its ACCEPTING case has been watched too, and this one has
+    # three answers rather than two — a ledger with no pose columns must not be
+    # quietly counted as agreement.
+    #
+    # The accepting case is first on purpose: the expensive failure here is a
+    # conditioner that marks everything unreadable, which looks exactly like a
+    # render that never changes.
+    posehead = ("shot\tmeanLuma\tmaxLuma\tbrightPct\tsatPct\tsatStrength\t"
+                "meanRgb\tbrightRgb\tcamX\tcamZ\tcamYaw\n")
+
+    def posewrite(name, luma, x, z, yaw, commit="abc1234def"):
+        q = d / name
+        q.write_text(f"# commit {commit}\n" + posehead +
+                     f"day1_noon\t{luma}\t0.981\t1.42\t3.10\t0.41\t"
+                     f"60,64,70\t250,250,250\t{x}\t{z}\t{yaw}\n",
+                     encoding="utf-8")
+        return str(q)
+
+    still_a = posewrite("still_a.tsv", "0.250", "2.7", "18.8", "162")
+    still_b = posewrite("still_b.tsv", "0.290", "2.8", "18.9", "162", "9999999aaa")
+    txt = "\n".join(drift(still_a, still_b)[0])
+    check("same vantage is ACCEPTED", "same vantage" in txt)
+    check("a real change at a matched vantage is called out",
+          "BIGGER THAN A NORMAL BUILD STEP" in txt)
+    check("the readable count is printed", "1 of 1 shot(s) taken from the" in txt)
+
+    quiet_b = posewrite("quiet_b.tsv", "0.253", "2.7", "18.8", "162", "9999999aaa")
+    check("a small move at a matched vantage says so",
+          "a normal build step" in "\n".join(drift(still_a, quiet_b)[0]))
+
+    # REJECTING: the camera walked, so the delta is a different photograph.
+    walked = posewrite("walked.tsv", "0.290", "-4.1", "11.9", "115", "9999999aaa")
+    txt = "\n".join(drift(still_a, walked)[0])
+    check("a moved camera is named", "CAMERA MOVED" in txt)
+    check("a moved camera is not called readable",
+          "NORMAL BUILD STEP" not in txt)
+    check("a moved camera reports the distance", "m yaw" in txt)
+    # Yaw alone is enough, and it is the axis the first analysis missed.
+    turned = posewrite("turned.tsv", "0.290", "2.7", "18.8", "252", "9999999aaa")
+    check("yaw alone disqualifies a pair",
+          "CAMERA MOVED" in "\n".join(drift(still_a, turned)[0]))
+    check("yaw wraps the short way round",
+          vantage({"camX": 0.0, "camZ": 0.0, "camYaw": 359.6},
+                  {"camX": 0.0, "camZ": 0.0, "camYaw": 0.2})[0] is True)
+
+    # THE THIRD ANSWER: no pose columns at all. `a`/`b` are the old fixtures.
+    txt = "\n".join(drift(a, b)[0])
+    check("an unposed ledger is neither accepted nor rejected",
+          "POSE NOT RECORDED" in txt)
+    check("an unposed row says so", "[pose not recorded]" in txt)
+    check("an unposed pair is not called same vantage", "same vantage" not in txt)
+
+    # A READABLE MOVER OUTRANKS A LOUDER UNREADABLE ONE.
+    two_a = d / "two_a.tsv"
+    two_a.write_text("# commit abc1234def\n" + posehead +
+                     "pinned\t0.250\t0.981\t1.42\t3.10\t0.41\t60,64,70\t250,250,250\t0\t0\t90\n"
+                     "roamed\t0.250\t0.981\t1.42\t3.10\t0.41\t60,64,70\t250,250,250\t0\t0\t90\n",
+                     encoding="utf-8")
+    two_b = d / "two_b.tsv"
+    two_b.write_text("# commit 9999999aaa\n" + posehead +
+                     "pinned\t0.270\t0.981\t1.42\t3.10\t0.41\t60,64,70\t250,250,250\t0\t0\t90\n"
+                     "roamed\t0.900\t0.981\t1.42\t3.10\t0.41\t60,64,70\t250,250,250\t40\t40\t270\n",
+                     encoding="utf-8")
+    txt = "\n".join(drift(str(two_a), str(two_b))[0])
+    check("a readable mover ranks above a louder unreadable one",
+          txt.index("FrameDrift:   pinned ") < txt.index("FrameDrift:   roamed "))
+
+    check("pose columns are kept out of the compared fields",
+          "camX=" not in txt.split("FrameDrift:   pinned ")[1].split("\n")[0])
 
     # `worst` must be relative, or brightPct's small numbers dominate the rank.
     check("worst is relative",
