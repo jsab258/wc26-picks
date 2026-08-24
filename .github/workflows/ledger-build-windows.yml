@@ -247,10 +247,20 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          python3 tools/fetch-onnxruntime.py \
-            --dest ledger/Assets/Plugins/onnxruntime \
-            --define ledger/Assets/csc.rsp || \
-            echo "speech runtime unavailable — the backend stays off"
+          # ITS OUTCOME REACHES THE VERDICT NOW (rule 12). This step is
+          # continue-on-error and its failure was one echo into a job log
+          # this environment cannot tail -- so across 301 builds
+          # speechLive=0 and speechNoModel=29 with no way to tell "the
+          # fetch 404s" from "the runtime loaded but no voice model
+          # shipped" from "off by design". Those have different next
+          # actions. sim-shots-commit.sh turns this file into a line.
+          { python3 tools/fetch-onnxruntime.py \
+              --dest ledger/Assets/Plugins/onnxruntime \
+              --define ledger/Assets/csc.rsp \
+            && echo "RUNTIME OK" \
+            || echo "RUNTIME FAILED - the backend stays off"; } 2>&1 \
+            | tee speech-fetch.txt
+          tail -2 speech-fetch.txt
 
       - name: Install Unity
         # 30, and this is headroom rather than a measurement.

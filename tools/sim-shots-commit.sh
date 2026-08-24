@@ -110,6 +110,28 @@ ls -la game-design/sim-shots/
   echo
 } > game-design/sim-shots/verdict.txt
 
+# THE SPEECH RUNTIME'S OUTCOME, IN THE ONE CHANNEL THIS ENVIRONMENT CAN
+# READ (rule 12). `speechLive` has been 0 across 301 builds with
+# `speechNoModel=29`, and the reason lived only in a `continue-on-error`
+# step's echo, in a job log that cannot be tailed from here. So "the fetch
+# 404s", "the runtime loaded but no voice model shipped" and "the backend
+# is off by design" were indistinguishable, and they have completely
+# different next actions.
+#
+# OUTSIDE THE player.log BRANCH ON PURPOSE: a build that never reaches the
+# sim should still say whether the runtime arrived, and that is exactly the
+# run where the question is hardest to answer any other way.
+#
+# Spaces become underscores because a verdict value may not contain one --
+# the reader splits on whitespace and would return the first word silently.
+if [ -f speech-fetch.txt ]; then
+  echo "speechRuntime=[$(tail -3 speech-fetch.txt | tr -d '\r' \
+        | tr '\n' ';' | tr ' ' '_' | tr -s '_' | cut -c1-150)]" \
+    >> game-design/sim-shots/verdict.txt
+else
+  echo "speechRuntime=[no_fetch_record]" >> game-design/sim-shots/verdict.txt
+fi
+
 if [ -f sim-run/player.log ]; then
   {
     # ASCII ONLY IN THE PATTERN, and matched on distinctive

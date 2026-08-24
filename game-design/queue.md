@@ -196,21 +196,24 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    ~500 against `bodyTinted` 2048 — a multiply only subtracts. A limit, not
    a bug.
 
-1. **STAGE 2 (SPEECH): THE LIVE ROUTE HAS NEVER ONCE RUN, IN 301 BUILDS.**
-   *(not started — stage 1 still has startable work.)* `gates.py
-   --constant` finds twelve speech keys never anything but zero. The router
-   says why and accounts for every ask (`Asked` is DERIVED):
-   `speechAsked=205 speechBanked=176 speechLive=0 speechNoModel=29`, with
+1. **STAGE 2 (SPEECH): THE LIVE ROUTE HAS NEVER ONCE RUN, IN 301 BUILDS —
+   AND THE REASON IS NOW A VERDICT LINE.** *(the stage itself is not
+   started; stage 1 has startable work. This part is rule 12, which
+   outranks the ordering: a blocked channel is the highest-leverage bug.)*
+   `gates.py --constant` finds twelve speech keys never anything but zero.
+   The router accounts for every ask (`Asked` is DERIVED): `speechAsked=205
+   speechBanked=176 speechLive=0 speechNoModel=29`, with
    `speechStepsPerSec=unmeasured` separating "a slow card" from "never ran".
-   **THE REASON IS IN NO CHANNEL I CAN READ, AND THAT IS THE FIRST FIX**
-   (rule 12): the `Fetch the speech runtime` step is `continue-on-error` and
-   its failure is one echo into a job log this environment cannot tail, so
-   "the fetch 404s", "no voice model shipped" and "off by design" are
-   indistinguishable and have different next actions. **First item: carry
-   the fetch's outcome into `verdict.txt`** — `sim-shots-commit.sh` composes
-   it and can take a `speechRuntime=[...]` line. **Why it matters:** as
-   things stand, the playtest would be the FIRST time that path has ever run
-   in a built game.
+   **What none of it could say is WHY**, because the `Fetch the speech
+   runtime` step is `continue-on-error` and its failure was one echo into a
+   job log this environment cannot tail — so "the fetch 404s", "the runtime
+   loaded but no voice model shipped" and "off by design" were
+   indistinguishable, with different next actions. The step tees its outcome
+   now and `sim-shots-commit.sh` emits `speechRuntime=[...]`, OUTSIDE the
+   player.log branch so a build that dies before the sim still answers it.
+   **Read it next landing; it decides what the speech stage opens with.**
+   **Why it matters:** as things stand the playtest would be the FIRST time
+   that path has ever run in a built game.
 
 1. **BUS AND BICYCLE LANDED** (seven kinds, zero fallbacks since P). Open:
    the RIDERLESS bike — if it reads wrong, rider or parked-only.
