@@ -15250,6 +15250,13 @@ namespace Ledger.Game
                       // back empty — which would be a map fault reported as
                       // scenery rather than found six builds later.
                       $"transit={StreetFurniture.TransitCount} " +
+                      // KIT SIGNALS AGAINST THE TWO-CUBE FALLBACK, with the
+                      // paint's acceptances beside them: a prefab that never
+                      // arrived and a prefab whose shader silently refuses the
+                      // colour are different faults with different fixes, and
+                      // one counter cannot tell them apart.
+                      $"signalKit={GameController.SignalKits}/{GameController.SignalPrimitives} " +
+                      $"signalPainted={GameController.SignalPainted} " +
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
                       // THE SKY CAPTURES, WIRED 24 AUG, WITH THE DENOMINATOR

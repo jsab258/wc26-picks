@@ -1137,17 +1137,80 @@ namespace Ledger.Game
                     float d = (float)StreetMap.AvenueWidth / 2f + 1.4f;
                     var pos = new Vector3((float)n.X + ox * d, 0, (float)n.Z + oz * d);
 
-                    var post = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    post.name = $"Signal_{n.Id}_{k}";
-                    post.transform.position = pos + new Vector3(0, 1.6f, 0);
-                    post.transform.localScale = new Vector3(0.14f, 3.2f, 0.14f);
-                    post.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Metal);
-                    var pcol = post.GetComponent<Collider>();
-                    if (pcol != null) Destroy(pcol);
+                    // THE KIT SIGNAL FIRST, THE TWO CUBES AS THE FALLBACK.
+                    //
+                    // The signal LOGIC has been right for months — `Signals`
+                    // phases the junction and `TickSignals` drives red, amber
+                    // and green — and what it drove was a 14cm cube on a stick.
+                    // `city-kit-roads` has held `traffic-light` the whole time
+                    // and the Game layer named one model out of forty-seven.
+                    // The quality ladder's question, not a bug: is this the
+                    // best available result or the first working one.
+                    //
+                    // MEASURED, NOT ASSUMED, which is `MakeLamp`'s rule and it
+                    // is there for a reason — the FBX is 11.76 x 51.50 in its
+                    // author's units and nothing says which way it faces or
+                    // where its head sits. So it is scaled to 3.6m from its own
+                    // bounds and the driven lamp is seated at the TOP of those
+                    // bounds, whatever the mesh turns out to be. Reading the
+                    // head's height off the separate `traffic-light-object-
+                    // vertical` model would have been a guess dressed as
+                    // arithmetic.
+                    //
+                    // AND ITS COLLIDERS GO. A prefab arrives with whatever its
+                    // author attached, and this stands 1.4m off the kerb on a
+                    // pavement the courier walks: that is exactly the geometry
+                    // that pinned `dayJob` against `Bldg69_door` for 733 ticks
+                    // once `DoorHost` started turning the hinge. The primitive
+                    // path below has always dropped its collider; the kit path
+                    // has to do the same or the upgrade is a regression.
+                    GameObject post = null;
+                    float lampY = 3.2f;
+                    var kit = AssetLibrary.TryInstantiateProp(
+                        "city_kit_roads_traffic_light", pos,
+                        Quaternion.LookRotation(new Vector3(ox, 0f, oz).sqrMagnitude > 0.01f
+                            ? new Vector3(ox, 0f, oz) : Vector3.forward, Vector3.up));
+                    if (kit != null)
+                    {
+                        var rends = kit.GetComponentsInChildren<Renderer>();
+                        if (rends.Length > 0)
+                        {
+                            var b = rends[0].bounds;
+                            foreach (var r in rends) b.Encapsulate(r.bounds);
+                            if (b.size.y > 0.5f) kit.transform.localScale *= 3.6f / b.size.y;
+                            b = rends[0].bounds;
+                            foreach (var r in rends) b.Encapsulate(r.bounds);
+                            kit.transform.position += Vector3.up * (pos.y - b.min.y);
+                            b = rends[0].bounds;
+                            foreach (var r in rends) b.Encapsulate(r.bounds);
+                            lampY = b.max.y - pos.y - 0.30f;
+                            // Through `PaintKit`, which REPORTS. A raw property
+                            // block set on a shader with no `_Color` is a silent
+                            // no-op and this project has shipped that twice.
+                            SignalPainted += AssetLibrary.PaintKit(rends, SignalHousing) > 0 ? 1 : 0;
+                            foreach (var c in kit.GetComponentsInChildren<Collider>())
+                                Destroy(c);
+                            kit.name = $"Signal_{n.Id}_{k}";
+                            post = kit;
+                            SignalKits++;
+                        }
+                        else Destroy(kit);
+                    }
+                    if (post == null)
+                    {
+                        post = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        post.name = $"Signal_{n.Id}_{k}";
+                        post.transform.position = pos + new Vector3(0, 1.6f, 0);
+                        post.transform.localScale = new Vector3(0.14f, 3.2f, 0.14f);
+                        post.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Metal);
+                        var pcol = post.GetComponent<Collider>();
+                        if (pcol != null) Destroy(pcol);
+                        SignalPrimitives++;
+                    }
 
                     var head = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     head.name = $"SignalHead_{n.Id}_{k}";
-                    head.transform.position = pos + new Vector3(0, 3.2f, 0);
+                    head.transform.position = pos + new Vector3(0, lampY, 0);
                     head.transform.localScale = new Vector3(0.34f, 0.8f, 0.34f);
                     var hr = head.GetComponent<Renderer>();
                     hr.sharedMaterial = AssetLibrary.Material(AssetLibrary.Window);
@@ -1158,6 +1221,14 @@ namespace Ledger.Game
                     var hcol = head.GetComponent<Collider>();
                     if (hcol != null) Destroy(hcol);
 
+                    // `true` IS LOAD-BEARING NOW AND WAS NOT BEFORE. The post
+                    // used to be a cube at scale 1; it can now be a kit mesh
+                    // scaled by about 0.07 to bring a 51-unit FBX down to 3.6m,
+                    // and parenting a 0.34m lamp under that with
+                    // worldPositionStays FALSE would multiply it away to
+                    // nothing. With `true` Unity keeps the world transform and
+                    // compensates the local scale, which is exact here because
+                    // the kit scale is uniform.
                     head.transform.SetParent(post.transform, true);
                     _signalHeads.Add(new SignalHead
                     {
@@ -1168,6 +1239,19 @@ namespace Ledger.Game
                 }
             }
         }
+
+        /// How many signals got the kit mesh against the two-cube fallback, and
+        /// how many of those the paint actually reached. Three counters rather
+        /// than one because they fail differently and separately: no prefab
+        /// (the fetch never landed), a prefab that paints (right), and a prefab
+        /// whose shader has no `_Color` — which looks identical to success from
+        /// the call site and is why `PaintKit` counts acceptances rather than
+        /// calls.
+        public static int SignalKits, SignalPrimitives, SignalPainted;
+
+        /// A British signal housing: near-black, faintly green, the same family
+        /// as the lamp column so the street's ironwork agrees with itself.
+        static readonly Color SignalHousing = new Color(0.13f, 0.15f, 0.14f);
 
         static readonly Color GreenLamp = new Color(0.25f, 0.85f, 0.30f);
         static readonly Color AmberLamp = new Color(0.95f, 0.66f, 0.15f);
