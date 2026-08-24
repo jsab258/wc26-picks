@@ -143,38 +143,42 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. ~~**THE SHADOW RATIO**~~ — **SET FROM A PRINTED RUNG: `shadowStrength`
-   0.93 -> 0.85, cast shadow 32% -> 47% of lit, target 50%.** `shadowSeries`
-   over a pair from `FindShadowPair`: `s0.93 0.043|0.133=0.32 / **s0.85
-   0.063|0.133=0.47** / s0.75 0.65 / s0.65 0.83 / s0.55 0.94`. **Lit CONSTANT
-   at 0.133 across every rung** — a lever that only touches shadows must not
-   move its denominator, and this one does not. That invariant is why this
-   reading is trustworthy where three earlier ones (taken off `nSun:0.00`
-   walls) were not. **It is the lever the other two are not:** fill is capped
-   by a CoreTest defending something true; the KEY moves both sides together
-   (`sunSeries` holds 0.30-0.36 while dimming everything), which **refutes my
-   written prediction** that shade would hold and the ratio climb.
-
-1. **THE FRAME "NOISE" IS A CAMERA CONFOUND, MEASURED AT -0.893, AND IT HAS
-   NEVER BEEN CONTROLLED FOR.** `day2_noon` spans 0.424-0.503 across twelve
-   landed runs. I called that a +-0.07 noise floor and put it in
-   `frame-drift`; **that was wrong and would have made the tool dismiss real
-   changes.** Recovering each run's camera from `frames.tsv` in git history
-   and correlating against its luma gives **-0.893** — the shot's brightness
-   tracks where the step-back left the camera:
-   `camX >= -1.8 (8 runs) 0.424-0.433, spread 0.009` against
-   `camX <= -2.2 (4 runs) 0.488-0.503, spread 0.015`, a **0.067 gap for no
-   reason at all**.
-   **So the real floor is ~0.01, and a comparison becomes valid the moment
-   two runs are matched on camX** — which every row has carried all along.
-   **Like-for-like at camX <= -2.2: shadowStrength 0.85 reads 0.503/0.498
-   against 0.93's 0.492/0.488 — about +0.010.** A real effect at the edge of
-   this instrument, and it RECONCILES the two measurements: shadow strength
-   moves only SHADED pixels, so a frame mean averaging mostly-lit road and
-   walls is the wrong statistic to see it with. The within-frame series saw
-   it because it looked at the shaded wall directly (0.043 -> 0.063).
-   **Open: condition every frame comparison on camX, and consider pinning the
-   review cameras so the step-back cannot introduce this at all.**
+1. **TWENTY OF TWENTY-NINE FRAME COMPARISONS WERE A DIFFERENT PHOTOGRAPH —
+   CONDITIONED NOW, AND THE PINNED SERIES ALREADY EXISTS.** `frame-drift`
+   labels every row with whether the camera stood in the same place, and
+   carries the denominator: **9 of 29 comparable, 20 moved.** The two loudest
+   deltas in the newest table — `day8_noon +0.080`, `day2_noon +0.075` — are
+   a camera that walked 3.0m and 2.6m.
+   **Both halves of the -0.893 finding were wrong and the corrections are the
+   value.** It is not camX: over all 50 landed ledgers `day2_noon` is -0.678
+   on camX and **-0.803 on YAW**, and yaw is the stronger term on several
+   shots (`day5_noon` -0.817, `day8_noon` -0.795). And the floor came off a
+   biased sample — pose-matched pairs drawn from ALL pairs favour adjacent
+   runs, which span less code, and off that I read the PINNED district shots
+   as the noisiest rows in the file, which is backwards. Consecutive landings
+   only, so every bucket spans the same code:
+   `street same vantage n=135 median 0.0020 p90 0.0100`,
+   `street moved n=899 median 0.0130 p90 0.0650`,
+   `district tour, pinned, n=329 median 0.0020 p90 0.0050`.
+   **Pinning works and the proof was already in the repository**: the tour is
+   the one population whose pose cannot move and the quietest thing in the
+   ledger. So the answer to "pin the review cameras" is that nine shots
+   effectively are — seven districts plus `day1_noon`/`day1_night`, taken
+   before the sim diverges enough to move the player — and **those nine are
+   the photometric series; the street frames are for LOOKING at.**
+   Named `LUMA_STEP_P90`, not a noise floor: every pair in that 135 spans two
+   commits, so it is a normal build step, not noise. A true floor needs one
+   commit built twice and never has been.
+1. **EVERY PINNED SHOT DARKENED IN THE LATEST BATCH, WITH THE WRONG SIGN FOR
+   THE SHADOW LEVER.** All seven districts moved -0.0005 to -0.0050 and
+   `day1_noon` -0.0065, 7/7 in one direction. But `shadowStrength` went
+   0.93 -> 0.85, which LIGHTENS shadows and should brighten a frame, so this
+   is something ELSE in the batch. **Not a conclusion — two landings carrying
+   many commits, and the magnitude sits right at the tour's own p90 of
+   0.0050.** What it does show is the instrument working: a consistent 0.003
+   across seven independent shots is a thing the street frames could never
+   have shown. Open: read it again after the next few landings, and if it
+   holds, bisect the batch.
 1. **EIGHTEEN GATES CANNOT NAME THEIR OWN FAILURE — A NINETEENTH IS REFUSED.**
    `dayJob` failed **84 of 308 runs** and never printed a reason: its entry is
    the bare tuple `("dayJob", dayJobOk)`. Undiagnosed for months not through
@@ -190,14 +194,6 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    list decays on every rename and an entry nobody re-reads is the reach
    ledger's own failure mode. It also catches a gate listed BOTH bare and
    detailed — a mistake I made today adding `perf`.
-
-1. ~~**`dayJob`**~~ — **FIXED AND CONFIRMED: `shifts=1`, `stalled=0`, all 72
-   gates green.** The courier had spent 733 of 1257 ticks pressed against
-   `Bldg69_door` at 0.2m. `MakeBox` uses `CreatePrimitive`, which ships a
-   BoxCollider; recessed 12cm into the facade it was harmless, but once
-   `DoorHost` turned the hinge ~1m of collider swept the PAVEMENT. Removed —
-   the wall still blocks, `DoorHost` uses distances not raycasts, `WinBox`
-   set the precedent. **From `stalled=733` to `stalled=0` and a shift worked.**
 
 1. **SIX TOOLS COMPARED A GIT ABBREVIATION TO A RUN FILENAME BY EQUALITY.**
    `%h` sizes itself to stay unambiguous; the repo grew it **7 -> 8** while
@@ -303,13 +299,6 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    material TINT and nothing else. **The fix is the tint, not a texture
    hunt**, and it is the same shape as the skyline: a kit prop arrives in
    its author's colour and this town has to repaint it.
-
-1. ~~**THE REPAINTS CANNOT DESATURATE**~~ — **GREY SWAP IN AND RAN.**
-   `kitPaint=1997/0` refuted the glTFast theory; the atlases named the cause
-   (a multiply moves top-decile saturation only 0.820 -> 0.788, preserving
-   channel ratios). **`kitGrey=2/0/1974`** and the mint saloon is gone from
-   `review_street`. The green bicycle left is `oga-vehicles`, which goes
-   through no paint site — the variant design working, not a miss.
 
 1. **THE SPLAY DISTRIBUTION LANDED: median 29.3, p90 43.4, worst 120.8.**
    *(on screen, `review_day2_close`.)* Every other arm number is an angle

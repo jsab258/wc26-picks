@@ -2787,3 +2787,37 @@ waiting on anything.
    `smoke` and `thinking` stay a harvest hole — every name they have travels.
    **`smoke` is the only one of those worth a re-harvest**, on the evidence
    above.
+
+## Retired from the queue, 24 August 2026
+
+Three closed in one working day, all confirmed by a landed verdict rather
+than by the change looking right. Kept because each one's REASONING is the
+part worth having: a lever chosen by an invariant, a stall traced to a
+primitive's free collider, and a theory refuted by its own counter.
+
+1. ~~**THE SHADOW RATIO**~~ — **SET FROM A PRINTED RUNG: `shadowStrength`
+   0.93 -> 0.85, cast shadow 32% -> 47% of lit, target 50%.** `shadowSeries`
+   over a pair from `FindShadowPair`: `s0.93 0.043|0.133=0.32 / **s0.85
+   0.063|0.133=0.47** / s0.75 0.65 / s0.65 0.83 / s0.55 0.94`. **Lit CONSTANT
+   at 0.133 across every rung** — a lever that only touches shadows must not
+   move its denominator, and this one does not. That invariant is why this
+   reading is trustworthy where three earlier ones (taken off `nSun:0.00`
+   walls) were not. **It is the lever the other two are not:** fill is capped
+   by a CoreTest defending something true; the KEY moves both sides together
+   (`sunSeries` holds 0.30-0.36 while dimming everything), which **refutes my
+   written prediction** that shade would hold and the ratio climb.
+
+1. ~~**`dayJob`**~~ — **FIXED AND CONFIRMED: `shifts=1`, `stalled=0`, all 72
+   gates green.** The courier had spent 733 of 1257 ticks pressed against
+   `Bldg69_door` at 0.2m. `MakeBox` uses `CreatePrimitive`, which ships a
+   BoxCollider; recessed 12cm into the facade it was harmless, but once
+   `DoorHost` turned the hinge ~1m of collider swept the PAVEMENT. Removed —
+   the wall still blocks, `DoorHost` uses distances not raycasts, `WinBox`
+   set the precedent. **From `stalled=733` to `stalled=0` and a shift worked.**
+
+1. ~~**THE REPAINTS CANNOT DESATURATE**~~ — **GREY SWAP IN AND RAN.**
+   `kitPaint=1997/0` refuted the glTFast theory; the atlases named the cause
+   (a multiply moves top-decile saturation only 0.820 -> 0.788, preserving
+   channel ratios). **`kitGrey=2/0/1974`** and the mint saloon is gone from
+   `review_street`. The green bicycle left is `oga-vehicles`, which goes
+   through no paint site — the variant design working, not a miss.
