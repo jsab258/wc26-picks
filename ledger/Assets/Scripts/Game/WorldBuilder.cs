@@ -2092,11 +2092,13 @@ namespace Ledger.Game
             bool crates = crate0 != null;
             if (crates)
             {
-                TintFurniture(crate0, FurnitureWood);
+                TintFurniture(crate0, FurnitureWood, "base_mesh_wooden_crate_01");
                 TintFurniture(AssetLibrary.TryInstantiateProp("base_mesh_wooden_crate_02",
-                    new Vector3(4.9f, 0f, 9.6f), Quaternion.Euler(0, 35f, 0)), FurnitureWood);
+                    new Vector3(4.9f, 0f, 9.6f), Quaternion.Euler(0, 35f, 0)), FurnitureWood,
+                    "base_mesh_wooden_crate_02");
                 TintFurniture(AssetLibrary.TryInstantiateProp("base_mesh_wooden_crate_01",
-                    new Vector3(4.5f, 0.82f, 9.3f), Quaternion.Euler(0, 70f, 0)), FurnitureWood);
+                    new Vector3(4.5f, 0.82f, 9.3f), Quaternion.Euler(0, 70f, 0)), FurnitureWood,
+                    "base_mesh_wooden_crate_01");
             }
             if (!crates)
             {
@@ -2540,9 +2542,16 @@ namespace Ledger.Game
         // found by a white swing bin standing in the road through a repaint
         // that moved 116 renderer sets: one idea, two implementations, and
         // the one nobody looked at was the one missing the line.
-        public static void TintFurniture(GameObject go, Color c)
+        /// `key` is the prop key this object was instantiated from, and it is
+        /// optional only because two call sites repaint objects that never came
+        /// from the prop pipeline. Pass it wherever there is one: without it
+        /// `kitAlbedo` can only report the albedo the family ARRIVED with, and
+        /// that number was read as the albedo it stands at for long enough to
+        /// put a finished job back on the work stack.
+        public static void TintFurniture(GameObject go, Color c, string key = null)
         {
             if (go == null) return;
+            AssetLibrary.NotePropPainted(key, c);
             // MATERIAL REPLACEMENT, NOT AN MPB TINT — the first version set
             // `_Color` through a property block and `furnitureRepainted=116`
             // landed beside a crate stack exactly as white as before: the
@@ -2583,11 +2592,21 @@ namespace Ledger.Game
             string[] benches = { "base_mesh_park_bench", "base_mesh_curved_stone_bench",
                                  "base_mesh_ornate_bench", "base_mesh_garden_bench_01" };
             int pick = System.Math.Abs((int)(pos.x * 13.7f + pos.z * 7.3f)) % benches.Length;
-            var mesh = AssetLibrary.TryInstantiateProp(benches[pick],
-                           pos, Quaternion.Euler(0, alongZ ? 0f : 90f, 0))
-                    ?? AssetLibrary.TryInstantiateProp(benches[(pick + 1) % benches.Length],
+            // WHICH KEY LANDED, not which one was asked for first. The `??`
+            // below falls through to a second family, so naming the repaint
+            // after `benches[pick]` would attribute the second bench's colour
+            // to the first one's row whenever the first is missing — a wrong
+            // answer that looks exactly like a right one.
+            string benchKey = benches[pick];
+            var mesh = AssetLibrary.TryInstantiateProp(benchKey,
                            pos, Quaternion.Euler(0, alongZ ? 0f : 90f, 0));
-            if (mesh != null) { TintFurniture(mesh, FurnitureWood); return; }
+            if (mesh == null)
+            {
+                benchKey = benches[(pick + 1) % benches.Length];
+                mesh = AssetLibrary.TryInstantiateProp(benchKey,
+                           pos, Quaternion.Euler(0, alongZ ? 0f : 90f, 0));
+            }
+            if (mesh != null) { TintFurniture(mesh, FurnitureWood, benchKey); return; }
 
             var seat = alongZ ? new Vector3(0.45f, 0.08f, 1.6f) : new Vector3(1.6f, 0.08f, 0.45f);
             var leg = new Vector3(alongZ ? 0.4f : 0.12f, 0.42f, alongZ ? 0.12f : 0.4f);
@@ -3009,11 +3028,16 @@ namespace Ledger.Game
                         string[] bins = { "base_mesh_outdoor_bin", "base_mesh_mesh_bin",
                                           "base_mesh_swing_bin", "base_mesh_cigarette_bin" };
                         int binPick = System.Math.Abs((int)(at.x * 11.3f + at.z * 5.1f)) % bins.Length;
-                        var binGo = AssetLibrary.TryInstantiateProp(bins[binPick], at,
-                                        Quaternion.Euler(0, (at.x * 61f) % 360f, 0))
-                                 ?? AssetLibrary.TryInstantiateProp(bins[(binPick + 1) % bins.Length], at,
+                        string binKey = bins[binPick];
+                        var binGo = AssetLibrary.TryInstantiateProp(binKey, at,
                                         Quaternion.Euler(0, (at.x * 61f) % 360f, 0));
-                        if (binGo != null) { TintFurniture(binGo, FurnitureMetal); break; }
+                        if (binGo == null)
+                        {
+                            binKey = bins[(binPick + 1) % bins.Length];
+                            binGo = AssetLibrary.TryInstantiateProp(binKey, at,
+                                        Quaternion.Euler(0, (at.x * 61f) % 360f, 0));
+                        }
+                        if (binGo != null) { TintFurniture(binGo, FurnitureMetal, binKey); break; }
                         MakeBox($"Bin_{id}_{at.x:0.0}", at + new Vector3(0, 0.55f * sc, 0),
                             new Vector3(0.75f, 1.1f, 0.7f) * sc, AssetLibrary.Metal);
                         break;

@@ -2821,3 +2821,28 @@ primitive's free collider, and a theory refuted by its own counter.
    channel ratios). **`kitGrey=2/0/1974`** and the mint saloon is gone from
    `review_street`. The green bicycle left is `oga-vehicles`, which goes
    through no paint site — the variant design working, not a miss.
+
+1. ~~**TWELVE PROP FAMILIES AT ALBEDO 1.00 ARE UNTEXTURED**~~ — **ALL TWELVE
+   ARE ALREADY PAINTED. THE ITEM WAS A MEASUREMENT ARTEFACT AND A DECAYED
+   COMMENT.** `kitAlbedoNoTex=30` is true and `kitAlbedo` really does read
+   1.00, and neither means what this item said. `NotePropAlbedo` runs INSIDE
+   `TryInstantiateProp`; every repaint happens to the object afterwards. So
+   1.00 is the ARRIVAL albedo, and `Bench`, the bin placer, the crate stack
+   and `Furniture.PlaceAt` all call `TintFurniture` — which does material
+   REPLACEMENT rather than an MPB tint, for the glTFast reason its own
+   comment gives.
+   **What made this an item was a comment that had gone false:**
+   `AssetLibrary` said "benches, bins, street lights and the crate stack do
+   not" go through repaints. All three do. True when written, quietly false
+   afterwards, and it turned an artefact into a work item — rule 3's second
+   door system, caught one step before a second repaint pass got built beside
+   the one that exists.
+   **Fixed so the number answers its own question:** the entry is now
+   `key:arrived>stands`, one measurement at two moments rather than two keys
+   (the bad-pair shape), with `kitPainted` as the denominator so a run where
+   the repaints stopped being attributed cannot read like one where they
+   never needed to be. **Read `kitAlbedo`'s arrows next landing** — the
+   claim to check is that every base_mesh family stands well below
+   `townWallAlbedo`, and the bench and bin placers now name the key that
+   actually LANDED rather than the one asked for first, since the `??`
+   fallback would otherwise file the second family's colour under the first.

@@ -289,16 +289,11 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    industrial buildings for a town whose identity is its docks**. **Next is a
    READ:** a handful through `TryInstantiateProp`, check `kitAlbedo` first.
 
-1. **TWELVE PROP FAMILIES AT ALBEDO 1.00 ARE UNTEXTURED — `kitAlbedoNoTex=30`
-   SAYS SO.** `kitAlbedo` had them at exactly 1.00 against
-   `townWallAlbedo=0.15`, and 1.00 was also the instrument's silence:
-   `MeanTexLuma` returns 1.0 for a null texture and `PropAlbedoUnread`
-   cannot see it, because a missing texture is an early return rather than
-   an exception. The split answered it — **30 materials carry no albedo map
-   at all**, so those bins, benches, crates and barrels are wearing their
-   material TINT and nothing else. **The fix is the tint, not a texture
-   hunt**, and it is the same shape as the skyline: a kit prop arrives in
-   its author's colour and this town has to repaint it.
+1. **`kitAlbedo` NOW PRINTS `arrived>stands`** — the twelve `base_mesh_*`
+   families were never unpainted, only measured before their repaint
+   (account in `roadmap-history.md`). **Read the arrows next landing:** the
+   claim is that every one stands well below `townWallAlbedo=0.15`, and
+   `kitPainted` is the denominator that says the attribution ran at all.
 
 1. **THE SPLAY DISTRIBUTION LANDED: median 29.3, p90 43.4, worst 120.8.**
    *(on screen, `review_day2_close`.)* Every other arm number is an angle

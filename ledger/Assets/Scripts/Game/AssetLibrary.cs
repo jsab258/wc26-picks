@@ -990,16 +990,35 @@ namespace Ledger.Game
         /// KIT PROPS ARRIVE WEARING WHATEVER THEIR AUTHOR PAINTED THEM, and
         /// the skyline proved what that costs: towers in holiday-brochure
         /// pastel over a noir street, brighter than everything near them.
-        /// Awnings, cars and the skyline now go through repaints; benches,
-        /// bins, street lights and the crate stack do not — deliberately,
-        /// because a green bench is plausible and mass-repainting on
-        /// resemblance alone is the rule-4 mistake. What was missing is the
-        /// MEASUREMENT: which families are actually brighter than the town
-        /// they stand in. Measured once per distinct key, at instantiate
-        /// time — so for the repainted families (awning/car/skyline) the
-        /// number is the PRE-repaint albedo; their repaints are proven by
-        /// their own counters. The unrepainted four, the question being
-        /// asked, carry their live value.
+        /// THIS PARAGRAPH WAS FALSE AND IT COST AN INVESTIGATION. It used to
+        /// say "awnings, cars and the skyline now go through repaints; benches,
+        /// bins, street lights and the crate stack do not". Every one of those
+        /// three DOES: `Bench` and the bin placer both call `TintFurniture`,
+        /// the crate stack calls it twice, and `Furniture.PlaceAt` calls it for
+        /// the barrel, the skip, the pallet and the fingerpost — its own
+        /// comment records fixing a factory-white swing bin that survived a
+        /// build in which WorldBuilder's bins went metal.
+        ///
+        /// True when written, quietly false afterwards, and it turned a
+        /// measurement artefact into a work item: `queue.md` read the twelve
+        /// `base_mesh_*` families at 1.00 as twelve untextured props needing
+        /// paint, when all twelve are painted. That is rule 3's second door
+        /// system — a whole subsystem nearly built beside one that existed.
+        ///
+        /// WHAT THE NUMBER ACTUALLY MEASURES, and why it reads 1.00 for a
+        /// family that stands in the street at 0.19: `NotePropAlbedo` runs
+        /// inside `TryInstantiateProp`, and every repaint happens to the object
+        /// AFTERWARDS. So the value is the ARRIVAL albedo for every repainted
+        /// family, not just the three this comment used to name — which is a
+        /// perfectly good number for "does this family need paint" and no
+        /// answer at all to "is this prop the right brightness for the street".
+        /// One name, two questions, and the wrong one was being read.
+        ///
+        /// So the entry carries BOTH moments — `key:arrived>stands` — and a
+        /// family with no repaint carries only the one it has. Not two keys:
+        /// two numbers about one prop printed under two names is how four bad
+        /// pairs got into `SimDirector`, and these two genuinely are one
+        /// measurement taken twice.
         ///
         /// The statistic: mean over the instance's shared materials of
         /// (linear tint luma x mean texture luma), texture read through an
@@ -1020,6 +1039,28 @@ namespace Ledger.Game
         }
         static readonly Dictionary<string, float> _propAlbedo = new Dictionary<string, float>();
         public static IEnumerable<KeyValuePair<string, float>> PropAlbedos => _propAlbedo;
+
+        /// WHAT THE FAMILY STANDS AT AFTER ITS REPAINT, against the arrival
+        /// value above. Written by `WorldBuilder.TintFurniture` through the
+        /// key its caller passes, so a placer that repaints without saying
+        /// which family it repainted contributes nothing and is visible as an
+        /// absence rather than as agreement.
+        static readonly Dictionary<string, float> _propPainted = new Dictionary<string, float>();
+        public static int PropPaintedKeys => _propPainted.Count;
+
+        public static bool PaintedAlbedo(string key, out float luma) =>
+            _propPainted.TryGetValue(key, out luma);
+
+        /// The colour a repaint actually applied, as the same linear luma the
+        /// arrival reading uses — ONE instrument on both sides, or the
+        /// comparison is two instruments arguing (the `TownWallAlbedo` rule,
+        /// applied to a before and an after instead of to two subjects).
+        public static void NotePropPainted(string key, UnityEngine.Color c)
+        {
+            if (string.IsNullOrEmpty(key) || _propPainted.ContainsKey(key)) return;
+            var lin = c.linear;
+            _propPainted[key] = 0.2126f * lin.r + 0.7152f * lin.g + 0.0722f * lin.b;
+        }
         public static int PropAlbedoUnread;   // textures the blit could not read
         public static int PropAlbedoNoTex;    // materials with no texture at all
 

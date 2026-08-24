@@ -242,7 +242,8 @@ namespace Ledger.Game
             // has a factory-white swing bin from this file surviving the
             // build in which WorldBuilder's bins went metal. Same models,
             // same key scheme, one instrumented door.
-            var go = AssetLibrary.TryInstantiateProp("base_mesh_" + stem, pos, rot);
+            var propKey = "base_mesh_" + stem;
+            var go = AssetLibrary.TryInstantiateProp(propKey, pos, rot);
             if (go == null) return;
             go.transform.SetParent(parent, true);
             go.name = "F_" + stem;
@@ -253,7 +254,7 @@ namespace Ledger.Game
             WorldBuilder.TintFurniture(go,
                 stem == "park_bench" || stem == "pallet" ? WorldBuilder.FurnitureWood
                 : stem == "finger_post_sign_01" ? FurniturePaint
-                : WorldBuilder.FurnitureMetal);
+                : WorldBuilder.FurnitureMetal, propKey);
             Placed++;
             ByKind[stem] = ByKind.TryGetValue(stem, out var c) ? c + 1 : 1;
         }

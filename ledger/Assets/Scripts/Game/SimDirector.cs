@@ -9378,6 +9378,17 @@ namespace Ledger.Game
                 if (i > 0) sb.Append('/');
                 sb.Append(rows[i].Key.Replace("city_kit_", ""))
                   .Append(':').Append(rows[i].Value.ToString("0.00"));
+                // AND WHAT IT STANDS AT, when the family gets repainted after
+                // it arrives. `arrived>stands` in one entry rather than a
+                // second key: `NotePropAlbedo` runs inside `TryInstantiateProp`
+                // and every repaint happens to the object afterwards, so these
+                // are one measurement taken at two moments and printing them
+                // under two names is the bad-pair shape this file has four
+                // instances of. Twelve base_mesh families reading 1.00 here
+                // were read as twelve untextured props needing paint, when
+                // all twelve are painted and stand well below the town wall.
+                if (AssetLibrary.PaintedAlbedo(rows[i].Key, out float painted))
+                    sb.Append('>').Append(painted.ToString("0.00"));
             }
             if (rows.Count > shown) sb.Append("/+").Append(rows.Count - shown).Append("more");
             return sb.Append(']').ToString();
@@ -14696,6 +14707,13 @@ namespace Ledger.Game
                       // wall surfaces through the same maths, so the two
                       // sides of the comparison are one instrument.
                       $"townWallAlbedo={AssetLibrary.TownWallAlbedo():0.00} kitAlbedo={KitAlbedoSummary()} " +
+                      // THE DENOMINATOR FOR THE ARROWS ABOVE. A run where no
+                      // family carries a `>stands` value reads identically to
+                      // one where the repaints stopped being attributed, and
+                      // the second is a real regression: every placer that
+                      // repaints without naming its key contributes nothing
+                      // and would be invisible without this count.
+                      $"kitPainted={AssetLibrary.PropPaintedKeys} " +
                       // BOTH ABSENCES, NOT ONE. `unread` is the blit
                       // throwing; `noTex` is a material with no albedo map,
                       // which returns the same 1.00 and is not an exception,
