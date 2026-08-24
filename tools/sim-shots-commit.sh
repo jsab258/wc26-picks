@@ -175,10 +175,36 @@ if [ -f sim-run/player.log ]; then
     # and capped because this file is read whole. `hangTail` is greppable and
     # the count is stated so a truncated tail cannot look like a short log
     # (rule 3b).
+    # AND THE RAW TAIL WAS USELESS THE FIRST TIME IT FIRED, 24 Aug.
+    #
+    # `5ee9330` reached ONE shot in twenty-four minutes where a healthy run
+    # takes twenty in twelve, and the thirty lines this printed were twenty-eight
+    # repetitions of Unity's "Setting and getting Body Position/Rotation, IK
+    # Goals ..." warning and two of an R8_SRGB format fallback. Engine chatter
+    # drowned every line the sim wrote, so the one instrument built for this
+    # case answered nothing — which is rule 12: a blocked channel is the
+    # highest-leverage bug on the board, and it stays blocked if the fix is
+    # "read harder".
+    #
+    # OUR LINES ARE SHAPED `TypeName: ...`, because every one of them comes
+    # from a `Debug.Log` in a class that prefixes itself. Unity's do not: the IK
+    # warning starts with a verb and the format one with a quote. So the filter
+    # is structural rather than a list of engine strings to keep up to date —
+    # an allow-list silently discards everything nobody thought of, which is
+    # the ShapeCheck fault in a different costume.
+    #
+    # BOTH TAILS, not one. The filtered tail says where the SIM got to; the raw
+    # tail is the only thing that can show an engine-side death (a crash
+    # handler, an out-of-memory) which by definition writes no `TypeName:` line.
+    # And `hangTailOwn` is the denominator: filtered-to-nothing and
+    # nothing-to-filter read identically without it (rule 3b).
     if ! grep -q "SimDirector: done\." sim-run/player.log; then
-      echo "hangTail=[the sim produced no done line; the last 30 log lines follow]"
+      echo "hangTail=[the sim produced no done line; a filtered tail and a raw tail follow]"
       echo "hangTailLines=$(wc -l < sim-run/player.log | tr -d ' ')"
-      tail -30 sim-run/player.log | tr -d '\r' | sed 's/^/hangTail| /'
+      echo "hangTailOwn=$(grep -cE '^[A-Za-z][A-Za-z0-9_]*: ' sim-run/player.log | tr -d ' ')"
+      grep -E '^[A-Za-z][A-Za-z0-9_]*: ' sim-run/player.log \
+        | tail -20 | tr -d '\r' | sed 's/^/hangOwn| /'
+      tail -12 sim-run/player.log | tr -d '\r' | sed 's/^/hangTail| /'
     fi
   } >> game-design/sim-shots/verdict.txt
   # AND THE EDITOR-SIDE LINES, IN A SCRIPT, BECAUSE THIS STEP IS FULL.

@@ -2846,3 +2846,22 @@ primitive's free collider, and a theory refuted by its own counter.
    `townWallAlbedo`, and the bench and bin placers now name the key that
    actually LANDED rather than the one asked for first, since the `??`
    fallback would otherwise file the second family's colour under the first.
+
+### Standing entries closed out, 24 August 2026
+
+1. ~~**The session-hook guarantee** (M22)~~ — **BUILT AND HOLDING.** What is
+   open is the READING, not the tiers — see `## Now`.
+2. ~~**Romance** (M18)~~ — **PROMOTED TO M18.5, 18 Aug by Jafar.**
+
+**Smuggling (M21)** — BUILT 21 Aug night on the `Racket` substrate: cargo rhythm, Tibor signs, manifests feed the audit's heat, the sim stages it, six CoreTests.
+
+1. **SIX TOOLS COMPARED A GIT ABBREVIATION TO A RUN FILENAME BY EQUALITY.**
+   `%h` sizes itself to stay unambiguous; the repo grew it **7 -> 8** while
+   run files kept 7, so every `sha in have` stopped matching — **0 of 333
+   against 400 commits** — and nothing failed, because unmatched runs fall
+   into a bucket sorted by SHA. Fixed at all six sites.
+   **The cause was `==`, not `%h`, and my first guard could not have caught
+   it:** against the broken state it passed identically (122 hits either
+   way), because a prefix match compares 8 chars to 7 happily. Replaced with
+   the invariant that really broke — abbreviation width vs stem width, FALSE
+   today, reported as a warning since the tools prefix-match now.

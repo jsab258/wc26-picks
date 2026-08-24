@@ -195,25 +195,26 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    ledger's own failure mode. It also catches a gate listed BOTH bare and
    detailed — a mistake I made today adding `perf`.
 
-1. **SIX TOOLS COMPARED A GIT ABBREVIATION TO A RUN FILENAME BY EQUALITY.**
-   `%h` sizes itself to stay unambiguous; the repo grew it **7 -> 8** while
-   run files kept 7, so every `sha in have` stopped matching — **0 of 333
-   against 400 commits** — and nothing failed, because unmatched runs fall
-   into a bucket sorted by SHA. Fixed at all six sites.
-   **The cause was `==`, not `%h`, and my first guard could not have caught
-   it:** against the broken state it passed identically (122 hits either
-   way), because a prefix match compares 8 chars to 7 happily. Replaced with
-   the invariant that really broke — abbreviation width vs stem width, FALSE
-   today, reported as a warning since the tools prefix-match now.
-1. **THE SIM SOMETIMES OVERRUNS ITS 24-MIN KILL — INTERMITTENT.**
-   `Wait-Process -Timeout 1440`; complete runs take ~12 min. Three runs were
-   killed (82/123/71 lines vs 159-161), then two completed with no sim change
-   — so **"7 DONE then 3 TRUNC, bisected to `3e3cdc2`" is WITHDRAWN.** Three
-   in a row is unremarkable at a high failure rate; I read bad luck as a
-   boundary. **Ruled out by reading and still valid:** the probe runs ONCE,
-   `BoxMedian` is fully bounded, a try/catch changed nothing (so a hang, not
-   an exception). **`hangTail` lands the last 30 log lines whenever there is
-   no done line — do not act until it fires.**
+1. ~~**SIX TOOLS COMPARED A GIT ABBREVIATION TO A RUN FILENAME BY
+   EQUALITY**~~ — **FIXED at all six sites** (account in
+   `roadmap-history.md`). `verify` warns that the abbreviation is 8 chars and
+   run stems are 7, so compare by PREFIX and never by equality.
+1. **THE SIM OVERRUNS ITS 24-MIN KILL — `hangTail` FIRED AND WAS USELESS,
+   NOW FIXED.** `Wait-Process -Timeout 1440`; healthy runs take ~12 min and
+   take 20 shots. **`5ee9330` reached ONE shot** (prior truncations reached
+   4). The thirty lines it printed were 28 repeats of Unity's IK warning and
+   2 of an R8_SRGB fallback — **engine chatter drowned every line the sim
+   wrote**, so the instrument built for this answered nothing (rule 12).
+   **`hangOwn` now tails the last 20 lines shaped `TypeName: `** — structural,
+   not a list of engine strings to maintain — with `hangTailOwn` as the
+   denominator and the raw tail kept, since an engine-side death writes no
+   `TypeName:` line at all. **Read `hangOwn` next truncation: it names the day
+   and phase reached, which nothing has ever said.**
+   **NOT attributed to the sky change.** It is the obvious suspect — that
+   commit made `reflectionIntensity` non-zero on dry frames for the first time
+   — but two runs killed at 4 shots predate the code, so one landing cannot
+   separate "made it worse" from "landed on a bad one". The every-frame
+   `RenderSettings` write it also shipped is fixed on its own terms.
 1. **`farFrac` CARRIES THE SIGNAL THE OTHER BANDS MISS — SERIES LANDED.**
    `day2_wet near=0.00 mid=0.18 **far=0.73**`, `day1_noon 0.00/0.27/**0.54**`,
    `day2_noon 0.00/0.33/**0.43**`. Near is 0.00 everywhere and mid sits inside
@@ -283,11 +284,29 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    texture contrast or the wet reflection owns the VARIANCE. **Next: read
    `districtGround` again, then reflection strength — do not re-tune gloss.**
 
-1. **89 FETCHED MODELS ON DISK, SIX REFERENCED.** industrial 25, roads 47,
-   suburban 13, commercial 10 = 95; six used. Unused is the density the bar
-   is about — barriers, cones, four lamp variants, 47 road pieces, **25
-   industrial buildings for a town whose identity is its docks**. **Next is a
-   READ:** a handful through `TryInstantiateProp`, check `kitAlbedo` first.
+1. **THE FETCHED MODELS NOW HAVE A REACH LEDGER: `tools/prop-reach.py`,
+   in `verify`.** 213 models on disk, **63 named**, 150 with no name match —
+   and the "89 on disk, six referenced" that stood here was SCOPED to the
+   four city kits, which is right for those and wrong as a total. Per kit,
+   because one number cannot carry both questions.
+   **city-kit-industrial went 0 -> 24 of 25** (twenty buildings and four
+   chimney stacks on the dockside skyline arc; account in the commit).
+   **Still open, biggest first:**
+   - **`city-kit-roads` 47 models, ONE named** (`light_curved`). Kerbs,
+     crossings, barriers, cones, junctions — the densest unused kit there is
+     and all of it is ground-level, where the player actually looks.
+   - **`city-kit-suburban` 13 models, ZERO — an ENTIRE KIT UNREACHED.**
+   - **`city-kit-industrial_detail-tank`**, the one industrial model left:
+     84.8 x 41.5 x 51.5, a squat storage tank. Ground-level dock prop, so it
+     needs a placement site rather than a skyline slot — its own item.
+   - car-kit 39 unused, base-mesh 23, oga-vehicles 23.
+   **MEASURE WITH `prop-dimensions` BEFORE PLACING ANY OF THEM.** Those
+   numbers overturned the obvious plan for the industrial band: the
+   commercial skyline models are slim towers (50x200) and the industrial ones
+   squat masses (208x147), so reusing the tower height target would have
+   built one wall of interpenetrating geometry no still could diagnose.
+   **Name-matching, with the landed verdict as its accepting case** rather
+   than a fixture — 24 keys the sim really placed, 0 false negatives.
 
 1. **`kitAlbedo` NOW PRINTS `arrived>stands`** — the twelve `base_mesh_*`
    families were never unpainted, only measured before their repaint
@@ -328,16 +347,12 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    stale** (it argued from a software rasteriser's 666ms). On the real GPU
    the frame is `game=5.6ms` of ~27.5ms, `perfOk` green, render four fifths.
    Start from the `frameCost` ladder in `## Now`.
-1. ~~**The session-hook guarantee** (M22)~~ — **BUILT AND HOLDING.** What is
-   open is the READING, not the tiers — see `## Now`.
-2. ~~**Romance** (M18)~~ — **PROMOTED TO M18.5, 18 Aug by Jafar.**
-3. ~~**Smuggling** (M21)~~ — **BUILT 21 Aug night** on the `Racket`
-   substrate: cargo rhythm, Tibor signs, manifests feed the audit's heat,
-   sim stages it, six CoreTests. Remainders: a player verb to recruit the
-   signer; gambling waits behind it. Read `cargoes`/`manifests` next build.
-4. **The other day-job tracks** (M18) — `Core/DayJob` is the courier round,
+1. **Smuggling** (M21) — **BUILT** (account in `roadmap-history.md`).
+   Remainders: a player verb to recruit the signer, and gambling behind it.
+   Read `cargoes`/`manifests` next build.
+2. **The other day-job tracks** (M18) — `Core/DayJob` is the courier round,
    singular; the doc offers bar/courier/office on the first morning.
-5. **Interiors beyond the pub** (M20) — every other door is a threshold.
+3. **Interiors beyond the pub** (M20) — every other door is a threshold.
 
 **Reactions are LIVE and measured** (flinch/glance/wave/point/head_no
 all firing; most refusals are glance cooldowns doing their job).

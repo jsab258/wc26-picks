@@ -15189,7 +15189,7 @@ namespace Ledger.Game
                       $"skyFound={SkyEnvironment.Found}/{SkyEnvironment.Asked} " +
                       $"skyMissing={SkyEnvironment.MissingNames} " +
                       $"skyLoadedAs={SkyEnvironment.LoadedAs} " +
-                      $"skyBound={SkyEnvironment.Bound} skyBinds={SkyEnvironment.Binds} " +
+                      $"skyBound={SkyEnvironment.Bound} skyBinds={SkyEnvironment.Binds}/{SkyEnvironment.Rebinds} " +
                       $"skyOwned={_skyOwned} skyStolen={_skyStolen} " +
                       $"dryReflMin={(_dryReflSampled > 0 ? _dryReflMin : -1f):0.00}/{_dryReflSampled} " +
                       $"postFrames={FilmGrade.Frames} postOk={postOk} " +

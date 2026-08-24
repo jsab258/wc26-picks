@@ -93,6 +93,13 @@ namespace Ledger.Game
         /// How many times that changed. A source that never once changed across
         /// a thirteen-day run is a rule that is not running.
         public static int Binds;
+        /// How many times the setting was actually WRITTEN, against `Binds`
+        /// which counts how many times the chosen capture changed. They should
+        /// be close: a `Rebinds` far above `Binds` means something is taking
+        /// the environment away every frame and this class is fighting it,
+        /// which is the failure the first version could not have detected
+        /// because it wrote unconditionally and so never noticed.
+        public static int Rebinds;
         /// True when `RenderSettings.customReflectionTexture` is still the
         /// object this class put there. `WetReflections` legitimately takes it
         /// over on a wet street; anything ELSE taking it is a fault, and
@@ -146,28 +153,59 @@ namespace Ledger.Game
             else if (deck < ClearDeck) want = _clear ?? _day;
             else want = _day;
 
+            // WRITTEN ONLY WHEN IT CHANGES, WHICH IS TWICE A DAY.
+            //
+            // The first version of this function assigned all three settings on
+            // EVERY dry frame, and `RenderSettings.customReflectionTexture` is
+            // not a field — assigning it asks the engine to re-establish the
+            // environment, so a value that moves at dawn and dusk was being
+            // republished sixty times a second. That is wrong on its own terms
+            // whatever it costs.
+            //
+            // IT IS ALSO THE OBVIOUS SUSPECT FOR `5ee9330`, AND THE EVIDENCE
+            // DOES NOT SUPPORT SAYING SO. That run reached one shot in
+            // twenty-four minutes where a healthy run takes twenty in twelve —
+            // but two runs BEFORE this code existed were killed at four shots,
+            // so the truncation is a pre-existing intermittent and one landing
+            // cannot separate "made it worse" from "landed on a bad one".
+            // Recorded as unproven rather than as a cause; `hangOwn` is what
+            // will answer it, and this gets fixed either way.
+            //
+            // The re-assert is what makes "only on change" safe: `WetReflections`
+            // legitimately takes the setting over on a wet street, so after a
+            // handover the binding is stale and nothing would ever rewrite it.
+            // `Stolen()` is that test, and it reads the setting rather than
+            // trusting a flag.
             if (want == null)
             {
-                if (_bound != null || Bound != "procedural") Binds++;
-                _bound = null;
-                Bound = "procedural";
-                RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
-                RenderSettings.reflectionIntensity = 1f;
+                if (_bound != null || Bound != "procedural")
+                {
+                    Binds++;
+                    _bound = null;
+                    Bound = "procedural";
+                    RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
+                    RenderSettings.reflectionIntensity = 1f;
+                }
                 Live = false;
                 Owning = false;
                 return;
             }
 
-            if (!ReferenceEquals(want, _bound))
+            bool changed = !ReferenceEquals(want, _bound);
+            if (changed)
             {
                 Binds++;
                 _bound = want;
                 Bound = want.name;
             }
-            RenderSettings.defaultReflectionMode = DefaultReflectionMode.Custom;
-            RenderSettings.customReflectionTexture = want;
-            RenderSettings.reflectionIntensity = 1f;
             Owning = true;
+            if (changed || !ReferenceEquals(RenderSettings.customReflectionTexture, want))
+            {
+                RenderSettings.defaultReflectionMode = DefaultReflectionMode.Custom;
+                RenderSettings.customReflectionTexture = want;
+                RenderSettings.reflectionIntensity = 1f;
+                Rebinds++;
+            }
             Live = ReferenceEquals(RenderSettings.customReflectionTexture, _bound);
         }
 
