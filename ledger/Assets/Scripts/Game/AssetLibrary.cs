@@ -376,6 +376,19 @@ namespace Ledger.Game
             // untouched (reflMax 0.89 before and after); the account is on
             // `SetSmoothness`.
             //
+            // THE PARAGRAPH ABOVE WAS RIGHT ABOUT THE PATH IT NAMED AND BLIND
+            // TO THE TWO BESIDE IT, which is this codebase's most repeated
+            // shape and worth the four lines. It reasoned carefully about
+            // `SetWetness` and fixed it. Two OTHER writers of `_Glossiness`
+            // on these same four surfaces were killed by the same binding and
+            // nobody looked: `Weather.ApplyWetness`, which had been writing
+            // into the void every frame since (deleted, 24 Aug), and
+            // `DefeatWetSpecular`, the POSITIVE CONTROL whose whole claim was
+            // that it worked "by a route that cannot fail" (routed through
+            // `SetSmoothness`, 24 Aug). Found by grepping every
+            // `SetFloat("_Glossiness"` in the Game layer, which took ten
+            // seconds and should have been step two of the original change.
+            //
             // (Written without quoting the ladder's own wording, because
             // slopcheck extracts C# strings and a QUOTED span inside a
             // comment reads to it as a string literal. Citing a line that
@@ -546,6 +559,23 @@ namespace Ledger.Game
         /// mechanics in between. If THIS moves the frame and switching the
         /// probe off does not, the answer is that the probe is not the thing
         /// lighting the road.
+        ///
+        /// AND THE ROUTE THAT COULD NOT FAIL FAILED, SILENTLY, ON 24 AUG.
+        /// This wrote `_Glossiness` directly, and binding gloss maps to
+        /// every textured surface put `_METALLICGLOSSMAP` on all four wet
+        /// ones — at which point the Standard shader IGNORES that scalar
+        /// completely. So the positive control had been neutered, and a
+        /// neutered positive control is worse than none: it reports "no
+        /// change", which is read as "wet specular contributes nothing",
+        /// which is the exact wrong conclusion it was built to prevent.
+        ///
+        /// It goes through `SetSmoothness` now, which knows about the map
+        /// and drives `_GlossMapScale` when one is bound — so zero means
+        /// zero again by whichever route the material actually uses. THIRD
+        /// victim of that binding, found by grepping every writer of
+        /// `_Glossiness` after the first two: `Weather.ApplyWetness` (dead,
+        /// deleted) and this. The other three writers are on untextured
+        /// materials with no map bound, so they still work.
         public static void DefeatWetSpecular(bool defeat)
         {
             if (!_initialized) return;
@@ -553,7 +583,7 @@ namespace Ledger.Game
             {
                 if (!_materials.TryGetValue(name, out var mat) || mat == null) continue;
                 var spec = SurfaceSpec.For(name);
-                mat.SetFloat("_Glossiness", defeat
+                SetSmoothness(mat, name, defeat
                     ? 0f
                     : (float)LightModel.Smoothness(spec.Smoothness, _wetness));
             }

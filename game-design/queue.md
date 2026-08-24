@@ -109,23 +109,29 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **FOUR SKY HDRIs ARE FETCHED AND WIRED TO NOTHING** (24 Aug).
    `ledger/Assets/Sky/polyhaven/` holds 23MB of 2k captures, banked and
-   attributed on 23 Aug, and `grep` finds ZERO references from the Game
-   layer. Built and not running, on the one element in every outdoor frame.
-   **NOT a wiring job**, which is why it is written down rather than done at
-   speed. Two real obstacles: (a) `Resources.Load` cannot reach
-   `Assets/Sky` and StreamingAssets cannot help because `LoadImage` reads
-   PNG/JPG not `.hdr`, so they must MOVE under `Assets/Resources`, which
-   also moves the directory `attribution-check.py` maps to Poly Haven; and
-   (b) the procedural dome is CONTINUOUS — `LightModel` drives it per frame
-   through dusk warmth, night sodium and a per-day cloud deck the ambient
-   now reads from — so four fixed captures trade a continuous day for
-   photographic detail and POP between four states. The honest shapes are
-   HDRI as the reflection/environment source only (dome untouched), or a
-   blend of two captures across the hour with the dome's colours still
-   driving the tint. **Pick one on a still, in daylight, before touching
-   any asset path.** Note what dry glass reflects today: a 64px cubemap
-   baked off a three-colour gradient, i.e. no structure at all — which is
-   the argument FOR the reflection-only shape.
+   attributed, and `grep` finds ZERO Game-layer references. Built and not
+   running, on the one element in every outdoor frame.
+
+   **DECIDED 24 Aug, ON EVIDENCE: THE REFLECTION/ENVIRONMENT SOURCE ONLY,
+   VISIBLE DOME UNTOUCHED.** The item asked for a deliberate pick between
+   that and blending two captures across the hour, and the numbers make it:
+   - **Glass is smoothness 0.90 and Window 0.85** (`SurfaceSpec`), on every
+     facade in town — already highly reflective. What they reflect is a
+     **64px cubemap baked off a three-colour gradient**, no structure at
+     all. The near-black windows in every landed frame are dark BECAUSE
+     there is nothing to reflect, not because they were authored dark.
+   - The blend shape trades a CONTINUOUS day (`LightModel` drives the dome
+     per frame through dusk warmth, night sodium and a per-day cloud deck
+     the ambient reads from) for photographic detail, and pops between four
+     fixed states. Reflection-only is additive and cannot regress it.
+   **Obstacles, both real:** (a) `Resources.Load` cannot reach `Assets/Sky`
+   and StreamingAssets cannot help (`LoadImage` reads PNG/JPG, not `.hdr`),
+   so they must MOVE under `Assets/Resources`, which moves the directory
+   `attribution-check.py` maps to Poly Haven; (b) there is no NIGHT capture,
+   so night keeps the procedural cubemap and the handover needs a ramp.
+   **Ship the measurement with it:** the environment cubemap's own luma
+   spread, before and after — a flat gradient and a real sky differ by an
+   order of magnitude there, and that is the number that says the wire took.
 
 
    **LINEAR MPB CLASS-FAULT UNDER TEST:** MPB colours skip
@@ -141,30 +147,25 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
 1. **A THIRD OF THE NOON FRAME IS A BLACK WALL, AND IT IS NOT THE CAMERA.**
-   *(on screen, `review_day1_noon` — the whole left third)* Column thirds
-   read **0.047 / 0.396 / 0.431**, a ninefold split inside one midday frame.
-   Ruled out by number, not guess: not framing (`nearFrac=0.00 midFrac=0.27`,
-   both inside bound, so the wall is beyond 7m); not the texture
-   (`concrete_b.jpg` means **0.366**, and the census says the third is **85%
-   `mat_concrete_b`**); not post/AO/vignette/sun/glass (every landed rung
-   sits between 0.035 and 0.047); and the arithmetic says albedo x ambient x
-   exposure lands near 0.43 — exactly what the RIGHT third reads.
-
-   **An elevenfold shortfall cannot hide in a rung that moves 0.004, so it is
-   not in that ladder — and a ladder is an allow-list.** Four rungs added:
-   `ambOff`, `amb4x`, `shadowOff`, `fogOff`. `amb4x` is the one that matters
-   and the only rung that turns something UP: if the third scales, the wall
-   takes ambient and the fill is not reaching a vertical face; if it does
-   not, the surface is refusing light and the answer is in the material. No
-   off-rung separates those two. **`noonFacadeMat` lands in the same run** so
-   the second half costs no second round trip — material, shader, `_Color`,
-   texture, distance, normals, and the **MaterialPropertyBlock**, which
-   `sharedMaterial` cannot see and which is already an open
-   linear-conversion suspect at thirteen sites.
-
-   **Also `farFrac`**, the 7-20m band both existing bands skip: a wall ten
-   metres out fills a frame as thoroughly as one two metres out, and the
-   only thing the 7m cap buys is that the metric stops looking. Series
+   *(on screen, `review_day1_noon`)* Column thirds read **0.047 / 0.396 /
+   0.431**, a ninefold split inside one midday frame. Ruled out by number:
+   not framing (`nearFrac=0.00 midFrac=0.27`, both inside bound, so the wall
+   is beyond 7m); not the texture (`concrete_b.jpg` means **0.366**, and the
+   census says the third is **85% `mat_concrete_b`**); not
+   post/AO/vignette/sun/glass (every landed rung sits 0.035-0.047); and the
+   arithmetic says albedo x ambient x exposure lands near 0.43 — exactly
+   what the RIGHT third reads.
+   **An elevenfold shortfall cannot hide in a rung that moves 0.004, so it
+   is not in that ladder — and a ladder is an allow-list.** Four rungs
+   added: `ambOff`, `amb4x`, `shadowOff`, `fogOff`. `amb4x` is the only one
+   that turns something UP, and it is the one that matters: if the third
+   scales, the wall takes ambient and the fill is not reaching a vertical
+   face; if not, the surface is refusing light and the answer is in the
+   material. No off-rung separates those. **`noonFacadeMat` lands in the
+   same run** — material, shader, `_Color`, texture, distance, normals, and
+   the **MaterialPropertyBlock**, which `sharedMaterial` cannot see.
+   **Also `farFrac`** (7-20m), the band both existing bands skip: a wall ten
+   metres out fills a frame as thoroughly as one two metres out. Series
    first, no bound (rule 2).
 
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS, AND THE METRIC IS STILL TOO
@@ -184,28 +185,24 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    sim forces a downpour at day 2 hour 21 and shoots `day2_wet` at 22.
 
 1. **RAIN AT EYE LEVEL — THE ITEM WAS CLOSED AND THE RAIN WAS NEVER THERE.**
-   *(on screen, `review_day2_wet` and `review_day1_night`)* It was closed on
+   *(on screen, `review_day2_wet` and `review_day1_night`)* Closed on
    "landed wet frames read as streaks in lamp cones". They do. The lamp
    cones are above the lamps. Measured with hue separating streaks from
    sodium glow: bright desaturated pixels read **6.5% and 10.7% in the top
-   third against 0.00-0.26% everywhere below it**, in two frames from two
-   different cameras.
-   **CAUSE, read in the source and confirmed by arithmetic, not guessed.** A
-   Box shape emits along the shape's FORWARD and nothing ever rotated the
-   emitter, so world +Z it was: the rain was being THROWN SIDEWAYS at 26m/s,
-   not falling. From the shipped numbers — sheet 14m above the camera, 1.1s
-   life, 1.4x gravity — a drop falls 8.3m while travelling 28.6m sideways,
-   so it **dies 5.7m over your head every time** and none can reach eye
-   level. The single wedge they occupy is the same fault seen from the side:
-   every drop flies the same WORLD direction, so which part of the frame
-   gets rain depends on where the camera is pointed.
-   **Fixed with the one rotation.** Speed 9 rather than 26 because pointing
-   it down changes what that number MEANS — 26 was a throw, and straight
-   down it reads as tracer fire; rain terminates near 5-9m/s and gravity
-   adds the rest. **`rainLowest` (lowest live drop's height ABOVE the
-   camera) and `rainBelow/rainAlive` land next build** — the old emitter
-   could not have read below +5.7m however hard it rained. Retune the speed
-   from that series, not from a frame.
+   third against 0.00-0.26% everywhere below**, in two frames from two
+   cameras.
+   **CAUSE, read in the source, not guessed:** a Box shape emits along the
+   shape's FORWARD and nothing ever rotated the emitter, so world +Z it was
+   — the rain was THROWN SIDEWAYS at 26m/s, not falling. From the shipped
+   numbers (sheet 14m up, 1.1s life, 1.4x gravity) a drop falls 8.3m while
+   travelling 28.6m sideways, so it **dies 5.7m over your head every time**.
+   The single wedge is the same fault from the side: every drop flies the
+   same WORLD direction, so which part of the frame gets rain depends on
+   camera yaw.
+   **Fixed with one rotation.** Speed 9 not 26, because pointing it down
+   changes what that number MEANS. **`rainLowest` and `rainBelow/rainAlive`
+   land next build** — the old emitter could not have read below +5.7m
+   however hard it rained. Retune from that series, not from a frame.
 
 1. **THE BODY BUDGET IS CLOSED AT 87.8% — account in `roadmap-history.md`.**
    The 34m draw radius was the binding constraint (now 70m) and
@@ -281,20 +278,23 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    `AssetLibrary.PaintKit`, reporting `kitPaint=took/refused` with the first
    refusing shader NAMED. Refusals non-zero -> replace the material.
 
-1. **THE BUBBLE OVERLAP MEDIAN MIXED TWO SAMPLERS — SPLIT, READ IT NEXT
-   BUILD.** *(instrument)* `SampleBubbles` runs per tick and `CollidingNames`
-   per shot, and BOTH wrote `_bubbleOverlap`: seventy-odd tick readings with
-   twenty-six shot readings rounded away, given away by the denominators
-   (`bubbleSamples=71` vs `collidingNameSamples=26`). **I got this wrong
-   first** — I read the 0.33 -> 0.00 move as the fix working, when what moved
-   was the street (the district fix spread the population out, so more
-   instants have two bubbles up and fewer collide). A real improvement, and
-   not the one I claimed. Split into `bubbleOverlapMedian` (per tick) and
-   `bubbleOverlapShotMedian` (frames that become files), both counts
-   printed; the shot median is the first one checkable against a still.
-   **Still open and unaffected:** `bubblesLiftedSum=1` against
-   `shotFixups=27` — the de-overlap moved a bubble once in a run, while
-   `namesPinnedSum=106` over the same shots shows the site works.
+1. **THE DECLUTTER: NAMEPLATES AND BUBBLES, BOTH MEASURED, BOTH OPEN.**
+   *(on screen)* `collidingNames=3` over 26 samples — five labels at the
+   peak, 3 of their 10 pairs overlapping, a heap as the frame shows. `PinAll`
+   runs at shot time and three pairs still overlap: read `namesPinnedSum`
+   (106) against `shotFixups` (27) before tuning, and note
+   `bubblesLiftedSum=1` — the de-overlap moved a bubble once in a whole run
+   while the pin site clearly works.
+   **The bubble median mixed two samplers and is split now** —
+   `SampleBubbles` per tick and `CollidingNames` per shot both wrote
+   `_bubbleOverlap` (71 readings vs 26). **I read a 0.33 -> 0.00 move as the
+   fix working** when what moved was the street: the district fix spread the
+   population out, so more instants have two bubbles up and fewer collide. A
+   real improvement, and not the one I claimed.
+   `bubbleOverlapShotMedian` is the first one checkable against a still.
+   **Also on screen:** `review_day2_wet` renders "Ellis" half off the
+   bottom-right edge. A nameplate CLIPPED by the frame is a different fault
+   from two overlapping, and nothing measures it.
 
 1. **THE NAMEPLATE HEAP IS MEASURED AND THE INSTRUMENTS AGREE WITH THE
    PICTURE.** *(on screen)* `collidingNames=3` over 26 samples: five labels
