@@ -8476,6 +8476,7 @@ namespace Ledger.Game
         /// visible one at roughly half the lit brightness.
         static readonly float[] ShadowStrengthRungs = { 0.93f, 0.85f, 0.75f, 0.65f, 0.55f };
         string _shadowSeries = "not_probed";
+        string _shadowPairOn = "not_probed";
         string _ambientSeries = "not_probed";
         string _districtGround = "not_probed";
         bool _noonFacadeDone;
@@ -8714,14 +8715,38 @@ namespace Ledger.Game
                     // ratio's denominator cannot drift with the lever, which
                     // is the one thing the other two series could not
                     // promise.
+                    // MEASURED ON A FOUND CAST SHADOW, NOT ON THE LEFT THIRD.
+                    // The first run of this series read 0.039 -> 0.043 across
+                    // its whole range and that was the FIXTURE talking: the
+                    // left third was `mat_concrete_b#g1` at `nSun:0.00`, a
+                    // wall the sun never reaches, so softening its shadow
+                    // could not brighten it. `FindShadowPair` locates a wall
+                    // that faces the sun AND has geometry between it and the
+                    // sun, plus an unblocked one beside it for the
+                    // denominator — both from one sweep, so the pair shares a
+                    // frame and a moment.
                     float keepStr = sunL.shadowStrength;
-                    foreach (float k in ShadowStrengthRungs)
+                    if (FindShadowPair(cam, out var shVp, out var liVp,
+                                       out var shOn, out var liOn))
                     {
-                        sunL.shadowStrength = k;
-                        var fs3 = FrameShot(cam);
-                        double sh3 = LeftThirdMedian(fs3), lit3 = RightThirdMedian(fs3);
-                        if (shadowSeries.Length > 0) shadowSeries.Append('/');
-                        shadowSeries.Append($"s{k:0.00}:{sh3:0.000}|{lit3:0.000}");
+                        _shadowPairOn = $"[shade:{shOn}/lit:{liOn}]";
+                        foreach (float k in ShadowStrengthRungs)
+                        {
+                            sunL.shadowStrength = k;
+                            var fs3 = FrameShot(cam);
+                            double sh3 = BoxMedian(fs3, shVp, 0.03f);
+                            double lit3 = BoxMedian(fs3, liVp, 0.03f);
+                            if (shadowSeries.Length > 0) shadowSeries.Append('/');
+                            shadowSeries.Append($"s{k:0.00}:{sh3:0.000}|{lit3:0.000}");
+                        }
+                    }
+                    else
+                    {
+                        // A legitimate answer, not a zero: a shot with no
+                        // sunlit wall in it has no cast shadow to measure,
+                        // and saying so is the difference between "the probe
+                        // found nothing" and "the probe did not run".
+                        _shadowPairOn = "[no_sunlit_wall_in_frame]";
                     }
                     sunL.shadowStrength = keepStr;
                 }
@@ -8878,6 +8903,98 @@ namespace Ledger.Game
         /// put a cast shadow at roughly HALF the lit brightness — so the
         /// number to tune against is a ratio and half of it was never
         /// printed. Same rows, same statistic, opposite third.
+        /// MEDIAN LUMA IN A BOX AROUND ONE VIEWPORT POINT.
+        ///
+        /// The third-medians below are regions chosen by geometry of the
+        /// FRAME. This is a region chosen by what is actually standing there,
+        /// which is what the light series needed and never had: they sampled
+        /// "the left third" and got a different wall whenever the step-back
+        /// moved, so two runs' numbers were not measurements of the same
+        /// thing (26% apart on the shaded side, 1% on the lit).
+        static double BoxMedian(FrameStats st, Vector3 vp, float half)
+        {
+            var luma = st.Luma;
+            if (luma == null || luma.Length == 0) return -1;
+            int w2 = 640, rows = luma.Length / w2;
+            if (rows < 4) return -1;
+            // Viewport y is bottom-up; the luma buffer is top-down.
+            int cx = (int)(vp.x * w2), cy = (int)((1f - vp.y) * rows);
+            int hx = (int)(half * w2), hy = (int)(half * rows);
+            int c0 = Mathf.Max(0, cx - hx), c1 = Mathf.Min(w2, cx + hx + 1);
+            int r0 = Mathf.Max(0, cy - hy), r1 = Mathf.Min(rows, cy + hy + 1);
+            if (c1 <= c0 || r1 <= r0) return -1;
+            var hist = new int[256];
+            int n = 0;
+            for (int r = r0; r < r1; r++)
+                for (int c = c0; c < c1; c++)
+                {
+                    int bin = (int)(luma[r * w2 + c] * 255.0);
+                    hist[bin < 0 ? 0 : (bin > 255 ? 255 : bin)]++;
+                    n++;
+                }
+            if (n == 0) return -1;
+            int half2 = n / 2, acc = 0;
+            for (int b = 0; b < 256; b++)
+            {
+                acc += hist[b];
+                if (acc > half2) return b / 255.0;
+            }
+            return -1;
+        }
+
+        /// FIND A CAST SHADOW, AND A LIT WALL TO COMPARE IT WITH — by looking
+        /// rather than by hoping the camera faces one.
+        ///
+        /// The 0.5 target describes a CAST SHADOW: a surface the sun would
+        /// light, with something in the way. Three light series were run
+        /// against "the left third" and all three landed on
+        /// `mat_concrete_b#g1`, a wall at `nSun:0.00` that the sun never
+        /// reaches at all — so dimming the key moved its shade by nothing and
+        /// softening shadows moved it by 0.004, and both null results were
+        /// about the FIXTURE rather than the levers.
+        ///
+        /// A cast shadow is directly testable and needs no luck: the surface
+        /// faces the sun (`nSun` above a threshold) AND a ray from it toward
+        /// the sun hits geometry. Its denominator is a surface that faces the
+        /// sun and is NOT blocked. Both are found in one grid sweep, so the
+        /// pair is from one frame and one moment.
+        ///
+        /// Returns false when the frame contains no such pair, and that is a
+        /// legitimate answer to print rather than a zero to hide: a shot down
+        /// a shaded alley genuinely has no sunlit wall in it.
+        bool FindShadowPair(Camera cam, out Vector3 shadeVp, out Vector3 litVp,
+                            out string shadeOn, out string litOn)
+        {
+            shadeVp = litVp = Vector3.zero;
+            shadeOn = litOn = "none";
+            if (cam == null) return false;
+            var sunward = GameController.SunwardDir;
+            bool haveShade = false, haveLit = false;
+            for (int gx = 0; gx < 12 && !(haveShade && haveLit); gx++)
+                for (int gy = 0; gy < 7 && !(haveShade && haveLit); gy++)
+                {
+                    var vp = new Vector3((gx + 0.5f) / 12f, (gy + 0.5f) / 7f, 0f);
+                    var ray = cam.ViewportPointToRay(vp);
+                    if (!Physics.Raycast(ray, out var hit, 200f, ~0,
+                                         QueryTriggerInteraction.Ignore)) continue;
+                    // Walls only: a road faces up and its lighting is a
+                    // different question with a different correct answer.
+                    if (Mathf.Abs(Vector3.Dot(hit.normal, Vector3.up)) > 0.35f) continue;
+                    float toSun = Vector3.Dot(hit.normal, sunward);
+                    if (toSun < 0.30f) continue;          // the sun never lights it
+                    // Offset along the normal so the surface does not shadow
+                    // itself at the origin.
+                    bool blocked = Physics.Raycast(hit.point + hit.normal * 0.05f,
+                                                   sunward, 60f, ~0,
+                                                   QueryTriggerInteraction.Ignore);
+                    if (blocked && !haveShade)
+                    { shadeVp = vp; shadeOn = SurfaceUnder(cam, vp); haveShade = true; }
+                    else if (!blocked && !haveLit)
+                    { litVp = vp; litOn = SurfaceUnder(cam, vp); haveLit = true; }
+                }
+            return haveShade && haveLit;
+        }
+
         static double RightThirdMedian(FrameStats st)
         {
             var luma = st.Luma;
@@ -14354,6 +14471,7 @@ namespace Ledger.Game
                       $"ambientSeries={_ambientSeries} " +
                       $"sunSeries={_sunSeries} " +
                       $"shadowSeries={_shadowSeries} " +
+                      $"shadowPairOn={_shadowPairOn} " +
                       $"districtGround={_districtGround} " +
                       // Probe-render milliseconds per rung, NOT comparable
                       // with meanFrame (the probe's own RT and ReadPixels

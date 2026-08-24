@@ -143,30 +143,31 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **ALL THREE LIGHT LEVERS ARE MEASURED ON ONE WALL, AND TWO ARE NULL.** The
-   `on:` stamp confirms every series ran on the same surface —
-   `on:mat_concrete_b#g1`, the SUN-PERPENDICULAR wall (`nSun:0.00`):
-   - **shadow strength 0.93 -> 0.55: shade 0.039 -> 0.043.** Null. My written
-     prediction was "raises the shaded side, leaves the lit untouched" — the
-     lit half is CONFIRMED (0.420 -> 0.424) and the shade half is REFUTED.
-   - **key x1.00 -> x0.40: shade FROZEN at 0.039** while lit falls 0.420 ->
-     0.180. Null on shade, ruinous on the picture.
-   - **fill x1 -> x4: 0.039 -> 0.518.** The only lever that moves it, capped
-     below share 1.0 by a CoreTest defending something true (a wall seeing
-     PART of the hemisphere cannot receive the whole sky).
-   **Both null results are explained by the same fact and that is the
-   finding: there is no direct sun on that wall to remove.** A cast shadow is
-   a sunlit surface with the sun blocked, and ~0.5 is right for it. A wall
-   facing AWAY is sky-lit by nature and genuinely much darker — a
-   north-facing wall at noon is not a bug, and 0.092 may simply be correct
-   for it. Two physically different situations were being given one target;
-   the probe photographs whichever the step-back faces, which is why the
-   readings swung 26% and the ratios differ per wall (0.25 brick, 0.092
-   concrete).
-   **Next: split by `nSun` and stop setting one constant from a fixture that
-   is sometimes one case and sometimes the other.** `shadowSeries` still
-   needs a run that lands on a genuinely SHADOWED sunlit wall to be read at
-   all — plant that fixture rather than re-running and hoping.
+1. **THREE LEVERS MEASURED, TWO NULL — AND ALL THREE NULLS WERE THE FIXTURE
+   TALKING.** Every series ran `on:mat_concrete_b#g1`, the SUN-PERPENDICULAR
+   wall (`nSun:0.00`):
+   - **shadow strength 0.93 -> 0.55: shade 0.039 -> 0.043.** Null. Predicted
+     "raises the shade, leaves the lit untouched" — lit CONFIRMED (0.420 ->
+     0.424), shade REFUTED.
+   - **key x1.00 -> x0.40: shade FROZEN at 0.039**, lit 0.420 -> 0.180.
+   - **fill x1 -> x4: 0.039 -> 0.518**, the only mover, capped below share
+     1.0 by a CoreTest defending something true.
+   **One cause for both nulls: there is no direct sun on that wall to
+   remove.** Dimming a key cannot darken what it never lit; softening a
+   shadow cannot brighten a surface not in one. The 0.5 target describes a
+   CAST SHADOW — sunlit surface, sun blocked — and a wall facing away is a
+   different physical case that is genuinely darker. 0.092 may be correct
+   for it.
+   **PLANTED, NOT HOPED FOR (rule 5b's corollary).** `FindShadowPair` sweeps
+   the frame for a wall that faces the sun AND has geometry between it and
+   the sun, plus an unblocked one beside it for the denominator — both from
+   one sweep, so the pair shares a frame and a moment. `shadowSeries` now
+   samples a BOX around each found point (`BoxMedian`) instead of the frame
+   thirds, and `shadowPairOn` names both surfaces. When no sunlit wall is in
+   shot it says `no_sunlit_wall_in_frame` — a legitimate answer rather than
+   a zero, because a shaded alley genuinely has no cast shadow to measure.
+   **Read `shadowPairOn` FIRST next landing:** the series means nothing until
+   it says a real pair was found.
 
 1. **`farFrac` CARRIES THE SIGNAL THE OTHER TWO BANDS MISS — SERIES LANDED.**
    *(rule 12; step-back and depth series in `roadmap-history.md`.)* First
