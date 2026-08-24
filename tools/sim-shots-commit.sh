@@ -158,6 +158,28 @@ if [ -f sim-run/player.log ]; then
     # round trip. This says it in the verdict, on the run it happens.
     grep -q "SimDirector: ALL GATES" sim-run/player.log \
       || echo "NOTE: no ALL GATES line — build predates it, or the sim died before the summary."
+
+    # WHERE IT STOPPED, WHEN IT DID NOT FINISH — the channel fix, rule 12.
+    #
+    # Three runs in a row were killed by the sim step's 24-minute
+    # `Wait-Process` timeout (24m03s against a 1440s wait; complete runs take
+    # about twelve minutes). Each left a verdict assembled from greps, so what
+    # arrived was a SET OF SECTIONS with the done line absent — and nothing in
+    # it said where the run had got to. One reached day 6, one day 2, one took
+    # no shots at all, and I read that variance backwards twice: first as a
+    # deterministic code fault, then as a busy machine, because the only
+    # evidence was which greps happened to match.
+    #
+    # The last lines of the log are the one thing that says what it was DOING.
+    # Emitted only when there is no done line, so a healthy run is unchanged,
+    # and capped because this file is read whole. `hangTail` is greppable and
+    # the count is stated so a truncated tail cannot look like a short log
+    # (rule 3b).
+    if ! grep -q "SimDirector: done\." sim-run/player.log; then
+      echo "hangTail=[the sim produced no done line; the last 30 log lines follow]"
+      echo "hangTailLines=$(wc -l < sim-run/player.log | tr -d ' ')"
+      tail -30 sim-run/player.log | tr -d '\r' | sed 's/^/hangTail| /'
+    fi
   } >> game-design/sim-shots/verdict.txt
   # AND THE EDITOR-SIDE LINES, IN A SCRIPT, BECAUSE THIS STEP IS FULL.
   # `verify.py` refused the inline version at 1,234 characters over the

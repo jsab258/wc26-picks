@@ -174,26 +174,24 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    27.3% lifetime, improving; all else quiet. "Five gates at 15-38%" and
    "`claims` WORSENING" **withdrawn**.
 
-1. **TWO RUNS TRUNCATED AT EXACTLY 4 SHOTS — IT IS MY PROBE, NOT THE
-   MACHINE.** Both stopped after day1_noon/dusk/night + day2_noon, and
-   **exactly one Game-layer commit separates them from the last COMPLETE
-   build** (`3e3cdc2`, the probe change). Same point twice = deterministic.
-   **I had said the arithmetic cleared my code — that was wrong.** I counted
-   operations and concluded cost; the fault is not cost. **Retract the
-   suggestion that Jafar's desktop was to blame.**
-   **Two faults found in that commit by reading the ordering:** the guard's
-   two extra `FrameShot` calls ran AFTER the rung loop, so they measured at
-   `shadowStrength` 0.55 rather than the shipped 0.93 — a wrong anchor AND
-   two needless full render+ReadPixels stalls. `ShadowStrengthRungs[0]` IS
-   0.93, so the anchor was already measured; both renders deleted.
-   **And the structural fix: the probe is wrapped in try/catch now.** Twenty
-   five shots, every gate and the whole done line were lost twice to a
-   diagnostic that only describes them. `probeFailure=[...]` ships beside the
-   others so a silent probe and a crashed one stay distinguishable — and a
-   caught throw will NAME the fault, which is what neither truncated run
-   could do. **This is containment, not a diagnosis: if it truncates again
-   with `probeFailure=none`, the cause is elsewhere and the run survives to
-   say so.**
+1. **THREE RUNS KILLED BY THE SIM STEP'S 24-MINUTE TIMEOUT — AND I READ THE
+   EVIDENCE BACKWARDS TWICE.** `Wait-Process -Timeout 1440` is 24 min;
+   `3e3cdc2`'s sim step ran **24m03s**. Complete runs take ~12. So the sim
+   overruns and is killed; the verdict is greps over a partial log.
+   **Both my earlier calls are withdrawn.** "Same point twice, so it's my
+   probe" came from FrameDrift's *"4 shots compared"* — a COMPARISON count
+   against the previous run's frames, not a progress count. The three runs
+   actually reached **day 6, day 2, and no shots at all** — variance, not
+   determinism. And "it's the machine" was equally unsupported.
+   **What is solid:** the probe runs once (`_noonFacadeDone` intact,
+   `FindShadowPair` called at one site), so it cannot double a 12-minute run;
+   and a uniform 2x slowdown would still yield ~15 shots, not zero. That
+   shape is a HANG at a variable point, not a slowdown.
+   **The channel is the blocker, so it is fixed first (rule 12):**
+   `sim-shots-commit.sh` now emits `hangTail=[...]` with the last 30 log
+   lines and `hangTailLines` whenever there is no done line. A healthy run is
+   unchanged. **Next landing says what the sim was DOING when it was killed —
+   which no truncated run has been able to say.**
 
 1. **THE SHADOW RATIO IS 0.06 AND THE MISSING QUANTITY IS INDIRECT LIGHT.**
    With the y-flip fixed, lit holds at 0.129 across every rung — the
