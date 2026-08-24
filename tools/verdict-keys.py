@@ -239,10 +239,14 @@ def newest_run_text():
     if not have:
         return None, "no run files"
     try:
-        log = subprocess.run(
-            ["git", "log", "--format=%h", "-400"],
+        # `%H`, NOT `%h`: the abbreviation grew to eight characters and run
+        # files are named with seven, so this matched nothing and the tool
+        # said "no run file matches any recent commit" — which I read as a
+        # note rather than as the bug it was reporting.
+        log = [h[:7] for h in subprocess.run(
+            ["git", "log", "--format=%H", "-400"],
             cwd=str(ROOT), capture_output=True, text=True, check=True,
-        ).stdout.split()
+        ).stdout.split()]
     except (subprocess.CalledProcessError, FileNotFoundError):
         return None, "no git"
     # A RUN THAT NEVER RAN IS NOT A RUN WITH NOTHING IN IT.

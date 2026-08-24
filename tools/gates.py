@@ -644,8 +644,14 @@ def pending():
         print("gates: no runs directory yet")
         return 0
     have = {p.stem for p in RUNS.glob("*.txt")}
-    log = subprocess.run(["git", "-C", str(ROOT), "log", "--format=%h\t%s", "-60"],
-                         capture_output=True, text=True).stdout.splitlines()
+    # `%H` truncated to the run-file convention, not `%h` — see
+    # `ordered_runs`. The abbreviation grew to eight characters and every
+    # `sha in have` test against a seven-character stem silently stopped
+    # matching, here as everywhere else it was written.
+    log = [f"{h[:7]}\t{rest}" for h, _, rest in
+           (l.partition("\t") for l in subprocess.run(
+               ["git", "-C", str(ROOT), "log", "--format=%H\t%s", "-60"],
+               capture_output=True, text=True).stdout.splitlines())]
     waiting = []
     for entry in log:
         sha, _, subject = entry.partition("\t")
@@ -694,8 +700,11 @@ def main():
         print("gates: no run files yet")
         return 0
 
-    log = subprocess.run(["git", "-C", str(ROOT), "log", "--format=%h\t%s", "-400"],
-                         capture_output=True, text=True).stdout.splitlines()
+    # Same repair as above: full hash, truncated to the stem convention.
+    log = [f"{h[:7]}\t{rest}" for h, _, rest in
+           (l.partition("\t") for l in subprocess.run(
+               ["git", "-C", str(ROOT), "log", "--format=%H\t%s", "-400"],
+               capture_output=True, text=True).stdout.splitlines())]
 
     shown = 0
     red = 0

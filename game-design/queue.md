@@ -160,50 +160,46 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    *(`jobsDone=2` beside `shifts=0` is NOT a contradiction: `JobsDone` is the
    racket's drops, `ShiftsWorked` the courier's rounds. Checked.)*
 
-1. **`ordered_runs()` MATCHED NOTHING FOR WEEKS, AND EVERY "RECENT" NUMBER
-   THIS SESSION CAME OUT OF IT.** It ran `git log --format=%h` and compared
-   to the run file's stem. Git picks the abbreviation length dynamically and
-   as the repo grew it went **7 -> 8 characters**, so the comparison stopped
-   matching: measured, **0 of 333 run files matched 400 commits**. Nothing
-   failed — every run fell into the "older than the window" bucket, which is
-   sorted by SHA, i.e. by nothing — while the function's own docstring says
-   commit order is the only order in which "how long ago" means anything.
-   Now `%H` (full hash, fixed length) matched by prefix; 121 match, the rest
-   genuinely predate the window.
-   **THE CORRECTED PICTURE IS MUCH BETTER THAN WHAT I REPORTED.** One gate is
-   live: **`dayJob` 4/40 = 10% recent** against 27.3% lifetime, flagged
-   improving. Everything else is quiet — `frame` last red 48 runs ago,
-   `jobRan` 60, `bodies` 57, `traffic` 51, and **`claims` does not appear at
-   all**. My "five gates at 15-38%" and "`claims` is WORSENING" were both
-   artefacts of the broken ordering and are withdrawn.
-   **The gate-detail work stands on its own merits:** `dayJob` had no detail
-   string across 84 reds, and `claims` printed `LawHost.ClaimsCaught` (an int)
-   while testing `_claimCaught` (a bool). Both fixed, with `perf`. Sixteen
-   bare gates remain — do each as it goes red.
+1. **SIX TOOLS COMPARED `git log --format=%h` TO A 7-CHAR RUN FILENAME, AND
+   THE ABBREVIATION HAD GROWN TO 8.** Git sizes `%h` dynamically; as the repo
+   grew it went 7 -> 8, so every `sha in have` test stopped matching.
+   Measured: **0 of 333 run files matched 400 commits.** Nothing failed —
+   unmatched runs fall into a bucket sorted by SHA, i.e. by nothing — and
+   every tool kept printing plausible output. Fixed at all six sites with
+   `%H` (fixed length) matched by prefix; 121 match, the rest genuinely
+   predate the window.
+   **What it cost:** `--flaky`'s recent window and every "last N runs ago"
+   were arbitrary. `landed.py` named an arbitrary run as "newest" (the
+   ancestry test itself uses `merge-base`, so watchers still FIRED correctly).
+   `verdict-keys.py` printed "no run file matches any recent commit" — **it
+   was reporting this bug and I read it as a note.**
+   **The corrected gate picture is much better than I reported.** One live
+   gate: **`dayJob` 4/40 = 10% recent** against 27.3% lifetime, improving.
+   All else quiet — `frame` 48 runs ago, `jobRan` 60, `bodies` 57 — and
+   `claims` does not appear. My "five gates at 15-38%" and "`claims` is
+   WORSENING" are both **withdrawn**.
+   **Second wrong conclusion from a bad sort in one session:** when `ls -t`
+   failed (git pull rewrites mtimes) I switched to the tool's own ordering
+   and trusted it *because* it was the tool's, instead of checking it the
+   same way. Suspect the instrument applies hardest to the one you reach for
+   as the correction.
 
 1. **THE SHADOW RATIO IS 0.06 AND THE MISSING QUANTITY IS INDIRECT LIGHT.**
-   With the y-flip fixed the denominator finally behaves — **lit is constant
-   at 0.129 across every rung**, exactly as physics demands of a lever that
-   only touches shadows — and the honest numbers are much smaller than the
-   broken ones: shade **0.008 -> 0.016** as strength walks 0.93 -> 0.55, so
-   the ratio moves **0.062 -> 0.124** against a 0.5 target. *(My "3.4x lift,
-   0.043 -> 0.145" was measured through the y-flip and is withdrawn.)*
-   **THE CAUSE IS ARCHITECTURAL, and checked rather than guessed: this scene
-   has NO indirect light of any kind** — no lightmaps (the world is built at
-   runtime, so they are impossible), no realtime GI, no light probes; the
-   only `lightProbeUsage` in the Game layer sets it OFF. So a cast shadow
-   receives AMBIENT ALONE: `lit = sun*N + ambient`, `shade = ambient`.
-   **Which makes the target reachable after all, and by the lever I wrongly
-   rejected.** A ratio of 0.5 requires ambient to EQUAL the sun's
-   contribution — that is not exotic, it is the definition of OVERCAST, and
-   Meridian is an overcast British port. Lowering the KEY raises the ratio by
-   lowering `lit` while `shade` does not move at all. `sunSeries` looked
-   useless only because it ran on the thirds, where the left third was a
-   `nSun:0.00` wall whose shade could never respond to the sun.
-   **Both series run on the same found pair now** (one sweep, one moment) and
-   `sunSeries` is stamped `pair/` or `thirds/` so the two can never be
-   confused. **Read the pair series next: expect shade flat and lit falling —
-   that is the ratio rising, and it is what overcast means.**
+   With the y-flip fixed, lit holds at 0.129 across every rung — the
+   invariant physics demands — so shade **0.008 -> 0.016** and the ratio
+   **0.062 -> 0.124** against a 0.5 target. *(The earlier "3.4x lift" was
+   measured through the y-flip; withdrawn.)*
+   **Cause is architectural, checked not guessed: no indirect light exists
+   here** — no lightmaps (runtime world), no realtime GI, no probes (the only
+   `lightProbeUsage` sets it Off). A cast shadow gets AMBIENT ALONE:
+   `lit = sun*N + ambient`, `shade = ambient`.
+   **Which makes the target reachable by the lever I rejected.** Ratio 0.5
+   needs ambient to EQUAL the sun's contribution — the definition of
+   OVERCAST, which is what Meridian is. Lowering the KEY raises the ratio by
+   lowering `lit` while `shade` cannot move. `sunSeries` looked ruinous only
+   because it ran on the thirds, where the left third was a `nSun:0.00` wall.
+   Both series run on the found pair now, stamped `pair/` or `thirds/`.
+   **Read the pair series next: expect shade flat, lit falling.**
 
 1. **`farFrac` CARRIES THE SIGNAL THE OTHER TWO BANDS MISS — SERIES LANDED.**
    *(rule 12; step-back and depth series in `roadmap-history.md`.)* First

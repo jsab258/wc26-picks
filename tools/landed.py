@@ -67,6 +67,33 @@ RUNS = ROOT / "game-design" / "sim-shots" / "runs"
 VERDICT = ROOT / "game-design" / "sim-shots" / "verdict.txt"
 
 
+
+def rank_by_commit(have, root, count=400):
+    """Run stems in commit order, newest first, matched on FULL hashes.
+
+    `--format=%h` abbreviates to however many characters git currently needs,
+    and that GREW from seven to eight as this repository did. Every site that
+    compared it against a seven-character run filename silently stopped
+    matching — measured on 24 Aug, 0 of 333 run files against 400 commits —
+    and every one of them kept printing plausible output, because the
+    unmatched runs fall into a fallback bucket sorted by SHA rather than
+    failing. `%H` never changes length and the stem is a prefix of it.
+
+    One implementation, because this identical comparison was written in six
+    places and all six were wrong the same way.
+    """
+    import subprocess
+    log = subprocess.run(["git", "-C", str(root), "log", "--format=%H", f"-{count}"],
+                         capture_output=True, text=True).stdout.split()
+    out, seen = [], set()
+    for full in log:
+        for stem in have:
+            if stem not in seen and full.startswith(stem):
+                out.append(stem)
+                seen.add(stem)
+                break
+    return out, seen
+
 def git(*args):
     return subprocess.run(["git", "-C", str(ROOT), *args],
                           capture_output=True, text=True).stdout.strip()
@@ -89,8 +116,13 @@ def contains(want):
         return 1
     # NEWEST FIRST, so the answer names the most recent build that carries the
     # change rather than the oldest one that happens to.
-    order = git("log", "--format=%h", "-400").split()
-    ranked = [s for s in order if s in have] + sorted(set(have) - set(order))
+    # FULL HASHES, PREFIX MATCH — see `rank_by_commit`. This line used `%h`
+    # and matched nothing once the abbreviation grew to eight characters, so
+    # "the most recent build that carries the change" was being chosen out of
+    # a bucket sorted by SHA. Every build watcher in this project depends on
+    # this ordering.
+    ranked_hits, seen = rank_by_commit(set(have), ROOT)
+    ranked = ranked_hits + sorted(set(have) - seen)
     empty = None
     for run in ranked:
         # `--is-ancestor X Y` is "X is contained in Y". A commit is its own
@@ -173,7 +205,13 @@ def main():
 
     have = {p.stem for p in RUNS.glob("*.txt")} if RUNS.exists() else set()
 
-    log = git("log", f"-{count}", "--format=%h\t%ct\t%s")
+    # LAST `%h` SITE, same repair. This one lists runs against commits, so a
+    # stem that never matched meant a run silently reported as having no
+    # commit — indistinguishable from a run that genuinely predates the
+    # window.
+    log = "\n".join(f"{h[:7]}\t{rest}" for h, _, rest in
+                    (l.partition("\t") for l in
+                     git("log", f"-{count}", "--format=%H\t%ct\t%s").splitlines()))
     if not log:
         print("landed: no git history here")
         return 2
