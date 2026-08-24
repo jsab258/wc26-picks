@@ -144,9 +144,23 @@ def drift(old_path, new_path):
         what = (f"SAME COMMIT {ca[:7]} BUILT TWICE — every delta below IS the "
                 "noise floor, and a Layer 3 tolerance may be derived from it.")
     elif ca and cb:
+        # THE FLOOR IS MEASURED NOW, AND IT IS LARGER THAN MOST CHANGES.
+        # The ideal is the same commit built twice; failing that, `day2_noon`
+        # across seven CONSECUTIVE runs, none of which touched the lighting
+        # model, read 0.424 0.426 0.427 0.428 0.432 0.488 0.498 — a spread of
+        # 0.074 in mean luma. It is an UPPER bound (a few of those commits
+        # changed other things) but it is the right order, and it is the same
+        # size as most visual changes this project makes.
+        #
+        # Saying it here turns the warning above from true-but-inert into
+        # something a reader can act on: a delta of 0.03 is not a small
+        # effect, it is no effect that anyone can see from one pair of runs.
         what = (f"{ca[:7]} -> {cb[:7]}, DIFFERENT COMMITS — these deltas are the "
-                "change plus the noise and cannot be read as either. A noise "
-                "floor needs the same commit built twice.")
+                "change plus the noise and cannot be read as either. MEASURED "
+                "FLOOR: day2_noon spans 0.074 mean luma over seven runs with no "
+                "lighting change, so treat |delta| under ~0.07 as unreadable "
+                "and judge by a within-frame series or a median over several "
+                "landings. A cleaner floor needs the same commit built twice.")
     else:
         what = ("commits unstamped, so these deltas cannot be told apart from "
                 "a code change.")
