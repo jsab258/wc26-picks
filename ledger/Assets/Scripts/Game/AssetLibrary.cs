@@ -75,14 +75,115 @@ namespace Ledger.Game
 
         public static void ResetPaint()
         {
-            PaintTook = PaintRefused = 0;
+            PaintTook = PaintRefused = GreyRenderers = 0;
             PaintRefusedBy = "";
+            // `GreyAtlases`/`GreyFailed` are NOT cleared: the greyed copies
+            // are cached across a rebuild by `_greyTex`, so zeroing the count
+            // would report "the swap never ran" for a town that is wearing it.
         }
 
         /// Paint a kit prop's renderers, counting what the shader accepted.
         /// ONE implementation, called from both sites — the repeated shape
         /// of this codebase's worst bugs is one idea with two copies, and
         /// the copy nobody looks at is the one missing a line.
+        /// A LUMA-PRESERVING GREY COPY OF A KIT ATLAS, made once.
+        ///
+        /// MEASURED 24 Aug, which is why this exists rather than another
+        /// darker palette. Multiplying `car-kit/colormap.png` by the town
+        /// paints moves its top-decile saturation from 0.820 to 0.788, and
+        /// `city-kit-commercial` from 0.733 to 0.686 — four to six per cent.
+        /// A multiply scales all three channels and therefore PRESERVES
+        /// their ratios: it darkens, and it cannot recolour. That is a
+        /// virtue where `PatrolWhite`'s comment claims it (the model's own
+        /// slate stripe survives) and the entire problem everywhere else,
+        /// and it is why the mint saloon stayed mint through a repaint that
+        /// `kitPaint=1997/0` proves landed on all 1997 renderers.
+        ///
+        /// So the hue goes at the SOURCE and the paint gets something
+        /// neutral to colour. Luma-weighted, not an average, so the
+        /// modelling survives — the shading, the panel lines and the slate
+        /// stripe are all luminance, and none of them is hue.
+        ///
+        /// THE COLOUR SPACE IS ROUND-TRIPPED, NOT CONVERTED. `MeanTexLuma`
+        /// above blits through a LINEAR target because it wants linear
+        /// numbers to compare. This wants the pixels back exactly as the
+        /// shader will sample them, so the RT and the destination are both
+        /// sRGB — a mismatch here would shift the whole town's brightness
+        /// and would not be visible until a Windows round trip.
+        static Texture2D GreyCopy(Texture src)
+        {
+            if (src == null) return null;
+            if (_greyTex.TryGetValue(src, out var cached)) return cached;
+            Texture2D outTex = null;
+            RenderTexture rt = null;
+            var old = RenderTexture.active;
+            try
+            {
+                int w = Mathf.Min(src.width, 1024), h = Mathf.Min(src.height, 1024);
+                rt = RenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGB32,
+                                                RenderTextureReadWrite.sRGB);
+                Graphics.Blit(src, rt);
+                var copy = new Texture2D(w, h, TextureFormat.RGBA32, true, false);
+                RenderTexture.active = rt;
+                copy.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+                var px = copy.GetPixels();
+                for (int i = 0; i < px.Length; i++)
+                {
+                    float y = 0.2126f * px[i].r + 0.7152f * px[i].g + 0.0722f * px[i].b;
+                    px[i] = new Color(y, y, y, px[i].a);
+                }
+                copy.SetPixels(px);
+                copy.Apply(true);
+                copy.wrapMode = TextureWrapMode.Repeat;
+                outTex = copy;
+                GreyAtlases++;
+            }
+            catch (System.Exception) { GreyFailed++; }
+            finally
+            {
+                RenderTexture.active = old;
+                if (rt != null) RenderTexture.ReleaseTemporary(rt);
+            }
+            _greyTex[src] = outTex;
+            return outTex;
+        }
+        static readonly Dictionary<Texture, Texture2D> _greyTex =
+            new Dictionary<Texture, Texture2D>();
+
+        /// A VARIANT, NOT A MUTATION OF THE SHARED MATERIAL, and that is a
+        /// safety decision rather than tidiness. Kit atlases are shared with
+        /// props this town DELIBERATELY does not repaint — a green bench is
+        /// plausible and mass-repainting on resemblance is the mistake this
+        /// project has a rule about. Editing the shared material would grey
+        /// them too, invisibly. One cached variant per source material keeps
+        /// batching (every painted renderer gets the SAME variant) and
+        /// cannot reach anything that never asked to be painted.
+        static Material GreyVariant(Material src)
+        {
+            if (src == null) return null;
+            if (_greyMat.TryGetValue(src, out var m)) return m;
+            m = src;
+            if (src.HasProperty("_MainTex"))
+            {
+                var grey = GreyCopy(src.GetTexture("_MainTex"));
+                if (grey != null)
+                {
+                    m = new Material(src);
+                    m.SetTexture("_MainTex", grey);
+                    m.enableInstancing = true;
+                }
+            }
+            _greyMat[src] = m;
+            return m;
+        }
+        static readonly Dictionary<Material, Material> _greyMat =
+            new Dictionary<Material, Material>();
+
+        /// How many atlases were greyed, how many refused to read back, and
+        /// how many renderers ended up on a greyed variant. Zero greyed with
+        /// a non-zero paint count is the swap not running (rule 3b).
+        public static int GreyAtlases, GreyFailed, GreyRenderers;
+
         public static int PaintKit(Renderer[] rends, Color c)
         {
             if (rends == null) return 0;
@@ -94,6 +195,14 @@ namespace Ledger.Game
                 var sm = r.sharedMaterial;
                 if (sm != null && sm.HasProperty("_Color"))
                 {
+                    // The hue goes before the paint does, or the paint has
+                    // nothing it can change (see `GreyCopy`).
+                    var variant = GreyVariant(sm);
+                    if (variant != null && variant != sm)
+                    {
+                        r.sharedMaterial = variant;
+                        GreyRenderers++;
+                    }
                     // READ THE EXISTING BLOCK FIRST. `SetPropertyBlock` replaces
                     // wholesale, so writing a fresh one would silently drop any
                     // property another system had already put there — the
@@ -858,6 +967,7 @@ namespace Ledger.Game
         static readonly Dictionary<string, float> _propAlbedo = new Dictionary<string, float>();
         public static IEnumerable<KeyValuePair<string, float>> PropAlbedos => _propAlbedo;
         public static int PropAlbedoUnread;   // textures the blit could not read
+        public static int PropAlbedoNoTex;    // materials with no texture at all
 
         static float MatAlbedo(UnityEngine.Material m)
         {
@@ -884,7 +994,17 @@ namespace Ledger.Game
 
         static float MeanTexLuma(Texture t)
         {
-            if (t == null) return 1f;
+            // A PROP WITH NO TEXTURE IS NOT A WHITE PROP, and until 24 Aug
+            // this returned the same 1.0 for both without counting it.
+            // `PropAlbedoUnread` catches the blit THROWING and cannot catch
+            // this, because a null texture is not an exception — so twelve
+            // `base_mesh_*` families landed in the verdict at exactly 1.00
+            // against a `townWallAlbedo` of 0.15, and nothing said whether
+            // that was a bin painted white or a bin with no albedo map at
+            // all. Those have different fixes: one wants the skyline tint,
+            // the other wants a texture. Same shape as everything else in
+            // this file — a fallback that reads identically to a finding.
+            if (t == null) { PropAlbedoNoTex++; return 1f; }
             if (_texLuma.TryGetValue(t, out var cached)) return cached;
             float mean = 1f;   // unreadable counts as white: a false ALARM, never a false pass
             RenderTexture rt = null;

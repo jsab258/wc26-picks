@@ -66,12 +66,10 @@ arm 0.72 -> 2.44 lands noons 0.30-0.41, nights untouched, noon:night
 Clamp ceiling (1.85 against a noon of 1.72 — now 3.6) and the rain
 term.** Three break fixtures re-anchored.
 
-**SILLS ARE IN AND FREE** (2133 near buildings, no collider; +2173
-renderers with render+rest UNCHANGED — this scene is not
-submission-bound). Weathering went into the TEXTURE after doubling
-decals moved the count and not the picture. **Ground roughness maps
-bound (24 Aug), normalised by each map's own mean so the wet
-calibration held.**
+**SILLS ARE IN AND FREE** (2133, no collider; +2173 renderers with
+render+rest UNCHANGED). Weathering went into the TEXTURE. **Ground
+roughness maps bound, normalised by each map's own mean** — and that
+binding silently killed THREE `_Glossiness` writers, see below.
 
 **THE CROWD BEHAVES.** Density arrived as 13 people in convoy down the
 CARRIAGEWAY: `Steer`'s first branch tested only for SOLID blockers, so
@@ -145,25 +143,22 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **THE BLACK NOON WALL IS AMBIENT, MEASURED — AND THE SERIES THAT SETS
-   THE FIX IS DISPATCHED.** *(on screen, `review_day1_noon`)* The ladder
-   answered it: `ambOff:0.012 / all:0.039 / **amb4x:0.514**`. Removing the
-   fill takes the third to 0.012, so direct light contributes almost nothing
-   there; `noonFacadeMat` says why outright — **`nSun:0.00`**, the wall is
-   exactly edge-on to the sun and lit by fill alone. It is not the material
-   (`col:0.54,0.55,0.60`, `mpb:unset`, `shader:Standard`) and not the
-   framing (`d:6.8`). **The `amb4x` rung — the only one that turned
-   something UP — is what answered it, and no off-rung could have.**
-   **4x OVERSHOOTS** (0.514 against a LIT third of 0.431: a shaded wall
-   outshining a sunlit one), so the multiplier is under 4 and picking it off
-   two points 13x apart is the invented number rule 2 forbids.
-   `ambientSeries` prints **shade|lit pairs at x1/1.5/2/2.5/3/4** —
-   `LightModel`'s own target is a RATIO (the GTA reference noons put a cast
-   shadow near HALF the lit brightness) and raising the fill raises the lit
-   side too, so a series of shade values alone would be read against a
-   quietly moving denominator. `RightThirdMedian` is the twin that was
-   never printed. **Judgment when it lands:** take the rung whose
-   shade/lit lands nearest 0.5, and set `AmbientDayShare` from it.
+1. **THE BLACK NOON WALL IS THE AMBIENT FILL, MEASURED — THE SERIES THAT
+   SETS THE FIX IS DISPATCHED.** *(`review_day1_noon`)* `ambOff:0.012 /
+   all:0.039 / **amb4x:0.514**`. Removing the fill takes the third to 0.012,
+   so direct light contributes almost nothing, and `noonFacadeMat` says why
+   in one field: **`nSun:0.00`** — the wall is exactly perpendicular to the
+   sun and lit by fill alone. Not the material (`col:0.54,0.55,0.60`,
+   `mpb:unset`) and not the framing (`d:6.8`). **The one rung that turned
+   something UP is what answered it, and no off-rung could have.**
+   **4x OVERSHOOTS** — 0.514 against a LIT third of 0.431, a shaded wall
+   outshining a sunlit one — so the multiplier is under 4, and picking it
+   off two points 13x apart is the invented number rule 2 forbids.
+   `ambientSeries` prints **shade|lit pairs at x1/1.5/2/2.5/3/4**: the
+   target is a RATIO (`LightModel` cites the GTA noons at ~half), and
+   raising the fill raises the lit side too, so shade values alone would be
+   read against a moving denominator. **Judgment:** take the rung whose
+   shade/lit lands nearest 0.5 and set `AmbientDayShare` from it.
 
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS.** *(rule 12; step-back and
    depth series landed — account in `roadmap-history.md`.)* The night
@@ -178,22 +173,18 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    number, so review days 1-2 are dry on every run there will ever be; the
    sim forces a downpour at day 2 hour 21 and shoots `day2_wet` at 22.
 
-1. **RAIN: THE DIRECTION IS FIXED AND PROVEN; THE COVERAGE IS NOT.**
-   *(on screen, `review_day2_wet` — it falls vertically down the street now
-   instead of scribbling across one corner.)*
-   **Fixed:** a Box shape emits along the shape's FORWARD and nothing
-   rotated the emitter, so the rain was thrown SIDEWAYS at 26m/s at world
-   +Z. `rainLowest` went from a STRUCTURAL floor of **+5.7m** — it could not
-   read lower however hard it rained — to **-28.5m**, with `rainBelow=126/370`
-   under eye height. The item had been closed on "wet frames read as streaks
-   in lamp cones". They do. The lamp cones are above the lamps.
-   **NOT fixed, and the pixels say so more soberly than the picture does.**
-   Same hue-separated measure as before: mid-left 0.26% -> **1.10%** and
-   mid-centre 1.38%, but **top-right is still 0.00% and bottom-left 0.03%**.
-   So the rain reaches the middle band and not the frame edges — a COVERAGE
-   question (the 38m box, the 12m forward offset, the 1.1s life), not a
-   direction one. Do not read the frame as "rain everywhere now".
-   **Also open:** speed is 9 (was a 26m/s throw); retune from `rainLowest`.
+1. **RAIN: THE DIRECTION IS FIXED AND PROVEN; THE COVERAGE IS NOT.** *(on
+   screen, `review_day2_wet` — it falls vertically down the street now.)*
+   A Box shape emits along the shape's FORWARD and nothing rotated the
+   emitter, so the rain was thrown SIDEWAYS at 26m/s at world +Z.
+   `rainLowest` went from a STRUCTURAL floor of **+5.7m** to **-28.5m**,
+   with `rainBelow=126/370` under eye height. The item had been closed on
+   "wet frames read as streaks in lamp cones". They do. The lamp cones are
+   above the lamps. **NOT fixed, and the pixels are soberer than the
+   picture:** mid-left 0.26% -> **1.10%**, mid-centre 1.38%, but **top-right
+   still 0.00% and bottom-left 0.03%**. Rain reaches the middle band, not
+   the frame edges — a COVERAGE question (38m box, 12m forward offset, 1.1s
+   life), not a direction one. Do not read the frame as "rain everywhere".
 
 1. **THE BODY BUDGET IS CLOSED AT 87.8% — account in `roadmap-history.md`.**
    The 34m draw radius was the binding constraint (now 70m) and
@@ -205,24 +196,21 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    ~500 against `bodyTinted` 2048 — a multiply only subtracts. A limit, not
    a bug.
 
-1. **STAGE 2 (SPEECH), MEASURED IN ADVANCE: THE LIVE ROUTE HAS NEVER ONCE
-   RUN, IN 301 BUILDS.** *(not started — stage 1 still has startable work.)*
-   `gates.py --constant` reports twelve speech keys never anything but zero.
-   The router is honest and says why: `speechAsked=205 speechBanked=176
-   speechLive=0 speechTooSlow=0 speechNoModel=29`, and `Asked` is DERIVED so
-   every ask is accounted for — 29 refused because no backend loaded.
-   `speechStepsPerSec=unmeasured`, that file's own rule-3b fix separating "a
-   slow card" from "the model never ran".
+1. **STAGE 2 (SPEECH): THE LIVE ROUTE HAS NEVER ONCE RUN, IN 301 BUILDS.**
+   *(not started — stage 1 still has startable work.)* `gates.py
+   --constant` finds twelve speech keys never anything but zero. The router
+   says why and accounts for every ask (`Asked` is DERIVED):
+   `speechAsked=205 speechBanked=176 speechLive=0 speechNoModel=29`, with
+   `speechStepsPerSec=unmeasured` separating "a slow card" from "never ran".
    **THE REASON IS IN NO CHANNEL I CAN READ, AND THAT IS THE FIRST FIX**
-   (rule 12): the workflow's `Fetch the speech runtime` step is
-   `continue-on-error` and its failure is one echo into a job log this
-   environment cannot tail. "The fetch 404s", "the runtime loaded but no
-   voice model shipped" and "off by design" are indistinguishable from here
-   and have different next actions. **First item of the stage: carry the
-   fetch's outcome into `verdict.txt`** — `sim-shots-commit.sh` composes it
-   and can take a `speechRuntime=[...]` line.
-   **Why it matters:** as things stand, Jafar's playtest would be the FIRST
-   time that path has ever executed in a built game.
+   (rule 12): the `Fetch the speech runtime` step is `continue-on-error` and
+   its failure is one echo into a job log this environment cannot tail, so
+   "the fetch 404s", "no voice model shipped" and "off by design" are
+   indistinguishable and have different next actions. **First item: carry
+   the fetch's outcome into `verdict.txt`** — `sim-shots-commit.sh` composes
+   it and can take a `speechRuntime=[...]` line. **Why it matters:** as
+   things stand, the playtest would be the FIRST time that path has ever run
+   in a built game.
 
 1. **BUS AND BICYCLE LANDED** (seven kinds, zero fallbacks since P). Open:
    the RIDERLESS bike — if it reads wrong, rider or parked-only.
@@ -243,61 +231,66 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    **Fixed on the way:** `SkylineRepainted` incremented the moment the kit
    existed, BEFORE the paint was attempted. It counts acceptances now.
 
-1. **A PAVING STRIP IS BLOWN OUT; THE PROBE IS DISPATCHED.** *(on screen,
-   `district_downtown`, centre)* p10-p90 luma spread **0.654** against brick
-   0.387 and the road beside it 0.141, with a median **0.434 against 0.059**
+1. **A PAVING STRIP IS BLOWN OUT; THE PROBE IS DISPATCHED.**
+   *(`district_downtown`, centre)* p10-p90 luma spread **0.654** against
+   brick 0.387 and the road beside it 0.141, median **0.434 against 0.059**
    for that adjacent road — seven times brighter under identical light. The
-   texture's own range is ~0.28, so something amplifies it ~2.3x.
-   `districtGround` fires one ray at the low centre of the Exchange frame
-   and names material, `_Color`, MPB, texture, normals AND the gloss state —
-   `_METALLICGLOSSMAP`, `_GlossMapScale`, `_Glossiness`, `_Metallic`.
-   `glossScale` drives smoothness when the keyword is on, and a value at its
-   x4 clamp is a blowout by construction. ONE helper (`SurfaceUnder`),
-   shared with `noonFacadeMat`.
+   texture's own range is ~0.28. `districtGround` fires one ray at the low
+   centre and names material, `_Color`, MPB, texture, normals AND the gloss
+   state; `glossScale` drives smoothness when `_METALLICGLOSSMAP` is on, and
+   a value at its x4 clamp is a blowout by construction. ONE helper
+   (`SurfaceUnder`), shared with `noonFacadeMat`.
 
-1. ~~**THE POSITIVE CONTROL HAD BEEN NEUTERED**~~ — **FIXED.**
-   `DefeatWetSpecular` forces wet-surface smoothness to zero and claims to
-   work "by a route that cannot fail". Binding gloss maps put
-   `_METALLICGLOSSMAP` on all four wet surfaces, at which point the shader
-   ignores `_Glossiness` — so it reported no change, which reads as "wet
-   specular contributes nothing", the exact wrong conclusion it exists to
-   prevent. Routed through `SetSmoothness`. **Third victim of one binding**,
-   found by grepping every `SetFloat("_Glossiness"` — ten seconds, and it
-   should have been step two of that change.
+1. **TWELVE PROP FAMILIES SIT AT ALBEDO 1.00 AGAINST A TOWN AT 0.15, AND
+   THE INSTRUMENT COULD NOT SAY WHY.** The `kitAlbedo` measurement landed
+   and nobody had read it: swing bin, oil barrel, skip, park bench, finger
+   post, garden bench, two crates, pallet, three bins — **all exactly
+   1.00**, against `townWallAlbedo=0.15`. That is 6.7x the walls on objects
+   down every street, and this queue's own pre-written judgment says
+   anything clearly above `townWallAlbedo` gets the skyline treatment.
+   **But 1.00 was also the instrument's silence:** `MeanTexLuma` returns 1.0
+   for a null texture and `PropAlbedoUnread` cannot see it, because a
+   missing texture is not an exception — so "a bin painted white" and "a bin
+   with no albedo map" printed identically and want different fixes.
+   `kitAlbedoNoTex` splits them as of 24 Aug. **Read it before touching any
+   of the twelve:** non-zero -> untextured meshes wearing a material tint,
+   fix the tint; zero -> they really are white, so tint them. Either way
+   they are the brightest things in a noir street.
 
-1. **THE KIT REPAINTS ALL APPLY AND CANNOT DO THE JOB — A MULTIPLY CANNOT
-   DESATURATE.** *(on screen: the mint saloon in `review_street`, the far
-   tower in `district_downtown`)* My glTFast theory is REFUTED by its own
-   probe: **`kitPaint=1997/0`, `kitPaintRefusedBy=[none]`** — every one of
-   1997 renderers accepted the paint, and `skylineRepainted=23`. So the
-   paint lands and the objects are still wrong, which is a different fault.
-   **Measured on the kit atlases themselves:** a multiply by
+1. **THE REPAINTS ALL APPLY AND CANNOT DO THE JOB — A MULTIPLY CANNOT
+   DESATURATE. FIX SHIPPED; JUDGE IT ON THE LANDING.** *(the mint saloon in
+   `review_street`, the far tower in `district_downtown`)* My glTFast theory
+   is REFUTED by its own probe: **`kitPaint=1997/0`, refused by `[none]`**,
+   `skylineRepainted=23`. The paint lands everywhere and the objects are
+   still wrong. **Measured on the atlases:** multiplying by
    `SkylineHaze(0.34,0.36,0.40)` moves top-decile saturation **0.820 ->
-   0.788** on `car-kit/colormap.png` and **0.733 -> 0.686** on
-   `city-kit-commercial`. Four to six per cent. A multiply scales all three
-   channels, so it preserves their ratios — it darkens and it cannot
-   recolour. `PatrolWhite`'s comment says this outright ("the model's own
-   slate stripe survives because a multiply preserves the ratio between
-   them") and it is a virtue there and the whole problem here.
-   **THE FIX IS THE TEXTURE, NOT THE COLOUR.** Grey each kit colormap ONCE
-   at load, preserving luma so the modelling and the stripe survive, and
-   assign it to the shared material; the per-instance MPB paint then does
-   the colouring it was always meant to do. One texture per atlas, done
-   once. **Do NOT chase this by picking darker paints** — the palette is
-   already 0.12-0.48 and the saturation is the author's, not ours.
+   0.788** (`car-kit`) and **0.733 -> 0.686** (`city-kit-commercial`) — four
+   to six per cent, because a multiply scales all three channels and
+   preserves their ratios. `PatrolWhite`'s comment says so outright: a
+   virtue there, the whole problem here.
+   **Shipped:** `GreyCopy` makes a luma-weighted grey of each atlas once, so
+   the modelling and the slate stripe survive (all luminance, no hue) and
+   the paint has something neutral to colour. **A cached VARIANT, not a
+   mutation of the shared material** — atlases are shared with props we
+   deliberately do not repaint, and editing the shared one would grey a
+   bench invisibly. Colour space round-tripped, not converted (RT and
+   destination both sRGB); a mismatch would shift the town's brightness and
+   not show until a round trip. **Read `kitGrey=atlases/failed/renderers`**:
+   zero greyed beside a non-zero `kitPaint` is the swap not running. Then
+   re-measure the saloon against the 0.385 the rest of that frame sits
+   under. **Do NOT chase this with darker paints** — the palette is already
+   0.12-0.48 and the saturation is the author's.
 
 1. **THE DECLUTTER: NAMEPLATES AND BUBBLES, MEASURED, OPEN.** *(on screen)*
    `collidingNames=3` over 26 samples — five labels at the peak, 3 of their
    10 pairs overlapping. `PinAll` runs at shot time and three still overlap:
-   read `namesPinnedSum` (106) against `shotFixups` (27) before tuning, and
-   note `bubblesLiftedSum=1` — the de-overlap moved a bubble once in a run.
-   **The bubble median mixed two samplers and is split now** (71 tick
-   readings vs 26 shot ones). **I read a 0.33 -> 0.00 move as the fix
-   working** when what moved was the street — the district fix spread the
-   population out, so fewer bubbles collide. A real improvement, not the one
-   I claimed. **Also on screen:** `review_day2_wet` renders "Ellis" half off
-   the bottom-right edge. A nameplate CLIPPED by the frame is a different
-   fault from two overlapping, and nothing measures it.
+   read `namesPinnedSum` (106) against `shotFixups` (27) before tuning;
+   `bubblesLiftedSum=1` says the de-overlap moved a bubble once in a run.
+   The bubble median mixed two samplers (71 tick vs 26 shot readings) and is
+   split now. **I read a 0.33 -> 0.00 move as the fix working** when what
+   moved was the street. **Also:** `review_day2_wet` renders "Ellis" half
+   off the bottom-right edge — a CLIPPED nameplate is a different fault from
+   two overlapping, and nothing measures it.
 
 1. **THE NAMEPLATE HEAP IS MEASURED AND THE INSTRUMENTS AGREE WITH THE
    PICTURE.** *(on screen)* `collidingNames=3` over 26 samples: five labels

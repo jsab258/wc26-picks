@@ -14251,7 +14251,16 @@ namespace Ledger.Game
                       // wall surfaces through the same maths, so the two
                       // sides of the comparison are one instrument.
                       $"townWallAlbedo={AssetLibrary.TownWallAlbedo():0.00} kitAlbedo={KitAlbedoSummary()} " +
+                      // BOTH ABSENCES, NOT ONE. `unread` is the blit
+                      // throwing; `noTex` is a material with no albedo map,
+                      // which returns the same 1.00 and is not an exception,
+                      // so the old single counter could not see it. Twelve
+                      // `base_mesh_*` families read exactly 1.00 against a
+                      // townWallAlbedo of 0.15 and nothing said which they
+                      // were — a white bin wants the skyline tint, a
+                      // textureless one wants a texture.
                       $"kitAlbedoUnread={AssetLibrary.PropAlbedoUnread} " +
+                      $"kitAlbedoNoTex={AssetLibrary.PropAlbedoNoTex} " +
                       // BODIES BUILT, NOT VEHICLES PRESENT, and the old name
                       // said the wrong one. It read `vehiclesKitted=26/33` on
                       // a fleet of 28, which scans as "seven vehicles have no
@@ -14392,6 +14401,18 @@ namespace Ledger.Game
                       // today are the same zero otherwise.
                       $"rainLowest={Weather.RainLowest:0.0} " +
                       $"rainBelow={Weather.RainBelow}/{Weather.RainAlive} " +
+                      // THE GREY SWAP, WITH ITS DENOMINATOR. `kitPaint`
+                      // proved the paint lands on every renderer and the
+                      // objects were still mint — a multiply preserves
+                      // channel ratios, so it darkens and cannot recolour
+                      // (0.820 -> 0.788 measured on the atlas itself). The
+                      // hue is removed at the source now. Atlases greyed /
+                      // failed to read back / renderers moved onto a greyed
+                      // variant: zero greyed beside a non-zero `kitPaint` is
+                      // the swap not running, which reads nothing like a town
+                      // with no kit props in it.
+                      $"kitGrey={AssetLibrary.GreyAtlases}/{AssetLibrary.GreyFailed}"
+                          + $"/{AssetLibrary.GreyRenderers} " +
                       $"kitPaint={AssetLibrary.PaintTook}/{AssetLibrary.PaintRefused} " +
                       $"kitPaintRefusedBy=[{(AssetLibrary.PaintRefusedBy.Length > 0 ? AssetLibrary.PaintRefusedBy : "none")}] " +
                       $"blobShadows={BlobShadow.Count} " +
