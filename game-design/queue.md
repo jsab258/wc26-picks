@@ -143,48 +143,52 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **THE BLACK NOON WALL IS THE AMBIENT FILL, MEASURED — THE SERIES THAT
-   SETS THE FIX IS DISPATCHED.** *(`review_day1_noon`)* `ambOff:0.012 /
-   all:0.039 / **amb4x:0.514**`. Removing the fill takes the third to 0.012,
-   so direct light contributes almost nothing, and `noonFacadeMat` says why
-   in one field: **`nSun:0.00`** — the wall is exactly perpendicular to the
-   sun and lit by fill alone. Not the material (`col:0.54,0.55,0.60`,
-   `mpb:unset`) and not the framing (`d:6.8`). **The one rung that turned
-   something UP is what answered it, and no off-rung could have.**
-   **4x OVERSHOOTS** — 0.514 against a LIT third of 0.431, a shaded wall
-   outshining a sunlit one — so the multiplier is under 4, and picking it
-   off two points 13x apart is the invented number rule 2 forbids.
-   `ambientSeries` prints **shade|lit pairs at x1/1.5/2/2.5/3/4**: the
-   target is a RATIO (`LightModel` cites the GTA noons at ~half), and
-   raising the fill raises the lit side too, so shade values alone would be
-   read against a moving denominator. **Judgment:** take the rung whose
-   shade/lit lands nearest 0.5 and set `AmbientDayShare` from it.
+1. **THE BLACK NOON WALL: THE FILL IS CAPPED, AND A CoreTest SAID SO.**
+   `ambientSeries` measured shade|lit at six fill multipliers: `x1.0
+   0.102|0.408 = 0.25 / x1.5 0.35 / **x2.0 0.235|0.475 = 0.50** / x2.5 0.63
+   / x3.0 0.75 / x4.0 0.89`. x2.0 lands the ~0.5 the GTA noons show, so
+   `AmbientDayShare` was set to 1.50 — **and the day-fill test went red on
+   the spot**: "the day FILL is dimmer than the dome it derives from — a sky
+   can be bright without every shaded wall being bright". That is a physical
+   claim and it is right; `AmbientOf` returns `dome * share`, so any share
+   at or above 1.0 asserts a wall seeing PART of the hemisphere gets what
+   the WHOLE sky emits. Reverted to 0.75.
+   **So the ratio is not the fill's to fix alone — that is the finding.**
+   The fill tops out below share 1.0, about x1.33 of today, which the series
+   puts near 0.32: a real gain, not the target. **A ratio has a numerator.**
+   `sunSeries` measures the key DOWNWARD (x1.00/0.85/0.70/0.55/0.40) with
+   the same shade|lit pairs, because an overcast British port is exactly
+   where a low sun-to-sky ratio belongs — it is what overcast MEANS — and
+   that variable has never been measured. **Set the pair together when it
+   lands**, and expect the answer to be mostly key, not fill.
+   **Both builds photographed different walls**, said out loud: the earlier
+   one `mat_concrete_b nSun:0.00` (ambient-only, `shadowOff` moving nothing,
+   0.039), this one `mat_brick_grey_b nSun:0.62` with `shadowOff` TRIPLING
+   the third (0.102 -> 0.310) — a sunlit wall in a cast shadow. The ratio
+   target is about cast shadows, so it belongs to the second.
 
 1. **THE STILLS NO LONGER PHOTOGRAPH WALLS.** *(rule 12; step-back and
-   depth series landed — account in `roadmap-history.md`.)* The night
-   shutter aims down the longest clear sightline; the day twin stepped
-   day2_noon from 0.44 to 0.24 near-fraction. `farFrac` (7-20m) is added for
-   the case that passes both existing bands. **And the black-wall frame
-   ACQUITS this metric:** that wall sits at `d:6.8`, inside the mid band and
-   under its bound, and it was DARK rather than badly framed — so do not
-   tighten the bound to chase it.
+   depth series landed — account in `roadmap-history.md`.)* `farFrac`
+   (7-20m) is added for the case that passes both existing bands. **And the
+   black-wall frame ACQUITTED this metric:** that wall sat at `d:6.8`,
+   inside the mid band and under its bound, and it was DARK rather than
+   badly framed — do not tighten the bound to chase it.
 
-1. **RAIN: wet frame PLANTED** — the daily roll is seeded off the day
-   number, so review days 1-2 are dry on every run there will ever be; the
-   sim forces a downpour at day 2 hour 21 and shoots `day2_wet` at 22.
-
-1. **RAIN: THE DIRECTION IS FIXED AND PROVEN; THE COVERAGE IS NOT.** *(on
-   screen, `review_day2_wet` — it falls vertically down the street now.)*
-   A Box shape emits along the shape's FORWARD and nothing rotated the
-   emitter, so the rain was thrown SIDEWAYS at 26m/s at world +Z.
-   `rainLowest` went from a STRUCTURAL floor of **+5.7m** to **-28.5m**,
-   with `rainBelow=126/370` under eye height. The item had been closed on
-   "wet frames read as streaks in lamp cones". They do. The lamp cones are
-   above the lamps. **NOT fixed, and the pixels are soberer than the
-   picture:** mid-left 0.26% -> **1.10%**, mid-centre 1.38%, but **top-right
-   still 0.00% and bottom-left 0.03%**. Rain reaches the middle band, not
-   the frame edges — a COVERAGE question (38m box, 12m forward offset, 1.1s
-   life), not a direction one. Do not read the frame as "rain everywhere".
+1. **RAIN: DIRECTION FIXED; COVERAGE OPEN; AND IT RAINS ON A DAY THE DOC
+   CALLS DRY.** A Box shape emits along the shape's FORWARD and nothing
+   rotated the emitter, so rain was thrown SIDEWAYS at 26m/s. `rainLowest`
+   went from a STRUCTURAL floor of **+5.7m** to **-28.5m**. The item had
+   been closed on "wet frames read as streaks in lamp cones". They do. The
+   lamp cones are above the lamps.
+   **Coverage NOT fixed:** mid-left 0.26% -> 1.10%, mid-centre 1.38%, but
+   top-right 0.00% and bottom-left 0.03% — the 38m box, the 12m forward
+   offset, the 1.1s life.
+   **AND `review_day1_noon` NOW HAS RAIN IN IT** while this file says days
+   1-2 are dry on every run. Nothing committed could settle that: there is
+   no `rain` key in the verdict and `rainBelow` is a last-wins sample.
+   Likeliest: it always rained and the sideways emitter put it out of shot —
+   a hypothesis, written as one. `frames.tsv` carries `rain` and `wet` PER
+   SHOT now, because a dark frame and a wet one are different findings.
 
 1. **THE BODY BUDGET IS CLOSED AT 87.8% — account in `roadmap-history.md`.**
    The 34m draw radius was the binding constraint (now 70m) and
@@ -223,42 +227,43 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    shots vs `0.18` over 17 — zero of three separates nothing; judge the
    `hunt_` pair. A PARKED beacon reads where six crossings do not.
 
-1. **THE DISTANT SKYLINE — CLOSED FROM A DOC, AND THE CAUSE IS THE ITEM
-   ABOVE.** The far tower is the most saturated thing in `district_downtown`
-   (**0.469** vs brick 0.324, sky 0.222) and fog cannot account for it —
-   `fogRGB` sits near 0.196, and a fogged object cannot be MORE saturated
+1. **THE DISTANT SKYLINE — CLOSED FROM A DOC, AND THE CAUSE IS THE REPAINT
+   ITEM.** The far tower is the most saturated thing in `district_downtown`
+   (**0.469** vs brick 0.324, sky 0.222); fog cannot account for it, since
+   `fogRGB` sits near 0.196 and a fogged object cannot be MORE saturated
    than the fog. `SkylineHaze` is a good desaturated grey-blue (sat 0.15)
-   and `skylineRepainted=23` says it applied: **a multiply cannot
-   desaturate**, so the kit's own hue survived. Same fix as the saloon —
-   grey the atlas. Rule 3 on how it was closed in the first place.
+   and `skylineRepainted=23` says it applied — **a multiply cannot
+   desaturate**, so the kit's hue survived. Same fix: grey the atlas.
    **Fixed on the way:** `SkylineRepainted` incremented the moment the kit
    existed, BEFORE the paint was attempted. It counts acceptances now.
 
-1. **A PAVING STRIP IS BLOWN OUT; THE PROBE IS DISPATCHED.**
-   *(`district_downtown`, centre)* p10-p90 luma spread **0.654** against
-   brick 0.387 and the road beside it 0.141, median **0.434 against 0.059**
-   for that adjacent road — seven times brighter under identical light. The
-   texture's own range is ~0.28. `districtGround` fires one ray at the low
-   centre and names material, `_Color`, MPB, texture, normals AND the gloss
-   state; `glossScale` drives smoothness when `_METALLICGLOSSMAP` is on, and
-   a value at its x4 clamp is a blowout by construction. ONE helper
-   (`SurfaceUnder`), shared with `noonFacadeMat`.
+1. **THE PAVING BLOWOUT: DIAGNOSED FIRST TIME BY ITS PROBE, AND FIXED.**
+   `districtGround` came back **`mat_asphalt ... glossScale:4.00`** — pinned
+   at its clamp, which is not a scale but the code giving up. The wet target
+   wants a near-mirror and `asphalt_r` is a rough-asphalt map whose mean is
+   a quarter of it, so multiplying by 4 does not raise the surface to the
+   target, it multiplies its **variance** by four — a p10-p90 luma spread of
+   0.654 against 0.141 for the road beside it.
+   **A wet surface's smoothness is the WATER, not the stone** — a film of
+   water is uniform, which is what makes it a mirror — so past the point
+   where the map cannot carry the target, `SetSmoothness` sets it aside for
+   the uniform scalar. Dry keeps the map. The threshold is not invented: it
+   is exactly where the old code began to clamp, i.e. where it started
+   lying. Restored when the target comes back in reach, or a street that
+   dried would stay uniform for ever (a ratchet). Read
+   `glossDropped`/`glossRestored` — one count cannot tell "wet" from "never
+   dried again".
 
-1. **TWELVE PROP FAMILIES SIT AT ALBEDO 1.00 AGAINST A TOWN AT 0.15, AND
-   THE INSTRUMENT COULD NOT SAY WHY.** The `kitAlbedo` measurement landed
-   and nobody had read it: swing bin, oil barrel, skip, park bench, finger
-   post, garden bench, two crates, pallet, three bins — **all exactly
-   1.00**, against `townWallAlbedo=0.15`. That is 6.7x the walls on objects
-   down every street, and this queue's own pre-written judgment says
-   anything clearly above `townWallAlbedo` gets the skyline treatment.
-   **But 1.00 was also the instrument's silence:** `MeanTexLuma` returns 1.0
-   for a null texture and `PropAlbedoUnread` cannot see it, because a
-   missing texture is not an exception — so "a bin painted white" and "a bin
-   with no albedo map" printed identically and want different fixes.
-   `kitAlbedoNoTex` splits them as of 24 Aug. **Read it before touching any
-   of the twelve:** non-zero -> untextured meshes wearing a material tint,
-   fix the tint; zero -> they really are white, so tint them. Either way
-   they are the brightest things in a noir street.
+1. **TWELVE PROP FAMILIES SIT AT ALBEDO 1.00 AGAINST A TOWN AT 0.15.** The
+   `kitAlbedo` measurement landed and nobody had read it: swing bin, oil
+   barrel, skip, park bench, finger post, garden bench, two crates, pallet,
+   three bins — **all exactly 1.00** against `townWallAlbedo=0.15`, 6.7x the
+   walls on objects down every street. **But 1.00 was also the instrument's
+   silence:** `MeanTexLuma` returns 1.0 for a null texture and
+   `PropAlbedoUnread` cannot see it, because a missing texture is an early
+   return rather than an exception — so "a white bin" and "a bin with no
+   albedo map" printed identically and want different fixes.
+   `kitAlbedoNoTex` splits them. **Read it before touching the twelve.**
 
 1. **THE REPAINTS ALL APPLY AND CANNOT DO THE JOB — A MULTIPLY CANNOT
    DESATURATE. FIX SHIPPED; JUDGE IT ON THE LANDING.** *(the mint saloon in
@@ -303,18 +308,13 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    runs at shot time and three pairs still overlap. Read `namesPinnedSum`
    against `shotFixups` next build before anyone tunes it.
 
-1. ~~**THE VERDICT HAS AMBIGUOUS KEYS**~~ — **THE EMITTER IS CLEAN AND
-   GATED.** The old plan was "gate once a verdict lands clean"; it went 30
-   same-line -> 34 -> 35 instead, so that condition was never arriving.
-   `tools/verdict-emit-dupkeys.py` reads the SOURCE and hard-fails in
-   `verify.py`, answering in a second what the landed check answers a round
-   trip later. It exists because wiring `DoorSwing` added a second `doors=`
-   to the done line 300 lines from `WorldBuilder.Doors` — the landed verdict
-   then read 35, confirming the harm empirically. Two real hits fixed, no
-   baseline list; the tool's first version reported a key the file uses once
-   (the other was a comment QUOTING it), so comments are blanked and that is
-   a selftest. Open: the landed backlog is DATA collisions (`key=` inside
-   bracketed values), a different fix.
+1. ~~**THE VERDICT HAS AMBIGUOUS KEYS**~~ — **GATED AT SOURCE.** The old
+   plan was "gate once a verdict lands clean"; it went 30 -> 34 -> 35
+   instead. `tools/verdict-emit-dupkeys.py` reads the SOURCE and hard-fails
+   in `verify.py`. It exists because wiring `DoorSwing` added a second
+   `doors=` 300 lines from `WorldBuilder.Doors`; the landed verdict read 35,
+   confirming the harm, and **16 after the fix**. Open: the remainder are
+   DATA collisions (`key=` inside bracketed values), a different fix.
 
 1. **AND THE SAME COUNTER IMMEDIATELY FOUND A BIGGER ONE: FIVE OF SEVEN
    DISTRICTS HAD NO SHOPS AT ALL.** `the_Hook:shop73 Copper_Row:shop4` and

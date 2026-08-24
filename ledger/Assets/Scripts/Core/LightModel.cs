@@ -380,6 +380,61 @@ namespace Ledger.Core
         /// 0.643, void shade under bright lit faces. The share rises so the
         /// fill in honest units does what the 0.45 did in dishonest ones;
         /// night keeps share 1.0 through the Mix, bit-identical as before.
+        /// 0.75 -> 1.50, AND THE NUMBER IS A PRINTED RUNG RATHER THAN A
+        /// CHOICE. `ambientSeries` took the shaded and lit thirds of the same
+        /// noon frame at six fill multipliers, 24 Aug:
+        ///
+        ///     x1.0 0.102|0.408 = 0.25    x2.5 0.329|0.522 = 0.63
+        ///     x1.5 0.153|0.435 = 0.35    x3.0 0.424|0.569 = 0.75
+        ///     x2.0 0.235|0.475 = 0.50    x4.0 0.592|0.667 = 0.89
+        ///
+        /// The target above is stated as a RATIO — the GTA reference noons
+        /// put a cast shadow at roughly HALF the lit brightness — and x2.0
+        /// lands it at 0.495. No interpolation: it is the rung that was
+        /// measured.
+        ///
+        /// BOTH HALVES AT EVERY STEP, because raising the fill raises the
+        /// LIT side too (0.408 -> 0.475 across this move). A series of
+        /// shaded values alone would have been read against a denominator
+        /// that was quietly moving, which is the fault this project has
+        /// found four times in pairs of maxima.
+        ///
+        /// AND THE FIXTURE IS A CAST SHADOW, WHICH IS WHAT THE TARGET IS
+        /// ABOUT. `noonFacadeMat` on this run reads `mat_brick_grey_b`,
+        /// `nSun:0.62`, and `shadowOff` TRIPLES the third (0.102 -> 0.310):
+        /// a sun-facing wall sitting in a cast shadow. An earlier run
+        /// photographed `mat_concrete_b` at `nSun:0.00` — ambient-only by
+        /// geometry, where `shadowOff` moved nothing — and read 0.039. Both
+        /// are honest and they are different walls; the ratio target belongs
+        /// to the first, so that is the one it was set on.
+        /// STILL 0.75, AND A CoreTest STOPPED ME RAISING IT — correctly.
+        ///
+        /// `ambientSeries` measured the shaded and lit thirds of one noon
+        /// frame at six fill multipliers, 24 Aug:
+        ///
+        ///     x1.0 0.102|0.408 = 0.25    x2.5 0.329|0.522 = 0.63
+        ///     x1.5 0.153|0.435 = 0.35    x3.0 0.424|0.569 = 0.75
+        ///     x2.0 0.235|0.475 = 0.50    x4.0 0.592|0.667 = 0.89
+        ///
+        /// x2.0 lands the ratio on the ~0.5 the GTA reference noons show, so
+        /// this was set to 1.50 — and the day-fill test went red on the spot:
+        /// "the day FILL is dimmer than the dome it derives from — a sky can
+        /// be bright without every shaded wall being bright". That is a
+        /// physical claim and it is right. `AmbientOf` returns `dome *
+        /// share`, so any share at or above 1.0 asserts that a wall seeing
+        /// PART of the sky hemisphere receives as much as the whole sky
+        /// emits.
+        ///
+        /// SO THE RATIO IS NOT THE FILL'S TO FIX ALONE, and that is the
+        /// finding rather than a setback. The fill tops out at share &lt; 1,
+        /// i.e. about x1.33 of today, which the series puts near 0.32 — a
+        /// real gain and not the target. The other half of a ratio is its
+        /// numerator: a weaker KEY brings the lit side down toward the
+        /// shade, and an overcast British port is exactly where a low
+        /// sun-to-sky ratio belongs. That variable has never been measured,
+        /// so `sunSeries` measures it and the pair gets set together. Rule 2
+        /// — a threshold comes from printed values, and I had printed one of
+        /// the two things the answer depends on.
         public const double AmbientDayShare = 0.75;
 
         static (double r, double g, double b) AmbientOf(

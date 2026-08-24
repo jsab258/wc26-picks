@@ -8464,6 +8464,11 @@ namespace Ledger.Game
         /// value has no anchor, and every landed reading in this project's
         /// history was taken at 1.0.
         static readonly float[] AmbientRungs = { 1.0f, 1.5f, 2.0f, 2.5f, 3.0f, 4.0f };
+        /// Key multipliers, DOWNWARD, because the fill has already been
+        /// shown to be capped and the lit side is the half that can still
+        /// move. 1.00 anchors the series to today, same as the fill's.
+        static readonly float[] SunRungs = { 1.0f, 0.85f, 0.70f, 0.55f, 0.40f };
+        string _sunSeries = "not_probed";
         string _ambientSeries = "not_probed";
         string _districtGround = "not_probed";
         bool _noonFacadeDone;
@@ -8557,6 +8562,7 @@ namespace Ledger.Game
             var keepShadows = QualitySettings.shadows;
             bool keepFog = RenderSettings.fog;
             var ambSeries = new System.Text.StringBuilder();
+            var sunSeries = new System.Text.StringBuilder();
             try
             {
                 all = LeftThirdMedian(FrameShot(cam));
@@ -8653,6 +8659,36 @@ namespace Ledger.Game
                 RenderSettings.ambientEquatorColor = keepEq;
                 RenderSettings.ambientGroundColor = keepGnd;
 
+                // THE OTHER HALF OF THE RATIO, and the half never measured.
+                // The fill series answered "how bright is the shade" and a
+                // CoreTest then refused the number it implied: the day fill
+                // must stay DIMMER than the dome it derives from, because a
+                // wall seeing part of the sky hemisphere cannot receive what
+                // the whole sky emits. That caps the fill near x1.33, which
+                // the series puts around a 0.32 ratio against a ~0.5 target.
+                //
+                // A ratio has a numerator. Bringing the KEY down moves the
+                // lit side toward the shade without asserting anything
+                // physically false about the fill, and an overcast British
+                // port is exactly where a low sun-to-sky ratio belongs — it
+                // is what overcast MEANS. Nothing has ever measured it.
+                //
+                // Scaled on the light's intensity and restored from a
+                // CAPTURED value, not an assumed one.
+                if (sunL != null)
+                {
+                    float keepSun = sunL.intensity;
+                    foreach (float k in SunRungs)
+                    {
+                        sunL.intensity = keepSun * k;
+                        var fs2 = FrameShot(cam);
+                        double sh2 = LeftThirdMedian(fs2), lit2 = RightThirdMedian(fs2);
+                        if (sunSeries.Length > 0) sunSeries.Append('/');
+                        sunSeries.Append($"x{k:0.00}:{sh2:0.000}|{lit2:0.000}");
+                    }
+                    sunL.intensity = keepSun;
+                }
+
                 QualitySettings.shadows = ShadowQuality.Disable;
                 shadowOff = LeftThirdMedian(FrameShot(cam));
                 QualitySettings.shadows = keepShadows;
@@ -8687,7 +8723,10 @@ namespace Ledger.Game
                         + $"/fogOff:{fogOff:0.000}]";
             _ambientSeries = ambSeries.Length > 0
                 ? "[" + ambSeries + "]" : "[not_probed]";
-            Debug.Log("SimDirector: ambientSeries " + _ambientSeries);
+            _sunSeries = sunSeries.Length > 0
+                ? "[" + sunSeries + "]" : "[not_probed]";
+            Debug.Log("SimDirector: ambientSeries " + _ambientSeries
+                      + " sunSeries " + _sunSeries);
             Debug.Log("SimDirector: noonFacade " + _noonFacade);
 
             // THE CENSUS, after the ladder acquitted everything else. Two
@@ -10666,7 +10705,7 @@ namespace Ledger.Game
                                 // near is the step-back's own <=2m test, mid
                                 // is the 2..7m band a hoarding fills while
                                 // near passes. Series first; no bound yet.
-                                .Append("nearFrac\tmidFrac\tfarFrac\n");
+                                .Append("nearFrac\tmidFrac\tfarFrac\train\twet\n");
                 _frameRows++;
                 var ct = Camera.main != null ? Camera.main.transform : null;
                 _frameLedger.Append(name).Append('\t')
@@ -10683,7 +10722,20 @@ namespace Ledger.Game
                             .Append(fp.lumaThirds).Append('\t')
                             .Append(_keptNearFrac.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\t')
                             .Append(_keptMidFrac.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\t')
-                            .Append(_keptFarFrac.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\n');
+                            .Append(_keptFarFrac.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\t')
+                            // WHAT WEATHER THIS SHOT WAS TAKEN IN, which no
+                            // committed number has ever said. `review_day1_noon`
+                            // on 9e0c3f2 has rain falling through it, and
+                            // `queue.md` states that the daily roll leaves days
+                            // 1-2 dry on every run there will ever be. One of
+                            // those is wrong and nothing in `verdict.txt` could
+                            // settle it — there is no `rain` key at all, and the
+                            // run-level `rainBelow` is a last-wins sample that
+                            // says nothing about a particular frame. Per-shot,
+                            // beside the luma it explains: a dark frame and a
+                            // wet one are different findings.
+                            .Append(Weather.Rain.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\t')
+                            .Append(Weather.Wetness.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)).Append('\n');
                 System.IO.File.WriteAllText("sim-out/frames.tsv", _frameLedger.ToString());
             }
             catch (Exception e) { _errors.Add("LedgerRow: " + e.Message); }
@@ -14205,6 +14257,7 @@ namespace Ledger.Game
                       $"noonFacadeOf={_noonFacadeOf} " +
                       $"noonFacadeMat={_noonFacadeMat} " +
                       $"ambientSeries={_ambientSeries} " +
+                      $"sunSeries={_sunSeries} " +
                       $"districtGround={_districtGround} " +
                       // Probe-render milliseconds per rung, NOT comparable
                       // with meanFrame (the probe's own RT and ReadPixels
@@ -14411,6 +14464,16 @@ namespace Ledger.Game
                       // variant: zero greyed beside a non-zero `kitPaint` is
                       // the swap not running, which reads nothing like a town
                       // with no kit props in it.
+                      // THE GLOSS MAP BEING SET ASIDE WHEN THE WET TARGET
+                      // OUTRUNS IT, and restored when it does not. Both
+                      // directions, because a one-way count cannot tell "the
+                      // street is wet" from "the street never dried again".
+                      // `districtGround` found the asphalt pinned at
+                      // glossScale 4.00 — the clamp, not a scale — which
+                      // multiplies the map's VARIANCE by four and is what a
+                      // 0.654 luma spread on one surface looks like.
+                      $"glossDropped={AssetLibrary.GlossMapDropped} " +
+                      $"glossRestored={AssetLibrary.GlossMapRestored} " +
                       $"kitGrey={AssetLibrary.GreyAtlases}/{AssetLibrary.GreyFailed}"
                           + $"/{AssetLibrary.GreyRenderers} " +
                       $"kitPaint={AssetLibrary.PaintTook}/{AssetLibrary.PaintRefused} " +

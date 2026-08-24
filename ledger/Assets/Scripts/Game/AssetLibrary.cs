@@ -613,10 +613,64 @@ namespace Ledger.Game
         {
             if (mat.IsKeywordEnabled("_METALLICGLOSSMAP")
                 && _glossMean.TryGetValue(logical, out var mean) && mean > 0.01f)
-                mat.SetFloat("_GlossMapScale", Mathf.Min(4f, target / mean));
+            {
+                float want = target / mean;
+                // THE CLAMP WAS HIDING A MISMATCH, MEASURED 24 Aug.
+                // `districtGround` fired one ray at the blown-out paving
+                // strip and came back `mat_asphalt ... glossScale:4.00` —
+                // pinned exactly at its ceiling. That is not a scale, it is
+                // the code silently giving up: the wet target wants a
+                // near-mirror and `asphalt_r` is a rough-asphalt map whose
+                // mean is a quarter of it, so multiplying by 4 does not
+                // raise the surface to the target, it multiplies its
+                // VARIANCE by four. Hence a strip reading a p10-p90 luma
+                // spread of 0.654 against 0.141 for the road beside it, and
+                // a median seven times brighter under identical light.
+                //
+                // A WET SURFACE'S SMOOTHNESS IS THE WATER, NOT THE STONE.
+                // A film of water is uniform by nature — that is what makes
+                // it a mirror — so past the point where the map can no
+                // longer carry the target, the map is the wrong instrument
+                // and the uniform scalar is the right one. Dry keeps the
+                // map, because dry is where per-texel roughness is the whole
+                // point (worn brick sheening where the mortar does not).
+                //
+                // The threshold is not invented: it is exactly where the old
+                // code began to clamp, which is where it started lying.
+                if (want > 4f)
+                {
+                    mat.DisableKeyword("_METALLICGLOSSMAP");
+                    mat.SetFloat("_Glossiness", target);
+                    GlossMapDropped++;
+                }
+                else
+                {
+                    mat.SetFloat("_GlossMapScale", want);
+                }
+            }
             else
-                mat.SetFloat("_Glossiness", target);
+            {
+                // Re-enable when the target comes back within the map's
+                // reach, or a street that dried would stay uniform for ever
+                // — a one-way switch is a ratchet (rule 5).
+                if (mat.HasProperty("_MetallicGlossMap")
+                    && mat.GetTexture("_MetallicGlossMap") != null
+                    && _glossMean.TryGetValue(logical, out var m2) && m2 > 0.01f
+                    && target / m2 <= 4f)
+                {
+                    mat.EnableKeyword("_METALLICGLOSSMAP");
+                    mat.SetFloat("_GlossMapScale", target / m2);
+                    GlossMapRestored++;
+                }
+                else mat.SetFloat("_Glossiness", target);
+            }
         }
+
+        /// How often the gloss map was set aside because the target had
+        /// outrun it, and how often it came back. Both, because a one-way
+        /// count cannot tell "the street is wet" from "the street never
+        /// dried again" (rule 3b).
+        public static int GlossMapDropped, GlossMapRestored;
 
         public static void SetWetness(float wetness)
         {

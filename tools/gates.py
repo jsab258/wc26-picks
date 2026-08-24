@@ -345,23 +345,44 @@ DID_NOT_HAPPEN = {"0", "0.0", "0.00", "0.000", "0.0000",
 # AND AN EXPLAINED KEY THAT STARTS MOVING IS REPORTED, because a reason is a
 # claim and claims decay — the reach ledger has now had three reasons go stale
 # describing work that had already been done.
+# AND THE AUDIO REASONS WERE WRONG, WHICH THIS TOOL FOUND BY ITS OWN RULE.
+# Seven keys carried "no audio device on the runner", and on 24 Aug five of
+# them MOVED — `soundsOffered=6 soundsAdmitted=6 soundsPeak=1
+# soundsPeakBus=Impact`, with `simAudible` still False. Both cannot be true of
+# a device, and they are not about one: `Audio.Admit` is a BUDGET decision
+# made in C#, and it runs whether or not anything can be heard. Nothing had
+# ever offered it a sound, which is a completely different fact and the one
+# the `Audio` comment warns about in its own words — "a budget that never
+# refuses anything is indistinguishable from one that is not wired".
+#
+# Its first customers arrived by accident: wiring `Core/DoorSwing` put an
+# `Audio.Impact` on each latch, and `doorSwing=376/6/6/0/1` against
+# `soundsOffered=6 soundsAdmitted=6 soundsPeakBus=Impact` is the same six
+# events seen from both ends. The keys still at zero keep an entry, with the
+# reason they actually have.
 EXPLAINED_ZEROS = {
-    "soundsOffered": "no audio device on the runner; read simAudible first",
-    "soundsAdmitted": "no audio device on the runner; read simAudible first",
-    "soundsDropped": "no audio device on the runner; read simAudible first",
-    "soundsNoClip": "no audio device on the runner; read simAudible first",
-    "soundsStolen": "no audio device on the runner; read simAudible first",
-    "soundsPeak": "no audio device on the runner; read simAudible first",
-    "soundsPeakBus": "no audio device on the runner; read simAudible first",
-    "speechPlayed": "no audio device, and the voice bank does not exist yet",
+    "soundsDropped": "the BUDGET runs regardless of a device; six sounds were "
+                     "offered and six admitted, so it has never had to refuse "
+                     "one — read soundsOffered before reading this as health",
+    "soundsNoClip": "same as soundsDropped: too little traffic to refuse "
+                    "anything yet, not an absent device",
+    "soundsStolen": "same as soundsDropped: a steal needs a full bus, and the "
+                    "peak is one",
     "speechNoAudio": "no audio device on the runner; read simAudible first",
     "simAudible": "the runner has no audio device — this is the key that says so",
     "windowsShopLit": "last-wins, written after midnight when every shop is "
                       "shut by design; read windowsShopLitAtShot",
     "walkersPrimitive": "last-wins over a once-a-second pass; read "
                         "walkersPrimitiveEver",
-    "huddleTalking": "measured 4 Aug and it is the FINDING — the mob is not a "
-                     "conversation",
+    # THREE ENTRIES LEFT THIS TABLE ON 24 AUG BECAUSE THEIR KEYS STARTED
+    # MOVING, which is this tool's own rule catching three of its own claims.
+    # `huddleTalking` and `bodyCrowdEligible` expired as GOOD news — the mob
+    # holds a conversation now and the crowd has an eligible real body, and
+    # both reasons said those were zero by construction. `offRoad` expired as
+    # a fault: a vehicle left the tarmac ONCE in the recent window and the
+    # series is back to zero, so it belongs to `--flaky` rather than here.
+    # An explanation for a key that is no longer stuck is noise, and this
+    # block prints every time.
     "huddleDetour": "measured 4 Aug and it is the FINDING — the mob is not an "
                     "obstacle",
     "huddleWaiting": "measured 4 Aug and it is the FINDING — the mob is not a "
@@ -374,15 +395,11 @@ EXPLAINED_ZEROS = {
     "blankLabels": "a fault counter doing its job",
     "panelsBad": "a fault counter doing its job",
     "contrastFailing": "a fault counter; read contrastChecked beside it",
-    "offRoad": "a fault counter doing its job — no vehicle leaves the tarmac",
     "stemsUnbound": "a fault counter doing its job",
     "unbound": "a fault counter doing its job",
     "textNoText": "a fault counter doing its job",
     "bodyGrantsFailed": "a fault counter doing its job",
     "walkerBodiesFailed": "a fault counter doing its job",
-    "bodyCrowdEligible": "crowd walkers are spawned with realBody:false, "
-                          "so WantsRealBody is never true for one — zero "
-                          "by construction until the crowd gets faces",
     "bodySkinnedEver": "the paint path is skipped when a model arrives "
                        "textured; read bodyKeptMats beside it",
     "groundless": "false is the ASSERTED value — nobody with no grounds "
