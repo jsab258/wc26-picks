@@ -174,24 +174,25 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    27.3% lifetime, improving; all else quiet. "Five gates at 15-38%" and
    "`claims` WORSENING" **withdrawn**.
 
-1. **THREE RUNS KILLED BY THE SIM STEP'S 24-MINUTE TIMEOUT — AND I READ THE
-   EVIDENCE BACKWARDS TWICE.** `Wait-Process -Timeout 1440` is 24 min;
-   `3e3cdc2`'s sim step ran **24m03s**. Complete runs take ~12. So the sim
-   overruns and is killed; the verdict is greps over a partial log.
-   **Both my earlier calls are withdrawn.** "Same point twice, so it's my
-   probe" came from FrameDrift's *"4 shots compared"* — a COMPARISON count
-   against the previous run's frames, not a progress count. The three runs
-   actually reached **day 6, day 2, and no shots at all** — variance, not
-   determinism. And "it's the machine" was equally unsupported.
-   **What is solid:** the probe runs once (`_noonFacadeDone` intact,
-   `FindShadowPair` called at one site), so it cannot double a 12-minute run;
-   and a uniform 2x slowdown would still yield ~15 shots, not zero. That
-   shape is a HANG at a variable point, not a slowdown.
-   **The channel is the blocker, so it is fixed first (rule 12):**
-   `sim-shots-commit.sh` now emits `hangTail=[...]` with the last 30 log
-   lines and `hangTailLines` whenever there is no done line. A healthy run is
-   unchanged. **Next landing says what the sim was DOING when it was killed —
-   which no truncated run has been able to say.**
+1. **THE SIM HANGS AND IS KILLED AT 24 MIN — BISECTED TO `3e3cdc2`, CAUSE NOT
+   YET FOUND.** `Wait-Process -Timeout 1440`; complete runs take ~12 min.
+   **The bisection is unambiguous — 7 consecutive DONE runs, then 3
+   consecutive TRUNC starting exactly at `3e3cdc2`:**
+   `b08bca5 c627daa 7cee59d 9e0c3f2 3ecefd4 52f4f48 8c0ea59` all DONE (159-161
+   lines) -> `3e3cdc2` 82, `7c983e0` 123, `6b3ab53` 71.
+   **Ruled out by reading, not guessing:** the probe runs ONCE
+   (`_noonFacadeDone` intact, one `FindShadowPair` call site) so it cannot
+   double a 12-min run; `BoxMedian` is fully bounded with every index clamped
+   and one 256-int histogram per call; the try/catch in `6b3ab53` did NOT
+   help, so it is a hang, not an exception. That commit is 33 lines, mostly
+   comment, and nothing in it obviously blocks.
+   **Two wrong calls withdrawn on the way:** "same point twice" came from
+   FrameDrift's *comparison* count misread as progress (the runs reached day
+   6, day 2, and no shots); and "probably the machine" was one data point.
+   **Next: `hangTail` lands the last 30 log lines whenever there is no done
+   line. If it does not localise it, revert `3e3cdc2`'s functional change
+   (sun series back to thirds) and confirm the sim completes — bisect by
+   removing, not by reasoning.**
 
 1. **THE SHADOW RATIO IS 0.06 AND THE MISSING QUANTITY IS INDIRECT LIGHT.**
    With the y-flip fixed, lit holds at 0.129 across every rung — the
