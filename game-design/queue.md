@@ -190,15 +190,13 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    a hypothesis, written as one. `frames.tsv` carries `rain` and `wet` PER
    SHOT now, because a dark frame and a wet one are different findings.
 
-1. **THE BODY BUDGET IS CLOSED AT 87.8% — account in `roadmap-history.md`.**
-   The 34m draw radius was the binding constraint (now 70m) and
-   `RealBodyCap` got its PC measurement: the render ladder priced the whole
-   drawn crowd at ~1.1ms, so 12 -> 28. **Hair CLOSED.** Still live: the
-   centre-third foot reading (FootMesh 234, Ch38_Shoes 224); the white pills
-   remain unidentified with NO COMMITTED STILL holding one, so the next step
-   is a measurement that fires WHILE one is on screen. `bodyWashUnreached`
-   ~500 against `bodyTinted` 2048 — a multiply only subtracts. A limit, not
-   a bug.
+1. **THE BODY BUDGET IS CLOSED AT 87.8%** — account in `roadmap-history.md`.
+   The 34m draw radius was the binding constraint (now 70m) and `RealBodyCap`
+   got its PC measurement: the drawn crowd costs ~1.1ms, so 12 -> 28. Hair
+   CLOSED. Still live: the centre-third foot reading (FootMesh 234,
+   Ch38_Shoes 224); the white pills remain unidentified with NO COMMITTED
+   STILL holding one, so the next step is a measurement that fires WHILE one
+   is on screen.
 
 1. **STAGE 2 (SPEECH): THE LIVE ROUTE HAS NEVER ONCE RUN, IN 301 BUILDS —
    AND THE REASON IS NOW A VERDICT LINE.** *(the stage itself is not
@@ -254,6 +252,27 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    `glossDropped`/`glossRestored` — one count cannot tell "wet" from "never
    dried again".
 
+1. **EIGHTY-NINE FETCHED MODELS ARE ON DISK AND UNUSED, AND 25 OF THEM ARE
+   INDUSTRIAL BUILDINGS FOR A PORT TOWN.** *(rule 6 aimed at art, and the
+   standing order: best AVAILABLE result, not the first working one.)*
+   Counted 24 Aug: `city-kit-industrial` 25 models, `city-kit-roads` 47,
+   `city-kit-suburban` 13, `city-kit-commercial` 10 — **95 on disk, six
+   referenced**: two awnings, `city_kit_roads_light_curved` for the lamp
+   posts, and three `low-detail-building-*` for the skyline.
+   **What is sitting unused is exactly the density the GTA-V bar is about:**
+   construction barriers, cones and lights; `light-square`,
+   `light-*-double`, `light-*-cross` lamp variants beside the one curved
+   lamp the whole town wears; 47 road pieces; and 25 industrial buildings
+   for a town whose identity is its docks. Nothing to fetch, nothing to buy.
+   **Next step is a read, not a build:** open a handful in the sim's own
+   pipeline (`TryInstantiateProp` + `kitAlbedo`) and see whether they arrive
+   at a usable albedo, because the twelve `base_mesh_*` families at 1.00
+   above say a fetched model is not automatically a usable one.
+   *(And I first reported these as ENTIRELY unused, which was wrong: the
+   code uses underscored keys — `city_kit_roads_light_curved` — so a
+   hyphenated grep found nothing and I concluded from its absence. Rule 1:
+   one spelling searched is not a search.)*
+
 1. **TWELVE PROP FAMILIES SIT AT ALBEDO 1.00 AGAINST A TOWN AT 0.15.** The
    `kitAlbedo` measurement landed and nobody had read it: swing bin, oil
    barrel, skip, park bench, finger post, garden bench, two crates, pallet,
@@ -266,28 +285,20 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    `kitAlbedoNoTex` splits them. **Read it before touching the twelve.**
 
 1. **THE REPAINTS ALL APPLY AND CANNOT DO THE JOB — A MULTIPLY CANNOT
-   DESATURATE. FIX SHIPPED; JUDGE IT ON THE LANDING.** *(the mint saloon in
-   `review_street`, the far tower in `district_downtown`)* My glTFast theory
-   is REFUTED by its own probe: **`kitPaint=1997/0`, refused by `[none]`**,
+   DESATURATE. FIX SHIPPED; JUDGE ON THE LANDING.** My glTFast theory is
+   REFUTED by its own probe: **`kitPaint=1997/0`, refused by `[none]`**,
    `skylineRepainted=23`. The paint lands everywhere and the objects are
    still wrong. **Measured on the atlases:** multiplying by
    `SkylineHaze(0.34,0.36,0.40)` moves top-decile saturation **0.820 ->
-   0.788** (`car-kit`) and **0.733 -> 0.686** (`city-kit-commercial`) — four
-   to six per cent, because a multiply scales all three channels and
-   preserves their ratios. `PatrolWhite`'s comment says so outright: a
-   virtue there, the whole problem here.
-   **Shipped:** `GreyCopy` makes a luma-weighted grey of each atlas once, so
-   the modelling and the slate stripe survive (all luminance, no hue) and
-   the paint has something neutral to colour. **A cached VARIANT, not a
-   mutation of the shared material** — atlases are shared with props we
-   deliberately do not repaint, and editing the shared one would grey a
-   bench invisibly. Colour space round-tripped, not converted (RT and
-   destination both sRGB); a mismatch would shift the town's brightness and
-   not show until a round trip. **Read `kitGrey=atlases/failed/renderers`**:
-   zero greyed beside a non-zero `kitPaint` is the swap not running. Then
-   re-measure the saloon against the 0.385 the rest of that frame sits
-   under. **Do NOT chase this with darker paints** — the palette is already
-   0.12-0.48 and the saturation is the author's.
+   0.788** (`car-kit`) and **0.733 -> 0.686** (`city-kit-commercial`) —
+   four to six per cent, because a multiply preserves channel ratios.
+   `PatrolWhite`'s comment says so outright: a virtue there, the problem
+   here. **Shipped:** `GreyCopy` greys each atlas once, luma-weighted so the
+   modelling and slate stripe survive, as a cached VARIANT — atlases are
+   shared with props we deliberately do not repaint. Colour space
+   round-tripped, not converted. **Read `kitGrey=atlases/failed/renderers`;**
+   zero greyed beside non-zero `kitPaint` is the swap not running. **Do NOT
+   chase this with darker paints** — the saturation is the author's.
 
 1. **THE DECLUTTER: NAMEPLATES AND BUBBLES, MEASURED, OPEN.** *(on screen)*
    `collidingNames=3` over 26 samples — five labels at the peak, 3 of their
@@ -310,29 +321,22 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    serving anybody. Which is right depends on how OFTEN and by how much, and
    neither number existed. Rule 2 — print the series, then choose.
 
-1. **AND THE SAME COUNTER IMMEDIATELY FOUND A BIGGER ONE: FIVE OF SEVEN
-   DISTRICTS HAD NO SHOPS AT ALL.** `the_Hook:shop73 Copper_Row:shop4` and
-   **zero everywhere else** — the Exchange is the financial district and had
-   no commercial frontage; the Parade is the entertainment strip and was 37
-   houses and 24 flats. Shops were gated on `nearCore` alone and the dense
-   cores sit in the Hook, so that flag had been answering "is this the
-   Hook". The warehouse fault a second time, in the branch immediately below
-   it, and found by reading the new counter's OUTPUT rather than the code.
-   Two shares per district now (at a core and away from one) because both
-   are real; the Hook keeps 0.55 at a core since every frame-drift check is
-   calibrated on it. Tested both ways. **Read `premisesByDistrict` next
-   landing** — the mix is the thing to judge, not the presence.
+1. **FIVE OF SEVEN DISTRICTS HAD NO SHOPS AT ALL.** `the_Hook:shop73
+   Copper_Row:shop4` and **zero everywhere else** — the Exchange is the
+   financial district and had no commercial frontage; the Parade is the
+   entertainment strip and was 37 houses and 24 flats. Shops were gated on
+   `nearCore` alone and the dense cores sit in the Hook, so that flag had
+   been answering "is this the Hook". Found by reading the new counter's
+   OUTPUT, not the code. Two shares per district now (at a core and away
+   from one); the Hook keeps 0.55 since frame-drift is calibrated on it.
+   **Read `premisesByDistrict` next landing** — the mix is the judgment.
 
-1. **THE DRESSING GATE WENT GREEN ON BUILD T** — the far city carries
-   382 pieces where it carried 37. **THE FRAME ITEM BELOW IT IS RETIRED
-   (23 Aug): it was three regime changes stale.** It argued from
-   `mean=666.4ms` (a software rasteriser) and `game=24.53ms` against a
-   12ms budget, and named `npcs` as the dominant cost to attack. On the
-   real GPU the frame is `game=5.6ms` of `meanFrame ~27.5ms` with
-   `perfOk` green, and the render — not our code — is four fifths of it.
-   The live account is the `frameCost` ladder in `## Now`: shadows
-   5.1ms, per-pixel lights 4.4ms, crowd nothing. Anything that still
-   wants doing here starts from that ladder, not from these numbers.
+1. **THE DRESSING GATE WENT GREEN ON BUILD T** — the far city carries 382
+   pieces where it carried 37. **The old frame item under it is RETIRED: it
+   was three regime changes stale**, arguing from a software rasteriser's
+   666ms. On the real GPU the frame is `game=5.6ms` of ~27.5ms with `perfOk`
+   green, and the render is four fifths of it. Anything here starts from the
+   `frameCost` ladder in `## Now`, not from those numbers.
 
 1. ~~**The session-hook guarantee** (M22)~~ — **BUILT AND HOLDING.** What is
    open is the READING, not the tiers — see `## Now`.
