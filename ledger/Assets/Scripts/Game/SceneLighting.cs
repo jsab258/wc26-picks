@@ -228,6 +228,10 @@ namespace Ledger.Game
             return tex;
         }
 
+        /// Today's cloud deck, 0..1, as the fill reads it. Written every
+        /// LateUpdate and read by `SkyEnvironment`.
+        public static float Deck { get; private set; }
+
         void LateUpdate()
         {
             float night = GameController.NightAmount;
@@ -254,10 +258,24 @@ namespace Ledger.Game
             uint coverHash = (uint)GameController.TodayNumber * 2654435761u;
             float coverToday = 0.35f + 0.40f * (coverHash % 1000u / 999f);
             float deck = Mathf.Lerp(coverToday, 0.85f, rain);
+            // PUBLISHED, because a second reader arrived. `SkyEnvironment` picks
+            // between the ordinary-cloud and clear-day captures off this exact
+            // value, and recomputing the hash there would be one idea with two
+            // implementations — the shape this project keeps finding wrong on
+            // the copy nobody looks at.
+            Deck = deck;
             float deckFill = Mathf.Lerp(Mathf.Lerp(1.06f, 0.90f, deck), 1f, night);
             RenderSettings.ambientSkyColor = C(LightModel.AmbientSky(night, rain)) * deckFill;
             RenderSettings.ambientEquatorColor = C(LightModel.AmbientHorizon(night, rain)) * deckFill;
             RenderSettings.ambientGroundColor = C(LightModel.AmbientGround(night, rain)) * deckFill;
+
+            // WHAT A DRY WINDOW REFLECTS (M17.10 V6). Only when the street is
+            // dry: `WetReflections` publishes a real capture of the scene when
+            // it is wet, and that beats any photograph of a sky. Guarded on the
+            // same quantity that class branches on, so the two cannot both
+            // believe they own the setting.
+            if (WetReflections.Strength <= 0f)
+                SkyEnvironment.Apply(night, rain, deck);
 
             RenderSettings.fogColor = C(LightModel.FogColour(night, rain));
             RenderSettings.fogDensity = (float)LightModel.FogDensity(night, rain);

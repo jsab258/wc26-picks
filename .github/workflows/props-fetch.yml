@@ -92,7 +92,7 @@ jobs:
           fi
           git config user.name  "Claude"
           git config user.email "noreply@anthropic.com"
-          git add ledger/Assets/Props ledger/Assets/StreamingAssets/Decals ledger/Assets/Sky \
+          git add ledger/Assets/Props ledger/Assets/StreamingAssets/Decals ledger/Assets/Resources/Sky \
                   tools/props/listings.json tools/props/visual_manifest.json \
                   tools/props/base_mesh_inventory.txt tools/props/oga_probe.txt 2>/dev/null || true
           if git diff --cached --quiet; then

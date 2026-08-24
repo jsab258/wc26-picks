@@ -18,7 +18,7 @@ subset of that table. Three classes, three destinations:
                                    StreamingAssets because DecalLayer reads
                                    them at RUNTIME via File IO + LoadImage,
                                    the CityPack pattern.
-  ledger/Assets/Sky/polyhaven/     four 2k HDRIs, one per hour of the day
+  ledger/Assets/Resources/Sky/polyhaven/     four 2k HDRIs, one per hour of the day
                                    the sim photographs.
 
 EVERY RULE HERE IS INHERITED FROM fetch_props.py AND THE VOICE PIPELINE:
@@ -43,7 +43,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 
 BASE_MESH_DIR = ROOT / "ledger" / "Assets" / "Props" / "base-mesh"
 DECALS_DIR = ROOT / "ledger" / "Assets" / "StreamingAssets" / "Decals" / "ambientcg"
-SKY_DIR = ROOT / "ledger" / "Assets" / "Sky" / "polyhaven"
+SKY_DIR = (ROOT / "ledger" / "Assets" / "Resources" / "Sky" / "polyhaven")
 
 RAW = "https://raw.githubusercontent.com/M3-org/base-meshes/main/models"
 

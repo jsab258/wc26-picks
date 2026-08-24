@@ -719,6 +719,12 @@ namespace Ledger.Game
             // somewhere. Follows the body rather than the eye so that looking
             // around does not drag the probe with it.
             WetReflections.Ensure(player.transform);
+            // AND WHAT A DRY WINDOW REFLECTS. Loaded HERE rather than on the
+            // first `Apply`, which is where it would otherwise land: four 2k
+            // Radiance captures decoding inside a LateUpdate is a visible hitch
+            // on whatever frame the street happens to dry out on, and setup is
+            // already the place this project pays for its loads.
+            SkyEnvironment.Ensure();
             // Grain, vignette and bloom. Fails closed to an unfiltered image
             // if the shader is missing, because an art effect that can break
             // the picture must never be able to.

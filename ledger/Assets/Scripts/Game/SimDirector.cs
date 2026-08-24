@@ -2050,6 +2050,23 @@ namespace Ledger.Game
         float _reflMaxStrength;
         int _reflStartRefreshes = -1;
 
+        // WHAT THE ENVIRONMENT REFLECTION IS WORTH ON A DRY FRAME, WHICH IS THE
+        // NUMBER THAT WOULD HAVE CAUGHT THE FAULT THIS SHIPPED WITH.
+        //
+        // `reflectionIntensity` was written from `WetReflections.Strength` above
+        // the dry check, so it was ZERO on every dry frame in the game and the
+        // environment cubemap — good or bad — was multiplied away. Nothing
+        // measured it, and it is invisible in a still: a window reflecting
+        // nothing and a window reflecting a flat grey gradient look the same at
+        // 1280x720 through fog, which is rule 4's whole warning.
+        //
+        // A MINIMUM, not a mean. The question is "was it ever off while the
+        // street was dry", and one zeroed frame answers yes; a mean over
+        // thirteen days would bury it. Its denominator is `reflDry` beside it,
+        // so a run that was never dry cannot read as a run that was fine.
+        float _dryReflMin = 2f;
+        int _dryReflSampled, _skyStolen, _skyOwned;
+
         void SampleReflections()
         {
             if (_reflStartRefreshes < 0) _reflStartRefreshes = WetReflections.Refreshes;
@@ -2059,7 +2076,19 @@ namespace Ledger.Game
                 if (WetReflections.Strength > _reflMaxStrength)
                     _reflMaxStrength = WetReflections.Strength;
             }
-            else _reflDryFrames++;
+            else
+            {
+                _reflDryFrames++;
+                _dryReflSampled++;
+                float now = RenderSettings.reflectionIntensity;
+                if (now < _dryReflMin) _dryReflMin = now;
+                // AND WHETHER ANYTHING ELSE TOOK THE BINDING. Counted only on
+                // frames where `SkyEnvironment` claims to own it, so night —
+                // which hands back to the procedural cubemap by design, there
+                // being no night capture — does not read as a theft.
+                if (SkyEnvironment.Stolen()) _skyStolen++;
+                if (SkyEnvironment.Owning) _skyOwned++;
+            }
         }
 
         int ReflRefreshes => Math.Max(0, WetReflections.Refreshes - Math.Max(0, _reflStartRefreshes));
@@ -15121,6 +15150,19 @@ namespace Ledger.Game
                       $"transit={StreetFurniture.TransitCount} " +
                       $"reflWet={_reflWetFrames} reflDry={_reflDryFrames} " +
                       $"reflRefresh={ReflRefreshes} reflMax={_reflMaxStrength:0.00} reflOk={reflOk} " +
+                      // THE SKY CAPTURES, WIRED 24 AUG, WITH THE DENOMINATOR
+                      // ON THE SAME LINE. `Resources.Load` returns null quietly,
+                      // so "found" alone cannot tell a hit from a miss — and
+                      // `skyLoadedAs` is the second half of that: an .hdr that
+                      // Unity's default importer gives back as a 2D texture
+                      // BINDS FINE and reflects nonsense, so the dimension is
+                      // the tell rather than the null check.
+                      $"skyFound={SkyEnvironment.Found}/{SkyEnvironment.Asked} " +
+                      $"skyMissing={SkyEnvironment.MissingNames} " +
+                      $"skyLoadedAs={SkyEnvironment.LoadedAs} " +
+                      $"skyBound={SkyEnvironment.Bound} skyBinds={SkyEnvironment.Binds} " +
+                      $"skyOwned={_skyOwned} skyStolen={_skyStolen} " +
+                      $"dryReflMin={(_dryReflSampled > 0 ? _dryReflMin : -1f):0.00}/{_dryReflSampled} " +
                       $"postFrames={FilmGrade.Frames} postOk={postOk} " +
                       $"framedBeats={FramedBeat.Begun} framingPush={PlayerController.TightestFraming:0.0000} framingOk={framingOk} " +
                       // THE WIND THE RUN ACTUALLY SAW. Both at 1.0000

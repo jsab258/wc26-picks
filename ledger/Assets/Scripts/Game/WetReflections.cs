@@ -122,17 +122,18 @@ namespace Ledger.Game
                     // result.
                     _instance._probe.intensity = 0f;
                     _instance._probe.enabled = false;
-                    Unpublish();
-                    // AND ALL THE WAY OFF. `Unpublish` hands the sky back at
-                    // full strength, which is right when the road simply
-                    // dries out — but for the A/B it would measure "our
-                    // cubemap versus the skybox" while claiming to measure
-                    // what the feature contributes. Zero is the honest other
-                    // side of that comparison.
-                    RenderSettings.reflectionIntensity = 0f;
+                    // ALL THE WAY OFF, AND THAT NOW MEANS THE SKY CAPTURES TOO.
+                    // The A/B asks what reflections contribute; handing back to
+                    // an environment cubemap would measure "our capture of the
+                    // scene versus a photograph of a sky" while claiming to
+                    // measure the feature. `Suspend` is the honest other side,
+                    // and it holds — `Apply` is a no-op until `Resume`, so
+                    // nothing quietly turns the environment back on mid-A/B.
+                    SkyEnvironment.Suspend();
                 }
                 else
                 {
+                    SkyEnvironment.Resume();
                     _instance._probe.enabled = true;
                     _instance._probe.intensity = Strength;
                     _instance.Publish();
@@ -153,12 +154,6 @@ namespace Ledger.Game
                       SceneLighting.Wetness, GameController.NightAmount)
                 : 0f;
 
-            // The strength reaches the shading through the scene's
-            // reflection intensity now, not the probe's own — a custom
-            // reflection texture does not carry the probe's intensity with
-            // it, so setting only that was half the reason nothing showed.
-            RenderSettings.reflectionIntensity = Strength;
-
             if (Strength <= 0f)
             {
                 // Dry. Off completely — not rendered at zero intensity, which
@@ -172,6 +167,29 @@ namespace Ledger.Game
                 _metresSince = _secondsSince = 0f;
                 return;
             }
+
+            // THE INTENSITY WRITE MOVED BELOW THE DRY CHECK, AND IT HAD BEEN
+            // ZEROING EVERY DRY FRAME IN THE GAME.
+            //
+            // It used to sit above, unconditional, with a comment explaining
+            // that a custom reflection texture does not carry the probe's own
+            // intensity — which is true, and is exactly why it belongs to
+            // whoever owns the reflection SOURCE rather than to this class.
+            // `Strength` is zero on a dry street, so `reflectionIntensity` was
+            // written to zero on every dry frame, and `Unpublish` handing the
+            // sky back "at full strength" was undone by the next LateUpdate.
+            //
+            // So the environment reflection has been multiplied away on every
+            // dry frame this project has ever rendered. The near-black windows
+            // in the landed stills were not reflecting a poor cubemap; they
+            // were reflecting it times zero, and swapping in a better cubemap
+            // underneath that would have changed nothing at all.
+            //
+            // One owner per state now: this class owns the wet street, where a
+            // real capture of the scene beats any photograph of a sky, and
+            // `SkyEnvironment` owns the dry one. The line below runs only on
+            // the branch that has actually published something.
+            RenderSettings.reflectionIntensity = Strength;
 
             _probe.enabled = true;
             _probe.intensity = Strength;
@@ -237,13 +255,18 @@ namespace Ledger.Game
             RenderSettings.customReflectionTexture = tex;
         }
 
-        /// Hand the sky back. A dry road reflecting a cubemap of a rained-on
-        /// street is worse than one reflecting nothing.
+        /// Hand the street back to the sky. A dry road reflecting a cubemap of
+        /// a rained-on street is worse than one reflecting nothing.
+        ///
+        /// THROUGH `SkyEnvironment`, NOT STRAIGHT TO `Skybox`. Setting the mode
+        /// here would put the three-colour gradient under every window for as
+        /// long as it took the next `Apply` to run, and LateUpdate order between
+        /// two components is undefined — so the gap is not reliably one frame,
+        /// and on the frame it lands it is every window in shot.
         static void Unpublish()
         {
-            RenderSettings.defaultReflectionMode =
-                UnityEngine.Rendering.DefaultReflectionMode.Skybox;
-            RenderSettings.reflectionIntensity = 1f;
+            SkyEnvironment.Apply(GameController.NightAmount,
+                                 Weather.Rain, SceneLighting.Deck);
         }
     }
 }

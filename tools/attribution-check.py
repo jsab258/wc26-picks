@@ -66,7 +66,7 @@ WATCHED = {
     # containment and the token check is per-row, so both hold.
     "ledger/Assets/Props/base-mesh": "The Base Mesh",
     "ledger/Assets/StreamingAssets/Decals": "ambientCG",
-    "ledger/Assets/Sky": "Poly Haven",
+    "ledger/Assets/Resources/Sky": "Poly Haven",
     # A single file, not a directory — the shipped face sits in `Resources`
     # beside code and prefabs, so there is no folder to name that would not
     # also swallow half the project. The token is the licence, because that is
@@ -91,7 +91,18 @@ OURS = {
 # File types that are content rather than code. A directory holding only text
 # or json is a manifest, not an asset drop.
 ASSET_SUFFIXES = {".fbx", ".png", ".jpg", ".jpeg", ".tga", ".psd", ".wav",
-                  ".mp3", ".ogg", ".ttf", ".otf", ".bundle", ".obj", ".blend"}
+                  ".mp3", ".ogg", ".ttf", ".otf", ".bundle", ".obj", ".blend",
+                  # RADIANCE AND OPENEXR, ADDED 24 AUG BECAUSE THEY WERE
+                  # MISSING AND THE CHECK WAS SILENT ABOUT IT. 23MB of Poly
+                  # Haven captures sat under `Assets/Sky` for a day with a
+                  # mapping row pointing at them, and this sweep reported
+                  # nothing — not "unaccounted", not "ok", nothing, because
+                  # a directory holding only unlisted suffixes reads as a
+                  # directory holding no assets. That is rule 3b exactly:
+                  # a clean result that cannot tell "nothing there" from
+                  # "nothing looked at", on the one check whose entire job
+                  # is noticing somebody else's files.
+                  ".hdr", ".exr"}
 
 _fails = []
 
