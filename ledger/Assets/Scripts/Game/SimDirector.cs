@@ -8603,6 +8603,12 @@ namespace Ledger.Game
                  + $"/probes:{(rr != null ? (int)rr.lightProbeUsage : -1)}]";
         }
 
+        /// `sky/wall@x` from one noon frame, and the ratio beside it. Both, and
+        /// on the done line: the ratio alone cannot say whether a high reading
+        /// is a bright wall or a dark sky, and those have opposite fixes.
+        string _skyVsWall = "not-measured";
+        float _wallOverSky = -1f;
+
         void ProbeNoonFacade(Camera cam)
         {
             if (_noonFacadeDone || cam == null) return;
@@ -8626,6 +8632,48 @@ namespace Ledger.Game
             var shadowSeries = new System.Text.StringBuilder();
             try
             {
+                // THE SKY AGAINST THE BRIGHTEST FACADE, IN ONE FRAME AND
+                // BEFORE ANY RUNG HAS TOUCHED THE SCENE.
+                //
+                // Measured off `review_day1_noon.jpg` from `5ee9330`: the
+                // right-hand facade reads 0.619 mean while the SKY reads 0.531
+                // and the facade on the left reads 0.068. A nine-to-one range
+                // between two walls in one frame, with the brighter one above
+                // its own light source, and nothing in the project could see
+                // it — `lumaThirds` is COLUMN thirds over rows 25-75%, so it
+                // excludes the sky by construction, and `townWallAlbedo` is a
+                // material property rather than a rendered luminance, so the
+                // two cannot be compared however tempting it is.
+                //
+                // NO BOUND, DELIBERATELY (rule 2). "A wall may not out-shine
+                // the sky" sounds like an invariant and is not one: a pale
+                // surface in direct sun really can beat an overcast sky, so a
+                // gate written from today's frame would be a rounding wearing
+                // a measurement's clothes. This prints the pair and the ratio
+                // so a bound can come from the series, which is the
+                // `deedSlotSets` move and the only one that has ever worked
+                // here.
+                //
+                // NINE PATCHES ACROSS, not one: the fault is on ONE building
+                // and a single sample would hit whatever happened to be in
+                // front of the camera — which is how the places gate got
+                // re-gated onto a worse metric off one lucky frame. The
+                // brightest is the answer and the position is named, so one
+                // round trip says WHICH facade rather than that there is one.
+                var fsWall = FrameShot(cam);
+                double skyPatch = BoxMedian(fsWall, new Vector3(0.5f, 0.93f, 0f), 0.04f);
+                double wallPeak = -1; float wallAt = -1f;
+                for (int k = 0; k < 9; k++)
+                {
+                    float vx = 0.08f + k * 0.105f;
+                    double m = BoxMedian(fsWall, new Vector3(vx, 0.62f, 0f), 0.03f);
+                    if (m > wallPeak) { wallPeak = m; wallAt = vx; }
+                }
+                _skyVsWall = skyPatch >= 0 && wallPeak >= 0
+                    ? $"{skyPatch:0.000}/{wallPeak:0.000}@{wallAt:0.00}"
+                    : "not-measured";
+                _wallOverSky = skyPatch > 0.0001 ? (float)(wallPeak / skyPatch) : -1f;
+
                 all = LeftThirdMedian(FrameShot(cam));
                 FilmGrade.Bypass = true;
                 noPost = LeftThirdMedian(FrameShot(cam));
@@ -14737,6 +14785,7 @@ namespace Ledger.Game
                       // wall surfaces through the same maths, so the two
                       // sides of the comparison are one instrument.
                       $"townWallAlbedo={AssetLibrary.TownWallAlbedo():0.00} kitAlbedo={KitAlbedoSummary()} " +
+                      $"skyVsWall={_skyVsWall} wallOverSky={_wallOverSky:0.00} " +
                       // THE DENOMINATOR FOR THE ARROWS ABOVE. A run where no
                       // family carries a `>stands` value reads identically to
                       // one where the repaints stopped being attributed, and
