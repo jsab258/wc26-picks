@@ -143,31 +143,49 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **THREE LEVERS MEASURED, TWO NULL — AND ALL THREE NULLS WERE THE FIXTURE
-   TALKING.** Every series ran `on:mat_concrete_b#g1`, the SUN-PERPENDICULAR
-   wall (`nSun:0.00`):
-   - **shadow strength 0.93 -> 0.55: shade 0.039 -> 0.043.** Null. Predicted
-     "raises the shade, leaves the lit untouched" — lit CONFIRMED (0.420 ->
-     0.424), shade REFUTED.
-   - **key x1.00 -> x0.40: shade FROZEN at 0.039**, lit 0.420 -> 0.180.
-   - **fill x1 -> x4: 0.039 -> 0.518**, the only mover, capped below share
-     1.0 by a CoreTest defending something true.
-   **One cause for both nulls: there is no direct sun on that wall to
-   remove.** Dimming a key cannot darken what it never lit; softening a
-   shadow cannot brighten a surface not in one. The 0.5 target describes a
-   CAST SHADOW — sunlit surface, sun blocked — and a wall facing away is a
-   different physical case that is genuinely darker. 0.092 may be correct
-   for it.
-   **PLANTED, NOT HOPED FOR (rule 5b's corollary).** `FindShadowPair` sweeps
-   the frame for a wall that faces the sun AND has geometry between it and
-   the sun, plus an unblocked one beside it for the denominator — both from
-   one sweep, so the pair shares a frame and a moment. `shadowSeries` now
-   samples a BOX around each found point (`BoxMedian`) instead of the frame
-   thirds, and `shadowPairOn` names both surfaces. When no sunlit wall is in
-   shot it says `no_sunlit_wall_in_frame` — a legitimate answer rather than
-   a zero, because a shaded alley genuinely has no cast shadow to measure.
-   **Read `shadowPairOn` FIRST next landing:** the series means nothing until
-   it says a real pair was found.
+1. **FIVE GATES ARE FAILING 15-38% OF RECENT RUNS AND `claims` IS GETTING
+   WORSE.** *(instrument first, then the gates.)* `--flaky` ranked by a
+   LIFETIME rate with only "how long ago" for recency, so `dayJob` printed
+   `27.0% ... last 3 runs ago` — chronic and live — with no way to ask what
+   it is doing NOW. It prints a recent window beside the lifetime one now and
+   ranks by it, the same shape `--series` has had all along, and flags drift
+   in BOTH directions because a gate getting worse is the urgent case:
+   | gate | lifetime | recent 40 |
+   |---|---|---|
+   | frame | 47.2% | 37.5% |
+   | jobRan | 23.8% | **25.0%** |
+   | dayJob | 27.0% | 22.5% |
+   | dressing | 22.5% | 22.5% |
+   | claims | 7.5% | **15.0% — WORSENING** |
+   **`claims` doubling is the finding the lifetime view hid**, and it failed
+   on the newest run. **`dayJob` and `jobRan` are NOT one fault seen twice** —
+   checked: they overlap in 2 of 4 recent reds and each also fails alone, and
+   today's red is `dayJob` WITHOUT `jobRan`, so the courier ran and the
+   assertion still failed. Narrower than "the job never went out".
+   **Plant the conditions, do not loosen the bounds** — five gates at this
+   rate is what teaches everybody to read red as noise, and this session has
+   twice been within one step of doing exactly that.
+   *(I first measured the recent window with `ls -t` and got 8% for
+   everything, which was wrong: `git pull` rewrites every run file, so mtime
+   order is the pull order and means nothing. `ordered_runs()` sorts by
+   commit. A wrong ordering made five broken gates look fixed.)*
+
+1. **THE SHADOW LEVER IS REAL — THE THREE NULLS WERE ALL THE FIXTURE.**
+   `FindShadowPair` sweeps for a wall facing the sun WITH geometry between it
+   and the sun, plus an unblocked one for the denominator, both from one
+   sweep. It found a proper pair (`mat_brick_grey_b`, `nSun:0.62`, 10.6m) and
+   **`shadowSeries` moves monotonically: 0.043 / 0.071 / 0.098 / 0.122 /
+   0.145 as strength walks 0.93 -> 0.55 — a 3.4x lift.** The earlier
+   `0.039 -> 0.043` null was entirely the old fixture (`nSun:0.00`, a wall
+   the sun never reaches), as were the key and shadow nulls before it.
+   **THE DENOMINATOR IS BROKEN AND IS NOT TO BE DIVIDED BY.** The lit box
+   reads 0.000-0.004 on a wall of the SAME material at the SAME `nSun:0.62`,
+   10.1m — a lit wall cannot be darker than itself in shadow, so the pair is
+   right and the SAMPLING is wrong. Viewport coords now ship in
+   `shadowPairOn`, and the series appends
+   `LIT_DARKER_THAN_SHADE-denominator_unusable` rather than printing a number
+   somebody might divide. **Fix the lit box, then set `shadowStrength` from
+   the series — do not set it from the shade column alone.**
 
 1. **`farFrac` CARRIES THE SIGNAL THE OTHER TWO BANDS MISS — SERIES LANDED.**
    *(rule 12; step-back and depth series in `roadmap-history.md`.)* First
@@ -247,18 +265,17 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    the landing to see what `glossScale` reads now, then the reflection
    layer's strength — do not re-tune the gloss, it did its part.**
 
-1. **EIGHTY-NINE FETCHED MODELS ON DISK, SIX REFERENCED — 25 OF THEM
-   INDUSTRIAL BUILDINGS FOR A PORT TOWN.** Counted: industrial 25, roads 47,
-   suburban 13, commercial 10 = **95 on disk, six referenced** (two awnings,
-   `city_kit_roads_light_curved` for every lamp in town, three skyline
-   buildings). Unused is the density the bar is about: barriers, cones,
-   four more lamp variants, 47 road pieces, 25 industrial buildings for a
-   town whose identity is its docks. Nothing to fetch or buy. **Next step
-   is a READ:** put a handful through `TryInstantiateProp` and check
-   `kitAlbedo`/`kitAlbedoNoTex` first — 30 materials already carry no albedo
-   map, so a fetched model is not automatically a usable one.
-   *(I first said ENTIRELY unused, wrongly: the code uses underscored keys,
-   so a hyphenated grep found nothing and I read the absence as an answer.)*
+1. **EIGHTY-NINE FETCHED MODELS ON DISK, SIX REFERENCED.** *(rule 6 aimed at
+   art.)* industrial 25, roads 47, suburban 13, commercial 10 = 95 on disk;
+   six used — two awnings, `city_kit_roads_light_curved` for every lamp in
+   town, three `low-detail-building-*` for the skyline. Unused is the density
+   the bar is about: barriers, cones, four more lamp variants, 47 road
+   pieces, **25 industrial buildings for a town whose identity is its
+   docks**. Nothing to fetch or buy. **Next is a READ:** put a handful
+   through `TryInstantiateProp` and check `kitAlbedo` first — twelve
+   `base_mesh_*` families at 1.00 prove a fetched model is not a usable one.
+   *(First reported as entirely unused, which was wrong: props are addressed
+   by underscored key and my hyphenated grep found nothing.)*
 
 1. **TWELVE PROP FAMILIES AT ALBEDO 1.00 ARE UNTEXTURED — `kitAlbedoNoTex=30`
    SAYS SO.** `kitAlbedo` had them at exactly 1.00 against
@@ -278,24 +295,16 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    `review_street`. The green bicycle left is `oga-vehicles`, which goes
    through no paint site — the variant design working, not a miss.
 
-1. **THE SPLAY METRIC LANDED AND ITS PEAK CANNOT TELL A WAVE FROM A
-   SCARECROW.** *(on screen, `review_day2_close`: arms out to the SIDES.)*
-   Every other arm number is an angle from straight DOWN, so a fore/aft swing
-   and a sideways splay read alike. `ArmSplayNow` projects onto the plane
-   facing the body so only the splay survives — and the first landing reads
-   **`armSplayWorst=120.1` over 496,687 samples.**
-   **120 degrees is an arm thirty degrees ABOVE horizontal and out to the
-   side: damning as a resting pose, entirely correct as the `wave` reaction,
-   which is wired and firing.** A peak alone cannot separate those, which is
-   the trap this project keeps walking into — a peak answers "did it ever"
-   and a median answers "is this normal".
-   **So `armSplayMedian` and `armSplayP90` ship beside it** (capped list,
-   like `_armMedians`). A median near the rest angle with a high peak is a
-   street standing properly plus someone waving; a median up at the peak is a
-   street of scarecrows. P90 as well, because the population of interest is a
-   MINORITY and a median is structurally blind to one — which is how three
-   T-poses survived a street whose medians read healthy.
-   **Not a rig fault either way:** `restArmDrop=8.0` says the bind is right.
+1. **THE SPLAY DISTRIBUTION LANDED: median 29.3, p90 43.4, worst 120.8.**
+   *(on screen, `review_day2_close`.)* Every other arm number is an angle
+   from straight DOWN, so a fore/aft swing and a sideways splay read alike;
+   `ArmSplayNow` projects onto the plane facing the body so only splay
+   survives. The peak alone could not tell a `wave` (wired, firing) from a
+   scarecrow — **the distribution can, and it says the street is fine**: a
+   median of 29 degrees is an arm hanging with a walk swing, and 120 is the
+   tail, not the norm. **Judge the p90 of 43 against the animation set**
+   before calling it: 43 degrees at the ninth decile is a wide-ish idle, not
+   a T-pose. `restArmDrop=8.0` says the bind is right either way.
 
 1. **THE DECLUTTER: `namesClipped=0/83` — RAN, FOUND NOTHING, AND THE TEST
    IS SOUND.** *(on screen)* `collidingNames=3` over 26 samples; `PinAll`

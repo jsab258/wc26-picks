@@ -8729,7 +8729,17 @@ namespace Ledger.Game
                     if (FindShadowPair(cam, out var shVp, out var liVp,
                                        out var shOn, out var liOn))
                     {
-                        _shadowPairOn = $"[shade:{shOn}/lit:{liOn}]";
+                        // WHERE the two points are, not just what they are.
+                        // First landing found a geometrically perfect pair —
+                        // same material, same `nSun:0.62`, 10.6m and 10.1m —
+                        // and the LIT box read 0.000 while the SHADED one
+                        // read 0.043. A lit wall cannot be darker than the
+                        // same wall in shadow, so the pair is right and the
+                        // SAMPLING is wrong, and the missing fact was where
+                        // in the frame each box sat. Viewport coords say it.
+                        _shadowPairOn = $"[shadeVp:{shVp.x:0.00},{shVp.y:0.00}"
+                            + $"/litVp:{liVp.x:0.00},{liVp.y:0.00}"
+                            + $"/shade:{shOn}/lit:{liOn}]";
                         foreach (float k in ShadowStrengthRungs)
                         {
                             sunL.shadowStrength = k;
@@ -8739,6 +8749,17 @@ namespace Ledger.Game
                             if (shadowSeries.Length > 0) shadowSeries.Append('/');
                             shadowSeries.Append($"s{k:0.00}:{sh3:0.000}|{lit3:0.000}");
                         }
+                        // AN IMPOSSIBLE READING MUST NOT LOOK LIKE A NUMBER.
+                        // The same wall lit cannot be darker than in shadow.
+                        // When it reads that way the denominator is broken
+                        // and any ratio taken from it is worse than none —
+                        // this is the pair-of-maxima fault in a new costume,
+                        // so it is named in the output rather than left for
+                        // somebody to divide.
+                        double sAnchor = BoxMedian(FrameShot(cam), shVp, 0.03f);
+                        double lAnchor = BoxMedian(FrameShot(cam), liVp, 0.03f);
+                        if (lAnchor <= sAnchor)
+                            shadowSeries.Append("/LIT_DARKER_THAN_SHADE-denominator_unusable");
                     }
                     else
                     {

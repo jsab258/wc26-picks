@@ -520,7 +520,22 @@ def flaky():
         return 0
 
     total = len(runs)
-    counts, newest, ago = {}, {}, {}
+    # THE RECENT WINDOW, AND THE DOCSTRING ABOVE ARGUES FOR IT WITHOUT HAVING
+    # IT. That paragraph says "a rate with no recency is a claim about the
+    # present made entirely out of the past" and the fix applied was HOW LONG
+    # AGO — which is recency of the last failure, not a rate for the present.
+    # The gap bit on 24 Aug: `dayJob` printed `27.0% ... last 3 run(s) ago`,
+    # which reads as chronically broken AND live, and I was one step from
+    # investigating it as such. Over the most recent 36 runs it is 8.3%.
+    # `frame` is worse — 47.2% lifetime against 8.3% recent — because most of
+    # its failures are the software-rasteriser era that no longer exists.
+    #
+    # A lifetime rate spanning a regime change describes neither regime. This
+    # is the same repair `--series` already has, where the recent window is
+    # printed ABOVE the all-runs one on purpose.
+    RECENT = 40
+    counts, newest, ago, recent = {}, {}, {}, {}
+    recent_n = min(RECENT, total)
     for i, (sha, path) in enumerate(runs):        # i == runs since, newest first
         m = FAILING.search(read(path))
         if not m:
@@ -528,6 +543,8 @@ def flaky():
         for g in split_gates(m.group(1)):
             name = g.split("[", 1)[0].strip()
             counts[name] = counts.get(name, 0) + 1
+            if i < recent_n:
+                recent[name] = recent.get(name, 0) + 1
             if name not in newest:
                 newest[name] = sha
                 ago[name] = i
@@ -544,12 +561,32 @@ def flaky():
     live = {k: v for k, v in counts.items() if ago[k] < QUIET}
     quiet = {k: v for k, v in counts.items() if ago[k] >= QUIET}
 
-    print(f"gate failures across {total} kept run(s), newest commit first:")
-    for name, n in sorted(live.items(), key=lambda kv: -kv[1]):
+    # RANKED BY THE RECENT RATE, not the lifetime one: the question this tool
+    # is asked is "what is flaky NOW", and ordering by a number that includes
+    # a dead regime answers a different one.
+    print(f"gate failures across {total} kept run(s), newest commit first "
+          f"(recent = the last {recent_n}):")
+    for name, n in sorted(live.items(),
+                          key=lambda kv: -(recent.get(kv[0], 0) / max(1, recent_n))):
         pct = 100.0 * n / total
+        r = recent.get(name, 0)
+        rpct = 100.0 * r / max(1, recent_n)
         when = "the newest run" if ago[name] == 0 else f"{ago[name]} run(s) ago"
-        note = "  <- rare, and rare is the dangerous kind" if n <= 2 else ""
-        print(f"  {n:3}/{total}  {pct:5.1f}%  {name:14} last {when}, e.g. {newest[name]}{note}")
+        note = "  <- rare, and rare is the dangerous kind" if r <= 2 else ""
+        # The recent rate FIRST, because it is the one that describes today.
+        # DRIFT IN BOTH DIRECTIONS, and the worsening one matters more.
+        # A gate improving is good news that the lifetime rate hides; a gate
+        # GETTING WORSE is a live regression that the lifetime rate buries
+        # under all the runs from before it started. `claims` is the case:
+        # 7.5% lifetime, 15.0% recent, and only the second number is about
+        # the code as it stands today.
+        drift = ""
+        if n >= 5 and rpct * 2 < pct:
+            drift = f"  <- improving: {pct:.0f}% lifetime is mostly an older regime"
+        elif r >= 3 and rpct > pct * 1.5:
+            drift = f"  <- WORSENING: {rpct:.0f}% recent against {pct:.0f}% lifetime"
+        print(f"  recent {r:2}/{recent_n} {rpct:5.1f}%   lifetime {n:3}/{total} "
+              f"{pct:5.1f}%   {name:14} last {when}, e.g. {newest[name]}{note}{drift}")
 
     if quiet:
         print(f"\n  quiet — nothing red in the last {QUIET}+ runs. Fixed, or the "
