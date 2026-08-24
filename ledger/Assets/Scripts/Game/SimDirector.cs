@@ -8459,6 +8459,12 @@ namespace Ledger.Game
         string _noonFacade = "not_probed";
         string _noonFacadeOf = "not_probed";
         string _noonFacadeMat = "not_probed";
+        /// The fill multipliers the shade/lit series is taken at. 1.0 is
+        /// included on purpose: a series whose first point is not TODAY's
+        /// value has no anchor, and every landed reading in this project's
+        /// history was taken at 1.0.
+        static readonly float[] AmbientRungs = { 1.0f, 1.5f, 2.0f, 2.5f, 3.0f, 4.0f };
+        string _ambientSeries = "not_probed";
         string _districtGround = "not_probed";
         bool _noonFacadeDone;
 
@@ -8550,6 +8556,7 @@ namespace Ledger.Game
             var keepGnd = RenderSettings.ambientGroundColor;
             var keepShadows = QualitySettings.shadows;
             bool keepFog = RenderSettings.fog;
+            var ambSeries = new System.Text.StringBuilder();
             try
             {
                 all = LeftThirdMedian(FrameShot(cam));
@@ -8607,10 +8614,41 @@ namespace Ledger.Game
                 RenderSettings.ambientEquatorColor = Color.black;
                 RenderSettings.ambientGroundColor = Color.black;
                 ambOff = LeftThirdMedian(FrameShot(cam));
-                RenderSettings.ambientSkyColor = keepSky * 4f;
-                RenderSettings.ambientEquatorColor = keepEq * 4f;
-                RenderSettings.ambientGroundColor = keepGnd * 4f;
-                amb4x = LeftThirdMedian(FrameShot(cam));
+                // AND NOW THE SERIES, BECAUSE `amb4x` ANSWERED THE QUESTION
+                // AND CANNOT ANSWER THE NEXT ONE. It came back 0.514 against
+                // 0.039, so ambient is not merely A lever, it is the whole
+                // one — `ambOff` took the same third to 0.012, meaning direct
+                // light contributes almost nothing there, which
+                // `noonFacadeMat` explains outright: `nSun:0.00`, the wall is
+                // exactly edge-on to the sun and lit by fill alone.
+                //
+                // But 4x OVERSHOOTS: 0.514 is brighter than the LIT third of
+                // the same frame (0.431), which would be a shaded wall
+                // outshining a sunlit one. So the multiplier lies somewhere
+                // under 4 and picking it off two points is the invented
+                // number rule 2 forbids — especially since the two points are
+                // 13x apart in display units, which is nothing like linear.
+                //
+                // BOTH THIRDS AT EVERY STEP, and that is the part the single
+                // rung got wrong rather than merely incomplete.
+                // `LightModel`'s own comment sets the target as a RATIO — the
+                // GTA reference noons put a cast shadow at roughly half the
+                // lit brightness — and raising the fill raises the lit side
+                // too, so a series of shade values alone would be read
+                // against a denominator that is quietly moving. Printed as
+                // `shade|lit` pairs so the ratio is arithmetic and no reader
+                // has to assume the two came from the same frame.
+                foreach (float k in AmbientRungs)
+                {
+                    RenderSettings.ambientSkyColor = keepSky * k;
+                    RenderSettings.ambientEquatorColor = keepEq * k;
+                    RenderSettings.ambientGroundColor = keepGnd * k;
+                    var fs = FrameShot(cam);
+                    double sh = LeftThirdMedian(fs), lit = RightThirdMedian(fs);
+                    if (ambSeries.Length > 0) ambSeries.Append('/');
+                    ambSeries.Append($"x{k:0.0}:{sh:0.000}|{lit:0.000}");
+                    if (k >= 3.99f) amb4x = sh;
+                }
                 RenderSettings.ambientSkyColor = keepSky;
                 RenderSettings.ambientEquatorColor = keepEq;
                 RenderSettings.ambientGroundColor = keepGnd;
@@ -8647,6 +8685,9 @@ namespace Ledger.Game
                         + $"/winOff:{winOff:0.000}/ambOff:{ambOff:0.000}"
                         + $"/amb4x:{amb4x:0.000}/shadowOff:{shadowOff:0.000}"
                         + $"/fogOff:{fogOff:0.000}]";
+            _ambientSeries = ambSeries.Length > 0
+                ? "[" + ambSeries + "]" : "[not_probed]";
+            Debug.Log("SimDirector: ambientSeries " + _ambientSeries);
             Debug.Log("SimDirector: noonFacade " + _noonFacade);
 
             // THE CENSUS, after the ladder acquitted everything else. Two
@@ -8717,6 +8758,40 @@ namespace Ledger.Game
         /// region Fingerprint's lumaThirds reports first, so the ladder and
         /// the frame ledger describe one patch of the picture. -1 for a
         /// failed render, which cannot read as a dark wall (rule 3b).
+        /// THE LIT THIRD, so the shaded one has a denominator.
+        ///
+        /// `LeftThirdMedian` alone answers "how dark is the wall" and cannot
+        /// answer the question that actually decides the fix, which is "how
+        /// dark is it COMPARED TO the lit side". `LightModel`'s own comment
+        /// sets the target in exactly those terms — the GTA reference noons
+        /// put a cast shadow at roughly HALF the lit brightness — so the
+        /// number to tune against is a ratio and half of it was never
+        /// printed. Same rows, same statistic, opposite third.
+        static double RightThirdMedian(FrameStats st)
+        {
+            var luma = st.Luma;
+            if (luma == null || luma.Length == 0) return -1;
+            int w2 = 640, rows = luma.Length / w2;
+            if (rows < 4) return -1;
+            var hist = new int[256];
+            int n = 0;
+            for (int r = rows / 4; r < (3 * rows) / 4; r++)
+                for (int c = (2 * w2) / 3; c < w2; c++)
+                {
+                    int bin = (int)(luma[r * w2 + c] * 255.0);
+                    hist[bin < 0 ? 0 : (bin > 255 ? 255 : bin)]++;
+                    n++;
+                }
+            if (n == 0) return -1;
+            int half = n / 2, seen = 0;
+            for (int b = 0; b < 256; b++)
+            {
+                seen += hist[b];
+                if (seen > half) return b / 255.0;
+            }
+            return -1;
+        }
+
         static double LeftThirdMedian(FrameStats st)
         {
             var luma = st.Luma;
@@ -14129,6 +14204,7 @@ namespace Ledger.Game
                       $"noonFacade={_noonFacade} " +
                       $"noonFacadeOf={_noonFacadeOf} " +
                       $"noonFacadeMat={_noonFacadeMat} " +
+                      $"ambientSeries={_ambientSeries} " +
                       $"districtGround={_districtGround} " +
                       // Probe-render milliseconds per rung, NOT comparable
                       // with meanFrame (the probe's own RT and ReadPixels
