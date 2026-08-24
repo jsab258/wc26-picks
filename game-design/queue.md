@@ -143,22 +143,29 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **`dayJob` IS DIAGNOSED: THE COURIER IS STUCK ON A DOOR I MADE SWING.**
-   *(The one live gate: 10% of the last 40, 84 of 308 ever, never once
-   diagnosed because it printed no reason.)* Gave it its operands, then read
-   the tracer that already existed: `shiftTrace=[d13:**noaccept**/nearest:6.3m/
-   **stalled:733** of ticks:1257/**on:Bldg69_door@0.2m**]`. The courier spent
-   **58% of the run pressed against a door at 0.2m**, never got within 6.3m
-   of the board, missed the noon accept window, so `ShiftsWorked` stayed 0.
-   **Cause is mine, from today:** `MakeBox` uses `CreatePrimitive`, which
-   ships a BoxCollider. Recessed 12cm into the facade it sat harmlessly
-   inside the wall; the moment `DoorHost` turns the hinge, ~1m of collider
-   sweeps the PAVEMENT. Removed — the wall still blocks, `DoorHost` uses
-   distances not raycasts, `WinBox` set the precedent. **Judge on `dayJob`
-   and `stalled` next landing.** *(Cannot explain the 84 historical reds —
-   doors swung only today — so expect improvement, not a cure.)*
-   *(`jobsDone=2` beside `shifts=0` is NOT a contradiction: `JobsDone` is the
-   racket's drops, `ShiftsWorked` the courier's rounds. Checked.)*
+1. **EIGHTEEN GATES CANNOT NAME THEIR OWN FAILURE — A NINETEENTH IS REFUSED.**
+   `dayJob` failed **84 of 308 runs** and never printed a reason: its entry is
+   the bare tuple `("dayJob", dayJobOk)`. Undiagnosed for months not through
+   neglect but because there was nothing to read — and the moment it got its
+   three operands, the tracer beside it named the cause in one landing.
+   **`claims` was worse: it printed the WRONG operand** — the int
+   `LawHost.ClaimsCaught` while testing the bool `_claimCaught` — so a red
+   showed a healthy-looking `caught=1`. Both fixed, with `perf`.
+   **`tools/gate-detail.py` ratchets the count** (18, ceiling 18), in
+   `verify`. It does NOT demand the eighteen be fixed — each needs its
+   condition read and its operands chosen, which is judgement, not a rename —
+   it refuses an addition. **A count, not a list of blessed names**, because a
+   list decays on every rename and an entry nobody re-reads is the reach
+   ledger's own failure mode. It also catches a gate listed BOTH bare and
+   detailed — a mistake I made today adding `perf`.
+
+1. ~~**`dayJob`**~~ — **FIXED AND CONFIRMED: `shifts=1`, `stalled=0`, all 72
+   gates green.** The courier had spent 733 of 1257 ticks pressed against
+   `Bldg69_door` at 0.2m. `MakeBox` uses `CreatePrimitive`, which ships a
+   BoxCollider; recessed 12cm into the facade it was harmless, but once
+   `DoorHost` turned the hinge ~1m of collider swept the PAVEMENT. Removed —
+   the wall still blocks, `DoorHost` uses distances not raycasts, `WinBox`
+   set the precedent. **From `stalled=733` to `stalled=0` and a shift worked.**
 
 1. **SIX TOOLS COMPARED A GIT ABBREVIATION TO A RUN FILENAME BY EQUALITY.**
    `%h` sizes itself to stay unambiguous; as the repo grew it went **7 -> 8**
@@ -174,42 +181,20 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    27.3% lifetime, improving; all else quiet. "Five gates at 15-38%" and
    "`claims` WORSENING" **withdrawn**.
 
-1. **THE SIM HANGS AND IS KILLED AT 24 MIN — BISECTED TO `3e3cdc2`, CAUSE NOT
-   YET FOUND.** `Wait-Process -Timeout 1440`; complete runs take ~12 min.
-   **The bisection is unambiguous — 7 consecutive DONE runs, then 3
-   consecutive TRUNC starting exactly at `3e3cdc2`:**
-   `b08bca5 c627daa 7cee59d 9e0c3f2 3ecefd4 52f4f48 8c0ea59` all DONE (159-161
-   lines) -> `3e3cdc2` 82, `7c983e0` 123, `6b3ab53` 71.
-   **Ruled out by reading, not guessing:** the probe runs ONCE
-   (`_noonFacadeDone` intact, one `FindShadowPair` call site) so it cannot
-   double a 12-min run; `BoxMedian` is fully bounded with every index clamped
-   and one 256-int histogram per call; the try/catch in `6b3ab53` did NOT
-   help, so it is a hang, not an exception. That commit is 33 lines, mostly
-   comment, and nothing in it obviously blocks.
-   **Two wrong calls withdrawn on the way:** "same point twice" came from
-   FrameDrift's *comparison* count misread as progress (the runs reached day
-   6, day 2, and no shots); and "probably the machine" was one data point.
-   **Next: `hangTail` lands the last 30 log lines whenever there is no done
-   line. If it does not localise it, revert `3e3cdc2`'s functional change
-   (sun series back to thirds) and confirm the sim completes — bisect by
-   removing, not by reasoning.**
-
-1. **THE SHADOW RATIO IS 0.06 AND THE MISSING QUANTITY IS INDIRECT LIGHT.**
-   With the y-flip fixed, lit holds at 0.129 across every rung — the
-   invariant physics demands — so shade **0.008 -> 0.016** and the ratio
-   **0.062 -> 0.124** against a 0.5 target. *(The earlier "3.4x lift" was
-   measured through the y-flip; withdrawn.)*
-   **Cause is architectural, checked not guessed: no indirect light exists
-   here** — no lightmaps (runtime world), no realtime GI, no probes (the only
-   `lightProbeUsage` sets it Off). A cast shadow gets AMBIENT ALONE:
-   `lit = sun*N + ambient`, `shade = ambient`.
-   **Which makes the target reachable by the lever I rejected.** Ratio 0.5
-   needs ambient to EQUAL the sun's contribution — the definition of
-   OVERCAST, which is what Meridian is. Lowering the KEY raises the ratio by
-   lowering `lit` while `shade` cannot move. `sunSeries` looked ruinous only
-   because it ran on the thirds, where the left third was a `nSun:0.00` wall.
-   Both series run on the found pair now, stamped `pair/` or `thirds/`.
-   **Read the pair series next: expect shade flat, lit falling.**
+1. **THE SIM SOMETIMES OVERRUNS ITS 24-MIN KILL — INTERMITTENT, NOT
+   BISECTED.** `Wait-Process -Timeout 1440`; complete runs take ~12 min.
+   Three consecutive runs were killed (82/123/71 lines vs 159-161) and then
+   `10e8000` completed normally with no code change to the sim. **So my
+   "7 DONE then 3 TRUNC, unambiguous bisection to `3e3cdc2`" is WITHDRAWN** —
+   three in a row is unremarkable at a high failure rate, and I read a run of
+   bad luck as a boundary. That is the third over-read in this thread; the
+   other two were FrameDrift's *comparison* count taken as progress, and
+   blaming the machine from one data point.
+   **Ruled out by reading and still valid:** the probe runs ONCE, `BoxMedian`
+   is fully bounded, and a try/catch changed nothing — so a hang, not an
+   exception. **`hangTail` now lands the last 30 log lines whenever there is
+   no done line, so the next occurrence localises itself instead of being
+   inferred from which greps matched.** Do not act until it fires.
 
 1. **`farFrac` CARRIES THE SIGNAL THE OTHER TWO BANDS MISS — SERIES LANDED.**
    *(rule 12; step-back and depth series in `roadmap-history.md`.)* First

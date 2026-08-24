@@ -1246,6 +1246,36 @@ def verdict_dupkeys():
     return True, head.replace("verdict-dupkeys: ", "dupkeys ok (selftest); landed verdict: ")
 
 
+def gate_detail_ceiling():
+    """No nineteenth gate that cannot name its own failure.
+
+    `dayJob` failed 84 times across 308 runs and never printed a reason,
+    because its table entry is a bare `("dayJob", dayJobOk)`. It went
+    undiagnosed for months not through neglect but because there was nothing
+    to read — and the moment it was given its three operands, the tracer
+    beside it named the cause in one landing.
+
+    SimDirector's gate table already carries that argument, written for ONE
+    gate and applied to one. Eighteen were left. This does not demand they be
+    fixed — each needs its condition read and its operands chosen, which is
+    judgement rather than a rename — it refuses a NINETEENTH.
+
+    A ceiling on a COUNT and not a list of blessed names, because a list
+    decays: it wants editing on every rename and an entry nobody re-reads is
+    the reach ledger's own failure mode. An integer cannot go stale and can
+    only be lowered."""
+    tool = str(ROOT.parent / "tools" / "gate-detail.py")
+    code, out = run(["python3", tool, "--selftest"])
+    if code != 0:
+        return False, "GATE DETAIL CHECK BROKEN: " + out.strip()[:110]
+    code, out = run(["python3", tool])
+    head = next((l.strip() for l in out.splitlines()
+                 if l.startswith("gate-detail:")), "")
+    if code != 0:
+        return False, head[:170] or "gate-detail failed with no message"
+    return True, head.replace("gate-detail: ", "gates ")
+
+
 def runs_map_to_commits():
     """Two checks about run files and commits, and the second one is the point.
 
@@ -1420,7 +1450,8 @@ def main():
                static_instance, raw_avenues, filename_as_type, namespace_as_value, workflow_size,
                powershell_steps, sheet_read, prop_dimensions,
                frame_drift, verdict_keys, verdict_format, verdict_dupkeys,
-               verdict_emit_dupkeys, runs_map_to_commits, save_chaos, soak,
+               verdict_emit_dupkeys, runs_map_to_commits, gate_detail_ceiling,
+               save_chaos, soak,
                adversary, stale_anchors, clip_audit, picker_selftest, core_tests):
         ok, text = fn()
         all_ok &= ok

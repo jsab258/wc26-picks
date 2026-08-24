@@ -3242,7 +3242,34 @@ namespace Ledger.Game
             // GTA reference noons read at. Not 1.0: with ambient at 0.45 of
             // the dome there is fill to catch, but a fully-black direct term
             // still risks reading as a hole on dark albedo.
-            sun.shadowStrength = 0.93f;
+            // 0.93 -> 0.85, AND THE NUMBER IS A PRINTED RUNG.
+            //
+            // The GTA reference noons put a cast shadow near HALF the lit
+            // brightness; ours sat at 0.32. `shadowSeries` walks the strength
+            // over a pair found by `FindShadowPair` — a sunlit wall WITH
+            // geometry between it and the sun, and an unblocked one beside it
+            // for the denominator, both from one sweep:
+            //
+            //     s0.93 0.043|0.133 = 0.32    s0.65 0.110|0.133 = 0.83
+            //     s0.85 0.063|0.133 = 0.47    s0.55 0.125|0.133 = 0.94
+            //     s0.75 0.086|0.133 = 0.65
+            //
+            // 0.85 lands 0.474. No interpolation: it is the rung measured.
+            //
+            // THE LIT SIDE IS CONSTANT AT 0.133 ACROSS EVERY RUNG, which is
+            // what makes this trustworthy — a lever that only touches shadows
+            // must not move the denominator, and this one demonstrably does
+            // not. Three earlier attempts at this number were read off
+            // fixtures where the "shaded" wall was `nSun:0.00`, a face the
+            // sun never reaches, whose shade could not respond to anything.
+            //
+            // AND IT IS THE LEVER THE OTHER TWO ARE NOT. The fill is capped
+            // below share 1.0 by a CoreTest defending something true (a wall
+            // seeing part of the sky cannot receive the whole of it), and the
+            // KEY moves both sides together — `sunSeries` on the same pair
+            // holds the ratio at 0.30-0.36 while dimming the whole frame,
+            // which is a darker picture and not a better one.
+            sun.shadowStrength = 0.85f;
             return sun;
         }
 
