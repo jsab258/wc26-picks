@@ -55,7 +55,11 @@ namespace Ledger.Game
         // mob, and every one of them spawned on top of the player. KCD2 carries
         // ~3.5k over square kilometres; this city is about a tenth of one.
         // 700 puts roughly a dozen people out of doors within earshot at
-        // midday, which is a street rather than a demonstration.
+        // midday, which is a street rather than a demonstration. (Earshot,
+        // not the DRAW radius — those were the same 34m when this was
+        // written and parted company on 24 Aug, when the draw band went to
+        // 70m. This sentence is about how many people EXIST nearby, which
+        // is what 700 buys; how many are rendered is the cap below.)
         // 12 -> 28, AND THE OLD NUMBER WAS NEVER A PERFORMANCE BOUND.
         //
         // The paragraph above is about CROWDING — 3000 residents put 333

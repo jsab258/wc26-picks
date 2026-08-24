@@ -293,15 +293,19 @@ namespace Ledger.Game
             }
             // PER-TEXEL GLOSS from the pack's roughness map (16 Aug, the
             // standing order) — worn brick sheens where the mortar does not,
-            // which is most of what "material realness" is. DELIBERATELY NOT
-            // on the ground surfaces: SetWetness drives their `_Glossiness`
-            // scalar, and with `_METALLICGLOSSMAP` bound the shader ignores
-            // that scalar — the wet-street look would silently die on the
-            // four surfaces it was calibrated for. Ground stays scalar until
-            // SetWetness learns `_GlossMapScale` (on the quality ladder).
-            // THE GROUND GETS ITS ROUGHNESS MAP AT LAST. The quality
-            // ladder's named next rung for textures: ground roughness,
-            // gated on SetWetness learning _GlossMapScale.
+            // which is most of what material realness is. EVERY SURFACE NOW,
+            // ground included, which was not true until 24 Aug.
+            //
+            // The ground was excluded on purpose and the reason was sound:
+            // SetWetness drives `_Glossiness`, and with `_METALLICGLOSSMAP`
+            // bound the Standard shader ignores that scalar, so binding the
+            // maps would have killed the wet-street look on the four
+            // surfaces it was calibrated for — silently, without changing a
+            // line of the code that writes it. The exclusion stood until
+            // SetWetness could drive `_GlossMapScale` instead. It can now,
+            // normalised by each map's own mean so the calibrated level is
+            // untouched (reflMax 0.89 before and after); the account is on
+            // `SetSmoothness`.
             //
             // (Written without quoting the ladder's own wording, because
             // slopcheck extracts C# strings and a QUOTED span inside a

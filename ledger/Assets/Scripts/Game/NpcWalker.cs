@@ -249,24 +249,18 @@ namespace Ledger.Game
 
         /// How many walkers may carry a skinned body at once, and how many do.
         ///
-        /// Twelve rather than forty-four, and the number is chosen rather than
-        /// derived: it is `CrowdWalkerCap`'s value, which was itself set from a
-        /// measurement of how many people are out of doors within earshot at
-        /// midday. A dozen skinned bodies is roughly 280k vertices, which is
-        /// the order the rest of this scene is built at.
-        // Follows `CrowdWalkerCap` up, 12 -> 28, and for the same measured
-        // reason: the render ladder's `noBodies` rung came back 0.9ms
-        // SLOWER than the full frame, so skinned bodies were not costing
-        // what the vertex arithmetic above assumed. That estimate — "a
-        // dozen skinned bodies is roughly 280k vertices, the order the
-        // rest of this scene is built at" — was reasoning about the right
-        // quantity and never checked against a timed frame; the frame is
-        // held by shadows and per-pixel lights instead.
-        //
-        // It stays EQUAL to `CrowdWalkerCap` on purpose. The two numbers
-        // have always been the same value for the same reason, and a
-        // crowd where most of the visible people are mannequins is the
-        // thing `streetBodiesSkinned=2 of 12` was reporting.
+        /// TWENTY-EIGHT, and it tracks `CrowdWalkerCap` deliberately: the two
+        /// have always been one decision, and a crowd where most of the
+        /// visible people are mannequins is what `streetBodiesSkinned=2 of
+        /// 12` was reporting.
+        ///
+        /// It was twelve until 24 Aug, on an estimate rather than a
+        /// measurement: a dozen skinned bodies is roughly 280k vertices, the
+        /// order the rest of this scene is built at. Reasoning about the
+        /// right quantity, never once checked against a timed frame — and
+        /// when the render ladder finally timed one, its `noBodies` rung came
+        /// back 0.9ms SLOWER than the full frame. The crowd was not in the
+        /// bill at all; sun shadows and per-pixel lights hold it.
         public const int RealBodyCap = 28;
         public static int RealBodies;
 
