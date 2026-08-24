@@ -155,26 +155,26 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    (`sunSeries` holds 0.30-0.36 while dimming everything), which **refutes my
    written prediction** that shade would hold and the ratio climb.
 
-1. **RUN-TO-RUN FRAME NOISE IS +-0.07 MEAN LUMA — AS LARGE AS MOST VISUAL
-   CHANGES. ONE FRAME AGAINST ONE FRAME CANNOT JUDGE THEM.** `day2_noon` over
-   seven consecutive runs: **0.424 0.426 0.427 0.428 0.432 0.488 0.498** — a
-   0.074 spread with no code cause, and `3e3cdc2` hit 0.488 carrying no
-   lighting change at all.
-   **So the shadow landing is NOT confirmed by the frames**, though its run
-   sits highest (0.498): one sample in the high cluster is not evidence when
-   the shot goes there unaided. FrameDrift's +0.09 to +0.12 on other noons is
-   inside the same band.
-   **What IS trustworthy is the within-frame series** — all five rungs from
-   one camera at one instant, immune to drift. The lever is proven; its
-   effect on the committed stills is not yet.
-   **Rule for the visual programme: judge by a series taken WITHIN a frame,
-   or a MEDIAN over several landings — never one frame against one frame.**
-   The cameras step back, the weather rolls per day, and both are bigger than
-   the thing being measured.
-   *(I nearly published "figures twice as bright" off fixed pixel boxes
-   across two runs; the camera had moved, so the boxes sampled different
-   things. Fourth fixture-drift trap today.)*
-
+1. **THE FRAME "NOISE" IS A CAMERA CONFOUND, MEASURED AT -0.893, AND IT HAS
+   NEVER BEEN CONTROLLED FOR.** `day2_noon` spans 0.424-0.503 across twelve
+   landed runs. I called that a +-0.07 noise floor and put it in
+   `frame-drift`; **that was wrong and would have made the tool dismiss real
+   changes.** Recovering each run's camera from `frames.tsv` in git history
+   and correlating against its luma gives **-0.893** — the shot's brightness
+   tracks where the step-back left the camera:
+   `camX >= -1.8 (8 runs) 0.424-0.433, spread 0.009` against
+   `camX <= -2.2 (4 runs) 0.488-0.503, spread 0.015`, a **0.067 gap for no
+   reason at all**.
+   **So the real floor is ~0.01, and a comparison becomes valid the moment
+   two runs are matched on camX** — which every row has carried all along.
+   **Like-for-like at camX <= -2.2: shadowStrength 0.85 reads 0.503/0.498
+   against 0.93's 0.492/0.488 — about +0.010.** A real effect at the edge of
+   this instrument, and it RECONCILES the two measurements: shadow strength
+   moves only SHADED pixels, so a frame mean averaging mostly-lit road and
+   walls is the wrong statistic to see it with. The within-frame series saw
+   it because it looked at the shaded wall directly (0.043 -> 0.063).
+   **Open: condition every frame comparison on camX, and consider pinning the
+   review cameras so the step-back cannot introduce this at all.**
 1. **EIGHTEEN GATES CANNOT NAME THEIR OWN FAILURE — A NINETEENTH IS REFUSED.**
    `dayJob` failed **84 of 308 runs** and never printed a reason: its entry is
    the bare tuple `("dayJob", dayJobOk)`. Undiagnosed for months not through

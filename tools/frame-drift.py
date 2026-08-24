@@ -144,23 +144,33 @@ def drift(old_path, new_path):
         what = (f"SAME COMMIT {ca[:7]} BUILT TWICE — every delta below IS the "
                 "noise floor, and a Layer 3 tolerance may be derived from it.")
     elif ca and cb:
-        # THE FLOOR IS MEASURED NOW, AND IT IS LARGER THAN MOST CHANGES.
-        # The ideal is the same commit built twice; failing that, `day2_noon`
-        # across seven CONSECUTIVE runs, none of which touched the lighting
-        # model, read 0.424 0.426 0.427 0.428 0.432 0.488 0.498 — a spread of
-        # 0.074 in mean luma. It is an UPPER bound (a few of those commits
-        # changed other things) but it is the right order, and it is the same
-        # size as most visual changes this project makes.
+        # THE SPREAD IS A CAMERA CONFOUND, NOT NOISE — and I published it as
+        # noise first, which would have made this tool far too conservative.
         #
-        # Saying it here turns the warning above from true-but-inert into
-        # something a reader can act on: a delta of 0.03 is not a small
-        # effect, it is no effect that anyone can see from one pair of runs.
+        # `day2_noon` reads 0.424 to 0.503 across twelve landed runs, and I
+        # called that a +-0.07 noise floor. It is not. Recovering each run's
+        # camera from `frames.tsv` in git history and correlating against the
+        # same run's luma gives **-0.893**: the shot's brightness tracks where
+        # the step-back left the camera, almost perfectly.
+        #
+        #     camX >= -1.8  (8 runs)  0.424-0.433   spread 0.009
+        #     camX <= -2.2  (4 runs)  0.488-0.503   spread 0.015
+        #     gap between the two vantages          0.067
+        #
+        # So the real floor is about 0.01, the 0.067 is a confound that is
+        # RECORDED on every row and was never controlled for, and a
+        # comparison becomes valid the moment two runs are matched on camX.
+        # Like-for-like at camX <= -2.2, shadowStrength 0.85 reads 0.503 and
+        # 0.498 against 0.93's 0.492 and 0.488 — about +0.010, which is a real
+        # effect at the edge of this instrument rather than the +0.07 the
+        # unconditioned numbers appeared to show.
         what = (f"{ca[:7]} -> {cb[:7]}, DIFFERENT COMMITS — these deltas are the "
-                "change plus the noise and cannot be read as either. MEASURED "
-                "FLOOR: day2_noon spans 0.074 mean luma over seven runs with no "
-                "lighting change, so treat |delta| under ~0.07 as unreadable "
-                "and judge by a within-frame series or a median over several "
-                "landings. A cleaner floor needs the same commit built twice.")
+                "change plus the noise and cannot be read as either. AND CHECK "
+                "camX BEFORE READING ANY OF THEM: day2_noon's luma correlates "
+                "-0.893 with where the step-back left the camera, so two runs "
+                "at different vantages differ by ~0.067 for no reason at all, "
+                "while two at the SAME vantage agree to ~0.01. Match on camX, "
+                "or judge by a within-frame series instead.")
     else:
         what = ("commits unstamped, so these deltas cannot be told apart from "
                 "a code change.")
