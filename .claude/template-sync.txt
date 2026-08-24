@@ -1,0 +1,24 @@
+# .claude/template-sync.txt — THE CLAIM, not a copy.
+#
+# What it records: a fingerprint of CLAUDE.md's process sections, and
+# either the jsab258/game-studio commit that absorbed them or a named queue item
+# deferring that sync. `template_sync` in ledger/verify.py compares the
+# fingerprint and goes RED when they differ, so the question is asked at
+# the moment the sections change rather than when somebody notices.
+# It NEVER reads the other repo: the template checkout exists in one
+# container and not on the Windows runner, and verify must mean the same
+# thing everywhere it runs.
+#
+# Re-stamp with: python3 tools/template-sync.py --stamp --template-sha <sha>
+#           or: python3 tools/template-sync.py --stamp --defer <queue-item>
+templateRepo=jsab258/game-studio
+state=deferred
+templateSha=none
+queueItem=template-sync-hybrid-resident
+stamped=2026-08-24
+sections=4
+section=key:THE-STUDIO-SPLIT/lines:27/sha256:1429dac3024ce409
+section=key:THE-HYBRID-RESIDENT/lines:14/sha256:8decaf70866fe164
+section=key:REPORTING/lines:14/sha256:7ec1f012b19d9a86
+section=key:AUTO-MODE/lines:296/sha256:4bf1ebc065c6ea3d
+fingerprint=fff4e7f99c58c564

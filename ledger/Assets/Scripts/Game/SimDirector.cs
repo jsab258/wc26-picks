@@ -10019,6 +10019,18 @@ namespace Ledger.Game
         /// True while the district tour is running. See `DistrictTour`.
         bool _touring;
 
+        /// How many of the RE-SITED tour cameras found their named crossing,
+        /// over how many were asked for. Cumulative over the one tour, read on
+        /// the done line.
+        ///
+        /// The denominator is the point (rule 3b). `TourVantage` falls back to
+        /// the district centre when a junction id does not resolve, and that
+        /// fallback is exactly the vantage the re-site exists to abandon — so
+        /// a silent failure would photograph the same wall and be
+        /// indistinguishable from a re-site that worked. `tourResited=2/2` is
+        /// the only thing that separates them.
+        int _tourResited, _tourResiteAsked;
+
         /// ONE FRAME OF EVERY DISTRICT, so the six nobody has seen get looked at.
         ///
         /// `shotDistricts=[the_Hook:20]` — every shot of every run, in one of
@@ -10036,6 +10048,125 @@ namespace Ledger.Game
         /// The camera goes back exactly where it stood. A tour that moved the
         /// game's camera would be a screenshot feature changing the game, and
         /// this file has already paid for that lesson once tonight.
+        ///
+        /// WHERE EACH DISTRICT IS PHOTOGRAPHED FROM, AND WHY TWO OF THE SEVEN
+        /// ARE NOT PHOTOGRAPHED FROM THEIR MIDDLE CROSSING ANY MORE. The rule
+        /// is `TourVantage`, below; this is the reasoning behind it, and the
+        /// regime declaration to read before comparing `district_gullwing` or
+        /// `district_downtown` with anything landed before this commit.
+        ///
+        /// THE DEFAULT, UNCHANGED FOR FIVE OF SEVEN: the scaled middle avenue
+        /// crossing, seen from 34m south and 14m up.
+        ///
+        /// `CentreOf` is asked rather than the avenue arrays read, because
+        /// those arrays are UNSCALED SOURCE DATA — reading them raw aimed four
+        /// of the seven cameras at empty ground 136-184m from the district
+        /// they were named after, and the photographs were read for days as
+        /// "the outer districts look unbuilt". They were pictures of a field
+        /// next door. The measurement said so before anybody understood it:
+        /// `tourDepthBy` had the Hook at 24.3m of sight-line and every other
+        /// district at 40.6-45.6m, the bare-ground figure predicted in advance
+        /// for a plain.
+        ///
+        /// THE TWO EXCEPTIONS, AND THE MEASUREMENT THAT CHOSE THEM. Two of the
+        /// seven landed frames photograph no street at all (opened, rule 4):
+        /// `district_gullwing` is a dark building mass at arm's length and
+        /// `district_downtown` is one unlit surface with a sliver of skyline —
+        /// meanLuma 0.154 and 0.096 at a dry noon against 0.42-0.61 for the
+        /// other five, with `lumaThirds` flat at 0.071/0.082/0.063 and
+        /// 0.090/0.090/0.078.
+        ///
+        /// The cause is not lighting and it is not the district. It is
+        /// `WorldBuilder.BuildSkyline`, whose ring stands at radius
+        /// 250+22*(0..6)+(0 or 46) — 250..428m — while the Exchange's middle
+        /// crossing is 301m from the origin and Gullwing's is 312m. Replaying
+        /// that function's own deterministic hash and scaling each model by
+        /// its measured bounds (`tools/prop-dimensions.py`, pivots checked to
+        /// be XZ-centred rather than assumed) puts:
+        ///
+        ///   slot 11  `city-kit-industrial_building-m` at 34m tall
+        ///            = 29.5 x 38.1m of footprint centred (277.7,-154.9),
+        ///            covering x 262.6..292.8 z -174.2..-135.6. GULLWING'S
+        ///            MIDDLE CROSSING (275.2,-147.2) IS INSIDE IT, and the old
+        ///            eye at (275.2,-181.2) stood 7.3m off its south face.
+        ///   slot 25  `city-kit-industrial_building-r` at 34m tall
+        ///            = 60.6 x 31.0m centred (-317.1,-24.5), covering
+        ///            x -348.4..-285.8 z -42.1..-6.9 with its 4 degrees of
+        ///            yaw. THE OLD DOWNTOWN EYE (-301.0,-29.4) STOOD INSIDE
+        ///            THAT FOOTPRINT.
+        ///
+        /// No other district's crossing has a skyline mass within 44m
+        /// (Fairview 44.0, the Parade 53.0, Copper Row 161, Ironside 240, the
+        /// Hook 263), which is why five of seven are fine and these two are
+        /// not. The skyline overlapping two districts is a WORLD fault and it
+        /// is not fixed here — this is a camera, and a camera that has to be
+        /// re-aimed is the evidence for that item, not its repair.
+        ///
+        /// THIS IS A POSE REGIME BREAK, FOR TWO ROWS AND NO OTHERS.
+        /// `district_gullwing` and `district_downtown` before this commit and
+        /// after it are not comparable — different vantage, and for gullwing a
+        /// different yaw. Everything keyed to those two rows resets HERE:
+        /// `ref-bench`'s pose-stable series for them, `frame-drift`'s district
+        /// rows (which will read this landing as enormous drift, correctly),
+        /// their `tourDepthBy` entries and `district_downtown`'s
+        /// `districtGround` probe. Read the next landing as a new baseline,
+        /// not as a delta. The same declaration the dry-tour change made for
+        /// the whole series; this one is narrower on purpose, because the
+        /// other five carry landed history that is worth more than uniformity.
+        ///
+        /// THE NEW VANTAGES, CHOSEN BY WHAT THE FRAME CONTAINS.
+        ///
+        ///   downtown  Exchange Street x Court Street (`downtown_j1_2`,
+        ///             -365.5,39.1), eye 34m SOUTH at (-365.5,5.1), yaw 0 —
+        ///             the same north-looking pose as the other five, so the
+        ///             sun-relative geometry does not move (noon azimuth is
+        ///             due south, `GameController.UpdateSun`). Two-sided: the
+        ///             corridor runs between block x[-426,-369.5] and block
+        ///             x[-361.5,-305] with building lines 6.6m either side of
+        ///             the carriageway. Slot 25's nearest face is 14.1m BEHIND
+        ///             the eye and 18.1m to its right, so it is out of frustum
+        ///             and its 26.6m noon shadow (34m tall, sun 52 degrees)
+        ///             falls east of the corridor, not on it.
+        ///   gullwing  Promenade x Bathhouse Row (`gullwing_j0_1`,
+        ///             206.4,-147.2), eye 34m EAST at (240.4,-147.2), yaw 270.
+        ///             The approach turns because Gullwing's ONLY two-sided
+        ///             street is Bathhouse Row: its one north-south avenue
+        ///             with blocks on both sides is the middle one, and slot
+        ///             11 is standing on it. Looking west the terraces of both
+        ///             blocks x[210.4,271.2] flank the road for 27m, and slot
+        ///             11 is 22.6m BEHIND the lens.
+        ///
+        /// PREDICTED NEXT LANDING — predictions, not measurements (rule 2),
+        /// from a box model of this same 84-ray grid that reproduces five of
+        /// the seven landed rows within 0.10 on `farFrac` and 3m on depth
+        /// (hook, copper, strip, fairview, downtown). It over-counts the
+        /// skyline sheds, which are hollow meshes whose backfaces a raycast
+        /// does not hit; both new vantages have no shed in front of them, so
+        /// the prediction rests only on the district geometry it models well.
+        ///
+        ///   gullwing  camX 240.4 camZ -147.2 camYaw 270, nearFrac 0.00,
+        ///             midFrac 0.00, farFrac 0.30 +/- 0.10, depth 25-30m,
+        ///             meanLuma up from 0.154 into the five's dry-noon band
+        ///             and `lumaThirds` no longer flat.
+        ///   downtown  camX -365.5 camZ 5.1 camYaw 0, nearFrac 0.00, midFrac
+        ///             0.00, farFrac ~0.71, depth ~15m — DELIBERATELY THE SAME
+        ///             PAIR AS THE BROKEN ROW, because 12-22m offices 6.6m
+        ///             from a 14m lens fill the near bands exactly as a wall
+        ///             does. The sight-line pair cannot answer this question
+        ///             and must not be read as if it had: the number that
+        ///             moves is meanLuma (0.096 today, brightPct 0.50) and the
+        ///             thirds. If it lands under 0.15 with flat thirds again,
+        ///             the shed was not the cause and the next question is the
+        ///             Exchange's own massing and light.
+        ///
+        /// Both predict near/mid 0.00, so `ShotBlockedAt`/`ShotMidBlockedAt`
+        /// do not fire and the frame is taken from the vantage placed here —
+        /// if `shotNudges` moves on the tour, that assumption was wrong.
+        ///
+        /// NOT VERIFIABLE HERE. The Game layer does not compile in this
+        /// container and ShapeCheck is reference-independent, so the Unity
+        /// API surface (`StreetMap.Node`, the transform writes) is first
+        /// compiled by the Windows build; and no local tool renders a frame.
         void DistrictTour()
         {
             var cam = Camera.main;
@@ -10049,25 +10180,7 @@ namespace Ledger.Game
                 {
                     if (d?.AvenuesX == null || d.AvenuesZ == null) continue;
                     if (d.AvenuesX.Length == 0 || d.AvenuesZ.Length == 0) continue;
-                    // THE SCALED CENTRE, WHICH IS WHERE THE DISTRICT IS.
-                    //
-                    // This read the avenue arrays RAW, and they are unscaled
-                    // source data — so the tour aimed four of its seven cameras
-                    // at empty ground 136-184m from the district they were
-                    // named after, and the resulting photographs were read for
-                    // days as "the outer districts look unbuilt". They were
-                    // pictures of a field next door.
-                    //
-                    // The measurement said so before this was understood and
-                    // nobody could hear it: `tourDepthBy` came back with the
-                    // Hook at 24.3m of sight-line and every other district at
-                    // 40.6-45.6m, which is the bare-ground figure the emitter
-                    // had predicted in advance for a plain.
-                    Ledger.Core.StreetMap.CentreOf(d, out var dcx, out var dcz);
-                    float cx = (float)dcx;
-                    float cz = (float)dcz;
-                    var look = new Vector3(cx, 1.6f, cz);
-                    var eye = new Vector3(cx, 14f, cz - 34f);
+                    TourVantage(d, out var eye, out var look);
                     cam.transform.position = eye;
                     cam.transform.rotation = Quaternion.LookRotation(look - eye, Vector3.up);
                     Shot($"district_{d.Id}");
@@ -10099,6 +10212,60 @@ namespace Ledger.Game
                 cam.transform.position = keepPos;
                 cam.transform.rotation = keepRot;
             }
+        }
+
+        /// The eye and the look point for ONE district's frame — the whole
+        /// reasoning, the two exceptions and the regime declaration are in
+        /// `DistrictTour`'s note directly above.
+        ///
+        /// ONE MECHANISM, NOT TWO. Every vantage is still a crossing of the
+        /// district's own grid, seen from 34m away and 14m up, aimed at 1.6m —
+        /// the two re-sited rows change only WHICH crossing and from WHICH
+        /// side. A second placement rule would be the one-idea-two-
+        /// implementations shape this file keeps finding wrong on the copy
+        /// nobody looks at.
+        ///
+        /// THE CROSSING IS ASKED FOR BY NAME, from the same graph the traffic
+        /// and the walkers route on: `StreetMap` builds junction ids as
+        /// `{district}_j{avenueIndex}_{crossIndex}` (the Hook alone drops the
+        /// prefix), and those nodes carry the SCALED coordinates. So the
+        /// re-site cannot re-derive the stretch wrongly the way five separate
+        /// raw reads of `AvenuesX` once did — there is nothing here to scale.
+        ///
+        /// AND WHEN A NAME DOES NOT RESOLVE IT FALLS BACK TO THE CENTRE AND
+        /// SAYS SO. The fallback is exactly the vantage this exists to
+        /// abandon, so a silent one would photograph the same wall and be
+        /// indistinguishable from success — `tourResited=2/2` on the done line
+        /// is the denominator that separates them (rule 3b).
+        void TourVantage(Ledger.Core.StreetMap.District d,
+                         out Vector3 eye, out Vector3 look)
+        {
+            Ledger.Core.StreetMap.CentreOf(d, out var dcx, out var dcz);
+            float tx = (float)dcx, tz = (float)dcz;
+            // The default approach: 34m south of the target, looking north.
+            float ax = 0f, az = -34f;
+
+            string crossing = d.Id == "downtown" ? "downtown_j1_2"
+                            : d.Id == "gullwing" ? "gullwing_j0_1"
+                            : null;
+            if (crossing != null)
+            {
+                _tourResiteAsked++;
+                var junction = Ledger.Core.StreetMap.Node(crossing);
+                if (junction != null)
+                {
+                    _tourResited++;
+                    tx = (float)junction.X;
+                    tz = (float)junction.Z;
+                    // Gullwing alone approaches from the EAST: its only
+                    // two-sided street runs east-west, so a north-looking
+                    // camera there frames one row of terraces and a field.
+                    if (d.Id == "gullwing") { ax = 34f; az = 0f; }
+                }
+            }
+
+            look = new Vector3(tx, 1.6f, tz);
+            eye = new Vector3(tx + ax, 14f, tz + az);
         }
 
         void Shot(string name)
@@ -14294,6 +14461,19 @@ namespace Ledger.Game
                       $"tourDepthMedian={Median(_tourDepth):0.0} " +
                       $"tourNearSeries=[{FracSeries(_tourNearFrac)}] " +
                       $"tourShots={_tourDepth.Count} " +
+                      // HOW MANY RE-SITED CAMERAS FOUND THEIR CROSSING, over
+                      // how many were asked for. Cumulative over the run's one
+                      // tour and read here, at the end, rather than inside the
+                      // loop — a lifetime count sampled anywhere else freezes
+                      // at whatever moment happened to be convenient.
+                      //
+                      // 2/2 is the only reading that means the two re-sited
+                      // frames were taken from where `TourVantage` says. 1/2 or
+                      // 0/2 means a junction id did not resolve and that row
+                      // fell back to the middle crossing — which is the broken
+                      // vantage, photographing the same shed, and looking
+                      // exactly like a success from every other number here.
+                      $"tourResited={_tourResited}/{_tourResiteAsked} " +
                       $"uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +
                       // COLLIDING NAMES IS A PEAK OVER SAMPLES NOW, AND ITS

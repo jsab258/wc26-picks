@@ -672,6 +672,65 @@ def docs_shape():
     return True, "docs %s" % m.group(0)
 
 
+def template_sync():
+    """CLAUDE.md's process sections, against the claim that the template carries them.
+
+    THE INCIDENT, 24 Aug. The template repo (`jsab258/game-studio`) drifted from
+    LEDGER's process sections within HOURS of shipping — it still said the
+    resident was Fable while CLAUDE.md had moved to the hybrid — and it was
+    caught by Jafar reading it, not by any instrument. Every other mechanism
+    considered (a dailies review, a standing queue item, syncing on demand) is
+    list-based or clock-based; this file is a list of proofs that a rule with no
+    trigger point decays, and "sync on demand" IS the incident.
+
+    SAME-REPO ON PURPOSE, and that is the design decision rather than a
+    convenience: `tools/template-sync.py` fingerprints the four process sections
+    (THE STUDIO SPLIT, THE HYBRID RESIDENT, REPORTING, AUTO MODE) and compares
+    against `.claude/template-sync.txt`, which records the fingerprint plus
+    either the template commit that absorbed it or a named queue item deferring
+    it. It NEVER reads the other repo — that checkout exists in this container
+    and not on the Windows runner, and a check that means different things in
+    different places is not a check. The marker is the claim; the job here is to
+    force the claim to be MADE, at the moment the sections change.
+
+    THE CHECK RUNS BEFORE THE SELFTEST, deliberately. The selftest's first
+    accepting fixture is the live pair, so a real drift would fail it too — and
+    reporting a drift as "the checker is broken" sends the next session reading
+    the tool instead of the marker. Red for the tree comes first; red for the
+    instrument comes second; green needs both.
+
+    A DEFERRAL IS GREEN AND LOUD. `state=deferred` passes, and its queue item is
+    named in the footer of every commit made while it stands, so a deferral
+    nobody discharges is visible in the commit feed rather than resting in a
+    file nobody opens."""
+    tool = str(ROOT.parent / "tools" / "template-sync.py")
+    code, out = run(["python3", tool])
+    head = next((l.strip() for l in out.splitlines()
+                 if l.startswith("template-sync:")), "")
+    if not head:
+        return False, "TEMPLATE SYNC READ NOTHING: " + (out.strip()[:110] or "no output")
+    if code != 0:
+        return False, head[:400]
+    scode, sout = run(["python3", tool, "--selftest"])
+    m = re.search(r"selftest: (\d+) passed, (\d+) failed", sout)
+    if not m:
+        return False, "TEMPLATE SYNC CHECK BROKEN: selftest did not report"
+    if m.group(2) != "0":
+        bad = [l.strip() for l in sout.splitlines() if l.strip().startswith("FAILED")]
+        return False, "TEMPLATE SYNC CHECK BROKEN: " + (bad[0][7:110] if bad
+                                                        else "selftest failed")
+    # A COMPACT FOOTER, BUILT FROM THE TOOL'S OWN TOKENS rather than retyped:
+    # the state, its subject, and the denominators that make the zero readable.
+    got = dict(t.split("=", 1) for t in head.split() if t.count("=") == 1)
+    state = got.get("state", "?")
+    subject = ("deferred to %s" % got.get("queueItem", "?")) if state == "deferred" \
+        else "synced at %s" % got.get("templateSha", "?")
+    return True, ("template sync %s (%s, %s sections, fingerprint %s, %s fixtures)"
+                  % (state.upper() if state == "deferred" else "ok", subject,
+                     got.get("sections", "?"), got.get("fingerprint", "?"),
+                     m.group(1)))
+
+
 def attribution():
     """Every third-party asset is accounted for in THIRD-PARTY.md.
 
@@ -1585,8 +1644,12 @@ def _cadence_read(repo):
     What each number is a statistic OF, because a number whose statistic is
     unnamed is the thing this project keeps mis-reading:
 
-      changed   CUMULATIVE adds+dels over the PENDING diff (staged+unstaged)
-                against HEAD, restricted to `ledger/Assets/Scripts/`
+      changed   CUMULATIVE total of PENDING lines against HEAD under
+                `ledger/Assets/Scripts/` — `tracked` + `untracked`, and the
+                ONLY number compared against the threshold
+      tracked   CUMULATIVE adds+dels over the staged+unstaged diff vs HEAD
+      untracked LINES in untracked files under Assets/Scripts — a component
+                of `changed` since 24 Aug, not a footnote to it (see below)
       rows      COUNT of data rows in the agent log — the denominator every
                 zero below is meaningless without
       since     COUNT of `studio-director` rows dated strictly AFTER HEAD's
@@ -1594,10 +1657,35 @@ def _cadence_read(repo):
                 same file as `rows`
       stale     COUNT of `studio-director` rows dated at or before HEAD
       unparsed  COUNT of rows that could not be dated — treated as ABSENT
-      untracked LINES in untracked files under Assets/Scripts. NOT gated: the
-                contract is `git diff HEAD`, which cannot see them. Reported
-                as a note so "the diff is small" cannot quietly mean "the diff
-                is large and unstaged".
+
+    WHY UNTRACKED CONTENT IS COUNTED RATHER THAN NOTED — the gate's largest
+    hole, closed 24 Aug after a sibling repo found the same shape. A file git
+    has never been told about is invisible to `git diff HEAD` ENTIRELY, so a
+    brand-new 300-line module under Assets/Scripts read `0 changed line(s) ...
+    under threshold, review not required` and exited 0, while printing a NOTE
+    naming the 300 lines it had just declined to count. Reproduced on a fixture
+    repo before this was written: `changed=0 untracked=300 state=ok exit=0`.
+
+    THE WINDOW, measured rather than assumed, because it decides how often this
+    bites: `git diff HEAD` DOES see a new file once it is STAGED (300/0 in
+    --numstat) and sees nothing at all before that. So the blind spot is
+    exactly "verify run before `git add`" — which is the documented order
+    (`python3 ledger/verify.py && git commit -F -`) and the studio's standing
+    builder handoff, where tier 3 leaves a new module uncommitted AND unstaged
+    for the director to review. Checked against the last 60 commits: 8 were
+    substantial, 1 introduced a new Scripts file (230 lines), and that one also
+    carried 129 lines of edits to existing files, so NO commit in recorded
+    history was actually misclassified. The hole is real, reproducible, and had
+    not yet fired — which is the state in which it is cheapest to close.
+
+    The bound is unchanged and did not need to change, because the SERIES it
+    came from already counts new files at full size: per-commit lines under
+    Scripts over the last 60 commits are 37 zeroes, 19..81, then
+    107 128 130 132 302 352 359 415, and the one commit in those 60 that
+    introduced a new Scripts file contributed all 230 of its lines to that
+    distribution. Counting a pending new file as zero made the gate's input a
+    different population from the bound's evidence; this makes them the same
+    measurement.
 
     KNOWN BLIND SPOT, stated rather than discovered later: a director row
     newer than HEAD proves a spawn happened after the last commit, not that it
@@ -1605,9 +1693,10 @@ def _cadence_read(repo):
     to — the failure it exists for is the review that never happened at all.
     """
     repo = pathlib.Path(repo)
-    r = {"changed": 0, "files": 0, "binary": 0, "rows": 0, "since": 0,
-         "stale": 0, "unparsed": 0, "unparsed_dir": 0, "untracked": 0,
-         "untracked_files": 0, "log": True, "newest_dir": "", "head_iso": "",
+    r = {"changed": 0, "tracked": 0, "files": 0, "binary": 0, "rows": 0,
+         "since": 0, "stale": 0, "unparsed": 0, "unparsed_dir": 0,
+         "untracked": 0, "untracked_files": 0, "untracked_binary": 0,
+         "unreadable": 0, "log": True, "newest_dir": "", "head_iso": "",
          "state": "ok"}
 
     code, out = _git(repo, "show", "-s", "--format=%ct", "HEAD")
@@ -1639,18 +1728,46 @@ def _cadence_read(repo):
         if adds == "-" or dels == "-":           # binary: no line count exists
             r["binary"] += 1
             continue
-        r["changed"] += int(adds) + int(dels)
+        r["tracked"] += int(adds) + int(dels)
 
+    # THE ENUMERATOR IS THE ONE ALREADY HERE, and that is the point. A sibling
+    # repo's twin of this gate walked `git status --porcelain`, which COLLAPSES
+    # a new directory into ONE non-file entry (`?? NewMod/`) — so a 300-line
+    # module in a new folder counted as a single path with no lines, and only
+    # `-uall` expands it. `ls-files --others` has no directory mode unless
+    # asked for one, so it expands BY CONSTRUCTION: measured both ways on a
+    # fixture repo before this comment was written —
+    #   status --porcelain      -> `?? ledger/Assets/Scripts/NewMod/`
+    #   status --porcelain -uall-> `?? ledger/Assets/Scripts/NewMod/Big.cs`
+    #   ls-files --others       -> `ledger/Assets/Scripts/NewMod/Big.cs`
+    # One idea, one implementation: this loop already existed and already
+    # enumerated correctly; what was missing was that its total never reached
+    # the threshold comparison.
     code, out = _git(repo, "ls-files", "--others", "--exclude-standard")
     for rel in out.splitlines():
         if DIRECTOR_SCRIPTS not in rel:
             continue
         r["untracked_files"] += 1
         try:
-            r["untracked"] += len((repo / rel).read_text(
-                encoding="utf-8", errors="replace").splitlines())
-        except OSError:
-            pass
+            data = (repo / rel).read_bytes()
+        except OSError:                          # a symlink to a dir, a race
+            r["unreadable"] += 1                 # counted, never silently 0
+            continue
+        # BINARY IS 0 LINES AND SAYS SO, the same treatment `--numstat`'s "-"
+        # gets three lines up. Now that this number BLOCKS commits, decoding a
+        # .dll or a .png with errors="replace" and calling the result "lines"
+        # would be a false RED — the direction rule 5b says is the expensive
+        # one, since this gate can block every commit in the project.
+        if b"\x00" in data:
+            r["binary"] += 1
+            r["untracked_binary"] += 1
+            continue
+        r["untracked"] += len(data.decode("utf-8", "replace").splitlines())
+
+    # THE GATED TOTAL, named as the sum it is. Both components print beside it
+    # in the summary as one paired reading, so "0 changed" can never again mean
+    # "0 counted and 300 declined".
+    r["changed"] = r["tracked"] + r["untracked"]
 
     log = repo / DIRECTOR_LOG
     if not log.exists():
@@ -1703,8 +1820,15 @@ def _cadence_summary(r):
     "nothing measured" in those words, because "we looked at eight rows and
     found no director" and "we looked at nothing" are different facts with
     different next actions."""
-    lines = "%d changed line(s) vs %d threshold under Assets/Scripts" % (
-        r["changed"], DIRECTOR_MIN_LINES)
+    # THE PAIRED READING: the gated total and BOTH its components in one
+    # entry, always, including when a component is zero. Printed unconditionally
+    # because the hole this closed was exactly a reader taking "0 changed
+    # line(s)" for "nothing is pending" while 300 untracked lines sat beside it
+    # in a note — two keys whose relationship the reader had to remember.
+    lines = ("%d changed line(s) (%d tracked + %d untracked in %d new file(s)) "
+             "vs %d threshold under Assets/Scripts" % (
+                 r["changed"], r["tracked"], r["untracked"],
+                 r["untracked_files"], DIRECTOR_MIN_LINES))
     if not r["log"]:
         rows = "agent log ABSENT (%s) — nothing measured" % DIRECTOR_LOG
     elif r["rows"] == 0:
@@ -1716,12 +1840,15 @@ def _cadence_summary(r):
     if r["unparsed"]:
         notes += "; %d unparsable row(s) treated as absent (%d studio-director)" % (
             r["unparsed"], r["unparsed_dir"])
-    if r["untracked"]:
-        notes += ("; NOTE %d untracked line(s) in %d file(s) under Assets/Scripts "
-                  "are invisible to `git diff HEAD` — stage them to be counted" % (
-                      r["untracked"], r["untracked_files"]))
+    # The old note here said untracked lines "are invisible to `git diff HEAD`
+    # — stage them to be counted". That sentence was true when written and
+    # became false the moment they were counted; it is deleted rather than
+    # edited, because the split in `lines` above now says it with numbers.
     if r["binary"]:
-        notes += "; %d binary file(s) counted as 0 lines" % r["binary"]
+        notes += ("; %d binary file(s) counted as 0 lines (%d of them untracked)"
+                  % (r["binary"], r["untracked_binary"]))
+    if r["unreadable"]:
+        notes += "; %d untracked file(s) UNREADABLE, counted as 0 lines" % r["unreadable"]
 
     if r["state"] == "logmissing":
         return ("DIRECTOR LOG MISSING: %s, %s — an absent instrument is not "
@@ -1746,7 +1873,8 @@ def _cadence_summary(r):
     return "director cadence ok (%s, %s; %s)%s" % (lines, verdict, rows, notes)
 
 
-def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True):
+def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True,
+                     untracked=0, untracked_binary=0):
     """One throwaway repo: a commit at a PINNED time, then a pending change.
 
     The commit date is pinned so "newer than HEAD" is arithmetic rather than a
@@ -1771,6 +1899,20 @@ def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True):
     if added:
         with target.open("a", encoding="utf-8") as fh:
             fh.write("".join("line %d\n" % i for i in range(added)))
+    # THE HOLE, REPRODUCED BY CONSTRUCTION: a brand-NEW DIRECTORY, never added,
+    # holding the lines. Not a new file in an existing folder — the directory
+    # is what `git status --porcelain` collapses to one entry, and a fixture
+    # that used an existing folder would pass against the broken version.
+    if untracked or untracked_binary:
+        u = d / "ledger" / "Assets" / "Scripts" / "NewMod"
+        u.mkdir(parents=True, exist_ok=True)
+        if untracked:
+            (u / "New.cs").write_text(
+                "".join("new %d\n" % i for i in range(untracked)), encoding="utf-8")
+        if untracked_binary:
+            # NUL bytes with plenty of \n around them: decoded as text this
+            # would read as `untracked_binary` lines, which is the false RED.
+            (u / "Blob.dll").write_bytes(b"\x00\xff\n" * untracked_binary)
     if log is not None and log is not False:
         p = d / DIRECTOR_LOG
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -1824,9 +1966,11 @@ def _cadence_selftest():
     a1 = _cadence_read(d)
     say(a1["ok"] and a1["state"] == "ok",
         "ACCEPT small diff with no director row", a1["summary"])
-    say("5 changed line(s) vs 100 threshold" in a1["summary"]
+    say("5 changed line(s) (5 tracked + 0 untracked in 0 new file(s)) "
+        "vs 100 threshold" in a1["summary"]
         and "1 log row(s) examined" in a1["summary"],
-        "ACCEPT summary carries both denominators", a1["summary"])
+        "ACCEPT summary carries both denominators and the tracked/untracked split",
+        a1["summary"])
 
     d = _cadence_fixture(work, "a2-large-fresh", 150,
                          [(CADENCE_STALE, "systems-builder"),
@@ -1856,7 +2000,28 @@ def _cadence_selftest():
     say(a6["ok"] and a6["since"] == 1,
         "ACCEPT a fresh row stamped +00:00 with fractional seconds", a6["summary"])
 
-    # REJECTING — the four states the escalation rule actually decays into.
+    # THE COLLAPSED-DIRECTORY PAIR, ACCEPTING SIDE FIRST (24 Aug). Counting
+    # untracked content is a NEW WAY FOR THIS GATE TO GO RED, and this gate
+    # blocks every commit in the project — so the small-new-module case is
+    # asserted before the large one, and a binary blob is asserted not to be
+    # decoded into hundreds of imaginary lines.
+    d = _cadence_fixture(work, "a7-small-untracked-dir", 5,
+                         [(CADENCE_FRESH, "systems-builder")], untracked=5)
+    a7 = _cadence_read(d)
+    say(a7["ok"] and a7["changed"] == 10 and a7["untracked"] == 5
+        and a7["untracked_files"] == 1
+        and "10 changed line(s) (5 tracked + 5 untracked in 1 new file(s))" in a7["summary"],
+        "ACCEPT a SMALL new untracked directory, counted and split in the line",
+        a7["summary"])
+
+    d = _cadence_fixture(work, "a8-untracked-binary", 5, [], untracked_binary=400)
+    a8 = _cadence_read(d)
+    say(a8["ok"] and a8["changed"] == 5 and a8["untracked"] == 0
+        and a8["untracked_binary"] == 1 and "binary file(s) counted as 0 lines" in a8["summary"],
+        "ACCEPT a 400-line-looking untracked BINARY as 0 lines, and say so",
+        a8["summary"])
+
+    # REJECTING — the states the escalation rule actually decays into.
     d = _cadence_fixture(work, "r1-101-no-director", 101,
                          [(CADENCE_FRESH, "instrument-builder")])
     r1 = _cadence_read(d)
@@ -1893,9 +2058,32 @@ def _cadence_selftest():
     say(not r5["ok"] and r5["unparsed_dir"] == 1 and "unparsable" in r5["summary"],
         "REJECT a director row whose timestamp cannot be dated", r5["summary"])
 
+    # THE HOLE ITSELF, as it was found: a 300-line module in a NEW UNTRACKED
+    # DIRECTORY, nothing staged, no director row. Against the version shipped
+    # before 24 Aug this fixture read `changed=0 state=ok exit=0` with a note
+    # naming the 300 lines — verified by running it, not assumed.
+    d = _cadence_fixture(work, "r6-untracked-dir-300", 0,
+                         [(CADENCE_FRESH, "instrument-builder")], untracked=300)
+    r6 = _cadence_read(d)
+    say(not r6["ok"] and r6["state"] == "unspawned" and r6["changed"] == 300
+        and r6["tracked"] == 0 and r6["untracked"] == 300,
+        "REJECT a 300-line module in a NEW UNTRACKED DIRECTORY (git diff HEAD "
+        "cannot see it at all)", r6["summary"])
+
+    # AND THE SUM, not merely the substitution: neither half crosses 100 alone.
+    # Without this, a version that counted untracked INSTEAD of tracked — or
+    # took the max of the two — would pass r6 and still miss the real batch.
+    d = _cadence_fixture(work, "r7-split-60-60", 60,
+                         [(CADENCE_STALE, "studio-director")], untracked=60)
+    r7 = _cadence_read(d)
+    say(not r7["ok"] and r7["state"] == "unspawned" and r7["changed"] == 120
+        and r7["tracked"] == 60 and r7["untracked"] == 60,
+        "REJECT 60 tracked + 60 untracked = 120, where neither half crosses 100",
+        r7["summary"])
+
     # The exit-code contract, asserted rather than documented: every accepting
     # case exits 0, and the two reds are DISTINCT from each other.
-    say(all(CADENCE_EXIT[x["state"]] == 0 for x in (a1, a2, a3, a4, a5, a6)),
+    say(all(CADENCE_EXIT[x["state"]] == 0 for x in (a1, a2, a3, a4, a5, a6, a7, a8)),
         "every accepting case exits 0")
     say(CADENCE_EXIT[r1["state"]] == 1 and CADENCE_EXIT[r4["state"]] == 2
         and len(set(CADENCE_EXIT.values())) == 3,
@@ -1994,6 +2182,7 @@ def main():
     for fn in (director_cadence,
                lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
+               template_sync,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, raw_avenues, filename_as_type, namespace_as_value, workflow_size,
                powershell_steps, sheet_read, prop_dimensions, prop_reach, ref_bench,

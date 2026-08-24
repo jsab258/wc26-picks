@@ -14,6 +14,10 @@ call_gate() {  # $1=command  -> returns the hook's exit code
     printf '{"tool_name":"Bash","tool_input":{"command":"%s"}}' "$1" \
         | VERIFY_FOOTER="$FOOTER" bash "$HERE/verify-gate.sh" >/dev/null 2>&1
 }
+gate_out() {  # $1=command  -> prints the hook's stdout AND stderr, one channel
+    printf '{"tool_name":"Bash","tool_input":{"command":"%s"}}' "$1" \
+        | VERIFY_FOOTER="$FOOTER" bash "$HERE/verify-gate.sh" 2>&1
+}
 
 WORK=$(mktemp -d); trap 'rm -rf "$WORK"' EXIT
 cd "$WORK"
@@ -39,6 +43,151 @@ call_gate "git commit -am msg";        [ $? -eq 2 ] && say ok "commit with stale
 
 # A commit buried in a compound command is still a commit.
 call_gate "cd sub && git commit -m msg"; [ $? -eq 2 ] && say ok "compound-command commit is caught" || say bad "compound-command commit is caught"
+
+# ---- the collapsed new directory (24 Aug) ----
+# `git status --porcelain` reports a brand-new directory as ONE non-file entry
+# (`?? newmod/`), so `[ -f ]` skipped it and nothing inside a new module was
+# ever freshness-checked, however large. Printed here rather than asserted:
+# pinning a PASS to git's default expansion would make a future git version
+# block every commit in the project, which is the failure rule 5b is about.
+mkdir -p newmod; printf 'a\nb\nc\n' > newmod/Big.cs
+echo "  note porcelain default: $(git status --porcelain | grep newmod || echo NONE)"
+echo "  note porcelain -uall:   $(git status --porcelain -uall | grep newmod || echo NONE)"
+
+# ACCEPTING FIRST: the new module is OLDER than the footer, so it must pass —
+# the expensive direction is a hook that blocks every commit made after any
+# untracked file appears.
+sleep 1; echo "verify green" > "$FOOTER"
+call_gate "git commit -m msg";         [ $? -eq 0 ] && say ok "a new untracked directory older than the footer still passes" || say bad "a new untracked directory older than the footer still passes"
+
+# REJECTING: a file INSIDE that new directory, touched after the footer. This
+# is the hole — it passed before `-uall`, because the loop only ever saw
+# `newmod/`, which is not a file.
+sleep 1; echo "d" >> newmod/Big.cs
+call_gate "git commit -m msg";         [ $? -eq 2 ] && say ok "a file inside a NEW untracked directory is freshness-checked" || say bad "a file inside a NEW untracked directory is freshness-checked"
+
+# And the whole point of naming it: the message must name the file, not the
+# directory, or the next reader cannot tell which one moved.
+printf '{"tool_name":"Bash","tool_input":{"command":"git commit -m msg"}}' \
+    | VERIFY_FOOTER="$FOOTER" bash "$HERE/verify-gate.sh" 2>&1 >/dev/null \
+    | grep -q 'newmod/Big.cs' \
+    && say ok "the block names the file inside the new directory" \
+    || say bad "the block names the file inside the new directory"
+rm -rf newmod
+
+# ---- the repo-blind gate (24 Aug), and it can DEADLOCK an unattended loop ----
+# This hook fires on every `git commit` THE SESSION runs, and until today it
+# read this project's footer and this project's `git status` whichever
+# repository the commit was actually in. It blocked a real commit in a second
+# repo because LEDGER's tree was mid-work. Left alone overnight that is not an
+# annoyance: work in the second repo cannot be committed while this one is
+# busy, so it sits uncommitted until the ephemeral container reclaims it.
+#
+# The rungs below are a LADDER — one tree, one instant, one contributor
+# toggled (which repo the commit targets) — so the difference between them is
+# the whole finding. ACCEPTING RUNG FIRST: the expensive failure here is a
+# gate that blocks a commit it was never able to assess.
+OTHER=$(mktemp -d)
+trap 'rm -rf "$WORK" "$OTHER"' EXIT
+( cd "$OTHER" && git init -q -b main . && git config user.email t@t \
+                                       && git config user.name t )
+echo other > "$OTHER/thing.txt"
+OTHER_TOP=$(git -C "$OTHER" rev-parse --show-toplevel)
+
+# Put THIS repo into the state that caused the deadlock: dirty and stale.
+sleep 1; echo z >> file.txt
+mkdir -p sub
+
+call_gate "cd $OTHER && git add -A && git commit -m msg"
+[ $? -eq 0 ] && say ok "a commit in ANOTHER repo passes while this tree is stale (cd form)" \
+             || say bad "a commit in ANOTHER repo passes while this tree is stale (cd form)"
+call_gate "git -C $OTHER commit -m msg"
+[ $? -eq 0 ] && say ok "a commit in ANOTHER repo passes while this tree is stale (git -C form)" \
+             || say bad "a commit in ANOTHER repo passes while this tree is stale (git -C form)"
+# A pass that says nothing is indistinguishable from a gate that never ran.
+gate_out "git -C $OTHER commit -m msg" | grep -q "PASSED-UNASSESSED.*different-repo.*commitRepo=$OTHER_TOP" \
+    && say ok "the cross-repo pass names both repos and why it passed" \
+    || say bad "the cross-repo pass names both repos and why it passed"
+# A red verify DELETES the footer, so the repo decision must not depend on it.
+mv "$FOOTER" "$FOOTER.hidden"
+call_gate "cd $OTHER && git commit -m msg"
+[ $? -eq 0 ] && say ok "a commit in ANOTHER repo passes even with no footer here" \
+             || say bad "a commit in ANOTHER repo passes even with no footer here"
+mv "$FOOTER.hidden" "$FOOTER"
+
+# THE OTHER RUNG, same tree, same second: the protection must survive the fix.
+call_gate "git commit -m msg"
+[ $? -eq 2 ] && say ok "a SAME-repo stale commit is still blocked (the fix kept the guard)" \
+             || say bad "a SAME-repo stale commit is still blocked (the fix kept the guard)"
+call_gate "cd sub && git commit -m msg"
+[ $? -eq 2 ] && say ok "a cd to a subdirectory of THIS repo is still gated" \
+             || say bad "a cd to a subdirectory of THIS repo is still gated"
+call_gate "git -C sub commit -m msg"
+[ $? -eq 2 ] && say ok "git -C into THIS repo is gated (it escaped the old detector entirely)" \
+             || say bad "git -C into THIS repo is gated (it escaped the old detector entirely)"
+call_gate "cd /nonexistent-$$ && git commit -m msg"
+[ $? -eq 2 ] && say ok "a cd to a directory that does not exist falls back to this repo" \
+             || say bad "a cd to a directory that does not exist falls back to this repo"
+# `git commit-graph write` creates no commit; blocking it would be a false
+# BLOCK on a maintenance command. Asserting SILENCE as well as exit 0 is what
+# separates "not a commit" from "assessed and passed" — the two look identical
+# from the exit code alone.
+[ -z "$(gate_out 'git commit-graph write')" ] \
+    && say ok "git commit-graph is not treated as a commit (silent, exit 0)" \
+    || say bad "git commit-graph is not treated as a commit (silent, exit 0)"
+call_gate "git commit; echo done"
+[ $? -eq 2 ] && say ok "a commit terminated by ; is still caught" \
+             || say bad "a commit terminated by ; is still caught"
+
+# ---- the machine-written exclusion (24 Aug) ----
+# `.claude/agent-log.tsv` is appended by the SubagentStart hook on every spawn,
+# so it is newer than the footer almost always, and ALONE it was blocking
+# commits whose code was fully verified. ACCEPTING CASE FIRST again.
+rm -rf sub; git checkout -q -- file.txt 2>/dev/null
+sleep 1; echo "verify green" > "$FOOTER"          # green over the whole tree
+sleep 1; mkdir -p .claude; echo "when	agent" > .claude/agent-log.tsv
+call_gate "git commit -m msg"
+[ $? -eq 0 ] && say ok "an agent-log-only change does not block a verified commit" \
+             || say bad "an agent-log-only change does not block a verified commit"
+# ...and it must SAY it excluded something, and that the exclusion BIT, or the
+# filter is invisible and the next reader cannot tell it from a clean tree.
+OUT=$(gate_out "git commit -m msg")
+printf '%s' "$OUT" | grep -q 'excluded=.claude/agent-log.tsv' \
+    && say ok "the pass line names the exclusion" || say bad "the pass line names the exclusion"
+printf '%s' "$OUT" | grep -q 'excludedNewerThanFooter=1' \
+    && say ok "the pass line says the exclusion BIT (1 excluded path was newer)" \
+    || say bad "the pass line says the exclusion BIT (1 excluded path was newer)"
+printf '%s' "$OUT" | grep -qE 'walked=[0-9]+ checked=[0-9]+ stale=0/[0-9]+' \
+    && say ok "the zero ships its denominator (walked/checked beside stale=0)" \
+    || say bad "the zero ships its denominator (walked/checked beside stale=0)"
+
+# REJECTING: a real source change after verify still blocks — and it must
+# block for the SOURCE file, not be excused by the excluded one sitting beside
+# it. This is the case the exclusion could have widened into.
+sleep 1; echo w >> file.txt
+OUT=$(gate_out "git commit -m msg")
+call_gate "git commit -m msg"
+[ $? -eq 2 ] && say ok "a real source change after verify still blocks" \
+             || say bad "a real source change after verify still blocks"
+printf '%s' "$OUT" | grep -q 'BLOCKED.*file.txt' \
+    && say ok "the block names the source file" || say bad "the block names the source file"
+printf '%s' "$OUT" | grep -q 'BLOCKED.*agent-log' \
+    && say bad "the block does not list the excluded file as a finding" \
+    || say ok "the block does not list the excluded file as a finding"
+printf '%s' "$OUT" | grep -q 'BLOCK .*excluded=.claude/agent-log.tsv excludedSeen=1 excludedNewerThanFooter=1' \
+    && say ok "the block line still declares the exclusion and that it bit" \
+    || say bad "the block line still declares the exclusion and that it bit"
+# The list is NAMED, not a pattern: a sibling file under the same directory
+# must still be freshness-checked, or the exclusion has silently grown.
+git checkout -q -- file.txt 2>/dev/null
+sleep 1; echo "verify green" > "$FOOTER"; sleep 1; echo x > .claude/settings-note.txt
+call_gate "git commit -m msg"
+[ $? -eq 2 ] && say ok "a sibling file in .claude/ is NOT excluded (named list, not a pattern)" \
+             || say bad "a sibling file in .claude/ is NOT excluded (named list, not a pattern)"
+
+# The log-agent suite below counts rows from an empty start, so the fixture
+# log written above must not be left standing in its way.
+rm -rf .claude
 
 # session-start must not error outside the happy path (empty repo, no queue).
 bash "$HERE/session-start.sh" >/dev/null 2>&1 && say ok "session-start survives a bare repo" || say bad "session-start survives a bare repo"

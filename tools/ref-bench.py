@@ -121,6 +121,59 @@ WHAT IT MEASURES, and what each number is a statistic OF.
     it every run rather than trusting this paragraph to stay true.
 
 --------------------------------------------------------------------------
+THE LOW-CONTENT ANNOTATION — WHY A NEARLY EMPTY FRAME SCORES WELL, AND WHAT
+THIS TOOL DOES ABOUT IT.
+
+Ruled by the director on 24 Aug (decision 1 part 3 in
+`game-design/decisions-2026-08-24-shadow-gap-and-template-sync.md`):
+ANNOTATION, NEVER EXCLUSION. A dropped frame reports a smaller world as a
+cleaner one, which is this file's own opening argument against itself.
+
+`district_downtown` reads shadowRatio 0.676, ABOVE the references' 0.157..0.388,
+on a frame that is one unlit surface with a sliver of skyline. Its groundP10 and
+groundP90 are both scraping the same near-black floor (0.063 and 0.094), and a
+ratio of two numbers converging on the noise floor tends to 1 as the band
+empties. It is a reading of nothing, not of a bright street — and it reads as
+the most in-band-and-then-some row in the table.
+
+THE QUALIFIER IS THE REFERENCES' OWN FLOOR, NOT A NUMBER SOMEBODY PICKED
+(rule 2 — the first version of a bound is a printer). The five reference
+frames' own ground-band inputs, run 24 Aug 2026:
+
+    groundP90   0.456 · 0.233 · 0.403 · 0.831 · 0.763     floor 0.233
+    groundMean  0.293 · 0.142 · 0.216 · 0.536 · 0.543     floor 0.142
+
+A sim still whose groundP90 or groundMean PRINTS below the matching floor has a
+ground band dimmer than the dimmest thing the target ever shows, so its
+ratio-derived rows are marked `~` and counted apart. Both floors are recomputed
+from the references on every run and printed on the REFBAND line and the
+`scope=ratioband` line; there is no constant here to go stale.
+
+EITHER, NOT BOTH, AND THE LADDER IS WHY. One contributor toggled at a time,
+over the same seventeen sim stills in the same run:
+
+    groundP90 below floor    4    downtown day2_night day2_wet day5_night
+    groundMean below floor   7    those four + gullwing day1_dusk day2_close
+    either (TAKEN)           7
+    both                     4
+
+The three the mean catches alone are the argument, and `district_gullwing` is
+the sharpest: a dark building mass at arm's length whose groundP90 is 0.360 — a
+lit window sill — against a groundMean of 0.115. Its band is unlit facade with
+a bright edge in it, and BOTH would call that a readable street. This also
+answers rule 2's fork test before it is asked: the two statistics are NOT one
+number twice, and gullwing is the live proof that one can sit above its floor
+while the other sits below.
+
+WHAT IT DELIBERATELY DOES NOT TOUCH. `district_hook` (groundP90 0.868,
+groundMean 0.471) and `district_strip` (0.872 / 0.456) are bright street frames
+reading BELOW the band at 0.149 and 0.140. They are not annotated and must not
+be — that shortfall is the real residual the ambient-fill rung owns, and hiding
+it behind an outlier rule is exactly what the ruling refused. `district_hook`
+is the selftest's accepting fixture for this reason, and `district_downtown`
+the rejecting one.
+
+--------------------------------------------------------------------------
 THE CUTS, TAKEN FROM THE SERIES AND NOT THE OTHER WAY ROUND (rule 2 — a bound
 chosen first and defended after is a rounding wearing a measurement's clothes).
 `--series` reprints all of this on demand. Run 24 Aug 2026, 5 references and 17
@@ -238,6 +291,15 @@ moments as one, which cost this project an afternoon and five wrong answers.
 `refGap image=REFBAND` carries the five references' range per key as `lo..hi`;
 `refGap summary` carries every count with its denominator.
 
+Each image line also carries `lowContent=` — the qualifying reading as a PAIR,
+`groundMean:0.115<0.142`, value and the floor it failed against in one token,
+never two keys whose relationship the reader has to remember — and
+`ratioUnreadable=`, the ratio rows that pair marks. Both print the word `none`
+when the frame is fine, so "not low-content" and "the tool forgot to look" are
+different strings. `refGap scope=ratioband` is one line per ratio row carrying
+the count the decision record asks for: in band X of Y READABLE, +Z unreadable,
+named, out of the number of stills examined.
+
 EXIT CODES. 0 report produced (or selftest passed). 1 selftest failed. 2 usage.
 3 nothing to measure — a directory missing or holding no readable image, said
 with the count of files examined so it cannot read as "clean". 4 the report
@@ -281,6 +343,26 @@ PATCH_FLOOR = 8.0   # 0..255; keeps a near-black window from dividing by nothing
 STABLE_PREFIX = "district_"
 
 COLS_PER_BLOCK = 4      # sim columns per table block; the cap announces itself
+NAME_CAP = 8            # named stills per list before `(+N more not shown)`
+
+# ---- the low-content annotation. See THE LOW-CONTENT ANNOTATION above.
+#
+# RATIO_DIMS: the rows whose value is a RATIO of two ground-band statistics,
+# mapped to the inputs it divides. A ratio can read healthy for the wrong
+# reason when both its inputs sit on the noise floor, which no absolute row
+# can do, so these are the rows the annotation covers. The mapping is here and
+# not inlined so the count "1 of 16 dimensions is ratio-derived" prints beside
+# the annotation — a reader must be able to tell "one row annotated" from
+# "every ratio row annotated".
+RATIO_DIMS = {"shadowRatio": ("groundP10", "groundP90")}
+
+# LOW_CONTENT_KEYS: the ground-band INPUT statistics whose floor qualifies a
+# frame as low-content. EITHER below its own floor is enough — the ladder in
+# the docstring is the evidence, and `district_gullwing` (P90 0.360 above,
+# mean 0.115 below) is the frame that separates the two rules. No number
+# lives here on purpose: the floor is min() over the five references, taken
+# fresh every run.
+LOW_CONTENT_KEYS = ("groundP90", "groundMean")
 
 # Row order, and what each number is a statistic OF, named once so the table,
 # the machine tail and the selftest cannot drift apart.
@@ -302,6 +384,11 @@ DIMS = [
     ("vertRuns",    "vertical runs",       "%.0f", "count, upper two thirds"),
     ("shadowRatio", "shadow contrast",     "%.3f", "groundP10/groundP90"),
 ]
+
+# One lookup from key to print format, derived from DIMS so the table, the
+# machine tail, the low-content marks and the selftest cannot drift apart about
+# how many decimals a reader is judging.
+FMTS = {k: f for k, _l, f, _s in DIMS}
 
 
 class Unreadable(Exception):
@@ -605,6 +692,14 @@ def shot_rows():
     return rows
 
 
+def _printed(v, fmt):
+    """The number as the page shows it. ONE implementation of "compare what the
+    reader can see", shared by `outside_of` and `below_floor` — two copies of
+    this rounding is the one-idea-two-sites shape that costs this project a
+    round trip every time it happens."""
+    return float(fmt % v)
+
+
 def outside_of(lo, hi, v, fmt):
     """Is `v` outside [lo,hi] — judged on the PRINTED values, not the
     full-precision ones.
@@ -616,8 +711,88 @@ def outside_of(lo, hi, v, fmt):
     case can be PLANTED rather than waited for: a check that only fires when
     today's data happens to land on a bound is the flaky-gate shape rule 5b's
     corollary is about."""
-    flo, fhi, got = (float(fmt % x) for x in (lo, hi, v))
+    flo, fhi, got = (_printed(x, fmt) for x in (lo, hi, v))
     return got < flo or got > fhi
+
+
+def below_floor(lo, v, fmt):
+    """Is `v` below the references' floor for its key, on the PRINTED values.
+
+    Same convention as `outside_of` and for the same reason: a `~` beside a
+    number that prints equal to the floor printed next to it is a mark no
+    reader can check. Planted in the selftest rather than waited for."""
+    return _printed(v, fmt) < _printed(lo, fmt)
+
+
+def low_content_of(m, ranges, fmts):
+    """The qualifying readings for one image, as [(key, value, floor)].
+
+    EMPTY MEANS THE FRAME IS FINE, and every caller prints `none` for that
+    rather than an empty string — a blank field reads as a tool that did not
+    run. `ranges` is the five references' own (lo, hi) per key, so the floor
+    handed in here is measured, never a constant.
+
+    A LIST AND NOT A BOOLEAN, because the decision requires the QUALIFYING
+    NUMBER to be printed: `groundMean:0.115<0.142` is one token carrying the
+    value and the bound it failed, which is the pair shape the whole verdict
+    channel is built on."""
+    out = []
+    for key in LOW_CONTENT_KEYS:
+        if key not in ranges or key not in m:
+            continue
+        lo = ranges[key][0]
+        if below_floor(lo, m[key], fmts[key]):
+            out.append((key, m[key], lo))
+    return out
+
+
+def low_content_token(lc, fmts):
+    """The `lowContent=` value: space-free, one token per qualifying key, or
+    the word `none`. `(+N more not shown)` cannot bite here — the list is
+    bounded by LOW_CONTENT_KEYS, which is two."""
+    if not lc:
+        return "none"
+    return ",".join("%s:%s<%s" % (k, fmts[k] % v, fmts[k] % lo) for k, v, lo in lc)
+
+
+def ratio_band_reading(dim, named, ranges, fmts):
+    """One ratio row's in-band count, with the denominators the ruling asks for.
+
+    Returns a dict; `named` is [(shotName, measurement)] — the SAME list, in the
+    same order, that the table and the machine tail are built from, taken from
+    one measurement pass. So `inBand`, `readable` and `unreadable` are the same
+    instant by construction and cannot be three moments quoted as one.
+
+    WHAT EACH NUMBER IS A STATISTIC OF:
+      stills      COUNT of sim stills measured this run — the denominator
+      unreadable  COUNT of those whose ground band is low-content (either input
+                  statistic below the references' own floor for it)
+      readable    COUNT of the rest; stills - unreadable, by construction
+      inBand      COUNT of READABLE stills whose printed ratio lies inside the
+                  references' printed range. Never a fraction of `stills`: an
+                  unreadable row is neither in nor out, and counting it either
+                  way is the reading this annotation exists to refuse."""
+    lo, hi = ranges[dim]
+    fmt = fmts[dim]
+    unreadable, in_band = [], []
+    for name, m in named:
+        if low_content_of(m, ranges, fmts):
+            unreadable.append(name)
+        elif not outside_of(lo, hi, m[dim], fmt):
+            in_band.append(name)
+    return {"dim": dim, "inputs": RATIO_DIMS[dim], "lo": lo, "hi": hi, "fmt": fmt,
+            "stills": len(named), "unreadable": unreadable, "inBand": in_band,
+            "readable": len(named) - len(unreadable),
+            "floors": [(k, ranges[k][0]) for k in LOW_CONTENT_KEYS if k in ranges]}
+
+
+def capped(names, cap=NAME_CAP, sep=","):
+    """A list rendered space-free with its truncation ANNOUNCED. A cap that
+    does not say it bit reads as a finding — `| head -3` on the character audit
+    once read as three of five bodies failing, and nothing was broken."""
+    if len(names) <= cap:
+        return sep.join(names) if names else "none"
+    return sep.join(names[:cap]) + sep + "(+%dmore-not-shown)" % (len(names) - cap)
 
 
 def shot_name(path):
@@ -718,24 +893,33 @@ def report(stable_only=False):
         "scores 0.42 on one and 0.06 on GROUND PATCH.")
     out("  * = pose-stable across builds (district_*). Every other sim column is "
         "a different photograph each run.")
+    out("  ~ = LOW-CONTENT frame: a ratio row whose ground-band inputs sit below "
+        "the references' own floor. Marked, never dropped — the value stays on "
+        "the page and may not be quoted.")
     out("")
 
-    cols = [(col_label(p), "*" if p.name.startswith(STABLE_PREFIX) else "", m)
-            for p, m in sims]
+    ranges = {k: (min(m[k] for _p, m in refs), max(m[k] for _p, m in refs))
+              for k, _l, _f, _s in DIMS}
+    named = [(shot_name(p), m) for p, m in sims]
+    # ONE call site for the qualifier per image; the table cell, the machine
+    # tail and the ratio-band counts all read this same list, so the three
+    # renderings of one judgement cannot disagree (the lesson `is_outside`
+    # below was already written for).
+    lowc = [low_content_of(m, ranges, FMTS) for _p, m in sims]
+    cols = [(col_label(p), "*" if p.name.startswith(STABLE_PREFIX) else "", m, lc)
+            for (p, m), lc in zip(sims, lowc)]
 
     def is_outside(key, fmt, v):
         """`outside_of` against this key's reference range. The table, the
         machine tail's `outside=` list and the summary count all go through
         here, so the three renderings of one judgement cannot disagree."""
         return outside_of(ranges[key][0], ranges[key][1], v, fmt)
-    ranges = {k: (min(m[k] for _p, m in refs), max(m[k] for _p, m in refs))
-              for k, _l, _f, _s in DIMS}
 
     nblocks = (len(cols) + COLS_PER_BLOCK - 1) // COLS_PER_BLOCK
     for bi in range(nblocks):
         chunk = cols[bi * COLS_PER_BLOCK:(bi + 1) * COLS_PER_BLOCK]
         head = "%-22s %-15s" % ("dimension", "ref lo..hi")
-        for name, star, _m in chunk:
+        for name, star, _m, _lc in chunk:
             head += "%12s" % (name[:10] + star)
         out("  block %d of %d — sim stills %d-%d of %d"
             % (bi + 1, nblocks, bi * COLS_PER_BLOCK + 1,
@@ -745,23 +929,57 @@ def report(stable_only=False):
         for key, label, fmt, _stat in DIMS:
             lo, hi = ranges[key]
             row = "%-22s %-15s" % (label, (fmt + ".." + fmt) % (lo, hi))
-            for _n, _s, m in chunk:
+            for _n, _s, m, lc in chunk:
                 v = m[key]
-                row += "%11s%s" % (fmt % v, "!" if is_outside(key, fmt, v) else " ")
+                # `~` MARKS, IT DOES NOT REPLACE. The `!` stays because the raw
+                # reading really is outside the band; the `~` says the reading
+                # cannot carry that conclusion. Dropping either would be the
+                # exclusion the ruling refused.
+                cell = ("~" if (key in RATIO_DIMS and lc) else "") + fmt % v
+                row += "%11s%s" % (cell, "!" if is_outside(key, fmt, v) else " ")
             out(row)
         out("")
 
-    outside = checked = 0
-    for _n, _s, m in cols:
+    outside = checked = unreadable_readings = 0
+    for _n, _s, m, lc in cols:
         for key, _l, fmt, _st in DIMS:
             checked += 1
             outside += 1 if is_outside(key, fmt, m[key]) else 0
+            unreadable_readings += 1 if (key in RATIO_DIMS and lc) else 0
     out("  ! = outside the five references' range. %d of %d readings outside "
-        "(%d dimensions x %d stills)." % (outside, checked, len(DIMS), len(cols)))
-    nstable = sum(1 for _n, st, _m in cols if st == "*")
+        "(%d dimensions x %d stills), of which %d sit on a ~ low-content ratio "
+        "row and are not readable as findings."
+        % (outside, checked, len(DIMS), len(cols), unreadable_readings))
+    nstable = sum(1 for _n, st, _m, _lc in cols if st == "*")
     out("  %d of %d sim stills are pose-stable%s."
         % (nstable, len(cols),
            "" if stable_only else "; --stable keeps only those"))
+    out("")
+
+    # ---- the ratio rows, counted the way the 24 Aug ruling requires: in band
+    # X of Y READABLE, +Z unreadable NAMED, against the number examined.
+    bands = [ratio_band_reading(d, named, ranges, FMTS) for d in RATIO_DIMS]
+    floors = ", ".join("%s %s" % (k, FMTS[k] % v) for k, v in bands[0]["floors"]) \
+        if bands else "none"
+    out("  RATIO ROWS (%d of %d dimensions) — the low-content annotation, keyed "
+        "to the five references' OWN floor: %s." % (len(RATIO_DIMS), len(DIMS), floors))
+    for b in bands:
+        band_txt = (b["fmt"] + ".." + b["fmt"]) % (b["lo"], b["hi"])
+        if b["readable"] == 0:
+            # RULE 3b: "0 in band" over no readable frame at all must not be
+            # able to read as health, so it says the words instead of a number.
+            head_txt = "in band NOTHING MEASURED — 0 of 0 readable stills"
+        else:
+            head_txt = "in band %d of %d readable stills" % (
+                len(b["inBand"]), b["readable"])
+        out("    %s = %s, band %s: %s (+%d unreadable low-content), %d stills "
+            "examined." % (b["dim"], "/".join(b["inputs"]), band_txt, head_txt,
+                           len(b["unreadable"]), b["stills"]))
+        shown = b["unreadable"][:NAME_CAP]
+        more = len(b["unreadable"]) - len(shown)
+        out("      unreadable: %s%s" % (
+            " ".join(shown) if shown else "none",
+            " (+%d more not shown)" % more if more else ""))
     out("")
 
     out("  reference frames — pixels each statistic saw:")
@@ -789,19 +1007,43 @@ def report(stable_only=False):
         len(refs),
         " ".join("%s=%s" % (k, (f + ".." + f) % ranges[k])
                  for k, _l, f, _s in DIMS)))
-    for p, m in sims:
+    for (p, m), lc in zip(sims, lowc):
         bad = [k for k, _l, f, _s in DIMS if is_outside(k, f, m[k])]
-        out("refGap image=%s stable=%s %s outside=%s px=%d/%d/%d patchWindows=%d"
+        out("refGap image=%s stable=%s %s outside=%s lowContent=%s "
+            "ratioUnreadable=%s px=%d/%d/%d patchWindows=%d"
             % (shot_name(p), "yes" if p.name.startswith(STABLE_PREFIX) else "no",
                " ".join("%s=%s" % (k, f % m[k]) for k, _l, f, _s in DIMS),
                ",".join(bad) if bad else "none",
+               low_content_token(lc, FMTS),
+               ",".join(sorted(RATIO_DIMS)) if lc else "none",
                m["_pxWhole"], m["_pxGround"], m["_pxMid"], m["_nPatch"]))
+    # ONE LINE PER RATIO ROW, whole-run numbers only. Every count here is over
+    # this run's sim stills and belongs on a run-level line, never beside a
+    # per-image reading — two moments under one grep is what cost this project
+    # an afternoon.
+    for b in bands:
+        shown = b["unreadable"][:NAME_CAP]
+        # `unreadableRatio`, not `unreadable`: the summary line below already
+        # spends `unreadable=` on IMAGES THAT WOULD NOT DECODE, and one key
+        # meaning two things on two lines is the fault a grep cannot see.
+        out("refGap scope=ratioband dim=%s inputs=%s band=%s inBand=%d readable=%d "
+            "unreadableRatio=%d stills=%d floor=%s namesShown=%d "
+            "namesNotShown=%d unreadableStills=%s"
+            % (b["dim"], "/".join(b["inputs"]),
+               (b["fmt"] + ".." + b["fmt"]) % (b["lo"], b["hi"]),
+               len(b["inBand"]), b["readable"], len(b["unreadable"]), b["stills"],
+               "/".join("%s:%s" % (k, FMTS[k] % v) for k, v in b["floors"]) or "none",
+               len(shown), len(b["unreadable"]) - len(shown),
+               capped(b["unreadable"])))
     out("refGap scope=summary refFrames=%d simStills=%d dims=%d outside=%d outsideOf=%d "
         "unreadable=%d filesExamined=%d/%d edgeCut=%d vertCut=%d "
-        "patchBlock=%d patchWin=%d work=%dx%d"
+        "patchBlock=%d patchWin=%d work=%dx%d ratioDims=%d lowContentStills=%d/%d "
+        "lowContentKeys=%s unreadableRatioReadings=%d"
         % (len(refs), len(sims), len(DIMS), outside, checked, len(errors),
            counts["refFiles"], counts["simFiles"], EDGE_T, VERT_T,
-           PATCH_BLOCK, PATCH_WIN, WORK[0], WORK[1]))
+           PATCH_BLOCK, PATCH_WIN, WORK[0], WORK[1], len(RATIO_DIMS),
+           sum(1 for lc in lowc if lc), len(sims),
+           "/".join(LOW_CONTENT_KEYS), unreadable_readings))
 
     print("\n".join(lines))
     return 4 if errors else 0
@@ -922,11 +1164,78 @@ def series():
              spearman([m["grainSigma"] for _p, m in refs],
                       [m["edgeGround"] for _p, m in refs]), len(refs)))
     print("")
+    low_content_series(refs, sims)
     print("unreadable images: %d of %d files opened"
           % (len(errors), len(refs) + len(sims) + len(errors)))
     for e in errors:
         print("  UNREADABLE %s" % e)
     return 4 if errors else 0
+
+
+def low_content_series(refs, sims):
+    """THE SERIES THE LOW-CONTENT RULE WAS TAKEN FROM, reprinted every run.
+
+    Rule 2: the first version of a bound is a printer, and the bound here is
+    not even a number — it is min() over the five references' own readings, so
+    what has to be checkable is (a) that those five readings are what the floor
+    is made of and (b) that the OR over the two input statistics is doing work
+    the AND would not.
+
+    A LADDER: one contributor toggled at a time, all four rungs printed from
+    the same measurement pass in the same run, because rungs compared across
+    runs are different photographs. The rows go above the rungs — an aggregate
+    cannot show a regime change and a row of numbers shows one in a second."""
+    ranges = {k: (min(m[k] for _p, m in refs), max(m[k] for _p, m in refs))
+              for k, _l, _f, _s in DIMS}
+    ratio_keys = sorted(RATIO_DIMS)
+    print("== LOW-CONTENT QUALIFIER: the floor IS the five references' own "
+          "minimum, per statistic. Nothing below is a constant. ==")
+    head = "%-34s %10s %10s   %s" % ("image", LOW_CONTENT_KEYS[0],
+                                     LOW_CONTENT_KEYS[1],
+                                     " ".join("%12s" % k for k in ratio_keys))
+    print(head)
+    for side, group in (("REF", refs), ("SIM", sims)):
+        for p, m in group:
+            print("%s %-30s %10s %10s   %s"
+                  % (side, p.name[:30],
+                     FMTS[LOW_CONTENT_KEYS[0]] % m[LOW_CONTENT_KEYS[0]],
+                     FMTS[LOW_CONTENT_KEYS[1]] % m[LOW_CONTENT_KEYS[1]],
+                     " ".join("%12s" % (FMTS[k] % m[k]) for k in ratio_keys)))
+    for k in LOW_CONTENT_KEYS:
+        print("  %s floor %s over %d references (their range %s..%s)"
+              % (k, FMTS[k] % ranges[k][0], len(refs),
+                 FMTS[k] % ranges[k][0], FMTS[k] % ranges[k][1]))
+    print("")
+
+    print("== THE LADDER: which stills qualify as low-content under each rule, "
+          "same run, same pass. `either` is what ships. ==")
+    per_key = {k: [shot_name(p) for p, m in sims
+                   if below_floor(ranges[k][0], m[k], FMTS[k])]
+               for k in LOW_CONTENT_KEYS}
+    either = [shot_name(p) for p, m in sims if low_content_of(m, ranges, FMTS)]
+    both = [n for n in per_key[LOW_CONTENT_KEYS[0]]
+            if n in per_key[LOW_CONTENT_KEYS[1]]]
+    rungs = [("%s below floor" % k, per_key[k]) for k in LOW_CONTENT_KEYS]
+    rungs += [("either (TAKEN)", either), ("both", both)]
+    for label, names in rungs:
+        print("  %-26s %2d of %2d stills   %s"
+              % (label, len(names), len(sims), capped(names, sep=" ")))
+    print("  The rungs differ by %d still(s); those are the frames the AND rule "
+          "would call readable street." % (len(either) - len(both)))
+    print("")
+
+    print("== WHAT THE ANNOTATION DOES TO EACH RATIO ROW'S COUNT ==")
+    named = [(shot_name(p), m) for p, m in sims]
+    for d in ratio_keys:
+        b = ratio_band_reading(d, named, ranges, FMTS)
+        naive = sum(1 for _n, m in named
+                    if not outside_of(b["lo"], b["hi"], m[d], b["fmt"]))
+        print("  %s band %s: before %d of %d in band; after %d of %d READABLE "
+              "in band (+%d unreadable, named: %s)"
+              % (d, (b["fmt"] + ".." + b["fmt"]) % (b["lo"], b["hi"]),
+                 naive, b["stills"], len(b["inBand"]), b["readable"],
+                 len(b["unreadable"]), capped(b["unreadable"], sep=" ")))
+    print("")
 
 
 def spearman(a, b):
@@ -1048,6 +1357,119 @@ def selftest():
           outside_of(0.20500, 0.38190, 0.20449, "%.3f"))
     check("bound: the integer format rounds to whole counts",
           not outside_of(22, 49, 49.4, "%.0f") and outside_of(22, 49, 49.6, "%.0f"))
+
+    # ---- 1b. THE LOW-CONTENT ANNOTATION, ACCEPTING FIXTURE FIRST.
+    #
+    # `district_hook` is a bright street frame reading BELOW the shadow band at
+    # 0.149, and that reading is the residual the ambient-fill rung owns. If
+    # this annotation ever swallows it, the tool has started hiding the finding
+    # it was built beside — which is the exclusion the 24 Aug ruling refused.
+    # It goes first because the expensive failure of an outlier rule is the one
+    # that eats real frames, not the one that misses a black one.
+    lrefs, lsims, _le, _lc = gather()
+    lranges = {k: (min(m[k] for _p, m in lrefs), max(m[k] for _p, m in lrefs))
+               for k, _l, _f, _s in DIMS}
+    by_name = {shot_name(p): m for p, m in lsims}
+    hook, downtown = by_name.get("district_hook"), by_name.get("district_downtown")
+    check("accepting: the two live fixtures are both present",
+          hook is not None and downtown is not None)
+    if hook and downtown:
+        hook_lc = low_content_of(hook, lranges, FMTS)
+        check("accepting: district_hook is NOT low-content (%s)"
+              % low_content_token(hook_lc, FMTS), not hook_lc)
+        check("accepting: district_hook's own inputs are above both floors "
+              "(groundP90 %.3f>=%.3f, groundMean %.3f>=%.3f)"
+              % (hook["groundP90"], lranges["groundP90"][0],
+                 hook["groundMean"], lranges["groundMean"][0]),
+              hook["groundP90"] >= lranges["groundP90"][0]
+              and hook["groundMean"] >= lranges["groundMean"][0])
+        check("accepting: district_hook's line says lowContent=none "
+              "ratioUnreadable=none",
+              any(l.startswith("refGap image=district_hook ")
+                  and "lowContent=none" in l and "ratioUnreadable=none" in l
+                  for l in text.splitlines()))
+        # REJECTING: the near-black frame whose 0.676 started this.
+        down_lc = low_content_of(downtown, lranges, FMTS)
+        check("rejecting: district_downtown IS low-content (%s)"
+              % low_content_token(down_lc, FMTS), bool(down_lc))
+        check("rejecting: its qualifying number is printed with the floor it "
+              "failed", ":" in low_content_token(down_lc, FMTS)
+              and "<" in low_content_token(down_lc, FMTS))
+        dline = next((l for l in text.splitlines()
+                      if l.startswith("refGap image=district_downtown ")), "")
+        check("rejecting: district_downtown's line names the ratio row it marks",
+              "ratioUnreadable=shadowRatio" in dline and "lowContent=none" not in dline)
+        check("rejecting: it is ANNOTATED, NOT DROPPED — the row still carries "
+              "its value", "shadowRatio=%s" % (FMTS["shadowRatio"]
+                                               % downtown["shadowRatio"]) in dline)
+
+    # The floor is DERIVED, not stored: recompute it here from the references
+    # and require the printed one to match, so a constant creeping in fails.
+    rb_line = next((l for l in text.splitlines()
+                    if l.startswith("refGap scope=ratioband")), "")
+    want_floor = "/".join("%s:%s" % (k, FMTS[k] % lranges[k][0])
+                          for k in LOW_CONTENT_KEYS)
+    check("accepting: the printed floor is the references' own minimum (%s)"
+          % want_floor, ("floor=" + want_floor) in rb_line)
+    got = dict(t.split("=", 1) for t in rb_line.split()[1:] if "=" in t)
+    check("accepting: the ratio-band line ships every denominator",
+          all(k in got for k in ("inBand", "readable", "unreadableRatio",
+                                 "stills", "namesShown", "namesNotShown")))
+    if got:
+        check("accepting: readable + unreadable = stills examined (%s+%s=%s)"
+              % (got.get("readable"), got.get("unreadableRatio"), got.get("stills")),
+              int(got["readable"]) + int(got["unreadableRatio"]) == int(got["stills"]))
+        check("accepting: in band is counted out of READABLE, never out of all",
+              int(got["inBand"]) <= int(got["readable"]))
+        check("accepting: the names shown carry their not-shown count",
+              int(got["namesShown"]) + int(got["namesNotShown"])
+              == int(got["unreadableRatio"]))
+    # The table's marks and the machine tail's count are two renderings of one
+    # judgement, the same pairing the `!` check above exists for.
+    marks = sum(l.count("~") for l in text.splitlines() if l.startswith(labels))
+    summary_low = text.split("refGap scope=summary")[1].split(
+        "lowContentStills=")[1].split()[0]
+    check("accepting: table ~ marks, the ratioband count and the summary agree "
+          "(%d marks, %s)" % (marks, summary_low),
+          marks == int(summary_low.split("/")[0]) * len(RATIO_DIMS)
+          and marks == int(got["unreadableRatio"]) * len(RATIO_DIMS))
+
+    # PLANTED, so none of this waits on the live stills to land on an edge.
+    check("floor: a value rounding ONTO the floor is not below it",
+          not below_floor(0.23274, 0.23251, "%.3f"))
+    check("floor: a value a printed step below the floor IS below it",
+          below_floor(0.23274, 0.23249, "%.3f"))
+    check("floor: the qualifier moves when the references move — one value, "
+          "two floors",
+          bool(low_content_of({"groundP90": 0.200, "groundMean": 0.500},
+                              {"groundP90": (0.233, 0.831),
+                               "groundMean": (0.142, 0.543)}, FMTS))
+          and not low_content_of({"groundP90": 0.200, "groundMean": 0.500},
+                                 {"groundP90": (0.150, 0.831),
+                                  "groundMean": (0.142, 0.543)}, FMTS))
+    check("floor: EITHER input below its own floor qualifies (the gullwing "
+          "shape: a lit sill over an unlit facade)",
+          len(low_content_of({"groundP90": 0.360, "groundMean": 0.115},
+                             {"groundP90": (0.233, 0.831),
+                              "groundMean": (0.142, 0.543)}, FMTS)) == 1)
+    # A run in which EVERY still is low-content must not print a clean-looking
+    # "0 in band" — rule 3b, planted rather than waited for.
+    dark = [("all_dark_%d" % i, {"groundP90": 0.05, "groundMean": 0.02,
+                                 "shadowRatio": 0.9}) for i in range(3)]
+    darkb = ratio_band_reading("shadowRatio", dark,
+                               {"shadowRatio": (0.157, 0.388),
+                                "groundP90": (0.233, 0.831),
+                                "groundMean": (0.142, 0.543)}, FMTS)
+    check("nothing measured: 0 readable stills reports 0 of 0 with every one "
+          "named unreadable",
+          darkb["readable"] == 0 and darkb["inBand"] == []
+          and len(darkb["unreadable"]) == 3 and darkb["stills"] == 3)
+    check("cap: a name list past the cap announces the truncation",
+          capped(["s%d" % i for i in range(12)]).endswith("(+4more-not-shown)"))
+    check("cap: a list inside the cap says nothing about truncation",
+          "not-shown" not in capped(["s%d" % i for i in range(NAME_CAP)]))
+    check("cap: an empty name list prints the word none, never blank",
+          capped([]) == "none")
 
     ranges_ok = True
     for line in text.splitlines():
