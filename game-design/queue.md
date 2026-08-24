@@ -113,22 +113,22 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    running, on the one element in every outdoor frame.
 
    **DECIDED 24 Aug, ON EVIDENCE: THE REFLECTION/ENVIRONMENT SOURCE ONLY,
-   VISIBLE DOME UNTOUCHED.** The item asked for a deliberate pick between
-   that and blending two captures across the hour, and the numbers make it:
-   - **Glass is smoothness 0.90 and Window 0.85** (`SurfaceSpec`), on every
-     facade in town — already highly reflective. What they reflect is a
-     **64px cubemap baked off a three-colour gradient**, no structure at
-     all. The near-black windows in every landed frame are dark BECAUSE
-     there is nothing to reflect, not because they were authored dark.
-   - The blend shape trades a CONTINUOUS day (`LightModel` drives the dome
-     per frame through dusk warmth, night sodium and a per-day cloud deck
-     the ambient reads from) for photographic detail, and pops between four
-     fixed states. Reflection-only is additive and cannot regress it.
+   VISIBLE DOME UNTOUCHED.** The numbers make the pick, not a preference.
+   **Glass is smoothness 0.90 and Window 0.85** (`SurfaceSpec`), on every
+   facade in town — already highly reflective. What they reflect is a **64px
+   cubemap baked off a three-colour gradient**, no structure at all. The
+   near-black windows in every landed frame are dark BECAUSE there is
+   nothing to reflect, not because they were authored dark: that is the
+   largest reflective area in the game sitting on an empty environment. The
+   blend shape trades a CONTINUOUS day (dusk warmth, night sodium, a per-day
+   deck the ambient reads from) for photographic detail and pops between
+   four fixed states; reflection-only is additive and cannot regress it.
    **Obstacles, both real:** (a) `Resources.Load` cannot reach `Assets/Sky`
-   and StreamingAssets cannot help (`LoadImage` reads PNG/JPG, not `.hdr`),
-   so they must MOVE under `Assets/Resources`, which moves the directory
-   `attribution-check.py` maps to Poly Haven; (b) there is no NIGHT capture,
-   so night keeps the procedural cubemap and the handover needs a ramp.
+   and `LoadImage` does not read `.hdr`, so the captures must MOVE under
+   `Assets/Resources`, which moves the directory `attribution-check.py` maps
+   to Poly Haven; (b) there is no NIGHT capture, so night keeps the
+   procedural cubemap and the handover needs a ramp.
+
    **Ship the measurement with it:** the environment cubemap's own luma
    spread, before and after — a flat gradient and a real sky differ by an
    order of magnitude there, and that is the number that says the wire took.
@@ -185,24 +185,21 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    sim forces a downpour at day 2 hour 21 and shoots `day2_wet` at 22.
 
 1. **RAIN AT EYE LEVEL — THE ITEM WAS CLOSED AND THE RAIN WAS NEVER THERE.**
-   *(on screen, `review_day2_wet` and `review_day1_night`)* Closed on
-   "landed wet frames read as streaks in lamp cones". They do. The lamp
-   cones are above the lamps. Measured with hue separating streaks from
-   sodium glow: bright desaturated pixels read **6.5% and 10.7% in the top
-   third against 0.00-0.26% everywhere below**, in two frames from two
-   cameras.
-   **CAUSE, read in the source, not guessed:** a Box shape emits along the
-   shape's FORWARD and nothing ever rotated the emitter, so world +Z it was
-   — the rain was THROWN SIDEWAYS at 26m/s, not falling. From the shipped
-   numbers (sheet 14m up, 1.1s life, 1.4x gravity) a drop falls 8.3m while
+   *(on screen, `review_day2_wet`, `review_day1_night`)* Closed on "landed
+   wet frames read as streaks in lamp cones". They do. The lamp cones are
+   above the lamps. Measured with hue separating streaks from sodium glow:
+   **6.5% and 10.7% in the top third against 0.00-0.26% everywhere below**,
+   two frames, two cameras. **CAUSE, read in the source:** a Box shape emits
+   along the shape's FORWARD and nothing rotated the emitter, so world +Z it
+   was — thrown SIDEWAYS at 26m/s, not falling. From the shipped numbers
+   (sheet 14m up, 1.1s life, 1.4x gravity) a drop falls 8.3m while
    travelling 28.6m sideways, so it **dies 5.7m over your head every time**.
    The single wedge is the same fault from the side: every drop flies the
    same WORLD direction, so which part of the frame gets rain depends on
-   camera yaw.
-   **Fixed with one rotation.** Speed 9 not 26, because pointing it down
+   yaw. **Fixed with one rotation**; speed 9 not 26 because pointing it down
    changes what that number MEANS. **`rainLowest` and `rainBelow/rainAlive`
-   land next build** — the old emitter could not have read below +5.7m
-   however hard it rained. Retune from that series, not from a frame.
+   land next build** — the old emitter could not read below +5.7m however
+   hard it rained. Retune from the series, not a frame.
 
 1. **THE BODY BUDGET IS CLOSED AT 87.8% — account in `roadmap-history.md`.**
    The 34m draw radius was the binding constraint (now 70m) and
@@ -224,77 +221,80 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
 1. **THE DISTANT SKYLINE — I MARKED THIS FIXED FROM THE DOC AND THE FRAME
    DISAGREED.** *(on screen, `district_downtown`)* The repaint was written
-   and the item closed on that basis. Measured 24 Aug: **the far tower is
-   the most saturated thing in the frame — 0.469, against brick 0.324 and
-   sky 0.222.** Fog cannot account for it; `fogRGB` itself sits near 0.196
-   saturation, and a fogged object cannot be MORE saturated than the fog.
-   Rule 3: a doc saying something is done is an analysis, not a report on
-   the code. **Cause, now measurable:** the repaint set `_Color` through a
-   property block without asking whether the shader has one — the mint
-   saloon's fault — and `SkylineRepainted` was incremented the moment the
-   kit existed, BEFORE the paint was attempted, so it reported success for
-   something it never checked. Both fixed; it counts what the shader
-   accepted and shares `kitPaint=took/refused`. **Judgment next landing:**
-   refusals non-zero -> replace the material; refusals zero -> the haze
-   colour itself is wrong and gets re-derived from the `else` branch.
+   and the item closed on that basis. Measured: **the far tower is the most
+   saturated thing in the frame — 0.469, against brick 0.324 and sky
+   0.222.** Fog cannot account for it; `fogRGB` sits near 0.196 saturation
+   and a fogged object cannot be MORE saturated than the fog. Rule 3.
+   **Cause, now measurable:** the repaint set `_Color` through a property
+   block without asking whether the shader has one, and `SkylineRepainted`
+   was incremented the moment the kit existed, BEFORE the paint was
+   attempted — reporting success for something it never checked. Both
+   fixed. **Judgment next landing:** refusals non-zero -> replace the
+   material; refusals zero -> the haze colour is wrong and gets re-derived
+   from the `else` branch.
 
-1. **A PAVING STRIP IS BLOWN OUT, AND THE MEASUREMENT IS ALL I HAVE.** *(on
-   screen, `district_downtown`, centre of frame)* p10-p90 luma spread
-   **0.654** against brick 0.387 and the road beside it 0.141 — two-thirds
-   of the display range on one surface — with a median of **0.434 against
-   0.059 for that adjacent road**, seven times brighter under identical
-   light. The texture's own range is ~0.28, so something amplifies it ~2.3x.
-   **NOT DIAGNOSED, deliberately:** three plausible causes (gloss-map scale,
-   the wet reflection layer, a roughness map read as albedo) and no evidence
-   between them. Next step is a ray dump at that surface in the district
-   shots, the twin of `noonFacadeMat`.
-   **What WAS proven on the way:** `Weather.ApplyWetness` wrote `_Glossiness`
-   onto shared asphalt and concrete every frame, and the Standard shader has
-   IGNORED it since gloss maps were bound (`_METALLICGLOSSMAP` makes
-   smoothness the map alpha times `_GlossMapScale`). Dead since that
-   landing, silently. `AssetLibrary.SetWetness` is the one implementation,
-   covers all four wet surfaces and knows about the map; the dead twin is
-   deleted after checking `WetSurfaces` covers both (rule 5).
+1. **A PAVING STRIP IS BLOWN OUT; THE PROBE IS DISPATCHED, NOT A GUESS.**
+   *(on screen, `district_downtown`, centre)* p10-p90 luma spread **0.654**
+   against brick 0.387 and the road beside it 0.141 — two-thirds of the
+   display range on one surface — with a median **0.434 against 0.059** for
+   that adjacent road, seven times brighter under identical light. The
+   texture's own range is ~0.28, so something amplifies it ~2.3x.
+   `districtGround` fires one ray at the low centre of the Exchange frame
+   and names the surface: material, `_Color`, MPB, texture, normals, AND the
+   gloss state — whether `_METALLICGLOSSMAP` is bound, `_GlossMapScale`,
+   `_Glossiness`, `_Metallic`. `glossScale` drives smoothness when the
+   keyword is on, and a value at its x4 clamp is a blowout by construction.
+   ONE helper (`SurfaceUnder`), shared with `noonFacadeMat`.
+   **What the hunt already proved:** `Weather.ApplyWetness` wrote
+   `_Glossiness` onto shared asphalt and concrete every frame and the shader
+   has IGNORED it since gloss maps were bound. Dead, silently, since that
+   landing; deleted after checking `WetSurfaces` covers both (rule 5). And
+   the wet-specular POSITIVE CONTROL died the same way — see below.
 
-1. **FOUR KIT-PROP SITES ARE UNPAINTED — THE MEASUREMENT IS BUILT, READ IT
-   ON THE NEXT LANDING.** Benches, bins, street lights and the crate stack
-   take no repaint, deliberately: a green bench is plausible and
-   mass-repainting on resemblance is the rule-4 mistake. Instrument:
-   `kitAlbedo=[family:val/...]`, every kit family's mean material albedo
-   measured once per key at the `TryInstantiateProp` choke point, brightest
-   first so the ten-family cap cannot hide a positive, beside
-   `townWallAlbedo` (the four wall surfaces through the SAME maths).
-   **Judgment when it lands:** any unrepainted family clearly above
-   `townWallAlbedo` gets the skyline treatment; at or below closes this.
+1. **THE POSITIVE CONTROL HAD BEEN NEUTERED.** `DefeatWetSpecular` forces
+   wet-surface smoothness to zero and its comment claims it works "by a
+   route that cannot fail". Binding gloss maps put `_METALLICGLOSSMAP` on
+   all four wet surfaces, at which point the shader ignores `_Glossiness`
+   entirely — so it reported no change, which reads as "wet specular
+   contributes nothing", the exact wrong conclusion it exists to prevent.
+   Routed through `SetSmoothness`. **Third victim of one binding**, found by
+   grepping every `SetFloat("_Glossiness"` in the Game layer — ten seconds,
+   and it should have been step two of the original change. The other three
+   writers are on untextured materials and still work (checked).
+
+1. **FOUR KIT-PROP SITES ARE UNPAINTED — READ THE MEASUREMENT ON THE NEXT
+   LANDING.** Benches, bins, street lights and the crate stack take no
+   repaint, deliberately: a green bench is plausible and mass-repainting on
+   resemblance is the rule-4 mistake. `kitAlbedo=[family:val/...]` is every
+   kit family's mean material albedo, measured once per key at the
+   `TryInstantiateProp` choke point, brightest first so the ten-family cap
+   cannot hide a positive, beside `townWallAlbedo` (the four wall surfaces
+   through the SAME maths). **Judgment:** any unrepainted family clearly
+   above `townWallAlbedo` gets the skyline treatment; at or below closes it.
 
    **AND A CAR THAT IS REPAINTED IS STILL MINT** — a different, worse fault.
-   `review_street.jpg`: one saloon at **0.713** median saturation where
-   nothing else in the frame passes 0.385, lilac wheels. The repaint is not
-   missing; `TrafficHost` has six town paints and most of the fleet wears
-   them. **All THREE paint sites** (moving cars, parked cars, skyline) set
-   `_Color` through a property block without asking whether the shader HAS
-   one, and glTFast's do not — the call evaporates in silence and looks
-   identical to a paint that landed. One helper now,
-   `AssetLibrary.PaintKit`, reporting `kitPaint=took/refused` with the first
-   refusing shader NAMED. Refusals non-zero -> replace the material.
+   `review_street.jpg`: a saloon at **0.713** median saturation where
+   nothing else in frame passes 0.385, lilac wheels. The repaint is not
+   missing; six town paints exist and most of the fleet wears them. **All
+   THREE paint sites** (moving cars, parked cars, skyline) set `_Color`
+   through a property block without asking whether the shader HAS one, and
+   glTFast's do not — the call evaporates in silence and looks identical to
+   a paint that landed. `AssetLibrary.PaintKit` is the one helper now,
+   reporting `kitPaint=took/refused` with the first refusing shader NAMED.
+   Refusals non-zero -> replace the material rather than tint it.
 
-1. **THE DECLUTTER: NAMEPLATES AND BUBBLES, BOTH MEASURED, BOTH OPEN.**
-   *(on screen)* `collidingNames=3` over 26 samples — five labels at the
-   peak, 3 of their 10 pairs overlapping, a heap as the frame shows. `PinAll`
-   runs at shot time and three pairs still overlap: read `namesPinnedSum`
-   (106) against `shotFixups` (27) before tuning, and note
-   `bubblesLiftedSum=1` — the de-overlap moved a bubble once in a whole run
-   while the pin site clearly works.
-   **The bubble median mixed two samplers and is split now** —
-   `SampleBubbles` per tick and `CollidingNames` per shot both wrote
-   `_bubbleOverlap` (71 readings vs 26). **I read a 0.33 -> 0.00 move as the
-   fix working** when what moved was the street: the district fix spread the
-   population out, so more instants have two bubbles up and fewer collide. A
-   real improvement, and not the one I claimed.
-   `bubbleOverlapShotMedian` is the first one checkable against a still.
-   **Also on screen:** `review_day2_wet` renders "Ellis" half off the
-   bottom-right edge. A nameplate CLIPPED by the frame is a different fault
-   from two overlapping, and nothing measures it.
+1. **THE DECLUTTER: NAMEPLATES AND BUBBLES, MEASURED, OPEN.** *(on screen)*
+   `collidingNames=3` over 26 samples — five labels at the peak, 3 of their
+   10 pairs overlapping. `PinAll` runs at shot time and three still overlap:
+   read `namesPinnedSum` (106) against `shotFixups` (27) before tuning, and
+   note `bubblesLiftedSum=1` — the de-overlap moved a bubble once in a run.
+   **The bubble median mixed two samplers and is split now** (71 tick
+   readings vs 26 shot ones). **I read a 0.33 -> 0.00 move as the fix
+   working** when what moved was the street — the district fix spread the
+   population out, so fewer bubbles collide. A real improvement, not the one
+   I claimed. **Also on screen:** `review_day2_wet` renders "Ellis" half off
+   the bottom-right edge. A nameplate CLIPPED by the frame is a different
+   fault from two overlapping, and nothing measures it.
 
 1. **THE NAMEPLATE HEAP IS MEASURED AND THE INSTRUMENTS AGREE WITH THE
    PICTURE.** *(on screen)* `collidingNames=3` over 26 samples: five labels

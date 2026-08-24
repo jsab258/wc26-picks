@@ -8459,7 +8459,78 @@ namespace Ledger.Game
         string _noonFacade = "not_probed";
         string _noonFacadeOf = "not_probed";
         string _noonFacadeMat = "not_probed";
+        string _districtGround = "not_probed";
         bool _noonFacadeDone;
+
+        /// EVERYTHING ABOUT THE SURFACE A RAY LANDS ON, in one bracketed
+        /// value on one line.
+        ///
+        /// Written as ONE helper on the day three separate paint bugs turned
+        /// out to be one idea with three copies. The noon-facade probe needed
+        /// this and so does the blown-out paving strip in the district
+        /// frames; a second inline copy would have been the same mistake in
+        /// the same session.
+        ///
+        /// THE PROPERTY BLOCK AND THE GLOSS STATE ARE BOTH IN IT, because
+        /// both have now hidden a fault that no other reading could see. A
+        /// tint applied through a `MaterialPropertyBlock` is invisible in
+        /// `sharedMaterial`, so a material dump alone reports an ordinary
+        /// grey and proves nothing. And `_METALLICGLOSSMAP` being bound
+        /// makes the shader ignore `_Glossiness` entirely — which silently
+        /// killed `Weather.ApplyWetness` and the wet-specular positive
+        /// control, and is the leading suspect for the strip that reads a
+        /// p10-p90 luma spread of 0.654 against 0.141 for the road beside
+        /// it. `glossScale` is what actually drives smoothness when the
+        /// keyword is on, and a value at the x4 clamp is a blowout by
+        /// construction.
+        ///
+        /// No spaces in the value (a verdict value may not contain one) and
+        /// no key name repeated, so `verdict-read.py` can consume it whole.
+        string SurfaceUnder(Camera cam, Vector3 viewportPoint)
+        {
+            if (cam == null) return "[no_camera]";
+            var ray = cam.ViewportPointToRay(viewportPoint);
+            if (!Physics.Raycast(ray, out var hit, 400f, ~0,
+                                 QueryTriggerInteraction.Ignore))
+                return "[no_hit]";
+            var rr = hit.collider.GetComponent<Renderer>()
+                  ?? hit.collider.GetComponentInParent<Renderer>();
+            var sm = rr != null ? rr.sharedMaterial : null;
+            string shader = sm != null && sm.shader != null
+                ? sm.shader.name.Replace(' ', '_') : "none";
+            Color col = sm != null && sm.HasProperty("_Color")
+                ? sm.GetColor("_Color") : Color.magenta;
+            string tex = sm != null && sm.HasProperty("_MainTex")
+                         && sm.GetTexture("_MainTex") != null
+                ? sm.GetTexture("_MainTex").name.Replace(' ', '_') : "none";
+            bool glossMap = sm != null && sm.IsKeywordEnabled("_METALLICGLOSSMAP");
+            float glossScale = sm != null && sm.HasProperty("_GlossMapScale")
+                ? sm.GetFloat("_GlossMapScale") : -1f;
+            float gloss = sm != null && sm.HasProperty("_Glossiness")
+                ? sm.GetFloat("_Glossiness") : -1f;
+            float metal = sm != null && sm.HasProperty("_Metallic")
+                ? sm.GetFloat("_Metallic") : -1f;
+            string mpbCol = "unset";
+            if (rr != null && rr.HasPropertyBlock())
+            {
+                var mpb = new MaterialPropertyBlock();
+                rr.GetPropertyBlock(mpb);
+                if (mpb.HasColor("_Color"))
+                {
+                    var mc = mpb.GetColor("_Color");
+                    mpbCol = $"{mc.r:0.000},{mc.g:0.000},{mc.b:0.000}";
+                }
+            }
+            return $"[{(sm != null ? sm.name.Replace(' ', '_') : "none")}"
+                 + $"/col:{col.r:0.00},{col.g:0.00},{col.b:0.00}"
+                 + $"/mpb:{mpbCol}/tex:{tex}/d:{hit.distance:0.0}"
+                 + $"/nUp:{Vector3.Dot(hit.normal, Vector3.up):0.00}"
+                 + $"/nSun:{Vector3.Dot(hit.normal, GameController.SunwardDir):0.00}"
+                 + $"/glossMap:{(glossMap ? 1 : 0)}/glossScale:{glossScale:0.00}"
+                 + $"/gloss:{gloss:0.00}/metal:{metal:0.00}"
+                 + $"/shader:{shader}"
+                 + $"/probes:{(rr != null ? (int)rr.lightProbeUsage : -1)}]";
+        }
 
         void ProbeNoonFacade(Camera cam)
         {
@@ -8638,44 +8709,7 @@ namespace Ledger.Game
             // flip — thirteen sites still waiting on a verdict — and a
             // facade tinted that way is exactly the shape of an eleven-fold
             // shortfall that no lighting toggle can move.
-            var midRay = cam.ViewportPointToRay(new Vector3(1f / 6f, 0.5f, 0f));
-            if (Physics.Raycast(midRay, out var mh, 400f, ~0,
-                                QueryTriggerInteraction.Ignore))
-            {
-                var rr3 = mh.collider.GetComponent<Renderer>()
-                       ?? mh.collider.GetComponentInParent<Renderer>();
-                var sm3 = rr3 != null ? rr3.sharedMaterial : null;
-                string shader = sm3 != null && sm3.shader != null
-                    ? sm3.shader.name.Replace(' ', '_') : "none";
-                Color matCol = sm3 != null && sm3.HasProperty("_Color")
-                    ? sm3.GetColor("_Color") : Color.magenta;
-                string tex = sm3 != null && sm3.HasProperty("_MainTex")
-                             && sm3.GetTexture("_MainTex") != null
-                    ? sm3.GetTexture("_MainTex").name.Replace(' ', '_') : "none";
-                string mpbCol = "unset";
-                if (rr3 != null && rr3.HasPropertyBlock())
-                {
-                    var mpb = new MaterialPropertyBlock();
-                    rr3.GetPropertyBlock(mpb);
-                    if (mpb.HasColor("_Color"))
-                    {
-                        var mc = mpb.GetColor("_Color");
-                        mpbCol = $"{mc.r:0.000},{mc.g:0.000},{mc.b:0.000}";
-                    }
-                }
-                // ONE LINE, NOT TWO. A second `Debug.Log` sharing this
-                // prefix would put the same facts on two verdict lines and
-                // hand `verdict-read.py` the cross-line ambiguity it exists
-                // to refuse — the fault this commit's other half is about.
-                _noonFacadeMat = $"[{(sm3 != null ? sm3.name.Replace(' ', '_') : "none")}"
-                    + $"/col:{matCol.r:0.00},{matCol.g:0.00},{matCol.b:0.00}"
-                    + $"/mpb:{mpbCol}/tex:{tex}/d:{mh.distance:0.0}"
-                    + $"/nUp:{Vector3.Dot(mh.normal, Vector3.up):0.00}"
-                    + $"/nSun:{Vector3.Dot(mh.normal, GameController.SunwardDir):0.00}"
-                    + $"/shader:{shader}"
-                    + $"/probes:{(rr3 != null ? (int)rr3.lightProbeUsage : -1)}]";
-            }
-            else _noonFacadeMat = "[no_hit_down_the_dark_third]";
+            _noonFacadeMat = SurfaceUnder(cam, new Vector3(1f / 6f, 0.5f, 0f));
             Debug.Log("SimDirector: noonFacadeMat " + _noonFacadeMat);
         }
 
@@ -9409,6 +9443,26 @@ namespace Ledger.Game
                     cam.transform.position = eye;
                     cam.transform.rotation = Quaternion.LookRotation(look - eye, Vector3.up);
                     Shot($"district_{d.Id}");
+                    // THE BLOWN-OUT STRIP, NAMED. `district_downtown` has a
+                    // paving strip down the middle of the frame reading a
+                    // p10-p90 luma spread of 0.654 against brick 0.387 and
+                    // the road beside it 0.141 — two thirds of the display
+                    // range on one surface — with a median seven times that
+                    // road's under identical light. The source texture's own
+                    // range is about 0.28, so something amplifies it ~2.3x
+                    // and three things could (gloss-map scale, the wet
+                    // reflection layer, a roughness map read as albedo).
+                    // Guessing between them is a build each, so the ray goes
+                    // where the strip is — low centre — and says which.
+                    // ONE district's worth, not seven: this is a diagnostic
+                    // for a named frame, and printing seven would put the
+                    // same key on seven lines, which is the cross-line
+                    // ambiguity `verdict-read.py` refuses.
+                    if (d.Id == "downtown")
+                    {
+                        _districtGround = SurfaceUnder(cam, new Vector3(0.5f, 0.12f, 0f));
+                        Debug.Log("SimDirector: districtGround " + _districtGround);
+                    }
                 }
             }
             finally
@@ -14075,6 +14129,7 @@ namespace Ledger.Game
                       $"noonFacade={_noonFacade} " +
                       $"noonFacadeOf={_noonFacadeOf} " +
                       $"noonFacadeMat={_noonFacadeMat} " +
+                      $"districtGround={_districtGround} " +
                       // Probe-render milliseconds per rung, NOT comparable
                       // with meanFrame (the probe's own RT and ReadPixels
                       // inflate every rung equally). Read the differences.
