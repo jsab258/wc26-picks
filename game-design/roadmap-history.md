@@ -2865,3 +2865,38 @@ primitive's free collider, and a theory refuted by its own counter.
    way), because a prefix match compares 8 chars to 7 happily. Replaced with
    the invariant that really broke — abbreviation width vs stem width, FALSE
    today, reported as a warning since the tools prefix-match now.
+
+1. **TWENTY OF TWENTY-NINE FRAME COMPARISONS WERE A DIFFERENT PHOTOGRAPH —
+   CONDITIONED NOW, AND THE PINNED SERIES ALREADY EXISTS.** `frame-drift`
+   labels every row with whether the camera stood in the same place, and
+   carries the denominator: **9 of 29 comparable, 20 moved.** The two loudest
+   deltas in the newest table — `day8_noon +0.080`, `day2_noon +0.075` — are
+   a camera that walked 3.0m and 2.6m.
+   **Both halves of the -0.893 finding were wrong and the corrections are the
+   value.** It is not camX: over all 50 landed ledgers `day2_noon` is -0.678
+   on camX and **-0.803 on YAW**, and yaw is the stronger term on several
+   shots (`day5_noon` -0.817, `day8_noon` -0.795). And the floor came off a
+   biased sample — pose-matched pairs drawn from ALL pairs favour adjacent
+   runs, which span less code, and off that I read the PINNED district shots
+   as the noisiest rows in the file, which is backwards. Consecutive landings
+   only, so every bucket spans the same code:
+   `street same vantage n=135 median 0.0020 p90 0.0100`,
+   `street moved n=899 median 0.0130 p90 0.0650`,
+   `district tour, pinned, n=329 median 0.0020 p90 0.0050`.
+   **Pinning works and the proof was already in the repository**: the tour is
+   the one population whose pose cannot move and the quietest thing in the
+   ledger. So the answer to "pin the review cameras" is that nine shots
+   effectively are — seven districts plus `day1_noon`/`day1_night`, taken
+   before the sim diverges enough to move the player — and **those nine are
+   the photometric series; the street frames are for LOOKING at.**
+   Named `LUMA_STEP_P90`, not a noise floor: every pair in that 135 spans two
+   commits, so it is a normal build step, not noise. A true floor needs one
+   commit built twice and never has been.
+
+1. **THE BODY BUDGET IS CLOSED AT 87.8%** — account in `roadmap-history.md`.
+   The 34m draw radius was the binding constraint (now 70m) and `RealBodyCap`
+   got its PC measurement: the drawn crowd costs ~1.1ms, so 12 -> 28. Hair
+   CLOSED. Still live: the centre-third foot reading (FootMesh 234,
+   Ch38_Shoes 224); the white pills remain unidentified with NO COMMITTED
+   STILL holding one, so the next step is a measurement that fires WHILE one
+   is on screen.

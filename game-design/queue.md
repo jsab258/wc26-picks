@@ -143,32 +143,35 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **TWENTY OF TWENTY-NINE FRAME COMPARISONS WERE A DIFFERENT PHOTOGRAPH —
-   CONDITIONED NOW, AND THE PINNED SERIES ALREADY EXISTS.** `frame-drift`
-   labels every row with whether the camera stood in the same place, and
-   carries the denominator: **9 of 29 comparable, 20 moved.** The two loudest
-   deltas in the newest table — `day8_noon +0.080`, `day2_noon +0.075` — are
-   a camera that walked 3.0m and 2.6m.
-   **Both halves of the -0.893 finding were wrong and the corrections are the
-   value.** It is not camX: over all 50 landed ledgers `day2_noon` is -0.678
-   on camX and **-0.803 on YAW**, and yaw is the stronger term on several
-   shots (`day5_noon` -0.817, `day8_noon` -0.795). And the floor came off a
-   biased sample — pose-matched pairs drawn from ALL pairs favour adjacent
-   runs, which span less code, and off that I read the PINNED district shots
-   as the noisiest rows in the file, which is backwards. Consecutive landings
-   only, so every bucket spans the same code:
-   `street same vantage n=135 median 0.0020 p90 0.0100`,
-   `street moved n=899 median 0.0130 p90 0.0650`,
-   `district tour, pinned, n=329 median 0.0020 p90 0.0050`.
-   **Pinning works and the proof was already in the repository**: the tour is
-   the one population whose pose cannot move and the quietest thing in the
-   ledger. So the answer to "pin the review cameras" is that nine shots
-   effectively are — seven districts plus `day1_noon`/`day1_night`, taken
-   before the sim diverges enough to move the player — and **those nine are
-   the photometric series; the street frames are for LOOKING at.**
-   Named `LUMA_STEP_P90`, not a noise floor: every pair in that 135 spans two
-   commits, so it is a normal build step, not noise. A true floor needs one
-   commit built twice and never has been.
+1. **THE ONE STILL `5ee9330` PRODUCED HAS TWO VISIBLE FAULTS, BOTH NOW
+   MEASURED.** *(on screen, `review_day1_noon`.)*
+   - **RAIN FELL AS WHITE LINES THE HEIGHT OF A SHOPFRONT.** The streak is
+     `startSize*lengthScale + startSpeed*velocityScale` = **0.575m**, 94% of
+     it the velocity term — `velocityScale` was left at the horizontal-throw
+     era's 0.06 when the speed went 26 -> 9, the same leftover, the site
+     nobody looked at. A drop covers 0.15-0.20m while the shutter is open, so
+     0.013 gives 0.152m. **`rainStreak` prints it**, computed from what the
+     renderer was given. *A pixel measurement was tried and DROPPED: window
+     mullions are thin bright vertical lines too, and a rain-free frame
+     scored higher than the rainy one.*
+   - **A FACADE BRIGHTER THAN THE SKY: wall 0.619, sky 0.531, opposite wall
+     0.068.** Nine to one across one picture. `lumaThirds` cannot see it
+     (column thirds, rows 25-75%, sky excluded by construction) and
+     `townWallAlbedo` is a material property, not a luminance.
+     **`skyVsWall=sky/wall@x` + `wallOverSky` now print it**, nine patches
+     across so the one bad building is named rather than sampled past.
+     **NO BOUND YET (rule 2)** — a pale wall in direct sun really can beat an
+     overcast sky, so the bound comes from the series. **Read it next.**
+1. **FRAME COMPARISONS ARE CONDITIONED ON THE CAMERA NOW** — 9 of 29 rows
+   comparable, 20 moved; the confound is YAW as much as position (-0.80 vs
+   -0.68 on `day2_noon`) and the pinned district tour is the photometric
+   series this project already had. Account in `roadmap-history.md`.
+   **Open: the 7/7 darkening.** All seven districts moved -0.0005..-0.0050
+   and `day1_noon` -0.0065 in one batch, with the WRONG SIGN for the shadow
+   lever (0.93 -> 0.85 lightens). Two landings and many commits, magnitude at
+   the tour's own p90 — **read it again after a few more landings, then
+   bisect.**
+
 1. **EVERY PINNED SHOT DARKENED IN THE LATEST BATCH, WITH THE WRONG SIGN FOR
    THE SHADOW LEVER.** All seven districts moved -0.0005 to -0.0050 and
    `day1_noon` -0.0065, 7/7 in one direction. But `shadowStrength` went
@@ -223,12 +226,9 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    the series a bound comes from.** A street SHOULD have buildings at 7-20m,
    so the question is where "framed" becomes "photographing a wall".
 1. **THE BODY BUDGET IS CLOSED AT 87.8%** — account in `roadmap-history.md`.
-   The 34m draw radius was the binding constraint (now 70m) and `RealBodyCap`
-   got its PC measurement: the drawn crowd costs ~1.1ms, so 12 -> 28. Hair
-   CLOSED. Still live: the centre-third foot reading (FootMesh 234,
-   Ch38_Shoes 224); the white pills remain unidentified with NO COMMITTED
-   STILL holding one, so the next step is a measurement that fires WHILE one
-   is on screen.
+   Draw radius 34m -> 70m was the binding constraint, `RealBodyCap` 12 -> 28,
+   hair CLOSED. **Still live:** the centre-third foot reading (FootMesh 234,
+   Ch38_Shoes 224), and the white pills with no committed still.
 
 1. **THE INQUIRY RUNS NOW; TWO THINGS GATED ON IT STILL DO NOT.** *(moat:
    information. Not started — stage 1 has startable work.)* CLAUDE.md said
