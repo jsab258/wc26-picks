@@ -426,6 +426,25 @@ namespace Ledger.Game
             int day = _game.Now.Day;
             if (day == _lastShapeDay) return;
             _lastShapeDay = day;
+
+            // A HEARTBEAT, BECAUSE `hangOwn` NEEDS SOMETHING TO TAIL.
+            //
+            // The sim has been killed at the 24-minute mark five times and no
+            // line in the log has ever said how far it got or how fast it was
+            // going — `5ee9330` reached one shot in twenty-four minutes and the
+            // only evidence was which screenshots happened to exist. This fires
+            // once per in-game day and carries the wall clock and the frame
+            // count, so two consecutive lines give a RATE.
+            //
+            // That is the distinction the whole question turns on and nothing
+            // could express it before: a run that is uniformly slow has a
+            // constant seconds-per-day and points at frame cost, and a run that
+            // stalls has one enormous gap and points at a loop. Those have
+            // completely different next actions, and I have twice picked one by
+            // guessing. Cheap on purpose — one line a day, eleven a run.
+            Debug.Log($"SimDirector: dayMark day={day} "
+                      + $"at={Time.realtimeSinceStartup:0}s frames={Time.frameCount}");
+
             int outdoors = _game.CrowdWalkerCount;
             if (Ledger.Core.Population.IsRestDay(day))
             {
