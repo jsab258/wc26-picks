@@ -90,6 +90,34 @@ WHAT IT MEASURES, and what each number is a statistic OF.
     scored for its composition; relative, so a night frame and a noon frame are
     comparable; coarse, so grain cannot reach it. This is "no surface is one
     flat tone edge to edge" as a number, and it is the row to steer V2 by.
+
+    ITS READING RULE, WHICH IS NOT OPTIONAL: it is std/mean, so a
+    MULTIPLICATIVE exposure change cannot move it and an ADDITIVE lift LOWERS
+    it. A blown road and a featureless one print the same low number and this
+    statistic cannot tell them apart. **A low GROUND PATCH means BLOWN OR FLAT
+    until `groundOverFrame` says which** — in band, the surface is genuinely
+    short of detail; above band, the number is measuring albedo rather than
+    surface. Sizing decal work off it while the ground is lifted sizes it
+    against a number inflated three-to-tenfold.
+
+ 5b. GROUND OVER FRAME — the ground band's mean luma over the WHOLE frame's
+    mean luma, one decode, so both moments are the same instant by
+    construction. EXPOSURE-INDEPENDENT: scale every pixel by k and it does not
+    move, which is what makes it the row that separates "the ground material is
+    too bright" from "the frame is overexposed" — two hypotheses with opposite
+    fixes. A GLOBAL brightness change — tonemap, exposure, a grade applied to
+    everything — divides out of it exactly, which is checked in the selftest by
+    scaling a frame and requiring the number not to move. What it still SEES is
+    the ground moving relative to its own scene, which is the physical claim,
+    and that is why it is the row a rainy run cannot quietly satisfy: measured
+    this run, our night/wet/dusk frames read 0.59..1.08 and every one of our
+    daylight frames reads 1.02..1.40, wet ones included. Every GTA reference reads BELOW 1.0
+    (0.387..0.981 measured through this code) because tarmac is the darkest
+    large surface in a daylight scene; our sunlit dry frames read 1.02..1.40,
+    physically inverted. Added 25 Aug 2026 on artifact-reader's nomination
+    after the first dry tour; the reader's own recomputation put the reference
+    band at 0.41..0.97, and the band that SHIPS is this tool's, recomputed
+    from the references every run and printed on the REFBAND line.
  6. VERTICAL RUNS — connected near-vertical edge components taller than 8% of
     the frame in the upper two thirds. Poles and WIRES, rank 2 of the §2
     decomposition, and what §3 says every avenue in this game lacks by design.
@@ -129,50 +157,88 @@ Ruled by the director on 24 Aug (decision 1 part 3 in
 ANNOTATION, NEVER EXCLUSION. A dropped frame reports a smaller world as a
 cleaner one, which is this file's own opening argument against itself.
 
-`district_downtown` reads shadowRatio 0.676, ABOVE the references' 0.157..0.388,
-on a frame that is one unlit surface with a sliver of skyline. Its groundP10 and
-groundP90 are both scraping the same near-black floor (0.063 and 0.094), and a
+A FRAME CAN BE A READING OF NOTHING FROM EITHER END, AND THE SECOND END WAS
+MISSING FOR A DAY. `district_downtown` used to read shadowRatio 0.676, ABOVE
+the references' 0.157..0.388, on a frame that was one unlit surface with a
+sliver of skyline: p10 and p90 both scraping the same near-black floor, and a
 ratio of two numbers converging on the noise floor tends to 1 as the band
-empties. It is a reading of nothing, not of a bright street — and it reads as
-the most in-band-and-then-some row in the table.
+empties. That is the FLOOR case and it is why the annotation was built. The
+CEILING case is the same fault inverted and it is the commoner one today —
+`district_ironside` is a bare white sheet under a crane, the emptiest ground
+band in the set (`groundPatch` 0.029 against a reference floor of 0.205), and
+until 25 Aug it sailed through unannotated because its groundP90 0.890 and
+groundMean 0.726 are far ABOVE the floors. A ratio row cannot tell a blown flat
+band from a black flat one, and both are readings of nothing.
 
-THE QUALIFIER IS THE REFERENCES' OWN FLOOR, NOT A NUMBER SOMEBODY PICKED
+THE BOUNDS ARE THE REFERENCES' OWN MIN AND MAX, NOT NUMBERS SOMEBODY PICKED
 (rule 2 — the first version of a bound is a printer). The five reference
-frames' own ground-band inputs, run 24 Aug 2026:
+frames' own ground-band inputs, sorted, run 25 Aug 2026 on verdict 6137608:
 
-    groundP90   0.456 · 0.233 · 0.403 · 0.831 · 0.763     floor 0.233
-    groundMean  0.293 · 0.142 · 0.216 · 0.536 · 0.543     floor 0.142
+    groundP90   0.233 · 0.403 · 0.456 · 0.763 · 0.831   floor 0.233  ceil 0.831
+    groundMean  0.142 · 0.216 · 0.293 · 0.536 · 0.543   floor 0.142  ceil 0.543
 
-A sim still whose groundP90 or groundMean PRINTS below the matching floor has a
-ground band dimmer than the dimmest thing the target ever shows, so its
-ratio-derived rows are marked `~` and counted apart. Both floors are recomputed
-from the references on every run and printed on the REFBAND line and the
-`scope=ratioband` line; there is no constant here to go stale.
+A sim still whose input PRINTS below its floor has a ground band dimmer than
+the dimmest thing the target ever shows; above its ceiling, brighter than the
+brightest. Both bounds are recomputed from the references on every run and
+printed on the REFBAND line and the `scope=ratioband` line; there is no
+constant here to go stale, and a reference frame can never qualify — which is
+the selftest's structural accepting case.
 
-EITHER, NOT BOTH, AND THE LADDER IS WHY. One contributor toggled at a time,
-over the same seventeen sim stills in the same run:
+EITHER KEY ON THE FLOOR, THE MEAN ONLY ON THE CEILING, AND THE LADDER IS WHY.
+One contributor toggled at a time, over the same seventeen sim stills in the
+same run (`--series` reprints it; these are the 25 Aug numbers):
 
-    groundP90 below floor    4    downtown day2_night day2_wet day5_night
-    groundMean below floor   7    those four + gullwing day1_dusk day2_close
-    either (TAKEN)           7
-    both                     4
+    groundP90 below floor     4   day1_night day2_close day2_night day2_wet
+    groundMean below floor    5   those four + day5_night
+    floor either              5
+    floor both                4
+    groundP90 above ceiling   9   all seven districts + day2_noon day5_noon
+    groundMean above ceiling  7   those nine less district_hook, district_strip
+    SHIPPED                  12   floor-either (5) + ceiling-mean (7)
 
-The three the mean catches alone are the argument, and `district_gullwing` is
-the sharpest: a dark building mass at arm's length whose groundP90 is 0.360 — a
-lit window sill — against a groundMean of 0.115. Its band is unlit facade with
-a bright edge in it, and BOTH would call that a readable street. This also
-answers rule 2's fork test before it is asked: the two statistics are NOT one
-number twice, and gullwing is the live proof that one can sit above its floor
-while the other sits below.
+TWO READINGS DECIDE THE TWO ASYMMETRIES AND THEY ARE THE SAME PROPERTY OF A
+PERCENTILE POINTING OPPOSITE WAYS. On the floor, `review_day5_night` is the
+witness the mean catches alone: groundP90 0.525 — one lamp — over a groundMean
+of 0.132. A band that is black except for a lit fitting is not a readable
+street and the P90 rule would pass it. (The witness used to be
+`district_gullwing` at P90 0.360 / mean 0.115; this build's camera re-site
+moved that frame to 0.840 / 0.554 and the argument had to be re-pinned to a
+frame that still shows it — which is the same decay this section's rejecting
+fixture was caught by.)
 
-WHAT IT DELIBERATELY DOES NOT TOUCH. `district_hook` (groundP90 0.868,
-groundMean 0.471) and `district_strip` (0.872 / 0.456) are bright street frames
-reading BELOW the band at 0.149 and 0.140. They are not annotated and must not
-be — that shortfall is the real residual the ambient-fill rung owns, and hiding
-it behind an outlier rule is exactly what the ruling refused. `district_hook`
-is the selftest's accepting fixture for this reason, and `district_downtown`
-the rejecting one.
+On the ceiling, the SAME sensitivity to one bright object is a false positive:
+`district_hook` (groundP90 0.868, groundMean 0.471) and `district_strip`
+(0.872 / 0.452) print P90s above the references' ceiling with means sitting
+mid-band, because they are genuine street frames with bright highlights, not
+blown ones. A symmetric P90 ceiling would annotate exactly the two frames whose
+below-band shadowRatio (0.149 and 0.140) the 24 Aug ruling requires to stay
+visible as the residual the ambient-fill rung owns. So the ceiling is carried
+by the mean, which moves only when the WHOLE band is brighter than anything the
+target shows. `district_hook` is the selftest's live accepting fixture for
+exactly this.
 
+WHICH ROWS EACH SIDE MAKES UNREADABLE IS PER ROW, NOT PER FRAME. `shadowRatio`
+is degenerate at both ends (p10/p90 tends to 1 as a band flattens, black or
+blown). `groundOverFrame` is degenerate only at the dark end — `review_day5_night`
+reads 1.080 with a groundMean below the floor, which is a lamp over a black
+frame and not an inverted street — while at the blown end it is not degenerate
+at all: `district_ironside` reads 1.218 with its mean above the ceiling, and
+that reading IS the finding. Marking it unreadable there would have suppressed
+the row added to diagnose the fault the ceiling half exists to catch. The sides
+are declared in RATIO_DIMS and printed as `unreadableOn=` on every ratioband
+line.
+
+THE REJECTING FIXTURE IS SYNTHETIC, AND THAT IS THE POINT. It used to be
+`district_downtown`, pinned because it was near-black. The camera re-site in
+build 6137608 turned it into a lit street (meanLuma 0.096 -> 0.412), the
+fixture stopped having the property it was chosen for, and the selftest went
+red 3 of 78 — so verify went red, on a commit whose only crime was fixing the
+frame the instrument was complaining about. Doing the work the instrument
+exists to prompt must never break the instrument. The rejecting case is now
+three generated images that no improvement to the game can reach: a near-black
+frame (floor side), a uniform pale sheet (ceiling side) and a mid-tone frame
+that must NOT qualify. The accepting cases stay pinned to the live set, where
+they belong.
 --------------------------------------------------------------------------
 THE CUTS, TAKEN FROM THE SERIES AND NOT THE OTHER WAY ROUND (rule 2 — a bound
 chosen first and defended after is a rounding wearing a measurement's clothes).
@@ -347,22 +413,58 @@ NAME_CAP = 8            # named stills per list before `(+N more not shown)`
 
 # ---- the low-content annotation. See THE LOW-CONTENT ANNOTATION above.
 #
-# RATIO_DIMS: the rows whose value is a RATIO of two ground-band statistics,
-# mapped to the inputs it divides. A ratio can read healthy for the wrong
-# reason when both its inputs sit on the noise floor, which no absolute row
-# can do, so these are the rows the annotation covers. The mapping is here and
-# not inlined so the count "1 of 16 dimensions is ratio-derived" prints beside
-# the annotation — a reader must be able to tell "one row annotated" from
-# "every ratio row annotated".
-RATIO_DIMS = {"shadowRatio": ("groundP10", "groundP90")}
+# RATIO_DIMS: the rows whose value is a RATIO of two statistics of this frame,
+# mapped to the inputs it divides AND to WHICH SIDE of the low-content
+# qualifier makes it unreadable. A ratio can read healthy for the wrong reason
+# when its inputs stop describing a surface, which no absolute row can do, so
+# these are the rows the annotation covers. The mapping is here and not inlined
+# so the count "2 of 17 dimensions are ratio-derived" prints beside the
+# annotation — a reader must be able to tell "one row annotated" from "every
+# ratio row annotated".
+#
+# `unreadableOn` IS NOT DECORATION AND THE TWO ROWS DIFFER, measured on this
+# run's stills (the series is in THE LOW-CONTENT ANNOTATION):
+#   shadowRatio     floor AND ceiling. p10/p90 tends to 1 from BOTH ends — a
+#                   black band converges on the noise floor (downtown's old
+#                   0.676) and a blown band converges on a flat sheet.
+#   groundOverFrame floor ONLY. On a dark frame it is a reading of nothing
+#                   (`day5_night` 1.080 at groundMean 0.132, below the
+#                   references' floor: a lamp over a black frame, not an
+#                   inverted street). On a BLOWN frame it is not degenerate at
+#                   all — it is the finding (`district_ironside` 1.218 at
+#                   groundMean 0.726, above the references' ceiling). Marking
+#                   it unreadable there would suppress the one row that says
+#                   which kind of nothing the frame is.
+RATIO_DIMS = {
+    "shadowRatio": {"inputs": ("groundP10", "groundP90"),
+                    "unreadableOn": ("floor", "ceiling")},
+    "groundOverFrame": {"inputs": ("groundMean", "lumaMean"),
+                        "unreadableOn": ("floor",)},
+}
 
-# LOW_CONTENT_KEYS: the ground-band INPUT statistics whose floor qualifies a
-# frame as low-content. EITHER below its own floor is enough — the ladder in
-# the docstring is the evidence, and `district_gullwing` (P90 0.360 above,
-# mean 0.115 below) is the frame that separates the two rules. No number
-# lives here on purpose: the floor is min() over the five references, taken
-# fresh every run.
-LOW_CONTENT_KEYS = ("groundP90", "groundMean")
+# LOW_CONTENT_FLOOR_KEYS / LOW_CONTENT_CEIL_KEYS: the ground-band INPUT
+# statistics whose bound qualifies a frame as low-content, and the sides are
+# NOT symmetric — the asymmetry is measured, not tidy. See THE LOW-CONTENT
+# ANNOTATION for the series and the ladder.
+#
+#   FLOOR, either key. A percentile can sit above its floor on a black frame
+#   because of one lit sill (`review_day5_night`: groundP90 0.525, groundMean
+#   0.132), so the mean alone would miss it and the P90 alone would too.
+#   CEILING, the MEAN only, for the SAME property of a percentile pointing the
+#   other way: one bright highlight lifts groundP90 past the references'
+#   ceiling on frames whose band is not blown at all (`district_hook` 0.868
+#   and `district_strip` 0.872, both with means of 0.45..0.47, mid-band). A
+#   P90 ceiling would annotate exactly the two frames whose below-band
+#   shadowRatio the 24 Aug ruling requires to stay visible as a finding.
+#
+# No number lives here on purpose: floor is min() and ceiling is max() over
+# the five references, taken fresh every run.
+LOW_CONTENT_FLOOR_KEYS = ("groundP90", "groundMean")
+LOW_CONTENT_CEIL_KEYS = ("groundMean",)
+# Display order for the qualifier's input columns: every key that carries any
+# bound, once. Derived, so a key added above cannot be missed by a printer.
+LOW_CONTENT_KEYS = tuple(dict.fromkeys(LOW_CONTENT_FLOOR_KEYS
+                                       + LOW_CONTENT_CEIL_KEYS))
 
 # Row order, and what each number is a statistic OF, named once so the table,
 # the machine tail and the selftest cannot drift apart.
@@ -378,6 +480,8 @@ DIMS = [
     ("satMean",     "saturation mean",     "%.3f", "mean HSV S over frame"),
     ("satAbove50",  "saturation >0.5",     "%.3f", "fraction of frame"),
     ("groundPatch", "GROUND PATCH surface", "%.3f", "median over 64px windows"),
+    ("groundOverFrame", "ground/frame mean", "%.3f",
+     "groundMean/lumaMean, one decode"),
     ("edgeGround",  "edge density GROUND",  "%.3f", "fraction of ground band"),
     ("edgeMid",     "edge density MID",    "%.3f", "fraction of mid band"),
     ("grainSigma",  "grain sigma",         "%.2f", "Immerkaer, ground band"),
@@ -484,7 +588,19 @@ def ground_patch(np, luma255, mask):
 
     Each window's spread is divided by that window's OWN mean, which is what
     makes a night frame and a noon frame comparable; PATCH_FLOOR stops a window
-    with nothing in it dividing a small number by a smaller one."""
+    with nothing in it dividing a small number by a smaller one.
+
+    THE READING RULE, AND IT MAY NOT BE READ WITHOUT `groundOverFrame`. This is
+    std/mean, so a MULTIPLICATIVE exposure change leaves it exactly unchanged
+    (both halves scale by k) and an ADDITIVE lift LOWERS it (the mean rises,
+    the spread does not). An ambient-lifted road and a genuinely featureless
+    one therefore print the same low number, and this statistic cannot tell
+    them apart — no version of it can. So a low `groundPatch` means BLOWN OR
+    FLAT, and `groundOverFrame` is the row that says which: in band, the
+    surface really is short of detail; above band, the ground is carrying an
+    additive lift and this number is measuring the albedo, not the surface.
+    Measured on this run: five of seven districts recover into or above the
+    references' patch band once the lift is subtracted."""
     h, w = luma255.shape
     y0 = int(GROUND_Y[0] * h)
     y1 = int(GROUND_Y[1] * h)
@@ -617,18 +733,29 @@ def measure(img, keep_arrays=True):
     runs, raw_runs = vertical_runs(np, gx, mask, h, w)
     sigma, n_sigma = grain_sigma(np, luma255, mask)
     patch, n_patch = ground_patch(np, luma255, mask)
+    # GROUND OVER FRAME — the ground band's mean luma over the WHOLE frame's
+    # mean luma. A RATIO OF TWO MEANS OF ONE DECODE, so both moments are the
+    # same instant by construction: there is no way to take the numerator from
+    # one image and the denominator from another. It is exposure-independent —
+    # scale every pixel by k and it does not move — which is what makes it the
+    # row that separates "the ground material is too bright" from "the frame is
+    # overexposed". Guarded at zero, because a flat black frame has no exposure
+    # to be independent of.
+    whole_mean = float(whole.mean())
+    gmean = float(gvals.mean())
     out = {
-        "lumaMean": float(whole.mean()),
+        "lumaMean": whole_mean,
         "lumaP10": float(p(whole, 10)),
         "lumaP50": float(p(whole, 50)),
         "lumaP90": float(p(whole, 90)),
-        "groundMean": float(gvals.mean()),
+        "groundMean": gmean,
         "groundP10": gp10,
         "groundP50": float(p(gvals, 50)),
         "groundP90": gp90,
         "satMean": float(svals.mean()),
         "satAbove50": float((svals > 0.5).mean()),
         "groundPatch": patch,
+        "groundOverFrame": (gmean / whole_mean) if whole_mean > 1e-6 else 0.0,
         "edgeGround": float((eg > EDGE_T).mean()),
         "edgeMid": float((em > EDGE_T).mean()),
         "grainSigma": sigma,
@@ -724,35 +851,78 @@ def below_floor(lo, v, fmt):
     return _printed(v, fmt) < _printed(lo, fmt)
 
 
+def above_ceiling(hi, v, fmt):
+    """Is `v` above the references' ceiling for its key, on the PRINTED values.
+
+    The mirror of `below_floor`, same convention and same reason. It exists
+    because the floor half alone reads a near-black frame as a reading of
+    nothing and a BLOWN one as a healthy street — `district_ironside`, the
+    emptiest ground band in the set, sailed through unannotated at groundP90
+    0.890 / groundMean 0.726 while a black frame was marked. Planted in the
+    selftest rather than waited for."""
+    return _printed(v, fmt) > _printed(hi, fmt)
+
+
 def low_content_of(m, ranges, fmts):
-    """The qualifying readings for one image, as [(key, value, floor)].
+    """The qualifying readings for one image, as [(key, value, bound, side)],
+    where side is "floor" or "ceiling".
 
     EMPTY MEANS THE FRAME IS FINE, and every caller prints `none` for that
     rather than an empty string — a blank field reads as a tool that did not
-    run. `ranges` is the five references' own (lo, hi) per key, so the floor
-    handed in here is measured, never a constant.
+    run. `ranges` is the five references' own (lo, hi) per key, so both bounds
+    handed in here are measured, never a constant.
+
+    TWO SIDES, AND THEY DO NOT COVER THE SAME KEYS. Below the floor on EITHER
+    of LOW_CONTENT_FLOOR_KEYS; above the ceiling on LOW_CONTENT_CEIL_KEYS,
+    which is the mean only. The asymmetry is measured and the working is beside
+    the constants — a percentile is lifted past the ceiling by one bright
+    highlight on a frame that is not blown, which would eat the two frames
+    whose shadowRatio shortfall the 24 Aug ruling requires to stay a finding.
 
     A LIST AND NOT A BOOLEAN, because the decision requires the QUALIFYING
-    NUMBER to be printed: `groundMean:0.115<0.142` is one token carrying the
-    value and the bound it failed, which is the pair shape the whole verdict
-    channel is built on."""
+    NUMBER to be printed: `groundMean:0.115<0.142` and `groundMean:0.726>0.543`
+    are each one token carrying the value, the bound it failed and which side
+    it failed on, which is the pair shape the whole verdict channel is built
+    on."""
     out = []
-    for key in LOW_CONTENT_KEYS:
+    for key in LOW_CONTENT_FLOOR_KEYS:
         if key not in ranges or key not in m:
             continue
-        lo = ranges[key][0]
-        if below_floor(lo, m[key], fmts[key]):
-            out.append((key, m[key], lo))
+        if below_floor(ranges[key][0], m[key], fmts[key]):
+            out.append((key, m[key], ranges[key][0], "floor"))
+    for key in LOW_CONTENT_CEIL_KEYS:
+        if key not in ranges or key not in m:
+            continue
+        if above_ceiling(ranges[key][1], m[key], fmts[key]):
+            out.append((key, m[key], ranges[key][1], "ceiling"))
     return out
 
 
 def low_content_token(lc, fmts):
-    """The `lowContent=` value: space-free, one token per qualifying key, or
-    the word `none`. `(+N more not shown)` cannot bite here — the list is
-    bounded by LOW_CONTENT_KEYS, which is two."""
+    """The `lowContent=` value: space-free, one token per qualifying reading,
+    or the word `none`. The comparison character IS the side — `<` floor, `>`
+    ceiling — so a reader never has to hold "which half fired" in their head
+    beside the number. `(+N more not shown)` cannot bite here: the list is
+    bounded by the floor keys plus the ceiling keys, which is three."""
     if not lc:
         return "none"
-    return ",".join("%s:%s<%s" % (k, fmts[k] % v, fmts[k] % lo) for k, v, lo in lc)
+    return ",".join("%s:%s%s%s" % (k, fmts[k] % v,
+                                   "<" if side == "floor" else ">",
+                                   fmts[k] % bound)
+                    for k, v, bound, side in lc)
+
+
+def unreadable_dims(lc):
+    """Which ratio rows one image's qualifying readings make unreadable.
+
+    NOT "every ratio row when any bound fires" — that was the first version and
+    it would have suppressed `groundOverFrame` on exactly the blown frames it
+    was added to diagnose. Each ratio row declares the SIDES that break it
+    (RATIO_DIMS[...]["unreadableOn"]); a row survives a side it is not
+    degenerate under. Returns sorted names so the machine tail is stable."""
+    sides = {side for _k, _v, _b, side in lc}
+    return sorted(d for d, spec in RATIO_DIMS.items()
+                  if sides & set(spec["unreadableOn"]))
 
 
 def ratio_band_reading(dim, named, ranges, fmts):
@@ -765,8 +935,9 @@ def ratio_band_reading(dim, named, ranges, fmts):
 
     WHAT EACH NUMBER IS A STATISTIC OF:
       stills      COUNT of sim stills measured this run — the denominator
-      unreadable  COUNT of those whose ground band is low-content (either input
-                  statistic below the references' own floor for it)
+      unreadable  COUNT of those whose ground band is low-content ON A SIDE
+                  THIS ROW IS DEGENERATE UNDER — so the two ratio rows have
+                  different unreadable counts in the same run, on purpose
       readable    COUNT of the rest; stills - unreadable, by construction
       inBand      COUNT of READABLE stills whose printed ratio lies inside the
                   references' printed range. Never a fraction of `stills`: an
@@ -776,14 +947,19 @@ def ratio_band_reading(dim, named, ranges, fmts):
     fmt = fmts[dim]
     unreadable, in_band = [], []
     for name, m in named:
-        if low_content_of(m, ranges, fmts):
+        if dim in unreadable_dims(low_content_of(m, ranges, fmts)):
             unreadable.append(name)
         elif not outside_of(lo, hi, m[dim], fmt):
             in_band.append(name)
-    return {"dim": dim, "inputs": RATIO_DIMS[dim], "lo": lo, "hi": hi, "fmt": fmt,
+    return {"dim": dim, "inputs": RATIO_DIMS[dim]["inputs"],
+            "unreadableOn": RATIO_DIMS[dim]["unreadableOn"],
+            "lo": lo, "hi": hi, "fmt": fmt,
             "stills": len(named), "unreadable": unreadable, "inBand": in_band,
             "readable": len(named) - len(unreadable),
-            "floors": [(k, ranges[k][0]) for k in LOW_CONTENT_KEYS if k in ranges]}
+            "floors": [(k, ranges[k][0]) for k in LOW_CONTENT_FLOOR_KEYS
+                       if k in ranges],
+            "ceilings": [(k, ranges[k][1]) for k in LOW_CONTENT_CEIL_KEYS
+                         if k in ranges]}
 
 
 def capped(names, cap=NAME_CAP, sep=","):
@@ -891,10 +1067,14 @@ def report(stable_only=False):
         "frames side by side.")
     out("  READ edge density WITH grain sigma: a black frame of pure film grain "
         "scores 0.42 on one and 0.06 on GROUND PATCH.")
+    out("  READ GROUND PATCH WITH ground/frame: patch is std/mean, so an "
+        "ADDITIVE lift lowers it and a multiplicative one cannot move it. A low "
+        "patch means BLOWN OR FLAT until ground/frame says which.")
     out("  * = pose-stable across builds (district_*). Every other sim column is "
         "a different photograph each run.")
-    out("  ~ = LOW-CONTENT frame: a ratio row whose ground-band inputs sit below "
-        "the references' own floor. Marked, never dropped — the value stays on "
+    out("  ~ = LOW-CONTENT frame: a ratio row whose ground-band input sits below "
+        "the references' own floor or above their own ceiling, on a side that "
+        "row is degenerate under. Marked, never dropped — the value stays on "
         "the page and may not be quoted.")
     out("")
 
@@ -906,8 +1086,13 @@ def report(stable_only=False):
     # renderings of one judgement cannot disagree (the lesson `is_outside`
     # below was already written for).
     lowc = [low_content_of(m, ranges, FMTS) for _p, m in sims]
-    cols = [(col_label(p), "*" if p.name.startswith(STABLE_PREFIX) else "", m, lc)
-            for (p, m), lc in zip(sims, lowc)]
+    # ...and ONE call site for "which ratio rows does that make unreadable",
+    # for the same reason: the `~` in the table, `ratioUnreadable=` on the
+    # image line and the per-dim counts on the ratioband line are three
+    # renderings of this one list.
+    lowdims = [set(unreadable_dims(lc)) for lc in lowc]
+    cols = [(col_label(p), "*" if p.name.startswith(STABLE_PREFIX) else "", m, ld)
+            for (p, m), ld in zip(sims, lowdims)]
 
     def is_outside(key, fmt, v):
         """`outside_of` against this key's reference range. The table, the
@@ -929,23 +1114,23 @@ def report(stable_only=False):
         for key, label, fmt, _stat in DIMS:
             lo, hi = ranges[key]
             row = "%-22s %-15s" % (label, (fmt + ".." + fmt) % (lo, hi))
-            for _n, _s, m, lc in chunk:
+            for _n, _s, m, ld in chunk:
                 v = m[key]
                 # `~` MARKS, IT DOES NOT REPLACE. The `!` stays because the raw
                 # reading really is outside the band; the `~` says the reading
                 # cannot carry that conclusion. Dropping either would be the
                 # exclusion the ruling refused.
-                cell = ("~" if (key in RATIO_DIMS and lc) else "") + fmt % v
+                cell = ("~" if key in ld else "") + fmt % v
                 row += "%11s%s" % (cell, "!" if is_outside(key, fmt, v) else " ")
             out(row)
         out("")
 
     outside = checked = unreadable_readings = 0
-    for _n, _s, m, lc in cols:
+    for _n, _s, m, ld in cols:
         for key, _l, fmt, _st in DIMS:
             checked += 1
             outside += 1 if is_outside(key, fmt, m[key]) else 0
-            unreadable_readings += 1 if (key in RATIO_DIMS and lc) else 0
+            unreadable_readings += 1 if key in ld else 0
     out("  ! = outside the five references' range. %d of %d readings outside "
         "(%d dimensions x %d stills), of which %d sit on a ~ low-content ratio "
         "row and are not readable as findings."
@@ -958,11 +1143,16 @@ def report(stable_only=False):
 
     # ---- the ratio rows, counted the way the 24 Aug ruling requires: in band
     # X of Y READABLE, +Z unreadable NAMED, against the number examined.
-    bands = [ratio_band_reading(d, named, ranges, FMTS) for d in RATIO_DIMS]
+    bands = [ratio_band_reading(d, named, ranges, FMTS) for d in sorted(RATIO_DIMS)]
     floors = ", ".join("%s %s" % (k, FMTS[k] % v) for k, v in bands[0]["floors"]) \
         if bands else "none"
+    ceils = ", ".join("%s %s" % (k, FMTS[k] % v) for k, v in bands[0]["ceilings"]) \
+        if bands else "none"
     out("  RATIO ROWS (%d of %d dimensions) — the low-content annotation, keyed "
-        "to the five references' OWN floor: %s." % (len(RATIO_DIMS), len(DIMS), floors))
+        "to the five references' OWN floor (%s) and their OWN ceiling (%s). "
+        "The ceiling covers the mean only: one bright highlight lifts a "
+        "percentile past it on a frame that is not blown."
+        % (len(RATIO_DIMS), len(DIMS), floors, ceils))
     for b in bands:
         band_txt = (b["fmt"] + ".." + b["fmt"]) % (b["lo"], b["hi"])
         if b["readable"] == 0:
@@ -972,9 +1162,10 @@ def report(stable_only=False):
         else:
             head_txt = "in band %d of %d readable stills" % (
                 len(b["inBand"]), b["readable"])
-        out("    %s = %s, band %s: %s (+%d unreadable low-content), %d stills "
-            "examined." % (b["dim"], "/".join(b["inputs"]), band_txt, head_txt,
-                           len(b["unreadable"]), b["stills"]))
+        out("    %s = %s (unreadable on the %s side), band %s: %s (+%d "
+            "unreadable low-content), %d stills examined."
+            % (b["dim"], "/".join(b["inputs"]), "+".join(b["unreadableOn"]),
+               band_txt, head_txt, len(b["unreadable"]), b["stills"]))
         shown = b["unreadable"][:NAME_CAP]
         more = len(b["unreadable"]) - len(shown)
         out("      unreadable: %s%s" % (
@@ -1007,15 +1198,18 @@ def report(stable_only=False):
         len(refs),
         " ".join("%s=%s" % (k, (f + ".." + f) % ranges[k])
                  for k, _l, f, _s in DIMS)))
-    for (p, m), lc in zip(sims, lowc):
+    for (p, m), lc, ld in zip(sims, lowc, lowdims):
         bad = [k for k, _l, f, _s in DIMS if is_outside(k, f, m[k])]
+        # `ratioUnreadable=` is the rows THIS frame's qualifying side breaks,
+        # not every ratio row in the tool: a blown frame keeps groundOverFrame,
+        # which is the row that says it is blown.
         out("refGap image=%s stable=%s %s outside=%s lowContent=%s "
             "ratioUnreadable=%s px=%d/%d/%d patchWindows=%d"
             % (shot_name(p), "yes" if p.name.startswith(STABLE_PREFIX) else "no",
                " ".join("%s=%s" % (k, f % m[k]) for k, _l, f, _s in DIMS),
                ",".join(bad) if bad else "none",
                low_content_token(lc, FMTS),
-               ",".join(sorted(RATIO_DIMS)) if lc else "none",
+               ",".join(sorted(ld)) if ld else "none",
                m["_pxWhole"], m["_pxGround"], m["_pxMid"], m["_nPatch"]))
     # ONE LINE PER RATIO ROW, whole-run numbers only. Every count here is over
     # this run's sim stills and belongs on a run-level line, never beside a
@@ -1026,24 +1220,31 @@ def report(stable_only=False):
         # `unreadableRatio`, not `unreadable`: the summary line below already
         # spends `unreadable=` on IMAGES THAT WOULD NOT DECODE, and one key
         # meaning two things on two lines is the fault a grep cannot see.
-        out("refGap scope=ratioband dim=%s inputs=%s band=%s inBand=%d readable=%d "
-            "unreadableRatio=%d stills=%d floor=%s namesShown=%d "
-            "namesNotShown=%d unreadableStills=%s"
-            % (b["dim"], "/".join(b["inputs"]),
+        out("refGap scope=ratioband dim=%s inputs=%s unreadableOn=%s band=%s "
+            "inBand=%d readable=%d unreadableRatio=%d stills=%d floor=%s "
+            "ceiling=%s namesShown=%d namesNotShown=%d unreadableStills=%s"
+            % (b["dim"], "/".join(b["inputs"]), "+".join(b["unreadableOn"]),
                (b["fmt"] + ".." + b["fmt"]) % (b["lo"], b["hi"]),
                len(b["inBand"]), b["readable"], len(b["unreadable"]), b["stills"],
                "/".join("%s:%s" % (k, FMTS[k] % v) for k, v in b["floors"]) or "none",
+               "/".join("%s:%s" % (k, FMTS[k] % v) for k, v in b["ceilings"]) or "none",
                len(shown), len(b["unreadable"]) - len(shown),
                capped(b["unreadable"])))
     out("refGap scope=summary refFrames=%d simStills=%d dims=%d outside=%d outsideOf=%d "
         "unreadable=%d filesExamined=%d/%d edgeCut=%d vertCut=%d "
         "patchBlock=%d patchWin=%d work=%dx%d ratioDims=%d lowContentStills=%d/%d "
-        "lowContentKeys=%s unreadableRatioReadings=%d"
+        "lowContentFloorStills=%d lowContentCeilStills=%d "
+        "lowContentFloorKeys=%s lowContentCeilKeys=%s unreadableRatioReadings=%d"
         % (len(refs), len(sims), len(DIMS), outside, checked, len(errors),
            counts["refFiles"], counts["simFiles"], EDGE_T, VERT_T,
            PATCH_BLOCK, PATCH_WIN, WORK[0], WORK[1], len(RATIO_DIMS),
            sum(1 for lc in lowc if lc), len(sims),
-           "/".join(LOW_CONTENT_KEYS), unreadable_readings))
+           # WHICH HALF FIRED, counted apart: "12 of 17 low-content" hides that
+           # 5 are black and 7 are blown, and those two have opposite fixes.
+           sum(1 for lc in lowc if any(s2 == "floor" for _k, _v, _b, s2 in lc)),
+           sum(1 for lc in lowc if any(s2 == "ceiling" for _k, _v, _b, s2 in lc)),
+           "/".join(LOW_CONTENT_FLOOR_KEYS), "/".join(LOW_CONTENT_CEIL_KEYS),
+           unreadable_readings))
 
     print("\n".join(lines))
     return 4 if errors else 0
@@ -1175,53 +1376,74 @@ def series():
 def low_content_series(refs, sims):
     """THE SERIES THE LOW-CONTENT RULE WAS TAKEN FROM, reprinted every run.
 
-    Rule 2: the first version of a bound is a printer, and the bound here is
-    not even a number — it is min() over the five references' own readings, so
-    what has to be checkable is (a) that those five readings are what the floor
-    is made of and (b) that the OR over the two input statistics is doing work
-    the AND would not.
+    Rule 2: the first version of a bound is a printer, and the bounds here are
+    not even numbers — they are min() and max() over the five references' own
+    readings, so what has to be checkable is (a) that those five readings are
+    what the bounds are made of, (b) that the OR over the two input statistics
+    is doing work the AND would not, and (c) that the CEILING half is carried
+    by the key the series says can carry it.
 
-    A LADDER: one contributor toggled at a time, all four rungs printed from
-    the same measurement pass in the same run, because rungs compared across
-    runs are different photographs. The rows go above the rungs — an aggregate
+    A LADDER: one contributor toggled at a time, every rung printed from the
+    same measurement pass in the same run, because rungs compared across runs
+    are different photographs. The rows go above the rungs — an aggregate
     cannot show a regime change and a row of numbers shows one in a second."""
     ranges = {k: (min(m[k] for _p, m in refs), max(m[k] for _p, m in refs))
               for k, _l, _f, _s in DIMS}
     ratio_keys = sorted(RATIO_DIMS)
     print("== LOW-CONTENT QUALIFIER: the floor IS the five references' own "
-          "minimum, per statistic. Nothing below is a constant. ==")
-    head = "%-34s %10s %10s   %s" % ("image", LOW_CONTENT_KEYS[0],
-                                     LOW_CONTENT_KEYS[1],
-                                     " ".join("%12s" % k for k in ratio_keys))
+          "minimum and the ceiling IS their own maximum, per statistic. "
+          "Nothing below is a constant. ==")
+    head = "%-34s %s   %s" % ("image",
+                              " ".join("%10s" % k for k in LOW_CONTENT_KEYS),
+                              " ".join("%16s" % k for k in ratio_keys))
     print(head)
     for side, group in (("REF", refs), ("SIM", sims)):
         for p, m in group:
-            print("%s %-30s %10s %10s   %s"
+            print("%s %-30s %s   %s"
                   % (side, p.name[:30],
-                     FMTS[LOW_CONTENT_KEYS[0]] % m[LOW_CONTENT_KEYS[0]],
-                     FMTS[LOW_CONTENT_KEYS[1]] % m[LOW_CONTENT_KEYS[1]],
-                     " ".join("%12s" % (FMTS[k] % m[k]) for k in ratio_keys)))
+                     " ".join("%10s" % (FMTS[k] % m[k])
+                              for k in LOW_CONTENT_KEYS),
+                     " ".join("%16s" % (FMTS[k] % m[k]) for k in ratio_keys)))
     for k in LOW_CONTENT_KEYS:
-        print("  %s floor %s over %d references (their range %s..%s)"
-              % (k, FMTS[k] % ranges[k][0], len(refs),
-                 FMTS[k] % ranges[k][0], FMTS[k] % ranges[k][1]))
+        print("  %s range over %d references %s..%s — floor %s%s"
+              % (k, len(refs), FMTS[k] % ranges[k][0], FMTS[k] % ranges[k][1],
+                 "TAKEN" if k in LOW_CONTENT_FLOOR_KEYS else "not taken",
+                 ", ceiling TAKEN" if k in LOW_CONTENT_CEIL_KEYS
+                 else ", ceiling NOT taken (a percentile is lifted past it by "
+                      "one highlight on a frame that is not blown)"))
     print("")
 
     print("== THE LADDER: which stills qualify as low-content under each rule, "
-          "same run, same pass. `either` is what ships. ==")
-    per_key = {k: [shot_name(p) for p, m in sims
-                   if below_floor(ranges[k][0], m[k], FMTS[k])]
-               for k in LOW_CONTENT_KEYS}
-    either = [shot_name(p) for p, m in sims if low_content_of(m, ranges, FMTS)]
-    both = [n for n in per_key[LOW_CONTENT_KEYS[0]]
-            if n in per_key[LOW_CONTENT_KEYS[1]]]
-    rungs = [("%s below floor" % k, per_key[k]) for k in LOW_CONTENT_KEYS]
-    rungs += [("either (TAKEN)", either), ("both", both)]
+          "same run, same pass. `floor-either + ceiling-mean` is what ships. ==")
+    per_floor = {k: [shot_name(p) for p, m in sims
+                     if below_floor(ranges[k][0], m[k], FMTS[k])]
+                 for k in LOW_CONTENT_KEYS}
+    per_ceil = {k: [shot_name(p) for p, m in sims
+                    if above_ceiling(ranges[k][1], m[k], FMTS[k])]
+                for k in LOW_CONTENT_KEYS}
+    floor_either = [shot_name(p) for p, m in sims
+                    if any(below_floor(ranges[k][0], m[k], FMTS[k])
+                           for k in LOW_CONTENT_FLOOR_KEYS)]
+    floor_both = [n for n in per_floor[LOW_CONTENT_FLOOR_KEYS[0]]
+                  if n in per_floor[LOW_CONTENT_FLOOR_KEYS[1]]]
+    taken = [shot_name(p) for p, m in sims if low_content_of(m, ranges, FMTS)]
+    rungs = [("%s below floor" % k, per_floor[k]) for k in LOW_CONTENT_KEYS]
+    rungs += [("floor either", floor_either), ("floor both", floor_both)]
+    rungs += [("%s above ceiling" % k, per_ceil[k]) for k in LOW_CONTENT_KEYS]
+    rungs += [("SHIPPED: floor-either + ceiling-%s"
+               % "/".join(LOW_CONTENT_CEIL_KEYS), taken)]
     for label, names in rungs:
-        print("  %-26s %2d of %2d stills   %s"
+        print("  %-40s %2d of %2d stills   %s"
               % (label, len(names), len(sims), capped(names, sep=" ")))
-    print("  The rungs differ by %d still(s); those are the frames the AND rule "
-          "would call readable street." % (len(either) - len(both)))
+    print("  The floor rungs differ by %d still(s); those are the frames the "
+          "AND rule would call readable street."
+          % (len(floor_either) - len(floor_both)))
+    ceil_only_p90 = [n for n in per_ceil["groundP90"]
+                     if n not in per_ceil["groundMean"]] \
+        if "groundP90" in per_ceil and "groundMean" in per_ceil else []
+    print("  A groundP90 ceiling would ALSO take %d still(s) the mean ceiling "
+          "leaves readable: %s — the cost of the ceiling half being symmetric."
+          % (len(ceil_only_p90), capped(ceil_only_p90, sep=" ")))
     print("")
 
     print("== WHAT THE ANNOTATION DOES TO EACH RATIO ROW'S COUNT ==")
@@ -1358,63 +1580,174 @@ def selftest():
     check("bound: the integer format rounds to whole counts",
           not outside_of(22, 49, 49.4, "%.0f") and outside_of(22, 49, 49.6, "%.0f"))
 
-    # ---- 1b. THE LOW-CONTENT ANNOTATION, ACCEPTING FIXTURE FIRST.
+    # ---- 1b. THE LOW-CONTENT ANNOTATION, ACCEPTING FIXTURES FIRST.
     #
-    # `district_hook` is a bright street frame reading BELOW the shadow band at
-    # 0.149, and that reading is the residual the ambient-fill rung owns. If
-    # this annotation ever swallows it, the tool has started hiding the finding
-    # it was built beside — which is the exclusion the 24 Aug ruling refused.
-    # It goes first because the expensive failure of an outlier rule is the one
-    # that eats real frames, not the one that misses a black one.
+    # THE STRUCTURAL ONE LEADS, because it is the only fixture nothing can
+    # invalidate: the floor is min() and the ceiling is max() over the five
+    # references themselves, so no reference frame can ever qualify. If one
+    # does, the qualifier has stopped being derived from them.
     lrefs, lsims, _le, _lc = gather()
     lranges = {k: (min(m[k] for _p, m in lrefs), max(m[k] for _p, m in lrefs))
                for k, _l, _f, _s in DIMS}
-    by_name = {shot_name(p): m for p, m in lsims}
-    hook, downtown = by_name.get("district_hook"), by_name.get("district_downtown")
-    check("accepting: the two live fixtures are both present",
-          hook is not None and downtown is not None)
-    if hook and downtown:
+    ref_lc = [(p2.name, low_content_of(m, lranges, FMTS)) for p2, m in lrefs]
+    check("accepting: no reference frame can qualify as low-content (%d of %d "
+          "clean)" % (sum(1 for _n, lc in ref_lc if not lc), len(ref_lc)),
+          bool(ref_lc) and not any(lc for _n, lc in ref_lc))
+
+    # THE LIVE ONE SECOND. `district_hook` is a bright street frame reading
+    # BELOW the shadow band at 0.149, and that reading is the residual the
+    # ambient-fill rung owns. If this annotation ever swallows it, the tool has
+    # started hiding the finding it was built beside — the exclusion the 24 Aug
+    # ruling refused. The expensive failure of an outlier rule is the one that
+    # eats real frames, not the one that misses a black one.
+    by_name = {shot_name(p2): m for p2, m in lsims}
+    hook = by_name.get("district_hook")
+    check("accepting: the live fixture district_hook is present", hook is not None)
+    if hook:
         hook_lc = low_content_of(hook, lranges, FMTS)
         check("accepting: district_hook is NOT low-content (%s)"
               % low_content_token(hook_lc, FMTS), not hook_lc)
-        check("accepting: district_hook's own inputs are above both floors "
-              "(groundP90 %.3f>=%.3f, groundMean %.3f>=%.3f)"
+        check("accepting: district_hook's inputs are inside every bound it is "
+              "judged by (groundP90 %.3f in %.3f..%.3f, groundMean %.3f in "
+              "%.3f..%.3f)"
               % (hook["groundP90"], lranges["groundP90"][0],
-                 hook["groundMean"], lranges["groundMean"][0]),
-              hook["groundP90"] >= lranges["groundP90"][0]
-              and hook["groundMean"] >= lranges["groundMean"][0])
+                 lranges["groundP90"][1], hook["groundMean"],
+                 lranges["groundMean"][0], lranges["groundMean"][1]),
+              all(not below_floor(lranges[k][0], hook[k], FMTS[k])
+                  for k in LOW_CONTENT_FLOOR_KEYS)
+              and all(not above_ceiling(lranges[k][1], hook[k], FMTS[k])
+                      for k in LOW_CONTENT_CEIL_KEYS))
+        # AN IMPLICATION, NOT A CONJUNCTION, and the difference is this whole
+        # section's lesson: hook's groundP90 sits ABOVE the references' ceiling
+        # today (0.868 > 0.831) and darkening the ground could move it back
+        # under. Asserting the state would pin an accepting case to a number the
+        # queued work is trying to change; asserting the RULE — a P90 over the
+        # ceiling must not by itself annotate a frame — holds either way, and
+        # says which case it saw.
+        p90_over = above_ceiling(lranges["groundP90"][1], hook["groundP90"],
+                                 FMTS["groundP90"])
+        check("accepting: a groundP90 above the ceiling does not annotate on "
+              "its own (hook P90 %.3f vs ceiling %.3f — %s today)"
+              % (hook["groundP90"], lranges["groundP90"][1],
+                 "live case exercised" if p90_over
+                 else "live case absent, planted case below covers it"),
+              (not p90_over) or not low_content_of(hook, lranges, FMTS))
         check("accepting: district_hook's line says lowContent=none "
               "ratioUnreadable=none",
               any(l.startswith("refGap image=district_hook ")
                   and "lowContent=none" in l and "ratioUnreadable=none" in l
                   for l in text.splitlines()))
-        # REJECTING: the near-black frame whose 0.676 started this.
-        down_lc = low_content_of(downtown, lranges, FMTS)
-        check("rejecting: district_downtown IS low-content (%s)"
-              % low_content_token(down_lc, FMTS), bool(down_lc))
-        check("rejecting: its qualifying number is printed with the floor it "
-              "failed", ":" in low_content_token(down_lc, FMTS)
-              and "<" in low_content_token(down_lc, FMTS))
-        dline = next((l for l in text.splitlines()
-                      if l.startswith("refGap image=district_downtown ")), "")
-        check("rejecting: district_downtown's line names the ratio row it marks",
-              "ratioUnreadable=shadowRatio" in dline and "lowContent=none" not in dline)
-        check("rejecting: it is ANNOTATED, NOT DROPPED — the row still carries "
-              "its value", "shadowRatio=%s" % (FMTS["shadowRatio"]
-                                               % downtown["shadowRatio"]) in dline)
 
-    # The floor is DERIVED, not stored: recompute it here from the references
-    # and require the printed one to match, so a constant creeping in fails.
+    # ---- 1c. REJECTING, AND THE FIXTURE IS SYNTHETIC ON PURPOSE.
+    #
+    # It used to be `district_downtown`, pinned because that frame was
+    # near-black. Build 6137608 re-sited the camera, the frame became a lit
+    # street (meanLuma 0.096 -> 0.412), and the selftest went red 3 of 78 — so
+    # verify went red for the work having been done. A rejecting case pinned to
+    # a real asset is a trap this project has sprung before. These three frames
+    # are generated here and no improvement to the game can reach them:
+    #   black   a reading of nothing by DARKNESS  -> floor side
+    #   blown   a reading of nothing by BLOWOUT   -> ceiling side (the half
+    #           added 25 Aug; `district_ironside` sailed through without it)
+    #   mid     a readable band                   -> must NOT qualify, so the
+    #           fixture proves the rule discriminates rather than marking all
+    npx = _np()
+    from PIL import Image as _Img
+    synth = pathlib.Path(tempfile.mkdtemp(prefix="refbench-synth-"))
+    atexit.register(shutil.rmtree, synth, True)
+    h_s, w_s = WORK[1], WORK[0]
+
+    def _write(name, arr):
+        _Img.fromarray(np_stack(npx, arr), "RGB").save(synth / name)
+
+    def np_stack(npx_, plane):
+        return npx_.repeat(plane.reshape(h_s, w_s, 1), 3, axis=2)
+
+    black = npx.full((h_s, w_s), 5, dtype=npx.uint8)
+    blown = npx.full((h_s, w_s), 217, dtype=npx.uint8)          # 0.851 luma
+    midp = npx.full((h_s, w_s), 90, dtype=npx.uint8)            # 0.353 luma
+    midp[::2, ::2] = 110
+    midp[1::2, 1::2] = 70
+    _write("district_synth_black.png", black)
+    _write("district_synth_blown.png", blown)
+    _write("district_synth_mid.png", midp)
+
+    # A PRECONDITION, NAMED, so a failure below points at the cause instead of
+    # looking like the rule broke: the live references' bounds must lie inside
+    # the synthetic extremes, or these frames are not on the far side of them.
+    check("rejecting: the synthetic extremes bracket the live bounds "
+          "(black 0.020 < floor %.3f, blown 0.851 > ceiling %.3f)"
+          % (lranges["groundMean"][0], lranges["groundMean"][1]),
+          0.020 < lranges["groundMean"][0] and lranges["groundMean"][1] < 0.851)
+
+    keep_ref, keep_sim = REFDIR, SIMDIR
+    SIMDIR = synth
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        scode = report()
+    SIMDIR = keep_sim
+    stext = buf.getvalue()
+    sline = {}
+    for l in stext.splitlines():
+        if l.startswith("refGap image=district_synth_"):
+            sline[l.split()[1].split("=", 1)[1]] = l
+    check("rejecting: the synthetic set produces a report (exit 0, 3 lines)",
+          scode == 0 and len(sline) == 3)
+    if len(sline) == 3:
+        bl, bw, md = (sline["district_synth_black"], sline["district_synth_blown"],
+                      sline["district_synth_mid"])
+        check("rejecting: the black frame IS low-content, on the FLOOR side "
+              "(%s)" % bl.split("lowContent=")[1].split()[0],
+              "lowContent=none" not in bl
+              and "<" in bl.split("lowContent=")[1].split()[0])
+        check("rejecting: the blown frame IS low-content, on the CEILING side "
+              "(%s)" % bw.split("lowContent=")[1].split()[0],
+              "lowContent=none" not in bw
+              and ">" in bw.split("lowContent=")[1].split()[0])
+        check("accepting: the mid-tone frame is NOT low-content, so the rule "
+              "discriminates rather than marking everything",
+              "lowContent=none" in md and "ratioUnreadable=none" in md)
+        check("rejecting: each qualifying number is printed WITH the bound it "
+              "failed", all(":" in l.split("lowContent=")[1].split()[0]
+                            for l in (bl, bw)))
+        # THE SIDE-AWARENESS, WHICH IS THE POINT OF unreadableOn: a dark frame
+        # loses both ratio rows; a BLOWN one keeps groundOverFrame, because on
+        # that side groundOverFrame is not degenerate — it is the finding.
+        check("rejecting: the black frame loses BOTH ratio rows (%s)"
+              % bl.split("ratioUnreadable=")[1].split()[0],
+              bl.split("ratioUnreadable=")[1].split()[0]
+              == ",".join(sorted(RATIO_DIMS)))
+        check("rejecting: the blown frame loses shadowRatio and KEEPS "
+              "groundOverFrame — the row that says it is blown (%s)"
+              % bw.split("ratioUnreadable=")[1].split()[0],
+              bw.split("ratioUnreadable=")[1].split()[0] == "shadowRatio")
+        check("rejecting: ANNOTATED, NOT DROPPED — both rows still carry their "
+              "values on the blown frame",
+              "shadowRatio=" in bw and "groundOverFrame=" in bw)
+        ssum = stext.split("refGap scope=summary")[1]
+        check("rejecting: the summary counts the two halves apart (floor 1, "
+              "ceiling 1 of 3)",
+              "lowContentFloorStills=1" in ssum and "lowContentCeilStills=1" in ssum
+              and "lowContentStills=2/3" in ssum)
+
+    # The bounds are DERIVED, not stored: recompute them here from the
+    # references and require the printed ones to match, so a constant creeping
+    # in fails.
     rb_line = next((l for l in text.splitlines()
                     if l.startswith("refGap scope=ratioband")), "")
     want_floor = "/".join("%s:%s" % (k, FMTS[k] % lranges[k][0])
-                          for k in LOW_CONTENT_KEYS)
+                          for k in LOW_CONTENT_FLOOR_KEYS)
+    want_ceil = "/".join("%s:%s" % (k, FMTS[k] % lranges[k][1])
+                         for k in LOW_CONTENT_CEIL_KEYS)
     check("accepting: the printed floor is the references' own minimum (%s)"
           % want_floor, ("floor=" + want_floor) in rb_line)
+    check("accepting: the printed ceiling is the references' own maximum (%s)"
+          % want_ceil, ("ceiling=" + want_ceil) in rb_line)
     got = dict(t.split("=", 1) for t in rb_line.split()[1:] if "=" in t)
     check("accepting: the ratio-band line ships every denominator",
           all(k in got for k in ("inBand", "readable", "unreadableRatio",
-                                 "stills", "namesShown", "namesNotShown")))
+                                 "stills", "namesShown", "namesNotShown",
+                                 "unreadableOn")))
     if got:
         check("accepting: readable + unreadable = stills examined (%s+%s=%s)"
               % (got.get("readable"), got.get("unreadableRatio"), got.get("stills")),
@@ -1424,42 +1757,102 @@ def selftest():
         check("accepting: the names shown carry their not-shown count",
               int(got["namesShown"]) + int(got["namesNotShown"])
               == int(got["unreadableRatio"]))
-    # The table's marks and the machine tail's count are two renderings of one
-    # judgement, the same pairing the `!` check above exists for.
+    check("accepting: one ratioband line per ratio row (%d of %d)"
+          % (sum(1 for l in text.splitlines()
+                 if l.startswith("refGap scope=ratioband")), len(RATIO_DIMS)),
+          sum(1 for l in text.splitlines()
+              if l.startswith("refGap scope=ratioband")) == len(RATIO_DIMS))
+    check("accepting: every ratio row declares a side it is degenerate under",
+          all(spec["unreadableOn"]
+              and set(spec["unreadableOn"]) <= {"floor", "ceiling"}
+              for spec in RATIO_DIMS.values()))
+    # The table's marks and the machine tail's counts are three renderings of
+    # one judgement, the same pairing the `!` check above exists for. It is a
+    # SUM over rows now, not stills x rows: the two rows have different
+    # unreadable counts in the same run, on purpose.
     marks = sum(l.count("~") for l in text.splitlines() if l.startswith(labels))
+    per_dim = sum(int(l.split("unreadableRatio=")[1].split()[0])
+                  for l in text.splitlines()
+                  if l.startswith("refGap scope=ratioband"))
+    summary_readings = int(text.split("refGap scope=summary")[1]
+                           .split("unreadableRatioReadings=")[1].split()[0])
+    check("accepting: table ~ marks, the ratioband lines and the summary agree "
+          "(%d marks, %d over rows, %d summary)"
+          % (marks, per_dim, summary_readings),
+          marks == per_dim == summary_readings)
     summary_low = text.split("refGap scope=summary")[1].split(
         "lowContentStills=")[1].split()[0]
-    check("accepting: table ~ marks, the ratioband count and the summary agree "
-          "(%d marks, %s)" % (marks, summary_low),
-          marks == int(summary_low.split("/")[0]) * len(RATIO_DIMS)
-          and marks == int(got["unreadableRatio"]) * len(RATIO_DIMS))
+    sfloor = int(text.split("refGap scope=summary")[1]
+                 .split("lowContentFloorStills=")[1].split()[0])
+    sceil = int(text.split("refGap scope=summary")[1]
+                .split("lowContentCeilStills=")[1].split()[0])
+    check("accepting: the two halves are counted apart and neither exceeds the "
+          "whole (%d floor, %d ceiling, %s low-content)"
+          % (sfloor, sceil, summary_low),
+          max(sfloor, sceil) <= int(summary_low.split("/")[0])
+          <= sfloor + sceil <= 2 * int(summary_low.split("/")[1]))
 
     # PLANTED, so none of this waits on the live stills to land on an edge.
     check("floor: a value rounding ONTO the floor is not below it",
           not below_floor(0.23274, 0.23251, "%.3f"))
     check("floor: a value a printed step below the floor IS below it",
           below_floor(0.23274, 0.23249, "%.3f"))
+    check("ceiling: a value rounding ONTO the ceiling is not above it",
+          not above_ceiling(0.54321, 0.54349, "%.3f"))
+    check("ceiling: a value a printed step above the ceiling IS above it",
+          above_ceiling(0.54321, 0.54351, "%.3f"))
+    PLANT = {"groundP90": (0.233, 0.831), "groundMean": (0.142, 0.543),
+             "lumaMean": (0.366, 0.577)}
     check("floor: the qualifier moves when the references move — one value, "
           "two floors",
           bool(low_content_of({"groundP90": 0.200, "groundMean": 0.500},
-                              {"groundP90": (0.233, 0.831),
-                               "groundMean": (0.142, 0.543)}, FMTS))
+                              PLANT, FMTS))
           and not low_content_of({"groundP90": 0.200, "groundMean": 0.500},
                                  {"groundP90": (0.150, 0.831),
                                   "groundMean": (0.142, 0.543)}, FMTS))
-    check("floor: EITHER input below its own floor qualifies (the gullwing "
-          "shape: a lit sill over an unlit facade)",
-          len(low_content_of({"groundP90": 0.360, "groundMean": 0.115},
-                             {"groundP90": (0.233, 0.831),
-                              "groundMean": (0.142, 0.543)}, FMTS)) == 1)
+    check("floor: EITHER input below its own floor qualifies (the day5_night "
+          "shape: a lit lamp over an unlit band)",
+          len(low_content_of({"groundP90": 0.525, "groundMean": 0.132},
+                             PLANT, FMTS)) == 1)
+    # THE CEILING'S OWN ASYMMETRY, PLANTED — this is the check that would have
+    # caught a symmetric ceiling eating district_hook and district_strip.
+    check("ceiling: the MEAN above its ceiling qualifies (the ironside shape: "
+          "a blown white sheet)",
+          [side for _k, _v, _b, side in
+           low_content_of({"groundP90": 0.890, "groundMean": 0.726},
+                          PLANT, FMTS)] == ["ceiling"])
+    check("ceiling: a PERCENTILE above its ceiling over a mid-band mean does "
+          "NOT qualify (the hook shape: a highlight, not a blowout)",
+          not low_content_of({"groundP90": 0.900, "groundMean": 0.470},
+                             PLANT, FMTS))
+    check("sides: the token carries < for a floor and > for a ceiling",
+          low_content_token(low_content_of({"groundP90": 0.100,
+                                            "groundMean": 0.100}, PLANT, FMTS),
+                            FMTS) == "groundP90:0.100<0.233,groundMean:0.100<0.142"
+          and low_content_token(low_content_of({"groundP90": 0.890,
+                                                "groundMean": 0.726},
+                                               PLANT, FMTS), FMTS)
+          == "groundMean:0.726>0.543")
+    check("sides: a floor frame loses both ratio rows, a ceiling frame keeps "
+          "groundOverFrame",
+          unreadable_dims(low_content_of({"groundP90": 0.100,
+                                          "groundMean": 0.100}, PLANT, FMTS))
+          == sorted(RATIO_DIMS)
+          and unreadable_dims(low_content_of({"groundP90": 0.890,
+                                              "groundMean": 0.726},
+                                             PLANT, FMTS)) == ["shadowRatio"])
+    check("sides: a frame inside every bound loses nothing",
+          unreadable_dims(low_content_of({"groundP90": 0.500,
+                                          "groundMean": 0.300},
+                                         PLANT, FMTS)) == [])
     # A run in which EVERY still is low-content must not print a clean-looking
     # "0 in band" — rule 3b, planted rather than waited for.
     dark = [("all_dark_%d" % i, {"groundP90": 0.05, "groundMean": 0.02,
-                                 "shadowRatio": 0.9}) for i in range(3)]
+                                 "shadowRatio": 0.9, "groundOverFrame": 1.1,
+                                 "lumaMean": 0.02}) for i in range(3)]
     darkb = ratio_band_reading("shadowRatio", dark,
-                               {"shadowRatio": (0.157, 0.388),
-                                "groundP90": (0.233, 0.831),
-                                "groundMean": (0.142, 0.543)}, FMTS)
+                               dict(PLANT, shadowRatio=(0.157, 0.388),
+                                    groundOverFrame=(0.387, 0.981)), FMTS)
     check("nothing measured: 0 readable stills reports 0 of 0 with every one "
           "named unreadable",
           darkb["readable"] == 0 and darkb["inBand"] == []
@@ -1585,6 +1978,35 @@ def selftest():
     check("flat black: patch spread 0 over counted windows",
           m["groundPatch"] == 0.0 and m["_nPatch"] > 100)
     check("flat black: shadow ratio cannot divide by zero", m["shadowRatio"] == 0.0)
+    check("flat black: ground/frame cannot divide by zero",
+          m["groundOverFrame"] == 0.0)
+
+    # ---- 5b. GROUND OVER FRAME's two load-bearing properties, on shapes with
+    # a known answer. A sign error here inverts the whole ground diagnosis, and
+    # the exposure-independence claim is the reason this row exists at all.
+    flat = measure(Image.new("RGB", WORK, (128, 128, 128)))
+    check("uniform frame: ground/frame is exactly 1 (%0.6f)"
+          % flat["groundOverFrame"], abs(flat["groundOverFrame"] - 1.0) < 1e-6)
+    split = np.full((h, w, 3), 120, dtype=np.uint8)
+    split[int(GROUND_Y[0] * h):int(GROUND_Y[1] * h), :, :] = 60
+    dark_ground = measure(Image.fromarray(split, "RGB"))
+    split2 = np.full((h, w, 3), 60, dtype=np.uint8)
+    split2[int(GROUND_Y[0] * h):int(GROUND_Y[1] * h), :, :] = 120
+    light_ground = measure(Image.fromarray(split2, "RGB"))
+    check("direction: a DARKER ground than its frame reads below 1 (%.3f) and "
+          "a brighter one above 1 (%.3f)"
+          % (dark_ground["groundOverFrame"], light_ground["groundOverFrame"]),
+          dark_ground["groundOverFrame"] < 1.0 < light_ground["groundOverFrame"])
+    # EXPOSURE INDEPENDENCE, the claim the docstring makes: halve every pixel
+    # (exactly, on even values) and the ratio must not move while lumaMean does.
+    halved = measure(Image.fromarray(split // 2, "RGB"))
+    check("exposure independence: halving every pixel moves lumaMean %.3f->%.3f "
+          "and leaves ground/frame %.6f->%.6f"
+          % (dark_ground["lumaMean"], halved["lumaMean"],
+             dark_ground["groundOverFrame"], halved["groundOverFrame"]),
+          abs(halved["lumaMean"] - dark_ground["lumaMean"] / 2.0) < 1e-3
+          and abs(halved["groundOverFrame"]
+                  - dark_ground["groundOverFrame"]) < 1e-6)
 
     bars = np.zeros((h, w, 3), dtype=np.uint8)
     for x in range(0, w, 40):
