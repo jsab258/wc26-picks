@@ -756,3 +756,98 @@ batch (§B's printer list) by name.
 - **F8 (face shards) is untouched** — the reader marked it low-confidence
   and said do not touch a rig on it; that stands until `skinBurst` or a
   noon re-shoot says otherwise.
+
+---
+
+# Verdict-integrity batch review — ruling on A–E (director, 25 Aug 2026)
+
+> Review of the builder batch executing items 2, 3 and the `groundAlbedoBy`
+> half of item 1 from the 14f964a dispatch list above. Every load-bearing
+> claim verified against the tree this session, not the report:
+> `GroundAlbedoEmit` (`AssetLibrary.cs:923`, call site `SimDirector.cs:
+> 15735`), `lint_text`/`spaced_values` and both selftest halves
+> (`verdict-read.py:107–194, 322–354`), the ungated `--spaced` wiring
+> (`verify.py:1413–1430`), `frames_staged_line` and its three-case selftest
+> (`sim-shots-stage.sh`), `KitAlbedoCap`/`KitAlbedoListed`
+> (`SimDirector.cs:9600–9652`), `prop-reach.py:128,136` still parsing the
+> `+Nmore` tail, and the six space-fix sites (`SimDirector.cs:4433, 13937,
+> 14440, 14458, 14533` plus `AlbedoRead`). RULING: **APPROVE-TO-COMMIT
+> after three one-line comment corrections**, listed under D and B below —
+> within the resident's hand-apply authority; no code changes required.
+
+- **A. AWAITING THE LANDING, not CONFIRMED — recorded so nobody quotes it
+  settled.** The emitter is right (one loop, `TryGetValue` never
+  `Material()`, `not-built` in words, denominator from the same pass) and
+  it IS called on the done line. But the four values
+  0.412/0.437/0.428/0.401 are ILLUSTRATIVE: grep of `verdict.txt` and
+  every `runs/*.txt` finds no `groundAlbedoBy` anywhere — the only
+  occurrences in the tree are the builder's report and the `SPACED_GOOD`
+  selftest fixture. The Game layer does not run in this container, so no
+  process has ever read those materials. "All four members on grade" and
+  "the §A falsifier did not fire" are the OUTPUT of the dispatch this
+  batch unblocks, not facts about the tree today. §A's PARTIAL ruling
+  above stands exactly as written, caveat included, until the landing is
+  read. Standing instruction from the near-miss: a report showing an emit
+  that has never landed writes the word "illustrative" beside it — this
+  report did so for `framesStaged` ("first real reading, with its caveat
+  stated") and not for FAULT 4, and the difference nearly became a
+  confirmed conclusion.
+- **B. CONFIRMED — the split and the non-gate are both right.** The
+  diagnosis is verified in code: `lint_text` flattens `[...]` to a space
+  before matching, so it is an unbalanced-delimiter lint and `key=[a b c]`
+  was deleted unexamined; `SELFTEST_GOOD` enshrined that shape as required
+  acceptance. `spaced_values` closes the hole with the correct
+  distinction (`name[...]` group vs `name=[...]` flat-namespace value),
+  ships its denominator, announces its cap, and both selftest halves run.
+  Six emitters fixed and verified at their sites; leaving `verdictSpaced=
+  39/110` UNGATED is right — gating today reds every commit until CI
+  lands, the ratchet rule — and the gate trigger is already written where
+  it belongs (`verify.py`: becomes a gate when a landed verdict reads 0).
+  ONE correction: the `spaced_values` docstring says "five live keys" and
+  lists six — fix the word. AND the 33 remaining spaced keys get a NAMED
+  queue item ("spaced-value backlog, 33 keys, list via `--spaced`");
+  `queue.md` currently has no row for them and adjacent work without a
+  name evaporates.
+- **C. CONFIRMED — placement and the zero are both legible.** The
+  `SimShotsStage:` line is appended by the stage script to the verdict
+  and per-run copy, never the sim's done line, which is correct because
+  staging does not exist until the sim exits. The 0/29 case cannot
+  masquerade: in CI a run with no sim passes frames-flag 0 and prints
+  WORDS (`no-ledger-this-run`), so `framesStaged=0/29` in a landed
+  verdict genuinely means "ledger written, nothing photographed" — a
+  finding there, correctly. The local 0/29 was a hand-run with flag 1
+  against the stale tsv and is captioned as such in the report. Checked:
+  the tracked `verdict.txt` carries NO SimShotsStage line, so the
+  hand-run did not pollute the channel — but note the hazard: running
+  the script (not `--selftest`) in this checkout appends to the tracked
+  verdict. Do not hand-run it outside the selftest.
+- **D. CONFIRMED AS DESIGN; discharge completes at the landing — plus two
+  comment corrections required before commit.** Cap 96 over 38 families,
+  `kitAlbedoListed=shown/total` beside it, `+Nmore` tail shape unchanged
+  and `prop-reach.py` parses it — structurally the survey blocker is
+  discharged, and `38/38` is the expected shape, not a landed number: the
+  first landing confirms it. The corrections: `SimDirector.cs:9582–83`
+  still says "Capped at ten" and `:9624–31` still argues "24, NOT 10 …
+  24 covers every family" — two stale comment layers asserting constants
+  the code no longer holds, in the one batch whose subject is claims
+  decaying. Reconcile both to point at `KitAlbedoCap` (rule 1, second
+  corollary).
+- **E. JUDGEMENT: the choke point is right; its residence is not, and the
+  move is a named queue item, not a blocker.** One function every
+  free-text value passes through is the correct boundary — approve that.
+  But `NoSpaces` lives in the Game layer, which never compiles here, so
+  the guard itself ships unrun — and this project's own precedent, written
+  three files away for exactly this reason (`SurfaceNames` moved to Core;
+  `AssetLibrary.cs:961–964`), says string rules live in Core where
+  CoreTests exercise them. Sited in `SimDirector` it is also unreachable
+  from `AssetLibrary`'s emitters: `GroundAlbedoEmit` already hand-builds
+  its space-free strings, which is the one-idea-two-implementations seed
+  in the same batch that fixed three instances of it. Queue item, by
+  name: "move `NoSpaces` to Core with accepting+rejecting CoreTest,
+  redirect the five call sites" — cheap at five sites, expensive at
+  forty, so it goes near the top of non-CI work.
+
+**Net: APPROVE-TO-COMMIT** once the three one-line comment fixes are
+applied (D's two stale layers, B's five→six) and the two queue items are
+written (spaced-value backlog; NoSpaces-to-Core). Then dispatch the train
+as listed above — it is what turns §A's AWAITING into a reading.

@@ -3826,20 +3826,46 @@ namespace Ledger.Game
         /// city of value-zero textures is disproved by a picture before it is
         /// disproved by anything else. Rule 3, written down here because this
         /// reading's failure mode looks like a finding rather than an error.
+        /// THE CHANNEL GUARD — the one place free text becomes a verdict value.
+        ///
+        /// `verdict.txt` is space-separated `key=value` and every reader splits
+        /// on whitespace; `crowdBodyWidth=0.45(narrowest 0.39 broadest 0.53)`
+        /// read back as `0.45(narrowest` for a day, silently. Core keeps its
+        /// sentences readable — `TightestGapWhy` and `StreetMap.MassOverlaps`
+        /// are prose a person reads out of a failing CoreTest — and this is the
+        /// single point at which that prose enters a channel that cannot carry
+        /// a space. ONE IMPLEMENTATION: every free-text value on the done line
+        /// goes through here, so a new sentence written in Core next month is
+        /// safe without its author knowing this rule exists.
+        static string NoSpaces(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return "nothing-measured";
+            return s.Replace(' ', '-').Replace('\t', '-');
+        }
+
         static string AlbedoRead()
         {
             var xs = RealBody.AlbedoValues;
-            if (xs.Count == 0) return "not measured";
+            // WORDS, NOT A NUMBER, for never-ran: `0` here would read as a
+            // measured black body.
+            if (xs.Count == 0) return "nothing-measured";
             var c = new List<float>(xs);
             c.Sort();
             var sb = new StringBuilder();
+            // SORTED ASCENDING, so this is the LOW END of the distribution —
+            // the sixteen darkest bodies, which is the half the wardrobe
+            // ceiling is being compared against.
             for (int i = 0; i < c.Count && i < 16; i++)
             {
-                if (i > 0) sb.Append(' ');
+                if (i > 0) sb.Append('/');
                 sb.Append(c[i].ToString("0.00"));
             }
-            if (c.Count > 16) sb.Append($" (+{c.Count - 16} more)");
-            sb.Append($" vs wardrobe max {Ledger.Core.Wardrobe.MaxValue:0.00}");
+            // THE CAP ANNOUNCES ITSELF AND CARRIES NO SPACE. It used to read
+            // `(+13 more) vs wardrobe max 0.46`, and every reader that splits
+            // on whitespace — which is all of them — stopped at `[0.01`.
+            if (c.Count > 16) sb.Append($"/+{c.Count - 16}more");
+            // The denominator rides with the list: sixteen shown OF this many.
+            sb.Append($"/of{c.Count}/vsWardrobeMax:{Ledger.Core.Wardrobe.MaxValue:0.00}");
             return sb.ToString();
         }
 
@@ -4404,7 +4430,7 @@ namespace Ledger.Game
                         if (area > _worstWorldArea && i < otherText.Count && j < otherText.Count)
                         {
                             _worstWorldArea = area;
-                            _worstWorldPair = Trim(otherText[i]) + "|" + Trim(otherText[j]);
+                            _worstWorldPair = NoSpaces(Trim(otherText[i])) + "|" + NoSpaces(Trim(otherText[j]));
                         }
                     }
             // PEAKS, BECAUSE THE FIRST READING WAS A MOMENT AND THE QUESTION
@@ -9553,13 +9579,41 @@ namespace Ledger.Game
         }
 
         /// Every measured kit-prop family and its albedo, brightest first,
-        /// slash-joined, `city_kit_` stripped for legibility. Capped at ten
-        /// WITH the cap announced inside the bracket — a cap nobody is told
+        /// slash-joined, `city_kit_` stripped for legibility. Capped at
+        /// `KitAlbedoCap` WITH the cap announced inside the bracket — a cap nobody is told
         /// about is indistinguishable from a finding (rule 3b) — and safe
         /// here because the question is "is anything too bright": whatever
         /// the cap trims is dimmer than everything it shows. The empty case
         /// prints words, not a plausible value, so "no props measured"
         /// cannot read as clean.
+        /// THE LISTING'S CEILING, and it is an explosion guard, not a filter.
+        ///
+        /// It was 24 and there were 38 families: every `city_kit_*` key in the
+        /// game sat behind `+14more`, so the 24 visible were all `base_mesh_*`,
+        /// `oga_vehicles_*` and `car_kit_*`. `tools/prop-reach.py` cross-checks
+        /// its "never instantiated" answer against this listing, which made its
+        /// ACCEPTING case blind to the one family under investigation — a
+        /// survey proposed nineteen `city_kit` placements none of which this
+        /// channel could ever have proved. The cap still announces itself when
+        /// it bites (`/+Nmore`) and `kitAlbedoListed` prints shown/total beside
+        /// it, so a bite is legible without counting entries by hand.
+        const int KitAlbedoCap = 96;
+
+        /// shown/total for the listing above — a paired reading, so the cap
+        /// biting and the cap not biting are different sentences rather than a
+        /// tail a reader has to notice the absence of.
+        static string KitAlbedoListed()
+        {
+            // COUNTED BY WALKING IT. `PropAlbedos` is an `IEnumerable`, not a
+            // dictionary — there is no `.Count` and asking for one does not
+            // compile. This is the whole listing's denominator, so it walks the
+            // same sequence `KitAlbedoSummary` walks.
+            int n = 0;
+            foreach (var kv in AssetLibrary.PropAlbedos) n++;
+            return n == 0 ? "nothing-measured"
+                          : $"{Mathf.Min(KitAlbedoCap, n)}/{n}";
+        }
+
         static string KitAlbedoSummary()
         {
             var rows = new List<KeyValuePair<string, float>>();
@@ -9567,15 +9621,20 @@ namespace Ledger.Game
             if (rows.Count == 0) return "[none-measured]";
             rows.Sort((a, b) => b.Value.CompareTo(a.Value));
             var sb = new System.Text.StringBuilder("[");
-            // 24, NOT 10. The first landing showed ten entries, all of them
-            // repainted vehicles at 0.31-0.37, and the four unrepainted
-            // families this instrument EXISTS FOR sat inside "+9more" —
-            // brightest-first only protects the question when the reference
-            // is near the top of the range, and townWallAlbedo landed at
-            // 0.15: everything between 0.15 and 0.31 was a hidden positive.
-            // 24 covers every family the street has; the clause survives as
-            // a guard against a future explosion, not as a working cap.
-            int shown = Mathf.Min(24, rows.Count);
+            // 96, AND THE HISTORY IS WHY IT KEEPS RISING. At ten, the
+            // first landing showed ten repainted vehicles at 0.31-0.37 and
+            // the four unrepainted families this instrument EXISTS FOR sat
+            // inside "+9more" — brightest-first only protects the question
+            // when the reference is near the top of the range, and
+            // townWallAlbedo landed at 0.15, so everything between 0.15 and
+            // 0.31 was a hidden positive. At 24 the same thing happened
+            // again to a different family: every `city_kit_*` key sat behind
+            // the cap, which is the one family `prop-reach` cross-checks
+            // against this listing, so its accepting case was 63% blind.
+            // 96 is an explosion guard, not a working cap — the rule this
+            // keeps re-teaching is that a cap sized to today's list becomes
+            // a filter the moment the list grows.
+            int shown = Mathf.Min(KitAlbedoCap, rows.Count);
             for (int i = 0; i < shown; i++)
             {
                 if (i > 0) sb.Append('/');
@@ -13765,7 +13824,7 @@ namespace Ledger.Game
                 // and forty at 3.5ms are completely different findings, and
                 // `vehicles` alone cannot separate them because the whole point
                 // of the LOD is that most of them are asleep.
-                ($"traffic[vehicles={(traffic != null ? traffic.Vehicles.Count : -1)} awake={(traffic != null ? traffic.AwakeCount() : -1)} kinds={kindsSeen} offRoad={offRoad} tightest={tightest:0.0} clamps={(traffic != null ? traffic.OverlapsResolved : -1)} metres={(traffic != null ? traffic.TotalDistance : -1):0} why={(traffic != null ? traffic.TightestGapWhy : "none")}]", trafficOk),
+                ($"traffic[vehicles={(traffic != null ? traffic.Vehicles.Count : -1)} awake={(traffic != null ? traffic.AwakeCount() : -1)} kinds={kindsSeen} offRoad={offRoad} tightest={tightest:0.0} clamps={(traffic != null ? traffic.OverlapsResolved : -1)} metres={(traffic != null ? traffic.TotalDistance : -1):0} why={NoSpaces(traffic != null ? traffic.TightestGapWhy : "none")}]", trafficOk),
                 ("witnessCar", witnessCarOk),
                 // NAMED CLAUSE BY CLAUSE, because this gate went red as the
                 // single word "harm".
@@ -13880,7 +13939,7 @@ namespace Ledger.Game
                 ($"ao[applied={FilmGrade.Applied} on={_aoOn:0.0000} " +
                  $"off={_aoOff:0.0000} delta={aoDelta:0.0000} " +
                  $"peak={100 * _aoFraction:0.00}% typical={100 * AoTypicalFraction:0.00}% " +
-                 $"rounds=[{string.Join(" ", _aoFractions.ConvertAll(x => (100 * x).ToString("0.0")))}] " +
+                 $"rounds=[{string.Join("/", _aoFractions.ConvertAll(x => (100 * x).ToString("0.0")))}] " +
                  $"drop={_aoDrop:0.0000}]", aoOk),
                 ($"confab[{(_game.Gossip != null ? _game.Gossip.Confabs : -1)}]", confabOk),
                 // §4.7 CLAIM 1 AND CLAIM 4, GATED AT LAST.
@@ -14383,7 +14442,7 @@ namespace Ledger.Game
                       $"clamps={(traffic != null ? traffic.OverlapsResolved : -1)} " +
                       $"clampsPerKm={(traffic != null && traffic.TotalDistance > 0 ? 1000.0 * traffic.OverlapsResolved / traffic.TotalDistance : 0):0.00} " +
                       $"tailsBehindStart={(traffic != null ? traffic.TailsBehindStart : -1)} " +
-                      $"gapWhy=[{(traffic != null ? traffic.TightestGapWhy : "no traffic")}] " +
+                      $"gapWhy=[{NoSpaces(traffic != null ? traffic.TightestGapWhy : "no-traffic")}] " +
                       $"offRoad={offRoad} offRoadWho=[{GameController.OffRoadWorstDesc}] " +
                       $"offRoadAtGate=[{(offRoadAtGate.Length > 0 ? offRoadAtGate : "none")}] " +
                       $"yields={(traffic != null ? traffic.YieldsToPeople : 0)} trafficOk={trafficOk} " +
@@ -14401,7 +14460,7 @@ namespace Ledger.Game
                       // everybody to read red as noise. It moves the day
                       // somebody nudges an avenue array, and it names the
                       // street when it does.
-                      $"massInRoad=[{string.Join(" ", Ledger.Core.StreetMap.MassOverlaps())}] " +
+                      $"massInRoad=[{string.Join("/", Ledger.Core.StreetMap.MassOverlaps().ConvertAll(NoSpaces))}] " +
                       // Rendered building bases off the ground, of how many
                       // examined — the hovering-facade question from build
                       // P's noon frame, asked of the world instead of the
@@ -14476,7 +14535,7 @@ namespace Ledger.Game
                       // disk, nothing parsed, or nothing staged all print the
                       // same. Bracketed because a verdict value may not carry
                       // a space and the reader takes a bracketed run whole.
-                      $"speechVoicesWhy=[{Audio.VoicesWhy}] " +
+                      $"speechVoicesWhy=[{NoSpaces(Audio.VoicesWhy)}] " +
                       $"speechVocabWhy=[{Audio.VocabularyWhy}] " +
                       $"speechBackendWhy=[{Audio.BackendWhy}] " +
                       // WHERE THE CACHE LIVED. "device" is the bound path the
@@ -15676,7 +15735,9 @@ namespace Ledger.Game
                       // carry their live albedo. townWallAlbedo is the four
                       // wall surfaces through the same maths, so the two
                       // sides of the comparison are one instrument.
-                      $"townWallAlbedo={AssetLibrary.TownWallAlbedo():0.00} kitAlbedo={KitAlbedoSummary()} " +
+                      $"townWallAlbedo={AssetLibrary.TownWallAlbedo():0.00} kitAlbedo={KitAlbedoSummary()} "
+                    + $"kitAlbedoListed={KitAlbedoListed()} "
+                    + $"{AssetLibrary.GroundAlbedoEmit()} " +
                       $"skyVsWall={_skyVsWall} wallOverSky={_wallOverSky:0.00} " +
                       // THE DENOMINATOR FOR THE ARROWS ABOVE. A run where no
                       // family carries a `>stands` value reads identically to

@@ -895,6 +895,62 @@ namespace Ledger.Game
         /// uniformly is the other half of why rainy scenes read as plastic.
         static readonly string[] WetSurfaces = { Asphalt, Sidewalk, Kerb, Concrete };
 
+        /// SOURCE ALBEDO PER GROUND MATERIAL — one entry for every member of
+        /// `WetSurfaces`, plus the count examined.
+        ///
+        /// WHAT STATISTIC: a LAST-WINS, AT-INSTANT read of material state. It
+        /// asks the shared material what it is WEARING when the done line is
+        /// written, not what constant it was supposed to be handed. `SetWetness`
+        /// and `GroundGrade` both write these materials after they are built,
+        /// so "the value assigned" and "the value standing" are two facts and
+        /// only the second is evidence.
+        ///
+        /// WHY PER MEMBER. `districtGround` is ONE ray, in downtown only. The
+        /// claim that the whole ground family moved together with the grade was
+        /// read out of the code and printed by nothing, and the frames suggest
+        /// pavement may not have moved with asphalt. This is the named
+        /// falsifier for that ruling: an off-grade member here moves the
+        /// diagnosis from lighting back to materials.
+        ///
+        /// IT IS THE DENOMINATOR OF THE NEXT READ. `groundMaskMeanBy / this`,
+        /// per name, dry against wet, is the lighting gain — rendered over
+        /// source — so these two must be read per NAME and never averaged.
+        ///
+        /// ONE LOOP, TWO KEYS, deliberately: the list and its count come from
+        /// the same pass over the same dictionary at the same instant, and
+        /// splitting them into two methods is how a numerator and a denominator
+        /// end up describing two different moments.
+        public static string GroundAlbedoEmit()
+        {
+            if (!_initialized)
+                return "groundAlbedoBy=[nothing-measured] groundAlbedoOf=0/"
+                       + WetSurfaces.Length;
+            var sb = new System.Text.StringBuilder();
+            int read = 0;
+            for (int i = 0; i < WetSurfaces.Length; i++)
+            {
+                var name = WetSurfaces[i];
+                if (i > 0) sb.Append('/');
+                sb.Append(name.Replace("mat_", "")).Append(':');
+                // READ, NEVER BUILD. `Material(logical)` creates on miss, and a
+                // measurement that instantiates what it is measuring answers a
+                // question about itself. `not-built` is words, so a material
+                // this run never made cannot read as an albedo of zero.
+                if (_materials.TryGetValue(name, out var mat) && mat != null)
+                {
+                    // `countAbsences: false` — this is a READING of four
+                    // materials at done time, not an arrival, and letting
+                    // it bump the missing-texture counter would make a
+                    // measurement move the number it is measured beside.
+                    sb.Append(MatAlbedo(mat, false).ToString("0.000"));
+                    read++;
+                }
+                else sb.Append("not-built");
+            }
+            return "groundAlbedoBy=[" + sb + "] groundAlbedoOf="
+                   + read + "/" + WetSurfaces.Length;
+        }
+
         /// IS THIS MATERIAL THE GROUND — the same four surfaces `WetSurfaces`
         /// names, asked of a renderer instead of asked of the rain.
         ///

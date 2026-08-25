@@ -44,6 +44,129 @@
 # run's, which the old whole-directory copy did every time it fired.
 set -euo pipefail
 
+# ---------------------------------------------------------------------------
+# framesStaged — DID THIS RUN ACTUALLY TAKE THE PICTURE THE LEDGER DESCRIBES?
+#
+# WHY. On 25 August `frames.tsv` landed headed `# commit 14f964a` with fresh
+# day12/day13 rows, and no `hunt_*.jpg` was written by that stills commit or by
+# the one before it — those JPEGs are 22-24 August images. The ledger said
+# `day12_noon meanLuma=0.079`; the file on disk measures 0.114. So a row can
+# describe a picture the run never took and read as authoritative, and nothing
+# could tell "the run photographed this" from "a row exists for this".
+#
+# That is the fault this script was written for, one layer up: the stale thing
+# is a ROW rather than a file.
+#
+# HOW IT DECIDES, and it is deliberately not a clock. A picture belongs to this
+# run iff git sees the file as changed or untracked — a rendered JPEG is never
+# byte-identical to last week's. Mtimes are a property of the runner's disk (a
+# checkout rewrites them all) and any age threshold would be a bound with no
+# series behind it, which rule 2 forbids.
+#
+# WHAT IT IS A STATISTIC OF: a whole-run count, taken once at staging time,
+# over the rows of the ledger. It goes in the verdict, never on the sim's done
+# line, because the sim cannot know what git staged — that fact does not exist
+# until after it exits.
+#
+# EVERY ZERO SHIPS ITS DENOMINATOR and never-ran prints WORDS: no ledger, and
+# no git to ask, are sentences, so neither can read as "0 of 0, all fine".
+frames_staged_line() {
+  local dir=$1 framesflag=$2; shift 2
+  local staged=("$@")
+  if [ "$framesflag" != 1 ] || [ ! -f "$dir/frames.tsv" ]; then
+    echo "framesStaged=no-ledger-this-run framesRows=0 framesUnstaged=[no-ledger]"
+    return 0
+  fi
+  if ! git rev-parse --git-dir >/dev/null 2>&1; then
+    echo "framesStaged=no-git-cannot-tell framesRows=0 framesUnstaged=[no-git]"
+    return 0
+  fi
+  local rows=0 have=0 shot base f dirty found
+  local missing=()
+  while IFS=$'\t' read -r shot _rest; do
+    case "$shot" in ''|'#'*|shot) continue ;; esac
+    rows=$((rows + 1))
+    found=0
+    for f in "${staged[@]}"; do
+      case "$f" in *.jpg) ;; *) continue ;; esac
+      base=$(basename "$f" .jpg)
+      if [ "$base" = "$shot" ] || [ "${base%"_$shot"}" != "$base" ]; then
+        # CHANGED OR UNTRACKED, asked of git rather than of the clock.
+        dirty=$(git status --porcelain -- "$f" 2>/dev/null || true)
+        if [ -n "$dirty" ]; then found=1; break; fi
+      fi
+    done
+    if [ "$found" = 1 ]; then have=$((have + 1)); else missing+=("$shot"); fi
+  done < "$dir/frames.tsv"
+  local names="none"
+  if [ ${#missing[@]} -gt 0 ]; then
+    # THE CAP ANNOUNCES ITSELF. An unannounced truncation reads as a finding —
+    # a `| head -3` once read as "three of five bodies failed".
+    names=$(printf '%s/' "${missing[@]:0:8}"); names=${names%/}
+    if [ ${#missing[@]} -gt 8 ]; then names="$names/+$(( ${#missing[@]} - 8 ))more-not-shown"; fi
+  fi
+  echo "framesStaged=$have/$rows framesRows=$rows framesUnstaged=[$names]"
+}
+
+if [ "${1:-}" = "--selftest" ]; then
+  # ACCEPTING CASE FIRST (rule 5b): the expensive failure for a guard is that
+  # nothing survives it. Both cases run through a throwaway git repo, because
+  # the question this asks is a git question and a fixture that fakes the
+  # answer would only test the fixture.
+  #
+  # THE FIXTURE COMMITS WITH PLUMBING (`write-tree` + `commit-tree` +
+  # `update-ref`) AND THAT IS NOT DECORATION. `.claude/hooks/verify-gate.sh` is
+  # a PreToolUse gate that blocks any Bash command containing `git commit`
+  # unless this repository's verify footer is green — it reads the SESSION cwd,
+  # so it cannot see that a `cd` inside this script has moved to /tmp. Porcelain
+  # here would make a throwaway fixture in another repository unrunnable
+  # whenever LEDGER is mid-work, which is exactly when a builder runs it. The
+  # plumbing writes the same commit object and leaves the gate at full strength
+  # for the commits it exists to stop.
+  tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+  cd "$tmp"; git init -q .; mkdir -p game-design/sim-shots
+  d=game-design/sim-shots
+  snap() {  # tracked-and-unchanged, without tripping the commit gate
+    git add -A >/dev/null
+    local tr; tr=$(git write-tree)
+    local parent=(); local head; head=$(git rev-parse -q --verify HEAD || true)
+    [ -n "$head" ] && parent=(-p "$head")
+    local c; c=$(git -c user.email=t@t -c user.name=t commit-tree "$tr" "${parent[@]}" -m snap)
+    git update-ref HEAD "$c"
+  }
+  printf 'shot\tmeanLuma\nday1_noon\t0.3\nday12_noon\t0.079\n' > $d/frames.tsv
+  echo old1 > $d/review_day1_noon.jpg; echo old2 > $d/hunt_day12_noon.jpg
+  snap
+  echo new1 > $d/review_day1_noon.jpg; echo new2 > $d/hunt_day12_noon.jpg
+  acc=$(frames_staged_line "$d" 1 "$d/review_day1_noon.jpg" "$d/hunt_day12_noon.jpg")
+  echo "  accepting: $acc"
+  case "$acc" in
+    "framesStaged=2/2 framesRows=2 framesUnstaged=[none]")
+      echo "sim-shots-stage --selftest: ok — a run that photographed both rows reads 2/2" ;;
+    *) echo "sim-shots-stage --selftest: FAILED THE CASE IT MUST ACCEPT — two fresh pictures for two rows did not read 2/2"; exit 2 ;;
+  esac
+  # REJECTING CASE: the real fault of 25 August — a row whose picture is last
+  # week's file, untouched by this run, plus a row with no picture at all.
+  snap
+  printf 'shot\tmeanLuma\nday1_noon\t0.3\nday12_noon\t0.079\nday13_noon\t0.495\n' > $d/frames.tsv
+  echo newer1 > $d/review_day1_noon.jpg
+  rej=$(frames_staged_line "$d" 1 "$d/review_day1_noon.jpg" "$d/hunt_day12_noon.jpg")
+  echo "  rejecting: $rej"
+  case "$rej" in
+    *"framesStaged=1/3"*"day12_noon/day13_noon"*)
+      echo "sim-shots-stage --selftest: ok — a stale picture and a row with no picture are both named" ;;
+    *) echo "sim-shots-stage --selftest: FAILED THE CASE IT MUST REJECT — a stale hunt_ frame counted as photographed"; exit 2 ;;
+  esac
+  nol=$(frames_staged_line "$d" 0)
+  echo "  never-ran: $nol"
+  case "$nol" in
+    *"framesStaged=no-ledger-this-run"*)
+      echo "sim-shots-stage --selftest: ok — no ledger prints words, not 0/0" ;;
+    *) echo "sim-shots-stage --selftest: FAILED — a run with no ledger must not read as a clean zero"; exit 2 ;;
+  esac
+  exit 0
+fi
+
 sha7=${1:?sha7}
 stills=${2:-0}
 frames=${3:-0}
@@ -82,6 +205,15 @@ if [ "$frames" = 1 ]; then files+=("$dir/frames.tsv"); fi
 # riding on the stills one. Its ledger goes with it or the sheet is 67 unlabelled
 # tiles.
 if [ "$clips" = 1 ]; then files+=("$dir/clips.jpg" "$dir/clips.tsv"); fi
+
+# THE MEASUREMENT GOES INTO THE CHANNEL THAT CAN BE READ — the verdict file and
+# the per-run copy with it, or the two disagree about one run. STDOUT stays
+# paths-only: the caller `mapfile`s it.
+staged_line=$(frames_staged_line "$dir" "$frames" "${files[@]}")
+for target in "$dir/verdict.txt" "$dir/runs/$sha7.txt"; do
+  [ -f "$target" ] && printf 'SimShotsStage: %s\n' "$staged_line" >> "$target"
+done
+echo "sim-shots-stage: $staged_line" >&2
 
 if [ -n "$ours" ]; then
   rm -rf "$ours"

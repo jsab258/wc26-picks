@@ -85,22 +85,18 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 ### screen. Nothing from a later stage starts while an earlier one has
 ### startable work, except reading a landed verdict, which is free.
 
-1. **THE CHEAP CI CHANNEL WAS DARK FOR 311 RUNS — FIXED, AWAITING COMMIT.**
-   Last green `0d38986` 2026-08-17T19:44:27Z, then **311 consecutive reds
-   over 7d 2h, ONE cause**: the workflow's ReachCheck was missing the
-   `--also ledger/Assets/Editor` argument `verify.py` passes, so it could
-   not see `CharacterPrefab.cs:193,199` calling the two `Proportion` APIs
-   it reported as unwired. Step 4 red SKIPPED six checks below it, the core
-   suite among them. Fixed by `tools/ci-checks.sh` (all eight run, exits
-   naming failures `passed=N/M`, no `continue-on-error`) + `tools/reach-check.sh`
-   (one shared invocation, so the callers cannot drift again). Both ways
-   proven, harness selftest 15/15.
-   **Full account — including the two wrong readings published before the
-   right one, and why sampling cannot tell "dark" from ordinary red:
-   `roadmap-history.md` 2026-08-25 + `agent-reports/dark-ci-channel.md`. OPEN:**
-   `ledger-build-{windows,mac}.yml` Verdict steps report the SIM, so
-   "lint failed" and "the sim did not run" print the same sentence — name
-   the lint/shape outcomes there as `citypack-fetch.yml` does.
+1. **THE CHEAP CI CHANNEL: LANDED GREEN.** 311 consecutive reds over 7d 2h,
+   one cause — the workflow's ReachCheck lacked the `--also
+   ledger/Assets/Editor` argument `verify.py` passes, so it could not see
+   `CharacterPrefab.cs:193,199` calling the two `Proportion` APIs it called
+   unwired. `tools/ci-checks.sh` now runs all eight checks and fails at the
+   END naming which, so no red can hide the core suite again.
+   **Account, including the two wrong readings published before the right
+   one and why sampling cannot tell "dark" from ordinary red:
+   `roadmap-history.md` 2026-08-25. OPEN:** `ledger-build-{windows,mac}.yml`
+   Verdict steps report the SIM, so "lint failed" and "the sim did not run"
+   print the same sentence — name the lint/shape outcomes there as
+   `citypack-fetch.yml` does.
 
 1. **REPIN TWO REJECTING FIXTURES TO SYNTHETIC CASES — IN FLIGHT.**
    `tools/clip-motion.py:439` asserts `Joe.fbx` carries no animation take;
@@ -111,17 +107,18 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    rejecting case becomes synthetic. Director ranked this first of the
    in-flight three (item 3 below needs `prop-dimensions` working).
 
-1. **THE DRY TOUR LANDED (6137608). ITS FORK IS RE-BLOCKED ON THE GROUND
-   GRADE, NOT RE-OPENED.** The regime break stands and is the part to
-   carry forward: **every `district_*` row before the day-5 move is
-   incomparable** — ref-bench's pose-stable series, frame-drift's district
-   rows, `tourDepth*`, `districtGround`, and the `FilmGrade` GRAIN
-   calibration series (amplitude falls 1.9x with the rain, 0.0095 ->
-   0.0050). The `shadowRatio`/ambient-fill fork does NOT get judged on
-   6137608: a shadow ratio measured on doubled albedo is not evidence, so
-   it is re-judged on the ground-grade landing and no lighting lever moves
-   before that read. Full account of the regime break and the weather-roll
-   analysis: `roadmap-history.md`, 2026-08-24.
+1. **THE DRY TOUR LANDED. ALBEDO IS RULED OUT; THE LEVER IS LIGHTING.**
+   The regime break stands: **every `district_*` row before the day-5 move
+   is incomparable** — ref-bench's pose series, frame-drift's district rows,
+   `tourDepth*`, `districtGround`, and `FilmGrade`'s GRAIN calibration
+   (amplitude falls 1.9x with rain, 0.0095 -> 0.0050). The 25 Aug landing
+   settled the fork: source albedo prints 0.41-0.44, rendered dry ground is
+   0.77-0.94, and **hook's own road reads 0.771 near / 0.944 far in ONE
+   frame** — albedo cannot vary with distance, an additive lift can. So a
+   ~2x gain sits between source and screen. `GroundGrade` does NOT move
+   again. `LightModel.cs:137`'s aperture unblocks for MEASUREMENT ONLY; the
+   lever moves once, after the masked series, from the landed number.
+   Full ruling: `decision-ground-albedo.md`.
 
 1. **SURVEY THE TWO UNREACHED KITS — MEASURE FIRST, WIRE AFTER THE
    LANDING.** `city-kit-roads` 47 models / 1 named / 45 unused;

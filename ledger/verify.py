@@ -1410,7 +1410,24 @@ def verdict_format():
         first = next((l.strip() for l in out.splitlines() if l.strip().startswith("line ")),
                      "see verdict-read --lint")
         return False, "VERDICT VALUE WITH A SPACE IN IT: " + first[:110]
-    return True, "verdict format ok (selftest + newest run)"
+    # THE HOLE THIS CHECK HAD, PRINTED RATHER THAN GATED (rule 2: series first).
+    #
+    # `--lint` reports UNBALANCED delimiters. It has never reported a space:
+    # `lint_text` flattens every `[...]` group away before it looks, so a value
+    # written `key=[a b c]` is deleted and checked by nothing — and the
+    # selftest's own accepting fixture (`places=[alley=3 market=53]`) asserted
+    # that shape must PASS, so the guard certified the fault it was named for.
+    # `--spaced` is the missing half. It is NOT GATED: its first reading on a
+    # landed run is 39 of 110, so wiring it would block every commit until CI
+    # comes back green — rule 5b's ratchet, the exact mistake this same check
+    # avoided when it was first written. The number rides in the message so the
+    # series accumulates in the commit feed; it becomes a gate when a landed
+    # verdict reads 0, and not before.
+    code, out = run(["python3", str(ROOT.parent / "tools" / "verdict-read.py"),
+                     "--spaced"])
+    tail = next((l.split()[0] for l in out.splitlines()
+                 if l.startswith("verdictSpaced=")), "verdictSpaced=unread")
+    return True, "verdict format ok (selftest + newest run), %s not gated" % tail
 
 
 def verdict_dupkeys():

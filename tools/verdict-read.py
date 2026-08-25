@@ -130,6 +130,70 @@ def lint_text(text):
     return bad
 
 
+def spaced_values(text):
+    """VALUES WRITTEN AS `key=[a b c]` — the hole `lint_text` above cannot see.
+
+    WHY THIS IS A SECOND FUNCTION AND NOT A FLAG ON THE FIRST. `lint_text`
+    flattens every `[...]` group to a space BEFORE it looks at anything, then
+    reports values whose brackets or parens do not balance. So it detects an
+    UNBALANCED DELIMITER, which is what `0.45(narrowest 0.39 …)` happens to
+    produce — it has never detected a space. Anything written as `key=[a b c]`
+    is DELETED by the flattening pass and checked by nothing, and five live
+    keys were sitting in that blind spot: `bodyAlbedo`, `rounds`,
+    `worstWorldPair`, `gapWhy`, `massInRoad`, `speechVoicesWhy`.
+
+    AND ITS ACCEPTING FIXTURE ENSHRINED THE BLINDNESS. `SELFTEST_GOOD` carries
+    `places=[alley=3 market=53]` and `ao[rounds=[28.1 18.0] …]` and asserts they
+    must be ACCEPTED — so the one case that would have exposed the hole was
+    written into the guard as required behaviour. Rule 5b says a guard needs its
+    accepting case run; this is the other edge of it, an accepting case chosen
+    so wide that it certifies the fault.
+
+    THE DISTINCTION THE FORMAT ACTUALLY MAKES, and it is not "brackets are
+    fine":
+
+      * `frame[mean=471.0ms gameShare=3.23%]` — GROUP syntax, a name followed
+        by a bracket with no `=`. The bracket is a namespace of its own and the
+        spaces inside it separate its members. Legal, and flagging it is the
+        forty-hit false alarm the first lint produced.
+      * `bodyAlbedo=[0.01 0.05 …]` — a VALUE that happens to start with a
+        bracket. It lives in the flat `key=value` namespace `gates.py --series`
+        reads, and a reader that is not bracket-aware returns `[0.01`.
+        `verdict-read` and `gates.py --series` ARE bracket-aware, which is why
+        this survived; every grep anybody types is not.
+
+    So: only `key=[...]` is examined, nested groups inside it are stripped
+    first (they are judged on their own entry), and a space in what remains is
+    the fault.
+
+    Returns (hits, examined) — the denominator ships with the zero, because "no
+    spaced values" and "found no bracketed values at all" are the two readings
+    this whole file exists to keep apart.
+    """
+    hits, examined = [], 0
+    for n, line in enumerate(text.split("\n"), 1):
+        for m in re.finditer(r"(?<![\w])([A-Za-z][\w]*)=\[", line):
+            depth, end = 0, len(line) - 1
+            for j in range(m.end() - 1, len(line)):
+                if line[j] == "[":
+                    depth += 1
+                elif line[j] == "]":
+                    depth -= 1
+                    if depth == 0:
+                        end = j
+                        break
+            examined += 1
+            inner = line[m.end():end]
+            for _ in range(8):
+                once = re.sub(r"\[[^\[\]]*\]", "", inner)
+                if once == inner:
+                    break
+                inner = once
+            if " " in inner or "\t" in inner:
+                hits.append((n, m.group(1), line[m.start():end + 1]))
+    return hits, examined
+
+
 def collisions(text):
     """ONE KEY, TWO MEANINGS — and it corrupted a series for months.
 
@@ -208,6 +272,18 @@ def collisions(text):
 # which is the format working as intended and is what a naive lint flags forty
 # times.
 SELFTEST_BAD = "crowdBodyWidth=0.45(narrowest 0.39 broadest 0.53) crowdGap=0.41"
+# AND THE PAIR FOR `spaced_values`, both lifted from real verdicts. The
+# accepting one is a gate group (spaces legal inside `name[...]`) beside the
+# repaired shapes of tonight's six keys; the rejecting one is `bodyAlbedo`
+# exactly as it landed on 14f964a, which the lint above passes without a
+# murmur.
+SPACED_GOOD = ("frame[mean=471.0ms gameShare=3.23%] "
+               "bodyAlbedo=[0.01/0.05/+13more/of29/vsWardrobeMax:0.46] "
+               "gapWhy=[no-two-vehicles-shared-a-directed-edge-at-this-instant] "
+               "massInRoad=[hook:x@0-over-1.5m/hook:z@0-over-1.5m] "
+               "groundAlbedoBy=[asphalt:0.412/sidewalk:0.437] groundAlbedoOf=2/4")
+SPACED_BAD = ("bodyAlbedo=[0.01 0.05 0.06 (+13 more) vs wardrobe max 0.46] "
+              "crowdGap=0.41")
 SELFTEST_GOOD = ("sky ok=True frame[mean=471.0ms gameShare=3.23% "
                  "ao[rounds=[28.1 18.0] drop=0.0123]] places=[alley=3 market=53] "
                  "crowdBodyWidth=0.45/0.39..0.53")
@@ -256,9 +332,26 @@ def selftest():
         print("verdict-read --selftest: FAILED THE CASE IT MUST REJECT — "
               "`crowdBodyWidth=0.45(narrowest 0.39 …)` passed, and that is the "
               "exact value this lint was written for.")
+    # THE SPACED-VALUE HALF, ACCEPTING CASE FIRST for the same reason as above.
+    sgood, sgoodn = spaced_values(SPACED_GOOD)
+    if sgood or sgoodn != 4:
+        ok = False
+        print("verdict-read --selftest: FAILED THE CASE spaced_values MUST "
+              "ACCEPT — %d flagged of %d bracketed values examined (expected "
+              "0 of 4):" % (len(sgood), sgoodn))
+        for n, k, v in sgood:
+            print("  line %d: %s" % (n, v[:90]))
+    sbad, sbadn = spaced_values(SPACED_BAD)
+    if not sbad:
+        ok = False
+        print("verdict-read --selftest: FAILED THE CASE spaced_values MUST "
+              "REJECT — `bodyAlbedo=[0.01 0.05 …]` passed, and that is the "
+              "exact value that landed on 14f964a and read back as `[0.01`.")
     if ok:
         print("verdict-read --selftest: ok — rejects a swallowed space, "
-              "accepts nested gate groups")
+              "accepts nested gate groups; spaced_values rejects %s "
+              "(%d hit), accepts %d bracketed values in the good line"
+              % (sbad[0][1] if sbad else "nothing", len(sbad), sgoodn))
     return 0 if ok else 2
 
 
@@ -305,6 +398,24 @@ def main():
         i = argv.index("--run")
         run = SHOTS / "runs" / f"{argv[i + 1]}.txt"
         del argv[i:i + 2]
+    if "--spaced" in argv:
+        # NOT GATED, AND THAT IS DELIBERATE (rule 2: no bound before a series).
+        # This prints the whole series off the newest measuring run so the
+        # number can be set from evidence once a repaired verdict has landed.
+        run = newest_measuring_run()
+        if run is None:
+            print("verdictSpaced=nothing-measured — no verdict with a run in it")
+            return 0
+        text = run.read_text(encoding="utf-8", errors="replace")
+        hits, examined = spaced_values(text)
+        print("# %s" % run.name)
+        print("verdictSpaced=%d/%d  (values written `key=[..]` carrying a "
+              "space, of bracketed values examined)" % (len(hits), examined))
+        for n, k, v in hits[:20]:
+            print("  line %-5d %s" % (n, v[:110]))
+        if len(hits) > 20:
+            print("  (+%d more not shown)" % (len(hits) - 20))
+        return 0
     if "--lint" in argv:
         run = run or newest_measuring_run()
         if run is None or not run.exists():
