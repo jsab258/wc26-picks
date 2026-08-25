@@ -4,6 +4,11 @@
 > written and **NOT CURRENT** thereafter: nothing below has been run on
 > Windows or on a GPU. The first real run is the measurement, and it will
 > date this file. Deliverables: `tools/imagegen/`.
+>
+> **Updated the same day with section 7** — an independent licence-and-risk
+> check (`game-design/research/imagegen-licence-check.md`) found five faults,
+> three of them able to waste a whole hour of Jafar's time, and all five are
+> now fixed. The untested list in section 4 has NOT shrunk on account of it.
 
 ---
 
@@ -166,7 +171,8 @@ No Windows, no GPU, no Hugging Face (403 through the proxy — only
 `raw.githubusercontent.com` answers). So the split is stated rather than
 implied.
 
-**Tested, 22 checks, `python3 tools/imagegen/imagegen.py --selftest`:**
+**Tested, 49 checks, `python3 tools/imagegen/imagegen.py --selftest`**
+(22 of them before the section 7 hardening pass, 27 added by it):
 
 - the **accepting case first** — a 12 GB AMD card plans a real, uncapped run;
 - seven machine shapes: NVIDIA 24 GB, AMD 8 GB, AMD 4 GB, Intel iGPU with no
@@ -181,7 +187,22 @@ implied.
 - **the rejecting cases**: a prompt stripped of its rules is refused, and the
   forbidden scan fires on a real brand;
 - the run loop against a faked generator — a clean batch, a generator that
-  fails every time, and the CPU cap.
+  fails every time, and the CPU cap;
+- **the blank-image check, both ways, on PNGs synthesised in the test** — a
+  varied image and a faint 8-level gradient are accepted; uniform black,
+  uniform mid-grey, uniform white and a fully-transparent RGBA are each called
+  blank; an empty file, a non-PNG and a header-only file are called *unknown*,
+  which is a third answer and not a pass;
+- **the same check inside the run loop**, which is where it has to work: a fake
+  generator that exits **zero** and writes a uniform PNG produces
+  `items_written: 0`, two FAILED records naming issue #1031, the files renamed
+  `<id>.BLANK.png`, and the batch stopped after two;
+- **the per-image Vulkan VAE rule, both ways** — 512×512 keeps the planned
+  flags, 1024×1024 drops `--vae-conv-direct` for `--vae-on-cpu`, and the CUDA
+  path keeps it because #1673 is a Vulkan report;
+- **the download candidate list, both ways** — a 404 on the first candidate
+  falls through to the second, and a 401/403 **stops**, prints the gate note,
+  and does not try the rest.
 
 **The run-loop tests found a real bug and are shipped because of it.** A FAILED
 image incremented `items_failed` and never wrote its record, so the manifest
@@ -209,6 +230,9 @@ claimed a GPU. The cap now follows the backend actually obtained.
 | the embeddable-Python fallback | python.org is blocked here, so those three URLs are guesses. It only runs if he has no Python at all, which is unlikely — the speech venv is tried first |
 | ~~every CLI flag~~ | **now VERIFIED against the binary — see below.** What remains untested is whether the low-VRAM flags BEHAVE on his card; `--diffusion-fa` is the first suspect if Vulkan errors |
 | **the images** | whether a 6B model at Q4 can letter "MERIDIAN HARBOUR BOARD" legibly at all. That is the open question the batch exists to answer |
+| the blank check **against a real generated PNG** | it has only ever seen PNGs this repository already contains and PNGs the selftest synthesises. What sd-cli writes when #1031 fires — all-black, all-white, or transparent — is unknown; all three are covered, and a fourth shape nobody has described is not |
+| `--vae-on-cpu` **behaving** | the flag is verified PRESENT in the shipped binary's string table (below), which is not the same as verified to produce a correct picture on his card. Speed is the expected cost and nobody has measured it |
+| the ROCm build | named as the next rung, deliberately not wired, never run by anybody here |
 
 ### Two rows moved out of that table, because the runtime WAS reachable
 
@@ -262,9 +286,18 @@ whose Windows, network and GPU surfaces are not.
    writes the PNGs, so they cannot drift apart.
 2. **The quality ladder** gains a rung with a name: *local image generation —
    current rung Z-Image-Turbo Q4/Q8 at 8 steps; next rung FLUX.1-schnell
-   (Apache-2.0) or a higher quantisation, decided by reading the first batch's
-   lettering.* An aspect whose next rung is blank is a research task; this one
-   is not blank.
+   (Apache-2.0, and **ungated** — see section 7 fix 4) or a higher
+   quantisation, decided by reading the first batch's lettering.* An aspect
+   whose next rung is blank is a research task; this one is not blank.
+   **And a second rung, for the runtime rather than the model:**
+   `win-rocm-7.14.0-x64` (189 MB, same pinned release). His card is AMD, ROCm
+   is AMD's own compute path rather than the vendor-neutral one, and it would
+   sidestep both Vulkan bugs in section 7 rather than defending against them.
+   It is NOT wired: nothing here can measure it, its driver requirements on his
+   machine are unchecked, and putting an unmeasured backend in front of a
+   working one is how a one-click stops being one. It is conditional on what
+   the probe reports — if the report says AMD and the run is slow or wrong,
+   that is the next thing to try.
 
 ---
 
@@ -280,4 +313,161 @@ whose Windows, network and GPU surfaces are not.
 3. A window that either says DONE and where the files are, or names exactly
    what failed and what to send back. **There is no path on which it prints
    nothing and exits zero** — that is the recorded failure this project has
-   already paid for once.
+   already paid for once. **And since section 7, no path on which it says DONE
+   over an empty picture either**: the generator's own exit code is no longer
+   accepted as evidence that an image exists.
+
+---
+
+## 7. The independent check, and the five faults it fixed (25 Aug, same day)
+
+`game-design/research/imagegen-licence-check.md` re-derived every claim this
+build rests on from primary sources before Jafar spends an hour on a 7–10 GB
+download. **The licence position held**: Apache-2.0, commercial use permitted,
+outputs unrestricted, nothing to accept, no account — with the one refinement
+that attribution attaches only if we ever redistribute the *weights*, which we
+do not plan to. It also found five faults. All five are fixed; none of them was
+a redesign.
+
+**The risk was never legal. It is silent wrong output on an unknown GPU** — and
+two of the three serious faults produce a file and exit zero.
+
+### Fix 1 — a known bug writes a blank image and exits SUCCESS
+
+`leejet/stable-diffusion.cpp` issue **#1031, "[BUG] ZImage + VULKAN create a
+blank image", OPEN since 2 Dec 2025 with no maintainer reply.** Read directly
+today, not relayed: the reporter's log loads every model, samples for 61s,
+decodes the VAE in 11s, prints `save result PNG image to 'output.png'
+(success)` and exits zero. **The PNG is blank.** The same machine renders SD1.4
+correctly. That is our exact configuration — Z-Image through Vulkan.
+
+So the generator cannot be its own witness, and this project has already paid
+for that lesson once: a CI job reported success while **deleting** the clips it
+was dispatched to produce. Every image is now **decoded and measured** after it
+is written, stdlib only (`zlib` plus a defilter loop — no pip, no Pillow):
+
+- a **blank** image is `status: FAILED` with the reason, is **not** counted in
+  `items_written`, does **not** land in the manifest as a success, is renamed
+  `<id>.BLANK.png` so it cannot be mistaken for a delivered image, and counts
+  toward the existing "two failures and nothing succeeded, stop" rule — because
+  a configuration that blanks one image will blank twelve;
+- the manifest carries `blank_check: {checked, blank, undecodable}` — **a zero
+  ships its denominator**, so "0 blank" can never be confused with a check that
+  never ran;
+- **`unknown` is a third answer.** A PNG that cannot be decoded is reported as
+  unchecked, not as blank and not as good. The image is kept and counted, with
+  the line *"it has NOT been shown to be good, only not shown to be bad."*
+
+**The bound came from a printed series, not from a guess.** `--series` measures
+every PNG under a directory; over all **93 PNGs in this repository** — reference
+photographs, kit colour maps, 16-bit normal maps, roughness and opacity masks,
+app icons — all 93 decoded and the luminance spreads sorted read
+
+    36 37 42 66 69 70 71 72 72 75 77 82 … 131 131 … 160 161 … 255 (×31)
+
+so the smallest real image sits at **36/255** and the median near 160.
+Synthetic uniform frames land at spread 0, stdev 0, one distinct level. **There
+is no measured population between 0 and 36**, so the bound sits hard against the
+degenerate end — `spread ≤ 2 AND stdev ≤ 1.0` — an eighteenth of the smallest
+real reading. The two conditions are ANDed because that is a measurement too:
+the flattest real image here (a 16-bit normal map) has stdev **1.64**, below the
+stdev bound, and a spread of 75, far above the spread one. Either test alone
+would eventually call something real blank.
+
+**Both ways, in the selftest, on PNGs it synthesises itself:**
+
+| case | verdict |
+|---|---|
+| varied image (160×120, 248 distinct levels) | `varied` — **accepting case, first** |
+| faint 8-level gradient, spread 7 | `varied` — the bound does not swallow a soft picture |
+| uniform black / uniform mid-grey / uniform white | `blank` ×3 |
+| RGBA with varying colour and alpha 0 everywhere | `blank` |
+| empty file / non-PNG bytes / header-only stub | `unknown` ×3, not blank, not varied |
+| **the run loop**: fake generator exits **0** and writes a uniform PNG | `items_written: 0`, two FAILED records naming #1031, files renamed `.BLANK.png`, batch stopped |
+| **the run loop**: fake generator writes varied PNGs | DONE, 12 of 12 checked, 0 blank, 0 undecodable |
+
+### Fix 2 — the AMD 1024×1024 VAE bug, which we hit BY DEFAULT
+
+Issue **#1673**, also read directly: on **AMD Radeon (RADV RENOIR)** the Vulkan
+backend renders **gibberish at 1024×1024 with `--vae-conv-direct`** and correct
+images at 512×512; the reporter's own workaround is `--vae-on-cpu`.
+
+This was not bad luck, it was the default path. His machine is AMD
+(`live-speech-latency.md`: *"CUDA is not a lever for this machine"*), his VRAM
+is **unknown by construction** because `AdapterRAM` saturates at 4 GB and
+`plan()` correctly refuses to read that as a measurement — and `plan()` turns
+`--vae-conv-direct` on whenever VRAM is under 8 GB **or unknown**. Two prompts
+are 1024×1024. The whole batch was walking into a reported silent-wrong-output
+bug on his exact vendor.
+
+Flags are now decided **per image**, where the size exists, and the reason with
+its issue number sits in the code where nobody can re-enable it by accident.
+**The bound is the largest size the issue reports as GOOD, not the smallest it
+reports as bad**: everything between 512×512 and 1024×1024 is unmeasured by
+anybody, the failure is silent rather than loud, and the alternative costs speed
+and not correctness. Every one of the twelve items is larger than 512×512, so
+**on Vulkan `--vae-conv-direct` will not be used at all for this batch** — said
+out loud, in the code and in the machine report, because a flag that looks live
+and never fires is worse than one that is gone. The CUDA path keeps it.
+
+**`--vae-on-cpu` is real, and that was checked rather than assumed.** The pinned
+release zip was downloaded here today — `sd-master-97d2990-bin-win-vulkan-x64.zip`,
+**38,784,820 bytes, byte-exact against the constant in `imagegen.py`** — and
+`--vae-on-cpu` is present in `sd-cli.exe`'s string table beside every other long
+flag this tool passes. Adding a flag the binary does not know would have failed
+all twelve images.
+
+### Fix 3 — the 4 GB download had ONE URL and no fallback
+
+The file's own header promises *"CANDIDATES, NOT A URL… a single URL that is one
+rename stale is a dead one-click"*. The text encoder and the VAE each had a
+list; **the model — the biggest and most important file — was fetched from one
+hardcoded URL.** It now takes six candidates: three repositories × both
+spellings of the K quants (`Q4_K` and `Q4_K_M`, which different repackagers name
+differently), best first.
+
+Honest about what that is: **huggingface.co answers 403 to this container**, so
+not one path was resolved from here. `leejet/Z-Image-Turbo-GGUF` is first
+because it is the author of stable-diffusion.cpp and a search index reported the
+matching 3.86 GB size there; the other two repositories are **labelled in the
+code as guesses**. A guess costs one printed 404 line, never a silent
+substitution — `fetch_one` prints what every candidate answered and the manifest
+records the URL that actually served the file.
+
+**The gate is stronger, not weaker.** A candidate list is exactly how a fetcher
+quietly starts shopping for an unlocked door, so `fetch_one` now **aborts the
+list on the first 401/403**, prints the standing note — *"we never use accounts
+and never purchase… nothing has been worked around"* — and names the candidates
+it did **not** try. Tested both ways: a 404 falls through to the next candidate
+and downloads; a 401 and a 403 each stop, with only the first URL ever
+attempted.
+
+### Fix 4 — a wrong reason in the code, quoted rather than deleted
+
+The VAE comment said, verbatim: *"stable-diffusion.cpp's docs send you to
+black-forest-labs/FLUX.1-schnell for this file, and that repository is gated
+behind a Hugging Face login and an acceptance click."* **That is wrong.**
+FLUX.1-**schnell** is Apache-2.0 and ungated; FLUX.1-**dev** is the gated,
+non-commercial one, and the two are confused constantly. Harmless in effect —
+the URL and the licence position do not change — but a wrong reason sends the
+next reader somewhere pointless, and it also made our own named next rung look
+unreachable when it is not. The retracted sentence is quoted in the code so it
+cannot be re-derived from the same plausible half-memory, and the honest reason
+for the mirror is written beside it.
+
+### Fix 5 — a rung to record, not to build
+
+`win-rocm-7.14.0-x64` (189 MB) ships in the same pinned release and `plan()`
+knows only cuda12 / vulkan / cpu. **Not wired** — see section 5, item 2. It is
+now named in `plan()`'s reasons when the probe reports AMD, printed in the
+machine report as *next rung (runtime)*, and on the quality ladder.
+
+### What this did NOT change
+
+Everything free, no account, no purchase, no terms accepted; the gate still
+stops the run and says so. **The untested list in section 4 has not shrunk — it
+grew by three rows**: the blank check has never seen a real generated PNG, only
+this repository's and the selftest's synthetic ones; `--vae-on-cpu` is verified
+present in the binary but not verified to render well or fast on his card; and
+the ROCm build has never been run by anybody here. **The `.bat` and the whole
+Windows path remain untested.** The first real run is still the measurement.

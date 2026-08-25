@@ -52,13 +52,30 @@ It fails loudly on purpose. Whatever it prints in that window is the diagnosis
 — send back the last 20 lines plus `machine-report.txt`. "It did nothing" is
 the one outcome the script is written to make impossible.
 
+**And it does not believe the generator when it says it worked.** There is a
+known open bug in stable-diffusion.cpp — issue #1031, this exact model on this
+exact backend — where it writes a completely blank picture and reports success.
+Every image is opened and measured after it is made; a blank one is reported as
+FAILED, is not counted, and is renamed `<name>.BLANK.png` so it cannot be
+mistaken for a delivered image. If you see that, nothing is wrong with your
+machine — send it back and the next thing to try is named in the report.
+
 ### For whoever picks this up next
 
 - `probe-machine.ps1` — reads the machine, writes `machine.json`, never guesses.
 - `imagegen.py` — plan, fetch, generate, manifest. **Stdlib only, no pip.**
-  `python imagegen.py --selftest` runs 22 checks with no GPU and no network.
+  `python imagegen.py --selftest` runs 49 checks with no GPU and no network,
+  including both halves of the blank-image check (a varied image accepted, a
+  uniform one rejected) and both halves of the gate (a 404 falls through to the
+  next candidate, a 401/403 stops the run).
+  `python imagegen.py --series <dir>` prints the blankness measurement over
+  every PNG under a directory — the series the bound was read off.
   `python imagegen.py plan --machine machine.json` prints the plan and
   downloads nothing.
 - `prompts.json` — the batch, the style block, the content rules.
 - Next rung if the lettering disappoints: FLUX.1-schnell (also Apache-2.0,
-  ~3x the download). stable-diffusion.cpp runs both; it is one field.
+  **ungated** — *dev* is the gated one, *schnell* is not; ~3x the download).
+  stable-diffusion.cpp runs both; it is one field.
+- Next rung for the runtime on an AMD card: the `win-rocm-7.14.0-x64` build in
+  the same release. Named, deliberately not wired, and not measured by anybody
+  here — it is what to try if Vulkan turns out slow or wrong.

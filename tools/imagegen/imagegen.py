@@ -22,12 +22,21 @@ do NOT know the model or the VRAM. So nothing here assumes a vendor: the
 probe reports, `plan()` branches, and the report file says which branch it
 took and why.
 
-TESTING. Everything that can be tested without a GPU is: `--selftest` runs
-plan() across seven synthetic machines, checks the prompt builder refuses to
-drop the content rules, round-trips the manifest, and asserts the accepting
-case (a good machine plans a real run) FIRST, because the expensive failure
-is a planner nothing survives. What CANNOT be tested here is every line that
-touches Windows, the network or the GPU. Those are named in the report.
+TESTING. Everything that can be tested without a GPU is: `--selftest` runs 49
+checks - plan() across seven synthetic machines, the prompt builder refusing to
+drop the content rules, the run loop with the generator faked, the blank-image
+check both ways on synthesised PNGs, the per-image Vulkan VAE rule both ways,
+and the download candidate list both ways (a 404 falls through, a 401/403
+STOPS). The accepting case comes first everywhere, because the expensive
+failure is a check nothing survives. What CANNOT be tested here is every line
+that touches Windows, the network or the GPU - the .bat, the PowerShell probe
+and every URL are still UNRUN, and they are named in the report as such.
+
+THE EXIT CODE IS NOT THE EVIDENCE. stable-diffusion.cpp#1031, open and
+unanswered, has Z-Image on Vulkan writing a blank PNG and exiting success, and
+#1673 has --vae-conv-direct producing gibberish on AMD at 1024x1024. Both
+produce a file. Both would pass any check that reads a return code. See the
+blank-check and VULKAN_VAE_DIRECT_MAX_PX sections below.
 """
 import argparse
 import hashlib
@@ -39,6 +48,7 @@ import time
 import urllib.error
 import urllib.request
 import zipfile
+import zlib
 
 # ---------------------------------------------------------------------------
 # WHAT WE FETCH. Every row carries its licence, because a fetch whose licence
@@ -76,6 +86,54 @@ QUANTS = {                     # gguf file -> approximate bytes, from the repo l
     "Q3_K": ("z_image_turbo-Q3_K.gguf", 3_140_000_000),
     "Q2_K": ("z_image_turbo-Q2_K.gguf", 2_590_000_000),
 }
+# CANDIDATES FOR THE 4GB FILE, WHICH IS THE ONE THAT HAD NONE. The header at
+# the top of this file promises "CANDIDATES, NOT A URL... a single URL that is
+# one rename stale is a dead one-click" - the text encoder and the VAE each had
+# a list and the model, the biggest and most important download, was fetched
+# from ONE hardcoded URL. Found by the independent licence-and-risk check
+# (`game-design/research/imagegen-licence-check.md`, 25 Aug 2026).
+#
+# WHAT IS AND IS NOT VERIFIED HERE. huggingface.co answers 403 to this
+# container - the egress proxy, not a gate - so NOT ONE of these paths was
+# resolved from here. `leejet/Z-Image-Turbo-GGUF` is first because it is the
+# author of stable-diffusion.cpp, it is what the wiki points at, and a search
+# index reported `z_image_turbo-Q4_K.gguf` at 3.86 GB there, matching the size
+# below. The other two repositories are PLAUSIBLE REDISTRIBUTORS AND NOTHING
+# STRONGER - they are guesses, labelled as guesses. A guess costs one printed
+# 404 line, because `fetch_one` prints what every candidate answered; it can
+# never cost a silent substitution, because the file that arrives is size
+# checked and the URL that served it is written into the manifest.
+#
+# SPELLING IS LOAD-BEARING AND UNVERIFIABLE FROM HERE. leejet names the K
+# quants `Q4_K`; several other repackagers name the identical quant `Q4_K_M`.
+# Both spellings are tried at every repository rather than betting the whole
+# one-click on one of them.
+#
+# A GATE STILL STOPS EVERYTHING. Candidates are for renames and outages, not
+# for routing round a login: `fetch_one` ABORTS the list on the first 401/403
+# and names the candidates it did not try. See `GATED_NOTE`.
+MODEL_GGUF_REPOS = [
+    "leejet/Z-Image-Turbo-GGUF",   # primary; size corroborated via a search index
+    "QuantStack/Z-Image-Turbo-GGUF",   # UNVERIFIED from here - a guess
+    "calcuis/z-image-gguf",            # UNVERIFIED from here - a guess
+]
+
+
+def model_urls(quant):
+    """Every candidate URL for one quantisation, best first.
+
+    Repo order is confidence order and the spelling variants come second, so
+    the first attempt is always the one we have the most evidence for.
+    """
+    fname = QUANTS[quant][0]
+    names = [fname]
+    if quant.endswith("_K"):                       # Q4_K -> Q4_K_M, same file
+        alt = fname.replace(f"-{quant}.gguf", f"-{quant}_M.gguf")
+        if alt not in names:
+            names.append(alt)
+    return [f"{HF}/{repo}/resolve/main/{n}" for repo in MODEL_GGUF_REPOS for n in names]
+
+
 MODEL = {
     "name": "Z-Image-Turbo",
     "upstream": "Tongyi-MAI/Z-Image-Turbo",
@@ -95,14 +153,27 @@ TEXT_ENCODER = {
 VAE = {
     "file": "ae.safetensors",
     "bytes": 335_000_000,
-    # THE GATE, AND WHY THIS URL AND NOT THE OBVIOUS ONE. stable-diffusion.cpp's
-    # docs send you to black-forest-labs/FLUX.1-schnell for this file, and that
-    # repository is gated behind a Hugging Face login and an acceptance click.
-    # We do not use accounts. Comfy-Org/z_image_turbo is the ungated mirror that
-    # ComfyUI's own Z-Image template uses, and the autoencoder is Apache-2.0 in
-    # both places - so this is a different distributor of the same permissively
-    # licensed file, not a way round a licence. Recorded here and in the
-    # manifest so nobody has to re-derive it.
+    # WHY THIS URL AND NOT THE OBVIOUS ONE - AND A RETRACTION, because a wrong
+    # reason is what the next session will trust.
+    #
+    # THIS COMMENT USED TO SAY, VERBATIM: "stable-diffusion.cpp's docs send you
+    # to black-forest-labs/FLUX.1-schnell for this file, and that repository is
+    # gated behind a Hugging Face login and an acceptance click." THAT IS
+    # WRONG, and it is quoted rather than deleted so nobody re-derives it from
+    # the same plausible half-memory. FLUX.1-**schnell** is Apache-2.0 and
+    # UNGATED; FLUX.1-**dev** is the gated, non-commercial one, and the two get
+    # confused constantly. The licence check
+    # (`game-design/research/imagegen-licence-check.md`) caught it.
+    #
+    # The URL below does not change and neither does the licence position. The
+    # honest reason for it: Comfy-Org/z_image_turbo is the mirror ComfyUI's own
+    # Z-Image template uses, it carries the file at the size we expect
+    # (335 MB, index-corroborated), and it is a Z-Image-shaped repository, so
+    # the autoencoder there is the one this model was packaged with. Apache-2.0
+    # in both places, so this is a different distributor of the same
+    # permissively licensed file either way. Nothing here is a way round a
+    # licence, and nothing here needed to be - which is exactly the fact the
+    # old sentence obscured. Recorded here and in the manifest.
     "urls": [f"{HF}/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors",
              f"{HF}/Comfy-Org/z_image/resolve/main/split_files/vae/ae.safetensors"],
     "licence": "Apache-2.0 (Z-Image / FLUX.1 autoencoder)",
@@ -116,7 +187,23 @@ GATED_NOTE = (
 )
 NEXT_RUNG = ("FLUX.1-schnell (Apache-2.0, 12B + T5-XXL, ~10GB more download) is "
              "the named next rung if Z-Image's lettering is not good enough. "
-             "stable-diffusion.cpp runs both; the switch is one field.")
+             "stable-diffusion.cpp runs both; the switch is one field. It is "
+             "Apache-2.0 and UNGATED - see the VAE comment above, where the "
+             "opposite was asserted and is retracted.")
+# THE RUNTIME'S NEXT RUNG, NAMED AND DELIBERATELY NOT WIRED. The same release
+# that ships the Vulkan build ships `sd-master-97d2990-bin-win-rocm-7.14.0-x64.zip`
+# (189 MB), and `plan()` below knows only cuda12 / vulkan / cpu. Jafar's card is
+# AMD, so ROCm is AMD's own compute path rather than the vendor-neutral one and
+# may be materially faster - AND it would sidestep both Vulkan bugs this file
+# now works around (#1031 blank images, #1673 VAE gibberish) rather than
+# defending against them. It is NOT wired because nothing here can measure it,
+# the ROCm runtime has its own driver requirements nobody has checked on his
+# machine, and adding an untested backend to the fallback chain would put an
+# unmeasured path in front of a working one. It is a rung with a name, which is
+# what this project asks for instead of a silent "good enough".
+RUNTIME_NEXT_RUNG = ("win-rocm-7.14.0-x64 (189 MB, same release) is the named next "
+                     "rung for an AMD card if Vulkan is slow or wrong - not wired, "
+                     "not measured, conditional on what this probe reports.")
 
 MIN_FREE_DISK_GB = 20
 
@@ -207,6 +294,9 @@ def plan(machine):
         reasons.append(f"{vendor} adapter, so Vulkan - it is the one vendor-neutral "
                        "GPU path on Windows and needs no SDK at runtime, the same "
                        "reasoning that made DirectML the speech baseline")
+        if vendor == "amd":
+            reasons.append("AMD, so the NEXT RUNG applies and is named rather than "
+                           "taken: " + RUNTIME_NEXT_RUNG)
 
     # Quantisation. Bigger is better and bigger is a longer download; the
     # ladder is stated so the choice is legible rather than magic.
@@ -236,6 +326,17 @@ def plan(machine):
         flags += ["--vae-tiling", "--vae-conv-direct"]
     if backend != "cpu" and (not vram_known or vram_gb < 6):
         flags += ["--clip-on-cpu"]
+    # --vae-conv-direct IS NOT SAFE AT EVERY SIZE ON VULKAN. It survives here as
+    # the plan for the machine and is then decided PER IMAGE by `image_flags`,
+    # which is where the width and height exist. Issue #1673, full reasoning at
+    # VULKAN_VAE_DIRECT_MAX_PX.
+    if backend == "vulkan" and "--vae-conv-direct" in flags:
+        reasons.append("--vae-conv-direct is planned for the VRAM, but on Vulkan it "
+                       "is dropped for any image larger than 512x512 "
+                       f"({VULKAN_VAE_DIRECT_MAX_PX} px) and --vae-on-cpu used instead "
+                       "(issue #1673: AMD RADV renders gibberish at 1024x1024 with "
+                       "it, clean at 512x512). Every item in this batch is larger "
+                       "than that, so on Vulkan it will not be used at all")
 
     # CPU is a proof of wiring, not a batch. Say so rather than starting a
     # six-hour run he did not ask for.
@@ -343,7 +444,11 @@ def format_report(machine, pl, extra=None):
     for r in pl["reasons"]:
         A(f"    - {r}")
     A("")
-    A(f"  next rung: {NEXT_RUNG}")
+    A(f"  next rung (model):   {NEXT_RUNG}")
+    A(f"  next rung (runtime): {RUNTIME_NEXT_RUNG}")
+    if pl["vendor"] == "amd":
+        A("      ^ this machine is the AMD case that rung is for. It is NOT wired "
+          "and NOT measured; it is here so the next run has somewhere to go.")
     if extra:
         A("")
         A("RUN")
@@ -419,10 +524,19 @@ def fetch_one(urls, dest, expect_bytes, label):
             return dest, url
         except urllib.error.HTTPError as e:
             if e.code in (401, 403):
+                # A GATE ENDS THE LIST. Falling through to the next candidate
+                # after a 401/403 is how a candidate list quietly becomes a way
+                # round a login, and this file grew a candidate list for the
+                # model on the same day this line was written. We hold no
+                # accounts and we do not shop for an unlocked door: stop, say
+                # so, and name what was NOT tried so the answer is legible.
                 print(f"\n  {url}\n  HTTP {e.code} - GATED.\n{GATED_NOTE}\n")
                 tried.append(f"{url} -> HTTP {e.code} GATED (login/terms required)")
-            else:
-                tried.append(f"{url} -> HTTP {e.code}")
+                rest = urls[urls.index(url) + 1:]
+                if rest:
+                    tried.append(f"STOPPED at the gate. NOT tried: {', '.join(rest)}")
+                break
+            tried.append(f"{url} -> HTTP {e.code}")
         except Exception as e:                                # noqa: BLE001
             tried.append(f"{url} -> {type(e).__name__}: {e}")
     raise RuntimeError(
@@ -464,6 +578,275 @@ def ensure_runtime(ws, backend):
             with zipfile.ZipFile(cz) as z:
                 z.extractall(outdir)
     return find_exe(outdir)
+
+
+# ---------------------------------------------------------------------------
+# IS THE PICTURE ACTUALLY A PICTURE - THE EXIT CODE IS NOT THE EVIDENCE
+#
+# leejet/stable-diffusion.cpp issue #1031, "[BUG] ZImage + VULKAN create a
+# blank image" - OPEN since 2 Dec 2025 with no maintainer reply, read here
+# 25 Aug 2026 - is OUR EXACT CONFIGURATION: Z-Image through the Vulkan backend.
+# The reporter's log loads every model, samples for 61s, decodes the VAE in
+# 11s, prints "save result PNG image to 'output.png' (success)", and exits
+# zero. The PNG is blank. The same machine renders SD1.4 correctly.
+#
+# So the generator cannot tell us whether it worked, and the only witness is
+# the file. This project has a recorded incident of CI reporting success while
+# DELETING the clips it was meant to produce; the standing rule from it is
+# verify a job's EFFECTS, not its exit code. Here that means decoding the PNG.
+#
+# STDLIB ONLY, like everything else in this file: zlib is in the standard
+# library, and a non-interlaced 8- or 16-bit PNG is an inflate plus a defilter
+# loop. No pip, no Pillow.
+# ---------------------------------------------------------------------------
+
+# THE BOUND, AND THE SERIES IT CAME FROM - printed before it was chosen, which
+# is this project's rule and not a formality. `--selftest --series` reruns it.
+#
+# Measured 25 Aug 2026 over ALL 93 PNGs in this repository - reference
+# photographs, kit colour maps, app icons, 16-bit normal maps, roughness and
+# opacity masks. All 93 decoded; none was undecodable. Luminance spread, sorted
+# and abbreviated:
+#
+#   36 37 42 66 69 70 71 72 72 75 77 82 ... 131 131 ... 160 161 ... 255 (x31)
+#
+# So the smallest spread any real image reached was 36/255, the median about
+# 160, and thirty-one of them saturate at 255. Synthetic uniform frames - black,
+# mid-grey, white, and a one-level checkerboard - land at spread 0, stdev 0,
+# 1 distinct level, by construction. THERE IS NO MEASURED POPULATION BETWEEN 0
+# AND 36, so the bound goes hard against the degenerate end rather than into the
+# middle of a gap nobody has data for. 2 levels is a EIGHTEENTH of the smallest
+# real image seen and nothing with content in it can get there.
+#
+# BOTH CONDITIONS, ANDED, and that is a measurement too: the flattest real image
+# here (a 16-bit normal map) has stdev 1.64, BELOW the stdev bound - and a
+# spread of 75, far above the spread bound. Either test alone would eventually
+# call something real blank. A synthetic 8-level ramp, spread 7 stdev 2.3, is
+# correctly called varied by both.
+BLANK_MAX_SPREAD = 2      # max minus min luminance, 0-255, over the sample
+BLANK_MAX_STDEV = 1.0     # and it must be flat, not two adjacent levels of dither
+
+_PNG_CHANNELS = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}   # colour type -> channels
+
+
+def _unfilter_row(ft, line, prev, bpp):
+    """PNG per-row filters, RFC 2083 section 6. Mutates `line` in place."""
+    n = len(line)
+    if ft == 0:
+        return
+    if ft == 1:                                        # Sub
+        for i in range(bpp, n):
+            line[i] = (line[i] + line[i - bpp]) & 255
+    elif ft == 2:                                      # Up
+        for i in range(n):
+            line[i] = (line[i] + prev[i]) & 255
+    elif ft == 3:                                      # Average
+        for i in range(n):
+            a = line[i - bpp] if i >= bpp else 0
+            line[i] = (line[i] + ((a + prev[i]) >> 1)) & 255
+    elif ft == 4:                                      # Paeth
+        for i in range(n):
+            a = line[i - bpp] if i >= bpp else 0
+            c = prev[i - bpp] if i >= bpp else 0
+            b = prev[i]
+            pp = a + b - c
+            pa, pb, pc = abs(pp - a), abs(pp - b), abs(pp - c)
+            pr = a if (pa <= pb and pa <= pc) else (b if pb <= pc else c)
+            line[i] = (line[i] + pr) & 255
+    else:
+        raise ValueError(f"unknown PNG filter type {ft}")
+
+
+def png_stats(path, max_samples=20000):
+    """Luminance statistics of a PNG, decoded with nothing but zlib.
+
+    EVERY NUMBER HERE IS A STATISTIC OF THE SAMPLE, and the sample carries its
+    denominator: `pixels` is the whole image, `sampled` is how many of them
+    these numbers describe, `sample_step` is the decimation. min/max/spread are
+    EXTREMES over the sample; mean and stdev are its middle and its width;
+    `alpha_max` is a peak. A 1024x1024 image is 1M pixels and this is pure
+    Python, so it is decimated on a fixed grid - which is why `spread` is the
+    load-bearing number and not, say, "how many pixels differ from the first".
+
+    `decoded: False` with a `why` is NOT the same answer as blank. A checker
+    that cannot tell "did not look" from "looked and it was empty" is the
+    zero-with-no-denominator fault, and blankness is the exact thing being
+    asked about here, so the two are kept apart at every layer above.
+    """
+    out = {"decoded": False, "why": "", "file": pathlib.Path(path).name}
+    try:
+        raw = pathlib.Path(path).read_bytes()
+    except OSError as e:
+        out["why"] = f"unreadable: {type(e).__name__}: {e}"
+        return out
+    out["bytes"] = len(raw)
+    if raw[:8] != b"\x89PNG\r\n\x1a\n":
+        out["why"] = f"not a PNG: first 8 bytes are {raw[:8]!r}"
+        return out
+
+    pos, ihdr, idat = 8, None, []
+    while pos + 8 <= len(raw):
+        ln = int.from_bytes(raw[pos:pos + 4], "big")
+        typ = raw[pos + 4:pos + 8]
+        body = raw[pos + 8:pos + 8 + ln]
+        pos += 12 + ln                                  # length + type + data + crc
+        if typ == b"IHDR":
+            ihdr = body
+        elif typ == b"IDAT":
+            idat.append(body)
+        elif typ == b"IEND":
+            break
+    if not ihdr or len(ihdr) < 13:
+        out["why"] = "no IHDR chunk - the file is not a whole PNG"
+        return out
+    w = int.from_bytes(ihdr[0:4], "big")
+    h = int.from_bytes(ihdr[4:8], "big")
+    depth, ctype, interlace = ihdr[8], ihdr[9], ihdr[12]
+    out.update(width=w, height=h, bit_depth=depth, colour_type=ctype, pixels=w * h)
+    if ctype not in _PNG_CHANNELS or depth not in (8, 16) or interlace != 0 or not w or not h:
+        out["why"] = (f"unsupported PNG form: colour type {ctype}, bit depth {depth}, "
+                      f"interlace {interlace}, {w}x{h}. This reader handles "
+                      "non-interlaced 8/16-bit greyscale and RGB(A), which is what "
+                      "stb_image_write - what sd-cli writes with - emits.")
+        return out
+    if not idat:
+        out["why"] = "no IDAT chunk - the file has a header and no pixels"
+        return out
+    try:
+        data = zlib.decompress(b"".join(idat))
+    except zlib.error as e:
+        out["why"] = f"IDAT will not inflate: {e}"
+        return out
+
+    ch = _PNG_CHANNELS[ctype]
+    px = depth // 8                                     # bytes per channel
+    bpp = ch * px
+    stride = w * bpp
+    if len(data) < (stride + 1) * h:
+        out["why"] = (f"truncated pixel data: {len(data)} bytes inflated, "
+                      f"{(stride + 1) * h} expected for {w}x{h}")
+        return out
+
+    step = max(1, int(((w * h) / float(max_samples)) ** 0.5))
+    lum, amax = [], 0
+    prev = bytearray(stride)
+    off = 0
+    try:
+        for y in range(h):
+            ft = data[off]
+            off += 1
+            line = bytearray(data[off:off + stride])
+            off += stride
+            _unfilter_row(ft, line, prev, bpp)
+            if y % step == 0:
+                for x in range(0, w, step):
+                    i = x * bpp
+                    if ch >= 3:
+                        r, g, b = line[i], line[i + px], line[i + 2 * px]
+                        lum.append((r * 299 + g * 587 + b * 114) // 1000)
+                    else:
+                        lum.append(line[i])
+                    if ch in (2, 4):
+                        a = line[i + (ch - 1) * px]
+                        if a > amax:
+                            amax = a
+            prev = line
+    except (IndexError, ValueError) as e:
+        out["why"] = f"decode failed at row {y}: {type(e).__name__}: {e}"
+        return out
+
+    n = len(lum)
+    if not n:
+        out["why"] = "no pixels sampled"
+        return out
+    mn, mx = min(lum), max(lum)
+    mean = sum(lum) / float(n)
+    stdev = (sum((v - mean) ** 2 for v in lum) / float(n)) ** 0.5
+    out.update(decoded=True, sampled=n, sample_step=step, min=mn, max=mx,
+               spread=mx - mn, mean=round(mean, 2), stdev=round(stdev, 3),
+               distinct=len(set(lum)),
+               alpha_max=(amax if ch in (2, 4) else None))
+    return out
+
+
+def blank_verdict(st):
+    """('varied' | 'blank' | 'unknown', one sentence saying why).
+
+    THREE ANSWERS ON PURPOSE. 'unknown' is not 'varied' and is not a pass: it
+    means the file could not be decoded, and it is reported as its own count
+    beside the others so a run where the check never worked cannot read as a
+    run where the check found nothing wrong.
+    """
+    if not st.get("decoded"):
+        return "unknown", ("could NOT be checked for blankness: "
+                           + (st.get("why") or "no reason recorded"))
+    if st.get("alpha_max") == 0:
+        return "blank", (f"every sampled pixel is fully transparent (alpha max 0 over "
+                         f"{st['sampled']} of {st['pixels']} pixels)")
+    if st["spread"] <= BLANK_MAX_SPREAD and st["stdev"] <= BLANK_MAX_STDEV:
+        return "blank", (f"uniform image: luminance spread {st['spread']}/255 "
+                         f"(min {st['min']}, max {st['max']}, stdev {st['stdev']}, "
+                         f"{st['distinct']} distinct levels) over {st['sampled']} of "
+                         f"{st['pixels']} pixels. That is the shape of "
+                         "leejet/stable-diffusion.cpp#1031 - Z-Image on Vulkan "
+                         "writing a blank PNG and exiting success.")
+    return "varied", (f"luminance spread {st['spread']}/255, stdev {st['stdev']}, "
+                      f"{st['distinct']} distinct levels over {st['sampled']} of "
+                      f"{st['pixels']} pixels")
+
+
+# ---------------------------------------------------------------------------
+# THE SIZE AT WHICH --vae-conv-direct STOPS BEING SAFE ON THE VULKAN PATH
+#
+# leejet/stable-diffusion.cpp issue #1673, read here 25 Aug 2026: on AMD Radeon
+# (RADV RENOIR) the Vulkan backend produces distorted / gibberish images at
+# 1024x1024 WITH --vae-conv-direct, and correct images at 512x512; the
+# reporter's own workaround is --vae-on-cpu.
+#
+# WHY THAT IS US BY DEFAULT AND NOT BY BAD LUCK. Jafar's machine is AMD -
+# `live-speech-latency.md` records it and says "CUDA is not a lever" - his VRAM
+# is UNKNOWN by construction, because Win32_VideoController.AdapterRAM
+# saturates at 4 GB and `plan()` correctly refuses to read that as a
+# measurement; and `plan()` turns --vae-conv-direct on whenever VRAM is under
+# 8 GB OR UNKNOWN. Two items in prompts.json are 1024x1024. So the default path
+# on his hardware walks into a reported silent-wrong-output bug.
+#
+# THE BOUND IS THE LARGEST SIZE THE ISSUE REPORTS AS GOOD, NOT THE SMALLEST IT
+# REPORTS AS BAD. Everything between 512x512 and 1024x1024 is unmeasured by
+# anybody, the failure is silent wrong output rather than a crash, and the
+# alternative costs speed and not correctness. Every one of the twelve items in
+# prompts.json is larger than 512x512, so ON VULKAN --vae-conv-direct WILL NOT
+# BE USED AT ALL for this batch - said out loud because a flag that looks live
+# and never fires is worse than one that is gone. It stays in the plan because
+# the plan describes the machine, and because the CUDA path (where the issue
+# does not apply) uses it.
+#
+# --vae-on-cpu IS REAL AND THAT WAS CHECKED, NOT ASSUMED: the pinned release
+# zip was downloaded here on 25 Aug 2026 (38,784,820 bytes, byte-exact against
+# SDCPP_ZIPS) and `--vae-on-cpu` is present in sd-cli.exe's string table,
+# alongside every other long flag this file passes.
+# ---------------------------------------------------------------------------
+VULKAN_VAE_DIRECT_MAX_PX = 512 * 512
+
+
+def image_flags(pl, w, h):
+    """Flags for ONE image: (flags, note). The note is None when nothing moved.
+
+    Per image rather than per plan because the fault is a function of the size,
+    and the size only exists here.
+    """
+    flags = list(pl["flags"])
+    if pl.get("backend") != "vulkan" or "--vae-conv-direct" not in flags:
+        return flags, None
+    if w * h <= VULKAN_VAE_DIRECT_MAX_PX:
+        return flags, None
+    flags = [f for f in flags if f != "--vae-conv-direct"]
+    if "--vae-on-cpu" not in flags:
+        flags.append("--vae-on-cpu")
+    return flags, (f"--vae-conv-direct dropped at {w}x{h} and --vae-on-cpu used "
+                   "instead: stable-diffusion.cpp#1673 reports gibberish from that "
+                   "flag on AMD RADV Vulkan at 1024x1024 and clean output at "
+                   "512x512, and this image is larger than 512x512")
 
 
 # ---------------------------------------------------------------------------
@@ -517,6 +900,20 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log):
         "caps": [c for c in [capped,
                              f"resolution scaled x{pl['size_scale']}" if pl["size_scale"] != 1 else None,
                              f"wall-clock cap {max_minutes} min"] if c],
+        # THE CHECK THAT DOES NOT TRUST THE EXIT CODE, and its denominators.
+        # `checked` is how many PNGs were OPENED AND MEASURED - undecodable
+        # ones included, and counted again under their own key - so `blank: 0`
+        # cannot be confused with a check that never ran, and a run where the
+        # decoder failed on everything cannot read as a run that found nothing
+        # wrong. Three answers, three numbers.
+        "blank_check": {
+            "what": "every written PNG is decoded and its luminance measured; a "
+                    "uniform image is the known Vulkan failure "
+                    "(leejet/stable-diffusion.cpp#1031: blank PNG, exit success)",
+            "bound": f"blank when spread <= {BLANK_MAX_SPREAD}/255 AND stdev <= "
+                     f"{BLANK_MAX_STDEV}, or alpha is 0 everywhere sampled",
+            "checked": 0, "blank": 0, "undecodable": 0,
+        },
         "items_in_spec": len(items),
         "items_attempted": 0, "items_written": 0, "items_failed": 0,
         "not_attempted": [i["id"] for i in items[len(items_run):]],
@@ -548,6 +945,8 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log):
             continue
         w = round16(item["width"] * pl["size_scale"])
         h = round16(item["height"] * pl["size_scale"])
+        # FLAGS ARE A FUNCTION OF THE SIZE, NOT ONLY OF THE MACHINE - #1673.
+        img_flags, flag_note = image_flags(pl, w, h)
         seed = d["seed_base"] + n
         png = outdir / f"{item['id']}.png"
         cmd = [str(exe),
@@ -573,37 +972,92 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log):
                "--steps", str(d["steps"]),
                "--width", str(w), "--height", str(h),
                "--seed", str(seed), "--output", str(png),
-               "--verbose"] + pl["flags"]
+               "--verbose"] + img_flags
         rec.update(width=w, height=h, seed=seed, steps=d["steps"], cfg=d["cfg"],
                    sampler="sd-cli model-specific default (not overridden)",
-                   flags=pl["flags"])
+                   flags=img_flags)
+        if flag_note:
+            rec["flag_note"] = flag_note
         manifest["items_attempted"] += 1
         log(f"  [{n}/{len(items_run)}] {item['id']}  {w}x{h}  seed {seed}")
+        if flag_note:
+            log(f"      {flag_note}")
         t0 = time.time()
         proc = subprocess.run(cmd, capture_output=True, text=True, errors="replace")
         dt = time.time() - t0
         rec["seconds"] = round(dt, 1)
+        # DID IT WORK? THE EXIT CODE CANNOT ANSWER THAT - #1031 exits zero and
+        # writes a blank PNG, on this exact model and backend. So there are two
+        # gates here and the file is the second one.
+        failed = None
         if proc.returncode != 0 or not png.exists():
             tail = (proc.stderr or proc.stdout or "")[-1500:]
             rec.update(status="FAILED", exit_code=proc.returncode, log_tail=tail)
-            manifest["images"].append(rec)
-            manifest["items_failed"] += 1
+            failed = f"exit {proc.returncode}"
             log(f"      FAILED after {dt:.0f}s, exit {proc.returncode}")
             log("      last output from the generator:")
             for line in tail.strip().splitlines()[-12:]:
                 log(f"        {line}")
+        else:
+            st = png_stats(png)
+            verdict, why = blank_verdict(st)
+            rec["blank_check"] = {"verdict": verdict, "why": why,
+                                  "spread": st.get("spread"), "stdev": st.get("stdev"),
+                                  "distinct": st.get("distinct"),
+                                  "sampled": st.get("sampled"), "pixels": st.get("pixels")}
+            manifest["blank_check"]["checked"] += 1
+            if verdict == "unknown":
+                manifest["blank_check"]["undecodable"] += 1
+            if verdict == "blank":
+                manifest["blank_check"]["blank"] += 1
+                # NOT COUNTED AS PRODUCED, AND NOT LEFT LOOKING PRODUCED. The
+                # file is kept because it is the evidence, and renamed because
+                # a blank <id>.png sitting in the output directory is exactly
+                # what a later reader would mistake for a delivered image.
+                dead = png.with_suffix(".BLANK.png")
+                try:
+                    png.replace(dead)
+                    rec["file"] = dead.name
+                except OSError:
+                    rec["file"] = png.name
+                rec.update(status="FAILED", exit_code=proc.returncode,
+                           why="BLANK IMAGE - " + why,
+                           log_tail=(proc.stderr or proc.stdout or "")[-1500:])
+                failed = "blank image"
+                log(f"      FAILED after {dt:.0f}s: THE GENERATOR EXITED "
+                    f"{proc.returncode} AND WROTE A BLANK IMAGE.")
+                log(f"        {why}")
+                log("        This is leejet/stable-diffusion.cpp#1031, open since "
+                    "2 Dec 2025: Z-Image on the Vulkan backend can write an empty "
+                    "PNG and report success. Nothing is wrong with your machine.")
+                log(f"        kept as {rec['file']} so it can be looked at.")
+            elif verdict == "unknown":
+                log(f"      note: the blank check could not read this PNG - {why}")
+                log("        The image is kept and counted as written; it has NOT "
+                    "been shown to be good, only not shown to be bad.")
+        if failed:
+            manifest["images"].append(rec)
+            manifest["items_failed"] += 1
             save()
             if manifest["items_failed"] >= 2 and manifest["items_written"] == 0:
                 log("  STOPPING: the first two images both failed and none has "
                     "succeeded. Something is wrong with the runtime or the "
                     "weights, and twelve identical failures help nobody. Send "
                     "back the machine report and this log.")
+                if manifest["blank_check"]["blank"]:
+                    log("  Both were BLANK rather than errors, which is the known "
+                        "Vulkan bug (#1031) and not your machine. The named next "
+                        "thing to try is in the machine report.")
                 break
             continue
         rec.update(status="OK", bytes=png.stat().st_size, sha256=sha256(png),
                    file=png.name)
         manifest["items_written"] += 1
-        log(f"      ok  {dt:.0f}s  {png.stat().st_size/1024:.0f} KB")
+        bc = rec["blank_check"]
+        log(f"      ok  {dt:.0f}s  {png.stat().st_size/1024:.0f} KB  "
+            + (f"{bc['verdict']}: spread {bc['spread']}/255, "
+               f"{bc['distinct']} levels over {bc['sampled']} of {bc['pixels']} px"
+               if bc["spread"] is not None else f"{bc['verdict']}: not decoded"))
         if n == 1:
             est = dt * len(items_run) / 60.0
             log(f"      first image took {dt:.0f}s, so the batch projects to "
@@ -647,6 +1101,55 @@ def write_attribution(outdir, manifest):
 # ---------------------------------------------------------------------------
 # SELFTEST - accepting case first.
 # ---------------------------------------------------------------------------
+def _write_png(path, w, h, pixel, ctype=2):
+    """Minimal PNG writer, used ONLY by the selftest so both the good case and
+    the blank case can be synthesised here rather than waiting for a GPU."""
+    ch = {0: 1, 2: 3, 6: 4}[ctype]
+    rows = bytearray()
+    for y in range(h):
+        rows.append(0)                                   # filter: None
+        for x in range(w):
+            px = pixel(x, y)
+            rows += bytes(px if len(px) == ch else (px * ch)[:ch])
+
+    def chunk(t, d):
+        return (len(d).to_bytes(4, "big") + t + d
+                + (zlib.crc32(t + d) & 0xffffffff).to_bytes(4, "big"))
+
+    pathlib.Path(path).write_bytes(
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", w.to_bytes(4, "big") + h.to_bytes(4, "big")
+                + bytes([8, ctype, 0, 0, 0]))
+        + chunk(b"IDAT", zlib.compress(bytes(rows), 6))
+        + chunk(b"IEND", b""))
+
+
+def png_series(root):
+    """Print the spread/stdev series over every PNG under `root`, newest rule
+    first: the SERIES above the summary, because a bound set from a summary is
+    a bound set from nothing. This is what BLANK_MAX_SPREAD was read off."""
+    files = [f for f in sorted(pathlib.Path(root).rglob("*.png")) if ".git" not in f.parts]
+    print(f"blankness series over {len(files)} PNGs under {root}")
+    rows, bad = [], []
+    for f in files:
+        st = png_stats(f)
+        (rows if st.get("decoded") else bad).append((st, f))
+    rows.sort(key=lambda r: r[0]["spread"])
+    for st, f in rows:
+        v, _ = blank_verdict(st)
+        print(f"  spread {st['spread']:>3}/255  stdev {st['stdev']:>8.3f}  "
+              f"distinct {st['distinct']:>4}  {v:<7} {f}")
+    for st, f in bad:
+        print(f"  UNDECODABLE  {st['why']}  {f}")
+    print(f"  {len(rows)} decoded, {len(bad)} undecodable, "
+          f"{sum(1 for st, _ in rows if blank_verdict(st)[0] == 'blank')} called blank")
+    if rows:
+        sp = [st["spread"] for st, _ in rows]
+        print(f"  spread: min {min(sp)}  median {sorted(sp)[len(sp)//2]}  max {max(sp)}")
+        print(f"  bound is spread <= {BLANK_MAX_SPREAD} AND stdev <= {BLANK_MAX_STDEV}")
+    return 0
+
+
 def selftest():
     ok = fail = 0
 
@@ -738,13 +1241,25 @@ def selftest():
     import types
 
     class _Fake:
-        def __init__(self, rc):
-            self.rc = rc
+        """paint='varied' writes a real, varied PNG; 'blank' writes a uniform
+        one - which is #1031's failure exactly: EXIT CODE 0 AND A BLANK FILE;
+        'stub' writes bytes that are not a decodable PNG. Small fixed size, not
+        the requested one: this stands in for the generator, and 64x48 keeps a
+        twelve-image selftest under a second."""
+
+        def __init__(self, rc, paint="varied"):
+            self.rc, self.paint = rc, paint
 
         def __call__(self, cmd, **kw):
             if not self.rc:
                 out = pathlib.Path(cmd[cmd.index("--output") + 1])
-                out.write_bytes(b"\x89PNG\r\n\x1a\n stub")
+                if self.paint == "blank":
+                    _write_png(out, 64, 48, lambda x, y: (0, 0, 0))
+                elif self.paint == "stub":
+                    out.write_bytes(b"\x89PNG\r\n\x1a\n stub")
+                else:
+                    _write_png(out, 64, 48,
+                               lambda x, y: ((x * 4) % 256, (y * 5) % 256, (x ^ y) % 256))
             return types.SimpleNamespace(returncode=self.rc, stdout="",
                                          stderr="ggml_vulkan: device not found")
 
@@ -759,6 +1274,14 @@ def selftest():
             check("run loop: a clean batch writes every item and says DONE",
                   m["status"] == "DONE" and m["items_written"] == len(spec["items"])
                   and not m["not_attempted"], m["status"])
+            check("run loop: every written PNG was CHECKED for blankness, and the "
+                  f"count says how many ({m['blank_check']['checked']} of "
+                  f"{len(spec['items'])})",
+                  m["blank_check"]["checked"] == len(spec["items"])
+                  and m["blank_check"]["blank"] == 0
+                  and m["blank_check"]["undecodable"] == 0
+                  and all(r["blank_check"]["verdict"] == "varied" for r in m["images"]),
+                  m["blank_check"])
             subprocess.run = _Fake(1)
             f = run_batch(pathlib.Path("stub"), td, gpu, spec, td / "b", 60, lambda s="": None)
             check("run loop: a failing generator stops after 2 and KEEPS THE REASON",
@@ -773,8 +1296,212 @@ def selftest():
             check("run loop: the CPU cap is announced, not silent",
                   any("CAP" in x for x in c["caps"]) and c["items_written"] == 2
                   and len(c["not_attempted"]) == len(spec["items"]) - 2, c["caps"])
+            # FIX 1, THE REJECTING CASE, IN THE PLACE IT MATTERS. The generator
+            # exits ZERO and writes a blank PNG - #1031 exactly.
+            subprocess.run = _Fake(0, "blank")
+            b = run_batch(pathlib.Path("stub"), td, gpu, spec, td / "d", 60,
+                          lambda s="": None)
+            blanks = [r for r in b["images"] if r.get("status") == "FAILED"]
+            check("run loop REJECTING CASE: exit 0 + a blank PNG is FAILED, is NOT "
+                  "counted as produced, and stops the batch",
+                  b["items_written"] == 0 and b["items_failed"] == 2
+                  and b["blank_check"]["blank"] == 2
+                  and b["blank_check"]["checked"] == 2
+                  and b["status"] == "INCOMPLETE"
+                  and len(b["not_attempted"]) == len(spec["items"]) - 2,
+                  f"written={b['items_written']} failed={b['items_failed']} "
+                  f"blank={b['blank_check']}")
+            check("run loop: the blank image keeps its REASON, names #1031, and is "
+                  "renamed off the delivered name",
+                  bool(blanks) and "#1031" in (blanks[0].get("why") or "")
+                  and blanks[0]["blank_check"]["verdict"] == "blank"
+                  and blanks[0].get("file", "").endswith(".BLANK.png")
+                  and (td / "d" / blanks[0]["file"]).exists()
+                  and not (td / "d" / (blanks[0]["id"] + ".png")).exists(),
+                  blanks[0] if blanks else "no failed record")
+            # A PNG THAT CANNOT BE DECODED IS ITS OWN ANSWER, not a pass and not
+            # a blank - and it is counted, so "0 blank" can never be a check
+            # that never ran.
+            subprocess.run = _Fake(0, "stub")
+            u = run_batch(pathlib.Path("stub"), td, gpu, spec, td / "e", 60,
+                          lambda s="": None)
+            check("run loop: an undecodable PNG counts as UNDECODABLE, not as "
+                  "blank and not silently as good",
+                  u["blank_check"]["undecodable"] == len(spec["items"])
+                  and u["blank_check"]["blank"] == 0
+                  and u["blank_check"]["checked"] == len(spec["items"])
+                  and all(r["blank_check"]["verdict"] == "unknown" for r in u["images"]),
+                  u["blank_check"])
     finally:
         subprocess.run = real
+
+    # 8. THE BLANK CHECK IN ISOLATION, BOTH WAYS, ACCEPTING CASE FIRST.
+    #    #1031 writes a file and exits zero, so the only witness is the PNG.
+    #    Both cases are synthesised here - no GPU, no network, no fixture on
+    #    disk that could rot.
+    with tempfile.TemporaryDirectory() as td:
+        td = pathlib.Path(td)
+        good = td / "varied.png"
+        _write_png(good, 160, 120,
+                   lambda x, y: ((x * 7 + y * 3) % 256, (y * 5) % 256, (x ^ y) % 256))
+        st = png_stats(good)
+        v, why = blank_verdict(st)
+        check("blank check ACCEPTING CASE: a varied image is 'varied'",
+              v == "varied" and st["decoded"], f"{v}: {why}")
+        check("blank check: the numbers carry their denominator "
+              f"({st.get('sampled')} sampled of {st.get('pixels')} pixels)",
+              st.get("sampled") and st.get("pixels")
+              and st["sampled"] <= st["pixels"], st)
+        # A faint gradient is a real image and must not be swallowed by the bound.
+        gentle = td / "gentle.png"
+        _write_png(gentle, 160, 120, lambda x, y: ((100 + x // 20,) * 3))
+        gv, gwhy = blank_verdict(png_stats(gentle))
+        check("blank check ACCEPTING CASE: a faint 8-level gradient is still "
+              "'varied' - the bound sits at the degenerate end, not in the middle",
+              gv == "varied", f"{gv}: {gwhy}")
+        # ...and now the rejecting cases.
+        for name, painter, ct in (("black", lambda x, y: (0, 0, 0), 2),
+                                  ("mid-grey", lambda x, y: (127, 127, 127), 2),
+                                  ("white", lambda x, y: (255, 255, 255), 2)):
+            f = td / f"blank_{name}.png"
+            _write_png(f, 160, 120, painter, ctype=ct)
+            bv, bwhy = blank_verdict(png_stats(f))
+            check(f"blank check REJECTING CASE: a uniform {name} image is 'blank'",
+                  bv == "blank", f"{bv}: {bwhy}")
+        clear = td / "transparent.png"
+        _write_png(clear, 160, 120,
+                   lambda x, y: ((x * 3) % 256, (y * 3) % 256, 200, 0), ctype=6)
+        tv, twhy = blank_verdict(png_stats(clear))
+        check("blank check REJECTING CASE: fully transparent is blank even when "
+              "the colour channels vary",
+              tv == "blank", f"{tv}: {twhy}")
+        for name, blob in (("empty file", b""),
+                           ("not a PNG", b"GIF89a and then some"),
+                           ("header only", b"\x89PNG\r\n\x1a\n stub")):
+            f = td / f"bad_{name.replace(' ', '_')}"
+            f.write_bytes(blob)
+            uv, uwhy = blank_verdict(png_stats(f))
+            check(f"blank check THIRD ANSWER: {name} is 'unknown' - not blank, "
+                  "not varied", uv == "unknown", f"{uv}: {uwhy}")
+        # And the decoder is not a stub that says 'varied' to everything: it
+        # reads back what was written, through a non-trivial filter path.
+        st2 = png_stats(good)
+        check("blank check: the decoder reads real geometry back "
+              f"(160x120, {st2.get('distinct')} distinct levels)",
+              st2.get("width") == 160 and st2.get("height") == 120
+              and st2.get("distinct", 0) > 20, st2)
+
+    # 9. FIX 2 - #1673: --vae-conv-direct on Vulkan is a function of the SIZE.
+    unknown_vram = plan({"gpus": [{"name": "AMD Radeon Graphics"}]})
+    check("vae flags ACCEPTING CASE: at 512x512 on Vulkan the planned flags are "
+          "used unchanged - the workaround is not applied where the issue says "
+          "the output is clean",
+          image_flags(unknown_vram, 512, 512)[0] == unknown_vram["flags"]
+          and image_flags(unknown_vram, 512, 512)[1] is None,
+          image_flags(unknown_vram, 512, 512))
+    f1024, note = image_flags(unknown_vram, 1024, 1024)
+    check("vae flags REJECTING CASE: at 1024x1024 on Vulkan --vae-conv-direct is "
+          "dropped and --vae-on-cpu takes its place, with #1673 named",
+          "--vae-conv-direct" not in f1024 and "--vae-on-cpu" in f1024
+          and note and "#1673" in note, f"{f1024} / {note}")
+    check("vae flags: the AMD machine with UNKNOWN vram - which is Jafar's case "
+          "by construction - is the one that would have hit it",
+          "--vae-conv-direct" in unknown_vram["flags"]
+          and not unknown_vram["vram_known"] and unknown_vram["backend"] == "vulkan",
+          unknown_vram["flags"])
+    nv = plan({"gpus": [{"name": "NVIDIA GeForce RTX 3060", "vram_bytes_registry": 6 * 1024**3}]})
+    check("vae flags: the CUDA path keeps --vae-conv-direct at 1024x1024 - #1673 "
+          "is a Vulkan report and the workaround is not spread to backends it "
+          "was never about",
+          "--vae-conv-direct" in image_flags(nv, 1024, 1024)[0], image_flags(nv, 1024, 1024))
+    sizes = {(round16(i["width"]), round16(i["height"])) for i in spec["items"]}
+    check(f"vae flags: all {len(spec['items'])} shipped items ({len(sizes)} distinct "
+          "sizes) are larger than 512x512, so on Vulkan every one of them takes "
+          "the workaround - stated because a flag that never fires is worse "
+          "than one that is gone",
+          all(image_flags(unknown_vram, w, h)[1] for w, h in sizes), sizes)
+
+    # 10. FIX 3 - the model GGUF has a candidate list, and a gate still stops.
+    for q in QUANTS:
+        urls = model_urls(q)
+        if len(urls) < 2 or QUANTS[q][0] not in urls[0]:
+            check(f"model candidates: {q} has a list, best first", False, urls)
+            break
+    else:
+        check(f"model candidates: all {len(QUANTS)} quants get "
+              f"{len(model_urls('Q4_K'))} candidates, the first being leejet's "
+              "exact filename", True)
+    u = model_urls("Q4_K")
+    check("model candidates: the Q4_K / Q4_K_M spelling is tried both ways",
+          any(x.endswith("Q4_K.gguf") for x in u)
+          and any(x.endswith("Q4_K_M.gguf") for x in u), u)
+    check("model candidates: no duplicates, every one a plain HF resolve URL",
+          len(set(u)) == len(u) and all(x.startswith(HF + "/") and "/resolve/main/" in x
+                                        for x in u), u)
+
+    class _Resp:
+        def __init__(self, data):
+            self.data, self.i, self.status = data, 0, 200
+            self.headers = {"Content-Length": str(len(data))}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self, n=-1):
+            chunk = self.data[self.i:self.i + (n if n and n > 0 else len(self.data))]
+            self.i += len(chunk)
+            return chunk
+
+    real_open, seen = urllib.request.urlopen, []
+
+    def fake_open(codes):
+        def _u(req, timeout=None):
+            seen.append(req.full_url)
+            if codes.get(req.full_url):
+                raise urllib.error.HTTPError(req.full_url, codes[req.full_url],
+                                             "no", {}, None)
+            return _Resp(b"z" * 4096)
+        return _u
+
+    import io
+    import contextlib
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            td = pathlib.Path(td)
+            a, b = "https://x/one.gguf", "https://x/two.gguf"
+            # ACCEPTING CASE FIRST: a 404 on the first candidate is a rename,
+            # not a gate, and the list is what makes it survivable.
+            seen.clear()
+            urllib.request.urlopen = fake_open({a: 404})
+            with contextlib.redirect_stdout(io.StringIO()) as cap:
+                path, used = fetch_one([a, b], td / "m1.gguf", 4096, "model")
+            check("fetch ACCEPTING CASE: a 404 on the first candidate falls "
+                  "through to the second, which is the whole point of the list",
+                  used == b and path.exists() and seen == [a, b], f"{used} {seen}")
+            check("fetch: it prints what every candidate answered",
+                  "one.gguf" in cap.getvalue() and "two.gguf" in cap.getvalue())
+            # REJECTING CASE: a gate STOPS. It must not shop down the list for
+            # an unlocked door - we hold no accounts.
+            for code in (401, 403):
+                seen.clear()
+                urllib.request.urlopen = fake_open({a: code})
+                with contextlib.redirect_stdout(io.StringIO()) as cap:
+                    try:
+                        fetch_one([a, b], td / f"m{code}.gguf", 4096, "model")
+                        stopped, msg = False, "no exception"
+                    except RuntimeError as e:
+                        stopped, msg = True, str(e)
+                check(f"fetch REJECTING CASE: HTTP {code} STOPS the run, says "
+                      "GATED, and does NOT try the remaining candidates",
+                      stopped and seen == [a] and "GATED" in msg
+                      and "NOT tried" in msg
+                      and "needs a Hugging Face login" in cap.getvalue(),
+                      f"tried={seen} msg={msg[:160]}")
+    finally:
+        urllib.request.urlopen = real_open
 
     print("-" * 60)
     print(f"  {ok} passed, {fail} failed, {ok + fail} checks run")
@@ -793,10 +1520,17 @@ def main():
     ap.add_argument("--out", help="override the output directory")
     ap.add_argument("--max-minutes", type=float, default=60.0)
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--series", nargs="?", const=".", metavar="DIR",
+                    help="print the blankness series over every PNG under DIR. "
+                         "This is the instrument BLANK_MAX_SPREAD was read off; "
+                         "it exists so the bound can be re-derived rather than "
+                         "believed.")
     ap.add_argument("--dry-run", action="store_true",
                     help="plan and print the exact commands, download nothing")
     a = ap.parse_args()
 
+    if a.series:
+        return png_series(a.series)
     if a.selftest:
         return selftest()
 
@@ -838,11 +1572,20 @@ def main():
         spec = json.loads((pathlib.Path(__file__).parent / "prompts.json").read_text())
         log("DRY RUN - nothing downloaded. First command would be:")
         it = spec["items"][0]
+        # THE FLAGS PRINTED HERE ARE THE ONES THE IMAGE WOULD GET, not the
+        # plan's - they differ on Vulkan above 512x512 (#1673), and a dry run
+        # that prints a command the real run would not issue is a dry run that
+        # lies about the only thing it is for.
+        dry_flags, dry_note = image_flags(pl, it["width"], it["height"])
         log("  sd-cli.exe --diffusion-model " + pl["quant_file"] +
             " --vae ae.safetensors --llm " + TEXT_ENCODER["file"] +
             f" -p \"{build_prompt(it, spec['content_rules']['rules_clause'], spec['style'])[:150]}...\"" +
             f" --cfg-scale 1.0 --steps 8 -W {it['width']} -H {it['height']} " +
-            " ".join(pl["flags"]))
+            " ".join(dry_flags))
+        if dry_note:
+            log(f"  and per image: {dry_note}")
+        log(f"  model would be fetched from the first of {len(model_urls(pl['quant']))} "
+            f"candidates: {model_urls(pl['quant'])[0]}")
         for p in reports:
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(format_report(machine, pl, lines[-3:]), encoding="utf-8")
@@ -890,7 +1633,7 @@ def main():
                 "wiring works, not the batch.")
         log(f"  generator: {exe}")
         q = QUANTS[pl["quant"]]
-        p1, u1 = fetch_one([f"{HF}/leejet/Z-Image-Turbo-GGUF/resolve/main/{q[0]}"],
+        p1, u1 = fetch_one(model_urls(pl["quant"]),
                            models / q[0], q[1], f"{MODEL['name']} {pl['quant']}")
         p2, u2 = fetch_one(TEXT_ENCODER["urls"], models / TEXT_ENCODER["file"],
                            TEXT_ENCODER["bytes"], "Qwen3-4B text encoder")
@@ -935,6 +1678,14 @@ def main():
     log("")
     log(f"{man['status']}: {man['items_written']} written, {man['items_failed']} failed, "
         f"{man['items_attempted']} attempted of {man['items_in_spec']} in the batch")
+    bc = man["blank_check"]
+    log(f"  blank check: {bc['blank']} blank, {bc['undecodable']} undecodable, of "
+        f"{bc['checked']} PNGs decoded ({bc['bound']})")
+    if bc["blank"]:
+        log("  A BLANK IMAGE IS NOT A FAILURE OF YOUR MACHINE. It is "
+            "leejet/stable-diffusion.cpp#1031, open, unfixed: Z-Image on Vulkan "
+            "can write an empty PNG and exit success. Send this back - the next "
+            "thing to try is the ROCm build named in the report.")
     if man["not_attempted"]:
         log(f"  not attempted: {', '.join(man['not_attempted'])}")
     log(f"  images and manifest: {outdir}")
