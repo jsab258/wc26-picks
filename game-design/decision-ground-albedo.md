@@ -1286,3 +1286,141 @@ named and fixed (verification moved to the cheaper tier, reviews now
 batched per commit, the pointless-respawn bug repaired), and the
 expected shape from here is roughly half the spawns for the same
 oversight.
+
+---
+
+# Landing 3a4e335 — first `groundGainBy` read, ruling on A–D (director, 25 Aug 2026)
+
+> First use of verifier-first (Fable-usage ruling, item 3): the tier-2
+> position is taken as ESTABLISHED; I spot-checked citations only.
+> Spot-checks done this session: `GroundSurfaceOf` confirmed a pure name
+> match with no geometry test (`AssetLibrary.cs:1007–1008`);
+> `FilmGrade.Bypass` confirmed real, static, default false
+> (`FilmGrade.cs:204`); the landed row matches `runs/3a4e335.txt:87`
+> verbatim; the verdict itself is GREEN (`gatesFailed=0 pass=True`), so
+> nothing here is urgent. **One citation correction, direction only**:
+> `TrafficHost.cs:1025` is `v.Id % 2 == 0 ? Metal : Concrete` — ODD ids
+> feed `concrete`, not even ids. The substantive claim (~half the
+> default-kind vehicles land in the `concrete` bucket) is unchanged; the
+> parity is recorded so nobody later patches the wrong branch of that
+> ternary.
+
+## A. `groundGainBy` KEEPS ITS NAME AND GAINS THE FILTER THAT MAKES THE
+NAME TRUE. Until the filtered version lands, NO row of 3a4e335's
+`groundGainBy` — not only `concrete` — is quotable as ground.
+
+Not renamed (the name states the intended question, and the question is
+right); not withdrawn (deleting a key on its first landing for a fixable
+classifier fault is the ratchet shape — the fix is three lines and rides
+the very next dispatch, so no unfiltered landing need ever occur). The
+coordinator's interim "concrete is unreadable" is WIDENED: `concrete` is
+merely the worst (44% of rays, facades + odd-id vehicle paint + the `_b`
+facade variant collapsed by `SurfaceNames.cs:46`); `sidewalk` carries
+street furniture; `asphalt` and `kerb` purity is UNESTABLISHED in either
+direction. A bucket not proven contaminated is not thereby proven clean —
+so the honest description of this landing is "surface-NAMED buckets over
+whatever the rays hit", and every per-row magnitude waits for the filter.
+The filter lives at the RAY SITE (`SimDirector.cs:~10740`), not in
+`GroundSurfaceOf`: the classifier answers "which family is this material"
+and structurally cannot answer "is this surface ground" — its comment
+gains one line saying the ray site supplies the geometry test, so nobody
+later "fixes" the classifier by handing it geometry it cannot have.
+
+**Also ruled dead with the buckets: finding 3's fitted statistics.** The
+R2 −8.655, the negative b, the b=0 constrained fit are honest arithmetic
+over four contaminated pairs at n=1; the QUALITATIVE conclusion —
+rendered luma decoupled from source albedo — survives on finding 4's
+mechanism and on the asphalt row's sheer magnitude, but the fitted
+NUMBERS are not quotable forward, anywhere, ever. A regression over four
+points whose buckets do not mean their names is not a measurement.
+
+## B. The lighting diagnosis SURVIVES, and the lever WIDENS BY NAME: the
+standing phrase "the lighting stack" now means the LIGHT-TO-JPEG PATH —
+in-scene light AND `FilmGrade` — and no sub-lever is picked until the
+Bypass A/B separates them.
+
+§A stands untouched: legs 3 and 2 are frame-internal and albedo-free, and
+findings 3–4 cannot reach them. What findings 3–4 add is two-fold:
+
+1. **The addendum's "UNIDENTIFIED distance-dependent brightening" suspect
+   list gains the post stack as a first-class suspect.** Bloom is
+   additive, albedo-blind, and SPATIAL — far ground abuts the bright
+   horizon in screen space, so sky bloom bleed is a candidate mechanism
+   for the very convergence violation leg 3 measured. The ACES shoulder
+   compressing everything toward near-white (rendered rows encode to
+   sRGB 0.597–0.742) is the other. The Bypass A/B is therefore decisive
+   for the addendum's open discrepancy too, not just for this key.
+2. **A fact the record has not said until now, said plainly: EVERY
+   frame-sampled number in this fork is POST-GRADE** — ground rows, sky
+   band, near/far pairs alike. The numerator of `groundGainBy` is
+   `tonemap(exposure x light x albedo) + bloom + grain` read off the
+   encoded frame; the 68x on asphalt is exactly what an additive,
+   albedo-blind term does to a ratio as the denominator falls, and is
+   quotable ONLY as that signature — never as "gain of the light".
+
+Nothing about "the surface is not the lever" moves. `GroundGrade` stays
+frozen in both directions; falsifiers (a)/(b) stand; and no exposure,
+fog, tonemap, or bloom constant moves until `groundGainByRaw` beside
+`groundGainBy` says WHICH term is lifting the road.
+
+## C. The verifier's measurement is APPROVED, with the order CLARIFIED
+and three amendments — ONE dispatch, not two.
+
+"Normal filter FIRST" is ruled to mean first IN THE TALLY, not first in
+a separate round trip: the filter conditions BOTH emits (graded and raw),
+so the A/B never describes a contaminated row, and the batching rule
+makes the second round trip pure waste. Contents:
+
+1. `hit.normal.y > 0.9` at the ray site, applied before bucketing;
+   per-row DROPPED-ray count and per-row TOP CONTRIBUTING MATERIAL NAME
+   printed (both the verifier's own proposals, adopted — they are rule
+   3b's denominator and the legibility that lets `mat_concrete_b` and
+   vehicle paint convict themselves). The 0.9 is a geometric classifier,
+   not a tuned bound — ground is horizontal by construction — and the
+   dropped-count printer is its audit: if `kerb` collapses to near-zero
+   rays, the vertical kerb faces WERE the bucket, and that is a finding
+   about the old rows, not a fault in the filter.
+2. `FilmGrade.Bypass` A/B in the SAME build: `groundGainByRaw` beside
+   `groundGainBy`, same rays, same filter, colour space named at both
+   emits per `instruments.md`, the 2.05-cluster gamma trap extended to
+   the raw key's comment.
+3. No gate, no bound, no lever. This landing makes n=2; the band
+   mechanism stays the standing §B one (series first, band from
+   evidence, director close-out).
+
+## D. CONFIRMED — everything that moves a lever or sets a bound stays
+BLOCKED. n=1 on this key, ±4% run-to-run noise floor (the kerb-vs-
+concrete 4% gap is inside it and is not read), rows not yet meaning
+their name, and the verdict green so nothing forces haste. Added to the
+blocked-by-name list: any conclusion quoting finding 3's fitted
+statistics (§A above).
+
+## The next dispatch, ranked
+
+1. **Normal filter on the ground tally** + per-row dropped count +
+   per-row top material name (§C.1) — the change that makes
+   `groundGainBy` mean its name.
+2. **`FilmGrade.Bypass` A/B**: `groundGainByRaw` beside the graded key,
+   same rays, same filter, spaces named (§C.2) — the only measurement
+   that can separate ambient lift / ACES shoulder / bloom, for this key
+   AND for the addendum's open sky discrepancy.
+3. The already-approved unlanded riders of the standing train, unchanged.
+4. **Nothing that moves a lever**: no exposure, fog, tonemap, bloom,
+   `GroundGrade`, or `AlbedoScale` change; no skyline geometry; no
+   decals.
+
+## Additions to "what the next session must NOT re-litigate"
+
+- **No row of 3a4e335's `groundGainBy` is quotable as ground**, and
+  finding 3's R2/b fit numbers are not quotable at all.
+- **"The lighting stack" in every standing order now reads
+  "light-to-JPEG path, in-scene light plus FilmGrade"**; the sub-lever
+  is chosen only off the landed Bypass A/B, once.
+- **The 68x asphalt figure is the signature of an additive/compressive
+  post term over a raw denominator** — never quote it as a gain of the
+  light, and never "fix" it by moving albedo.
+- **`TrafficHost.cs:1025`: ODD vehicle ids feed `concrete`** (verified
+  this session). Do not patch the even branch.
+- **`groundAlbedoBy` and `groundGainBy` denominators are different
+  moments and different populations** (verifier finding 7, adopted) —
+  do not cross-check one against the other.
