@@ -104,6 +104,43 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    still live one layer out. `verify.py` already has the machinery to ask the
    better question (a stamped ruling newer than the reference). Same spawn.
 
+1. **`namedJunctions=1` OF 97 — 49 OF 51 STREET NAMES ARE UNREACHABLE, AND
+   THE GUARD FOR THIS EXACT FAULT REPORTS ZERO.** *(moat: information)*
+   `StreetMap.NameOf` compares SCALED node coordinates against the UNSCALED
+   district avenue tables, so only the founding cross at (0,0) ever matches.
+   **This is the SIXTH consumer to read those tables raw** — and
+   `tools/lint-avenues.py:54` EXEMPTS `StreetMap.cs` as "the owner of the
+   transform", so it prints `0 raw avenue reads` over a denominator that
+   excludes the one file the fault lives in. A zero whose denominator omits
+   its subject; rule 3b wearing an exemption's clothes. **Two items: fix
+   `NameOf` (Core, needs a ruling — it changes `AddressOf` strings feeding
+   gossip and breaks three CoreTests), and NARROW the lint's OWNER
+   exemption.** It also CORRECTS the premise ruling C was given: plates have
+   been placed all along (`signs=59 wallPlates=2`) at the one junction that
+   can name itself, so "named streets and no way to read a name" was wrong —
+   the hole is the LOOKUP, not the signage. `sign_plate_name` now files
+   `junction_unnamed:192` every run, so it is legible in the channel
+   everyone already reads rather than needing a fresh investigation.
+
+1. **STAGE 2 (SPEECH) — JAFAR'S PRIORITY 2, NOT STARTED, AND THE RUNTIME WAS
+   NEVER THE PROBLEM.** The channel answered on its first run: DirectML lands,
+   three runtime files, `LEDGER_ONNX` defined — `RUNTIME_OK`. So
+   `speechLive=0` with `speechNoModel=29` across 301 builds is **the voice
+   MODEL missing from the build**, not a broken runtime. **The stage opens
+   with the model:** find what `OnnxSpeech` loads and whether anything stages
+   it into the Windows build the way `voices-into-build` stages the banked
+   clips. **Do not spend a round trip re-testing the fetch** — it is green and
+   named. *(Cut by the resident in a trim for space on 25 Aug and restored
+   the same minute: it is a LIVE priority-2 item, not a closed block. Look
+   before you destroy — the rule applies to a queue as much as to a file.)*
+
+1. **PLAYBOOK SYNC DEFERRED: `playbook-sync-hybrid-resident`.** CLAUDE.md's
+   THE-HYBRID-RESIDENT section was rewritten 25 Aug (the cadence hole closed,
+   its two residual holes named, the watchdog's twin recorded). `jsab258/
+   game-studio` has not absorbed it, and that repo is outside this session's
+   push scope. `template-sync` is deferred against this item, NOT stamped as
+   synced — the two are different facts and must not print alike.
+
 1. **THE VALUE INVERSION IS A DAYLIGHT FAULT, NOT A GRADE FAULT — read off
    the 71316fa pair before any number, which is the standing rule.** At NIGHT
    the structure is CORRECT: dark sky, dark ground, bright sodium points, one
@@ -305,42 +342,10 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    cause stands; the inquiry cause does not, and the two were read as one.
 
 
-1. **STAGE 2 (SPEECH): THE RUNTIME WAS NEVER THE PROBLEM — IT IS THE MODEL.**
-   *(not started; stage 1 has startable work. The rule-12 half is DONE.)*
-   The channel answered on its first run: **`speechRuntime=[Microsoft.AI.
-   DirectML 1.15.2: DirectML.dll (17.7 MB); speech runtime: 3 file(s),
-   LEDGER_ONNX defined in ledger/Assets/csc.rsp; RUNTIME_OK]`**. The fetch
-   works, the DLLs land, the define is set. So `speechLive=0` with
-   `speechNoModel=29` across 301 builds is **the voice MODEL not being in
-   the build**, not a broken runtime — which is exactly the distinction that
-   line was added to make, and it made it immediately.
-   **So the stage opens with the model, not the runtime.** Find what
-   `OnnxSpeech` loads and whether anything stages it into the Windows build
-   the way `voices-into-build` stages the banked clips. **Do not spend a
-   round trip re-testing the fetch** — it is green and named.
-
 
 1. **PATROL DENSITY FOLLOWS THE INQUIRY — whether it READS is unfinished.**
    Open: `patrolOnBeatMean=0.00` over 3 shots vs `0.18` over 17 — zero of
    three separates nothing. A PARKED beacon reads where six crossings do not.
-
-
-1. **THE FETCHED MODELS HAVE A REACH LEDGER: `tools/prop-reach.py`, in
-   `verify`.** 213 models on disk; **73 named as of the dressing batch**, up
-   from 62 — `city-kit-suburban` is no longer an ENTIRE KIT UNREACHED. Per
-   kit, because one number cannot carry both questions.
-   **Still open, biggest first:** the rest of `city-kit-roads` (signage is
-   the named gap — director ruled it queues HIGH);
-   `city-kit-industrial_detail-tank`, 84.8 x 41.5 x 51.5, a squat dock tank
-   needing a ground placement site rather than a skyline slot; car-kit 39
-   unused, base-mesh 23, oga-vehicles 23.
-   **MEASURE WITH `prop-dimensions` BEFORE PLACING ANY OF THEM.** Those
-   numbers overturned the obvious plan for the industrial band: commercial
-   skyline models are slim towers (50x200), industrial ones squat masses
-   (208x147), so reusing the tower height target would have built one wall of
-   interpenetrating geometry no still could diagnose. **And bounds are not
-   enough on their own** — the survey called two models triangles from their
-   bounds and the OUTLINE proved them US diamonds.
 
 
 

@@ -1038,6 +1038,48 @@ director's decision record itself to be newer than the reference commit —
 the second is stronger, because it tests the ARTIFACT rather than the
 process and cannot be satisfied by a director that ran and said nothing.
 
+**CLOSED THE SAME NIGHT, AND THE PARAGRAPH ABOVE IS KEPT AS WRITTEN
+BECAUSE THE HOLE FIRED A SECOND TIME WHILE IT WAS BEING READ.** At
+17:01Z a `studio-director` was killed by a session limit before ruling,
+its row landed, and `director_cadence` went green over an unreviewed
+1,800-line batch carrying eleven confirmed audit findings. The
+unattended loop this paragraph predicts is the one that nearly
+committed it.
+
+**The stronger fix is built and live.** The gate now requires a decision
+RECORD — `<!--RULING spawn=<ISO8601>-->` inside a
+`game-design/decision-*.md`, where the stamp names a real
+`studio-director` row NEWER than the reference commit, quoted verbatim
+from the log. The row changes ROLE rather than losing one: still
+necessary (a hand-typed date matches nothing), no longer sufficient. A
+machine writes the row at spawn; the director writes the stamp as the
+closing act of a ruling, and a killed director never reaches that write.
+Selftest 38 -> 53 fixtures, and the refusal message names the exact
+stamp to use and says **RESUME the killed director rather than restart
+it** — which turned the repair from a fresh Fable spawn into one cheap
+turn. Exit 3 means spawned-but-never-ruled.
+
+**Both outcomes were watched on live data, not fixtures** — it refused
+the director's own unstamped ruling, then went `REVIEWED` once stamped.
+On the same tree in the same minute, HEAD's pre-change gate returned
+GREEN over that same unreviewed batch. That pair is the finding.
+
+**TWO RESIDUAL HOLES, MEASURED RATHER THAN REASONED, so nobody records
+this as airtight.** A stamp naming the DEAD 17:01Z spawn clears the gate
+exactly as a real one does — nothing here attests authorship. And the
+resident could author a decision file outright. **Both need a person to
+write a false sentence; the hole they replace needed nobody to do
+anything**, which is the whole distance travelled. The rule that keeps
+it honest is procedural and was followed the first night: **a resident
+never stamps the director's ruling — that is the spawn-row hole with
+better manners.**
+
+**AND THE WATCHDOG STILL HAS THE ORIGINAL HOLE.** Its DAILIES CHECK
+reads *"if no `studio-director` row in the last 12 hours, spawn"* — a
+ROW, which is attendance. Director-ruled 25 Aug: it moves to the same
+artifact test, implemented by CALLING the commit gate's parse rather
+than growing a second copy of it. One idea, one implementation.
+
 **WHAT COUNTS AS ONE BATCH — AND MINIMISING FABLE (25 Aug, Jafar:
 "have we actually been minimizing fable usage now (no more than
 necessary)? fable has its own usage limit and counts double against the

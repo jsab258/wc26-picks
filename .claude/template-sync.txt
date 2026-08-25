@@ -12,13 +12,13 @@
 # Re-stamp with: python3 tools/template-sync.py --stamp --template-sha <sha>
 #           or: python3 tools/template-sync.py --stamp --defer <queue-item>
 templateRepo=jsab258/game-studio
-state=synced
-templateSha=63532cb
-queueItem=none
+state=deferred
+templateSha=none
+queueItem=playbook-sync-hybrid-resident
 stamped=2026-08-25
 sections=4
 section=key:THE-STUDIO-SPLIT/lines:27/sha256:1429dac3024ce409
-section=key:THE-HYBRID-RESIDENT/lines:74/sha256:66bf65ded8e9d8a7
+section=key:THE-HYBRID-RESIDENT/lines:116/sha256:a91cfb5677b10b63
 section=key:REPORTING/lines:14/sha256:7ec1f012b19d9a86
 section=key:AUTO-MODE/lines:296/sha256:4bf1ebc065c6ea3d
-fingerprint=4232a472a922fb70
+fingerprint=8e2fa98b9d793081
