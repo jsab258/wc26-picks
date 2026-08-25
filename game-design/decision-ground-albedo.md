@@ -1840,3 +1840,73 @@ rungs are named and queued: `city-kit-suburban` (13 models, unreached),
 skyline keys land in a verdict and the stills are read: `skylineByEdge`
 should read k/k on every edge, and the report's own header instructs
 its supersession at that point.
+
+---
+
+# DIRECTOR RULING — the visual plan is REPLACED; cadence rules bind (25 Aug 2026, Jafar escalation: "this goal is a must")
+
+Ruled on Jafar's direct order, delegated to the director. Full plan:
+`visual-bar-spec.md` §4 (rewritten this session, whole-file Write after a
+whole-file read; §1–3 and §5–8 substantially retained, §3 is a new
+technique scorecard, §9 records why V0–V6 fell). This entry carries only
+what BINDS other rulings in this file.
+
+## 1. The biggest gap is named from the frames: VALUE-STRUCTURE INVERSION.
+
+All five references: sky is the brightest broad surface, ground mid-dark
+with the widest tonal variety, everything on contact shadow. Our noon
+stills: near-white ground under a storm-dark sky. Cause chain: the
+albedo-blind ground term (attribution batch in flight, this file) × the
+3.44 noon aperture (LightModel.cs:160, calibrated against the broken
+ground response) × an overcast dome authored dark. Detail work on a
+clipped ground is invisible, so R0 (value structure) precedes ground
+decals — which CONFIRMS Call 1 (ground first) and extends it upward
+into the dome and aperture.
+
+## 2. What this ruling does NOT touch — prior rulings all stand.
+
+The attribution batch, its ordering, "no contested lever moves in that
+batch", the skyline/apron ride-along, the aperture moving ONCE off a
+post-fix printed series (36b90c9 §A), the decal unblock condition for
+GROUND decals. One split: WALL-side surface history (posters, streaks)
+is not blocked by the ground question and may ride any dispatch as
+visible work.
+
+## 3. TWO CADENCE RULES, standing, on the D question (measurement vs
+visible), ruled by the director as the only tier that can:
+
+  a. **Every dispatch ships at least one visible change** a person can
+     point at in a still, unless a red gate blocks the build.
+     Measurement-first governs LEVERS (rule 2 untouched); it is not a
+     licence for measurement-only dispatches. This week produced ~15
+     instrument fixes, one visible change, one regression — that
+     balance is ruled a failure mode, not diligence.
+  b. **Paired stills are read before any number at every landing.** The
+     washout is the proof: a 3.07x exposure lift shipped and two days
+     went to measuring its symptom unconnected to its cause, because no
+     landing put the new noon beside the old one.
+
+## 4. The convergence instrument (R1) is ORDERED, rides with R0:
+five player-height cameras matched to the five reference compositions
+(`ref_1..ref_5`, committed every run), the five hand-painted reference
+mattes (already approved, unbuilt), and a small fixed panel (band
+medians, shadowed:lit, ground spread). Aerial stills stop being
+judgement frames. At every landing the biggest visible difference is
+written in one sentence; the same sentence three landings running
+becomes the next phase, whatever the plan says.
+
+## 5. R0's gate is an ORDERING, not an invented threshold: per noon
+still, skyBand > litWallBand > groundBand > shadowBand, and rendered
+ground lumas ordered as source albedos (asphalt < kerb < paving).
+Margins come later from the landed series; the order comes from the
+references (7/7 on the sky-vs-ground half already).
+
+## Additions to "what the next session must NOT re-litigate"
+
+- V0–V6 is replaced by R0–R5 (`visual-bar-spec.md` §4/§9); do not
+  execute against the old phase list or re-derive it from roadmap
+  M17.10's stale prose — the roadmap row points at the spec.
+- The 3.44 day aperture is a wrong value arrived at correctly; it is
+  HELD (not reverted piecemeal) and dies with R0.b's single re-set.
+- Cadence rules 3a/3b bind every dispatch and landing until Jafar
+  calls the bar met.
