@@ -340,3 +340,20 @@ if ($script:notes.Count -gt 0) { $m["probe"] = "partial: " + ($script:notes -joi
 $m | ConvertTo-Json -Depth 6 | Out-File -FilePath $Out -Encoding utf8
 Write-Host "  machine probe written to $Out"
 Write-Host "  adapters: $($script:gpus.Count) via $($m['gpu_source'])"
+
+# THE ANSWER AS AN EXIT CODE, so the .bat can act on it without parsing JSON.
+#
+# EXACTLY 10 MEANS "RAN, FOUND NONE" - not ">= 10", and the .bat compares with
+# `==` for that reason: cmd's `if errorlevel N` is a >= test, and a powershell.exe
+# that cannot be started at all sets errorlevel 9009, which would read as "no
+# graphics card" on a machine nobody looked at. Any other code means the probe
+# did not finish, and the caller must treat that as UNKNOWN rather than as a
+# finding - imagegen.py's gate makes the same distinction from the file's side
+# (`no-probe-file` vs `no-adapter`), and the two agree by construction because
+# both are asking "did we look" before "what did we see".
+#
+# THIS DOES NOT DECIDE ANYTHING. The stop, the wording and the report are all
+# imagegen.py's, where there are tests. This exit code exists only so the .bat
+# can skip fetching a standalone Python for a run that is not going to happen.
+if ($script:gpus.Count -eq 0) { exit 10 }
+exit 0

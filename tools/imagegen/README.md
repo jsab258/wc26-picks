@@ -3,9 +3,21 @@
 **Double-click `1 MAKE THE PICTURES.bat`. That is the whole thing.**
 It asks you nothing. Leave it running and come back.
 
+**It checks your PC first and stops if there is no point.** If it finds no
+graphics card it stops right there — nothing downloaded, nothing generated,
+no seven minutes of your afternoon — prints what it found and asks for
+`machine-report.txt` back. Without a card each picture takes about 202
+seconds, and that is a decision worth your say-so, not ours.
+
+**Running it again is safe.** Any picture already made and not blank is
+skipped and said so; nothing you have is overwritten, so nothing needs
+copying aside first. To have one made again, delete its `.png`.
+
 | | |
 |---|---|
 | **First run takes** | 20 min to a couple of hours — most of it is a 7–10 GB download that happens once and resumes if you stop it |
+| **If this PC has no graphics card** | it stops in under a minute having downloaded nothing. Want it anyway? `2 MAKE THE PICTURES (no graphics card).bat` — one click, ~7 min, 2 half-size pictures of 12 |
+| **Re-running** | skips what is already made; never overwrites. Delete a `.png` to redo just that one |
 | **Installs into** | `%USERPROFILE%\ledger-imagegen` — outside the repo. Nothing system-wide, nothing in Program Files, nothing added to your Python, your Unity or the speech setup |
 | **To undo everything** | delete that one folder |
 | **Costs** | nothing. No account, no login, no token, no purchase |
@@ -70,12 +82,30 @@ machine — send it back and the next thing to try is named in the report.
   CIM_VideoController, the same class via WMI, PnP display class, the display
   class registry, then dxdiag /x), wraps every single row, and writes down what
   each source answered — so a zero arrives with the denominator that says how
-  hard it looked. **It has never been executed: there is no PowerShell here.**
+  hard it looked. It now also **exits 10 when it found no adapter** and 0 when
+  it found one, so the `.bat` can act on the answer without parsing JSON; the
+  `.bat` compares with `==` and not `if errorlevel`, because that is a
+  greater-or-equal test and a missing powershell.exe sets 9009.
+  **It has never been executed: there is no PowerShell here.**
+- **`1 MAKE THE PICTURES.bat` / `2 MAKE THE PICTURES (no graphics card).bat`** —
+  the second sets `LEDGER_FORCE_CPU` and calls the first, so there is exactly
+  one copy of the download, the licence checks, the blank check and the skip.
+  **Neither has been executed here.** The stop decision, its wording and the
+  skip all live in `imagegen.py` for that reason: an unrun decision is the one
+  that decides wrongly in silence. What the selftest can see of the `.bat`s is
+  text only — that the file the stop message names exists, that the two agree on
+  the handoff variable, and that exit 5 has a paragraph of its own.
 - `imagegen.py` — plan, fetch, generate, manifest. **Stdlib only, no pip.**
-  `python imagegen.py --selftest` runs 57 checks with no GPU and no network,
+  `python imagegen.py --selftest` runs 83 checks with no GPU and no network,
   including both halves of the blank-image check (a varied image accepted, a
-  uniform one rejected) and both halves of the gate (a 404 falls through to the
-  next candidate, a 401/403 stops the run).
+  uniform one rejected), both halves of the licence gate (a 404 falls through to
+  the next candidate, a 401/403 stops the run), both halves of the **GPU gate**
+  — run through `main()` with `urlopen` rigged to record any attempt, so
+  "downloads nothing" is asserted rather than asserted-about — and both halves
+  of the **skip** (a good PNG is skipped and left byte-identical, a blank or
+  undecodable one is made again).
+  `--force-cpu` is the deliberate slow path and does NOT lift the CPU batch cap;
+  `--redo` regenerates everything.
   `python imagegen.py --series <dir>` prints the blankness measurement over
   every PNG under a directory — the series the bound was read off.
   `python imagegen.py plan --machine machine.json` prints the plan and

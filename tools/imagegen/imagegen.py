@@ -22,13 +22,31 @@ do NOT know the model or the VRAM. So nothing here assumes a vendor: the
 probe reports, `plan()` branches, and the report file says which branch it
 took and why.
 
-TESTING. Everything that can be tested without a GPU is: `--selftest` runs 57
+THE CLICK DECIDES FOR ITSELF. Jafar's bar is "minimal effort, ideally just a
+1 click bat", and a run that needs him to paste a command or move a file by
+hand has failed it however well it works. Two decisions used to be his and are
+now made inside the click:
+
+  * WORTH STARTING AT ALL. `gpu_gate` runs on the probe's answer BEFORE the
+    6.7 GB download. No display adapter, or no probe at all, and the run STOPS
+    having downloaded nothing - because the CPU path measured 202 seconds an
+    image on his machine and capped at 2 of 12, which is seven minutes of his
+    time spent to learn what the probe already said. The deliberate slow path
+    exists and is a separate .bat (see CPU_BAT); the default path never asks.
+  * WHAT IS ALREADY MADE. `run_batch` skips an item whose PNG is on disk and
+    passes the blank check, and says so per item and in the summary. Before
+    this, a re-run overwrote twelve files including the two he had picked out
+    by hand, so "run it again" meant "first go and copy your good ones aside".
+
+TESTING. Everything that can be tested without a GPU is: `--selftest` runs 83
 checks - plan() across seven synthetic machines AND the MULTI-ADAPTER machine
 in three orders, the prompt builder refusing to drop the content rules, the run
 loop with the generator faked, the blank-image check both ways on synthesised
-PNGs, the per-image Vulkan VAE rule both ways, and the download candidate list
-both ways (a 404 falls through, a 401/403 STOPS). The accepting case comes
-first everywhere, because the expensive failure is a check nothing survives.
+PNGs, the per-image Vulkan VAE rule both ways, the download candidate list both
+ways (a 404 falls through, a 401/403 STOPS), the GPU gate both ways THROUGH
+main() with the network wired to explode if touched, and the skip both ways (a
+good PNG is skipped, a blank one is not). The accepting case comes first
+everywhere, because the expensive failure is a check nothing survives.
 What CANNOT be tested here is every line that touches Windows, the network or
 the GPU - the .bat, the PowerShell probe and every URL are still UNRUN, and
 they are named in the report as such. The probe's version-1 crash on a
@@ -211,6 +229,17 @@ RUNTIME_NEXT_RUNG = ("win-rocm-7.14.0-x64 (189 MB, same release) is the named ne
 
 MIN_FREE_DISK_GB = 20
 
+# THE SLOW PATH HAS A NAME AND IS A SEPARATE CLICK, so the default one never
+# has to ask. Kept as a constant because three places name the file and a
+# rename that misses one of them tells him to double-click something that is
+# not there.
+CPU_BAT = "2 MAKE THE PICTURES (no graphics card).bat"
+# MEASURED, NOT ASSUMED: Jafar's run on 25 Aug 2026 fell back to CPU and took
+# 202 seconds for one image, 2 of 12 attempted under the CPU cap - about seven
+# minutes of his time to produce two half-size pictures. It is the number the
+# gate below spends, and it is quoted to him rather than the word "slow".
+CPU_SECONDS_PER_IMAGE = 202
+
 
 # ---------------------------------------------------------------------------
 # PLANNING - the only interesting logic, and the only part testable here.
@@ -235,13 +264,19 @@ def normalise_gpus(machine):
     return machine["gpus"]
 
 
-def plan(machine):
+def plan(machine, force_cpu=False):
     """Choose backend, quantisation and runtime flags from the probe.
 
     Pure function of `machine` so it can be tested without Windows. Every
     branch writes a `reason` into the result: the report prints them, so the
     next run is chosen from what the machine said rather than from what
     somebody assumed it said.
+
+    `force_cpu` is the deliberate slow path (CPU_BAT), and it changes the
+    BACKEND ONLY: the CPU batch cap and the half-size scale below are the same
+    ones a machine with no GPU gets, because the reason for them - 202 seconds
+    an image - is the same reason. Asking for the slow path is not permission
+    to spend an hour of his afternoon on it.
     """
     gpus = normalise_gpus(machine)
     reasons = []
@@ -285,7 +320,12 @@ def plan(machine):
     else:
         vendor = "none"
 
-    if vendor == "nvidia":
+    if force_cpu:
+        backend, chain = "cpu", ["cpu"]
+        reasons.append("THE CPU PATH WAS ASKED FOR DELIBERATELY (--force-cpu, which "
+                       f"is what \"{CPU_BAT}\" passes). No GPU backend is tried at "
+                       f"all, and {vendor} is what the probe reported")
+    elif vendor == "nvidia":
         backend, chain = "cuda12", ["cuda12", "vulkan", "cpu"]
         reasons.append("NVIDIA adapter named, so the CUDA build is the fast path; "
                        "Vulkan and CPU stay behind it as fallbacks")
@@ -371,6 +411,112 @@ def plan(machine):
                           + SDCPP_ZIPS[chain[0]][1]
                           + (SDCPP_CUDART[1] if chain[0] == "cuda12" else 0),
     }
+
+
+# ---------------------------------------------------------------------------
+# THE GATE - IS THIS RUN WORTH HIS TIME? Asked BEFORE the download, because
+# after it the answer costs 6.7 GB and seven minutes either way.
+#
+# WHY IT EXISTS. The probe reported NO GPU on Jafar's machine (a version-1 bug,
+# fixed), `plan()` correctly chose the CPU path, the CPU cap correctly held the
+# batch to 2 of 12 at half size, and every one of those behaved exactly as
+# designed - and he still lost seven minutes to a run whose result was known
+# before it started. The fix that was shipped was a probe command for him to
+# paste and read himself, which is a SECOND DECISION handed back to the person
+# whose one-click bar this whole tool exists to respect. His words: "why is
+# there a probe as a command? should be a 1 click bat too next time."
+#
+# So the decision moves inside the click. It is a pure function of the probe's
+# answer and it lives here, in the layer the selftest can run, rather than in
+# the .bat or the .ps1 - neither of which can be executed where this was
+# written, and an unrun decision is the one that decides wrongly in silence.
+#
+# THIS DOES NOT REPLACE THE CPU CAP OR THE FALLBACK. Both stay exactly as they
+# are: the gate is about not STARTING, and the cap is about not running away
+# with the afternoon once something has started - including the case where the
+# probe found a card and the GPU backend then fails at runtime.
+# ---------------------------------------------------------------------------
+def gpu_gate(machine, force_cpu=False):
+    """Should this run download 6.7 GB and start? Pure, so it is testable.
+
+    Returns a dict; `stop` is the decision and `kind` is which of the three
+    situations produced it. `found` travels with it ALWAYS - a zero here is
+    the whole point, so it ships with the denominator that says how hard the
+    probe looked (`sources`), and "the probe never wrote a file" is a
+    different kind from "the probe looked and found none", because they want
+    different things from Jafar: re-run vs tell us what card is in there.
+    """
+    gpus = normalise_gpus(machine)
+    g = {"found": len(gpus),
+         "names": [str(x.get("name") or "?") for x in gpus],
+         "sources": str(machine.get("gpu_sources_tried") or ""),
+         "source": str(machine.get("gpu_source") or "unrecorded"),
+         "probe": str(machine.get("probe") or "not reported"),
+         "forced": bool(force_cpu)}
+    if force_cpu:
+        g.update(stop=False, kind="forced-cpu",
+                 why="the CPU path was asked for deliberately, so the gate does "
+                     "not apply - this run is expected to be slow and capped")
+    elif not machine.get("probe_file_read", True):
+        g.update(stop=True, kind="no-probe-file",
+                 why="the machine probe wrote nothing this run, so what is in "
+                     "this PC is UNKNOWN - which is not the same as knowing "
+                     "there is no card, and neither is a reason to spend 6.7 GB")
+    elif not gpus:
+        g.update(stop=True, kind="no-adapter",
+                 why="the probe ran and found NO display adapter, so the only "
+                     "path left is the CPU one, and that is a decision worth "
+                     f"{CPU_SECONDS_PER_IMAGE} seconds an image of his time")
+    else:
+        g.update(stop=False, kind="adapter",
+                 why=f"{len(gpus)} display adapter(s) found, so there is a GPU "
+                     "path to try and the run is worth starting")
+    return g
+
+
+def format_gate_stop(gate, report_paths):
+    """The words he reads in the window that is already open. Formatted HERE
+    because this layer is the one with tests: a message written in the .bat
+    ships unrun, and an unrun message printing a plausible sentence is the
+    silent-instrument failure this project keeps writing rules about.
+    """
+    L = ["", "=" * 62,
+         "STOPPED ON PURPOSE - and NOTHING was downloaded.", "=" * 62]
+    A = L.append
+    if gate["kind"] == "no-probe-file":
+        A("  What happened: the step that looks at this PC produced no report")
+        A("  at all, so we do not know what graphics card is in it.")
+        A(f"  The probe said: {gate['probe']}")
+    else:
+        A("  What was found: NO display adapter on this PC.")
+        A(f"  The probe looked via: {gate['source']}")
+        if gate["sources"]:
+            A("  and each source answered:")
+            for line in gate["sources"].split(" | "):
+                A(f"    {line}")
+        else:
+            A("  and it recorded NO source log, so that zero carries no")
+            A("  denominator - it may mean the probe could not look.")
+    A("")
+    A("  Why it stopped instead of carrying on:")
+    A("    without a card the pictures are drawn by the CPU, which measured")
+    A(f"    {CPU_SECONDS_PER_IMAGE} seconds EACH on the last run - about "
+      f"{int(round(2 * CPU_SECONDS_PER_IMAGE / 60.0))} minutes for the 2")
+    A("    half-size images the CPU cap allows, out of 12. That is your time")
+    A("    spent to be told what this report already says, so the download")
+    A("    (6.7 GB) and the generating were both skipped.")
+    A("")
+    A("  WHAT TO SEND BACK - this file, and nothing else:")
+    for p in report_paths:
+        A(f"    {p}")
+    A("")
+    A("  IF YOU WANT THE SLOW CPU RUN ANYWAY - it is one click and it is")
+    A("  meant to be there, not a workaround:")
+    A(f"    double-click  \"{CPU_BAT}\"")
+    A("    It downloads 6.7 GB, then makes 2 half-size pictures at about")
+    A(f"    {CPU_SECONDS_PER_IMAGE}s each. Nothing else changes.")
+    A("=" * 62)
+    return L
 
 
 def build_prompt(item, rules_clause, style):
@@ -879,10 +1025,24 @@ def round16(n):
     return max(256, int(round(n / 16.0)) * 16)
 
 
-def run_batch(exe, ws, pl, spec, outdir, max_minutes, log):
+def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False):
     """Generate the batch. Writes each PNG and rewrites the manifest as it goes,
     so a run killed halfway leaves a truthful record of what it did make rather
-    than nothing at all."""
+    than nothing at all.
+
+    PER-ITEM SKIP, and why it is not optional. Every re-run used to regenerate
+    all twelve and overwrite what was there, so the instruction that went with
+    it was "copy fascia_mickeys.png and fascia_ritas_pawn.png aside by hand
+    first" - a second decision, handed to the person whose whole requirement is
+    that there be only one. An item whose PNG is already on disk AND passes the
+    blank check is left alone and SAID SO, per item and in the summary; a
+    silent skip would be exactly as bad as the silent overwrite it replaces.
+    A BLANK or undecodable one is NOT skipped, because "a file exists" is not
+    the question - "is there a picture there" is, and that is the same question
+    #1031 forced this file to start asking of the generator's exit code.
+    `redo=True` (--redo) ignores everything on disk; deleting one PNG is the
+    per-item version and needs no flag.
+    """
     # The writer owns its directory. main() also makes this, but a function
     # that writes twelve files and a manifest should not depend on a caller
     # having remembered to - that is how the first selftest of it died.
@@ -936,9 +1096,18 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log):
             "bound": f"blank when spread <= {BLANK_MAX_SPREAD}/255 AND stdev <= "
                      f"{BLANK_MAX_STDEV}, or alpha is 0 everywhere sampled",
             "checked": 0, "blank": 0, "undecodable": 0,
+            # A DIFFERENT MOMENT, SO A DIFFERENT KEY. `checked` counts PNGs
+            # THIS RUN WROTE and then measured. `rechecked` counts PNGs found
+            # already on disk and measured to decide whether to skip them, and
+            # `remade` is how many of those failed that check and were
+            # generated again. Folding them into `checked` would put two
+            # moments under one key and make "0 blank" ambiguous about which
+            # population it describes.
+            "rechecked": 0, "remade": 0,
         },
         "items_in_spec": len(items),
         "items_attempted": 0, "items_written": 0, "items_failed": 0,
+        "items_skipped": 0,
         "not_attempted": [i["id"] for i in items[len(items_run):]],
         "images": [],
     }
@@ -972,6 +1141,40 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log):
         img_flags, flag_note = image_flags(pl, w, h)
         seed = d["seed_base"] + n
         png = outdir / f"{item['id']}.png"
+        # ALREADY MADE? The file is asked the same question the generator's
+        # exit code cannot answer, and only a real picture earns the skip.
+        if png.exists() and not redo:
+            st = png_stats(png)
+            verdict, why = blank_verdict(st)
+            manifest["blank_check"]["rechecked"] += 1
+            if verdict == "varied":
+                rec.update(status="SKIPPED", file=png.name,
+                           bytes=png.stat().st_size, sha256=sha256(png),
+                           # MEASURED OFF THE FILE, NOT CLAIMED. This run did
+                           # not make it, so it cannot say which seed, flags or
+                           # size produced it - only what is in the pixels.
+                           made_by="an earlier run - this run did not make it, so "
+                                   "the size below is measured from the file and "
+                                   "no seed or flags are recorded for it",
+                           width=st.get("width"), height=st.get("height"),
+                           why="already on disk and it passed the blank check",
+                           blank_check={"verdict": verdict, "why": why,
+                                        "spread": st.get("spread"),
+                                        "stdev": st.get("stdev"),
+                                        "distinct": st.get("distinct"),
+                                        "sampled": st.get("sampled"),
+                                        "pixels": st.get("pixels")})
+                manifest["items_skipped"] += 1
+                manifest["images"].append(rec)
+                log(f"  [{n}/{len(items_run)}] {item['id']}  SKIP, already made "
+                    f"({png.stat().st_size/1024:.0f} KB, spread {st.get('spread')}"
+                    f"/255) - delete {png.name} to make it again")
+                save()
+                continue
+            manifest["blank_check"]["remade"] += 1
+            log(f"  [{n}/{len(items_run)}] {item['id']}  the PNG already here is "
+                f"{verdict.upper()}, so it is NOT skipped - making it again")
+            log(f"      {why}")
         cmd = [str(exe),
                "--diffusion-model", str(ws / "models" / pl["quant_file"]),
                "--vae", str(ws / "models" / VAE["file"]),
@@ -1093,7 +1296,12 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log):
     # attempted set makes it true for every exit, including a crash.
     tried = {r["id"] for r in manifest["images"]}
     manifest["not_attempted"] = [i["id"] for i in items if i["id"] not in tried]
-    manifest["status"] = ("DONE" if manifest["items_written"] == len(items)
+    # A SKIPPED ITEM IS PRESENT, so it counts towards DONE - the question this
+    # status answers is "is the batch on disk", not "did this run do work".
+    # Reading it off written-only would call a re-run of a finished batch
+    # INCOMPLETE, which is the opposite of what happened.
+    manifest["status"] = ("DONE" if manifest["items_written"]
+                          + manifest["items_skipped"] == len(items)
                           else "INCOMPLETE")
     manifest["written"] = time.strftime("%Y-%m-%dT%H:%M:%S")
     save()
@@ -1608,6 +1816,263 @@ def selftest():
     finally:
         urllib.request.urlopen = real_open
 
+    # 11. THE GATE - the decision that used to be a command Jafar had to paste.
+    #     ACCEPTING CASE FIRST, and it is the important one: a gate that stops
+    #     a machine WITH a graphics card is worse than no gate at all, because
+    #     the failure mode is "the one click does nothing, for ever".
+    one = {"probe_file_read": True, "gpu_source": "Win32_VideoController (CIM)",
+           "gpus": [{"name": "AMD Radeon RX 6700 XT",
+                     "vram_bytes_registry": 12 * 1024**3}]}
+    g_one = gpu_gate(one)
+    check("gate ACCEPTING CASE: one display adapter and the run PROCEEDS",
+          g_one["stop"] is False and g_one["kind"] == "adapter"
+          and g_one["found"] == 1, g_one)
+    g_multi = gpu_gate({"probe_file_read": True, "gpus": [card, basic, rdp]})
+    check("gate ACCEPTING CASE: the three-adapter machine proceeds too - the "
+          "shape that reported NO GPU on Jafar's PC must not now be stopped by "
+          "the fix for it",
+          g_multi["stop"] is False and g_multi["found"] == 3, g_multi)
+    # THE REAL MACHINE, NOT A HYPOTHESIS. Jafar ran the fixed probe on 25 Aug
+    # 2026 and it printed `adapters: 2 via Win32_VideoController (CIM)` - two
+    # adapters, from the FIRST source, no fallback needed. That is the exact
+    # multi-adapter shape that broke version 1 twice (duplicate-key Add on the
+    # second row, and a list accumulated in a child scope), and it is now the
+    # gate's happy path as a MEASUREMENT rather than as a guess. Pinned here so
+    # a later change to the gate has to walk past his actual machine to break.
+    g_real = gpu_gate({"probe_file_read": True, "probe": "ok", "probe_version": 2,
+                       "gpu_source": "Win32_VideoController (CIM)",
+                       "gpus": [card, basic]})
+    check("gate ACCEPTING CASE, MEASURED: Jafar's real reading - 2 adapters via "
+          "Win32_VideoController (CIM), 25 Aug - PROCEEDS, and the plan built "
+          "from it is a GPU plan with no batch cap",
+          g_real["stop"] is False and g_real["found"] == 2
+          and plan({"gpus": [card, basic]})["backend"] == "vulkan"
+          and plan({"gpus": [card, basic]})["item_limit"] is None, g_real)
+    # ...and the rejecting cases, which are what he lost seven minutes to.
+    none_found = {"probe_file_read": True, "gpu_source": "none answered",
+                  "gpus": [], "probe": "ok",
+                  "gpu_sources_tried": "Win32_VideoController (CIM) -> 0 adapter(s) "
+                                       "from 3 row(s) seen | dxdiag /x -> 0 "
+                                       "adapter(s) from 0 row(s) seen"}
+    g_none = gpu_gate(none_found)
+    check("gate REJECTING CASE: NO display adapter STOPS the run",
+          g_none["stop"] is True and g_none["kind"] == "no-adapter"
+          and g_none["found"] == 0, g_none)
+    g_noprobe = gpu_gate({"probe_file_read": False,
+                          "probe": "machine.json missing at C:\\x\\machine.json"})
+    check("gate REJECTING CASE: no probe file at all also STOPS, and is its OWN "
+          "kind - 'we could not look' and 'there is nothing there' want "
+          "different things from him",
+          g_noprobe["stop"] is True and g_noprobe["kind"] == "no-probe-file",
+          g_noprobe)
+    msg_none = "\n".join(format_gate_stop(g_none, ["C:\\r\\machine-report.txt"]))
+    msg_noprobe = "\n".join(format_gate_stop(g_noprobe, ["C:\\r\\machine-report.txt"]))
+    check("gate message: says nothing was downloaded, names the report to send "
+          "back, names the CPU .bat, and quotes the measured 202s rather than "
+          "the word 'slow'",
+          "NOTHING was downloaded" in msg_none
+          and "C:\\r\\machine-report.txt" in msg_none
+          and CPU_BAT in msg_none and str(CPU_SECONDS_PER_IMAGE) in msg_none,
+          msg_none[:400])
+    check("gate message: the zero arrives with its denominator - every source "
+          "the probe tried is printed under it",
+          "dxdiag /x -> 0 adapter(s) from 0 row(s) seen" in msg_none
+          and "3 row(s) seen" in msg_none, msg_none[:400])
+    msg_blind = "\n".join(format_gate_stop(
+        gpu_gate({"probe_file_read": True, "gpus": []}), ["r.txt"]))
+    check("gate message: with NO source log it says the zero carries no "
+          "denominator, instead of asserting there is no card",
+          "NO source log" in msg_blind and "denominator" in msg_blind
+          and "may mean the probe could not look" in msg_blind, msg_blind[:400])
+    check("gate message: the two stops read differently - one says no card, the "
+          "other says we could not look",
+          "NO display adapter on this PC" in msg_none
+          and "NO display adapter on this PC" not in msg_noprobe
+          and "no report" in msg_noprobe, msg_noprobe[:400])
+    # THE DELIBERATE SLOW PATH still works, and is still capped.
+    g_forced = gpu_gate(none_found, force_cpu=True)
+    check("gate: --force-cpu on a machine with no card PROCEEDS - the slow run "
+          "is available on purpose, it is just never the default",
+          g_forced["stop"] is False and g_forced["kind"] == "forced-cpu", g_forced)
+    forced_plan = plan(dict(one, ram_bytes=32 * 1024**3), force_cpu=True)
+    check("--force-cpu plans the CPU backend even on a 12GB AMD card, and the CPU "
+          "CAP IS NOT LIFTED (2 items, half size) - asking for the slow path is "
+          "not permission to spend an hour",
+          forced_plan["backend"] == "cpu" and forced_plan["backend_chain"] == ["cpu"]
+          and forced_plan["item_limit"] == 2 and forced_plan["size_scale"] == 0.5
+          and any(CPU_BAT in r for r in forced_plan["reasons"]), forced_plan)
+
+    # 11a. THE FILE THE STOP MESSAGE TELLS HIM TO DOUBLE-CLICK MUST EXIST.
+    #      These are TEXT checks on the two .bat files, and they are not a
+    #      substitute for running them - nothing here can. They catch the one
+    #      failure this layer can see: the message and the files disagreeing
+    #      after a rename, which turns the escape hatch into a dead end.
+    here = pathlib.Path(__file__).parent
+    main_bat = here / "1 MAKE THE PICTURES.bat"
+    cpu_bat = here / CPU_BAT
+    check("the CPU .bat named in the stop message actually EXISTS beside this "
+          "script - a message pointing at a file that is not there is worse "
+          "than no message", cpu_bat.is_file(), str(cpu_bat))
+    mb = main_bat.read_text(encoding="utf-8", errors="replace") if main_bat.is_file() else ""
+    cb = cpu_bat.read_text(encoding="utf-8", errors="replace") if cpu_bat.is_file() else ""
+    check("the two .bat files agree on the handoff: one SETS LEDGER_FORCE_CPU "
+          "and calls the other, which READS it into --force-cpu (text check - "
+          "neither file can be executed here)",
+          "LEDGER_FORCE_CPU=1" in cb and "1 MAKE THE PICTURES.bat" in cb
+          and "if defined LEDGER_FORCE_CPU set \"PYARGS=--force-cpu\"" in mb
+          and "%PYARGS%" in mb, (cb[-200:], "PYARGS" in mb))
+    check("the main .bat has a paragraph for exit 5 - the stop is a documented "
+          "outcome there, not an unrecognised code (text check)",
+          '"%RC%"=="5"' in mb and "STOPPED BEFORE DOWNLOADING" in mb
+          and CPU_BAT in mb, '"%RC%"=="5"' in mb)
+
+    # 11b. AND THE GATE THROUGH main(), WITH THE NETWORK BOOBY-TRAPPED. The
+    #      check above tests the decision; this tests that the decision is
+    #      actually CONSULTED, and before the download rather than after it.
+    #      `touched` is the evidence: it records every URL anything asked for.
+    real_open2, real_argv = urllib.request.urlopen, sys.argv
+    touched = []
+
+    def _tripwire(req, timeout=None):
+        touched.append(getattr(req, "full_url", str(req)))
+        raise urllib.error.URLError("selftest tripwire: the network was touched")
+
+    def _run_main(machine_obj, extra_args):
+        touched.clear()
+        with tempfile.TemporaryDirectory() as td:
+            td = pathlib.Path(td)
+            mj = td / "machine.json"
+            mj.write_text(json.dumps(machine_obj), encoding="utf-8")
+            sys.argv = ["imagegen.py", "all", "--machine", str(mj),
+                        "--workspace", str(td / "ws")] + extra_args
+            with contextlib.redirect_stdout(io.StringIO()) as cap:
+                rc = main()
+            files = sorted(p.name for p in (td / "ws").rglob("*") if p.is_file())
+            return rc, cap.getvalue(), files
+
+    try:
+        urllib.request.urlopen = _tripwire
+        disk = {"free_disk_bytes": 400 * 1024**3, "ram_bytes": 32 * 1024**3}
+        rc, out, files = _run_main(dict(none_found, **disk), [])
+        check("gate through main() REJECTING CASE: no adapter means exit 5, and "
+              "NOT ONE BYTE was requested from the network",
+              rc == 5 and touched == [] and "STOPPED ON PURPOSE" in out,
+              f"rc={rc} touched={touched[:3]}")
+        check("gate through main(): it still writes the report it tells him to "
+              "send back, and writes no model or runtime file",
+              "machine-report.txt" in files
+              and not any(f.endswith((".gguf", ".zip", ".safetensors")) for f in files),
+              files)
+        rc2, out2, _ = _run_main(dict(one, **disk), [])
+        check("gate through main() ACCEPTING CASE: one adapter gets PAST the "
+              "gate and reaches the download - the gate is not a wall",
+              rc2 != 5 and len(touched) > 0 and "STOPPED ON PURPOSE" not in out2,
+              f"rc={rc2} touched={touched[:3]}")
+        rc3, out3, _ = _run_main(dict(none_found, **disk), ["--force-cpu"])
+        check("gate through main(): --force-cpu on the no-adapter machine also "
+              "gets past, so the slow path is genuinely reachable in one click",
+              rc3 != 5 and len(touched) > 0, f"rc={rc3} touched={touched[:3]}")
+    finally:
+        urllib.request.urlopen, sys.argv = real_open2, real_argv
+
+    # 12. THE SKIP - a re-run must not overwrite what is already good. He was
+    #     told to copy two PNGs aside by hand before re-running; that is the
+    #     second decision this exists to remove. ACCEPTING CASE FIRST: an
+    #     existing GOOD picture is left alone.
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            td = pathlib.Path(td)
+            out = td / "batch"
+            subprocess.run = _Fake(0)
+            first = run_batch(pathlib.Path("stub"), td, gpu, spec, out, 60,
+                              lambda s="": None)
+            keep = out / (spec["items"][0]["id"] + ".png")
+            before = sha256(keep)
+
+            calls = []
+
+            class _Count(_Fake):
+                def __call__(self, cmd, **kw):
+                    calls.append(pathlib.Path(cmd[cmd.index("--output") + 1]).stem)
+                    return _Fake.__call__(self, cmd, **kw)
+
+            subprocess.run = _Count(0)
+            logs = []
+            again = run_batch(pathlib.Path("stub"), td, gpu, spec, out, 60,
+                              lambda s="": logs.append(s))
+            check("skip ACCEPTING CASE: a second run over a finished batch makes "
+                  "NOTHING again - every item is skipped and the generator is "
+                  "never called",
+                  calls == [] and again["items_skipped"] == len(spec["items"])
+                  and again["items_written"] == 0 and again["status"] == "DONE"
+                  and first["items_written"] == len(spec["items"]),
+                  f"calls={calls} skipped={again['items_skipped']} "
+                  f"status={again['status']}")
+            check("skip ACCEPTING CASE: the file on disk is BYTE-IDENTICAL "
+                  "afterwards - this is the overwrite that cost him his two "
+                  "hand-picked fascias",
+                  sha256(keep) == before, keep)
+            check("skip: it is ANNOUNCED per item and says how to undo it - a "
+                  "silent skip is as bad as a silent overwrite",
+                  any("SKIP, already made" in s for s in logs)
+                  and any("delete" in s for s in logs)
+                  and sum(1 for s in logs if "SKIP" in s) == len(spec["items"]),
+                  [s for s in logs[:3]])
+            rec = again["images"][0]
+            check("skip: the manifest keeps the skipped item's provenance and "
+                  "does NOT claim this run made it",
+                  rec["status"] == "SKIPPED" and rec["sha256"]
+                  and rec["review"] == "pending"
+                  and "did not make it" in rec.get("made_by", "")
+                  and rec["blank_check"]["verdict"] == "varied", rec)
+            check("skip: the counts carry their denominator - rechecked, skipped "
+                  "and remade are three numbers, not one",
+                  again["blank_check"]["rechecked"] == len(spec["items"])
+                  and again["blank_check"]["remade"] == 0
+                  and again["blank_check"]["checked"] == 0,
+                  again["blank_check"])
+            # REJECTING CASE: an existing BLANK png is NOT a made picture. This
+            # is #1031's output sitting in the output directory, and skipping it
+            # would make the blank check useless the moment it fired once.
+            _write_png(keep, 64, 48, lambda x, y: (0, 0, 0))
+            calls.clear()
+            logs.clear()
+            subprocess.run = _Count(0)
+            over_blank = run_batch(pathlib.Path("stub"), td, gpu, spec, out, 60,
+                                   lambda s="": logs.append(s))
+            check("skip REJECTING CASE: an existing BLANK PNG is NOT skipped - it "
+                  "is made again, and the run says why",
+                  calls == [spec["items"][0]["id"]]
+                  and over_blank["items_skipped"] == len(spec["items"]) - 1
+                  and over_blank["items_written"] == 1
+                  and over_blank["blank_check"]["remade"] == 1
+                  and any("is BLANK, so it is NOT skipped" in s for s in logs),
+                  f"calls={calls} skipped={over_blank['items_skipped']} "
+                  f"remade={over_blank['blank_check']['remade']}")
+            # ...and one that cannot be decoded at all is not skipped either:
+            # "a file exists" was never the question.
+            keep.write_bytes(b"\x89PNG\r\n\x1a\n stub")
+            calls.clear()
+            subprocess.run = _Count(0)
+            over_bad = run_batch(pathlib.Path("stub"), td, gpu, spec, out, 60,
+                                 lambda s="": None)
+            check("skip REJECTING CASE: an UNDECODABLE PNG is not skipped either "
+                  "- it has not been shown to be good, only to exist",
+                  calls == [spec["items"][0]["id"]]
+                  and over_bad["blank_check"]["remade"] == 1, calls)
+            # And the deliberate redo, which is the other half of the promise.
+            calls.clear()
+            subprocess.run = _Count(0)
+            redone = run_batch(pathlib.Path("stub"), td, gpu, spec, out, 60,
+                               lambda s="": None, redo=True)
+            check("skip: --redo makes all of them again, ignoring what is on disk",
+                  len(calls) == len(spec["items"]) and redone["items_skipped"] == 0
+                  and redone["items_written"] == len(spec["items"])
+                  and redone["blank_check"]["rechecked"] == 0,
+                  f"calls={len(calls)} skipped={redone['items_skipped']}")
+    finally:
+        subprocess.run = real
+
     print("-" * 60)
     print(f"  {ok} passed, {fail} failed, {ok + fail} checks run")
     return 1 if fail else 0
@@ -1632,6 +2097,17 @@ def main():
                          "believed.")
     ap.add_argument("--dry-run", action="store_true",
                     help="plan and print the exact commands, download nothing")
+    ap.add_argument("--force-cpu", action="store_true",
+                    help="THE DELIBERATE SLOW PATH. Run on the CPU whatever the "
+                         f"probe found, which is what \"{CPU_BAT}\" passes. It "
+                         "bypasses the no-GPU stop; it does NOT lift the CPU "
+                         "batch cap, because the cap is what keeps a slow run "
+                         "from becoming an afternoon.")
+    ap.add_argument("--redo", action="store_true",
+                    help="regenerate every item even if its PNG is already on "
+                         "disk. Without this, an item whose PNG exists and "
+                         "passes the blank check is skipped and said so; "
+                         "deleting one PNG redoes just that one.")
     a = ap.parse_args()
 
     if a.series:
@@ -1643,13 +2119,21 @@ def main():
     if a.machine and pathlib.Path(a.machine).exists():
         try:
             machine = json.loads(pathlib.Path(a.machine).read_text(encoding="utf-8-sig"))
+            # WHETHER THE FILE WAS READ IS NOT THE SAME FACT AS WHAT IT SAID.
+            # The gate needs to tell "the probe looked and found nothing" from
+            # "the probe never wrote anything", and an empty gpus list looks
+            # identical either way, so the distinction is recorded here where
+            # it is known rather than inferred downstream from a message string.
+            machine["probe_file_read"] = True
         except Exception as e:                                # noqa: BLE001
-            machine = {"probe": f"machine.json unreadable: {type(e).__name__}: {e}"}
+            machine = {"probe": f"machine.json unreadable: {type(e).__name__}: {e}",
+                       "probe_file_read": False}
     else:
-        machine = {"probe": f"machine.json missing at {a.machine}"}
+        machine = {"probe": f"machine.json missing at {a.machine}",
+                   "probe_file_read": False}
     machine.setdefault("python", sys.version.split()[0])
 
-    pl = plan(machine)
+    pl = plan(machine, force_cpu=a.force_cpu)
     lines = []
 
     def log(s=""):
@@ -1696,6 +2180,28 @@ def main():
             p.write_text(format_report(machine, pl, lines[-3:]), encoding="utf-8")
             log(f"report written: {p}")
         return 0
+
+    # THE GATE, AND IT IS THE FIRST THING AFTER THE REPORT ON PURPOSE: before
+    # the disk check, before the runtime, before one byte of the 6.7 GB. The
+    # report has already been printed above, so he sees WHAT was found before
+    # he sees what was decided about it.
+    gate = gpu_gate(machine, force_cpu=a.force_cpu)
+    if gate["stop"]:
+        for line in format_gate_stop(gate, reports):
+            log(line)
+        for p in reports:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(format_report(machine, pl, [
+                "RUN STOPPED BEFORE DOWNLOADING ANYTHING.",
+                f"reason: {gate['kind']} - {gate['why']}",
+                f"display adapters found: {gate['found']}",
+                f"probe: {gate['probe']}",
+                f"sources tried: {gate['sources'] or 'NONE RECORDED'}",
+                "nothing was downloaded and nothing was generated.",
+                f"the deliberate CPU path is \"{CPU_BAT}\".",
+            ]), encoding="utf-8")
+            log(f"report written: {p}")
+        return 5
 
     if pl["disk_ok"] is False:
         log(f"REFUSING TO START: {pl['free_disk_gb']} GB free, and this needs "
@@ -1774,18 +2280,33 @@ def main():
     log(f"Generating {len(spec['items'])} images into {outdir}")
     for c in ([f"CPU mode: only {pl['item_limit']} items"] if pl["item_limit"] else []):
         log(f"  CAP: {c}")
-    man = run_batch(exe, ws, pl, spec, outdir, a.max_minutes, log)
+    if a.redo:
+        log("  --redo: everything is made again, including items already on disk.")
+    man = run_batch(exe, ws, pl, spec, outdir, a.max_minutes, log, redo=a.redo)
     man["downloads"] = fetched
     (outdir / "manifest.json").write_text(json.dumps(man, indent=2) + "\n",
                                           encoding="utf-8")
     write_attribution(outdir, man)
 
     log("")
-    log(f"{man['status']}: {man['items_written']} written, {man['items_failed']} failed, "
+    log(f"{man['status']}: {man['items_written']} written, {man['items_skipped']} "
+        f"skipped, {man['items_failed']} failed, "
         f"{man['items_attempted']} attempted of {man['items_in_spec']} in the batch")
     bc = man["blank_check"]
     log(f"  blank check: {bc['blank']} blank, {bc['undecodable']} undecodable, of "
         f"{bc['checked']} PNGs decoded ({bc['bound']})")
+    # THE SKIP IS ANNOUNCED, ALWAYS, INCLUDING WHEN IT IS ZERO. A silent skip
+    # is as bad as the silent overwrite it replaces, and "0 skipped" beside the
+    # number rechecked is what stops "nothing was skipped" reading the same as
+    # "the skip never ran".
+    log(f"  already made: {man['items_skipped']} skipped, {bc['remade']} remade "
+        f"because what was on disk was blank or unreadable, of {bc['rechecked']} "
+        "PNGs found already on disk")
+    if man["items_skipped"]:
+        log("  Those files were left exactly as they were - anything you picked "
+            "out by hand is safe.")
+        log("  To make one again: delete its .png and double-click again. "
+            "To make them all again: run with --redo.")
     if bc["blank"]:
         log("  A BLANK IMAGE IS NOT A FAILURE OF YOUR MACHINE. It is "
             "leejet/stable-diffusion.cpp#1031, open, unfixed: Z-Image on Vulkan "
@@ -1798,7 +2319,11 @@ def main():
     for p in reports:
         p.write_text(format_report(machine, pl, lines[-30:]), encoding="utf-8")
         log(f"report written: {p}")
-    return 0 if man["items_written"] else 4
+    # A BATCH THAT WAS ALREADY ON DISK IS A SUCCESS, NOT "EVERY IMAGE FAILED".
+    # Exit 4 means the setup worked and nothing came out of the generator; a
+    # run that skipped twelve good PNGs produced nothing and is entirely fine,
+    # and the .bat prints a different paragraph for each.
+    return 0 if (man["items_written"] or man["items_skipped"]) else 4
 
 
 if __name__ == "__main__":
