@@ -527,7 +527,8 @@ namespace Ledger.Game
         /// actually sees is therefore 0.263 — a 3.8x darkening, not 1.8x.
         /// Anyone reasoning "0.55 of what it was" in linear terms is off by a
         /// factor of two, and the same two shows up as the 2.05..2.09 trap
-        /// named at `groundGainBy`'s emit.
+        /// named at `groundGainBy`'s emit — and at `groundGainByRaw`'s, which
+        /// goes through the same `Color.linear` conversion at the same ray.
         static readonly Color GroundGrade = new Color(0.55f, 0.55f, 0.55f, 1f);
 
         /// The DRY base colour of a surface, with `GroundGrade` folded in for
@@ -937,6 +938,14 @@ namespace Ledger.Game
         /// `SimDirector.GroundMaskRead`. Two further traps that sentence
         /// walked into, named so nobody re-derives it:
         ///
+        /// AND A THIRD, FOUND BY THE FIRST LANDING: THE ROWS ARE NOT THE SAME
+        /// POPULATION. This key is a per-material read of the material
+        /// ITSELF; `groundGainBy`'s rows are per-material means over the rays
+        /// that HIT that material and face up. So `groundAlbedoBy:kerb` has a
+        /// value on every run, and `groundGainBy`'s `kerb` row can legitimately
+        /// be empty — a kerb is a 0.2m strip whose up-facing top is a sliver.
+        /// An empty row there is not a missing material.
+        ///
         ///   * SPACE. This key is LINEAR (`MatAlbedo` is `m.color.linear`
         ///     times a linear texture mean); `groundMaskMeanBy` is a luma of
         ///     the committed frame's sRGB-encoded pixels. Dividing them
@@ -1004,6 +1013,25 @@ namespace Ledger.Game
         /// a predicate and a namer are one idea in two implementations with a
         /// division across the seam. Callers wanting the yes/no ask
         /// `GroundSurfaceOf(m).Length > 0`.
+        ///
+        /// IT DOES NOT ANSWER "IS THIS GROUND", AND MUST NEVER BE MADE TO.
+        /// It answers "what is this material CALLED", which is the only
+        /// question a name can answer, and on 3a4e335 that was read as the
+        /// other one and cost the whole key: `Concrete` is in the facade array
+        /// at `WorldBuilder.BuildBuildings` and `BuildDistrict`, the
+        /// `mat_concrete_b` facade variant folds onto it through
+        /// `SurfaceNames`'s `_b` strip, `TrafficHost.PaintFor` gives it to
+        /// odd-id vehicles, and `StreetFurniture` paints give-way bars in
+        /// `Sidewalk` — so 2673 of 6041 rays landed under `concrete` and not
+        /// one row of that landing was quotable as ground.
+        ///
+        /// THE GEOMETRY TEST LIVES AT THE RAY SITE, in
+        /// `SimDirector.GroundMaskRead`, where the hit normal is in hand and
+        /// this function has nothing: see `SimDirector.GroundUpDot`. Two
+        /// questions, two places. Handing this one a normal would make it
+        /// answer both, and would put a second copy of the ground rule in the
+        /// Game layer, which does not compile in the container this project
+        /// is developed in.
         public static string GroundSurfaceOf(Material m)
             => m == null ? "" : SurfaceNames.MatchOf(m.name, WetSurfaces);
 
@@ -1027,7 +1055,11 @@ namespace Ledger.Game
         public static float GroundSourceAlbedo(Material m)
             => m == null ? -1f : MatAlbedo(m, false);
 
-        /// The `groundGainBy` / `groundGainOf` / `groundGainRays` triple.
+        /// The `groundGainBy` / `groundGainOf` / `groundGainRays` triple —
+        /// the GRADED arm, read off the frame that was encoded to the
+        /// committed JPEG. Its ungraded twin is `GroundGainRawEmit` below, and
+        /// the two come off ONE tally object so they cannot describe different
+        /// rays.
         ///
         /// The tally does the arithmetic and the formatting (it is in Core so
         /// CoreTests runs it); this wrapper exists only so the ORDER and
@@ -1038,8 +1070,25 @@ namespace Ledger.Game
                                             long maskGroundRays)
             => tally == null
                 ? "groundGainBy=[nothing_measured] groundGainOf=0/"
-                  + WetSurfaces.Length + " groundGainRays=0/" + maskGroundRays
+                  + WetSurfaces.Length + " groundGainRays=0/0/" + maskGroundRays
                 : tally.Emit(WetSurfaces, maskGroundRays);
+
+        /// The `groundGainByRaw` / `groundGainRawOf` / `groundGainRawRays`
+        /// triple — the SAME tally, the SAME rays, read off the ungraded
+        /// render.
+        ///
+        /// ONE OBJECT, TWO EMITS, AND THAT IS THE WHOLE GUARANTEE. There is no
+        /// second `GroundGain` for the raw arm: both numerators are handed to
+        /// one `Add` call at one ray, so the graded and raw rows cannot be
+        /// built from different ray sets however the ray site is later edited.
+        /// It takes no ray count of its own for the same reason — the raw
+        /// row's denominator is the graded row's admitted count, printed on
+        /// its own tail.
+        public static string GroundGainRawEmit(Ledger.Core.GroundGain tally)
+            => tally == null
+                ? "groundGainByRaw=[nothing_measured] groundGainRawOf=0/"
+                  + WetSurfaces.Length + " groundGainRawRays=0/0"
+                : tally.EmitRaw(WetSurfaces);
 
         /// How many ground surfaces the list holds, so a reading of "no
         /// ground pixels" can be told from "the list is empty".

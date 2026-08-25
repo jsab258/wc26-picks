@@ -55,10 +55,21 @@ namespace Ledger.Core
         /// IT REPLACED A BOOLEAN `IsOneOf`, AND THAT IS THE POINT. The
         /// classifier that decides a pixel IS ground and the classifier that
         /// decides WHICH ground it is must never be able to disagree: every
-        /// per-material number in `groundGainBy` is divided by a per-family
+        /// per-material number in `groundGainBy` sits inside a per-family
         /// denominator the other one produced, so two loops over the same list
         /// is one idea in two implementations with a division across the seam.
         /// Callers wanting the yes/no ask `MatchOf(...).Length > 0`.
+        ///
+        /// "INSIDE", NOT "DIVIDED BY", SINCE THE GEOMETRY TEST LANDED — the
+        /// word was `divided` here until `groundGainBy`'s rows stopped being
+        /// the whole family. A NAME cannot tell a road from the facade painted
+        /// in the same concrete, so `SimDirector.GroundUpDot` keeps only the
+        /// name-matched rays whose hit normal faces up and the rows became a
+        /// SUBSET of the family count. The two classifiers still cannot
+        /// disagree — there is still one list and one matcher — but the
+        /// relationship is now printed as a split rather than assumed as an
+        /// equality, and no geometry test may ever be added to THIS file: it
+        /// has a string and nothing else.
         public static string MatchOf(string materialName, string[] logicals)
         {
             if (logicals == null || logicals.Length == 0) return "";

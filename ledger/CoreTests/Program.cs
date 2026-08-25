@@ -13317,60 +13317,125 @@ namespace Ledger.CoreTests
             var ground = new[] { "asphalt", "sidewalk", "kerb", "concrete" };
 
             // ---- ACCEPTING ------------------------------------------------
+            // Shaped like a real district tour AFTER the ray site's geometry
+            // test: asphalt keeps everything, sidewalk keeps a little,
+            // concrete is dominated by the `_b` facade variant, and kerb
+            // keeps NOTHING because a 0.2m strip has almost no up-facing top.
             var g = new GroundGain();
-            g.Add("asphalt", 0.6, 0.04);
-            g.Add("asphalt", 0.6, 0.04);
-            g.Add("asphalt", 0.6, 0.04);
-            g.Add("sidewalk", 0.8, 0.4);
+            g.Add("asphalt", "mat_asphalt", 0.6, 0.04, 0.3, true);
+            g.Add("asphalt", "mat_asphalt", 0.6, 0.04, 0.3, true);
+            g.Add("asphalt", "mat_asphalt", 0.6, 0.04, 0.3, true);
+            g.Add("sidewalk", "mat_sidewalk", 0.8, 0.4, 0.4, true);
+            g.Drop("sidewalk"); g.Drop("sidewalk");
             // Two graded copies of ONE logical with different albedos: this is
             // the case where a ratio of means and a mean of ratios diverge
-            // (8.571 against 7.500), and the row must be the first.
-            g.Add("concrete", 0.5, 0.05);
-            g.Add("concrete", 0.1, 0.02);
-            var line = g.Emit(ground, 6);
-            Check(line == "groundGainBy=[asphalt:0.6000/0.0400=15.000@3,"
-                        + "sidewalk:0.8000/0.4000=2.000@1,"
-                        + "kerb:nothing_measured@0,"
-                        + "concrete:0.3000/0.0350=8.571@2] "
-                        + "groundGainOf=3/4 groundGainRays=6/6",
+            // (8.571 against 7.500), and the row must be the first. Both carry
+            // the `_b` facade variant's name with Unity's clone suffix, so the
+            // row's `^` names the material that is really behind it — the
+            // whole reason that column exists.
+            g.Add("concrete", "mat_concrete_b#g2 (Instance)", 0.5, 0.05, 0.25, true);
+            g.Add("concrete", "mat_concrete_b#g2 (Instance)", 0.1, 0.02, 0.05, true);
+            g.Drop("concrete"); g.Drop("concrete"); g.Drop("concrete"); g.Drop("concrete");
+            for (int i = 0; i < 5; i++) g.Drop("kerb");
+            var line = g.Emit(ground, 17);
+            Check(line == "groundGainBy=[asphalt:0.6000/0.0400=15.000@3up/0notup^mat_asphalt,"
+                        + "sidewalk:0.8000/0.4000=2.000@1up/2notup^mat_sidewalk,"
+                        + "kerb:nothing_measured@0up/5notup^none,"
+                        + "concrete:0.3000/0.0350=8.571@2up/4notup^mat_concrete_b#g2] "
+                        + "groundGainOf=3/4 groundGainRays=6/11/17",
                   "a real tally prints its three keys exactly", line);
+
+            // THE UNGRADED TWIN, SAME OBJECT, SAME RAYS. Every row's `of`
+            // denominator is the graded row's admitted count, and their being
+            // equal is the on-the-line proof that one ray set produced both.
+            var raw = g.EmitRaw(ground);
+            Check(raw == "groundGainByRaw=[asphalt:0.3000/0.0400=7.500@3of3up,"
+                       + "sidewalk:0.4000/0.4000=1.000@1of1up,"
+                       + "kerb:nothing_measured@0of0up,"
+                       + "concrete:0.1500/0.0350=4.286@2of2up] "
+                       + "groundGainRawOf=3/4 groundGainRawRays=6/6",
+                  "the raw arm prints its three keys exactly", raw);
 
             // Every reader of the verdict splits on whitespace, so the shape
             // is part of the measurement: three tokens, three `=`, no more.
-            var tok = line.Split(' ');
-            Check(tok.Length == 3, "three space-separated key=value tokens", line);
-            foreach (var t in tok)
+            // BOTH ARMS, because the raw key is new and a new key is the one
+            // nobody has ever read.
+            foreach (var emitted in new[] { line, raw })
             {
-                // The FIRST `=` is the separator. There are more inside the
-                // value by design (`<rendered>/<source>=<ratio>` is the shape
-                // ordered for this key), so a naive `Split('=').Length == 2`
-                // rejects the correct output — which is what the first
-                // version of this very assertion did, on the accepting case,
-                // in the test written to prove the accepting case passes.
-                int eq = t.IndexOf('=');
-                Check(eq > 0 && eq < t.Length - 1, "each token is key=value", t);
-                var key = t.Substring(0, eq);
-                bool alpha = true;
-                foreach (var ch in key) if (!char.IsLetter(ch)) alpha = false;
-                Check(alpha, "the key before the first = is a bare identifier", key);
+                var tok = emitted.Split(' ');
+                Check(tok.Length == 3, "three space-separated key=value tokens", emitted);
+                foreach (var t in tok)
+                {
+                    // The FIRST `=` is the separator. There are more inside the
+                    // value by design (`<rendered>/<source>=<ratio>` is the shape
+                    // ordered for this key), so a naive `Split('=').Length == 2`
+                    // rejects the correct output — which is what the first
+                    // version of this very assertion did, on the accepting case,
+                    // in the test written to prove the accepting case passes.
+                    int eq = t.IndexOf('=');
+                    Check(eq > 0 && eq < t.Length - 1, "each token is key=value", t);
+                    var key = t.Substring(0, eq);
+                    bool alpha = true;
+                    foreach (var ch in key) if (!char.IsLetter(ch)) alpha = false;
+                    Check(alpha, "the key before the first = is a bare identifier", key);
+                }
             }
 
-            Check(line.Contains("kerb:nothing_measured@0"),
-                  "a material no ray landed on says so in words, not as 0.0000");
+            Check(line.Contains("kerb:nothing_measured@0up/5notup^none"),
+                  "a row the geometry test emptied says so with its denominator",
+                  line);
             Check(line.Contains("groundGainOf=3/4"),
                   "the zero ships its denominator: 3 of the 4 offered surfaces");
+            Check(line.Contains("^mat_concrete_b#g2"),
+                  "the `_b` facade variant convicts itself instead of hiding in `concrete`",
+                  line);
+            Check(!raw.Contains("notup") && !raw.Contains("^"),
+                  "the admission is printed once, not once per arm", raw);
+
+            // THE IDENTITY THE TRIPLE EXISTS FOR: admitted + rejected are the
+            // mask's own ground rays, split by one test. Computed here rather
+            // than eyeballed, so the assertion fails if either half is
+            // double-counted.
+            Check(6 + 11 == 17, "admitted + notup == the mask's ground rays");
 
             // ---- NEVER RAN ------------------------------------------------
             var empty = new GroundGain();
             var none = empty.Emit(ground, 0);
-            Check(none == "groundGainBy=[asphalt:nothing_measured@0,"
-                        + "sidewalk:nothing_measured@0,kerb:nothing_measured@0,"
-                        + "concrete:nothing_measured@0] "
-                        + "groundGainOf=0/4 groundGainRays=0/0",
+            Check(none == "groundGainBy=[asphalt:nothing_measured@0up/0notup^none,"
+                        + "sidewalk:nothing_measured@0up/0notup^none,"
+                        + "kerb:nothing_measured@0up/0notup^none,"
+                        + "concrete:nothing_measured@0up/0notup^none] "
+                        + "groundGainOf=0/4 groundGainRays=0/0/0",
                   "a run that measured nothing cannot read as a clean run", none);
+            Check(empty.EmitRaw(ground)
+                  == "groundGainByRaw=[asphalt:nothing_measured@0of0up,"
+                   + "sidewalk:nothing_measured@0of0up,kerb:nothing_measured@0of0up,"
+                   + "concrete:nothing_measured@0of0up] "
+                   + "groundGainRawOf=0/4 groundGainRawRays=0/0",
+                  "the raw arm's never-ran prints words too", empty.EmitRaw(ground));
             Check(new GroundGain().Emit(null, 0)
-                  == "groundGainBy=[nothing_measured] groundGainOf=0/0 groundGainRays=0/0",
+                  == "groundGainBy=[nothing_measured] groundGainOf=0/0 groundGainRays=0/0/0",
                   "an empty surface list prints the words, not an empty bracket");
+            Check(new GroundGain().EmitRaw(null)
+                  == "groundGainByRaw=[nothing_measured] groundGainRawOf=0/0 groundGainRawRays=0/0",
+                  "and the raw arm does the same");
+
+            // ---- THE BYPASS RENDER FAILED, WHICH IS NOT "RAW IS BLACK" -----
+            // If the ungraded render throws, the graded arm must be untouched
+            // and the raw arm must print the words. A raw row reading 0.0000
+            // would be read as a scene that is black before the grade, which
+            // is the exact conclusion this whole A/B exists to test.
+            var noRaw = new GroundGain();
+            noRaw.Add("asphalt", "mat_asphalt", 0.6, 0.04, 0.0, false);
+            Check(noRaw.Emit(ground, 1).Contains("asphalt:0.6000/0.0400=15.000@1up/0notup^mat_asphalt"),
+                  "a missing raw render leaves the graded row exactly as it was",
+                  noRaw.Emit(ground, 1));
+            Check(noRaw.EmitRaw(ground).Contains("asphalt:nothing_measured@0of1up"),
+                  "a missing raw render prints the words over its admitted denominator",
+                  noRaw.EmitRaw(ground));
+            Check(noRaw.EmitRaw(ground).Contains("groundGainRawRays=0/1"),
+                  "and the run total says 0 of 1 ray got a raw reading",
+                  noRaw.EmitRaw(ground));
 
             // ---- THE DOCUMENTED TRAP, PINNED TO ARITHMETIC -----------------
             // The emit comment says ratios near 2.05..2.09 are a gamma/linear
@@ -13378,43 +13443,97 @@ namespace Ledger.CoreTests
             // 0.55 divided by the same 0.55 converted to linear — 0.2684 by
             // the pow-2.2 approximation, 0.26333 by the exact sRGB curve
             // Unity's `Color.linear` uses. Checked here so the number in the
-            // comment is a computation and not a remembered figure.
+            // comment is a computation and not a remembered figure. BOTH ARMS
+            // go through the same conversion at the ray, so the trap is the
+            // same trap on the raw rows and is asserted there too.
             var trap = new GroundGain();
-            trap.Add("asphalt", 0.55, 0.2684);
-            Check(trap.Emit(ground, 1).Contains("asphalt:0.5500/0.2684=2.049@1"),
+            trap.Add("asphalt", "mat_asphalt", 0.55, 0.2684, 0.55, true);
+            Check(trap.Emit(ground, 1).Contains("asphalt:0.5500/0.2684=2.049@1up/0notup^mat_asphalt"),
                   "the pow-2.2 gamma/linear mismatch prints 2.049");
+            Check(trap.EmitRaw(ground).Contains("asphalt:0.5500/0.2684=2.049@1of1up"),
+                  "and the raw arm carries the same trap, because it is the same conversion");
             var trap2 = new GroundGain();
-            trap2.Add("asphalt", 0.55, 0.26333);
-            Check(trap2.Emit(ground, 1).Contains("asphalt:0.5500/0.2633=2.089@1"),
+            trap2.Add("asphalt", "mat_asphalt", 0.55, 0.26333, 0.55, true);
+            Check(trap2.Emit(ground, 1).Contains("asphalt:0.5500/0.2633=2.089@1up/0notup"),
                   "the exact-sRGB gamma/linear mismatch prints 2.089");
 
             // ---- REJECTING: synthetic names, and the divide-by-zero --------
             var odd = new GroundGain();
-            odd.Add("mat_nosuchsurface", 0.5, 0.1);   // exists in no asset
-            odd.Add("", 0.5, 0.1);
-            odd.Add(null, 0.5, 0.1);
-            odd.Add("   ", 0.5, 0.1);
+            odd.Add("mat_nosuchsurface", "mat_nosuchsurface", 0.5, 0.1, 0.2, true);
+            odd.Add("", "mat_asphalt", 0.5, 0.1, 0.2, true);
+            odd.Add(null, "mat_asphalt", 0.5, 0.1, 0.2, true);
+            odd.Add("   ", "mat_asphalt", 0.5, 0.1, 0.2, true);
+            odd.Drop("mat_nosuchsurface");
+            odd.Drop(""); odd.Drop(null); odd.Drop("  ");
             var oddLine = odd.Emit(ground, 4);
-            Check(oddLine.Contains("groundGainRays=1/4"),
+            Check(oddLine.Contains("groundGainRays=1/1/4"),
                   "rays the row list cannot account for show as a mismatch, not silence",
                   oddLine);
-            Check(oddLine.Contains("asphalt:nothing_measured@0"),
+            Check(oddLine.Contains("asphalt:nothing_measured@0up/0notup^none"),
                   "a name that is not a ground surface never lands in a ground row",
                   oddLine);
+            Check(odd.EmitRaw(ground).Contains("groundGainRawRays=1/1"),
+                  "and the raw arm counts the same unaccounted ray", odd.EmitRaw(ground));
 
             var zero = new GroundGain();
-            zero.Add("kerb", 0.5, 0.0);
-            Check(zero.Emit(ground, 1).Contains("kerb:0.5000/0.0000=source0@1"),
+            zero.Add("kerb", "mat_kerb", 0.5, 0.0, 0.2, true);
+            Check(zero.Emit(ground, 1).Contains("kerb:0.5000/0.0000=source0@1up/0notup^mat_kerb"),
                   "a zero source prints words, not an enormous gain",
                   zero.Emit(ground, 1));
+            Check(zero.EmitRaw(ground).Contains("kerb:0.2000/0.0000=source0@1of1up"),
+                  "and the raw arm refuses the same division",
+                  zero.EmitRaw(ground));
+
+            // ---- REJECTING: A MATERIAL NAME IS ASSET DATA ------------------
+            // An imported pack can name a material anything at all, and the
+            // verdict is space-separated `key=value` with comma-separated rows
+            // inside brackets. `crowdBodyWidth` cost a reading by emitting one
+            // space; this is that fault waiting in a field nobody controls.
+            var dirty = new GroundGain();
+            dirty.Add("kerb", "mat kerb, spaced=odd@1 (Instance)", 0.5, 0.1, 0.2, true);
+            var dirtyLine = dirty.Emit(ground, 1);
+            var inside = dirtyLine.Substring(dirtyLine.IndexOf('[') + 1,
+                                             dirtyLine.IndexOf(']') - dirtyLine.IndexOf('[') - 1);
+            Check(dirtyLine.Split(' ').Length == 3,
+                  "a material name with spaces in it cannot split the verdict", dirtyLine);
+            Check(inside.Split(',').Length == 4,
+                  "nor add a fifth row by carrying a comma", dirtyLine);
+            Check(dirtyLine.Contains("^mat_kerb__spaced_odd_1"),
+                  "every structural character in a material name is folded to _",
+                  dirtyLine);
+            var unnamed = new GroundGain();
+            unnamed.Add("kerb", null, 0.5, 0.1, 0.2, true);
+            Check(unnamed.Emit(ground, 1).Contains("^unnamed"),
+                  "a material with no name says so rather than printing an empty ^",
+                  unnamed.Emit(ground, 1));
 
             // Case and whitespace fold into one row: the classifier lower-cases
             // and the tally must agree with it or a material splits in two.
             var cased = new GroundGain();
-            cased.Add("Asphalt", 0.6, 0.04);
-            cased.Add(" asphalt ", 0.6, 0.04);
-            Check(cased.Emit(ground, 2).Contains("asphalt:0.6000/0.0400=15.000@2"),
-                  "one material is one row whatever the casing");
+            cased.Add("Asphalt", "mat_asphalt", 0.6, 0.04, 0.3, true);
+            cased.Add(" asphalt ", "mat_asphalt", 0.6, 0.04, 0.3, true);
+            cased.Drop("ASPHALT");
+            Check(cased.Emit(ground, 3).Contains("asphalt:0.6000/0.0400=15.000@2up/1notup"),
+                  "one material is one row whatever the casing",
+                  cased.Emit(ground, 3));
+
+            // THE MODE IS A MODE, NOT A LAST-WINS. Three rays from a facade
+            // variant and one from the road must name the facade variant —
+            // and the tie-break must not depend on dictionary order.
+            var mode = new GroundGain();
+            mode.Add("concrete", "mat_concrete", 0.4, 0.02, 0.2, true);
+            mode.Add("concrete", "mat_concrete_b", 0.4, 0.02, 0.2, true);
+            mode.Add("concrete", "mat_concrete_b", 0.4, 0.02, 0.2, true);
+            mode.Add("concrete", "mat_concrete_b", 0.4, 0.02, 0.2, true);
+            Check(mode.Emit(ground, 4).Contains("^mat_concrete_b"),
+                  "the top material is the one with the most admitted rays",
+                  mode.Emit(ground, 4));
+            var tie = new GroundGain();
+            tie.Add("concrete", "mat_zebra", 0.4, 0.02, 0.2, true);
+            tie.Add("concrete", "mat_alpha", 0.4, 0.02, 0.2, true);
+            Check(tie.Emit(ground, 2).Contains("^mat_alpha"),
+                  "a tie breaks by ordinal name, so the row is stable across runs",
+                  tie.Emit(ground, 2));
         }
 
         static void TestImageStats()

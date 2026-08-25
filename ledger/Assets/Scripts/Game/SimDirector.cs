@@ -10598,6 +10598,20 @@ namespace Ledger.Game
         // denominator and a ray in a material's `groundGainBy` row cannot be
         // different rays.
         //
+        // AND SINCE THE GEOMETRY TEST LANDED, "cannot be different rays" IS
+        // ONE WORD SHORT AND THE MISSING WORD IS `SUBSET`. `groundGainBy` now
+        // takes only the name-matched rays whose hit normal faces up (see
+        // `GroundUpDot`), because a material NAME cannot tell a road from the
+        // facade painted in the same concrete. So the gain rows are a subset
+        // of this family denominator, never a different set, and the triple
+        // `groundGainRays=<admitted>/<notup>/<here>` prints the split so the
+        // relationship is arithmetic rather than remembered. Everything on
+        // THIS side — `groundMaskMeanBy`, `groundMaskThirdsBy`,
+        // `groundMaskOverFrameBy`, `groundMaskOverLowerBy`, `groundMaskRays`
+        // — still counts every name-matched ray and is unchanged, because
+        // narrowing a landed series is a regime change no aggregate over its
+        // past readings can see.
+        //
         // MECHANISM, AND WHAT IT APPROXIMATES. It is a RAY GRID, not a render
         // mask: `GroundGridX * GroundGridY` rays through the viewport of the
         // camera that just took the still, each ray classified by the material
@@ -10668,6 +10682,43 @@ namespace Ledger.Game
         /// the district rows — not a second key here.
         readonly Ledger.Core.GroundGain _groundGain = new Ledger.Core.GroundGain();
 
+        /// IS THIS SURFACE FACING UP — A GEOMETRIC CLASSIFIER, NOT A TUNED
+        /// BOUND, AND NOT A THING TO SET FROM A SERIES.
+        ///
+        /// Rule 2 says a threshold gets a printed series first. This is not a
+        /// threshold. `GroundSurfaceOf` answers "what is this material
+        /// called", which is all a name can answer, and on 3a4e335 that let
+        /// `groundGainBy` file building facades, the `mat_concrete_b` facade
+        /// variant, vehicle paint and street furniture as ground — 2673 of
+        /// 6041 rays under `concrete` alone. Ground in this town is
+        /// horizontal BY CONSTRUCTION: every road, pavement, kerb top and
+        /// yard is an axis-aligned box laid flat by `WorldBuilder`, so its
+        /// world normal is (0,1,0) and a facade's is (±1,0,0) or (0,0,±1).
+        /// 0.9 is "this face points up" with room for nothing in particular —
+        /// there is no population of surfaces between 25 degrees and vertical
+        /// for it to cut through, and moving it to 0.8 or 0.95 would change
+        /// no ray in a world built out of flat boxes.
+        ///
+        /// IT IS AUDITED BY ITS OWN DROPPED COUNT, not by a gate. Every row
+        /// prints `<admitted>up/<rejected>notup`, so a filter that started
+        /// eating the road would show as a row collapsing rather than as a
+        /// number quietly getting better. There is NO GATE and NO BOUND on
+        /// anything downstream of it.
+        ///
+        /// AND THE TEST LIVES HERE, AT THE RAY, NOT IN `GroundSurfaceOf`. The
+        /// classifier has a material and no geometry; handing it a normal
+        /// would make one function answer two questions and would put a
+        /// second copy of the ground rule in the Game layer, where it cannot
+        /// be tested locally.
+        const float GroundUpDot = 0.9f;
+
+        /// How many district shots got an UNGRADED twin render for
+        /// `groundGainByRaw`, out of the shots offered. Rule 3b: without this
+        /// pair, "the bypass render threw on every shot" and "the grade does
+        /// nothing" print the same thing.
+        int _groundRawShots;
+
+
         /// Ground-masked luma readings for one district still.
         ///
         /// `tex` is the frame that was just encoded to the committed JPEG and
@@ -10682,6 +10733,83 @@ namespace Ledger.Game
             catch (Exception e) { _errors.Add("GroundMaskRead: " + e.Message); return; }
             int w = tex.width, h = tex.height;
             if (px.Length < w * h || w <= 0 || h <= 0) return;
+
+            // THE UNGRADED TWIN OF THIS EXACT FRAME, FOR `groundGainByRaw`.
+            //
+            // WHY IT IS THE DECIDING MEASUREMENT. Every frame-sampled number
+            // in this fork is POST-GRADE: `FilmGrade` runs exposure, an ACES
+            // tonemap, bloom, vignette and grain before the texture above is
+            // encoded, so `groundGainBy`'s numerator is
+            // `tonemap(exposure x light x albedo) + bloom + grain` and its
+            // denominator is a raw material constant. Bloom is ADDITIVE and
+            // ALBEDO-BLIND, so a fixed additive term over a falling
+            // denominator explodes the ratio on the darkest surface — which
+            // is exactly the shape of 3a4e335's `asphalt:68.121` against
+            // `kerb:4.911`. Graded over raw is the only pair that can tell an
+            // in-scene lighting lift from an ACES shoulder from bloom, and
+            // the same pair is a suspect for the sky/ground convergence
+            // reading, because bloom bleeds spatially from a bright horizon
+            // into the far ground abutting it.
+            //
+            // SAME INSTANT, SAME CAMERA, SAME RAYS. `DistrictTour` takes no
+            // time step between cameras and nothing here moves `cam`, so this
+            // render is the same photograph with one pass switched off. The
+            // rays are not re-cast: the loop below raycasts ONCE and reads
+            // both pixel arrays at the same `row * w + col`, so the graded
+            // and raw halves of a row are the same ray by construction rather
+            // than by two loops agreeing.
+            //
+            // THE PATTERN IS THE FILE'S OWN, not a new one:
+            // `MeasureNightLight`, `ProbeFrameCost` and the facade ladder all
+            // do `Bypass = true; measure; Bypass = false`, and the landed
+            // `nightFull=0.1397 nightUngraded=0.1591` is the proof that the
+            // switch reaches `Camera.main` — which is the camera
+            // `DistrictTour` moves.
+            //
+            // WHAT ELSE THIS RENDER MOVES, SAID BEFORE SOMEBODY READS IT AS A
+            // REGRESSION: `postFrames` is `FilmGrade.Frames`, incremented at
+            // the top of `OnRenderImage` whether or not `Bypass` short-cuts
+            // the pass, so it gains ONE PER DISTRICT SHOT — seven on a
+            // seven-district run, against a landed 25,876. `postOk` is
+            // `Frames > 0` and cannot move. Nothing else here writes a number
+            // anything reads: the still is already encoded to JPEG before
+            // `GroundMaskRead` is called, so this render is not the picture.
+            Color[] rawPx = null;
+            {
+                RenderTexture rawRt = null; Texture2D rawTex = null;
+                var keptTarget = cam.targetTexture;
+                var keptActive = RenderTexture.active;
+                try
+                {
+                    FilmGrade.Bypass = true;
+                    rawRt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32);
+                    cam.targetTexture = rawRt;
+                    cam.Render();
+                    RenderTexture.active = rawRt;
+                    rawTex = new Texture2D(w, h, TextureFormat.RGB24, false);
+                    rawTex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+                    rawTex.Apply();
+                    var got = rawTex.GetPixels();
+                    // `GetPixels` returns a COPY, so the array outlives the
+                    // texture destroyed in the finally below.
+                    if (got != null && got.Length >= w * h) { rawPx = got; _groundRawShots++; }
+                }
+                catch (Exception e) { _errors.Add("GroundMaskRead raw: " + e.Message); rawPx = null; }
+                finally
+                {
+                    // BYPASS OFF FIRST AND UNCONDITIONALLY. It is a static on
+                    // a post-process that every later shot in the run renders
+                    // through; leaving it set on a throw would silently
+                    // ungrade every committed still after this one, which is
+                    // the `glossDropped/glossRestored` fault with a worse
+                    // blast radius.
+                    FilmGrade.Bypass = false;
+                    cam.targetTexture = keptTarget;
+                    RenderTexture.active = keptActive;
+                    if (rawTex != null) UnityEngine.Object.Destroy(rawTex);
+                    if (rawRt != null) rawRt.Release();
+                }
+            }
 
             double gSum = 0; int gN = 0;
             var thirdSum = new double[3]; var thirdN = new int[3];
@@ -10727,6 +10855,43 @@ namespace Ledger.Game
                     if (logical.Length == 0) continue;
                     _groundRaysGround++;
                     gSum += l; gN++;
+                    // THE THIRDS MOVED UP HERE FROM THE BOTTOM OF THE LOOP,
+                    // and moving them is the point: `groundMaskThirdsBy` is a
+                    // mean over every NAME-MATCHED ground ray and must keep
+                    // being exactly that, so it has to be accumulated BEFORE
+                    // the gain tally's geometry test skips the rest of the
+                    // body. Leaving it below and repeating it in the skip
+                    // branch was the first draft — one idea, two
+                    // implementations, and the second is the copy nobody
+                    // looks at when the first is fixed.
+                    int t = u < (1.0 / 3.0) ? 0 : (u < (2.0 / 3.0) ? 1 : 2);
+                    thirdSum[t] += l; thirdN[t]++;
+
+                    // AND NOW THE GEOMETRY TEST, WHICH ONLY THE GAIN TALLY
+                    // APPLIES. See `GroundUpDot`: the name match above admits
+                    // facades, the `_b` facade variant, vehicle paint and
+                    // street furniture, and none of those is ground.
+                    //
+                    // IT GUARDS `_groundGain` AND NOTHING ELSE, DELIBERATELY.
+                    // `groundMaskMeanBy`, `groundMaskThirdsBy`,
+                    // `groundMaskOverFrameBy` and `groundMaskRays` are a
+                    // landed series with their own history; narrowing what
+                    // they count would be a regime change no aggregate over
+                    // their past readings could see, and this dispatch was
+                    // ordered to fix ONE key. So `_groundRaysGround` stays the
+                    // name-matched count and is the denominator the gain
+                    // triple prints against.
+                    if (hit.normal.y <= GroundUpDot)
+                    {
+                        // NO SECOND COUNTER HERE. The tally keeps the
+                        // whole-run dropped total and prints it as the middle
+                        // of `groundGainRays`; a `_groundRaysNotUp` field
+                        // beside it was the first draft and was one idea in
+                        // two implementations, which is the site that goes
+                        // stale when the other is fixed.
+                        _groundGain.Drop(logical);
+                        continue;
+                    }
 
                     // RENDERED OVER SOURCE, FROM ONE RAY AT ONE INSTANT.
                     //
@@ -10766,12 +10931,30 @@ namespace Ledger.Game
                     // magnitude under the effect being measured. Kept rather
                     // than reconciled because making the numerator disagree
                     // with `groundMaskMeanBy` would be the worse fault.
+                    // AND THE RAW HALF, FROM THE SAME PIXEL OF THE UNGRADED
+                    // TWIN — same `row * w + col`, same ray, same instant,
+                    // and through the SAME `Color.linear` conversion, so the
+                    // 2.05..2.09 gamma trap named above is the first suspect
+                    // on the raw rows too. `rawKnown` is false when the
+                    // bypass render above failed, and then the raw row prints
+                    // the words rather than reading as a black road.
                     var lin = c.linear;
+                    bool rawKnown = rawPx != null;
+                    double rawLuma = 0;
+                    if (rawKnown)
+                    {
+                        var rc = rawPx[row * w + col].linear;
+                        rawLuma = ImageStats.Luma(rc.r, rc.g, rc.b);
+                    }
+                    // ONE CALL, BOTH NUMERATORS. See `GroundGain.Add`: two
+                    // tallies fed by two adjacent statements is how this
+                    // project shipped four pairs of numbers taken at
+                    // different instants and printed as one event.
                     _groundGain.Add(logical,
+                                    rend.sharedMaterial != null ? rend.sharedMaterial.name : null,
                                     ImageStats.Luma(lin.r, lin.g, lin.b),
-                                    AssetLibrary.GroundSourceAlbedo(rend.sharedMaterial));
-                    int t = u < (1.0 / 3.0) ? 0 : (u < (2.0 / 3.0) ? 1 : 2);
-                    thirdSum[t] += l; thirdN[t]++;
+                                    AssetLibrary.GroundSourceAlbedo(rend.sharedMaterial),
+                                    rawLuma, rawKnown);
                 }
 
             string shortName = (name ?? "unnamed").Replace(' ', '_');
@@ -15081,14 +15264,55 @@ namespace Ledger.Game
                       // the two are in DIFFERENT COLOUR SPACES on purpose
                       // (this one linear, that one the frame's sRGB): they are
                       // not two views of one quantity and must not be divided.
-                      // `groundGainRays=a/b` is a self-check, not a statistic:
-                      // a and b are the same rays counted by the two halves of
-                      // one classifier and are equal by construction. NO BOUND
-                      // AND NO GATE — this number has never landed; the series
-                      // comes first. The trap to read for is at the emit site
-                      // in `GroundMaskRead`: 2.05..2.09 is a colour-space
-                      // mismatch wearing a lighting gain's clothes.
+                      // `groundGainRays=a/b/c` is a self-check, not a
+                      // statistic: a is the rays ADMITTED by the geometry
+                      // test, b the ones its NAME matched and its normal did
+                      // not, c the mask's own name-matched ground count — and
+                      // a + b == c by construction, because the two halves are
+                      // one classifier split by one test. NO BOUND AND NO GATE
+                      // — this key has landed once, on rows that did not mean
+                      // their name; the series comes first. The trap to read
+                      // for is at the emit site in `GroundMaskRead`:
+                      // 2.05..2.09 is a colour-space mismatch wearing a
+                      // lighting gain's clothes.
+                      //
+                      // THE FILTER THAT MAKES THE NAME TRUE, AND WHAT IT COSTS
+                      // EACH ROW. Every row carries `<admitted>up/<n>notup`
+                      // and the material name that contributed the most
+                      // admitted rays: 3a4e335 filed facades, the
+                      // `mat_concrete_b` facade variant, odd-id vehicle paint
+                      // and street furniture as ground, so no row of that
+                      // landing is quotable. A row reading `0up` is a finding
+                      // about the OLD row, not a fault in the filter — `kerb`
+                      // is a 0.2m strip by construction and its up-facing top
+                      // is a sliver of what its old row averaged.
                       $"{AssetLibrary.GroundGainEmit(_groundGain, _groundRaysGround)} " +
+                      // AND THE SAME RAYS WITH `FilmGrade.Bypass` ON.
+                      //
+                      // WHAT IT SEPARATES. `groundGainBy`'s numerator is
+                      // post-grade — exposure, an ACES tonemap, bloom,
+                      // vignette and grain — over a raw material constant, and
+                      // bloom is additive and albedo-blind, so the ratio
+                      // explodes as the denominator falls whatever the light
+                      // is doing. `groundGainByRaw` is the identical rays with
+                      // the whole post stack switched off. The DIFFERENCE
+                      // between the two rows is the reading; neither row alone
+                      // says which term lifts the road.
+                      //
+                      // BOTH NUMERATORS ARE LINEAR, converted at the ray by
+                      // `Color.linear` from an sRGB readback, and both
+                      // denominators are `MatAlbedo`, already linear —
+                      // `groundMaskMeanBy` stays in the frame's sRGB and is a
+                      // DIFFERENT COLOUR SPACE from both of these, so it must
+                      // not be divided into either. The 2.05..2.09 gamma trap
+                      // applies to the raw rows exactly as to the graded ones.
+                      //
+                      // `groundGainRawShots=n/m` is the denominator that tells
+                      // a failed bypass render from a grade that does nothing;
+                      // `groundGainRawRays=a/b` equal is the on-the-line proof
+                      // the two keys describe one ray set.
+                      $"{AssetLibrary.GroundGainRawEmit(_groundGain)} " +
+                      $"groundGainRawShots={_groundRawShots}/{_groundShotsOffered} " +
                       $"tourDepthMedian={Median(_tourDepth):0.0} " +
                       $"tourNearSeries=[{FracSeries(_tourNearFrac)}] " +
                       $"tourShots={_tourDepth.Count} " +
