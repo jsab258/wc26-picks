@@ -85,30 +85,30 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 ### screen. Nothing from a later stage starts while an earlier one has
 ### startable work, except reading a landed verdict, which is free.
 
-1. **SYNC THE PLAYBOOK REPO — APPROVED, AFTER THE CURRENT BUILD LANDS.**
-   Jafar, 25 Aug: *"recommendations are fine, go with them"*, on the
-   recommendation of ONE batched pass rather than a trickle.
-   `jsab258/game-studio` last moved 24 Aug; `template-sync.py` holds a
-   DEFER marker naming `template-sync-batch-definition-and-turn-ceilings`
-   and goes RED on the next process-section edit, so the debt cannot rot
-   silently — it blocked a commit tonight, which is how it was noticed. **Ten
-   general lessons, with the inclusion test (would it help a project sharing
-   none of this code?): `agent-reports/template-sync-debt.md`.**
+1. **PLAYBOOK REPO SYNCED — CLOSED 25 Aug.** `jsab258/game-studio` at
+   `63532cb`, `state=synced`. Ten lessons carried, four translated; the cadence
+   bug was live THERE too and is fixed. `agent-reports/template-sync-debt.md`.
 
-1. **THE CHEAP CI CHANNEL: LANDED GREEN, AND CATCHING THINGS AGAIN.** 311
+1. **THE CHEAP CI CHANNEL: LANDED GREEN AND CATCHING THINGS.** 311
    consecutive reds over 7d 2h, one cause — the workflow's ReachCheck lacked
-   the `--also ledger/Assets/Editor` argument `verify.py` passes. Six
-   consecutive greens since `a1622670`, and it caught three dead APIs within
-   hours of coming back. Account: `roadmap-history.md` 2026-08-25. **OPEN:**
-   `ledger-build-{windows,mac}.yml` Verdict steps report the SIM, so "lint
-   failed" and "the sim did not run" print the same sentence.
+   `--also ledger/Assets/Editor`. Green since `a1622670`; caught three dead
+   APIs within hours. Account: `roadmap-history.md` 2026-08-25. **OPEN:** the
+   Windows/mac Verdict steps report the SIM, so "lint failed" and "the sim
+   did not run" print the same sentence.
 
-1. **REJECTING FIXTURES REPINNED TO SYNTHETIC CASES — LANDED.**
-   `clip-motion` asserted `Joe.fbx` has no take, `prop-dimensions` that
-   `police.fbx` still reproduces a bug — both would have gone red for the
-   PROJECT improving. Both now build synthetic two-rung ladders pinning the
-   bounds from either side. Third site queued: `lint-conditional-reach`
-   rewrites a tracked source file for its rejecting case (hand-run only).
+1. **REJECTING FIXTURES REPINNED — LANDED.** `clip-motion` asserted `Joe.fbx`
+   has no take, `prop-dimensions` that `police.fbx` still reproduces a bug —
+   both would have gone red for the PROJECT improving; now synthetic two-rung
+   ladders. Third site queued: `lint-conditional-reach` rewrites a tracked
+   source file for its rejecting case (hand-run only).
+
+1. **NOTE: `06f51f39`'s message says the comment sweep is incomplete —
+   FALSE; it finished and landed in that same commit** (see
+   `decision-ground-albedo.md`, 25 Aug dispatch review). **Do not re-brief
+   it.** Asserted from a builder's last STREAMED line rather than the disk —
+   rule 1 aimed at an output stream, which is a comment about the work and
+   not the work. This line is here because the queue is where a session
+   believing that message would mint the re-do item.
 
 1. **THE DRY TOUR LANDED. ALBEDO IS RULED OUT; THE LEVER IS LIGHTING.**
    The regime break stands: **every `district_*` row before the day-5 move

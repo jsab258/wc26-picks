@@ -1424,3 +1424,178 @@ statistics (§A above).
 - **`groundAlbedoBy` and `groundGainBy` denominators are different
   moments and different populations** (verifier finding 7, adopted) —
   do not cross-check one against the other.
+
+---
+
+# Dispatch review of 06f51f39 — filter + Bypass A/B batch, A–G, and one commit-message retraction (director, 25 Aug 2026)
+
+> Review of commit `06f51f39`, which executes the 3a4e335 ruling's §C
+> (the up-facing filter and the `FilmGrade.Bypass` A/B, ONE dispatch).
+> Unusual shape, recorded so it does not become precedent by silence:
+> the batch was COMMITTED unreviewed, labelled WIP, because the loop was
+> stopped at Jafar's request mid-flight and unpushed work is lost work
+> in this container. That call was right; this review therefore gates
+> the DISPATCH, not the commit, and nothing below re-litigates the
+> commit's existence. Verifier-first: the tier-2 position is taken as
+> established; spot-checks done this session against the tree, not the
+> report: `GroundGain.cs` read whole (`Emit` :153–194, `EmitRaw`
+> :207–233, `TopMat` :239–248, `Safe` :272–288); the ray site
+> `SimDirector.cs:10855–10958` (`GroundUpDot = 0.9f` declared :10713
+> with the not-a-tuned-bound rationale, test at :10884, `Drop` +
+> `continue` at :10892–93, single `Add` with both numerators :10953,
+> raw pixel at the same `row * w + col` :10946); the emit pair
+> :15289/:15314; `CoreTests/Program.cs:13314–13537` (kerb-collapse
+> print fixture :13343/:13384, no-raw case :13428–33, dirty-name
+> rejecting case :13492–13503, mode :13520–30, ordinal tie :13531–36);
+> `WorldBuilder.cs:618–625` (kerbs are 0.2m strips as predicted);
+> `ledger/.verify-footer` present on disk — green, 3834 CoreTests,
+> Game layer compiles (179 files), cadence reference = this commit.
+
+## RETRACTION FIRST — the message on commit 06f51f39 is FALSE about the
+sweep, and this paragraph is the correction of record.
+
+Corpse-quote, per the house shape: the commit message says *"the comment
+sweep is INCOMPLETE"*. **It is false. The sweep FINISHED, and its fixes
+are inside that same commit** — verified this session: the `SUBSET`
+paragraph at `SimDirector.cs:10601–10604` and the `sits inside`/SUBSET
+rewrite at `SurfaceNames.cs:55–72` are on disk. The coordinator has
+named the cause itself: the sentence was asserted from the builder's
+last STREAMED line, not from the disk — rule 1, applied to an agent's
+output stream, which is a comment about the work and not the work. The
+commit is pushed and stands as history; the corrections live in TWO
+places because the false sentence lives in the commit feed, which
+nobody can edit: (1) this paragraph, in the record every ground session
+reads; (2) one line in `queue.md` beside the ground items — resident
+hand-apply, exact text: *"NOTE: 06f51f39's message says the comment
+sweep is incomplete — FALSE, the sweep finished and landed in that same
+commit (decision-ground-albedo.md, 25 Aug dispatch review). Do not
+re-brief it."* The queue gets the line because the queue is where a
+session believing the message would mint the re-do item. Nobody re-does
+the sweep.
+
+## A. CONFIRMED — the three-field key is an improvement, and the identity
+is what answers my own two-field objection.
+
+`groundGainRays=admitted/notup/mask` carries its own audit on the line:
+`admitted + notup == mask` by construction (the caller's
+`logical.Length == 0 → continue` precedes `_groundRaysGround++`, and
+`Add`/`Drop`'s empty-name guards are unreachable from that caller), and
+the delivered example checks by inspection — 6 + 11 = 17. The two-field
+`a/b` I flagged could only be read as coverage; the three-field triple
+can be CHECKED as a sum, and a reader who mistakes it for a fraction
+gets numbers that refuse the reading. Per-row, the tail is
+self-labelling words (`@3up/0notup`), not positions. The queued
+mismatch-word rung CARRIES OVER in its new form: on
+`admitted + notup != mask` the value grows the word `disagree` — still
+queued, still not blocking, because a mismatch is already legible as
+three numbers that do not add, which the old shape could not say at all.
+
+## B. CONFIRMED — the `^name` printer is a MODE and its rejecting case
+was actually run.
+
+`TopMat` is a mode over ADMITTED rays with an ordinal tie-break (pinned:
+three `mat_concrete_b` beat one `mat_concrete` :13528; `mat_alpha` beats
+`mat_zebra` on a tie :13534); `^none` for an empty row and `^unnamed`
+for a nameless material are both words, not blanks. The sanitiser's
+rejecting fixture is the literal horror case — `mat kerb, spaced=odd@1
+(Instance)` — and the assertions are the right three: the verdict does
+not split (3 space-separated tokens), no fifth row appears, and the
+folded name `^mat_kerb__spaced_odd_1` survives whole. This is the
+printer that lets `mat_concrete_b` and vehicle paint convict themselves,
+which is what 3a4e335's 44% contamination needed and lacked.
+
+## C. CONFIRMED STRUCTURAL. One filter, one ray set, is enforced by
+shape, not by adjacency.
+
+One `GroundGain` object (`_groundGain`, :10683); the geometry test
+(`hit.normal.y <= GroundUpDot` → `Drop` + `continue`) sits ABOVE the
+single `Add`, so a rejected ray reaches neither arm; both numerators
+enter through that one `Add`, with the raw pixel read at the same
+`row * w + col` as the graded one; and the raw emit deliberately prints
+neither `notup` nor `^mat` — admission is ONE decision, and
+`@<raw>of<admitted>up` with the two equal is the on-the-line proof the
+two keys describe one ray set. The mask-family keys keep their
+unfiltered regime, guarded in words at :10875–83 — the regime-change
+rule applied prospectively, correctly. `GroundUpDot = 0.9f` is exactly
+the ordered geometric classifier and nothing here tunes it.
+
+## D. CONFIRMED. A failed bypass prints words, not a black road.
+
+`rawKnown=false` moves no raw sum, and `EmitRaw` prints
+`nothing_measured@0of<admitted>up` — asserted at :13428–33. A raw row
+reading `0.0000` would be read as "black before the grade", which is a
+CONCLUSION of the A/B, and this batch correctly makes that misreading
+unprintable. Both directions are in the selftest (populated raw rows in
+the pinned strings; the no-raw case synthetic).
+
+## E. CONFIRMED — pre-writing the interpretation is right HERE, because
+it is a falsifiable prediction executing an existing ruling, not a
+pre-commitment.
+
+The 3a4e335 ruling §C.1 already said, before this code existed: "if
+`kerb` collapses to near-zero rays, the vertical kerb faces WERE the
+bucket — a finding about the old rows, not a fault in the filter." The
+comment at `GroundGain.Emit` restates that ruling where the reader
+meets the number, with the geometry (`WorldBuilder.cs:618–625`, 0.2m
+strips — verified) as its basis. The CoreTest fixture pins how the
+collapse PRINTS (five synthetic Drops in, `0up/5notup^none` out), not
+that it occurs — the formatter is under test, the world is not. The
+fence, stated so the prediction cannot harden into a gate: **a kerb row
+landing `@Nup` with N>0 is DATA, not a fault** — sliver tops sampled —
+and neither outcome goes red, because nothing is gated. This is the
+house prediction shape (the `groundPatch` F6 precedent): written in
+advance, falsifiable in both directions, read at the landing.
+
+## F. THE THREE DOCS: nothing is edited in place. Two are LOGs already
+covered; the third's stale sketch is corrected HERE, append-only.
+
+- `agent-reports/ground-gain.md` — LOG, banner "NOT CURRENT once
+  landed"; it landed at 3a4e335, so §3/§8's two-field grammar and the
+  "divides one's output by the other's" sentence are covered history.
+  No edit.
+- `agent-reports/ground-gain-verified.md` — LOG, banner "NOT CURRENT
+  once the normal filter lands", i.e. it retires itself at THIS
+  dispatch's landing; its 3a4e335 row in the old grammar is a true
+  quote of a real landed line. No edit.
+- This file's §B sketch (the `:918` region, measurement-audit ruling):
+  corpse-quote — it sketches
+  `groundGainBy=[asphalt:<renderedLinear>/<sourceAlbedo>=<ratio>/...]`
+  with no `@…up/…notup^…` tail, because it was written before the
+  3a4e335 landing forced the filter. **The grammar of record is the
+  delivered one, pinned in CoreTests**: per row
+  `name:<ren>/<src>=<ratio>@<n>up/<d>notup^<topmat>`, done-line triples
+  `groundGainRays=admitted/notup/mask` and `groundGainRawRays=raw/
+  admitted`, raw rows `@<raw>of<admitted>up`. Read the sketch as
+  superseded mechanism prose; this file is append-only per the standing
+  file warning, so the correction lives here, not at the sketch.
+
+Confirmed with the coordinator: nothing in the 3a4e335 ruling is
+falsified by the delivered shape — §C.1's two printers are delivered as
+specified, plus the mask-count third field, which strengthens the
+self-check and changes no ordered semantics.
+
+## G. CLEARED TO DISPATCH.
+
+Verify is green on disk (footer read this session, not quoted from
+memory); no lever moves, no bound is set anywhere in the batch — the
+only new constant is the ordered geometric classifier; the filter and
+the A/B ride as ONE dispatch per §C's "first in the tally, not first in
+a round trip". Reading order at the landing, in one place:
+
+1. Line 1 sha and the `NO PLAYER LOG` line before any frame or number.
+2. `groundGainRays`: admitted + notup == mask, or stop — the classifiers
+   disagree and nothing else is readable. Then `groundGainRawRays=a/b`:
+   a == b is the one-ray-set proof; a < b means the bypass render failed
+   on some shots and the raw rows are means over fewer rays — read
+   `groundGainRawShots` before comparing arms.
+3. Ratios clustering 2.05..2.09 on EITHER arm: the gamma trap inside the
+   instrument, rule 3, before any sentence about light.
+4. The kerb row per §E — either outcome is a finding, neither is red.
+5. This landing makes n=2 on a repaired key: NOTHING moves a lever off
+   it. The sub-lever choice (ambient lift vs ACES shoulder vs bloom) is
+   sized from the landed A/B split per the 3a4e335 §B order, and the
+   band mechanism stays series-first with a director close-out.
+
+Not re-litigated from here: the 06f51f39 message's sweep sentence is
+retracted above — do not re-brief the sweep; the `:918` sketch grammar
+is superseded — quote the CoreTests-pinned shape only.
