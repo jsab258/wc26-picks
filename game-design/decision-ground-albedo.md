@@ -851,3 +851,280 @@ batch (§B's printer list) by name.
 applied (D's two stale layers, B's five→six) and the two queue items are
 written (spaced-value backlog; NoSpaces-to-Core). Then dispatch the train
 as listed above — it is what turns §A's AWAITING into a reading.
+
+---
+
+# Measurement audit of the 14f964a ruling — §A re-ruled leg by leg (director, 25 Aug 2026)
+
+> Ruling on the measurement audit of "Landing 14f964a read — ruling on
+> A–F" above. Every load-bearing claim re-verified against the tree this
+> session, not quoted from the audit: `SurfaceUnder`'s col is
+> `sm.GetColor("_Color")` — the tint alone, in its stored (gamma) value,
+> texture excluded — at `SimDirector.cs:8726–8727`, printed `:8750`, with
+> `tex:` beside it naming the texture it ignores; `MatAlbedo` is
+> `m.color.linear` luma × `MeanTexLuma` (`AssetLibrary.cs:1311–1316`);
+> the project is `ColorSpace.Linear` (`CiBuild.cs:42`); the mask pools
+> ONE sum per shot with no per-material split (`SimDirector.cs:
+> 10706–10727`, `gSum += l` behind a single `IsGroundSurface` test); the
+> `AssetLibrary.cs:915–917` comment orders a division across keys that
+> share no name; ref-bench masks HUD rects on BOTH sides
+> (`ref-bench.py:394–396`). The probe series I pulled from `runs/`
+> myself: `noonFacadeMat` d: wanders 6.7–9.2 across landed runs, and run
+> 3ecefd4 hit `mat_concrete_b` where every neighbouring run hit
+> `mat_brick_grey_b` — WORSE than the audit stated: the single ray does
+> not just move, it sometimes lands on a different surface. Adopted from
+> the audit without re-running here, and marked so: the `gates.py
+> --series` refusal of `meanLuma` (three values on three lines, 319/323
+> runs) and `shadowDrop`'s bimodal 88-run series.
+
+## A. §A is NARROWED and its verdict RE-AFFIRMED — it stands on leg 2
+alone, and the record says so in these words.
+
+- **Leg 1 is STRUCK.** "Source 0.41–0.44 vs rendered 0.77–0.94 is a
+  1.8–2.2x gain no material can supply" compared ONE FACTOR of the
+  source — the gamma-stored tint, texture excluded — against the FULL
+  rendered result. The two instruments agree exactly once converted:
+  0.41,0.42,0.44 IS `TextureGrade x GroundGrade` in stored values, so
+  the landing proved the tint was ASSIGNED and proved nothing about
+  gain. Everything downstream of the 2x dies with it: the "~2x lift"
+  phrase, the "0.42 x 1.9 ≈ 0.80" consistency arithmetic, and any
+  sizing of a lighting move from that factor. **The magnitude of the
+  dry lift is today UNMEASURED.**
+- **Leg 2 STANDS and is sufficient.** Hook road 0.771 near / 0.944 far —
+  same material, same frame, same instant, same space. Albedo cannot
+  vary with distance; only the light path can produce that gradient.
+  Every operative order survives on this leg unchanged: `GroundGrade`
+  does not move in either direction, the lever is the lighting stack,
+  no lighting lever moves before the masked series lands, and §A's
+  falsifiers (a) and (b) stand as written.
+- Why this is recorded rather than quietly absorbed: a conclusion that
+  keeps its verdict while losing half its reasoning is exactly how a
+  wrong premise survives. The next session must know WHICH evidence the
+  standing orders rest on, or a future challenge to the dead leg will
+  read as a challenge to the ruling itself.
+
+## B. `groundGainBy` — ORDERED into the mask dispatch. The `:915–917`
+comment is FALSE-ON-ARRIVAL and is rewritten in the same change.
+
+The division that comment orders cannot be performed: `groundMaskMeanBy`
+is keyed by DISTRICT, `groundAlbedoBy` by MATERIAL, and the pooling loop
+adds every ground ray into one sum per shot. It shipped in a batch I
+approved — noted for the record: a comment describing a FUTURE read
+decays exactly like one describing past behaviour, and this one was
+false the day it was written. The auditor's fix is adopted:
+
+1. Inside `GroundMaskRead`, where the ray already holds
+   `rend.sharedMaterial`, bucket per material name and emit
+   `groundGainBy=[asphalt:<renderedLinear>/<sourceAlbedo>=<ratio>/...]`
+   — numerator and denominator from the SAME ray at the SAME instant,
+   both linear. One dictionary, no extra render, space-free values, a
+   rays-per-bucket denominator per the instruments rule.
+2. **The source side goes through `MatAlbedo` itself** — the same helper
+   `groundAlbedoBy` uses — per this project's own written rule at
+   `AssetLibrary.cs:1318–1321`: one instrument on both sides, or the
+   comparison is two instruments arguing.
+3. **The emit's comment names the colour space of BOTH sides**, because
+   this entire section exists because a space went unnamed. Known
+   confusable, written in advance: first landed ratios clustering near
+   2.05 (≈ 0.55 / 0.267) are the signature of a gamma/linear mismatch
+   INSIDE the instrument — suspect that before concluding anything about
+   light (rule 3).
+4. No gate, no bound, series first. The landed ratio is what SIZES the
+   lighting move; nothing moves in this dispatch.
+
+## C. The GTA magnitude claim is WITHDRAWN; the direction is retained;
+the mattes are APPROVED; the in-engine HUD mask is REFUSED.
+
+- Kept, 7 of 7: our dry ground is brighter relative to its frame than
+  every reference. WITHDRAWN wherever quoted: any FACTOR between us and
+  the references. Three biases point two ways (reference-band non-ground
+  content — cars, riders, fences; our dark sky; the HUD-mask asymmetry),
+  and the auditor's +2%..+25% band for the first is self-declared
+  hunch-bounded, off an eye-drawn mask. A withdrawn magnitude with a
+  retained direction is the honest reading and it changes no decision:
+  nothing standing was sized from the factor.
+- **Five hand-painted ground mattes, committed once beside the
+  references — APPROVED.** Cheap, permanent, and it converts the
+  reference side from "band with unknown contamination" to a measured
+  surface. Content-wrangler task, queued by name; not blocking the
+  dispatch.
+- **The proposed HUD mask on our in-engine side is REFUSED.** The audit
+  ruling §C already assigned the reference comparison to ref-bench
+  EXCLUSIVELY, where the mask is symmetric by construction; the
+  in-engine `groundMaskOverFrameBy` is a series-and-constancy
+  instrument and is never quoted against a reference number. A second
+  HUD-mask implementation in-engine is one idea in two implementations
+  — the seed rule 1's third corollary exists to kill. The standing rule
+  gains one sentence: **no in-engine key is compared against a
+  reference; cross-comparison happens inside ref-bench or not at all.**
+
+## D. STANDING INSTRUCTION — single-ray probes are identity checks, not
+measurements.
+
+Verified worse than reported (header): the facade probe's distance
+wanders 6.7–9.2 across landed runs and at least once landed on a
+different material family entirely. The instruction:
+
+1. **A single ray may confirm a PREDICTED CONSTANT that is invariant to
+   where in the family it lands** — `districtGround` col matching
+   `TextureGrade x GroundGrade` is such a check, which is why §A's use
+   of it survives this section. It may NOT be read for anything luma-,
+   distance- or composition-valued: those are functions of where the ray
+   happened to land that run.
+2. **Before comparing any probe across runs, compare its pinning fields
+   first** (`d:`, the material name). If they moved, the probe moved,
+   and the delta is evidence about the ray, not the world. The
+   `noonFacade` halving is the worked example: all ten sub-terms "moved"
+   because the ray did.
+3. **Street-level questions go to the grid sampler** (2,304 rays with
+   denominators), never to a single ray. Single-ray emits are retained
+   as identity checks only.
+4. `meanLuma` is REFUSED as series evidence until its three-line
+   ambiguity is repaired per the whole-run/sample-line rule (distinct
+   keys, or the whole-run value onto the done line) — instrument queue
+   item, by name. `shadowDrop` readings are quoted only with their
+   cluster named; identifying the covariate that splits its bimodal
+   series (the wet/rain `frames.tsv` join is the candidate) comes BEFORE
+   the next use — a number from an unexplained mixture is two numbers
+   wearing one name.
+
+How much standing reasoning rests on unpinned rays, audited this
+session: the one load-bearing use — §A — carried its own "one ray, one
+point, one district" caveat and rested the family-wide claim on the code
+reading plus the ordered `groundAlbedoBy`, so **no landed conclusion
+needs retraction**. A verifier sweep goes to the queue by name — every
+`SurfaceUnder`-style single-ray emit, and which conclusions quote it —
+because "I found no other instance" is a claim about my memory, not
+about the tree.
+
+## E. The GroundGrade space note — YES: recorded here, and beside the
+constant.
+
+`GroundGrade` is 0.55 as the stored (gamma) value of a material
+`_Color`; in this Linear project the shader multiplies by its linear
+form, ≈0.267 — a ~3.7x darkening in light terms, not 1.8x. Anyone doing
+linear-light arithmetic with "0.55" is off by 2x, which is precisely how
+leg 1 read as plausible. Checked before writing: **Call 2's derivation
+of 0.55 is UNTOUCHED** — it matched the archived frame's effective
+multiplier in the SAME stored-value space, self-consistent end to end —
+so the constant stands; only cross-space arithmetic was ever at risk.
+One-line comment at the constant (`AssetLibrary.cs:522`) naming the
+stored value, the linear equivalent, and which one the shader uses:
+within the resident's hand-apply authority, rides the dispatch train.
+
+## Additions to "what the next session must NOT re-litigate"
+
+- **§A stands on the near/far gradient alone.** Do not quote the
+  "1.8–2.2x gain" or any albedo-vs-rendered ratio from the 14f964a
+  section — the dry lift's magnitude is unmeasured until `groundGainBy`
+  lands.
+- **No factor versus GTA is quotable** until the mattes land; the only
+  citable form is direction — brighter than every reference relative to
+  its frame, 7 of 7.
+- **Single-ray probes are identity checks** (§D). A cross-run delta in
+  one is not a finding until its pinning fields are shown unmoved.
+- **`GroundGrade` "0.55" is a stored gamma value, ≈0.267 linear.** State
+  the space whenever doing arithmetic with it, and never divide a
+  gamma-stored number by a linear one.
+
+## Addendum, same day — the stills-read third leg, and four attachments
+
+> The horizon reading landed while this section was being written. Ruled
+> here so §A's evidentiary basis is stated once, in one place. Adopted
+> from the reader with attribution (not re-run here): ground 0.858 vs
+> sky 0.326 in `district_copper`, the 7/7 floating-skyline measurement
+> (450/1280 columns, median gap 26 px), the chrome-jacket pixels, the
+> day12_noon +0.010 margin, and "72 gates, all about additions".
+> Verified against source THIS session before adopting the leg:
+> `SceneLighting.cs:290–295` sets the sky dome's horizon stop to
+> `RenderSettings.fogColor` BY DESIGN (the seam argument), and
+> `LightModel.FogColour`'s day arm is authored ~0.44 luma
+> (`LightModel.cs:504–506`) while `SkyColour`'s day zenith is authored
+> ~0.8 (`:315–316`).
+
+**A-addendum. Leg 3 is ADOPTED as the PRIMARY leg — in a corrected
+form — and it sharpens the finding at source.** Two corrections to the
+proposed wording, then the ruling:
+
+1. "A diffuse surface cannot out-radiate its own illuminant" is strictly
+   true only under a sunless sky; with direct sun in the model (there
+   is one — `SunwardDir` is real), a sky PATCH is not the whole
+   illuminant and bright ground against darker sky is commonplace in
+   photographs. The airtight, albedo-free, same-space form is
+   CONVERGENCE: at the horizon, atmosphere dominates whatever the
+   surface is, so far ground must approach the colour it stands
+   against. Ground 0.858 beside sky 0.326 in one JPEG cannot both be
+   the same atmosphere. That form needs no albedo, no colour space, no
+   sun assumption.
+2. And the source check makes it stranger and more useful: the code
+   already forces horizon-sky = fog colour (`SceneLighting.cs:295`,
+   written to make this seam "impossible"), and the authored day fog is
+   ~0.44 luma. So far ground at 0.858–0.944 exceeds not only the
+   sampled sky but the very colour distance is supposed to pull it
+   toward. **The bright-at-distance term is therefore NOT the authored
+   fog colour** — leg 2's parenthetical "(fog/atmosphere blending
+   toward a near-white colour)" is hereby retired as a mechanism guess
+   disproved at source. The finding is narrower and harder: an
+   UNIDENTIFIED distance-dependent brightening that outruns both the
+   fog and the sky. Known suspects, in rule-3 order for the landing
+   read: a second fog writer (this exact two-writer fault is recorded
+   as already having happened once, in `FogColour`'s own comment), an
+   image-effect/grade term, or the sampled "sky" band not being the
+   band assumed — the 0.326 reading against a ~0.8 authored zenith and
+   ~0.44 authored horizon is its OWN open discrepancy, flagged, not
+   diagnosed. The landing read quotes the existing fog emits
+   (`SimDirector.cs:9513, :9533, :11802`) beside the mask numbers so
+   the live `fogColor` is a printed fact, not an authored one.
+
+   §A now rests on legs 3 and 2 as ONE finding — a distance-dependent
+   brightening in the light path — with leg 3 primary (frame-internal,
+   albedo-free, space-free) and leg 2 as corroboration. All standing
+   orders unchanged: `GroundGrade` frozen, no lever before the masked
+   series, falsifiers (a)/(b) intact.
+
+**Skyline.** `skylineBaseDrop` + `skylineAfloat=N/23` (world-space,
+render-free) REPLACE the queued `skylineFootGap` in the second
+instrument batch and in the §D3 builder brief — the better instrument
+for the same question, and the 7/7 measurement upgrades D1 from
+eyeballed to measured. D2's premise ruling needed no strengthening and
+its ranking does not move.
+
+**The blunt answer, recorded because it changes how the work should be
+described**: the content is landing — stone, cobbles, 219 chimney pots,
+aerials, cranes, British fascias, and two frames that read RIGHT — and
+the horizon plus the light are what is hiding it. That is the smaller,
+more fixable problem, and it confirms the standing order of work:
+lighting lever first (after the masked series), skyline second, decals
+after. When Jafar next asks, this is the one-line shape: the town is
+there; the light and the skyline are lying about it.
+
+**Chrome bodies — new named item, ranked behind skyline, ahead of
+decals.** The diagnosis method is the house style and is accepted:
+settled by an EXISTING landed number (`bodyAlbedo` tops at 0.46, so a
+0.999 pixel cannot be texture — it is specular), not by eye. Per rule
+2: a `bodyGloss` printer (per-material smoothness/metallic of the worn
+set, done line) joins the second instrument batch; the material fix is
+sized from its landed values, not dispatched blind.
+
+**day12_noon darker than 7 of 10 nights, margin +0.010** — the reader's
+own flag is right: that margin is the 0.136-vs-0.135 class, a rounding,
+not a measurement, and `darker10of10` is structurally within-day and
+cannot see it. A cross-day noon-vs-night margin PRINTER (series, no
+threshold, no gate) joins the second instrument batch; any bound waits
+for the printed series per rule 2. No conclusion is drawn from the
++0.010 today, in either direction.
+
+**"72 gates green, 0 red, and all 72 ask what a system ADDED"** —
+recorded as the standing statement of rule 4's lesson: every gate
+measures an addition, no gate asks what the frame looks like, which is
+why the stills are read before any gate, every build. The second
+instrument batch IS the repair path — each item in it converts a
+looked-at fault into a number. No gate is weakened, none is invented
+today.
+
+**Net effect on the dispatch: NONE.** The train's contents stand as
+listed (mask batch + `groundAlbedoBy` + `groundGainBy` + space fixes +
+staging fix; nothing that moves a lever). The second instrument batch
+grows by name: `skylineBaseDrop`/`skylineAfloat` (replacing
+`skylineFootGap`), `bodyGloss`, the cross-day noon/night margin
+printer, alongside the reader's earlier list.
