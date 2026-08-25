@@ -162,6 +162,21 @@ WANTS = [
     # `exact: true`, so a fashion-runway sashay shipped as the town's
     # walk-start with nothing flagging it. Anchored plain forms go first;
     # the loose form stays as the fallback it should have been.
+    #
+    # AND THAT FIX WAS FOR A DIFFERENT FAULT AND DOES NOT CATCH THIS ONE.
+    # `^start walking\b` matches "Start Walking Backwards" — which is what
+    # shipped, and what `walk_start` still holds on disk. The exclusion lives
+    # in FORWARD_ONLY/`direction_ok` rather than in this regex, because it is
+    # the same rule for eleven other slots and a per-pattern lookahead is one
+    # idea in fourteen implementations.
+    #
+    # DEPTH 2 IS A NAMED RESIDUAL RISK, MEASURED AND LEFT ALONE: all 8 of its
+    # candidates in the 2,846-name catalogue are Catwalk variants, so the only
+    # thing it can ever return is the 30 July mis-pick. It is unreachable while
+    # a plain "Start Walking" passes the screens, and today none does — the
+    # forward clips are frozen-root in-place exports (see REVERSED). Deleting
+    # it is a decision about whether an empty slot beats a sashay, not a
+    # pattern fix, so it is written down rather than taken.
     ("walk_start",   "B", [r"^start walking\b", r"\bstart walking\b",
                            r"\bwalk(ing)? start\b"]),
     ("walk_stop",    "B", [r"^stop walking\b", r"\bstop walking\b",
@@ -382,6 +397,78 @@ STAYS = {"idle", "idle_2", "idle_old", "idle_bored", "talk", "argue", "greet",
          "smoke", "drink", "lean", "lean_wall", "pockets", "rummage",
          "work_counter", "phone_box", "shake_hands", "sit", "sit_talk",
          "sit_drink", "block_hold", "block_start", "guard", "lie_still"}
+
+
+#: WHICH WAY IT GOES — THE THIRD AXIS, AND THE ONLY ONE NO FILE CAN ANSWER.
+#:
+#: The shipped `walk_start` is `Start Walking Backwards`. Every man in the city
+#: would have set off backwards the moment the transitions were wired, and
+#: nothing in this tool could see it, because DIRECTION IS NOT IN THE FILE.
+#: `clip-motion`'s travel is `hypot(dX, dZ)` — a magnitude — so a walk and its
+#: reverse both read 0.94m, and hip height is identical either way. The name is
+#: the only witness there is.
+#:
+#: MEASURED HISTORY, not reconstructed — read from `_picks.json` at three
+#: commits and from the dropped clip itself, pulled out of git at `dfe2eb4f`:
+#:
+#:   30 Jul  367560f7  walk_start <- Catwalk Walk Start Turn 180 Left  (the
+#:                     catwalk mis-pick; fixed by anchoring the phrase)
+#:   17 Aug  dfe2eb4f  walk_start <- Start Walking                     (CORRECT)
+#:   21 Aug  7fdd0951  walk_start <- Start Walking Backwards           (the fault)
+#:
+#: So the anchored-phrase fix was working. What moved the pick was the TRAVEL
+#: screen landing on 21 August: the forward `Start Walking` reads hips
+#: 100.1..100.4cm, travel 0.0000m, moved 0.30cm, turned 0.5° — an in-place
+#: export with a frozen root — so `motion_ok` refused it as "a locomotion slot
+#: holding a clip that stays put", and the next candidate down the same pattern
+#: was the backwards clip, which travels 0.94m and passes every screen there
+#: was. A screen written to reject a bad clip walked the pick onto a worse one.
+#:
+#: THE VOCABULARY IS A READ OF THE CATALOGUE, NOT A GUESS: 2,846 names, and
+#: `backward`/`backwards` is the only reversal word Mixamo actually uses on a
+#: locomotion clip (`Walking Backwards`, `Start Walking Backwards`, `Jog
+#: Backward`, `Crouch Walk Backwards Stop`). `reverse`/`mirror`/`inverted` are
+#: carried anyway — they cost nothing, they name what the screen is FOR, and
+#: `Inverted Double Kick To Kip Up` proves the harvest does reach for that
+#: family. A word BOUNDARY, so a name that merely ends in one of them cannot
+#: trip it.
+REVERSED = re.compile(r"\b(backward|backwards|reverse|reversed|"
+                      r"mirror|mirrored|inverted)\b")
+
+#: Slots whose motion is FORWARD by definition. `back_away` IS DELIBERATELY
+#: ABSENT and is the accepting case that matters: retreating is its whole job,
+#: both its patterns ask for a backward name on purpose, and it holds
+#: `Walk Backward` today. A screen that refused it would be rule 5's ratchet —
+#: emptying a slot the street plays to fix one that is wrong.
+#:
+#: `stagger` and `collapse` are absent for the same reason one step out:
+#: `Stumble Backwards` is a stagger and `Dying Backwards` is a death, and both
+#: sit in those slots' candidate lists honestly.
+FORWARD_ONLY = {"walk", "walk_f", "walk_old", "run", "jog", "carry_bag",
+                "walk_start", "walk_start_f", "walk_stop", "walk_stop_f",
+                "turn_left", "turn_right", "stairs_up", "stairs_down"}
+
+
+def direction_ok(slot, flat_name):
+    """(ok, why). Can a clip with this NAME fill this slot.
+
+    Name-based on purpose, and it is the one screen that can run where there is
+    no file to read — the catalogue dryrun here, with the harvest on a machine
+    this container never sees. It is also the only screen that CAN answer this:
+    see the REVERSED comment, travel is a magnitude.
+
+    `why` is empty when the candidate is accepted, and names the offending word
+    when it is not, so a refusal in a run log says which word did it rather
+    than leaving the operator to guess at a regex.
+    """
+    if slot not in FORWARD_ONLY:
+        return True, ""
+    m = REVERSED.search(flat_name)
+    if m is None:
+        return True, ""
+    return False, ("the name says %r — a forward slot cannot take a reversed "
+                   "clip, and no reading of the FILE can tell them apart"
+                   % m.group(0))
 
 #: THE REJECTING CASE FOR THE SCREEN, KEPT WHERE A RE-PICK CANNOT REACH IT.
 #: Each entry is (file under `known-bad/`, the slot to ask it as, a fragment of
@@ -626,6 +713,15 @@ def pick(items, patterns, taken=None, cache=None, slot=None):
         hits = [it for it in items if rx.search(it[0])]
         hits.sort(key=lambda it: (len(it[0]), it[0]))
         for hit in hits:
+            # DIRECTION FIRST, because it is the only screen that runs in both
+            # paths. Everything below this line needs a file to read, so the
+            # catalogue dryrun skips it — and the dryrun is the check that runs
+            # HERE, on the machine with no harvest.
+            ok, why = direction_ok(slot, hit[0])
+            if not ok:
+                if taken is not None:
+                    print(f"    wrong direction: {hit[1]} — {why} — skipping")
+                continue
             if taken is None:
                 return hit, depth, None
             digest = content(hit[2], cache)
@@ -679,10 +775,26 @@ def set_aside(out, slot):
     so the file leaves the build and stays on the disk.
 
     Returns the list of (filename, why) moved, so the caller has a denominator.
+
+    AND THE DIRECTION SCREEN RUNS HERE TOO — THE TWIN SITE, WHICH WAS THE WHOLE
+    FAULT ONE LAYER DOWN. `posture_ok` reads the FILE, and a backwards walk
+    passes every reading in it (hips 144..150cm, travel 0.94m). So adding the
+    direction guard to `pick` alone would refuse the backwards clip as a
+    candidate and then leave the one already in the slot exactly where it is,
+    under this function's own "no pattern names it now, but the screen still
+    passes it" branch — the slot reported MISSING while the game went on
+    loading a man walking backwards, which is verbatim the failure the
+    paragraph above was written for. One idea, two implementations: the name
+    the file was copied under is the same evidence as the name it was picked
+    by, so the same function reads both.
     """
     moved = []
     for old in sorted(glob.glob(os.path.join(out, "*", f"{slot}__*.fbx"))):
-        ok, why = posture_ok(slot, old)
+        # `{slot}__{stem}.fbx` — the stem is the Mixamo name it was picked by.
+        stem = os.path.basename(old)[len(slot) + 2:-len(".fbx")]
+        ok, why = direction_ok(slot, flatten(stem))
+        if ok:
+            ok, why = posture_ok(slot, old)
         if ok:
             print(f"  kept      {os.path.basename(old)} — no pattern names it "
                   f"now, but the screen still passes it")
@@ -705,6 +817,23 @@ def set_aside(out, slot):
 CATALOGUE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          "..", "..", "ledger", "Assets", "Characters",
                          "_catalogue.txt")
+
+#: What the last real pick actually COPIED, slot -> record. The manifest, not
+#: the folder: the folder says which files are there and this says which name
+#: each slot was answered with, which is the thing a name screen reads.
+PICKS = os.path.join(os.path.dirname(CATALOGUE), "_picks.json")
+
+
+def _picks(path=PICKS):
+    """The landed manifest, or {} when there is none — so "no reversed clip
+    shipped" and "no manifest was read" print differently (rule 3b)."""
+    if not os.path.isfile(path):
+        return {}
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (ValueError, OSError):
+        return {}
 
 
 def dead_patterns(catalogue_path=CATALOGUE):
@@ -764,7 +893,11 @@ def dryrun(catalogue_path=CATALOGUE, verbose=True):
 
     missing, substituted, matched = [], [], []
     for slot, _tier, patterns in WANTS:
-        hit, depth, _digest = pick(items, patterns)
+        # SLOT PASSED, so the direction screen applies here as well. Without
+        # it this reported `walk_start <- Start Walking Backwards` as an EXACT
+        # match and the one check that runs in this container agreed with the
+        # mis-pick.
+        hit, depth, _digest = pick(items, patterns, slot=slot)
         if hit is None:
             missing.append((slot, patterns))
         elif depth == 0:
@@ -946,6 +1079,171 @@ def selftest():
                   "%s axes, %d known-bad clip(s) refused on %d branch(es)"
                   % (accepted, "/".join(sorted(axes_seen)) or "no",
                      refused, len(set(b for _f, _s, b in KNOWN_BAD))))
+
+        # THE DIRECTION SCREEN, AND THE ACCEPTING CASE IS FIRST BECAUSE IT IS
+        # THE ONE THAT COULD EMPTY A SLOT THE STREET PLAYS. `back_away` holds
+        # `Walk Backward` and must go on holding it: retreating backwards is
+        # what that slot IS, and a screen that refuses it to fix `walk_start`
+        # is rule 5's ratchet — a guard that cannot tell a regression from the
+        # thing working.
+        #
+        # Names are harvester-shaped (`{animation}_{character id}`), because
+        # that shape is what defeated the `$` anchors and a fixture without it
+        # tests a string nobody ever picks from.
+        ID_A = "_2dee24f8-3b49-48af-b735-c6377509eaac"
+        ID_B = "_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493"
+
+        def harvest(subdir, *files):
+            d = os.path.join(tmp, subdir)
+            os.makedirs(d)
+            for i, n in enumerate(files):
+                with open(os.path.join(d, n + ".fbx"), "wb") as fh:
+                    fh.write(b"DIR-%02d" % i)      # distinct, or the dup check bites
+            return catalogue(d)
+
+        back = harvest("dir_back", "Walk Backward" + ID_A)
+        hit, depth, _g = pick(back, [r"\bwalk(ing)? backward"], {}, {},
+                              slot="back_away")
+        if hit is None:
+            failures.append("the direction screen emptied `back_away`, whose "
+                            "whole job is walking backwards")
+        elif depth != 0:
+            failures.append("`back_away` took its backwards clip only as a "
+                            "substitute")
+
+        # ACCEPTING: a genuine forward start is still picked, with the
+        # backwards sibling sitting beside it exactly as in the real harvest.
+        both = harvest("dir_both", "Start Walking" + ID_A,
+                       "Start Walking Backwards" + ID_B)
+        hit, depth, _g = pick(both, [r"^start walking\b"], {}, {},
+                              slot="walk_start")
+        if hit is None or not hit[1].startswith("Start Walking_"):
+            failures.append("a genuine forward start was not picked when one "
+                            "was there: %r" % (hit and hit[1]))
+
+        # REJECTING, WITH NO WAY OUT — and this is the case that shipped. The
+        # backwards clip is the ONLY candidate, it passes every reading of the
+        # file (hips 144..150cm, travel 0.94m), and the slot must come back
+        # MISSING rather than send the whole town off backwards. An empty slot
+        # falls back to the locomotion tree; a wrong one does not.
+        only = harvest("dir_only", "Start Walking Backwards" + ID_B)
+        with open(os.devnull, "w") as null:
+            with contextlib.redirect_stdout(null):
+                hit, _d, _g = pick(only, [r"^start walking\b",
+                                          r"\bstart walking\b"], {}, {},
+                                   slot="walk_start")
+        if hit is not None:
+            failures.append("the picker took %r for `walk_start` — every man "
+                            "in the city sets off backwards" % hit[1])
+
+        # AND THE SCREEN'S OWN TABLE, BOTH WAYS, over the slots it governs and
+        # the two it deliberately does not.
+        for slot, name, want_ok in (("walk", "Walking" + ID_A, True),
+                                    ("walk", "Walking Backwards" + ID_A, False),
+                                    ("run", "Running Backward" + ID_B, False),
+                                    ("turn_right", "Backward Right Turn" + ID_A,
+                                     False),
+                                    ("back_away", "Walk Backward" + ID_A, True),
+                                    ("stagger", "Stumble Backwards" + ID_A, True),
+                                    ("collapse", "Dying Backwards" + ID_A, True)):
+            got, _why = direction_ok(slot, flatten(name))
+            if got != want_ok:
+                failures.append("direction_ok(%s, %r) is %s, wanted %s"
+                                % (slot, name, got, want_ok))
+
+        # THE FIXTURES ARE IN THE COMMITTED CATALOGUE, WHICH A RE-PICK CANNOT
+        # EMPTY. `known-bad/` exists because the rejecting half used to point
+        # at the SHIPPED clips and died the moment the work was done; the
+        # harvest LISTING is the same idea for a name — `Start Walking
+        # Backwards` stays in it however the picks move, and so does the
+        # forward name the accepting half needs.
+        cat = []
+        if os.path.isfile(CATALOGUE):
+            with open(CATALOGUE, encoding="utf-8") as fh:
+                cat = [flatten(l.strip()) for l in fh if l.strip()]
+        good = [n for n in cat if direction_ok("walk_start", n)[0]
+                and n.startswith("start walking")]
+        bad_names = [n for n in cat if not direction_ok("walk_start", n)[0]]
+        if not cat:
+            failures.append("no committed catalogue — the direction screen has "
+                            "nothing real to accept or refuse")
+        else:
+            if not good:
+                failures.append("no catalogued name the direction screen "
+                                "ACCEPTS for walk_start — the accepting half "
+                                "is testing nothing")
+            if not bad_names:
+                failures.append("no catalogued name the direction screen "
+                                "REFUSES for walk_start — the rejecting half "
+                                "is testing nothing")
+            print("  direction screen: %d forward-only slot(s); of %d "
+                  "catalogued name(s), %d refused for walk_start, %d accepted "
+                  "as a plain forward start"
+                  % (len(FORWARD_ONLY), len(cat), len(bad_names), len(good)))
+
+        # THE LIVE SURVEY — PRINTED, NOT GATED. Every clip we actually ship,
+        # read under its own slot. It is not a failure here because the fault
+        # it names can only be fixed by a re-pick on a machine this container
+        # never sees, and a gate nobody can commit past is the ratchet again.
+        # It is PRINTED because a zero needs a denominator and because the
+        # outstanding fault should say its own name every run.
+        shipped_names, refused_names = 0, []
+        for slot, entry in sorted(_picks().items()):
+            found = entry.get("found")
+            if not found:
+                continue
+            shipped_names += 1
+            ok, why = direction_ok(slot, flatten(found))
+            if not ok:
+                refused_names.append((slot, found.split("_2dee")[0]
+                                      .split("_4f5d")[0], why))
+        if shipped_names:
+            print("  shipped names: %d read, %d accepted, %d refused by the "
+                  "direction screen"
+                  % (shipped_names, shipped_names - len(refused_names),
+                     len(refused_names)))
+            for slot, name, _why in refused_names:
+                print("      REVERSED CLIP IN A FORWARD SLOT: %-12s <- %s "
+                      "(fix is a re-pick, not an edit here)" % (slot, name))
+        else:
+            print("  shipped names: nothing measured — no _picks.json to read")
+
+        # SET-ASIDE READS THE NAME TOO, BOTH WAYS. This is the twin site: the
+        # backwards clip passes every reading of the FILE, so without the name
+        # check here a re-pick would report `walk_start` MISSING and leave the
+        # backwards clip sitting in the build being loaded.
+        keeper = one("back_away")
+        if keeper is None:
+            failures.append("set-aside's direction case was not tested — need "
+                            "the shipped `back_away` clip")
+        else:
+            dpen = os.path.join(tmp, "dirpen")
+            os.makedirs(os.path.join(dpen, "B"))
+            # ACCEPTING: a backwards clip in the slot that WANTS one stays.
+            stay = os.path.join(dpen, "B",
+                                "back_away__Walk Backward" + ID_A + ".fbx")
+            # REJECTING: the same bytes under a forward slot's name go. Same
+            # bytes on purpose — the NAME is the whole evidence, and pinning
+            # this to the currently-shipped bad file would retire the test the
+            # day the re-pick lands.
+            go = os.path.join(dpen, "B",
+                              "walk_start__Start Walking Backwards"
+                              + ID_B + ".fbx")
+            shutil.copy2(keeper, stay)
+            shutil.copy2(keeper, go)
+            with open(os.devnull, "w") as null:
+                with contextlib.redirect_stdout(null):
+                    stayed = set_aside(dpen, "back_away")
+                    went = set_aside(dpen, "walk_start")
+            if stayed or not os.path.isfile(stay):
+                failures.append("set-aside moved `back_away`'s backwards clip "
+                                "— that empties the slot that wants one")
+            if len(went) != 1 or os.path.isfile(go):
+                failures.append("set-aside left a reversed clip in a forward "
+                                "slot — the game would go on loading it")
+            if not os.path.isfile(go + ".rejected"):
+                failures.append("the reversed clip was destroyed rather than "
+                                "set aside")
 
         # THE FROZEN PREFERENCE, BOTH WAYS, and the SECOND case is the one that
         # matters: a refusal here empties `lean`, which the street plays and

@@ -325,6 +325,22 @@ namespace Ledger.Game
             _endDay = _game.Now.Day + SimMode.Days;
             _game.MinutesPerRealSecond = SimMinutesPerRealSecond;
             System.IO.Directory.CreateDirectory("sim-out");
+            // TRUNCATED HERE, BECAUSE THE RUNNER IS SELF-HOSTED. `sim-run/`
+            // survives between jobs, so a breadcrumb file left by the previous
+            // build would be read as this one's position — the stale-artifact
+            // fault this project has already paid for with six stills a failed
+            // build never rendered. The header makes "file present, no
+            // breadcrumbs" distinguishable from "no file at all".
+            try
+            {
+                System.IO.File.WriteAllText(CrumbFile,
+                    $"# stall breadcrumbs — {SimMode.Days} day(s) requested\n");
+            }
+            catch (Exception e)
+            {
+                _crumbBroken = true;
+                Debug.Log("SimDirector: stall breadcrumb unwritable — " + e.Message);
+            }
             Application.logMessageReceived += OnLog;
             // Counters are per-run or they are meaningless. Both of these
             // reset methods existed and neither had a caller, which is the
@@ -388,6 +404,7 @@ namespace Ledger.Game
             // A COROUTINE, because the pose needs real frames — see `ClipSheet`.
             StartCoroutine(ClipSheet.RenderRoutine("sim-out"));
             Debug.Log($"SimDirector: simulating {SimMode.Days} day(s)");
+            Phase("begin/done");
         }
 
         void OnLog(string condition, string stackTrace, LogType type)
@@ -461,11 +478,156 @@ namespace Ledger.Game
         int _lastShapeDay = -1;
         int _restDayNoonCrowd, _workDayNoonCrowd, _restDaysSeen, _workDaysSeen;
 
+
+        // ── THE STALL BREADCRUMB, AND WHY IT IS NOT ANOTHER HEARTBEAT ────────
+        //
+        // `dayMark` (SampleDayShape, above) already answers "how fast", and it
+        // answered it correctly the first time it mattered: five healthy runs
+        // read day 1 at 19-20s and frame ~306, ten beats each, and `e8c5949`
+        // emitted ZERO in 1440 seconds. That is the rate question and it is
+        // settled. Do not add a second one — grep `dayMark` before touching
+        // this, because one idea with two implementations is how the site
+        // nobody looks at ends up missing the line.
+        //
+        // THIS ANSWERS A DIFFERENT QUESTION, and `dayMark` structurally cannot:
+        // WHERE was the sim standing when it stopped. A tail of the log is a
+        // peak-style reading — "what was printed last" — and the thing being
+        // asked is a POSITION. Three reasons `dayMark` cannot be that:
+        //
+        //   1. It fires on `Hour == 12` EXACTLY. `GameController.Update` caps
+        //      the clock step at 2 real seconds, so a frame can advance the
+        //      world by up to 40 in-game minutes and a slow enough run steps
+        //      straight over noon. Silence therefore has two causes.
+        //   2. It carries no phase. Day 6 at 382s does not say which of the
+        //      forty staged blocks inside `Update` the run was inside.
+        //   3. IT GOES TO player.log, WHICH UNITY BUFFERS. The sim is ended by
+        //      `Stop-Process -Force` (TerminateProcess): no finalizers, no
+        //      managed flush. Whatever sat in that buffer is gone, and its
+        //      absence reads exactly like "never got there".
+        //
+        // So this is a FILE, appended with a call that CLOSES THE HANDLE EVERY
+        // TIME — the bytes are in the OS before the call returns, and a force
+        // kill cannot take them back. Measured rather than assumed: a .NET
+        // console app appending the same way, SIGKILLed mid-run, left 736
+        // records on disk with no gap in the sequence and no torn final line.
+        //
+        // WHAT EACH FIELD IS A STATISTIC OF, because a number keeps its name
+        // when the question moves:
+        //   at      wall seconds since process start — LAST-WINS, this instant
+        //   phase   the last stage ENTERED, not completed. If the sim is
+        //           wedged, this is where it is wedged, up to the throttle
+        //           below. Read it as "it went in here and did not come back".
+        //   pass    Update passes COMPLETED — cumulative, whole-run-so-far
+        //   frames  engine frame count — cumulative
+        //   day/hr  the in-game clock at this instant, with `_endDay` as the
+        //           denominator (an absolute day number, NOT a percentage:
+        //           the campaign does not start at day 0)
+        //   crumb   monotonic counter of breadcrumbs written — cumulative
+        //
+        // RESOLUTION, STATED SO NOBODY OVER-READS IT: throttled to one write
+        // per `CrumbSeconds`, so on a healthy 60fps run the phase named is the
+        // one current at the write and can be up to that many seconds — tens
+        // of frames — behind a wedge that starts immediately afterwards. On the
+        // run this exists for, where progress is near zero, consecutive
+        // boundaries are seconds apart and the throttle does not bite at all.
+        //
+        // COST: two file opens a second against a 16ms frame. Not measured on
+        // the runner (nothing here can), so the reasoning is stated instead —
+        // ~0.1ms per open/write/close is 0.02% of one second, and the throttle
+        // makes it independent of frame rate. If it ever shows up, it shows up
+        // in `meanFrameMs` on the done line, which is already printed.
+        const float CrumbSeconds = 0.5f;
+        const string CrumbFile = "sim-out/stall.txt";
+
+        // ── AND THE WATCHDOG THAT BEATS THE EXTERNAL KILL ────────────────────
+        //
+        // The job ends the sim with `Wait-Process -Timeout 1440` then
+        // `Stop-Process -Force`. That kill is the thing that destroys the
+        // evidence, so a run that is merely crawling gets ended by a stranger
+        // with nothing to say. Firing at 1200s instead lets the sim say it
+        // itself — a line in player.log and a DISTINCT EXIT CODE, so
+        // `simExit=3` in the verdict means "the sim gave up" and
+        // `simTimedOut=yes` means "the runner shot it".
+        //
+        // IT CANNOT FIRE IF NO FRAME COMPLETES, and that is not a gap being
+        // hidden: that case is exactly the one the breadcrumb file covers, and
+        // the two together classify every outcome. A watchdog on a background
+        // thread could fire through a dead main thread, and was rejected — it
+        // cannot call Application.Quit or any Unity API, so it would duplicate
+        // the breadcrumb and add a thread to a build nothing here can run.
+        //
+        // 1200 IS PROVISIONAL AND SAYS SO, which rule 2 requires of any bound
+        // whose series has not landed. What IS measured: the last `dayMark` of
+        // a healthy run sits at 670s, ±1s across five consecutive runs, and
+        // day 1 at 19-20s. What is NOT measured anywhere in this project is how
+        // long `Finish` takes, so the healthy TOTAL has never been printed —
+        // which is why `simWaitSeconds` ships in the same change. 1200s is
+        // 1.8x the last measured healthy checkpoint and leaves 240s of the
+        // external budget for the quit; revise it from `simWaitSeconds` once
+        // three healthy runs have landed one, and not before.
+        //
+        // AND IF IT EVER BITES A HEALTHY RUN IT SAYS SO LOUDLY — the log line
+        // and the exit code name it as the watchdog rather than letting a run
+        // end quietly and look like something else. A cap that does not
+        // announce itself reads as a finding.
+        const float StallQuitSeconds = 1200f;
+        const int StallQuitExit = 3;
+
+        string _phase = "boot";      // the last stage ENTERED — see above
+        int _updatePasses;           // cumulative: Update passes COMPLETED
+        int _crumbs;                 // cumulative: breadcrumbs WRITTEN
+        float _crumbLast = -1e9f;    // realtime of the last breadcrumb
+        bool _crumbBroken;           // the file refused a write; stop trying, say so once
+        bool _stallQuit;             // Application.Quit is async — fire once
+
+        /// Mark the position and, at most every `CrumbSeconds`, write it down.
+        /// Called at stage boundaries, so it costs a float compare per boundary
+        /// on the frames where it does not write.
+        void Phase(string phase)
+        {
+            _phase = phase;
+            float at = Time.realtimeSinceStartup;
+            if (at - _crumbLast < CrumbSeconds) return;
+            _crumbLast = at;
+            _crumbs++;
+            int day = _game != null ? _game.Now.Day : -1;
+            int hr = _game != null ? _game.Now.Hour : -1;
+            if (!_crumbBroken)
+            {
+                try
+                {
+                    System.IO.File.AppendAllText(CrumbFile,
+                        $"at={at:0.000} phase={phase} pass={_updatePasses} "
+                        + $"frames={Time.frameCount} day={day}/{_endDay} hr={hr} "
+                        + $"crumb={_crumbs}\n");
+                }
+                catch (Exception e)
+                {
+                    // ONCE, AND NAMED. A breadcrumb file that silently stopped
+                    // being written is indistinguishable from a sim that
+                    // stopped running, which is the whole fault this exists to
+                    // repair — so the reader is told which it was.
+                    _crumbBroken = true;
+                    Debug.Log("SimDirector: stall breadcrumb unwritable — " + e.Message);
+                }
+            }
+            if (!_stallQuit && at >= StallQuitSeconds)
+            {
+                _stallQuit = true;
+                Debug.Log($"SimDirector: stallQuit at={at:0}s phase={phase} "
+                          + $"pass={_updatePasses} frames={Time.frameCount} "
+                          + $"day={day}/{_endDay} hr={hr} crumbs={_crumbs} "
+                          + $"reason=in-sim-watchdog-before-the-external-kill");
+                Application.Quit(StallQuitExit);
+            }
+        }
+
         void Update()
         {
             SampleDayShape();
             if (_game == null) return;
             var now = _game.Now;
+            Phase("update/tick");
 
             // The sim bot is careless early (bare-faced drops, so heat climbs and
             // Ellis's spawn path gets exercised) and careful from day 3 (coated, so
@@ -493,6 +655,7 @@ namespace Ledger.Game
                 PlayerCar.Instance.transform.position = new Vector3(pp.x + 2.2f, 0.05f, pp.z + 1.4f);
             }
 
+            Phase("update/acttwo");
             ActTwoSample(now);
 
             // Catch the car description while it is still in somebody's head.
@@ -1267,6 +1430,7 @@ namespace Ledger.Game
                               + $"{d:0.0}m away, marker={_game.HasBeatMarker}");
                 }
             }
+            Phase("update/jobs");
             TraceJob(now);
             SampleWeekShape(now);
             // PLANT THE MISSED DROPS, because nothing else ever has.
@@ -1369,6 +1533,7 @@ namespace Ledger.Game
                 Vector3.Distance(new Vector3(_player.transform.position.x, 0, _player.transform.position.z), target) < 1.2f)
                 _waypointIndex = (_waypointIndex + 1) % Waypoints.Length;
 
+            Phase("update/stages");
             StageConfrontation(now);
             StageThePlaces(now);
             StageCarryAndThreat(now);
@@ -1394,6 +1559,7 @@ namespace Ledger.Game
             if (_targetOwner == "job" || _targetOwner == "beat")
                 target = RouteStep(_player.transform.position, target);
             _player.AutoMoveTarget = target;
+            Phase("update/route");
             NoteTargetOwner();
             // After the owner is final for the tick, so the shift trace's
             // held: tally names whoever actually won the legs.
@@ -1474,6 +1640,7 @@ namespace Ledger.Game
             // Blood does not fade usefully on its own — it dulls to a floor and
             // stays there, which is the design: dealing with it is a decision
             // rather than a timer you wait out.
+            Phase("update/violence");
             ViolenceHost.AgeStain(gameMinutes);
 
             // A WITNESS LEFT ALONE GETS MORE DANGEROUS. Once a game-hour, so a
@@ -1561,6 +1728,7 @@ namespace Ledger.Game
 
             // One noon and one night shot per simulated day.
             if (now.Day != _shotDay) { _shotDay = now.Day; _tookDayShot = _tookNightShot = false; }
+            Phase("update/samplers");
             SampleScore();
             SampleReflections();
             SampleBodies();
@@ -1814,7 +1982,14 @@ namespace Ledger.Game
                 MeasureAo();
             }
 
+            Phase("update/endcheck");
             if (now.Day >= _endDay) Finish();
+            // CUMULATIVE, AND COUNTED HERE BECAUSE HERE IS WHERE A PASS IS OVER.
+            // `Time.frameCount` keeps its own tally and the two are not the
+            // same question: frames advance for the passes that returned
+            // early at `_game == null` too, so `frames > pass + 1` in a
+            // breadcrumb says the sim was booting, not running.
+            _updatePasses++;
         }
 
         /// Act II's standing conditions, in ONE place so the sampler below and
@@ -12483,6 +12658,7 @@ namespace Ledger.Game
             _finished = true;
 
             Application.logMessageReceived -= OnLog;
+            Phase("finish/open");
 
             // EVERY DROP AND WHAT BECAME OF IT, printed before any gate reads a
             // job count. `jobsDone=0` was a number with no story attached; this
@@ -12536,6 +12712,7 @@ namespace Ledger.Game
 
             // P5 in-engine proof: capture the lived week, overlay it onto fresh
             // authored objects, and the city must match — plus the real file writes.
+            Phase("finish/saveload");
             bool saveLoadOk = true;
             try
             {
@@ -12631,6 +12808,7 @@ namespace Ledger.Game
             // collapsed, and the whole thing survives its own codec. A campaign
             // that never squeezes should still be sitting near the neutral 1.0,
             // which is what makes this system safe to have shipped.
+            Phase("finish/economy");
             var econ = _game.Economy;
             var econSnap = MiniJson.Serialize(econ.Capture());
             var econTwin = EconomySetup.Build();
@@ -12684,6 +12862,7 @@ namespace Ledger.Game
             // of the ENGINE driving them, with the player and thirty walkers
             // wandering into the road. The failure that would actually ruin an
             // evening is not a crash, it is a grid wedged solid.
+            Phase("finish/traffic");
             var traffic = _game.Traffic;
             bool trafficOk = traffic != null && traffic.Vehicles.Count >= 10;
             double tightest = traffic != null ? traffic.TightestGap() : 0;
@@ -12788,6 +12967,7 @@ namespace Ledger.Game
             // system down: an absent measurement is not a passing one. Traffic
             // demonstrably runs (the gate above requires ten vehicles), so no
             // samples means the instrumentation broke.
+            Phase("finish/perf");
             var trafficCost = Perf.Get("traffic");
             bool perfOk = trafficCost != null && trafficCost.Samples > 0 && trafficCost.MeanMs < 4.0;
 
@@ -13016,6 +13196,7 @@ namespace Ledger.Game
             // a panel that cannot be closed leaves the player standing in a city
             // they can no longer move around in, which is the worst bug this
             // game can have and was invisible to every test we owned.
+            Phase("finish/ui");
             int panelsOk = 0, panelsBad = 0;
             var badPanels = new List<string>();
             if (_uiPanels != null)
@@ -13121,6 +13302,7 @@ namespace Ledger.Game
             // P5 BUDGETS. The deterministic ones gate (caps are design
             // numbers, so exceeding them is a leak, not a slow machine); the
             // timing ones report, because CI hardware is weather.
+            Phase("finish/crowd");
             int walkerCount = 0;
             foreach (var w in FindObjectsByType<NpcWalker>(FindObjectsSortMode.None)) walkerCount++;
             int millCount = 0, crowdMill = 0, strandedEmpty = 0;
@@ -13176,6 +13358,7 @@ namespace Ledger.Game
             // its book survives its own codec, and — the part that would
             // actually break — that a pressure fired by hand goes through the
             // real primitives and lands. That last one is scripted below.
+            Phase("finish/director");
             var dirSnap = MiniJson.Serialize(_game.Directorate.Capture());
             var dirTwin = new DirectorBook();
             dirTwin.Restore(MiniJson.AsObject(MiniJson.Deserialize(dirSnap)));
@@ -13428,6 +13611,7 @@ namespace Ledger.Game
                 { "screenshotCount", _screenshots.Count },
                 { "screenshots", _screenshots },
             };
+            Phase("finish/report");
             System.IO.File.WriteAllText("sim-out/sim-report.json", MiniJson.Serialize(report));
 
             // THE RENDER, GATED (the-gap.md §3a). The fingerprint has been
@@ -13538,6 +13722,7 @@ namespace Ledger.Game
             // two show up in a picture; a probe re-rendering on every one of
             // several thousand wet frames looks EXACTLY like a correctly
             // gated one and costs six extra camera passes a frame to do it.
+            Phase("finish/render");
             bool reflOk = _reflWetFrames > 0 && _reflDryFrames > 0
                 && ReflRefreshes > 0
                 && ReflRefreshes < _reflWetFrames / 4;
@@ -13895,6 +14080,7 @@ namespace Ledger.Game
             // each other. Any of those leaves a street that looks exactly
             // like the old one, and the only difference between "the feature
             // is subtle" and "the feature is absent" is a number.
+            Phase("finish/talk");
             bool confabOk = _game.Gossip == null || _game.Gossip.Confabs > 0;
 
             // SUSPICION BECOMES BEHAVIOUR. `checks` is somebody comparing
@@ -14497,6 +14683,7 @@ namespace Ledger.Game
             var failed = new List<string>();
 
             foreach (var g in gates) if (!g.ok) failed.Add(g.name);
+            Phase("finish/gates");
             bool pass = failed.Count == 0;
 
             // THE BUBBLE OVERLAP SERIES, printed before any bound is put on it.
@@ -14593,6 +14780,7 @@ namespace Ledger.Game
             // Cheap enough to run once at the end — it is a single
             // `FindObjectsByType<Renderer>` sweep, and the done line is the
             // one moment in the run where the city is fully populated.
+            Phase("finish/audit");
             WorldBuilder.AuditUndressed();
 
             // THE GLYPH LINE, HERE, FOR THE SAME REASON. See `LogGlyphs`: its
@@ -16037,6 +16225,36 @@ namespace Ledger.Game
                       // or the name candidates missed — the difference
                       // between a pipeline and a street (rule 6).
                       $"propsPlaced={AssetLibrary.PropsPlaced} variantSurfaces={AssetLibrary.VariantsUsed} " +
+                      // WHICH KIT MODELS ACTUALLY STOOD UP, PER FAMILY, WITH
+                      // THE SITES THEY WERE OFFERED AT BESIDE THEM.
+                      //
+                      // `propsPlaced` above counts every kit prop in the city
+                      // as one number, so a lamp variant that never loads and a
+                      // district that never branched look identical in it — and
+                      // every one of these call sites falls through to a
+                      // primitive on a miss, silently, which is how
+                      // `city_kit_*_bench` missed for a week. This is the
+                      // denominator half (rule 3b): offered / placed / missed
+                      // per family, and the per-variant breakdown, so "the
+                      // twin-arm column is missing" cannot read as "there are
+                      // no approach roads".
+                      //
+                      // WHOLE-RUN COUNTS, SO THE DONE LINE. They are cumulative
+                      // from the build, and a cumulative number sampled on the
+                      // shot line freezes at the last screenshot — which cost
+                      // an afternoon once already.
+                      // AND EMITTED WITHOUT A KEY OF ITS OWN, because it
+                      // already IS keys. `Line()` returns complete
+                      // space-separated pairs — it opens `kitPlaced=` and goes
+                      // on through `kitFamilies=`, `kitBy=` (Core/KitDressing,
+                      // `string.Join(" ", t)`). Wrapping that in `kitDressing=`
+                      // produced ONE TOKEN CONTAINING TWO `=` SIGNS —
+                      // `kitDressing=kitPlaced=208/227/19/0refused` — which
+                      // every reader here splits on whitespace and mis-reads,
+                      // and which puts the rest of the pairs under no key at
+                      // all. Tier-2 audit finding C1. The trailing space is the
+                      // separator from the neighbour and has to stay.
+                      WorldBuilder.KitTally.Line() + " " +
                       // Non-neutral facade grades handed out / boxes asked
                       // (rule 6 wiring proof for the V4 albedo-variety pass;
                       // ~3/4 of calls should grade, and zero left of a city

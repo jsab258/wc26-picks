@@ -85,6 +85,38 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 ### screen. Nothing from a later stage starts while an earlier one has
 ### startable work, except reading a landed verdict, which is free.
 
+1. **CLAUDE.md's `director_cadence` PARAGRAPH IS NOW FALSE — NEXT DIRECTOR
+   SPAWN.** It says "Two candidate fixes, neither built". **The stronger one
+   is built and live**: the gate now requires a decision RECORD in
+   `game-design/decision-*.md` closing with `<!--RULING spawn=STAMP-->`,
+   the stamp quoted verbatim from the log row. Both outcomes were watched on
+   real data tonight — it REFUSED the director's own unstamped ruling ("a
+   spawn row is attendance, not a review") and went `REVIEWED` once stamped.
+   Selftest 38 -> 53 fixtures, and the refusal message now tells you to
+   RESUME a killed director rather than restart one. Touching CLAUDE.md is a
+   mandatory director trigger, so this waits for the next spawn rather than
+   being edited here — but it must not wait long: a rules file that describes
+   a hole as open when it is closed sends the next session to build it twice.
+
+1. **DIRECTOR RULED THE DRESSING BATCH, 25 Aug — `decision-dressing-batch.md`.**
+   **A: commit now, commit is not dispatch.** Re-DISPATCH stays barred until
+   the hang fix AND the parser-breaking audit fixes land — the first build
+   back is the run everyone reads. **B: the welded diamond REJECTS** (a US
+   diamond on a post is the loudest wrong-country tell there is; the premise
+   outranks a free asset). The rolled plate is honest **iff** no US livery
+   survives the 45° roll — **confirm off the first still, not off the
+   apex-midpoint number.** **C: signage is a named gap, and it queues HIGH** —
+   street nameplates first: named streets whose names cannot be read is the
+   information moat with a hole in it. **D: closes as first-working, with two
+   that do NOT close** — `kitAlbedo`'s cap is a silently-biting instrument
+   fault, not a rung, so it rides the audit-fix commit; and the duplicated
+   TextMesh idiom is signage's FIRST task, because building signage otherwise
+   mints a third private copy. Onto the ladder by name: the pub-sign board
+   (the kit ships a mast arm with no plate) and a British terrace — the
+   terrace's next rung is blank, so it is a RESEARCH task, not a fetch.
+   **E: bank the `walk_start` re-pick and attach it to the image-gen
+   delivery** — one interruption, two one-click items.
+
 1. **AFTER THE SKYLINE/APRON LANDS — three follow-ups, and they are here
    because a LOG that supersedes itself is not a queue.** (i) **`skylineFit`
    is SERIES-FIRST**: one slot number (95.1m) now replaces the
@@ -98,40 +130,47 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    own header instructs it. **Not closed until `skylineByEdge` reads k/k on
    every edge in a landed verdict and the stills are read.**
 
-1. **PLAYBOOK REPO SYNCED — CLOSED 25 Aug.** `jsab258/game-studio` at
-   `63532cb`, `state=synced`. Account: `agent-reports/template-sync-debt.md`.
+1. **CHEAP CI GREEN — 311 reds, one cause.** Account in `roadmap-history.md`.
+   **OPEN:** the Windows/mac Verdict steps report the SIM, so "lint failed"
+   and "the sim did not run" read alike.
 
-1. **CHEAP CI: GREEN AND CATCHING THINGS.** 311 reds over 7d 2h, one cause
-   (workflow ReachCheck lacked `--also ledger/Assets/Editor`). Account:
-   `roadmap-history.md` 2026-08-25. **OPEN:** Windows/mac Verdict steps
-   report the SIM, so "lint failed" and "the sim did not run" read alike.
-
-1. **REJECTING FIXTURES REPINNED — LANDED.** `Joe.fbx` and `police.fbx`
-   fixtures would have gone red for the PROJECT improving; now synthetic
-   two-rung ladders. Third site queued: `lint-conditional-reach` rewrites a
-   tracked source file for its rejecting case (hand-run only).
+1. **REJECTING FIXTURES REPINNED — ALL THREE DONE 25 Aug.**
+   `lint-conditional-reach` now builds a synthetic ladder in a temp dir and
+   carries a WRITE SENTRY that refuses any write under `ledger/`. Its
+   denominator is a finding: **one** conditional type over 88 Game files.
 
 1. **NOTE: `06f51f39`'s message says the comment sweep is incomplete —
-   FALSE; it finished and landed in that same commit** (see
-   `decision-ground-albedo.md`, 25 Aug dispatch review). **Do not re-brief
-   it.** Asserted from a builder's last STREAMED line rather than the disk —
-   rule 1 aimed at an output stream, which is a comment about the work and
-   not the work. This line is here because the queue is where a session
-   believing that message would mint the re-do item.
+   FALSE; it finished and landed in that same commit.** Do not re-brief it.
+   Asserted from a builder's last STREAMED line rather than the disk. **This
+   keeps happening: on 25 Aug three more agents' last lines read as
+   unfinished ("Now the documents", "I'll start by reading") when two had
+   finished and one had written nothing. A streamed line is a comment about
+   the work, not the work — check the disk, every time.**
 
-1. **THE DRY TOUR LANDED; ALBEDO IS RULED OUT.** Regime break stands: every
-   `district_*` row before the day-5 move is incomparable (ref-bench pose
-   series, frame-drift district rows, `tourDepth*`, `districtGround`, and
-   `FilmGrade`'s GRAIN calibration). `GroundGrade` does NOT move again — the
-   lever is the light-to-JPEG path. Full ruling: `decision-ground-albedo.md`.
-1. **SURVEY THE TWO UNREACHED KITS — MEASURE FIRST, WIRE AFTER THE
-   LANDING.** `city-kit-roads` 47 models / 1 named / 45 unused;
-   `city-kit-suburban` 13 / **0 named, ENTIRE KIT UNREACHED** (the ~150
-   `prop-reach` prints is the all-kits total — read the per-kit table).
-   `prop-dimensions` every model, write the placement plan; wiring goes
-   into the dispatch AFTER the landing is read, not into it. The DENSITY
-   half of the GTA V bar: what palms and hydrants do for Los Santos,
-   chimney pots and dock clutter must do for Meridian.
+1. **THE DRY TOUR LANDED; ALBEDO IS RULED OUT.** Every `district_*` row
+   before the day-5 move is incomparable. `GroundGrade` does NOT move
+   again — the lever is the light-to-JPEG path. Ruling:
+   `decision-ground-albedo.md`.
+1. **THE TWO UNREACHED KITS: SURVEY DONE, WIRING IN FLIGHT (25 Aug).**
+   Plan is `agent-reports/kit-survey.md` — 19 PLACE / 6 HOLD / 33 REJECT,
+   every verdict carrying measured metres, a site and a count, and the
+   rejects carrying COUNTRY grounds (the octagon, the mast-arm signal, the
+   horizontal head, the low front-yard fence are all American forms). Both
+   kits are CC0 and already attributed: **nothing to fetch, nothing to
+   buy.** Three builders are wiring it now, on non-overlapping files —
+   `Core/KitDressing.cs` (tally + formatter, where the tests run), the six
+   lamp forms + Britain's missing secondary signal head in `WorldBuilder`
+   and `TrafficHost`, and roadworks/signs/planters/yard-fences in a new
+   `Game/StreetDressing.cs`. **Not closed until a landed verdict shows the
+   `KitDressing` done-line fragment with non-zero placements AND the stills
+   are read** — every one of these sites falls through to a fallback
+   primitive on a miss, silently, which is how `city_kit_*_bench` missed
+   for a week. Two verifications ordered by the survey and still open: the
+   warning triangle must point UP (down is a US yield sign, and bounds
+   cannot tell them apart), and the hanging plates letter through
+   `ShopNamesPainted` or render BLANK, which reads as a fault in frame.
+   The DENSITY half of the GTA V bar: what palms and hydrants do for Los
+   Santos, chimney pots and dock clutter must do for Meridian.
 
 1. **M17.10 — THE VISUAL BAR IS GTA V (PS3). Jafar's order, 21 Aug, twice.**
    *(the most on-screen thing there is)* Plan in `roadmap.md` 17.10,
@@ -183,11 +222,6 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **THE `5ee9330` STILL'S TWO FAULTS: LANDED AND READ.** `rainLowest=-5.8`
-   (from -28.5 — the spawn-curtain fix took; target was ~-4, so close, not
-   exact), `rainStreak=0.152`, `skyVsWall=0.286/0.855@0.92`. Closed;
-   account in `roadmap-history.md`.
-
 1. **THE 7/7 DISTRICT DARKENING: BASELINE VOIDED BY THE DRY TOUR, DO NOT
    BISECT ACROSS IT.** All seven districts had moved -0.0005 to -0.0050 and
    `day1_noon` -0.0065 in one direction, with `shadowStrength` moving the
@@ -208,34 +242,54 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    EQUALITY**~~ — **FIXED at all six sites** (account in
    `roadmap-history.md`). `verify` warns that the abbreviation is 8 chars and
    run stems are 7, so compare by PREFIX and never by equality.
-1. **THE SIM OVERRUNS ITS 24-MIN KILL — `hangTail` FIRED AND WAS USELESS,
-   NOW FIXED.** `Wait-Process -Timeout 1440`; healthy runs take ~12 min and
-   take 20 shots. **`5ee9330` reached ONE shot** (prior truncations reached
-   4). The thirty lines it printed were 28 repeats of Unity's IK warning and
-   2 of an R8_SRGB fallback — **engine chatter drowned every line the sim
-   wrote**, so the instrument built for this answered nothing (rule 12).
-   **`hangOwn` now tails the last 40 lines shaped `TypeName: `** — structural,
-   not a list of engine strings — with `hangTailOwn` as the denominator and the
-   raw tail kept. **20 was not enough:** one `ArgumentException` and its stack
-   took 3 of them, .NET exceptions wearing our own line shape. A third tail
-   keeps 12 `SimDirector: ` lines (`hangSim|`/`hangSimLines`). **Read both next
-   truncation**, and `dayMark` now lands on healthy runs as the baseline rate.
-   **NOT attributed to the sky change.** It is the obvious suspect — that
-   commit made `reflectionIntensity` non-zero on dry frames for the first time
-   — but two runs killed at 4 shots predate the code, so one landing cannot
-   separate "made it worse" from "landed on a bad one". The every-frame
-   `RenderSettings` write it also shipped is fixed on its own terms.
-1. **`farFrac` CARRIES THE SIGNAL THE OTHER BANDS MISS — SERIES LANDED.**
-   `day2_wet near=0.00 mid=0.18 **far=0.73**`, `day1_noon 0.00/0.27/**0.54**`,
-   `day2_noon 0.00/0.33/**0.43**`. Near is 0.00 everywhere and mid sits inside
-   bound, while the 7-20m band runs 0.43-0.73 — and `review_day2_wet` was ~80%
-   black wall that nothing else could see. **No bound yet (rule 2): this is
-   the series a bound comes from.** A street SHOULD have buildings at 7-20m,
-   so the question is where "framed" becomes "photographing a wall".
-1. **THE BODY BUDGET IS CLOSED AT 87.8%** — account in `roadmap-history.md`
-   (draw radius 34m -> 70m was the binding constraint; `RealBodyCap` 12 ->
-   28; hair CLOSED). **Still live:** the centre-third foot reading (FootMesh
-   234, Ch38_Shoes 224), and the white pills with no committed still.
+1. **THE SIM HUNG BEFORE THE DAY-1 BEAT ON `e8c5949` — DISPATCHING IS
+   BARRED UNTIL IT IS FIXED.** Measured: healthy runs reach `dayMark day=1`
+   at ~20s, frame ~306, **5 of 5**; this one reached **zero** beats in
+   1440s. So the old wording of this item ("the sim overruns its 24-min
+   kill, `hangTail` fired and was useless") had the symptom and not the
+   shape — it is not an overrun of a long run, it is a stop before the first
+   beat. The build ran, wrote a verdict, and produced **no done line, no
+   gates, no stills**; the staging guard correctly refused to restage the
+   previous run's pictures under this commit's name, so the JPEGs on the
+   branch are NOT evidence about it. Ten new `OnAnimatorIK` warnings against
+   **THE IK LEAD IS DEAD AND IT WAS MINE. I wrote here: "Ten new
+   `OnAnimatorIK` warnings against 0 in each of the five previous runs."
+   FALSE.** `tools/sim-shots-commit.sh:227` gates the whole raw tail behind
+   `if ! grep -q "SimDirector: done."`, so a healthy run CANNOT report the
+   warning — the field is absent, not zero. Counted over every kept run:
+   352 total, 3 with no done line, 3 carrying a raw tail at all, and **the
+   warning is in 3 of those 3.** It is what the tail always shows. I compared
+   a printed field against an ABSENT one and called it a regime break — a
+   zero with no denominator, quoted rather than deleted because it was
+   plausible and cost a builder real budget to refute. Nor was
+   `CharacterRig.cs:435` ever silent: `StampAvatar()` runs every LateUpdate
+   for every humanoid rig and Unity throttles the warning. **A guard there
+   would have spent a round trip on a non-fault.**
+   **Two live candidates, and the bisect is TWO wide, not one:** 14 commits
+   went out unbuilt since the last good run and exactly two touch
+   `ledger/Assets` — `677beb64` and `e72f58a3`. Candidate B is simply an
+   intermittent, and it is not ruled out. The stall is localised between the
+   first rendered frame and in-game noon day 1, which excludes the whole
+   expensive night-gated half (`MeasureAo`, `MeasureWindowGlow`,
+   `MeasureCrowdCost` never ran).
+   **DIAGNOSED (`agent-reports/sim-hang-e8c5949.md`): STALLED, not crashed
+   and not slow.** The heartbeat already existed and answered it — healthy
+   runs beat at 19-20s/frame ~306, ten a run; this one emitted ZERO in 1440s,
+   and a merely-2x-slow runner still gets five. Over all 352 kept runs, 7 ran
+   with no done line by the elapsed-time reading, 3 by a content grep — rare
+   either way, and NOT a one-off. The build step already
+   computes `$timedOut` and `$p.ExitCode` and throws both away, so "killed at
+   24 min" and "crashed" arrive identical — being fixed. **Two measurement
+   faults `e72f58a3` introduced, neither the hang:** `ArchetypeRead` /
+   `ControllerRead` / `TrouserRead` are last-wins strings OUTSIDE the
+   save/restore set, so they describe whichever walker attached last while
+   sitting beside player readings (the `namesTracked=2` fault again); and
+   `bodyTinted` / `bodyWash*` change POPULATION at this commit (every
+   textured renderer -> cloth only), which the commit message declares but
+   the verdict does not, so the next series-reader sees an unexplained fall.
+
+1. **BODY BUDGET CLOSED AT 87.8%** (account in `roadmap-history.md`). Live:
+   the centre-third foot reading, and white pills with no committed still.
 
 1. **THE INQUIRY RUNS NOW; TWO THINGS GATED ON IT STILL DO NOT.** *(moat:
    information. Not started — stage 1 has startable work.)* CLAUDE.md said
@@ -264,91 +318,36 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    the way `voices-into-build` stages the banked clips. **Do not spend a
    round trip re-testing the fetch** — it is green and named.
 
-1. **BUS AND BICYCLE LANDED** (seven kinds, zero fallbacks since P). Open:
-   the RIDERLESS bike — if it reads wrong, rider or parked-only.
 
 1. **PATROL DENSITY FOLLOWS THE INQUIRY — whether it READS is unfinished.**
-   Links fire (`roadmap-history.md`). Open: `patrolOnBeatMean=0.00` over 3
-   shots vs `0.18` over 17 — zero of three separates nothing; judge the
-   `hunt_` pair. A PARKED beacon reads where six crossings do not.
+   Open: `patrolOnBeatMean=0.00` over 3 shots vs `0.18` over 17 — zero of
+   three separates nothing. A PARKED beacon reads where six crossings do not.
 
-1. **THE DISTANT SKYLINE — VOID, THE NAMED TOWERS NO LONGER EXIST (25 Aug).**
-   The twelve glass towers this item measured were RETIRED as a premise
-   violation and replaced by 21 period blocks. **Every reading it carried is
-   void; the METHOD transfers.** That method: measure a NAMED object via
+1. **THE DISTANT SKYLINE — EVERY OLD READING IS VOID (25 Aug).** The twelve
+   glass towers it measured were retired as a premise violation; 21 period
+   blocks replace them. **The METHOD transfers:** measure a NAMED object via
    `SurfaceUnder`, never a screen patch — a patch cannot say whether it
-   caught tower or the sky beside it, which is what made the old saturation
-   reading unresolvable. Re-take against the new blocks once they land.
-1. **PAVING BLOWOUT: LEVEL HALVED, VARIANCE BARELY MOVED.** `districtGround`
-   found `glossScale:4.00` — pinned at the clamp, the code giving up. Fixed
-   (uniform scalar once the wet target outruns the map; `glossDropped=5
-   glossRestored=5`, both directions). **On the frame:** median 0.434 ->
-   0.219, spread only 0.654 -> 0.571 vs brick 0.385. Gloss owned the LEVEL;
-   texture contrast or the wet reflection owns the VARIANCE. **Next: read
-   `districtGround` again, then reflection strength — do not re-tune gloss.**
+   caught tower or the sky beside it. Re-take once the blocks land.
 
-1. **THE FETCHED MODELS NOW HAVE A REACH LEDGER: `tools/prop-reach.py`,
-   in `verify`.** 213 models on disk, **63 named**, 150 with no name match —
-   and the "89 on disk, six referenced" that stood here was SCOPED to the
-   four city kits, which is right for those and wrong as a total. Per kit,
-   because one number cannot carry both questions.
-   **city-kit-industrial went 0 -> 24 of 25** (twenty buildings and four
-   chimney stacks on the dockside skyline band; account in the commit).
-   *(Was "arc": the band is an OFFSET OUTLINE of the town bounds since 25
-   Aug, not a circle — the circle-vs-rectangle mismatch is what hung eight
-   blocks over open sea.)*
-   **Still open, biggest first:**
-   - **`city-kit-roads` 47 models, ONE named** (`light_curved`). Kerbs,
-     crossings, barriers, cones, junctions — the densest unused kit there is
-     and all of it is ground-level, where the player actually looks.
-   - **`city-kit-suburban` 13 models, ZERO — an ENTIRE KIT UNREACHED.**
-   - **`city-kit-industrial_detail-tank`**, the one industrial model left:
-     84.8 x 41.5 x 51.5, a squat storage tank. Ground-level dock prop, so it
-     needs a placement site rather than a skyline slot — its own item.
-   - car-kit 39 unused, base-mesh 23, oga-vehicles 23.
+1. **THE FETCHED MODELS HAVE A REACH LEDGER: `tools/prop-reach.py`, in
+   `verify`.** 213 models on disk; **73 named as of the dressing batch**, up
+   from 62 — `city-kit-suburban` is no longer an ENTIRE KIT UNREACHED. Per
+   kit, because one number cannot carry both questions.
+   **Still open, biggest first:** the rest of `city-kit-roads` (signage is
+   the named gap — director ruled it queues HIGH);
+   `city-kit-industrial_detail-tank`, 84.8 x 41.5 x 51.5, a squat dock tank
+   needing a ground placement site rather than a skyline slot; car-kit 39
+   unused, base-mesh 23, oga-vehicles 23.
    **MEASURE WITH `prop-dimensions` BEFORE PLACING ANY OF THEM.** Those
-   numbers overturned the obvious plan for the industrial band: the
-   commercial skyline models are slim towers (50x200) and the industrial ones
-   squat masses (208x147), so reusing the tower height target would have
-   built one wall of interpenetrating geometry no still could diagnose.
-   **Name-matching, with the landed verdict as its accepting case** rather
-   than a fixture — 24 keys the sim really placed, 0 false negatives.
+   numbers overturned the obvious plan for the industrial band: commercial
+   skyline models are slim towers (50x200), industrial ones squat masses
+   (208x147), so reusing the tower height target would have built one wall of
+   interpenetrating geometry no still could diagnose. **And bounds are not
+   enough on their own** — the survey called two models triangles from their
+   bounds and the OUTLINE proved them US diamonds.
 
-1. **`kitAlbedo` NOW PRINTS `arrived>stands`** — the twelve `base_mesh_*`
-   families were never unpainted, only measured before their repaint
-   (account in `roadmap-history.md`). **Read the arrows next landing:** the
-   claim is that every one stands well below `townWallAlbedo=0.15`, and
-   `kitPainted` is the denominator that says the attribution ran at all.
 
-1. **THE SPLAY DISTRIBUTION LANDED: median 29.3, p90 43.4, worst 120.8.**
-   *(on screen, `review_day2_close`.)* Every other arm number is an angle
-   from straight DOWN, so a fore/aft swing and a sideways splay read alike;
-   `ArmSplayNow` projects onto the plane facing the body so only splay
-   survives. The peak alone could not tell a `wave` (wired, firing) from a
-   scarecrow — **the distribution can, and it says the street is fine**: a
-   median of 29 degrees is an arm hanging with a walk swing, and 120 is the
-   tail, not the norm. **Judge the p90 of 43 against the animation set**
-   before calling it: 43 degrees at the ninth decile is a wide-ish idle, not
-   a T-pose. `restArmDrop=8.0` says the bind is right either way.
 
-1. **DECLUTTER: RAN, TEST SOUND, NOW GREEN.** Latest landing reads
-   `collidingNames=0` over 27 samples (was 3/26) and `namesClipped=1/89`,
-   `namesClipWorst=0.63`. The edge test was checked rather than assumed —
-   `ScreenRect` has no clamp, it rejects only FULLY off-screen labels, so a
-   partially clipped one does reach the check. Rare-event counters; leave
-   until one goes non-zero.
-
-1. **FIVE OF SEVEN DISTRICTS HAD NO SHOPS: FIXED AND READ** (account in
-   `roadmap-history.md`). Landed `premisesByDistrict`: Exchange 13, Parade
-   23, Gullwing 7, Copper_Row 6, Hook 73. Fairview and Ironside still
-   `shop0` — plausible for an industrial strip and a residential district,
-   so closed unless a frame says otherwise.
-
-1. **THE DRESSING GATE WENT GREEN ON BUILD T** — 382 far-city pieces where
-   it carried 37. The old frame item under it is RETIRED, three regime
-   changes stale (it argued from a software rasteriser's 666ms); on the real
-   GPU it is `game=5.6ms` of ~27.5ms, `perfOk` green. Start from the
-   `frameCost` ladder in `## Now`.
 1. **Smuggling** (M21) — **BUILT** (account in `roadmap-history.md`).
    Remainders: a player verb to recruit the signer, and gambling behind it.
    Read `cargoes`/`manifests` next build.

@@ -110,6 +110,31 @@ flesh from cloth — **is never consulted**. What the wardrobe does reach is
     why the bright yellow trousers in the stills are not explained by any
     band: they are the MODEL's texture, washed.
 
+**CORRECTION — 25 Aug. Every word above was true when written and the first
+clause is now history: the wire landed.** The finding is kept, not rewritten,
+because the sentence that made it look UNFIXABLE is the one worth keeping
+beside it — §2.2's *"Mixamo bodies are single welded meshes; we have no garment
+slots and building them is a modelling pipeline, not a code change"*, which was
+the reason nobody tried. Measured against the FBX, eleven of sixteen bodies
+carry a separate upper and lower garment mesh (§2.2's correction block).
+
+What is true at this commit: the textured path gathers its renderers, classifies
+them once through `Core/BodyParts.Garments` (`Own` / `Whole` / `Upper` /
+`Lower`), washes **Upper** with the existing coat draw and **Lower** with a
+second `Wardrobe.Dress` under salt 11, and leaves faces, hair, eyes, teeth,
+shoes and hats carrying the artist's texture unwashed. Welded models take the
+whole-figure draw exactly as before, so James, Michelle, Big Vegas and Sporty
+Granny are not regressed. Source: `agent-reports/inhabited-wiring.md` §1.
+
+**Not yet SEEN.** The counters `bodyPartsDistinct`, `bodyPartsWelded`,
+`bodyPartsUpperOnly`, `bodyPartsOwn`, `bodyPartsUnknown` and `bodyTrousers`
+have never been printed by a running sim — the Game layer does not compile
+here. `bodyTinted` and the `bodyWash*` family now count CLOTH only, so their
+landed series has a regime change at this commit and will fall against their
+own history; that fall is the fix. **The prediction to check the first series
+against is the 11-of-16 share above** — it is a prediction, not a bound, and
+nothing is gated on it.
+
 **(b) `Physique.Headwear` is drawn for every person and consumed by exactly
 one file — `Mannequin.cs:245`, the box stand-in tier.** Grep for `Headwear`
 returns three hits total: the field, the draw, and that one read. The
@@ -124,10 +149,29 @@ buy:
 
   * **`walk_f` — Female Walk.** Every woman in Meridian currently walks the
     male cycle. `walk_old` IS wired; `walk_f` is not.
+    **CORRECTED 25 Aug — WIRED, and the sentence is kept because the reason
+    it stood is the interesting part.** What held it was a comment in
+    `CharacterPrefab.ArchetypeFor` — *"'old' is the only special archetype
+    until a female walk clip actually exists in the harvest"* — true the day
+    it was written, false from the B harvest onward, and it read as a
+    decision rather than as a stale claim. `Core/BodyArchetype` now owns the
+    rule and `walkFemale=n/total` reports whether the wire reached the
+    street. `clip-reach.py` went 41 → 40 DISK-ONLY. Source:
+    `agent-reports/inhabited-wiring.md` §2. Same lesson as §2.2's, aimed at
+    a comment instead of an asset: **a claim about what the harvest CONTAINS
+    is verified against the harvest.**
   * **`walk_start`, `walk_start_f`, `walk_stop`, `walk_stop_f`,
     `turn_left`, `turn_right`** — the transitions. Without them a walker
     snaps between standing and full stride, which is the single most
     mannequin-like thing a crowd does.
+    **AND `walk_start` IS A MIS-PICK — 25 Aug, do not wire it as it stands.**
+    The file on disk is `walk_start__Start Walking Backwards_4f5d….fbx`, so
+    wiring this list as written would have set every man in the city off
+    backwards. The other five are correct. The picker now refuses a reversed
+    name for a forward slot (`tools/mixamo-pick/pick_animations.py`,
+    `FORWARD_ONLY`/`direction_ok`), which makes the clip unpickable and
+    unloadable, but **the fix on disk is a re-pick and that runs on Jafar's
+    machine.** Read `_picks.json`, not this list, before wiring any of them.
   * `jog`, `stairs_up`, `stairs_down`, `laugh`, `lift`, `pockets`,
     `rummage`, `shake_hands`, `sit_talk`, `sit_drink`, `yell`, `back_away`.
   * Two slots are genuinely EMPTY (the harvest hole): `smoke`, `thinking` —
@@ -178,13 +222,53 @@ the documented lever.
 | GTA lever | us |
 |---|---|
 | Silhouette spread (height, breadth, head) | **HAVE and running.** 1.58–1.91 measured. Head scale is drawn and applied on the mannequin tier only |
-| Component drawables (separate garment meshes) | **NEVER, and correctly** — Mixamo bodies are single welded meshes; we have no garment slots and building them is a modelling pipeline, not a code change |
-| Texture variation per garment | **HAVE THE PALETTE, NOT THE SPLIT.** One wash over the whole body (1.4a) |
+| Component drawables (separate garment meshes) | **HAVE, ON 11 OF 16 — this row said the exact opposite until 25 Aug; the correction and the dead sentence are below the table** |
+| Texture variation per garment | **HAVE THE PALETTE, NOT THE SPLIT.** One wash over the whole body (1.4a) — *split landed 25 Aug, see the correction below* |
 | Scenario points | **HAVE and running** — `ActivityForPlaceNear`, 787 asks |
 | Idle variant count | We ship `idle`, `idle_2`, `idle_old`, `idle_bored` = **4**, which the sourced guidance puts exactly at the visible-repetition threshold. `pockets`, `thinking`, `look_around`, `glance` would take it to 7–8 |
-| Gait variation | PART — `Gait` multiplier per person is applied; `walk_old` wired; `walk_f` on disk unused |
+| Gait variation | PART — `Gait` multiplier per person is applied; `walk_old` wired; `walk_f` on disk unused — *`walk_f` wired 25 Aug, see 1.4(c)* |
 | Locomotion transitions | **NEVER** — 6 transition clips on disk, none wired |
 | Doing things rather than walking | HAVE the mechanism; the vocabulary is thin because half the clips are unwired |
+
+**CORRECTION — 25 Aug. The first row said this, and it is false:**
+
+> **NEVER, and correctly** — Mixamo bodies are single welded meshes; we have
+> no garment slots and building them is a modelling pipeline, not a code
+> change
+
+**It is quoted rather than deleted because it was plausibly DERIVED, and a
+deleted error is one the next reader invents again** — the derivation was
+"read the loader, see one `Tint` over every renderer, conclude the model has
+one mesh", and anybody who reads the loader will reach it a second time.
+
+**Measured:** mesh node names parsed out of all eighteen FBX under
+`ledger/Assets/Characters` — the assets themselves, not the code that loads
+them. Source: `game-design/agent-reports/inhabited-wiring.md` §0; re-read off
+the files in this session against the same parser
+(`tools/body-proportions.py`'s FBX reader).
+
+**Eleven of the sixteen pool bodies ship a separate upper AND lower garment
+mesh:** Adam (`Ch08_Hoodie`/`Ch08_Pants`), David, Elizabeth, Joe (nine meshes
+— belt, shirt, suit, tie, trousers), Kate (`Ch21_Shirt`/`Ch21_Pants`),
+Leonard, Martha, Pete, Remy (`Tops`/`Bottoms`), Shannon, The Boss
+(`Jacket_Geo`/`Pants_Geo`). **Sophie is upper-only** (`Ch02_Cloth`). **Four
+are genuinely welded** — James (`Ch06`), Michelle (`Ch03`), Big Vegas and
+Sporty Granny (`..._BodyGeo` carries the clothes, plus separate face parts).
+`X Bot` and `Y Bot` are the untextured stand-ins `RealBody.IsMannequin`
+excludes and are not in the sixteen. 11 + 1 + 4 = 16, so the arithmetic is
+checkable on the line.
+
+So a navy coat over stone trousers was **a naming problem, not a modelling
+pipeline**, and it landed as one on 25 Aug: `Core/BodyParts.Garments` classifies
+each renderer `Own`/`Whole`/`Upper`/`Lower` and the lower body takes a second
+`Wardrobe.Dress` draw. The two rows marked *(see the correction below)* moved
+with it.
+
+**THE GENERAL LESSON, which is why this is written at length: a claim about
+what assets CONTAIN is verified against the assets, not against the code that
+consumes them.** Three research streams this week read our own source and our
+own docs as though they were the world. The binary assets are part of the
+world, and nobody had opened them.
 
 ### 2.3 The cost picture, and it is unusual
 

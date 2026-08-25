@@ -441,22 +441,57 @@ jobs:
         timeout-minutes: 25
         run: |
           New-Item -ItemType Directory -Force sim-run | Out-Null
+          # THE RUNNER IS SELF-HOSTED AND sim-run/ SURVIVES BETWEEN JOBS, so
+          # every file the next steps read as evidence has to be removed BEFORE
+          # the sim starts or a dead build inherits the last one's answer. That
+          # is the fault that made a failed build commit six stills it could not
+          # have rendered. player.log is truncated by -logFile, but sim-exit.txt
+          # and the stall breadcrumb are only written by code that has to be
+          # REACHED, so their staleness is exactly the case that matters.
+          Remove-Item sim-run/sim-exit.txt,sim-run/sim-out/stall.txt `
+            -Force -ErrorAction SilentlyContinue
           $exe = Resolve-Path "ledger/build/LEDGER/LEDGER.exe"
           $p = Start-Process -FilePath $exe -WorkingDirectory sim-run -PassThru -ArgumentList `
             "-simdays","11","-screen-width","1280","-screen-height","720","-screen-fullscreen","0",`
             "-force-d3d11","-logFile","player.log"
           # Wait-Process honours its timeout on the object Start-Process returns;
           # WaitForExit(ms) does not reliably.
+          #
+          # AND THE BRANCH THIS TOOK IS WRITTEN DOWN, WHICH IT WAS NOT FOR
+          # SEVEN RUNS. This step has always KNOWN whether it killed the sim
+          # or the sim exited, and it threw the answer away — so "killed at 24
+          # minutes" and "crashed with an exit code" arrived at the verdict
+          # looking identical, because a force kill (TerminateProcess) writes
+          # nothing to player.log either way. An engineer spent a whole task
+          # inferring from COMMIT TIMESTAMPS what these three lines state, and
+          # 7 of 352 kept runs are in this class. Rule 12: the blocked channel
+          # is the highest-leverage bug on the board.
+          #
+          # A FILE BESIDE player.log, not a step-summary line and not an echo:
+          # the log API returns a fixed ~4KB byte tail, the step summary comes
+          # back empty through the check-run API, and the artifact host is
+          # denied from the review container. A file gets committed into the
+          # verdict by tools/sim-shots-commit.sh and can simply be read.
+          $watch = [System.Diagnostics.Stopwatch]::StartNew()
           $timedOut = $false
           try { Wait-Process -Id $p.Id -Timeout 1440 -ErrorAction Stop }
           catch { $timedOut = $true }
+          $waited = [int]$watch.Elapsed.TotalSeconds
           if ($timedOut) {
+            # WRITTEN BEFORE THE KILL AND BEFORE THE EXIT, because every
+            # `exit 1` below is a path on which this file is the only witness.
+            Set-Content sim-run/sim-exit.txt @(
+              "simTimedOut=yes", "simExit=killed", "simWaitSeconds=$waited",
+              "simWaitLimit=1440")
             Write-Host "=== simulation timed out after 24 minutes; last 80 log lines ==="
             if (Test-Path sim-run/player.log) { Get-Content sim-run/player.log -Tail 80 }
             Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
             Write-Error "Simulation timed out after 24 minutes"
             exit 1
           }
+          Set-Content sim-run/sim-exit.txt @(
+            "simTimedOut=no", "simExit=$($p.ExitCode)", "simWaitSeconds=$waited",
+            "simWaitLimit=1440")
           Get-Content sim-run/player.log -Tail 60
           # The two lines worth having, printed LAST so they survive every log
           # viewer that truncates from the top. The tail above is 60 lines and

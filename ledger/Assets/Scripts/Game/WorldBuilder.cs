@@ -23,6 +23,23 @@ namespace Ledger.Game
         public static float GroundMinX, GroundMaxX, GroundMinZ, GroundMaxZ;
 
         static readonly List<Light> Lamps = new List<Light>();
+
+        /// A street light built OUTSIDE this file, joining the night sweep.
+        ///
+        /// `SetLampsEnabled` walks `Lamps` and nothing else, so a Light made
+        /// anywhere else keeps whatever `enabled` it was born with — which is
+        /// how the works lamps came in burning at noon. `RegisterNightLight`
+        /// could not serve: it takes a Renderer, for lit WINDOWS, and the two
+        /// are different things wearing one name.
+        ///
+        /// Registering is enough on its own and needs no follow-up call: the
+        /// sweep's guard keys on `Lamps.Count` as well as the on/off bool
+        /// precisely so a lamp created after the last state change is still
+        /// swept. Add with `enabled` false and the next sweep decides.
+        public static void RegisterStreetLight(Light l)
+        {
+            if (l != null) Lamps.Add(l);
+        }
         static readonly List<Renderer> Windows = new List<Renderer>();
         /// Whether each window is a ground-floor SHOPFRONT, in step with
         /// `Windows`.
@@ -317,6 +334,10 @@ namespace Ledger.Game
             // Signs last: they read the finished network, and a rule the city
             // obeys without telling you is indistinguishable from a bug.
             StreetFurniture.Build();
+            // Dressing after the furniture and before the parked cars: every
+            // site probes the built masses, and `BuildParkedCars` appends to
+            // `Masses`, which the yard-depth probe reads as BUILDINGS.
+            StreetDressing.Build();
             // And the parked cars after even the signs: they append to
             // `Masses`, and everything that reads Masses as BUILDING specs
             // (BuildBuildings, the name-plate wall finder) has run by now —
@@ -2752,9 +2773,41 @@ namespace Ledger.Game
             MakeBox($"BenchLegB_{n}", pos + new Vector3(alongZ ? 0 : off, 0.21f, alongZ ? off : 0), leg, AssetLibrary.Metal);
         }
 
+        /// Is this the district's own central crossing?
+        ///
+        /// `StreetMap.CentreOf` returns a district's middle avenue crossing
+        /// through the SAME `ScaleAbout` the nodes were built with, so a
+        /// junction that is a district centre matches it exactly up to float.
+        /// Half a metre is therefore a float tolerance and not a search
+        /// radius: the next node along is a whole block away, and the tightest
+        /// blocks in the city are Copper Row's at 20m.
+        static bool IsDistrictCentre(Vector3 at)
+        {
+            foreach (var d in Ledger.Core.StreetMap.Districts)
+            {
+                Ledger.Core.StreetMap.CentreOf(d, out var cx, out var cz);
+                if (Mathf.Abs((float)cx - at.x) < 0.5f && Mathf.Abs((float)cz - at.z) < 0.5f)
+                    return true;
+            }
+            return false;
+        }
+
         /// Lamps on the grid. Every junction is lit, and long avenue runs get
         /// a pool part-way along, so a night walk anywhere in the district is
         /// strung with light rather than pitch black between two crossings.
+        ///
+        /// AND THE FORM VARIES, BY THE MAP RATHER THAN BY A SITE LIST. The
+        /// four-arm column stands at the district's own central crossing and
+        /// nowhere else — seven of them, one per district, the biggest
+        /// crossing getting the grandest column, which is where a British town
+        /// put the four-arm lantern when it had an island to put it on. The
+        /// twin arm goes on the APPROACH ROADS: an edge whose two ends are in
+        /// different districts is one of the dozen links `StreetMap` builds
+        /// between them — the two bridges over the cut, the goods spur, the
+        /// hill road, the winter road, Charter Road — long unbuilt runs with
+        /// no frontage to borrow light from, which is where a second head
+        /// earns its column. Everything else keeps the single swan neck or
+        /// square lantern its district calls for.
         static void BuildLamps()
         {
             foreach (var j in Ledger.Core.StreetMap.Nodes)
@@ -2764,7 +2817,10 @@ namespace Ledger.Game
                 var jc = new Vector3((float)j.X, 0, (float)j.Z);
                 var pA = jc + new Vector3(off, 0, off);
                 var pB = jc - new Vector3(off, 0, off);
-                MakeLamp(pA, jc - pA);
+                // One four-arm column per district, on the first corner only:
+                // two of them facing each other across a crossing would read
+                // as a lighting depot rather than a landmark.
+                MakeLamp(pA, jc - pA, IsDistrictCentre(jc) ? LampForm.Cross : LampForm.Single);
                 MakeLamp(pB, jc - pB);
             }
             int ei = 0;
@@ -2780,7 +2836,14 @@ namespace Ledger.Game
                 float side = TownPlanEnabled && (ei++ % 2 == 1) ? -1f : 1f;
                 float off = ((float)e.Width / 2f + 1.4f) * side;
                 var lampAt = mid + (alongZ ? new Vector3(off, 0, 0) : new Vector3(0, 0, off));
-                MakeLamp(lampAt, mid - lampAt);
+                // THE EDGE'S OWN ENDS DECIDE, not its width: inside a district
+                // every driveable edge is an 8m "avenue" bar the founding
+                // cross, so width cannot separate an approach road from a
+                // terrace street and the district names can.
+                var form = Ledger.Core.StreetMap.DistrictAt(a.X, a.Z)
+                        != Ledger.Core.StreetMap.DistrictAt(b.X, b.Z)
+                    ? LampForm.Double : LampForm.Single;
+                MakeLamp(lampAt, mid - lampAt, form);
             }
         }
 
@@ -3432,20 +3495,257 @@ namespace Ledger.Game
             return sun;
         }
 
-        /// TOWN-PLAN.MD T2 item 6: a lamp with a HEAD. The kit road light is
-        /// tried first (curved arm over the carriageway); the two boxes
-        /// below are the fallback that shipped every build until now. The
-        /// kit mesh's own conventions are not assumed: it is scaled to a
-        /// 5.2m head from its measured bounds, ORIENTED by them — the arm
-        /// makes the bounds asymmetric about the pivot, and rotating that
-        /// offset onto `towardRoad` points the arm at the road whatever
-        /// axis the FBX author chose — seated by them, and painted the
-        /// near-black green of a British column over the kit palette.
-        static void MakeLamp(Vector3 basePos, Vector3? towardRoad = null)
+        /// THE ONE LIVE KIT-DRESSING TALLY, and it is one on purpose.
+        ///
+        /// Every placer that stands a kit model up counts through this
+        /// instance — the lamps below, `TrafficHost`'s secondary signal heads
+        /// — so `kitDressing` on the done line is one row per family rather
+        /// than one per file. A second instance anywhere splits the counts in
+        /// silence, which is this project's commonest fault wearing an
+        /// instrument's clothes.
+        ///
+        /// It sits in `WorldBuilder` because this is the earliest and largest
+        /// kit placer and a static class in `Ledger.Game` is reachable from
+        /// every other Game-layer file without an instance. If Core grows a
+        /// canonical holder, moving it is one line and every call site keeps
+        /// its shape.
+        public static readonly Ledger.Core.KitDressing KitTally =
+            new Ledger.Core.KitDressing();
+
+        /// WHICH OF THE SIX LAMPS STANDS HERE — the district picks the family,
+        /// the site picks the form.
+        ///
+        /// BRITAIN RAN A MIX, AND ONE LAMP EVERYWHERE IS THE TELL THAT A
+        /// STREET WAS GENERATED. Through the eighties and nineties a British
+        /// town carried cast swan-neck columns on its old streets and
+        /// square-head sodium lanterns on everything built or re-lit later,
+        /// and the two stand a hundred metres apart. Meridian is a British
+        /// port town in the LATE-ANALOG years (`design-doc.md` line 8), so the
+        /// mix is period truth rather than decoration.
+        ///
+        /// Both halves come from data the map already holds — `DistrictAt` for
+        /// the family, the edge and junction the lamp serves for the form — so
+        /// there is no site list to maintain and nothing to fall out of step
+        /// when the grid changes.
+        public enum LampForm { Single, Double, Cross }
+
+        /// The old town: the founding cross and the two quarters that grew off
+        /// it. These are `StreetMap.Districts` NAMES, read from Core rather
+        /// than from any comment, because `DistrictAt` returns the name.
+        static readonly string[] CastIronDistricts =
+            { "the Hook", "Copper Row", "Ironside" };
+        /// Built, or re-lit, later: the offices, the promenade, the villas and
+        /// the resort front. The two lists together are the whole of
+        /// `StreetMap.Districts` — seven — so a name in NEITHER is a fault
+        /// rather than a default, and it is flagged instead of quietly
+        /// choosing (rule 3b: an unknown district must not read as old town).
+        static readonly string[] SodiumDistricts =
+            { "the Exchange", "the Parade", "Fairview", "Gullwing" };
+
+        static bool CastIronLamp(string district)
         {
+            foreach (var n in CastIronDistricts) if (n == district) return true;
+            foreach (var n in SodiumDistricts) if (n == district) return false;
+            KitTally.Flagged("lamp", "district_unlisted");
+            return true;
+        }
+
+        /// The district a lamp belongs to, INCLUDING out on the cut.
+        ///
+        /// `DistrictAt` returns null between districts — the two bridges, the
+        /// goods spur, the hill road, the winter road — and those are exactly
+        /// where the approach-road lamps stand, so a null defaulted to one
+        /// family would send every twin-arm column in the city to the same
+        /// one. The nearest district CENTRE decides instead: a lamp between
+        /// two districts takes the character of the one it stands nearest,
+        /// which is a Voronoi over `StreetMap.CentreOf` and needs no threshold.
+        ///
+        /// x and z are WORLD coordinates, which is what `DistrictAt` wants:
+        /// `BoundsOf` scales the avenue arrays before comparing, and the nodes
+        /// these positions come from were scaled by the same `ScaleAbout`. The
+        /// 71%-in-no-district fault was the opposite mistake — unscaled bounds
+        /// against scaled positions — and it was fixed inside `DistrictAt`
+        /// itself, whose comment carries the arithmetic.
+        static string LampDistrict(float x, float z)
+        {
+            var named = Ledger.Core.StreetMap.DistrictAt(x, z);
+            if (named != null) return named;
+            string best = null;
+            double bestSq = double.MaxValue;
+            foreach (var d in Ledger.Core.StreetMap.Districts)
+            {
+                Ledger.Core.StreetMap.CentreOf(d, out var cx, out var cz);
+                double sq = (cx - x) * (cx - x) + (cz - z) * (cz - z);
+                if (sq < bestSq) { bestSq = sq; best = d.Name; }
+            }
+            return best;
+        }
+
+        /// The six kit models, as WHOLE LITERALS.
+        ///
+        /// NOT A COMPOSED KEY, and that is about the instrument rather than
+        /// taste: `tools/prop-reach.py` matches normalised model names against
+        /// Game-layer string LITERALS, and its accepting selftest asserts that
+        /// `city_kit_roads_light_curved` reads "exact". Building these six from
+        /// a shared prefix would downgrade all of them to a prefix route and
+        /// blunt the only tool that can say a model is reached.
+        ///
+        /// ONE HEIGHT TARGET PER FAMILY, BECAUSE THE MESHES SHARE A HEIGHT.
+        /// All three curved forms measure 67.50 units tall and all three
+        /// square forms 60.00 (`tools/prop-dimensions.py light`), so a family
+        /// target preserves the kit author's own proportion between the six —
+        /// scaling each form to its own absolute number would make the square
+        /// heads read bigger than the swan necks beside them.
+        ///
+        /// The metres come from the placement survey's 0.074 m/unit, derived
+        /// from both live call sites and cross-checked against four objects
+        /// whose real size is known (cone, works barrier, road tile, fence):
+        /// 4.99m for the swan necks, 4.44m for the square heads. THAT MOVES
+        /// THE EXISTING LAMP, which was scaled to a hard-coded 5.2m — the same
+        /// mesh, 4% shorter, because 5.2/67.50 is 0.077 m/unit and the survey's
+        /// figure is the other end of the same estimate. Both are ordinary
+        /// British column heights; the number that matters is the RATIO, and
+        /// it is the kit's.
+        static void LampModel(bool castIron, LampForm form,
+                              out string key, out string variant, out float target)
+        {
+            target = castIron ? 4.99f : 4.44f;
+            if (castIron)
+            {
+                key = form == LampForm.Cross ? "city_kit_roads_light_curved_cross"
+                    : form == LampForm.Double ? "city_kit_roads_light_curved_double"
+                    : "city_kit_roads_light_curved";
+                variant = form == LampForm.Cross ? "curved_cross"
+                    : form == LampForm.Double ? "curved_double" : "curved";
+            }
+            else
+            {
+                key = form == LampForm.Cross ? "city_kit_roads_light_square_cross"
+                    : form == LampForm.Double ? "city_kit_roads_light_square_double"
+                    : "city_kit_roads_light_square";
+                variant = form == LampForm.Cross ? "square_cross"
+                    : form == LampForm.Double ? "square_double" : "square";
+            }
+        }
+
+        /// The near-black green of a British lighting column, over the kit's
+        /// own palette. Unchanged value; it moved out of `MakeLamp` when six
+        /// models started sharing it.
+        static readonly Color ColumnGreen = new Color(0.15f, 0.17f, 0.15f);
+
+        /// AIM A KIT MESH BY ITS OWN ASYMMETRY — the rule `MakeLamp` has used
+        /// since the swan-neck landed, now shared with `TrafficHost`'s signal
+        /// heads so there is one implementation of it rather than two.
+        ///
+        /// A mesh whose mass hangs off its pivot — a lamp arm, a signal head on
+        /// its bracket — says which way it points without anybody having to
+        /// know which axis its author drew it on. Returns false when the offset
+        /// is smaller than `minOffset` and leaves the rotation alone, because
+        /// below that the direction is floating-point dust rather than a
+        /// bearing.
+        ///
+        /// `minOffset` is METRES and belongs to the caller, because the two
+        /// meshes are two sizes: a lamp arm reaches 1.48m from its column,
+        /// while a signal head hangs 0.08m off its post at build scale.
+        public static bool AimByOverhang(GameObject kit, Vector3 pivot, Vector3 want,
+                                         float minOffset)
+        {
+            var rends = kit.GetComponentsInChildren<Renderer>();
+            if (rends.Length == 0) return false;
+            var b = rends[0].bounds;
+            foreach (var r in rends) b.Encapsulate(r.bounds);
+            var off = b.center - pivot; off.y = 0;
+            if (off.magnitude < minOffset) return false;
+            float have = Mathf.Atan2(off.x, off.z) * Mathf.Rad2Deg;
+            float aim = Mathf.Atan2(want.x, want.z) * Mathf.Rad2Deg;
+            kit.transform.rotation = Quaternion.Euler(0, aim - have, 0);
+            return true;
+        }
+
+        /// The gate `MakeLamp` has always used, restated in metres: the old
+        /// test was `sqrMagnitude > 0.02`, which is 0.141m. Unchanged.
+        const float LampArmMinOffset = 0.141f;
+
+        /// POINT THE ARMS AT SOMETHING, PER FORM, WITHOUT ASSUMING THE FBX
+        /// AUTHOR'S AXIS.
+        ///
+        /// ONE ARM: the arm makes the bounds asymmetric about the pivot, so
+        /// rotating that offset onto `towardRoad` points it at the road
+        /// whatever axis the mesh was drawn on. That is the rule this code was
+        /// written for and it is unchanged.
+        ///
+        /// TWIN ARM: THE OFFSET IS ZERO AND CANNOT SAY ANYTHING. Measured,
+        /// `light-curved-double` runs z[-20.00,+20.00] about its pivot and
+        /// `light-square-double` z[-21.25,+21.25] — symmetric, so the offset
+        /// test fails its own gate and the mesh would keep whatever yaw it was
+        /// instantiated with. The EXTENT still knows: the arms are the long
+        /// horizontal axis, 2.96m of arm span against a 0.37m column.
+        ///
+        /// It is turned ALONG the road rather than across it, and that is
+        /// arithmetic rather than taste. An arm reaches 1.48m from the column
+        /// and a mid-run lamp stands `Width/2 + 1.4` from the centreline, i.e.
+        /// 1.4m outside the kerb — so an arm turned ACROSS the road ends 8cm
+        /// past the kerb line and lights nothing the single arm does not.
+        /// Turned along it, the two heads stretch the pool up and down the
+        /// carriageway, which is the only thing a second head can buy at this
+        /// reach.
+        ///
+        /// FOUR ARM: NO ROTATION AT ALL, AND IT IS THE ANSWER RATHER THAN THE
+        /// OMISSION. `light-curved-cross` is 40x40 units about its pivot and
+        /// `light-square-cross` 42.5x42.5 — symmetric on BOTH horizontal axes,
+        /// so no yaw can be derived from them and the one-arm maths would
+        /// rotate the mesh by whatever dust its bounds carry. The street grid
+        /// is axis-aligned by construction (`StreetMap`'s avenues are lines of
+        /// constant x and constant z), so the identity yaw the prop arrives
+        /// with already lays the four arms down the four approaches.
+        static void AimLamp(GameObject kit, Vector3 basePos, Vector3? towardRoad,
+                            LampForm form, Bounds b)
+        {
+            if (form == LampForm.Cross || !towardRoad.HasValue) return;
+            if (form != LampForm.Double)
+            {
+                AimByOverhang(kit, basePos, towardRoad.Value, LampArmMinOffset);
+                return;
+            }
+            // A tenth of a metre against a MEASURED separation of 2.6m (a
+            // 0.37m column against a 2.96m arm span), so this can only refuse
+            // a mesh that is genuinely square in plan.
+            if (Mathf.Abs(b.size.x - b.size.z) < 0.1f)
+            {
+                KitTally.Flagged("lamp", "double_no_axis");
+                return;
+            }
+            var axis = b.size.x > b.size.z ? Vector3.right : Vector3.forward;
+            var along = new Vector3(towardRoad.Value.z, 0, -towardRoad.Value.x);
+            float have = Mathf.Atan2(axis.x, axis.z) * Mathf.Rad2Deg;
+            float aim = Mathf.Atan2(along.x, along.z) * Mathf.Rad2Deg;
+            kit.transform.rotation = Quaternion.Euler(0, aim - have, 0);
+        }
+
+        /// TOWN-PLAN.MD T2 item 6: a lamp with a HEAD, in SIX forms.
+        ///
+        /// The kit road light is tried first and the two boxes at the bottom
+        /// are the fallback that shipped every build until the kit landed. The
+        /// mesh's own conventions are not assumed anywhere: it is scaled to its
+        /// FAMILY's height from its measured bounds, oriented by them
+        /// (`AimLamp`), seated by them, and painted the near-black green of a
+        /// British column over the kit palette.
+        ///
+        /// The paint goes through `AssetLibrary.PaintKit`, which greys the kit
+        /// atlas before tinting and REPORTS how many renderers took it. This
+        /// used to be a raw `MaterialPropertyBlock`: a `_Color` written to a
+        /// shader that has no `_Color` is a silent no-op, and a tint over a
+        /// coloured palette is not the colour asked for. `TrafficHost`'s signal
+        /// path already went through `PaintKit` for exactly that reason — one
+        /// idea, two implementations, and this was the one nobody looked at.
+        static void MakeLamp(Vector3 basePos, Vector3? towardRoad = null,
+                             LampForm form = LampForm.Single)
+        {
+            bool castIron = CastIronLamp(LampDistrict(basePos.x, basePos.z));
+            LampModel(castIron, form, out var key, out var variant, out var target);
+            KitTally.Offered("lamp");
             var kit = TownPlanEnabled
-                ? AssetLibrary.TryInstantiateProp("city_kit_roads_light_curved",
-                      basePos, Quaternion.identity)
+                ? AssetLibrary.TryInstantiateProp(key, basePos, Quaternion.identity)
                 : null;
             if (kit != null)
             {
@@ -3455,29 +3755,30 @@ namespace Ledger.Game
                     var b = rends[0].bounds;
                     foreach (var r in rends) b.Encapsulate(r.bounds);
                     if (b.size.y > 0.5f)
-                        kit.transform.localScale *= 5.2f / b.size.y;
+                        kit.transform.localScale *= target / b.size.y;
 
                     b = rends[0].bounds;
                     foreach (var r in rends) b.Encapsulate(r.bounds);
-                    var armOff = b.center - basePos; armOff.y = 0;
-                    if (towardRoad.HasValue && armOff.sqrMagnitude > 0.02f)
-                    {
-                        float have = Mathf.Atan2(armOff.x, armOff.z) * Mathf.Rad2Deg;
-                        float want = Mathf.Atan2(towardRoad.Value.x, towardRoad.Value.z) * Mathf.Rad2Deg;
-                        kit.transform.rotation = Quaternion.Euler(0, want - have, 0);
-                    }
+                    AimLamp(kit, basePos, towardRoad, form, b);
+
                     b = rends[0].bounds;
                     foreach (var r in rends) b.Encapsulate(r.bounds);
                     kit.transform.position += Vector3.up * (basePos.y - b.min.y);
 
-                    var mpb = new MaterialPropertyBlock();
-                    mpb.SetColor("_Color", new Color(0.15f, 0.17f, 0.15f));
-                    foreach (var r in rends) r.SetPropertyBlock(mpb);
+                    if (AssetLibrary.PaintKit(rends, ColumnGreen) == 0)
+                        KitTally.Flagged("lamp", "paint_refused");
                     foreach (var c in kit.GetComponentsInChildren<Collider>())
                         Object.Destroy(c);
 
-                    // The head is at the arm's end — about twice as far out
-                    // as the bounds centre — up at the top of the mesh.
+                    // ONE LIGHT PER COLUMN, AND THE BOUNDS PUT IT IN THE RIGHT
+                    // PLACE FOR ALL THREE FORMS. For a single arm the bounds
+                    // centre sits out along the arm, so doubling that offset
+                    // lands the light at the arm's END — which is what this
+                    // line was written for. For the twin and the four-arm the
+                    // mesh is symmetric about the column, the offset is ~0, and
+                    // the same line puts the light at the top of the COLUMN
+                    // between the heads: one point light there reaches every
+                    // arm equally, and costs one light rather than two or four.
                     b = rends[0].bounds;
                     foreach (var r in rends) b.Encapsulate(r.bounds);
                     var head = b.center + (b.center - basePos) * 1.0f;
@@ -3493,10 +3794,19 @@ namespace Ledger.Game
                     klight.enabled = false;
                     LightShaft.Attach(klight, 1.0f);
                     Lamps.Add(klight);
+                    // THE HEIGHT THAT ACTUALLY LANDED, not the one asked for.
+                    // A per-lamp metre reading over the whole run: the scale
+                    // above is the one step that can silently do nothing (a
+                    // mesh under 0.5m tall skips it), and a column at kit scale
+                    // is a 67-unit tower nobody could miss in a frame — but
+                    // only if something reads it.
+                    KitTally.Measured("lamp", b.max.y - basePos.y);
+                    KitTally.Placed("lamp", variant);
                     return;
                 }
                 Object.Destroy(kit);
             }
+            KitTally.Missed("lamp", variant);
 
             MakeBox($"LampPole_{Lamps.Count}", basePos + new Vector3(0, 1.75f, 0), new Vector3(0.15f, 3.5f, 0.15f), AssetLibrary.Metal);
             MakeBox($"LampHead_{Lamps.Count}", basePos + new Vector3(0, 3.55f, 0), new Vector3(0.4f, 0.2f, 0.4f), AssetLibrary.Metal);

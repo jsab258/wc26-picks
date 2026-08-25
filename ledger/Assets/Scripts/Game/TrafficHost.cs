@@ -1129,7 +1129,9 @@ namespace Ledger.Game
             foreach (var n in StreetMap.Nodes)
             {
                 if (!Signals.HasLights(n)) continue;
-                // One head per approach, set back on the corner it governs.
+                // One POST per approach, set back on the corner it governs,
+                // and since 25 Aug two heads on it: the primary at the top and
+                // the British low-level secondary (`MountSecondaryHead`).
                 for (int k = 0; k < 4; k++)
                 {
                     float ox = k == 0 ? -1f : k == 1 ? 1f : 0f;
@@ -1236,8 +1238,138 @@ namespace Ledger.Game
                         Node = n,
                         NorthSouth = k >= 2,
                     });
+
+                    MountSecondaryHead(post, pos, new Vector3(ox, 0f, oz), n, k >= 2);
                 }
             }
+        }
+
+        /// BRITAIN'S MISSING SECOND SIGNAL HEAD.
+        ///
+        /// This junction has always placed ONE head per approach, at the top
+        /// of a 3.6m post. A British junction carries two: the PRIMARY up at
+        /// the stop line, and a SECONDARY low on the same post so a driver who
+        /// has pulled up AT the line can still read the signal without craning
+        /// at something 3.3m over the bonnet. The kit has held the head for it
+        /// the whole time — `traffic-light-object-vertical`, the vertical
+        /// three-aspect head with no pole, which is the British form (the
+        /// kit's horizontal and mast-arm heads are American and were rejected
+        /// on those grounds in the placement survey).
+        ///
+        /// HEIGHT, DERIVED RATHER THAN CHOSEN. "Low level" means at a person's
+        /// eye, and 1.6m is this project's own eye height — `Witnesses` casts
+        /// every sightline in the game from it. So the head's LOWEST aspect
+        /// sits there and its centre half a head above, which puts its top at
+        /// about 2.6m: most of a metre clear below the primary, so the two read
+        /// as two heads rather than one smear.
+        ///
+        /// SIZE, DERIVED THE SAME WAY. The kit's whole `traffic-light` is 51.50
+        /// units tall and this build scales it to 3.6m; the head alone is 14.32
+        /// of those units (`tools/prop-dimensions.py light`), so at the post's
+        /// own scale it is 3.6 x 14.32 / 51.50 = 1.00m. It is then scaled from
+        /// its OWN measured bounds to that, so a re-export of the FBX cannot
+        /// change it behind our backs.
+        ///
+        /// FACING, MEASURED, NOT ASSUMED — `WorldBuilder.AimByOverhang`, the
+        /// same rule the lamp arms use. The head's mass hangs off its pivot
+        /// (x[-6.01,+3.75] on a mesh 14.32 tall, so 0.08m off-centre at build
+        /// scale), and that overhang is the side that faces the driver, with
+        /// the post behind it. Aiming the overhang down the approach therefore
+        /// needs no knowledge of which axis Kenney drew the lenses on.
+        ///
+        /// NOTE FOR THE FRAME: the primary post is instantiated with
+        /// `LookRotation` aiming its local +Z at the driver, and the same
+        /// bounds say the head hangs along local -X. If that reading is right
+        /// the two heads on a post will not agree, and the still will say so
+        /// in one look. That is the primary's aim to settle, not this one's —
+        /// see the report's queue item.
+        void MountSecondaryHead(GameObject post, Vector3 pos, Vector3 approach,
+                                StreetNode node, bool northSouth)
+        {
+            WorldBuilder.KitTally.Offered("signal_head_secondary");
+            var fwd = approach.sqrMagnitude > 0.01f ? approach.normalized : Vector3.forward;
+
+            // Half the POST's own depth along the approach, so the head stands
+            // proud of the column instead of half inside it. Measured off the
+            // object that is actually there: 0.63m for the kit post, 0.14m for
+            // the primitive fallback, and neither is written down anywhere.
+            var pr = post.GetComponentsInChildren<Renderer>();
+            float clear = 0f;
+            if (pr.Length > 0)
+            {
+                var pb = pr[0].bounds;
+                foreach (var r in pr) pb.Encapsulate(r.bounds);
+                clear = (Mathf.Abs(fwd.x) * pb.size.x + Mathf.Abs(fwd.z) * pb.size.z) / 2f;
+            }
+
+            const float LowestAspect = 1.6f;   // Witnesses' eye height
+            const float HeadMetres = 1.00f;    // 3.6 x 14.32 / 51.50
+            var at = pos + fwd * clear + Vector3.up * (LowestAspect + HeadMetres / 2f);
+            var kit = AssetLibrary.TryInstantiateProp(
+                "city_kit_roads_traffic_light_object_vertical", at, Quaternion.identity);
+            if (kit == null)
+            {
+                WorldBuilder.KitTally.Missed("signal_head_secondary", "vertical");
+                return;
+            }
+            var rends = kit.GetComponentsInChildren<Renderer>();
+            if (rends.Length == 0)
+            {
+                Destroy(kit);
+                WorldBuilder.KitTally.Missed("signal_head_secondary", "vertical");
+                return;
+            }
+
+            var b = rends[0].bounds;
+            foreach (var r in rends) b.Encapsulate(r.bounds);
+            if (b.size.y > 0.2f) kit.transform.localScale *= HeadMetres / b.size.y;
+            // Half the measured 0.08m overhang, so a mesh that genuinely has
+            // none is left alone rather than spun by rounding.
+            WorldBuilder.AimByOverhang(kit, at, fwd, 0.04f);
+            if (AssetLibrary.PaintKit(rends, SignalHousing) == 0)
+                WorldBuilder.KitTally.Flagged("signal_head_secondary", "paint_refused");
+            foreach (var c in kit.GetComponentsInChildren<Collider>())
+                Destroy(c);
+            kit.name = post.name + "_secondary";
+            // `true` for the same reason the primary lamp uses it: the post
+            // may be a kit mesh at about 0.07 scale, and a child taken in
+            // without keeping its world transform would be multiplied away.
+            kit.transform.SetParent(post.transform, true);
+
+            // AND IT SHOWS AN ASPECT, or it is a black box bolted to a post.
+            // Same mechanism as the primary — one cube per head, recoloured by
+            // `TickSignals` off the same node and the same phase — sized to ONE
+            // ASPECT of a three-aspect head (a third of the head's own measured
+            // height, which is what "three-aspect" means) and sunk flush into
+            // the face the head is aimed at, so it reads as a lit lens rather
+            // than a glowing core. A secondary that never lights is furniture,
+            // and the whole point of it is that a stopped driver can read it.
+            b = rends[0].bounds;
+            foreach (var r in rends) b.Encapsulate(r.bounds);
+            float aspect = b.size.y / 3f;
+            float face = Mathf.Abs(fwd.x) * b.size.x + Mathf.Abs(fwd.z) * b.size.z;
+            var lens = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            lens.name = kit.name + "_lens";
+            lens.transform.position = b.center + fwd * ((face - aspect) / 2f);
+            lens.transform.localScale = new Vector3(aspect, aspect, aspect);
+            lens.GetComponent<Renderer>().sharedMaterial =
+                AssetLibrary.Material(AssetLibrary.Window);
+            var lcol = lens.GetComponent<Collider>();
+            if (lcol != null) Destroy(lcol);
+            lens.transform.SetParent(kit.transform, true);
+            _signalHeads.Add(new SignalHead
+            {
+                Lamp = lens.GetComponent<Renderer>(),
+                Node = node,
+                NorthSouth = northSouth,
+            });
+
+            // WHERE THE LOWEST ASPECT ACTUALLY ENDED UP, in metres above the
+            // pavement. The seat above is arithmetic on a bounds read; this is
+            // the bounds read AFTER it, which is the only thing that can say a
+            // head is hanging at knee height or over a lorry.
+            WorldBuilder.KitTally.Measured("signal_head_secondary", b.min.y - pos.y);
+            WorldBuilder.KitTally.Placed("signal_head_secondary", "vertical");
         }
 
         /// How many signals got the kit mesh against the two-cube fallback, and

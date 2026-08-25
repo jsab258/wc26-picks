@@ -162,7 +162,16 @@ if [ -f sim-run/player.log ]; then
     # healthy one — exactly backwards, because a baseline you only see
     # while something is broken is not a baseline. ALL of them are
     # kept, not a head: the gaps ARE the reading.
-    grep -E "FAILING GATES|SimDirector: ALL GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |SimDirector: dayMark |alley eyes=|Traffic: wheels |brandished a cosh|SimDirector: windowGlow|\[series\]|\[panel\]|SceneAudit: " \
+    # `stallQuit` AND THE BREADCRUMB FAULT ARE IN THE LIST FROM THE DAY THEY
+    # WERE WRITTEN, which is the only way this allow-list has ever worked.
+    # It has silently eaten four pieces of work — windowWarmth, ringGrowth,
+    # ALL GATES and dayMark — each built, run, green, and never arrived.
+    # `stallQuit` fires when the in-sim watchdog gives up; `Application.Quit`
+    # is ASYNCHRONOUS, so a run can still reach Finish and print a done line
+    # afterwards, in which case the hang block does not run and this grep is
+    # the ONLY thing that lands it. `stall breadcrumb unwritable` is a fault
+    # line about the instrument itself and must never be the quiet kind.
+    grep -E "FAILING GATES|SimDirector: ALL GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |SimDirector: dayMark |SimDirector: stallQuit |SimDirector: stall breadcrumb |alley eyes=|Traffic: wheels |brandished a cosh|SimDirector: windowGlow|\[series\]|\[panel\]|SceneAudit: " \
       sim-run/player.log || echo "(no SimDirector lines matched)"
     # A filter that drops a line in silence is what made that cost a
     # round trip. This says it in the verdict, on the run it happens.
@@ -224,17 +233,36 @@ if [ -f sim-run/player.log ]; then
     # `hangSimLines` is its denominator for the same reason `hangTailOwn` is
     # the structural one's: twelve lines shown out of twelve and out of eleven
     # hundred are different runs.
-    if ! grep -q "SimDirector: done\." sim-run/player.log; then
-      echo "hangTail=[the sim produced no done line; three tails follow — structural, sim-only, raw]"
-      echo "hangTailLines=$(wc -l < sim-run/player.log | tr -d ' ')"
-      echo "hangTailOwn=$(grep -cE '^[A-Za-z][A-Za-z0-9_]*: ' sim-run/player.log | tr -d ' ')"
-      echo "hangSimLines=$(grep -c '^SimDirector: ' sim-run/player.log | tr -d ' ')"
-      grep -E '^[A-Za-z][A-Za-z0-9_]*: ' sim-run/player.log \
-        | tail -40 | tr -d '\r' | sed 's/^/hangOwn| /'
-      grep '^SimDirector: ' sim-run/player.log \
-        | tail -12 | tr -d '\r' | sed 's/^/hangSim| /'
-      tail -12 sim-run/player.log | tr -d '\r' | sed 's/^/hangTail| /'
-    fi
+    # AND ALL OF IT MOVED TO tools/hang-report.py, WHICH HAS A SELFTEST.
+    #
+    # THE TAILS WERE NEARLY USELESS THE SECOND TIME THEY FIRED, 25 Aug.
+    # `e8c5949` produced 19 structural lines of which the sim's own four were
+    # `simulating 11 day(s)`, the companion line, `staged deed #1` and two
+    # witness accounts — ALL FROM THE START of an eleven-day run. They say the
+    # sim began. They cannot say which day it reached, which system it was
+    # inside, or whether it was still moving. A tail answers "what was printed
+    # last"; the question is "where did it stop", which is a POSITION, and a
+    # peak-shaped instrument cannot answer it however many lines it keeps.
+    #
+    # So the report now LEADS with how the process ended (from sim-exit.txt,
+    # which the sim step writes and used to throw away) and then with the
+    # position (the stall breadcrumb, then dayMark), and the three tails are
+    # last, unchanged in shape and key names so nothing that reads a verdict
+    # has to change.
+    #
+    # IN PYTHON BECAUSE THIS FILE CANNOT BE TESTED. It runs on the Windows
+    # runner under bash and nothing in the review container can execute it, so
+    # every fix to these greps shipped unrun — which is the standing rule from
+    # 25 Aug: measurement arithmetic and formatting live where the tests run.
+    # `python3 tools/hang-report.py --selftest` covers a log WITH a done line
+    # first (it must print no hang diagnostics at all), then no-done-with-
+    # breadcrumbs, then no-done-with-nothing, which must print WORDS and never
+    # a zero. Do not re-add the greps here: one idea, one implementation.
+    python3 tools/hang-report.py \
+      --log sim-run/player.log \
+      --exit sim-run/sim-exit.txt \
+      --crumbs sim-run/sim-out/stall.txt \
+      || echo "hangReport=[the hang reporter itself failed — read the tails in the job log]"
   } >> game-design/sim-shots/verdict.txt
   # AND THE EDITOR-SIDE LINES, IN A SCRIPT, BECAUSE THIS STEP IS FULL.
   # `verify.py` refused the inline version at 1,234 characters over the
@@ -247,6 +275,13 @@ else
   say "no player.log — the sim did not run"
   echo "NO PLAYER LOG — the sim did not run on this commit." \
     >> game-design/sim-shots/verdict.txt
+  # HOW THE PROCESS ENDED IS THE ONLY THING KNOWABLE ON THIS BRANCH, and it
+  # was not being said at all. A sim that started, wrote no log and was killed
+  # looks identical here to one that never launched.
+  python3 tools/hang-report.py --outcome-only --exit sim-run/sim-exit.txt \
+    >> game-design/sim-shots/verdict.txt \
+    || echo "simExit=[the hang reporter itself failed]" \
+       >> game-design/sim-shots/verdict.txt
   # AND WHY, WHICH IS THE WHOLE DIAGNOSIS.
   #
   # "The sim did not run" has two completely different causes and the

@@ -237,6 +237,16 @@ unreferenced or ruled; stills. **Cost:** ~0ms, measured — the whole crowd
 (80 rigs, ~1M skinned verts) costs ~0.6ms; nothing here adds a `Light`.
 **Time: days to ~1.5 weeks.**
 
+**LANDED 25 Aug (this commit), against the stand above — the survey is left as
+written:** the body wash SPLIT (flesh / upper / lower, second `Wardrobe.Dress`
+draw, arithmetic in Core) and `walk_f` are both wired; clip-reach 41→40. The
+stand's premise that garment meshes do not exist is refuted — eleven of the
+sixteen pool bodies ship separate upper and lower meshes (`research/inhabited-street.md`
+§2.2, corrected). **`walk_start` was found MIS-PICKED — the file on disk is
+`Start Walking Backwards` — and is deliberately left unwired**; the picker now
+refuses a reversed name for a forward slot, and the disk fix is a re-pick on
+Jafar's machine. Neither new counter has been printed by a running sim yet.
+
 ### P5 — THE PORT *(early: it is a whole-frame void in the two seaward frames)*
 
 **Stand [water §0, measured]:** no water shader, no plane, nothing. The

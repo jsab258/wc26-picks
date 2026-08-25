@@ -127,6 +127,7 @@ namespace Ledger.CoreTests
                 TestSurfaceNames();
                 TestGroundGain();
                 TestSkylineTally();
+                TestKitDressing();
                 TestDetail();
                 TestFrameRate();
                 TestMotionMatching();
@@ -13770,6 +13771,601 @@ namespace Ledger.CoreTests
             Check(tie.Emit(ground, 2).Contains("^mat_alpha"),
                   "a tie breaks by ordinal name, so the row is stable across runs",
                   tie.Emit(ground, 2));
+        }
+
+
+        /// THE STREET-DRESSING TALLY. `Core/KitDressing.cs` — the counter for
+        /// the 19 kit models `kit-survey.md` ordered placed, every one of whose
+        /// call sites falls through to a fallback primitive on a miss, silently.
+        ///
+        /// THE ACCEPTING CASE IS FIRST AND IT IS FIRST ON PURPOSE (rule 5b).
+        /// Four guards in one day here blocked the good case rather than the
+        /// bad one, and every one of them had passed its failure case; the
+        /// expensive failure for a formatter is not a missed fault, it is a
+        /// string nothing survives and a run that lands nothing.
+        static void TestKitDressing()
+        {
+            Console.WriteLine("Kit dressing — what the placement pass actually stood up:");
+
+            // ---- ACCEPTING: A FULLY POPULATED RUN --------------------------
+            // Shaped like the survey's plan: the six-form lamp table branching
+            // across districts, roadworks clusters, mounted plates, Britain's
+            // missing low secondary signal head, planters and yard fences with
+            // their metres. `square_cross` is offered three times and never
+            // loads — the exact fault this whole class exists to catch, and it
+            // must be visible as a MISS rather than as a smaller total.
+            //
+            // AND IT FILES REFUSALS, BECAUSE THE LIVE CALLERS DO. The first
+            // version of this fixture filed `placed + missed == offered`
+            // exactly for all eleven families, which is a shape NO LIVE CALLER
+            // PRODUCES: five sites in `StreetDressing` refuse on geometry —
+            // a planter footprint in the road, a fence run through a terrace —
+            // and in a realistic run seventy-two sites do. So the accepting
+            // case that was run was not the accepting case that will land, and
+            // an accepting fixture that does not do what the callers do
+            // certifies nothing (rule 5b, `agent-reports/kit-dressing-audit.md`
+            // C2).
+            var k = new KitDressing();
+            // THE HEIGHTS AND THE FAULT FLAGS ARE THE LIVE SHAPE, taken off
+            // `WorldBuilder.MakeLamp` and `TrafficHost` as they stand in the
+            // tree rather than off the brief: those two file a MEASURED HEIGHT
+            // and flag `paint_refused`, and an accepting fixture that does not
+            // do what the callers do is a fixture that certifies nothing.
+            for (int i = 0; i < 44; i++) k.Offered("lamp");
+            for (int i = 0; i < 12; i++) { k.Placed("lamp", "curved"); k.Measured("lamp", 5.2f); }
+            for (int i = 0; i < 9; i++) { k.Placed("lamp", "curved_double"); k.Measured("lamp", 5.2f); }
+            for (int i = 0; i < 4; i++) { k.Placed("lamp", "curved_cross"); k.Measured("lamp", 5.0f); }
+            for (int i = 0; i < 11; i++) { k.Placed("lamp", "square"); k.Measured("lamp", 4.44f); }
+            for (int i = 0; i < 5; i++) { k.Placed("lamp", "square_double"); k.Measured("lamp", 4.44f); }
+            for (int i = 0; i < 3; i++) k.Missed("lamp", "square_cross");
+            for (int i = 0; i < 3; i++) k.Flagged("lamp", "paint_refused");
+
+            for (int i = 0; i < 9; i++) k.Offered("works_cluster");
+            for (int i = 0; i < 8; i++) k.Placed("works_cluster", "");
+            k.Missed("works_cluster", "");
+            for (int i = 0; i < 46; i++) k.Offered("works_cone");
+            for (int i = 0; i < 44; i++) k.Placed("works_cone", "");
+            for (int i = 0; i < 2; i++) k.Missed("works_cone", "");
+            // OFF THE CARRIAGEWAY — a site, not a failed load. `StreetDressing`
+            // files this at the cone and barrier taper and at every planter and
+            // fence run whose footprint the geometry rejects.
+            for (int i = 0; i < 5; i++) { k.Offered("works_cone"); k.Refused("works_cone", "off_road"); }
+            for (int i = 0; i < 22; i++) { k.Offered("works_barrier"); k.Placed("works_barrier", ""); }
+            for (int i = 0; i < 3; i++) { k.Offered("works_barrier"); k.Refused("works_barrier", "off_road"); }
+            for (int i = 0; i < 12; i++) { k.Offered("works_lamp"); k.Placed("works_lamp", ""); }
+            for (int i = 0; i < 9; i++) k.Flagged("works_lamp", KitDressing.FlagNightLight);
+
+            for (int i = 0; i < 20; i++) k.Offered("sign_post");
+            for (int i = 0; i < 18; i++) k.Placed("sign_post", "");
+            for (int i = 0; i < 2; i++) k.Missed("sign_post", "");
+            for (int i = 0; i < 22; i++) k.Offered("sign_plate_name");
+            for (int i = 0; i < 19; i++) k.Placed("sign_plate_name", "");
+            for (int i = 0; i < 3; i++) k.Missed("sign_plate_name", "");
+            for (int i = 0; i < 17; i++) k.Flagged("sign_plate_name", KitDressing.FlagPainted);
+            for (int i = 0; i < 14; i++) k.Offered("sign_plate_warning");
+            for (int i = 0; i < 12; i++) k.Placed("sign_plate_warning", "");
+            for (int i = 0; i < 2; i++) k.Missed("sign_plate_warning", "");
+
+            for (int i = 0; i < 8; i++) k.Offered("signal_head_secondary");
+            foreach (var gap in new[] { 1.10f, 1.12f, 1.15f, 1.10f, 1.18f, 1.05f })
+            {
+                k.Placed("signal_head_secondary", "vertical");
+                k.Measured("signal_head_secondary", gap);
+            }
+            for (int i = 0; i < 2; i++) k.Missed("signal_head_secondary", "vertical");
+            k.Flagged("signal_head_secondary", "paint_refused");
+            // A PLANTER FILES ITS STANDING HEIGHT, not its catalogue footprint.
+            // The call site filed `2.96f * 2.22f`, which the compiler folds, so
+            // sixteen planters filed one literal sixteen times and the spread
+            // read `6.57..6.57..6.57` — three copies of a constant wearing the
+            // clothes of sixteen agreeing measurements (audit C4).
+            for (int i = 0; i < 16; i++) k.Offered("planter");
+            for (int i = 0; i < 14; i++) { k.Placed("planter", ""); k.Measured("planter", 1.31f); }
+            for (int i = 0; i < 2; i++) k.Missed("planter", "");
+            for (int i = 0; i < 6; i++) { k.Offered("planter"); k.Refused("planter", "in_road"); }
+
+            // A fence run files its MODEL and its METRES separately: 1x is
+            // 2.00m by the survey's measured unit, so 2+3+4+3 runs come to
+            // 64.00m. The count and the total both print because one 12.4m run
+            // and twelve 3.5m ones are the same count and a different street.
+            for (int i = 0; i < 14; i++) k.Offered("yard_fence");
+            for (int i = 0; i < 2; i++) { k.Placed("yard_fence", "1x1"); k.Measured("yard_fence", 2f); }
+            for (int i = 0; i < 3; i++) { k.Placed("yard_fence", "1x2"); k.Measured("yard_fence", 4f); }
+            for (int i = 0; i < 4; i++) { k.Placed("yard_fence", "1x3"); k.Measured("yard_fence", 6f); }
+            for (int i = 0; i < 3; i++) { k.Placed("yard_fence", "1x4"); k.Measured("yard_fence", 8f); }
+            for (int i = 0; i < 2; i++) k.Missed("yard_fence", "1x4");
+            for (int i = 0; i < 4; i++) { k.Offered("yard_fence"); k.Refused("yard_fence", "in_terrace"); }
+
+            var line = k.Line();
+            Console.WriteLine("  KITDRESSING-LINE " + line);
+            Check(line ==
+                  "kitPlaced=208/245/19/18refused kitFamilies=11/11/11/0unknown kitBy"
+                + "=[lamp:41/44/3/0refused,works_cluster:8/9/1/0refused,works_cone:44"
+                + "/51/2/5refused,works_barrier:22/25/0/3refused,works_lamp:12/12/0/0"
+                + "refused,sign_post:18/20/2/0refused,sign_plate_name:19/22/3/0refuse"
+                + "d,sign_plate_warning:12/14/2/0refused,signal_head_secondary:6/8/2/"
+                + "0refused,planter:14/22/2/6refused,yard_fence:12/18/2/4refused] kit"
+                + "ByVariant=[lamp/curved:12/0,lamp/curved_double:9/0,lamp/curved_cro"
+                + "ss:4/0,lamp/square:11/0,lamp/square_double:5/0,lamp/square_cross:0"
+                + "/3,signal_head_secondary/vertical:6/2,yard_fence/1x1:2/0,yard_fenc"
+                + "e/1x2:3/0,yard_fence/1x3:4/0,yard_fence/1x4:3/2] kitAmounts=[lamp/"
+                + "height:nosum/41/0bad/4.44..5.20..5.20,planter/height:nosum/14/0bad"
+                + "/1.31..1.31..1.31,signal_head_secondary/mountgap:nosum/6/0bad/1.05"
+                + "..1.11..1.18,yard_fence/run:64.00/12/0bad/2.00..6.00..8.00] kitFla"
+                + "gsBy=[lamp/paint_refused:3,sign_plate_name/painted:17,signal_head_"
+                + "secondary/paint_refused:1,works_lamp/night_light:9]/30calls kitRef"
+                + "usedBy=[planter/in_road:6,works_barrier/off_road:3,works_cone/off_"
+                + "road:5,yard_fence/in_terrace:4]/18sites kitUnknownBy=[none]/0of11 "
+                + "lampVariants=5/6 lampsByKind=[curved:12/0,curved_double:9/0,curved"
+                + "_cross:4/0,square:11/0,square_double:5/0,square_cross:0/3]/n41of44"
+                + " signPosts=18/20 signPlates=31/36/2of2 namePlatesPainted=17/19 wor"
+                + "ksClusters=8/9 worksProps=78/88/3of3 worksLampsWired=9/12 secondar"
+                + "yHeads=6/8 yardFenceRuns=12/18 yardFenceMetres=64.00/12/0bad/2.00."
+                + ".6.00..8.00 plantersPlaced=14/22",
+                  "a fully populated run formats exactly", line);
+
+            // THE IDENTITY, COMPUTED RATHER THAN EYEBALLED: the placer files a
+            // site, then exactly ONE of placed/missed/refused. A run where they
+            // do not add up is the caller not filing sites, not a statistic.
+            Check(208 + 19 + 18 == 245,
+                  "placed + missed + refused == offered on the run totals");
+            // AND THE THIRD OUTCOME IS ITS OWN COLUMN, not folded into either
+            // neighbour. Folded into `missed`, `plantersPlaced=14/22` with six
+            // misses reads as six planters that failed to load; left out
+            // entirely — which is what shipped — the six vanish and
+            // `missed=19` reads as a prop path that never fails beside an
+            // offered count 18% above placed (audit C2).
+            Check(line.Contains("kitPlaced=208/245/19/18refused"),
+                  "the run total names all four outcomes, so no site is in an unnamed bucket",
+                  line);
+            Check(line.Contains("planter:14/22/2/6refused"),
+                  "a family's refusals are its own column, not folded into its misses", line);
+            Check(line.Contains("kitRefusedBy=[planter/in_road:6,works_barrier/off_road:3,"
+                                + "works_cone/off_road:5,yard_fence/in_terrace:4]/18sites"),
+                  "and every refusal ships the reason the geometry gave, over the site count",
+                  line);
+
+            // The one number a reader would go to the frame for: five of the
+            // six lamp forms stood up, and the sixth was ASKED FOR and never
+            // loaded. A total of 41 lamps cannot say either half.
+            Check(line.Contains("lampVariants=5/6"), "the district table branched five ways", line);
+            Check(line.Contains("square_cross:0/3"),
+                  "the form that never loaded is a miss, not a smaller total", line);
+
+            // THE SUM ON THE LAMP ROW WAS 200.24 AND IT MEANT NOTHING, so it is
+            // not printed. Three of the four live call sites file an INTENSIVE
+            // quantity through `Measured` — a height, a mount gap — and adding
+            // 41 lamp heights produces a number that reads as metres of lamp
+            // and answers no question anybody has. The spread beside it is the
+            // half that does. The row now says which kind it is, in its name,
+            // and prints `nosum` where a reader could otherwise quote the sum.
+            Check(line.Contains("lamp/height:nosum/41/0bad/4.44..5.20..5.20"),
+                  "an intensive quantity prints its spread and refuses to print a sum",
+                  line);
+            Check(line.Contains("signal_head_secondary/mountgap:nosum/6/0bad/1.05..1.11..1.18"),
+                  "and the mount gap's worst, middle and best are all readable", line);
+            // AND AN EXTENSIVE ONE STILL SUMS, which is the distinction: metres
+            // of fence run add up and metres of lamp height do not.
+            Check(line.Contains("yard_fence/run:64.00/12/0bad/2.00..6.00..8.00"),
+                  "an extensive quantity keeps its sum, which is what the units differ on",
+                  line);
+            Check(!line.Contains("planter/height:105.14") && !line.Contains("6.57..6.57..6.57"),
+                  "the planter row is a measurement and not sixteen copies of one literal",
+                  line);
+
+            // WHAT `worksLampsWired` ASKS, AND WHAT IT DOES NOT. Nine of twelve
+            // placed works lamps carry a light that joined the night sweep. It
+            // was `worksLampsLit`, and it could not print anything but `N/N`
+            // because `Emit`'s only false return was already impossible by the
+            // time it was called — one variable printed twice — while the lamp
+            // it described is born DARK and the sweep owns its state (C3).
+            Check(line.Contains("worksLampsWired=9/12"),
+                  "the works-lamp flag can be false, and says what it is a count of", line);
+            Check(!line.Contains("worksLampsLit"),
+                  "and the name that claimed emission is gone rather than annotated", line);
+
+            // ---- CASE 2: NOTHING OFFERED AT ALL ---------------------------
+            // Rule 3b. A pass that never ran and a pass that ran clean must not
+            // print alike, so every family says the WORDS. `lint-static: 0
+            // static/instance errors` was a walker that entered no method
+            // bodies at all, and read as a clean codebase for as long as
+            // nobody printed the denominator.
+            var quiet = new KitDressing().Line();
+            Console.WriteLine("  KITDRESSING-NEVERRAN " + quiet);
+            Check(quiet ==
+                  "kitPlaced=0/0/0/0refused kitFamilies=0/0/11/0unknown "
+                + "kitBy=[lamp:nothing-offered,works_cluster:nothing-offered,"
+                + "works_cone:nothing-offered,works_barrier:nothing-offered,"
+                + "works_lamp:nothing-offered,sign_post:nothing-offered,"
+                + "sign_plate_name:nothing-offered,sign_plate_warning:nothing-offered,"
+                + "signal_head_secondary:nothing-offered,planter:nothing-offered,"
+                + "yard_fence:nothing-offered] "
+                + "kitByVariant=[lamp:nothing-offered,signal_head_secondary:nothing-offered,"
+                + "yard_fence:nothing-offered] "
+                + "kitAmounts=[nothing-offered] kitFlagsBy=[nothing-flagged]/0calls "
+                + "kitRefusedBy=[nothing-refused]/0sites "
+                + "kitUnknownBy=[none]/0of0 "
+                + "lampVariants=nothing-offered "
+                + "lampsByKind=[nothing-offered]/n0of0 "
+                + "signPosts=nothing-offered signPlates=nothing-offered "
+                + "namePlatesPainted=nothing-offered worksClusters=nothing-offered "
+                + "worksProps=nothing-offered worksLampsWired=nothing-offered "
+                + "secondaryHeads=nothing-offered yardFenceRuns=nothing-offered "
+                + "yardFenceMetres=nothing-offered plantersPlaced=nothing-offered",
+                  "a run that placed nothing cannot read as a clean run", quiet);
+            Check(!quiet.Contains("=0/0 "),
+                  "no named key prints a bare zero fraction on a never-ran", quiet);
+            // THE TWO WORDS ARE DIFFERENT FACTS AND THE AMOUNT KEYS COLLAPSED
+            // THEM. `nothing-offered` means no call ever named the family;
+            // `nothing-measured` means it ran and no scalar arrived. `Amount()`
+            // returned the second for both, which is the one distinction it
+            // exists to make (audit C5).
+            Check(quiet.Contains("yardFenceMetres=nothing-offered"),
+                  "a family nobody named says nobody named it, not that it carried no scalar",
+                  quiet);
+            Check(quiet.Contains("kitAmounts=[nothing-offered]"),
+                  "and the list says the same thing one level up", quiet);
+
+            // ---- CASE 3: OFFERED, AND EVERY ONE MISSED --------------------
+            // The distinction case 2 exists for. Sixteen planter sites and not
+            // one planter is a BROKEN PROP PATH; zero sites is a city plan that
+            // never asked. The two lines must not be confusable, and the miss
+            // count is what separates them.
+            var allMissed = new KitDressing();
+            for (int i = 0; i < 16; i++) { allMissed.Offered("planter"); allMissed.Missed("planter", ""); }
+            var missLine = allMissed.Line();
+            Console.WriteLine("  KITDRESSING-ALLMISSED " + missLine);
+            Check(missLine.Contains("plantersPlaced=0/16"),
+                  "a family that offered sixteen sites and placed nothing prints numbers", missLine);
+            Check(missLine.Contains("planter:0/16/16/0refused"),
+                  "and its miss count is visible per family", missLine);
+            Check(missLine.Contains("kitPlaced=0/16/16/0refused"),
+                  "the run total says the placer ran and stood nothing up", missLine);
+            Check(!missLine.Contains("planter:nothing-offered"),
+                  "a family that RAN never prints the never-ran words", missLine);
+            Check(quiet.Contains("plantersPlaced=nothing-offered")
+                  && missLine.Contains("plantersPlaced=0/16"),
+                  "never-offered and all-missed are different strings", missLine);
+            // AND ALL-MISSED IS NOT ALL-REFUSED. Sixteen sites the loader could
+            // not fill is a broken prop path; sixteen the geometry rejected is
+            // a city plan putting sites in the road, and the two have
+            // completely different fixes.
+            var allRefused = new KitDressing();
+            for (int i = 0; i < 16; i++)
+            { allRefused.Offered("planter"); allRefused.Refused("planter", "in_road"); }
+            var refuseLine = allRefused.Line();
+            Console.WriteLine("  KITDRESSING-ALLREFUSED " + refuseLine);
+            Check(refuseLine.Contains("kitPlaced=0/16/0/16refused")
+                  && refuseLine.Contains("planter:0/16/0/16refused"),
+                  "sixteen refused sites are refused, not missed", refuseLine);
+            Check(refuseLine.Contains("kitRefusedBy=[planter/in_road:16]/16sites"),
+                  "and the reason channel carries the same sixteen, over its own total",
+                  refuseLine);
+            Check(missLine.Contains("kitPlaced=0/16/16/0refused")
+                  && refuseLine.Contains("kitPlaced=0/16/0/16refused"),
+                  "a broken prop path and a refused site plan are different lines", refuseLine);
+
+            // ---- CASE 4: A TOTAL AND ITS SAMPLE COUNT ---------------------
+            // The survey says it in one sentence: a run count alone cannot tell
+            // one 12.4m fence run from twelve 3.5m ones. Both shapes below sum
+            // to 42.00m and they must not print the same value.
+            var oneRun = new KitDressing();
+            oneRun.Offered("yard_fence"); oneRun.Placed("yard_fence", "1x4");
+            oneRun.Measured("yard_fence", 42f);
+            var manyRuns = new KitDressing();
+            for (int i = 0; i < 12; i++)
+            {
+                manyRuns.Offered("yard_fence");
+                manyRuns.Placed("yard_fence", "1x2");
+                manyRuns.Measured("yard_fence", 3.5f);
+            }
+            Check(oneRun.Line().Contains("yardFenceMetres=42.00/1/0bad/42.00..42.00..42.00"),
+                  "one long run prints its sample count", oneRun.Line());
+            Check(manyRuns.Line().Contains("yardFenceMetres=42.00/12/0bad/3.50..3.50..3.50"),
+                  "twelve short runs print the same total and a different count",
+                  manyRuns.Line());
+            Check(oneRun.Line().Contains("yardFenceRuns=1/1")
+                  && manyRuns.Line().Contains("yardFenceRuns=12/12"),
+                  "and the placement count is its own key, not the sample count");
+            // A NON-FINITE SCALAR IS REFUSED, NOT SUMMED. One NaN would take
+            // the whole key down with it and print `NaN/13/`, which reads as an
+            // instrument fault rather than as the one bad segment it is.
+            var nan = new KitDressing();
+            nan.Offered("yard_fence"); nan.Placed("yard_fence", "1x1");
+            nan.Measured("yard_fence", 6f);
+            nan.Measured("yard_fence", float.NaN);
+            nan.Measured("yard_fence", float.PositiveInfinity);
+            Check(nan.Line().Contains("yardFenceMetres=6.00/1/2bad/6.00..6.00..6.00"),
+                  "a NaN is counted as refused and never reaches the sum", nan.Line());
+            // A family that RAN but carried no scalar says the other word: the
+            // sites exist, the measurement does not.
+            Check(missLine.Contains("kitAmounts=[nothing-measured]"),
+                  "a run with placements and no scalars says nothing-measured", missLine);
+            Check(missLine.Contains("yardFenceMetres=nothing-offered"),
+                  "while a family nobody named on the same line says the other word",
+                  missLine);
+            // A SPREAD THAT IS FLAT IS A CLAIM, AND A SPREAD THAT IS NOT IS THE
+            // FINDING. Fourteen planters at 1.31 says fourteen objects each
+            // measured 1.31; one that skipped the normalisation moves the min
+            // and nothing else, which is what a min/median/max is for and what
+            // a folded literal could never do.
+            var shortOne = new KitDressing();
+            for (int i = 0; i < 5; i++)
+            { shortOne.Offered("planter"); shortOne.Placed("planter", ""); shortOne.Measured("planter", 1.31f); }
+            shortOne.Offered("planter"); shortOne.Placed("planter", ""); shortOne.Measured("planter", 0.07f);
+            Check(shortOne.Line().Contains("planter/height:nosum/6/0bad/0.07..1.31..1.31"),
+                  "one planter that skipped the scale moves the min and is visible",
+                  shortOne.Line());
+
+            // ---- CASE 5: NO VALUE MAY EVER CONTAIN A SPACE ----------------
+            // Asserted over the produced string, on every line this test
+            // makes, INCLUDING one built from names an asset pack could
+            // plausibly hand us. `crowdBodyWidth=0.45(narrowest 0.39 broadest
+            // 0.53)` returned `0.45(narrowest` to every reader in this repo,
+            // silently, and that is one space in one value.
+            var dirty = new KitDressing();
+            dirty.Offered("Yard Fence");
+            dirty.Placed("yard fence", "1x2 (Instance)");
+            dirty.Placed("lamp", "curved double, tall");
+            dirty.Flagged("works lamp", "lit at night");
+            dirty.Refused("planter", "in the road");
+            dirty.Measured("yard fence", 4f);
+            var dirtyLine = dirty.Line();
+            Console.WriteLine("  KITDRESSING-DIRTY " + dirtyLine);
+
+            // ---- CASE 6: THE READER CONTRACT, OVER EVERY LINE THIS TEST
+            // BUILDS, AND OVER THE ONE THE GAME LAYER ACTUALLY EMITS --------
+            //
+            // THE SWEEP USED TO BE A LOOP RIGHT HERE OVER A HAND-LISTED ARRAY
+            // OF SEVEN OF THE TEN LINES, and the three it left out were the
+            // three least ordinary strings in the file: the typo case, the only
+            // line carrying a `+Nmore` cap, and the blank-family case. Its
+            // assertion said "walked every token of all seven lines", which was
+            // literally true and is not the claim a reader takes from it
+            // (audit C11).
+            //
+            // AND THE FAULT IT WAS WRITTEN FOR WAS NOT IN ANY OF THE TEN. A
+            // token with two `=` in it is made by the Game layer's WRAPPER —
+            // `kitDressing={Line()}` — so the guard and the fault were one line
+            // of C# apart and in different files (audit C1). The checker moved
+            // to `KitDressing.BadTokens`, where it takes a string, so the
+            // wrapped form can be handed to it as the REJECTING case below.
+            var typo = new KitDressing();
+            typo.Offered("works_light");
+            typo.Placed("works_light", "");
+            var typoLine = typo.Line();
+            var many = new KitDressing();
+            for (int i = 0; i < 11; i++) many.Offered("junk_" + i.ToString("00"));
+            var manyLine = many.Line();
+            Console.WriteLine("  KITDRESSING-CAPPED " + manyLine);
+            var blank = new KitDressing();
+            blank.Offered("");
+            blank.Placed(null, "curved");
+            var blankLine = blank.Line();
+            // TWENTY DISTINCT FLAG ROWS, which is above `RowCap` — the case
+            // the cap exists for, and the only line here that trips it.
+            var flooded = new KitDressing();
+            for (int i = 0; i < 20; i++)
+            { flooded.Offered("lamp"); flooded.Placed("lamp", ""); flooded.Flagged("lamp", "f" + i.ToString("00")); }
+            var floodLine = flooded.Line();
+            Console.WriteLine("  KITDRESSING-FLOODED " + floodLine);
+
+            var lines = new[] { line, quiet, missLine, refuseLine, oneRun.Line(),
+                                manyRuns.Line(), nan.Line(), shortOne.Line(), dirtyLine,
+                                typoLine, manyLine, blankLine, floodLine };
+            // ONE ASSERTION PER PROPERTY, NOT ONE PER TOKEN, AND IT SHIPS ITS
+            // DENOMINATOR. The first version put a `Check` inside the token
+            // loop and added 736 checks to a suite of 3,901 — a project-wide
+            // health number moved by a fifth by one class's nested loop, which
+            // is an instrument distorted by an implementation detail. Collected
+            // instead: the count of what was WALKED is asserted first, so a
+            // loop that examined nothing cannot read as clean lines, and the
+            // offenders are named in the failure detail.
+            var bad = new List<string>();
+            int walked = 0;
+            foreach (var emitted in lines)
+            {
+                int n;
+                bad.AddRange(KitDressing.BadTokens(emitted, out n));
+                walked += n;
+            }
+            Check(lines.Length == 13, "the sweep walks every line this test builds",
+                  lines.Length.ToString());
+            Check(walked == 13 * 20,
+                  "and every token of every one of them, twenty keys apiece",
+                  walked.ToString());
+            Check(bad.Count == 0,
+                  "no value can truncate at a space or an unbalanced bracket, over "
+                  + walked.ToString() + " tokens on " + lines.Length.ToString() + " lines",
+                  bad.Count == 0 ? null : bad.Count.ToString() + " bad, first: " + bad[0]);
+
+            // THE REJECTING CASE, AND IT IS THE REAL ONE: the fragment wrapped
+            // in a key, which is how it shipped. `kitDressing=kitPlaced=208/…`
+            // is one token with two `=`, so a reader taking the first one gets
+            // `kitDressing` holding a nonsense value and loses `kitPlaced`
+            // entirely. A checker nothing can fail is the expensive failure
+            // (rule 5b), so the accepting case is asserted above it and this
+            // one names what it caught.
+            int wrappedWalked;
+            var wrapped = KitDressing.BadTokens("kitDressing=" + line, out wrappedWalked);
+            Check(wrappedWalked == 20, "the rejecting case walked the same twenty tokens",
+                  wrappedWalked.ToString());
+            Check(wrapped.Count == 1 && wrapped[0].Contains("two `=` in one token"),
+                  "and wrapping the fragment in a key is refused, by name",
+                  wrapped.Count.ToString() + (wrapped.Count > 0 ? ": " + wrapped[0] : ""));
+            // AND THE CHECKER REFUSES A WALK OF NOTHING rather than calling it
+            // clean — the `lint-static: 0 errors` shape, where the walker had
+            // entered no method bodies at all.
+            int emptyWalked;
+            var emptyBad = KitDressing.BadTokens("", out emptyWalked);
+            Check(emptyWalked == 0 && emptyBad.Count == 1,
+                  "an empty fragment is a finding, not a clean sweep",
+                  emptyWalked.ToString() + "/" + emptyBad.Count.ToString());
+
+            // The names arrived with spaces, commas and parentheses in them and
+            // came out folded — and `Yard Fence` and `yard fence` are ONE
+            // family, because a family that splits in two on casing is two
+            // half-counts nobody can add up.
+            Check(dirtyLine.Contains("yard_fence:1/1/0/0refused"),
+                  "`Yard Fence` and `yard fence` are ONE family, folded and case-collapsed",
+                  dirtyLine);
+            Check(dirtyLine.Contains("yard_fence/1x2__instance:1/0"),
+                  "a Unity clone suffix is folded and KEPT, because a kit stem was asked for",
+                  dirtyLine);
+            // The identity, in the one case that breaks it: a placement filed
+            // with no site. `1/0/0` is arithmetically impossible for a placer
+            // that offers before it places, and it must print as the
+            // impossibility rather than as a normal row.
+            Check(dirtyLine.Contains("lamp:1/0/0/0refused"),
+                  "a placement with no site filed reads as impossible, not as normal",
+                  dirtyLine);
+            Check(dirtyLine.Contains("lamp/curved_double__tall:1/0"),
+                  "an unrecognised variant is named rather than dropped", dirtyLine);
+            Check(dirtyLine.Contains("works_lamp/lit_at_night:1"),
+                  "a misspelt flag prints as its own row and leaves the named key at zero",
+                  dirtyLine);
+            Check(dirtyLine.Contains("worksLampsWired=0/0"),
+                  "which is the diagnostic pair that finds the call site", dirtyLine);
+            Check(dirtyLine.Contains("planter/in_the_road:1"),
+                  "and a refusal reason is folded by the same allow-list", dirtyLine);
+
+            // A FLAG ZERO NEEDS A PER-FAMILY DENOMINATOR, AND THE CLASS SENT
+            // THE READER TO A RUN TOTAL FOR IT. `kitFlagsBy`'s `n` counts flag
+            // calls across every family, so one live planter-refusal channel
+            // made it non-zero and thereby certified `worksLampsWired=0/12` as
+            // a finding even if that call site had never been written (C10).
+            // The words say it in the key itself now.
+            var noFlag = new KitDressing();
+            for (int i = 0; i < 12; i++) { noFlag.Offered("works_lamp"); noFlag.Placed("works_lamp", ""); }
+            for (int i = 0; i < 9; i++) { noFlag.Offered("planter"); noFlag.Refused("planter", "in_road"); }
+            Check(noFlag.Line().Contains("worksLampsWired=nothing-flagged/12"),
+                  "twelve placed and no flag call of any kind says so, over its own denominator",
+                  noFlag.Line());
+            var wrongFlag = new KitDressing();
+            for (int i = 0; i < 12; i++) { wrongFlag.Offered("works_lamp"); wrongFlag.Placed("works_lamp", ""); }
+            wrongFlag.Flagged("works_lamp", "lit");
+            Check(wrongFlag.Line().Contains("worksLampsWired=0/12"),
+                  "while a live channel with the wrong flag on it prints the honest zero",
+                  wrongFlag.Line());
+
+            // ---- CASE 7: ROUND-TRIP THROUGH THE READER'S CONTRACT ---------
+            // `tools/verdict-read.py` splits the verdict on WHITESPACE and
+            // takes the first `=` as the separator; `gates.py --series` reads
+            // the same flat namespace. Parsed here the way they parse, then
+            // every key this class emits is asserted to come back WHOLE and
+            // exactly once — the failure it is guarding against is a value
+            // that truncates at a space and still looks like a number.
+            var back = new Dictionary<string, string>();
+            foreach (var tok in line.Split(' '))
+            {
+                var eq = tok.IndexOf('=');
+                var key = tok.Substring(0, eq);
+                Check(!back.ContainsKey(key), "no key is emitted twice on one line", key);
+                back[key] = tok.Substring(eq + 1);
+            }
+            var expect = new[]
+            {
+                "kitPlaced", "kitFamilies", "kitBy", "kitByVariant", "kitAmounts",
+                "kitFlagsBy", "kitRefusedBy", "kitUnknownBy", "lampVariants", "lampsByKind",
+                "signPosts", "signPlates", "namePlatesPainted", "worksClusters",
+                "worksProps", "worksLampsWired", "secondaryHeads", "yardFenceRuns",
+                "yardFenceMetres", "plantersPlaced",
+            };
+            Check(back.Count == expect.Length,
+                  "the line carries exactly the keys this class documents",
+                  back.Count.ToString());
+            foreach (var key in expect)
+                Check(back.ContainsKey(key), "the reader gets back " + key, line);
+            Check(back["kitBy"].StartsWith("[") && back["kitBy"].EndsWith("]"),
+                  "a bracketed list survives the split whole", back["kitBy"]);
+            Check(back["kitBy"].Split(',').Length == 11,
+                  "with all eleven catalogue rows in it", back["kitBy"]);
+            Check(back["yardFenceMetres"] == "64.00/12/0bad/2.00..6.00..8.00",
+                  "and a paired value is not truncated at its first separator",
+                  back["yardFenceMetres"]);
+
+            // ---- A NAME THE CATALOGUE DOES NOT KNOW, AND THE CAP ----------
+            // A typo at a call site must read as a typo. Without this the
+            // family simply never appears, which is indistinguishable from a
+            // placer that did not run — and the catalogue row would say
+            // `nothing-offered` while the work was actually happening under
+            // another name.
+            Check(typoLine.Contains("kitUnknownBy=[works_light:1/1/0/0refused]/1of1"),
+                  "an unknown family is named, not dropped", typoLine);
+            // AND THE FIRST TWO FIELDS ARE CATALOGUE-SCOPED, so they share the
+            // denominator printed beside them. They counted ALL families,
+            // including the ones the catalogue does not know, against a
+            // catalogue-only third field: one typo printed `1/1/11/1unknown`,
+            // which reads as one expected family placed and named when NO
+            // expected family was touched at all (audit C9).
+            Check(typoLine.Contains("kitFamilies=0/0/11/1unknown"),
+                  "an unrecognised name is counted once, in the field that names it",
+                  typoLine);
+            Check(typoLine.Contains("works_lamp:nothing-offered"),
+                  "while the family it was meant to be still says nobody named it",
+                  typoLine);
+
+            // EVERY CAP ANNOUNCES ITSELF. `| head -3` on the character audit
+            // outgrew its input and read as three of five bodies failing when
+            // nothing was broken; a truncation that does not say it bit is
+            // worse than a zero, because a zero looks like a number somebody
+            // should check.
+            Check(manyLine.Contains(",+3more]"), "the cap says when it bites", manyLine);
+            Check(manyLine.Contains("/11of11"),
+                  "and the count beside it is the whole population, not the shown part",
+                  manyLine);
+            Check(manyLine.Contains("kitFamilies=0/11/11/11unknown") == false
+                  && manyLine.Contains("kitFamilies=0/0/11/11unknown"),
+                  "eleven junk names are eleven unknowns, not a full house of expected families",
+                  manyLine);
+
+            // THE TWO CAPS, AND WHY THERE ARE TWO. `TailCap` (8) bounds lists
+            // of invented names, which are empty in a healthy run. The
+            // per-family lists are NOT empty in a healthy run — the first
+            // replay of the live call sites printed ten distinct flag rows, and
+            // the shared cap at 8 ate `works_lamp/lit`, the one row the class
+            // header names as the thing you must read (audit C10).
+            //
+            // THE ACCEPTING CASE FIRST: at the live population nothing is cut.
+            Check(!line.Contains("more]"),
+                  "a healthy populated run loses no per-family row to a cap", line);
+            Check(line.Contains("]/30calls") && line.Contains("]/18sites"),
+                  "and the run totals beside those lists are labelled as calls and sites, "
+                  + "so nobody divides a shown subset by them", line);
+            // AND THE REJECTING CASE: twenty flag rows on one family is above
+            // `RowCap` (Catalogue.Length + TailCap = 19), and it says so.
+            Check(floodLine.Contains(",+1more]/20calls"),
+                  "twenty flag rows trip the per-family cap, which announces itself",
+                  floodLine);
+
+            // A CALL WITH NO FAMILY AT ALL IS NOT SILENTLY DROPPED. It lands
+            // under `unnamed`, where it reads as the caller fault it is —
+            // `GroundGain` drops an empty logical and shows it as a ray-count
+            // mismatch; here there is no second count to disagree with, so the
+            // row itself has to carry it.
+            Check(blankLine.Contains("kitUnknownBy=[unnamed:1/1/0/0refused]/1of1"),
+                  "a blank family name is visible rather than absent", blankLine);
+
+            // ---- A PARTIALLY WIRED GROUP IS NOT A PERFECT SCORE -----------
+            // `PlacedOver` over several families set `any` on the FIRST family
+            // present, so with only `works_cone` wired `worksProps=40/40` was a
+            // perfect score for a roadworks pass that placed no barriers and no
+            // lamps, and nothing in the key said two of its three families were
+            // never named (audit C8). The evidence was in `kitBy`, which a
+            // reader quoting a flat key does not open.
+            var partial = new KitDressing();
+            for (int i = 0; i < 40; i++) { partial.Offered("works_cone"); partial.Placed("works_cone", ""); }
+            Check(partial.Line().Contains("worksProps=40/40/1of3"),
+                  "a group with one of three families wired says so in the key", partial.Line());
+            Check(line.Contains("worksProps=78/88/3of3"),
+                  "and a fully wired group says that, which is the reading it was giving all along",
+                  line);
+            // NAME PLATES ONLY, because the key names one family. It spanned
+            // both plate families, so unpainted WARNING plates would have
+            // diluted a ratio whose name claims name plates only (C7).
+            Check(line.Contains("namePlatesPainted=17/19"),
+                  "the name-plate ratio is over name plates, which is what it is called",
+                  line);
         }
 
         static void TestImageStats()

@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "batch_name": "meridian-signage-01",
   "_comment": [
     "THE FIRST BATCH. Real LEDGER content, not a demo image: the signage the",
@@ -11,7 +11,32 @@
     "to an existing call site rather than to a folder nobody reads.",
     "",
     "SETTING, and it is not negotiable: Meridian is a British port town in the",
-    "LATE-ANALOG eighties and nineties. Landlines, cash, paper. Not the 1950s."
+    "LATE-ANALOG eighties and nineties. Landlines, cash, paper. Not the 1950s.",
+    "",
+    "SCHEMA 2, 25 Aug 2026, WRITTEN OFF THE FIRST REAL RUN. Jafar generated all",
+    "twelve on an RX 6700 over Vulkan - 12 written, 0 failed, ~20 minutes, no",
+    "blanks. Four of the twelve came back wrong and the two faults were both",
+    "ours, not the model's:",
+    "  1. THERE WAS NO NEGATIVE-PROMPT CHANNEL. Every exclusion we wrote - `no",
+    "     signage legible`, `no perspective`, `no people, no cars` - went into",
+    "     the POSITIVE prompt, where a diffusion model reads the nouns and draws",
+    "     them. `wall_soot_brick` came back as a photographic street corner with",
+    "     a crisp white sign board on it reading WEORED S HONJ. See `negatives`",
+    "     below, and read the cfg note there before believing the channel acts.",
+    "  2. TWO PROMPTS ASKED FOR SOMETHING NO IMAGE MODEL DOES. Dense small print",
+    "     and typewriter table cells come back as gibberish letterforms in every",
+    "     current diffusion model, including the named next rung. Short lines",
+    "     are already excellent: STEAM LAUNDRY, THE HARBOUR LIGHTS / PLUS",
+    "     SUPPORT / FRIDAY 8PM / ADMISSION 2 POUNDS all came back correctly",
+    "     spelled and period-true. So the two body-text prompts now ask for the",
+    "     RULED STRUCTURE, which is what the eye reads at street distance.",
+    "",
+    "EVERY ITEM CARRIES ITS SEED EXPLICITLY, and that is a fix rather than a",
+    "decoration. The seed used to be `seed_base + position in this list`, so",
+    "inserting one item silently re-seeded every item after it - and the resume",
+    "rule (regenerate when the recipe changed, skip when it did not) would then",
+    "regenerate the whole batch for an edit that touched one line. The seeds",
+    "below are the ones his successful run actually used."
   ],
   "content_rules": {
     "_comment": [
@@ -25,7 +50,19 @@
       "[2025] EWHC 2863 (Ch). A model asked for `a British high street in 1989`",
       "will happily paint a real brewery's livery on a pub. So we never ask for",
       "one. In-world brands only, which is better content anyway - MICKEY'S is",
-      "a place in this game and a real brewery is not."
+      "a place in this game and a real brewery is not.",
+      "",
+      "AND THIS IS THE ONE CLAUSE THAT STAYS IN THE POSITIVE PROMPT, 25 Aug.",
+      "Every other exclusion moved to `negatives` below. This one did not, and",
+      "the reason is measured rather than cautious: sd-cli only evaluates the",
+      "unconditional branch when cfg != 1.0 (see `negatives._comment`), and this",
+      "batch runs at cfg 1.0 because Z-Image-Turbo is distilled for it. A",
+      "negative prompt is therefore INERT here - so moving the anti-brand,",
+      "anti-real-person clause into it would have deleted the only instruction",
+      "the model actually receives on the subject. It is mirrored into the",
+      "negative as well, where it will start acting the day an item raises cfg.",
+      "The exclusion scan in imagegen.py exempts this clause BY NAME and prints",
+      "that it did, so the hole is a line of output rather than a silence."
     ],
     "rules_clause": "invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
     "forbidden_tokens": [
@@ -80,10 +117,75 @@
     "_comment": [
       "One shared style block so twelve prompts do not drift into twelve looks.",
       "The reference is game-design/reference/ (GTA V frames, Jafar's, internal",
-      "comparison only) read for what a lettered street does, not copied."
+      "comparison only) read for what a lettered street does, not copied.",
+      "",
+      "`no people, no cars` USED TO BE IN THE SUFFIX and rode into all twelve",
+      "positive prompts. It is now `deserted, empty street` - the same intent",
+      "said as a thing to draw rather than a thing to omit - and the omission",
+      "half moved to `negatives.default`. This DOES change the positive prompt",
+      "of every item, so the resume rule regenerates all twelve on the next run;",
+      "that is deliberate and it is why the run publishes whatever is already on",
+      "disk BEFORE it generates anything (imagegen.py: Publisher.publish_existing).",
+      "The images he picked out are in git before the first pixel is redrawn.",
+      "",
+      "`by_kind` overrides the whole prefix and/or suffix for one kind. A wall",
+      "texture is not a photograph of a street and must not be asked for as one:",
+      "the word `photograph` is exactly what produced a coping, a corner and a",
+      "pavement in a frame that was supposed to be nothing but brick."
     ],
     "prefix": "photograph, straight-on flat elevation, evenly lit,",
-    "suffix": "British port town, late 1980s, overcast North Sea daylight, damp salt-weathered paintwork, soot and grime, no people, no cars, sharp legible lettering, period-correct signwriting"
+    "suffix": "British port town, late 1980s, overcast North Sea daylight, damp salt-weathered paintwork, soot and grime, deserted empty street, sharp legible lettering, period-correct signwriting",
+    "by_kind": {
+      "wall": {
+        "prefix": "flat orthographic texture sheet, square-on to the surface, uniform even lighting, the surface filling the frame edge to edge,",
+        "suffix": "British port town, late 1980s, damp salt-weathered masonry, soot and grime, uniform weathering across the whole frame, seamless tileable material sample, single continuous surface"
+      }
+    }
+  },
+  "negatives": {
+    "_comment": [
+      "THE NEGATIVE CHANNEL, added 25 Aug. Composed as default + by_kind[kind] +",
+      "item.negative and passed to sd-cli as --negative-prompt.",
+      "",
+      "THE FLAG IS VERIFIED FROM THE SHIPPED BINARY, not from a doc example.",
+      "`sd-cli.exe` out of sd-master-97d2990-bin-win-vulkan-x64.zip (38,784,820",
+      "bytes, the size pinned in imagegen.py) has `--negative-prompt` in its",
+      "string table followed by its own help text, `the negative prompt",
+      "(default: \"\")`, in the same table as --prompt, --cfg-scale, --steps and",
+      "every other long flag this pipeline already passes successfully.",
+      "",
+      "AND THE PART THAT MATTERS MORE THAN THE FLAG: A NEGATIVE PROMPT DOES",
+      "NOTHING AT cfg 1.0. stable-diffusion.cpp's `resolve_guidance` sets",
+      "`use_uncond` only when `img_cfg != txt_cfg`; for a model with no image",
+      "conditioning img_cfg is forced to 1.0, so `--cfg-scale 1.0` means the",
+      "unconditional branch is never evaluated and the negative prompt is never",
+      "encoded. Z-Image-Turbo is distilled for cfg 1.0 (the project's own doc",
+      "page uses 1.0 for Turbo and 5.0 for Base), which is why this batch runs",
+      "there. So: the channel exists, it is wired end to end, and on the twelve",
+      "shipped items it is RECORDED AND INERT - the manifest says so per image",
+      "and the run summary counts both populations. The fix that actually",
+      "removed the sign from the brick wall is the positive prompt no longer",
+      "naming one.",
+      "",
+      "The two `probe_*` items at the bottom are the measurement that decides",
+      "whether cfg > 1 is usable on this distilled model: same prompt, same",
+      "seed, same size, cfg 1.0 against cfg 2.0. Nothing else in this file",
+      "raises cfg, because a number nobody has measured is not a setting.",
+      "",
+      "A NEGATIVE PROMPT IS A LIST OF NOUNS, NOT A SENTENCE OF REFUSALS.",
+      "Writing `no people` in the negative asks for `no people` to be pushed",
+      "away, which is not the same as pushing `people` away. imagegen.py's",
+      "validator refuses a negative containing `no `/`without`, and its",
+      "rejecting case is exactly that."
+    ],
+    "default": "watermark, signature, artist signature, modern sans-serif typeface, helvetica, arial, modern digital typography, oversaturated, hdr, colour cast, colourful, people, person, crowd, pedestrians, face, hands, cars, vehicles, traffic, bicycle, mobile phone, computer screen, plastic modern fittings, real company logo, real brand, trade mark, celebrity, recognisable face",
+    "by_kind": {
+      "wall": "sign, signboard, signage, shop sign, painted sign, ghost sign, lettering, letters, words, numbers, poster, notice, window, door, doorway, kerb, pavement, road, ground, sky, roofline, gutter, drainpipe, coping stone, building corner, street furniture, perspective, vanishing point, three-quarter view, tilted camera, wide angle, depth of field, blurred edges, vignette, picture frame, border",
+      "notice": "photographic street scene, background buildings, perspective, tilted camera, depth of field",
+      "poster": "photographic street scene, perspective, tilted camera, depth of field",
+      "fascia": "perspective, three-quarter view, tilted camera, extreme wide angle",
+      "sign": "perspective, three-quarter view, tilted camera, extreme wide angle"
+    }
   },
   "defaults": {
     "steps": 8,
@@ -98,6 +200,7 @@
       "binds_to": "NeonSigns bar_door / Dressing.HasFascia(Shop)",
       "width": 1024,
       "height": 512,
+      "seed": 8026,
       "prompt": "a hand-painted British pub fascia signboard reading 'MICKEY'S' in gold shaded serif capitals on a deep maroon painted timber board, gilt edging chipped and flaking, brass lamp brackets above, tiled stallriser below"
     },
     {
@@ -106,6 +209,7 @@
       "binds_to": "HookMap pawnshop (Rita's pawnshop)",
       "width": 1024,
       "height": 512,
+      "seed": 8027,
       "prompt": "a British pawnbroker shopfront fascia reading 'RITA'S' in cream signwritten capitals on a dark green board, with the three-ball pawnbroker symbol on a bracket, small line beneath reading 'GOLD BOUGHT', security grille over the window"
     },
     {
@@ -114,6 +218,7 @@
       "binds_to": "HookMap fish_market",
       "width": 1024,
       "height": 512,
+      "seed": 8028,
       "prompt": "a British wet fish shop fascia reading 'HOOK STREET FISH MARKET' in white sans capitals on blue glazed tile, hand-lettered price card in the window, white enamel and marble slab below, wet pavement"
     },
     {
@@ -122,6 +227,15 @@
       "binds_to": "HookMap laundry (the steam laundry)",
       "width": 1024,
       "height": 512,
+      "seed": 8029,
+      "_note": [
+        "CAME BACK PERFECT ON THE FIRST RUN, 25 Aug - correct spelling, correct",
+        "letterforms, sooty cornice, blue pilasters. The prompt is untouched.",
+        "It regenerates anyway because the shared style suffix changed; the",
+        "version he approved is in git from the publish that runs before the",
+        "first pixel is redrawn:",
+        "  git log -- ledger/Assets/StreamingAssets/Decals/generated/fascia_steam_laundry.png"
+      ],
       "prompt": "a British launderette fascia reading 'STEAM LAUNDRY' in plain block capitals on a cream plastic box sign, one fluorescent tube behind it dead, condensation on the glass, tiled surround stained by soot"
     },
     {
@@ -130,6 +244,7 @@
       "binds_to": "NeonSigns marquee_club (word: MARQUEE)",
       "width": 768,
       "height": 512,
+      "seed": 8030,
       "prompt": "a nightclub neon sign face reading 'MARQUEE' in hot pink neon tube capitals on a black steel panel, tubes glowing, one letter dimmer than the rest, damp brickwork behind"
     },
     {
@@ -138,6 +253,7 @@
       "binds_to": "NeonSigns allnight_counter (word: OPEN ALL NITE)",
       "width": 768,
       "height": 512,
+      "seed": 8031,
       "prompt": "an all-night cafe window sign reading 'OPEN ALL NITE' in warm amber neon script on a plain dark panel, greasy glass, condensation, a rolled blind above"
     },
     {
@@ -146,6 +262,7 @@
       "binds_to": "NeonSigns bathhouse (word: BATHS)",
       "width": 768,
       "height": 512,
+      "seed": 8032,
       "prompt": "a municipal public baths sign reading 'BATHS' in pale green neon capitals mounted on a Victorian faience frontage, verdigris ironwork, chipped glazed tilework"
     },
     {
@@ -154,7 +271,22 @@
       "binds_to": "Decals/generated - warehouse and dock doors (Ironside, the docks)",
       "width": 640,
       "height": 896,
-      "prompt": "an official British dock gate notice board, white enamel with black condensed capitals reading 'MERIDIAN HARBOUR BOARD' and beneath it 'NO ADMITTANCE EXCEPT ON BUSINESS' and smaller regulation clauses in dense small print, rusted screws at the corners, rain-streaked"
+      "seed": 8033,
+      "_note": [
+        "WHAT THE MODEL CAN AND CANNOT DO, measured on the 25 Aug run and not",
+        "assumed: the two headline lines came back PERFECT - correct spelling,",
+        "period-correct condensed capitals. The clause that asked for `smaller",
+        "regulation clauses in dense small print` came back as gibberish",
+        "letterforms, because no current diffusion model renders a paragraph of",
+        "legible body copy - and the named next rung (FLUX.1-schnell) fails the",
+        "same way, so a bigger download is not the fix.",
+        "So this asks for the STRUCTURE instead: a ruled panel, printed rules,",
+        "an even grey block of type. At the two metres a player ever sees it",
+        "from, that is exactly what a dock notice reads as.",
+        "DO NOT RE-ADD THE SMALL PRINT. Jafar, 25 Aug, on the small text: `maybe",
+        "that doesn't matter`. It does not."
+      ],
+      "prompt": "an official British dock gate notice board, white enamel with black condensed capitals reading 'MERIDIAN HARBOUR BOARD' and beneath it 'NO ADMITTANCE EXCEPT ON BUSINESS', below the two headings a ruled panel of small printed matter reading as an even grey block of type, thin printed rules dividing it into three sections, a hairline printed border around the whole board, rusted screws at the corners, rain-streaked"
     },
     {
       "id": "poster_gig_bill",
@@ -162,6 +294,14 @@
       "binds_to": "Decals/generated - flyposting on hoardings and shutters",
       "width": 640,
       "height": 896,
+      "seed": 8034,
+      "_note": [
+        "CAME BACK PERFECT ON THE FIRST RUN, 25 Aug: THE HARBOUR LIGHTS / PLUS",
+        "SUPPORT / FRIDAY 8PM / ADMISSION 2 POUNDS, all correctly spelled. Four",
+        "SHORT lines is well inside what this model does. The prompt is",
+        "untouched; it regenerates only because the shared suffix changed, and",
+        "the approved version is in git from the pre-generation publish."
+      ],
       "prompt": "a flyposted British gig bill, cheap two-colour offset print on newsprint, huge condensed capitals reading 'THE HARBOUR LIGHTS' with smaller lines 'PLUS SUPPORT' and 'FRIDAY 8PM ADMISSION 2 POUNDS', torn at one corner, pasted over an older poster, water-stained"
     },
     {
@@ -170,7 +310,19 @@
       "binds_to": "HookMap ferry_stop",
       "width": 640,
       "height": 896,
-      "prompt": "a British ferry timetable card behind scratched perspex, headed 'MERIDIAN FERRY' with a column of departure times in typewriter figures, a handwritten amendment in biro taped over one line, faded and sun-bleached"
+      "seed": 8035,
+      "_note": [
+        "SAME MEASUREMENT AS THE DOCK NOTICE. The heading came back perfect and",
+        "`a column of departure times in typewriter figures` came back as",
+        "nonsense strings in the cells. A timetable is read as a GRID, so the",
+        "grid is what is asked for: ruled columns, horizontal rules, short even",
+        "rows of figures. Digit-shaped glyphs that do not spell a real time are",
+        "fine at street distance in a way that gibberish WORDS are not - that",
+        "is the whole reason this one keeps figures and the dock notice does",
+        "not keep clauses.",
+        "DO NOT ASK FOR READABLE TIMES."
+      ],
+      "prompt": "a British ferry timetable card behind scratched perspex, headed 'MERIDIAN FERRY' in bold capitals, below it a ruled timetable grid of four narrow columns and a dozen horizontal rules, each cell holding one short even row of printed figures, a handwritten amendment in biro taped across one row, faded and sun-bleached"
     },
     {
       "id": "wall_soot_brick",
@@ -178,7 +330,29 @@
       "binds_to": "SurfaceSpec / StreamingAssets/Decals - building walls",
       "width": 1024,
       "height": 1024,
-      "prompt": "flat straight-on texture of a grimy British stock brick wall, soot-blackened above, salt bloom and damp rising low, lime mortar crumbling, ghost of a painted sign almost gone, no signage legible, evenly lit, no perspective"
+      "seed": 8036,
+      "_note": [
+        "THE WORST IMAGE OF THE FIRST RUN AND THE ONE THAT PROVED FAULT 1. The",
+        "old prompt said `ghost of a painted sign almost gone, no signage",
+        "legible, evenly lit, no perspective` and what came back was a",
+        "photographic street corner - coping, corner, pavement - carrying a",
+        "crisp white sign board reading WEORED S HONJ. Every noun it was told",
+        "not to draw, it drew.",
+        "Three changes, and only the first is the negative channel:",
+        "  1. every exclusion moved to `negatives.by_kind.wall`;",
+        "  2. `photograph` replaced by `flat orthographic texture sheet` for",
+        "     this kind - the word was asking for a photographed scene, and it",
+        "     got one;",
+        "  3. THE GHOST SIGN IS GONE FROM THE TEXTURE ON PURPOSE. A faded",
+        "     painted sign is good Meridian content and it is a DECAL, not a",
+        "     tiling wall: baking one into the surface both breaks the tile and",
+        "     puts the word `sign` in the prompt for a picture whose whole",
+        "     requirement is that there is no sign in it. If we want ghost",
+        "     signs, they are their own item on the next batch.",
+        "The brickwork itself was genuinely good and that description is kept",
+        "word for word."
+      ],
+      "prompt": "a full-frame surface of grimy British stock brickwork, soot-blackened above, salt bloom and rising damp low down, crumbling lime mortar, chipped and spalled brick faces, uniform brick courses running edge to edge across the whole frame"
     },
     {
       "id": "wall_salt_render",
@@ -186,7 +360,57 @@
       "binds_to": "SurfaceSpec / StreamingAssets/Decals - rendered frontages",
       "width": 1024,
       "height": 1024,
-      "prompt": "flat straight-on texture of painted render on a British seafront wall, pale green paint blistered and peeling to grey render beneath, rust streaks bleeding from fixings, white salt bloom at the base, evenly lit, no perspective"
+      "seed": 8037,
+      "_note": [
+        "Not seen, but it carried the same two faults as its twin - `evenly",
+        "lit, no perspective` in the positive prompt and the `photograph`",
+        "prefix - so it is fixed the same way rather than waiting to be caught",
+        "separately. Rule 1's third corollary: when you fix a bug, grep for the",
+        "same bug."
+      ],
+      "prompt": "a full-frame surface of painted render on a British seafront wall, pale green paint blistered and peeling back to grey render beneath, rust streaks bleeding from old iron fixings, white salt bloom low down, uniform weathering across the whole frame"
+    },
+    {
+      "id": "probe_wall_cfg1",
+      "kind": "wall",
+      "probe": true,
+      "binds_to": "MEASUREMENT ONLY - not shipped, not bound to anything. The A side.",
+      "width": 512,
+      "height": 512,
+      "seed": 8041,
+      "cfg": 1.0,
+      "_note": [
+        "THE A/B THAT DECIDES WHETHER THE NEGATIVE CHANNEL IS EVER USABLE HERE.",
+        "Same prompt, same seed, same size as its twin below; the ONLY",
+        "difference is cfg, and cfg is the switch that decides whether sd-cli",
+        "evaluates the negative prompt at all. 512x512 keeps both sides cheap",
+        "(~70s and ~140s on the RX 6700 by the measured rate) and keeps them on",
+        "the same VAE flag path, so the comparison is of one variable.",
+        "READ THEM SIDE BY SIDE: if B is burnt, over-contrasted or mangled, the",
+        "answer is that this distilled model cannot take cfg > 1 and the",
+        "negative channel stays inert until the model changes - which is a",
+        "finding, not a failure. If B is clean, negatives become usable and the",
+        "wall items should raise cfg."
+      ],
+      "prompt": "a full-frame surface of grimy British stock brickwork, soot-blackened above, salt bloom and rising damp low down, crumbling lime mortar, chipped and spalled brick faces, uniform brick courses running edge to edge across the whole frame"
+    },
+    {
+      "id": "probe_wall_cfg2",
+      "kind": "wall",
+      "probe": true,
+      "binds_to": "MEASUREMENT ONLY - not shipped, not bound to anything. The B side.",
+      "width": 512,
+      "height": 512,
+      "seed": 8041,
+      "cfg": 2.0,
+      "_note": [
+        "cfg 2.0 is NOT a recommended setting and is not a measured one - it is",
+        "the smallest value clearly above 1.0, chosen so the unconditional",
+        "branch runs at all. Two model evaluations per step instead of one, so",
+        "expect about twice the time of its twin.",
+        "This is the only item in the file whose negative prompt can act."
+      ],
+      "prompt": "a full-frame surface of grimy British stock brickwork, soot-blackened above, salt bloom and rising damp low down, crumbling lime mortar, chipped and spalled brick faces, uniform brick courses running edge to edge across the whole frame"
     }
   ]
 }

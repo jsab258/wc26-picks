@@ -1668,6 +1668,32 @@ DIRECTOR_AGENT = "studio-director"
 # own docs are not evidence). Checked 25 Aug: 10 files, 1 on fable.
 DIRECTOR_AGENTS_DIR = ".claude/agents"
 FABLE_MODEL = "fable"
+# THE ARTIFACT HALF, added 25 Aug after a SPAWN ROW certified an unreviewed
+# batch for the SECOND time. CLAUDE.md named this hole in the words "the spawn
+# log is an attendance register, not a review record", listed two candidate
+# fixes and ruled between them: require the DECISION RECORD itself, because it
+# tests the ARTIFACT rather than the process and cannot be satisfied by a
+# director that ran and said nothing.
+#
+# A RULING RECORD is one HTML comment inside a `game-design/decision-*.md`
+# file in the WORKING TREE:
+#
+#     <!-- RULING spawn=2026-08-25T17:01:24Z -->
+#
+# `spawn=` names the studio-director SPAWN ROW the ruling answers, and the
+# pairing is what keeps the row earning its place: the row is now NECESSARY
+# (the stamp must match one, so a hand-typed date clears nothing) and no
+# longer SUFFICIENT (a row with no stamp pointing at it clears nothing).
+#
+# WORKING TREE, NOT `git ls-files`: the ruling lands in the same commit it
+# authorises, so requiring it to be tracked would refuse every honest case —
+# the ratchet shape of rule 5b. Asserted by a fixture in both directions.
+DIRECTOR_DECISION_DIR = "game-design"
+DIRECTOR_DECISION_GLOB = "decision-*.md"
+# Spaces optional, extra `key=value` tokens allowed and ignored so the format
+# can gain fields without this refusing records written before they existed.
+RULING_RE = re.compile(r"<!--\s*RULING\b([^>]*?)-->")
+RULING_KV = re.compile(r"([A-Za-z][A-Za-z0-9_]*)=(\S+)")
 
 
 def _git(repo, *args):
@@ -1741,6 +1767,70 @@ def _cadence_fable_agents(repo):
     return sorted(set(names)), files
 
 
+def _cadence_rulings(repo, all_dir_ct, fresh_dir_ct):
+    """RULING RECORDS on disk, each paired against a director SPAWN ROW.
+
+    THE FAULT THIS EXISTS FOR, twice in one day: a `studio-director` killed by
+    a session limit before it ruled still writes its spawn row, so the row-only
+    gate printed `over threshold, REVIEWED` over a batch nobody had reviewed.
+    On 25 Aug the live tree held an ~1,800-line batch behind that green.
+
+    Takes two SETS OF EPOCHS read from the log by the caller — every
+    studio-director row, and the subset newer than the reference commit — so
+    there is ONE read of the log and one implementation of "which rows are
+    fresh". Returns counts, every one named for the statistic it is:
+
+      files     COUNT of `game-design/decision-*.md` files READ. The
+                denominator of every zero below: "no stamp in one file" and
+                "no file at all" are different facts with different next
+                actions, and a scan of nothing must not read as a clean scan.
+      stamps    COUNT of ruling stamps parsed across those files — CUMULATIVE
+                over the whole tree, not per file
+      fresh     COUNT of stamps naming a director row NEWER than the
+                reference commit. This is the gated number, and the only one.
+      stale     COUNT of stamps naming a real director row at or before the
+                reference — a ruling for a batch that has since been committed
+      unmatched COUNT of stamps whose `spawn=` is in NO studio-director row:
+                a typo, a documentation example, or a hand-written date. It is
+                NOT counted as a ruling, in the direction that can only refuse.
+      ruled     SET of director-row epochs that a fresh stamp points at, used
+                by the caller to count the rows that were left unruled
+
+    MATCHED ON THE INSTANT, NOT THE STRING. `2026-08-25T17:01:24Z` and
+    `...+00:00` are the same spawn, so both must pair; `_cadence_epoch` is the
+    one parser and it is the same one the log rows go through. Forgiving about
+    FORMAT, strict about IDENTITY — the stamp still has to name a real row.
+
+    WHY A DOCUMENTED EXAMPLE CANNOT CLEAR THE GATE: an example carries a
+    placeholder or an old date, so it lands in `unmatched` or `stale`. Only a
+    stamp naming a real spawn that happened after the last code commit counts,
+    and that stamp cannot exist unless a director wrote a file this batch."""
+    out = {"files": 0, "stamps": 0, "fresh": 0, "stale": 0, "unmatched": 0,
+           "ruled": set()}
+    d = pathlib.Path(repo) / DIRECTOR_DECISION_DIR
+    try:
+        entries = sorted(d.glob(DIRECTOR_DECISION_GLOB))
+    except OSError:                              # not a directory, or denied
+        entries = []
+    for f in entries:
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue                             # unreadable: not examined
+        out["files"] += 1
+        for body in RULING_RE.findall(text):
+            out["stamps"] += 1
+            ts = _cadence_epoch(dict(RULING_KV.findall(body)).get("spawn", ""))
+            if ts is None or ts not in all_dir_ct:
+                out["unmatched"] += 1
+            elif ts in fresh_dir_ct:
+                out["fresh"] += 1
+                out["ruled"].add(ts)
+            else:
+                out["stale"] += 1
+    return out
+
+
 def _cadence_read(repo):
     """The reading, as a dict — ONE implementation, shared by the check, the
     `--cadence` printer and every fixture in the selftest.
@@ -1766,6 +1856,31 @@ def _cadence_read(repo):
                 the same file as `rows`
       stale_code COUNT of `studio-director` rows dated at or before it
       unparsed  COUNT of rows that could not be dated — treated as ABSENT
+
+    AND THE ARTIFACT HALF, ADDED 25 AUG — the numbers that decide the gate now
+    that a spawn row alone does not. Every one is derived from the SAME single
+    read of the log as the counts above, in the same pass.
+
+      ruling_fresh   COUNT of ruling stamps naming a director row newer than
+                the reference commit — THE GATED NUMBER
+      ruling_stamps  COUNT of every stamp found; the denominator of the fresh
+                count, on the same line as it, taken in the same pass
+      ruling_files   COUNT of `decision-*.md` files scanned — the denominator
+                that separates "scanned one file, found no ruling" from
+                "there is no decision file at all"
+      ruling_stale / ruling_unmatched  COUNTs of the two ways a stamp fails to
+                count: it names a row from before the reference, or it names
+                no real row at all
+      unruled_rows   COUNT of fresh director rows that NO stamp points at —
+                the attendance-without-a-review number, whose denominator is
+                `since_code` on the same line
+      want_spawn  the RAW STAMP of the newest fresh director row no ruling
+                points at, quoted verbatim from the log and printed as
+                `rulingUnruledNewest` — so a red run names the line to write
+                rather than the thing that is missing. It is a fact about the
+                log on every run, red or green, not a demand: on a green line
+                it names a spawn that produced nothing beside a batch that was
+                reviewed anyway (live tonight: `rulingRowsUnruled=2/3`).
 
     AND THE SPEND READING ADDED 25 AUG, WHICH IS A READING AND NOT A GATE.
     Nothing below is compared against any bound, and `state`/`ok` do not read
@@ -1880,6 +1995,9 @@ def _cadence_read(repo):
          "unreadable": 0, "log": True, "newest_dir": "", "head_iso": "",
          "spawn_since": 0, "fable_rows": 0, "day_iso": "", "day_rows": 0,
          "day_fable": 0, "fable_agents": [], "agent_files": 0,
+         "ruling_files": 0, "ruling_stamps": 0, "ruling_fresh": 0,
+         "ruling_stale": 0, "ruling_unmatched": 0, "unruled_rows": 0,
+         "want_spawn": "",
          "state": "ok"}
 
     # READ FIRST, so every exit below — including the no-HEAD one — carries a
@@ -1991,6 +2109,8 @@ def _cadence_read(repo):
     # COUNTS PER UTC DAY, {day: [fable, all]} — accumulated per row so the day
     # window is a real window; the newest key is picked after the loop.
     day_counts = {}
+    # {epoch: [COUNT of studio-director rows at that instant, raw stamp]}
+    dir_rows = {}
     log = repo / DIRECTOR_LOG
     if not log.exists():
         r["log"] = False
@@ -2029,12 +2149,18 @@ def _cadence_read(repo):
                 r["spawn_since"] += 1     # DENOMINATOR of since_code, same pass
             if agent != DIRECTOR_AGENT:
                 continue
-            if ts > r["ref_ct"]:
-                r["since_code"] += 1
-            else:
-                r["stale_code"] += 1
-            if not r["newest_dir"] or ts > _cadence_epoch(r["newest_dir"]):
-                r["newest_dir"] = when.strip()
+            # ONE ROW-SET, ACCUMULATED ONCE. `since_code`, `stale_code`,
+            # `newest_dir` and the ruling pairing below are all DERIVED from
+            # this dict after the loop rather than counted a second time here
+            # — one idea, one implementation, so a fix to "which rows are
+            # fresh" cannot land in one of four places and miss three.
+            # Keyed by EPOCH because a ruling names an INSTANT: `...Z` and
+            # `...+00:00` are the same spawn and must pair. The value is a
+            # COUNT of rows at that instant (two spawns can share a second)
+            # beside the raw stamp as written, so the count stays a count and
+            # the message can quote the log verbatim.
+            slot_dir = dir_rows.setdefault(ts, [0, when.strip()])
+            slot_dir[0] += 1
 
     # THE NEWEST DAY PRESENT IN THE LOG — max() over ISO dates is the latest.
     # Not "today" by wall clock: a fixture pinned to 2023 and a log that went
@@ -2044,11 +2170,46 @@ def _cadence_read(repo):
         r["day_iso"] = max(day_counts)
         r["day_fable"], r["day_rows"] = day_counts[r["day_iso"]]
 
+    # THE DIRECTOR ROW COUNTS, derived from the one row-set above.
+    for ts, (cnt, _raw) in dir_rows.items():
+        if ts > r["ref_ct"]:
+            r["since_code"] += cnt
+        else:
+            r["stale_code"] += cnt
+    if dir_rows:
+        r["newest_dir"] = dir_rows[max(dir_rows)][1]
+
+    # THE ARTIFACT HALF. The record must name a spawn row that is REAL (in the
+    # log) and FRESH (after the reference commit) — so the row is necessary and
+    # no longer sufficient, which is exactly the hole CLAUDE.md named.
+    fresh_dir = {ts: v for ts, v in dir_rows.items() if ts > r["ref_ct"]}
+    rul = _cadence_rulings(repo, set(dir_rows), set(fresh_dir))
+    r["ruling_files"] = rul["files"]
+    r["ruling_stamps"] = rul["stamps"]
+    r["ruling_fresh"] = rul["fresh"]
+    r["ruling_stale"] = rul["stale"]
+    r["ruling_unmatched"] = rul["unmatched"]
+    # ATTENDANCE MINUS REVIEW: fresh spawn rows nothing points at. Its
+    # denominator is `since_code`, printed beside it, and both come off the
+    # same dict in the same pass — not two counts of the same thing.
+    unruled = {ts: v for ts, v in fresh_dir.items() if ts not in rul["ruled"]}
+    r["unruled_rows"] = sum(v[0] for v in unruled.values())
+    # The NEWEST unruled spawn, quoted verbatim: a red run that says which
+    # line to write costs a minute, one that says a record is missing costs a
+    # search. Empty when every fresh row has a ruling.
+    r["want_spawn"] = unruled[max(unruled)][1] if unruled else ""   # raw stamp
+
     substantial = r["changed"] > DIRECTOR_MIN_LINES
     if substantial and not r["log"]:
         r["state"] = "logmissing"
     elif substantial and r["since_code"] == 0:
         r["state"] = "unspawned"
+    elif substantial and r["ruling_fresh"] == 0:
+        # SPAWNED BUT NEVER RULED. Its own state and its own exit code: "no
+        # director was spawned" and "one was spawned and left nothing" have
+        # different next actions — spawn one, versus RESUME the one that died
+        # (CLAUDE.md: a killed spawn is resumed, never restarted).
+        r["state"] = "unruled"
     r["ok"] = r["state"] == "ok"
     r["summary"] = _cadence_summary(r)
     return r
@@ -2166,6 +2327,63 @@ def _cadence_ref_phrase(r):
             % r["head_iso"])
 
 
+def _cadence_ruling_phrase(r):
+    """THE ARTIFACT HALF, in one entry: the tokens first, then the sentence.
+
+    TOKENS FIRST BECAUSE OF WHERE THEY SIT. This clause is embedded inside a
+    summary that ends in `)` and `;`, and a `key=value` whose value collects a
+    bracket or a semicolon is the truncation fault one layer down — the same
+    shape as `crowdBodyWidth=0.45(narrowest`. Every token below is followed by
+    a space, by construction, and every value is whitespace-free.
+
+    Five keys, each named for the statistic it is:
+
+      rulingRecords=<fresh>/<stamps>  COUNT of stamps naming a director row
+          newer than the reference, over COUNT of stamps found anywhere in the
+          decision files. THE GATED PAIR, both halves from one pass.
+      rulingFiles=<n>  COUNT of `decision-*.md` files scanned — the
+          denominator that keeps "one file, no ruling in it" distinguishable
+          from "no decision file exists", which have different next actions.
+      rulingUnmatched=<n>  COUNT of stamps naming no real studio-director row.
+      rulingRowsUnruled=<a>/<b>  COUNT of fresh director spawn rows that no
+          ruling points at, over `since_code` — ATTENDANCE MINUS REVIEW, and
+          the number that would have printed 1/1 over the 17:01:24Z batch on
+          25 Aug while the old gate printed REVIEWED.
+      rulingUnruledNewest=<stamp|none>  the NEWEST fresh director spawn row
+          that no ruling points at, quoted verbatim from the log, so a red run
+          names the line to write instead of the thing that is missing. It is
+          named for what it IS and not for what the red branch wants, because
+          it prints on GREEN lines too — a13 and a14 both carry it, and
+          "wanted" would have been a claim that something was owed on a run
+          where nothing was.
+
+    NOTHING-MEASURED IN WORDS, twice, because two different scans can measure
+    nothing here: no decision file at all (`rulingRecords`), and no log to
+    pair against (`rulingRowsUnruled`). Neither may print as a clean zero."""
+    records = ("%d/%d" % (r["ruling_fresh"], r["ruling_stamps"])
+               if r["ruling_files"] else NOTHING_MEASURED)
+    rows = ("%d/%d" % (r["unruled_rows"], r["since_code"])
+            if r["log"] and r["rows"] else NOTHING_MEASURED)
+    toks = ("rulingRecords=%s rulingFiles=%d rulingUnmatched=%d "
+            "rulingRowsUnruled=%s rulingUnruledNewest=%s "
+            % (records, r["ruling_files"], r["ruling_unmatched"], rows,
+               r["want_spawn"] or "none"))
+    if not r["ruling_files"]:
+        return toks + ("— no %s/%s file exists, so NOTHING was measured about "
+                       "rulings" % (DIRECTOR_DECISION_DIR,
+                                    DIRECTOR_DECISION_GLOB))
+    words = ("— %d ruling record(s) paired to a director row newer than the "
+             "reference, of %d stamp(s) in %d decision file(s) scanned"
+             % (r["ruling_fresh"], r["ruling_stamps"], r["ruling_files"]))
+    if r["ruling_stale"]:
+        words += ("; %d stamp(s) name a row at or before the reference (a "
+                  "ruling on an older batch)" % r["ruling_stale"])
+    if r["ruling_unmatched"]:
+        words += ("; %d stamp(s) name a time that is in NO studio-director "
+                  "row and were NOT counted" % r["ruling_unmatched"])
+    return toks + words
+
+
 def _cadence_summary(r):
     """One line, and it ALWAYS carries the denominators (rule 3b).
 
@@ -2197,6 +2415,10 @@ def _cadence_summary(r):
     # defect as a zero with no denominator, and the fallback worlds are exactly
     # the ones whose log is likeliest to be empty.
     ref = "reference = " + _cadence_ref_phrase(r)
+    # UNCONDITIONAL LIKE `ref`, and for the same reason: the artifact half is
+    # now what the gate turns on, so a reader must never have to infer from
+    # the absence of a clause whether anything was looked for.
+    rule = _cadence_ruling_phrase(r)
     notes = ""
     if r["unparsed"]:
         notes += "; %d unparsable row(s) treated as absent (%d studio-director)" % (
@@ -2212,36 +2434,61 @@ def _cadence_summary(r):
         notes += "; %d untracked file(s) UNREADABLE, counted as 0 lines" % r["unreadable"]
 
     if r["state"] == "logmissing":
-        return ("DIRECTOR LOG MISSING: %s, %s, %s — an absent instrument is not "
-                "compliance; spawn studio-director and let the hook write the "
-                "row%s%s" % (lines, rows, ref, notes, _cadence_spend(r)))
+        return ("DIRECTOR LOG MISSING: %s, %s, %s, %s — an absent instrument is "
+                "not compliance; spawn studio-director and let the hook write "
+                "the row%s%s"
+                % (lines, rows, ref, rule, notes, _cadence_spend(r)))
     if r["state"] == "unspawned":
         seen = ""
         if r["stale_code"]:
             seen = (" (%d director row(s) in the log, all older than that "
                     "reference; newest %s vs reference %s)" % (
                         r["stale_code"], r["newest_dir"] or "?", r["ref_iso"]))
-        return ("DIRECTOR NOT SPAWNED: %s, %s, %s%s — spawn studio-director for "
-                "the batch review, then re-run verify%s%s"
-                % (lines, rows, ref, seen, notes, _cadence_spend(r)))
+        return ("DIRECTOR NOT SPAWNED: %s, %s, %s%s, %s — spawn studio-director "
+                "for the batch review, then re-run verify%s%s"
+                % (lines, rows, ref, seen, rule, notes, _cadence_spend(r)))
+    # THE HOLE CLAUDE.md NAMED, NOW A STATE OF ITS OWN. A spawn row proves
+    # attendance; it cannot prove a ruling, and on 25 Aug a director killed by
+    # a session limit at 17:01:24Z cleared this gate over an ~1,800-line batch
+    # carrying eleven confirmed audit findings. The message says RESUME rather
+    # than spawn, because CLAUDE.md's ruling is that a killed spawn is resumed
+    # and never restarted — a restart burns a second Fable seat for one review.
+    if r["state"] == "unruled":
+        return ("DIRECTOR RAN BUT DID NOT RULE: %s, %s, %s, %s — a spawn row is "
+                "attendance, not a review. The ruling must land in %s/%s and "
+                "close with the HTML comment <!--RULING spawn=STAMP--> where "
+                "STAMP is the rulingUnruledNewest value above, quoted from the "
+                "log verbatim; RESUME the killed director rather than "
+                "restarting it, "
+                "then re-run verify%s%s"
+                % (lines, rows, ref, rule, DIRECTOR_DECISION_DIR,
+                   DIRECTOR_DECISION_GLOB, notes, _cadence_spend(r)))
     # THE WORD TRACKS THE NUMBER IT NAMES. "REVIEWED" is a claim about director
     # rows, so it is computed from `since` and not from the line count — a mutant
     # that disables the gate printed "REVIEWED" beside `0 director rows` while
     # this read the changed lines instead, which is the same defect as two
     # numbers derived from one variable, wearing an adjective.
+    #
+    # AND SINCE 25 AUG IT TRACKS `ruling_fresh`, NOT `since_code`. That is the
+    # whole repair in one line: the adjective claimed a review and was computed
+    # from an attendance register, so it printed REVIEWED over a director that
+    # was killed before it ruled. It is now computed from the number of RULING
+    # RECORDS, which is the same number the gate turns on — there is no way for
+    # the word and the state to disagree.
     if r["changed"] > DIRECTOR_MIN_LINES:
-        verdict = "over threshold, REVIEWED" if r["since_code"] else "over threshold"
+        verdict = "over threshold, REVIEWED" if r["ruling_fresh"] else "over threshold"
     else:
         verdict = "under threshold, review not required"
     # THE SPEND READING RIDES EVERY BRANCH, red ones included — drift is most
     # worth seeing on the run where the gate also has something to say.
-    return "director cadence ok (%s, %s; %s; %s)%s%s" % (
-        lines, verdict, rows, ref, notes, _cadence_spend(r))
+    return "director cadence ok (%s, %s; %s; %s; %s)%s%s" % (
+        lines, verdict, rows, ref, rule, notes, _cadence_spend(r))
 
 
 def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True,
                      untracked=0, untracked_binary=0, noncode_commit=False,
-                     shallow=False, agents=None):
+                     shallow=False, agents=None, ruling=None,
+                     ruling_path=None, ruling_tracked=False):
     """One throwaway repo: a commit at a PINNED time, then a pending change.
 
     The commit date is pinned so "newer than HEAD" is arithmetic rather than a
@@ -2320,13 +2567,45 @@ def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True,
                 "---\nname: %s\nmodel: %s\n---\n\nFixture agent, and the word "
                 "model: appears in this prose body too.\n" % (nm, model),
                 encoding="utf-8")
+    # THE DECISION RECORD, SYNTHETIC AND NEVER PINNED TO A REAL ONE. Two
+    # rejecting fixtures in this project had to be unpinned because a fixture
+    # tied to a live file goes red when the PROJECT improves; a ruling fixture
+    # pointed at `decision-ground-albedo.md` would go red the day a director
+    # writes a real stamp into it. `ruling` is raw markdown, so a fixture can
+    # ship a ruling with no stamp (the killed-mid-write shape) as easily as a
+    # stamped one. UNTRACKED BY DEFAULT, because the honest case is a ruling
+    # written by the director and committed by the resident in the same commit
+    # — requiring it to be tracked would refuse every real review.
+    if ruling is not None:
+        rp = d / (ruling_path or ("%s/%s" % (DIRECTOR_DECISION_DIR,
+                                             "decision-fixture.md")))
+        rp.parent.mkdir(parents=True, exist_ok=True)
+        rp.write_text(ruling, encoding="utf-8")
+        if ruling_tracked:
+            subprocess.run(["git", "-C", str(d), "add", str(rp.relative_to(d))],
+                           capture_output=True, text=True)
+            subprocess.run(["git", "-C", str(d), "commit", "-q", "-m", "ruling"],
+                           capture_output=True, text=True, env=env)
     return d
+
+
+def _ruling_doc(*stamps):
+    """A synthetic decision document: a heading, prose, and a closing stamp
+    per ruling. Shaped like the real ones so a fixture cannot pass on text no
+    director would ever write; the stamp goes LAST because a closing stamp is
+    the thing a director killed mid-ruling never reaches."""
+    out = ["# Fixture decision doc\n"]
+    for s in stamps:
+        out.append("\n## A ruling with a body\n\nThe call and its reason.\n\n"
+                   + s + "\n")
+    return "".join(out)
 
 
 # FAIL READABLE: one exit code per outcome for `--cadence`, so a caller can
 # tell "no fresh director row" from "the log is not there" without parsing
 # prose. Asserted in the selftest, not just written down here.
-CADENCE_EXIT = {"ok": 0, "nohead": 0, "unspawned": 1, "logmissing": 2}
+CADENCE_EXIT = {"ok": 0, "nohead": 0, "unspawned": 1, "logmissing": 2,
+                "unruled": 3}
 
 CADENCE_FIXED_CT = 1700000000          # 2023-11-14T22:13:20Z, the fixtures' HEAD
 CADENCE_FRESH = "2023-11-14T23:13:20Z"  # +1h  — after the CODE commit
@@ -2347,6 +2626,12 @@ def _cadence_selftest():
     because of that — a large diff OUTSIDE Assets/Scripts, and a fresh row
     written with an offset instead of a Z.
 
+    THE ARTIFACT HALF (25 Aug) IS HELD TO THE SAME ORDER. `a2` is a COMPLETED
+    REVIEW clearing the gate and it runs before every rejecting ruling case,
+    because a gate no honest review can clear would block every substantial
+    commit in this project for ever — worse than the hole it closes. `a13`
+    holds the other end: a small change gains no new way to be blocked.
+
     Returns (passed, failed, lines)."""
     import atexit
     import shutil
@@ -2358,6 +2643,13 @@ def _cadence_selftest():
     atexit.register(shutil.rmtree, work, True)
 
     lines, passed, failed = [], 0, 0
+    # THE SYNTHETIC RECORDS. Never pinned to `decision-ground-albedo.md` or to
+    # `.claude/agent-log.tsv`: a fixture tied to a live file goes red when the
+    # PROJECT improves, and two in this suite had to be unpinned for exactly
+    # that. These stamps name instants that exist only inside a fixture repo.
+    STAMP_FRESH = "<!-- RULING spawn=%s -->" % CADENCE_FRESH
+    STAMP_STALE = "<!-- RULING spawn=%s -->" % CADENCE_STALE
+    STAMP_NEWEST = "<!-- RULING spawn=%s -->" % CADENCE_NEWEST
 
     def say(cond, label, detail=""):
         nonlocal passed, failed
@@ -2379,12 +2671,25 @@ def _cadence_selftest():
         "ACCEPT summary carries both denominators and the tracked/untracked split",
         a1["summary"])
 
-    d = _cadence_fixture(work, "a2-large-fresh", 150,
+    # THE ACCEPTING CASE FOR THE ARTIFACT GATE, AND IT IS FIRST OF ITS FAMILY
+    # ON PURPOSE (rule 5b). If a completed review cannot clear this gate, the
+    # gate is a ratchet that blocks every substantial commit in the project for
+    # ever — strictly worse than the hole it closes. The decision file here is
+    # UNTRACKED, which is the real shape: the director writes the ruling and
+    # the resident commits it together with the batch it authorises.
+    d = _cadence_fixture(work, "a2-large-fresh-ruled", 150,
                          [(CADENCE_STALE, "systems-builder"),
-                          (CADENCE_FRESH, "studio-director")])
+                          (CADENCE_FRESH, "studio-director")],
+                         ruling=_ruling_doc(STAMP_FRESH))
     a2 = _cadence_read(d)
-    say(a2["ok"] and a2["since_code"] == 1 and "REVIEWED" in a2["summary"],
-        "ACCEPT large diff with a fresh director row", a2["summary"])
+    say(a2["ok"] and a2["since_code"] == 1 and a2["ruling_fresh"] == 1
+        and a2["unruled_rows"] == 0 and "REVIEWED" in a2["summary"],
+        "ACCEPT a COMPLETED REVIEW: large diff, a fresh director row, and an "
+        "UNTRACKED decision record naming that spawn", a2["summary"])
+    say("rulingRecords=1/1 rulingFiles=1 rulingUnmatched=0 "
+        "rulingRowsUnruled=0/1 rulingUnruledNewest=none " in a2["summary"],
+        "ACCEPT the ruling keys carry their denominators and no value holds a "
+        "space", a2["summary"])
 
     d = _cadence_fixture(work, "a3-exactly-100", 100, [])
     a3 = _cadence_read(d)
@@ -2402,10 +2707,13 @@ def _cadence_selftest():
         "ACCEPT small diff with no log, and it says nothing measured", a5["summary"])
 
     d = _cadence_fixture(work, "a6-offset-stamp", 150,
-                         [("2023-11-14T23:13:20.482+00:00", "studio-director")])
+                         [("2023-11-14T23:13:20.482+00:00", "studio-director")],
+                         ruling=_ruling_doc(
+                             "<!-- RULING spawn=2023-11-14T23:13:20.482+00:00 -->"))
     a6 = _cadence_read(d)
-    say(a6["ok"] and a6["since_code"] == 1,
-        "ACCEPT a fresh row stamped +00:00 with fractional seconds", a6["summary"])
+    say(a6["ok"] and a6["since_code"] == 1 and a6["ruling_fresh"] == 1,
+        "ACCEPT a fresh row stamped +00:00 with fractional seconds, and a "
+        "record naming it", a6["summary"])
 
     # THE COLLAPSED-DIRECTORY PAIR, ACCEPTING SIDE FIRST (24 Aug). Counting
     # untracked content is a NEW WAY FOR THIS GATE TO GO RED, and this gate
@@ -2437,13 +2745,22 @@ def _cadence_selftest():
     # HEAD after row) rather than just the outcome — without that assertion a
     # fixture could go green for the wrong reason.
     d = _cadence_fixture(work, "a9-noncode-commit-after-row", 150,
-                         [(CADENCE_FRESH, "studio-director")], noncode_commit=True)
+                         [(CADENCE_FRESH, "studio-director")], noncode_commit=True,
+                         ruling=_ruling_doc(STAMP_FRESH))
     a9 = _cadence_read(d)
     say(a9["ok"] and a9["since_code"] == 1 and "REVIEWED" in a9["summary"]
         and a9["ref_kind"] == "code" and a9["noncode"] == 1
         and a9["ref_iso"] < CADENCE_FRESH < a9["head_iso"],
         "ACCEPT a review INVALIDATED ONLY BY A NON-CODE COMMIT (CI stills): "
         "code commit < director row < HEAD", a9["summary"])
+    # THE SAME PRESERVATION, ON THE ARTIFACT HALF. A docs-only commit must not
+    # invalidate a real RULING either — the 25 Aug repair moved the reference
+    # off HEAD for the spawn row, and the record inherits that reference rather
+    # than getting a second, weaker one of its own.
+    say(a9["ruling_fresh"] == 1 and a9["unruled_rows"] == 0
+        and "rulingRecords=1/1" in a9["summary"],
+        "ACCEPT a DOCS-ONLY commit on top does not invalidate the decision "
+        "record either", a9["summary"])
     say("non-code commit(s) later" in a9["summary"]
         and "code commit" in a9["summary"],
         "ACCEPT names the code commit it compared against, and the distance "
@@ -2455,17 +2772,81 @@ def _cadence_selftest():
     # shallow checkout making an ancestry test that can never succeed.
     d = _cadence_fixture(work, "a10-shallow", 150,
                          [(CADENCE_NEWEST, "studio-director")],
-                         noncode_commit=True, shallow=True)
+                         noncode_commit=True, shallow=True,
+                         ruling=_ruling_doc(STAMP_NEWEST))
     a10 = _cadence_read(d)
-    say(a10["ok"] and a10["since_code"] == 1 and "reference = " in a10["summary"],
-        "ACCEPT a SHALLOW depth-1 clone with a row newer than everything in it",
-        a10["summary"])
+    say(a10["ok"] and a10["since_code"] == 1 and a10["ruling_fresh"] == 1
+        and "reference = " in a10["summary"],
+        "ACCEPT a SHALLOW depth-1 clone with a row newer than everything in it "
+        "and a record naming it", a10["summary"])
     # MEASURED, NOT ASSUMED: which world a depth-1 clone lands in is a fact
     # about git's grafted history, so the suite PRINTS it rather than asserting
     # a mechanism nobody checked.
     lines.append("  note shallow depth-1 clone resolves reference kind=%s ref=%s "
                  "head=%s (safety asserted by a10/r10, not by this line)"
                  % (a10["ref_kind"], a10["ref_iso"], a10["head_iso"]))
+
+    # A TRACKED decision file is accepted too. a2 covers the untracked shape,
+    # which is the one that would have been refused by a `git ls-files` reader;
+    # this is the other half, because a ruling written in an earlier commit and
+    # still fresh is a real state and must not be refused for its git status.
+    d = _cadence_fixture(work, "a11-tracked-ruling", 150,
+                         [(CADENCE_FRESH, "studio-director")],
+                         ruling=_ruling_doc(STAMP_FRESH), ruling_tracked=True)
+    a11 = _cadence_read(d)
+    say(a11["ok"] and a11["ruling_fresh"] == 1 and a11["ruling_files"] == 1,
+        "ACCEPT a ruling in a TRACKED decision file (git status is not the "
+        "question)", a11["summary"])
+
+    # FORMAT TOLERANCE, MEASURED RATHER THAN PROMISED. Forgiving about how the
+    # stamp is WRITTEN, strict about which instant it NAMES: no spaces, extra
+    # ignored tokens, and a `+00:00` form naming a row written with `Z` — the
+    # same instant, so it must pair. A reader that matched strings instead of
+    # instants would refuse the third and send a director to re-rule.
+    d = _cadence_fixture(work, "a12-stamp-shapes", 150,
+                         [(CADENCE_FRESH, "studio-director")],
+                         ruling=_ruling_doc(
+                             "<!--RULING spawn=%s-->" % CADENCE_FRESH,
+                             "<!--  RULING   spawn=%s  batch=kit-dressing  -->"
+                             % CADENCE_FRESH,
+                             "<!-- RULING spawn=2023-11-14T23:13:20+00:00 -->"))
+    a12 = _cadence_read(d)
+    say(a12["ok"] and a12["ruling_stamps"] == 3 and a12["ruling_fresh"] == 3
+        and a12["ruling_unmatched"] == 0,
+        "ACCEPT all three stamp shapes — unspaced, extra tokens, and +00:00 "
+        "naming a Z-stamped row", a12["summary"])
+
+    # THE RATCHET GUARD FOR THE WHOLE PROJECT: a small change must not acquire
+    # a new way to be blocked. No director row, no decision file, nothing —
+    # and it says NOTHING WAS MEASURED about rulings rather than printing a
+    # clean-looking zero over a scan that never happened.
+    d = _cadence_fixture(work, "a13-small-no-rulings", 5,
+                         [(CADENCE_FRESH, "systems-builder")])
+    a13 = _cadence_read(d)
+    say(a13["ok"] and a13["ruling_files"] == 0
+        and "rulingRecords=%s" % NOTHING_MEASURED in a13["summary"]
+        and "NOTHING was measured about rulings" in a13["summary"],
+        "ACCEPT a small diff with no decision file at all, and say nothing was "
+        "measured", a13["summary"])
+
+    # TWO fresh spawns, ONE ruling — GREEN, and the unruled one is PRINTED.
+    # The gate asks whether a completed review exists for this batch, not
+    # whether every spawn produced a document: a director spawned for an
+    # unrelated call, or one killed and RESUMED (which writes a second row),
+    # would otherwise turn a real review red. The attendance-minus-review count
+    # ships as a READING beside it — no bound, because there is no landed
+    # series yet and a bound invented here is the thing rule 2 forbids.
+    d = _cadence_fixture(work, "a14-two-spawns-one-ruling", 150,
+                         [(CADENCE_FRESH, "studio-director"),
+                          (CADENCE_NEWEST, "studio-director")],
+                         ruling=_ruling_doc(STAMP_NEWEST))
+    a14 = _cadence_read(d)
+    say(a14["ok"] and a14["since_code"] == 2 and a14["ruling_fresh"] == 1
+        and a14["unruled_rows"] == 1
+        and "rulingRowsUnruled=1/2" in a14["summary"]
+        and "rulingUnruledNewest=%s " % CADENCE_FRESH in a14["summary"],
+        "ACCEPT two fresh spawns with one ruling — green, and the unruled "
+        "spawn is still NAMED on the green line", a14["summary"])
 
     # REJECTING — the states the escalation rule actually decays into.
     d = _cadence_fixture(work, "r1-101-no-director", 101,
@@ -2565,15 +2946,143 @@ def _cadence_selftest():
         "REJECT a SHALLOW depth-1 clone whose only director row is stale",
         r10["summary"])
 
+    # ==================================================================
+    # THE HOLE THIS GATE WAS REBUILT FOR — 25 Aug, the SECOND occurrence.
+    # A studio-director spawned at 17:01:24Z was killed by a session limit
+    # before it ruled; its row cleared the old gate over an ~1,800-line batch
+    # carrying eleven confirmed audit findings. Reproduced SYNTHETICALLY: the
+    # shape is a fresh director row and no decision record anywhere, and it is
+    # pinned to fixture instants, never to the live log, which will change.
+    # ==================================================================
+    d = _cadence_fixture(work, "r11-spawned-never-ruled", 150,
+                         [(CADENCE_FRESH, "studio-director")])
+    r11 = _cadence_read(d)
+    say(not r11["ok"] and r11["state"] == "unruled"
+        and CADENCE_EXIT[r11["state"]] == 3
+        and r11["since_code"] == 1 and r11["ruling_fresh"] == 0
+        and r11["unruled_rows"] == 1 and r11["ruling_files"] == 0
+        and r11["want_spawn"] == CADENCE_FRESH
+        and "DIRECTOR RAN BUT DID NOT RULE" in r11["summary"]
+        and "rulingUnruledNewest=%s " % CADENCE_FRESH in r11["summary"],
+        "REJECT the LIVE SHAPE: a fresh director spawn row with NO decision "
+        "record — a spawn is attendance, not a review", r11["summary"])
+    # The old gate's own reading, kept beside it so the difference is visible
+    # rather than argued: this fixture is exactly what used to print REVIEWED.
+    say("REVIEWED" not in r11["summary"] and "REVIEWED" in a2["summary"],
+        "REJECT the word REVIEWED is gone from the spawn-only case and still "
+        "present on the ruled one", r11["summary"])
+
+    # KILLED MID-WRITE: the decision file exists and has prose, but no closing
+    # stamp. It must read differently from "no decision file at all", because
+    # one says resume the director and the other says nobody wrote anything —
+    # rule 3b, applied to the artifact scan's own zero.
+    d = _cadence_fixture(work, "r12-prose-no-stamp", 150,
+                         [(CADENCE_FRESH, "studio-director")],
+                         ruling="# Fixture decision doc\n\n## A ruling that "
+                                "was never closed\n\nHalf a paragraph.\n")
+    r12 = _cadence_read(d)
+    say(not r12["ok"] and r12["state"] == "unruled" and r12["ruling_files"] == 1
+        and r12["ruling_stamps"] == 0
+        and "rulingRecords=0/0 rulingFiles=1" in r12["summary"]
+        and "rulingRecords=%s" % NOTHING_MEASURED in r11["summary"],
+        "REJECT a decision file with prose but NO closing stamp, and it reads "
+        "differently from having no file at all", r12["summary"])
+
+    # A RECORD OLDER THAN THE REFERENCE COMMIT. The stamp names a real
+    # director row, but one from before the last code commit — a ruling on a
+    # batch that has since been committed. There IS a fresh spawn row here, so
+    # this cannot pass by falling into `unspawned`: it is the record's own
+    # staleness that refuses it.
+    d = _cadence_fixture(work, "r13-stale-record", 150,
+                         [(CADENCE_STALE, "studio-director"),
+                          (CADENCE_FRESH, "studio-director")],
+                         ruling=_ruling_doc(STAMP_STALE))
+    r13 = _cadence_read(d)
+    say(not r13["ok"] and r13["state"] == "unruled" and r13["ruling_stale"] == 1
+        and r13["ruling_fresh"] == 0 and r13["since_code"] == 1
+        and "a ruling on an older batch" in r13["summary"],
+        "REJECT a decision record OLDER than the reference commit, even with a "
+        "fresh spawn row beside it", r13["summary"])
+
+    # A HAND-TYPED STAMP. The record names an instant that is in no
+    # studio-director row at all — a typo, a documented example, or a date
+    # somebody invented. It is counted and NAMED, and it counts as nothing.
+    d = _cadence_fixture(work, "r14-unmatched-stamp", 150,
+                         [(CADENCE_FRESH, "studio-director")],
+                         ruling=_ruling_doc(
+                             "<!-- RULING spawn=2023-11-14T23:59:59Z -->"))
+    r14 = _cadence_read(d)
+    say(not r14["ok"] and r14["state"] == "unruled"
+        and r14["ruling_unmatched"] == 1 and r14["ruling_fresh"] == 0
+        and "in NO studio-director row" in r14["summary"],
+        "REJECT a stamp naming a time that no spawn row carries — the row is "
+        "NECESSARY, so a fabricated date clears nothing", r14["summary"])
+
+    # A STAMP POINTING AT A BUILDER. The instant is real and fresh, but the
+    # row belongs to instrument-builder, so it is not a director's ruling.
+    d = _cadence_fixture(work, "r15-points-at-builder", 150,
+                         [(CADENCE_FRESH, "studio-director"),
+                          (CADENCE_NEWEST, "instrument-builder")],
+                         ruling=_ruling_doc(STAMP_NEWEST))
+    r15 = _cadence_read(d)
+    say(not r15["ok"] and r15["state"] == "unruled"
+        and r15["ruling_unmatched"] == 1 and r15["ruling_fresh"] == 0,
+        "REJECT a stamp naming a fresh BUILDER row rather than a director one",
+        r15["summary"])
+
+    # THE WRONG PLACE. A ruling lives in `game-design/decision-*.md`; the same
+    # stamp inside an agent report is a builder's prose and clears nothing.
+    # Without this, "wherever the director happened to write" becomes the rule
+    # and every one of the 25 report files becomes a way to clear the gate.
+    d = _cadence_fixture(work, "r16-stamp-in-a-report", 150,
+                         [(CADENCE_FRESH, "studio-director")],
+                         ruling=_ruling_doc(STAMP_FRESH),
+                         ruling_path="game-design/agent-reports/batch.md")
+    r16 = _cadence_read(d)
+    say(not r16["ok"] and r16["state"] == "unruled" and r16["ruling_files"] == 0
+        and r16["ruling_stamps"] == 0,
+        "REJECT a correct stamp written into an agent report instead of a "
+        "decision file", r16["summary"])
+
+    # PRECEDENCE: an absent log outranks a missing ruling. A record cannot
+    # name a row in a file that is not there, so the next action is the log,
+    # and the exit code says so.
+    d = _cadence_fixture(work, "r17-no-log-with-ruling", 150, [], log=False,
+                         ruling=_ruling_doc(STAMP_FRESH))
+    r17 = _cadence_read(d)
+    say(not r17["ok"] and r17["state"] == "logmissing"
+        and CADENCE_EXIT[r17["state"]] == 2 and r17["ruling_unmatched"] == 1,
+        "REJECT no log even with a decision record present — an absent "
+        "instrument is not compliance, and the record has nothing to pair to",
+        r17["summary"])
+
+    # NEVER LOOSER THAN THE VERSION IT REPLACES, asserted over every fixture in
+    # the suite rather than argued in prose: any substantial diff that goes
+    # GREEN must have BOTH a fresh spawn row (the old gate's whole test) and a
+    # ruling record (the new one). A regression that stopped reading the log
+    # would pass every individual case above and die here.
+    every = (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14,
+             r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14,
+             r15, r16, r17)
+    loose = [x for x in every if x["ok"] and x["changed"] > DIRECTOR_MIN_LINES
+             and not (x["since_code"] > 0 and x["ruling_fresh"] > 0)]
+    say(not loose,
+        "NEVER LOOSER: across %d fixtures, every GREEN substantial diff has "
+        "both a fresh spawn row and a ruling record" % len(every),
+        "loose=%d" % len(loose))
+
     # The exit-code contract, asserted rather than documented: every accepting
-    # case exits 0, and the two reds are DISTINCT from each other.
+    # case exits 0, and the three reds are DISTINCT from each other.
     say(all(CADENCE_EXIT[x["state"]] == 0
-            for x in (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10)),
+            for x in (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13,
+                      a14)),
         "every accepting case exits 0")
     say(CADENCE_EXIT[r1["state"]] == 1 and CADENCE_EXIT[r4["state"]] == 2
-        and len(set(CADENCE_EXIT.values())) == 3,
-        "the two reds carry different exit codes (1 unspawned, 2 log missing)",
-        "%s vs %s" % (r1["state"], r4["state"]))
+        and CADENCE_EXIT[r11["state"]] == 3
+        and len(set(CADENCE_EXIT.values())) == 4,
+        "the three reds carry different exit codes (1 unspawned, 2 log "
+        "missing, 3 spawned-but-never-ruled)",
+        "%s / %s / %s" % (r1["state"], r4["state"], r11["state"]))
 
     # ======================================================================
     # THE SPEND READING (25 Aug). A READING, NOT A GATE — so its two outcomes
@@ -2638,9 +3147,16 @@ def _cadence_selftest():
                           (CADENCE_FRESH, "instrument-builder")],
                          agents=ALL_OPUS)
     s3 = _cadence_read(d)
+    # SCOPED TO THE CLAUSE IT IS ABOUT (25 Aug). This read `NOTHING_MEASURED
+    # not in s3["summary"]` — a claim about the SPEND windows, written against
+    # the whole line. The ruling scan then added a second, legitimate
+    # nothing-measured (this fixture has no decision file) and the assertion
+    # went red over a correct reading: the instrument did not change, the
+    # question it was pointed at did. It now asserts over `_cadence_spend`
+    # itself, which is the text it was always talking about.
     say("fableShareAll=0/2" in s3["summary"] and "fableAgents=none" in s3["summary"]
         and "measured zero, not an absence" in s3["summary"]
-        and NOTHING_MEASURED not in s3["summary"],
+        and NOTHING_MEASURED not in _cadence_spend(s3),
         "MEASURE 2 definitions read, NONE on fable: a zero with its denominator, "
         "and it says so in words", s3["summary"])
 
@@ -2693,12 +3209,14 @@ def _cadence_selftest():
     # if the reading ever leaked into the verdict.
     d = _cadence_fixture(work, "s8a-heavy-share", 150,
                          [(CADENCE_FRESH, "studio-director")],
-                         agents=[("studio-director", "fable")])
+                         agents=[("studio-director", "fable")],
+                         ruling=_ruling_doc(STAMP_FRESH))
     s8a = _cadence_read(d)
     d = _cadence_fixture(work, "s8b-light-share", 150,
                          [(CADENCE_FRESH, "studio-director")]
                          + [(CADENCE_FRESH, "instrument-builder")] * 20,
-                         agents=ONE_FABLE)
+                         agents=ONE_FABLE,
+                         ruling=_ruling_doc(STAMP_FRESH))
     s8b = _cadence_read(d)
     say(s8a["state"] == s8b["state"] == "ok"
         and CADENCE_EXIT[s8a["state"]] == CADENCE_EXIT[s8b["state"]] == 0
@@ -2741,8 +3259,14 @@ def _cadence_selftest():
         "THE GATE IS BLIND TO SPEND, THIRD RUNG: a 100% fable share on a SMALL "
         "diff stays GREEN — spend never makes a change reviewable", s8d["summary"])
 
+    # THE GATED KEYS RIDE THIS SCAN TOO. They print in every branch, so each
+    # fixture summary must carry each of them exactly once — and a value that
+    # collected a `)` or a `;` from the sentence around it is the truncation
+    # fault one layer down, caught here rather than by a reader who silently
+    # gets half a stamp.
     KEYS = ("directorSpawns", "fableShareDay", "fableShareAll", "fableAgents",
-            "agentFilesRead")
+            "agentFilesRead", "rulingRecords", "rulingFiles", "rulingUnmatched",
+            "rulingRowsUnruled", "rulingUnruledNewest")
     reads = (("s1", s1), ("s2", s2), ("s3", s3), ("s4", s4), ("s5", s5),
              ("s6", s6), ("s7", s7), ("s8a", s8a), ("s8c", s8c),
              ("s8d", s8d))
@@ -2752,7 +3276,7 @@ def _cadence_selftest():
             if "=" in tok and tok.split("=", 1)[0] in KEYS:
                 scanned += 1
                 v = tok.split("=", 1)[1]
-                if not v or v[-1] in ",;":
+                if not v or v[-1] in ",;)]":
                     bad.append("%s:%s" % (tag, tok))
     # THE DENOMINATOR OF THIS VERY CHECK. Without it a typo in KEYS makes the
     # scan match nothing and report a clean pass over zero tokens — the fault
@@ -2768,7 +3292,12 @@ def _cadence_selftest():
 
 
 def director_cadence():
-    """The director gets spawned for a substantial change, or the commit blocks.
+    """The director RULES on a substantial change, or the commit blocks.
+
+    "Gets spawned" is what this line said until 25 Aug, and it was an exact
+    description of the gate's fault: being spawned was the whole test, so the
+    sentence and the code agreed with each other and both were wrong about
+    what a review is.
 
     WHY, in the owner's words on 24 Aug: "no point in having a fable director
     if it's never called upon." The HYBRID RESIDENT section makes escalation
@@ -2779,8 +3308,57 @@ def director_cadence():
 
     So: RED when a substantial change (more than DIRECTOR_MIN_LINES = 100
     changed lines under Assets/Scripts, staged+unstaged, adds+dels summed) is
-    pending and the agent log holds no `studio-director` row newer than THE
-    NEWEST COMMIT THAT TOUCHED `ledger/Assets/Scripts` — not newer than HEAD.
+    pending and there is no COMPLETED REVIEW newer than THE NEWEST COMMIT THAT
+    TOUCHED `ledger/Assets/Scripts` — not newer than HEAD.
+
+    A COMPLETED REVIEW IS AN ARTIFACT, NOT AN ATTENDANCE ROW (25 Aug). The
+    version this replaces asked only for a `studio-director` row newer than
+    the reference, and CLAUDE.md recorded the hole in it the first time a
+    director was killed by a usage limit mid-ruling: the row is written at
+    SPAWN, so a director that ran and said nothing still cleared the gate.
+    It happened a SECOND time on 25 Aug — a spawn at 17:01:24Z against a
+    reference of e72f58a3@16:00:02Z, printing `over threshold, REVIEWED` over
+    an ~1,800-line batch carrying eleven confirmed audit findings.
+
+    So the gate now needs a RULING RECORD: an HTML comment
+    `<!-- RULING spawn=<the spawn row it answers> -->` inside a
+    `game-design/decision-*.md` file, whose `spawn=` names a real
+    studio-director row that is newer than the reference commit. The spawn row
+    keeps its place and changes role — it is NECESSARY (a hand-typed date
+    matches nothing) and no longer SUFFICIENT (a row nothing points at clears
+    nothing). A director killed before it ruled writes no file, so it cannot
+    produce the record; that is the whole repair, and `--cadence` exit 3 is
+    that case, distinct from "nobody was spawned" (1) and "no log" (2).
+
+    BOTH OUTCOMES WATCHED ON THE LIVE BATCH, not only on fixtures (rule 5b).
+    25 Aug, one tree, two readings an hour apart:
+      REJECTING  `DIRECTOR RAN BUT DID NOT RULE ... rulingRowsUnruled=2/2`,
+                 exit 3, over a 2,236-line batch whose only claim to review
+                 was the row of the director killed at 17:01:24Z. HEAD's
+                 pre-change `director_cadence`, run against that same tree in
+                 the same minute, returned GREEN and `over threshold,
+                 REVIEWED`. That is the lie, printed side by side with its fix.
+      ACCEPTING  the director RESUMED, closed its ruling in
+                 `game-design/decision-dressing-batch.md` with
+                 `<!--RULING spawn=2026-08-25T19:26:14Z-->`, and the gate read
+                 `cadence ok ... REVIEWED, rulingRecords=1/1`, exit 0.
+    The refusal names the exact stamp and says RESUME rather than spawn, which
+    is why the accepting case cost one cheap turn and not a second Fable seat.
+
+    TWO THINGS IT STILL CANNOT SEE, stated here rather than discovered later.
+    (1) A ruling stays fresh until the next commit that TOUCHES
+    Assets/Scripts, so a second batch arriving in that window rides the first
+    batch's record. That window is narrower than the one it replaces and it
+    closes itself the moment code lands — the same instant the old gate
+    re-armed. (2) The stamp binds a record to A fresh spawn, not to THE spawn
+    that wrote it: measured on the live tree, a stamp naming the DEAD
+    17:01:24Z row would have cleared the gate exactly as the real 19:26:14Z
+    one did, because nothing in this environment attests authorship. Both
+    residual holes need a person to write a false sentence; the hole this
+    replaces needed nobody to do anything at all. It is not trying to catch a
+    director that lies; it exists for the review that never happened.
+
+    THE REFERENCE IS UNCHANGED AND MUST STAY THAT WAY.
     That reference moved on 25 Aug and the reason is in `_cadence_read`: the
     threshold has always scoped to Assets/Scripts, the reference point did not,
     and a stills-only commit from CI was invalidating a review given three
@@ -2798,7 +3376,12 @@ def director_cadence():
 
     The fixture suite runs FIRST and its accepting cases run before its
     rejecting ones, because a broken version of this check blocks every commit
-    in the project rather than letting one through."""
+    in the project rather than letting one through. That ordering did real
+    work here: adding the artifact requirement turned six previously-green
+    fixtures red, and every one of them was a case this gate MUST accept — a
+    completed review, a docs-only commit on top of one, a shallow clone, and
+    the two spend rungs. A version that only added rejecting cases would have
+    shipped a gate no honest review could clear."""
     passed, failed, lines = _cadence_selftest()
     if failed:
         first = next((l.strip() for l in lines if l.strip().startswith("FAIL")), "?")
@@ -2854,7 +3437,8 @@ def main():
     if args.cadence:
         r = _cadence_read(ROOT.parent)
         print(r["summary"])
-        return CADENCE_EXIT[r["state"]]        # 0 green / 1 unspawned / 2 no log
+        # 0 green / 1 nobody spawned / 2 no log / 3 spawned but never ruled
+        return CADENCE_EXIT[r["state"]]
 
     parts, all_ok = [], True
     for fn in (director_cadence,

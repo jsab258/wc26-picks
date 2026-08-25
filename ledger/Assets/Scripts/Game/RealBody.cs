@@ -574,16 +574,66 @@ namespace Ledger.Game
         /// washed. The rule for that set is "does a gate read this as being
         /// about the player", and nothing reads this at all except the verdict.
         ///
-        /// AND THE POPULATION IT COUNTS CHANGED UNDER IT, which is worth
-        /// saying because the NAME did not. Until the garment split it was
-        /// every textured renderer on the body — face, hair, shoes and all.
-        /// It is now the renderers the wardrobe actually dresses: the upper
-        /// garment, the lower garment, and a welded whole-body mesh. Faces and
-        /// hair are counted by `OwnEver` instead. So `bodyTinted` and the whole
-        /// `bodyWash*` family below now describe CLOTH, and their landed series
-        /// has a regime change at this commit — the number will fall against
-        /// its own history and that fall is the fix, not a regression.
+        /// AND THE POPULATION IT COUNTS CHANGED UNDER IT, WHICH THE NAME DOES
+        /// NOT SAY AND A SERIES-READER CANNOT SEE. Until the garment split,
+        /// `Tint` was called on every kept textured renderer on the body —
+        /// face, hair, shoes and all. It is now called only on the meshes the
+        /// wardrobe dresses: upper garment, lower garment, welded whole body.
+        /// The rest are counted by `OwnEver`. So `bodyTinted` and the whole
+        /// `bodyWash*` family below describe CLOTH from `e72f58a3` onward, and
+        /// the fall in their landed series is the fix rather than a regression.
+        /// `WashPopulation` below is that sentence in a form the done line can
+        /// carry; this paragraph is for whoever is reading the code instead.
+        ///
+        /// CUMULATIVE OVER THE RUN, and over renderer-washes rather than over
+        /// people: body LOD grants and revokes continuously, so one walker
+        /// washed four times is four here.
         public static int Tinted { get; private set; }
+
+        /// WHICH POPULATION THE WASH NUMBERS ARE ABOUT, AS A VALUE RATHER THAN
+        /// A COMMENT — because a commit message is not on the done line, and
+        /// the next person reading the series will not be reading it.
+        ///
+        /// `bodyTinted`, `bodyWashWhite`, `bodyWashSampled`, `bodyWashNone` and
+        /// `bodyWashUnreached` all changed population at `e72f58a3` and not one
+        /// of them changed name. That is the drift `liveArmDrop`,
+        /// `nameTagsOffered` and `crowdSpeed` each paid for: the instrument does
+        /// not move when the system does, so a working fix reads as a regression
+        /// and the number that would have said so reads as agreement.
+        ///
+        /// THE SERIES IT IS ABOUT TO BREAK, PRINTED BEFORE THE CLAIM WAS MADE.
+        /// Over the newest 20 landed runs, min / median / max:
+        ///
+        ///     bodyTinted     2739 / 3054 / 3219   (bodyKeptEver: identical)
+        ///     bodyWashNone    258 /  308 /  339
+        ///
+        /// All-time over 200 landed runs is 1 / 2699 / 6497 and describes no
+        /// single regime — the model pool itself went 2, 5, 6, 8, 10, 14 — so
+        /// the recent window is the honest baseline here and the all-time
+        /// median is not.
+        ///
+        /// AND THE TWO SCHEMAS ARE BRIDGED, not merely incomparable, which is
+        /// worth more than a warning. Every kept textured renderer goes to
+        /// exactly one of four branches in the paint loop; three of them wash
+        /// and the fourth is `OwnEver`. So schema 2 satisfies
+        /// `bodyTinted + bodyPartsOwn == bodyKeptEver`, and schema 1 satisfied
+        /// `bodyTinted == bodyKeptEver` — which holds in 196 of the 196 landed
+        /// runs carrying both keys, checked rather than assumed. A reader
+        /// crossing the boundary adds `bodyPartsOwn` back on and has one series
+        /// again.
+        ///
+        /// NO SPACES, `/` AND `..` FOR STRUCTURE, AND NO `=` INSIDE THE VALUE:
+        /// `tools/verdict-keys.py` harvests key names with `([A-Za-z]\w*)=`
+        /// over the bracket-stripped line, so an `=` in a value invents a key
+        /// that exists nowhere and the inventory check goes off on it.
+        ///
+        /// NOTHING EMITS THIS YET, WHICH IS RULE 6 AND IS SAID RATHER THAN
+        /// LEFT TO BE FOUND. `SimDirector` owns the done line and is another
+        /// agent's file this cycle; the single line it needs is named in
+        /// `game-design/agent-reports/body-readings-fix.md`. Until it lands,
+        /// the boundary is documented in code and invisible in the verdict.
+        public const string WashPopulation =
+            "schema2/cloth-only..schema1/all-kept-textured/bridge-tinted+partsOwn-is-keptEver";
 
         /// HOW MUCH WARDROBE ACTUALLY ARRIVES, and it is the reading that was
         /// missing rather than a decoration.
@@ -801,26 +851,128 @@ namespace Ledger.Game
         public static int FemaleWalkers { get; private set; }
 
         /// Every model in the pool and the archetype it drew, slash-separated.
-        /// Written once, on the first pick. An FBX nobody classified shows up
-        /// here as a `default` beside a name a reader can recognise.
+        ///
+        /// WRITE-ONCE OVER THE POOL. Not last-wins, and not a reading about any
+        /// body: it is assigned inside `PickBody`'s `_bodies == null` block,
+        /// which runs exactly once per process for the whole pool, so whichever
+        /// attach happened to trigger the load cannot change what it says. An
+        /// FBX nobody classified shows up here as a `default` beside a name a
+        /// reader can recognise, and the initialiser `no pick yet` is the
+        /// never-ran case — which must stay distinguishable from a pool that
+        /// loaded empty, and is: `Roster` answers that one `no models offered`.
+        ///
+        /// DELIBERATELY NOT IN THE SAVE-AND-RESTORE SET, AND THAT IS NOT THE
+        /// SAME DECISION AS `TrouserRead`'s BELOW. Restoring this would break
+        /// it rather than repair it. `TryAttachExtra` snapshots BEFORE the
+        /// attach, so if the first body ever picked belongs to a walker, the
+        /// snapshot holds the initialiser, the roster is written during the
+        /// attach, and the restore puts the initialiser back — permanently,
+        /// because the load block never runs a second time. `BodyChoices` IS in
+        /// that set and carries exactly that latent order-dependency today; it
+        /// reads 14 across the newest 20 landed runs, so the player is in fact
+        /// attaching first, which is an ordering rather than a guarantee.
+        /// The subject of this key is the POOL, and the pool is not the player.
         public static string ArchetypeRead { get; private set; } = "no pick yet";
 
-        /// The last body's archetype and the controller asset that actually
-        /// came with it, `arch->name`. Last-wins, describing one attachment —
-        /// the qualitative half of the pair above, for the case where the
-        /// count is wrong and the question is which asset turned up.
-        public static string ControllerRead { get; private set; } = "not tried";
+        /// The three fields `ControllerRead` is folded from, all cumulative
+        /// over attachments and none of them read anywhere else. Private,
+        /// because a denominator that can be quoted away from its numerator
+        /// eventually is.
+        static int _controllerReads, _controllerMissed;
+        static string _controllerWitness = "";
 
-        /// What the LOWER garment came out, band and HSV — `CoatRead`'s twin
-        /// for the second draw. Last-wins, describing the last body dressed,
-        /// and it exists for the same reason `CoatRead` does: a still that
-        /// shows one hue per figure and a number that says two draws happened
-        /// need a third fact to settle which is lying.
-        public static string TrouserRead { get; private set; } = "not tried";
+        /// WHICH CONTROLLER ASSET TURNED UP ON A BODY WHOSE ARCHETYPE IT DOES
+        /// NOT CARRY, AND HOW MANY ATTACHMENTS WERE LIKE THAT.
+        ///
+        /// WHAT IT WAS: a LAST-WINS string, assigned on every attach and not in
+        /// the save-and-restore set, so it described whichever walker the LOD
+        /// happened to dress last while sitting on the done line between
+        /// `bodyKinds` (the pool) and `bodyCoat` (the player), describing
+        /// neither. That is `namesTracked=2` again — a last-wins field read as
+        /// a summary — and it has never landed, so no series is being moved.
+        ///
+        /// THE SUBJECT IS THE POPULATION, SO THE REPAIR IS A SHAPE AND NOT A
+        /// RESTORE. Its job, by its own previous comment, is the qualitative
+        /// half of `walkFemale=n/total`: the count is wrong, which asset turned
+        /// up. No single string can answer that about a population however it is
+        /// captured, and "is ANYBODY on the wrong cycle" is never a last-wins
+        /// question — it is a witness plus a count plus the denominator both
+        /// were taken over.
+        ///
+        /// SO IT IS THREE FACTS IN ONE VALUE, CUMULATIVE OVER EVERY ATTACHMENT
+        /// AND COMPUTED WHERE THE RUN ENDS rather than assigned during it. A
+        /// getter cannot be last-wins by construction; a cumulative number
+        /// captured inside whatever function was convenient is how
+        /// `namesManagedEver` froze at the last screenshot.
+        ///
+        ///   nothing-measured           no attachment has reached the read at
+        ///                              all — the never-ran case, and it may
+        ///                              not read as "all fine"
+        ///   allCarried/0of1586         every attachment's controller carried
+        ///                              its archetype, with the denominator
+        ///                              beside the zero on the same key at the
+        ///                              same instant
+        ///   Kate:female->Body/3of1586  the FIRST mismatching attachment —
+        ///                              model, archetype, and the asset the
+        ///                              Animator actually held — then how many
+        ///                              attachments mismatched, over how many
+        ///                              were read
+        ///
+        /// FIRST-WINS FOR THE WITNESS, deliberately: once set it never moves,
+        /// so the qualitative half stops depending on LOD ordering, and the
+        /// COUNT beside it is what says how widespread the fault is. Both
+        /// halves and their denominator come off the same three fields at the
+        /// same moment, so they cannot be two instants read as one.
+        ///
+        /// NOT IN THE SAVE-AND-RESTORE SET, for `Tinted`'s reason: a count of
+        /// what happened to the city is not a statement about the player, and
+        /// restoring one after every walker is what made `bodyTinted` read 1
+        /// against 1,586 attachments.
+        public static string ControllerRead =>
+            _controllerReads == 0 ? "nothing-measured"
+            : _controllerMissed == 0 ? $"allCarried/0of{_controllerReads}"
+            : $"{_controllerWitness}/{_controllerMissed}of{_controllerReads}";
+
+        /// WHAT THE PLAYER'S LOWER GARMENT CAME OUT, band and HSV — `CoatRead`'s
+        /// twin for the second wardrobe draw, and the same subject as it.
+        ///
+        /// LAST-WINS WITHIN ONE ATTACH, SAVED AND RESTORED ACROSS WALKERS, so
+        /// what survives to the done line is the PLAYER's trousers, exactly as
+        /// `bodyCoat` two keys along is the player's coat. It shipped outside
+        /// the save-and-restore set and therefore described whichever walker
+        /// the LOD dressed last, among neighbours that are about the player —
+        /// which is the precise fault `TryAttachExtra` exists to prevent,
+        /// reappearing in a field added after it was written. Never landed, so
+        /// nothing in the history is being reinterpreted.
+        ///
+        /// THE POPULATION QUESTION IS NOT THIS KEY'S. "What is the street
+        /// wearing" is answered by `bodyPartsDistinct` and the `bodyWash*`
+        /// family, which are cumulative and correctly OUTSIDE the set. This is
+        /// the third fact that settles a still showing one hue per figure
+        /// against a number saying two draws happened.
+        ///
+        /// SLASHED RATHER THAN SPACED, unlike `CoatRead`, and the divergence is
+        /// deliberate: a verdict value may not contain a space, `bodyCoat` has
+        /// carried one since it landed, and reformatting it now would put a
+        /// silent boundary through a series with 196 landed runs behind it for
+        /// a cosmetic gain. The new key gets the rule; the old one gets a note
+        /// in the report. `nothing-measured` is the never-ran case and is the
+        /// same state `bodyCoat` spells `not tried`.
+        public static string TrouserRead { get; private set; } = "nothing-measured";
 
         /// The last wash actually written to a renderer, with the albedo it
         /// was anchored against. Appended to `CoatRead` after the paint loop,
         /// because the wash is not knowable before it.
+        ///
+        /// ITS POPULATION MOVED AT `e72f58a3` TOO, and `bodyCoat` carries it
+        /// without saying so. `Tint` used to run on every kept textured
+        /// renderer, so this was the last of those — a face or a shoe as often
+        /// as a garment. `Tint` now has exactly three callers, all inside the
+        /// garment switch, so it is the last GARMENT wash. That is the reading
+        /// `bodyCoat` always wanted and it is still a change of subject under
+        /// an unchanged name; recorded here because the value is qualitative
+        /// and has no series a gate could trip on, which is the only reason it
+        /// is a comment rather than a mark on the line.
         static string _lastWash = "none applied";
 
         static void Tint(Renderer r, double hue, double saturation, double value,
@@ -944,13 +1096,28 @@ namespace Ledger.Game
         ///
         /// WHY THIS HAS TO EXIST BEFORE A SINGLE WALKER GETS A REAL BODY.
         /// `TryAttach` writes `Attached`, `Why`, `Upright`, `Skinned`,
-        /// `Dressed`, `Kept`, `Parts`, the coverage fractions and the bind and
-        /// scaled pose readings. FIVE clauses of the sim's `bodies` gate read
-        /// those, and the entire point of every one of them is that it
-        /// describes THE PLAYER — is HE upright, is HE dressed, is HE not still
-        /// a capsule. Attach fifty-five walkers and all five quietly become
-        /// about whichever walker attached last, with nothing anywhere saying
-        /// so. A corrupted gate reads exactly like a passing one.
+        /// `Dressed`, `Kept`, `Parts`, the two garment reads `CoatRead` and
+        /// `TrouserRead`, the coverage fractions and the bind and scaled pose
+        /// readings. FIVE clauses of the sim's `bodies` gate read those, and
+        /// the entire point of every one of them is that it describes THE
+        /// PLAYER — is HE upright, is HE dressed, is HE not still a capsule.
+        /// Attach fifty-five walkers and all five quietly become about
+        /// whichever walker attached last, with nothing anywhere saying so. A
+        /// corrupted gate reads exactly like a passing one.
+        ///
+        /// THE MEMBERSHIP RULE, BECAUSE THE LIST HAS BEEN GOT WRONG IN BOTH
+        /// DIRECTIONS AND THE TWO FAULTS LOOK NOTHING ALIKE. In goes anything
+        /// that is a STATEMENT ABOUT ONE BODY, because the body the done line
+        /// means is the player's: the pose readings, the coverage fractions,
+        /// `CoatRead`, and `TrouserRead` — which was added a cycle after this
+        /// comment and left out, so it described whichever walker was dressed
+        /// last. Out stays anything CUMULATIVE OVER THE CITY — `Tinted`,
+        /// `KeptEver`, `OwnEver`, `PartsUpper` and the rest — because restoring
+        /// a lifetime count after every walker is what made `bodyTinted` read 1
+        /// against 1,586 attachments. And out stays anything WRITE-ONCE about
+        /// the POOL: `ArchetypeRead` is written on the first pick only, so a
+        /// snapshot taken before that pick would restore the initialiser
+        /// permanently. `BodyChoices` is in the set and has that hazard live.
         ///
         /// SNAPSHOT AND RESTORE RATHER THAN A GUARD AT EACH WRITE. The writes
         /// are scattered through the body of `TryAttach` rather than gathered
@@ -966,7 +1133,7 @@ namespace Ledger.Game
         {
             public int Attached, Skinned, Dressed, Kept, BodyChoices;
             public float Breadth;
-            public string Why, Orientation, Parts, CoatRead, CostSeries, TwinWhy;
+            public string Why, Orientation, Parts, CoatRead, TrouserRead, CostSeries, TwinWhy;
             public double Upright, DressedAreaFraction, DressedVertexFraction;
             public bool CoverageRead, BindPoseRead, ScaledPoseRead, TwinRead, TwinHuman;
             public float BindHeadAboveHips, BindHipsAboveFeet;
@@ -979,7 +1146,8 @@ namespace Ledger.Game
             Attached = Attached, Skinned = Skinned, Dressed = Dressed, Kept = Kept,
             BodyChoices = BodyChoices, Breadth = Breadth,
             Why = Why, Orientation = Orientation,
-            Parts = Parts, CoatRead = CoatRead, CostSeries = CostSeries, TwinWhy = TwinWhy,
+            Parts = Parts, CoatRead = CoatRead, TrouserRead = TrouserRead,
+            CostSeries = CostSeries, TwinWhy = TwinWhy,
             Upright = Upright, DressedAreaFraction = DressedAreaFraction,
             DressedVertexFraction = DressedVertexFraction, CoverageRead = CoverageRead,
             BindPoseRead = BindPoseRead, ScaledPoseRead = ScaledPoseRead,
@@ -994,7 +1162,8 @@ namespace Ledger.Game
             Attached = p.Attached; Skinned = p.Skinned; Dressed = p.Dressed; Kept = p.Kept;
             BodyChoices = p.BodyChoices; Breadth = p.Breadth;
             Why = p.Why; Orientation = p.Orientation;
-            Parts = p.Parts; CoatRead = p.CoatRead; CostSeries = p.CostSeries;
+            Parts = p.Parts; CoatRead = p.CoatRead; TrouserRead = p.TrouserRead;
+            CostSeries = p.CostSeries;
             TwinWhy = p.TwinWhy; Upright = p.Upright;
             DressedAreaFraction = p.DressedAreaFraction;
             DressedVertexFraction = p.DressedVertexFraction;
@@ -1111,15 +1280,50 @@ namespace Ledger.Game
             // Counted per ATTACH, cumulatively: body LOD grants and revokes
             // continuously, so a woman granted a body four times counts four
             // times. It is a count of attachments, not of citizens.
-            var arch = Ledger.Core.BodyArchetype.Of(StemOf(prefab.name));
+            //
+            // ASKED ONCE AND READ TWICE. `carries` feeds both `walkFemale` and
+            // `bodyController`, so the two cannot disagree about the same
+            // attachment — calling `ControllerCarries` a second time for the
+            // second reader is how one idea becomes two implementations and one
+            // of them gets fixed.
+            var stem = StemOf(prefab.name);
+            var arch = Ledger.Core.BodyArchetype.Of(stem);
             var anim0 = body.GetComponent<Animator>();
             var held = anim0 != null && anim0.runtimeAnimatorController != null
                 ? anim0.runtimeAnimatorController.name : "";
-            ControllerRead = held.Length > 0 ? $"{arch}->{held}" : $"{arch}->none";
+            bool carries = Ledger.Core.BodyArchetype.ControllerCarries(held, arch);
+            // THE DENOMINATOR FOR `bodyController`, INCREMENTED BEFORE THE
+            // TEST, so a run that attached bodies and matched every one of them
+            // cannot print the same thing as a run that attached none.
+            _controllerReads++;
+            if (!carries)
+            {
+                _controllerMissed++;
+                // FIRST-WINS: the witness is fixed by the first mismatch and
+                // never overwritten, so it does not depend on LOD ordering.
+                //
+                // RAW NAME TO CORE, ESCAPED ONCE FOR THE CHANNEL.
+                // `ControllerCarries` owns the rule — including that Unity
+                // appends " (Instance)" in some load paths — so Core gets the
+                // name Unity gave us. The copy that rides on a verdict line may
+                // not contain a space, so the whole assembled witness has its
+                // spaces REPLACED rather than trimmed, in one place: this is
+                // escaping, not a second implementation of Core's stem rule,
+                // and the full asset name survives it.
+                //
+                // `no-stem` is the fallback body — `Characters/Body`, which
+                // does not carry the `Body_` prefix `StemOf` reads — and it
+                // says so rather than printing an empty field that reads as a
+                // formatting fault.
+                if (_controllerWitness.Length == 0)
+                    _controllerWitness =
+                        ((stem.Length > 0 ? stem : "no-stem") + ":" + arch + "->"
+                         + (held.Length > 0 ? held : "none")).Replace(' ', '-');
+            }
             if (arch == Ledger.Core.BodyArchetype.Female)
             {
                 FemaleBodies++;
-                if (Ledger.Core.BodyArchetype.ControllerCarries(held, arch)) FemaleWalkers++;
+                if (carries) FemaleWalkers++;
             }
 
             // AND THE CAPSULE GOES, which this did not do and `Mannequin.Build`
@@ -1307,8 +1511,11 @@ namespace Ledger.Game
             // ceiling is for.
             double legRoll = Ledger.Core.Physique.Fraction(wearer ?? "player", 11);
             Ledger.Core.Wardrobe.Dress(legRoll, out double lh, out double ls, out double lv);
+            // SLASHES, NOT SPACES — see the declaration. Band names are single
+            // words (`black`, `denim`, `shellsuit`), so the whole value is one
+            // whitespace-free token and no reader can truncate half of it.
             TrouserRead = Ledger.Core.Wardrobe.BandOf(legRoll)
-                        + $" hsv={lh:0.00}/{ls:0.00}/{lv:0.00}";
+                        + $"/hsv:{lh:0.00}/{ls:0.00}/{lv:0.00}";
 
             // TWO PASSES, BECAUSE THE DECISION IS ABOUT THE MODEL AND NOT ABOUT
             // ONE NAME. `BodyParts.Assign` needs to see every paintable mesh at

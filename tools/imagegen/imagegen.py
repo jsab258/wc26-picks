@@ -63,7 +63,9 @@ blank-check and VULKAN_VAE_DIRECT_MAX_PX sections below.
 import argparse
 import hashlib
 import json
+import os
 import pathlib
+import re
 import subprocess
 import sys
 import time
@@ -83,6 +85,13 @@ import zlib
 # rename stale is a dead one-click; a list that prints what each candidate
 # answered is a diagnosis. See `fetch_one`.
 # ---------------------------------------------------------------------------
+# THE PROMPT FILE'S SCHEMA. Bumped to 2 on 25 Aug when the negative-prompt
+# channel, the per-item seed and the per-item cfg arrived. It is checked rather
+# than assumed because these two files travel to another machine together and a
+# half-pulled clone would otherwise run the new code against the old prompts and
+# silently generate the batch the first run already got wrong.
+SPEC_SCHEMA = 2
+
 SDCPP_TAG = "master-827-97d2990"          # release read 2026-08-25, published 19 Aug 2026
 SDCPP_BASE = f"https://github.com/leejet/stable-diffusion.cpp/releases/download/{SDCPP_TAG}"
 SDCPP_ZIPS = {
@@ -519,22 +528,6 @@ def format_gate_stop(gate, report_paths):
     return L
 
 
-def build_prompt(item, rules_clause, style):
-    """Positive prompt = style prefix + the item + style suffix + THE RULES.
-
-    The rules clause is appended here and nowhere else, and this function
-    refuses to return a prompt without it. `content_rules.rules_clause` is data
-    in prompts.json precisely so a later editor adding a thirteenth sign cannot
-    forget the one sentence that keeps a real brewery's livery off our pub.
-    """
-    if not rules_clause or "no trade marks" not in rules_clause:
-        raise ValueError("content rules missing or altered: every prompt must "
-                         "carry the no-trade-marks / no-real-person clause")
-    parts = [style.get("prefix", "").strip(), item["prompt"].strip(),
-             style.get("suffix", "").strip(), rules_clause.strip()]
-    return ", ".join(p.rstrip(",") for p in parts if p)
-
-
 def check_forbidden(text, forbidden):
     """A prompt naming a real brand is a bug in the prompt file, not in the run.
 
@@ -543,6 +536,272 @@ def check_forbidden(text, forbidden):
     """
     low = " " + text.lower() + " "
     return [t for t in forbidden if t.lower() in low]
+
+
+def resolve_style(item, style):
+    """The prefix/suffix this item gets: the shared pair, overridden per KIND.
+
+    In the JSON rather than in a branch here, because the day somebody adds a
+    `label` kind the override has to be theirs to write, not mine to remember.
+    A wall texture asked for as a `photograph` comes back as a photograph of a
+    wall - with a coping, a corner and a pavement in it, which is exactly what
+    `wall_soot_brick` returned on 25 Aug.
+    """
+    by_kind = (style.get("by_kind") or {}).get(item.get("kind"), {})
+    return (by_kind.get("prefix", style.get("prefix", "")),
+            by_kind.get("suffix", style.get("suffix", "")))
+
+
+def build_prompt(item, rules_clause, style):
+    """Positive prompt = style prefix + the item + style suffix + THE RULES.
+
+    The rules clause is appended here and nowhere else, and this function
+    refuses to return a prompt without it. `content_rules.rules_clause` is data
+    in prompts.json precisely so a later editor adding a thirteenth sign cannot
+    forget the one sentence that keeps a real brewery's livery off our pub.
+
+    IT IS ALSO THE ONE EXCLUSION CLAUSE ALLOWED IN A POSITIVE PROMPT, and that
+    is a measured exception rather than an oversight: at cfg 1.0 sd-cli never
+    evaluates the unconditional branch, so a negative prompt is inert and
+    moving this clause into it would delete the only anti-brand instruction the
+    model receives. `scan_exclusions` exempts it BY NAME and prints that it did.
+    """
+    if not rules_clause or "no trade marks" not in rules_clause:
+        raise ValueError("content rules missing or altered: every prompt must "
+                         "carry the no-trade-marks / no-real-person clause")
+    prefix, suffix = resolve_style(item, style)
+    parts = [prefix.strip(), item["prompt"].strip(), suffix.strip(),
+             rules_clause.strip()]
+    return ", ".join(p.rstrip(",") for p in parts if p)
+
+
+def build_negative(item, spec):
+    """Negative prompt = negatives.default + negatives.by_kind[kind] + item.
+
+    COMPOSED, NOT REPLACED, so a wall can say what a wall must not have without
+    restating the twenty nouns every image must not have. Returns "" when the
+    file carries no negatives block at all, which is what a schema-1 file does.
+    """
+    neg = spec.get("negatives") or {}
+    parts = [neg.get("default", ""),
+             (neg.get("by_kind") or {}).get(item.get("kind"), ""),
+             item.get("negative", "")]
+    return ", ".join(p.strip().rstrip(",") for p in parts if p and p.strip())
+
+
+def item_cfg(item, defaults):
+    """cfg for ONE image. Per item because cfg is the switch that decides
+    whether the negative prompt is evaluated at all, and that is a per-image
+    decision - see `negative_state`."""
+    return float(item.get("cfg", defaults.get("cfg", 1.0)))
+
+
+def item_seed(item, defaults):
+    """The seed, EXPLICIT IN THE FILE where it exists.
+
+    It used to be `seed_base + position in the list`, which made every seed a
+    function of how many items sat above it: inserting one item re-seeded the
+    whole tail, and with a resume rule that regenerates when the recipe changed
+    that is a full re-run for a one-line edit. Where an item carries no seed the
+    fallback is derived from its ID rather than its position, so it is stable
+    under insertion too.
+    """
+    if "seed" in item:
+        return int(item["seed"])
+    base = int(defaults.get("seed_base", 0))
+    return base + (zlib.crc32(item["id"].encode("utf-8")) % 100000)
+
+
+def negative_state(cfg, negative):
+    """(active, why) for this image's negative prompt. THE HALF THAT MATTERS.
+
+    A negative prompt at cfg 1.0 does NOTHING, and nothing about the command
+    line says so - which is the silent-instrument failure exactly: a channel
+    that is wired, passed, logged, and never once evaluated.
+
+    MEASURED FROM THE SOURCE, not remembered. stable-diffusion.cpp's
+    `resolve_guidance` (src/stable-diffusion.cpp, read 25 Aug 2026) sets
+    `use_uncond` only when `img_cfg != txt_cfg`; a model with no image
+    conditioning has img_cfg forced to 1.0, so `--cfg-scale 1.0` leaves
+    use_uncond false and the negative prompt is never encoded. The shipped
+    binary carries that function's own log strings ("3-conditioning CFG is not
+    supported with this model", "unconditioned mode, images won't follow the
+    prompt (use cfg-scale=1 for distilled models)") in its string table, in
+    that order, so this is the build we are running and not just master.
+
+    Z-Image-Turbo is distilled FOR cfg 1.0 - the project's own docs page uses
+    1.0 for Turbo and 5.0 for Base - which is why the shipped items sit there
+    and why `probe_wall_cfg1`/`probe_wall_cfg2` exist to measure whether this
+    model can take cfg > 1 at all.
+    """
+    if not negative:
+        return False, "no negative prompt for this item"
+    if abs(cfg - 1.0) < 1e-9:
+        return False, ("RECORDED BUT INERT: at cfg 1.0 sd-cli never evaluates "
+                       "the unconditional branch (resolve_guidance sets "
+                       "use_uncond only when img_cfg != txt_cfg), so this "
+                       "negative prompt was not encoded and changed nothing")
+    return True, f"active: cfg {cfg} != 1.0, so the unconditional branch runs"
+
+
+# ---------------------------------------------------------------------------
+# THE EXCLUSION SCAN - fault 1, made mechanical.
+#
+# Every exclusion we wrote went into the POSITIVE prompt, where a diffusion
+# model reads the nouns and draws them: `no signage legible` produced a crisp
+# sign board reading WEORED S HONJ. This scan is what stops that coming back,
+# and it runs over the composed prompt rather than over the item, because the
+# clause that did the most damage (`no people, no cars`) lived in the SHARED
+# style suffix and would have been invisible to a per-item check.
+#
+# WHAT IT DELIBERATELY DOES NOT SEE. The lettering a sign actually carries is
+# quoted copy - 'NO ADMITTANCE EXCEPT ON BUSINESS' is the words on the board,
+# not an instruction to the model - so runs of capitals are stripped before
+# scanning. And the content-rules clause is exempt by identity, printed as
+# exempt, for the reason in `build_prompt`.
+# ---------------------------------------------------------------------------
+EXCLUSION_WORDS = ("no", "not", "none", "without", "never", "avoid",
+                   "excluding", "devoid", "lacking", "absent", "free of",
+                   "minus", "remove")
+
+
+def _strip_lettering(text):
+    """Remove runs of capitals - the copy ON the sign - before scanning."""
+    return re.sub(r"[A-Z][A-Z0-9'&. ]{2,}", " ", text)
+
+
+def scan_exclusions(text, exempt=()):
+    """Exclusion words left in a POSITIVE prompt. Returns (hits, scanned_words).
+
+    The denominator travels with the zero: "0 exclusion clauses" beside "0
+    words scanned" is a check that never looked, and this file has been caught
+    by that shape twice.
+    """
+    for e in exempt:
+        if e:
+            text = text.replace(e, " ")
+    body = _strip_lettering(text).lower()
+    words = re.findall(r"[a-z]+", body)
+    hits = []
+    for w in EXCLUSION_WORDS:
+        if " " in w:
+            if w in body:
+                hits.append(w)
+        elif w in words:
+            hits.append(w)
+    return hits, len(words)
+
+
+def validate_spec(spec):
+    """Everything wrong with prompts.json, as plain sentences. Empty = valid.
+
+    Runs BEFORE the 6.7 GB download, because a typo in a prompt file should
+    cost a printed line rather than half an hour of somebody's evening.
+    """
+    problems = []
+    schema = spec.get("schema")
+    if schema != SPEC_SCHEMA:
+        problems.append(
+            f"prompts.json says schema {schema!r} and this imagegen.py speaks "
+            f"schema {SPEC_SCHEMA}. They came from different commits - pull the "
+            "repository again so the two files match.")
+        return problems                    # every later check assumes schema 2
+    rules = (spec.get("content_rules") or {}).get("rules_clause", "")
+    style = spec.get("style") or {}
+    defaults = spec.get("defaults") or {}
+    forbidden = (spec.get("content_rules") or {}).get("forbidden_tokens", [])
+    ids = set()
+    items = spec.get("items") or []
+    if not items:
+        problems.append("prompts.json lists no items at all.")
+    for i, item in enumerate(items):
+        who = item.get("id") or f"item {i} (which has no id)"
+        for field in ("id", "kind", "prompt", "width", "height"):
+            if not item.get(field):
+                problems.append(f"{who}: no {field}.")
+        if item.get("id") in ids:
+            problems.append(f"{who}: two items share this id, so one would "
+                            "overwrite the other's PNG.")
+        ids.add(item.get("id"))
+        if not item.get("prompt"):
+            continue
+        try:
+            prompt = build_prompt(item, rules, style)
+        except ValueError as e:                              # noqa: BLE001
+            problems.append(f"{who}: {e}")
+            continue
+        hits, scanned = scan_exclusions(prompt, exempt=(rules,))
+        if hits:
+            problems.append(
+                f"{who}: the POSITIVE prompt still says {hits} - an exclusion "
+                "belongs in `negatives`, because a diffusion model reads the "
+                "noun and draws it. That is what put a sign board on "
+                "wall_soot_brick.")
+        neg = build_negative(item, spec)
+        neg_hits, _ = scan_exclusions(neg)
+        if neg_hits:
+            problems.append(
+                f"{who}: the NEGATIVE prompt says {neg_hits}. A negative prompt "
+                "is a list of nouns to push away; `no people` in it asks to "
+                "push away the phrase `no people`. Write `people`.")
+        bad = check_forbidden(prompt + " " + neg, forbidden)
+        if bad:
+            problems.append(f"{who}: names a real mark: {bad}.")
+        if item_cfg(item, defaults) <= 0:
+            problems.append(f"{who}: cfg must be greater than zero.")
+    return problems
+
+
+def recipe_of(item, prompt, negative, w, h, cfg, steps, seed, negative_active):
+    """The fingerprint that decides SKIP or REGENERATE on the next run.
+
+    It hashes WHAT THE GENERATOR ACTUALLY CONSUMED. That is why `negative` is
+    in it only when the negative is ACTIVE: at cfg 1.0 sd-cli never encodes it,
+    so an inert negative cannot have changed a single pixel, and hashing it
+    anyway would have regenerated twelve good images to produce twelve
+    identical ones. A resume key that reruns work it cannot change is a resume
+    key nobody will leave switched on.
+    """
+    parts = [item["id"], prompt, negative if negative_active else "",
+             f"{w}x{h}", f"cfg={cfg}", f"steps={steps}", f"seed={seed}"]
+    return hashlib.sha256("\x00".join(parts).encode("utf-8")).hexdigest()[:16]
+
+
+# ---------------------------------------------------------------------------
+# HOW LONG WILL IT TAKE - measured on the one card this has ever run on.
+#
+# THREE POINTS, ONE MACHINE, ONE MODEL. Jafar's RX 6700 over Vulkan, Z-Image
+# -Turbo Q4_K at 8 steps, 25 Aug 2026: ~90 s at 1024x512, ~100 s at 640x896,
+# ~290 s at 1024x1024. That is 172, 174 and 276 seconds per megapixel, so the
+# cost per pixel RISES with size and a single rate would under-read the big
+# ones by 60%. Interpolated between the anchors, extrapolated on the last
+# slope, and it says whose card it came from every time it prints - a number
+# from one machine quoted without the machine is how an estimate becomes a
+# promise (rule 7).
+# ---------------------------------------------------------------------------
+COST_ANCHORS = [(1024 * 512, 90.0), (640 * 896, 100.0), (1024 * 1024, 290.0)]
+COST_SOURCE = "measured on an RX 6700 / Vulkan / Z-Image-Turbo Q4_K / 8 steps, 25 Aug"
+
+
+def estimate_seconds(w, h, cfg=1.0):
+    """Rough seconds for one image on the measured card. cfg > 1 doubles the
+    model evaluations per step (the unconditional branch runs too), so it
+    doubles - that half is arithmetic from the algorithm, not a measurement,
+    and it is labelled as such wherever it is printed."""
+    px = w * h
+    pts = sorted(COST_ANCHORS)
+    if px <= pts[0][0]:
+        est = pts[0][1] * px / pts[0][0]
+    elif px >= pts[-1][0]:
+        (x0, y0), (x1, y1) = pts[-2], pts[-1]
+        est = y1 + (px - x1) * (y1 - y0) / (x1 - x0)
+    else:
+        est = pts[-1][1]
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            if x0 <= px <= x1:
+                est = y0 + (px - x0) * (y1 - y0) / (x1 - x0)
+                break
+    return est * (2.0 if cfg > 1.0 else 1.0)
 
 
 # ---------------------------------------------------------------------------
@@ -1019,29 +1278,370 @@ def image_flags(pl, w, h):
 
 
 # ---------------------------------------------------------------------------
+# SENDING THE PICTURES BACK - the part that used to be Jafar's hands.
+#
+# HIS WORDS, 25 Aug: "right now it's not really 1 click. I start the bat, then
+# I wait for it to finish, then I open the text file, then copy and paste here
+# along with images." Every one of those steps is a fault in this design. The
+# run now commits and pushes its own output, so he double-clicks once, walks
+# away, and the results arrive in the repository.
+#
+# FOUR RULES IT OBEYS, each of which has cost this project something:
+#
+#  * STAGE BY NAME, NEVER `git add <directory>`. A build that rendered nothing
+#    once committed its stale checkout's six JPEGs as its own evidence, under
+#    the sha of the run that failed to make them. Only files this run wrote are
+#    named, one at a time.
+#  * PUSH INCREMENTALLY. A four-hour run that dies at hour three must have
+#    already delivered three hours of work - the same rule as the evidence
+#    channel being a file committed by CI. Interval below.
+#  * REFUSE, DO NOT GUESS. Wrong branch, no remote, not a clone: say so in one
+#    plain sentence and leave the pictures where they are. Pushing somewhere
+#    else is worse than not pushing.
+#  * NEVER HANG WAITING FOR A HUMAN. `GIT_TERMINAL_PROMPT=0` and
+#    `GCM_INTERACTIVE=never` turn a credential prompt into a fast failure with
+#    a message, because the whole point is that nobody is watching the window.
+#
+# EVERY FAILURE PATH PRINTS A SENTENCE A NON-PROGRAMMER CAN ACT ON, and none of
+# them stops the generating: the pictures are the deliverable and they are
+# already on disk. A push that cannot happen is reported and retried next
+# interval.
+# ---------------------------------------------------------------------------
+EXPECTED_BRANCH = "claude/game-dev-ai-automation-2h67ix"
+# HOW MUCH WORK A CRASH MAY COST - a policy, not a measurement, and said so.
+# At the measured 90-290 s an image, three images is five to fifteen minutes.
+PUBLISH_EVERY_IMAGES = 3
+PUBLISH_EVERY_MINUTES = 10.0
+
+
+class Publisher:
+    """Commits and pushes what this run produced. Off is a valid state and it
+    always says which one it is in and why."""
+
+    def __init__(self, repo, log, branch=EXPECTED_BRANCH,
+                 every_images=PUBLISH_EVERY_IMAGES,
+                 every_minutes=PUBLISH_EVERY_MINUTES,
+                 retry_pause=20.0, attempts=3, enabled=True):
+        self.repo = pathlib.Path(repo) if repo else None
+        self.log = log
+        self.branch = branch
+        self.every_images = every_images
+        self.every_minutes = every_minutes
+        self.retry_pause = retry_pause
+        self.attempts = attempts
+        self.enabled = enabled
+        self.off_reason = None if enabled else "switched off for this run"
+        self.pending = []          # paths staged next time, by NAME
+        self.since = 0             # images since the last successful publish
+        self.last = time.time()
+        self.pushes = 0            # commits actually pushed
+        self.commits = 0           # commits made (pushed or not)
+        self.failures = []         # plain-English lines, for the summary
+        self.checked = False
+
+    # -- plumbing ----------------------------------------------------------
+    def _git(self, args, timeout=180):
+        env = dict(os.environ)
+        env.update(GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never",
+                   GIT_PAGER="cat", LC_ALL="C")
+        try:
+            p = subprocess.run(["git", "-C", str(self.repo)] + args,
+                               capture_output=True, text=True, errors="replace",
+                               timeout=timeout, env=env)
+            return p.returncode, (p.stdout or "") + (p.stderr or "")
+        except FileNotFoundError:
+            return 127, "git is not installed on this PC"
+        except subprocess.TimeoutExpired:
+            return 124, f"git {args[0]} took longer than {timeout/60:.0f} minutes"
+
+    def _off(self, why):
+        self.enabled = False
+        self.off_reason = why
+        self.log(f"  SENDING BACK IS OFF: {why}")
+        return False
+
+    # -- is this clone one we may push to? ---------------------------------
+    def preflight(self):
+        """Both outcomes are normal. Called once; the answer is printed."""
+        if self.checked:
+            return self.enabled
+        self.checked = True
+        if not self.enabled:
+            return self._off(self.off_reason or "switched off for this run")
+        if self.repo is None:
+            return self._off("the repository folder was not found, so there is "
+                             "nowhere to send from. The pictures are still "
+                             "written to disk - zip the folder named at the end "
+                             "and send that.")
+        rc, out = self._git(["rev-parse", "--is-inside-work-tree"], timeout=60)
+        if rc == 127:
+            return self._off("Git is not installed on this PC. The pictures are "
+                             "safe on disk; zip the folder named at the end and "
+                             "send that instead.")
+        if rc != 0 or "true" not in out:
+            return self._off("this folder is not a git clone, so nothing can be "
+                             "pushed from it. The pictures are safe on disk - "
+                             "zip the folder named at the end and send that.")
+        rc, out = self._git(["rev-parse", "--abbrev-ref", "HEAD"], timeout=60)
+        here = out.strip().splitlines()[-1] if out.strip() else "?"
+        if rc != 0 or here != self.branch:
+            return self._off(
+                f"this clone is on branch '{here}', and the pictures belong on "
+                f"'{self.branch}'. NOTHING was sent, on purpose - pushing to the "
+                "wrong branch is worse than not pushing. Switch the clone to "
+                f"'{self.branch}' and run this again; the pictures already made "
+                "are kept and will be sent then.")
+        rc, out = self._git(["remote"], timeout=60)
+        if rc != 0 or "origin" not in out.split():
+            return self._off("this clone has no 'origin' to send to. The "
+                             "pictures are safe on disk.")
+        self.log(f"  sending back is ON: branch {self.branch}, every "
+                 f"{self.every_images} pictures or {self.every_minutes:.0f} minutes")
+        return True
+
+    # -- what to stage -----------------------------------------------------
+    def note(self, path):
+        """Name ONE file to include in the next commit. Never a directory."""
+        if path is None:
+            return
+        p = pathlib.Path(path)
+        if p not in self.pending:
+            self.pending.append(p)
+
+    def note_image(self, path):
+        self.note(path)
+        self.since += 1
+
+    def due(self):
+        return (self.since >= self.every_images
+                or (time.time() - self.last) / 60.0 >= self.every_minutes)
+
+    def maybe(self, message, force=False):
+        if not self.enabled or (not force and not self.due()):
+            return None
+        return self.publish(message)
+
+    # -- the act ------------------------------------------------------------
+    def publish(self, message):
+        """Commit the named files and push. Returns 'pushed' / 'committed' /
+        'nothing' / 'off', and prints a plain sentence for every one of them."""
+        if not self.preflight():
+            return "off"
+        names = []
+        for p in self.pending:
+            try:
+                rel = pathlib.Path(p).resolve().relative_to(self.repo.resolve())
+            except (ValueError, OSError):
+                continue                      # outside the repo: not ours to send
+            if (self.repo / rel).exists():
+                names.append(str(rel).replace("\\", "/"))
+        self.pending = []
+        if not names:
+            self.log("  nothing new to send - no new or changed pictures since "
+                     "the last time.")
+            return "nothing"
+        rc, out = self._git(["add", "--"] + names, timeout=300)
+        if rc != 0:
+            return self._fail("could not prepare the pictures for sending", out)
+        rc, _ = self._git(["diff", "--cached", "--quiet"], timeout=120)
+        if rc == 0:
+            self.log("  nothing new to send - the pictures on disk are already "
+                     "the ones that were sent last time.")
+            return "nothing"
+        commit = ["commit", "-m", message]
+        rc, out = self._git(["config", "user.email"], timeout=60)
+        if rc != 0 or not out.strip():
+            # A COMMIT NEEDS A NAME AND THIS PC MAY NOT HAVE ONE. Its own
+            # identity, not his: nothing here should write somebody's address
+            # into a commit they did not make.
+            commit = ["-c", "user.name=LEDGER imagegen",
+                      "-c", "user.email=imagegen@ledger.local"] + commit
+            self.log("  (this PC has no git name set, so the commit is made as "
+                     "'LEDGER imagegen' - nothing to fix, just saying so)")
+        rc, out = self._git(commit, timeout=300)
+        if rc != 0:
+            return self._fail("could not save the pictures into this PC's copy "
+                              "of the project", out)
+        self.commits += 1
+        self.since = 0
+        for n, attempt in enumerate(range(self.attempts), 1):
+            rc, out = self._git(["pull", "--rebase", "origin", self.branch], timeout=600)
+            if rc != 0:
+                self._git(["rebase", "--abort"], timeout=120)
+                if n < self.attempts:
+                    self.log(f"  someone else pushed while this ran - trying "
+                             f"again ({n} of {self.attempts})")
+                    time.sleep(self.retry_pause)
+                    continue
+                return self._fail(
+                    "someone else pushed to the project while this was running, "
+                    "and the two could not be merged automatically. The pictures "
+                    "are SAFE - they are saved in this PC's copy. Run this again "
+                    "later and it will send them.", out)
+            rc, out = self._git(["push", "origin", f"HEAD:{self.branch}"], timeout=900)
+            if rc == 0:
+                self.pushes += 1
+                self.last = time.time()
+                self.log(f"  SENT: {len(names)} file(s) pushed to {self.branch} "
+                         f"({message})")
+                return "pushed"
+            low = out.lower()
+            if ("authentication" in low or "could not read username" in low
+                    or "permission denied" in low or "403" in low):
+                return self._fail(
+                    "this PC could not sign in to GitHub, so the pictures could "
+                    "not be sent. They are SAFE - saved in this PC's copy of the "
+                    "project. Nothing needs installing; tell Claude and it will "
+                    "fetch them another way.", out)
+            if n < self.attempts:
+                self.log(f"  sending did not go through - trying again "
+                         f"({n} of {self.attempts})")
+                time.sleep(self.retry_pause)
+        return self._fail(
+            f"could not send after {self.attempts} tries. The pictures are SAFE "
+            "- they are saved in this PC's copy of the project. Run this again "
+            "later and it will send everything at once.", out)
+
+    def _fail(self, sentence, detail=""):
+        self.log(f"  COULD NOT SEND: {sentence}")
+        for line in (detail or "").strip().splitlines()[-6:]:
+            self.log(f"      {line}")
+        self.failures.append(sentence)
+        self.last = time.time()          # do not retry every single image
+        return "failed"
+
+    def summary(self):
+        if not self.enabled:
+            return f"sending back was OFF: {self.off_reason}"
+        return (f"sent back {self.pushes} time(s), {self.commits} commit(s) made"
+                + (f"; {len(self.failures)} could not be sent" if self.failures else ""))
+
+
+# ---------------------------------------------------------------------------
 # GENERATE
 # ---------------------------------------------------------------------------
 def round16(n):
     return max(256, int(round(n / 16.0)) * 16)
 
 
-def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False):
-    """Generate the batch. Writes each PNG and rewrites the manifest as it goes,
-    so a run killed halfway leaves a truthful record of what it did make rather
-    than nothing at all.
+def load_made(outdir, spec):
+    """What is already on disk and WHAT MADE IT - the resume record.
+
+    `made.json` is written after every image, so a run killed by a crash, a
+    reboot or a closed window continues from what it actually finished rather
+    than from the beginning. It records the RECIPE (see `recipe_of`), which is
+    what lets a changed prompt regenerate and an unchanged one skip.
+
+    LEGACY, and it is not hypothetical: the first real run (25 Aug) wrote a
+    manifest and no made.json. Rather than treat those twelve as unknown, the
+    recipe is reconstructed from the PROMPT THE MANIFEST RECORDED, so an item
+    whose prompt has not changed is still skipped. Where the old record cannot
+    supply the prompt or the size, the item is unknown and is made again -
+    "there is a file" was never the question.
+    """
+    made, source = {}, "nothing on record"
+    mp = pathlib.Path(outdir) / "made.json"
+    if mp.exists():
+        try:
+            made = json.loads(mp.read_text(encoding="utf-8")).get("items", {})
+            source = f"made.json, {len(made)} item(s)"
+            return made, source
+        except Exception as e:                                # noqa: BLE001
+            source = f"made.json unreadable ({type(e).__name__}), falling back"
+    legacy = pathlib.Path(outdir) / "manifest.json"
+    if legacy.exists():
+        try:
+            old = json.loads(legacy.read_text(encoding="utf-8"))
+            by_id = {i["id"]: i for i in spec.get("items", [])}
+            d = spec.get("defaults", {})
+            n = 0
+            for rec in old.get("images", []):
+                it = by_id.get(rec.get("id"))
+                if not it or rec.get("status") not in ("OK", "SKIPPED"):
+                    continue
+                if not rec.get("prompt") or rec.get("seed") is None:
+                    continue
+                made[rec["id"]] = {
+                    "recipe": recipe_of(it, rec["prompt"], "",
+                                        rec.get("width"), rec.get("height"),
+                                        rec.get("cfg", d.get("cfg", 1.0)),
+                                        rec.get("steps", d.get("steps", 8)),
+                                        rec["seed"], False),
+                    "from": "reconstructed from the previous manifest",
+                }
+                n += 1
+            source = f"the previous manifest, {n} item(s) reconstructed"
+        except Exception as e:                                # noqa: BLE001
+            source = f"previous manifest unreadable ({type(e).__name__})"
+    return made, source
+
+
+def save_made(outdir, made):
+    (pathlib.Path(outdir) / "made.json").write_text(json.dumps({
+        "_what": "The resume record: what is on disk and which recipe made it. "
+                 "Delete this file to have everything made again, or delete one "
+                 "PNG to have just that one made again.",
+        "written": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "items": made,
+    }, indent=2) + "\n", encoding="utf-8")
+
+
+def write_progress(outdir, manifest, rows, started, remaining_estimate):
+    """PROGRESS.txt - so a long run can be read from the REPOSITORY rather than
+    from his screen. It is committed with the pictures; nobody has to be asked
+    how far it has got.
+
+    Every line says which of the four states it is in, and the totals carry the
+    denominator: `0 failed` beside `of 14` is a fact, `0 failed` on its own is
+    not.
+    """
+    el = (time.time() - started) / 60.0
+    L = ["LEDGER imagegen - progress",
+         "=" * 58,
+         f"batch     {manifest['batch']}",
+         f"status    {manifest['status']}",
+         f"updated   {time.strftime('%Y-%m-%d %H:%M:%S')} local",
+         f"elapsed   {el:.0f} min",
+         f"done      {manifest['items_written']} written, "
+         f"{manifest['items_skipped']} already there, {manifest['items_failed']} "
+         f"failed, of {manifest['items_in_spec']} in the batch",
+         f"still to do  {len(manifest['not_attempted'])}"
+         + (f", about {remaining_estimate/60.0:.0f} min at the measured rate "
+            f"({COST_SOURCE})" if remaining_estimate else ""),
+         ""]
+    for r in rows:
+        L.append(f"  {r}")
+    L.append("")
+    L.append("Every image is review=pending until a human has looked at it.")
+    (pathlib.Path(outdir) / "PROGRESS.txt").write_text("\n".join(L) + "\n",
+                                                       encoding="utf-8")
+
+
+def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
+              publisher=None):
+    """Generate the batch. Writes each PNG, rewrites the manifest and the resume
+    record as it goes, and hands each finished picture to the publisher, so a
+    run killed halfway has already delivered - and can be resumed - rather than
+    losing everything it did.
 
     PER-ITEM SKIP, and why it is not optional. Every re-run used to regenerate
     all twelve and overwrite what was there, so the instruction that went with
     it was "copy fascia_mickeys.png and fascia_ritas_pawn.png aside by hand
     first" - a second decision, handed to the person whose whole requirement is
-    that there be only one. An item whose PNG is already on disk AND passes the
-    blank check is left alone and SAID SO, per item and in the summary; a
-    silent skip would be exactly as bad as the silent overwrite it replaces.
-    A BLANK or undecodable one is NOT skipped, because "a file exists" is not
-    the question - "is there a picture there" is, and that is the same question
-    #1031 forced this file to start asking of the generator's exit code.
+    that there be only one. An item is left alone when its PNG is on disk, it
+    passes the blank check, AND the recipe on record matches the one this run
+    would use; anything else is made again and SAID SO, per item and in the
+    summary. A BLANK or undecodable one is never skipped, because "a file
+    exists" is not the question - "is there a picture there" is, and that is the
+    same question #1031 forced this file to start asking of the exit code.
     `redo=True` (--redo) ignores everything on disk; deleting one PNG is the
     per-item version and needs no flag.
+
+    A FAILING IMAGE DOES NOT END THE RUN. It is logged, recorded in the
+    manifest and the next one starts - the batch is meant to run for hours with
+    nobody watching. The ONE early stop left is the first two BOTH failing with
+    nothing written, which is a broken runtime rather than a bad prompt, and it
+    says so.
     """
     # The writer owns its directory. main() also makes this, but a function
     # that writes twelve files and a manifest should not depend on a caller
@@ -1105,6 +1705,19 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False):
             # population it describes.
             "rechecked": 0, "remade": 0,
         },
+        # A THIRD REASON TO REMAKE, AND IT IS NOT A BLANK ONE. `remade` above
+        # counts pictures that were on disk and were not pictures. These two
+        # count pictures that were fine and were made from a DIFFERENT recipe -
+        # the prompt changed - or from one nothing recorded. Same action, three
+        # different facts, so three numbers rather than one.
+        "resume": {"what": "recipe = prompt + negative(if it can act) + size + "
+                           "cfg + steps + seed; a match is skipped, a mismatch "
+                           "is made again",
+                   "record": "", "kept": 0, "prompt_changed": 0, "unrecorded": 0},
+        "negatives": {"what": "--negative-prompt is passed whenever an item has "
+                              "one; it only ACTS when cfg != 1.0, because sd-cli "
+                              "evaluates the unconditional branch only then",
+                      "carried": 0, "active": 0, "inert_at_cfg1": 0},
         "items_in_spec": len(items),
         "items_attempted": 0, "items_written": 0, "items_failed": 0,
         "items_skipped": 0,
@@ -1116,18 +1729,68 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False):
     def save():
         mpath.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
+    # THE PROMPT FILE IS CHECKED BEFORE ANYTHING IS GENERATED, and a bad one
+    # stops the batch rather than producing twelve pictures of the fault. Both
+    # outcomes are exercised in the selftest: the live prompts.json is the
+    # accepting case, a synthetic broken spec is the rejecting one.
+    problems = validate_spec(spec)
+    if problems:
+        manifest["status"] = "REFUSED"
+        manifest["problems"] = problems
+        log("  REFUSED TO START: prompts.json is not usable as it stands.")
+        for p in problems:
+            log(f"    - {p}")
+        save()
+        return manifest
+
+    made, made_source = load_made(outdir, spec)
+    manifest["resume"]["record"] = made_source
     save()
     t_start = time.time()
+    rows, consecutive_fail = [], 0
+
+    def progress_rows():
+        done = {r["id"]: r for r in manifest["images"]}
+        out, todo = [], 0.0
+        for it in items_run:
+            r = done.get(it["id"])
+            w = round16(it["width"] * pl["size_scale"])
+            h = round16(it["height"] * pl["size_scale"])
+            if r is None:
+                est = estimate_seconds(w, h, item_cfg(it, d))
+                todo += est
+                out.append(f"[pending] {it['id']:<26} {w}x{h}  about {est:.0f}s")
+            elif r["status"] == "OK":
+                out.append(f"[made]    {it['id']:<26} {w}x{h}  {r.get('seconds', 0):.0f}s")
+            elif r["status"] == "SKIPPED":
+                out.append(f"[already] {it['id']:<26} left exactly as it was")
+            else:
+                out.append(f"[FAILED]  {it['id']:<26} {r.get('why', r.get('status'))}"[:110])
+        return out, todo
+
     for n, item in enumerate(items_run, 1):
         if (time.time() - t_start) / 60.0 > max_minutes:
             log(f"  STOPPING: wall-clock cap of {max_minutes} min reached after "
                 f"{n-1} of {len(items_run)} images. The rest are listed in the "
-                f"manifest under not_attempted; re-run to continue.")
+                f"manifest under not_attempted; re-run to continue - nothing "
+                f"already made will be made again.")
             break
         prompt = build_prompt(item, rules, style)
-        bad = check_forbidden(prompt, forbidden)
+        negative = build_negative(item, spec)
+        cfg = item_cfg(item, d)
+        seed = item_seed(item, d)
+        steps = d["steps"]
+        neg_active, neg_why = negative_state(cfg, negative)
+        bad = check_forbidden(prompt + " " + negative, forbidden)
         rec = {"id": item["id"], "kind": item["kind"], "binds_to": item["binds_to"],
-               "prompt": prompt, "review": "pending"}
+               "prompt": prompt, "negative": negative,
+               "negative_active": neg_active, "negative_note": neg_why,
+               "review": "pending"}
+        if item.get("probe"):
+            rec["probe"] = True
+        if negative:
+            manifest["negatives"]["carried"] += 1
+            manifest["negatives"]["active" if neg_active else "inert_at_cfg1"] += 1
         if bad:
             rec.update(status="REFUSED", why=f"prompt names forbidden mark(s): {bad}")
             manifest["images"].append(rec)
@@ -1139,25 +1802,45 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False):
         h = round16(item["height"] * pl["size_scale"])
         # FLAGS ARE A FUNCTION OF THE SIZE, NOT ONLY OF THE MACHINE - #1673.
         img_flags, flag_note = image_flags(pl, w, h)
-        seed = d["seed_base"] + n
+        recipe = recipe_of(item, prompt, negative, w, h, cfg, steps, seed, neg_active)
+        rec["recipe"] = recipe
         png = outdir / f"{item['id']}.png"
-        # ALREADY MADE? The file is asked the same question the generator's
-        # exit code cannot answer, and only a real picture earns the skip.
+        # ALREADY MADE? Three questions, not one: is there a file, is there a
+        # PICTURE in it, and was it made from THIS prompt. Only all three earn
+        # the skip, and each failure is counted under its own name.
         if png.exists() and not redo:
             st = png_stats(png)
             verdict, why = blank_verdict(st)
             manifest["blank_check"]["rechecked"] += 1
-            if verdict == "varied":
+            on_record = (made.get(item["id"]) or {}).get("recipe")
+            if verdict != "varied":
+                manifest["blank_check"]["remade"] += 1
+                log(f"  [{n}/{len(items_run)}] {item['id']}  the PNG already here is "
+                    f"{verdict.upper()}, so it is NOT skipped - making it again")
+                log(f"      {why}")
+            elif on_record is None:
+                manifest["resume"]["unrecorded"] += 1
+                log(f"  [{n}/{len(items_run)}] {item['id']}  nothing on record says "
+                    "which prompt made the PNG already here, so it is NOT skipped "
+                    "- making it again")
+            elif on_record != recipe:
+                manifest["resume"]["prompt_changed"] += 1
+                log(f"  [{n}/{len(items_run)}] {item['id']}  the prompt or settings "
+                    "changed since the PNG already here was made, so it is NOT "
+                    "skipped - making it again")
+            else:
                 rec.update(status="SKIPPED", file=png.name,
                            bytes=png.stat().st_size, sha256=sha256(png),
                            # MEASURED OFF THE FILE, NOT CLAIMED. This run did
-                           # not make it, so it cannot say which seed, flags or
-                           # size produced it - only what is in the pixels.
+                           # not make it, so it cannot say which flags produced
+                           # it - only what is in the pixels and what the resume
+                           # record says the recipe was.
                            made_by="an earlier run - this run did not make it, so "
                                    "the size below is measured from the file and "
-                                   "no seed or flags are recorded for it",
+                                   "no flags are recorded for it",
                            width=st.get("width"), height=st.get("height"),
-                           why="already on disk and it passed the blank check",
+                           why="already on disk, it passed the blank check, and "
+                               "the recipe on record is the one this run would use",
                            blank_check={"verdict": verdict, "why": why,
                                         "spread": st.get("spread"),
                                         "stdev": st.get("stdev"),
@@ -1165,16 +1848,13 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False):
                                         "sampled": st.get("sampled"),
                                         "pixels": st.get("pixels")})
                 manifest["items_skipped"] += 1
+                manifest["resume"]["kept"] += 1
                 manifest["images"].append(rec)
                 log(f"  [{n}/{len(items_run)}] {item['id']}  SKIP, already made "
                     f"({png.stat().st_size/1024:.0f} KB, spread {st.get('spread')}"
                     f"/255) - delete {png.name} to make it again")
                 save()
                 continue
-            manifest["blank_check"]["remade"] += 1
-            log(f"  [{n}/{len(items_run)}] {item['id']}  the PNG already here is "
-                f"{verdict.upper()}, so it is NOT skipped - making it again")
-            log(f"      {why}")
         cmd = [str(exe),
                "--diffusion-model", str(ws / "models" / pl["quant_file"]),
                "--vae", str(ws / "models" / VAE["file"]),
@@ -1194,18 +1874,30 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False):
                # and we do not. The enum could not be read out of the string
                # table, and a wrong sampler name fails EVERY image in the batch.
                # Omitting the flag trades a guess for the maintainer's default.
-               "--cfg-scale", str(d["cfg"]),
-               "--steps", str(d["steps"]),
+               "--cfg-scale", str(cfg),
+               "--steps", str(steps),
                "--width", str(w), "--height", str(h),
                "--seed", str(seed), "--output", str(png),
                "--verbose"] + img_flags
-        rec.update(width=w, height=h, seed=seed, steps=d["steps"], cfg=d["cfg"],
+        # THE NEGATIVE, AND THE FLAG IS VERIFIED RATHER THAN REMEMBERED:
+        # `--negative-prompt` is in the string table of the sd-cli.exe this
+        # pipeline downloads, followed by its own help text `the negative
+        # prompt (default: "")`. It is passed whenever the item has one, and
+        # the manifest records whether it could ACT - see `negative_state`.
+        if negative:
+            cmd += ["--negative-prompt", negative]
+        rec.update(width=w, height=h, seed=seed, steps=steps, cfg=cfg,
                    sampler="sd-cli model-specific default (not overridden)",
                    flags=img_flags)
         if flag_note:
             rec["flag_note"] = flag_note
         manifest["items_attempted"] += 1
-        log(f"  [{n}/{len(items_run)}] {item['id']}  {w}x{h}  seed {seed}")
+        est = estimate_seconds(w, h, cfg)
+        log(f"  [{n}/{len(items_run)}] {item['id']}  {w}x{h}  seed {seed}  "
+            f"cfg {cfg}  about {est:.0f}s")
+        if negative and not neg_active:
+            log(f"      negative prompt recorded but INERT at cfg {cfg} - "
+                "sd-cli only evaluates it when cfg is not 1.0")
         if flag_note:
             log(f"      {flag_note}")
         t0 = time.time()
@@ -1264,7 +1956,10 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False):
         if failed:
             manifest["images"].append(rec)
             manifest["items_failed"] += 1
+            consecutive_fail += 1
             save()
+            rows, todo = progress_rows()
+            write_progress(outdir, manifest, rows, t_start, todo)
             if manifest["items_failed"] >= 2 and manifest["items_written"] == 0:
                 log("  STOPPING: the first two images both failed and none has "
                     "succeeded. Something is wrong with the runtime or the "
@@ -1275,21 +1970,39 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False):
                         "Vulkan bug (#1031) and not your machine. The named next "
                         "thing to try is in the machine report.")
                 break
+            log("      the run CONTINUES - one bad picture does not stop the "
+                "batch, and the count is in the summary at the end")
             continue
+        consecutive_fail = 0
         rec.update(status="OK", bytes=png.stat().st_size, sha256=sha256(png),
                    file=png.name)
         manifest["items_written"] += 1
+        made[item["id"]] = {"recipe": recipe, "seed": seed, "file": png.name,
+                            "when": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                            "from": "made by this run"}
+        save_made(outdir, made)
         bc = rec["blank_check"]
         log(f"      ok  {dt:.0f}s  {png.stat().st_size/1024:.0f} KB  "
             + (f"{bc['verdict']}: spread {bc['spread']}/255, "
                f"{bc['distinct']} levels over {bc['sampled']} of {bc['pixels']} px"
                if bc["spread"] is not None else f"{bc['verdict']}: not decoded"))
         if n == 1:
-            est = dt * len(items_run) / 60.0
+            est_all = dt * len(items_run) / 60.0
             log(f"      first image took {dt:.0f}s, so the batch projects to "
-                f"about {est:.0f} min for {len(items_run)} images")
+                f"about {est_all:.0f} min for {len(items_run)} images")
         manifest["images"].append(rec)
         save()
+        rows, todo = progress_rows()
+        write_progress(outdir, manifest, rows, t_start, todo)
+        # SEND IT BACK NOW, NOT AT THE END. Three pictures or ten minutes,
+        # whichever comes first: the most a crash can cost is one interval.
+        if publisher is not None:
+            publisher.note_image(png)
+            publisher.note(outdir / "manifest.json")
+            publisher.note(outdir / "made.json")
+            publisher.note(outdir / "PROGRESS.txt")
+            publisher.maybe(f"Meridian pictures: {manifest['items_written']} of "
+                            f"{len(items_run)} made")
 
     # DERIVED, NOT ACCUMULATED. Every break out of the loop above used to have
     # to remember to fill this in, and one of them did not. Reading it off the
@@ -1305,6 +2018,8 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False):
                           else "INCOMPLETE")
     manifest["written"] = time.strftime("%Y-%m-%dT%H:%M:%S")
     save()
+    rows, todo = progress_rows()
+    write_progress(outdir, manifest, rows, t_start, todo)
     return manifest
 
 
