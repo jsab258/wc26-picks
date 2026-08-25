@@ -29,6 +29,11 @@ you the wrong world.
   the silent-instrument failure. Put the tally, the maths and the string
   in the tested layer; let the top layer supply only membership, order and
   live state. Ruled a standing rule 25 Aug after the third instance.
+- **A placement metric ships in two halves: distance to the datum, and
+  whether the datum exists under the footprint — plus a breakdown per the
+  axis placement actually varies on (edge, region), never per camera.**
+  Eight blocks hung over open sea at foot-gap 0.00 exactly; the per-edge
+  breakdown is the half that saw it. Ruled a standing pattern 25 Aug.
 - **Selftest ships with the tool, accepting case first.** For tools that
   check the project itself, the live codebase is the accepting fixture,
   and the rejecting fixture is synthetic (a key that exists nowhere), so

@@ -124,6 +124,7 @@ namespace Ledger.CoreTests
                 TestImageStats();
                 TestSurfaceNames();
                 TestGroundGain();
+                TestSkylineTally();
                 TestDetail();
                 TestFrameRate();
                 TestMotionMatching();
@@ -13311,6 +13312,89 @@ namespace Ledger.CoreTests
         /// The tally does no colour conversion — it is arithmetic on what it
         /// is handed — so what is tested here is the arithmetic, the
         /// statistic (ratio OF MEANS), the denominators, and the shape.
+        static void TestSkylineTally()
+        {
+            Console.WriteLine("Skyline — what the horizon is made of, and whether it stands on anything:");
+
+            // ---- ACCEPTING, AND FIRST ON PURPOSE --------------------------
+            // The expensive failure is a formatter nothing survives, so the
+            // first assertion is that a healthy band reads as healthy. Shaped
+            // like the real one: a landward edge of works and stacks with a
+            // spire, a seaward side with a crane, every block seated.
+            var s = new Skyline();
+            s.Add("works", "Skyline_0_works", "N", 0f, -120f, 300f, true);
+            s.Add("works", "Skyline_1_works", "N", 0f, 40f, 320f, true);
+            s.Add("stack", "Skyline_2_stack", "N", 0f, 180f, 305f, true);
+            s.Add("spire", "Skyline_3_spire", "E", 0f, 500f, 60f, true);
+            s.Add("crane", "Skyline_4_crane", "E", 0f, 510f, -140f, true);
+            Check(s.Kinds() == "[crane:1,spire:1,stack:1,works:2]/n5",
+                  "skyline kinds tally, sorted, with the band total as denominator",
+                  s.Kinds());
+            Check(s.Foot() == "0.00/0.00/n5",
+                  "a seated band reads zero worst and zero median over five",
+                  s.Foot());
+            Check(s.ByEdge() == "[N:3/3,E:2/2,S:0/0,W:0/0]",
+                  "every edge prints, so an empty edge and an unseated one differ",
+                  s.ByEdge());
+
+            // ---- REJECTING: THE FAULT THIS WAS WRITTEN FOR ----------------
+            // The landed 36b90c9 band: eight of twenty-three standing off the
+            // north end of the ground plane. The number has to survive a
+            // GROSS gap — this one hangs 31m up — without saturating, and it
+            // has to name the offender so the next reader opens one block
+            // rather than twenty-three.
+            var bad = new Skyline();
+            bad.Add("works", "Skyline_0_works", "N", 31.4f, -31f, 294f, false);
+            bad.Add("works", "Skyline_1_works", "N", 0f, 40f, 200f, true);
+            bad.Add("stack", "Skyline_2_stack", "E", 0f, 380f, 10f, true);
+            Check(bad.Foot() == "31.40/0.00/n3",
+                  "a gross gap survives as the worst while the median stays honest",
+                  bad.Foot());
+            Check(bad.WorstAt() == "Skyline_0_works@-31,294",
+                  "the worst names the block and where on the map to look",
+                  bad.WorstAt());
+            Check(bad.ByEdge() == "[N:1/2,E:1/1,S:0/0,W:0/0]",
+                  "the edge the fault sits on is the one that reads short",
+                  bad.ByEdge());
+
+            // A SUNK BLOCK IS AS WRONG AS A HANGING ONE. A raw maximum would
+            // report 0.00 here and call the band seated.
+            var sunk = new Skyline();
+            sunk.Add("slab", "Skyline_9_slab", "W", -4.2f, -560f, 20f, true);
+            sunk.Add("works", "Skyline_8_works", "W", 1.1f, -560f, 90f, true);
+            Check(sunk.Foot() == "-4.20/-1.55/n2",
+                  "worst is the largest deviation either way, signed; median of two averages",
+                  sunk.Foot());
+
+            // ---- THE ZERO CASE, WHICH MUST NOT READ AS HEALTH -------------
+            // A band that never built and a band that built cleanly print the
+            // same "0.00" unless the empty case says so in words (rule 3b).
+            var none = new Skyline();
+            Check(none.Kinds() == "[nothing-measured]/n0",
+                  "an unbuilt band says so rather than printing an empty list",
+                  none.Kinds());
+            Check(none.Foot() == "nothing-measured/n0",
+                  "an unbuilt band's foot gap cannot read as a seated one",
+                  none.Foot());
+            Check(none.WorstAt() == "nothing-measured",
+                  "and neither can its worst offender",
+                  none.WorstAt());
+            Check(none.ByEdge() == "[N:0/0,E:0/0,S:0/0,W:0/0]",
+                  "the edge line still prints all four with denominators",
+                  none.ByEdge());
+
+            // ---- NO SPACES, ANYWHERE ---------------------------------------
+            // A verdict value containing a space is truncated silently by
+            // every reader in this repo. Checked on the values rather than
+            // trusted, including the ones built from caller-supplied names.
+            var spacey = new Skyline();
+            spacey.Add("works", "Skyline_1_works", "N", 0.5f, 12f, 300f, true);
+            foreach (var v in new[] { spacey.Kinds(), spacey.Foot(), spacey.WorstAt(),
+                                      spacey.ByEdge(), none.Kinds(), none.Foot(),
+                                      none.WorstAt(), none.ByEdge() })
+                Check(!v.Contains(" "), "no space in a verdict value", v);
+        }
+
         static void TestGroundGain()
         {
             Console.WriteLine("Ground gain — rendered over source, per material:");

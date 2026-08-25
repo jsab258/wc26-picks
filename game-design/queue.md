@@ -85,22 +85,31 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 ### screen. Nothing from a later stage starts while an earlier one has
 ### startable work, except reading a landed verdict, which is free.
 
+1. **AFTER THE SKYLINE/APRON LANDS — three follow-ups, and they are here
+   because a LOG that supersedes itself is not a queue.** (i) **`skylineFit`
+   is SERIES-FIRST**: one slot number (95.1m) now replaces the
+   radius-dependent arc, so the 1.76 measured under the old divisor is NOT
+   comparable — nobody quotes a fit until the new series lands. (ii)
+   **`groundMask*` and `farFrac` RE-BASELINE**: the apron is a REGIME CHANGE
+   in those series (ground/sky boundary rises +22px in hook, +73px in
+   copper), so they carry the schema mark when it lands and cross-run
+   comparisons across the boundary are void. (iii) **Supersede
+   `agent-reports/skyline-period.md`** once the four skyline keys land — its
+   own header instructs it. **Not closed until `skylineByEdge` reads k/k on
+   every edge in a landed verdict and the stills are read.**
+
 1. **PLAYBOOK REPO SYNCED — CLOSED 25 Aug.** `jsab258/game-studio` at
-   `63532cb`, `state=synced`. Ten lessons carried, four translated; the cadence
-   bug was live THERE too and is fixed. `agent-reports/template-sync-debt.md`.
+   `63532cb`, `state=synced`. Account: `agent-reports/template-sync-debt.md`.
 
-1. **THE CHEAP CI CHANNEL: LANDED GREEN AND CATCHING THINGS.** 311
-   consecutive reds over 7d 2h, one cause — the workflow's ReachCheck lacked
-   `--also ledger/Assets/Editor`. Green since `a1622670`; caught three dead
-   APIs within hours. Account: `roadmap-history.md` 2026-08-25. **OPEN:** the
-   Windows/mac Verdict steps report the SIM, so "lint failed" and "the sim
-   did not run" print the same sentence.
+1. **CHEAP CI: GREEN AND CATCHING THINGS.** 311 reds over 7d 2h, one cause
+   (workflow ReachCheck lacked `--also ledger/Assets/Editor`). Account:
+   `roadmap-history.md` 2026-08-25. **OPEN:** Windows/mac Verdict steps
+   report the SIM, so "lint failed" and "the sim did not run" read alike.
 
-1. **REJECTING FIXTURES REPINNED — LANDED.** `clip-motion` asserted `Joe.fbx`
-   has no take, `prop-dimensions` that `police.fbx` still reproduces a bug —
-   both would have gone red for the PROJECT improving; now synthetic two-rung
-   ladders. Third site queued: `lint-conditional-reach` rewrites a tracked
-   source file for its rejecting case (hand-run only).
+1. **REJECTING FIXTURES REPINNED — LANDED.** `Joe.fbx` and `police.fbx`
+   fixtures would have gone red for the PROJECT improving; now synthetic
+   two-rung ladders. Third site queued: `lint-conditional-reach` rewrites a
+   tracked source file for its rejecting case (hand-run only).
 
 1. **NOTE: `06f51f39`'s message says the comment sweep is incomplete —
    FALSE; it finished and landed in that same commit** (see
@@ -110,19 +119,11 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    not the work. This line is here because the queue is where a session
    believing that message would mint the re-do item.
 
-1. **THE DRY TOUR LANDED. ALBEDO IS RULED OUT; THE LEVER IS LIGHTING.**
-   The regime break stands: **every `district_*` row before the day-5 move
-   is incomparable** — ref-bench's pose series, frame-drift's district rows,
-   `tourDepth*`, `districtGround`, and `FilmGrade`'s GRAIN calibration
-   (amplitude falls 1.9x with rain, 0.0095 -> 0.0050). The 25 Aug landing
-   settled the fork: source albedo prints 0.41-0.44, rendered dry ground is
-   0.77-0.94, and **hook's own road reads 0.771 near / 0.944 far in ONE
-   frame** — albedo cannot vary with distance, an additive lift can. So a
-   ~2x gain sits between source and screen. `GroundGrade` does NOT move
-   again. `LightModel.cs:137`'s aperture unblocks for MEASUREMENT ONLY; the
-   lever moves once, after the masked series, from the landed number.
-   Full ruling: `decision-ground-albedo.md`.
-
+1. **THE DRY TOUR LANDED; ALBEDO IS RULED OUT.** Regime break stands: every
+   `district_*` row before the day-5 move is incomparable (ref-bench pose
+   series, frame-drift district rows, `tourDepth*`, `districtGround`, and
+   `FilmGrade`'s GRAIN calibration). `GroundGrade` does NOT move again — the
+   lever is the light-to-JPEG path. Full ruling: `decision-ground-albedo.md`.
 1. **SURVEY THE TWO UNREACHED KITS — MEASURE FIRST, WIRE AFTER THE
    LANDING.** `city-kit-roads` 47 models / 1 named / 45 unused;
    `city-kit-suburban` 13 / **0 named, ENTIRE KIT UNREACHED** (the ~150
@@ -271,17 +272,13 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    shots vs `0.18` over 17 — zero of three separates nothing; judge the
    `hunt_` pair. A PARKED beacon reads where six crossings do not.
 
-1. **THE DISTANT SKYLINE: GREYING HELPED, DID NOT CLOSE IT.** The tower was
-   the most saturated thing in `district_downtown` at **0.469**; after the
-   atlas grey it reads **0.394** — a 16% cut, and still above the brick
-   beside it at 0.324. `SkylineHaze` is sat 0.15 and a greyed texture times
-   it should land near that, so something is adding saturation back: fog
-   (fogRGB sits near 0.196) or the patch containing sky rather than tower.
-   **Next: measure a NAMED tower via `SurfaceUnder` rather than a screen
-   patch** — the same fix the light series needed, for the same reason.
-   *(`SkylineRepainted` also used to increment before the paint was
-   attempted, reporting success for a step it had never checked. Fixed.)*
-
+1. **THE DISTANT SKYLINE — VOID, THE NAMED TOWERS NO LONGER EXIST (25 Aug).**
+   The twelve glass towers this item measured were RETIRED as a premise
+   violation and replaced by 21 period blocks. **Every reading it carried is
+   void; the METHOD transfers.** That method: measure a NAMED object via
+   `SurfaceUnder`, never a screen patch — a patch cannot say whether it
+   caught tower or the sky beside it, which is what made the old saturation
+   reading unresolvable. Re-take against the new blocks once they land.
 1. **PAVING BLOWOUT: LEVEL HALVED, VARIANCE BARELY MOVED.** `districtGround`
    found `glossScale:4.00` — pinned at the clamp, the code giving up. Fixed
    (uniform scalar once the wet target outruns the map; `glossDropped=5
@@ -296,7 +293,10 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    four city kits, which is right for those and wrong as a total. Per kit,
    because one number cannot carry both questions.
    **city-kit-industrial went 0 -> 24 of 25** (twenty buildings and four
-   chimney stacks on the dockside skyline arc; account in the commit).
+   chimney stacks on the dockside skyline band; account in the commit).
+   *(Was "arc": the band is an OFFSET OUTLINE of the town bounds since 25
+   Aug, not a circle — the circle-vs-rectangle mismatch is what hung eight
+   blocks over open sea.)*
    **Still open, biggest first:**
    - **`city-kit-roads` 47 models, ONE named** (`light_curved`). Kerbs,
      crossings, barriers, cones, junctions — the densest unused kit there is

@@ -15,6 +15,13 @@ namespace Ledger.Game
         public static readonly Vector3 BarDoor = new Vector3(-6, 0, 6);
         public static readonly Vector3 BarCounter = new Vector3(-8.5f, 0, 8.5f);
 
+        /// The walkable ground slab's rectangle, in metres, as built — town
+        /// bounds plus the shoulder. Written by `Build`, read by
+        /// `BuildSkyline`, which must put its band outside the town and its
+        /// apron outside the band without crossing the water at the south
+        /// edge. There is no second copy of this arithmetic.
+        public static float GroundMinX, GroundMaxX, GroundMinZ, GroundMaxZ;
+
         static readonly List<Light> Lamps = new List<Light>();
         static readonly List<Renderer> Windows = new List<Renderer>();
         /// Whether each window is a ground-floor SHOPFRONT, in step with
@@ -284,6 +291,13 @@ namespace Ledger.Game
             const float shoulder = 40f;   // you can walk past the last junction
             float gw = (float)(gMaxX - gMinX) + shoulder * 2f;
             float gd = (float)(gMaxZ - gMinZ) + shoulder * 2f;
+            // KEPT, because the skyline band needs to know where the walkable
+            // ground stops: its apron must reach past the band and must NOT
+            // cross the water line at the south edge. Read rather than
+            // recomputed — two implementations of one rectangle is how the
+            // band came to be placed with no relation to the ground at all.
+            GroundMinX = (float)gMinX - shoulder; GroundMaxX = (float)gMaxX + shoulder;
+            GroundMinZ = (float)gMinZ - shoulder; GroundMaxZ = (float)gMaxZ + shoulder;
             ground.transform.position = new Vector3(
                 (float)(gMinX + gMaxX) / 2f, 0, (float)(gMinZ + gMaxZ) / 2f);
             // A Unity Plane is 10m per unit of scale.
@@ -3626,64 +3640,143 @@ namespace Ledger.Game
 
         // ---- primitive helpers ----
 
-        /// TOWN-PLAN.MD T1 item 3, the skyline. Orientation should come free
-        /// with a glance down any street: cranes mean the docks (south), the
-        /// gasometer marks the goods edge (east). All of it is silhouette
-        /// work — fog and distance do the drawing — so every piece is a box
-        /// or a cylinder, parked outside the block grid where nothing else
-        /// builds: the quay line south of Ironside's last avenue, and the
-        /// no-man's strip between Ironside and Gullwing (the goods spur
-        /// crosses that strip at z~-127; the drum sits 19m north of it).
+        // ---- the skyline band ----
+
+        /// HOW FAR BEYOND THE LAST STREET THE HORIZON STANDS, and how deep
+        /// the band is, in metres.
+        ///
+        /// THE OLD PLACEMENT WAS A CIRCLE AND THE TOWN IS NOT ROUND, which is
+        /// the whole of the floating fault. Blocks sat on a ring of radius
+        /// 250-428m about the ORIGIN while the ground plane is a rectangle
+        /// 854m wide by 443m deep — town bounds plus a 40m shoulder. Nothing
+        /// related the two, so eight of the twenty-three blocks landed beyond
+        /// the ground's z edge at 219m and stood on nothing, and two landed
+        /// INSIDE the Exchange's block footprint. Both are the same fault:
+        /// a placement that never asked where the town was.
+        ///
+        /// Measured before rewriting, by replaying the old arithmetic against
+        /// `StreetMap.BoundsOf`: 23 standing, 15 with ground under them, 8
+        /// hanging, every one of the eight on the north side (z 223..352).
+        /// That is exactly what the landed stills showed — `district_hook`
+        /// and `district_copper` look north and their towers hang; the
+        /// gullwing camera looks along the ring's east side and its towers
+        /// are seated. A single global offset would have "fixed" the first
+        /// two by sinking the third.
+        ///
+        /// So the band is now an OFFSET OUTLINE of the town's own bounds:
+        /// the same standoff in every direction, by construction outside
+        /// every district and by construction over ground that exists.
+        ///
+        /// THE TWO NUMBERS. `SkylineNear` is the nearest rank. At 120m a
+        /// 40m-tall mass subtends 18.4 degrees, which is a silhouette on the
+        /// horizon rather than a building at the end of the road (the town's
+        /// own outer blocks stand within 40m of the last junction). The band
+        /// is `SkylineDepth` deep so the horizon has front and back ranks
+        /// instead of reading as a fence — the old code's two rings had the
+        /// same intent and 160m keeps its spread.
+        const float SkylineNear = 120f;
+        const float SkylineDepth = 160f;
+
+        /// The apron of ground the band stands on, how far it runs BEHIND
+        /// the furthest rank, and how far short of the water it stops.
+        ///
+        /// The town's walkable Ground stops 40m past the last junction and
+        /// that is a gameplay constant, not a rendering one — widening it
+        /// would put 300m of walkable emptiness around the map. So the band
+        /// gets its own surface: the same concrete material, no new colour,
+        /// sitting 4cm BELOW the town's ground so the two can never z-fight
+        /// where they overlap. Four centimetres at the band's own distance
+        /// (120m at the nearest) subtends 0.019 degrees — about a fifth of a
+        /// pixel at 720 lines and a 60-degree vertical field, so the step
+        /// cannot be seen; and it is under the town everywhere the town has
+        /// its own ground, so it cannot be walked onto either.
+        ///
+        /// IT STOPS AT THE SHORE, AND THAT IS NOT A DETAIL. Meridian is a
+        /// PORT. The ground slab's south edge at `GroundMinZ` is the water
+        /// line — everything beyond it in the frame is sea, which is what
+        /// the dark band under the horizon in `district_gullwing` is. An
+        /// apron centred on the band would have paved 360m of it. So the
+        /// apron's south edge IS `GroundMinZ`, taken from the slab rather
+        /// than from a number of my own, and the band skips any slot that
+        /// would stand on the water.
+        ///
+        /// 120m behind the far rank: `SkylineSeaMargin` of clearance for the
+        /// widest block, plus a real strip of ground so a block standing on
+        /// the last metre of the plane does not show the plane's edge
+        /// immediately behind it — which is the same cliff, one rank out.
+        const float SkylineApronBehind = 120f;
+        const float SkylineApronY = -0.04f;
+
+        /// How far inland of the water line a block must stand, in metres.
+        ///
+        /// MEASURED, not chosen: the widest thing the band can place is a
+        /// `works` at its 38m target off `city-kit-industrial_building-s`,
+        /// which `tools/prop-dimensions.py` reads as 212 x 83.68 x 91.63 —
+        /// 96m wide and 42m deep once scaled, and up to 49m of AABB
+        /// half-extent once the slot's yaw turns it. 55m is that with a
+        /// little over, so a block placed at the limit still has its whole
+        /// footprint on land.
+        const float SkylineSeaMargin = 55f;
+
         /// How many skyline blocks stood, and how many wore a kit mesh. A
         /// fallback that never fires and one that always fires are the same
         /// single number (rule 3b), and this one has a real chance of never
         /// firing — the models arrive through a fetch job, not through the
         /// repo.
+        ///
+        /// NOT EVERY BLOCK CAN BE KITTED NOW, and the ratio's meaning moved
+        /// with the band. Cranes, gasholders, church spires and council
+        /// slabs are built from primitives because no kit on disk contains
+        /// one — checked against all seven kits with `tools/prop-reach.py`
+        /// and `tools/prop-dimensions.py` before any geometry was written.
+        /// So `skyline=k/m` now answers "did the industrial fetch arrive",
+        /// not "is every silhouette a mesh": the kinds that CAN be kitted are
+        /// works, stacks and tanks, and `skylineKinds` is what says how many
+        /// of the band those are.
         public static int SkylineBlocks, SkylineKitted;
-        /// How many skyline slots fell on the dockside arc, and how many of
+        /// How many skyline slots fell on the seaward half, and how many of
         /// those actually stood a kit mesh there.
         ///
+        /// SEAWARD IS NOW HALF THE BAND'S EAST AND WEST EDGES, not an arc.
+        /// The south edge carries no blocks at all — that is the water, and
+        /// the quay cranes in `BuildLandmarks` are the silhouette there.
+        ///
         /// PART AND WHOLE, because the slot count alone answers a question
-        /// nobody is asking. `SkylineDockside` was incremented above the
-        /// `kit != null` guard, so it counted the arc's SLOTS — a number
-        /// decided entirely by the ring geometry and identical on a build with
-        /// no industrial models fetched at all. The kit is what the band is
+        /// nobody is asking. `SkylineDockside` was once incremented above the
+        /// `kit != null` guard, so it counted SLOTS — a number decided
+        /// entirely by the band geometry and identical on a build with no
+        /// industrial models fetched at all. The kit is what the band is
         /// made of; `skylineDock=k/s` says whether it arrived (rule 3b).
         public static int SkylineDockside, SkylineDocksideKitted;
 
-        /// THE WORST TANGENTIAL FIT ON THE RING, and the width and slot it
+        /// THE WORST TANGENTIAL FIT ON THE BAND, and the width and slot it
         /// came from — one instant, three numbers, so they can honestly be
         /// divided (`bubblesAtWorst`'s rule).
         ///
         /// The fit is what decides whether this band reads as an industrial
         /// quarter or as one continuous wall: the industrial models are wide
         /// enough that a careless height target makes them touch. Eyeballing
-        /// that off a 1280x720 horizon at 250m through fog is exactly the
+        /// that off a 1280x720 horizon at 300m through fog is exactly the
         /// judgement rule 4 says is a hypothesis, so it is measured.
         ///
-        /// PER PROP, AT THAT PROP'S OWN RADIUS, and the old version was not.
-        /// It kept the widest footprint over the whole ring and divided it by
-        /// ONE slot spacing — sampled at whichever block happened to
-        /// instantiate first — while `radius` runs 250m to 428m across the
-        /// two rings and the jitter. That is 1.71x, so the divisor could be
-        /// 46m or 79m with nothing in the reading to say which, and the
-        /// numerator was a maximum taken somewhere else entirely: two maxima
-        /// divided, which is the fault CLAUDE.md keeps a table of. Each
-        /// block now divides its own width by its own slot and the WORST
-        /// ratio is kept, with the pair that produced it.
+        /// PER PROP, AGAINST THIS BAND'S OWN SLOT SPACING. The old version
+        /// divided by an arc `2*pi*r/Count` at the prop's ring radius; the
+        /// band is an outline now, so the spacing is the PERIMETER over the
+        /// slot count and it is the same for every block — which removes the
+        /// 1.71x ambiguity that comment recorded rather than papering it.
         ///
-        /// WHAT IT ANSWERS: whether a block is wider than the arc between two
-        /// adjacent slot ANGLES at its radius — tangential crowding, which is
-        /// the thing that turns a skyline into a wall.
+        /// WHAT IT ANSWERS: whether a block is wider than the gap between two
+        /// adjacent slots along the band — tangential crowding, which is the
+        /// thing that turns a skyline into a wall.
         ///
         /// WHAT IT DOES NOT: whether two meshes actually interpenetrate.
-        /// Adjacent slots alternate rings 46m apart RADIALLY (`i % 2`), so
-        /// neighbours are separated in depth as well as along the arc and a
-        /// ratio above 1 is a silhouette-crowding warning, not a collision.
-        /// The same-ring neighbour is two slots away, at twice this arc.
+        /// Adjacent slots alternate ranks (`i % 2`) up to 88m apart in
+        /// DEPTH, so neighbours are separated fore-and-aft as well as along
+        /// the band and a ratio above 1 is a silhouette-crowding warning,
+        /// not a collision.
         public static float SkylineFitWorst, SkylineWidestAtWorst, SkylineGapAtWorst;
 
-        /// What the distant towers are painted. See the note at the repaint:
+        /// What the distant band is painted. See the note at the repaint:
         /// the kit ships its own bright materials and this branch kept them,
         /// so the top third of every wide frame was pale lavender over a noir
         /// street.
@@ -3694,40 +3787,92 @@ namespace Ledger.Game
         /// than the air in front of it. Slightly blue, because haze is.
         static readonly Color SkylineHaze = new Color(0.34f, 0.36f, 0.40f);
 
-        /// How many kitted towers were repainted, so "the skyline is in the
+        /// How many skyline blocks were repainted, so "the skyline is in the
         /// palette" is a number rather than a hope. Zero with
         /// `skyline=n/m` non-zero would mean the repaint stopped running —
         /// which is exactly how this fault survived in the first place.
+        ///
+        /// COUNTS PRIMITIVE COMPOSITES TOO. Every block goes through one
+        /// repaint now whatever it is made of, because two paths and one
+        /// palette is how the kit branch came to be keeping the kit's own
+        /// lavender in the first place.
         public static int SkylineRepainted;
+
+        /// WHAT THE HORIZON IS MADE OF AND WHETHER IT IS STANDING ON
+        /// ANYTHING — the tally behind `skylineKinds`, `skylineFootGap`,
+        /// `skylineFootWorstAt` and `skylineByEdge`. Rebuilt each run; the
+        /// arithmetic and the strings are in `Ledger.Core.Skyline`, where
+        /// the tests can reach them.
+        public static Ledger.Core.Skyline SkylineBand = new Ledger.Core.Skyline();
+
+        /// THE MIX — a COMPOSITION CHOICE, said plainly because rule 2
+        /// forbids a number that only looks derived.
+        ///
+        /// What IS derived is the shape list. Meridian is a British port
+        /// town in the LATE-ANALOG eighties and nineties, so its horizon is
+        /// dock cranes, gasholders, mill and warehouse blocks, chimney
+        /// stacks, church spires and post-war council slabs. What stood
+        /// there until now was twelve slim glass towers with setbacks and
+        /// tapered crowns — the silhouette of a contemporary financial
+        /// district, arrived at because `city-kit-commercial`'s low-detail
+        /// models were the first thing that fitted a height target. Nothing
+        /// in the brief ever asked for them.
+        ///
+        /// The PROPORTIONS below are a judgement: works and chimneys
+        /// dominate, cranes only on the water side, spires and slabs
+        /// occasional, one gasholder. The instrument that lets the next run
+        /// set them on evidence rather than on my judgement is
+        /// `skylineKinds`, which prints what actually stood, per kind, with
+        /// the total as its denominator.
+        ///
+        /// Twelve entries each so a draw is `h % 12` and the weights are
+        /// countable by eye.
+        static readonly string[] SeawardMix =
+        {
+            "crane", "works", "stack", "works", "crane", "tank",
+            "works", "stack", "crane", "works", "stack", "tank",
+        };
+        static readonly string[] LandwardMix =
+        {
+            "works", "stack", "spire", "works", "slab", "stack",
+            "works", "gasholder", "stack", "spire", "works", "slab",
+        };
 
         /// THE CITY DOES NOT END AT THE LAST TERRACE.
         ///
-        /// Every eye-level frame so far ends in blank sky about two hundred
+        /// Every eye-level frame once ended in blank sky about two hundred
         /// metres out: the street runs to the edge of the built area and then
         /// there is nothing, which is what makes a town read as a diorama
         /// rather than as part of somewhere larger. Jafar's note against GTA5
         /// was density, textures, models — "making it feel like a real city" —
         /// and a horizon is the cheapest third of that.
         ///
-        /// USES THE KIT'S LOW-DETAIL BLOCKS, WHICH WERE MEASURED FIRST. The
-        /// eleven building models fetched for this decision came back with
-        /// every FULL building on a roughly square plan (88x94, 97x94,
-        /// 130x103) against our terrace parcels at about 1:2 — so they cannot
-        /// be terraces at any scale, and that half of the idea is closed on
-        /// geometry. The low-detail set is a different answer: 90 to 112
-        /// vertices at a 1:4 tower ratio. Thirty of them is under 4k
-        /// vertices, against a scene already carrying ~280k in bodies alone,
-        /// and a distant block is exactly where a flat palette colormap costs
-        /// nothing — nobody reads brick at three hundred metres.
+        /// USES THE INDUSTRIAL KIT WHERE THE KIT HAS THE SHAPE, AND
+        /// PRIMITIVES WHERE IT DOES NOT. Measured before choosing, with
+        /// `tools/prop-dimensions.py` over every model on disk: the twenty
+        /// `city-kit-industrial` buildings are squat wide masses (208x147,
+        /// 132x73) that read as mills and sheds; the four chimneys are
+        /// 20x100 to 100x170, which is a stack; `detail-tank` is 85x42, a
+        /// bulk tank, and it was the ONE model in that kit no line of the
+        /// Game layer named. No kit on disk contains a crane, a gasholder, a
+        /// spire or a slab block, so those four are composed from boxes and
+        /// cylinders the way `BuildLandmarks` already composes the quay
+        /// cranes — and they share its helpers rather than repeating them.
         ///
         /// SCALED BY THE MESH'S OWN BOUNDS, not by a factor. Kit units are
         /// not metres (its `sedan` measures 150x145x255 and a sedan is 4.2m),
-        /// so the height is read off the renderer and scaled to a target the
+        /// so the height is read off the renderers and scaled to a target the
         /// same way `TrafficHost` fits a car to its kind's length.
+        ///
+        /// EVERY RENDERER, NOT THE FIRST ONE. Both the scale and the seating
+        /// used to read `GetComponentInChildren<Renderer>()`, which returns
+        /// ONE renderer out of however many the mesh has; on a multi-part
+        /// model that measures a part and seats the whole. `TotalBounds`
+        /// unions them.
         ///
         /// FALLS BACK TO A BOX, and counts which happened. The models arrive
         /// through a fetch job rather than through the repo, so a build
-        /// without them is not hypothetical — and a plain tower on the
+        /// without them is not hypothetical — and a plain mass on the
         /// horizon is still a better horizon than none.
         static void BuildSkyline()
         {
@@ -3735,43 +3880,64 @@ namespace Ledger.Game
             SkylineBlocks = SkylineKitted = SkylineRepainted = 0;
             SkylineDockside = SkylineDocksideKitted = 0;
             SkylineFitWorst = SkylineWidestAtWorst = SkylineGapAtWorst = 0f;
+            SkylineBand = new Ledger.Core.Skyline();
 
-            // The outer ring sits near 112m after the topology stretch and the
-            // docks run to z=-174, so this stands well outside both. Two loose
-            // rings rather than one so the horizon has depth instead of
-            // reading as a fence.
-            const int Count = 34;
-            string[] models =
+            // THE TOWN'S OWN BOUNDS, through `StreetMap.BoundsOf` — the same
+            // scaled read the ground plane uses. Reading `AvenuesX` raw here
+            // would put the band 178m from where the blocks are, which is the
+            // fault that comment records for four other call sites.
+            double tMinX = double.MaxValue, tMaxX = double.MinValue;
+            double tMinZ = double.MaxValue, tMaxZ = double.MinValue;
+            foreach (var d in Ledger.Core.StreetMap.Districts)
             {
-                "city-kit-commercial_low-detail-building-a",
-                "city-kit-commercial_low-detail-building-b",
-                "city-kit-commercial_low-detail-building-c",
-            };
+                Ledger.Core.StreetMap.BoundsOf(d, out var dx0, out var dx1,
+                                               out var dz0, out var dz1);
+                tMinX = System.Math.Min(tMinX, dx0); tMaxX = System.Math.Max(tMaxX, dx1);
+                tMinZ = System.Math.Min(tMinZ, dz0); tMaxZ = System.Math.Max(tMaxZ, dz1);
+            }
+            float cx = (float)(tMinX + tMaxX) * 0.5f;
+            float cz = (float)(tMinZ + tMaxZ) * 0.5f;
+            float halfW = (float)(tMaxX - tMinX) * 0.5f + SkylineNear;
+            float halfD = (float)(tMaxZ - tMinZ) * 0.5f + SkylineNear;
 
-            // AN INDUSTRIAL BAND BEHIND THE DOCKS, AND IT IS A DIFFERENT
-            // SILHOUETTE RATHER THAN MORE OF THE SAME ONE.
+            // The apron: the surface the band stands on. It reaches the near
+            // outline plus the band's depth plus the strip kept behind it on
+            // three sides, so no block can be placed off the edge of it —
+            // which is the whole repair, and the reason `skylineByEdge`
+            // should now read k/k on every edge.
             //
-            // `city-kit-industrial` is 25 models and until now the Game layer
-            // named none of them — `tools/prop-reach.py` reports the whole kit
-            // unreached, on a town whose identity is its docks. That is rule 6
-            // pointed at art: fetched, imported, turned into prefabs by
-            // `PropPrefab`, and called by nothing.
-            //
-            // MEASURED BEFORE USE, and the numbers decided the design rather
-            // than confirming it. From `tools/prop-dimensions.py`, the three
-            // commercial models above are slim towers — 50 wide by 200-225
-            // tall, about 100 verts. The industrial buildings are the
-            // opposite: `building-a` is 208 wide by 147 tall, `building-h` is
-            // 132 by 73, and they run 474-1574 verts. Squat, wide masses.
-            //
-            // WHICH IS WHY THEY GET THEIR OWN HEIGHT TARGET INSTEAD OF THE
-            // TOWER BAND'S. Scaling a 208x147 mass to the tower target of
-            // 26-78m makes it up to 110m WIDE, and at this radius the slots
-            // are 46-72m apart — so reusing the target would have produced
-            // one continuous wall of overlapping geometry, which is a thing
-            // I would then have read off a still and mis-diagnosed. Sheds sit
-            // low and the CHIMNEYS carry the height, which is also what an
-            // industrial skyline actually looks like.
+            // AND ITS SOUTH EDGE IS THE SHORE, NOT AN OFFSET. `GroundMinZ`
+            // is where the walkable slab stops and the sea begins; past it
+            // the frame is water, and paving it would trade one premise
+            // fault for another in the same pass.
+            float apronMinX = cx - (halfW + SkylineDepth + SkylineApronBehind);
+            float apronMaxX = cx + (halfW + SkylineDepth + SkylineApronBehind);
+            float apronMinZ = GroundMinZ;
+            float apronMaxZ = cz + halfD + SkylineDepth + SkylineApronBehind;
+            var apron = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            apron.name = "SkylineApron";
+            // ITS COLLIDER IS KEPT, DELIBERATELY. `groundMask`'s rays must
+            // HIT visible land: strip this collider and every ray crossing
+            // the apron passes through to nothing, so the instrument reports
+            // SKY over ground a player can plainly see, with nothing in the
+            // output saying why. The per-block collider-destroy loop below
+            // does not reach this object, and that is the intent rather than
+            // an oversight — do not "tidy" it into that loop.
+            apron.transform.position = new Vector3((apronMinX + apronMaxX) * 0.5f,
+                                                   SkylineApronY,
+                                                   (apronMinZ + apronMaxZ) * 0.5f);
+            // A Unity Plane is 10m per unit of scale.
+            apron.transform.localScale =
+                new Vector3((apronMaxX - apronMinX) / 10f, 1f, (apronMaxZ - apronMinZ) / 10f);
+            apron.GetComponent<Renderer>().sharedMaterial =
+                AssetLibrary.Material(AssetLibrary.Concrete);
+            // The town's ground tiles at one repeat per 3m; the apron is the
+            // same material and keeps the same texel density, so the two do
+            // not read as different surfaces where they meet.
+            SetTiling(apron, Mathf.RoundToInt((apronMaxX - apronMinX) / 3f),
+                             Mathf.RoundToInt((apronMaxZ - apronMinZ) / 3f));
+
+            const int Count = 34;
             string[] industrial =
             {
                 "city-kit-industrial_building-a", "city-kit-industrial_building-b",
@@ -3791,145 +3957,401 @@ namespace Ledger.Game
                 "city-kit-industrial_chimney-small", "city-kit-industrial_chimney-large",
             };
 
+            float perimeter = 4f * (halfW + halfD);
+            float slot = perimeter / Count;
+
             for (int i = 0; i < Count; i++)
             {
                 int h = System.Math.Abs(StableHash($"skyline{i}"));
-                float ang = (i / (float)Count) * Mathf.PI * 2f
-                            + (h % 100) / 100f * 0.09f;          // deterministic jitter
-                float radius = 250f + (h / 100 % 7) * 22f + (i % 2 == 0 ? 0f : 46f);
 
-                // SEAWARD STAYS EMPTY. The docks and their cranes are the
-                // silhouette on that side and they are the better one; a
-                // skyline behind them would read as a city built in the water.
-                var dir = new Vector3(Mathf.Sin(ang), 0, Mathf.Cos(ang));
-                if (dir.z < -0.55f) continue;
+                // WALK THE OUTLINE BY LENGTH, not by angle. Equal angular
+                // steps around a rectangle 1094m by 683m crowd the short
+                // ends; equal steps along the perimeter put the same number
+                // of silhouettes per kilometre of horizon wherever you stand.
+                float s = ((i + 0.5f) / Count) * perimeter;
+                string edge; float px, pz, nx, nz;
+                if (s < halfW * 2f) { edge = "N"; px = -halfW + s; pz = halfD; nx = 0f; nz = 1f; }
+                else if (s < halfW * 2f + halfD * 2f)
+                { edge = "E"; px = halfW; pz = halfD - (s - halfW * 2f); nx = 1f; nz = 0f; }
+                else if (s < halfW * 4f + halfD * 2f)
+                { edge = "S"; px = halfW - (s - halfW * 2f - halfD * 2f); pz = -halfD; nx = 0f; nz = -1f; }
+                else { edge = "W"; px = -halfW; pz = -halfD + (s - halfW * 4f - halfD * 2f); nx = -1f; nz = 0f; }
 
-                // THE TWO FLANKS OF THE SEAWARD GAP. The docks run to z=-174,
-                // so negative z is seaward and the arc between the empty gap
-                // and the sides is where a port's industry stands — behind the
-                // wharves, not inland among the offices. Geometry decides it,
-                // not a hand-picked index list, so it stays right if the ring
-                // count or the jitter changes.
-                bool dockward = dir.z < 0f;
+                // SEAWARD STAYS EMPTY. The docks run to z=-174 and their own
+                // cranes are the silhouette on that side; a band behind them
+                // would read as a city built in the water.
+                if (edge == "S") continue;
 
-                float target = dockward
-                    // Sheds low, stacks tall. Both bands measured off the
-                    // models rather than picked: at these proportions a shed
-                    // scaled past ~34m starts touching its neighbours.
-                    ? ((h / 700 % 3) == 0 ? 55f + (h / 90 % 5) * 10f      // a stack
-                                          : 16f + (h / 700 % 4) * 6f)     // a shed
-                    : 26f + (h / 700 % 9) * 6.5f;                         // 26..78m
-                var at = new Vector3(dir.x * radius, 0, dir.z * radius);
+                // Two ranks and a jitter, so the horizon has depth rather
+                // than reading as a fence: 0 or 88m back, plus 0..107m.
+                float outward = (i % 2 == 0 ? 0f : SkylineDepth * 0.55f)
+                              + (h / 100 % 7) * (SkylineDepth / 9f);
+                // Along the edge, up to a third of a slot either way, so the
+                // spacing does not read as a comb.
+                float along = ((h % 100) / 100f - 0.5f) * slot * 0.66f;
+                float tx = nz, tz = -nx;
+                var at = new Vector3(cx + px + nx * outward + tx * along, 0f,
+                                     cz + pz + nz * outward + tz * along);
 
-                string pickFrom;
-                if (!dockward) pickFrom = models[h % models.Length];
-                else if ((h / 700 % 3) == 0) pickFrom = stacks[h % stacks.Length];
-                else pickFrom = industrial[h % industrial.Length];
+                // AND NEITHER END OF THE SIDE EDGES REACHES INTO THE WATER.
+                // Dropping the south edge is not enough: the east and west
+                // edges run from z+299 down to z-304, and everything below
+                // the shore at `GroundMinZ` is sea. This is the second half
+                // of the same test and it is the half a "skip the S edge"
+                // rule quietly misses.
+                if (at.z < apronMinZ + SkylineSeaMargin) continue;
 
-                var kit = AssetLibrary.TryInstantiateProp(
-                    pickFrom, at, Quaternion.Euler(0, (h / 7) % 360, 0));
+                // The seaward HALF of the two side edges — where a port's
+                // own industry stands, behind the wharves rather than inland
+                // among the offices. Geometry decides it, not a hand-picked
+                // index list, so it stays right if the count or the standoff
+                // changes.
+                bool dockward = at.z < cz;
+                // THE DRAW WAS CHOSEN BY PRINTING THE SERIES, not by looking
+                // right. `StableHash` is a 31-multiplier over a string that
+                // differs only in its last characters, so its high bits
+                // barely move across 34 slots and most divisors collapse the
+                // mix: `h/13%12` gives 9 slabs and no spires at all, and
+                // `h/50000%12` gives 10 spires and no works. Replayed
+                // offline over the real slot list, `h%12` is the one that
+                // spreads — works 8, stack 5, spire 3, slab 2, and one each
+                // of crane, gasholder and tank. `skylineKinds` is what says
+                // whether that survived contact with the build.
+                string kind = (dockward ? SeawardMix : LandwardMix)[h % 12];
+
+                // HEIGHTS FROM THE REAL OBJECT, not from a look. Every band
+                // below is a real range for the thing named, written here so
+                // the next reader can argue with the object rather than with
+                // me:
+                //   crane      a level-luffing dockside crane stands 30-35m
+                //              to the cab; the portal cranes that replaced
+                //              them reach ~50m. A late-analog British port
+                //              has the former.
+                //   stack      a mill chimney runs 30-60m, a brickworks or
+                //              power-station stack 80-100m. Unchanged from
+                //              the band this replaces.
+                //   works      an industrial storey is ~4m and a Victorian
+                //              bonded warehouse or mill is 4-8 of them.
+                //   tank       a bulk storage tank at a small port stands
+                //              10-20m to the crown.
+                //   gasholder  a four-lift town-gas holder's guide frame is
+                //              about 40m; the bell rises inside it.
+                //   spire      a parish church spire is 30-45m, a big town
+                //              church up to 70m.
+                //   slab       a post-war council block at 12-21 storeys of
+                //              2.7m is 32-57m.
+                float target;
+                switch (kind)
+                {
+                    case "crane":     target = 30f + (h / 700 % 5) * 4f;  break;   // 30..46
+                    case "stack":     target = 45f + (h / 700 % 6) * 10f; break;   // 45..95
+                    case "works":     target = 18f + (h / 700 % 5) * 5f;  break;   // 18..38
+                    case "tank":      target = 12f + (h / 700 % 5) * 2f;  break;   // 12..20
+                    case "gasholder": target = 34f + (h / 700 % 4) * 4f;  break;   // 34..46
+                    case "spire":     target = 34f + (h / 700 % 5) * 6f;  break;   // 34..58
+                    default:          target = 34f + (h / 700 % 5) * 6f;  break;   // slab
+                }
+
+                string pickFrom = kind == "works" ? industrial[h % industrial.Length]
+                                : kind == "stack" ? stacks[h % stacks.Length]
+                                : kind == "tank" ? "city-kit-industrial_detail-tank"
+                                : null;
+                float yaw = (h / 7) % 360;
+
+                var block = pickFrom == null ? null
+                    : AssetLibrary.TryInstantiateProp(pickFrom, at, Quaternion.Euler(0, yaw, 0));
                 SkylineBlocks++;
                 if (dockward) SkylineDockside++;
-                if (kit != null)
+                if (block != null)
                 {
                     SkylineKitted++;
                     // INSIDE THE GUARD, unlike `SkylineDockside` above it: a
-                    // slot on the dockside arc and a shed standing on it are
+                    // slot on the seaward half and a shed standing on it are
                     // different facts, and the fetch that supplies these
                     // models can fail without the slot count moving at all.
                     if (dockward) SkylineDocksideKitted++;
-                    kit.name = $"Skyline_{i}";
-                    var r = kit.GetComponentInChildren<Renderer>();
-                    if (r != null && r.bounds.size.y > 0.01f)
-                        kit.transform.localScale = Vector3.one * (target / r.bounds.size.y);
-                    // Grounded after scaling — the mesh knows where its feet are.
-                    var g = kit.GetComponentInChildren<Renderer>();
-                    if (g != null) kit.transform.position = at + Vector3.up * (at.y - g.bounds.min.y);
-                    // MEASURED AFTER THE SCALE, which is the only moment the
-                    // number exists: the model's own width says nothing until
-                    // the height target has stretched it. Read from `g`, the
-                    // post-scale bounds, and not from `r` — same renderer, but
-                    // `r.bounds` was sampled before `localScale` was written
-                    // and a stale read here would report the FBX's authored
-                    // width as though it were the placed one.
-                    if (g != null)
-                    {
-                        // THIS BLOCK'S WIDTH AGAINST THIS BLOCK'S SLOT. The
-                        // arc between two adjacent slot angles is
-                        // `2*pi*r/Count` and `r` is this prop's own radius —
-                        // a ring 178m further out has slots 79m apart where
-                        // the inner one has 46m, and dividing by the wrong one
-                        // is the whole 1.71x error the field comment records.
-                        float w = Mathf.Max(g.bounds.size.x, g.bounds.size.z);
-                        float slot = 2f * Mathf.PI * radius / Count;
-                        float fit = w / slot;
-                        if (fit > SkylineFitWorst)
-                        {
-                            SkylineFitWorst = fit;
-                            SkylineWidestAtWorst = w;
-                            SkylineGapAtWorst = slot;
-                        }
-                    }
-                    // REPAINTED INTO THE HAZE, BECAUSE THE KIT SHIPS ITS OWN
-                    // MATERIALS AND THIS BRANCH WAS KEEPING THEM.
-                    //
-                    // Found by opening `district_strip`: the top third of the
-                    // frame is pale lavender-white towers standing over a noir
-                    // brick street. Every building in the town proper goes
-                    // through `MakeBoxVaried` and the palette; a kit prop
-                    // instantiated here arrives wearing whatever its author
-                    // painted it, and nothing touched it.
-                    //
-                    // THE FIX ALREADY EXISTED ONE SYSTEM OVER. `TrafficHost`
-                    // repaints kit cars for exactly this reason — its comment
-                    // says the kit's texture is "holiday-brochure mint" and
-                    // the first stills had every car on the street wearing it.
-                    // Same shape, same cause, and the skyline never got it:
-                    // one idea, two implementations, and the one nobody looked
-                    // at is the one missing a line.
-                    //
-                    // NOT AN INVENTED COLOUR (rule 2). The `else` branch four
-                    // lines down builds the same tower out of
-                    // `AssetLibrary.Concrete`, in the palette, and looks
-                    // right. The two branches of one function should produce
-                    // one look, so the kit path is tinted to agree with the
-                    // fallback rather than to a number somebody chose.
-                    //
-                    // Darkened further than the near town on purpose: these
-                    // stand at the far edge of the map, where distance and
-                    // haze take the contrast out of anything real. A skyline
-                    // that reads as BRIGHTER than the street in front of it is
-                    // the specific thing that made the frame look wrong.
-                    //
-                    // AND `SkylineRepainted` USED TO BE INCREMENTED ABOVE,
-                    // the moment the kit existed and BEFORE the paint was
-                    // attempted — so it reported success for something it had
-                    // never checked, which is the most misleading form a
-                    // counter can take. It counts what the shader ACCEPTED
-                    // now. Measured 24 Aug on `district_downtown`: the far
-                    // tower is the most saturated thing in the frame (0.469
-                    // against brick 0.324 and sky 0.222), and fog cannot
-                    // explain it because the fog colour itself sits near
-                    // 0.196 — so this repaint may have been evaporating all
-                    // along, exactly like the mint saloon's.
-                    SkylineRepainted += AssetLibrary.PaintKit(
-                        kit.GetComponentsInChildren<Renderer>(), SkylineHaze) > 0 ? 1 : 0;
-                    // `Object.Destroy`, not `Destroy` — this class is static
-                    // and has no MonoBehaviour to inherit it from. Caught by
-                    // the local Game-layer compile pass rather than by a
-                    // twenty-eight-minute round trip.
-                    foreach (var col in kit.GetComponentsInChildren<Collider>())
-                        Object.Destroy(col);
+                    var b0 = TotalBounds(block);
+                    if (b0.size.y > 0.01f)
+                        block.transform.localScale = Vector3.one * (target / b0.size.y);
                 }
                 else
                 {
-                    float w = 14f + (h / 9 % 5) * 4f;
-                    MakeBox($"Skyline_{i}", at + Vector3.up * (target * 0.5f),
-                        new Vector3(w, target, w), AssetLibrary.Concrete);
+                    // NOTHING ON DISK HAS THIS SHAPE — checked, not assumed.
+                    // `tools/prop-reach.py` lists seven kits and
+                    // `tools/prop-dimensions.py` measures every model in
+                    // them; none is a crane, a gasholder, a spire or a slab.
+                    // A `works` or `stack` reaching here means the
+                    // industrial fetch did not land, and a plain mass is
+                    // still a better horizon than a hole.
+                    block = kind == "crane" ? MakeCrane($"Skyline_{i}_crane", at, yaw, target / CraneUnitHeight)
+                          : kind == "gasholder" ? MakeGasholder($"Skyline_{i}_gasholder", at, target / GasholderUnitHeight)
+                          : kind == "spire" ? MakeSpire($"Skyline_{i}_spire", at, target)
+                          : MakeSlab($"Skyline_{i}_slab", at, target, yaw);
                 }
+
+                block.name = $"Skyline_{i}_{kind}";
+
+                // MEASURED AFTER THE SCALE, which is the only moment the
+                // number exists: the model's own width says nothing until
+                // the height target has stretched it.
+                var b = TotalBounds(block);
+
+                // SEATED ON THE GROUND PLANE, from the union of every
+                // renderer. `at.y` is 0 and the datum is 0 for every block on
+                // the band — the apron's 4cm drop is a render offset, not a
+                // seating one, so `skylineFootGap` has one datum and reads 0
+                // for a correctly seated block wherever it stands.
+                block.transform.position += Vector3.up * (0f - b.min.y);
+                b = TotalBounds(block);
+
+                if (b.size.y > 0.01f)
+                {
+                    // THIS BLOCK'S WIDTH AGAINST THE BAND'S SLOT. The band is
+                    // an outline, so the spacing is one number for the whole
+                    // run rather than an arc that changes with radius.
+                    float w = Mathf.Max(b.size.x, b.size.z);
+                    float fit = w / slot;
+                    if (fit > SkylineFitWorst)
+                    {
+                        SkylineFitWorst = fit;
+                        SkylineWidestAtWorst = w;
+                        SkylineGapAtWorst = slot;
+                    }
+                }
+
+                // IS THERE GROUND UNDER IT. The number that would have caught
+                // the fault, and the one `skylineFootGap` structurally could
+                // not: every hanging block was seated at y=0 exactly, so the
+                // foot gap read 0.00 while eight of them stood over open sky.
+                // The footprint, not the centre — a block half off the edge
+                // shows the edge.
+                bool onGround = b.center.x - b.extents.x >= apronMinX
+                             && b.center.x + b.extents.x <= apronMaxX
+                             && b.center.z - b.extents.z >= apronMinZ
+                             && b.center.z + b.extents.z <= apronMaxZ;
+                SkylineBand.Add(kind, block.name, edge, b.min.y - 0f, at.x, at.z, onGround);
+
+                // REPAINTED INTO THE HAZE, EVERY BLOCK, WHATEVER IT IS MADE
+                // OF, BECAUSE THE KIT SHIPS ITS OWN MATERIALS AND ONE BRANCH
+                // WAS KEEPING THEM.
+                //
+                // Found by opening `district_strip`: the top third of the
+                // frame is pale lavender-white towers standing over a noir
+                // brick street. Every building in the town proper goes
+                // through `MakeBoxVaried` and the palette; a kit prop
+                // instantiated here arrives wearing whatever its author
+                // painted it, and nothing touched it.
+                //
+                // THE FIX ALREADY EXISTED ONE SYSTEM OVER. `TrafficHost`
+                // repaints kit cars for exactly this reason — its comment
+                // says the kit's texture is "holiday-brochure mint" and
+                // the first stills had every car on the street wearing it.
+                // Same shape, same cause, and the skyline never got it:
+                // one idea, two implementations, and the one nobody looked
+                // at is the one missing a line. It is now ONE call outside
+                // both branches, so a third branch cannot miss it either.
+                //
+                // NOT AN INVENTED COLOUR (rule 2). See `SkylineHaze`: it is
+                // read off the landed noon fog and set under it.
+                //
+                // Darkened further than the near town on purpose: these
+                // stand at the far edge of the map, where distance and
+                // haze take the contrast out of anything real. A skyline
+                // that reads as BRIGHTER than the street in front of it is
+                // the specific thing that made the frame look wrong.
+                //
+                // AND `SkylineRepainted` USED TO BE INCREMENTED the moment
+                // the kit existed and BEFORE the paint was attempted — so it
+                // reported success for something it had never checked, which
+                // is the most misleading form a counter can take. It counts
+                // what the shader ACCEPTED.
+                SkylineRepainted += AssetLibrary.PaintKit(
+                    block.GetComponentsInChildren<Renderer>(), SkylineHaze) > 0 ? 1 : 0;
+                // `Object.Destroy`, not `Destroy` — this class is static
+                // and has no MonoBehaviour to inherit it from. Caught by
+                // the local Game-layer compile pass rather than by a
+                // twenty-eight-minute round trip.
+                foreach (var col in block.GetComponentsInChildren<Collider>())
+                    Object.Destroy(col);
             }
         }
 
+        /// The world-space bounds of EVERY renderer under an object, unioned.
+        ///
+        /// Exists because `GetComponentInChildren<Renderer>()` returns the
+        /// FIRST renderer and the skyline used it twice — once to decide the
+        /// scale and once to decide where the feet go. On a single-mesh prop
+        /// that is correct and on a multi-part one it measures a part and
+        /// then seats the whole thing by it. Returns a zero-size bounds at
+        /// the object's own position when there is nothing to measure, so a
+        /// caller dividing by `size.y` can guard on it.
+        static Bounds TotalBounds(GameObject go)
+        {
+            var rends = go.GetComponentsInChildren<Renderer>();
+            if (rends == null || rends.Length == 0)
+                return new Bounds(go.transform.position, Vector3.zero);
+            var b = rends[0].bounds;
+            for (int i = 1; i < rends.Length; i++) b.Encapsulate(rends[i].bounds);
+            return b;
+        }
+
+        /// A dockside crane, as boxes. `k` is a scale on the whole recipe.
+        ///
+        /// THE RECIPE IS THE QUAY CRANES', UNCHANGED AT k=1 — this is the
+        /// same object `BuildLandmarks` builds three of on the wharf, lifted
+        /// out so the skyline can stand bigger ones on the far bank instead
+        /// of a second implementation of the same idea. Two stepped tower
+        /// sections rather than one thin post: at review distance a 1.4m
+        /// tower faded to nothing while the 17m jib survived, and the first
+        /// landed build showed three jibs FLOATING. Thickness is what buys a
+        /// silhouette its legs.
+        ///
+        /// `CraneUnitHeight` is what this reaches at k=1: the tower tops out
+        /// at 18m, the cab sits on it, and the jib raked 24 degrees over 17m
+        /// carries the far end 3.5m higher — 25m, which is what a caller
+        /// scaling to a height target must divide by.
+        const float CraneUnitHeight = 25f;
+
+        static GameObject MakeCrane(string name, Vector3 at, float yaw, float k)
+        {
+            var root = new GameObject(name);
+            root.transform.position = at;
+            var dir = new Vector3(Mathf.Sin(yaw * Mathf.Deg2Rad), 0,
+                                  Mathf.Cos(yaw * Mathf.Deg2Rad));
+            MakeBox($"{name}_tower", at + new Vector3(0, 5f * k, 0),
+                new Vector3(2.8f * k, 10f * k, 2.8f * k), AssetLibrary.Metal)
+                .transform.SetParent(root.transform, true);
+            MakeBox($"{name}_tower_up", at + new Vector3(0, 14f * k, 0),
+                new Vector3(1.9f * k, 8f * k, 1.9f * k), AssetLibrary.Metal)
+                .transform.SetParent(root.transform, true);
+            MakeBox($"{name}_cab", at + new Vector3(0, 18.7f * k, 0),
+                new Vector3(2.6f * k, 1.9f * k, 2.4f * k), AssetLibrary.Metal)
+                .transform.SetParent(root.transform, true);
+            var jib = MakeBox($"{name}_jib",
+                at + new Vector3(0, 21.6f * k, 0) + dir * (7.6f * k),
+                new Vector3(0.8f * k, 0.8f * k, 17f * k), AssetLibrary.Metal);
+            jib.transform.rotation = Quaternion.Euler(-24f, yaw, 0);
+            jib.transform.SetParent(root.transform, true);
+            var counter = MakeBox($"{name}_counter",
+                at + new Vector3(0, 19.2f * k, 0) - dir * (2.6f * k),
+                new Vector3(0.7f * k, 0.7f * k, 5f * k), AssetLibrary.Metal);
+            counter.transform.rotation = Quaternion.Euler(0, yaw, 0);
+            counter.transform.SetParent(root.transform, true);
+            MakeBox($"{name}_weight", at + new Vector3(0, 18.3f * k, 0) - dir * (4.6f * k),
+                new Vector3(1.6f * k, 1.4f * k, 1.2f * k), AssetLibrary.Concrete)
+                .transform.SetParent(root.transform, true);
+            return root;
+        }
+
+        /// A gasholder: a drum in a guide frame that outlives the drum's
+        /// travel — the frame runs taller than the bell, as they do. `k`
+        /// scales the whole recipe; `GasholderUnitHeight` is the frame's
+        /// height at k=1, which is what a caller with a height target
+        /// divides by.
+        ///
+        /// Same object as the goods-edge gasometer in `BuildLandmarks`, and
+        /// the same call, so the near one and the far ones cannot drift into
+        /// two different shapes.
+        const float GasholderUnitHeight = 14f;
+
+        static GameObject MakeGasholder(string name, Vector3 at, float k)
+        {
+            var root = new GameObject(name);
+            root.transform.position = at;
+            var drum = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            drum.name = $"{name}_drum";
+            drum.transform.position = at + Vector3.up * (5.5f * k);
+            drum.transform.localScale = new Vector3(9f * k, 5.5f * k, 9f * k);
+            drum.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Metal);
+            drum.transform.SetParent(root.transform, true);
+            for (int c = 0; c < 8; c++)
+            {
+                float a = c * 45f * Mathf.Deg2Rad;
+                MakeBox($"{name}_col_{c}",
+                    at + new Vector3(Mathf.Sin(a) * 9.6f * k, 7f * k, Mathf.Cos(a) * 9.6f * k),
+                    new Vector3(0.4f * k, 14f * k, 0.4f * k), AssetLibrary.Metal)
+                    .transform.SetParent(root.transform, true);
+            }
+            var ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            ring.name = $"{name}_ring";
+            ring.transform.position = at + Vector3.up * (13.8f * k);
+            ring.transform.localScale = new Vector3(9.8f * k, 0.12f * k, 9.8f * k);
+            ring.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Metal);
+            ring.transform.SetParent(root.transform, true);
+            return root;
+        }
+
+        /// A church tower and spire, as a stepped taper. `height` is the tip.
+        ///
+        /// PROPORTIONS FROM THE BUILDING, not from a look: on an English
+        /// parish church with a broach spire the tower carries a little over
+        /// half the total height and the spire the rest, and the tower is
+        /// roughly a sixth of the total height square on plan. Four
+        /// diminishing stages rather than a cone because Unity has no cone
+        /// primitive and a mesh built for one silhouette 300m away in fog is
+        /// work nobody can see — at that distance the steps are under a
+        /// pixel each.
+        static GameObject MakeSpire(string name, Vector3 at, float height)
+        {
+            var root = new GameObject(name);
+            root.transform.position = at;
+            float w = height / 6f;
+            MakeBox($"{name}_tower", at + new Vector3(0, height * 0.275f, 0),
+                new Vector3(w, height * 0.55f, w), AssetLibrary.Concrete)
+                .transform.SetParent(root.transform, true);
+            float step = height * 0.1125f;
+            for (int s = 0; s < 4; s++)
+            {
+                float y0 = height * 0.55f + s * step;
+                MakeBox($"{name}_spire_{s}", at + new Vector3(0, y0 + step * 0.5f, 0),
+                    new Vector3(w * (0.80f - 0.19f * s), step, w * (0.80f - 0.19f * s)),
+                    AssetLibrary.Concrete)
+                    .transform.SetParent(root.transform, true);
+            }
+            MakeBox($"{name}_finial", at + new Vector3(0, height + height * 0.015f, 0),
+                new Vector3(w * 0.06f, height * 0.03f, w * 0.06f), AssetLibrary.Metal)
+                .transform.SetParent(root.transform, true);
+            return root;
+        }
+
+        /// A post-war council block: one slab and the lift overrun on its
+        /// roof, which is the detail that tells a slab from a wall at this
+        /// distance.
+        ///
+        /// PROPORTIONS FROM THE BUILDING: a 20-storey slab block is about
+        /// 55m tall, 50m long and 14m deep, so length is ~0.9 of height and
+        /// depth ~0.25 of it. The lift-motor room is a real 3m box and does
+        /// not scale with the block.
+        static GameObject MakeSlab(string name, Vector3 at, float height, float yaw)
+        {
+            var root = new GameObject(name);
+            root.transform.position = at;
+            root.transform.rotation = Quaternion.Euler(0, yaw, 0);
+            var body = MakeBox($"{name}_body", at + new Vector3(0, height * 0.5f, 0),
+                new Vector3(height * 0.9f, height, height * 0.25f), AssetLibrary.Concrete);
+            body.transform.rotation = Quaternion.Euler(0, yaw, 0);
+            body.transform.SetParent(root.transform, true);
+            var lift = MakeBox($"{name}_lift", at + new Vector3(0, height + 1.5f, 0),
+                new Vector3(height * 0.16f, 3f, height * 0.25f), AssetLibrary.Concrete);
+            lift.transform.rotation = Quaternion.Euler(0, yaw, 0);
+            lift.transform.SetParent(root.transform, true);
+            return root;
+        }
+
+        /// TOWN-PLAN.MD T1 item 3, the near landmarks. Orientation should
+        /// come free with a glance down any street: cranes mean the docks
+        /// (south), the gasometer marks the goods edge (east). All of it is
+        /// silhouette work — fog and distance do the drawing — so every
+        /// piece is a box or a cylinder, parked outside the block grid where
+        /// nothing else builds: the quay line south of Ironside's last
+        /// avenue, and the no-man's strip between Ironside and Gullwing (the
+        /// goods spur crosses that strip at z~-127; the drum sits 19m north
+        /// of it).
+        ///
+        /// THIS COMMENT USED TO SIT ABOVE `SkylineBlocks`, describing the
+        /// skyline, and it described neither — the skyline is a band of kit
+        /// meshes 120m past the last street, not a hand-placed box on the
+        /// quay. It is over the function it was always about.
         static void BuildLandmarks()
         {
             if (!TownPlanEnabled) return;
@@ -3938,56 +4360,21 @@ namespace Ledger.Game
             // as machines parked mid-task rather than one machine copied.
             float[] cxs = { -34f, 2f, 36f };
             float[] slew = { 160f, 200f, 125f };   // yaw; roughly seaward
+            // ONE RECIPE, BUILT HERE AND ON THE SKYLINE. `MakeCrane` is this
+            // loop's own geometry lifted out unchanged at k=1 — the tower
+            // steps, the 17m jib raked 24 degrees, the counter-jib and its
+            // kentledge — so the wharf's cranes and the band's far ones
+            // cannot drift into two different machines. Part names are
+            // unchanged: `Crane_2_tower_up` is still 1.9m square at x36
+            // z-174 spanning y10..18, which three comments in `SimDirector`
+            // quote as the shot-blocker fixture.
             for (int i = 0; i < cxs.Length; i++)
-            {
-                float x = cxs[i], z = -174f;
-                // Two stepped sections, not one thin post: at review distance
-                // a 1.4m tower faded to nothing while the 17m jib survived,
-                // and the first landed build showed three jibs FLOATING.
-                // Thickness is what buys a silhouette its legs.
-                MakeBox($"Crane_{i}_tower", new Vector3(x, 5f, z),
-                    new Vector3(2.8f, 10f, 2.8f), AssetLibrary.Metal);
-                MakeBox($"Crane_{i}_tower_up", new Vector3(x, 14f, z),
-                    new Vector3(1.9f, 8f, 1.9f), AssetLibrary.Metal);
-                MakeBox($"Crane_{i}_cab", new Vector3(x, 18.7f, z),
-                    new Vector3(2.6f, 1.9f, 2.4f), AssetLibrary.Metal);
-                var dir = new Vector3(Mathf.Sin(slew[i] * Mathf.Deg2Rad), 0,
-                                      Mathf.Cos(slew[i] * Mathf.Deg2Rad));
-                // The jib: 17m, raked 24 degrees up from the cab. Centre sits
-                // half its horizontal reach out along the slew.
-                var jib = MakeBox($"Crane_{i}_jib",
-                    new Vector3(x, 21.6f, z) + dir * 7.6f,
-                    new Vector3(0.8f, 0.8f, 17f), AssetLibrary.Metal);
-                jib.transform.rotation = Quaternion.Euler(-24f, slew[i], 0);
-                // Counter-jib and its kentledge block, opposite and low.
-                var counter = MakeBox($"Crane_{i}_counter",
-                    new Vector3(x, 19.2f, z) - dir * 2.6f,
-                    new Vector3(0.7f, 0.7f, 5f), AssetLibrary.Metal);
-                counter.transform.rotation = Quaternion.Euler(0, slew[i], 0);
-                MakeBox($"Crane_{i}_weight", new Vector3(x, 18.3f, z) - dir * 4.6f,
-                    new Vector3(1.6f, 1.4f, 1.2f), AssetLibrary.Concrete);
-            }
+                MakeCrane($"Crane_{i}", new Vector3(cxs[i], 0f, -174f), slew[i], 1f);
 
-            // The gasometer: a drum in a guide frame that outlives the drum's
-            // travel — the frame runs taller than the bell, as they do.
-            var gpos = new Vector3(70f, 0f, -108f);
-            var drum = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            drum.name = "Gasometer_drum";
-            drum.transform.position = gpos + Vector3.up * 5.5f;
-            drum.transform.localScale = new Vector3(9f, 5.5f, 9f);
-            drum.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Metal);
-            for (int k = 0; k < 8; k++)
-            {
-                float a = k * 45f * Mathf.Deg2Rad;
-                MakeBox($"Gasometer_col_{k}",
-                    gpos + new Vector3(Mathf.Sin(a) * 9.6f, 7f, Mathf.Cos(a) * 9.6f),
-                    new Vector3(0.4f, 14f, 0.4f), AssetLibrary.Metal);
-            }
-            var ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            ring.name = "Gasometer_ring";
-            ring.transform.position = gpos + Vector3.up * 13.8f;
-            ring.transform.localScale = new Vector3(9.8f, 0.12f, 9.8f);
-            ring.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Metal);
+            // The gasometer on the goods edge — the same recipe the skyline
+            // band stands its distant ones on, at k=1. Part names unchanged
+            // (`Gasometer_drum`, `Gasometer_col_0..7`, `Gasometer_ring`).
+            MakeGasholder("Gasometer", new Vector3(70f, 0f, -108f), 1f);
         }
 
         /// A box in a FLAT COLOUR rather than a logical surface — for the

@@ -10306,6 +10306,15 @@ namespace Ledger.Game
         /// is not fixed here — this is a camera, and a camera that has to be
         /// re-aimed is the evidence for that item, not its repair.
         ///
+        /// AND THE WORLD FAULT IS NOW REPAIRED, ELSEWHERE. `BuildSkyline`
+        /// placed its band on a CIRCLE about the origin while the town is a
+        /// rectangle, which is how slot 25 came to stand inside the
+        /// Exchange; the band is an offset outline of `StreetMap`'s own
+        /// bounds now, so no block can land in a district by construction.
+        /// The re-aimed vantages below stay as they are — they were correct
+        /// for other reasons too, and moving a camera to chase a fixed fault
+        /// is how a regime break gets written into a file twice.
+        ///
         /// THAT WAS A POSE REGIME BREAK, FOR TWO ROWS AND NO OTHERS — the
         /// commit that landed as run 6137608. A THIRD ROW BREAKS HERE; its
         /// own declaration is further down, under EXCEPTION THREE.
@@ -16012,6 +16021,43 @@ namespace Ledger.Game
                       $"skylineDock={WorldBuilder.SkylineDocksideKitted}/{WorldBuilder.SkylineDockside} " +
                       $"skylineFit={(WorldBuilder.SkylineGapAtWorst > 0f ? WorldBuilder.SkylineFitWorst : -1f):0.00} " +
                       $"skylineWidest={WorldBuilder.SkylineWidestAtWorst:0.0}/{WorldBuilder.SkylineGapAtWorst:0.0} " +
+                      // WHAT THE HORIZON IS MADE OF, AND WHETHER IT IS
+                      // STANDING ON ANYTHING. Both faults these answer were
+                      // found by a person opening a JPEG and neither was
+                      // visible to any gate here, which is rule 4's repair:
+                      // a picture-found fault becomes a number.
+                      //
+                      // `skylineKinds` is a COUNT per silhouette kind with
+                      // the band total as its denominator, so "the skyline
+                      // is period" stops being a claim — twelve glass
+                      // towers and twelve chimney stacks read identically in
+                      // `skyline=k/m` and differently here.
+                      //
+                      // `skylineFootGap` is worst/median/n in metres of the
+                      // lowest vertex above the ground plane. The worst is
+                      // the largest deviation IN EITHER DIRECTION, printed
+                      // signed and unbounded — the fault it was written for
+                      // was tens of metres of open sky, so it must not
+                      // saturate, and a block sunk 4m is as wrong as one
+                      // hanging 4m. The median sits beside it because a peak
+                      // cannot say whether the BAND is seated.
+                      //
+                      // AND IT COULD NOT HAVE FOUND THE FAULT ON ITS OWN,
+                      // which is why `skylineByEdge` ships with it: every
+                      // hanging block WAS seated at y=0: the ground plane
+                      // just stopped 219m out while the old ring reached
+                      // 428m. `skylineByEdge` is seated/standing per compass
+                      // edge of the band, all four printed every run, and it
+                      // is per EDGE rather than per district because that is
+                      // the axis the fault varied on — north hung, the sides
+                      // stood, and a single figure hid it.
+                      //
+                      // Whole-run numbers, so they belong on this line: the
+                      // band is built once, before any shot.
+                      $"skylineKinds={WorldBuilder.SkylineBand.Kinds()} " +
+                      $"skylineFootGap={WorldBuilder.SkylineBand.Foot()} " +
+                      $"skylineFootWorstAt={WorldBuilder.SkylineBand.WorstAt()} " +
+                      $"skylineByEdge={WorldBuilder.SkylineBand.ByEdge()} " +
                       // The furniture repaint's wiring proof (rule 6): zero
                       // with benches landing means the tint stopped running,
                       // and white furniture is what that looks like.

@@ -1599,3 +1599,244 @@ a round trip". Reading order at the landing, in one place:
 Not re-litigated from here: the 06f51f39 message's sweep sentence is
 retracted above — do not re-brief the sweep; the `:918` sketch grammar
 is superseded — quote the CoreTests-pinned shape only.
+
+---
+
+# Landing review of 36b90c9 — the A/B answers, A–E ruled (director, 25 Aug 2026)
+
+> The Bypass A/B landed clean: sum identity holds
+> (`groundGainRays=4974/1078/6052`, 4974+1078=6052), one-ray-set proof
+> holds (`groundGainRawRays=4974/4974`), 961 of 2742 concrete rays
+> rejected as vertical. Tier-2 verifier established the position;
+> spot-checks done this session against the tree and the landed run,
+> not the report: `FilmGrade.cs:226` bypass-first and exactly one
+> `OnRenderImage` under `ledger/Assets/Scripts`; the single `Add` at
+> `SimDirector.cs:10953`; the fog toggle at `:9077-9079`; the raw/graded
+> rows and the anti-ordering read directly off `runs/36b90c9.txt:87`
+> (asphalt 0.0075 albedo / 0.1499 raw vs kerb 0.0670 / 0.1417).
+> Appended by the resident from director-supplied text: the whole-file
+> rewrite this Write-only session would have needed is the operation
+> that once destroyed 380 lines, and the record outranks the ceremony.
+
+## A. The grade half is CLOSED AS UNDERSTOOD and the lever is HELD.
+
+Adopted: the graded arm is `r * ACES(3.44 * raw)` with one free
+`r = 0.834`, all four materials inside ±5%; the bypass is structural,
+bloom is excluded, the aperture is one number. Nobody re-derives this.
+But the same landing shows the RAW arm is where the fault lives —
+asphalt reads 19.98x its own albedo BEFORE the grade touches it — so an
+aperture set now would be calibrated against a world about to change,
+and re-set after the raw term is attributed: two lever moves where one
+suffices, on a key at n=1 since the filter changed its regime. The
+06f51f39 review's §G.5 ("nothing moves a lever off this landing")
+stands. The aperture moves ONCE, off a printed series taken after the
+raw-side term is attributed — rule 2, and one move instead of two.
+
+## B. Next-measurement order AMENDED: (1) stays first, (3) is promoted
+to second, (2) is CUT.
+
+1. **Per-material `hit.distance` into the SAME `GroundGain.Add` call**
+   (`SimDirector.cs:10953`) — same ray, no new render. It closes the
+   fog term arithmetically for nothing, and it is ALSO the
+   grazing-angle proxy the specular suspect needs (an aerial camera's
+   long rays are its grazing rays), so it serves both hypotheses from
+   one field. Emit per row as mean plus spread, statistic named on the
+   line per the instrument rules.
+2. **Smoothness A/B: an arm forcing `_GlossMapScale = 0` on the ground
+   materials, same rays** — the only item that tests the actual
+   suspect. Same shape as the Bypass A/B; both arms print their ray
+   counts so the one-ray-set proof carries over.
+3. The verifier's (2) — a third render arm with `Bypass=true; fog=false`
+   — is cut, twice over: the fog model is already structurally dead
+   (anti-ordering, §"fog suspicion" of this landing), and the arm would
+   lean on exactly the toggle finding C leaves unproven. If the
+   distance field somehow revives fog, this arm can be re-queued then.
+
+## C. The `fogOff` rung is ILLEGIBLE, NOT CONVICTED — and the arithmetic
+on printed numbers says equality is the EXPECTED reading at facade
+distance.
+
+Finding adopted as a rule-3b fault: `fogOff` equals `all` to three
+decimals in every kept run, and nothing in the output distinguishes
+"fog contributes nothing here" from "the toggle at `SimDirector.cs:9077`
+never reaches that render". But do not read the equality as evidence of
+a dead toggle: the probe's own line prints `d:8.4` and
+`density=0.0131` (ExponentialSquared), and exp(-(8.4*0.0131)^2) = 0.988
+— a ~1.2% pull toward fogRGB, which on 0.082 is +0.001 and vanishes at
+three printed decimals. A WORKING toggle prints exactly what the
+history shows. At ground-tour depths (20.8–43.8m) the same arithmetic
+gives a 7–28% blend, decisively visible.
+
+The repair is 5b's corollary — plant the condition: a third reading in
+the facade ladder with fog forced dense (density x10, restored in the
+existing `finally`), printed beside `fogOff`. If the planted reading
+moves, the toggle reaches the render and `fogOff==all` becomes a
+legible pass; if it does not, the rung is dead and every historical
+`fogOff` is retired. Until that lands, NO fog measurement may cite the
+`fogOff` rung.
+
+## D. Asphalt's DENOMINATOR is under audit; the ratios are quotable only
+as "large", the orderings survive.
+
+Adopted: `MeanTexLuma` blits to an 8x8 ARGB32 linear RT, whose 8-bit
+quantum (0.0039) is over half asphalt's reported 0.0075, and whether
+mip selection yields a true box mean was not established. The cheapest
+test is approved: print `MeanTexLuma` beside the texture's CPU-side
+mean, same dispatch. Until it lands: the 67x / 19.98x asphalt figures
+are not quotable as numbers, only as "the raw arm is far above any
+direct-light account". What SURVIVES D either way: the fog refutation
+(asphalt-below-kerb ordering holds at ±1 quantum; 0.0075 vs 0.0670)
+and the grade model in §A (its fit is over rendered lumas, with albedo
+only labelling rows).
+
+## E. `gates.py --series` reading a schema change as a world change:
+REAL, QUEUED, not this dispatch.
+
+`groundGainRays` went `6041/6041` → `4974/1078/6052` and `--series`
+counted "changed 1 time(s)". A format change is a regime change, and
+this file's own rules say no statistic survives one — the reader should
+print a REGIME MARK at a schema boundary, not a change count across it.
+Local tool, no render, no urgency now that it is named: queue item
+"series-schema-mark", builder work, its accepting case is the live
+history file per the instrument selftest rule.
+
+## The specular suspect's standing
+
+Reflection-probe / GI specular is ADOPTED AS LEADING SUSPECT, MEASUREMENT
+ONLY. It is inferred (albedo-blind by construction, probe live per
+`LightModel.cs`, `_GlossMapScale` wetness-driven, and the landed
+`districtGround` line shows asphalt at gloss 0.78 / glossScale 0.93 /
+probes:1) and supported by two within-frame picture reads (wet-dark
+beside dry-bright in `district_gullwing`; dark sky over near-white
+ground in `district_ironside`) — which are hypotheses, not numbers
+(rule 4). No smoothness, probe or material lever moves off a picture.
+Dispatch item 2 is its test.
+
+## The next dispatch, ranked, ONE batch
+
+1. Per-material ray distance in the same `Add` (B.1).
+2. Smoothness A/B arm, `_GlossMapScale = 0` (B.2).
+3. `fogOff` planted-density self-proof rung (C).
+4. `MeanTexLuma` vs CPU-side texture mean, printed side by side (D).
+5. NOTHING that moves a lever: no exposure, aperture, fog, tonemap,
+   bloom, smoothness or albedo change ships in this batch.
+
+Queued, not dispatched: `series-schema-mark` (E).
+
+## Not re-litigated from here
+
+- The grade model (exposure x ACES, one free `r`) is settled; only the
+  aperture VALUE remains open, and it is set once, later, off a series.
+- Fog as the raw-arm explanation is dead by anti-ordering; no `(k,f)`
+  refits.
+- `fogOff==all` is not evidence of a dead toggle (the d:8.4 arithmetic
+  above); it is evidence of nothing until the planted rung lands.
+- For the record: the verifier retracted its own `noonFacade` −25%
+  finding against the series and refused `aoSpread` as ambiguous —
+  that is the instrument-first discipline working, noted so the
+  retraction is not re-found as a fresh anomaly.
+
+---
+
+# DIRECTOR RULING — the period skyline batch (25 Aug 2026, trigger 1)
+
+Appended here under this session's precedent for this file: the batch
+moves `groundMask*`, so its ruling belongs beside the ground-measurement
+plan above, and the dispatch ordering below binds that plan's batch.
+Verify green at review (3853 CoreTests, 180 Game files compiling, docs
+82/82). Citations spot-checked in code, not taken from the report.
+
+## Rulings, A-G
+
+**A — APPROVED. The cause is found, not patched.** The replay's own
+test: it PREDICTS the per-district pattern (north cameras hang, side
+cameras seat) and it independently reproduces the two slots inside the
+Exchange footprint that `SimDirector`'s vantage note recorded BEFORE
+this analysis existed — a fact the replay was not fitted to. The fix is
+in code as claimed: an offset outline of `StreetMap.BoundsOf`, walked
+by perimeter length. Spot-checked: 4*(507+301.5)=3234m over 34 slots is
+the 95.1m slot the report quotes, and the E/W edge span z+299..-304
+matches the code comment.
+
+**B — APPROVED, AND RATIFIED AS A STANDING PATTERN.** The insight is
+correct and general: a seating metric measures distance to a datum and
+says nothing about whether the datum EXISTS under the footprint. Every
+hanging block read foot-gap 0.00 because it was seated at y=0 exactly —
+over sea. `skylineByEdge`'s shape is right: per the axis the fault can
+vary on (edge), not per district, because a per-district split would
+attribute a placement fault to whichever camera faced it. Wording for
+`.claude/rules/instruments.md`, to land with this commit:
+
+    - **A placement metric ships in two halves: distance to the datum,
+      and whether the datum exists under the footprint — plus a
+      breakdown per the axis placement actually varies on (edge,
+      region), never per camera.** Eight blocks hung over open sea at
+      foot-gap 0.00 exactly; `skylineByEdge` is the half that saw it.
+
+**C — RECORDED, and the correction runs toward me.** I told the builder
+the detachment was hundreds of pixels; measured at `TourVantage`
+geometry (12 px/deg at 720 lines / 60 deg vfov), the foot-to-horizon
+band is ~20-40 px, consistent with the original 25 px finding. My
+hundreds was foot-to-ROOFTOP — real, but a different length. The 25 px
+figure STANDS and is not to be re-doubted; the builder measuring rather
+than accepting a director's correction is rule 3 applied correctly to
+the director, which is what tier-2/3 independence is for.
+
+**D — APPROVED.** `GroundMinZ` is written where the slab is built and
+read at the apron (one rectangle, one implementation — the fault's
+actual root). Both halves of the water test are in code: the S edge is
+skipped AND any slot with `at.z < apronMinZ + 55` is skipped, the 55
+derived from the measured worst post-yaw footprint (96m-wide works,
+49m half-extent), not chosen.
+
+**E — APPROVED WITH ONE RIDER (a comment line, in this commit).** The
+apron keeps its collider only because the per-block collider-destroy
+loop never reaches it; the deliberateness lives solely in a LOG report
+that instructs its own deletion once the keys land. One line at the
+apron's creation: collider KEPT deliberately — `groundMask` rays must
+hit visible land; stripping it makes the instrument report sky over
+ground with nothing saying why. Dispatch ordering ruled below.
+
+**F — APPROVED, verified in code.** `MakeCrane` at k=1 reproduces the
+fixture exactly (`_tower_up` 1.9m square, y10..18, placed x36 z-174),
+and exactly three `SimDirector` comment sites quote it. `MakeGasholder`
+likewise serves both the goods-edge gasometer and the band.
+
+**G — CHANGE REQUIRED: "queued" must mean the QUEUE.** The three
+follow-ups are named only in `skyline-period.md`, a LOG that supersedes
+itself on landing; none is in `queue.md`. Before commit, add one item
+carrying: (i) `skylineFit` is series-first — one slot number (95.1m)
+replaces the radius-dependent arc, so 1.76 under the old divisor is not
+comparable and nobody quotes a fit until the new series lands; (ii)
+`groundMask*` and `farFrac` re-baseline after the apron — a REGIME
+CHANGE in those series, to carry the schema mark when it lands; (iii)
+supersede the LOG once the four skyline keys land. Also annotate two
+stale queue lines while in the file: "dockside skyline arc" (the band
+is an outline now) and the DISTANT-SKYLINE greying item, whose named
+towers no longer exist — the named-object measurement transfers to the
+new blocks.
+
+## Dispatch ordering for E (binding)
+
+ONE dispatch, both batches together: the skyline/apron batch rides with
+the ground-measurement batch above (per-material ray distance, gloss
+A/B, fogOff rung, MeanTexLuma). Never a ground-measurement-only build
+first: a pre-apron baseline is voided on the very next landing — the
+exact fate of the 7/7 darkening baseline after the dry tour — and the
+ground batch's items are within-run comparisons, which the apron does
+not confound. The cross-run series that DO move are named in G's queue
+item and get the mark. A premise fix does not queue behind a baseline.
+
+## Close-out and the ladder
+
+Premise: a 1988 British port horizon is works, stacks, spires, council
+slabs, one crane line and a gasholder — this batch is the premise
+repair, and the glass towers it retires were never chosen by anyone.
+Quality: kit meshes wherever a kit has the shape (14/21), primitives
+only where `prop-reach`/`prop-dimensions` show nothing on disk does —
+measured before geometry, which is the standing order's shape. Next
+rungs are named and queued: `city-kit-suburban` (13 models, unreached),
+`detail-tank` as a ground-level dock prop. Not closed until the four
+skyline keys land in a verdict and the stills are read: `skylineByEdge`
+should read k/k on every edge, and the report's own header instructs
+its supersession at that point.
