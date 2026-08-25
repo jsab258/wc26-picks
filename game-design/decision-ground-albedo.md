@@ -473,3 +473,286 @@ file from git, do not diagnose a compile error.
 - **APPROVE-TO-COMMIT** for the batch as presented: `AssetLibrary.cs`,
   `SimDirector.cs`, `WorldBuilder.cs`, plus the two staged tool files,
   one reviewed commit, verify green with this row supplying the cadence.
+
+# Mask instrument batch — director review (25 Aug 2026)
+
+> Executes §B item 1 of the 25 Aug audit ruling (the retired "5 of 7 in
+> band 0.41–0.97" gate, replaced by mask instrument → landed series → band
+> from evidence). Diff read in full (390 lines); decoration claims verified
+> against `AssetLibrary.cs` live code this session (`"mat_" + logical`
+> :547, `logical + "_b"` :270, `baseMat.name + "#g" + g` :315).
+> APPROVE-TO-COMMIT — after the restore above.
+
+- **A. The ray-grid sampler is ACCEPTED as the execution of "§B render
+  mask" — and the record here is the correction of §B's mechanism, not an
+  erosion of it.** §B suggested a flat-white second render; the builder's
+  substitution reads the COMMITTED frame's own pixels, which is the better
+  instrument by this project's own rules — a second render is a different
+  photograph from the one a person opens. For the next session, in terms
+  that cannot be misread: **every `groundMask*` value is a MEAN over at
+  most 2,304 ray samples (64x36 grid), classified by the COLLIDER under
+  the sample, not a per-pixel measurement.** Its two known blind spots:
+  collider-less geometry is invisible (whatever stands behind it is
+  credited the pixel, luma included), and multi-material meshes classify
+  as submesh 0. Do not compare these values against a per-pixel mask
+  without saying so, and do not "fix" a small disagreement with ref-bench
+  band numbers — they are different quantities by design (§B/F1).
+  One knowing deviation ratified: `groundMaskThirdsBy` is thirds of the
+  GROUND SAMPLES, not F10's thirds of the fixed band. Since the band
+  instrument is retired, the masked thirds are the replacement quantity;
+  the unmasked band thirds die with the band.
+- **B. The Core file and CoreTests change are RATIFIED as anti-duplication,
+  verified not claimed**: `SurfaceNames.cs` holds NO surface list — it
+  takes the logicals as an argument, and the only list remains
+  `AssetLibrary.WetSurfaces` (add a surface there and the mask follows
+  with no other edit). The CoreTests array is a FIXTURE pinning the string
+  rule against today's four names, which Core could not read from the Game
+  layer anyway. The placement reason is the load-bearing one and it is
+  correct: a matcher inside the Game layer ships unrun here, and an unrun
+  classifier that matches nothing is exactly the silent-zero fault. The
+  scope excess over the brief is approved for this reason.
+- **C. The eight keys CONFIRMED against the diff**: all eight on the done
+  line; denominators lead (`groundMaskShots=m/o`, `groundMaskRays`
+  cast/hit/renderer/ground, `groundMaskSurfaces`); `nothing_measured` is
+  underscored; `name:none@0/2304` distinguishes ran-and-found-nothing from
+  never-ran; `groundMaskAcross` names itself a statistic of the tour
+  (min..max/med/n over seven shots). One legible asymmetry noted, not
+  blocking: a shot with zero ground rows only in `MeanBy` (as `none@`),
+  so the other three lists carry fewer name-keyed rows — discoverable via
+  the `none@` row, and a `GetPixels` failure shows as measured<offered
+  plus an `_errors` entry.
+- **D. NO BOUND, NO GATE — confirmed against the diff, not the report.**
+  No gate-list change, no comparison against any constant, no threshold
+  anywhere in the 390 lines; the done-line additions are pure printers and
+  the comment says so. §B item 2 stands executed as written.
+
+**READING INSTRUCTION FOR THE LANDING — write nothing about ground until
+this paragraph is applied.** Read `groundMaskRays` first, as a chain:
+
+- **`cast/hit/renderer/ground` with ground ≈ 0 and seven `none@0/2304`
+  rows**: the instrument found no ground, visibly. Do NOT set any band, do
+  NOT add colliders speculatively, do NOT loosen the name rule. The chain
+  says where it died: hit≈0 → colliders absent (roads are `CreatePrimitive`
+  slabs, so this would be surprising — verify before believing, rule 3);
+  renderer≪hit → the collider→renderer lookup; ground≈0 with renderer
+  healthy → live material names vs the string rule. Next dispatch adds ONE
+  diagnostic printer — the most-hit unmatched material names — and nothing
+  else changes until it lands.
+- **ground healthy and rows plausible**: the series starts. Per §B item 2
+  and §C, no band is set off ONE landing — read at least a short series,
+  cross-check frame-level quantities against ref-bench on the same stills
+  where both exist (0.001 encoding-noise bound applies), then set the band
+  from the printed series in a dated section here.
+
+Quality-ladder note at this close: the next rung for this instrument has a
+name — the per-pixel replacement-shader mask, rejected today for headless
+cost. It goes on the ladder, taken only if the sampler's blind spots are
+ever shown (by a still or the cross-check) to bias a real reading.
+
+---
+
+# Landing 14f964a read — ruling on A–F (director, 25 Aug 2026)
+
+> Ruling on the 14f964a landing: verdict GREEN, `districtGround`
+> col:0.41,0.42,0.44 as predicted, `tourResited=3/3` — and the
+> artifact-reader's frame measurements
+> (`agent-reports/landing-14f964a-stills.md`, F0–F12) showing every dry
+> frame's ground at 0.66–0.94 luma while wet frames read correct. Verified
+> in this session, not quoted from either report: `districtGround` is ONE
+> RAY, fired in downtown only (`SimDirector.cs:10450`,
+> `SurfaceUnder(cam, 0.5, 0.12)`); `frames.tsv` carries `rain` and `wet`
+> as the last two columns of EVERY row including the seven district rows;
+> `hunt_day*` appears in no agent report except the reader's own
+> exclusion of it.
+
+## A. PARTIAL — and the fork MOVES TO THE LIGHTING STACK. `GroundGrade`
+does not move again in either direction.
+
+The grade landed at source and the rendered dry street did not follow.
+Three pieces of evidence, none of them prose:
+
+1. **Source vs rendered on the same material family**: the printed graded
+   albedo is 0.41–0.44; the reader's dry road patches measure 0.77–0.94.
+   That is a 1.8–2.2x gain the material cannot supply — a colour cannot
+   render brighter than the light path makes it.
+2. **The near/far gradient inside ONE frame**: hook road near 0.771, hook
+   road far 0.944 (244,240,237), same material, same weather, same
+   exposure. Albedo is constant along a road; only a distance-dependent
+   additive term (fog/atmosphere blending toward a near-white colour) can
+   produce that gradient. This is the internal control that convicts the
+   light path rather than the surface.
+3. **The clean rain=0/wet=0 split**: the wet path multiplies these same
+   materials down to 0.218/0.057 and the frame reads as the best British
+   street this project has produced (reader §7). The materials are proven
+   CAPABLE of reading right; what differs between the good frames and the
+   snow frames is the dry-sun illumination path, not the surface.
+
+**A further albedo step is REFUSED.** Compensating a ~2x lighting lift
+with albedo puts the ground near 0.22 — and it would re-break the wet
+frames that 0.55 was derived FROM (Call 2: the archived correct frame ran
+at exactly this multiplier). That is moving the proven lever to hide an
+unmeasured one, the shape rule 2 forbids.
+
+**One honest caveat, recorded so the conclusion is falsifiable**: the
+prediction "the material moved as ordered" is proven by ONE ray at ONE
+point in ONE district — `districtGround` fires only in downtown
+(`SimDirector.cs:10450`). The family-wide claim currently rests on the
+code reading (the four-site `BaseColour` wiring), not on a printed number.
+The reader's numbers are CONSISTENT with all four members graded plus one
+uniform ~1.9x dry lift (0.42 x 1.9 ≈ 0.80, which is what pavement
+measures) — but consistent-with is not proven, which is what §B below
+buys.
+
+**What falsifies this ruling**, in writing: (a) `groundAlbedoBy` (ordered
+below) shows any `WetSurfaces` member off-grade at source → the albedo
+work is unfinished for THAT member and the lighting conclusion is
+premature for it; (b) the masked dry per-name rendered means land ≈ the
+source albedo → the reader's 14px patches were contaminated and the
+INSTRUMENT is the next question (rule 3) — no lighting lever moves on
+that outcome either.
+
+**Consequence for the blocked list**: the `LightModel.cs:137` aperture
+ceiling item's stated blocker — "re-judging it on pre-fix frames
+re-measures the fault" — is DISCHARGED: post-fix frames now exist. It
+unblocks for MEASUREMENT. The lever itself moves ONCE, after the masked
+series lands, sized from the landed dry/wet ratio — never by eye, never
+in the same batch as any albedo change. The `shadowRatio` fork (Call 4
+item 2 bound it to this landing) is re-judged AFTER the mask lands, on
+the same series, because a shadow ratio taken under an unmeasured 2x lift
+is not evidence about ambient fill either.
+
+## B. The mask batch ALREADY carries most of the answer. ONE addition
+before dispatch; nothing else joins.
+
+The decisive read is: **per-name ground-classified rendered mean
+(`groundMaskMeanBy`, already in the approved batch) DIVIDED BY per-name
+SOURCE albedo, per shot, split dry vs wet.** Ratio ≈1 on dry shots →
+hypothesis (b) above, instrument question. Ratio ≈2 and uniform across
+members → one downstream lift; size the lighting move from it. Ratio
+uneven across members → the un-moved member is named by its own row.
+
+- **ADD before dispatch: `groundAlbedoBy`** — the source albedo of each
+  `WetSurfaces` member as the sim holds it at shot time, per name, on the
+  done line, `/`-separated, no spaces. One printer, cannot confound, and
+  without it the division above compares a measurement against an
+  assumption. This supersedes the single-ray `districtGround` as the
+  family-wide source check.
+- **Do NOT add the rain/wet pairing** — verified this session: `rain` and
+  `wet` are the last two columns of every `frames.tsv` row including the
+  district rows. The pairing is a JOIN at read time, not a printer.
+- **The >0.80 blown fraction and `groundLumaNoon`**: NOT into this batch.
+  `groundMaskMeanBy` per name per shot carries the level; a mean at 0.8+
+  answers the fork. The blown-fraction and the reader's other printers
+  (F2 `brightestObj`, F3 `nightBrightestSurface`, F5 `skylineFootGap`,
+  F7 `camClear`, F10 `districtBodies`, F12 `decalYawErr`, F9
+  `clipsUntextured`) form the NEXT instrument batch, queued by name —
+  the approved batch is waiting on a gate fix and every addition beyond
+  one line delays the round trip that settles A.
+- The §B-item-1 reading instruction above (the `groundMaskRays` chain)
+  stands unchanged and is read FIRST.
+
+## C. The decal unblock condition is UNCHANGED. The frames change the
+expectation, not the mechanism.
+
+Masked series → band from evidence → director close-out, exactly as
+written in the audit ruling §B. What the frames add: the masked dry read
+will almost certainly land far out of family, so **expect decals to stay
+blocked through the lighting fix** — the sizing read happens on frames
+whose ground is in family, dry AND wet, which is at least two landings
+away. Do not unblock on the mask landing alone. F12 attaches to the decal
+item as a named sub-fault: 1081 decals are placed and the visible ones sit
+~45° off the road axis — `decalYawErr` (median angle vs road segment,
+count beside it) ships in the second instrument batch and the decal work,
+when it unblocks, fixes orientation before adding anything.
+
+## D. Skyline: D2 is a PREMISE VIOLATION, ruled now in writing; D1 and D2
+are ONE work item, ranked directly behind the ground-lighting lever.
+
+1. **The towers float** (25px of sky between base and horizon at
+   copper x=670, visible in strip and hook): real, high-confidence, a
+   world-geometry fault. Evidence printer: `skylineFootGap` with the
+   count of towers examined, so a zero is legible.
+2. **Twelve-plus black glass skyscrapers on the horizon**: nothing in
+   section 0, `visual-bar-spec.md`'s Meridian decomposition, or any brief
+   claims to draw them, and a forest of forty-storey curtain-wall towers
+   contradicts the stated premise directly — a British port town in the
+   late-analog eighties/nineties skylines with dock cranes, gasometers,
+   chimney stacks, church spires, warehouse rooflines, and at most a
+   handful of sixties/seventies council slabs. **The proposal (this
+   skyline) is wrong; the premise stands.** This is execution of the
+   written premise and of the 21 Aug visual order ("on Meridian's
+   content"), so it does not need Jafar's sign-off — but it IS a change he
+   will see, so the next update he asks for names it in one plain line.
+3. **One item, not two**: the same placement code that draws the towers
+   is where they float, so the builder brief is "replace the skyline
+   proxy set with period-correct silhouettes AND seat their bases on the
+   ground plane, shipping `skylineFootGap` in the same change as its own
+   evidence". Ranked: after the ground-lighting lever (the snow street
+   outranks everything), ahead of decals and all other F-items — it is
+   the first thing the eye finds in five of seven district shots and it
+   reads as the wrong city.
+
+## E. The frames.tsv provenance fault: fixed in the NEXT COMMIT TRAIN, and
+no landed conclusion is poisoned — checked, not assumed.
+
+The fault is exactly the staging rule's blind spot from the other side:
+`sim-shots-stage.sh` stages by name, `hunt_*` is not in the name list, and
+the sim writes `frames.tsv` rows for shots whose JPEGs never stage — so
+the ledger describes pictures that are not on disk (row 0.079 vs file
+0.114). The fix, ordered as tool work (non-CI, rides the next commit):
+**add `hunt_*` to the by-name stage list, conditional on the sim having
+written the file THIS run, and emit `framesStaged=N/M` naming any row
+whose picture did not stage** — the reader's own proposal, adopted; it is
+rule 3b's denominator applied to the ledger itself.
+
+Invalidation check, done this session: `hunt_day` appears in no agent
+report except the reader's own exclusion of it, so no picture-derived
+conclusion ever read those frames. The ledger ROWS are honest sim
+measurements of what was rendered (frame-drift compares rows, not JPEGs),
+so no number-derived conclusion is poisoned either. **Nothing landed needs
+retraction.** Severity stays high on principle — this is the evidence
+channel lying about what it holds — which is why it rides the next train
+rather than the queue.
+
+## F. The space-in-value keys: NOW, folded into the mask dispatch.
+
+`bodyAlbedo`, `rounds`, `worstWorldPair`, `gapWhy`, `massInRoad`,
+`speechVoicesWhy` — every listed key, reformatted to `/`-and-`..`
+notation per the instruments rule, in the same `SimDirector` emit code the
+mask batch already touches. Format-only, cannot confound any reading, and
+`verdict-read.py` currently truncates `bodyAlbedo` to `[0.01` with no
+sign of loss — the documented silent-truncation fault live in six places.
+Not a separate round trip; not the queue.
+
+## The next dispatch, in one list
+
+1. The approved mask instrument batch (after its gate fix), plus ONE
+   addition: `groundAlbedoBy` (§B above).
+2. The six space-in-value key reformats (§F).
+3. The `frames.tsv` staging fix + `framesStaged=N/M` (§E — tool/workflow
+   side of the same train).
+4. **Nothing that moves a lever.** No exposure change, no `GroundGrade`
+   change, no `AlbedoScale` change, no skyline geometry, no decals.
+
+In parallel, non-CI: brief the skyline item (§D) so it is ready to
+dispatch the moment the masked read lands; queue the second instrument
+batch (§B's printer list) by name.
+
+## Additions to "what the next session must NOT re-litigate"
+
+- **`GroundGrade` does not move again off dry frames, in either
+  direction.** The snow readings are a lighting-path finding; the one
+  authorized albedo-side adjustment remains §B's `AlbedoScale`-floor
+  clause, off the landed masked WET series only.
+- **No lighting lever moves before the masked series lands.** The
+  aperture-ceiling item is unblocked for measurement only; its move is
+  sized from the landed dry/wet ratio, once.
+- **`districtGround` col matching the prediction proves one ray in
+  downtown, not the family.** `groundAlbedoBy` is the family-wide source
+  check; do not quote the single ray as it.
+- **The skyline towers are ruled off-premise** (this section, §D). Do not
+  re-open "maybe they are intended"; the premise is written and they
+  contradict it.
+- **F8 (face shards) is untouched** — the reader marked it low-confidence
+  and said do not touch a rig on it; that stands until `skinBurst` or a
+  noon re-shoot says otherwise.
