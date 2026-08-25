@@ -3027,3 +3027,26 @@ voided by it and had to restart from the first dry landing.
 Three comments claiming "the review days are dry on every run there will
 ever be" were false the day they were written and were corrected with the
 measured schedule (`SimDirector` twice, `Weather.ForceRain` once).
+
+## 2026-08-23 — the day now reads as day, and the sills (closed, moved from the queue 25 Aug)
+
+**THE DAY NOW READS AS DAY**, and it was a MEASUREMENT not taste: a midday
+only a quarter brighter than a midnight. `Exposure` had been revised SIX
+times off single frames; `exposureCurve` printed the RESPONSE instead, so
+the aperture was shown to be the lever rather than guessed at. Day arm
+0.72 -> 2.44 lands noons 0.30-0.41, nights untouched, noon:night
+1.25 -> **2.35:1**. Three break fixtures re-anchored.
+
+**Two things would have eaten it silently, and both are still live levers
+— read this before touching either.** The `Clamp` ceiling sat at 1.85
+against a noon of 1.72, i.e. the fix had 0.13 of headroom before the clamp
+would have swallowed it and the frame would have shown nothing; it is now
+3.6. And the rain term multiplies into the same product. Either one, moved
+without printing the curve again, silently reverts this work.
+
+**SILLS ARE IN AND FREE** — 2,133 of them, no collider; +2,173 renderers
+with render cost and rest cost UNCHANGED. Weathering went into the TEXTURE
+rather than into geometry, which is why it was free. **Ground roughness
+maps bound, normalised by each map's own mean** — and that binding
+silently killed THREE `_Glossiness` writers, which was found afterwards
+and separately.

@@ -116,3 +116,167 @@ camera re-site invalidated its rejecting fixture, and the low-content
 annotation has a floor and no ceiling, so ironside (the emptiest frame in
 the set) is never flagged. Builder already assigned; noted here as an
 instrument our own change broke, per rule 3.
+
+---
+
+# Batch review — the ordered batch, reviewed (director, 25 Aug 2026)
+
+> Review of the systems-builder batch this record ordered (report:
+> `agent-reports/ground-grade-and-tour-blocker.md`; diff read line by line,
+> and every load-bearing claim re-verified against the tree in this session:
+> the four `BaseColour` call sites, `WetSurfaces` membership, the seven emit
+> keys, `WorldBuilder.Tint`'s MPB write, both plinth sites). Verdict:
+> **APPROVED WITH ONE AMENDMENT** — the two white plinths join the batch.
+> One reviewed commit after the amendment lands and verify is green.
+
+## A. The four-site wiring — APPROVED, and it is the decision, not creep.
+
+The question: this record said "folded into the same assignments
+`SetWetness` already writes"; the builder wired FOUR sites through one new
+`BaseColour` function (`AssetLibrary.cs:321, :572, :826, :840`). Ruling:
+the record's sentence described a mechanism and, taken literally, contained
+a latent fault the builder was right to refuse — `SetWetness` early-returns
+on unchanged wetness, so a wetness-loop-only grade leaves any material
+built after the last weather move WHITE until the weather next changes: a
+fault nothing photographs until it does. The grade belongs on the DRY base,
+which is what `BaseColour` is. Verified: all four prior expressions were
+character-identical (`textured ? TextureGrade : SurfaceSpec.For(logical)
+.Tint`), i.e. one idea in four implementations — the exact shape rule 1's
+third corollary exists for — and after the change `TextureGrade` is read in
+exactly one code site (:537). Non-ground surfaces pass through `BaseColour`
+unchanged, so no behaviour outside the ground family moves. The Concrete
+contamination of the facade control group (4% of the noon sample, and not
+new behaviour — every rainy frame already drove `mat_concrete` to 0.55) is
+named in the constant's comment with its designated fix (split the family,
+not the number). **Do not re-litigate: four sites is the decision.**
+
+## B. The predicted out-of-band wet case — APPROVED AS SHIPPED. The wet
+reading is part of what this build exists to obtain.
+
+Predicted: dry 0.78–0.98 (in band, top), wet 0.39–0.49 against a floor of
+0.41. Ruling: `AlbedoScale`'s floor does NOT move in this dispatch, for
+three reasons in descending weight. (1) The review days are wet by the
+weather roll (day 1 wet 1.00, day 2 0.61 — the "review days are dry" claim
+was corrected in the tour-move commit), so the landed verdict carries the
+wet `groundOverFrame` series in the SAME round trip as the dry tour: the
+measurement this decision needs arrives without a second dispatch. (2)
+Moving both levers at once makes an in-band wet reading unattributable —
+the exact confound reasoning that blocked the decals in Call 1. Batching is
+for independent changes; two levers on one number is not batching, it is
+blinding. (3) The predicted miss is a prediction with a stated
+g-dependence, overlapping the band edge; adjusting a constant from it is
+rule 2's definition of an invented bound.
+
+**Pre-authorized now so the next session does not re-litigate:** if the
+landed wet series is below band, the next batch raises `AlbedoScale`'s
+floor ONCE, computed from the landed number, and `GroundGrade` does not
+move. If wet lands IN band, nothing moves and the risk paragraph in the
+constant's comment is marked resolved-by-measurement.
+
+**One amendment to the read instruction:** the "reads British" still
+comparison is against the ARCHIVED `review_day1_noon` from run 6137608.
+This landing's own day1_noon runs at 0.30x and is the wet case UNDER TEST —
+comparing the new frame to itself would grade the exam with the answer
+sheet missing.
+
+## C. `tourBlockerShare` — APPROVED. It is an instrument, not an unread number.
+
+Checked against the instrument rules item by item, on the tree: it ships
+its denominators (`tourBlockerHits=<hits>/<rays cast>`, 7x84;
+`shotBlockerShareShots`), so seven 0.00s are distinguishable from a tally
+that never ran (rule 3b); its statistic is named at the tally, at the
+field, and at the emit — max over OBJECTS, last-wins per kept vantage like
+its three sibling fractions, peak + median pair on the street shots with
+the peak's object and distance captured in the SAME assignment (the
+`deedWitnesses` fault, pre-empted); the bound is printed beside every
+reading (`tourBlockerReach=8.0`) and `BlockerReachM` is declared NOT
+MEASURED with the printer that will set it (each entry carries the winning
+collider's distance); there is NO gate, deliberately, series first —
+rule 2's order of operations, correctly refused rather than invented. The
+accepting case is planted, not hoped for: the tour goes clear by design in
+this same commit, so the street shots — measured at `shotNearFracWorst=
+0.23` / `shotMidBefore=0.64` on 6137608 — are the world in which the
+asserted thing can happen (rule 5b's corollary). The justification for a
+new number over a bound on `midFrac` is evidence, not prose: three landed
+statistics over distances watched a crane at 4m and the median ranked that
+camera clearest. Residual risk accepted: `Dictionary<Collider,int>` and
+`StreetMap.Node` resolving `ironside_j2_1` first compile on Windows — that
+is what the round trip is for, and `tourResited=3/3` is the number that
+says the ironside lookup did not silently fall back to the crane. The
+builder's §7.4 (a bound, after two or three landings) goes to the queue.
+
+## D. The white plinths — AMENDED INTO THIS BATCH. Two deletions, ordered.
+
+Verified before ruling: `WorldBuilder.Tint` (:2551) writes MPB `_Color`,
+which REPLACES the shared material's colour per renderer — its own
+docstring says "multiply", which is true against the texture and false
+against the material colour, and the `PostBox_drum` comment twenty lines
+below (:2467) records this same mechanism misbehaving once already. So
+`PhoneBox_plinth` (:2433) and `PostBox_plinth` (:2461) render raw texture
+at `Color.white`: they receive neither `GroundGrade` nor wetness and never
+have — against a 0.55 road they become the brightest ground-level surfaces
+in every frame containing a phone box or pillar box, and there is a phone
+box or pillar box in most street frames.
+
+**The order to the builder:** unwrap the two `Tint(..., Color.white)`
+calls so both plinths carry the shared `AssetLibrary.Concrete` material
+bare. That is the whole change — the shared material already carries
+`GroundGrade` and the wetness walk, and staying on the shared material
+costs no draw call. Nothing else in `WorldBuilder.cs` moves in this batch.
+
+Why in-batch and not queued: the round trip's deliverable is a still a
+human reads against the archived reference (rule 4), and a known white
+disc at the foot of every phone box is exactly the artefact that poisons
+that read — we would be discounting a fault we chose to ship. It is the
+same visual system, it cannot confound the measurement (plinths are far too
+small to move a band mean; the facade control group is untouched), and the
+batching rule makes it free. The yellow lines and zebra MPBs STAY: paint
+reading lighter than wet tarmac is correct behaviour, not a fault. A note
+(not an item) goes to the queue to revisit only if a landed still says the
+paint reads wrong.
+
+## E. The queue while the build is in flight — non-CI, three startable.
+
+`## Now` order (Jafar's sequence; instruments-first within it because two
+of these selftests are latent commit-blockers and item 2 depends on the
+tool item 1 repairs):
+
+1. **Repin two rejecting fixtures to synthetic cases** —
+   `tools/clip-motion.py:439` asserts `Joe.fbx` has no animation take;
+   `tools/prop-dimensions.py:337` asserts `police.fbx` reproduces a bug.
+   Same fault class as the ref-bench selftest just fixed: a fixture pinned
+   to a real asset goes RED when the project improves, and a red verify
+   blocks every commit at the worst possible moment. Per the instruments
+   rule: accepting case is the live repo, rejecting fixture is synthetic.
+2. **`city-kit-roads` survey** (47 models, ONE named — the densest unused
+   kit and all ground-level): `prop-dimensions` on every model AFTER item
+   1, placement plan written. Game-layer wiring batches into the NEXT
+   dispatch, after the ground landing is read.
+3. **`city-kit-suburban`, entire kit unreached** — 13 models, zero named,
+   per `prop-reach`'s per-kit numbers (the ~150 figure is the all-kits
+   no-name-match total, not this kit; do not quote them interchangeably).
+   Same measure-first treatment as item 2.
+4. Standing work if 1–3 exhaust: read a system, or turn a still into a
+   number.
+
+BLOCKED-PENDING-EVIDENCE on this landing, listed so nobody starts them:
+the decals item (unchanged); **the `LightModel.cs:137` aperture ceiling**
+(its measured basis included the white road — re-judging it on pre-fix
+frames re-measures the fault; builder's §7.2, agreed); the `shadowRatio`
+fork (already bound to this landing); the `shotBlockerShare` bound (two or
+three landed series first, builder's §7.4); the ironside-is-empty WORLD
+item (builder's §7.3 — its evidence is this landing's ironside frame,
+which for the first time can tell "empty" from "behind a crane").
+
+## What the next session must NOT re-litigate
+
+- Four-site `BaseColour` wiring is the decision; do not "simplify" it back
+  to the wetness loop — that reintroduces the white-until-weather fault.
+- `AlbedoScale`'s floor moves only off the LANDED wet series, once, and
+  `GroundGrade` never moves in the same batch as the floor.
+- The still reference is the ARCHIVED 6137608 `review_day1_noon`.
+- The plinths stay on the bare shared material — do not "restore" a tint
+  via MPB, and do not extend the fix to the yellow/zebra paint without a
+  landed still saying the paint is wrong.
+- `frame-drift` will read ironside's row as enormous drift next landing.
+  That is the declared regime break, not a regression.

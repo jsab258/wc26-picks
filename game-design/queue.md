@@ -57,19 +57,11 @@ the cameras stood badly (`ShotMidBlockedAt=0.30` off its own bimodal
 series, 12 of 13 shots fixed; the street shot also FLED the crowd).
 Day frames are NOT like-for-like across these.
 
-**23 Aug — THE DAY NOW READS AS DAY**, and it was a MEASUREMENT not
-taste: a midday only a quarter brighter than a midnight. `Exposure`
-had been revised SIX times off single frames; `exposureCurve` printed
-the response instead, so the aperture was shown to be the lever. Day
-arm 0.72 -> 2.44 lands noons 0.30-0.41, nights untouched, noon:night
-1.25 -> **2.35:1**. **Two things would have eaten it silently: the
-Clamp ceiling (1.85 against a noon of 1.72 — now 3.6) and the rain
-term.** Three break fixtures re-anchored.
-
-**SILLS ARE IN AND FREE** (2133, no collider; +2173 renderers with
-render+rest UNCHANGED). Weathering went into the TEXTURE. **Ground
-roughness maps bound, normalised by each map's own mean** — and that
-binding silently killed THREE `_Glossiness` writers, see below.
+**Closed 23 Aug and moved to `roadmap-history.md`:** the day/night
+exposure fix (aperture was the lever, noon:night 1.25 -> **2.35:1**;
+the Clamp ceiling and the rain term would each have eaten it silently
+— both still live, do not re-raise without reading the history entry),
+and the sills + ground roughness binding. Full accounts there.
 
 **THE CROWD BEHAVES.** Density arrived as 13 people in convoy down the
 CARRIAGEWAY: `Steer`'s first branch tested only for SOLID blockers, so
@@ -93,44 +85,52 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 ### screen. Nothing from a later stage starts while an earlier one has
 ### startable work, except reading a landed verdict, which is free.
 
-1. **THE SHADOW GAP IS MOSTLY REGIME, AND THE DRY TOUR IS DISPATCHED TO
-   PROVE IT. NO LIGHTING LEVER MOVES UNTIL IT LANDS.** Two of the benchmark's
-   three gaps closed in cd48c19 (grain 5.2-7.5 -> **0.9-2.8** vs ref
-   0.23-2.05; detail 0.37-0.43 -> **0.21-0.29, in band**; `decalsBuried=0`,
-   frame cost in band). The third read as a lighting fault and is not one.
+1. **THE CHEAP CI CHANNEL HAS BEEN DARK FOR FOUR COMMITS — IN FLIGHT.**
+   Verified 25 Aug against the run list, not inferred: `LEDGER core tests`
+   concluded `failure` on 80a9104, 6137608, cfd728a, b88adbb. Step 4, the
+   C# `ReachCheck`, fails — and steps 5-10 are all `skipped`: docs check,
+   both shape checks, attribution, **the core test suite**, the AI playtest.
+   The job's single red cannot distinguish "reach is red" from "nothing
+   below step 4 ever ran". Reproduced locally, exit 1: `Proportion`'s
+   `TryNeckFraction` (`Proportion.cs:48`) and `IsCaricature` (`:127`) are
+   tested and called by nothing — rule 6, and correct of the guard. TWO
+   fixes, both dispatched: the structural one (every check runs, the job
+   fails at the END naming which, with a pass count beside it — NOT
+   `continue-on-error`, which is a bound moved to make red go away), and
+   the finding itself (wire them, or an allowlist reason describing a
+   consumer that EXISTS). Account: `agent-reports/dark-ci-channel.md`.
 
-   **The verdict, measured not argued.** The weather roll is a pure function
-   of the day number: d1 rain 0.35/wet 1.00, d2 0.00/0.61, d3 **0.90**/1.00,
-   d4 0.00/0.69, d5 **0.00/0.00**. The tour fired on day 3, the wettest day
-   there is — **all 91 district rows in project history read rain 0.90**,
-   benchmarked against five DRY references. Split the landed stills by
-   weather and the gap mostly disappears: **the dry noons are already IN
-   BAND** (`day2_noon` 0.365, `day5_noon` 0.270, `day1_noon` 0.239, vs ref
-   0.157-0.388) and the rain-0.90 frames are the ones outside it (hook
-   0.067, strip 0.065, gullwing 0.070, `day2_wet` 0.091). Wet asphalt, not
-   a broken sun.
+1. **REPIN TWO REJECTING FIXTURES TO SYNTHETIC CASES — IN FLIGHT.**
+   `tools/clip-motion.py:439` asserts `Joe.fbx` carries no animation take;
+   `tools/prop-dimensions.py:337` asserts `police.fbx` still reproduces the
+   pooled-reader bug. Both go RED when the PROJECT improves — the exact
+   fault `ref-bench` had when our own camera re-site voided its low-content
+   fixture. The accepting case stays pointed at the live codebase; only the
+   rejecting case becomes synthetic. Director ranked this first of the
+   in-flight three (item 3 below needs `prop-dimensions` working).
 
-   **Dispatched:** the tour moved to **day 5, the week's only bone-dry
-   noon**. Availability cost is zero — of the 15 `frames.tsv` revisions
-   carrying a rain column, 13 reached day 5 and the 2 that did not never
-   reached day 3 either. Also corrected: three comments claiming the review
-   days are dry (they are not), and ref-bench's stale 0.45-0.55 prose
-   target, a surface:surface ratio quoted at this row's p10/p90.
+1. **THE DRY TOUR LANDED (6137608). ITS FORK IS RE-BLOCKED ON THE GROUND
+   GRADE, NOT RE-OPENED.** The regime break stands and is the part to
+   carry forward: **every `district_*` row before the day-5 move is
+   incomparable** — ref-bench's pose-stable series, frame-drift's district
+   rows, `tourDepth*`, `districtGround`, and the `FilmGrade` GRAIN
+   calibration series (amplitude falls 1.9x with the rain, 0.0095 ->
+   0.0050). The `shadowRatio`/ambient-fill fork does NOT get judged on
+   6137608: a shadow ratio measured on doubled albedo is not evidence, so
+   it is re-judged on the ground-grade landing and no lighting lever moves
+   before that read. Full account of the regime break and the weather-roll
+   analysis: `roadmap-history.md`, 2026-08-24.
 
-   **THIS IS A DELIBERATE REGIME BREAK. Every `district_*` row before it
-   stops being comparable:** ref-bench's pose-stable series, frame-drift's
-   district rows (one huge drift, correctly), `tourDepth*`, `districtGround`,
-   and — easy to miss, it is in `FilmGrade` — the GRAIN calibration series,
-   whose amplitude falls 1.9x with the rain (0.0095 -> 0.0050).
+1. **SURVEY THE TWO UNREACHED KITS — MEASURE FIRST, WIRE AFTER THE
+   LANDING.** `city-kit-roads` 47 models / 1 named / 45 unused;
+   `city-kit-suburban` 13 models / **0 named, ENTIRE KIT UNREACHED**. (The
+   ~150 figure `prop-reach` prints is the all-kits total, not this kit —
+   read the per-kit table.) `prop-dimensions` every model, write the
+   placement plan; wiring goes into the dispatch AFTER the ground-grade
+   landing is read, not into it. This is the DENSITY half of the GTA V bar
+   — what palms, posters and hydrants do for Los Santos, chimney pots,
+   double-yellows, phone boxes and dock clutter must do for Meridian.
 
-   **WHAT THE NEXT LANDING MUST SHOW, or it did not test this:** the district
-   rows in ref-bench's pose line must read **`rain=0.00 wet=0.00`** — if they
-   do not, the tour did not land dry and nothing below is readable. Then the
-   fork: **`shadowRatio` inside 0.157-0.388 => the gap was regime, close it
-   and move no lever**; still low at rain 0.00 => the lever is ambient fill
-   lifting `groundP10`. Also read `grainSigma` (predicted 1.8-2.2x down from
-   0.89-2.76) and the new `shadowPeakDay=D/rain`, which says which noon the
-   bimodal `shadowDrop` series peaked on.
 1. **M17.10 — THE VISUAL BAR IS GTA V (PS3). Jafar's order, 21 Aug, twice.**
    *(the most on-screen thing there is)* Plan in `roadmap.md` 17.10,
    decomposition and research in `visual-bar-spec.md`. The look is carried by
