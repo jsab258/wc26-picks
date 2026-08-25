@@ -1012,9 +1012,31 @@ anything touching premise/roadmap/CLAUDE.md. The watchdog forces a dailies
 review if the agent log shows none in 12h. Enforcement has teeth:
 `director_cadence` in verify goes RED — blocking the commit — when a
 substantial code change (>100 changed lines under ledger/Assets/Scripts)
-has no `studio-director` row in `.claude/agent-log.tsv` newer than HEAD's
-commit. The spawn log is the instrument; the verify footer carries the
-count into every commit message, so the commit feed shows the cadence.
+has no `studio-director` row in `.claude/agent-log.tsv` newer than **the
+last commit that TOUCHED `ledger/Assets/Scripts`**. The spawn log is the
+instrument; the verify footer carries the count into every commit message,
+so the commit feed shows the cadence.
+
+**This paragraph used to end "newer than HEAD's commit", and that was
+wrong** — quoted rather than deleted so the error cannot be re-derived by
+the next reader who finds it plausible, which it was to everyone who read
+it. Comparing against HEAD meant a docs commit, a `git commit --amend` of
+a message, or CI committing its own stills invalidated a review that had
+actually happened, and forced a fresh Fable spawn to re-do it. It fired
+three times in one night before it was fixed on 25 Aug.
+
+**AND A HOLE THAT IS STILL OPEN, recorded because a gate nobody distrusts
+is worse than no gate: `director_cadence` is satisfied by a SPAWN, not by
+a COMPLETED REVIEW.** A `studio-director` killed mid-ruling by a usage
+limit — which happened on 25 Aug — still writes its row, still clears the
+gate, and still leaves the batch unreviewed. Verify printed `cadence ok
+... REVIEWED` over a review that reached no decision. An unattended loop
+following the rules would have committed on that green. The spawn log is
+an attendance register, not a review record. Two candidate fixes, neither
+built: pair the row with a SubagentStop completion, or require the
+director's decision record itself to be newer than the reference commit —
+the second is stronger, because it tests the ARTIFACT rather than the
+process and cannot be satisfied by a director that ran and said nothing.
 
 **WHAT COUNTS AS ONE BATCH — AND MINIMISING FABLE (25 Aug, Jafar:
 "have we actually been minimizing fable usage now (no more than
