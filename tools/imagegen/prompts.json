@@ -1,0 +1,192 @@
+{
+  "schema": 1,
+  "batch_name": "meridian-signage-01",
+  "_comment": [
+    "THE FIRST BATCH. Real LEDGER content, not a demo image: the signage the",
+    "street already asks for and renders as blank coloured panels today.",
+    "WorldBuilder.NeonSigns carries eight (placeId, colour, word) rows and draws",
+    "an emissive cube; Dressing.HasFascia decides which premises carry a",
+    "signboard band and what sits on it is a tinted plate. Every `sign_*` word",
+    "below is copied EXACTLY from the NeonSigns table so the output can be bound",
+    "to an existing call site rather than to a folder nobody reads.",
+    "",
+    "SETTING, and it is not negotiable: Meridian is a British port town in the",
+    "LATE-ANALOG eighties and nineties. Landlines, cash, paper. Not the 1950s."
+  ],
+  "content_rules": {
+    "_comment": [
+      "THESE RIDE IN EVERY PROMPT. They are data, not documentation, so an",
+      "editor adding a thirteenth item cannot forget them: the renderer appends",
+      "`rules_clause` to every positive prompt and refuses to build a prompt",
+      "that does not carry it (imagegen.py: build_prompt / _selftest_rules).",
+      "",
+      "WHY: every 1980s British advert, poster and packet is still in copyright",
+      "for decades yet, and trade mark was the ONLY claim Getty actually won in",
+      "[2025] EWHC 2863 (Ch). A model asked for `a British high street in 1989`",
+      "will happily paint a real brewery's livery on a pub. So we never ask for",
+      "one. In-world brands only, which is better content anyway - MICKEY'S is",
+      "a place in this game and a real brewery is not."
+    ],
+    "rules_clause": "invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+    "forbidden_tokens": [
+      "coca-cola",
+      "coca cola",
+      "pepsi",
+      "guinness",
+      "carlsberg",
+      "heineken",
+      "bass ",
+      "watneys",
+      "courage",
+      "whitbread",
+      "tetley",
+      "boddingtons",
+      "woolworths",
+      "marks and spencer",
+      "tesco",
+      "sainsbury",
+      "wimpy",
+      "british rail",
+      "royal mail",
+      "bt ",
+      "british telecom",
+      "post office",
+      "walkers",
+      "cadbury",
+      "mcvitie",
+      "hovis",
+      "bovril",
+      "oxo",
+      "silk cut",
+      "benson and hedges",
+      "embassy",
+      "regal",
+      "players",
+      "castella",
+      "ford ",
+      "vauxhall",
+      "austin rover",
+      "leyland",
+      "shell",
+      "esso",
+      "bp ",
+      "thatcher",
+      "princess diana",
+      "the queen",
+      "elizabeth ii"
+    ]
+  },
+  "style": {
+    "_comment": [
+      "One shared style block so twelve prompts do not drift into twelve looks.",
+      "The reference is game-design/reference/ (GTA V frames, Jafar's, internal",
+      "comparison only) read for what a lettered street does, not copied."
+    ],
+    "prefix": "photograph, straight-on flat elevation, evenly lit,",
+    "suffix": "British port town, late 1980s, overcast North Sea daylight, damp salt-weathered paintwork, soot and grime, no people, no cars, sharp legible lettering, period-correct signwriting"
+  },
+  "defaults": {
+    "steps": 8,
+    "cfg": 1.0,
+    "sampler": "unset - sd-cli picks its model-specific default",
+    "seed_base": 8025
+  },
+  "items": [
+    {
+      "id": "fascia_mickeys",
+      "kind": "fascia",
+      "binds_to": "NeonSigns bar_door / Dressing.HasFascia(Shop)",
+      "width": 1024,
+      "height": 512,
+      "prompt": "a hand-painted British pub fascia signboard reading 'MICKEY'S' in gold shaded serif capitals on a deep maroon painted timber board, gilt edging chipped and flaking, brass lamp brackets above, tiled stallriser below"
+    },
+    {
+      "id": "fascia_ritas_pawn",
+      "kind": "fascia",
+      "binds_to": "HookMap pawnshop (Rita's pawnshop)",
+      "width": 1024,
+      "height": 512,
+      "prompt": "a British pawnbroker shopfront fascia reading 'RITA'S' in cream signwritten capitals on a dark green board, with the three-ball pawnbroker symbol on a bracket, small line beneath reading 'GOLD BOUGHT', security grille over the window"
+    },
+    {
+      "id": "fascia_fish_market",
+      "kind": "fascia",
+      "binds_to": "HookMap fish_market",
+      "width": 1024,
+      "height": 512,
+      "prompt": "a British wet fish shop fascia reading 'HOOK STREET FISH MARKET' in white sans capitals on blue glazed tile, hand-lettered price card in the window, white enamel and marble slab below, wet pavement"
+    },
+    {
+      "id": "fascia_steam_laundry",
+      "kind": "fascia",
+      "binds_to": "HookMap laundry (the steam laundry)",
+      "width": 1024,
+      "height": 512,
+      "prompt": "a British launderette fascia reading 'STEAM LAUNDRY' in plain block capitals on a cream plastic box sign, one fluorescent tube behind it dead, condensation on the glass, tiled surround stained by soot"
+    },
+    {
+      "id": "sign_marquee",
+      "kind": "sign",
+      "binds_to": "NeonSigns marquee_club (word: MARQUEE)",
+      "width": 768,
+      "height": 512,
+      "prompt": "a nightclub neon sign face reading 'MARQUEE' in hot pink neon tube capitals on a black steel panel, tubes glowing, one letter dimmer than the rest, damp brickwork behind"
+    },
+    {
+      "id": "sign_open_all_nite",
+      "kind": "sign",
+      "binds_to": "NeonSigns allnight_counter (word: OPEN ALL NITE)",
+      "width": 768,
+      "height": 512,
+      "prompt": "an all-night cafe window sign reading 'OPEN ALL NITE' in warm amber neon script on a plain dark panel, greasy glass, condensation, a rolled blind above"
+    },
+    {
+      "id": "sign_baths",
+      "kind": "sign",
+      "binds_to": "NeonSigns bathhouse (word: BATHS)",
+      "width": 768,
+      "height": 512,
+      "prompt": "a municipal public baths sign reading 'BATHS' in pale green neon capitals mounted on a Victorian faience frontage, verdigris ironwork, chipped glazed tilework"
+    },
+    {
+      "id": "notice_dock_regulations",
+      "kind": "notice",
+      "binds_to": "Decals/generated - warehouse and dock doors (Ironside, the docks)",
+      "width": 640,
+      "height": 896,
+      "prompt": "an official British dock gate notice board, white enamel with black condensed capitals reading 'MERIDIAN HARBOUR BOARD' and beneath it 'NO ADMITTANCE EXCEPT ON BUSINESS' and smaller regulation clauses in dense small print, rusted screws at the corners, rain-streaked"
+    },
+    {
+      "id": "poster_gig_bill",
+      "kind": "poster",
+      "binds_to": "Decals/generated - flyposting on hoardings and shutters",
+      "width": 640,
+      "height": 896,
+      "prompt": "a flyposted British gig bill, cheap two-colour offset print on newsprint, huge condensed capitals reading 'THE HARBOUR LIGHTS' with smaller lines 'PLUS SUPPORT' and 'FRIDAY 8PM ADMISSION 2 POUNDS', torn at one corner, pasted over an older poster, water-stained"
+    },
+    {
+      "id": "notice_ferry_times",
+      "kind": "notice",
+      "binds_to": "HookMap ferry_stop",
+      "width": 640,
+      "height": 896,
+      "prompt": "a British ferry timetable card behind scratched perspex, headed 'MERIDIAN FERRY' with a column of departure times in typewriter figures, a handwritten amendment in biro taped over one line, faded and sun-bleached"
+    },
+    {
+      "id": "wall_soot_brick",
+      "kind": "wall",
+      "binds_to": "SurfaceSpec / StreamingAssets/Decals - building walls",
+      "width": 1024,
+      "height": 1024,
+      "prompt": "flat straight-on texture of a grimy British stock brick wall, soot-blackened above, salt bloom and damp rising low, lime mortar crumbling, ghost of a painted sign almost gone, no signage legible, evenly lit, no perspective"
+    },
+    {
+      "id": "wall_salt_render",
+      "kind": "wall",
+      "binds_to": "SurfaceSpec / StreamingAssets/Decals - rendered frontages",
+      "width": 1024,
+      "height": 1024,
+      "prompt": "flat straight-on texture of painted render on a British seafront wall, pale green paint blistered and peeling to grey render beneath, rust streaks bleeding from fixings, white salt bloom at the base, evenly lit, no perspective"
+    }
+  ]
+}
