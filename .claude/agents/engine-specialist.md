@@ -3,7 +3,7 @@ name: engine-specialist
 description: "Tier 3 builder. Engine-specific work — rendering, physics, import pipelines, build configuration — carrying the CONSTRAINT knowledge: what compiles where, what an import default silently does, what the CI round trip costs. Use for any change that touches engine APIs, asset import, or the build itself. Customize the constraint section below per project; it is the whole value of this agent."
 tools: Read, Glob, Grep, Write, Edit, Bash
 model: opus
-maxTurns: 25
+maxTurns: 45
 memory: project
 ---
 

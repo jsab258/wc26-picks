@@ -3,7 +3,7 @@ name: instrument-builder
 description: "Tier 3 builder. Writes the measurement half of everything: probes, gates, verdict keys, series printers, selftests, and the small tools that read them back. Use when a feature needs its number, when a still shows a fault nothing measures, or when a conclusion is blocked on an unprinted quantity. The measurement-auditor and guard-tester review this agent's output — expect it."
 tools: Read, Glob, Grep, Write, Edit, Bash
 model: opus
-maxTurns: 25
+maxTurns: 45
 memory: project
 ---
 

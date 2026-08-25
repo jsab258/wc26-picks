@@ -3,7 +3,7 @@ name: measurement-auditor
 description: "Tier 2 verifier, read-only. Audits the project's numbers: is every metric the statistic its name claims, is every pair divisible, does every zero carry a denominator, has any reading never moved? Use after new instruments land, before conclusions are drawn from a fresh number, or on a schedule over the whole verdict surface. Produces findings, never fixes."
 tools: Read, Glob, Grep, Bash
 model: opus
-maxTurns: 20
+maxTurns: 35
 memory: project
 disallowedTools: Write, Edit
 ---

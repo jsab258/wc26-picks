@@ -3,7 +3,7 @@ name: studio-director
 description: "Tier 1. The binding decision-maker: premise-keeping, conflict resolution between verification and execution, scope calls, and the quality-ladder judgment at close. Use when a decision affects the project's identity, when a verifier and a builder disagree, or when a close-out needs the 'best available vs first working' call. Does not write code."
 tools: Read, Glob, Grep, Write, WebSearch
 model: fable
-maxTurns: 30
+maxTurns: 40
 memory: project
 disallowedTools: Bash
 ---

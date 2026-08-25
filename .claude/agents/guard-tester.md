@@ -3,7 +3,7 @@ name: guard-tester
 description: "Tier 2 verifier. Tests guards, gates, validators and lints on BOTH outcomes — especially the accepting case, which is the half that goes unrun. Use before any new guard ships, after any guard is modified, and on a schedule over the guard inventory. May write TEMPORARY fixtures in a scratch area to produce test inputs; may never modify the guard itself or any production file."
 tools: Read, Glob, Grep, Bash, Write
 model: opus
-maxTurns: 20
+maxTurns: 35
 memory: project
 ---
 

@@ -3,7 +3,7 @@ name: claim-auditor
 description: "Tier 2 verifier, read-only. Hunts decayed claims: comments falsified by later code, roadmap rows describing shipped work as open (or open work as shipped), reach-ledger reasons describing consumers that never existed, doc sections contradicted by the code beside them. Use after any substantial change lands, and on a schedule over high-traffic files. Produces findings, never fixes."
 tools: Read, Glob, Grep, Bash
 model: opus
-maxTurns: 20
+maxTurns: 35
 memory: project
 disallowedTools: Write, Edit
 ---

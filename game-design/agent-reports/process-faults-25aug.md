@@ -34,6 +34,41 @@ overnight would not have resumed them.** It would have read four
 completion notifications, found the tree half-edited, and either
 committed partial work or re-spawned agents to redo the reading.
 
+**CORRECTED, 25 Aug, after it happened a further three times.** The
+cause is NOT mainly my briefs. It is `maxTurns` in the agent definitions,
+and the evidence is that every stall landed exactly on a configured
+ceiling:
+
+| agent | `maxTurns` was | tool calls at stall |
+|---|---|---|
+| artifact-reader | **15** | 30 |
+| instrument-builder | **25** | 30, 29, 28 |
+| systems-builder | **25** | 30, 30 |
+| content-wrangler | **25** | 25 |
+| studio-director | **30** | 30 |
+
+Seven agents, seven ceilings. Shorter briefs would not have helped: the
+artifact-reader was asked to open every still and had 15 turns to measure
+22 files and open 18. Telling an agent its budget did not help either —
+the ground-mask brief stated the budget explicitly and stalled anyway.
+
+**And the ceilings were costing tokens rather than saving them.** A capped
+agent spends its full ~100k, delivers nothing, and then needs a resume
+that reloads its context — so the cap turned one agent into two. Raising
+the ceiling is the cheaper setting, not the more expensive one, which is
+the opposite of how it looks.
+
+Raised from measurement rather than taste: every resumed agent finished
+within roughly one further block, so the caps were low by about 2x.
+Builders 25 -> 45, verifiers 20 -> 35, artifact-reader 15 -> 40 (it does
+the most reading of any role), director 30 -> 40. These are still
+CEILINGS, not targets, and they remain unvalidated in the other
+direction — nothing here shows what an agent left uncapped would spend.
+If an agent starts routinely finishing near 45, that is the next thing to
+look at, not a reason to raise them again.
+
+The brief-size advice below is still worth doing, but it is second-order.
+
 **Cause: my briefs, not the agents.** The four prompts averaged ~700
 words and each carried a full rationale, the project rules that applied,
 and a list of hard requirements. That is the right CONTENT — the

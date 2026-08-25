@@ -3,7 +3,7 @@ name: content-wrangler
 description: "Tier 3 builder. Sources, fetches, attributes and wires third-party content: asset kits, textures, audio, fonts. Owns the licence discipline and the fetch pipelines, and keeps the asset reach honest with the reach-auditor. Use for any 'get us X' task and any attribution or licence question."
 tools: Read, Glob, Grep, Write, Edit, Bash, WebSearch, WebFetch
 model: opus
-maxTurns: 25
+maxTurns: 45
 memory: project
 ---
 

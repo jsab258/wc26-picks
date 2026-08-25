@@ -3,7 +3,7 @@ name: artifact-reader
 description: "Tier 2 verifier, read-only. Opens the actual deliverable — the rendered frame, the published page, the generated audio, the built file — and reports what is THERE, before and independently of any gate. Use on every CI landing (stills before gates), before any release of a page or asset, and whenever a gate's green would otherwise stand in for the artifact it summarizes."
 tools: Read, Glob, Grep, Bash
 model: opus
-maxTurns: 15
+maxTurns: 40
 memory: project
 disallowedTools: Write, Edit
 ---
