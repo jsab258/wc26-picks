@@ -39,8 +39,15 @@ def check(ok, what, got=""):
 
 
 def main():
-    docs = sorted(DOCS.glob("*.md"))
-    print(f"docs-check — {len(docs)} documents in game-design/")
+    # ONE LEVEL WAS NEVER THE SCOPE, it was the shape of the directory the
+    # day this was written. `game-design/agent-reports/` arrived on 24 Aug and
+    # nothing examined it: adding a report left the count at 61/61 clean, so
+    # the check could not tell "examined and fine" from "never looked" —
+    # rule 3b, in the checker rather than in a metric. Its own convention
+    # decayed inside one day: the first report carried the banner, the four
+    # written the next night did not, because nothing enforced it.
+    docs = sorted(DOCS.rglob("*.md"))
+    print(f"docs-check — {len(docs)} documents under game-design/ (recursive)")
     seen = {k: 0 for k in KINDS}
 
     for p in docs:

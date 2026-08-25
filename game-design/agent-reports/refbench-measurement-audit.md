@@ -1,6 +1,6 @@
 # ref-bench measurement audit — the exposure conclusion, and the surface it sits on
 
-LOG — 25 Aug 2026. NOT CURRENT after the next landing.
+> **STATUS — LOG, 2026-08-25. NOT CURRENT** after the next landing.
 Read-only sweep by measurement-auditor over `tools/ref-bench.py` (2089 lines,
 not ~1178 as briefed), the five frames in `game-design/reference/`, and the 17
 sim stills at HEAD `80a91049`. Every number below was produced in this session

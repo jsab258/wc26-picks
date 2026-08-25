@@ -1,6 +1,6 @@
 # Dry-tour stills read — verdict 6137608
 
-LOG — 25 Aug 2026. NOT CURRENT after the next landing.
+> **STATUS — LOG, 2026-08-25. NOT CURRENT** after the next landing.
 Read-only artifact read by artifact-reader. Every number below was
 produced in this session from the committed frames; nothing is quoted
 from memory.

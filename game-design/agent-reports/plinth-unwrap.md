@@ -1,6 +1,6 @@
 # The two white plinths — unwrapped (builder account)
 
-LOG — 25 Aug 2026. NOT CURRENT after the next landing.
+> **STATUS — LOG, 2026-08-25. NOT CURRENT** after the next landing.
 Builder report (systems-builder), for item D of the batch review in
 `decision-ground-albedo.md`. Nothing committed; the tree is left dirty for
 director review. Every claim below was checked against the source in this
