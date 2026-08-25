@@ -7,8 +7,6 @@
 `roadmap-history.md`. Nobody should have to open a second document to find out
 what happens next.
 
----
-
 ## The screen
 
 | | | |
@@ -42,22 +40,15 @@ driving, content volume, combat depth. **Never worse at:** characters, dialogue,
 whether the town feels inhabited, whether anything you do is remembered. Scores
 per dimension are in `agency-model.md`.
 
----
-
 ## M16 — PERCEPTION, WEAPONS AND VIOLENCE *(shipped, with one correction)*
 
 Phases 1–4 shipped and gated; phase 5 is firearms and is M23. The §4.7 gate
 holds — *the same killing leaves no witness in an empty alley, several in a
-market, and none in the back room of a busy pub*.
-
-**"Shipped" is true of the CONSEQUENCE half and not of the fighting**, found by
-reading the code rather than this table: violence is staged as an event,
-everything downstream runs, and there is no exchange of blows anywhere. Fixing
-it needs a done-condition that measures a FIGHT. **The risk it exposed set the
-pace of everything below, and 5 Aug removed it:** the Game layer compiles here
-in six seconds now, so a wiring error costs a keystroke, not a round trip.
-
----
+market, and none in the back room of a busy pub*. **But "shipped" is true of
+the CONSEQUENCE half, not the fighting** — found by reading the code rather
+than this table: violence is staged as an event, everything downstream runs,
+and no blows are exchanged anywhere. Fixing it needs a done-condition that
+measures a FIGHT.
 
 ## M17 — THE GAME LOOKS AND SOUNDS LIKE ITSELF
 
@@ -76,7 +67,7 @@ below is visible in them.
 | 17.7 | **Props, buildings and vehicles** — authored geometry instead of primitives | **PART DONE.** Vehicles: per-kind silhouettes, wheels at real proportions, density 28. "Buildings are cubes" was wrong both ways — they are box ASSEMBLIES (body, roof, setback tier, rooftop tank). **2026-08-01:** windows split from one band per floor into panes with piers, ground floor deliberately one wide shopfront light, gated to near-core buildings on the ramp the facades already use; overhead cables strung (`Dressing.CableAt`, off the reach ledger). **2026-08-04, CONFIRMED BY BUILD: the night skyline stopped being one colour** — `windowsLit=1747` of 2447 against a measured `windowsHome=0.70`, and the still shows lit and dark windows on the same floor where there was a wall of identical cream. Shopfronts then became the loudest thing left, so they follow OPENING HOURS rather than occupancy, about a third keeping late hours. Every window in seven districts was lit by a single call writing one emissive to all of them, which is why the night still reads as a wall of identical cream rectangles. It is occupancy now, not jitter: `Core/Occupancy` asks the real population whether each person is at work, out for the evening, or in, from the work hours and circle the generator already gave them — so a dark window is information rather than decoration, and `windowsLit/windowsTotal/windowsHome` print the cause beside the effect. **And bus stops and cab ranks exist** — `transit=8`, against a prediction of 6 to 8 written before the dispatch. The bus has been routed, dwelling and drawn since it was written and nothing marked where it stopped, so an eight-second halt at a bare corner read as a bug — two reach-ledger entries that both described missing behaviour when the gap was signage. What IS open: the back of a block gets bins and drainpipes but no geometry of its own | medium — volume, not difficulty |
 | 17.8 | **Weapons and held objects** — the player's hands are empty | shipped: `HeldObject` draws from the hand, silhouette derived from reach | low |
 | 17.9 | **A font that ships, and icons** | **DONE 2026-08-01.** PT Sans (SIL OFL) committed with its licence beside it; `fontless=0` every run | closed |
-| 17.10 | **THE VISUAL BAR IS GTA V (PS3)** — Jafar's direct order, 21 Aug, given twice over my hedging: *"matches GTA 5 is absolutely the target. it's a 13 year old game."* | **STARTED 21 Aug.** What it is: not Los Santos — GTA V's perceived quality on Meridian's content. Decomposed from his three reference frames (`visual-bar-spec.md`): the look is carried, in order, by SURFACE HISTORY (decals — stains, posters, graffiti, tar seams, patched asphalt; we have zero, the only decal-like system is blood), DENSITY (furniture, poles, wires, parked cars; our kits hold no bin, pole, phone box or bus stop — awnings are fetched and placed by nothing), DEPTH (recessed shopfronts, rooflines with chimneys and aerials; ours are single planes), LIGHT CORRECTNESS (sun shadows are configured three ways and NO NUMBER has ever said one reached a frame; AO runs at a measured 0.7% of luma — invisible; noon ambient ~0.6 against sun 1.15 washes what renders), ATMOSPHERE (sky structure, haze), then vehicle polish. His overcast reference frame proves dirt+depth+density carry a frame with no interesting light — *"lighting is not everything though."* **Phases, each one dispatch, instruments first — STATE RE-READ 24 Aug, and this row had gone stale in the safe direction, describing two closed passes as pending:** **V0+V1 CLOSED** (probe confirmed every prediction; ambient share 0.45, shadow strength 0.93 since retuned to 0.85 off a printed rung, sun 1.65, AO deepened). **batch B CLOSED** (cloud cookie, grade split-tone, lifted blacks, distance desat, decal wiring, day aperture). **V2+V3 CLOSED as build D** — kit furniture, double yellows, decal sets, chimney pots, TV aerials, the reaction set. **V1.5 LINEAR COLOUR CLOSED** — this row still called it "the NEXT dispatch, alone and revertible"; it landed, and what it left behind is the MPB gamma class-fault (body wash fixed, 13 sites awaiting the verdict). **V4 PART DONE** — shopfront joinery closed 23 Aug; roofline clutter and albedo variety open. **V5 PART DONE** — bus and bicycle landed, seven vehicle kinds with zero fallbacks; ground plane open, and the paving strip's variance is the live item. **V6 FIRST SLICE LANDED** — dusk warmth, sun glow, sodium deck. Open from V6: the dome's cloud structure per hour, and the four fetched sky captures as the REFLECTION source (decided 24 Aug on evidence: glass is smoothness 0.90 on every facade and reflected a 64px three-colour gradient, so the visible dome stays procedural and only the environment changes). **THE IMPORT FAULT IS FIXED IN CODE, AWAITING ITS LANDING (24 Aug):** Unity's default returns a `.hdr` as 2D and the cube-only slot threw per frame (593k-line log, one stalled run). `SkyImport` (AssetPostprocessor, path-scoped, equirect-to-cube at 512/face) fixes it; `SkyEnvironment.Take` fails closed on shape so a wrong import is a `skyMissing=name(2D)` key, never a stalled build. Read `skyLoadedAs=Cube` and `skyBound` next landing. **AND THE LARGER FIND UNDERNEATH IT:** the scene's reflection intensity was written from the WET-street strength above the dry check, so it was zero on every dry frame in the project's history — the largest reflective area in the game has never reflected anything at all. Fixed. **Done looks like:** Jafar puts a noon, dusk and night still beside his three frames and calls the bar met; every phase lands a measured number and a still first. Sources: CC0/CC-BY only, fetched by CI, no accounts — two research agents ran 21 Aug, results tabled in the spec. | **the milestone risk is the CC0 ceiling on vehicles/interiors, and perf: decals+furniture press on the one live red gate — counts and budgets per phase, not at the end** |
+| 17.10 | **THE VISUAL BAR IS GTA V (PS3)** — Jafar's direct order, 21 Aug, given twice over my hedging: *"matches GTA 5 is absolutely the target. it's a 13 year old game."* | **STARTED 21 Aug.** What it is: not Los Santos — GTA V's perceived quality on Meridian's content. Decomposed from his three reference frames (`visual-bar-spec.md`): the look is carried, in order, by SURFACE HISTORY (decals — stains, posters, graffiti, tar seams, patched asphalt; we have zero, the only decal-like system is blood), DENSITY (furniture, poles, wires, parked cars; our kits hold no bin, pole, phone box or bus stop — awnings are fetched and placed by nothing), DEPTH (recessed shopfronts, rooflines with chimneys and aerials; ours are single planes), LIGHT CORRECTNESS (sun shadows are configured three ways and NO NUMBER has ever said one reached a frame; AO runs at a measured 0.7% of luma — invisible; noon ambient ~0.6 against sun 1.15 washes what renders), ATMOSPHERE (sky structure, haze), then vehicle polish. His overcast reference frame proves dirt+depth+density carry a frame with no interesting light — *"lighting is not everything though."* **Phases, each one dispatch, instruments first — STATE RE-READ 24 Aug, and this row had gone stale in the safe direction, describing two closed passes as pending:** **V0+V1 CLOSED** (probe confirmed every prediction; ambient share 0.45, shadow strength 0.93 since retuned to 0.85 off a printed rung, sun 1.65, AO deepened). **batch B CLOSED** (cloud cookie, grade split-tone, lifted blacks, distance desat, decal wiring, day aperture). **V2+V3 CLOSED as build D** — kit furniture, double yellows, decal sets, chimney pots, TV aerials, the reaction set. **V1.5 LINEAR COLOUR CLOSED** — this row still called it "the NEXT dispatch, alone and revertible"; it landed, and what it left behind is the MPB gamma class-fault (body wash fixed, 13 sites awaiting the verdict). **V4 PART DONE** — shopfront joinery closed 23 Aug; roofline clutter and albedo variety open. **V5 PART DONE** — bus and bicycle landed, seven vehicle kinds with zero fallbacks; ground plane open, and the paving strip's variance is the live item. **V6 FIRST SLICE LANDED** — dusk warmth, sun glow, sodium deck. Open from V6: the dome's cloud structure per hour, and the four fetched sky captures as the REFLECTION source (decided 24 Aug on evidence: glass is smoothness 0.90 on every facade and reflected a 64px three-colour gradient, so the visible dome stays procedural and only the environment changes). **THE IMPORT FAULT IS FIXED IN CODE, AWAITING ITS LANDING (24 Aug):** Unity's default returns a `.hdr` as 2D and the cube-only slot threw per frame (593k-line log, one stalled run). `SkyImport` (AssetPostprocessor, path-scoped, equirect-to-cube at 512/face) fixes it; `SkyEnvironment.Take` fails closed on shape so a wrong import is a `skyMissing=name(2D)` key, never a stalled build. Read `skyLoadedAs=Cube` and `skyBound` next landing. **AND THE LARGER FIND UNDERNEATH IT:** the scene's reflection intensity was written from the WET-street strength above the dry check, so it was zero on every dry frame in the project's history — the largest reflective area in the game has never reflected anything at all. Fixed. **PLAN REWRITTEN WHOLE 25 Aug (director, on Jafar's third ask): the full goal decomposition — six parts, measured gates, execution order, what we are NOT doing, and the time shape — is `visual-bar-spec.md`, built on the six research docs in `game-design/research/`; R0's in-flight batch continues unchanged as Part 1 phase 1.** **Done looks like:** Jafar puts a noon, dusk and night still beside his three frames and calls the bar met; every phase lands a measured number and a still first. Sources: CC0/CC-BY only, fetched by CI, no accounts — two research agents ran 21 Aug, results tabled in the spec. | **the milestone risk is the CC0 ceiling on vehicles/interiors — and perf is now MEMORY and the ungated render number, NOT the frame gate (green 65 runs; see At risk, corrected 25 Aug): decal compression first, `meanFrame` printed per phase** |
 
 **17.6–17.9 were found by an audit, not by the plan** — this file was derived
 from the work queue rather than from a definition of done. **The 18 Aug audit
@@ -95,8 +86,6 @@ the stills, not from the source** — and read all four before reading any gate.
 **Done when.** A sim screenshot shows a skinned body walking with foot IK and
 `bodiesOk` gates on the Avatar being bound; every named character speaks in their
 cast voice; the bark bank has been read end to end. **Depends on** nothing.
-
----
 
 ## M18 — THE SECOND LIFE
 
@@ -127,8 +116,6 @@ the endings matrix than one where they do — and the difference comes from
 relationships rather than from a stat.
 
 **Depends on.** M17 for anybody to look like a person while doing it.
-
----
 
 ## M18.5 — THE PERSON YOU LIE TO
 
@@ -172,8 +159,6 @@ measured 78, slop at zero on authored prose) and it is judged by reading a
 transcript, not by a gate. The second risk is P3's: the moment this becomes a
 meter the player tops up, the mechanic has been replaced by its substitute.
 
----
-
 ## M19 — THE PEOPLE ARE THINKING *(next, and the centrepiece)*
 
 **THE WRITING HAS BEEN JUDGED AND IT IS GOOD — the project's largest unexamined
@@ -214,8 +199,6 @@ because a flag flipped, and the whole exchange was played on a controller.
 
 **Depends on.** M17 for anybody to have a face while doing it.
 
----
-
 ## M20 — THE TOWN YOU LEARN
 
 **THE DISTRICT CUT IS OFF — filling the city beats shrinking it, and this section
@@ -254,8 +237,6 @@ named people, so two on screen always share a face.
 
 **Done when.** You recognise a regular by their coat before you can see their
 face, and you are right.
-
----
 
 ## M21 — THE TWO LEDGERS
 
@@ -312,8 +293,6 @@ and a player who overreached can name the night it became inevitable.
 **Depends on.** M16 for the observation model, M19 for the conversations the
 negotiations happen in.
 
----
-
 ## M22 — THE SHAPE OF A PLAYTHROUGH
 
 Not a systems milestone. The one that decides the review score, and the one a
@@ -340,14 +319,10 @@ docs, with notes, and a measured difference between them.
 
 **Depends on.** Everything above, because it is the milestone that judges them.
 
----
-
 ## M23 — FIREARMS
 
 M16 phase 5, held back on purpose. A gun in a game about being watched is a
 different game; it arrives when everything that observes it is finished.
-
----
 
 ## M24 — SHIP
 
@@ -373,28 +348,31 @@ added by an audit because none of them had an owner:
 it and what it is built from, and read every screen in the same typeface the
 build intended.
 
----
-
 ## What we should never chase
 
-Traversal scale, vehicle handling, crafting, body needs. **Visual fidelity
-was on this list and was DELETED 21 Aug by Jafar's direct order: "matches
-GTA 5 is absolutely the target" — see M17.10.** Depth stays the moat, the
-setting stays Meridian, and the look never eats the systems.
-
----
+Traversal scale, vehicle handling, crafting, body needs. **Visual fidelity was
+on this list and was DELETED 21 Aug by Jafar's order — "matches GTA 5 is
+absolutely the target", see M17.10.** Depth stays the moat, the setting stays
+Meridian, and the look never eats the systems.
 
 ## At risk
 
-- **The frame gate is the only live red** — `game=17.55ms` against a 12ms
-  budget, failing 28 of 141 runs. CI timings are the wrong machine to tune on.
-- **The reach ledger is 37 typed entries, counting down only** — the debt
-  measured, not cleared. Read each entry's REASON as well as its name: reasons
-  decay exactly like comments and three were wrong on 4 August alone.
-- **Two clips have a frozen root and one slot's identity is unresolved** —
-  `game-design/clip-findings.txt`, which is a ceiling and can only be lowered.
+- **The frame-gate red was STALE and is RETIRED — 25 Aug, verified against the
+  landed verdict at `36b90c9`.** It read `game=17.55ms` vs 12ms from the
+  GPU-less runner era; on `ledger-pc` it is **6.29ms**, has held 6.10–6.71 for
+  31 runs, and last failed 65 runs ago. The 12ms gates game SYSTEMS only —
+  rendering is UNGATED at `render+rest=22.29ms`, `meanFrame=28.58ms` at 720p
+  ≈ 35fps, inside GTA V PS3's own envelope. **M17.10 is affordable and was
+  never "46% over".** What DOES need watching: MEMORY (`DecalLayer` loads
+  decals RGBA32 uncompressed, ~22MB a set, 14 resident — one-line fix) and the
+  ungated `meanFrame`, printed per phase; its bound waits for a landed series
+  against a stated resolution (rule 2). Audit: `research/performance-budget.md`.
+- **The reach ledger is 37 typed entries, counting down only** — debt measured,
+  not cleared. Read each entry's REASON as well as its name; reasons decay like
+  comments and three were wrong on 4 August alone.
+- **Two clips have a frozen root, one slot's identity unresolved** —
+  `clip-findings.txt`; a ceiling that can only be lowered.
 
-*(The working rules that used to be repeated here live in `CLAUDE.md`, which is
-read at the start of every session. Two copies of a rule is one copy that goes
-stale, and this one had: it still described a 89-entry reach ledger and a crowd
-of boxes months after both changed.)*
+*(Working rules live in `CLAUDE.md`, read at every session start. Two copies of
+a rule is one copy that goes stale — this one had, describing an 89-entry reach
+ledger and a crowd of boxes months after both changed.)*

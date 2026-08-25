@@ -1,326 +1,388 @@
-# The visual bar — GTA V, on Meridian's content
+# The visual bar — GTA V, on Meridian's content: THE PLAN
 
-> **STATUS — SPEC.** Written 2026-08-21, the day the bar changed.
-> **§4 REPLACED 2026-08-25 by the director**, on Jafar's direct escalation
-> ("this goal is a must"), after reading the five reference frames beside the
-> landed stills. The PLAN is §4 of this file; `roadmap.md` M17.10 points here
-> and wins on cross-milestone ordering only. §9 records why V0–V6 was
-> replaced, so nobody re-derives it as still current.
+> **STATUS — SPEC.** Bar set 2026-08-21 (Jafar, twice over hedging; re-escalated
+> 25 Aug: *"this goal is a must"*). **PLAN REWRITTEN WHOLE 2026-08-25 by the
+> director, on Jafar's third ask for it**, incorporating all six research
+> documents under `game-design/research/` (art-direction, procedural-density,
+> content-sourcing, performance-budget, inhabited-street, water). The 25 Aug
+> R0–R5 plan is ABSORBED, not discarded — mapping in §9; **R0's in-flight batch
+> continues unchanged as Part 1, phase 1.** `roadmap.md` M17.10 points here and
+> wins on cross-milestone ordering only.
 
-## 1. The decision
+## 1. The decision, and the test this document must pass
 
-Jafar, 21 Aug, after sending three GTA V (PS3, 2013) street frames beside our
-noon still: *"matches GTA 5 is absolutely the target. it's a 13 year old game
-and you are literally the best AI in the world... before you start building a
-tiny thing here and fixing something here, I want you to really understand
-what the goal is, think about how we can get there, do the necessary research,
-set up a proper plan, and then build."*
+Jafar, 21 Aug: *"matches GTA 5 is absolutely the target. it's a 13 year old
+game... I want you to really understand what the goal is, think about how we
+can get there, do the necessary research, set up a proper plan, and then
+build."* And 25 Aug, on this plan: *"Just need to be 100% sure that with this
+plan, we incorporate everything that we found out that we need to do to reach
+our goal, and that we can actually do it."*
 
-I hedged twice ("250 person-years of art staff", the old worse-looking trade);
-he overruled twice. That is a decision. The old framing is retired everywhere
-it appeared (CLAUDE.md ×2, design-doc, roadmap; the-gap.md keeps it as a dated
-LOG). Re-escalated 25 Aug: *"this goal is a must."*
+So this file answers two questions and nothing else: **what does "GTA V's
+perceived quality on a British port town" CONSIST of** — six parts, §2 — and
+**can we execute each part** — where we stand (measured), what we do, what
+proves it, what it costs, roughly how long. Unchanged underneath: the setting
+(late-analog 80s/90s), the moat, no purchases, no accounts, the noir mood
+delivered by grade rather than by absence.
 
-What does NOT change: the setting (British port town, late-analog 80s/90s),
-the moat (social memory / consequence / information), no purchases, and the
-noir MOOD. What changes: the mood may no longer be delivered by absence.
-Flat light, bare walls and empty pavements were being read as style; next to
-Los Santos they read as unfinished, because they are.
+**CAN WE AFFORD IT — answered first, because it gates everything (from
+`research/performance-budget.md`, all [MEASURED] unless noted):** the
+roadmap's old "only live red" (`game=17.55ms` vs 12ms) was stale, from the
+GPU-less cloud runner. On Jafar's PC the gate reads **`game=6.29ms`** (verified
+against the landed verdict at `36b90c9` this session), in a 6.10–6.71ms band
+for 31 runs, last red 65 runs ago. The 12ms budget gates game SYSTEMS;
+rendering is ungated (`render+rest=22.29ms`), and the governing number is
+**`meanFrame=28.58ms` at 720p ≈ 35fps — already inside GTA V PS3's own
+30fps/720p envelope with ~4.7ms of margin.** The plan's summed frame cost is
+small (per-part rows below) and four structural savings are entirely untaken:
+`CombineMeshes`/`StaticBatchingUtility`/`isStatic` have ZERO hits in the whole
+project (the town is runtime-built, so static batching currently does
+nothing), and `shadowCascades=4` submits every casting prop five times. The
+real ceiling is MEMORY, and its biggest item is one line
+(`DecalLayer.cs:467` loads RGBA32+mips, ~22MB a set, 14 resident, `Compress()`
+never called — a 4× cut). **The plan is affordable. Feasibility is not a
+risk; memory discipline and the ungated render number are, and both are
+printed per phase.**
 
-## 2. The reference, decomposed
+## 2. What the goal consists of — six parts
 
-Five frames, committed byte-exact in `game-design/reference/` — READ THEM,
-they are the bar. Each is carried by different systems; the third is the
-important one.
+From the five reference frames (committed byte-exact in
+`game-design/reference/` — they are the bar), decomposed and then MEASURED
+against our seven district stills:
 
-**Frame 1 — liquor store, hard side sun.** Long soft shadows ground every
-object; under-car darkness; palm shadows ON the wall. The side wall is four
-layers deep: stucco, torn-poster residue, a graffiti mural, water stains
-bleeding from the roofline. Street furniture in one static shot: bus, bins,
-utility boxes, hydrant, poles, overhead wires, hanging signals. Sky is a
-gradient with haze at the horizon; distant towers are faded by it.
+| part | what it is | where we stand, in one measured fact |
+|---|---|---|
+| **P1 — LIGHT & COLOUR** | the frame is lit right: bright sky, dark water-marked ground, warm/cool separation, British sun and weather | **totally separated from the references on four independent statistics, all one cause** (§P1) |
+| **P2 — SURFACE HISTORY** | no surface one flat tone: road scars, markings, streaks, grime, weathering | ground-band surface variety below every reference on 5 of 7 stills |
+| **P3 — DENSITY, DEPTH & STRUCTURE** | furniture, wires, facade rhythm and recess — a street that reads as decided | 25 placeable furniture models on disk, ONE placed; wires are two straight cubes; placement is anchor-less scatter |
+| **P4 — THE INHABITED STREET** | people, vehicles, windows read as lived-in | six of the eleven top items are FINISHING A WIRE on something built and tested |
+| **P5 — THE PORT** | the water and the tidal edge | nothing renders water; the "sea" is the sky dome's underside, luma std 0.0032, the bluest thing in a dockside frame |
+| **P6 — LETTERING & CONTENT** | words on the town, period content, the asset pipeline that feeds P2–P5 | signs carry their words in data and render as blank coloured cubes |
 
-**Frame 2 — dusk.** Almost nothing but light: low warm sun, long shadows
-toward camera, poles and wires as silhouettes, one specular streak down the
-car. Time-of-day identity is sun colour + angle + haze, and the WIRES are what
-give the sky depth.
+Cross-cutting, not a seventh part: **the convergence instrument** (§3) —
+because converging on a target you never photograph is unmeasurable, and every
+part below closes on ITS numbers plus a paired still.
 
-**Frame 3 — overcast morning, and this is the killer argument.** No dramatic
-sun at all, and it still reads completely real, because: contact darkening
-everywhere (under the car, in the shop recesses), and the ground plane alone
-carries five different asphalt tones, tar snakes, worn arrows, patched
-repairs, stained gutters. The wall is posters over paint over brick. Rooflines
-carry billboard backs and AC units. **Dirt + depth + density carry a frame
-with no interesting light in it.** Jafar's words when I led with lighting:
-"lighting is not everything though." Frame 3 is that sentence as a picture.
-**And note its SKY: overcast is a BRIGHT white-grey sheet, the brightest
-surface in the frame.** That fact turned out to be the one our frames get
-most wrong — see §4 R0.
+## 3. HOW WE KNOW — the instrument (ships with Part 1, not after)
 
-Frames 4 (suburban noon) and 5 (PS3-labelled sidewalk) add: texture density
-at PLAYER height, shadow dapple on pavement, grass seams in cracked slabs,
-haze eating the towers. **All five are shot at eye level, 1.5–1.8m.** Not one
-of our judgement stills is.
+- **Five player-height cameras** (~1.7m, ~60° vfov) matched to the five
+  reference compositions, committed every run as `ref_1..ref_5`. Every
+  reference is shot at eye level; today not one judgement still is. Aerials
+  stay for audits only.
+- **`ref-bench.py` gains the six separating statistics** from
+  `research/art-direction.md` §7 (`skyOverGround`, `v3which`, hue arc,
+  `warmSplit`, saturation shape, night variants) — one instrument over refs
+  and stills, never two. Bounds are reference EXTREMES, never invented; regime
+  marks when R0-class changes land.
+- **Five hand-painted reference mattes** (approved 25 Aug) so magnitude
+  becomes quotable, not just direction.
+- **The convergence test:** at every landing, read the five pairs and write
+  the biggest visible difference in one sentence. The panel moving toward the
+  reference side while the sentence keeps changing = converging. **The same
+  sentence three landings running = this plan is wrong at that point,
+  whatever it says.** Final judge: Jafar, our frame beside his frame.
 
-So the decomposition, ranked by what carries the look:
+## 4. THE PLAN, part by part
 
-1. **Surface history** — decals: stains, posters, graffiti, oil, tar seams,
-   patches, worn paint, kerb grime. No surface is one flat tone edge to edge.
-2. **Density** — street furniture, poles, WIRES, parked vehicles, bins,
-   signs, roofline clutter. GTA's streets are never bare.
-3. **Depth** — recessed shopfronts with interiors and inner light, awnings,
-   parapets, drainpipes, chimneys; facades are not single planes.
-4. **Light correctness** — shadows that land, AO that reads, sun:ambient
-   ratio that makes noon directional, dusk warm, night pooled.
-5. **Atmosphere** — sky with structure, distance haze, filmic grade.
-6. **Vehicle/body integration** — speculars, plates, wheel darkening,
-   contact shadows.
+### P1 — LIGHT & COLOUR *(first, because nothing else is judgeable on an inverted frame)*
 
-That ranking is what carries a HEALTHY frame. §4 reorders the WORK, because
-25 Aug's frames fail below the ranking: the value structure the whole list
-stands on is inverted, and detail painted onto a clipped ground is invisible.
+**Stand [measured, art-direction §1]:** four total separations, one cause —
+an ambient that is blue, flat, and applied to everything. Sky/ground ratio:
+refs 1.35–5.79, ours 0.54–1.25 (7/7 wrong). Palette arc: every ref amber
+30–50°, five of ours BLUE 220–230° — **the blue is our ambient, not our
+content**; a British port's own materials (brick, rust, tarmac, sodium) all
+sit in the amber arc already. Warm/cool split: refs ≥0.079 in magnitude, ours
+never past 0.060. Mid-grey dominance: no ref is mid-dominant, five of ours
+are. Detail painted onto this frame cannot be seen — hence first.
 
-## 3. What GTA V (PS3) actually does — the technique scorecard, 25 Aug
+**Do:** (a) **R0 as already ruled** — the in-flight attribution batch
+(`decision-ground-albedo.md` order stands), then the fix the A/B names, the
+aperture set ONCE off the post-fix series, bright overcast dome (CIE overcast
+is zenith 3× horizon — a bright sheet, not a storm ceiling), windows reading
+the real environment. (b) **Palette + temperature**: grade/ambient parameters
+until the arc and warmSplit gates pass — parameters, not content. (c)
+**Britain, three parameter changes**: noon sun clamped ≤59° elevation
+(arithmetic: 54.5°N never sees a Los Santos sun; long shadows are CORRECT
+here), weather draw ~2:1 overcast-or-wet vs dry-sun (UK ≈1,403 sunshine hours
+— **overcast is our DEFAULT frame**, so reference frame 3 is the one that
+matters most), and sodium night (SOX is CRI 0, monochromatic 589nm — period
+marker, mood, and a simplification at once; night bounds set from a printed
+series after the lamps are tinted).
 
-Researched (Courrèges' three-part frame study; PS3-generation accounts) and
-judged against this repo at HEAD. What the RAGE renderer does, and where we
-stand — HAVE / WRONG / NEVER:
+**Gates (reference-derived, magnitude never sign):** `skyOverGround>=1.35`;
+`v3which!=mid`; `hueArcAt` in 15..60° with `hueArc60>=0.55`;
+`abs(warmSplit)>=0.079`; `satP50>=0.159`, `satP99<=0.758`; `sunElevNoon<=59`;
+`weatherDrawn` counts printed. Plus the R0 ordering gate: sky > lit wall >
+ground > shadow, and ground lumas ordering as their albedos do.
 
-| GTA V technique | us, honestly |
+**Cost:** ~0ms — parameters and grade. **Time: days** (a handful of landings;
+R0 already in flight).
+
+### P2 — SURFACE HISTORY *(ground work after R0.b — invisible on a clipped ground; wall work startable now)*
+
+**Stand:** reference frame 3 proves dirt+depth+density carry a frame with no
+interesting light. Our carriageway is one tile; our decal placement is a
+seeded roll that knows nothing about doorways; fetched textures are never
+albedo-validated; decal textures are uncompressed in memory.
+
+**Do, in order of impact-per-hour [procedural-density §2, §4, §6]:**
+1. **`Compress()` on decal load** — immediate, one line, 22.4→5.6MB a set.
+2. **British road markings from the real TSRGD numbers** — 75mm double
+   yellows (gap = line width), zebra stripes 500–715mm, give-way 500/500mm,
+   centre line 4m/2m. Pure arithmetic, ~150 lines in Core, no asset, and every
+   junction reads as Britain.
+3. **Ground scars by anchor**: gutter grime strip along every kerb, tar seams
+   at centre/kerb joints plus perpendicular service-trench scars, patch
+   rectangles at junction mouths, oil where traffic idles, worn markings in
+   the wheel tracks. Decals combined per block (`CombineMeshes`) — the PS3
+   answer; `decalOverlapWorst` printed so overdraw cannot land as a mystery.
+4. **Vertex-colour weathering** written at generation (R contact / G exposure
+   / B wear) + one surface shader: every wall base, corner and join in town
+   darkened at zero draw calls. Priced honestly: one shader + a mesh-copy
+   pass, shared with the CombineMeshes work — built in the same batch.
+5. **Wall history**: poster stacks (3–6 overlapping, torn edges — one poster
+   is a sign, six are time passing), streak decals below every sill and
+   parapet (we place the ledges, so we know them), rust below every fixing,
+   moss by the damp-dark rule.
+6. **Albedo validation at ingest** — reject/correct any fetched base colour
+   with P05 < 30 or P95 > 240 sRGB; the root cause of asset clash, offline
+   Python, runs once per asset. Ships `texturesClamped/texturesExamined`.
+7. **Detail maps** on brick/asphalt/paving/render — free close-up grain in
+   the Standard shader, one material field.
+
+**Gates:** ground-band tonal spread toward the mattes; a paired still showing
+three distinguishable tones on one carriageway; `markingKinds`,
+`vertexDirtWritten/total`, `decalOverlapWorst`, `texturesClamped/Examined`.
+**Cost:** +0 to +0.3ms combined-per-block; memory FALLS after item 1.
+**Time: 1–2 weeks**, largely automatable.
+
+### P3 — DENSITY, DEPTH & STRUCTURE *(startable NOW as ride-along visible work)*
+
+**Stand [procedural-density §0]:** `city-kit-roads` holds 25 placeable
+furniture models (lamps, signals, signs, cones) with ONE placed, plus 9
+suburban fence panels; overhead cables EXIST (`BuildOverheadCables`,
+`BuildTelegraphPoles`) but as two straight cubes per span, no dropwires, no
+aerials; facades are boxes; placement is `Roll < 0.55` scatter, which cannot
+read as placed because nothing in it knows what a doorway is.
+
+**Do:**
+1. **Placement rules move into Core as pure tested functions** — the one
+   architectural change that makes everything else cheap: rules become
+   CoreTests that run in seconds instead of 28-minute round trips, plus a
+   top-down SVG preview tool needing no Unity. First, in the same batch as
+   the first furniture pass.
+2. **Anchor vocabulary + recipes**: scatter over ANCHORS (kerb line,
+   furniture zone, shop door, service door, alley mouth, junction corner,
+   party wall, quay edge), never over area. Leader/follower clustering
+   (co-locate within 2m, align to one kerb offset ±0.05m, reserve the
+   1.2–1.5m desire line — which is also `NpcWalker`'s strip). The
+   Spider-Man shape: minimum separation, alternation, keep-out from a named
+   feature. Recipe numbers tuned from the preview tool, never invented into
+   gates.
+3. **Wires as ONE combined mesh** — parabolic sag (exact within 0.5% at our
+   spans), dropwires fanning pole-to-eaves, **TV aerials on every chimney**
+   (the single most period-specific silhouette available), washing lines,
+   catenary lamps on the narrow lanes, ~1.2px width clamp. The sky is P1's
+   brightest band; wires are the only thing that puts structure into it.
+4. **Facade grammar with terrace-level coherence** — vary per TERRACE
+   (brick, bay, pitch, storey height identical for 5–12 houses: one builder
+   built them), vary per HOUSE only what residents did (door colour,
+   curtains, boundary). British numbers: frontage 4.5–6m, storey ~2.9m.
+   **Recess depth**: shopfront 0.3–0.6m, door reveal 0.12–0.2m, window
+   reveal 0.1–0.15m — four quads each, the highest visible-depth-per-triangle
+   in the plan.
+5. **The Britishness accents** — K6, pillar box, Belisha beacon: authored
+   primitives (no CC0 source exists; that is fine, they are boxes and
+   domes), the mandated identical high-chroma objects that give a low-chroma
+   street its 60-30-10.
+6. **Areas of rest** — at least one span per block at primary+secondary
+   detail only. The tax on proceduralism: uniformly dressed streets read as
+   wallpaper.
+
+**Gates:** `propsByAnchor` (did the RULES fire, with denominators),
+`furniturePer50m` median+peak, `propsRejectedClearStrip`, `wireSkyCover` per
+ref still, paired stills. **Cost:** +0.3–1.2ms at planned counts IF the
+structural moves land with it (`shadowCastingMode=Off` on small props — at 4
+cascades a casting bin is drawn five times). **Time: 2–3 weeks**, the widest
+part; the Core move is what keeps it honest.
+
+### P4 — THE INHABITED STREET *(early, cheap, and where the eye goes first)*
+
+**Stand [inhabited-street §1]:** the systems exist; the wires don't reach.
+`RealBody` washes ONE colour over every renderer INCLUDING THE HEAD —
+`BodyParts.Assign` (Core, tested) is never called on the textured path, so
+nobody can have a navy coat and stone trousers and the eight-band period
+wardrobe collapses to a tint. `walk_f` is unwired — **every woman walks the
+male cycle** — and six locomotion transitions sit unused among 41 unreferenced
+clips. Headwear is computed for everyone and read only by the superseded
+mannequin tier. Windows are NOT the assumed fault: 4,188 windows with real
+occupancy, 2,477 lit at 23:00, 122 built shop interiors — **the fault is
+DAYTIME glass**, near-black gloss with nothing behind it. Vehicles: right
+palette, one anachronism (SUV), no plates, one uniform finish.
+
+**Do — the ranked eleven, most of them wires:** split the body wash
+(flesh/cloth, coat/legs — second wardrobe draw, arithmetic in Core); wire
+`walk_f` + the six transitions; cool the shopfront emissive vs warm flats
+(one line, an existing branch — the British dusk in one edit); daytime glass
+by transfer series (brighter base + metallic so the bound HDRI reads) + a dim
+warm interior value; headwear on the skinned tier; curtains/blinds from the
+existing occupancy hash; period number plates (`A123 ABC`, white front /
+yellow rear) via the shipped `LedgerText`; drop `car_kit_suv` + add the pale
+metallics and one loud colour; idle variety 4→7–8 (fetch `smoke`/`thinking`,
+which `NpcWalker` already asks for and is refused 43 times a run);
+per-vehicle gloss+dirt; hand props for the carry clips.
+
+**Gates:** `bodyDressed>0` with the parts split named; clip-reach 41→0
+unreferenced or ruled; stills. **Cost:** ~0ms, measured — the whole crowd
+(80 rigs, ~1M skinned verts) costs ~0.6ms; nothing here adds a `Light`.
+**Time: days to ~1.5 weeks.**
+
+### P5 — THE PORT *(early: it is a whole-frame void in the two seaward frames)*
+
+**Stand [water §0, measured]:** no water shader, no plane, nothing. The
+region south of the quay is the sky dome's lower hemisphere: monotonic
+gradient, luma std 0.0032, saturation 0.331 against the land's 0.082 — the
+most saturated, bluest thing in the shot, exactly backwards for a British
+port. The world model already knows where the sea is; nothing renders it.
+
+**Do:** W1 **opaque plane** at `GroundMinZ` (same constant, never a second
+number), two-stop dark ramp, Fresnel to the sky's own horizon colour — 60% of
+the job, because it replaces a hole with a surface; W2 analytic sine-sum
+normal perturbing ONLY the reflection vector into `unity_SpecCube0`
+(**already bound, already paid for** — precisely GTA IV's method, one
+generation below our bar); W3 horizon delta; W4 analytic brown scum band at
+the wall (world-space arithmetic against the straight quay — no depth
+texture; and never white surf, which is a beach marker). Then the shore:
+**tide/lichen five-stop band on quay walls — zero ms, and it says "tidal
+port" better than the water does**; wet-dark stone below the line (mechanism
+exists, needs pointing); mooring clutter; boats later. Turbid harbour water
+is opaque and reflection-dominated, so everything expensive is also wrong
+here — the cheap technique is the correct one.
+
+**Gates:** `waterLuma`/`waterSat` below the land's; `waterStd` peak+median;
+`shoreGap` per edge with the datum check; `waterMs` A/B before any bound;
+and the first act after landing is opening `district_ironside.jpg`.
+**Cost:** ~0.2–0.5ms estimate, measured before believed. **Time: days.**
+
+### P6 — LETTERING & CONTENT *(parallel — most of it runs offline, no CI)*
+
+**Stand [content-sourcing §1]:** `NeonSigns` carry `(place, colour, word)`
+and render the word as nothing; no fascia text exists; everything is fetched
+at 2K with 4K free one URL-field away; `.glb` is invisible to the attribution
+sweep; **no `.meta` files ship, so Unity's default 2048 cap applies — an 8K
+source imports as 2K and changes nothing.**
+
+**Do:**
+1. **The signage generator** — Pillow + OFL fonts (verified fetchable from
+   here) + our own words: shop fascias for every `HasFascia` premises,
+   lettered neon, poster stacks (gig bills, ferry timetables, union
+   notices), official notices, street and pub plates. The single highest
+   impact-per-hour item in the sourcing research; no licence question at
+   all. Ships `signsLettered=` with ground truth.
+2. **OGL traffic signs** — 600+ official UK signs as vector, rasterised at
+   any size in CI, attribution written by the job that writes the files.
+3. **Resolution done right: the `AssetPostprocessor` FIRST**, then 4K on a
+   NAMED short list of eye-level surfaces. **8K is CUT** (§7).
+4. **Poly Haven textures and models** beyond the four HDRIs we take today;
+   OGA industrial/harbour packs for the dockside; `.glb`/`.gltf`/`.svg`
+   into `ASSET_SUFFIXES` in the same change.
+5. **Generated images at rung 4 — APPROVED by Jafar this session**: a
+   permissively-licensed model run locally on his PC, set up as **one click
+   ("ideally just a 1 click bat")** — a builder is producing that now, on
+   the voice-pipeline precedent (his machine runs a bat, outputs are
+   committed). Scope: painterly one-offs — ghost signs, pub signs,
+   illustrated adverts — NOT fascias (Tier A does those better) and NOT
+   tileables (real CC0 photos beat hallucinated brick). **Licence
+   discipline, absolute:** no identifiable real person, no real trade
+   marks, in-world brands only (they feed social memory anyway — better
+   content, not just safer); every image human-reviewed; recorded in
+   `THIRD-PARTY.md`'s "generated by us" section with model, licence,
+   training-data claim, review date.
+
+**Time: days** for the generator and signs; the image phase runs parallel on
+his machine and does not block anything.
+
+## 5. ORDER — and why not the other order
+
+Execution waves (each wave = batched dispatches, every dispatch shipping at
+least one visible change unless a red gate blocks it):
+
+1. **Now, in parallel:** P1 (R0 batch in flight) + the instrument (§3) +
+   P4's wires + P5's W1/tide band + P6's signage generator + the two
+   one-liners (Compress, SUV). First visible transformation of the frame.
+2. **Next:** P2 ground work (unblocked once R0.b lands), P3 placement-in-Core
+   + first furniture/wires/markings pass, P6 postprocessor + 4K short list.
+3. **Then:** P3 facade grammar + accents + rest-areas; P2 wall history at
+   scale; P5 moorings/boats; convergence iterations against Jafar's eye
+   until the sentence stops finding new biggest-differences.
+
+**Why not detail first?** Detail on a value-inverted frame is invisible —
+measured, not asserted (P1's four separations). **Why not water later?** It
+is a whole-frame defect in two of seven frames, and dressing the edge of a
+void draws the eye to the void. **Why people this early?** Six items are
+wires on tested systems at ~0ms — the highest finished-value-per-hour on the
+board — and a person is what the eye lands on first. **Why is P3 the long
+pole and not pulled forward whole?** Its yield depends on the placement rules
+being tunable in seconds, so the Core move must land first or every rule
+costs half an hour to see.
+
+## 6. TIME — hours versus weeks, honestly
+
+- **Hours:** Compress(), SUV drop, shopfront emissive, sun clamp, weather
+  mix, `.glb` in the sweep.
+- **Days:** P1 to its gates; P4's eleven; P5 minimum; P6 signage.
+- **1–2 weeks:** P2. **2–3 weeks:** P3 (the widest part).
+- **The whole plan to "Jafar puts our five frames beside his five and calls
+  the bar met": 4–7 weeks of continuous work, medium confidence.** What
+  dominates is not build effort: it is (a) the number of convergence
+  iterations against his eye — unknowable in advance, which is why the
+  instrument exists — and (b) CI round trips (~17 min on his runner,
+  batched). What does NOT dominate, because it is answered: the frame budget
+  (§1), asset availability (everything is on disk, fetchable free, or
+  generated), engine capability (every technique is Built-in-forward with a
+  precedent in this repo). If the CC0 ceiling binds anywhere (vehicle
+  meshes are the likeliest), we say so rather than stretch.
+
+## 7. WHAT WE ARE DELIBERATELY NOT DOING, and why
+
+| not doing | reason, measured or sourced |
 |---|---|
-| Per-frame 128px HDR **environment cubemap**; everything reflective reflects a real sky+scene | **WRONG → fix in flight.** Our probe was a 64px three-colour gradient, and dry reflection intensity was ZERO for the whole project history. The HDRI-as-environment wire is coded, awaiting its landing (`skyLoadedAs`, `skyBound`) |
-| HDR buffers + tonemap + per-hour artist-keyed grade | HAVE the shape (linear closed, ACES fit, split-tone); **WRONG value** — the 3.44 day aperture was calibrated against a broken ground response (§4 R0) |
-| Sun CSM + **cloud shadows in one buffer**, dithered soft edges | HAVE (real noon shadows landed; cloud cookie landed) |
-| SSAO + **baked AO in textures/verts** | HAVE SSAO (deepened); vertex-bake still open (§7.2) |
-| Atmospheric-scattering sky, strong **aerial perspective haze** | PART — fog exists, distance desat landed; the DOME's per-hour luminance and cloud structure are open, and overcast reads storm-dark, which no real sky does over a lit street |
-| Decal/grunge density everywhere | **NEVER at street scale** — wiring landed, sets fetched, placement blocked-then-split (§4 R2) |
-| Hand-placed prop/wire/pole density | PART — furniture pass landed; **city-kit-roads 47 models with ONE placed**, suburban kit 13/0, avenue wires absent |
-| LOD + haze hiding distance | HAVE (fog, far city, period skyline in flight) |
-| Deferred, hundreds of dynamic lights | NOT PORTABLE (built-in forward here) — accepted; night is pooled lamps, which fits the town |
+| **Deferred rendering / URP / HDRP** | built-in forward accepted 21 Aug; pooled sodium lamps fit the town; Built-in is also where all nine of our shaders live |
+| **Planar reflection camera** (water or wet ground) | a second full scene render, ~+15ms — the one item that could double the frame. GTA IV didn't either |
+| **Depth-texture shoreline, refraction, Gerstner, flow maps** | each buys a property turbid enclosed harbour water does not have, at up to a scene render each |
+| **8K textures** | cannot land (no `.meta` files → imports at 2048) and shouldn't: GB of repo and VRAM for a difference invisible at street distance. 4K on a named list, postprocessor first |
+| **Photogrammetry** | no camera, no site; archive photos are single-view and in copyright. CC0 scan libraries + albedo validation are the same asset class done legally |
+| **Interior mapping** (rooms behind glass) | ranked LAST measured against our small sash windows; 122 geometric shop interiors already do the job at street level. Named as the next rung on the ladder, not built |
+| **Wave Function Collapse** | our city already has the global structure WFC lacks; only its adjacency-table idea survives (30 lines, facade modules) |
+| **Hex-tiling, LOD groups** | 2018+ technique / wrong constraint; era-correct answers (detail maps, vertex colour, decals, CombineMeshes) come first — revisit only if the ground still reads tiled after they land |
+| **Real brands, real people, period ad artwork** | trade mark law is where Getty's only wins landed; 1980s artwork is in copyright for decades. Meridian's brands are Meridian's — and feed the moat |
+| **Standard Assets, Asset Store, any account, any purchase** | standing project rule; also Water4 is deprecated anyway |
 
-The honest summary: the individual techniques are mostly HAVE or in flight.
-What is WRONG is the two things every technique feeds through — the
-environment (what light and reflections COME FROM) and the exposure (what the
-frame does with them). That is why a week of landed technique moved nothing
-a person could see.
-
-## 4. THE PLAN — replaced 25 Aug. Converge on the frame, not on the list.
-
-**The finding that reorders everything.** Put `district_ironside.jpg` or
-`review_day2_noon.jpg` beside any of the five references. In every reference
-the SKY is the brightest broad surface, walls sit below it, the ground sits
-mid-dark with the widest tonal variety in the frame, and every object stands
-on contact shadow. In ours the ordering is INVERTED: near-white ground, dark
-slate sky, windows as black grids. A frame whose light is impossible reads as
-fake before any detail is judged — and detail added to a white-clipped ground
-cannot even be seen. Cause chain, measured this week: an albedo-blind
-additive term on the ground (specular/reflection suspect, A/B in flight) ×
-a 3.44 noon exposure raised to fix a real day/night ratio fault ×
-an overcast dome authored storm-dark. Three levers, one inversion.
-
-### R0 — VALUE STRUCTURE. Nothing else is judgeable until this lands.
-
-- **R0.a (in flight)**: the attribution batch as ruled in
-  `decision-ground-albedo.md` (per-material ray distance, `_GlossMapScale=0`
-  A/B, fogOff planted rung, MeanTexLuma audit) + the skyline/apron batch.
-  Order and "no contested lever moves in that batch" stand.
-- **R0.b**: the fix the A/B names (expected: ground specular path), then the
-  aperture set ONCE off the post-fix printed series — the 2.44 day term is a
-  wrong value arrived at correctly and is not defended.
-- **R0.c**: **bright overcast.** Dome + fog luminance for overcast/rain
-  raised until the sky band outreads the wall band; British overcast is a
-  bright grey sheet (reference frame 3), not a storm ceiling. Rides with or
-  immediately after R0.b; cross-run series take a regime mark.
-- **R0.d**: windows read the real environment — already coded; read
-  `skyLoadedAs=Cube`/`skyBound` and the STILLS at its landing.
-
-**Gate (ordering, not invented thresholds — rule 2 compliant):** at noon,
-dry or overcast, per paired still: `skyBand > litWallBand > groundBand >
-shadowBand`, AND rendered ground lumas order as their source albedos do
-(asphalt < kerb < paving). Margins set later from the landed series; the
-ORDER is from the references, 7/7 already on the sky-vs-ground half.
-
-### R1 — THE CONVERGENCE INSTRUMENT. Ships WITH R0, not after.
-
-- **Five player-height cameras** (~1.7m eye, ~60° vfov) matched to the five
-  reference compositions, committed every run as `ref_1..ref_5` stills. The
-  done-test is Jafar's eye on OUR frame beside HIS frame; today no committed
-  still is even the right kind of photograph — every judgement frame is
-  aerial. Aerial shots stay for audits and stop being judgement frames.
-- **Five hand-painted reference mattes** (approved 25 Aug, unbuilt) masking
-  car/HUD, so `ref-bench` magnitude becomes quotable — today only direction
-  is supportable.
-- **The panel, small and fixed**, per paired still: sky/wall/ground band
-  medians, shadowed:lit ratio (GTA noon reads ~0.45–0.55, §7.1), ground-band
-  tonal spread. Schema changes carry regime marks.
-
-**Convergence is defined, so "sideways" is detectable:** at every landing,
-read the five pairs and WRITE DOWN the biggest visible difference in one
-sentence. We are converging while the panel moves toward the reference side
-and the biggest-difference sentence changes. **The same sentence three
-landings running is the next phase, whatever this plan says.**
-
-### R2 — GROUND SURFACE HISTORY. After R0.b (invisible on a clipped ground).
-
-Asphalt at its source albedo; tar seams, patch rectangles, oil, kerb grime,
-worn markings; the roads-kit crossings and junctions. Gate: ground-band
-tonal spread moves toward the reference mattes'; a paired still shows three
-distinguishable tones on one carriageway; decal counts per district.
-
-### R3 — STREET-LEVEL DENSITY. Startable NOW as ride-along visible work.
-
-`city-kit-roads` (47 models, ONE placed — kerbs, crossings, barriers, cones,
-junctions, the densest unused kit and all at eye level), `city-kit-suburban`
-(13/0), parked-car density, pole-borne avenue WIRES with the ~1.2px width
-clamp (§7.11). Wall-side surface history — posters, damp streaks, painted
-signs — is NOT blocked by the ground question and belongs here too.
-Gate: `prop-reach` per-kit counts, furniture-per-50m, paired stills.
-
-### R4 — DEPTH remainder. Roofline clutter, window reveals, albedo variety
-with the noir mood moved fully into the grade (§7.7). Gate: facade variance
-+ paired stills.
-
-### R5 — ATMOSPHERE. Dome cloud structure per hour (overcast 0.55–0.80
-coverage), dusk/night keys (first slice landed), aerial desat tuning.
-Gate: the four dailies read as four different HOURS at a glance; sky
-readings.
-
-### Cadence — the two standing rules that fix this week's failure mode
-
-1. **Every dispatch ships at least one visible change** a person can point
-   at in a paired still (from the earliest phase with startable work — R3
-   and wall-R2 are startable today), unless a red gate blocks the build.
-   Measurement-first governs LEVERS (rule 2, untouched); it was never a
-   licence for measurement-ONLY dispatches, and this week it became one:
-   ~15 instrument fixes, one visible change, one regression.
-2. **Paired stills are read before any number at every landing** (rule 4,
-   now with frames that are actually comparable), and the washout is the
-   standing proof: a 3.07× exposure lift shipped and the next two days went
-   to measuring its symptom because nobody put the new noon beside the old
-   one at the landing.
-
-**Done looks like** (unchanged in substance, sharpened in kind): Jafar puts
-our `ref_*` noon/dusk/night player-height stills beside his five frames and
-calls the bar met; every phase closed on a number AND a paired still.
-
-## 5. The Britishness pass (R3/R4 content, nearly free)
-
-What palms, posters and hydrants do for Los Santos, these do for Meridian —
-most are primitives + emissive, no fetch needed:
-
-chimney stacks with pots on every terrace · TV aerials (it is the 80s — every
-roof) · double-yellow lines along kerbs · zebra crossing + Belisha beacons
-(pole + orange globe) · red pillar box · phone box (box + glazing bars +
-interior light at night) · bollards · railings on steps · wall-mounted street
-nameplates (exist) · bus stop flag · washing lines in alley courts · wet
-gutters (WetReflections exists) · dock end: containers, pallets, rope
-bollards, crane silhouettes on the skyline (period blocks landed 25 Aug).
-
-## 6. Asset sourcing — LANDED, see `visual-bar-sources.md`
-
-The research ran 21 Aug and the full verified table (exact URLs, sha256s
-where third parties pinned them, per-row verification tags) is in
-`visual-bar-sources.md`. The shape of the answer:
-
-- **Street furniture is SOLVED without accounts**: a CC0 base-mesh mirror on
-  raw.githubusercontent carries bollards, bins, skips, benches, pallets,
-  drain covers, chimney pots, awnings and more; KayKit and two more Kenney
-  kits (Industrial! — the docklands) fill the rest.
-- **The grime layer is one API sweep**: ambientCG's Decal category — leaking
-  stains, worn road lines, manhole covers, asphalt damage — plus
-  imperfection/scratch/moss masks. All CC0, all `get?file=` URLs.
-- **Skies are picked**: four Poly Haven HDRIs, one per hour — the overcast
-  one is literally shot near Belfast. (Since 24 Aug: environment/reflection
-  source only; the visible dome stays procedural.)
-- **Vehicles**: OGA CC0 packs add the bus, an estate car, a lorry and
-  separated-wheel variety; Kenney's own kit includes 15 debris parts.
-- **The honest gaps, authored not sourced**: K6 phone box, pillar box, bus
-  shelter, telegraph poles, TV aerials, dock cranes — primitive compositions
-  the Britishness pass wanted procedural anyway. Graffiti tags authored
-  in-house so tags can name in-game crews. Fire escapes dropped (American);
-  drainpipes are the British vertical.
-
-**Nothing purchased, nothing behind an account**; the one $0-but-itch-flow
-kit (Quaternius MegaKit) is excluded and noted as a single manual click if
-ever wanted.
-
-## 7. Technique notes — LANDED 21 Aug, scorecard in §3
-
-Grounded in the repo at HEAD, in cloned source (Keijiro's AO effects, Unity's
-built-in shaders, regenerated QualitySettings assets from public repos), and
-the Courrèges GTA V frame study. In impact-per-effort order:
-
-1. **Finish the sun:ambient landing** — display-space shadowed:lit ratio
-   ~0.45–0.55 (a cast shadow is roughly HALF the lit brightness; the eye
-   segments at ~2:1). TAKEN — V1 landed.
-2. **Vertex-baked base darkening** on generated buildings — per-vertex
-   analytic AO at build time (wall bases, alley narrowness, under-eave),
-   multiplied in the shader. Zero runtime cost. STILL OPEN.
-3. **SSAO fix is a curve, not a constant** — power-curve output, Alchemy
-   estimator, full multiply before bloom, every third tap at 2.0–2.5m.
-   TAKEN (deepened).
-4. **Blob shadows** under all walkers — one shared radial quad. TAKEN.
-5. **Cloud shadows via a sun cookie** — sun+cloud in one buffer is the GTA
-   frame-study shape. TAKEN.
-6. **Sky: procedural dome + FBM cloud structure**, coverage 0.55–0.80 for
-   British overcast; ambient trilight derived from the CLOUD-MIXED dome so
-   sky and fill cannot disagree. OPEN — and R0.c adds: the dome's LUMINANCE
-   per weather state is the first-order term, before its structure.
-7. **Grade: split-tone + lifted night blacks** after the tonemap. TAKEN.
-8. **Explicit QualitySettings block.** TAKEN.
-9. **Decals: bake thousands of atlas quads into per-district meshes.**
-   Grime is MULTIPLICATIVE (`Blend DstColor Zero`), must fade to WHITE with
-   fog; posters are alpha-lit quads; never Projector at scale. Wiring
-   landed; placement is R2/R3.
-10. **Distance desaturation** toward fog luminance. TAKEN.
-11. **Wires: one baked ribbon mesh**, parabola sag 2–4% of span, screen
-    width clamped ~1.2px minimum in the vertex shader, paid in alpha. OPEN.
-12. **Linear colour.** TAKEN (V1.5 closed); MPB gamma class-fault open at
-    13 sites.
-
-Shadow mechanics on file: built-in resolves the directional shadow through a
-full-screen collect, Soft = 5×5 PCF at per-screen-pixel cost — free at 720p;
-the last ~20% of shadowDistance is fade; bias failure signatures: light gap
-at wall base (too much normal bias) vs acne on low-angle walls (too little).
-No second shadowed directional, ever.
+The old "looking unmistakably worse, and at peace with that" framing stays
+retired — it was a licence for unfinished, not a trade.
 
 ## 8. Risks, named
 
-- **The CC0 ceiling.** Free kits will not match Rockstar's vehicle/character
-  meshes. The look lives mostly in §2 layers 1–2 and 4–5, which are
-  asset-cheap. Where the ceiling binds, say so rather than stretch.
-- **A no-GPU runner judges the stills** — degraded-legibly effects; final
-  judgement may need a run on Jafar's machine late in the milestone (his
-  runner builds now, which also cut the round trip to ~17 min).
-- **Perf.** Decals and furniture press the one live red gate. Static
-  batching from birth, counts in the verdict, budget checked per phase.
-- **The tint.** Mood moving from albedo into grade lands as its own commit
-  with before/after frames, revertible as one piece.
-- **Scope creep back into systems.** This milestone is LOOK.
-- **NEW 25 Aug: instrument gravity.** The failure mode this replacement
-  answers — measurement work displacing visible work for a week — will
-  recur, because instruments generate their own follow-ups. The cadence
-  rules in §4 are the guard; if a dispatch goes out with no visible change
-  and no red excuse, that is a plan violation, not a judgement call.
+- **Convergence-iteration count** is the honest unknown in §6's range.
+- **The CC0 ceiling** on vehicle/character meshes — say so where it binds.
+- **Instrument gravity** — the 25 Aug failure mode (a week of measurement,
+  one visible change) recurs unless the cadence rule holds: every dispatch
+  ships a visible change or names its red gate. A violation is a plan
+  violation, not a judgement call.
+- **Memory** — the one budget axis that was drifting (uncompressed decals);
+  fixed by wave-1 one-liner, watched per phase thereafter.
+- **A no-GPU runner never judges** — stills judged from `ledger-pc` builds.
 
-## 9. Why V0–V6 was replaced — LOG of the 25 Aug judgement, kept short
+## 9. LOG — what this replaced, so nobody re-derives it
 
-V0–V6 was a correct DECOMPOSITION and a wrong EXECUTION, three ways:
-
-1. **Its done-states measured that systems existed, not that frames
-   resembled.** Decal counts, furniture-per-50m, deltas — all presence
-   numbers. Most phases "closed" while the frames moved sideways; nothing
-   in any done-state could notice the whole picture reading as inverted.
-2. **No phase owned the value structure.** Light was V1, one list item among
-   six, and V1 "closed" on shadow presence while exposure, ground response
-   and dome luminance — the three levers under every other phase — had no
-   owner. The albedo-blind ground was found by accident, two days after our
-   own exposure change surfaced it, and was not connected to that change.
-3. **The judgement frames were the wrong photograph.** Every reference is at
-   eye level; every judgement still was aerial. Convergence to a target you
-   never frame is not measurable by any statistic.
-
-The phase CONTENT survives (mapped: V2→R2 split wall/ground, V3→R3, V4→R4,
-V6→R5, V0/V1→R0/R1). What changed is the spine: value structure first, a
-convergence instrument that photographs what the bar photographs, and a
-cadence rule that makes visible work non-optional per dispatch.
+- **V0–V6 (21 Aug)** replaced 25 Aug: correct decomposition, wrong execution
+  (presence-numbers for done-states, no owner for value structure, aerial
+  judgement frames). Content mapped V2→P2, V3→P3, V4→P3, V6→P1, V0/V1→P1/§3.
+- **R0–R5 (25 Aug morning)** absorbed same day into this decomposition on
+  Jafar's demand for the full plan: R0→P1 phase 1 (batch in flight,
+  unchanged), R1→§3, R2→P2, R3/R4→P3, R5→P1c. Nothing in flight was
+  invalidated; this file added the parts R0–R5 did not cover (people,
+  vehicles, water, lettering, the budget answer) and the time shape.
+- **Technique scorecard and asset tables** live in `roadmap-history.md`-class
+  detail inside the six research docs and `visual-bar-sources.md`; this file
+  no longer duplicates them.
