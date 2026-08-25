@@ -63,8 +63,16 @@ machine — send it back and the next thing to try is named in the report.
 ### For whoever picks this up next
 
 - `probe-machine.ps1` — reads the machine, writes `machine.json`, never guesses.
+  **Version 2.** Version 1 reported NO GPU on a machine that has one, because
+  it built each adapter row with a dictionary `Add` that throws on the SECOND
+  adapter and because it accumulated the list inside a child scope that threw
+  it away. It now tries six sources in order (Win32_VideoController via CIM,
+  CIM_VideoController, the same class via WMI, PnP display class, the display
+  class registry, then dxdiag /x), wraps every single row, and writes down what
+  each source answered — so a zero arrives with the denominator that says how
+  hard it looked. **It has never been executed: there is no PowerShell here.**
 - `imagegen.py` — plan, fetch, generate, manifest. **Stdlib only, no pip.**
-  `python imagegen.py --selftest` runs 49 checks with no GPU and no network,
+  `python imagegen.py --selftest` runs 57 checks with no GPU and no network,
   including both halves of the blank-image check (a varied image accepted, a
   uniform one rejected) and both halves of the gate (a 404 falls through to the
   next candidate, a 401/403 stops the run).
@@ -79,3 +87,9 @@ machine — send it back and the next thing to try is named in the report.
 - Next rung for the runtime on an AMD card: the `win-rocm-7.14.0-x64` build in
   the same release. Named, deliberately not wired, and not measured by anybody
   here — it is what to try if Vulkan turns out slow or wrong.
+  **LIVE as of 25 Aug, not hypothetical:** the machine that ran this is a Ryzen
+  5 5600X with a discrete card and DirectML already working, so it is an AMD
+  box by construction. Whether the rung gets taken is conditional on two
+  numbers the FIXED probe reports and nobody has yet: which card it is, and
+  whether Vulkan has an ICD registered at all (version 1 said `0` registered,
+  which the new probe will say distinctly from "could not tell").

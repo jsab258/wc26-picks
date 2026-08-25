@@ -40,6 +40,8 @@ namespace Ledger.CoreTests
                 TestClaims();
                 TestInforming();
                 TestBodyParts();
+                TestGarmentSplit();
+                TestBodyArchetype();
                 TestAcquaintance();
                 TestSuspicion();
                 TestGossip();
@@ -759,6 +761,156 @@ namespace Ledger.CoreTests
                   "the measured naked body fails the bound", "bodyCoatArea=0.296");
             Check(0.89 > BodyParts.MinDressedArea,
                   "bare head and hands passes it", "rule of nines: 9% + 2%");
+
+            // THE camelCase SPLIT, and the accepting case FIRST — rule 5b.
+            // `Beta_Surface` must still be two words or the naked-player test
+            // above is passing for the wrong reason.
+            Check(BodyParts.Words("Beta_Surface").Length == 2,
+                  "the split that mattered is unchanged", "{beta, surface}");
+            Check(!BodyParts.IsFlesh("Beta_Surface"),
+                  "and sur-FACE is still not a face after camel splitting");
+            // The case it was added for, quoted verbatim off Big Vegas and
+            // Sporty Granny: without it `browsanimgeo` is one word, matches
+            // nothing, and the brows get washed with the coat colour.
+            Check(BodyParts.IsFlesh("Elvis_BrowsAnimGeo"),
+                  "camelCase brows are flesh", "Big Vegas ships this name");
+            Check(BodyParts.IsFlesh("Fitness_Grandma_EyesAnimGeo"),
+                  "camelCase eyes are flesh", "Sporty Granny ships this name");
+            Check(!BodyParts.IsFlesh("Handbag"),
+                  "and a handbag is still not a hand");
+        }
+
+        /// THE COAT/TROUSERS SPLIT. Every renderer name below is quoted from
+        /// the shipped FBX under `Assets/Characters`, parsed out of the files
+        /// rather than typed from memory — the same discipline `Beta_Surface`
+        /// is quoted under, and for the same reason.
+        static void TestGarmentSplit()
+        {
+            Console.WriteLine("BodyParts.Garments:");
+
+            // THE ACCEPTING CASE FIRST (rule 5b): a real model with a real
+            // shirt and real trousers must come out split, or nothing else
+            // here is worth checking.
+            var kate = BodyParts.Garments(new[]
+            {
+                "Ch21_Body", "Ch21_Eyelasshes", "Ch21_Hair",
+                "Ch21_Pants", "Ch21_Shirt", "Ch21_Shoes",
+            });
+            Check(kate[4] == BodyParts.Garment.Upper, "Kate's shirt is the coat");
+            Check(kate[3] == BodyParts.Garment.Lower, "Kate's pants are the legs");
+            Check(kate[0] == BodyParts.Garment.Own,
+                  "and her skin mesh keeps its own texture",
+                  "the face-tinting fault this split removes");
+            Check(kate[2] == BodyParts.Garment.Own, "hair is never a garment");
+            Check(kate[5] == BodyParts.Garment.Own, "nor are shoes");
+            Check(kate[1] == BodyParts.Garment.Own,
+                  "and the typo in the shipped FBX is quoted, not corrected",
+                  "Ch21_Eyelasshes");
+
+            // THE STRUCTURAL RULE, which is `Assign`'s applied to a new axis:
+            // the same word means different things depending on what else the
+            // model ships. `Ch21_Body` above is bare arms; `Elvis_BodyGeo`
+            // here is the whole man including his clothes.
+            var vegas = BodyParts.Garments(new[]
+            {
+                "Elvis_BodyGeo", "Elvis_BrowsAnimGeo",
+                "Elvis_EyesAnimGeo", "Elvis_MouthAnimGeo",
+            });
+            Check(vegas[0] == BodyParts.Garment.Whole,
+                  "a welded body takes the coat draw over the whole figure",
+                  "which is what every body did before the split");
+            Check(vegas[1] == BodyParts.Garment.Own && vegas[3] == BodyParts.Garment.Own,
+                  "but his brows and mouth are still left alone",
+                  "the same fault at a smaller size");
+
+            // A single unnamed welded mesh — Michelle and James each ship one,
+            // and the name carries no information at all.
+            var michelle = BodyParts.Garments(new[] { "Ch03" });
+            Check(michelle[0] == BodyParts.Garment.Whole,
+                  "an unnamed single mesh is the whole person");
+            Check(BodyParts.Unclassified(new[] { "Ch03" }).Length == 1,
+                  "and it is reported as unclassified so a new drop is visible");
+            Check(BodyParts.Unclassified(new[] { "Ch21_Shirt", "Ch21_Pants" }).Length == 0,
+                  "while a model with known garments reports none");
+
+            // THE REJECTING CASE FOR THE FALLBACK: on a model that HAS
+            // garments, a word nobody listed is left alone rather than washed,
+            // because the alternative is washing something that might be a
+            // face.
+            var unknown = BodyParts.Garments(new[] { "Ch44_Anorak", "Ch44_Pants" });
+            Check(unknown[1] == BodyParts.Garment.Lower, "the known garment still splits");
+            Check(unknown[0] == BodyParts.Garment.Own,
+                  "and an unlisted word is left to the artist, never guessed at");
+
+            var boss = BodyParts.Garments(new[]
+            {
+                "mixamorig:Arms_Geo", "mixamorig:Hat_Geo", "mixamorig:Jacket_Geo",
+                "mixamorig:Pants_Geo", "mixamorig:Teeth_Up_Geo",
+            });
+            Check(boss[2] == BodyParts.Garment.Upper && boss[3] == BodyParts.Garment.Lower,
+                  "a bone-namespaced mesh still splits", "The Boss ships these");
+            Check(boss[0] == BodyParts.Garment.Own && boss[1] == BodyParts.Garment.Own
+                  && boss[4] == BodyParts.Garment.Own,
+                  "and his arms, hat and teeth are his own");
+
+            Check(BodyParts.Garments(null).Length == 0, "no names is no crash");
+        }
+
+        /// WHICH BOUGHT MODEL WALKS WHICH CYCLE.
+        static void TestBodyArchetype()
+        {
+            Console.WriteLine("BodyArchetype:");
+
+            // THE ACCEPTING CASE: the six women on the shipped roster.
+            foreach (var her in new[] { "Elizabeth", "Kate", "Martha",
+                                        "Michelle", "Shannon", "Sophie" })
+                Check(BodyArchetype.Of(her) == BodyArchetype.Female,
+                      her + " walks the female cycle",
+                      "walk_f, on disk and unreferenced until now");
+
+            // And the men, because a classifier that says "female" to
+            // everything passes the block above.
+            foreach (var him in new[] { "Adam", "David", "James", "Joe",
+                                        "Leonard", "Pete", "Remy", "TheBoss",
+                                        "BigVegas" })
+                Check(BodyArchetype.Of(him) == BodyArchetype.Default,
+                      him + " keeps the default walk");
+
+            // Age wins over sex, and there is no walk_old_f to argue with.
+            Check(BodyArchetype.Of("SportyGranny") == BodyArchetype.Old,
+                  "Sporty Granny is old before she is female",
+                  "the stoop separates a walk more than sex does");
+            Check(BodyArchetype.Of("") == BodyArchetype.Default,
+                  "and an unnamed model falls to the default rather than throwing");
+
+            // THE CONTROLLER NAME, both ends, because the Editor writes it and
+            // the runtime reads it back and a wire is only proved by the pair
+            // agreeing.
+            Check(BodyArchetype.ControllerName(BodyArchetype.Default, "idle")
+                  == BodyArchetype.CanonicalName,
+                  "the canonical controller keeps its historic name",
+                  "every landed verdict has watched Body.controller");
+            Check(BodyArchetype.ControllerName(BodyArchetype.Female, "idle_2")
+                  == "Body_female_idle_2", "and a variant is named for its archetype");
+            Check(BodyArchetype.ControllerCarries("Body_female_idle_2", BodyArchetype.Female),
+                  "a female body holding a female controller reads as wired");
+            Check(!BodyArchetype.ControllerCarries("Body", BodyArchetype.Female),
+                  "and one that fell back to the canonical controller does not",
+                  "the silent fallback this counter exists to catch");
+            Check(!BodyArchetype.ControllerCarries("Body_old_idle", BodyArchetype.Female),
+                  "nor does the old man's");
+            Check(BodyArchetype.ControllerCarries("Body (Instance)", BodyArchetype.Default),
+                  "Unity's instance suffix does not break the read");
+            Check(!BodyArchetype.ControllerCarries("", BodyArchetype.Default),
+                  "and no controller at all is not a pass");
+
+            var roster = BodyArchetype.Roster(new[] { "Kate", "Joe" });
+            Check(roster == "Kate:female/Joe:default",
+                  "the roster names every model and its draw");
+            Check(roster.IndexOf(' ') < 0,
+                  "and a verdict value may not contain a space");
+            Check(BodyArchetype.Roster(null).Length > 0,
+                  "an empty pool says so in words rather than as a blank");
         }
 
         static void TestAcquaintance()

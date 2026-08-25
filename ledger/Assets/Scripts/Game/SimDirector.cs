@@ -15931,6 +15931,52 @@ namespace Ledger.Game
                       $"bodyCoverageRead={RealBody.CoverageRead} " +
                       $"bodyClothed={RealBody.Clothed} " +
                       $"bodyParts=[{RealBody.Parts}] " +
+                      // THE GARMENT SPLIT, AND ITS DENOMINATOR. `n/total`:
+                      // bodies given BOTH an upper-garment draw and a
+                      // lower-garment draw, over bodies the wardrobe washed
+                      // anything on at all. CUMULATIVE over the run, counted
+                      // per body ATTACH — LOD grants and revokes continuously,
+                      // so a walker granted a body four times is four events
+                      // here and this is not a population.
+                      //
+                      // NO GATE AND NO BOUND. There is no landed series for it
+                      // yet and a threshold set off one run is the habit rule 2
+                      // exists to stop. What the number is FOR: eleven of the
+                      // sixteen pool models ship a separate upper and lower
+                      // garment mesh, so a healthy split should sit near that
+                      // share once the body picks spread — and the two
+                      // off-diagonal counts say which way any shortfall went
+                      // rather than leaving it a mystery.
+                      $"bodyPartsDistinct={RealBody.SplitBodies}/{RealBody.DressedBodies} " +
+                      $"bodyPartsWelded={RealBody.WeldedBodies} " +
+                      $"bodyPartsUpperOnly={RealBody.UpperOnlyBodies} " +
+                      // Renderers left carrying the artist's own texture —
+                      // faces, hair, shoes, props. Zero of these beside a
+                      // non-zero `bodyTinted` means every mesh got washed,
+                      // which is the single-colour wash this split replaced.
+                      $"bodyPartsOwn={RealBody.OwnEver} " +
+                      // Rule 3b pointed at a vocabulary: a drop whose garments
+                      // are called something no word list knows renders
+                      // exactly like a welded model, and nothing else on this
+                      // line can tell them apart. `Ch03`/`Ch06` are expected —
+                      // Michelle and James ship one unnamed welded mesh each.
+                      $"bodyPartsUnknown=[{RealBody.UnknownRead}] " +
+                      $"bodyTrousers=[{RealBody.TrouserRead}] " +
+                      // HOW MANY WOMEN WALK THE FEMALE CYCLE. `n/total`:
+                      // attachments whose model is a woman AND whose Animator
+                      // arrived holding a `female` controller, over
+                      // attachments whose model is a woman. CUMULATIVE, on the
+                      // done line rather than in a shot hook.
+                      //
+                      // Below-equal is the silent-fallback state:
+                      // `BuildLocomotion` falls back to `walk` when `walk_f` is
+                      // missing and a woman walking the male cycle looks
+                      // completely normal. `bodyKinds` is the denominator's
+                      // denominator — it says whether the pool has women at
+                      // all, which `0/0` cannot.
+                      $"walkFemale={RealBody.FemaleWalkers}/{RealBody.FemaleBodies} " +
+                      $"bodyKinds=[{RealBody.ArchetypeRead}] " +
+                      $"bodyController=[{RealBody.ControllerRead}] " +
                       // BESIDE THE COVERAGE, because they contradict each other
                       // in the stills and only together do they say why. The
                       // coverage numbers ask whether a coat material reached

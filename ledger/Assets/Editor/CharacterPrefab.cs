@@ -69,22 +69,38 @@ namespace Ledger.EditorTools
 
         /// Which gait a body wears, from its model name — the same
         /// name-keyed determinism `Physique` uses ("the same name is the
-        /// same body, always"). "old" is the only special archetype until a
-        /// female walk clip actually exists in the harvest; wiring an
-        /// archetype whose clips cannot arrive would be rule 6 in advance.
+        /// same body, always").
+        ///
+        /// THE RULE MOVED TO `Core/BodyArchetype` AND THE COMMENT THAT WAS
+        /// HERE IS THE REASON. It said: *"'old' is the only special archetype
+        /// until a female walk clip actually exists in the harvest; wiring an
+        /// archetype whose clips cannot arrive would be rule 6 in advance."*
+        /// Correct the day it was written. `walk_f__Female Walk` has been in
+        /// `Assets/Characters/B` since the B harvest, listed by
+        /// `tools/clip-reach.py` under DISK-ONLY, and every woman in the city
+        /// walked the male cycle for as long as this paragraph sat here
+        /// looking like a decision.
+        ///
+        /// It is in Core now because the runtime has to prove the wire landed
+        /// — see `BodyArchetype.ControllerCarries` — and because this file
+        /// does not compile in the container where the tests run.
         static string ArchetypeFor(string stem)
-        {
-            var s = stem.ToLowerInvariant();
-            if (s.Contains("granny") || s.Contains("old") || s.Contains("elder"))
-                return "old";
-            return "default";
-        }
+            => Ledger.Core.BodyArchetype.Of(stem);
 
         /// Which idle VARIANT a default body opens with, spread
         /// deterministically across whatever idle clips the harvest holds
         /// (`idle`, `idle_2`, `idle_bored`). Variety for one street-glance:
         /// two people waiting at a corner should not breathe in unison.
         static readonly string[] IdleVariants = { "idle", "idle_2", "idle_bored" };
+
+        /// Which archetypes spread across the idle variants. Female bodies are
+        /// in it because the archetype axis is the WALK: a woman on the female
+        /// cycle should still not breathe in unison with the woman beside her,
+        /// and the three idle clips are shared. `old` stays out because
+        /// `idle_old` is its own pose and there is one of it.
+        static bool SpreadsIdle(string arch)
+            => arch == Ledger.Core.BodyArchetype.Default
+            || arch == Ledger.Core.BodyArchetype.Female;
 
         /// The clips a person can be DOING rather than travelling through.
         /// Every one of these was in Jafar's harvest with no consumer; the
@@ -108,7 +124,7 @@ namespace Ledger.EditorTools
         {
             var arch = ArchetypeFor(stem);
             string idleKey = "idle";
-            if (arch == "default")
+            if (SpreadsIdle(arch))
             {
                 int h = 0;
                 foreach (char c in stem) h = h * 31 + c;
@@ -694,10 +710,14 @@ namespace Ledger.EditorTools
             // renaming it out from under them would read as the controller
             // vanishing. Variants get their own assets and their own log
             // line each.
-            bool canonical = arch == "default" && idleKey == "idle";
+            bool canonical = arch == Ledger.Core.BodyArchetype.Default && idleKey == "idle";
+            // NAMED IN CORE, because the runtime reads this same string back
+            // off the Animator to prove the right controller arrived on the
+            // right body. Two spellings of one name is how a wire ships
+            // looking connected and measuring nothing.
             var assetPath = canonical
                 ? ControllerPath
-                : $"{ResourceDir}/Body_{arch}_{idleKey}.controller";
+                : $"{ResourceDir}/{Ledger.Core.BodyArchetype.ControllerName(arch, idleKey)}.controller";
             if (canonical) ClipsBound = 0;
             try
             {
@@ -705,10 +725,29 @@ namespace Ledger.EditorTools
                 // landed yet is byte-identical to the default — which is
                 // the whole trick of writing this before the re-pick runs.
                 AnimationClip idle, walk;
-                if (arch == "old")
+                if (arch == Ledger.Core.BodyArchetype.Old)
                 {
                     idle = ClipFor("idle_old") ?? ClipFor("idle");
                     walk = ClipFor("walk_old") ?? ClipFor("walk");
+                }
+                else if (arch == Ledger.Core.BodyArchetype.Female)
+                {
+                    // THE WIRE. `walk_f` is Mixamo's Female Walk and it has
+                    // been on disk, in the manifest, and named by nothing
+                    // since the B harvest. The idle is shared — there is no
+                    // female idle in the harvest — so this archetype differs
+                    // from `default` in exactly one clip, which is the whole
+                    // change and is why it was affordable.
+                    //
+                    // FALLBACK CHAIN LIKE `old`'s, so a harvest that loses the
+                    // clip produces a body byte-identical to the default
+                    // rather than a body with no walk at all. `walkFemale` on
+                    // the done line is what separates "fell back" from
+                    // "landed" — the fallback is silent by construction and a
+                    // silent fallback that renders plausibly is this project's
+                    // most expensive failure mode.
+                    idle = ClipFor(idleKey) ?? ClipFor("idle");
+                    walk = ClipFor("walk_f") ?? ClipFor("walk");
                 }
                 else
                 {

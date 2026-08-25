@@ -485,6 +485,16 @@ namespace Ledger.Game
                 list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
                 _bodies = list.ToArray();
                 BodyChoices = _bodies.Length;
+                // EVERY MODEL AND THE GAIT IT DREW, once, here — this block
+                // runs exactly on the first pick. A run that reports
+                // `walkFemale=0/0` cannot say whether the pool holds no women
+                // or whether six women were classified as men, and those want
+                // opposite next actions; the roster is the denominator that
+                // separates them.
+                var stems = new string[_bodies.Length];
+                for (int b = 0; b < _bodies.Length; b++)
+                    stems[b] = StemOf(_bodies[b].name);
+                ArchetypeRead = Ledger.Core.BodyArchetype.Roster(stems);
             }
             if (_bodies.Length == 0)
                 return Resources.Load<GameObject>("Characters/Body");
@@ -534,6 +544,14 @@ namespace Ledger.Game
         /// coat material is built from twenty lines above — which is the point:
         /// the two paths were reading different parts of one decision.
         ///
+        /// AND SINCE THE GARMENT SPLIT LANDED IT IS TWO DRAWS FROM THAT SAME
+        /// TABLE, NOT A SECOND PALETTE. The upper garment takes the coat's
+        /// triple and the lower garment takes `Wardrobe.Dress` again under its
+        /// own salt — same eight authored bands, same `MaxValue` ceiling, same
+        /// `Mix` fold. Nothing here invents a colour, and the sentence above
+        /// stays true of each draw separately; what changed is HOW MANY of them
+        /// reach one body.
+        ///
         /// A PROPERTY BLOCK RATHER THAN `r.material`. Touching `.material`
         /// instantiates a copy per renderer that Unity never reclaims, and body
         /// LOD grants and revokes bodies continuously — the last run made 1,486
@@ -555,6 +573,16 @@ namespace Ledger.Game
         /// body — it is a lifetime count of how many renderers have been
         /// washed. The rule for that set is "does a gate read this as being
         /// about the player", and nothing reads this at all except the verdict.
+        ///
+        /// AND THE POPULATION IT COUNTS CHANGED UNDER IT, which is worth
+        /// saying because the NAME did not. Until the garment split it was
+        /// every textured renderer on the body — face, hair, shoes and all.
+        /// It is now the renderers the wardrobe actually dresses: the upper
+        /// garment, the lower garment, and a welded whole-body mesh. Faces and
+        /// hair are counted by `OwnEver` instead. So `bodyTinted` and the whole
+        /// `bodyWash*` family below now describe CLOTH, and their landed series
+        /// has a regime change at this commit — the number will fall against
+        /// its own history and that fall is the fix, not a regression.
         public static int Tinted { get; private set; }
 
         /// HOW MUCH WARDROBE ACTUALLY ARRIVES, and it is the reading that was
@@ -650,6 +678,145 @@ namespace Ledger.Game
         /// keeps its name when the question it answers moves".
         public static int LiftedCast { get; private set; }
         public static int LiftedCrowd { get; private set; }
+
+        /// HOW MANY MESHES ON THE LAST BODY WENT WHICH WAY. Per body,
+        /// LAST-WINS — they are reset at the top of every attach and describe
+        /// whichever body attached most recently, exactly like `Skinned` and
+        /// `Dressed` beside them. Do not read them as a description of the
+        /// city; `SplitBodies` and its family below are the cumulative pair.
+        public static int PartsUpper { get; private set; }
+        public static int PartsLower { get; private set; }
+        public static int PartsWhole { get; private set; }
+        public static int PartsOwn { get; private set; }
+
+        /// THE NUMBER THAT PROVES THE SPLIT REACHED THE STREET.
+        ///
+        /// `SplitBodies` counts bodies that got an upper garment draw AND a
+        /// lower garment draw — a navy coat over stone trousers, which is the
+        /// thing that could not happen before this wire. `DressedBodies` is its
+        /// denominator: bodies on which the wardrobe washed anything at all.
+        /// The two off-diagonal cases are named rather than summed away, so a
+        /// fall in the split reads as WHICH kind of model turned up rather than
+        /// as a mystery:
+        ///
+        ///   `WeldedBodies`    one mesh carrying clothes and skin together —
+        ///                     James, Michelle, Big Vegas, Sporty Granny. They
+        ///                     take the coat draw over the whole figure, which
+        ///                     is what every body did before the split, so
+        ///                     these are correct rather than missed.
+        ///   `UpperOnlyBodies` a garment mesh for the top and none for the
+        ///                     bottom — Sophie's `Ch02_Cloth` is the only one
+        ///                     on today's roster.
+        ///
+        /// SplitBodies + WeldedBodies + UpperOnlyBodies == DressedBodies, by
+        /// construction, so a reader can check the arithmetic on the done line.
+        ///
+        /// CUMULATIVE over the whole run, counted per ATTACH rather than per
+        /// person: body LOD grants and revokes continuously, so a walker who is
+        /// granted a body four times is counted four times. That makes this a
+        /// count of dressing EVENTS, not of citizens — the same statistic
+        /// `Tinted` is, and named here because a lifetime count read as a
+        /// population is a mistake this file has already made once.
+        ///
+        /// NOT in the save-and-restore set, for `Tinted`'s reason.
+        public static int SplitBodies { get; private set; }
+        public static int WeldedBodies { get; private set; }
+        public static int UpperOnlyBodies { get; private set; }
+        public static int DressedBodies { get; private set; }
+
+        /// Renderers left carrying the artist's own texture — faces, hair,
+        /// shoes, props. Cumulative. The denominator for "the split left
+        /// something alone" as against "the split never ran": zero of these
+        /// beside a non-zero `Tinted` means every mesh got washed, which is
+        /// the state this change exists to end.
+        public static int OwnEver { get; private set; }
+
+        /// Renderer names no word list recognised, DISTINCT and capped.
+        ///
+        /// Rule 3b, pointed at a vocabulary rather than a count. A Mixamo drop
+        /// whose garments are called something nobody has listed renders
+        /// exactly like a welded model — one colour over the whole figure —
+        /// and nothing about the frame or the split count says which happened.
+        /// This is the line that tells them apart, and it is why the word lists
+        /// in `BodyParts` contain no invented synonyms: the next drop's
+        /// vocabulary arrives here as a reading.
+        ///
+        /// `Ch03` and `Ch06` are expected members — Michelle and James ship one
+        /// unnamed welded mesh each, and their names genuinely carry no
+        /// information. Anything else in this list is a model whose garments
+        /// are not being split.
+        const int UnknownCap = 24;
+        static readonly List<string> _unknownParts = new List<string>();
+        public static int UnknownParts => _unknownParts.Count;
+        public static string UnknownRead
+        {
+            get
+            {
+                if (_unknownParts.Count == 0)
+                    return $"none of {KeptEver} textured renderer(s)";
+                var b = new System.Text.StringBuilder();
+                for (int i = 0; i < _unknownParts.Count && i < UnknownCap; i++)
+                    b.Append(i == 0 ? "" : " ").Append(_unknownParts[i]);
+                if (_unknownParts.Count > UnknownCap)
+                    b.Append($" (+{_unknownParts.Count - UnknownCap} more not shown)");
+                return b.ToString();
+            }
+        }
+
+        /// THE MODEL NAME UNDERNEATH A PREFAB NAME. `CharacterPrefab` writes
+        /// `Body_{stem}` with the FBX's spaces stripped, so `Sporty Granny`
+        /// arrives as `Body_SportyGranny` and the archetype rule has to split
+        /// the camel hump back out — which is exactly what `BodyParts.Words`
+        /// does. The bare `Body` fallback prefab has no stem and returns empty,
+        /// which classifies as `default`: correct, since that prefab is a copy
+        /// of whichever model was marked default.
+        static string StemOf(string prefabName)
+        {
+            if (string.IsNullOrEmpty(prefabName)) return "";
+            const string pre = "Body_";
+            return prefabName.StartsWith(pre) ? prefabName.Substring(pre.Length) : "";
+        }
+
+        /// HOW MANY WOMEN ARE ON THE FEMALE WALK CYCLE, and out of how many.
+        ///
+        /// `FemaleWalkers` counts body attachments whose model is a woman AND
+        /// whose Animator arrived holding a `female` controller.
+        /// `FemaleBodies` is the denominator: attachments whose model is a
+        /// woman, whatever controller turned up. Both CUMULATIVE over the run
+        /// and read on the done line, never inside a screenshot hook — a
+        /// lifetime count sampled by a sparse sampler freezes at the last
+        /// sample, which this project has already paid for once.
+        ///
+        /// `FemaleWalkers` BELOW `FemaleBodies` is the interesting state and it
+        /// is the one the silent fallback produces: `BuildLocomotion` falls
+        /// back to `walk` when `walk_f` cannot be found, and a body walking the
+        /// male cycle looks completely normal. Equality is the wire holding.
+        /// Both zero means the pool has no women in it, which `ArchetypeRead`
+        /// is there to confirm or deny.
+        ///
+        /// NOT in the save-and-restore set, for `Tinted`'s reason: they are
+        /// counts of what happened to the city, not statements about the
+        /// player.
+        public static int FemaleBodies { get; private set; }
+        public static int FemaleWalkers { get; private set; }
+
+        /// Every model in the pool and the archetype it drew, slash-separated.
+        /// Written once, on the first pick. An FBX nobody classified shows up
+        /// here as a `default` beside a name a reader can recognise.
+        public static string ArchetypeRead { get; private set; } = "no pick yet";
+
+        /// The last body's archetype and the controller asset that actually
+        /// came with it, `arch->name`. Last-wins, describing one attachment —
+        /// the qualitative half of the pair above, for the case where the
+        /// count is wrong and the question is which asset turned up.
+        public static string ControllerRead { get; private set; } = "not tried";
+
+        /// What the LOWER garment came out, band and HSV — `CoatRead`'s twin
+        /// for the second draw. Last-wins, describing the last body dressed,
+        /// and it exists for the same reason `CoatRead` does: a still that
+        /// shows one hue per figure and a number that says two draws happened
+        /// need a third fact to settle which is lying.
+        public static string TrouserRead { get; private set; } = "not tried";
 
         /// The last wash actually written to a renderer, with the albedo it
         /// was anchored against. Appended to `CoatRead` after the paint loop,
@@ -931,6 +1098,30 @@ namespace Ledger.Game
             if (body == null) { Why = "instantiate returned null"; return false; }
             body.name = ChildName;
 
+            // DID THE FEMALE WALK ACTUALLY ARRIVE ON THIS BODY?
+            //
+            // Rule 6's proof for the `walk_f` wire, and it reads the Animator
+            // rather than re-asking the classifier. `BodyArchetype.Of` decides
+            // which controller the EDITOR should have written; asking it again
+            // here would print a perfect score on a build where that step never
+            // ran — two numbers derived from one variable are one number twice.
+            // `ControllerCarries` compares the archetype segment of the asset
+            // name the Animator is actually holding.
+            //
+            // Counted per ATTACH, cumulatively: body LOD grants and revokes
+            // continuously, so a woman granted a body four times counts four
+            // times. It is a count of attachments, not of citizens.
+            var arch = Ledger.Core.BodyArchetype.Of(StemOf(prefab.name));
+            var anim0 = body.GetComponent<Animator>();
+            var held = anim0 != null && anim0.runtimeAnimatorController != null
+                ? anim0.runtimeAnimatorController.name : "";
+            ControllerRead = held.Length > 0 ? $"{arch}->{held}" : $"{arch}->none";
+            if (arch == Ledger.Core.BodyArchetype.Female)
+            {
+                FemaleBodies++;
+                if (Ledger.Core.BodyArchetype.ControllerCarries(held, arch)) FemaleWalkers++;
+            }
+
             // AND THE CAPSULE GOES, which this did not do and `Mannequin.Build`
             // has always done.
             //
@@ -1092,9 +1283,32 @@ namespace Ledger.Game
                      + $" rgb={(int)(coatRgb.r * 255)},{(int)(coatRgb.g * 255)},{(int)(coatRgb.b * 255)}";
             _lastWash = "none applied";
             Skinned = Dressed = Kept = 0;
+            PartsUpper = PartsLower = PartsWhole = PartsOwn = 0;
             double coatArea = 0, totalArea = 0;
             long coatVerts = 0, totalVerts = 0;
             CoverageRead = false;
+
+            // THE SECOND WARDROBE DRAW, and it is the whole reason a crowd of
+            // forty stops reading as forty monochrome figures.
+            //
+            // ITS OWN SALT. `Physique` spends salts 1-8 on the silhouette
+            // traits and 23 is the body-model pick, so 11 is free and
+            // uncorrelated with all of them — the same argument `Physique.For`
+            // makes for using four independent draws rather than one hash with
+            // four arithmetics on it. Reusing the coat's roll would give every
+            // person trousers the same colour as their coat, which is where
+            // this started.
+            //
+            // NO LIFT, EVER, unlike the coat above. The cast lift exists so a
+            // named character's COAT sits above the crowd's ceiling — the
+            // street identifies the player by their coat, in its own rumours.
+            // Nobody has ever been recognised by their trousers, and lifting
+            // both would put two bright garments on one body and undo what the
+            // ceiling is for.
+            double legRoll = Ledger.Core.Physique.Fraction(wearer ?? "player", 11);
+            Ledger.Core.Wardrobe.Dress(legRoll, out double lh, out double ls, out double lv);
+            TrouserRead = Ledger.Core.Wardrobe.BandOf(legRoll)
+                        + $" hsv={lh:0.00}/{ls:0.00}/{lv:0.00}";
 
             // TWO PASSES, BECAUSE THE DECISION IS ABOUT THE MODEL AND NOT ABOUT
             // ONE NAME. `BodyParts.Assign` needs to see every paintable mesh at
@@ -1102,6 +1316,7 @@ namespace Ledger.Game
             // and the honest answer there is a coloured mannequin rather than a
             // nude. One renderer at a time cannot know that.
             var paint = new List<Renderer>();
+            var worn = new List<Renderer>();
             foreach (var r in body.GetComponentsInChildren<Renderer>())
             {
                 if (r == null) continue;
@@ -1124,25 +1339,93 @@ namespace Ledger.Game
                 if (m != null && m.mainTexture != null)
                 {
                     Kept++; KeptEver++;
-                    // The albedo about to be washed, measured once per sheet.
-                    // Here rather than inside `Tint` because the texture is the
-                    // MATERIAL's, not the wash's, and putting it in `Tint`
-                    // would make the reading depend on how often the LOD
-                    // happened to grant this body — a count of grants wearing a
-                    // measurement's name.
-                    float sheet = AlbedoValueOf(m.mainTexture);
-                    // THE RAW `cv`, NOT `coatV`. The lift above places a named
-                    // character's coat MATERIAL above the crowd's ceiling; the
-                    // wash normalises against that same ceiling, so handing it
-                    // a lifted value would clamp everybody to 1.0 and hand back
-                    // the white multiply this change exists to remove. One
-                    // decision, two consumers, and they need different halves
-                    // of it — which is exactly how the first version came to
-                    // read `ch`/`cs` and drop `cv` on the floor.
-                    Tint(r, ch, cs, cv, sheet);
+                    // GATHERED, NOT WASHED HERE, AND THAT IS THE CHANGE.
+                    //
+                    // This used to call `Tint` on the spot with one colour for
+                    // every textured renderer on the body — head, hair and
+                    // trousers all multiplied by the coat's hue. Which garment
+                    // a mesh IS cannot be decided one mesh at a time: `Body`
+                    // means Kate's bare arms when her shirt is a separate mesh
+                    // and means the whole of Big Vegas when nothing else on him
+                    // is. `BodyParts.Garments` needs the full name list to tell
+                    // those apart, which is exactly the two-pass argument the
+                    // paint list below has carried since `Assign` landed.
+                    worn.Add(r);
                     continue;
                 }
                 paint.Add(r);
+            }
+
+            // WHICH TEXTURED MESH IS COAT, WHICH IS TROUSERS, AND WHICH IS THE
+            // ARTIST'S BUSINESS. The rule is in Core with tests over the real
+            // shipped mesh names; this supplies membership and the live
+            // materials, which is the split `instruments.md` asks for.
+            var wornNames = new string[worn.Count];
+            for (int i = 0; i < worn.Count; i++) wornNames[i] = worn[i].name;
+            var kinds = Ledger.Core.BodyParts.Garments(wornNames);
+            foreach (var u in Ledger.Core.BodyParts.Unclassified(wornNames))
+                if (!_unknownParts.Contains(u)) _unknownParts.Add(u);
+
+            var wornRead = new System.Text.StringBuilder();
+            for (int i = 0; i < worn.Count; i++)
+            {
+                var r = worn[i];
+                var m = r.sharedMaterial;
+                // The albedo about to be washed, measured once per sheet.
+                // Here rather than inside `Tint` because the texture is the
+                // MATERIAL's, not the wash's, and putting it in `Tint`
+                // would make the reading depend on how often the LOD
+                // happened to grant this body — a count of grants wearing a
+                // measurement's name.
+                float sheet = m != null && m.mainTexture != null
+                    ? AlbedoValueOf(m.mainTexture) : -1f;
+                string went;
+                switch (kinds[i])
+                {
+                    case Ledger.Core.BodyParts.Garment.Lower:
+                        Tint(r, lh, ls, lv, sheet); PartsLower++; went = "legs"; break;
+                    case Ledger.Core.BodyParts.Garment.Upper:
+                        // THE RAW `cv`, NOT `coatV`. The lift above places a
+                        // named character's coat MATERIAL above the crowd's
+                        // ceiling; the wash normalises against that same
+                        // ceiling, so handing it a lifted value would clamp
+                        // everybody to 1.0 and hand back the white multiply
+                        // this change exists to remove. One decision, two
+                        // consumers, and they need different halves of it —
+                        // which is exactly how the first version came to read
+                        // `ch`/`cs` and drop `cv` on the floor.
+                        Tint(r, ch, cs, cv, sheet); PartsUpper++; went = "coat"; break;
+                    case Ledger.Core.BodyParts.Garment.Whole:
+                        Tint(r, ch, cs, cv, sheet); PartsWhole++; went = "whole"; break;
+                    default:
+                        // LEFT ALONE, AND NOT WASHED WHITE. A multiply by white
+                        // is the identity, so the two are the same pixels — but
+                        // they are not the same NUMBER: `WashNearWhite` counts
+                        // washes that changed nothing, and pushing every face
+                        // and every shoe through it would bury the wardrobe
+                        // fault it exists to find under skin that was never
+                        // meant to be dressed.
+                        PartsOwn++; OwnEver++; went = "own"; break;
+                }
+                if (wornRead.Length > 0) wornRead.Append(' ');
+                wornRead.Append(r.name).Append("->").Append(went);
+            }
+
+            // THE BODY-LEVEL TALLY, CUMULATIVE OVER THE RUN AND READ ON THE
+            // DONE LINE. Rule 6's proof: a wiring job with no counter cannot be
+            // shown to have run, and this project has a milestone where forty
+            // of sixty-one APIs were built, tested and called by nothing.
+            //
+            // Deliberately NOT in the save-and-restore set — see `Tinted`.
+            // These are counts of what happened to the CITY, and restoring them
+            // after every walker attach is what once made `bodyTinted` read 1
+            // against 1,586 attachments.
+            if (PartsUpper + PartsLower + PartsWhole > 0)
+            {
+                DressedBodies++;
+                if (PartsUpper > 0 && PartsLower > 0) SplitBodies++;
+                else if (PartsWhole > 0) WeldedBodies++;
+                else UpperOnlyBodies++;
             }
 
             // WHICH RENDERER IS SKIN AND WHICH IS COAT, FROM THE NAME — and
@@ -1213,17 +1496,28 @@ namespace Ledger.Game
                      .Append((share * 100.0).ToString("0.0")).Append("%->")
                      .Append(isFlesh[i] ? "skin" : "coat");
             }
-            // AND AN EMPTY LIST SAYS WHY IT IS EMPTY. `parts=()` in the verdict
-            // reads as "the measurement did not run", and on the run that
-            // fixed the bodies it meant the opposite: every renderer arrived
-            // textured, `Kept` took all of them, and there was nothing left to
-            // paint. Rule 3b — a zero ships with the count of what was
-            // examined, and here the count is `Kept`.
-            Parts = paint.Count > 0
-                ? parts.ToString()
-                : Kept > 0
-                    ? $"nothing to paint — all {Kept} renderer(s) came textured"
-                    : "no paintable renderers and none textured";
+            // BOTH LISTS, AND THE COMMENT THAT USED TO BE HERE IS NOW FALSE.
+            //
+            // It said: "`parts=()` in the verdict reads as 'the measurement did
+            // not run', and on the run that fixed the bodies it meant the
+            // opposite: every renderer arrived textured, `Kept` took all of
+            // them, and there was nothing left to paint." That was true and it
+            // is the exact sentence this change falsifies — a textured renderer
+            // is no longer "nothing to paint", it is a mesh the wardrobe washes
+            // as a coat, as trousers, or leaves to the artist, and which way it
+            // went is the thing a still needs explaining.
+            //
+            // So the line now names every mesh on the body under either rule.
+            // `->coat`/`->legs`/`->whole`/`->own` are the washed tier;
+            // `->skin`/`->coat` with an area share are the painted tier, which
+            // no shipped model has reached since texture extraction landed.
+            // The one remaining empty case is a body with no renderers at all,
+            // and it says so in words rather than as an empty bracket.
+            string painted = parts.ToString(), washed = wornRead.ToString();
+            Parts = painted.Length > 0 && washed.Length > 0 ? painted + " " + washed
+                  : painted.Length > 0 ? painted
+                  : washed.Length > 0 ? washed
+                  : "no renderers on the body at all";
 
             // TWO MEASUREMENTS, TWO GATES, and the first run is why.
             //

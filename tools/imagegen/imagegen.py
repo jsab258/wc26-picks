@@ -22,15 +22,19 @@ do NOT know the model or the VRAM. So nothing here assumes a vendor: the
 probe reports, `plan()` branches, and the report file says which branch it
 took and why.
 
-TESTING. Everything that can be tested without a GPU is: `--selftest` runs 49
-checks - plan() across seven synthetic machines, the prompt builder refusing to
-drop the content rules, the run loop with the generator faked, the blank-image
-check both ways on synthesised PNGs, the per-image Vulkan VAE rule both ways,
-and the download candidate list both ways (a 404 falls through, a 401/403
-STOPS). The accepting case comes first everywhere, because the expensive
-failure is a check nothing survives. What CANNOT be tested here is every line
-that touches Windows, the network or the GPU - the .bat, the PowerShell probe
-and every URL are still UNRUN, and they are named in the report as such.
+TESTING. Everything that can be tested without a GPU is: `--selftest` runs 57
+checks - plan() across seven synthetic machines AND the MULTI-ADAPTER machine
+in three orders, the prompt builder refusing to drop the content rules, the run
+loop with the generator faked, the blank-image check both ways on synthesised
+PNGs, the per-image Vulkan VAE rule both ways, and the download candidate list
+both ways (a 404 falls through, a 401/403 STOPS). The accepting case comes
+first everywhere, because the expensive failure is a check nothing survives.
+What CANNOT be tested here is every line that touches Windows, the network or
+the GPU - the .bat, the PowerShell probe and every URL are still UNRUN, and
+they are named in the report as such. The probe's version-1 crash on a
+multi-adapter machine is exactly what that gap costs: it ran on Jafar's PC,
+reported NO GPU on a box with a discrete card, and fell back to CPU at 202
+seconds an image.
 
 THE EXIT CODE IS NOT THE EVIDENCE. stable-diffusion.cpp#1031, open and
 unanswered, has Z-Image on Vulkan writing a blank PNG and exiting success, and
@@ -410,22 +414,41 @@ def format_report(machine, pl, extra=None):
     A(f"ram       {_gb(machine.get('ram_bytes')):.1f} GB")
     A(f"free disk {_gb(machine.get('free_disk_bytes')):.1f} GB on {machine.get('disk_letter', '?')}")
     A(f"python    {machine.get('python', '?')}")
-    A(f"probe     {machine.get('probe', 'ok')}")
+    A(f"probe     {machine.get('probe', 'ok')}  (probe version "
+      f"{machine.get('probe_version', '1 - PRE-DATES THE MULTI-ADAPTER FIX')})")
     A("")
-    A("GPUs")
     gpus = normalise_gpus(machine)
+    A(f"GPUs   {len(gpus)} found via {machine.get('gpu_source', 'unrecorded source')}")
     if not gpus:
         A("  NONE FOUND - either there is no display adapter or the probe failed.")
         A("  Those two look identical from here, which is why this line says both.")
+        # THE DENOMINATOR. Version 1 printed NONE FOUND on a machine with a
+        # discrete card and nothing said how hard it had looked, so the reading
+        # was indistinguishable from a machine with no graphics at all.
+        tried = machine.get("gpu_sources_tried")
+        if tried:
+            A("  sources tried, and what each one answered:")
+            for line in str(tried).split(" | "):
+                A(f"    {line}")
+        else:
+            A("  and NO SOURCE LOG - this probe did not record where it looked,")
+            A("  so NONE FOUND here carries no denominator and proves nothing.")
     for i, g in enumerate(gpus):
-        A(f"  [{i}] {g.get('name', '?')}")
+        A(f"  [{i}] {g.get('name', '?')}   (from {g.get('source', 'unrecorded source')})")
         A(f"      driver {g.get('driver', '?')}   vendor string {g.get('vendor', '?')}")
         A(f"      AdapterRAM {_gb(g.get('vram_bytes')):.2f} GB "
           f"(uint32, saturates at 4.00)")
         A(f"      registry qwMemorySize {_gb(g.get('vram_bytes_registry')):.2f} GB "
-          f"(the one to believe)")
+          f"(the one to believe)  [{g.get('vram_match', 'match not recorded')}]")
     A("")
+    # "0 registered" and "we could not look" want DIFFERENT actions from Jafar -
+    # repair the display driver, or re-run the probe - so they are never printed
+    # as the same number.
     A(f"vulkan drivers registered: {machine.get('vulkan_drivers', '?')}")
+    A(f"vulkan status:             {machine.get('vulkan_status', 'not reported by this probe')}")
+    if machine.get("vulkan_icds"):
+        A(f"vulkan ICDs:               {machine.get('vulkan_icds')}")
+    A(f"vulkan loader dll:         {machine.get('vulkan_loader', 'not reported by this probe')}")
     A(f"directml dll present:      {machine.get('directml', '?')}")
     A("")
     A("PLAN CHOSEN FROM THE ABOVE")
@@ -1226,6 +1249,88 @@ def selftest():
     #    to be hit first and the one that must not throw.
     txt = format_report({"probe": "FAILED: powershell not found", "gpus": []}, plan({}))
     check("report renders when the probe failed", "NONE FOUND" in txt and "cpu" in txt)
+
+    # 5b. THE MULTI-ADAPTER MACHINE - the shape that cost Jafar ten of twelve
+    #     images. Version 1 of the probe was only ever tested against ONE
+    #     adapter, and every real desktop has several video "controllers": the
+    #     card, a Microsoft Basic Display Adapter, sometimes a remote-desktop
+    #     or virtual one. Accepting case first: the real card must still be the
+    #     one the plan is built on.
+    basic = {"name": "Microsoft Basic Display Adapter", "vram_bytes": 0,
+             "vram_bytes_registry": 0, "source": "Win32_VideoController (CIM)"}
+    rdp = {"name": "Microsoft Remote Display Adapter", "vram_bytes": 0,
+           "vram_bytes_registry": 0, "source": "Win32_VideoController (CIM)"}
+    card = {"name": "AMD Radeon RX 6700 XT", "vram_bytes": 4294967295,
+            "vram_bytes_registry": 12 * 1024**3, "vram_match": "exact name match",
+            "source": "Win32_VideoController (CIM)"}
+    multi = plan({"gpus": [card, basic, rdp]})
+    check("accepting case: three adapters, the real card is the one planned on",
+          multi["vendor"] == "amd" and multi["backend"] == "vulkan"
+          and multi["vram_known"] and abs(multi["vram_gb"] - 12.0) < 0.01
+          and multi["item_limit"] is None, multi)
+    # ORDER MUST NOT MATTER. Win32_VideoController returns adapters in whatever
+    # order the enumerator gives, and on a machine that has been remoted into,
+    # the fake one comes first.
+    multi2 = plan({"gpus": [rdp, basic, card]})
+    check("three adapters, real card LAST, same plan",
+          multi2["vendor"] == "amd" and multi2["vram_known"]
+          and abs(multi2["vram_gb"] - 12.0) < 0.01, multi2)
+    # One row failing must not lose the others: the probe now appends whatever
+    # it could read, and a hole arrives as a null rather than as an empty list.
+    holed = plan({"gpus": [basic, None, card]})
+    check("one unreadable adapter row does not lose the working ones",
+          holed["vendor"] == "amd" and abs(holed["vram_gb"] - 12.0) < 0.01, holed)
+    # PINNED, because it is the one multi-adapter case that reads worse than
+    # single: if the only 64-bit figure is SMALLER than another adapter's
+    # uint32 ceiling, VRAM goes UNKNOWN rather than being believed. That is the
+    # conservative direction (smaller quant), and it is asserted so a later
+    # change to plan() cannot flip it silently.
+    small = {"name": "AMD Radeon RX 570", "vram_bytes_registry": 3 * 1024**3}
+    ceiling_only = {"name": "Microsoft Basic Display Adapter", "vram_bytes": 4294967295}
+    mixed = plan({"gpus": [small, ceiling_only]})
+    check("a ceiling reading beside a smaller real one is treated as UNKNOWN, "
+          "not as 4GB", not mixed["vram_known"] and mixed["quant"] == "Q4_K", mixed)
+    # The report has to SHOW every adapter, or a wrong plan cannot be diagnosed
+    # from the file Jafar sends back.
+    txt3 = format_report({"probe": "ok", "probe_version": 2,
+                          "gpu_source": "Win32_VideoController (CIM)",
+                          "gpus": [card, basic, rdp]}, multi)
+    check("report lists every adapter of a three-adapter machine",
+          "[0]" in txt3 and "[1]" in txt3 and "[2]" in txt3
+          and "Microsoft Basic Display Adapter" in txt3
+          and "3 found via Win32_VideoController (CIM)" in txt3, txt3[:400])
+    # 5c. A ZERO NEEDS A DENOMINATOR. "NONE FOUND" was printed on a machine with
+    #     a discrete card; the fix is that the report says how hard the probe
+    #     looked. Both ways round.
+    txt4 = format_report({"probe": "ok", "probe_version": 2, "gpus": [],
+                          "gpu_source": "none answered",
+                          "gpu_sources_tried":
+                              "Win32_VideoController (CIM) -> 0 adapter(s) from 3 row(s) "
+                              "seen; 3 row(s) unreadable | dxdiag /x -> 0 adapter(s) "
+                              "from 0 row(s) seen"},
+                         plan({"gpus": []}))
+    check("NONE FOUND arrives with the source log that is its denominator",
+          "NONE FOUND" in txt4 and "sources tried" in txt4
+          and "3 row(s) unreadable" in txt4 and "dxdiag" in txt4, txt4[:400])
+    txt5 = format_report({"probe": "partial: video controllers failed", "gpus": []},
+                         plan({"gpus": []}))
+    check("a report with NO source log says the zero proves nothing "
+          "(this is the version-1 shape Jafar sent back)",
+          "NO SOURCE LOG" in txt5 and "proves nothing" in txt5
+          and "PRE-DATES THE MULTI-ADAPTER FIX" in txt5, txt5[:400])
+    # 5d. "we could not tell" and "none registered" need DIFFERENT actions from
+    #     Jafar, so they must not render as the same line.
+    vk_none = format_report({"gpus": [], "vulkan_drivers": 0,
+                             "vulkan_status": "NOT INSTALLED - no Khronos registry key "
+                                              "and no vulkan-1.dll",
+                             "vulkan_loader": "absent"}, plan({}))
+    vk_blind = format_report({"gpus": [], "vulkan_drivers": "unknown",
+                              "vulkan_status": "could not tell - the vulkan probe did "
+                                               "not complete",
+                              "vulkan_loader": "unknown"}, plan({}))
+    check("vulkan NOT INSTALLED and vulkan COULD NOT TELL render differently",
+          "NOT INSTALLED" in vk_none and "could not tell" in vk_blind
+          and "NOT INSTALLED" not in vk_blind, (vk_none[-300:], vk_blind[-300:]))
     # 6. Manifest round-trips.
     m = {"status": "DONE", "images": [{"id": "x", "sha256": "y"}]}
     check("manifest round-trips as json", json.loads(json.dumps(m))["status"] == "DONE")
