@@ -6,10 +6,17 @@ on:
       - "ledger/**"
       - "game-design/**"          # docs-check runs here, so docs must trigger it
       - "tools/*.py"
+      - "tools/*.sh"              # ci-checks.sh and reach-check.sh ARE the job now
       - "THIRD-PARTY.md"
       - "voice-candidates/**"     # a new asset drop must re-run the attribution gate
       - ".github/workflows/ledger-core-tests.yml"
   workflow_dispatch:
+
+# NOTHING EXPENSIVE HANGS OFF THIS FILE. Checked 25 Aug rather than assumed:
+# no other workflow lists `.github/**` or this file in its paths, and the
+# Windows build is `workflow_dispatch:` only, so editing this or the scripts
+# it calls cannot start a 28-minute round trip or contend for the single
+# Unity licence seat.
 
 jobs:
   core-tests:
@@ -19,35 +26,39 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
-      # LAYER 1 — REACH. Runs here rather than on Windows because it costs a
-      # second and the Windows round trip is twenty-eight minutes; a check that
-      # tells you a feature is disconnected is worth having before the build,
-      # not after it. See `game-design/testing-system.md`.
-      - name: Reach check (built is not running)
-        run: |
-          dotnet run -c Release --project ledger/ReachCheck -- \
-            ledger/Assets/Scripts/Core ledger/Assets/Scripts/Game \
-            --tests ledger/CoreTests --tests ledger/SimHarness \
-            --tests ledger/BalanceLab --tests ledger/BarkGen --tests ledger/Tier2Gen \
-            --allow ledger/ReachCheck/allow.json
-      - name: Docs check (LIVE / SPEC / LOG)
-        run: python3 tools/docs-check.py
-      # LAYER 2 — SHAPE, file side. The clips and the manifests: a clip that
-      # plays as silence and two characters cast with the same throat are both
-      # things no assertion in this project had ever looked for, and one of
-      # them was found by Jafar listening.
-      - name: Shape check (clips, barks, manifests)
-        run: python3 tools/shape-check.py
-      - name: Shape check — the checker itself, watched failing
-        run: python3 tools/shape-check.py --selftest
-      # The voice corpus is CC BY 4.0 and attribution is REQUIRED. This is a
-      # licence obligation with a build failure attached, not a courtesy.
-      - name: Attribution check (third-party assets)
-        run: |
-          python3 tools/attribution-check.py
-          python3 tools/attribution-check.py --selftest
-      - name: Run core test suite
-        run: dotnet run --project ledger/CoreTests -c Release
-      - name: Run AI playtest (fake mode)
-        working-directory: ledger/SimHarness
-        run: dotnet run -c Release
+
+      # THE CHECKS ARE NOT STEPS ANY MORE, AND THAT IS THE FIX.
+      #
+      # Eight bare `run:` steps in a row is a fail-fast chain: a red step at
+      # position 4 SKIPS every step below it. Four consecutive pushes
+      # (b88adbb, cfd728a, 6137608, 80a9104) failed the reach check and
+      # therefore never ran the docs check, either shape check, the
+      # attribution check, the 2,884 CoreTests or the AI playtest — and the
+      # job's single red could not tell "reach is out of bounds" from "the
+      # test suite is broken" from "six checks never executed at all". Six
+      # checks reporting NOTHING looked exactly like six checks reporting
+      # fine. That is rule 3b — a zero needs a denominator — with a
+      # workflow's skip logic supplying the zero.
+      #
+      # `continue-on-error` alone would have been the wrong repair: a step
+      # that fails without failing the job is a gate loosened, and rule 2
+      # forbids moving a bound to make red go away. So every check runs,
+      # each outcome is recorded, and the script exits non-zero listing the
+      # failures BY NAME with `passed=N/M` beside them. The job is still red
+      # whenever any check is red; what changed is that you can see which.
+      #
+      # It lives in a script because a workflow's logic is untestable and a
+      # script's is not — `tools/ci-checks.sh --selftest` runs the accepting
+      # case, the rejecting case and the skip-the-rest case in about a
+      # second, which is the step below.
+      - name: Every cheap check, then the verdict naming which failed
+        run: bash tools/ci-checks.sh
+
+      # AND THE HARNESS THAT GRADED THEM, GRADED. `if: ${{ !cancelled() }}`
+      # so a red check above cannot skip it — that is the exact fault this
+      # commit exists to remove, and reintroducing it one step later would
+      # be one idea with two implementations again. Not `continue-on-error`:
+      # if the harness is broken the job must be red.
+      - name: The harness itself, watched both ways
+        if: ${{ !cancelled() }}
+        run: bash tools/ci-checks.sh --selftest

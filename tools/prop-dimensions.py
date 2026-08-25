@@ -284,6 +284,92 @@ def read_kit_map():
     return out
 
 
+def _pnode(name, *props, children=()):
+    """One node of an FBX tree, BUILT rather than parsed. Used only by
+    `synthetic_car`; nothing in the measuring path constructs nodes."""
+    n = _bp.Node(name)
+    n.props = list(props)
+    n.children = list(children)
+    return n
+
+
+def _capped(names, n=4):
+    """A comma list that SAYS WHEN IT BIT. A `[:4]` nobody is told about
+    is indistinguishable from a finding — the `head -3` fault."""
+    if not names:
+        return "none"
+    if len(names) <= n:
+        return ", ".join(names)
+    return ", ".join(names[:n]) + " (+%d more not shown)" % (len(names) - n)
+
+
+#: The synthetic car's parts, in the same shape the real kit uses: each
+#: mesh is modelled about its OWN origin and PLACED by its Model's
+#: `Lcl Translation`. Read off `--parts police` rather than invented, so
+#: the fixture reproduces the bug at the size it really had: police's
+#: wheels are geometry -30..+30 hung at y=30 (world 0..60) and its body
+#: is geometry 0..110 hung at y=20 (world 20..130).
+#:
+#:   name            geometry box (lo, hi)              placed at
+_SYNTH_PARTS = (
+    ("body", (-75.0, 0.0, -155.0), (75.0, 110.0, 135.0), (0.0, 20.0, 0.0)),
+    ("wheel-front-left", (-15.0, -30.0, -30.0), (15.0, 30.0, 30.0), (45.0, 30.0, 81.0)),
+    ("wheel-front-right", (-15.0, -30.0, -30.0), (15.0, 30.0, 30.0), (-45.0, 30.0, 81.0)),
+    ("wheel-back-left", (-15.0, -30.0, -30.0), (15.0, 30.0, 30.0), (45.0, 30.0, -81.0)),
+    ("wheel-back-right", (-15.0, -30.0, -30.0), (15.0, 30.0, 30.0), (-45.0, 30.0, -81.0)),
+)
+
+#: What the two readers must say about `_SYNTH_PARTS`, derived from it
+#: above rather than typed twice: assembled, the tyres touch the road;
+#: pooled, the wheels' own -30 becomes the car's floor.
+SYNTH_FLOOR = min(lo[1] + at[1] for _n, lo, _hi, at in _SYNTH_PARTS)      # 0.0
+SYNTH_POOLED = min(lo[1] for _n, lo, _hi, _at in _SYNTH_PARTS)            # -30.0
+
+
+def synthetic_car():
+    """A CAR THIS FILE BUILDS ITSELF — one body on four wheels, no file.
+
+    WHY IT IS SYNTHETIC, which is the point of the rewrite. The rejecting
+    case this replaces re-parsed `Props/car-kit/police.fbx` and asserted
+    that a real shipped asset STILL REPRODUCES THE BUG — pooled floor
+    under -1. Re-export police, or swap it for a pre-placed variant, and
+    the selftest goes red for the asset having been FIXED, which is a
+    sentence about a tool bug describing a project improvement.
+    `tools/ref-bench.py` was pinned to `district_downtown` the same way
+    and went red for the camera getting better. The accepting case above
+    stays on the live kit, which is the right fixture for it and cannot
+    be fooled by anything written here; only the rejecting half moves.
+
+    WHICH LAYER THIS EXERCISES, AND WHICH IT DOES NOT. The tree goes
+    straight to `assemble`, which is where the bug was, so the fixture
+    covers the OO connection walk, the translation lookup and the
+    per-part boxes — and it does NOT cover `_bp.parse_fbx`, the byte
+    reader, because it never produces bytes. That layer's accepting case
+    is the whole car kit a few lines up, parsed from disk every run.
+    """
+    objects, conns = [], []
+    for i, (name, lo, hi, at) in enumerate(_SYNTH_PARTS):
+        mid, gid = 100 + i, 200 + i
+        # Eight corners of the part's box, about the part's own origin.
+        verts = []
+        for x in (lo[0], hi[0]):
+            for y in (lo[1], hi[1]):
+                for z in (lo[2], hi[2]):
+                    verts += [x, y, z]
+        objects.append(_pnode(
+            "Model", mid, name + "\x00Model", "Mesh",
+            children=(_pnode("Properties70", children=(
+                _pnode("P", "Lcl Translation", "Lcl Translation", "", "A",
+                       at[0], at[1], at[2]),)),)))
+        objects.append(_pnode(
+            "Geometry", gid, name + "\x00Geometry", "Mesh",
+            children=(_pnode("Vertices", tuple(verts)),)))
+        conns.append(_pnode("C", "OO", gid, mid))
+    return _pnode("__root__",
+                  children=(_pnode("Objects", children=tuple(objects)),
+                            _pnode("Connections", children=tuple(conns))))
+
+
 def selftest():
     """Both outcomes, and the accepting case is a fact about cars.
 
@@ -298,8 +384,12 @@ def selftest():
     """
     fails = []
 
+    # THE MEASURED VALUE PRINTS ON THE PASS AS WELL AS THE FAIL. The first
+    # version showed `got` only when red, so every green line read "ok" with
+    # no number under it — "the car kit is on disk" is a different claim over
+    # 24 models and over 1, and the line could not tell them apart (rule 3b).
     def check(ok, what, got=""):
-        print(("  ok   " if ok else "  FAIL ") + what + ("" if ok else " — " + got))
+        print(("  ok   " if ok else "  FAIL ") + what + (" — " + got if got else ""))
         if not ok:
             fails.append(what)
 
@@ -307,7 +397,7 @@ def selftest():
                 if n.endswith(".fbx")
                 and not n.startswith(("wheel-", "debris-", "cone", "box"))]
     check(len(vehicles) >= 20, "the car kit is on disk to measure against",
-          "%d models" % len(vehicles))
+          "%d models walked" % len(vehicles))
 
     floors, unplaced, rotated = [], [], []
     for n in vehicles:
@@ -321,29 +411,70 @@ def selftest():
         floors.append((n[:-4], min(p[2][1] for p in parts)))
 
     check(not unplaced, "every vehicle yields placed geometry",
-          ", ".join(unplaced[:4]))
+          "%d of %d unplaced: %s" % (len(unplaced), len(vehicles), _capped(unplaced)))
     # Stated rather than assumed: `_translation` ignores rotation and
     # scaling, so the run has to confirm none is present to ignore.
     check(not rotated, "and none of them uses a rotation or a scale",
-          ", ".join(rotated[:4]))
+          "%d of %d rotated or scaled: %s"
+          % (len(rotated), len(vehicles), _capped(rotated)))
     worst = max((abs(y), nm) for nm, y in floors) if floors else (0, "")
-    print("  .. floors: " + " ".join("%s=%.0f" % (nm, y) for nm, y in floors[:8])
-          + (" ..." if len(floors) > 8 else ""))
+    print("  .. floors, %d measured: %s"
+          % (len(floors),
+             " ".join("%s=%.0f" % (nm, y) for nm, y in floors[:8])
+             + ((" (+%d more not shown)" % (len(floors) - 8)) if len(floors) > 8
+                else "")))
+    # WORST OF A SET OF PER-VEHICLE MINIMA, not a median and not a sample:
+    # "is ANY vehicle buried" is never a median question. The denominator is
+    # on the line because 0 buried out of 24 and 0 out of 0 are the same
+    # number and opposite facts.
     check(worst[0] < 0.01,
           "ACCEPTING CASE — every vehicle's wheels touch the road (y=0)",
-          "%s bottoms out at %.1f" % (worst[1], -worst[0]))
+          ("nothing measured" if not floors else
+           "worst of %d is %s, %.2f off the road" % (len(floors), worst[1], worst[0])))
 
-    # REJECTING CASE — the old reader, run again on the same file.
-    root, _ = _bp.parse_fbx(os.path.join(CAR_KIT, "police.fbx"), max_array=VERT_CAP)
-    pooled = float("inf")
-    for geom in root.find("Objects").find_all("Geometry"):
-        v = geom.find("Vertices")
-        d = None if v is None else next((p for p in v.props if isinstance(p, tuple)), None)
-        if d:
-            pooled = min(pooled, min(d[1::3]))
-    check(pooled < -1,
-          "REJECTING CASE — pooling the parts unplaced buries the car",
-          "pooled floor %.1f, which is what the table used to print" % pooled)
+    # REJECTING CASE — A SYNTHETIC CAR, BUILT BY THIS FILE, NO ASSET ON DISK.
+    #
+    # The version this replaces re-parsed `car-kit/police.fbx` and asserted
+    # that a real shipped model STILL REPRODUCES THE BUG. Re-export police
+    # with its parts pre-placed and this selftest goes red for the asset
+    # having been FIXED — `ref-bench` was pinned to `district_downtown` the
+    # same way and went red for the camera improving. Nobody can fix
+    # `_SYNTH_PARTS`, which is the whole property a rejecting fixture needs.
+    #
+    # A LADDER OF TWO RUNGS OFF ONE TREE, one contributor toggled: the same
+    # five meshes read WITH their placements and WITHOUT them, in the same
+    # run, from the same vantage. The difference between the rungs is the
+    # reading — 0.0 against -30.0 — and neither rung alone can say anything,
+    # because a floor of 0 proves nothing unless the unplaced read differs.
+    synth = synthetic_car()
+    placed = assemble(synth)
+    pooled = min((min(d[1::3])
+                  for g in synth.find("Objects").find_all("Geometry")
+                  for d in [next((p for p in g.find("Vertices").props
+                                  if isinstance(p, tuple)), None)] if d),
+                 default=float("inf"))
+    synth_floor = min(p[2][1] for p in placed) if placed else float("inf")
+    check(abs(synth_floor - SYNTH_FLOOR) < 1e-6,
+          "SYNTHETIC LADDER, rung 1 — placed, the fixture's tyres touch the road",
+          "%d parts, floor %.1f, wanted %.1f" % (len(placed), synth_floor, SYNTH_FLOOR))
+    check(abs(pooled - SYNTH_POOLED) < 1e-6,
+          "SYNTHETIC LADDER, rung 2 — REJECTING: pooled unplaced, it buries the car",
+          "pooled floor %.1f, wanted %.1f — the number the table used to print"
+          % (pooled, SYNTH_POOLED))
+    # AND THE RUNGS MUST STAND APART, WHICH NEITHER OF THEM CAN SAY ALONE.
+    # Both expectations above are DERIVED from `_SYNTH_PARTS`, so each rung
+    # on its own is close to a tautology: edit the fixture and the wanted
+    # value moves with it. Caught while break-testing this very check — a
+    # fixture "improved" to hold pre-placed parts passed both rungs and had
+    # stopped reproducing the bug entirely, which is the ref-bench fault
+    # wearing a fixture's clothes. The separation is the load-bearing
+    # reading, printed as one paired entry rather than two keys whose
+    # relationship a reader has to remember.
+    check(pooled < synth_floor - 1.0,
+          "SYNTHETIC LADDER — and the two rungs stand apart, so the fixture "
+          "still reproduces the bug",
+          "pooled/placed %.1f/%.1f, separation %.1f (needs > 1.0)"
+          % (pooled, synth_floor, synth_floor - pooled))
 
     # -- THE VEHICLES THE GAME ACTUALLY DRESSES ------------------------
     #
@@ -403,7 +534,8 @@ def selftest():
     worst = min([(min(w, h), k) for k, _m, w, h in squash] or [(1.0, "")])
     check(worst[0] >= 0.50,
           "no kit model is squashed past half to fit its kind",
-          "%s at %.2f" % (worst[1], worst[0]))
+          ("nothing measured" if not squash else
+           "worst of %d kinds is %s at %.2f" % (len(squash), worst[1], worst[0])))
 
     # And the cap, because this file's whole history is that it was reading
     # nothing and saying so quietly.
@@ -413,8 +545,14 @@ def selftest():
     check(size is not None and 100 < size[2] < 400, "and it has a size",
           str(size))
 
-    print("\n%s" % ("prop-dimensions selftest ok" if not fails
-                    else "%d problem(s)" % len(fails)))
+    # THE FOOTER CARRIES THE DENOMINATOR AND NAMES THE SYNTHETIC INPUT
+    # SEPARATELY, so nobody later reads the rejecting rung as coverage of a
+    # real model: 1 of these inputs is one this file wrote.
+    tally = ("%d kit vehicles measured, %d kinds squash-checked, "
+             "1 synthetic car (built here, no asset)"
+             % (len(floors), len(squash)))
+    print("\nprop-dimensions selftest %s — %s"
+          % ("ok" if not fails else "%d problem(s)" % len(fails), tally))
     return 1 if fails else 0
 
 

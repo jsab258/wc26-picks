@@ -85,20 +85,22 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 ### screen. Nothing from a later stage starts while an earlier one has
 ### startable work, except reading a landed verdict, which is free.
 
-1. **THE CHEAP CI CHANNEL HAS BEEN DARK FOR FOUR COMMITS — IN FLIGHT.**
-   Verified 25 Aug against the run list, not inferred: `LEDGER core tests`
-   concluded `failure` on 80a9104, 6137608, cfd728a, b88adbb. Step 4, the
-   C# `ReachCheck`, fails — and steps 5-10 are all `skipped`: docs check,
-   both shape checks, attribution, **the core test suite**, the AI playtest.
-   The job's single red cannot distinguish "reach is red" from "nothing
-   below step 4 ever ran". Reproduced locally, exit 1: `Proportion`'s
-   `TryNeckFraction` (`Proportion.cs:48`) and `IsCaricature` (`:127`) are
-   tested and called by nothing — rule 6, and correct of the guard. TWO
-   fixes, both dispatched: the structural one (every check runs, the job
-   fails at the END naming which, with a pass count beside it — NOT
-   `continue-on-error`, which is a bound moved to make red go away), and
-   the finding itself (wire them, or an allowlist reason describing a
-   consumer that EXISTS). Account: `agent-reports/dark-ci-channel.md`.
+1. **THE CHEAP CI CHANNEL WAS DARK FOR 311 RUNS — FIXED, AWAITING COMMIT.**
+   Last green `0d38986` 2026-08-17T19:44:27Z, then **311 consecutive reds
+   over 7d 2h, ONE cause**: the workflow's ReachCheck was missing the
+   `--also ledger/Assets/Editor` argument `verify.py` passes, so it could
+   not see `CharacterPrefab.cs:193,199` calling the two `Proportion` APIs
+   it reported as unwired. Step 4 red SKIPPED six checks below it, the core
+   suite among them. Fixed by `tools/ci-checks.sh` (all eight run, exits
+   naming failures `passed=N/M`, no `continue-on-error`) + `tools/reach-check.sh`
+   (one shared invocation, so the callers cannot drift again). Both ways
+   proven, harness selftest 15/15.
+   **Full account — including the two wrong readings published before the
+   right one, and why sampling cannot tell "dark" from ordinary red:
+   `roadmap-history.md` 2026-08-25 + `agent-reports/dark-ci-channel.md`. OPEN:**
+   `ledger-build-{windows,mac}.yml` Verdict steps report the SIM, so
+   "lint failed" and "the sim did not run" print the same sentence — name
+   the lint/shape outcomes there as `citypack-fetch.yml` does.
 
 1. **REPIN TWO REJECTING FIXTURES TO SYNTHETIC CASES — IN FLIGHT.**
    `tools/clip-motion.py:439` asserts `Joe.fbx` carries no animation take;
@@ -123,13 +125,12 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
 1. **SURVEY THE TWO UNREACHED KITS — MEASURE FIRST, WIRE AFTER THE
    LANDING.** `city-kit-roads` 47 models / 1 named / 45 unused;
-   `city-kit-suburban` 13 models / **0 named, ENTIRE KIT UNREACHED**. (The
-   ~150 figure `prop-reach` prints is the all-kits total, not this kit —
-   read the per-kit table.) `prop-dimensions` every model, write the
-   placement plan; wiring goes into the dispatch AFTER the ground-grade
-   landing is read, not into it. This is the DENSITY half of the GTA V bar
-   — what palms, posters and hydrants do for Los Santos, chimney pots,
-   double-yellows, phone boxes and dock clutter must do for Meridian.
+   `city-kit-suburban` 13 / **0 named, ENTIRE KIT UNREACHED** (the ~150
+   `prop-reach` prints is the all-kits total — read the per-kit table).
+   `prop-dimensions` every model, write the placement plan; wiring goes
+   into the dispatch AFTER the landing is read, not into it. The DENSITY
+   half of the GTA V bar: what palms and hydrants do for Los Santos,
+   chimney pots and dock clutter must do for Meridian.
 
 1. **M17.10 — THE VISUAL BAR IS GTA V (PS3). Jafar's order, 21 Aug, twice.**
    *(the most on-screen thing there is)* Plan in `roadmap.md` 17.10,
@@ -386,11 +387,10 @@ one? Take the next rung or name it here. A blank next rung is a research task.
   trip. This is the largest piece of unwritten game left.
 - **M22, the shape of a playthrough.** Onboarding, pacing, replayability and
   succession — also unbuilt and also Core-shaped.
-- **Read a system and write down what it actually does.** Every system
-  here has at least one comment that is now false, and each one found is
-  a bug that would otherwise have been believed. **Read the code that
-  produces a number too** — three faults in `CollidingNames` came from
-  reading it, not from its readings.
+- **Read a system and write down what it actually does.** Every system here
+  has at least one comment now false, and each one found is a bug that would
+  otherwise have been believed. **Read the code that produces a number too**
+  — three faults in `CollidingNames` came from reading it, not its readings.
 - **Turn a still into a number.** Five faults found by opening a frame and none
   by a gate. Anything a frame shows that no metric names is a metric worth
   adding.

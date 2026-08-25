@@ -188,8 +188,24 @@ def _channels(by_id, into, model_id, prop_name):
 
 
 def measure(path):
-    """Everything this reader can say about one clip file."""
+    """Everything this reader can say about one clip FILE.
+
+    Split from `measure_tree` so the selftest's rejecting fixture can be
+    BUILT rather than opened -- see `synthetic_rig`. The signature is
+    unchanged and `tools/mixamo-pick/pick_animations.py` calls this one.
+    """
     root, _version = BP.parse_fbx(path, max_array=CURVE_KEYS)
+    return measure_tree(root)
+
+
+def measure_tree(root):
+    """The measurement itself, on an already-parsed FBX tree.
+
+    Everything below `parse_fbx` lives here: the unit scale, the object
+    index, the root-parenting refusal, the channel walk and every bound.
+    A caller with a tree gets the identical numbers a caller with a path
+    does, by construction, because there is one implementation.
+    """
     scale = _unit_scale(root)
     by_id, out, into = _index(root)
 
@@ -401,6 +417,90 @@ def main():
     return 1 if findings else 0
 
 
+def _fbx_node(name, *props, children=()):
+    """One node of an FBX tree, BUILT rather than parsed. Used only by
+    `synthetic_rig`; nothing in the measuring path constructs nodes."""
+    n = BP.Node(name)
+    n.props = list(props)
+    n.children = list(children)
+    return n
+
+
+def synthetic_rig(moved_cm, turned_deg, keys, hip_cm=100.0, fps=30.0):
+    """A MIXAMO-SHAPED FBX TREE THIS FILE BUILDS ITSELF — no asset on disk.
+
+    One `mixamorig:Hips` Model at the top of the hierarchy with no Model
+    parent, one AnimationCurveNode per animated property, one
+    AnimationCurve per axis, and the OP connections that tie them
+    together — the exact shape `_index` and `_channels` walk in a real
+    clip. The hips travel `moved_cm` along X and turn `turned_deg` about
+    Y across `keys` keys at `fps`, and sit at `hip_cm` throughout.
+
+    WHY IT IS SYNTHETIC, which is the whole point of the rewrite. The
+    rejecting case this replaces opened `Characters/Joe.fbx` and asserted
+    that a body model carries a rig and NO TAKE. That was true the day it
+    was written and it is not a property of the tool: the moment anyone
+    bakes a take onto Joe — ordinary work here, we fetch Mixamo takes
+    constantly — the selftest goes red saying "a rig with no take was
+    measured as a moving clip", a sentence about a tool bug describing a
+    project improvement. `tools/ref-bench.py` was pinned to
+    `district_downtown` the same way and went red for the camera getting
+    better. A rejecting fixture must be one nobody can fix.
+
+    WHICH LAYER THIS EXERCISES, AND WHICH IT DOES NOT. The tree goes to
+    `measure_tree`, so the fixture covers the object index, the
+    root-parenting refusal, the channel walk, the unit scale and every
+    bound in the measurement — and it does NOT cover `BP.parse_fbx`, the
+    byte reader, because it never produces bytes. That layer's accepting
+    case is the whole live harvest a few lines up: 60-odd real Kaydara
+    files parsed every run, which is a better fixture for a parser than
+    anything written here could be, and a parser regression fails there
+    rather than here.
+    """
+    def ramp(a, b):
+        if keys < 2:
+            return (a,)
+        return tuple(a + (b - a) * i / (keys - 1) for i in range(keys))
+
+    ktimes = tuple(int(i * KTIME_PER_SECOND / fps) for i in range(keys))
+
+    def curve(cid, values):
+        return _fbx_node("AnimationCurve", cid, "\x00AnimCurve", "",
+                         children=(_fbx_node("KeyTime", ktimes),
+                                   _fbx_node("KeyValueFloat", values)))
+
+    hip_id, t_node, r_node = 1000, 2000, 2001
+    axes = {"T": {"X": ramp(0.0, moved_cm),
+                  "Y": ramp(hip_cm, hip_cm),
+                  "Z": ramp(0.0, 0.0)},
+            "R": {"X": ramp(0.0, 0.0),
+                  "Y": ramp(0.0, turned_deg),
+                  "Z": ramp(0.0, 0.0)}}
+
+    objects, conns = [], []
+    objects.append(_fbx_node("Model", hip_id, "mixamorig:Hips\x00Model",
+                             "LimbNode"))
+    for which, node_id, prop in (("T", t_node, "Lcl Translation"),
+                                 ("R", r_node, "Lcl Rotation")):
+        objects.append(_fbx_node("AnimationCurveNode", node_id,
+                                 which + "\x00AnimCurveNode", ""))
+        conns.append(_fbx_node("C", "OP", node_id, hip_id, prop))
+        for i, axis in enumerate("XYZ"):
+            cid = node_id * 10 + i
+            objects.append(curve(cid, axes[which][axis]))
+            conns.append(_fbx_node("C", "OP", cid, node_id, "d|" + axis))
+
+    unit = _fbx_node("P", "UnitScaleFactor", "double", "Number", "", 1.0)
+    return _fbx_node(
+        "__root__",
+        children=(
+            _fbx_node("GlobalSettings",
+                      children=(_fbx_node("Properties70", children=(unit,)),)),
+            _fbx_node("Objects", children=tuple(objects)),
+            _fbx_node("Connections", children=tuple(conns)),
+        ))
+
+
 def selftest(rows):
     """BOTH CASES, because a guard is shipped only when both have been
     watched run (rule 5b)."""
@@ -422,34 +522,67 @@ def selftest(rows):
             failures.append("%s: %.1fm of travel -- unit scale is being read wrong"
                             % (r["slot"], r["travel"]))
 
-    # REJECTING: a body model carries a rig and no take, and it must not
-    # come back looking like a healthy clip. It reads as FROZEN with two
-    # keys -- the rig's rest values -- which is the right answer and is
-    # NOT the same as being declined: `measure` returns numbers for it.
-    # Written that way round on purpose, because the frozen rule is what
-    # this file's whole finding rests on and pointing it at a body with
-    # no animation is the one input we know the answer for.
-    body = os.path.join(CHARACTERS, "Joe.fbx")
-    if os.path.isfile(body):
-        r = measure(body)
+    # REJECTING: A SYNTHETIC RIG PAIR, BUILT IN MEMORY BY `synthetic_rig`.
+    # NO PROJECT ASSET IS INVOLVED and none can change the answer -- which
+    # is the entire repair. The version this replaces opened
+    # `Characters/Joe.fbx` and asserted a body model carries a rig and no
+    # take; baking a take onto Joe is ordinary work here and would have
+    # turned that into "a rig with no take was measured as a moving clip",
+    # a tool-bug sentence describing a project improvement.
+    #
+    # IT IS A LADDER OF TWO RUNGS, ONE CONTRIBUTOR TOGGLED. The rungs are
+    # identical but for the motion, read through the same `measure_tree`
+    # in the same run, so the DIFFERENCE between them is the reading:
+    #
+    #   rest   0.00cm / 0.0deg over 2 keys      must read FROZEN
+    #   take  40.00cm / 25.0deg over 31 keys    must NOT read frozen
+    #
+    # One rung alone cannot say anything. A `frozen` flag wired to True
+    # passes a rest-only fixture and silently turns every clip in the
+    # harvest into a finding; a flag wired to False passes a take-only
+    # fixture and makes the tool's whole finding unreachable. The bounds
+    # sit between the rungs, so both are pinned by the pair.
+    rest = measure_tree(synthetic_rig(moved_cm=0.0, turned_deg=0.0, keys=2))
+    take = measure_tree(synthetic_rig(moved_cm=40.0, turned_deg=25.0, keys=31))
+    for label, r in (("rest", rest), ("take", take)):
         if "error" in r:
-            failures.append("a rig with no take could not be read at all: %s"
-                            % r["error"])
-        elif not r["frozen"]:
-            failures.append("a rig with no take was measured as a moving clip")
-        elif r["keys"] > 2:
-            failures.append("a rig with no take produced %d keys" % r["keys"])
-    else:
-        failures.append("no body model to test the rejecting case against")
+            failures.append("synthetic %s rig could not be read at all: %s"
+                            % (label, r["error"]))
+    if "error" not in rest:
+        if not rest["frozen"]:
+            failures.append("a synthetic rig with no take was measured as a "
+                            "moving clip (%.2fcm %.1f deg)"
+                            % (rest["movedCm"], rest["turnedDeg"]))
+        if rest["keys"] > 2:
+            failures.append("a synthetic 2-key rig produced %d keys" % rest["keys"])
+    if "error" not in take and take["frozen"]:
+        failures.append("a synthetic rig that travels %.2fcm and turns %.1f deg "
+                        "was measured as frozen -- the frozen rule cannot say no"
+                        % (take["movedCm"], take["turnedDeg"]))
 
+    # THE FIXTURE ANNOUNCES ITSELF AS SYNTHETIC, on both outcomes, so no
+    # later reader can count it as coverage of a real model (rule 3b: a
+    # pass must be legible as a pass, and legible about WHAT it passed).
     print()
+    for label, r in (("rest-pose, no take", rest), ("with a take", take)):
+        print("  SYNTHETIC FIXTURE (built here, no project asset): %-19s "
+              "%6.2fcm %5.1f deg %3d keys  frozen=%s"
+              % (label, r.get("movedCm", 0.0), r.get("turnedDeg", 0.0),
+                 r.get("keys", 0), r.get("frozen", "ERROR")))
+
+    # THE DENOMINATOR RIDES ON BOTH LINES (rule 3b). "0 failures" over 64
+    # real clips and "0 failures" over an empty harvest are the same
+    # number and opposite facts, and the synthetic count is separate from
+    # the real one on purpose -- 2 of these inputs are ones this file
+    # wrote, and they are not evidence about the harvest.
+    tally = ("%d clips read, %d declined, 2 synthetic rigs"
+             % (len(read), len(rows) - len(read)))
     if failures:
         for f in failures:
             print("  FAIL: %s" % f)
-        print("SELFTEST FAILED -- %d failure(s)" % len(failures))
+        print("SELFTEST FAILED -- %d failure(s) over %s" % (len(failures), tally))
         return 1
-    print("SELFTEST PASSED -- %d clips read, %d declined, rejecting case held"
-          % (len(read), len(rows) - len(read)))
+    print("SELFTEST PASSED -- %s, rejecting case held" % tally)
     return 0
 
 

@@ -3050,3 +3050,63 @@ rather than into geometry, which is why it was free. **Ground roughness
 maps bound, normalised by each map's own mean** — and that binding
 silently killed THREE `_Glossiness` writers, which was found afterwards
 and separately.
+
+
+## 2026-08-25 — the cheap CI channel was dark for 311 runs (closed)
+
+Kept for the METHOD, not the fix. Three readings were published about how
+long this had been broken and the first two were wrong, each wrong in a
+different way, and both were mine.
+
+**Reading 1, "four commits":** one page of the run list, four reds at the
+top. **Reading 2, "~420 runs over 11+ days, possibly never green, a
+succession of causes":** four pages of thirty sampled at intervals, no
+green found on any of them. Both were honest arithmetic on a sample that
+could not carry the claim. **Reading 3, correct:** the API's `total_count`
+rather than a page walk — **1658 runs, 370 green, last green `0d38986` at
+2026-08-17T19:44:27Z, then 311 consecutive reds over 7d 2h, ONE cause.**
+The boundary is airtight: first red `4f80405` at 21:43:53Z, nine seconds
+after the commit that caused it, immediately after a green run.
+
+**Why the sample lied, and it is not the usual reason.** Red exists before
+17 Aug too — ordinary failures being found and fixed, which is a healthy
+channel working. "Dark" and "ordinary red" look identical in a page of
+conclusions, so sampling pages can establish that reds are common and can
+never establish that greens are absent. Only the total could. This is the
+project's own peak-vs-median rule wearing different clothes: which
+statistic answers the question is a choice, and a sample is not a
+distribution.
+
+**The cause was the instrument, and it was called the wrong way round.**
+`Proportion.TryNeckFraction` and `IsCaricature` were reported by the reach
+check as tested-and-unwired. They are not: `Assets/Editor/CharacterPrefab.cs`
+calls both at :193 and :199, and `git log --diff-filter=A` on `Proportion.cs`
+and `git log -S` on the call site return the same commit, `4f80405f` — the
+API and its caller were born together. `verify.py` passes `--also
+ledger/Assets/Editor`; the workflow never got that argument. One idea, two
+implementations, and the workflow was the copy nobody looked at.
+
+The sharpest detail: **`verify.py:118` already carried a comment reading
+"AND THEY DRIFTED. On 17 Aug `--also Assets/Editor` was added to THIS
+copy."** The drift was noticed, written down, and left. A comment is a
+claim with no test attached, and this one sat eleven lines from the code
+that would have fixed the workflow.
+
+An allowlist entry was the obvious-looking fix and would have been the
+worst outcome: it writes a false "no consumer" claim into the reach ledger,
+which is the exact decay this project has recorded three previous instances
+of — a reason describing an intended consumer rather than a real one, which
+sends the next person at work that finished weeks ago.
+
+**What shipped:** `tools/ci-checks.sh` runs all eight checks, records each
+outcome and exits non-zero naming the failures with `passed=N/M`, so a red
+reach check can no longer hide the core suite. `tools/reach-check.sh` is
+THE single invocation both `verify.py` and the workflow call, so the two
+cannot drift apart again. No `continue-on-error` anywhere — every check
+still gates; the change is that you can see which one failed. The done line
+prints LAST, after the failure detail, because a detail block can exceed the
+~4KB readable log tail and would otherwise push out the one line naming the
+failure. `verify.py`'s `tools_tracked()` was extended to walk
+workflow-named tools transitively — and the one-hop version caught
+`ci-checks.sh` while missing `reach-check.sh`, which is precisely the fault
+it exists to stop, found by running it rather than by reasoning about it.

@@ -112,20 +112,21 @@ def reach():
     running method counts as running, which the first version got wrong.
 
     The ledger in `ReachCheck/allow.json` carries a typed reason per entry and
-    only counts down: wiring an API without deleting its entry fails too."""
-    code, out = run(["dotnet", "run", "-c", "Release", "--project", str(ROOT / "ReachCheck"),
-                     "--", str(ROOT / "Assets" / "Scripts" / "Core"),
-                     str(ROOT / "Assets" / "Scripts" / "Game"),
-                     "--tests", str(ROOT / "CoreTests"),
-                     "--tests", str(ROOT / "SimHarness"),
-                     "--tests", str(ROOT / "BalanceLab"),
-                     "--tests", str(ROOT / "BarkGen"),
-                     "--tests", str(ROOT / "Tier2Gen"),
-                     # The Editor layer is a real consumer — `CharacterPrefab`
-                     # calls Core on every CI build — and went unscanned until
-                     # 17 Aug, so anything it alone called read as unwired.
-                     "--also", str(ROOT / "Assets" / "Editor"),
-                     "--allow", str(ROOT / "ReachCheck" / "allow.json")])
+    only counts down: wiring an API without deleting its entry fails too.
+
+    THE ARGUMENT LIST USED TO BE SPELLED OUT HERE AND AGAIN IN THE WORKFLOW,
+    AND THEY DRIFTED. On 17 Aug `--also Assets/Editor` was added to THIS copy
+    — the Editor layer is a real consumer, `CharacterPrefab` calls Core on
+    every Windows build — and not to `.github/workflows/ledger-core-tests.yml`.
+    From that day the two readers walked different worlds: local verify green,
+    CI red, on the same tree. It cost four consecutive dark CI runs, because
+    `Proportion.TryNeckFraction` and `Proportion.IsCaricature` are called ONLY
+    from the Editor and the workflow's smaller scan called them unwired.
+
+    So there is now ONE invocation, in `tools/reach-check.sh`, and both callers
+    run it. Rule 1's third corollary: one idea, two implementations, and the
+    one nobody looks at is the one missing a line."""
+    code, out = run(["bash", str(ROOT.parent / "tools" / "reach-check.sh")])
     m = re.search(r"reach ok — (\d+) on the ledger", out)
     if m:
         return True, "%s on the reach ledger" % m.group(1)
@@ -147,16 +148,59 @@ def tools_tracked():
     shape a failure can take, and it cost every core-tests run for an evening.
     The ignore rule is now anchored so it cannot swallow a subdirectory; this
     checks the outcome rather than trusting the rule, because verifying the
-    rule is verifying my own comment."""
+    rule is verifying my own comment.
+
+    AND THE SAME FAULT MOVED ONE LAYER OUT ON 25 AUG. This function checked
+    `*.csproj` and nothing else, so it could not see that a workflow now
+    invokes `tools/ci-checks.sh` and `tools/reach-check.sh` by path — and an
+    uncommitted script produces the identical shape: local green, CI red,
+    "No such file or directory", no code difference between them. Rule 1's
+    third corollary is mechanical, so it is applied here rather than
+    remembered: every `tools/*.py` and `tools/*.sh` NAMED IN A WORKFLOW is
+    checked for being both on disk and tracked.
+
+    The denominator is printed. "0 untracked" beside nothing walked is the
+    zero this project keeps being fooled by."""
     missing = []
     for proj in sorted(ROOT.glob("*/*.csproj")):
         code, out = run(["git", "ls-files", "--error-unmatch", str(proj)], cwd=str(ROOT))
         if code != 0:
             missing.append(proj.parent.name)
-    if missing:
-        return False, "UNTRACKED TOOL PROJECT(S): " + ", ".join(missing)
+
+    # Every tool a workflow runs by path. Referenced-but-absent is reported
+    # too: a workflow naming a file that does not exist is the same red.
+    # TRANSITIVELY. `ledger-core-tests.yml` names only `tools/ci-checks.sh`,
+    # which names `tools/reach-check.sh` — and an untracked file two hops out
+    # breaks CI exactly as loudly as one hop out. The first version of this
+    # walk stopped at one hop and caught one of the two new scripts, which is
+    # the same "one idea, the copy nobody looks at" shape it exists to stop.
+    repo = ROOT.parent
+    pat = re.compile(r"tools/[A-Za-z0-9_./-]+\.(?:py|sh)")
+    wf = sorted((repo / ".github" / "workflows").glob("*.yml"))
+    refs, queue = set(), []
+    for f in wf:
+        queue += pat.findall(f.read_text(encoding="utf-8"))
+    while queue:
+        ref = queue.pop()
+        if ref in refs:
+            continue
+        refs.add(ref)
+        src = repo / ref
+        if src.exists():
+            queue += pat.findall(src.read_text(encoding="utf-8", errors="replace"))
+    for ref in sorted(refs):
+        if not (repo / ref).exists():
+            missing.append(ref + "(absent)")
+            continue
+        code, out = run(["git", "ls-files", "--error-unmatch", ref], cwd=str(repo))
+        if code != 0:
+            missing.append(ref + "(untracked)")
+
     n = len(list(ROOT.glob("*/*.csproj")))
-    return True, "%d tool project(s) tracked" % n
+    if missing:
+        return False, "UNTRACKED/ABSENT TOOL(S): " + ", ".join(missing)
+    return True, "%d tool project(s) + %d workflow-named tool(s) in %d workflow(s) tracked" % (
+        n, len(refs), len(wf))
 
 
 def clip_audit():
