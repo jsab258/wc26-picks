@@ -9742,6 +9742,31 @@ namespace Ledger.Game
         /// `streetBodiesSeen=3` measures from the other end — nineteen
         /// people in the cone, three not behind a building.
         const float ShotMidBlockedAt = 0.30f;
+        /// How close a collider has to be to count as being IN THE WAY
+        /// rather than as part of the scene, for `tourBlockerShare`.
+        ///
+        /// NOT MEASURED, AND SAYING SO IS THE POINT (rule 2). There is no
+        /// landed series of per-object frustum shares to place it against —
+        /// this is the run that starts one. What it rests on:
+        ///
+        ///   * the ONE obstruction the artifact read found is the ironside
+        ///     crane, and its near face is 3.95m in front of that camera by
+        ///     the world's own coordinates (`WorldBuilder.BuildLandmarks`
+        ///     puts `Crane_2_tower_up` at x36 z-174, 1.9m square, y10..18;
+        ///     the eye was at 36.55/14/-178.9, and the engine's own aim ray
+        ///     reported `Crane_2_tower_up@4.01m`). So the bound has to clear 4m.
+        ///   * the existing MID band stops looking at 7m, and a slab at 7.1m
+        ///     fills a frame exactly as thoroughly as one at 6.9m. 8m is the
+        ///     first whole metre past that edge, so an object straddling it
+        ///     is counted whole by this instrument instead of being split
+        ///     between two that each see half of it.
+        ///
+        /// AND IT SHIPS THE PRINTER THAT WILL SET IT PROPERLY: every entry
+        /// in `tourBlockerShare` carries the winning collider's DISTANCE, so
+        /// the next reader can see whether the bound cut anything in half
+        /// rather than having to trust this paragraph.
+        const float BlockerReachM = 8f;
+
         /// How far a sight-line ray is allowed to run before it counts as
         /// "sees the horizon". Not a threshold on the answer — it is the
         /// ceiling on the RAY, and it exists so a ray that reaches nothing has
@@ -9802,10 +9827,18 @@ namespace Ledger.Game
         /// `ShotDepthCap` for a ray that reaches nothing. An open street looks
         /// down its own length, so half its rays run long; a frame walled off
         /// at ten metres has half of them at ten whatever the near fraction
-        /// says. Two questions, two statistics, computed in ONE pass — the
-        /// alternative is a second 84-ray sweep, which is exactly the
+        /// says. THREE questions now, three statistics, computed in ONE pass
+        /// — the alternative is a second 84-ray sweep, which is exactly the
         /// one-idea-two-implementations shape this file keeps finding wrong on
         /// the copy nobody looks at.
+        ///
+        /// The third is `tourBlockerShare`/`shotBlockerShareWorst`, and it is
+        /// the only one of the three that keeps the hit's IDENTITY. Both
+        /// fractions and the median are statistics over DISTANCES, and a
+        /// distance cannot distinguish one crane owning a fifth of the frame
+        /// from twenty rays clipping twenty different walls down a street —
+        /// which is the difference between a blocked camera and a corridor.
+        /// The field notes beside `_keptBlockerShare` carry the evidence.
         ///
         /// NO GATE YET, DELIBERATELY. There is no landed series for this
         /// number, so any bound would be invented rather than measured
@@ -9823,6 +9856,16 @@ namespace Ledger.Game
                 ? _game.Player.transform : null;
             int nearHits = 0, midHits = 0, farHits = 0, rays = 0;
             var depths = new List<float>();
+            // WHICH SINGLE OBJECT OWNS THE MOST OF THIS FRUSTUM, within
+            // `BlockerReachM`, and how many rays hit anything at all inside
+            // it. A MAX OVER OBJECTS, never a median: "is anything in the
+            // way" is not a median question, and `tourDepthBy` — a median
+            // over these same rays — ranked the one blocked camera in the
+            // set as the CLEAREST at 32.7m, because 63 of its 84 rays sailed
+            // past the crane to the horizon and the median followed them.
+            int blockerHits = 0;
+            var owned = new Dictionary<Collider, int>();
+            var ownedAt = new Dictionary<Collider, float>();
             for (int gx = 0; gx < 12; gx++)
                 for (int gy = 0; gy < 7; gy++)
                 {
@@ -9838,11 +9881,25 @@ namespace Ledger.Game
                     // and would drag every median to arm's length.
                     float anyD = float.MaxValue, freeD = ShotDepthCap;
                     bool anyIsPlayer = false;
+                    // AND WHICH COLLIDER THAT NEAREST NON-PLAYER HIT WAS.
+                    // The three band fractions above throw the identity away
+                    // and count only distance, which is why a crane owning a
+                    // quarter of the frame reads as `midFrac=0.25` — a number
+                    // nothing gates and nothing prints. See `tourBlockerShare`.
+                    Collider freeC = null;
                     foreach (var h in hits)
                     {
                         bool mine = player != null && h.collider.transform.IsChildOf(player);
                         if (h.distance < anyD) { anyD = h.distance; anyIsPlayer = mine; }
-                        if (!mine && h.distance < freeD) freeD = h.distance;
+                        if (!mine && h.distance < freeD) { freeD = h.distance; freeC = h.collider; }
+                    }
+                    if (freeC != null && freeD <= BlockerReachM)
+                    {
+                        blockerHits++;
+                        owned.TryGetValue(freeC, out int had);
+                        owned[freeC] = had + 1;
+                        if (!ownedAt.TryGetValue(freeC, out float was) || freeD < was)
+                            ownedAt[freeC] = freeD;
                     }
                     if (anyD <= 2f && !anyIsPlayer) nearHits++;
                     // THE BAND THE ARM'S-LENGTH TEST SKIPS. day2_noon on V
@@ -9877,6 +9934,24 @@ namespace Ledger.Game
             _keptNearFrac = rays > 0 ? (float)nearHits / rays : 0f;
             _keptMidFrac = rays > 0 ? (float)midHits / rays : 0f;
             _keptFarFrac = rays > 0 ? (float)farHits / rays : 0f;
+            // The biggest single owner, resolved here rather than as it is
+            // tallied, because "which collider has the most rays" is only
+            // answerable once every ray has been cast.
+            int bestCount = 0;
+            float bestDist = -1f;
+            string bestWhat = "clear";
+            foreach (var kv in owned)
+            {
+                if (kv.Value <= bestCount) continue;
+                bestCount = kv.Value;
+                bestWhat = kv.Key != null ? kv.Key.name.Replace(' ', '_') : "unnamed";
+                bestDist = ownedAt.TryGetValue(kv.Key, out float d) ? d : -1f;
+            }
+            _keptBlockerShare = rays > 0 ? (float)bestCount / rays : 0f;
+            _keptBlockerDist = bestDist;
+            _keptBlockerWhat = bestWhat;
+            _keptBlockerHits = blockerHits;
+            _keptBlockerRays = rays;
             return _keptNearFrac;
         }
         /// The kept vantage's near (<=2m) and mid-band (2..7m) frustum-hit
@@ -9885,6 +9960,74 @@ namespace Ledger.Game
         /// (`_shotNearFrac`, plural list, is the existing per-shot SERIES —
         /// the name collision was caught by ShapeCheck before it shipped.)
         float _keptNearFrac = -1f, _keptMidFrac = -1f, _keptFarFrac = -1f;
+
+        /// THE BIGGEST SHARE OF THE FRUSTUM OWNED BY ONE OBJECT within
+        /// `BlockerReachM`, at the kept vantage — a MAX over colliders, with
+        /// that object's name and nearest distance.
+        ///
+        /// WHY A NEW NUMBER RATHER THAN A BOUND ON `midFrac`. Three landed
+        /// numbers watched the ironside crane fill the centre of its frame at
+        /// 4m on run 6137608 and not one of them could say so:
+        ///
+        ///   `tourNearSeries` 0.00 for all seven — the crane is past 2m.
+        ///   `tourDepthBy`    ironside 32.7m, the LARGEST of the seven, i.e.
+        ///                    ranked the blocked camera as the clearest: a
+        ///                    median over rays follows the 63 that miss.
+        ///   `midFrac`        0.25 and correct — but it is a DISTANCE band,
+        ///                    it never reaches `verdict.txt`, and it cannot
+        ///                    tell one crane owning 21 rays from 21 scattered
+        ///                    rays clipping 21 different walls, which is a
+        ///                    street corridor and is fine.
+        ///
+        /// The identity is the whole content of the question. "Is anything in
+        /// the way" is a max/count question about OBJECTS; every instrument
+        /// this camera had was a statistic over DISTANCES.
+        ///
+        /// Last-wins by construction, exactly like the three fractions above
+        /// and for the same reason: the step-back loop re-asks the sweep at
+        /// each candidate standoff, so the values left behind describe the
+        /// vantage that was actually photographed.
+        float _keptBlockerShare = -1f, _keptBlockerDist = -1f;
+        string _keptBlockerWhat = "none";
+        /// THE DENOMINATOR, and a zero here is what tells a clear tour from a
+        /// tally that never ran (rule 3b). `_keptBlockerRays` is the fixed 84
+        /// of the grid, so the share cannot read low for want of sampling;
+        /// `_keptBlockerHits` is how many of those rays hit ANYTHING inside
+        /// `BlockerReachM`, which is the number that separates "nothing is
+        /// near this camera" from "the dictionary was never written to".
+        int _keptBlockerHits, _keptBlockerRays;
+        /// The tour's per-district entries, and the hits/rays pair summed
+        /// over the seven. Kept apart from the review shots for the same
+        /// reason `_tourNearFrac` is: seven teleports to arbitrary crossings
+        /// are a different population from wherever the game put the camera.
+        readonly List<string> _tourBlockerBy = new List<string>();
+        int _tourBlockerHits, _tourBlockerRays;
+        /// AND THE SAME MEASUREMENT ON THE SHOTS THE GAME TAKES ITSELF,
+        /// which is what gives this instrument a world in which the thing it
+        /// asserts can HAPPEN (rule 5b's corollary).
+        ///
+        /// The tour rows are about to have their one obstruction removed by
+        /// the ironside re-site in this same commit, and every tour eye is
+        /// 14m up: the steepest ray in a 60-degree frustum pitched 20 degrees
+        /// down meets the ground at 18.3m slant range, so no tour ray can hit
+        /// anything inside 8m unless a building is beside the lens. A landing
+        /// of seven 0.00s would be a new number with no demonstration that it
+        /// can ever be anything else — which is the state three of this
+        /// project's five intermittent gates were found in.
+        ///
+        /// The street shots are the accepting case and they are not a guess:
+        /// on 6137608 `shotNearFracWorst=0.23` (day8_noon) and
+        /// `shotMidBefore=0.64` — the game's own camera routinely has a
+        /// quarter to two thirds of its frustum filled inside 7m.
+        ///
+        /// A PEAK AND A MEDIAN, like `shotNearFrac` beside it: the peak
+        /// answers "did one object ever own the frame", the median answers
+        /// "is that the normal state of this camera", and neither answers the
+        /// other. The name and distance are captured AT the peak, in the same
+        /// assignment, so they describe that shot and not two other ones.
+        readonly List<float> _shotBlockerShare = new List<float>();
+        float _shotBlockerWorst = -1f;
+        string _shotBlockerWorstAt = "none";
         /// Worst mid-band fraction seen BEFORE any step-back, and how many
         /// shots the mid test alone pulled in — without the second number a
         /// quiet mid trigger and a mid test that never fires read the same
@@ -10049,13 +10192,14 @@ namespace Ledger.Game
         /// game's camera would be a screenshot feature changing the game, and
         /// this file has already paid for that lesson once tonight.
         ///
-        /// WHERE EACH DISTRICT IS PHOTOGRAPHED FROM, AND WHY TWO OF THE SEVEN
-        /// ARE NOT PHOTOGRAPHED FROM THEIR MIDDLE CROSSING ANY MORE. The rule
-        /// is `TourVantage`, below; this is the reasoning behind it, and the
-        /// regime declaration to read before comparing `district_gullwing` or
-        /// `district_downtown` with anything landed before this commit.
+        /// WHERE EACH DISTRICT IS PHOTOGRAPHED FROM, AND WHY THREE OF THE
+        /// SEVEN ARE NOT PHOTOGRAPHED FROM THEIR DEFAULT VANTAGE ANY MORE.
+        /// The rule is `TourVantage`, below; this is the reasoning behind it,
+        /// and the regime declaration to read before comparing
+        /// `district_gullwing`, `district_downtown` or `district_ironside`
+        /// with anything landed before the commit that moved each of them.
         ///
-        /// THE DEFAULT, UNCHANGED FOR FIVE OF SEVEN: the scaled middle avenue
+        /// THE DEFAULT, UNCHANGED FOR FOUR OF SEVEN: the scaled middle avenue
         /// crossing, seen from 34m south and 14m up.
         ///
         /// `CentreOf` is asked rather than the avenue arrays read, because
@@ -10068,8 +10212,9 @@ namespace Ledger.Game
         /// district at 40.6-45.6m, the bare-ground figure predicted in advance
         /// for a plain.
         ///
-        /// THE TWO EXCEPTIONS, AND THE MEASUREMENT THAT CHOSE THEM. Two of the
-        /// seven landed frames photograph no street at all (opened, rule 4):
+        /// EXCEPTIONS ONE AND TWO, AND THE MEASUREMENT THAT CHOSE THEM. Two of
+        /// the seven landed frames photographed no street at all (opened,
+        /// rule 4):
         /// `district_gullwing` is a dark building mass at arm's length and
         /// `district_downtown` is one unlit surface with a sliver of skyline —
         /// meanLuma 0.154 and 0.096 at a dry noon against 0.42-0.61 for the
@@ -10102,8 +10247,10 @@ namespace Ledger.Game
         /// is not fixed here — this is a camera, and a camera that has to be
         /// re-aimed is the evidence for that item, not its repair.
         ///
-        /// THIS IS A POSE REGIME BREAK, FOR TWO ROWS AND NO OTHERS.
-        /// `district_gullwing` and `district_downtown` before this commit and
+        /// THAT WAS A POSE REGIME BREAK, FOR TWO ROWS AND NO OTHERS — the
+        /// commit that landed as run 6137608. A THIRD ROW BREAKS HERE; its
+        /// own declaration is further down, under EXCEPTION THREE.
+        /// `district_gullwing` and `district_downtown` before that commit and
         /// after it are not comparable — different vantage, and for gullwing a
         /// different yaw. Everything keyed to those two rows resets HERE:
         /// `ref-bench`'s pose-stable series for them, `frame-drift`'s district
@@ -10162,6 +10309,105 @@ namespace Ledger.Game
         /// Both predict near/mid 0.00, so `ShotBlockedAt`/`ShotMidBlockedAt`
         /// do not fire and the frame is taken from the vantage placed here —
         /// if `shotNudges` moves on the tour, that assumption was wrong.
+        ///
+        /// BOTH LANDED, AND THE READ IS IN `agent-reports/
+        /// dry-tour-stills-read.md`: gullwing hit every prediction (farFrac
+        /// 0.37, depth 25.9m, meanLuma 0.154 -> 0.537, thirds
+        /// 0.722/0.804/0.718); downtown missed the sight-line pair (0.50 and
+        /// 20.8 against ~0.71 and ~15m) and hit the number its own note said
+        /// was the one that mattered, meanLuma 0.096 -> 0.412.
+        ///
+        /// EXCEPTION THREE — IRONSIDE, AND THE THREE NUMBERS THAT CHOSE IT.
+        ///
+        /// The default vantage stands 3.95m from a crane. That is arithmetic
+        /// off the world's own coordinates, not an impression:
+        /// `CentreOf(ironside)` is (36.55,-144.9), so the default eye is
+        /// (36.55, 14, -178.9) — which `frames.tsv` confirms as camX 36.6
+        /// camZ -178.9 — and `WorldBuilder.BuildLandmarks` puts
+        /// `Crane_2_tower_up` at x36 z-174, 1.9m square, spanning y10..18.
+        /// The eye sits inside that box in x and in y and 3.95m south of its
+        /// near face. The engine's own aim ray agrees to within a step:
+        /// `shotBlocker=[Crane_2_tower_up@4.01m in district_ironside]`.
+        ///
+        /// It has been like that in every landed run, and no gate saw it:
+        ///
+        ///   `tourNearSeries`  0.00 for all seven — the crane is past 2m.
+        ///   `tourDepthBy`     ironside 32.7m, the LARGEST of the seven. A
+        ///                     median over 84 rays follows the 63 that miss
+        ///                     the crane, so the blocked camera ranked as the
+        ///                     clearest one in the set.
+        ///   `midFrac`         0.25, the only non-zero mid band among the
+        ///                     seven — correct, and it lives in `frames.tsv`
+        ///                     where no gate reads it.
+        ///   `lumaThirds`      0.863/0.329/0.867. Ironside is the only
+        ///                     district whose MIDDLE third is its darkest,
+        ///                     and it is 2.6x darker than either side. The
+        ///                     other six all have the middle third brightest.
+        ///
+        /// WHY THE NEW VANTAGE IS THE ONE IT IS, from those same numbers and
+        /// not by eye. `farFrac=0.01` says one ray in 84 finds anything at
+        /// all between 7 and 20m, and `parcelsByDistrict` on that run lists
+        /// six districts and NOT Ironside — it has no terrace parcels, four
+        /// sheds and two tenements in the whole district. So stepping back
+        /// from the crane along the same axis buys an empty plain: the frame
+        /// would lose its obstruction and gain nothing. The district's only
+        /// mass is the three quay cranes (x -34/2/36 at z-174) and the
+        /// gasometer at (70,-108).
+        ///
+        /// So the camera turns to put those cranes in frame at a DISTANCE
+        /// instead of removing them, and it stands on a carriageway rather
+        /// than inside a block:
+        ///
+        ///   ironside  Goods Road x Crane Street (`ironside_j2_1`,
+        ///             36.55,-144.9 — the SAME target the default picks),
+        ///             eye 34m EAST at (70.55, 14, -144.9), yaw 270. Only the
+        ///             approach turns. Ironside's block pitch is 39.1m in z
+        ///             against a 34m standoff plus a 4m half-avenue, so the
+        ///             default south eye stands 1.1m INSIDE the block south
+        ///             of its crossing; the east eye stands in the 8m gap
+        ///             between the block rows, 4m clear either side. Looking
+        ///             west, Goods Road runs ~175m with block frontage both
+        ///             sides, and the three cranes fall at 45.2m, 74.5m and
+        ///             108.5m, at 40.1, 23.0 and 15.5 degrees off the view
+        ///             axis — inside a 45.7-degree half-frustum (60 vertical
+        ///             at 16:9, `Feel.BaseFov`), so all three read as dock
+        ///             skyline down the left of the frame. Every one is more
+        ///             than five times `BlockerReachM` away.
+        ///
+        /// THIS IS A POSE REGIME BREAK FOR `district_ironside` AND NO OTHER
+        /// ROW. Its `ref-bench` pose-stable series, its `frame-drift` row
+        /// (which will read this landing as enormous drift, correctly), its
+        /// `tourDepthBy` entry and its `lumaThirds` all reset HERE. Read the
+        /// next landing as a new baseline, not as a delta. The other six
+        /// cameras do not move in this commit, which is deliberate: they are
+        /// the control for the ground-albedo change landing beside it.
+        ///
+        /// PREDICTED NEXT LANDING for that row — predictions, not
+        /// measurements, and taken from the two landed re-sites rather than
+        /// from a box model, because those two are the only 14m-eye
+        /// street-corridor rows this project has ever measured:
+        ///
+        ///   ironside  camX 70.6 camZ -144.9 camYaw 270, nearFrac 0.00 and
+        ///             midFrac 0.00 (gullwing and downtown both landed
+        ///             0.00/0.00 from the same eye height), farFrac 0.15-0.50
+        ///             — wider than downtown's 0.50 corridor and emptier, so
+        ///             the bottom of that range is the honest expectation —
+        ///             and depth 25-60m, higher than the seven's 20.8-32.7
+        ///             because the sight line down Goods Road is long and
+        ///             unobstructed. `tourBlockerShare` for the row goes
+        ///             0.25@4.0m/Crane_2_tower_up to 0.00@-/clear.
+        ///             THE NUMBER THAT ACTUALLY JUDGES IT is `lumaThirds`:
+        ///             the middle third must stop being the darkest. If it
+        ///             lands dark-in-the-middle again, something else is
+        ///             standing there and the sight-line pair will not say
+        ///             what — the same instruction downtown's row carries,
+        ///             for the same reason.
+        ///
+        /// AND THE HONEST RISK, NAMED: Ironside has no terraces, so this may
+        /// simply be a well-composed picture of an empty district. That is a
+        /// WORLD finding, not a camera one, and it is what the re-site makes
+        /// legible — today's frame cannot tell "Ironside is empty" from
+        /// "Ironside is behind a crane".
         ///
         /// NOT VERIFIABLE HERE. The Game layer does not compile in this
         /// container and ShapeCheck is reference-independent, so the Unity
@@ -10247,6 +10493,7 @@ namespace Ledger.Game
 
             string crossing = d.Id == "downtown" ? "downtown_j1_2"
                             : d.Id == "gullwing" ? "gullwing_j0_1"
+                            : d.Id == "ironside" ? "ironside_j2_1"
                             : null;
             if (crossing != null)
             {
@@ -10257,10 +10504,12 @@ namespace Ledger.Game
                     _tourResited++;
                     tx = (float)junction.X;
                     tz = (float)junction.Z;
-                    // Gullwing alone approaches from the EAST: its only
-                    // two-sided street runs east-west, so a north-looking
-                    // camera there frames one row of terraces and a field.
-                    if (d.Id == "gullwing") { ax = 34f; az = 0f; }
+                    // Gullwing and Ironside approach from the EAST: the
+                    // only street each of them has worth photographing runs
+                    // east-west, so a north-looking camera there frames one
+                    // row of terraces and a field (Gullwing) or a crane at
+                    // arm's length (Ironside).
+                    if (d.Id == "gullwing" || d.Id == "ironside") { ax = 34f; az = 0f; }
                 }
             }
 
@@ -10492,6 +10741,21 @@ namespace Ledger.Game
                 if (_touring)
                 {
                     _tourNearFrac.Add(nearFrac);
+                    // SAME INSTANT, SAME CAMERA as the fraction above: these
+                    // are the fields the last sweep left behind, and the last
+                    // sweep is the kept vantage. Formatted here rather than at
+                    // the emit so the row cannot be built from a later shot's
+                    // values. No spaces in the value — a verdict value may not
+                    // contain one — hence `/` and `@` for the structure and
+                    // `Replace(' ', '_')` on the collider name.
+                    _tourBlockerBy.Add(string.Format("{0}:{1:0.00}@{2}/{3}",
+                        string.IsNullOrEmpty(name) ? "unnamed" : name,
+                        _keptBlockerShare,
+                        _keptBlockerDist >= 0f
+                            ? _keptBlockerDist.ToString("0.0") + "m" : "-",
+                        _keptBlockerWhat));
+                    _tourBlockerHits += _keptBlockerHits;
+                    _tourBlockerRays += _keptBlockerRays;
                     if (depthMedian >= 0f)
                     {
                         _tourDepth.Add(depthMedian);
@@ -10507,6 +10771,24 @@ namespace Ledger.Game
                         _shotNearFracWhere = name;
                     }
                     _shotNearFrac.Add(nearFrac);
+
+                    // THE BIGGEST SINGLE OBSTRUCTION IN THIS FRAME. Same
+                    // sweep, same instant, same post-step camera as the
+                    // fraction above — and the object's name and distance are
+                    // written in the SAME assignment as the peak they belong
+                    // to, so the three cannot come from three different shots
+                    // the way `deedWitnesses`/`deedEyesOpen`/`deedKnowsYou`
+                    // once did.
+                    _shotBlockerShare.Add(_keptBlockerShare);
+                    if (_keptBlockerShare > _shotBlockerWorst)
+                    {
+                        _shotBlockerWorst = _keptBlockerShare;
+                        _shotBlockerWorstAt = string.Format("{0}@{1}m in {2}",
+                            _keptBlockerWhat,
+                            _keptBlockerDist >= 0f
+                                ? _keptBlockerDist.ToString("0.00") : "-",
+                            string.IsNullOrEmpty(name) ? "unnamed" : name);
+                    }
 
                     // AND HOW FAR THIS FRAME CAN SEE. Same grid, same instant,
                     // same post-step camera as the fraction above — recorded
@@ -14461,18 +14743,50 @@ namespace Ledger.Game
                       $"tourDepthMedian={Median(_tourDepth):0.0} " +
                       $"tourNearSeries=[{FracSeries(_tourNearFrac)}] " +
                       $"tourShots={_tourDepth.Count} " +
+                      // WHAT IS IN THE WAY, PER DISTRICT — the max share of
+                      // the frustum owned by ONE object within 8m, with that
+                      // object's distance and name. The two numbers beside it
+                      // are the medians' blind spot made visible: on 6137608
+                      // `tourNearSeries` read 0.00 seven times and
+                      // `tourDepthBy` ranked ironside the clearest camera in
+                      // the set while a crane stood 4m in front of it.
+                      //
+                      // WHOLE-RUN NUMBERS ON THE DONE LINE, with the tour's
+                      // own denominator: `tourBlockerHits` is rays that hit
+                      // anything inside the reach over rays cast (7 x 84), so
+                      // a row of 0.00 shares means "the tour is clear" only
+                      // when the left-hand number is non-zero. Zero over 588
+                      // means the tally did not run.
+                      $"tourBlockerShare=[{(_tourBlockerBy.Count > 0 ? string.Join("/", _tourBlockerBy.ToArray()) : "none")}] " +
+                      $"tourBlockerHits={_tourBlockerHits}/{_tourBlockerRays} " +
+                      $"tourBlockerReach={BlockerReachM:0.0} " +
+                      // AND THE SAME NUMBER ON THE GAME'S OWN SHOTS, which is
+                      // where it has something to find — see the field's note.
+                      // The peak names its object and its shot; the median
+                      // says whether that is the normal state of this camera;
+                      // the count is the denominator, because a peak of 0.00
+                      // over one shot and over twenty read identically.
+                      $"shotBlockerShareWorst={_shotBlockerWorst:0.00} " +
+                      $"shotBlockerShareAt=[{_shotBlockerWorstAt}] " +
+                      $"shotBlockerShareMedian={Median(_shotBlockerShare):0.00} " +
+                      $"shotBlockerShareShots={_shotBlockerShare.Count} " +
                       // HOW MANY RE-SITED CAMERAS FOUND THEIR CROSSING, over
                       // how many were asked for. Cumulative over the run's one
                       // tour and read here, at the end, rather than inside the
                       // loop — a lifetime count sampled anywhere else freezes
                       // at whatever moment happened to be convenient.
                       //
-                      // 2/2 is the only reading that means the two re-sited
-                      // frames were taken from where `TourVantage` says. 1/2 or
-                      // 0/2 means a junction id did not resolve and that row
-                      // fell back to the middle crossing — which is the broken
-                      // vantage, photographing the same shed, and looking
-                      // exactly like a success from every other number here.
+                      // 3/3 is the only reading that means the three re-sited
+                      // frames were taken from where `TourVantage` says. 2/3 or
+                      // less means a junction id did not resolve and that row
+                      // fell back to the default vantage — which is the broken
+                      // one, photographing the same shed or the same crane, and
+                      // looking exactly like a success from every other number
+                      // here. Ironside is the sharpest case: its re-site asks
+                      // for `ironside_j2_1`, which is the SAME point the
+                      // fallback would pick, so the fallback would move the eye
+                      // back to 4m from the crane while every coordinate in
+                      // `frames.tsv` still looked plausible.
                       $"tourResited={_tourResited}/{_tourResiteAsked} " +
                       $"uiOk={uiOk} " +
                       $"labels={_labels} fontless={_labelsFontless} blankLabels={_labelsBlank} " +

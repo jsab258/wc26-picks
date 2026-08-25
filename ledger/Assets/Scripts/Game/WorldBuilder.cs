@@ -4,7 +4,9 @@ using UnityEngine;
 namespace Ledger.Game
 {
     /// Constructs the city block at runtime from primitives, dressed with materials
-    /// from AssetLibrary (procedural now, a purchased pack later without code change).
+    /// from AssetLibrary (procedural now, a FETCHED pack later without code change —
+    /// nothing in this project is purchased; kits are free or come from Jafar's
+    /// Mixamo account, so a missing asset is fetched rather than priced).
     /// Still a graybox in silhouette — the goal here is that surfaces read as asphalt,
     /// brick, and concrete rather than flat-shaded cubes, and that the street has real
     /// sidewalks and kerbs.
@@ -2425,13 +2427,27 @@ namespace Ledger.Game
         /// A K6 in boxes: red shell, domed cap in two steps, dark glazing on
         /// three sides with horizontal bars, a pale sign band under the cap.
         /// The fourth side is the door and stays solid — nobody models a
-        /// hinge for a silhouette. Red is a property-block multiply over the
-        /// plaster base, the same trick the vehicles use for their paint.
+        /// hinge for a silhouette. THE RED IS A REAL SHARED MATERIAL —
+        /// `MakeBoxCol` -> `AssetLibrary.Opaque(red)` for the shell, cap and
+        /// dome — not a property block and not a multiply. This line said
+        /// "property-block multiply" until the plinth unwrap read it: the
+        /// pillar box moved off the property block for cause and its comment
+        /// records why (see `PostBox_drum` below), and this one was the twin
+        /// nobody re-read. Only the window bars still go through `Tint`, and
+        /// what that does is written at `Tint` itself.
         static void PhoneBox(Vector3 at)
         {
             var red = new Color(0.62f, 0.07f, 0.07f);
-            Tint(MakeBox("PhoneBox_plinth", at + new Vector3(0, 0.05f, 0),
-                new Vector3(1.05f, 0.1f, 1.05f), AssetLibrary.Concrete), Color.white);
+            // BARE CONCRETE, NO TINT. `Tint` REPLACES the material colour
+            // through a property block rather than multiplying it, so
+            // `Color.white` here rendered the raw texture at full white and
+            // the plinth received neither `AssetLibrary`'s ground grade nor
+            // the wetness walk (`Concrete` is in `WetSurfaces`) — a bright
+            // disc at the foot of every phone box on a graded road. On the
+            // shared material it darkens with the street and still costs no
+            // draw call. Same fix at `PostBox_plinth`.
+            MakeBox("PhoneBox_plinth", at + new Vector3(0, 0.05f, 0),
+                new Vector3(1.05f, 0.1f, 1.05f), AssetLibrary.Concrete);
             MakeBoxCol("PhoneBox_body", at + new Vector3(0, 1.25f, 0),
                 new Vector3(0.92f, 2.3f, 0.92f), red);
             MakeBoxCol("PhoneBox_cap", at + new Vector3(0, 2.46f, 0),
@@ -2458,8 +2474,11 @@ namespace Ledger.Game
         {
             if (!PointClear(at, 0.4f)) return;
             var red = new Color(0.62f, 0.07f, 0.07f);
-            Tint(MakeBox("PostBox_plinth", at + new Vector3(0, 0.04f, 0),
-                new Vector3(0.62f, 0.08f, 0.62f), AssetLibrary.Concrete), Color.white);
+            // Bare concrete, for the reason written at `PhoneBox_plinth`:
+            // a white `Tint` replaces the ground grade and the wetness walk
+            // instead of tinting over them.
+            MakeBox("PostBox_plinth", at + new Vector3(0, 0.04f, 0),
+                new Vector3(0.62f, 0.08f, 0.62f), AssetLibrary.Concrete);
             var drum = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             drum.name = "PostBox_drum";
             drum.transform.position = at + new Vector3(0, 0.62f, 0);
@@ -2545,8 +2564,27 @@ namespace Ledger.Game
             Debug.Log($"WorldBuilder: capsule meshes {caps} [{CapsuleWho}]");
         }
 
-        /// Property-block colour multiply — one shared material, per-object
-        /// colour, no draw-call split. The vehicles' paint trick, reused.
+        /// Per-object colour from one shared material, no draw-call split.
+        ///
+        /// IT REPLACES, IT DOES NOT MULTIPLY, and this line claimed a multiply
+        /// for long enough to cost two white plinths. A property
+        /// block overrides `_Color` for this renderer, so whatever the shared
+        /// material's colour was is GONE for the object: it is a multiply
+        /// against the TEXTURE and a replace against the material. The
+        /// consequence is the part to keep: a tinted object carries neither
+        /// `AssetLibrary`'s ground grade nor the wetness walk, because both of
+        /// those are written to the shared material's colour and this
+        /// overwrites it. `Color.white` is therefore the raw texture at full
+        /// brightness, for ever, in any weather.
+        ///
+        /// So a tint is the WRONG TOOL for anything at ground level, where the
+        /// road it sits on is graded and gets wet — `PhoneBox_plinth` and
+        /// `PostBox_plinth` used to be tinted white and are now bare Concrete.
+        /// It is the right tool for paint that is SUPPOSED to stay lighter than
+        /// wet tarmac (the yellow lines, the zebra) and for objects off the
+        /// ground. `PostBox_drum` records the other failure mode, where the
+        /// block did not reach the renderer at all.
+        ///
         /// Public: StreetFurniture paints its no-entry discs with it.
         public static GameObject Tint(GameObject go, Color c)
         {

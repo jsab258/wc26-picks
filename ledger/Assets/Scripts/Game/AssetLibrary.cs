@@ -318,7 +318,7 @@ namespace Ledger.Game
             // Dry colour from the same rule BuildMaterial uses, NOT from
             // baseMat.color — the base may already carry a wet darkening,
             // and copying that would bake today's weather into the paint.
-            var dry = baseMat.mainTexture != null ? TextureGrade : SurfaceSpec.For(logical).Tint;
+            var dry = BaseColour(logical, baseMat.mainTexture != null);
             var grade = FacadeGrades[g];
             mat.color = new Color(dry.r * grade.r, dry.g * grade.g, dry.b * grade.b, dry.a);
             _graded[key] = mat;
@@ -420,7 +420,125 @@ namespace Ledger.Game
         /// white, not overcast port. Ten percent down. Night barely moves
         /// (lamps and emission own it) and the textures stay ~4x the crushed
         /// albedo this replaced, so nothing goes back to greybox.
+        ///
+        /// ITERATION 3 — AND IT DOES NOT MOVE THIS CONSTANT, BECAUSE
+        /// ITERATIONS 1 AND 2 WERE JUDGED ON RAIN-MASKED FRAMES. Every still
+        /// either iteration was read against came from the rain era, where
+        /// `SetWetness` multiplies the ground by `LightModel.AlbedoScale` and
+        /// hid 40-45% of the road's albedo. So the value above was tuned
+        /// while the thing it was being tuned for was under a mask, and
+        /// iteration 2's OWN stated failure criterion is still being met
+        /// today, on the dry tour of 6137608 (`frames.tsv`, that run):
+        ///
+        ///   day5_noon  meanLuma 0.496  brightPct 40.46
+        ///   fairview   meanLuma 0.516  brightPct 41.61
+        ///   gullwing   meanLuma 0.537  brightPct 44.94
+        ///   ironside   meanLuma 0.608  brightPct 54.31
+        ///
+        /// against "0.44-0.49 with 40-48% bright on three of ten days" as the
+        /// declared failure state. Four frames inside or above it. The ten
+        /// percent came off and could not have been seen to work.
+        ///
+        /// The fix is NOT a third cut here. `TextureGrade` is the shared base
+        /// for every textured surface and the rest of the frame measures
+        /// correct — brick reads brick, the facades sit at 0.84x via
+        /// `FacadeGrades`, the kit props were painted to 0.05-0.08. Moving
+        /// this would darken proven-correct surfaces and force a
+        /// compensating facade pass: two moves to do one, and it destroys
+        /// the evidence that everything except the road is right. The road
+        /// is the surface with no grade of its own, so the road gets one —
+        /// see `GroundGrade` below.
         static readonly Color TextureGrade = new Color(0.74f, 0.76f, 0.80f, 1f);
+
+        /// THE GROUND'S OWN GRADE, and the only surface family that gets one.
+        ///
+        /// WHAT IT IS FOR. `TextureGrade` above is shared by every textured
+        /// surface. Facades then get a second pass (`FacadeGrades`, 0.84x for
+        /// the sooted coat) and the kit props were painted down explicitly to
+        /// 0.05-0.08. The road, the pavement and the kerb never got an
+        /// equivalent: their only darkening lever was the WEATHER, and they
+        /// face straight up (`districtGround` reads `nUp:1.00`), so they take
+        /// full sun plus full sky ambient with nothing taken back off.
+        ///
+        /// WHY 0.55 AND NOT A TASTE. It is the multiplier under which this
+        /// game's ground has ALREADY been judged to read as a British street,
+        /// twice, and it is not a new number at all — it is
+        /// `LightModel.AlbedoScale`'s floor, `Clamp(1 - 0.45*rain, 0.55, 1)`:
+        ///
+        ///   * `review_day1_noon` is the one daylight frame in the 6137608
+        ///     set whose ground a human read as correct — mid-grey tarmac,
+        ///     yellow lines, kerbs. It was shot at wet 1.00, so its ground
+        ///     ran at exactly `TextureGrade x 0.55`. (Its ground/frame ratio
+        ///     is 1.00: the TOP edge of the reference band, not the middle.
+        ///     Stated so nobody reads this as a mid-band derivation.)
+        ///   * the whole rain era shot its district rows at rain 0.90, i.e.
+        ///     x0.595, and those frames read ground/frame 0.61..0.78 —
+        ///     inside the band on every one.
+        ///
+        /// So 0.55 is the darkest the game has ever driven this surface and
+        /// the value the two eras that looked right shared. Dry frames now
+        /// reproduce it without needing the weather.
+        ///
+        /// WETNESS STILL STACKS ON TOP, deliberately: this is a second
+        /// multiplier folded into the same assignments `SetWetness` already
+        /// writes, not a replacement for it, so there is exactly one new
+        /// lever. A wet frame now runs 0.55 x 0.55 = 0.30 of `TextureGrade`,
+        /// which is darker than the calibrated wet look, and that is the
+        /// KNOWN RISK with a named answer: if `groundOverFrame` shows wet
+        /// frames leaving the band the lever is RAISING `AlbedoScale`'s floor
+        /// — wet no longer has to supply the darkness dry never had — and NOT
+        /// touching this constant. One lever per question.
+        ///
+        /// THE NUMBER THAT JUDGES THIS, and it is not mine to emit:
+        /// `groundOverFrame` (ground-band mean luma / whole-frame mean luma)
+        /// per shot in `tools/ref-bench.py`, band 0.41..0.97 recomputed per
+        /// run from the five GTA V references. Ours today: 1.23..1.38 on the
+        /// six sunlit frames — physically inverted, since tarmac is the
+        /// darkest large surface in every daylight reference — and 0.61..0.78
+        /// on the wet and night ones, which is why the rain era never showed
+        /// it. PREDICTED, not measured (rule 2): the ratio does not simply
+        /// scale by 0.55, because the frame mean contains the ground too. If
+        /// g is the ground's share of the frame's luminance, the ratio moves
+        /// by 0.55/(1 - 0.45g) — 0.64 at g=0.3, 0.71 at g=0.5 — so 1.23..1.38
+        /// should land near 0.78..0.98 and the 0.98..1.02 frames near
+        /// 0.62..0.73. Read the landed series; adjust ONCE from it if out of
+        /// band; never by eye.
+        ///
+        /// FACADES AND PROPS GET NO MATCHING CHANGE. They are the control
+        /// group: they measure correct today, so if the next landing darkens
+        /// them too, this grade went somewhere it was not aimed.
+        ///
+        /// AND ONE HONEST CONTAMINATION OF THAT CONTROL. `WetSurfaces`
+        /// contains Concrete, and `mat_concrete` is one shared material — the
+        /// pavement AND the skyline masses and town walls built from it. So
+        /// those darken by 0.55 as well. That is 4% of the noon facade sample
+        /// (`noonFacadeOf` reads `mat_brick_grey_b#g1:95% mat_concrete_b#g1:2%
+        /// mat_concrete:2%` on 6137608), the brick that carries the other 95%
+        /// is untouched, and it is not a new behaviour: every rainy frame this
+        /// game has ever shipped already drove that same material to this same
+        /// 0.55. If a landed still shows concrete WALLS reading too dark, the
+        /// fix is to split the ground family out of `WetSurfaces` rather than
+        /// to move this number.
+        static readonly Color GroundGrade = new Color(0.55f, 0.55f, 0.55f, 1f);
+
+        /// The DRY base colour of a surface, with `GroundGrade` folded in for
+        /// the ground family and for nothing else.
+        ///
+        /// ONE FUNCTION, because FOUR assignments compute this colour —
+        /// `BuildMaterial`, `MaterialGraded`'s dry copy, and both of
+        /// `SetWetness`'s loops (the shared materials and the graded copies).
+        /// A ground grade applied at three of them is exactly the
+        /// one-idea-two-implementations shape this file keeps finding wrong
+        /// on the copy nobody looks at, and the copy nobody looks at here is
+        /// `_gradedWet`, which only exists when a graded concrete wall stands
+        /// somewhere in the city.
+        static Color BaseColour(string logical, bool textured)
+        {
+            var b = textured ? TextureGrade : SurfaceSpec.For(logical).Tint;
+            if (System.Array.IndexOf(WetSurfaces, logical) < 0) return b;
+            return new Color(b.r * GroundGrade.r, b.g * GroundGrade.g,
+                             b.b * GroundGrade.b, b.a);
+        }
 
         static Material BuildMaterial(string logical)
         {
@@ -446,7 +564,12 @@ namespace Ledger.Game
             }
             // The grade when the texture carries the colour; the tint only
             // when nothing else does. The story is on `TextureGrade`.
-            mat.color = tex != null ? TextureGrade : spec.Tint;
+            // THROUGH `BaseColour`, so a ground surface built before the
+            // first `SetWetness` still carries `GroundGrade` — a road that
+            // was only darkened by the wetness walk would be white until the
+            // weather first moved, which is a fault nothing photographs
+            // until it does.
+            mat.color = BaseColour(logical, tex != null);
             // RELIEF, when the pack ships it (16 Aug, "max polish"). The
             // normal map is what makes a wall you stand next to read as
             // COURSES OF BRICK rather than as a photograph of one — and at
@@ -691,10 +814,16 @@ namespace Ledger.Game
                 var spec = SurfaceSpec.For(name);
                 SetSmoothness(mat, name, (float)LightModel.Smoothness(spec.Smoothness, wetness));
                 // Darken the GRADE, not the tint — the wet ground is textured,
-                // so its base colour is `TextureGrade` (see BuildMaterial), and
-                // scaling the tint here would reintroduce the crush this
-                // library just stopped doing everywhere else.
-                var baseCol = mat.mainTexture != null ? TextureGrade : spec.Tint;
+                // so its base colour is `TextureGrade x GroundGrade` (see
+                // `BaseColour`), and scaling the tint here would reintroduce
+                // the crush this library just stopped doing everywhere else.
+                // WETNESS MULTIPLIES THE GROUND GRADE, it does not replace it:
+                // `BaseColour` has already folded `GroundGrade` in, so a wet
+                // road runs 0.55 x AlbedoScale and a dry one runs 0.55. Before
+                // `GroundGrade` existed this weather term was the ONLY thing
+                // holding the road down, which is why every dry frame was
+                // white.
+                var baseCol = BaseColour(name, mat.mainTexture != null);
                 mat.color = new Color(baseCol.r * (float)albedo, baseCol.g * (float)albedo,
                                       baseCol.b * (float)albedo, baseCol.a);
             }
@@ -705,7 +834,10 @@ namespace Ledger.Game
                 if (mat == null) continue;
                 var spec = SurfaceSpec.For(name);
                 SetSmoothness(mat, name, (float)LightModel.Smoothness(spec.Smoothness, wetness));
-                var baseCol = mat.mainTexture != null ? TextureGrade : spec.Tint;
+                // Same base rule as the loop above — through `BaseColour`, so
+                // the graded copy of a ground surface cannot be the one place
+                // the ground grade is missing.
+                var baseCol = BaseColour(name, mat.mainTexture != null);
                 mat.color = new Color(baseCol.r * grade.r * (float)albedo,
                                       baseCol.g * grade.g * (float)albedo,
                                       baseCol.b * grade.b * (float)albedo, baseCol.a);

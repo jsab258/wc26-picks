@@ -280,3 +280,196 @@ which for the first time can tell "empty" from "behind a crane").
   landed still saying the paint is wrong.
 - `frame-drift` will read ironside's row as enormous drift next landing.
   That is the declared regime break, not a regression.
+
+---
+
+# Post-audit ruling — the ref-bench measurement audit, A–E (director, 25 Aug 2026)
+
+> Ruling on `agent-reports/refbench-measurement-audit.md` (13 findings),
+> made AFTER the batch above was approved and BEFORE its landing is read.
+> This is the SAME decision record continued, not a new one: A–D amend
+> rulings made in this file, so they live where those rulings live.
+> Verified in this session against the code, not quoted from the audit:
+> the band geometry (`ref-bench.py:390`, consumed `:724`, divided `:758`)
+> and the same-quantity comment at `:736–743` the audit disproves; the HUD
+> mask (`:395`); `PATCH_FLOOR` (`:405`); the zero-series claim (my own
+> grep: 0 hits for any ref-bench key across `sim-shots/verdict.txt` and
+> every `runs/*.txt`); and both lint-conditional-reach sites — where I
+> found one correction that changes a severity call (§E below).
+
+## A. The ground-grade dispatch STANDS. Re-confirmed so nobody re-litigates
+it off the audit.
+
+Grounds, in descending weight, none of which the audit's corrections touch:
+
+1. **`GroundGrade` 0.55 was never derived from the band's absolute value.**
+   Call 2 derived it from the project's own history — the archived correct
+   frame ran at effective `TextureGrade x 0.55`, the in-band rain era at
+   0.59x. The audit's 2x2 moves the in-band COUNT; it cannot move that
+   derivation.
+2. **The direction survives every correction the auditor could construct**
+   — 0/1/4/1 of 7 in band across the four variants, never a majority — and
+   F1's own centre-third measurement convicts the ground MORE precisely:
+   on 6 of 7 districts the road corridor is BRIGHTER than the band mean
+   (+0.10..+0.27 luma), so a road-only numerator worsens our inversion.
+3. **The source-code facts of the original finding are untouched**: base
+   0.74–0.80, wetness the only darkening lever, facades and props graded
+   while the road never was.
+
+One risk carried forward with its name (F5): the 0.55 sizing was
+cross-checked against "1.23–1.38", which is the worst four of seven;
+gullwing, hook and strip sit near 1.0 unmasked and may land LOW after the
+grade. That is what the landing read is for, and the pre-authorization in
+§B of the batch review already covers it: one adjustment, from the landed
+number, never before it.
+
+## B. The decal unblock condition is REWRITTEN. "5 of 7 in band 0.41–0.97"
+is RETIRED — it was mine, and it fails three ways at once.
+
+F1: the two sides of the ratio are not the same quantity (reference band
+horizontal spread 0.029–0.159, districts 0.248–0.493, no overlap — the
+references' band is one surface, ours is road plus roofs plus facades that
+`GroundGrade` does not touch, so the loop "adjust once if out of band"
+would chase a number the facades are holding up). F3: 0.41–0.97 is the
+reader's UNMASKED band while the instrument the gate names prints its
+MASKED band 0.387..0.981, and the two disagree most at exactly the band
+edge where the pass/fail lands. F5: the constant was written beside the
+word "recomputed", the shape that decays.
+
+The replacement, in rule 2's order of operations:
+
+1. **Ordered now, one dispatch of instrument work: the ground-material
+   render mask for the seven district shots.** The sim knows which pixels
+   are `WetSurfaces`; one extra render per district shot, family flat
+   white, everything else black, is a free road mask. ref-bench consumes
+   it and prints the masked road mean and its ratio per district; in the
+   same change, `groundOverLower` prints beside `groundOverFrame` (F2's
+   four-line printer) and the band's left/centre/right means print per
+   image (F10 — the number announces its own contamination). The
+   references need no mask: their band is one surface to 0.03–0.16, which
+   is what F1 measured. This settles F1, F4 and F10 and collapses F2's
+   bracket to one number — the auditor's own cheapest-decisive call,
+   adopted.
+2. **No numeric band is written today.** The printer lands, the masked
+   series is read, and the band is set from evidence then — quoted from
+   the instrument's printed line each run, never as a constant in a doc.
+3. **Decals unblock on a director close-out of the masked read**: masked
+   road ratios in family with the references on the post-grade landing,
+   and the decal work sized from the masked numbers. Until the mask
+   exists, no in-band COUNT on unmasked district frames gates anything —
+   the audit's sentence, adopted verbatim.
+
+## C. F9: local-only ref-bench readings may EXPLORE and may not GATE.
+
+Confirmed by my own grep, not the auditor's: no ref-bench key has ever
+reached a verdict — 0 hits across `verdict.txt` and all `runs/*.txt`. The
+entire GTA comparison to date is hand-run, which is exactly how F3
+happened: two people ran the same tool locally and produced two different
+instruments. Standing rule from here: **no bound is set on any ref-bench
+dimension until that dimension has a landed series in the verdict.** The
+first fix is already in flight — Call 4 item 1 ordered the
+`groundOverFrame` per-shot emit into the dispatched batch. First-landing
+order: cross-check the sim-emitted value against ref-bench run on the same
+committed frames BEFORE quoting either; encoding noise is measured at
+0.001, so any larger disagreement is an instrument question and is settled
+first (rule 3). Thereafter one instrument per job: ref-bench owns the
+reference comparison (only it can see the references), the verdict owns
+series and constancy.
+
+## D. READ BEFORE OPENING THE LANDING — two numbers that will mislead.
+
+- **`groundPatch` WILL NOT MOVE, and that is the instrument working, not
+  the fix failing.** Verified multiplicative-invariant to k=0.25 on every
+  district; clipped ground pixels 0.000–0.001, so there is no detail to
+  un-clip. Written prediction (F6, adopted): the seven district values
+  land unchanged to three decimals — 0.029 / 0.105 / 0.132 / 0.172 /
+  0.256 / 0.273 / 0.152. If any of them MOVES, the grade was not purely
+  multiplicative and THAT is the finding. An unchanged `groundPatch` on
+  in-band frames remains the honest decal-residual number: it measures
+  detail, which the grade does not touch.
+- **Night and wet `groundPatch` will FALL for arithmetic reasons** (F12):
+  below a window mean of 8/255 the divisor becomes `PATCH_FLOOR` and the
+  ratio goes linear in exposure. Do not read that as "the darkening
+  destroyed detail at night". The floored-window count printer (beside
+  `patchWindows=330`, zero today on every district) goes to the queue as a
+  ref-bench item with F2/F10's printers.
+
+## E. lint-conditional-reach: REAL, QUEUED as the repin item's third site —
+NOT the per-commit emergency reported, and here is the verified correction.
+
+The builder's §2 (fixture-unpinning.md:449) says the tool "writes to a
+tracked Game-layer source file on disk, during `verify.py`, on every
+commit". **Checked against the code: false in the part that sets the
+severity.** `verify.py:554` runs the tool WITHOUT `--selftest` — plain
+`audit()`, which only reads — and a repo-wide grep finds NOTHING that
+invokes the selftest. The rewrite of `Audio.cs`
+(`lint-conditional-reach.py:121`) is reached only by a hand-run
+`--selftest`. So there is no per-commit corruption window. Rule 3, applied
+to the finding: the hazard exists, the exposure claim was wrong.
+
+Both faults stand where they actually live: a kill mid-selftest leaves
+`Audio.cs` holding `NothingAtAll`, and one legitimate `OnnxSpeech` caller
+outside `Audio.cs` — ordinary live-speech work — turns the hand-run
+selftest red for the project doing MORE. Ruling: **not stop-everything.
+It joins the already-queued fixture-repin item (batch review §E item 1) as
+its third site** — same fault class, same fix, exactly as the builder
+specified at fixture-unpinning.md:460: the rejecting case becomes a
+SYNTHETIC conditional type in a tmpdir copy, touching no tracked file.
+That item is already top of the non-CI queue; this does not jump the
+landing read. Interim standing orders: nobody runs
+`lint-conditional-reach.py --selftest` by hand until the repin lands, and
+`NothingAtAll` appearing in `Audio.cs` is this signature — restore the
+file from git, do not diagnose a compile error.
+
+## Additions to "what the next session must NOT re-litigate"
+
+- **The ground-grade dispatch stands.** The audit changed the GATE, not
+  the decision. Do not withdraw or resize `GroundGrade` off the audit;
+  the one authorized adjustment comes from the landed masked read.
+- **The "5 of 7 in band 0.41–0.97" unblock is retired.** Its replacement
+  is §B above: mask instrument → landed series → band from evidence →
+  director close-out. Do not resurrect the written constant, in either its
+  masked or unmasked form.
+- **`groundPatch` unchanged at the landing is the instrument working.**
+  The prediction is written in §D; read it before the verdict.
+- **Local ref-bench runs are exploration, not gate evidence.** A bound
+  needs a landed verdict series first, and the reference comparison quotes
+  ref-bench's own printed band, not a doc.
+- **The lint-conditional-reach rewrite does NOT run on commit** — verified
+  at `verify.py:554`. Do not stop the line for it, and do not run its
+  selftest by hand until the repin lands.
+
+---
+
+# Final confirmation — plinth execution and batch state (director, 25 Aug 2026)
+
+> Confirmation row before commit, per the escalation rule (HEAD moved after
+> the amendment; the ordered change had not been seen executed). Not a new
+> analysis; both rulings above hold.
+
+- **Plinth execution CONFIRMED against the §D order.** Diff read
+  (`WorldBuilder.cs` only, 47+/9-): the only executable-code changes are
+  the two ordered `Tint(..., Color.white)` unwraps; every other changed
+  line is a comment. The comment-only additions are ACCEPTED — "nothing
+  else moves" in §D governed behaviour, and comment repairs beside a fix
+  are rule 1's second corollary being obeyed, not scope creep. The three
+  resident-authorized repairs (class docstring's "purchased pack" vs
+  section 0; `Tint`'s "multiply" claim; `PhoneBox`'s docstring) are
+  RATIFIED.
+- **The `PhoneBox` docstring repair verified against source, this
+  session**: `MakeBoxCol` (:3998) assigns `sharedMaterial =
+  AssetLibrary.Opaque(c)` — a real shared material, no property block —
+  and body/cap/dome route through it; only `PhoneBox_bar_*` (:2464) still
+  uses `Tint`. The builder's two self-corrections (dropping the "and a
+  build" cost claim; the drum's not-reaching-the-renderer failure mode
+  kept distinct from the replace-not-multiply one) both make the record
+  MORE accurate and stand.
+- **§D reading instruction re-confirmed for the landing read**: the seven
+  `groundPatch` values are predicted unchanged to three decimals (written
+  in §D above — read them there, they are not restated here); the numbers
+  that SHOULD move are the district ground means (down by roughly the
+  grade factor) and `groundOverFrame` (toward band). `groundPatch`
+  unchanged is the instrument working.
+- **APPROVE-TO-COMMIT** for the batch as presented: `AssetLibrary.cs`,
+  `SimDirector.cs`, `WorldBuilder.cs`, plus the two staged tool files,
+  one reviewed commit, verify green with this row supplying the cadence.
