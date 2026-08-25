@@ -895,6 +895,24 @@ namespace Ledger.Game
         /// uniformly is the other half of why rainy scenes read as plastic.
         static readonly string[] WetSurfaces = { Asphalt, Sidewalk, Kerb, Concrete };
 
+        /// IS THIS MATERIAL THE GROUND — the same four surfaces `WetSurfaces`
+        /// names, asked of a renderer instead of asked of the rain.
+        ///
+        /// ONE LIST, TWO QUESTIONS. The array above is the definition of
+        /// "ground the rain lands on"; this is the definition of "ground the
+        /// camera is looking at", and they are the same set by construction
+        /// rather than by a second array somebody has to remember to update.
+        /// The string rule lives in `Ledger.Core.SurfaceNames` because the
+        /// Game layer does not compile locally and a matcher written here
+        /// would ship unrun — CoreTests exercises it against the exact names
+        /// `BuildMaterial`, `MaterialVariant` and `MaterialGraded` produce.
+        public static bool IsGroundSurface(Material m)
+            => m != null && SurfaceNames.IsOneOf(m.name, WetSurfaces);
+
+        /// How many ground surfaces the list holds, so a reading of "no
+        /// ground pixels" can be told from "the list is empty".
+        public static int GroundSurfaceCount => WetSurfaces.Length;
+
         static Shader DefaultShader()
         {
             // Standard is always in the build because primitives use it, but guard anyway.

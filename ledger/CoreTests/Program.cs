@@ -122,6 +122,7 @@ namespace Ledger.CoreTests
                 TestBeatLeadTime();
                 TestFraming();
                 TestImageStats();
+                TestSurfaceNames();
                 TestDetail();
                 TestFrameRate();
                 TestMotionMatching();
@@ -13222,6 +13223,46 @@ namespace Ledger.CoreTests
                 "a steadily slow machine is not reported as hitching — slow and stuttering "
                 + "are different complaints with different fixes",
                 $"{slowSteady.Fps:0} fps, worst {slowSteady.WorstMs:0} ms");
+        }
+
+        /// ACCEPTING CASE FIRST, and it is the live one: these are the exact
+        /// strings `AssetLibrary` builds for the four ground surfaces named in
+        /// `WetSurfaces` — `"mat_" + logical` from `BuildMaterial`, the `_b`
+        /// texture variant from `MaterialVariant`, the `#g` grade copy from
+        /// `MaterialGraded`, and Unity's own ` (Instance)` clone suffix. If
+        /// any of these stopped being accepted, the ground mask would read
+        /// zero ground pixels on a street made of road.
+        ///
+        /// The rejecting case is SYNTHETIC on purpose (rule: a rejecting
+        /// fixture pinned to a real asset breaks the day somebody does the
+        /// work) — except for `mat_flat_1f3`, which is real and must NOT be
+        /// ground, because `Opaque()` names every flat body colour that way
+        /// and a prefix-matching classifier would have swallowed it.
+        static void TestSurfaceNames()
+        {
+            var ground = new[] { "asphalt", "sidewalk", "kerb", "concrete" };
+
+            Check(SurfaceNames.IsOneOf("mat_asphalt", ground), "mat_asphalt is ground");
+            Check(SurfaceNames.IsOneOf("mat_sidewalk", ground), "mat_sidewalk is ground");
+            Check(SurfaceNames.IsOneOf("mat_kerb", ground), "mat_kerb is ground");
+            Check(SurfaceNames.IsOneOf("mat_concrete", ground), "mat_concrete is ground");
+            Check(SurfaceNames.IsOneOf("mat_asphalt_b", ground), "texture variant is ground");
+            Check(SurfaceNames.IsOneOf("mat_asphalt#g2", ground), "graded copy is ground");
+            Check(SurfaceNames.IsOneOf("mat_asphalt_b#g3", ground), "graded variant is ground");
+            Check(SurfaceNames.IsOneOf("mat_concrete_b#g1 (Instance)", ground),
+                  "graded variant clone is ground");
+            Check(SurfaceNames.IsOneOf("MAT_Asphalt", ground), "case-insensitive");
+
+            Check(!SurfaceNames.IsOneOf("mat_brickred", ground), "a wall is not ground");
+            Check(!SurfaceNames.IsOneOf("mat_flat_1f3", ground), "a flat body colour is not ground");
+            Check(!SurfaceNames.IsOneOf("mat_asphaltish", ground), "exact match, not prefix");
+            Check(!SurfaceNames.IsOneOf("mat_nosuchsurface", ground), "a surface that exists nowhere is not ground");
+            Check(!SurfaceNames.IsOneOf("", ground), "empty name is not ground");
+            Check(!SurfaceNames.IsOneOf(null, ground), "null name is not ground");
+            Check(!SurfaceNames.IsOneOf("mat_asphalt", new string[0]), "an empty ground list matches nothing");
+
+            Check(SurfaceNames.Logical("mat_asphalt_b#g3 (Instance)") == "asphalt",
+                  "every decoration strips back to the logical surface");
         }
 
         static void TestImageStats()

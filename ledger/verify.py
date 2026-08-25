@@ -1696,10 +1696,15 @@ def _cadence_read(repo):
                 of `changed` since 24 Aug, not a footnote to it (see below)
       rows      COUNT of data rows in the agent log — the denominator every
                 zero below is meaningless without
-      since     COUNT of `studio-director` rows dated strictly AFTER HEAD's
-                commit time; the numerator, taken from the same read of the
-                same file as `rows`
-      stale     COUNT of `studio-director` rows dated at or before HEAD
+      ref_sha   the NEWEST commit that TOUCHED `ledger/Assets/Scripts` — the
+                reference INSTANT, and deliberately not HEAD (see below).
+                Falls back to HEAD when no such commit is in this clone.
+      noncode   COUNT of commits between that reference commit and HEAD, every
+                one of which changed no code under Assets/Scripts
+      since_code COUNT of `studio-director` rows dated strictly AFTER the
+                reference commit; the numerator, taken from the same read of
+                the same file as `rows`
+      stale_code COUNT of `studio-director` rows dated at or before it
       unparsed  COUNT of rows that could not be dated — treated as ABSENT
 
     WHY UNTRACKED CONTENT IS COUNTED RATHER THAN NOTED — the gate's largest
@@ -1731,14 +1736,60 @@ def _cadence_read(repo):
     different population from the bound's evidence; this makes them the same
     measurement.
 
+    WHY THE REFERENCE IS THE LAST CODE COMMIT AND NOT HEAD (25 Aug). This is
+    not a loosened bound — the bound is still 100 lines — it is the instrument
+    being asked the question it was always meant to ask. The threshold already
+    scopes to `Assets/Scripts`; the reference point did not, and that
+    inconsistency WAS the bug. It fired three times in one night, from three
+    causes that share nothing except touching no code: a `git commit --amend`
+    of a message, a docs-only commit, and CI's own `Sim stills from <sha>`
+    commit, which carries four JPEGs and a verdict and no code at all. The
+    third one is fatal to the gate as it stood, because EVERY Windows build
+    makes one: a director review of a batch was invalidated 2m49s after it was
+    given, by a commit that could not have changed anything reviewed. Observed:
+    HEAD 2026-08-25T01:29:20Z (stills), director row 01:26:31Z, last code
+    commit 01:12:18Z — red against HEAD, green against the code commit, and
+    green is the true answer.
+
+    A commit that touches no code under Assets/Scripts cannot invalidate a
+    review OF code under Assets/Scripts. So `since_code` counts rows after the
+    newest commit that touched it. THE STRICT CASE IS UNCHANGED: a real code
+    commit lands, and every director row at or before it is stale again.
+
+    THE FALLBACK IS THE STRICTER DIRECTION, ON PURPOSE. When no commit touching
+    Assets/Scripts is reachable the reference falls back to HEAD, which is this
+    gate's pre-25-Aug behaviour and can only ask for MORE freshness, never
+    less. It says which world it is in, in words, because "reviewed since the
+    last code change" and "nothing to compare against" are different facts
+    (rule 3b: a zero needs its denominator, and a reference point needs its
+    provenance). It is never silently absent.
+
+    WHAT A SHALLOW CHECKOUT ACTUALLY DOES, MEASURED ON A REAL `--depth 1` CLONE
+    IN THE SUITE RATHER THAN REASONED ABOUT — the fixture prints it every run:
+    `kind=code ref=<HEAD's own stamp> head=<same>`. A grafted commit has no
+    parent, so git reports it as ADDING every file it contains, and
+    `log -1 -- Scripts` returns HEAD itself. So a shallow CI checkout degrades
+    to exactly the old HEAD reference: stricter, never looser, and it cannot
+    produce an ancestry test that can never succeed because there is no
+    ancestry test — this is a date comparison. The `nocode-shallow` wording is
+    therefore reachable only when the shallow checkout contains no Scripts path
+    at all (sparse checkout, or a filtered clone); it is kept because that case
+    must not print a reference that reads like a real code commit. Both shallow
+    directions are asserted (a10 accepts, r10 stays red).
+
     KNOWN BLIND SPOT, stated rather than discovered later: a director row
-    newer than HEAD proves a spawn happened after the last commit, not that it
-    reviewed THESE lines. It cannot distinguish those, and it is not trying
+    newer than the reference commit proves a spawn happened after the last
+    code commit, not that it reviewed THESE lines. A second blind spot the
+    reference change adds: a commit whose DATE was rewritten backwards (amend,
+    rebase) moves the reference with it, because this is a date comparison and
+    always was. It cannot distinguish those, and it is not trying
     to — the failure it exists for is the review that never happened at all.
     """
     repo = pathlib.Path(repo)
     r = {"changed": 0, "tracked": 0, "files": 0, "binary": 0, "rows": 0,
-         "since": 0, "stale": 0, "unparsed": 0, "unparsed_dir": 0,
+         "since_code": 0, "stale_code": 0, "unparsed": 0, "unparsed_dir": 0,
+         "ref_ct": None, "ref_iso": "", "ref_sha": "", "ref_kind": "nocode",
+         "noncode": 0, "shallow": False,
          "untracked": 0, "untracked_files": 0, "untracked_binary": 0,
          "unreadable": 0, "log": True, "newest_dir": "", "head_iso": "",
          "state": "ok"}
@@ -1755,6 +1806,31 @@ def _cadence_read(repo):
                         "(0 changed lines, 0 log rows examined)")
         r["ok"] = True
         return r
+
+    # THE REFERENCE INSTANT. `git log -1 -- <path>` walks first-parent history
+    # for the newest commit that CHANGED that path; empty output means no such
+    # commit is reachable HERE, which is two different worlds (never happened /
+    # not fetched) and both fall back to HEAD.
+    code, out = _git(repo, "log", "-1", "--format=%ct\t%h", "HEAD",
+                     "--", DIRECTOR_SCRIPTS)
+    cols = out.strip().split("\t")
+    if code == 0 and len(cols) == 2 and cols[0].isdigit():
+        r["ref_ct"] = int(cols[0])
+        r["ref_sha"] = cols[1]
+        r["ref_kind"] = "code"
+        # COUNT of commits after it — all non-code by construction, since it is
+        # the newest commit that touched code. Printed so a reader can see WHY
+        # the reference is not HEAD without re-deriving it.
+        c2, o2 = _git(repo, "rev-list", "--count", "%s..HEAD" % cols[1])
+        if c2 == 0 and o2.strip().isdigit():
+            r["noncode"] = int(o2.strip())
+    else:
+        r["ref_ct"] = head_ct
+        c3, o3 = _git(repo, "rev-parse", "--is-shallow-repository")
+        r["shallow"] = (o3.strip() == "true")
+        r["ref_kind"] = "nocode-shallow" if r["shallow"] else "nocode"
+    r["ref_iso"] = datetime.datetime.fromtimestamp(
+        r["ref_ct"], datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     code, out = _git(repo, "diff", "HEAD", "--numstat")
     for line in out.splitlines():
@@ -1837,21 +1913,48 @@ def _cadence_read(repo):
                 continue
             if agent != DIRECTOR_AGENT:
                 continue
-            if ts > head_ct:
-                r["since"] += 1
+            if ts > r["ref_ct"]:
+                r["since_code"] += 1
             else:
-                r["stale"] += 1
+                r["stale_code"] += 1
             if not r["newest_dir"] or ts > _cadence_epoch(r["newest_dir"]):
                 r["newest_dir"] = when.strip()
 
     substantial = r["changed"] > DIRECTOR_MIN_LINES
     if substantial and not r["log"]:
         r["state"] = "logmissing"
-    elif substantial and r["since"] == 0:
+    elif substantial and r["since_code"] == 0:
         r["state"] = "unspawned"
     r["ok"] = r["state"] == "ok"
     r["summary"] = _cadence_summary(r)
     return r
+
+
+def _cadence_ref_phrase(r):
+    """WHICH INSTANT the freshness was measured against, in words.
+
+    Three worlds print differently on purpose, because "reviewed since the
+    last code change", "no code has ever been committed here" and "the code
+    commit is not in this shallow clone" have different next actions and used
+    to be indistinguishable — the reference point was HEAD in all three and
+    nothing said so."""
+    if r["ref_kind"] == "code":
+        p = "code commit %s@%s" % (r["ref_sha"], r["ref_iso"])
+        if r["noncode"]:
+            # THE PAIRED READING: the reference and the distance from HEAD to
+            # it, one entry, so nobody has to hold two stamps in their head to
+            # see why HEAD is not the answer. Non-code by construction: the
+            # reference IS the newest commit that touched Assets/Scripts.
+            p += " (HEAD %s is +%d non-code commit(s) later)" % (
+                r["head_iso"], r["noncode"])
+        return p
+    if r["ref_kind"] == "nocode-shallow":
+        return ("HEAD %s — SHALLOW clone, no commit touching Assets/Scripts is "
+                "reachable in it, so the reference falls back to HEAD (stricter)"
+                % r["head_iso"])
+    return ("HEAD %s — NO commit in this history has ever touched "
+            "Assets/Scripts, so the reference falls back to HEAD (stricter)"
+            % r["head_iso"])
 
 
 def _cadence_summary(r):
@@ -1878,8 +1981,13 @@ def _cadence_summary(r):
     elif r["rows"] == 0:
         rows = "0 log rows examined — nothing measured (log has no rows)"
     else:
-        rows = "%d director row(s) since HEAD of %d log row(s) examined" % (
-            r["since"], r["rows"])
+        rows = ("%d director row(s) newer than the reference of %d log row(s) "
+                "examined" % (r["since_code"], r["rows"]))
+    # UNCONDITIONAL, in all five branches below, including the two that measured
+    # nothing: a freshness count with no reference instant beside it is the same
+    # defect as a zero with no denominator, and the fallback worlds are exactly
+    # the ones whose log is likeliest to be empty.
+    ref = "reference = " + _cadence_ref_phrase(r)
     notes = ""
     if r["unparsed"]:
         notes += "; %d unparsable row(s) treated as absent (%d studio-director)" % (
@@ -1895,30 +2003,34 @@ def _cadence_summary(r):
         notes += "; %d untracked file(s) UNREADABLE, counted as 0 lines" % r["unreadable"]
 
     if r["state"] == "logmissing":
-        return ("DIRECTOR LOG MISSING: %s, %s — an absent instrument is not "
+        return ("DIRECTOR LOG MISSING: %s, %s, %s — an absent instrument is not "
                 "compliance; spawn studio-director and let the hook write the "
-                "row%s" % (lines, rows, notes))
+                "row%s" % (lines, rows, ref, notes))
     if r["state"] == "unspawned":
         seen = ""
-        if r["stale"]:
-            seen = " (%d director row(s) in the log, all older; newest %s vs HEAD %s)" % (
-                r["stale"], r["newest_dir"] or "?", r["head_iso"])
-        return ("DIRECTOR NOT SPAWNED: %s, %s%s — spawn studio-director for the "
-                "batch review, then re-run verify%s" % (lines, rows, seen, notes))
+        if r["stale_code"]:
+            seen = (" (%d director row(s) in the log, all older than that "
+                    "reference; newest %s vs reference %s)" % (
+                        r["stale_code"], r["newest_dir"] or "?", r["ref_iso"]))
+        return ("DIRECTOR NOT SPAWNED: %s, %s, %s%s — spawn studio-director for "
+                "the batch review, then re-run verify%s"
+                % (lines, rows, ref, seen, notes))
     # THE WORD TRACKS THE NUMBER IT NAMES. "REVIEWED" is a claim about director
     # rows, so it is computed from `since` and not from the line count — a mutant
     # that disables the gate printed "REVIEWED" beside `0 director rows` while
     # this read the changed lines instead, which is the same defect as two
     # numbers derived from one variable, wearing an adjective.
     if r["changed"] > DIRECTOR_MIN_LINES:
-        verdict = "over threshold, REVIEWED" if r["since"] else "over threshold"
+        verdict = "over threshold, REVIEWED" if r["since_code"] else "over threshold"
     else:
         verdict = "under threshold, review not required"
-    return "director cadence ok (%s, %s; %s)%s" % (lines, verdict, rows, notes)
+    return "director cadence ok (%s, %s; %s; %s)%s" % (
+        lines, verdict, rows, ref, notes)
 
 
 def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True,
-                     untracked=0, untracked_binary=0):
+                     untracked=0, untracked_binary=0, noncode_commit=False,
+                     shallow=False):
     """One throwaway repo: a commit at a PINNED time, then a pending change.
 
     The commit date is pinned so "newer than HEAD" is arithmetic rather than a
@@ -1940,6 +2052,30 @@ def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True,
     subprocess.run(["git", "-C", str(d), "add", "-A"], capture_output=True, text=True)
     subprocess.run(["git", "-C", str(d), "commit", "-q", "-m", "base"],
                    capture_output=True, text=True, env=env)
+    # THE SHAPE THAT BROKE IT IN THE WILD, BY CONSTRUCTION: a second commit,
+    # LATER than the fresh director row, that touches NO code — CI's own
+    # `Sim stills from <sha>`. Staged by NAME, never `-A`, so it cannot sweep
+    # up the pending batch this fixture is about to create (.claude/rules/ci.md).
+    if noncode_commit:
+        env2 = dict(env, GIT_AUTHOR_DATE="%d +0000" % CADENCE_NONCODE_CT,
+                    GIT_COMMITTER_DATE="%d +0000" % CADENCE_NONCODE_CT)
+        (d / "game-design" / "stills.txt").write_text(
+            "Sim stills from deadbee\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(d), "add", "game-design/stills.txt"],
+                       capture_output=True, text=True)
+        subprocess.run(["git", "-C", str(d), "commit", "-q", "-m",
+                        "Sim stills from deadbee"],
+                       capture_output=True, text=True, env=env2)
+    # A REAL DEPTH-1 CLONE, not a simulated one. `file://` is required or git
+    # ignores --depth for a local path and the fixture would silently test a
+    # full clone — the exact "guard that can never fail" shape rule 5b names.
+    if shallow:
+        c = work / (name + "-shallow")
+        subprocess.run(["git", "clone", "-q", "--depth", "1", "-b", "main",
+                        "file://" + str(d), str(c)], capture_output=True, text=True)
+        d = c
+        target = (d / "ledger" / "Assets" / "Scripts" / "Sim.cs") if in_scripts \
+            else (d / "game-design" / "notes.md")
     if added:
         with target.open("a", encoding="utf-8") as fh:
             fh.write("".join("line %d\n" % i for i in range(added)))
@@ -1971,8 +2107,13 @@ def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True,
 CADENCE_EXIT = {"ok": 0, "nohead": 0, "unspawned": 1, "logmissing": 2}
 
 CADENCE_FIXED_CT = 1700000000          # 2023-11-14T22:13:20Z, the fixtures' HEAD
-CADENCE_FRESH = "2023-11-14T23:13:20Z"  # +1h  — after HEAD
-CADENCE_STALE = "2023-11-14T21:13:20Z"  # -1h  — before HEAD
+CADENCE_FRESH = "2023-11-14T23:13:20Z"  # +1h  — after the CODE commit
+CADENCE_STALE = "2023-11-14T21:13:20Z"  # -1h  — before the CODE commit
+# +2h — a NON-CODE commit later than CADENCE_FRESH, so a fixture using it has
+# HEAD newer than the director row while the code commit is older. Under the
+# pre-25-Aug reference that ordering was RED; it is the wild fault exactly.
+CADENCE_NONCODE_CT = CADENCE_FIXED_CT + 7200        # 2023-11-15T00:13:20Z
+CADENCE_NEWEST = "2023-11-15T01:13:20Z"  # +3h — after EVERY commit a fixture makes
 
 
 def _cadence_selftest():
@@ -2020,7 +2161,7 @@ def _cadence_selftest():
                          [(CADENCE_STALE, "systems-builder"),
                           (CADENCE_FRESH, "studio-director")])
     a2 = _cadence_read(d)
-    say(a2["ok"] and a2["since"] == 1 and "REVIEWED" in a2["summary"],
+    say(a2["ok"] and a2["since_code"] == 1 and "REVIEWED" in a2["summary"],
         "ACCEPT large diff with a fresh director row", a2["summary"])
 
     d = _cadence_fixture(work, "a3-exactly-100", 100, [])
@@ -2041,7 +2182,7 @@ def _cadence_selftest():
     d = _cadence_fixture(work, "a6-offset-stamp", 150,
                          [("2023-11-14T23:13:20.482+00:00", "studio-director")])
     a6 = _cadence_read(d)
-    say(a6["ok"] and a6["since"] == 1,
+    say(a6["ok"] and a6["since_code"] == 1,
         "ACCEPT a fresh row stamped +00:00 with fractional seconds", a6["summary"])
 
     # THE COLLAPSED-DIRECTORY PAIR, ACCEPTING SIDE FIRST (24 Aug). Counting
@@ -2065,6 +2206,45 @@ def _cadence_selftest():
         "ACCEPT a 400-line-looking untracked BINARY as 0 lines, and say so",
         a8["summary"])
 
+    # THE FAULT FOUND IN THE WILD, 25 Aug, ON THE ACCEPTING SIDE BECAUSE THAT
+    # IS THE HALF IT BROKE. HEAD is a stills-only commit LATER than the director
+    # row; the last CODE commit is earlier than it. Against the old HEAD
+    # reference this printed DIRECTOR NOT SPAWNED and blocked an approved batch,
+    # three times in one night. A fixture for a bug found in the wild is worth
+    # more than the fix, and this one pins the ORDERING (row after code commit,
+    # HEAD after row) rather than just the outcome — without that assertion a
+    # fixture could go green for the wrong reason.
+    d = _cadence_fixture(work, "a9-noncode-commit-after-row", 150,
+                         [(CADENCE_FRESH, "studio-director")], noncode_commit=True)
+    a9 = _cadence_read(d)
+    say(a9["ok"] and a9["since_code"] == 1 and "REVIEWED" in a9["summary"]
+        and a9["ref_kind"] == "code" and a9["noncode"] == 1
+        and a9["ref_iso"] < CADENCE_FRESH < a9["head_iso"],
+        "ACCEPT a review INVALIDATED ONLY BY A NON-CODE COMMIT (CI stills): "
+        "code commit < director row < HEAD", a9["summary"])
+    say("non-code commit(s) later" in a9["summary"]
+        and "code commit" in a9["summary"],
+        "ACCEPT names the code commit it compared against, and the distance "
+        "from HEAD to it", a9["summary"])
+
+    # THE SHALLOW EDGE, ACCEPTING SIDE. A depth-1 CI checkout may not contain
+    # the last code commit at all; whatever the reference resolves to there, it
+    # must still be able to go GREEN — the failure mode named in CLAUDE.md is a
+    # shallow checkout making an ancestry test that can never succeed.
+    d = _cadence_fixture(work, "a10-shallow", 150,
+                         [(CADENCE_NEWEST, "studio-director")],
+                         noncode_commit=True, shallow=True)
+    a10 = _cadence_read(d)
+    say(a10["ok"] and a10["since_code"] == 1 and "reference = " in a10["summary"],
+        "ACCEPT a SHALLOW depth-1 clone with a row newer than everything in it",
+        a10["summary"])
+    # MEASURED, NOT ASSUMED: which world a depth-1 clone lands in is a fact
+    # about git's grafted history, so the suite PRINTS it rather than asserting
+    # a mechanism nobody checked.
+    lines.append("  note shallow depth-1 clone resolves reference kind=%s ref=%s "
+                 "head=%s (safety asserted by a10/r10, not by this line)"
+                 % (a10["ref_kind"], a10["ref_iso"], a10["head_iso"]))
+
     # REJECTING — the states the escalation rule actually decays into.
     d = _cadence_fixture(work, "r1-101-no-director", 101,
                          [(CADENCE_FRESH, "instrument-builder")])
@@ -2076,7 +2256,7 @@ def _cadence_selftest():
                          [(CADENCE_STALE, "studio-director"),
                           (CADENCE_STALE, "studio-director")])
     r2 = _cadence_read(d)
-    say(not r2["ok"] and r2["since"] == 0 and r2["stale"] == 2
+    say(not r2["ok"] and r2["since_code"] == 0 and r2["stale_code"] == 2
         and "all older" in r2["summary"],
         "REJECT large diff with only STALE director rows", r2["summary"])
 
@@ -2125,9 +2305,48 @@ def _cadence_selftest():
         "REJECT 60 tracked + 60 untracked = 120, where neither half crosses 100",
         r7["summary"])
 
+    # THE CASE THE GATE EXISTS FOR, WITH THE NEW REFERENCE UNDER IT: a code
+    # commit lands, THEN the batch, and the newest director row predates that
+    # code commit. The 25 Aug change must not touch this one — a non-code
+    # commit sitting on top is not a review.
+    d = _cadence_fixture(work, "r8-row-before-code-commit", 150,
+                         [(CADENCE_STALE, "studio-director")], noncode_commit=True)
+    r8 = _cadence_read(d)
+    say(not r8["ok"] and r8["state"] == "unspawned" and r8["stale_code"] == 1
+        and r8["since_code"] == 0 and "150 changed line(s)" in r8["summary"]
+        and "all older than that reference" in r8["summary"]
+        and "code commit" in r8["summary"],
+        "REJECT a director row OLDER than the last code commit, even with a "
+        "non-code commit on top", r8["summary"])
+
+    # NO COMMIT HAS EVER TOUCHED Assets/Scripts. The reference has nothing to
+    # point at, so it falls back to HEAD — the pre-25-Aug behaviour, which is
+    # the STRICTER direction — and says which world it is in rather than
+    # printing a reference that looks like a code commit.
+    d = _cadence_fixture(work, "r9-never-any-code", 0, [], in_scripts=False,
+                         untracked=300)
+    r9 = _cadence_read(d)
+    say(not r9["ok"] and r9["state"] == "unspawned" and r9["changed"] == 300
+        and r9["ref_kind"] == "nocode" and r9["ref_iso"] == r9["head_iso"]
+        and "NO commit in this history has ever touched" in r9["summary"],
+        "REJECT 300 untracked lines where NO commit ever touched Scripts, and "
+        "say the reference fell back to HEAD", r9["summary"])
+
+    # SHALLOW MUST NOT BE A FREE PASS. Same clone as a10, stale row: whatever
+    # the reference resolves to in a grafted history, an unreviewed batch stays
+    # red. This is the assertion that makes the a10 fallback safe to ship.
+    d = _cadence_fixture(work, "r10-shallow-stale", 150,
+                         [(CADENCE_STALE, "studio-director")],
+                         noncode_commit=True, shallow=True)
+    r10 = _cadence_read(d)
+    say(not r10["ok"] and r10["state"] == "unspawned" and r10["since_code"] == 0,
+        "REJECT a SHALLOW depth-1 clone whose only director row is stale",
+        r10["summary"])
+
     # The exit-code contract, asserted rather than documented: every accepting
     # case exits 0, and the two reds are DISTINCT from each other.
-    say(all(CADENCE_EXIT[x["state"]] == 0 for x in (a1, a2, a3, a4, a5, a6, a7, a8)),
+    say(all(CADENCE_EXIT[x["state"]] == 0
+            for x in (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10)),
         "every accepting case exits 0")
     say(CADENCE_EXIT[r1["state"]] == 1 and CADENCE_EXIT[r4["state"]] == 2
         and len(set(CADENCE_EXIT.values())) == 3,
@@ -2149,8 +2368,12 @@ def director_cadence():
 
     So: RED when a substantial change (more than DIRECTOR_MIN_LINES = 100
     changed lines under Assets/Scripts, staged+unstaged, adds+dels summed) is
-    pending and the agent log holds no `studio-director` row newer than HEAD's
-    commit. A MISSING log is RED too on a substantial diff — the instrument
+    pending and the agent log holds no `studio-director` row newer than THE
+    NEWEST COMMIT THAT TOUCHED `ledger/Assets/Scripts` — not newer than HEAD.
+    That reference moved on 25 Aug and the reason is in `_cadence_read`: the
+    threshold has always scoped to Assets/Scripts, the reference point did not,
+    and a stills-only commit from CI was invalidating a review given three
+    minutes earlier. A MISSING log is RED too on a substantial diff — the instrument
     being absent must not read as compliance, which is the same fault as a zero
     with no denominator.
 

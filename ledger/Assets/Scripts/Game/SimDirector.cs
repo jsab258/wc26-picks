@@ -10517,6 +10517,194 @@ namespace Ledger.Game
             eye = new Vector3(tx + ax, 14f, tz + az);
         }
 
+        // ---- GROUND-MATERIAL MASK ---------------------------------------
+        //
+        // WHAT THIS IS FOR. `tools/ref-bench.py` compares our streets against
+        // five GTA V references on `groundMean` / `groundOverFrame`, and it
+        // defines "the ground" as a fixed FRACTION OF FRAME HEIGHT
+        // (`GROUND_Y = (0.667, 0.88)`). That is the ground for a street-level
+        // camera and it is NOT the ground for the seven `district_*` shots,
+        // which are aerial: measured left/centre/right, the five references
+        // spread 0.029..0.159 luma across their band and our seven districts
+        // spread 0.248..0.493 — no overlap, because their band is one surface
+        // and ours contains roofs and facades. So the two sides were never the
+        // same quantity and the ratio between them was not a comparison.
+        // (`game-design/agent-reports/refbench-measurement-audit.md`, F1/F2/F4/F10.)
+        //
+        // WHAT IT MEASURES. The MEAN LUMA of the pixels whose surface is one
+        // of the four ground materials — the same set `AssetLibrary.WetSurfaces`
+        // names, asked through `AssetLibrary.IsGroundSurface`, so there is one
+        // list and not a second copy here.
+        //
+        // MECHANISM, AND WHAT IT APPROXIMATES. It is a RAY GRID, not a render
+        // mask: `GroundGridX * GroundGridY` rays through the viewport of the
+        // camera that just took the still, each ray classified by the material
+        // on the renderer it hits, each ray's luma read from the SAME captured
+        // texture the JPEG was encoded from. It approximates a per-pixel
+        // material mask, and the approximations are named:
+        //
+        //   * it SAMPLES the frame on a 64x36 grid rather than reading all
+        //     921,600 pixels, so every number here is a mean over 2,304
+        //     samples, not over the frame;
+        //   * it classifies by the COLLIDER under the sample, so geometry with
+        //     no collider is invisible to it and whatever stands behind that
+        //     geometry is credited with the pixel;
+        //   * it reads `sharedMaterial` — submesh 0 — so a multi-material mesh
+        //     is classified by its first material;
+        //   * a ray that hits nothing is sky and is counted in neither the
+        //     ground samples nor the ground denominator.
+        //
+        // A replacement-shader pass would be exact, and it needs a shader
+        // asset present in a headless build; a per-renderer material swap
+        // needs every ground renderer restored on a path that can throw. Both
+        // are heavier than the question, and both would render a SECOND frame
+        // — which is a different photograph from the one that got committed.
+        // This reads the committed frame's own pixels.
+        //
+        // NOT `ShotSightlines`, WHICH IS ALSO A RAY GRID — checked before
+        // writing this. That one asks "how much of the cone is blocked within
+        // two metres", returns one fraction, casts on its own pattern and
+        // keeps no material or pixel; it cannot answer "which surface is under
+        // this pixel" without being rewritten into this. Two questions, and
+        // the shared part (cast a ray, look at what it hit) is three lines.
+        //
+        // NO BOUND AND NO GATE ON ANY OF THIS. Rule 2: a new number gets a
+        // printed series off real landings first, and the numbers below have
+        // never landed once. Printer only.
+        const int GroundGridX = 64, GroundGridY = 36;
+
+        /// Per-district rows, one per `district_*` still, formatted at the
+        /// shot so a row cannot be assembled out of two different frames.
+        /// All four lists are MEANS over the ground samples of that shot.
+        readonly List<string> _groundMeanBy = new List<string>();
+        readonly List<string> _groundThirdsBy = new List<string>();
+        readonly List<string> _groundOverFrameBy = new List<string>();
+        readonly List<string> _groundOverLowerBy = new List<string>();
+
+        /// The seven district ground means as numbers, for the min..max/median
+        /// summary on the done line. A summary OF the seven shots, not of a
+        /// frame.
+        readonly List<double> _groundMeans = new List<double>();
+
+        /// DENOMINATORS, cumulative over the whole run. `0 ground samples` and
+        /// `the mask never ran` must not read alike: shots offered vs shots
+        /// that found any ground, and rays cast vs hit vs with-a-renderer vs
+        /// classified-ground.
+        int _groundShotsOffered, _groundShotsMeasured;
+        long _groundRaysCast, _groundRaysHit, _groundRaysRenderer, _groundRaysGround;
+
+        /// Ground-masked luma readings for one district still.
+        ///
+        /// `tex` is the frame that was just encoded to the committed JPEG and
+        /// `cam` is the camera that rendered it, after every step-back — same
+        /// instant, same vantage, same pixels as the picture a person opens.
+        void GroundMaskRead(Camera cam, Texture2D tex, string name)
+        {
+            if (cam == null || tex == null) return;
+            _groundShotsOffered++;
+            Color[] px;
+            try { px = tex.GetPixels(); }
+            catch (Exception e) { _errors.Add("GroundMaskRead: " + e.Message); return; }
+            int w = tex.width, h = tex.height;
+            if (px.Length < w * h || w <= 0 || h <= 0) return;
+
+            double gSum = 0; int gN = 0;
+            var thirdSum = new double[3]; var thirdN = new int[3];
+            double frameSum = 0; int frameN = 0;
+            double lowerSum = 0; int lowerN = 0;
+            float far = cam.farClipPlane > 0f ? cam.farClipPlane : 1000f;
+
+            for (int j = 0; j < GroundGridY; j++)
+                for (int i = 0; i < GroundGridX; i++)
+                {
+                    double u = (i + 0.5) / GroundGridX;
+                    double v = (j + 0.5) / GroundGridY;
+                    int col = (int)(u * w); if (col >= w) col = w - 1;
+                    int row = (int)(v * h); if (row >= h) row = h - 1;
+                    // ReadPixels puts row 0 at the BOTTOM and viewport v=0 is
+                    // also the bottom, so the two agree with no flip — the
+                    // same orientation `BandSpread` documents.
+                    var c = px[row * w + col];
+                    double l = ImageStats.Luma(c.r, c.g, c.b);
+                    frameSum += l; frameN++;
+                    // LOWER TWO THIRDS, the F2 denominator: four of five GTA
+                    // references carry a blown sky over half their upper third
+                    // (0.516..0.635 of it above 0.75 luma) and no district
+                    // exceeds 0.172, so a whole-frame denominator compares our
+                    // dark sky against their bright one.
+                    if (v < 0.667) { lowerSum += l; lowerN++; }
+
+                    _groundRaysCast++;
+                    var ray = cam.ViewportPointToRay(new Vector3((float)u, (float)v, 0f));
+                    RaycastHit hit;
+                    if (!Physics.Raycast(ray, out hit, far)) continue;
+                    if (hit.collider == null) continue;
+                    _groundRaysHit++;
+                    var rend = hit.collider.GetComponent<Renderer>();
+                    if (rend == null) rend = hit.collider.GetComponentInParent<Renderer>();
+                    if (rend == null) continue;
+                    _groundRaysRenderer++;
+                    if (!AssetLibrary.IsGroundSurface(rend.sharedMaterial)) continue;
+                    _groundRaysGround++;
+                    gSum += l; gN++;
+                    int t = u < (1.0 / 3.0) ? 0 : (u < (2.0 / 3.0) ? 1 : 2);
+                    thirdSum[t] += l; thirdN[t]++;
+                }
+
+            string shortName = (name ?? "unnamed").Replace(' ', '_');
+            if (shortName.StartsWith("district_")) shortName = shortName.Substring(9);
+            int rays = GroundGridX * GroundGridY;
+            if (gN == 0)
+            {
+                // THE SHOT RAN AND FOUND NO GROUND. That is a reading, and it
+                // is not the same as the mask never running — so the row is
+                // written with its denominator rather than skipped.
+                _groundMeanBy.Add(shortName + ":none@0/" + rays);
+                return;
+            }
+            _groundShotsMeasured++;
+            double gMean = gSum / gN;
+            _groundMeans.Add(gMean);
+            _groundMeanBy.Add(string.Format("{0}:{1:0.000}@{2}/{3}", shortName, gMean, gN, rays));
+            _groundThirdsBy.Add(string.Format("{0}:{1}/{2}/{3}", shortName,
+                GroundThird(thirdSum[0], thirdN[0]), GroundThird(thirdSum[1], thirdN[1]),
+                GroundThird(thirdSum[2], thirdN[2])));
+            double frameMean = frameN > 0 ? frameSum / frameN : 0;
+            double lowerMean = lowerN > 0 ? lowerSum / lowerN : 0;
+            _groundOverFrameBy.Add(string.Format("{0}:{1}", shortName,
+                frameMean > 1e-6 ? (gMean / frameMean).ToString("0.000") : "none"));
+            _groundOverLowerBy.Add(string.Format("{0}:{1}", shortName,
+                lowerMean > 1e-6 ? (gMean / lowerMean).ToString("0.000") : "none"));
+        }
+
+        /// One third's ground mean with the sample count it is a mean OF —
+        /// `none@0` rather than `0.000` when no ground fell in that third,
+        /// because a third with no road in it and a third that is black are
+        /// the whole finding here.
+        static string GroundThird(double sum, int n)
+            => n > 0 ? string.Format("{0:0.000}@{1}", sum / n, n) : "none@0";
+
+        /// A per-district list, or the words `nothing_measured` — underscored
+        /// because a verdict value may not contain a space.
+        static string GroundRows(List<string> rows)
+            => rows.Count > 0 ? string.Join(",", rows.ToArray()) : "nothing_measured";
+
+        /// min..max/median ACROSS THE SEVEN DISTRICT SHOTS — a statistic of
+        /// the tour, not of a frame. The median is here because a min and a
+        /// max cannot say what is normal, and the range is here because a
+        /// median cannot see the tail.
+        string GroundAcross()
+        {
+            if (_groundMeans.Count == 0) return "nothing_measured";
+            var v = new List<double>(_groundMeans);
+            v.Sort();
+            double med = v.Count % 2 == 1
+                ? v[v.Count / 2]
+                : (v[v.Count / 2 - 1] + v[v.Count / 2]) / 2.0;
+            return string.Format("{0:0.000}..{1:0.000}/med{2:0.000}/n{3}",
+                                 v[0], v[v.Count - 1], med, v.Count);
+        }
+
         void Shot(string name)
         {
             _lastShotName = name;
@@ -11238,6 +11426,13 @@ namespace Ledger.Game
                     // the only line in the file that knows the picture
                     // survived.
                     KeptTheShot(name);
+
+                    // THE GROUND-MASKED READING, ON THE FRAME THAT WAS JUST
+                    // COMMITTED. Districts only: the mask exists because the
+                    // seven aerial `district_*` cameras are the ones whose
+                    // band-mean is not a ground mean, and `_touring` is the
+                    // flag those shots already carry.
+                    if (_touring) GroundMaskRead(cam, tex, name);
                 }
 
                 // AND ONE FRAME FROM WHERE A PLAYER ACTUALLY STANDS. Every
@@ -14740,6 +14935,22 @@ namespace Ledger.Game
                       // is beside it only as the thing each district is to be
                       // read against.
                       $"tourDepthBy=[{TourDepthLine()}] " +
+                      // GROUND-MATERIAL-MASKED READINGS, WHOLE RUN, NO BOUND.
+                      // Every value is a MEAN over the ray samples classified
+                      // as one of `AssetLibrary.WetSurfaces` on that district's
+                      // committed still; `groundMaskAcross` is a min..max and
+                      // median ACROSS the seven shots. Denominators first so a
+                      // zero cannot read as health: shots that found ground /
+                      // shots offered, then rays cast/hit/with-renderer/ground,
+                      // then how many surfaces count as ground at all.
+                      $"groundMaskShots={_groundShotsMeasured}/{_groundShotsOffered} " +
+                      $"groundMaskRays={_groundRaysCast}/{_groundRaysHit}/{_groundRaysRenderer}/{_groundRaysGround} " +
+                      $"groundMaskSurfaces={AssetLibrary.GroundSurfaceCount} " +
+                      $"groundMaskMeanBy=[{GroundRows(_groundMeanBy)}] " +
+                      $"groundMaskThirdsBy=[{GroundRows(_groundThirdsBy)}] " +
+                      $"groundMaskOverFrameBy=[{GroundRows(_groundOverFrameBy)}] " +
+                      $"groundMaskOverLowerBy=[{GroundRows(_groundOverLowerBy)}] " +
+                      $"groundMaskAcross={GroundAcross()} " +
                       $"tourDepthMedian={Median(_tourDepth):0.0} " +
                       $"tourNearSeries=[{FracSeries(_tourNearFrac)}] " +
                       $"tourShots={_tourDepth.Count} " +
