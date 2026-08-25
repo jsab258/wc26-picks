@@ -239,9 +239,44 @@ namespace Ledger.Game
         /// both exposed; only a junction with no wall at all (the map's cut
         /// corners, Ironside's yards) falls back to one clustered post —
         /// which is also what a council does. Legacy path: post always.
+        ///
+        /// BOTH MOUNTS NOW HANG THE KIT BLADE (`NamePlate`), not a primitive
+        /// board: `road-sign-object-street` is a 3.2:1 plate and is the
+        /// British form, where the kit's `road-sign-street` pole is the
+        /// American one and the survey rejected it. The board survives as the
+        /// fallback when the model is not in the build, because a nameplate's
+        /// content is the NAME and a lettered board still delivers it.
         static void BuildNamePlates(StreetNode n)
         {
-            if (!StreetMap.NamesAt(n, out var ns, out var ew)) return;
+            if (!StreetMap.NamesAt(n, out var ns, out var ew))
+            {
+                // A JUNCTION THAT CANNOT SAY WHAT IT IS — OFFERED AND REFUSED,
+                // NOT SKIPPED, and the difference is the whole readability of
+                // this key. `StreetMap.NamesAt` returns names for exactly ONE
+                // of this city's 97 junctions (measured 25 Aug by compiling
+                // Core alone and counting; see the report), so a silent skip
+                // would print `sign_plate_name:2/2/0/0refused` — which reads
+                // as a placer that hardly ran, when the truth is a placer that
+                // ran at every junction in the city and was given a name at
+                // one of them. Two sites per junction, because a junction
+                // offers a plate per street.
+                //
+                // THE CAUSE IS IN CORE AND IS NOT FIXED HERE: `NameOf`
+                // compares SCALED node coordinates against the UNSCALED
+                // district avenue tables, so only the founding cross at
+                // (0,0) — which `WideBlocks` scaling leaves fixed — can match.
+                // That is the sixth consumer of those tables to read them raw
+                // and the fix belongs with the five already recorded in
+                // `BoundsOf`'s comment, not in a signage commit. Until then
+                // `kitRefusedBy` carries `junction_unnamed` with its count,
+                // every run, which is the number that says so.
+                for (int i = 0; i < 2; i++)
+                {
+                    WorldBuilder.KitTally.Offered("sign_plate_name");
+                    WorldBuilder.KitTally.Refused("sign_plate_name", "junction_unnamed");
+                }
+                return;
+            }
 
             if (WorldBuilder.TownPlanEnabled)
             {
@@ -265,8 +300,16 @@ namespace Ledger.Game
                     if (!WorldBuilder.PointClear(new Vector3(fx - qx * 0.3f, 0, pz), 0f)) continue;
                     if (!WorldBuilder.PointClear(new Vector3(px, 0, fz - qz * 0.3f), 0f)) continue;
 
-                    WallPlate($"NamePlate_{n.Id}_ns", new Vector3(fx - qx * 0.05f, 2.7f, pz), ns, 90f);
-                    WallPlate($"NamePlate_{n.Id}_ew", new Vector3(px, 2.7f, fz - qz * 0.05f), ew, 0f);
+                    // ALONG THE WALL, AND OUT OF IT. The NS plate hangs on the
+                    // x-facing wall at `fx`, so it runs along z and looks back
+                    // along -qx; the EW plate is the same statement with the
+                    // axes swapped. `NamePlate` needs both because a BLADE has
+                    // to lie the long way along its wall, where a flat board
+                    // did not care.
+                    NamePlate($"NamePlate_{n.Id}_ns", new Vector3(fx - qx * 0.05f, 2.7f, pz), ns, 90f,
+                              new Vector3(0, 0, 1), new Vector3(-qx, 0, 0));
+                    NamePlate($"NamePlate_{n.Id}_ew", new Vector3(px, 2.7f, fz - qz * 0.05f), ew, 0f,
+                              new Vector3(1, 0, 0), new Vector3(0, 0, -qz));
                     WallPlateCount += 2;
                     return;
                 }
@@ -275,9 +318,16 @@ namespace Ledger.Game
             float d = (float)StreetMap.AvenueWidth / 2f + 2.0f;
             var basePos = new Vector3((float)n.X - d, 0, (float)n.Z + d);
 
+            // ON A LOW POST, and the two blades cross at right angles the way
+            // a council's clustered post does — each one reading along the
+            // street it names. Same `NamePlate`, so a junction with no corner
+            // wall gets the same object as one with a wall, at a different
+            // mount.
             Post($"NamePost_{n.Id}", basePos, 3.0f);
-            Plate($"NamePlate_{n.Id}_ns", basePos + new Vector3(0, 2.75f, 0), ns, 90f);
-            Plate($"NamePlate_{n.Id}_ew", basePos + new Vector3(0, 2.40f, 0), ew, 0f);
+            NamePlate($"NamePlate_{n.Id}_ns", basePos + new Vector3(0, 2.75f, 0), ns, 90f,
+                      new Vector3(0, 0, 1), new Vector3(-1, 0, 0));
+            NamePlate($"NamePlate_{n.Id}_ew", basePos + new Vector3(0, 2.40f, 0), ew, 0f,
+                      new Vector3(1, 0, 0), new Vector3(0, 0, -1));
             SignCount += 2;
         }
 
@@ -470,12 +520,207 @@ namespace Ledger.Game
             Strip(go.GetComponent<Collider>());
         }
 
-        /// A plate flush on a wall — board and text, no post. Proud of the
-        /// brick by a few centimetres so it reads as an object, not paint.
-        /// The label's buried back copy sits on the wall plane facing INTO
-        /// the building; its front face is what the culling shader keeps,
-        /// so from the street it is simply invisible rather than fighting.
-        static void WallPlate(string name, Vector3 at, string text, float yaw)
+        /// A STREET NAMEPLATE — the kit blade if the model is in the build, the
+        /// primitive board if it is not, and the NAME lettered onto whichever
+        /// one stood.
+        ///
+        /// WHY IT IS A PLATE AND NOT A POLE. `kit-survey.md` measured
+        /// `road-sign-object-street` at 0.31 x 0.44 x 1.42m — a 3.2:1 blade,
+        /// which is exactly a British street nameplate (a typical UK plate is
+        /// ~1.2m x 0.3m). Its sibling `road-sign-street`, the tall crossblade
+        /// on a 3.5m pole, is the AMERICAN form and the survey REJECTED it on
+        /// country grounds. Rejecting the pole while placing the plate is the
+        /// whole finding, so nothing here may reach for the pole later.
+        ///
+        /// WHY IT MUST BE LETTERED AND WHY THAT IS THE WHOLE QUESTION. The kit
+        /// ships a FLAT PALETTE TEXTURE: the blade carries no glyphs and never
+        /// could, so a blade placed as-is is a blank white board in the frame,
+        /// which reads as a fault rather than as dressing — and delivers none
+        /// of the reason this item was built. The lettering is
+        /// `WorldBuilder.Letter`, the shared idiom this batch extracted from
+        /// its two private copies precisely so signage would not mint a third.
+        ///
+        /// ORIENTED BY MEASUREMENT, NEVER BY AN ASSUMED FBX AXIS ORDER. Which
+        /// local axis is the blade's long one is a fact this container cannot
+        /// read and the build can, so the blade is stood, its world bounds are
+        /// encapsulated, and it is given a quarter turn about its mounting
+        /// point if the long horizontal extent came out ACROSS the wall
+        /// instead of along it. Same reasoning as `Stand` re-reading bounds
+        /// after every transform: the scale and the axis order of an imported
+        /// model are things to read, not to assume.
+        ///
+        /// THE BOARD FALLBACK IS NOT A DECOY, and that is a deliberate
+        /// departure from `StreetDressing`, which refuses fallback primitives
+        /// outright. Its reasoning is right for a planter: a grey box at the
+        /// right size hides a miss, and a planter's whole content is its
+        /// shape. A nameplate's content is the NAME — a lettered board
+        /// delivers all of it and a bare junction delivers none — so the
+        /// board stays. `Missed` is filed either way, so the count still says
+        /// which mesh actually stood.
+        ///
+        /// EVERY SITE AND EVERY OUTCOME IS FILED WITH `WorldBuilder.KitTally`,
+        /// the project's ONE `KitDressing` instance. `sign_plate_name` has
+        /// printed `nothing-offered` every run since the catalogue named it;
+        /// this is the call that changes that, and rule 6 is why the counter
+        /// ships in the same edit as the placement rather than after it.
+        static void NamePlate(string name, Vector3 at, string text, float yaw,
+                              Vector3 alongWall, Vector3 outward)
+        {
+            WorldBuilder.KitTally.Offered("sign_plate_name");
+
+            // SEATED BY ITS MIDDLE, NOT BY ITS FOOT. `Stand` puts a prop's
+            // bottom on `at.y`, which is right for a cone and wrong for a
+            // plate hung at a height — so the anchor is dropped by half the
+            // blade's true height and the blade's middle lands where the
+            // board's middle was. 0.44m is the FBX's own 6.00 units x 0.074,
+            // from `tools/prop-dimensions.py`, not from a convention.
+            var go = StreetDressing.Stand(
+                "sign_plate_name", "", "road-sign-object-street",
+                at - new Vector3(0, BladeTall / 2f, 0),
+                Quaternion.Euler(0, yaw, 0), BladeTall, PlateEnamel, null);
+
+            // The blade's measured length along its wall, and how far the
+            // glyphs must sit out of its face. Both start at the primitive
+            // board's numbers and are replaced by measurements when a blade
+            // actually stood.
+            float plateLength = 2.2f;
+            float proud = WorldBuilder.PlateProud;
+
+            if (go == null)
+            {
+                // `Stand` already filed the miss. The board is not a decoy
+                // here — see this method's header — because the name is the
+                // content, and the lettering below runs either way.
+                PlateBoard(name, at, yaw);
+            }
+            else
+            {
+                var rends = go.GetComponentsInChildren<Renderer>();
+                var b = rends[0].bounds;
+                foreach (var r in rends) b.Encapsulate(r.bounds);
+
+                // `alongWall` and `outward` are axis-aligned units, so a dot
+                // against an all-positive size vector picks that axis' extent
+                // (signed) and `Abs` recovers it.
+                float along = Mathf.Abs(Vector3.Dot(b.size, alongWall));
+                float across = Mathf.Abs(Vector3.Dot(b.size, outward));
+                if (across > along)
+                {
+                    // A quarter turn about the MOUNTING POINT rather than the
+                    // model's own pivot, so the plate stays where it was hung.
+                    go.transform.RotateAround(at, Vector3.up, 90f);
+                    b = rends[0].bounds;
+                    foreach (var r in rends) b.Encapsulate(r.bounds);
+                    along = Mathf.Abs(Vector3.Dot(b.size, alongWall));
+                    across = Mathf.Abs(Vector3.Dot(b.size, outward));
+                    WorldBuilder.KitTally.Flagged("sign_plate_name", "blade_turned");
+                }
+                if (along > 0.01f) plateLength = along;
+                // Half the blade's own measured thickness plus the 2.5cm of
+                // clearance the primitive board gets. INHERITING THE BOARD'S
+                // 0.05 WOULD BURY EVERY NAME: the blade is 0.31m deep against
+                // the board's 0.05m, so the glyphs would sit inside the mesh
+                // — a nameplate that cannot carry its name.
+                if (across > 0.01f) proud = across / 2f + 0.025f;
+            }
+
+            // ---- the lettering, and the fit is MEASURED ------------------
+            //
+            // The two faces are two `Letter` calls rather than one
+            // `bothSides` call ON PURPOSE: the front is created first so its
+            // rendered width can be read, and the back is created afterwards
+            // at whatever size that reading settled on. One implementation,
+            // called twice, with the reason written down.
+            float size = InkPerMetre * plateLength;
+            int faces = WorldBuilder.Letter(name + "_text_front", at, text, yaw, size,
+                                            WorldBuilder.PlateInk, bothSides: false,
+                                            proud: proud, front: out var front);
+
+            // WHICH OF THREE THINGS HAPPENED, because "it fitted" and "nothing
+            // measured it" must not print alike (rule 3b). `text_unmeasured`
+            // is a live possibility rather than a defensive branch: a TextMesh
+            // generates its mesh lazily, and if the renderer has no bounds yet
+            // the fit below is silently skipped and the derived start size is
+            // what ships. That is the reading that would send somebody here.
+            string fit = "text_unmeasured";
+            var fr = front != null ? front.GetComponent<Renderer>() : null;
+            float drawn = fr != null ? Mathf.Abs(Vector3.Dot(fr.bounds.size, alongWall)) : 0f;
+            if (drawn > 0.001f)
+            {
+                // 90% of the blade, so the longest name in `StreetMap` still
+                // has an end margin rather than running off the enamel.
+                float room = plateLength * 0.90f;
+                fit = "text_fitted";
+                if (drawn > room)
+                {
+                    size *= room / drawn;
+                    front.characterSize = size;
+                    fit = "text_shrunk";
+                }
+            }
+            WorldBuilder.KitTally.Flagged("sign_plate_name", fit);
+
+            faces += WorldBuilder.Letter(name + "_text_back", at, text, yaw + 180f, size,
+                                         WorldBuilder.PlateInk, bothSides: false,
+                                         proud: proud, front: out _);
+
+            // PAINTED means the glyphs got the depth-testing material and will
+            // draw as lettering rather than as the ZTest-Always mess that put
+            // garbled text over the skyline. It is NOT "a TextMesh exists":
+            // that cannot fail here and a numerator that cannot fail is one
+            // variable printed twice.
+            //
+            // AND IT IS FLAGGED ONLY FOR A BLADE THAT STOOD, WHICH IS NOT
+            // FUSSINESS — IT WAS PRINTING AN IMPOSSIBILITY. `namePlatesPainted`
+            // is `FlagOver(painted, sign_plate_name)`: painted flags over
+            // PLACED plates. Flagging the lettered fallback board too made a
+            // run with no kit model print `namePlatesPainted=2/0` — a
+            // numerator above its own denominator, which is the exact shape of
+            // `44 offered in one frame against 28 ever managed` that cost this
+            // project an afternoon and a deleted counter. A lettered board is
+            // a real and different fact, so it gets its own row rather than a
+            // share of this one, and the two together still say the street
+            // carries its names.
+            if (faces > 0)
+                WorldBuilder.KitTally.Flagged("sign_plate_name",
+                    go != null ? KitDressing.FlagPainted : "board_lettered");
+        }
+
+        /// THE BLADE'S TRUE HEIGHT IN METRES — the FBX's own 6.00 units at the
+        /// kit's measured 0.074 m/unit, printed by `tools/prop-dimensions.py`
+        /// (4.25 x 6.00 x 19.25 units for `road-sign-object-street`). `Stand`
+        /// normalises the whole model by this one figure, so the other two
+        /// axes come out right without anybody hardcoding a scale factor a
+        /// re-import would falsify.
+        const float BladeTall = 0.44f;
+
+        /// GLYPH HEIGHT PER METRE OF PLATE. Derived from the one lettering
+        /// value in this file that has actually shipped and been looked at:
+        /// the wall nameplate lettered its 2.2m board at 0.05 — the pair of
+        /// numbers `PlateBoard` and the old `WallPlate` carried between them
+        /// before the blade — so 0.0227 per metre.
+        ///
+        /// IT IS A STARTING VALUE AND NOT A BOUND, and the reason is that it
+        /// HAS NEVER BEEN SEEN CARRYING A LONG NAME. `StreetMap`'s tables hold
+        /// 51 street names up to eighteen characters ("Morning After Lane"),
+        /// and the fit measurement above is what turns this ratio into a size
+        /// that is actually known to fit. `kitFlagsBy` carries which of
+        /// `text_fitted` / `text_shrunk` / `text_unmeasured` happened, per
+        /// run, so the next reader sets this from a series rather than from
+        /// the ratio (rule 2: ship the printer, read real runs, then choose).
+        const float InkPerMetre = 0.05f / 2.2f;
+
+        /// THE BLADE'S PAINT. A kit prop arrives wearing whatever swatch its
+        /// author assigned and the noir grade desaturates everything
+        /// downstream, so it is repainted through `TintFurniture` like every
+        /// other kit object. The value is `StreetDressing`'s landed
+        /// `BarrierWhite` — an off-white already shipped and looked at on a
+        /// prop from THIS kit under THIS grade — rather than a fresh guess at
+        /// what enamel should be.
+        static readonly Color PlateEnamel = new Color(0.78f, 0.77f, 0.73f);
+
+        /// THE PRIMITIVE BOARD, when the kit blade is not in the build.
+        static void PlateBoard(string name, Vector3 at, float yaw)
         {
             var board = GameObject.CreatePrimitive(PrimitiveType.Cube);
             board.name = name;
@@ -484,7 +729,6 @@ namespace Ledger.Game
             board.transform.rotation = Quaternion.Euler(0, yaw, 0);
             board.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Plaster);
             Strip(board.GetComponent<Collider>());
-            Label(name + "_text", at, text, yaw, 0.05f);
         }
 
         static void Plate(string name, Vector3 at, string text, float yaw)
@@ -499,31 +743,25 @@ namespace Ledger.Game
             Label(name + "_text", at, text, yaw, 0.055f);
         }
 
-        /// Text on a sign, double-sided — a plate you can only read from one side
-        /// is worse than no plate, because you walk round it to find out.
-        static void Label(string name, Vector3 at, string text, float yaw, float size)
+        /// Text on a sign, double-sided — a plate you can only read from one
+        /// side is worse than no plate, because you walk round it to find out.
+        ///
+        /// THE BODY OF THIS MOVED TO `WorldBuilder.Letter` AND THIS IS NOW THE
+        /// SHIM, because the identical idiom also existed on the shop fascia
+        /// and a third copy was about to be written for the kit nameplates.
+        /// Kept as a named two-argument wrapper rather than inlined at both
+        /// call sites: the two callers differ only in `size`, and every other
+        /// argument is a `StreetFurniture` house convention (enamel white,
+        /// double-sided, 5cm proud of a 5cm board) that belongs in one place
+        /// in this file rather than transcribed twice.
+        ///
+        /// Returns the faces that got the depth shader, 0..2, so a caller can
+        /// tell "lettered" from "an object exists where lettering should be".
+        static int Label(string name, Vector3 at, string text, float yaw, float size)
         {
-            foreach (var flip in new[] { 0f, 180f })
-            {
-                var go = new GameObject($"{name}_{flip:0}");
-                go.transform.position = at;
-                go.transform.rotation = Quaternion.Euler(0, yaw + flip, 0);
-                go.transform.Translate(0, 0, -0.05f, Space.Self);
-                var tm = go.AddComponent<TextMesh>();
-                tm.text = text;
-                tm.characterSize = size;
-                tm.fontSize = 64;
-                tm.anchor = TextAnchor.MiddleCenter;
-                tm.alignment = TextAlignment.Center;
-                tm.color = new Color(0.93f, 0.92f, 0.88f);
-                // THE SECOND PLATE ONLY WORKS IF THE FIRST ONE HAS A BACK.
-                // Both copies were drawing through the board and through each
-                // other, so every sign in the city read as forward and
-                // backward glyphs superimposed. `Hidden/LedgerText` culls the
-                // reverse face and respects depth, which makes the plate
-                // genuinely double-sided instead of doubly wrong.
-                WorldText.Adopt(tm);
-            }
+            return WorldBuilder.Letter(name, at, text, yaw, size,
+                                       WorldBuilder.PlateInk, bothSides: true,
+                                       proud: WorldBuilder.PlateProud, front: out _);
         }
 
         static void Strip(Collider c)

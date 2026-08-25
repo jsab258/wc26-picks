@@ -1748,21 +1748,14 @@ namespace Ledger.Game
                     var names = kind == Ledger.Core.Dressing.Premises.Warehouse
                         ? WarehouseNames : ShopNames;
                     int pick = System.Math.Abs((int)(pos.x * 31 + pos.z * 7)) % names.Length;
-                    var tgo = new GameObject($"{tag}_fascia_name");
                     // Local -z is what a translated WorldText copy reads
-                    // from (see StreetFurniture.Label): aim it outward.
+                    // from (see `Letter`): aim it outward. ONE SIDE — the
+                    // back of a fascia is inside somebody's front room.
                     float yaw = Mathf.Atan2(-outward.x, -outward.z) * Mathf.Rad2Deg;
-                    tgo.transform.position = face + outward * 0.16f + new Vector3(0, 3.5f, 0);
-                    tgo.transform.rotation = Quaternion.Euler(0, yaw, 0);
-                    tgo.transform.Translate(0, 0, -0.05f, Space.Self);
-                    var tm = tgo.AddComponent<TextMesh>();
-                    tm.text = names[pick];
-                    tm.characterSize = 0.062f;
-                    tm.fontSize = 64;
-                    tm.anchor = TextAnchor.MiddleCenter;
-                    tm.alignment = TextAlignment.Center;
-                    tm.color = new Color(0.88f, 0.85f, 0.74f);
-                    WorldText.Adopt(tm);
+                    Letter($"{tag}_fascia_name",
+                           face + outward * 0.16f + new Vector3(0, 3.5f, 0),
+                           names[pick], yaw, 0.062f, FasciaInk,
+                           bothSides: false, proud: PlateProud, front: out _);
                     ShopNamesPainted++;
                 }
             }
@@ -2211,6 +2204,98 @@ namespace Ledger.Game
 
         /// How many shop fasciae carry a painted name, same reasoning.
         public static int ShopNamesPainted;
+
+        /// THE ONE WAY LETTERING GETS PAINTED ONTO A STANDING OBJECT.
+        ///
+        /// It existed TWICE, both private and both correct: the fascia trade
+        /// name a few lines above `MakeBox`, and `StreetFurniture.Label`. Two
+        /// copies of one idea is this project's most-repeated fault and the
+        /// one it names in three separate places — the one nobody looks at is
+        /// the one missing a line, and `Label` was already carrying a
+        /// paragraph the fascia copy did not have (the reverse-face cull) and
+        /// a `WorldText.Adopt` return value the fascia copy threw away. The
+        /// director ruled the extraction cannot wait for signage, because
+        /// signage built on two copies mints a third.
+        ///
+        /// WHAT EACH ARGUMENT IS FOR, because the two old copies differed on
+        /// exactly these and nothing else:
+        ///
+        ///   `yaw`       the label's LOCAL -Z is what faces the reader. A
+        ///               translated copy reads from local -z, so the fascia's
+        ///               `Atan2(-outward.x, -outward.z)` and the plates' plain
+        ///               `90f`/`0f`/`45f` are the same convention.
+        ///   `bothSides` a plate you can only read from one side is worse than
+        ///               no plate, because you walk round it to find out; a
+        ///               fascia is screwed to a wall and its back would be
+        ///               inside the building. So the plates pass true and the
+        ///               fascia passes false, and that WAS the whole difference.
+        ///   `proud`     how far out of the surface the glyphs sit, in metres.
+        ///               NOT a taste value: it must clear HALF the board's own
+        ///               thickness or the text is buried inside the mesh. Both
+        ///               old copies hardcoded 0.05, which clears the 0.05m-thick
+        ///               primitive boards they were written for and would bury
+        ///               the text in anything deeper.
+        ///
+        /// WHAT THE RETURN IS A STATISTIC OF: a COUNT OF FACES that got the
+        /// depth-testing material, 0..2 — not a count of labels and not a
+        /// success flag. Zero is a real and reported possibility rather than
+        /// an impossible branch: `WorldText.Adopt` refuses when
+        /// `Hidden/LedgerText` is not in the build, and it then leaves Unity's
+        /// `ZTest Always` material on, which is the shader that put garbled
+        /// overlapping glyphs over the skyline in the first still this project
+        /// could commit. A caller that flags "this object carries readable
+        /// lettering" must key on this, not on the object being non-null.
+        ///
+        /// `front` is the street-facing copy, for a caller that needs to
+        /// measure how wide the text came out. Null when `text` is empty.
+        public static int Letter(string name, Vector3 at, string text, float yaw,
+                                 float charSize, Color colour, bool bothSides,
+                                 float proud, out TextMesh front,
+                                 Transform parent = null)
+        {
+            front = null;
+            if (string.IsNullOrEmpty(text)) return 0;
+            int adopted = 0;
+            var flips = bothSides ? new[] { 0f, 180f } : new[] { 0f };
+            foreach (var flip in flips)
+            {
+                var go = new GameObject($"{name}_{flip:0}");
+                go.transform.position = at;
+                go.transform.rotation = Quaternion.Euler(0, yaw + flip, 0);
+                go.transform.Translate(0, 0, -proud, Space.Self);
+                if (parent != null) go.transform.SetParent(parent, true);
+                var tm = go.AddComponent<TextMesh>();
+                tm.text = text;
+                tm.characterSize = charSize;
+                tm.fontSize = 64;
+                tm.anchor = TextAnchor.MiddleCenter;
+                tm.alignment = TextAlignment.Center;
+                tm.color = colour;
+                // THE SECOND FACE ONLY WORKS IF THE FIRST ONE HAS A BACK.
+                // Both copies were drawing through the board and through each
+                // other, so every sign in the city read as forward and
+                // backward glyphs superimposed. `Hidden/LedgerText` culls the
+                // reverse face and respects depth, which makes a plate
+                // genuinely double-sided instead of doubly wrong.
+                if (WorldText.Adopt(tm)) adopted++;
+                if (front == null) front = tm;
+            }
+            return adopted;
+        }
+
+        /// THE COLOURS THE TWO OLD COPIES USED, kept apart because they are
+        /// different materials in the fiction and were never one value:
+        /// a painted shop fascia is warm off-white sign-writer's cream, a
+        /// council plate is cold enamel white. Both taken verbatim from the
+        /// code they were extracted from — no repaint rode in on a refactor.
+        public static readonly Color FasciaInk = new Color(0.88f, 0.85f, 0.74f);
+        public static readonly Color PlateInk = new Color(0.93f, 0.92f, 0.88f);
+
+        /// HOW FAR GLYPHS SIT OUT OF A 5cm PRIMITIVE BOARD — half its 0.05m
+        /// thickness plus 2.5cm of clearance. The number both old copies
+        /// hardcoded, named here so a caller placing text on something THICKER
+        /// cannot inherit it by accident.
+        public const float PlateProud = 0.05f;
 
         /// Trade names for the fasciae (town-plan T2). Late-analog British
         /// port: surnames and trades, a few of them from the communities the

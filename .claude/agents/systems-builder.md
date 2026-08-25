@@ -3,7 +3,7 @@ name: systems-builder
 description: "Tier 3 builder. Implements gameplay and simulation systems in the codebase's own idiom. Use for feature work with a clear spec: a queue item, a design row with a measurable done-state, or a director decision. Ships code plus the call site plus the number that proves the call happened — never code alone."
 tools: Read, Glob, Grep, Write, Edit, Bash
 model: opus
-maxTurns: 45
+maxTurns: 70
 memory: project
 ---
 

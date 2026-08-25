@@ -198,7 +198,13 @@ files=("$dir/verdict.txt" "$dir/runs/$sha7.txt")
 # Same flag rather than its own: both come from the sim reaching a screenshot,
 # which is the fact the flag records. A run with no manhunt in it simply
 # produces no `hunt_` files and the glob is empty — `nullglob` is on above.
-if [ "$stills" = 1 ]; then files+=("$dir"/review_*.jpg "$dir"/hunt_*.jpg "$dir"/district_*.jpg); fi
+# `ref_*` IS THE R1 CONVERGENCE SET — five player-height frames matched to the
+# five GTA references (`SimDirector.RefTour`). Named here for the same reason
+# `hunt_*` had to be: a glob that is not in this list does not exist to the
+# commit, and `frames.tsv` would then carry five rows describing pictures that
+# are not on disk — the exact provenance fault `framesStaged` was written for.
+# `nullglob` is on above, so a run that took no ref frames contributes nothing.
+if [ "$stills" = 1 ]; then files+=("$dir"/review_*.jpg "$dir"/hunt_*.jpg "$dir"/district_*.jpg "$dir"/ref_*.jpg); fi
 if [ "$frames" = 1 ]; then files+=("$dir/frames.tsv"); fi
 # The clip contact sheet is taken once, before day one, so a run can produce it
 # and no street stills at all — which is why it gets its own flag rather than

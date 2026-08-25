@@ -30,7 +30,16 @@ mkdir -p game-design/sim-shots
 # `sim-shots-stage.sh` learnt about them and this glob did not, so
 # `huntStills=2/2` came back with no `hunt_*.jpg` committed:
 # rendered, never copied, and only the verdict key said so.
-shots=(sim-run/sim-out/review_*.jpg sim-run/sim-out/hunt_*.jpg sim-run/sim-out/district_*.jpg)
+#
+# AND `ref_*` — THE SAME FAULT, CAUGHT BY GREP RATHER THAN BY A BUILD.
+# The R1 convergence set (`SimDirector.RefTour`, five player-height frames
+# matched to the five GTA references) was added to `sim-shots-stage.sh`'s list
+# and this one was three files away with an identical glob line. That is the
+# shape the paragraph above is a record of, happening again to the same pair of
+# scripts: one idea, two implementations, and the copy nobody opens is the one
+# missing the line. `refPlaced=5/5` with no `ref_*.jpg` in the repository would
+# have been the identical symptom, and it costs a round trip to see.
+shots=(sim-run/sim-out/review_*.jpg sim-run/sim-out/hunt_*.jpg sim-run/sim-out/district_*.jpg sim-run/sim-out/ref_*.jpg)
 if [ ${#shots[@]} -eq 0 ]; then
   # NOT `exit 0`, AND THE DIFFERENCE IS THE WHOLE POINT OF THE STEP.
   # Bailing here left the PREVIOUS run's verdict.txt sitting in the

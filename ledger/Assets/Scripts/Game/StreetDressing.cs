@@ -15,13 +15,20 @@ namespace Ledger.Game
     /// benches, double yellows) and this is its sibling on the two city kits
     /// — same phase, same deterministic rolls, same prop pipeline.
     ///
-    /// WHAT IS NOT HERE, so an absence cannot read as a finding: the SIGNAGE
-    /// half of the survey's order (`road-sign-empty`, `road-sign-empty-hanging`,
-    /// `road-sign-object-street`, `road-sign-object-warning`) is NOT built.
-    /// The catalogue in `KitDressing` carries `sign_post`, `sign_plate_name`
-    /// and `sign_plate_warning`, so those rows print `nothing-offered` every
-    /// run until somebody wires them — which is the honest reading and the
-    /// reason the catalogue names families nobody has called yet.
+    /// WHAT IS NOT HERE, so an absence cannot read as a finding: MOST of the
+    /// SIGNAGE half of the survey's order is still unbuilt — `road-sign-empty`,
+    /// `road-sign-empty-hanging` and `road-sign-object-warning` — so
+    /// `sign_post` and `sign_plate_warning` print `nothing-offered` every run
+    /// until somebody wires them, which is the honest reading and the reason
+    /// the catalogue names families nobody has called yet.
+    ///
+    /// THIS PARAGRAPH USED TO NAME `road-sign-object-street` AND
+    /// `sign_plate_name` IN THAT LIST AND THAT IS NO LONGER TRUE. The street
+    /// nameplates are built, in `StreetFurniture.NamePlate`, which stands the
+    /// blade through THIS file's `Stand` — the reason `Stand` is `internal`
+    /// rather than private. `sign_plate_name` therefore prints real numbers
+    /// now, and a reader who trusted this list would have gone looking for an
+    /// unwired family that is wired.
     ///
     /// SCALE IS MEASURED, NEVER ASSUMED. These FBX are not in metres — the
     /// survey derived 1 unit ~ 0.074 m from two independent call sites rather
@@ -597,7 +604,14 @@ namespace Ledger.Game
         /// files exactly one of `Placed`/`Missed`, including the case where
         /// the prefab loads but carries no renderer — an object with nothing
         /// to draw is a miss whatever the loader returned.
-        static GameObject Stand(string family, string variant, string key, Vector3 at,
+        /// INTERNAL, NOT PRIVATE, since the street nameplates. `StreetFurniture`
+        /// stands the `road-sign-object-street` blade and needed exactly this —
+        /// instantiate, normalise off measured bounds, seat, tint through the
+        /// shared repaint, strip colliders, file the outcome. Copying the shape
+        /// into that file would have been the second implementation of the one
+        /// idea, in the same batch whose whole first task was deleting a second
+        /// implementation of the lettering idiom.
+        internal static GameObject Stand(string family, string variant, string key, Vector3 at,
                                 Quaternion rot, float metresTall, Color paint, Transform parent)
         {
             var go = AssetLibrary.TryInstantiateProp(key, at, rot);

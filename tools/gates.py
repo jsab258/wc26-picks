@@ -152,6 +152,44 @@ def ordered_runs():
 
 NUMBER = r"[-+]?\d+(?:\.\d+)?"
 
+# THE VERDICT'S VALUE GRAMMAR, AND THERE IS NOW ONE COPY OF IT IN THIS FILE.
+#
+# A verdict value is a RUN of either whole bracket groups or non-space, non-
+# bracket characters. Brackets and parentheses are consumed WHOLE because they
+# are the sanctioned way to write a value containing spaces
+# (`measureWorstWhere=[nothing measured]`), and the obvious alternative —
+# whole-group OR `\S+` — loses the race whenever the value starts with a digit
+# and returns `0.45(narrowest`. The reasoning is `verdict-read.py:463-475`;
+# this is the same expression.
+#
+# IT WAS WRITTEN TWICE IN THIS FILE AND THE TWO COPIES DISAGREED. `series()`
+# had the correct run-of-either; `KEY_VALUE`, which is what `--constant`
+# harvests with, had `[^\s\[\(]+` — a class that EXCLUDES `[`, so a value that
+# starts with a bracket matched nothing at all and the key was invisible.
+# Measured over the 326 kept runs: 110 keys were missing from the harvest, and
+# one of them was `findingKinds`, which the old harvest reported as a permanent
+# `none` because the 17 runs where it says `[absurdScale:1@pallet]` could not
+# match. One idea, two implementations, and the one nobody looked at was the
+# one missing a line — so there is one now.
+#
+# STILL THREE COPIES ACROSS tools/: this one, and two in `verdict-read.py`
+# (`main` and `spaced_values`). A shared `tools/verdictfmt.py` is the right
+# home; that file is not this agent's to touch, so the duplication is REPORTED
+# rather than half-removed.
+VALUE = r"(?:\[[^\]]*\]|\([^)]*\)|[^\s\[\(])+"
+
+
+def key_pattern(key):
+    """`key=<value>` anchored so `notoriety` cannot match `notorietyPeak`."""
+    return r"(?<![\w])" + re.escape(key) + r"=(" + VALUE + r")"
+
+
+# EVERY `key=value` IN A VERDICT, harvested with the grammar above. Note what
+# consuming brackets whole does to the harvest: `k=1.4[lit=14.34% all=64,58,44]`
+# now yields `k` only, where the old class yielded `all=64,58,44` as though
+# `all` were a top-level verdict key. Seventeen such phantom keys disappeared.
+KEY_VALUE = r"(?<![\w])([A-Za-z][\w]*)=(" + VALUE + r")"
+
 
 def series(key):
     """Every landed value of one verdict number, newest run first.
@@ -191,8 +229,7 @@ def series(key):
     # comment beside the original in `verdict-read.py` also records that the
     # obvious version — whole-group OR non-space — loses the race whenever the
     # value starts with a digit. A RUN of either is what holds.
-    pat = re.compile(r"(?<![\w])" + re.escape(key)
-                     + r"=((?:\[[^\]]*\]|\([^)]*\)|[^\s\[\(])+)")
+    pat = re.compile(key_pattern(key))
     # AND IF THE NAME MEANS TWO THINGS, SAY SO BEFORE PRINTING ANY OF IT.
     #
     # `search` takes the FIRST match in the whole file. That is fine while a
@@ -338,13 +375,107 @@ def words(key, hits):
     return 0
 
 
-KEY_VALUE = r"(?<![\w])([A-Za-z][\w]*)=([^\s\[\(]+)"
-
 # Values that mean "this did not happen". A key stuck on one of these across
 # every run is the shape worth reading; a key stuck on a number that is not one
 # of these is usually a constant somebody printed, which is noise here.
-DID_NOT_HAPPEN = {"0", "0.0", "0.00", "0.000", "0.0000",
-                  "False", "None", "none", "-1"}
+DID_NOT_HAPPEN_NUMBERS = {"0", "0.0", "0.00", "0.000", "0.0000", "-1"}
+
+# THE WORDS, AND THE FOUR NEW ONES ARE THE WHOLE REASON THIS SWEEP CAN SEE THE
+# DRESSING SURFACE AT ALL.
+#
+# `nothing-offered`, `nothing-measured`, `nothing-flagged` and `nothing-refused`
+# are the project's deliberate way of distinguishing *no call was ever made*
+# from *a real zero* — rule 3b's repair, in words rather than a number, so a
+# never-ran branch cannot read as clean (`Core/KitDressing.cs:103-111`;
+# `ledger/verify.py:2218` and `verdict-read.py:407` use the same convention).
+# They were absent here, which defeated this tool at exactly the place it is
+# most needed: a key sitting at `nothing-offered` for a hundred runs IS a
+# permanently-dead branch, and `--constant` read the word as a value that had
+# changed and moved on. Audit finding C6, `game-design/agent-reports/
+# kit-dressing-audit.md`.
+#
+# They are kept apart from the numbers because they behave differently below:
+# a WORD is allowed to carry its denominator (`nothing-flagged/12`), a zero is
+# not (`0/12` is a ratio whose other half moves and means something else).
+DID_NOT_HAPPEN_WORDS = {"False", "None", "none",
+                        "nothing-offered", "nothing-measured",
+                        "nothing-flagged", "nothing-refused"}
+
+# The union, under the name the rest of the project greps for.
+DID_NOT_HAPPEN = DID_NOT_HAPPEN_NUMBERS | DID_NOT_HAPPEN_WORDS
+
+# `[a:1,b:2,+3more]` — the emitter's own announced cap. It is not a row, and a
+# reader that treats it as one silently drops the whole key out of the row
+# sweep, which is a cap biting a cap.
+CAP_FIELD = re.compile(r"^\+\d+more$")
+
+
+def unwrap(value):
+    """Strip enclosing bracket or paren pairs that wrap the WHOLE value.
+
+    `[none]` -> `none`, `(0.1,0.2)` -> `0.1,0.2`, `[[none]]` -> `none` (which
+    `textFlatWorst` really does emit, once, in 171 runs). Bounded, because an
+    unbounded loop over attacker-shaped input is a hang and this reads files a
+    Windows runner wrote.
+    """
+    for _ in range(4):
+        if len(value) > 1 and ((value[0] == "[" and value[-1] == "]")
+                               or (value[0] == "(" and value[-1] == ")")):
+            value = value[1:-1]
+        else:
+            break
+    return value
+
+
+def split_fields(text, sep=","):
+    """Split on `sep` at bracket depth zero — `split_gates`' idea for rows."""
+    out, depth, cur = [], 0, []
+    for ch in text:
+        if ch in "[(":
+            depth += 1
+        elif ch in "])":
+            depth -= 1
+        if ch == sep and depth <= 0:
+            out.append("".join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+    out.append("".join(cur))
+    return [f for f in out if f]
+
+
+def did_not_happen(value):
+    """Does this value MEAN the thing it measures has not occurred?
+
+    THREE READINGS, AND EACH ONE IS A SHAPE THE VERDICT ACTUALLY EMITS. It is a
+    parse, not a guess at intent — the judgement of whether a dead branch is a
+    fault counter doing its job or a system nobody wired stays a person's, which
+    is what `constant`'s docstring promises.
+
+      1. THE WHOLE VALUE, brackets stripped. `0`, `False`, `[none]`,
+         `[nothing-offered]`.
+      2. A SENTINEL WORD CARRYING ITS DENOMINATOR — `nothing-flagged/12`,
+         `[none]/0of8`. The word is the value; the number after it is the
+         denominator rule 3b demands beside every zero, and it MOVES while the
+         branch stays dead (twelve lamps placed, then nineteen, and not one flag
+         call either time). Only a WORD gets this reading: `0/12` is a ratio,
+         its other half is a real measurement, and treating it as never-happened
+         would swallow most of the verdict.
+      3. A BRACKETED LIST WHOSE EVERY ROW IS DEAD —
+         `[sign_post:nothing-offered,sign_plate_name:nothing-offered]`. A list
+         of dead rows is dead; one live row makes the key live, and the dead
+         rows inside it are what the row sweep in `constant` reports separately.
+    """
+    whole = unwrap(value)
+    if whole in DID_NOT_HAPPEN:
+        return True
+    if unwrap(whole.split("/", 1)[0]) in DID_NOT_HAPPEN_WORDS:
+        return True
+    if value.startswith("[") and value.endswith("]"):
+        fields = [f for f in split_fields(whole) if not CAP_FIELD.match(f)]
+        if fields:
+            return all(did_not_happen(f.partition(":")[2] or f) for f in fields)
+    return False
 
 
 # ZEROS SOMEBODY HAS ALREADY READ AND UNDERSTOOD, with a one-line reason and
@@ -462,45 +593,204 @@ def constant(minimum_runs=20):
     is worse: a gate that never fires at least stays green and honest, while a
     reading whose subject never occurs prints a number that looks like
     coverage.
+
+    AND IT WAS BLIND IN THE TWO PLACES IT IS MOST NEEDED (audit finding C6).
+    A key stuck on the word `nothing-offered` — the project's deliberate way of
+    saying no call was ever made — read as a value that had changed, and a key
+    whose value starts with `[` was not harvested at all. Both are fixed above:
+    `DID_NOT_HAPPEN_WORDS` carries the four sentinels, `VALUE` is the one value
+    grammar, and `scan` reads the ROWS inside a bracketed list so a dead family
+    inside a live key is reportable. What did NOT change is the judgement: this
+    still cannot tell a fault counter from an unentered branch and still does
+    not try.
     """
     runs = ordered_runs()
-    if len(runs) < minimum_runs:
-        print(f"gates --constant: only {len(runs)} measuring run(s) kept; "
-              f"a key that has not varied over fewer than {minimum_runs} has "
-              f"not been given a chance to. Nothing to say yet.")
-        return 0
-    seen = {}
-    for _, path in runs:
-        for k, v in re.findall(KEY_VALUE, read(path)):
-            seen.setdefault(k, set()).add(v)
-    stuck = sorted(k for k, vs in seen.items()
-                   if len(vs) == 1 and next(iter(vs)) in DID_NOT_HAPPEN)
+    texts = [(sha, read(path)) for sha, path in runs]
+    constant_report(texts, minimum_runs=minimum_runs)
+    # EXIT 0 WHATEVER IT FINDS. This is a READING, not a gate: a dead branch is
+    # a thing to go and look at, and failing a commit on one would block the
+    # commit that wires it up.
+    return 0
+
+
+class Scan:
+    """What one sweep over a set of verdicts found. Pure data, no printing.
+
+    THE ARITHMETIC LIVES WHERE THE TEST CAN REACH IT. `--constant` used to be
+    one function that globbed the runs directory, counted, and printed, so the
+    only way to exercise it was to have a runs directory — which means the
+    accepting and rejecting cases can only be produced by the project being in
+    a particular state, and rule 5b's four blocked guards are what that costs.
+    `scan()` takes TEXT. The selftest hands it verdicts it authored.
+    """
+
+    def __init__(self):
+        self.runs = 0
+        self.values = {}        # key -> set of every value seen
+        self.key_runs = {}      # key -> how many runs carry it  (its denominator)
+        self.rows = {}          # (key, row name) -> set of every row value seen
+        self.row_runs = {}      # same -> how many runs carry that row
+        self.bracket_keys = set()   # keys whose value is a bracketed list
+        self.row_keys = set()       # ... of which parse as `name:value` rows
+        self.capped_keys = set()    # ... whose emitter said `+Nmore`
+
+
+def scan(texts):
+    """Harvest every key, and every ROW inside every bracketed key.
+
+    THE ROW HALF IS THE OTHER HALF OF FINDING C6. A flat key can go dead and be
+    reported; a FAMILY inside `kitBy=[lamp:41/44/0/0refused,sign_post:nothing-
+    offered]` cannot, because the key as a whole is moving. The audit's words:
+    "a dead row in `kitBy` will never be surfaced by the tool this project
+    relies on for exactly that". Rows are `name:value` at bracket depth zero.
+
+    A field matching `+Nmore` is the EMITTER'S OWN ANNOUNCED CAP, not a row.
+    Dropping the key on seeing one would be this tool silently losing a whole
+    family because the emitter told the truth about a cap, so the key is kept,
+    the field is not counted as a row, and `capped_keys` records that rows were
+    hidden from this sweep upstream — which the report prints.
+    """
+    s = Scan()
+    for _, text in texts:
+        s.runs += 1
+        here, rows_here = {}, {}
+        for k, v in re.findall(KEY_VALUE, text):
+            here.setdefault(k, set()).add(v)
+            if not (v.startswith("[") and v.rfind("]") > 0):
+                continue
+            s.bracket_keys.add(k)
+            fields = split_fields(unwrap(v[:v.rfind("]") + 1]))
+            capped = [f for f in fields if CAP_FIELD.match(f)]
+            fields = [f for f in fields if not CAP_FIELD.match(f)]
+            if capped:
+                s.capped_keys.add(k)
+            if not fields or not all(":" in f for f in fields):
+                continue
+            s.row_keys.add(k)
+            for f in fields:
+                name, _, val = f.partition(":")
+                rows_here.setdefault((k, name), set()).add(val)
+        for k, vs in here.items():
+            s.values.setdefault(k, set()).update(vs)
+            s.key_runs[k] = s.key_runs.get(k, 0) + 1
+        for rk, vs in rows_here.items():
+            s.rows.setdefault(rk, set()).update(vs)
+            s.row_runs[rk] = s.row_runs.get(rk, 0) + 1
+    return s
+
+
+def constant_report(texts, minimum_runs=20, out=print):
+    """Print the sweep. Returns the `Scan` so a test can assert on it."""
+    s = scan(texts)
+
+    # NEVER-EXAMINED PRINTS THE WORDS. `0 keys stuck` and `no verdict was ever
+    # opened` are the same sentence to a reader skimming, and the second one is
+    # the tool being broken. rule 3b: the default text for never-ran is the
+    # words, so that case cannot read as clean.
+    if s.runs == 0:
+        out("gates --constant: nothing measured — 0 measuring run(s) read, "
+            "0 key(s) harvested.")
+        out("  Either no verdict has landed or every kept run says NO PLAYER "
+            "LOG. This is not a clean result.")
+        return s
+    if s.runs < minimum_runs:
+        out(f"gates --constant: nothing measured — only {s.runs} measuring "
+            f"run(s) kept, {len(s.values)} key(s) harvested.")
+        out(f"  A key that has not varied over fewer than {minimum_runs} runs "
+            f"has not been given a chance to.")
+        return s
+
+    stuck = sorted(k for k, vs in s.values.items()
+                   if all(did_not_happen(v) for v in vs))
     known = EXPLAINED_ZEROS
     fresh = [k for k in stuck if k not in known]
     settled = [k for k in stuck if k in known]
-    print(f"gates --constant: {len(runs)} runs, {len(seen)} keys, "
-          f"{len(stuck)} that have never been anything but zero/false/none — "
-          f"{len(fresh)} unexamined, {len(settled)} already explained.")
-    print("Read each one and ask which it is: a fault counter doing its job, "
-          "or a branch nothing has ever entered.\n")
-    for k in fresh:
-        print(f"  {k}={next(iter(seen[k]))}")
+
+    def shown(key):
+        """The value, and the KEY'S OWN DENOMINATOR beside it.
+
+        `a3clean=0` over 326 runs and `a3clean=0` over 7 runs are different
+        claims and the old output printed them identically. A key present in a
+        handful of runs has had a handful of chances to move, which is the
+        sample-size half of `crowdRead` — the metric that produced two opposite
+        published conclusions in one hour off a 24-body and a 6-body sample.
+        """
+        vs = sorted(s.values[key])
+        v = vs[0] if len(vs) == 1 else "/".join(vs[:3]) + ("..." if len(vs) > 3 else "")
+        return f"{key}={v}", f"in {s.key_runs[key]}/{s.runs} runs"
+
+    out(f"gates --constant: {s.runs} measuring run(s) read, {len(s.values)} "
+        f"key(s) harvested, {len(stuck)} that have never been anything but "
+        f"zero/false/none/nothing-* — {len(fresh)} unexamined, "
+        f"{len(settled)} already explained.")
+    out(f"  ({len(s.bracket_keys)} of those keys carry a bracketed list; "
+        f"{len(s.row_keys)} of those parse as name:value rows, giving "
+        f"{len(s.rows)} row(s) swept below.)")
+    out("Read each one and ask which it is: a fault counter doing its job, "
+        "or a branch nothing has ever entered.\n")
+
+    # THIN EVIDENCE IS SEPARATED, NOT DROPPED. Everything still prints: a
+    # filter here would be this tool doing what rule 3b's truncation warning
+    # forbids. The boundary is `minimum_runs`, the number this function already
+    # applies to the whole corpus, used at the granularity where it bites —
+    # not a new bound. Measured over the 326 kept runs before it was written:
+    # the stuck keys' own run counts are 7, 8, 9, 9, then 59 and up, so it
+    # separates four keys from sixty-eight and the gap is real rather than
+    # chosen.
+    thick = [k for k in fresh if s.key_runs[k] >= minimum_runs]
+    thin = [k for k in fresh if s.key_runs[k] < minimum_runs]
+    for k in thick:
+        val, den = shown(k)
+        out(f"  {val:<44} {den}")
+    if thin:
+        out(f"\n  ---- {len(thin)} of the {len(fresh)} carried by fewer than "
+            f"{minimum_runs} runs — too few chances to move to be called "
+            f"constant ----")
+        for k in thin:
+            val, den = shown(k)
+            out(f"  {val:<44} {den}")
+
     if settled:
-        print(f"\n  ---- {len(settled)} already read and understood; "
-              f"the reason is in the code, not here ----")
+        out(f"\n  ---- {len(settled)} already read and understood; "
+            f"the reason is in the code, not here ----")
         for k in settled:
-            print(f"  ({k}={next(iter(seen[k]))} — {known[k]})")
+            val, den = shown(k)
+            out(f"  ({val} — {known[k]}) {den}")
+
     # A KEY THAT LEAVES THE LIST IS A REASON THAT HAS EXPIRED. If somebody
     # explains a zero and it later starts moving, the explanation is stale and
     # nobody would ever be told — the same decay the reach ledger's reasons
     # have, which this project has now been bitten by three times.
     gone = sorted(k for k in known if k not in stuck)
     if gone:
-        print(f"\n  ---- {len(gone)} explained key(s) NO LONGER STUCK — the "
-              f"reason has expired and wants deleting ----")
+        out(f"\n  ---- {len(gone)} explained key(s) NO LONGER STUCK — the "
+            f"reason has expired and wants deleting ----")
         for k in gone:
-            print(f"  {k} moved: {known[k]}")
-    return 0
+            where = (f"now {sorted(s.values[k])[:4]} in {s.key_runs[k]}/{s.runs} runs"
+                     if k in s.values else "no longer in any kept verdict")
+            out(f"  {k} moved: {known[k]}  [{where}]")
+
+    # THE ROWS. A separate block because it answers a different question, with
+    # its own denominator: `0 dead rows` beside `177 rows swept` is a reading,
+    # and `0 dead rows` on its own is indistinguishable from a sweep that
+    # opened nothing.
+    dead_rows = sorted(rk for rk, vs in s.rows.items()
+                       if all(did_not_happen(v) for v in vs))
+    out(f"\n  ---- rows inside bracketed keys: {len(dead_rows)} never anything "
+        f"but zero/false/none/nothing-*, of {len(s.rows)} row(s) swept across "
+        f"{len(s.row_keys)} key(s) ----")
+    if not dead_rows:
+        out("  none — every row that was swept has moved at least once. "
+            "(Not a cap: no row list is truncated by this tool.)")
+    for key, name in dead_rows:
+        vs = sorted(s.rows[(key, name)])
+        v = vs[0] if len(vs) == 1 else "/".join(vs[:3])
+        out(f"  {key}[{name}]={v:<28} in {s.row_runs[(key, name)]}/{s.runs} runs")
+    if s.capped_keys:
+        out(f"  ({len(s.capped_keys)} bracketed key(s) printed their own "
+            f"`+Nmore` cap in at least one run, so rows exist that no sweep "
+            f"here can see: {', '.join(sorted(s.capped_keys))})")
+    return s
 
 
 def flaky():
@@ -671,7 +961,164 @@ def pending():
     return 0
 
 
+# ---- THE SELFTEST'S FIXTURES -----------------------------------------------
+#
+# SYNTHETIC, AND THAT IS NOT A CONVENIENCE. Three rejecting fixtures in this
+# project were pinned to real files and had to be unpinned, because a fixture
+# pinned to a real subject goes red the day the PROJECT improves — doing the
+# work the tool prompts must never break the tool. Nothing below names a real
+# verdict, a real run, or a real key that only exists today; the shapes are
+# copied from `Core/KitDressing.cs`'s emit, which is what the sweep will meet.
+#
+# Twenty verdicts, because `constant_report` refuses to summarise fewer than
+# `minimum_runs`=20 and the accepting case has to get past that.
+def _fixture_runs():
+    """Twenty synthetic verdicts, newest first. What each key is FOR:
+
+      selftestMoved      MOVED, plain numbers            -> must NOT be reported
+      selftestFilled     `nothing-offered` then `17/19`  -> must NOT be reported
+                         (a family that starts empty and later fills — the
+                         realistic shape, and the one a naive word-match eats)
+      selftestDead       `nothing-offered` every run     -> MUST be reported
+      selftestFlagDead   `nothing-flagged/12` .. `/19`   -> MUST be reported
+                         (the word carrying a denominator that MOVES)
+      selftestRowsMove   `[a:1,b:2]` -> `[a:2,b:2]`      -> key must NOT be
+                         reported, and row `a` must not be either
+      selftestRowsDead   `[a:nothing-offered,b:0]`       -> MUST be reported,
+                         and both rows with it
+      selftestMixedRows  `[live:41/44,dead:nothing-offered]` with `live`
+                         moving  -> the KEY must not be reported and the ROW
+                         `dead` must be: the whole point of the row sweep
+      selftestCapped     `[a:1,b:2,+3more]`              -> the cap is not a
+                         row, and the key stays in the sweep
+      selftestZeroRatio  `0/40` every run                -> must NOT be
+                         reported. A REAL ZERO CARRYING ITS DENOMINATOR IS A
+                         MEASUREMENT, not a dead branch: forty sites were
+                         offered and looked at. The sentinel words exist
+                         precisely to be distinguishable from this, and a
+                         classifier that reads a leading `0` as never-happened
+                         re-collapses the distinction C6 is about — and would
+                         swallow most of the verdict, where `n/m` is the
+                         commonest shape there is.
+    """
+    runs = []
+    for i in range(20):
+        newest = (i == 0)
+        runs.append((f"fix{i:04d}", " ".join([
+            "# Sim verdict — fix @1787000000",
+            f"selftestMoved={i}",
+            "selftestFilled=" + ("17/19" if i < 3 else "nothing-offered"),
+            "selftestDead=nothing-offered",
+            f"selftestFlagDead=nothing-flagged/{12 + i}",
+            f"selftestRowsMove=[a:{1 + (i % 2)},b:2]",
+            "selftestRowsDead=[a:nothing-offered,b:0]",
+            f"selftestMixedRows=[live:{40 + i}/44,dead:nothing-offered]",
+            "selftestCapped=[a:1,b:2,+3more]",
+            "selftestZeroRatio=0/40",
+            "pass=True" if newest else "pass=True",
+        ])))
+    return runs
+
+
+def selftest():
+    """Both outcomes, ACCEPTING CASE FIRST.
+
+    The expensive failure for a sweep like this is not that it misses a dead
+    key. It is that it calls a LIVE key dead, because then every reading it
+    prints is suspect and the next person stops opening it — and four guards in
+    this project passed their failure case, had never been run against the case
+    they must accept, and each one blocked the good case rather than the bad.
+
+    So: what must NOT be reported is asserted first, then what must be, then
+    the denominators, then the never-examined wording.
+    """
+    ok = True
+
+    def bad(msg):
+        nonlocal ok
+        ok = False
+        print("gates --selftest: " + msg)
+
+    lines = []
+    s = constant_report(_fixture_runs(), out=lines.append)
+    text = "\n".join(lines)
+    reported = {ln.strip().split("=", 1)[0].strip("(")
+                for ln in lines if ln.startswith("  ") and "=" in ln}
+
+    # ---- 1. THE ACCEPTING CASE: A KEY THAT MOVED IS NOT CALLED CONSTANT ----
+    for key, why in (("selftestMoved", "plain numbers 0..19"),
+                     ("selftestFilled", "`nothing-offered` in 17 runs and "
+                                        "`17/19` in 3 — a family that filled"),
+                     ("selftestRowsMove", "bracketed rows that change"),
+                     ("selftestMixedRows", "one live row and one dead one"),
+                     ("selftestZeroRatio", "`0/40` — a real zero carrying the "
+                                           "denominator rule 3b asks for")):
+        if key in reported:
+            bad(f"FAILED THE CASE IT MUST ACCEPT — {key} ({why}) was reported "
+                f"as never having moved.")
+    if ("selftestRowsMove", "a") in [rk for rk in s.rows if
+                                     all(did_not_happen(v) for v in s.rows[rk])]:
+        bad("FAILED THE CASE IT MUST ACCEPT — the row selftestRowsMove[a] "
+            "changes 1<->2 and was called dead.")
+
+    # ---- 2. A SENTINEL WORD IN EVERY RUN IS REPORTED ----
+    for key, why in (("selftestDead", "`nothing-offered` in all 20 runs"),
+                     ("selftestFlagDead", "`nothing-flagged/N` in all 20 runs, "
+                                          "denominator moving 12..31"),
+                     ("selftestRowsDead", "every row dead")):
+        if key not in reported:
+            bad(f"FAILED THE CASE IT MUST REJECT — {key} ({why}) was not "
+                f"reported. This is exactly finding C6.")
+
+    # ---- 3. ROWS: a dead family inside a LIVE key is surfaced ----
+    dead_rows = {rk for rk, vs in s.rows.items()
+                 if all(did_not_happen(v) for v in vs)}
+    if ("selftestMixedRows", "dead") not in dead_rows:
+        bad("FAILED — the dead row inside a moving bracketed key was not "
+            "surfaced, which is the half of C6 the flat keys cannot reach.")
+    if ("selftestMixedRows", "live") in dead_rows:
+        bad("FAILED THE CASE IT MUST ACCEPT — the live row inside the same "
+            "key was called dead.")
+    if "selftestCapped" not in s.row_keys or "selftestCapped" not in s.capped_keys:
+        bad("FAILED — `+3more` was read as a row name, or the announced cap "
+            "was not recorded; either way a whole key drops out of the sweep.")
+    if ("selftestCapped", "+3more") in s.rows:
+        bad("FAILED — the emitter's own cap marker was harvested as a row.")
+
+    # ---- 4. THE DENOMINATORS, and the never-examined wording ----
+    for want in (f"{s.runs} measuring run(s) read", "key(s) harvested",
+                 "row(s) swept", "in 20/20 runs"):
+        if want not in text:
+            bad(f"FAILED — the report does not print `{want}`. A zero with no "
+                f"denominator cannot tell nothing from fine.")
+    empty = []
+    constant_report([], out=empty.append)
+    if "nothing measured" not in "\n".join(empty):
+        bad("FAILED — a sweep over no runs must print the words `nothing "
+            "measured`, not a clean-looking zero.")
+    thin = []
+    constant_report(_fixture_runs()[:3], out=thin.append)
+    if "nothing measured" not in "\n".join(thin):
+        bad("FAILED — three runs is not a corpus and must print the words.")
+
+    if ok:
+        print(f"gates --selftest: ok — over {s.runs} synthetic verdicts and "
+              f"{len(s.values)} keys:")
+        print("  ACCEPTS (not reported): selftestMoved, selftestFilled "
+              "(nothing-offered -> 17/19), selftestRowsMove, selftestMixedRows")
+        print("  REPORTS: selftestDead, selftestFlagDead (nothing-flagged/12"
+              "..31), selftestRowsDead")
+        print(f"  rows: {len(dead_rows)} dead of {len(s.rows)} swept across "
+              f"{len(s.row_keys)} bracketed key(s), including "
+              "selftestMixedRows[dead] inside a key that moves")
+        print("  denominators print per key; 0 runs and 3 runs both print "
+              "`nothing measured`")
+    return 0 if ok else 2
+
+
 def main():
+    if "--selftest" in sys.argv:
+        return selftest()
     if "--constant" in sys.argv:
         return constant()
     if "--flaky" in sys.argv:

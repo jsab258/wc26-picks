@@ -97,6 +97,39 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    mandatory director trigger, so this waits for the next spawn rather than
    being edited here — but it must not wait long: a rules file that describes
    a hole as open when it is closed sends the next session to build it twice.
+   **AND THE WATCHDOG HAS THE SAME HOLE, UNFIXED.** Its DAILIES CHECK reads
+   *"if no `studio-director` row in the last 12 hours, spawn"* — a ROW, which
+   is attendance. A director killed mid-ruling satisfies it exactly as a
+   completed review does, which is the fault just closed in the commit gate,
+   still live one layer out. `verify.py` already has the machinery to ask the
+   better question (a stamped ruling newer than the reference). Same spawn.
+
+1. **THE VALUE INVERSION IS A DAYLIGHT FAULT, NOT A GRADE FAULT — read off
+   the 71316fa pair before any number, which is the standing rule.** At NIGHT
+   the structure is CORRECT: dark sky, dark ground, bright sodium points, one
+   wet amber pool carrying the frame. At NOON it is inverted — near-white
+   paving under a near-black storm sky, in both the new frame and the one
+   before it. **The same grade produces a right answer at night and a wrong
+   one at noon**, which localises the fault to the daylight path (aperture x
+   dome authoring) and away from `FilmGrade` generally. That is a narrowing,
+   not a conclusion: a picture is good evidence something is WRONG and poor
+   evidence of WHAT, and four correct things here were once condemned off one
+   screenshot. **`Core/ValuePanel` is being built to settle it with bands
+   rather than eyes** — do not move a lever before it lands and prints a
+   series (rule 2; the aperture moves ONCE, off a post-fix printed series).
+
+1. **THE DRESSING LANDED AND MEASURED — 736 of 739 placed, ZERO missed, all
+   gates green, 6/6 lamp forms, cost inside the ~1ms noise floor.** But TWO
+   things the frame and the numbers say, and both are about REPETITION, which
+   is the tell the GTA bar exists to kill. (i) **`yard_fence` is 163 of 166 on
+   the SHORTEST 3.52m panel; `1x2` and `1x3` placed ZERO and `1x4` placed
+   three.** The yard-depth probe classifies nearly every site as shallow, so
+   the alleys get 163 identical panels — more draw calls and a visibly
+   repeating boundary. Read the probe's thresholds against the measured yard
+   census before touching the placement. (ii) **The noon frame shows the lamp
+   MIX working and almost none of the clutter**, because one street corner
+   cannot see 736 objects — which is the argument for the five player-height
+   convergence cameras, not an argument that the clutter is missing.
 
 1. **DIRECTOR RULED THE DRESSING BATCH, 25 Aug — `decision-dressing-batch.md`.**
    **A: commit now, commit is not dispatch.** Re-DISPATCH stays barred until
@@ -139,13 +172,6 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    carries a WRITE SENTRY that refuses any write under `ledger/`. Its
    denominator is a finding: **one** conditional type over 88 Game files.
 
-1. **NOTE: `06f51f39`'s message says the comment sweep is incomplete —
-   FALSE; it finished and landed in that same commit.** Do not re-brief it.
-   Asserted from a builder's last STREAMED line rather than the disk. **This
-   keeps happening: on 25 Aug three more agents' last lines read as
-   unfinished ("Now the documents", "I'll start by reading") when two had
-   finished and one had written nothing. A streamed line is a comment about
-   the work, not the work — check the disk, every time.**
 
 1. **THE DRY TOUR LANDED; ALBEDO IS RULED OUT.** Every `district_*` row
    before the day-5 move is incomparable. `GroundGrade` does NOT move
@@ -222,26 +248,6 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **THE 7/7 DISTRICT DARKENING: BASELINE VOIDED BY THE DRY TOUR, DO NOT
-   BISECT ACROSS IT.** All seven districts had moved -0.0005 to -0.0050 and
-   `day1_noon` -0.0065 in one direction, with `shadowStrength` moving the
-   WRONG way (0.93 -> 0.85 lightens), so the cause was something else in the
-   batch and the plan was to re-read then bisect. **That plan is dead as
-   written:** item 1 moves the tour from day 3 to day 5, so the pre-change
-   pinned rows are a different regime and a bisect spanning the break would
-   be reading weather as a code change. Restart the baseline from the first
-   dry landing. (`frame-drift` labels every row, `ref-bench` marks pose-stable
-   stills `*`; account in `roadmap-history.md`.) It did show the instrument
-   working: a consistent 0.003 across seven independent shots is a thing the
-   street frames could never have shown.
-1. **EIGHTEEN GATES CANNOT NAME THEIR OWN FAILURE — RATCHETED AT 18 by
-   `tools/gate-detail.py` in `verify`** (account in `roadmap-history.md`).
-   Fix each bare gate's operands as it goes red, not en masse.
-
-1. ~~**SIX TOOLS COMPARED A GIT ABBREVIATION TO A RUN FILENAME BY
-   EQUALITY**~~ — **FIXED at all six sites** (account in
-   `roadmap-history.md`). `verify` warns that the abbreviation is 8 chars and
-   run stems are 7, so compare by PREFIX and never by equality.
 1. **THE SIM HUNG BEFORE THE DAY-1 BEAT ON `e8c5949` — DISPATCHING IS
    BARRED UNTIL IT IS FIXED.** Measured: healthy runs reach `dayMark day=1`
    at ~20s, frame ~306, **5 of 5**; this one reached **zero** beats in
@@ -292,17 +298,12 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    the centre-third foot reading, and white pills with no committed still.
 
 1. **THE INQUIRY RUNS NOW; TWO THINGS GATED ON IT STILL DO NOT.** *(moat:
-   information. Not started — stage 1 has startable work.)* CLAUDE.md said
-   the detective "has never once opened an investigation in the entire
-   recorded history of this project"; read 24 Aug, **`inquiry=Manhunt`**.
-   Corrected in place, because that sentence would send the next session at
-   work already running. **Still zero and now better specified:**
-   `summonsTaken=0` and `redirectRelief=0.00` WHILE the inquiry reaches
-   Manhunt — so the documented phone-line cause for `summonsTaken` stands
-   and the inquiry cause does not; the two had been read as one.
-   *(`findingKinds=none` is NOT part of this — it is `SceneAudit`'s, where
-   `clean=True findings=0` is a fault counter working. Checked after
-   guessing otherwise.)*
+   information)* `inquiry=Manhunt` lands, but `summonsTaken=0` and
+   `redirectRelief=0.00` sit at zero — the latter in **248 of 326** runs on
+   tonight's `--constant` sweep, which now sees sentinel words and bracketed
+   rows (79 never-moved keys of 1347 harvested, 177 rows swept). The phone-line
+   cause stands; the inquiry cause does not, and the two were read as one.
+
 
 1. **STAGE 2 (SPEECH): THE RUNTIME WAS NEVER THE PROBLEM — IT IS THE MODEL.**
    *(not started; stage 1 has startable work. The rule-12 half is DONE.)*
@@ -323,11 +324,6 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    Open: `patrolOnBeatMean=0.00` over 3 shots vs `0.18` over 17 — zero of
    three separates nothing. A PARKED beacon reads where six crossings do not.
 
-1. **THE DISTANT SKYLINE — EVERY OLD READING IS VOID (25 Aug).** The twelve
-   glass towers it measured were retired as a premise violation; 21 period
-   blocks replace them. **The METHOD transfers:** measure a NAMED object via
-   `SurfaceUnder`, never a screen patch — a patch cannot say whether it
-   caught tower or the sky beside it. Re-take once the blocks land.
 
 1. **THE FETCHED MODELS HAVE A REACH LEDGER: `tools/prop-reach.py`, in
    `verify`.** 213 models on disk; **73 named as of the dressing batch**, up

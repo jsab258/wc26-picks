@@ -1807,6 +1807,13 @@ namespace Ledger.Game
             {
                 _tookTour = true;
                 DistrictTour();
+                // AND THE FIVE REFERENCE-COMPOSITION CAMERAS, IN THE SAME
+                // INSTANT. No time step runs between the two tours, so the
+                // seven aerial rows and the five eye-level rows of the
+                // convergence panel are the same sun, the same weather and
+                // the same world state — the only way the two populations can
+                // be read on one line. See `RefTour`.
+                if (!_tookRefTour) { _tookRefTour = true; RefTour(); }
             }
             // ONE DUSK FRAME PER RUN (M17.10 V6). The dailies photograph
             // noon and 23:00, so the crossover — where the dusk warmth and
@@ -9486,13 +9493,13 @@ namespace Ledger.Game
                                          QueryTriggerInteraction.Ignore)) continue;
                     // Walls only: a road faces up and its lighting is a
                     // different question with a different correct answer.
-                    if (Mathf.Abs(Vector3.Dot(hit.normal, Vector3.up)) > 0.35f) continue;
+                    if (Mathf.Abs(Vector3.Dot(hit.normal, Vector3.up)) > WallFaceDot) continue;
                     float toSun = Vector3.Dot(hit.normal, sunward);
-                    if (toSun < 0.30f) continue;          // the sun never lights it
+                    if (toSun < SunFaceDot) continue;     // the sun never lights it
                     // Offset along the normal so the surface does not shadow
                     // itself at the origin.
                     bool blocked = Physics.Raycast(hit.point + hit.normal * 0.05f,
-                                                   sunward, 60f, ~0,
+                                                   sunward, SunRayM, ~0,
                                                    QueryTriggerInteraction.Ignore);
                     if (blocked && !haveShade)
                     { shadeVp = vp; shadeOn = SurfaceUnder(cam, vp); haveShade = true; }
@@ -10408,6 +10415,222 @@ namespace Ledger.Game
         /// the only thing that separates them.
         int _tourResited, _tourResiteAsked;
 
+
+        /// True while the five reference-composition cameras are shooting.
+        /// Kept SEPARATE from `_touring` deliberately: `_touring` is what
+        /// makes `GroundMaskRead` fire, and that instrument's `groundMaskAcross`
+        /// is by name a statistic OF THE SEVEN DISTRICT SHOTS. Five more
+        /// shots joining its pools would be a regime change no aggregate over
+        /// its landed history could see. What the two flags share is only the
+        /// file-naming rule: a tour frame writes its own name.
+        bool _refTour;
+        bool _tookRefTour;
+
+        /// How many of the five ref cameras found their named junction, over
+        /// how many were asked for. Cumulative over the one tour, read on the
+        /// done line.
+        ///
+        /// THE DENOMINATOR IS THE POINT (rule 3b), and it is the same trap
+        /// `tourResited` exists for: `RefVantage` falls back to the origin
+        /// when a junction id does not resolve, and a camera at the origin
+        /// photographs the Hook's founding cross whatever it was asked for.
+        /// `refResited=5/5` is the only thing that separates five matched
+        /// compositions from five pictures of the same pub.
+        int _refPlaced, _refAsked;
+
+        /// FIVE PLAYER-HEIGHT CAMERAS MATCHED TO THE FIVE REFERENCE
+        /// COMPOSITIONS — R1, ordered by `decision-ground-albedo.md` §4 of
+        /// "the visual plan is REPLACED". Committed every run as
+        /// `ref_1..ref_5`. Aerial stills stop being judgement frames.
+        ///
+        /// WHY EYE LEVEL IS THE WHOLE POINT. Every one of the five GTA frames
+        /// in `game-design/reference/` is shot at player height, and until
+        /// this landed not one judgement still in this project was: the seven
+        /// `district_*` frames are 14m up and the four `review_day*` frames
+        /// are the review camera's elevated vantage. `review_street.jpg` is
+        /// the single exception and it stands wherever a bot happened to walk.
+        ///
+        /// ONE INSTANT, ONE WEATHER, AT NOON, and that is a deliberate trade
+        /// with a cost. §5's ordering is a NOON reading, and five frames taken
+        /// at five different hours are five photographs of five moments —
+        /// exactly the shape this project keeps reading as one measurement. So
+        /// all five run inside one loop with no time step, immediately after
+        /// the district tour, on the same dry day-5 noon: the panel rows for
+        /// the five and the seven are then comparable by construction.
+        ///
+        /// WHAT THAT TRADE COSTS, NAMED RATHER THAN HIDDEN: reference 2 is a
+        /// DUSK frame and reference 3 an OVERCAST MORNING one, and both are
+        /// shot here at a dry noon. `ref_2` and `ref_3` therefore match their
+        /// reference's COMPOSITION and not its light. The next rung for this
+        /// instrument has a name — repeat `ref_2` at the dusk shot and `ref_3`
+        /// on an overcast roll — and it is not taken tonight because a second
+        /// hour doubles the still cost before the first series has been read.
+        ///
+        /// WHAT IS MEASURED AND WHAT IS JUDGED. The junctions, the district
+        /// choices and the standoffs are read off `StreetMap`'s own scaled
+        /// grid (`Node`, so nothing here re-derives the 2.15/1.15 stretch —
+        /// five raw reads of `AvenuesX` once aimed four cameras at empty
+        /// ground 136-184m from the district they were named after). The
+        /// PITCH and the exact cant of each frame are JUDGEMENTS, and they
+        /// are named as such in `agent-reports/convergence-instrument.md`:
+        /// nothing in the repository pins a camera angle, and deriving one by
+        /// eye off a compressed screenshot is what rule 4 forbids. What
+        /// retires the judgement is `valueHorizon`, which prints where our own
+        /// sky mass ends on every one of these frames — read the series, then
+        /// set the pitch from it, in that order (rule 2).
+        ///
+        /// THE PITCH, AND THE ARITHMETIC BEHIND THE FIRST VALUE. All five
+        /// references put the horizon ABOVE the frame's middle — a level
+        /// camera would put it exactly at the middle — so the pitch is DOWN.
+        /// At `Feel.BaseFov` (60 vertical) a pitch of p degrees puts the
+        /// horizon at frame row 0.5 - tan(p)/(2*tan(30)) from the top, so 5
+        /// degrees lands it at 0.424 and 6 degrees at 0.409. 5 is taken. It
+        /// is a judgement inside a bracket, not a measurement, and the same
+        /// value is used for all five so that a landed `valueHorizon` series
+        /// reads as one instrument rather than five.
+        const float RefEyeM = 1.7f;      // player height; the references' own
+        const float RefPitchDeg = 5f;    // DOWN; see the arithmetic above
+        const int RefCameras = 5;
+
+        /// ONE FRAME EACH FOR THE FIVE REFERENCE COMPOSITIONS.
+        ///
+        /// The camera goes back exactly where it stood — a tour that moved
+        /// the game's camera would be a screenshot feature changing the game.
+        void RefTour()
+        {
+            var cam = Camera.main;
+            if (cam == null) return;
+            var keepPos = cam.transform.position;
+            var keepRot = cam.transform.rotation;
+            _refTour = true;
+            try
+            {
+                for (int n = 1; n <= RefCameras; n++)
+                {
+                    RefVantage(n, out var eye, out var yaw);
+                    cam.transform.position = eye;
+                    cam.transform.rotation = Quaternion.Euler(RefPitchDeg, yaw, 0f);
+                    Shot("ref_" + n);
+                }
+            }
+            finally
+            {
+                _refTour = false;
+                cam.transform.position = keepPos;
+                cam.transform.rotation = keepRot;
+            }
+        }
+
+        /// WHERE CAMERA `n` STANDS AND WHICH WAY IT FACES.
+        ///
+        /// ONE MECHANISM, NOT FIVE. Every vantage is a named junction of
+        /// `StreetMap`'s own grid, plus a metre offset in world X/Z, plus a
+        /// compass yaw. A second placement rule would be the
+        /// one-idea-two-implementations shape this file keeps finding wrong
+        /// on the copy nobody looks at.
+        ///
+        /// THE OFFSETS KEEP THE EYE ON A CARRIAGEWAY. `StreetMap.AvenueWidth`
+        /// is 8m and a block's buildable edge starts at half that from the
+        /// avenue centreline, so an offset with |cross-axis| under 4m stands
+        /// in the road and anything past it stands inside a building. Every
+        /// row below is checked against that: four are dead centre and
+        /// `ref_5` is 2.5m off, which is 1.5m clear of the block face.
+        ///
+        /// WHICH REFERENCE EACH ONE ANSWERS, and what in the frame carries
+        /// it (`game-design/reference/README.md` is the source for every
+        /// description here; nothing below is my reading of a JPEG):
+        ///
+        ///   ref_1  `gta5_1_liquor_store_side_sun` — "dense street furniture
+        ///          in one static shot", a corner frontage under raking side
+        ///          sun. COPPER ROW, the design doc's market quarter: the
+        ///          densest street life in the town and the only district
+        ///          whose brief is shopfronts. Junction `copper_j2_1` (Copper
+        ///          Row x Market Road, the district's own centre by
+        ///          construction), eye 16m south on the carriageway, canted
+        ///          18 degrees right of north so the near block's north-west
+        ///          corner sits right of centre with the avenue receding past
+        ///          it — the reference's shop-right / street-left shape.
+        ///          JUDGED: the cant, and which of the four corners.
+        ///
+        ///   ref_2  `gta5_2_dusk_vespucci` — "almost nothing but light: low
+        ///          warm sun, silhouetted poles and WIRES". A road running AT
+        ///          the sun. `GameController.UpdateSun` puts the noon sun due
+        ///          SOUTH, so the frame that looks into it is a north-south
+        ///          avenue faced southward: HOOK STREET, the founding cross's
+        ///          own street, from junction `j2_3` (Hook Street x Chapel
+        ///          Street), eye 14m north, yaw 180 — down the street toward
+        ///          the cross and the pub, into the sun.
+        ///          JUDGED: nothing about the geometry; the LIGHT is the
+        ///          named mismatch above — this is noon, the reference is
+        ///          dusk.
+        ///
+        ///   ref_3  `gta5_3_overcast_morning` — "THE KILLER ARGUMENT: no
+        ///          interesting light, still fully real — five asphalt tones,
+        ///          tar seams, patched repairs". A long road filling the
+        ///          lower half with frontage down one side. IRONSIDE, whose
+        ///          Goods Road runs ~175m with block frontage both sides and
+        ///          is the longest sight line in the town — the district
+        ///          tour's own re-site note measured it. Junction
+        ///          `ironside_j2_1` (Crane Street x Goods Road), eye 20m east,
+        ///          yaw 270: west down Goods Road with the three quay cranes
+        ///          down the left at 45m, 75m and 108m.
+        ///          JUDGED: the 20m standoff.
+        ///
+        ///   ref_4  `gta5_4_suburban_bmx_noon` — "clear noon, suburban ...
+        ///          low fences, roofline variety, towers + palms in haze".
+        ///          FAIRVIEW, the design doc's residential rise: gardens
+        ///          between the junctions and the only low-rise district in
+        ///          the town. Junction `fairview_j1_1` (Fairview Crescent x
+        ///          Vista Terrace, the district centre), eye 18m south, yaw 0
+        ///          — north up the Crescent with houses either side and the
+        ///          skyline band beyond them.
+        ///          JUDGED: the 18m standoff and the direction of travel.
+        ///
+        ///   ref_5  `gta5_5_ps3_sidewalk` — "shadow dapple on a sidewalk,
+        ///          leaning poles, a stained wall ... texture density at
+        ///          PLAYER height". The camera is OFF the road centre with a
+        ///          wall close on one side. THE PARADE, the promenade
+        ///          district whose brief is being seen walking. Junction
+        ///          `strip_j1_2` (The Parade x Chorus Lane), eye 20m south
+        ///          and 2.5m EAST of the centreline — 1.5m clear of the east
+        ///          block's face — yaw 0, so that frontage runs close down
+        ///          the right of frame.
+        ///          JUDGED: the 2.5m lateral offset, which is the one number
+        ///          here that changes what kind of picture this is.
+        ///
+        /// THE STEP-BACK LOOP IN `Shot` MAY STILL MOVE ANY OF THESE. It backs
+        /// straight off along the view axis when the near or mid band is
+        /// full, which is a dolly and preserves the composition; `ref_5` is
+        /// the one most likely to trip it. It is not silent — `shotBlocker`
+        /// names the object AND the shot it was in, so a ref camera being
+        /// pushed off its mark every run reads as that camera's name in that
+        /// key, and the offset is then the thing to change.
+        void RefVantage(int n, out Vector3 eye, out float yaw)
+        {
+            string id; float dx, dz;
+            switch (n)
+            {
+                case 1: id = "copper_j2_1"; dx = 0f; dz = -16f; yaw = 18f; break;
+                case 2: id = "j2_3"; dx = 0f; dz = 14f; yaw = 180f; break;
+                case 3: id = "ironside_j2_1"; dx = 20f; dz = 0f; yaw = 270f; break;
+                case 4: id = "fairview_j1_1"; dx = 0f; dz = -18f; yaw = 0f; break;
+                default: id = "strip_j1_2"; dx = 2.5f; dz = -20f; yaw = 0f; break;
+            }
+            _refAsked++;
+            float jx = 0f, jz = 0f;
+            var junction = Ledger.Core.StreetMap.Node(id);
+            if (junction != null)
+            {
+                _refPlaced++;
+                jx = (float)junction.X;
+                jz = (float)junction.Z;
+            }
+            // A junction that does not resolve leaves the eye at the origin,
+            // which is the Hook's founding cross — a real place, and exactly
+            // why the fallback has to be counted rather than trusted.
+            eye = new Vector3(jx + dx, RefEyeM, jz + dz);
+        }
+
         /// ONE FRAME OF EVERY DISTRICT, so the six nobody has seen get looked at.
         ///
         /// `shotDistricts=[the_Hook:20]` — every shot of every run, in one of
@@ -11195,6 +11418,210 @@ namespace Ledger.Game
                                  v[0], v[v.Count - 1], med, v.Count);
         }
 
+        // ---- THE CONVERGENCE PANEL (R1) ---------------------------------
+        //
+        // WHAT IT IS FOR. `decision-ground-albedo.md`, "the visual plan is
+        // REPLACED", §1: the biggest gap between our frames and the five GTA
+        // references is VALUE-STRUCTURE INVERSION — every reference has sky
+        // as the brightest broad surface and ground mid-dark with the widest
+        // tonal variety; our noon stills have near-white ground under a
+        // storm-dark sky. Nothing in this project measures that. §4 orders
+        // the panel; §5 orders the ORDERING printed and NOT gated, margins to
+        // come from the landed series.
+        //
+        // NO BOUND, NO GATE, DELIBERATELY. Every key below is a printer.
+        // Rule 2's order of operations: ship the printer, read real landings,
+        // then set the number. A bound written tonight would be invented from
+        // a run that has not happened.
+        //
+        // WHY A THIRD RAY GRID EXISTS IN THIS FILE, checked before writing it
+        // rather than asserted afterwards. `ShotSightlines` asks "how much of
+        // the cone is blocked within two metres" and keeps no material and no
+        // pixel. `GroundMaskRead` asks "which pixels are ground and how
+        // bright are they" — it has the pixel and the material and NOT the
+        // sun, and it feeds a landed per-district series whose meaning would
+        // change the moment five more shots joined its pools
+        // (`groundMaskAcross` is by name a statistic OF the seven district
+        // shots). This one asks "which VALUE BAND is this pixel in", which
+        // needs a sun vector and a shadow raycast neither of the other two
+        // casts. The shared part is the three lines that cast a ray and read
+        // a pixel; every part that could go stale — the ground name rule, the
+        // up-facing test, the grid size — is the SAME symbol as
+        // `GroundMaskRead` uses, not a copy of its value.
+        //
+        // WHAT IS SAMPLED AND WHAT IS NOT. `GroundGridX * GroundGridY` rays
+        // through the viewport of the camera that took the still, each read
+        // at the pixel it landed on IN THE TEXTURE THE JPEG WAS ENCODED FROM
+        // — same instant, same vantage, same pixels as the picture a person
+        // opens. It inherits `GroundMaskRead`'s three approximations
+        // unchanged and they are named there: it samples 2,304 points rather
+        // than 921,600 pixels, it classifies by the COLLIDER under the sample
+        // so collider-less geometry is invisible, and it reads `sharedMaterial`
+        // so a multi-material mesh is classified by submesh 0.
+        //
+        // THE FOUR BANDS, and the order the tests are applied in, because the
+        // order is the classifier:
+        //
+        //   sky      the ray hit NOTHING. Not a colour test — this side has a
+        //            depth buffer and the reference side does not, which is
+        //            exactly why `refPanelHorizon` may not be gated against
+        //            the references (see `ValuePanel.HorizonRow`).
+        //   ground   the material NAME is one of `AssetLibrary.WetSurfaces`
+        //            AND the hit normal faces up past `GroundUpDot`. Both
+        //            halves, for the reason written at that constant: a name
+        //            cannot tell a road from the facade painted in the same
+        //            concrete. A ground-named surface that is NOT up-facing
+        //            — a kerb face — is `other`, not a wall: it is not a
+        //            facade and calling it one would put a strip of road
+        //            edging into the lit/shadow ratio.
+        //   litwall  a near-vertical surface (`WallFaceDot`) that FACES the
+        //            sun (`SunFaceDot`) with nothing between it and the sun.
+        //   shadow   a near-vertical surface that does not: either turned
+        //            away from the sun or with something in the way. At night
+        //            every wall lands here and that is correct, not a fault —
+        //            the ordering row is a NOON reading and a night frame's
+        //            empty `lit` band prints `none@0` and makes its two rungs
+        //            unjudgeable rather than failed.
+        //   other    everything else — vehicles, bodies, sloped roofs, props.
+        //            Counted, never judged, so the four bands' sum can be
+        //            checked against the rays cast on the printed chain.
+        //
+        // THE THREE GEOMETRY CONSTANTS ARE `FindShadowPair`'S OWN, hoisted to
+        // names and shared rather than copied. That function has been asking
+        // "is this wall in cast shadow" on a 12x7 grid since the shadow-ratio
+        // work; if its idea of a wall or of facing the sun ever changes, this
+        // must change with it, and one idea in two implementations is the
+        // shape this file keeps finding wrong on the copy nobody looks at.
+        const float WallFaceDot = 0.35f;   // |n.y| at or under this is a wall
+        const float SunFaceDot = 0.30f;    // n.sunward at or over this can be lit
+        const float SunRayM = 60f;         // how far to look for what blocks the sun
+
+        /// The panel, accumulated over every committed still of the run. The
+        /// arithmetic and every string it prints are `Ledger.Core.ValuePanel`,
+        /// in Core so CoreTests exercises them — a formatter written here
+        /// ships UNRUN, and an unrun formatter printing a plausible string is
+        /// the silent-instrument failure (ruled standing 25 Aug).
+        readonly Ledger.Core.ValuePanel _valuePanel = new Ledger.Core.ValuePanel();
+
+        /// One still's value-band read. `tex` is the frame that was just
+        /// encoded to the committed JPEG and `cam` is the camera that
+        /// rendered it, after every step-back.
+        ///
+        /// EVERY PATH LANDS THE SHOT, including the ones that read nothing.
+        /// `Open` counts the shot as OFFERED and only a shot that cast rays
+        /// counts as MEASURED, so `refPanelShots=0/19` — nineteen frames that
+        /// read nothing back — cannot look like `0/0`, the panel never having
+        /// run at all.
+        void ValuePanelRead(Camera cam, Texture2D tex, string name)
+        {
+            if (cam == null || tex == null) return;
+            var shot = _valuePanel.Open(name);
+            // `GetPixels32`, NOT `GetPixels`, AND THE REASON IS MEMORY. A
+            // 1280x720 `Color[]` is 921,600 structs of four floats — 14.7MB of
+            // garbage per shot — and this read runs on EVERY committed still,
+            // where `GroundMaskRead` runs on seven. `Color32` is four bytes,
+            // so the same frame costs 3.7MB. Nothing here needs the float
+            // path: `GroundMaskRead` takes `Color` because it calls
+            // `.linear`, and this instrument stays display-referred on
+            // purpose (see the luma note in the loop).
+            // `research/performance-budget.md` names MEMORY as the real
+            // ceiling of the visual plan, so a four-fold allocation on a
+            // diagnostic would be spending the scarce budget on commentary.
+            Color32[] px = null;
+            try { px = tex.GetPixels32(); }
+            catch (Exception e) { _errors.Add("ValuePanelRead: " + e.Message); }
+            int w = tex.width, h = tex.height;
+            if (px == null || w <= 0 || h <= 0 || px.Length < w * h)
+            { _valuePanel.Land(shot, -1, 0, 0); return; }
+
+            var sunward = GameController.SunwardDir;
+            float far = cam.farClipPlane > 0f ? cam.farClipPlane : 1000f;
+            // The sky mask for `HorizonRow`, in this loop's own layout:
+            // `row * GroundGridX + col`, row 0 at the BOTTOM, which is
+            // `GetPixels`' order and viewport v with no flip.
+            var skyCell = new bool[GroundGridX * GroundGridY];
+
+            for (int j = 0; j < GroundGridY; j++)
+                for (int i = 0; i < GroundGridX; i++)
+                {
+                    double u = (i + 0.5) / GroundGridX;
+                    double v = (j + 0.5) / GroundGridY;
+                    int col = (int)(u * w); if (col >= w) col = w - 1;
+                    int row = (int)(v * h); if (row >= h) row = h - 1;
+                    var c = px[row * w + col];
+                    // DISPLAY-REFERRED, and named so. `px` is an RGB24
+                    // readback of an sRGB target, so this is the number the
+                    // JPEG carries — the same space `groundMaskMeanBy` uses,
+                    // deliberately, so a reader comparing a band median
+                    // against a district ground mean is comparing like with
+                    // like. It is NOT the space `GroundSourceAlbedo` returns;
+                    // see the albedo-order note below.
+                    //
+                    // /255 BECAUSE `Color32` IS BYTES. `ImageStats.Luma`
+                    // takes 0..1 and every other reading in this file feeds
+                    // it 0..1; handing it 0..255 would print band medians a
+                    // hundred and fifty times too large and they would still
+                    // look like plausible numbers, which is the whole reason
+                    // this line has a comment.
+                    double l = ImageStats.Luma(c.r / 255.0, c.g / 255.0, c.b / 255.0);
+                    shot.CountCast();
+
+                    var ray = cam.ViewportPointToRay(new Vector3((float)u, (float)v, 0f));
+                    RaycastHit hit;
+                    if (!Physics.Raycast(ray, out hit, far, ~0,
+                                         QueryTriggerInteraction.Ignore)
+                        || hit.collider == null)
+                    {
+                        skyCell[j * GroundGridX + i] = true;
+                        shot.Add(Ledger.Core.ValuePanel.Sky, l);
+                        continue;
+                    }
+                    shot.CountHit();
+                    var rend = hit.collider.GetComponent<Renderer>();
+                    if (rend == null) rend = hit.collider.GetComponentInParent<Renderer>();
+                    if (rend == null)
+                    { shot.Add(Ledger.Core.ValuePanel.Other, l); continue; }
+                    shot.CountRenderer();
+
+                    // GROUND FIRST, name AND normal — see `GroundUpDot`.
+                    var logical = AssetLibrary.GroundSurfaceOf(rend.sharedMaterial);
+                    if (logical.Length > 0)
+                    {
+                        if (hit.normal.y > GroundUpDot)
+                        {
+                            // ONE STATEMENT PAIR, ONE RAY. The band sample and
+                            // the material row take the SAME `l` at the same
+                            // instant; two tallies fed by two loops is how
+                            // this project shipped four pairs of numbers taken
+                            // at different moments and printed as one event.
+                            shot.Add(Ledger.Core.ValuePanel.Ground, l);
+                            shot.AddGround(logical, l,
+                                AssetLibrary.GroundSourceAlbedo(rend.sharedMaterial));
+                        }
+                        else shot.Add(Ledger.Core.ValuePanel.Other, l);
+                        continue;
+                    }
+
+                    if (Mathf.Abs(hit.normal.y) > WallFaceDot)
+                    { shot.Add(Ledger.Core.ValuePanel.Other, l); continue; }
+
+                    bool faces = Vector3.Dot(hit.normal, sunward) >= SunFaceDot;
+                    // Offset along the normal so the surface does not shadow
+                    // itself at the origin — `FindShadowPair`'s own 0.05.
+                    bool blocked = faces
+                        && Physics.Raycast(hit.point + hit.normal * 0.05f, sunward,
+                                           SunRayM, ~0, QueryTriggerInteraction.Ignore);
+                    shot.Add(faces && !blocked
+                             ? Ledger.Core.ValuePanel.LitWall
+                             : Ledger.Core.ValuePanel.Shadow, l);
+                }
+
+            int colsWithSky;
+            double hz = Ledger.Core.ValuePanel.HorizonRow(
+                skyCell, GroundGridX, GroundGridY, out colsWithSky);
+            _valuePanel.Land(shot, hz, colsWithSky, GroundGridX);
+        }
+
         void Shot(string name)
         {
             _lastShotName = name;
@@ -11899,15 +12326,21 @@ namespace Ledger.Game
                 // Rationing them against the day stills would make the
                 // districts compete with the street for four slots, which is
                 // how six of seven came to be unphotographed at all.
-                bool asReview = !_touring && _reviewStills < MaxReviewStills;
-                bool asRest = !_touring && !asReview && restStill;
-                bool asHunt = !_touring && !asReview && !asRest && huntStill;
-                if (_touring || asReview || asRest || asHunt)
+                // THE REF TOUR SPENDS NO QUOTA AND ALWAYS WRITES, exactly as
+                // the district tour does and for the same reason: five fixed
+                // compositions competing with the street for four review
+                // slots is how six of seven districts came to be
+                // unphotographed. Its own flag, not `_touring` — see
+                // `_refTour` for why the two must not be one.
+                bool asReview = !_touring && !_refTour && _reviewStills < MaxReviewStills;
+                bool asRest = !_touring && !_refTour && !asReview && restStill;
+                bool asHunt = !_touring && !_refTour && !asReview && !asRest && huntStill;
+                if (_touring || _refTour || asReview || asRest || asHunt)
                 {
                     if (asReview) _reviewStills++;
                     else if (asRest) _restStills++;
                     else if (asHunt) _huntStills++;
-                    var stem = _touring ? name
+                    var stem = (_touring || _refTour) ? name
                         : asHunt ? $"hunt_{name}" : $"review_{name}";
                     System.IO.File.WriteAllBytes($"sim-out/{stem}.jpg",
                                                  tex.EncodeToJPG(60));
@@ -11923,6 +12356,20 @@ namespace Ledger.Game
                     // band-mean is not a ground mean, and `_touring` is the
                     // flag those shots already carry.
                     if (_touring) GroundMaskRead(cam, tex, name);
+
+                    // AND THE VALUE-BAND PANEL, ON EVERY COMMITTED STILL.
+                    //
+                    // NOT districts-only, which is the one difference from
+                    // the line above and it is the point: the question "is
+                    // the frame lit upside down" is asked of the pictures a
+                    // person opens, and the four `review_day*` frames are the
+                    // ones this project has argued about for two days. It
+                    // pools nothing across shots — every row is formatted at
+                    // its own shot — so widening the population changes no
+                    // existing key's meaning. `groundMaskAcross` could not
+                    // have taken the same widening: it is BY NAME a statistic
+                    // of the seven district shots.
+                    ValuePanelRead(cam, tex, name);
                 }
 
                 // AND ONE FRAME FROM WHERE A PLAYER ACTUALLY STANDS. Every
@@ -12209,6 +12656,15 @@ namespace Ledger.Game
                     tex.Apply();
                     System.IO.File.WriteAllBytes("sim-out/review_street.jpg",
                                                  tex.EncodeToJPG(60));
+                    // THE PANEL ON THE ONE FRAME ALREADY TAKEN AT PLAYER
+                    // HEIGHT, before the camera goes back. `tex` here is the
+                    // street frame, not `name`'s — the read has to happen
+                    // between the encode and the restore or it would describe
+                    // a vantage the sim walked away from, which is the fault
+                    // the text-collision sample at the top of `Shot` was moved
+                    // for. Named `street` rather than `name`, because the row
+                    // would otherwise claim to be about `day3_noon`.
+                    ValuePanelRead(cam, tex, "street");
                     cam.transform.position = keepPos;
                     cam.transform.rotation = keepRot;
                 }
@@ -15454,6 +15910,109 @@ namespace Ledger.Game
                       $"groundMaskOverFrameBy=[{GroundRows(_groundOverFrameBy)}] " +
                       $"groundMaskOverLowerBy=[{GroundRows(_groundOverLowerBy)}] " +
                       $"groundMaskAcross={GroundAcross()} " +
+                      // ---- THE CONVERGENCE PANEL (R1), WHOLE RUN --------
+                      //
+                      // Ordered by `decision-ground-albedo.md` §4/§5 of "the
+                      // visual plan is REPLACED". The gap it exists to
+                      // measure is VALUE-STRUCTURE INVERSION: every GTA
+                      // reference puts sky brightest and ground mid-dark;
+                      // our noon stills are the other way up and no landed
+                      // number has ever said so.
+                      //
+                      // NO BOUND AND NO GATE ON ANY OF THESE. §5 is explicit
+                      // — the ORDER comes from the references, the MARGINS
+                      // come later from the landed series. `valueOrder`
+                      // prints whether each rung holds; nothing compares
+                      // against a constant anywhere in this block, and
+                      // nothing here is in `gates.py`.
+                      //
+                      // WHOLE-RUN, ON THIS LINE, ON PURPOSE. Every list is
+                      // complete only when the run ends; the per-shot numbers
+                      // inside them are formatted at their own shot so a row
+                      // cannot be assembled out of two frames. Putting them
+                      // on the shot lines would repeat one key on twenty
+                      // lines, which `verdict-read.py` refuses.
+                      //
+                      // DENOMINATORS FIRST, so a zero cannot read as health:
+                      // shots that read pixels back / shots offered, then the
+                      // ray chain cast/hit/with-renderer and the five bands
+                      // (`cast - hit == sky` is an identity a reader can
+                      // check on the line), then rows shown / rows held, then
+                      // rungs held / rungs a frame could judge at all.
+                      // HOW MANY OF THE FIVE REF CAMERAS FOUND THEIR NAMED
+                      // JUNCTION, over how many were asked for. A cumulative
+                      // count over the one tour. Without it a fallback to the
+                      // origin — the Hook's founding cross, a real place —
+                      // would photograph the same pub five times and look
+                      // exactly like five matched compositions.
+                      $"refPlaced={_refPlaced}/{_refAsked} " +
+                      $"valueShots={_valuePanel.Shots()} " +
+                      $"valueRays={_valuePanel.Rays()} " +
+                      $"valueListed={_valuePanel.Listed()} " +
+                      $"valueRungs={_valuePanel.Rungs()} " +
+                      // EVERY BAND VALUE IS A MEDIAN over that shot's samples
+                      // in that band, with the count it is a median OF. A
+                      // median cannot see a fault touching under half the
+                      // band, which is why `valueGroundSpread` — a p10..p90
+                      // over the same samples — is a separate row rather than
+                      // a summary of this one.
+                      $"valueBands={_valuePanel.Bands()} " +
+                      // SHADOW OVER LIT: a ratio of two medians from ONE
+                      // frame at ONE instant over DISJOINT sample sets, with
+                      // BOTH counts. They can move independently — a cast
+                      // shadow can deepen while the sunlit wall stands still
+                      // — so this is two measurements and not one number
+                      // twice, which is the check this file's own rule
+                      // demands before printing a pair as evidence.
+                      $"valueShadowLit={_valuePanel.ShadowLit()} " +
+                      // p90 MINUS p10 of the ground samples, printed with the
+                      // two percentiles it is the difference of. "Ground with
+                      // the widest tonal variety" as a number. NOT
+                      // `ref-bench`'s `groundPatch`, which is a median over
+                      // local 64px windows — different question, and the two
+                      // may not be quoted interchangeably.
+                      $"valueGroundSpread={_valuePanel.Spread()} " +
+                      // THE R0 ORDERING, RUNG BY RUNG AND UNGATED: per still,
+                      // sky > litWall > ground > shadow as three separate
+                      // yes/no answers plus the tally, so a reader sees WHICH
+                      // rung broke. `?` is a rung one of whose bands the
+                      // frame contained none of — a night street has no
+                      // sunlit wall — and it counts in neither half.
+                      $"valueOrder={_valuePanel.Order()} " +
+                      // AND THE SECOND HALF OF §5: rendered ground lumas
+                      // ordered as their SOURCE albedos are. Each row is the
+                      // shot's ground materials sorted ascending by source,
+                      // `name<source>:<rendered>`, joined by `<` where the
+                      // sort makes a claim and `~` where two albedos tie and
+                      // it makes none; the tally counts adjacent pairs on
+                      // which the rendered side ascends too.
+                      //
+                      // THE TWO PRINTED NUMBERS ARE IN DIFFERENT COLOUR
+                      // SPACES AND MUST NOT BE DIVIDED. The rendered side is
+                      // display-referred (the JPEG's own value, the same
+                      // space as `groundMaskMeanBy`); `GroundSourceAlbedo` is
+                      // linear. The TALLY is unaffected — a transfer function
+                      // is monotonic, so the ordering of either side is the
+                      // same in both spaces — but the ratio of the two
+                      // printed numbers is meaningless here. `groundGainBy`
+                      // is the key that performs that division, in one space,
+                      // and it is two lines further down this same emit.
+                      $"valueAlbedoOrder={_valuePanel.AlbedoOrder()} " +
+                      // WHERE THE SKY MASS ENDS, as a fraction from the TOP
+                      // of frame, median over the grid columns that have any
+                      // sky, with that column count beside it. It is the
+                      // number the five ref cameras' PITCH gets set from once
+                      // there is a series — until then that pitch is a
+                      // judgement and is named as one in the report.
+                      //
+                      // OUR SIDE ONLY, AND IT MAY NOT BE GATED AGAINST THE
+                      // REFERENCES. Ours classifies sky as "the ray hit
+                      // nothing", which needs a depth buffer the reference
+                      // frames do not have; any reference-side equivalent
+                      // must threshold on colour. Two instruments by
+                      // construction — comparable in direction, never to
+                      // three decimals.
+                      $"valueHorizon={_valuePanel.Horizon()} " +
                       // RENDERED OVER SOURCE, PER GROUND MATERIAL, WHOLE RUN.
                       // A ray-weighted mean over every district shot, so it is
                       // a whole-run number and belongs on this line — the
