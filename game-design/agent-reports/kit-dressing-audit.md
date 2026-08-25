@@ -596,3 +596,51 @@ it printed to stdout:
 `tools/hang-report.py` is another agent's new file, alongside
 `agent-reports/sim-hang-e8c5949.md`. `tools/**` is outside my ownership. It
 needs `git add`-ing by whoever owns it before verify can go green.
+
+---
+
+## CORRECTION — 2026-08-25 ~20:10 UTC, same author
+
+Two claims in the section above went false within minutes of being written, and
+this file is now committed, so they are corrected here rather than edited away —
+a reader who finds "the fault is unchanged in the tree" would go and re-fix an
+applied fix, which is rule 3's "a doc saying something is missing is an
+analysis, not evidence" pointed at my own report.
+
+**C1 IS CLOSED, NOT HALF OPEN.** The owner of `SimDirector.cs` applied the
+one-line repair while I was writing. In HEAD (`71316fa1`), line 16257 reads
+
+    WorldBuilder.KitTally.Line() + " " +
+
+so the fragment is emitted bare and `kitPlaced` is a top-level key again. The
+section above says "the fault is unchanged in the tree" — that was true at
+19:5x and is false now.
+
+**AND THE TWIN SWEEP IS CLEAN, checked rather than assumed.** Fixing a wrapper
+means grepping for the same wrapper elsewhere. There is exactly one other
+`key={…Line()}` in `SimDirector.cs` — `looseEnds={GameController.LooseEndsTally.Line()}`
+at `:15894` — and `LooseEnds.Line()`'s body contains **zero** `=` characters in
+any emitted literal, so it returns one value and wrapping it is correct. That
+confirms the audit's C1 paragraph from the code rather than quoting it.
+`CostTracker.Line()` and `FrameRate.Line()` likewise emit no `=`, and neither
+has a Game-layer emit site at all. `KitDressing` was the only site with the
+fault.
+
+**VERIFY IS GREEN AND THE FOOTER IS ON DISK.** The section above says
+`ledger/.verify-footer` is ABSENT and names `tools/hang-report.py(untracked)`
+as the one red. Both have since resolved: the footer was written at
+20:03:53 UTC and reports `0 lint errors, 0 shape errors (189 files), 35 on the
+reach ledger, Game layer compiles (183 files), … 4005 CoreTests`, with
+`19 workflow-named tool(s)` where the red run had 18 — the untracked tool is
+tracked. The footer's `director cadence ok (0 changed line(s) …)` is what a
+clean tree prints, not a review that was skipped.
+
+**THE WORK IS COMMITTED, BY THE RESIDENT, AT `71316fa1`** ("The street gets
+furniture, and the gate that said it was reviewed was lying"). I did not commit
+it. All five refusal sites, `WorldBounds`, `FlagNightLight` and the rebuilt
+`TestKitDressing` are in HEAD.
+
+**STILL OPEN AND UNCHANGED:** C6 (`tools/gates.py` — the four sentinel words and
+the six bracketed keys are invisible to `--constant`), and C3's residual (on a
+healthy prefab `worksLampsWired` reads `N/N`; nothing measures whether these
+lamps emit at night).
