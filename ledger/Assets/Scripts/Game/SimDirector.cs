@@ -17348,6 +17348,14 @@ namespace Ledger.Game
                       // strung. Zero poles with avenues on the map means the
                       // clearance check ate the line, not that nobody built.
                       $"poles={StreetFurniture.PoleCount} poleWires={StreetFurniture.PoleWireCount} " +
+                      // The wire darkening, measured rather than hoped: a
+                      // shared mid-grey MIRROR (0.9 metallic) put every span
+                      // at 2.77x the sky beside it in a DRY frame. Numerator
+                      // and denominator together so a zero cannot read as
+                      // health, and `wireProps` says which sets the shader
+                      // actually accepted — half the fault was GLOSS, which
+                      // no colour set reaches.
+                      $"wireDark={StreetFurniture.WireSegmentsDark}/{StreetFurniture.WireSegments} wireProps={StreetFurniture.WireProps} " +
                       // The back of a block has a shape now. Zero means the
                       // near-core test rejected everything, which is a finding
                       // about the density ramp rather than about fire escapes.

@@ -129,6 +129,7 @@ namespace Ledger.CoreTests
                 TestValuePanel();
                 TestSkylineTally();
                 TestKitDressing();
+                TestYardDepth();
                 TestDetail();
                 TestFrameRate();
                 TestMotionMatching();
@@ -14121,6 +14122,21 @@ namespace Ledger.CoreTests
             for (int i = 0; i < 2; i++) k.Missed("yard_fence", "1x4");
             for (int i = 0; i < 4; i++) { k.Offered("yard_fence"); k.Refused("yard_fence", "in_terrace"); }
 
+            // AND THE YARD PROBE, WHICH RIDES ON THIS SAME LINE. The live pass
+            // walks every block and bands it before it offers a single fence,
+            // so a fixture that leaves `Yards` unwired pins the WORDS
+            // (`cuts-unset`, `nothing-measured`) as the shape of a fully
+            // populated run — an accepting case that can never land, which is
+            // what rule 5b is about. What each value is a statistic of, and
+            // every rejecting case, is `TestYardDepth`.
+            k.Yards.Cuts(1.5f, 4.21f);
+            k.Yards.Walked("the Hook", 40, -20, true, 3.20f, null);
+            k.Yards.Walked("the Hook", 88, -20, true, 3.60f, null);
+            k.Yards.Walked("Fairview", -300, 210, true, 6.40f, null);
+            k.Yards.Walked("Gullwing", 400, 260, false, 0f, "no_back_hi");
+            k.Yards.Picked(3.20f, "1x1");
+            k.Yards.Picked(6.40f, "1x4");
+
             var line = k.Line();
             Console.WriteLine("  KITDRESSING-LINE " + line);
             Check(line ==
@@ -14146,7 +14162,13 @@ namespace Ledger.CoreTests
                 + " signPosts=18/20 signPlates=31/36/2of2 namePlatesPainted=17/19 wor"
                 + "ksClusters=8/9 worksProps=78/88/3of3 worksLampsWired=9/12 secondar"
                 + "yHeads=6/8 yardFenceRuns=12/18 yardFenceMetres=64.00/12/0bad/2.00."
-                + ".6.00..8.00 plantersPlaced=14/22",
+                + ".6.00..8.00 plantersPlaced=14/22 yardBandCuts=1.50/4.21 yardDepthS"
+                + "eries=[6.40/3.60/3.20]/n3 yardDepthSpread=3.20..3.60..6.40/n3 yard"
+                + "DepthBands=[noback:1,nogap:0,alley:2,deep:1]/n4 yardDepthBy=[fairv"
+                + "iew:6.40..6.40..6.40/1deep/1of1,gullwing:nothing-measured/0deep/0o"
+                + "f1,the_hook:3.20..3.40..3.60/0deep/2of2] yardDepthDeepest=fairview"
+                + "@-300,210/6.40 yardProbeWhy=[no_back_hi:1]/3of4 yardPickBy=[1x1/al"
+                + "ley:1,1x4/deep:1]/n2",
                   "a fully populated run formats exactly", line);
 
             // THE IDENTITY, COMPUTED RATHER THAN EYEBALLED: the placer files a
@@ -14236,7 +14258,16 @@ namespace Ledger.CoreTests
                 + "namePlatesPainted=nothing-offered worksClusters=nothing-offered "
                 + "worksProps=nothing-offered worksLampsWired=nothing-offered "
                 + "secondaryHeads=nothing-offered yardFenceRuns=nothing-offered "
-                + "yardFenceMetres=nothing-offered plantersPlaced=nothing-offered",
+                + "yardFenceMetres=nothing-offered plantersPlaced=nothing-offered "
+                // AND THE YARD PROBE'S NEVER-RAN CASE IS WORDS TOO, in every
+                // key that can carry one. A run where the dressing pass did
+                // not execute must not print a distribution that reads as a
+                // shallow city — `[nothing-measured]/n0` and `cuts-unset` are
+                // the only strings here that cannot be mistaken for a reading.
+                + "yardBandCuts=cuts-unset yardDepthSeries=[nothing-measured]/n0 "
+                + "yardDepthSpread=nothing-measured/n0 yardDepthBands=[cuts-unset]/n0 "
+                + "yardDepthBy=[nothing-measured] yardDepthDeepest=nothing-measured "
+                + "yardProbeWhy=[none]/0of0 yardPickBy=[nothing-measured]/n0",
                   "a run that placed nothing cannot read as a clean run", quiet);
             Check(!quiet.Contains("=0/0 "),
                   "no named key prints a bare zero fraction on a never-ran", quiet);
@@ -14416,8 +14447,8 @@ namespace Ledger.CoreTests
             }
             Check(lines.Length == 13, "the sweep walks every line this test builds",
                   lines.Length.ToString());
-            Check(walked == 13 * 20,
-                  "and every token of every one of them, twenty keys apiece",
+            Check(walked == 13 * 28,
+                  "and every token of every one of them, twenty-eight keys apiece",
                   walked.ToString());
             Check(bad.Count == 0,
                   "no value can truncate at a space or an unbalanced bracket, over "
@@ -14433,7 +14464,7 @@ namespace Ledger.CoreTests
             // one names what it caught.
             int wrappedWalked;
             var wrapped = KitDressing.BadTokens("kitDressing=" + line, out wrappedWalked);
-            Check(wrappedWalked == 20, "the rejecting case walked the same twenty tokens",
+            Check(wrappedWalked == 28, "the rejecting case walked the same twenty-eight tokens",
                   wrappedWalked.ToString());
             Check(wrapped.Count == 1 && wrapped[0].Contains("two `=` in one token"),
                   "and wrapping the fragment in a key is refused, by name",
@@ -14515,6 +14546,13 @@ namespace Ledger.CoreTests
                 "signPosts", "signPlates", "namePlatesPainted", "worksClusters",
                 "worksProps", "worksLampsWired", "secondaryHeads", "yardFenceRuns",
                 "yardFenceMetres", "plantersPlaced",
+                // The yard-depth distribution rides on this fragment; see
+                // `TestYardDepth` for what each one is a statistic of. Listed
+                // here because THIS is the assertion that pins the line's key
+                // set, and a key added without landing in it is a key nobody
+                // agreed to.
+                "yardBandCuts", "yardDepthSeries", "yardDepthSpread", "yardDepthBands",
+                "yardDepthBy", "yardDepthDeepest", "yardProbeWhy", "yardPickBy",
             };
             Check(back.Count == expect.Length,
                   "the line carries exactly the keys this class documents",
@@ -14611,6 +14649,232 @@ namespace Ledger.CoreTests
             Check(line.Contains("namePlatesPainted=17/19"),
                   "the name-plate ratio is over name plates, which is what it is called",
                   line);
+        }
+
+        static void TestYardDepth()
+        {
+            Console.WriteLine("Yard depth — the distribution that decides which fence is even legal:");
+
+            // ---- ACCEPTING, AND FIRST ON PURPOSE --------------------------
+            // The expensive failure is a printer nothing survives (rule 5b),
+            // so the first assertions are that a NORMAL walk of the street
+            // reads as a distribution. Shaped like the live pass rather than
+            // like the brief: `StreetDressing.YardFences` walks every block,
+            // and a block yields one of four outcomes — no back of row on a
+            // face, a party-wall gap under 1.5m, an alley, or a yard deep
+            // enough for the U. All four are here, because a fixture that
+            // does not do what the caller does certifies nothing.
+            var y = new YardDepth();
+            // The LIVE cuts, passed rather than copied: 1.5m is `YardOf`'s own
+            // floor and 4.21 is `DeepYard` (ReturnDepth 2.96 + 1.25).
+            y.Cuts(1.5f, 4.21f);
+            // The Hook: a back ALLEY behind every terrace, which is what the
+            // design note predicts for the four tight districts. The 0.4m
+            // probe step is why these land on quarter-metre-ish values.
+            y.Walked("the Hook", 40.0, -20.0, true, 3.20f, null);
+            y.Walked("the Hook", 88.0, -20.0, true, 3.20f, null);
+            y.Walked("the Hook", 136.0, -20.0, true, 3.60f, null);
+            y.Walked("the Hook", 184.0, -20.0, true, 3.60f, null);
+            y.Walked("the Hook", 232.0, -20.0, true, 4.00f, null);
+            y.Walked("the Hook", 280.0, -20.0, true, 4.00f, null);
+            y.Walked("the Hook", 328.0, -20.0, false, 0f, "no_back_lo");
+            y.Walked("Copper Row", -40.0, 120.0, true, 3.60f, null);
+            // Under the floor: two terrace backs almost touching. A fence here
+            // would be geometry inside geometry, and it is NOT an alley.
+            y.Walked("Copper Row", -88.0, 120.0, true, 1.20f, null);
+            // Fairview and the outer districts are where the block census says
+            // the real yards are.
+            y.Walked("Fairview", -300.0, 210.0, true, 6.40f, null);
+            y.Walked("Fairview", -348.0, 210.0, true, 9.20f, null);
+            y.Walked("Fairview", -120.4, 304.7, true, 13.20f, null);
+            y.Walked("Gullwing", 400.0, 260.0, false, 0f, "no_back_hi");
+
+            // THE SERIES ITSELF, deepest first — not a summary. Deepest first
+            // because "are there ANY deep yards" is a max-and-count question:
+            // a median over sites cannot see a minority however severe, which
+            // is how thirty people shoulder to shoulder read as a healthy
+            // street at `crowdGapMedian=0.41`.
+            Check(y.Series() == "[13.20/9.20/6.40/4.00/4.00/3.60/3.60/3.60/3.20/3.20/1.20]/n11",
+                  "the series prints every measured depth, deepest first, over its own count",
+                  y.Series());
+            Check(y.Spread() == "1.20..3.60..13.20/n11",
+                  "and the spread beside it carries min, median and max, none of which "
+                  + "can answer another's question", y.Spread());
+            // THE TWO POPULATIONS ARE DIFFERENT AND BOTH ARE PRINTED: eleven
+            // depths came from thirteen blocks walked, and the two blocks that
+            // produced no depth are the ones a series alone cannot show.
+            // Seven alleys, not six: the Hook's six and Copper Row's one. The
+            // hand count that wrote this line said six and the instrument said
+            // seven, which is the arithmetic being done in the tested layer
+            // doing its job.
+            Check(y.Bands() == "[noback:2,nogap:1,alley:7,deep:3]/n13",
+                  "the band census is over blocks WALKED, which is the denominator "
+                  + "the series does not carry", y.Bands());
+            Check(y.CutsRow() == "1.50/4.21",
+                  "and the live cut points print beside the band names that mean them",
+                  y.CutsRow());
+            // PER DISTRICT, because that is the axis the depth varies on — the
+            // block census, not the camera. The DEEP COUNT is on the row
+            // because a per-district median has the same blind spot as the
+            // global one.
+            Check(y.ByDistrict() == "[copper_row:1.20..2.40..3.60/0deep/2of2,"
+                  + "fairview:6.40..9.20..13.20/3deep/3of3,"
+                  + "gullwing:nothing-measured/0deep/0of1,"
+                  + "the_hook:3.20..3.60..4.00/0deep/6of7]",
+                  "per district: spread, deep count, and measured-of-walked",
+                  y.ByDistrict());
+            Check(y.Deepest() == "fairview@-120,305/13.20",
+                  "the deepest yard names where to stand to look at it",
+                  y.Deepest());
+            Check(y.ProbeWhy() == "[no_back_hi:1,no_back_lo:1]/11of13",
+                  "and every block that produced no depth says why, over the same "
+                  + "denominator", y.ProbeWhy());
+
+            // THE CROSS-TAB THAT SEPARATES THE TWO CAUSES OF A SHORT PANEL.
+            // `kitByVariant` counts what was PLACED and can only say `1x1:163`;
+            // it cannot say whether those sites were shallow or were deep with
+            // no run left, and those have different fixes. Filed at the pick,
+            // before the share roll and before the geometry refusal, so this
+            // population is the larger one by construction.
+            for (int i = 0; i < 8; i++) y.Picked(3.60f, "1x1");
+            for (int i = 0; i < 3; i++) y.Picked(9.20f, "1x4");
+            y.Picked(9.20f, "1x1");
+            for (int i = 0; i < 2; i++) y.Picked(3.20f, null);
+            Check(y.PickBy() == "[1x1/alley:8,1x1/deep:1,1x4/deep:3,none/alley:2]/n14",
+                  "a short panel in a deep yard and one in an alley are different rows",
+                  y.PickBy());
+
+            // A MINORITY IS INVISIBLE TO EVERY MEDIAN, which is the whole
+            // reason the band count and the deepest ship beside the spread.
+            // Thirty-nine alleys and one 13m yard: the median says alley and
+            // is CORRECT, and the answer to the question actually being asked
+            // is in the other two.
+            var minority = new YardDepth();
+            minority.Cuts(1.5f, 4.21f);
+            for (int i = 0; i < 39; i++) minority.Walked("the Hook", i, 0, true, 3.52f, null);
+            minority.Walked("Ironside", 500, 40, true, 13.10f, null);
+            Check(minority.Spread() == "3.52..3.52..13.10/n40",
+                  "a median of forty sites reads shallow with a deep yard among them",
+                  minority.Spread());
+            Check(minority.Bands() == "[noback:0,nogap:0,alley:39,deep:1]/n40"
+                  && minority.Deepest() == "ironside@500,40/13.10",
+                  "and the count and the position are what can see it",
+                  minority.Bands() + " " + minority.Deepest());
+
+            // ---- REJECTING 1: NOBODY WIRED THE CUTS -----------------------
+            // The band names are meaningless without the numbers behind them,
+            // and a default would look exactly like a measurement. The WORD is
+            // printed instead — the `contrastTightest` shape, where a clean
+            // run left the field at an initialiser that happened to be the
+            // best ratio there is.
+            var unset = new YardDepth();
+            unset.Walked("the Hook", 10, 10, true, 3.60f, null);
+            unset.Walked("Fairview", 20, 20, true, 8.00f, null);
+            unset.Picked(8.00f, "1x4");
+            Check(unset.CutsRow() == "cuts-unset" && unset.Bands() == "[cuts-unset]/n2",
+                  "an unwired band prints the word, never a plausible band",
+                  unset.CutsRow() + " " + unset.Bands());
+            Check(unset.PickBy() == "[1x4/cuts-unset:1]/n1",
+                  "and so does the pick cross-tab, on the same word",
+                  unset.PickBy());
+            Check(unset.Series() == "[8.00/3.60]/n2",
+                  "while the series survives it, because it needs no cut point",
+                  unset.Series());
+
+            // ---- REJECTING 2: NOTHING MEASURED ----------------------------
+            // A run where the pass never executed must not read as a clean
+            // street. Every value here is the WORDS or a zero WITH its
+            // denominator (rule 3b).
+            var none = new YardDepth();
+            none.Cuts(1.5f, 4.21f);
+            Check(none.Series() == "[nothing-measured]/n0"
+                  && none.Spread() == "nothing-measured/n0"
+                  && none.Deepest() == "nothing-measured"
+                  && none.ByDistrict() == "[nothing-measured]"
+                  && none.PickBy() == "[nothing-measured]/n0",
+                  "a pass that never ran says so in words, not in zeros",
+                  none.Series() + " " + none.Spread() + " " + none.Deepest());
+            Check(none.Bands() == "[noback:0,nogap:0,alley:0,deep:0]/n0"
+                  && none.ProbeWhy() == "[none]/0of0",
+                  "and the two count keys ship the denominator that says nothing was walked",
+                  none.Bands() + " " + none.ProbeWhy());
+
+            // ---- REJECTING 3: WALKED AND FILED NOTHING --------------------
+            // Forty-eight blocks that produced neither a depth nor a reason is
+            // a probe that filed nothing, and it must be legible as that
+            // rather than as an empty street. `[none]/0of48` would be the
+            // impossible reading; the reason lands under `unnamed`.
+            var mute = new YardDepth();
+            mute.Cuts(1.5f, 4.21f);
+            for (int i = 0; i < 48; i++) mute.Walked("the Hook", i, 0, false, 0f, null);
+            Check(mute.ProbeWhy() == "[unnamed:48]/0of48",
+                  "a probe that files no reason is named, not dropped", mute.ProbeWhy());
+            Check(mute.Bands() == "[noback:48,nogap:0,alley:0,deep:0]/n48",
+                  "and forty-eight unreadable blocks are not zero blocks", mute.Bands());
+            // A NON-FINITE DEPTH IS NOT A SAMPLE. Filing it would put a
+            // fabricated number in the series and take the median with it.
+            var nan = new YardDepth();
+            nan.Cuts(1.5f, 4.21f);
+            nan.Walked("the Hook", 1, 1, true, float.NaN, null);
+            nan.Walked("the Hook", 2, 2, true, 3.60f, null);
+            Check(nan.Series() == "[3.60]/n1" && nan.ProbeWhy() == "[unnamed:1]/1of2",
+                  "a NaN depth is refused as a sample and counted as unreadable",
+                  nan.Series() + " " + nan.ProbeWhy());
+
+            // ---- REJECTING 4: THE CAPS, AND WHICH END THEY EAT ------------
+            // A truncation that does not say it bit reads as a finding. This
+            // one is also aimed: the cap eats the SHALLOW end, so the deep
+            // tail — the thing the question is about — is never the part that
+            // goes missing.
+            var many = new YardDepth();
+            many.Cuts(1.5f, 4.21f);
+            many.Walked("Ironside", 0, 0, true, 11.00f, null);
+            for (int i = 0; i < 44; i++) many.Walked("the Hook", i, 0, true, 3.20f, null);
+            Check(many.Series().StartsWith("[11.00/3.20/") && many.Series().EndsWith("/+5more]/n45"),
+                  "the series cap announces itself and keeps the deep end",
+                  many.Series());
+            var wide = new YardDepth();
+            wide.Cuts(1.5f, 4.21f);
+            for (int i = 0; i < 20; i++)
+                wide.Walked("District " + i.ToString("00"), i, 0, true, 3.60f, null);
+            Check(wide.ByDistrict().EndsWith(",+4more]"),
+                  "and so does the district cap", wide.ByDistrict());
+
+            // ---- THE READER CONTRACT, ON THE LINE THAT ACTUALLY SHIPS -----
+            // These values ride on `KitDressing.Line()`, so the contract that
+            // matters is that one's: space-separated `key=value`, one `=` per
+            // token, balanced brackets. A district name is PROSE — `Copper
+            // Row`, `the Hook` — and an unfolded one truncates the whole value
+            // at the space with no sign it happened, which is exactly what
+            // `crowdBodyWidth=0.45(narrowest 0.39 broadest 0.53)` did.
+            var k = new KitDressing();
+            for (int i = 0; i < 166; i++) { k.Offered("yard_fence"); k.Placed("yard_fence", "1x1"); }
+            k.Yards.Cuts(1.5f, 4.21f);
+            k.Yards.Walked("Copper Row", -88.0, 120.0, true, 3.60f, "");
+            k.Yards.Walked("the Exchange", 12.0, 44.0, false, 0f, "no back of row");
+            k.Yards.Picked(3.60f, "1x1");
+            var kitLine = k.Line();
+            Console.WriteLine("  YARDDEPTH-ONLINE " + kitLine);
+            int walked;
+            var bad = KitDressing.BadTokens(kitLine, out walked);
+            Check(walked == 28, "the fragment carrying the yard keys walks twenty-eight tokens",
+                  walked.ToString());
+            Check(bad.Count == 0,
+                  "and no yard value can truncate at a space or an unbalanced bracket, over "
+                  + walked.ToString() + " tokens",
+                  bad.Count == 0 ? null : bad[0]);
+            Check(kitLine.Contains("yardDepthBy=[copper_row:3.60..3.60..3.60/0deep/1of1,"
+                                   + "the_exchange:nothing-measured/0deep/0of1]"),
+                  "a district name with a space in it is folded, not truncated", kitLine);
+            Check(kitLine.Contains("yardProbeWhy=[no_back_of_row:1]/1of2"),
+                  "and so is a reason the Game layer invented", kitLine);
+            // THE TWO POPULATIONS ON ONE LINE, which a reader will otherwise
+            // read as one: 166 placements of `1x1` beside ONE pick. They count
+            // different things and neither is a subset the other can be
+            // derived from.
+            Check(kitLine.Contains("yard_fence/1x1:166/0") && kitLine.Contains("yardPickBy=[1x1/alley:1]/n1"),
+                  "placements and picks are different populations and print apart",
+                  kitLine);
         }
 
         static void TestImageStats()

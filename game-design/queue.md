@@ -112,10 +112,17 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    `tools/lint-avenues.py:54` EXEMPTS `StreetMap.cs` as "the owner of the
    transform", so it prints `0 raw avenue reads` over a denominator that
    excludes the one file the fault lives in. A zero whose denominator omits
-   its subject; rule 3b wearing an exemption's clothes. **Two items: fix
-   `NameOf` (Core, needs a ruling — it changes `AddressOf` strings feeding
-   gossip and breaks three CoreTests), and NARROW the lint's OWNER
-   exemption.** It also CORRECTS the premise ruling C was given: plates have
+   its subject; rule 3b wearing an exemption's clothes. **IT IS THREE SITES, NOT ONE, measured by the
+   rebuilt lint: `NameOf` x3, `AddressOf` x4 — the nearest-street FALLBACK,
+   which is the path taken for 96 of 97 junctions — and `DistancePenalty` x2,
+   the tie-break that stops a Hook position being named a Copper Row street.
+   Fixing `NameOf` alone leaves the fallback and the tie-break wrong.** Queue
+   item `streetmap-nameof-scaled-vs-raw`; Core, needs a ruling (changes
+   `AddressOf` strings feeding gossip, breaks three CoreTests). **And the
+   OWNER exemption was one of THREE holes, not the bug:** `NameOf` reads
+   through an alias (`var cross = d.AvenuesZ; cross[0]`), which the old
+   pattern matched ZERO times — asserted in the selftest so nobody re-derives
+   "the exemption was it". It also CORRECTS the premise ruling C was given: plates have
    been placed all along (`signs=59 wallPlates=2`) at the one junction that
    can name itself, so "named streets and no way to read a name" was wrong —
    the hole is the LOOKUP, not the signage. `sign_plate_name` now files
@@ -135,11 +142,27 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    before you destroy — the rule applies to a queue as much as to a file.)*
 
 1. **PLAYBOOK SYNC DEFERRED: `playbook-sync-hybrid-resident`.** CLAUDE.md's
-   THE-HYBRID-RESIDENT section was rewritten 25 Aug (the cadence hole closed,
-   its two residual holes named, the watchdog's twin recorded). `jsab258/
-   game-studio` has not absorbed it, and that repo is outside this session's
-   push scope. `template-sync` is deferred against this item, NOT stamped as
-   synced — the two are different facts and must not print alike.
+   THE-HYBRID-RESIDENT section was rewritten 25 Aug; `jsab258/game-studio` has
+   not absorbed it and is outside this session's push scope. `template-sync`
+   is DEFERRED, not stamped synced — different facts, must not print alike.
+
+
+1. **OUR EXEMPLAR OF RULE 3b IS ITSELF THE FAULT — `lint-static` INFLATES ITS
+   DENOMINATOR 19x.** It prints `560 static bodies walked`; it actually scans
+   **29**, across 14 of 88 files. `collect()` keeps only files matching
+   `public partial class` exactly once and drops the rest **with no message**
+   — 531 unexamined, 95% of the printed denominator. **CLAUDE.md cites that
+   very line as the exemplar of the rule-3b fix**, so the rules file teaches
+   the disease as the cure. Two items: fix the printed number (the SCOPE may
+   be intentional; the DENOMINATOR is the bug) and correct CLAUDE.md — a
+   director trigger. `lint-conditional-reach` names its unwalked set and is
+   the model to copy. Six other lints are clean on this axis, checked.
+
+1. **VERIFY'S RED PATH IS A `head -3` — it reports ONE finding of nine,**
+   truncated at 90 chars, with no count and no `(+8 more)`. The cap that
+   announces itself is a standing rule and the verify footer is the one place
+   it is not obeyed, which is where it costs most: a red run's single line
+   reads as the whole problem. Owner: whoever holds `verify.py`.
 
 1. **THE VALUE INVERSION IS A DAYLIGHT FAULT, NOT A GRADE FAULT — read off
    the 71316fa pair before any number, which is the standing rule.** At NIGHT
@@ -214,26 +237,12 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    before the day-5 move is incomparable. `GroundGrade` does NOT move
    again — the lever is the light-to-JPEG path. Ruling:
    `decision-ground-albedo.md`.
-1. **THE TWO UNREACHED KITS: SURVEY DONE, WIRING IN FLIGHT (25 Aug).**
-   Plan is `agent-reports/kit-survey.md` — 19 PLACE / 6 HOLD / 33 REJECT,
-   every verdict carrying measured metres, a site and a count, and the
-   rejects carrying COUNTRY grounds (the octagon, the mast-arm signal, the
-   horizontal head, the low front-yard fence are all American forms). Both
-   kits are CC0 and already attributed: **nothing to fetch, nothing to
-   buy.** Three builders are wiring it now, on non-overlapping files —
-   `Core/KitDressing.cs` (tally + formatter, where the tests run), the six
-   lamp forms + Britain's missing secondary signal head in `WorldBuilder`
-   and `TrafficHost`, and roadworks/signs/planters/yard-fences in a new
-   `Game/StreetDressing.cs`. **Not closed until a landed verdict shows the
-   `KitDressing` done-line fragment with non-zero placements AND the stills
-   are read** — every one of these sites falls through to a fallback
-   primitive on a miss, silently, which is how `city_kit_*_bench` missed
-   for a week. Two verifications ordered by the survey and still open: the
-   warning triangle must point UP (down is a US yield sign, and bounds
-   cannot tell them apart), and the hanging plates letter through
-   `ShopNamesPainted` or render BLANK, which reads as a fault in frame.
-   The DENSITY half of the GTA V bar: what palms and hydrants do for Los
-   Santos, chimney pots and dock clutter must do for Meridian.
+1. **THE TWO KITS ARE WIRED AND MEASURED (landed `71316fa`).** 736 of 739
+   placed, ZERO missed, 6/6 lamp forms; `city-kit-suburban` is no longer an
+   unreached kit and the Game layer now names 73 models against 62. Open, in
+   `agent-reports/kit-survey.md`: the signage verdicts (the warning "triangle"
+   is a US diamond — the welded one REJECTS), and the fence repetition below.
+
 
 1. **M17.10 — THE VISUAL BAR IS GTA V (PS3). Jafar's order, 21 Aug, twice.**
    *(the most on-screen thing there is)* Plan in `roadmap.md` 17.10,
@@ -285,51 +294,19 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **THE SIM HUNG BEFORE THE DAY-1 BEAT ON `e8c5949` — DISPATCHING IS
-   BARRED UNTIL IT IS FIXED.** Measured: healthy runs reach `dayMark day=1`
-   at ~20s, frame ~306, **5 of 5**; this one reached **zero** beats in
-   1440s. So the old wording of this item ("the sim overruns its 24-min
-   kill, `hangTail` fired and was useless") had the symptom and not the
-   shape — it is not an overrun of a long run, it is a stop before the first
-   beat. The build ran, wrote a verdict, and produced **no done line, no
-   gates, no stills**; the staging guard correctly refused to restage the
-   previous run's pictures under this commit's name, so the JPEGs on the
-   branch are NOT evidence about it. Ten new `OnAnimatorIK` warnings against
-   **THE IK LEAD IS DEAD AND IT WAS MINE. I wrote here: "Ten new
-   `OnAnimatorIK` warnings against 0 in each of the five previous runs."
-   FALSE.** `tools/sim-shots-commit.sh:227` gates the whole raw tail behind
-   `if ! grep -q "SimDirector: done."`, so a healthy run CANNOT report the
-   warning — the field is absent, not zero. Counted over every kept run:
-   352 total, 3 with no done line, 3 carrying a raw tail at all, and **the
-   warning is in 3 of those 3.** It is what the tail always shows. I compared
-   a printed field against an ABSENT one and called it a regime break — a
-   zero with no denominator, quoted rather than deleted because it was
-   plausible and cost a builder real budget to refute. Nor was
-   `CharacterRig.cs:435` ever silent: `StampAvatar()` runs every LateUpdate
-   for every humanoid rig and Unity throttles the warning. **A guard there
-   would have spent a round trip on a non-fault.**
-   **Two live candidates, and the bisect is TWO wide, not one:** 14 commits
-   went out unbuilt since the last good run and exactly two touch
-   `ledger/Assets` — `677beb64` and `e72f58a3`. Candidate B is simply an
-   intermittent, and it is not ruled out. The stall is localised between the
-   first rendered frame and in-game noon day 1, which excludes the whole
-   expensive night-gated half (`MeasureAo`, `MeasureWindowGlow`,
-   `MeasureCrowdCost` never ran).
-   **DIAGNOSED (`agent-reports/sim-hang-e8c5949.md`): STALLED, not crashed
-   and not slow.** The heartbeat already existed and answered it — healthy
-   runs beat at 19-20s/frame ~306, ten a run; this one emitted ZERO in 1440s,
-   and a merely-2x-slow runner still gets five. Over all 352 kept runs, 7 ran
-   with no done line by the elapsed-time reading, 3 by a content grep — rare
-   either way, and NOT a one-off. The build step already
-   computes `$timedOut` and `$p.ExitCode` and throws both away, so "killed at
-   24 min" and "crashed" arrive identical — being fixed. **Two measurement
-   faults `e72f58a3` introduced, neither the hang:** `ArchetypeRead` /
-   `ControllerRead` / `TrouserRead` are last-wins strings OUTSIDE the
-   save/restore set, so they describe whichever walker attached last while
-   sitting beside player readings (the `namesTracked=2` fault again); and
-   `bodyTinted` / `bodyWash*` change POPULATION at this commit (every
-   textured renderer -> cloth only), which the commit message declares but
-   the verdict does not, so the next series-reader sees an unexplained fall.
+1. **THE `e8c5949` STALL WAS THE INTERMITTENT — CLOSED, CHANNEL IMPROVED.**
+   Two later builds ran clean (`simExit=0`, 733s and 735s), so candidate B
+   stands and no behaviour fix was needed. What the episode bought: the build
+   step now prints `simExit` / `simTimedOut` / `simWaitSeconds` — it always
+   computed them and threw them away, so "killed at 24 min" and "crashed"
+   arrived identical — plus an in-sim watchdog that beats the external kill
+   and `tools/hang-report.py`, which leads with POSITION rather than a tail of
+   engine warnings. **The IK-warning lead was mine and was FALSE:** the raw
+   tail is gated behind "no done line", so a healthy run cannot emit it; the
+   warning appears in 3 of the 3 runs where it CAN appear. A printed field
+   compared against an absent one. 3 of 352 kept runs have no done line, so
+   this class recurs — the instrumentation is the deliverable, not a fix.
+
 
 1. **BODY BUDGET CLOSED AT 87.8%** (account in `roadmap-history.md`). Live:
    the centre-third foot reading, and white pills with no committed still.

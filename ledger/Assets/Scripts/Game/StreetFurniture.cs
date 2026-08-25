@@ -23,6 +23,11 @@ namespace Ledger.Game
         {
             SignCount = 0;
             WallPlateCount = 0;
+            // Cumulative over ONE Build, so they reset with it: the cables
+            // and the pole wires both string through `Segment` and both
+            // count here.
+            WireSegments = 0;
+            WireSegmentsDark = 0;
             foreach (var n in StreetMap.Nodes)
             {
                 if (!n.IsJunction) continue;
@@ -214,6 +219,104 @@ namespace Ledger.Game
             return true;
         }
 
+        /// How many span segments got built, and how many of them took the
+        /// near-black wire material. Both are CUMULATIVE over one Build();
+        /// the second is the numerator and the first is its denominator, so
+        /// "no spans were darkened" and "no spans exist" cannot read alike.
+        /// NOT `CableCount` IN OTHER UNITS, and the identity says so: a
+        /// cable is two segments and a pole wire is two segments, so a
+        /// healthy run has `WireSegments == 2*(cables + poleWires)` — 318
+        /// against the landed `cables=63 poleWires=96`. A reading that
+        /// breaks that identity is a span built through some other path,
+        /// which is the thing this pair exists to make visible.
+        public static int WireSegments { get; private set; }
+        public static int WireSegmentsDark { get; private set; }
+
+        /// WHICH PROPERTIES THE SHADER ACTUALLY ACCEPTED, as a `+`-joined
+        /// token — the one thing about this change that can fail silently.
+        /// Setting a property a shader does not have is a no-op that neither
+        /// errors nor changes anything, and this project has shipped that
+        /// twice (see `PaintKit`, which counts acceptances rather than calls
+        /// for the same reason). Last-wins over the single derived material,
+        /// which is correct because there is exactly one. The default is the
+        /// words `nothing_measured`, so a build where the material was never
+        /// derived cannot read as a build where the shader refused
+        /// everything.
+        public static string WireProps { get; private set; } = "nothing_measured";
+
+        /// THE WIRE'S OWN MATERIAL — near-black and matte, because the shared
+        /// `Metal` surface is neither.
+        ///
+        /// MEASURED BEFORE CHANGED, off `review_day5_noon` — a frame whose
+        /// row in `frames.tsv` reads `rain=0.00 wet=0.00`, so nothing in it
+        /// is a rain streak. The span crossing the sky there reads a MEDIAN
+        /// 2.77x the luma of the sky in the SAME COLUMN (11 columns sampled,
+        /// each denominator taken from the same frame 14px off the wire),
+        /// peaking at RGB 231,243,243: a blown-out white scratch with a
+        /// specular blob where the sun catches it. A silhouette element that
+        /// reads BRIGHTER than the sky behind it is the one failure mode
+        /// overhead clutter has.
+        ///
+        /// The cause is the shared surface, not the geometry: `metal` is
+        /// tint 0.30/0.31/0.33 at metallic 0.9 and smoothness 0.55, which is
+        /// a mirror. A thin cylinder sweeps every normal across its width, so
+        /// somewhere along it the specular condition is always met and the
+        /// whole span lights up at once.
+        ///
+        /// DERIVED, NOT EDITED IN PLACE: 45 other call sites take
+        /// `AssetLibrary.Metal` — bench legs, dumpsters, bar counters, roof
+        /// aerials — and a mirror is right for most of them. One material is
+        /// derived once and shared by every span, so batching survives; the
+        /// pattern is `MaterialGraded`'s.
+        ///
+        /// A MATERIAL RATHER THAN `PaintKit`, and the difference is the
+        /// point. `PaintKit` is right for a KIT MESH whose own material is
+        /// already matte, where only the colour is wrong. Here half the fault
+        /// is the GLOSS, which no colour set can reach, and a property block
+        /// would also skip the gamma-to-linear conversion that
+        /// `Material.SetColor` performs — a display-authored near-black would
+        /// come out weaker than authored. One shared material has neither
+        /// problem.
+        ///
+        /// The values are the palette's, not invented here. The colour is
+        /// `TrafficHost.SignalHousing`'s (0.13/0.15/0.14), near-black and
+        /// faintly green, whose own comment asks for "the same family as the
+        /// lamp column so the street's ironwork agrees with itself" — a span
+        /// is street ironwork. The smoothness and metallic are `Roof`'s
+        /// (0.12 / 0.1), the palette's existing entry for weathered outdoor
+        /// metal, which leaves the thin highlight a real wire keeps at night
+        /// without the daylight mirror.
+        static readonly Color WireBlack = new Color(0.13f, 0.15f, 0.14f);
+        const float WireSmoothness = 0.12f;
+        const float WireMetallic = 0.10f;
+        static Material _wireMat;
+
+        static Material WireMaterial()
+        {
+            // Unity's null check also catches a material destroyed with the
+            // previous scene, so a rebuild derives a fresh one.
+            if (_wireMat != null) return _wireMat;
+            var baseMat = AssetLibrary.Material(AssetLibrary.Metal);
+            if (baseMat == null) { WireProps = "no_base_material"; return null; }
+            var mat = new Material(baseMat) { name = "wire_black" };
+            var took = "";
+            if (mat.HasProperty("_Color")) { mat.SetColor("_Color", WireBlack); took += "+color"; }
+            if (mat.HasProperty("_Metallic")) { mat.SetFloat("_Metallic", WireMetallic); took += "+metallic"; }
+            // A BOUND GLOSS MAP MAKES `_Glossiness` A NO-OP, which is the
+            // same silent failure one layer down: with `_METALLICGLOSSMAP`
+            // enabled the Standard shader reads smoothness from the map's
+            // alpha and ignores the scalar. `SetWetness` hit this and drives
+            // `_GlossMapScale` instead when a map is bound; same answer here.
+            // Whether `metal` carries one depends on what the texture pack
+            // shipped, so BOTH are set and the token says which took.
+            if (mat.HasProperty("_Glossiness")) { mat.SetFloat("_Glossiness", WireSmoothness); took += "+gloss"; }
+            if (mat.IsKeywordEnabled("_METALLICGLOSSMAP") && mat.HasProperty("_GlossMapScale"))
+            { mat.SetFloat("_GlossMapScale", WireSmoothness); took += "+glossmap"; }
+            WireProps = took.Length == 0 ? "none_accepted" : took.Substring(1);
+            _wireMat = mat;
+            return mat;
+        }
+
         static void Segment(string name, Vector3 from, Vector3 to)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -221,7 +324,11 @@ namespace Ledger.Game
             go.transform.position = (from + to) * 0.5f;
             go.transform.up = (to - from).normalized;
             go.transform.localScale = new Vector3(0.05f, (to - from).magnitude, 0.05f);
-            go.GetComponent<Renderer>().sharedMaterial = AssetLibrary.Material(AssetLibrary.Metal);
+            WireSegments++;
+            var wire = WireMaterial();
+            go.GetComponent<Renderer>().sharedMaterial =
+                wire != null ? wire : AssetLibrary.Material(AssetLibrary.Metal);
+            if (wire != null) WireSegmentsDark++;
             Strip(go.GetComponent<Collider>());
         }
 

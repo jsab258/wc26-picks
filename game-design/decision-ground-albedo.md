@@ -1910,3 +1910,129 @@ references (7/7 on the sky-vs-ground half already).
   HELD (not reverted piecemeal) and dies with R0.b's single re-set.
 - Cadence rules 3a/3b bind every dispatch and landing until Jafar
   calls the bar met.
+
+---
+
+# THE GROUND IS ALBEDO-BLIND, MEASURED AT EYE LEVEL — first firing of `ValuePanel`, landing `b7d232b` (25 Aug 2026)
+
+**This is the reading the whole file has been waiting for, and it took a
+camera at 1.7m to get it.** `refPlaced=5/5`, `valueShots=23/23`,
+`valueRays=52992` — denominators on every row.
+
+## 1. The value structure is inverted at street level, everywhere
+
+Ground brighter than sky in **all five** reference cameras and **all seven**
+districts:
+
+| shot | sky | ground |
+|---|---:|---:|
+| ref_1 | 0.658 | **0.844** |
+| ref_2 | 0.711 | **0.774** |
+| ref_3 | 0.603 | **0.742** |
+| ref_4 | 0.710 | **0.848** |
+| ref_5 | 0.716 | **0.819** |
+| district_hook | 0.406 | **0.762** |
+| district_copper | 0.395 | **0.750** |
+| district_ironside | 0.383 | **0.721** |
+| district_downtown | 0.449 | **0.789** |
+| district_strip | 0.404 | **0.741** |
+| district_fairview | 0.395 | **0.796** |
+| district_gullwing | 0.376 | **0.713** |
+
+Every reference the bar is set against has sky as the brightest broad
+surface. `ref_1` reads as SNOW.
+
+## 2. And the ground barely responds to its own albedo — this is the cause
+
+`valueAlbedoOrder`, `ref_1`, source albedo : rendered luma —
+
+    asphalt 0.008 : 0.853    concrete 0.020 : 0.881
+    sidewalk 0.021 : 0.761   kerb     0.067 : 0.862
+
+**An 8x spread in source produces essentially no spread on screen.** Asphalt
+authored near-black renders at 0.85. That is why every attempt at ground
+surface history has been invisible: detail on a clipped ground cannot be
+seen, and the clipping is near-total. The same shape holds in every district
+row above.
+
+## 3. WHY THIS WAS NOT SEEN FOR WEEKS — IT IS THE RAIN, NOT THE ANGLE
+
+**RETRACTED WITHIN THE HOUR, AND THE FALSE SENTENCE IS KEPT BECAUSE IT WAS
+PLAUSIBLE AND I PUBLISHED IT.** This section first read:
+
+> *"Same run, same instant: `day1_noon` reads sky 0.445 / gnd 0.237 — the
+> CORRECT order — while `ref_1` at eye level reads sky 0.658 / gnd 0.844.
+> The frames the project has been judged on are the one angle that hides
+> the fault."*
+
+**Wrong, and refuted by a column I already had.** `frames.tsv` carries `rain`
+and `wet` per shot. `day1_noon` is **wet=1.00** — a soaked road, which is
+dark. Every `ref_*` is **wet=0.00**. So that comparison put a wet road beside
+five dry ones and read the difference as camera height. It is the exact fault
+this file exists to catch, committed by the resident, in the paragraph
+announcing the instrument that catches it. **The director named this caveat
+BEFORE the data existed** — *"ValuePanel samples must carry weather state or
+the series mixes regimes"* — and it was written down and then not applied.
+
+**Like for like, both DRY:**
+
+| shot | height | wet | sky | ground |
+|---|---|---:|---:|---:|
+| `day5_noon` | review | 0.00 | 0.441 | **0.719** |
+| `ref_1` | eye | 0.00 | 0.658 | **0.844** |
+
+**The inversion is in BOTH.** The aerials never hid it. What hid it is that
+`day1_noon` — the frame read at almost every landing — happens to be a
+raining frame, and **a wet road is dark.** The project has been judging its
+daylight value structure off its wettest daytime shot.
+
+What eye level genuinely adds is SEVERITY (0.844 against 0.719) and a picture
+a person cannot argue with. That is still worth the five cameras; it is not
+the claim I made an hour ago.
+
+## 4. What is NOT established, so nobody over-reads this
+
+- **Weather is not yet carried per sample, and the director named this before
+  the data existed.** `day1_noon` is a RAINING frame with a wet, dark road;
+  `ref_1` shows a dry one. Comparing those two directly mixes regimes. **The
+  §3 comparison above is therefore SUGGESTIVE, not proven** — the panel needs
+  a weather field before it can be settled, and that is the next instrument
+  step, ahead of any lever.
+- **The daylight-vs-grade fork is still open.** A grade nonlinearity biting
+  only at daylight levels fits this evidence exactly as well as an aperture
+  fault. §1 and §2 do not separate them.
+- **Three of five reference cameras sampled ZERO lit-wall pixels**
+  (`litnone@0`), so two of the three orderings are untestable there and print
+  `?` rather than a guess. Honest, and a camera-aim gap to close.
+- The builder's written prediction was `1of3` on dry noon stills. `ref_3`
+  landed exactly that; `ref_2` came back `2of3`. Nothing returned `3of3`, so
+  its own "suspect the instrument first" alarm did not fire.
+
+## 4b. `ref_3` SHOWS THE DETAIL IS ALREADY THERE AND BEING ERASED
+
+Read after §4, and it changes what the fix BUYS rather than what it is. The
+`ref_3` frame is not a bare white road: cracks, tyre marks, a dark centre
+line and standing wet patches are all visibly present — **authored surface
+history, crushed into near-white.** So the ladder rung "the ground needs more
+dirt" is the wrong next move and would be wasted work: **we are not short of
+ground detail, we are erasing the ground detail we already have.**
+
+That is the §1/§2 argument made concrete. An 8x albedo spread arriving as no
+spread on screen does not merely flatten the tone — it takes the contrast
+range that surface history lives in and spends it. **Any further ground
+authoring before the daylight path is fixed is invisible by construction**,
+which is the director's R0-before-decals ordering, now visible in a frame
+rather than argued from references.
+
+Two smaller readings from the same frame, recorded so they are not
+re-derived: the overcast dome has real cloud structure and reads well, so the
+sky is not the weak half; and the wet patches are plainly darker than the dry
+road, which is the same wet/dry split that made `day1_noon` look acceptable
+for weeks.
+
+## 5. The bar that still stands
+
+**No lever moves on this reading.** Rule 2: one run is not a series. The
+aperture moves ONCE, off a printed post-fix series, and that ruling is
+unchanged. What this landing buys is that the argument is now about a number
+with a denominator instead of about a JPEG.

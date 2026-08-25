@@ -909,8 +909,17 @@ def raw_avenues():
         first = next((l.strip() for l in out.splitlines() if ".cs:" in l), "see lint-avenues")
         return False, "RAW AVENUE READ (unscaled coordinates): " + first[:90]
     m = re.search(r"\((\d+) files walked", out)
-    return True, ("0 raw avenue reads (%s files)" % m.group(1) if m
-                  else "0 raw avenue reads")
+    # A DEFERRAL MUST NOT READ AS A PASS, and this line is where it would.
+    # The lint exits 0 while KNOWN FAULTS sit in its DEFERRED ledger, so a
+    # footer saying only "0 raw avenue reads" asserts a clean sweep that is
+    # not clean — into every commit message, which is the channel people
+    # actually read. The digits-only capture could not carry the debt, so
+    # the count is lifted from the lint's own deferral line rather than
+    # recomputed here: one implementation, no second copy to drift.
+    d = re.search(r"DEFERRED KNOWN FAULTS[^\n]*?:\s*(\d+)\b", out)
+    debt = (", %s DEFERRED" % d.group(1)) if d and d.group(1) != "0" else ""
+    return True, ("0 raw avenue reads%s (%s files)" % (debt, m.group(1)) if m
+                  else "0 raw avenue reads%s" % debt)
 
 
 def static_instance():

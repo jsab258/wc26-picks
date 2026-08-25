@@ -161,6 +161,31 @@ namespace Ledger.Game
         /// The U needs its returns plus a working clearance at each face.
         const float DeepYard = ReturnDepth + 1.25f;
 
+        /// UNDER THIS THERE IS NO YARD, only a party-wall gap; a boundary
+        /// there is geometry inside geometry. Named rather than left as a
+        /// literal inside `YardOf` because `KitTally.Yards` bands the printed
+        /// distribution against BOTH cut points, and a threshold with two
+        /// copies is the one that gets changed in one place.
+        const float MinYard = 1.5f;
+
+        /// AND THE DISTRIBUTION THOSE TWO NUMBERS CUT IS NOW PRINTED, which is
+        /// the whole reason this paragraph can stop being an argument. The
+        /// landed verdict at `71316fa` read `yard_fence/1x1:163/0 1x2:0/0
+        /// 1x3:0/0 1x4:3/0` — 163 of 166 placements the shortest panel, the
+        /// two middle variants zero — and that reading supports the arithmetic
+        /// above (the yards really are alleys) and its exact opposite (the
+        /// probe misreads them) equally well. `Core/YardDepth.cs` takes every
+        /// block this pass walks, whatever the probe made of it, and prints the
+        /// depths themselves plus the per-district split, the band census over
+        /// blocks WALKED, and why each unreadable block was unreadable. NO
+        /// BOUND AND NO GATE: it is the printer whose series a threshold may
+        /// come from later, in that order.
+        ///
+        /// NOTHING BELOW MOVED FOR IT. The pick, the cuts and the tiling are
+        /// exactly what landed at `71316fa`, so the first series describes the
+        /// street that produced that verdict rather than a street changed to
+        /// explain it.
+
         // ---- the pass ------------------------------------------------------
 
         /// One dressing pass over the finished street graph. Called from
@@ -270,6 +295,12 @@ namespace Ledger.Game
         /// LONG axis, with the model chosen by the yard depth the probe found.
         static void YardFences(Transform parent)
         {
+            // THE LIVE CUT POINTS, HANDED OVER RATHER THAN COPIED, so the
+            // printed bands cannot drift away from the thresholds the pick
+            // below actually uses. A run that never reaches this line prints
+            // the word `cuts-unset` in every banded key instead of banding
+            // against a default that would look exactly like a measurement.
+            WorldBuilder.KitTally.Yards.Cuts(MinYard, DeepYard);
             foreach (var block in StreetMap.Blocks)
             {
                 // The long axis: every block in this city is wider than it is
@@ -280,7 +311,20 @@ namespace Ledger.Game
                 double runSpan = alongX ? block.Width : block.Depth;
 
                 float yard, mid;
-                if (!YardOf(block, alongX, out yard, out mid)) continue;
+                string why;
+                bool usable = YardOf(block, alongX, out yard, out mid, out why);
+                // EVERY BLOCK IS FILED, WHATEVER THE PROBE MADE OF IT, and it
+                // is filed HERE rather than after the `continue` because the
+                // blocks that place nothing are the ones the distribution
+                // exists to show: a series over placements can only ever
+                // describe sites that worked. `why == null` is exactly "a
+                // depth was computed" — including a depth under `MinYard`,
+                // which is a real reading of a real party-wall gap and must
+                // land in the series rather than in the unreadable pile.
+                WorldBuilder.KitTally.Yards.Walked(
+                    StreetMap.DistrictAt(block.CentreX, block.CentreZ),
+                    block.CentreX, block.CentreZ, why == null, yard, why);
+                if (!usable) continue;
 
                 // Which model can legally stand in a yard this deep is
                 // `PickFence`'s call; the axis and yaw are the block's.
@@ -295,6 +339,14 @@ namespace Ledger.Game
                 {
                     double remain = runSpan - 6.0 - t;
                     string v = PickFence(yard, remain);
+                    // THE PICK, WITH THE DEPTH THAT MADE IT, at the instant it
+                    // was made — before the share roll below and before the
+                    // geometry refusal, so this population is larger than the
+                    // placed one by construction and `kitByVariant` is not it.
+                    // The variant turns on TWO inputs, the yard and the run
+                    // left, and only the cross-tab can say which one produced
+                    // a short panel.
+                    WorldBuilder.KitTally.Yards.Picked(yard, v);
                     if (v == null) break;
                     float runM = FenceMetres(v);
 
@@ -354,21 +406,41 @@ namespace Ledger.Game
         /// clear the second time. False when either face has no terrace at
         /// all — a block with nothing built on it has no yard, and a fence
         /// standing in open ground is the fault this returns false to avoid.
-        static bool YardOf(StreetMap.Block block, bool alongX, out float depth, out float mid)
+        ///
+        /// TWO OUTPUTS AND THEY ARE NOT THE SAME QUESTION. The RETURN says
+        /// whether a fence may stand here; `why` says whether a DEPTH EXISTS
+        /// AT ALL, and it is null in both of the cases where one does — a yard,
+        /// and a party-wall gap too tight for one. A caller reading the return
+        /// as "the probe read this block" would file every sub-floor gap as
+        /// unreadable and quietly delete the shallowest end of the
+        /// distribution, which is the end under examination.
+        ///
+        /// WHAT IT MEASURES, PLAINLY, because the printed series is only as
+        /// good as this sentence: ONE ray per block, down the block's own
+        /// centre line on the long axis, stepped 0.4m inward from each of the
+        /// two long faces, testing `WorldBuilder.PointClear` against building
+        /// masses with NO inflation. So the depth is a single sample rather
+        /// than a survey of the yard, it is quantised to the 0.4m step, and it
+        /// reaches 18m before giving up. A block whose centre line happens to
+        /// pass through an alley mouth enters no mass and reports `no_back_*`
+        /// rather than a depth.
+        static bool YardOf(StreetMap.Block block, bool alongX,
+                           out float depth, out float mid, out string why)
         {
-            depth = 0f; mid = 0f;
+            depth = 0f; mid = 0f; why = null;
             double c = alongX ? block.CentreX : block.CentreZ;
             double lo = alongX ? block.MinZ : block.MinX;
             double hi = alongX ? block.MaxZ : block.MaxX;
 
             float backLo, backHi;
-            if (!BackOfRow(alongX, c, lo, +1f, out backLo)) return false;
-            if (!BackOfRow(alongX, c, hi, -1f, out backHi)) return false;
+            if (!BackOfRow(alongX, c, lo, +1f, out backLo)) { why = "no_back_lo"; return false; }
+            if (!BackOfRow(alongX, c, hi, -1f, out backHi)) { why = "no_back_hi"; return false; }
             depth = backHi - backLo;
             mid = (backHi + backLo) * 0.5f;
             // Under a metre and a half there is no yard, only a party-wall
-            // gap; a boundary there would be geometry inside geometry.
-            return depth >= 1.5f;
+            // gap; a boundary there would be geometry inside geometry. The
+            // depth stands and `why` stays null: this block WAS read.
+            return depth >= MinYard;
         }
 
         /// From a block face, inward, to the far side of the terrace row.

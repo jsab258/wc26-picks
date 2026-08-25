@@ -27,7 +27,7 @@ namespace Ledger.Core
     /// seconds; the Game layer supplies only membership, order and live state.
     ///
     /// IT IS EMITTED BARE AND MUST NEVER BE WRAPPED IN A KEY. `Line()` returns
-    /// TWENTY space-separated `key=value` tokens, not one value, so
+    /// TWENTY-EIGHT space-separated `key=value` tokens, not one value, so
     /// `$"kitDressing={Line()}"` produces `kitDressing=kitPlaced=243/320/5/72refused`
     /// — a token with two `=` in it. Every reader in this repo splits on
     /// whitespace and takes the FIRST `=`, so that reader gets `kitDressing`
@@ -49,6 +49,18 @@ namespace Ledger.Core
     /// frame, which cannot both be true, and it cost an afternoon and a
     /// deleted counter. `Line()` is called ONCE, at the end of the run, on the
     /// done line. Nothing here may be emitted on a screenshot line.
+    ///
+    /// AND THAT SENTENCE STOPPED BEING TRUE OF THE WHOLE LINE the day the
+    /// yard-depth keys joined it, so it is qualified here rather than left to
+    /// be read as covering them. The eight `yard*` tokens at the bottom of
+    /// `Line()` are cumulative over the SAME instant — the end of the same
+    /// run — but they are not COUNTS: `yardDepthSeries` is a sorted series,
+    /// `yardDepthSpread` carries a median, `yardDepthBy` carries one per
+    /// district. Which statistic each of them is, and over which population,
+    /// is stated in `Core/YardDepth.cs` beside the method that builds it. A
+    /// number keeps its name when the question it answers moves, and a header
+    /// claiming "every number here is a count" is exactly how a median gets
+    /// quoted as one.
     ///
     /// THE PAIRS ARE PAIRS, NOT TWO KEYS. Every count ships the denominator it
     /// is a fraction OF, in the same value, separated by `/` — `placed/offered
@@ -287,6 +299,18 @@ namespace Ledger.Core
         };
 
         readonly Dictionary<string, Fam> _fam = new Dictionary<string, Fam>();
+
+        /// THE YARD-DEPTH DISTRIBUTION, which rides on this line rather than
+        /// on one of its own. It is a distribution over SITES and this class
+        /// counts PLACEMENTS, so it could not be folded into `Measured` — a
+        /// block the probe could not read never reaches a placement and is
+        /// exactly the site the series exists to show. It hangs here because
+        /// `Line()` is the dressing pass's one done-line fragment: a second
+        /// fragment would need a second emit in the Game layer, which is a
+        /// second place to forget, and every key added here inherits the
+        /// `BadTokens` contract sweep for free. See `Core/YardDepth.cs` for
+        /// what statistic each of its values is.
+        public readonly YardDepth Yards = new YardDepth();
 
         // ---- WHAT THE PLACER FILES ----------------------------------------
 
@@ -548,6 +572,26 @@ namespace Ledger.Core
             t.Add("yardFenceRuns=" + PlacedOver("yard_fence"));
             t.Add("yardFenceMetres=" + Amount("yard_fence"));
             t.Add("plantersPlaced=" + PlacedOver("planter"));
+
+            // ---- WHAT THE YARD PROBE READ --------------------------------
+            // A DISTRIBUTION OVER SITES, not over placements, and the reason
+            // the eight keys below cannot be derived from the seven above:
+            // `yard_fence/1x1:163/0 1x2:0/0 1x3:0/0 1x4:3/0` at `71316fa`
+            // supports two opposite readings — yards that are genuinely
+            // shallow, and a probe that misreads them — and no count of what
+            // stood up can separate them. Every one of these is a whole-run
+            // cumulative number read here, at the end of the run, on the done
+            // line. NOTHING HERE IS GATED and nothing here is a bound: this is
+            // the printer whose series a threshold may later come from, in
+            // that order.
+            t.Add("yardBandCuts=" + Yards.CutsRow());
+            t.Add("yardDepthSeries=" + Yards.Series());
+            t.Add("yardDepthSpread=" + Yards.Spread());
+            t.Add("yardDepthBands=" + Yards.Bands());
+            t.Add("yardDepthBy=" + Yards.ByDistrict());
+            t.Add("yardDepthDeepest=" + Yards.Deepest());
+            t.Add("yardProbeWhy=" + Yards.ProbeWhy());
+            t.Add("yardPickBy=" + Yards.PickBy());
 
             return string.Join(" ", t.ToArray());
         }
@@ -1013,7 +1057,12 @@ namespace Ledger.Core
         /// they are one IDEA with two implementations, which is the shape this
         /// project keeps getting bitten by, and unifying them means changing
         /// `GroundGain`'s pinned expectations with its tests in hand.
-        static string Safe(string name)
+        /// INTERNAL, NOT PRIVATE, because `YardDepth` folds district names —
+        /// `Copper Row`, `the Hook` — through this same idea, and a second
+        /// copy of a name-folder is the site nobody fixes when the first one
+        /// grows a character. Not public: the Game layer must pass its own
+        /// strings and let the tested layer fold them.
+        internal static string Safe(string name)
         {
             if (string.IsNullOrEmpty(name)) return "";
             var n = name.Trim().ToLowerInvariant();
