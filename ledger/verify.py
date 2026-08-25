@@ -1661,6 +1661,13 @@ DIRECTOR_MIN_LINES = 100                      # MORE than this is "substantial"
 DIRECTOR_SCRIPTS = "ledger/Assets/Scripts/"   # git paths are repo-root relative
 DIRECTOR_LOG = ".claude/agent-log.tsv"
 DIRECTOR_AGENT = "studio-director"
+# THE SPEND READING'S OWN INPUTS. `.claude/agents/*.md` carries a `model:` line
+# in its front matter; which agents run on Fable is READ from those files rather
+# than remembered, because "studio-director is the only fable agent" is exactly
+# the kind of sentence this project has watched decay (rule 1's corollary: your
+# own docs are not evidence). Checked 25 Aug: 10 files, 1 on fable.
+DIRECTOR_AGENTS_DIR = ".claude/agents"
+FABLE_MODEL = "fable"
 
 
 def _git(repo, *args):
@@ -1698,6 +1705,42 @@ def _cadence_epoch(text):
     return None
 
 
+def _cadence_fable_agents(repo):
+    """WHICH agent definitions declare `model: fable` — read, never recalled.
+
+    Returns (sorted names, COUNT of agent definition files examined). The count
+    is the denominator (rule 3b): an empty list with 10 files read means every
+    agent is on another model, and an empty list with 0 files read means the
+    scan measured NOTHING, and those two must never print alike.
+
+    Only the front matter is inspected (first 20 lines), because `model:` is a
+    YAML key there and the body of these files is prose that discusses models.
+
+    WHY THIS IS READ AT ALL: the share below is only a Fable-spend number while
+    the Fable set is what it is assumed to be. If a second agent moves onto
+    fable, the share must count it (and the printed set says it did) rather
+    than silently understating the spend by a whole agent."""
+    d = pathlib.Path(repo) / DIRECTOR_AGENTS_DIR
+    names, files = [], 0
+    try:
+        entries = sorted(d.glob("*.md"))
+    except OSError:                              # not a directory, or denied
+        entries = []
+    for f in entries:
+        try:
+            head = f.read_text(encoding="utf-8", errors="replace").splitlines()[:20]
+        except OSError:
+            continue                             # unreadable: not examined
+        files += 1
+        for line in head:
+            m = re.match(r"\s*model\s*:\s*([A-Za-z0-9_.-]+)", line)
+            if m:
+                if m.group(1).strip().lower() == FABLE_MODEL:
+                    names.append(f.stem.strip().lower())
+                break                            # first model: line wins
+    return sorted(set(names)), files
+
+
 def _cadence_read(repo):
     """The reading, as a dict — ONE implementation, shared by the check, the
     `--cadence` printer and every fixture in the selftest.
@@ -1723,6 +1766,32 @@ def _cadence_read(repo):
                 the same file as `rows`
       stale_code COUNT of `studio-director` rows dated at or before it
       unparsed  COUNT of rows that could not be dated — treated as ABSENT
+
+    AND THE SPEND READING ADDED 25 AUG, WHICH IS A READING AND NOT A GATE.
+    Nothing below is compared against any bound, and `state`/`ok` do not read
+    a single one of them — deliberately, because there is no landed series yet
+    (rule 2: the printer ships first, the number comes from what it printed).
+    A bound here would also be a ratchet: it would block a commit for a review
+    that was legitimately needed.
+
+      spawn_since COUNT of ALL log rows dated after the reference commit — the
+                DENOMINATOR of `since_code`, captured in the same pass over the
+                same read of the same file, so the pair is one instant
+      fable_rows CUMULATIVE count of rows whose agent is in the FABLE SET, over
+                the whole log — numerator of the lifetime share
+      day_iso   the newest UTC DAY PRESENT IN THE LOG, stamped beside its share
+                so a stale log can never read as today's spend
+      day_rows / day_fable  COUNTs over that one day — a window, not a total
+      fable_agents / agent_files  the fable SET read from `.claude/agents/*.md`,
+                and the COUNT of definition files examined to find it
+
+    WHY THREE WINDOWS AND NOT ONE, measured before it was written: on 25 Aug
+    the whole-log share was 13/64 (20%), the newest day 9/37 (24%), and the
+    last ten rows 4/10 (40%). A lifetime share structurally cannot see that
+    tail — it is the same defect as reading a median for "is anybody". So the
+    batch window (since the reference commit), the day, and the lifetime are
+    printed side by side, each with its own denominator, and the differences
+    between them are the drift signal.
 
     WHY UNTRACKED CONTENT IS COUNTED RATHER THAN NOTED — the gate's largest
     hole, closed 24 Aug after a sibling repo found the same shape. A file git
@@ -1809,7 +1878,19 @@ def _cadence_read(repo):
          "noncode": 0, "shallow": False,
          "untracked": 0, "untracked_files": 0, "untracked_binary": 0,
          "unreadable": 0, "log": True, "newest_dir": "", "head_iso": "",
+         "spawn_since": 0, "fable_rows": 0, "day_iso": "", "day_rows": 0,
+         "day_fable": 0, "fable_agents": [], "agent_files": 0,
          "state": "ok"}
+
+    # READ FIRST, so every exit below — including the no-HEAD one — carries a
+    # fable set with its denominator rather than an empty field.
+    r["fable_agents"], r["agent_files"] = _cadence_fable_agents(repo)
+    if not r["agent_files"]:
+        # NOTHING MEASURED about the set: fall back to the one agent known to
+        # be on fable, and let `agentFilesRead=0` say the set is assumed. The
+        # fallback is the counting direction that cannot understate spend.
+        r["fable_agents"] = [DIRECTOR_AGENT]
+    fable_set = set(r["fable_agents"])
 
     code, out = _git(repo, "show", "-s", "--format=%ct", "HEAD")
     head_ct = None
@@ -1820,7 +1901,8 @@ def _cadence_read(repo):
     if head_ct is None:
         r["state"] = "nohead"
         r["summary"] = ("director cadence: no HEAD commit — nothing measured "
-                        "(0 changed lines, 0 log rows examined)")
+                        "(0 changed lines, 0 log rows examined)"
+                        + _cadence_spend(r))
         r["ok"] = True
         return r
 
@@ -1906,6 +1988,9 @@ def _cadence_read(repo):
     # "0 counted and 300 declined".
     r["changed"] = r["tracked"] + r["untracked"]
 
+    # COUNTS PER UTC DAY, {day: [fable, all]} — accumulated per row so the day
+    # window is a real window; the newest key is picked after the loop.
+    day_counts = {}
     log = repo / DIRECTOR_LOG
     if not log.exists():
         r["log"] = False
@@ -1922,12 +2007,26 @@ def _cadence_read(repo):
             r["rows"] += 1
             when = cols[0] if cols else ""
             agent = cols[1].strip().lower() if len(cols) > 1 else ""
+            # THE SPEND NUMERATORS, counted in the SAME PASS over the SAME read
+            # of the same file as `rows` — one instant, one line. They read the
+            # FABLE SET rather than DIRECTOR_AGENT, so a second agent moving
+            # onto fable is counted the day it appears; the gate's own
+            # `since_code` below is untouched and still reads DIRECTOR_AGENT.
+            is_fable = agent in fable_set
+            r["fable_rows"] += 1 if is_fable else 0        # CUMULATIVE, whole log
             ts = _cadence_epoch(when)
             if ts is None:
                 r["unparsed"] += 1
                 if agent == DIRECTOR_AGENT:
                     r["unparsed_dir"] += 1
-                continue
+                continue           # undateable: counted in no TIME window
+            day = datetime.datetime.fromtimestamp(
+                ts, datetime.timezone.utc).strftime("%Y-%m-%d")
+            slot = day_counts.setdefault(day, [0, 0])
+            slot[0] += 1 if is_fable else 0
+            slot[1] += 1
+            if ts > r["ref_ct"]:
+                r["spawn_since"] += 1     # DENOMINATOR of since_code, same pass
             if agent != DIRECTOR_AGENT:
                 continue
             if ts > r["ref_ct"]:
@@ -1937,6 +2036,14 @@ def _cadence_read(repo):
             if not r["newest_dir"] or ts > _cadence_epoch(r["newest_dir"]):
                 r["newest_dir"] = when.strip()
 
+    # THE NEWEST DAY PRESENT IN THE LOG — max() over ISO dates is the latest.
+    # Not "today" by wall clock: a fixture pinned to 2023 and a log that went
+    # quiet yesterday must both read deterministically, and the stamp printed
+    # beside the share is what tells a reader which day it got.
+    if day_counts:
+        r["day_iso"] = max(day_counts)
+        r["day_fable"], r["day_rows"] = day_counts[r["day_iso"]]
+
     substantial = r["changed"] > DIRECTOR_MIN_LINES
     if substantial and not r["log"]:
         r["state"] = "logmissing"
@@ -1945,6 +2052,91 @@ def _cadence_read(repo):
     r["ok"] = r["state"] == "ok"
     r["summary"] = _cadence_summary(r)
     return r
+
+
+NOTHING_MEASURED = "nothing-measured"   # no spaces: the footer is split on them
+
+
+def _cadence_spend(r):
+    """FABLE SPEND, printed into the footer that every commit message carries.
+
+    A READING, NOT A GATE. Nothing in here is compared against a bound and
+    `state`/`ok` do not read any of it — asserted by a fixture, not just
+    written here. The reason is rule 2: there is no landed series yet (today is
+    n=1), so the printer ships first and a bound, if one is ever warranted,
+    comes from what the commit feed prints. A bound now would also be a ratchet
+    — it would block a commit for a review that was legitimately needed.
+
+    WHY THE COMMIT FOOTER IS THE CHANNEL: the owner asked on 25 Aug whether
+    Fable use was being minimised and, immediately after, "how are you going to
+    make sure they stay in place and we don't drift?". Prose in a chat decays;
+    this file is a list of proofs of that. `director_cadence` already reads the
+    spawn log and already emits into the footer, so the drift channel needs no
+    new mechanism — only the reading that was missing.
+
+    Three numbers, three windows, each named for the statistic it is:
+
+      directorSpawns=<a>/<b>  COUNT of `studio-director` rows (a) over ALL
+          spawn rows (b) dated after the reference code commit — the BATCH
+          window, the same reference the gate uses. `a` is the gate's own
+          `since_code`, so there is one implementation of that count and not
+          two. 1 is a batch reviewed once; 3 is the drift the owner asked about.
+      fableShareDay=<a>/<b>@<date>  SHARE over the newest UTC day PRESENT IN
+          THE LOG. The date is carried in the value (a paired reading) so a log
+          that went quiet yesterday cannot read as today's spend.
+      fableShareAll=<a>/<b>  CUMULATIVE share over every row in the log.
+
+    They disagree, which is the point: 25 Aug read 13/64 lifetime, 9/37 for the
+    day, 4/10 over the last ten rows. A lifetime share cannot see a tail.
+
+    `fableShareDay` and `fableShareAll` count the FABLE SET, which is read from
+    the agent definitions and PRINTED (`fableAgents=`), because the sentence
+    "studio-director is the only fable agent" is a fact that can decay silently
+    and would understate the share by a whole agent when it does.
+
+    Every zero ships its denominator, and NEVER-MEASURED prints the words: an
+    absent or rowless log gives `nothing-measured`, which cannot be read as
+    "0 spawns, excellent". `fableShareAll=0/64` (measured, none of them fable)
+    and `fableShareAll=nothing-measured` (the log was not there) are different
+    facts and print differently."""
+    measured = r["log"] and r["rows"] > 0
+    if measured:
+        spawns = "%d/%d" % (r["since_code"], r["spawn_since"])
+        all_share = "%d/%d" % (r["fable_rows"], r["rows"])
+    else:
+        spawns = all_share = NOTHING_MEASURED
+    if measured and r["day_rows"]:
+        day = "%d/%d@%s" % (r["day_fable"], r["day_rows"], r["day_iso"])
+    else:
+        day = NOTHING_MEASURED
+    who = "/".join(r["fable_agents"]) if r["fable_agents"] else "none"
+    text = ("; fable spend, READING ONLY (no bound, nothing here is gated): "
+            "directorSpawns=%s fableShareDay=%s fableShareAll=%s fableAgents=%s "
+            "agentFilesRead=%d — COUNT of studio-director rows over ALL spawn "
+            "rows since that same reference commit / SHARE over the newest UTC "
+            "day present in the log / CUMULATIVE share over every log row"
+            % (spawns, day, all_share, who, r["agent_files"]))
+    # THE WORDS, for each way this can measure nothing. Values alone are
+    # greppable; a person reading the footer needs the sentence.
+    if not r["log"]:
+        text += ("; the agent log is ABSENT, so nothing was measured about "
+                 "fable spend")
+    elif r["rows"] == 0:
+        text += ("; the agent log has 0 rows, so nothing was measured about "
+                 "fable spend")
+    elif not r["day_rows"]:
+        text += ("; no log row could be dated, so the day window measured "
+                 "nothing (the lifetime share above counts by agent name)")
+    if not r["agent_files"]:
+        text += ("; 0 agent definitions were read from %s, so the fable set is "
+                 "ASSUMED rather than measured" % DIRECTOR_AGENTS_DIR)
+    elif not r["fable_agents"]:
+        text += ("; %d agent definition(s) read and NONE declares model: %s, so "
+                 "the shares above are a measured zero, not an absence"
+                 % (r["agent_files"], FABLE_MODEL))
+    if measured and not r["spawn_since"]:
+        text += "; no spawn rows at all are dated after that reference commit"
+    return text
 
 
 def _cadence_ref_phrase(r):
@@ -2022,7 +2214,7 @@ def _cadence_summary(r):
     if r["state"] == "logmissing":
         return ("DIRECTOR LOG MISSING: %s, %s, %s — an absent instrument is not "
                 "compliance; spawn studio-director and let the hook write the "
-                "row%s" % (lines, rows, ref, notes))
+                "row%s%s" % (lines, rows, ref, notes, _cadence_spend(r)))
     if r["state"] == "unspawned":
         seen = ""
         if r["stale_code"]:
@@ -2030,8 +2222,8 @@ def _cadence_summary(r):
                     "reference; newest %s vs reference %s)" % (
                         r["stale_code"], r["newest_dir"] or "?", r["ref_iso"]))
         return ("DIRECTOR NOT SPAWNED: %s, %s, %s%s — spawn studio-director for "
-                "the batch review, then re-run verify%s"
-                % (lines, rows, ref, seen, notes))
+                "the batch review, then re-run verify%s%s"
+                % (lines, rows, ref, seen, notes, _cadence_spend(r)))
     # THE WORD TRACKS THE NUMBER IT NAMES. "REVIEWED" is a claim about director
     # rows, so it is computed from `since` and not from the line count — a mutant
     # that disables the gate printed "REVIEWED" beside `0 director rows` while
@@ -2041,13 +2233,15 @@ def _cadence_summary(r):
         verdict = "over threshold, REVIEWED" if r["since_code"] else "over threshold"
     else:
         verdict = "under threshold, review not required"
-    return "director cadence ok (%s, %s; %s; %s)%s" % (
-        lines, verdict, rows, ref, notes)
+    # THE SPEND READING RIDES EVERY BRANCH, red ones included — drift is most
+    # worth seeing on the run where the gate also has something to say.
+    return "director cadence ok (%s, %s; %s; %s)%s%s" % (
+        lines, verdict, rows, ref, notes, _cadence_spend(r))
 
 
 def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True,
                      untracked=0, untracked_binary=0, noncode_commit=False,
-                     shallow=False):
+                     shallow=False, agents=None):
     """One throwaway repo: a commit at a PINNED time, then a pending change.
 
     The commit date is pinned so "newer than HEAD" is arithmetic rather than a
@@ -2115,6 +2309,17 @@ def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True,
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text("when\tagent\n" + "".join("%s\t%s\n" % (w, a) for w, a in rows),
                      encoding="utf-8")
+    # AGENT DEFINITIONS — the spend reading's other input. `agents=None` means
+    # NO `.claude/agents` directory at all, which is the world the 25 gate
+    # fixtures live in and must keep reading as `agentFilesRead=0`, set ASSUMED.
+    if agents is not None:
+        ad = d / DIRECTOR_AGENTS_DIR
+        ad.mkdir(parents=True, exist_ok=True)
+        for nm, model in agents:
+            (ad / (nm + ".md")).write_text(
+                "---\nname: %s\nmodel: %s\n---\n\nFixture agent, and the word "
+                "model: appears in this prose body too.\n" % (nm, model),
+                encoding="utf-8")
     return d
 
 
@@ -2369,6 +2574,195 @@ def _cadence_selftest():
         and len(set(CADENCE_EXIT.values())) == 3,
         "the two reds carry different exit codes (1 unspawned, 2 log missing)",
         "%s vs %s" % (r1["state"], r4["state"]))
+
+    # ======================================================================
+    # THE SPEND READING (25 Aug). A READING, NOT A GATE — so its two outcomes
+    # are not accept/reject but MEASURED and NOTHING-MEASURED, and the
+    # measured cases run FIRST for the same reason the accepting ones do
+    # above: the expensive failure of an instrument is one that prints
+    # "nothing measured" over a live project, or a clean-looking zero over an
+    # absent log. The last pair asserts the gate cannot see any of it.
+    # ======================================================================
+    ALL_OPUS = [("systems-builder", "opus"), ("instrument-builder", "opus")]
+    ONE_FABLE = [("studio-director", "fable")] + ALL_OPUS
+
+    # MEASURED: three windows over one log, and they must DISAGREE — a day
+    # window that silently returns the lifetime total would pass a fixture
+    # asserting only "some fraction is printed".
+    d = _cadence_fixture(work, "s1-three-windows", 5,
+                         [(CADENCE_STALE, "studio-director"),
+                          (CADENCE_STALE, "instrument-builder"),
+                          (CADENCE_FRESH, "studio-director"),
+                          (CADENCE_FRESH, "systems-builder"),
+                          (CADENCE_NEWEST, "studio-director")],
+                         agents=ONE_FABLE)
+    s1 = _cadence_read(d)
+    say("directorSpawns=2/3" in s1["summary"]
+        and "fableShareDay=1/1@2023-11-15" in s1["summary"]
+        and "fableShareAll=3/5" in s1["summary"]
+        and s1["state"] == "ok",
+        "MEASURE batch 2/3, day 1/1@2023-11-15 and lifetime 3/5 from ONE log — "
+        "three windows that disagree", s1["summary"])
+    say(s1["since_code"] <= s1["spawn_since"] and s1["fable_rows"] <= s1["rows"],
+        "MEASURE every numerator is <= the denominator printed beside it "
+        "(the impossibility a lifetime-vs-window mix-up would show)",
+        "%d/%d %d/%d" % (s1["since_code"], s1["spawn_since"],
+                         s1["fable_rows"], s1["rows"]))
+    say("fableAgents=studio-director" in s1["summary"]
+        and "agentFilesRead=3" in s1["summary"],
+        "MEASURE the fable set is READ from the definitions and printed with "
+        "the count of files examined", s1["summary"])
+
+    # MEASURED: A SECOND AGENT ON FABLE. The share must count it — otherwise
+    # the number understates spend by a whole agent and nothing says so — while
+    # directorSpawns stays a count of DIRECTOR reviews, which is a different
+    # question. Both are asserted here because they are one line apart.
+    d = _cadence_fixture(work, "s2-two-fable-agents", 5,
+                         [(CADENCE_FRESH, "studio-director"),
+                          (CADENCE_FRESH, "scribe"),
+                          (CADENCE_FRESH, "systems-builder")],
+                         agents=[("studio-director", "fable"),
+                                 ("scribe", "fable"),
+                                 ("systems-builder", "opus")])
+    s2 = _cadence_read(d)
+    say("fableShareAll=2/3" in s2["summary"]
+        and "fableAgents=scribe/studio-director" in s2["summary"]
+        and "directorSpawns=1/3" in s2["summary"],
+        "MEASURE a SECOND agent on fable counts in the share and is named, "
+        "while directorSpawns still counts director reviews only", s2["summary"])
+
+    # MEASURED ZERO vs NOTHING MEASURED — the whole point of rule 3b, and the
+    # two cases that look identical if the denominator is dropped.
+    d = _cadence_fixture(work, "s3-all-opus", 5,
+                         [(CADENCE_FRESH, "systems-builder"),
+                          (CADENCE_FRESH, "instrument-builder")],
+                         agents=ALL_OPUS)
+    s3 = _cadence_read(d)
+    say("fableShareAll=0/2" in s3["summary"] and "fableAgents=none" in s3["summary"]
+        and "measured zero, not an absence" in s3["summary"]
+        and NOTHING_MEASURED not in s3["summary"],
+        "MEASURE 2 definitions read, NONE on fable: a zero with its denominator, "
+        "and it says so in words", s3["summary"])
+
+    d = _cadence_fixture(work, "s4-no-log-at-all", 5, [], log=False,
+                         agents=ONE_FABLE)
+    s4 = _cadence_read(d)
+    say("directorSpawns=%s" % NOTHING_MEASURED in s4["summary"]
+        and "fableShareDay=%s" % NOTHING_MEASURED in s4["summary"]
+        and "fableShareAll=%s" % NOTHING_MEASURED in s4["summary"]
+        and "the agent log is ABSENT, so nothing was measured" in s4["summary"],
+        "NOTHING MEASURED: an ABSENT log prints the words in all three windows, "
+        "never a zero", s4["summary"])
+
+    d = _cadence_fixture(work, "s5-header-only", 5, [], agents=ONE_FABLE)
+    s5 = _cadence_read(d)
+    say("fableShareAll=%s" % NOTHING_MEASURED in s5["summary"]
+        and "0 rows, so nothing was measured" in s5["summary"],
+        "NOTHING MEASURED: a header-only log reads as nothing measured, not as "
+        "0 spawns", s5["summary"])
+
+    # ONE WINDOW BLIND, THE OTHERS NOT. An undateable row cannot be placed in
+    # time but its AGENT is still readable, so the lifetime share is measured
+    # while the day window is not — and the output must not merge those.
+    d = _cadence_fixture(work, "s6-undateable-rows", 5,
+                         [("not-a-date", "studio-director"),
+                          ("also-bad", "systems-builder")],
+                         agents=ONE_FABLE)
+    s6 = _cadence_read(d)
+    say(s6["state"] == "ok"
+        and "fableShareDay=%s" % NOTHING_MEASURED in s6["summary"]
+        and "fableShareAll=1/2" in s6["summary"]
+        and "the day window measured" in s6["summary"]
+        and "no spawn rows at all are dated after that reference" in s6["summary"],
+        "NOTHING MEASURED for the DAY window only, while the lifetime share "
+        "stays measured — and the empty batch window says so", s6["summary"])
+
+    d = _cadence_fixture(work, "s7-no-agent-defs", 5,
+                         [(CADENCE_FRESH, "studio-director")])
+    s7 = _cadence_read(d)
+    say("agentFilesRead=0" in s7["summary"]
+        and "fableAgents=studio-director" in s7["summary"]
+        and "ASSUMED rather than measured" in s7["summary"],
+        "NOTHING MEASURED about the SET: 0 definitions read falls back to "
+        "studio-director and says the set is assumed", s7["summary"])
+
+    # THE GATE CANNOT SEE ANY OF IT — asserted, not asserted in prose. Two
+    # rungs with IDENTICAL gate inputs and opposite spend readings must land on
+    # the same state and exit code; then a rung with a 100% fable share and no
+    # DIRECTOR row must still be RED, which is the direction that would matter
+    # if the reading ever leaked into the verdict.
+    d = _cadence_fixture(work, "s8a-heavy-share", 150,
+                         [(CADENCE_FRESH, "studio-director")],
+                         agents=[("studio-director", "fable")])
+    s8a = _cadence_read(d)
+    d = _cadence_fixture(work, "s8b-light-share", 150,
+                         [(CADENCE_FRESH, "studio-director")]
+                         + [(CADENCE_FRESH, "instrument-builder")] * 20,
+                         agents=ONE_FABLE)
+    s8b = _cadence_read(d)
+    say(s8a["state"] == s8b["state"] == "ok"
+        and CADENCE_EXIT[s8a["state"]] == CADENCE_EXIT[s8b["state"]] == 0
+        and "fableShareAll=1/1" in s8a["summary"]
+        and "fableShareAll=1/21" in s8b["summary"],
+        "THE GATE IS BLIND TO SPEND: 100% and 5% fable shares, same gate "
+        "inputs, same green state and exit code",
+        "%s / %s" % (s8a["state"], s8b["state"]))
+
+    d = _cadence_fixture(work, "s8c-fable-but-no-director", 150,
+                         [(CADENCE_FRESH, "scribe")],
+                         agents=[("studio-director", "fable"),
+                                 ("scribe", "fable")])
+    s8c = _cadence_read(d)
+    say(not s8c["ok"] and s8c["state"] == "unspawned"
+        and CADENCE_EXIT[s8c["state"]] == 1
+        and "fableShareAll=1/1" in s8c["summary"]
+        and "directorSpawns=0/1" in s8c["summary"],
+        "THE GATE IS BLIND TO SPEND, OTHER WAY: a 100% fable share with NO "
+        "director row is still RED, exit 1", s8c["summary"])
+
+    # NO SPACES IN ANY EMITTED VALUE — the footer is space-separated and every
+    # reader of it truncates silently at the first space (CLAUDE.md, the
+    # `crowdBodyWidth` incident). Checked mechanically over every fixture read
+    # above rather than by eye, since the values are built by format strings.
+    # THE RUNG A MUTANT WALKED THROUGH, added because it did. s8a/s8b/s8c all
+    # carry diffs that are already substantial, so a mutant reading
+    # `substantial = changed > 100 OR any fable row` passed all three and the
+    # whole suite — the gate silently gaining a second, unmeasured trigger. The
+    # missing rung is the SMALL diff: fable spawns must not make a 5-line
+    # change reviewable. Same fixture shape as s8a-c, one contributor toggled.
+    d = _cadence_fixture(work, "s8d-small-diff-fable-spawns", 5,
+                         [(CADENCE_FRESH, "scribe")],
+                         agents=[("studio-director", "fable"),
+                                 ("scribe", "fable")])
+    s8d = _cadence_read(d)
+    say(s8d["ok"] and s8d["state"] == "ok" and CADENCE_EXIT[s8d["state"]] == 0
+        and "fableShareAll=1/1" in s8d["summary"]
+        and "under threshold, review not required" in s8d["summary"],
+        "THE GATE IS BLIND TO SPEND, THIRD RUNG: a 100% fable share on a SMALL "
+        "diff stays GREEN — spend never makes a change reviewable", s8d["summary"])
+
+    KEYS = ("directorSpawns", "fableShareDay", "fableShareAll", "fableAgents",
+            "agentFilesRead")
+    reads = (("s1", s1), ("s2", s2), ("s3", s3), ("s4", s4), ("s5", s5),
+             ("s6", s6), ("s7", s7), ("s8a", s8a), ("s8c", s8c),
+             ("s8d", s8d))
+    bad, scanned = [], 0
+    for tag, rr in reads:
+        for tok in rr["summary"].split():
+            if "=" in tok and tok.split("=", 1)[0] in KEYS:
+                scanned += 1
+                v = tok.split("=", 1)[1]
+                if not v or v[-1] in ",;":
+                    bad.append("%s:%s" % (tag, tok))
+    # THE DENOMINATOR OF THIS VERY CHECK. Without it a typo in KEYS makes the
+    # scan match nothing and report a clean pass over zero tokens — the fault
+    # this whole instrument exists to stop, in the selftest that guards it.
+    want = len(KEYS) * len(reads)
+    say(not bad and scanned == want,
+        "every emitted spend value is one whitespace-free token, %d of %d "
+        "expected key tokens scanned across %d fixture summaries"
+        % (scanned, want, len(reads)),
+        "bad=%s scanned=%d want=%d" % (",".join(bad[:3]) or "none", scanned, want))
 
     return passed, failed, lines
 

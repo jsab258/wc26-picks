@@ -519,6 +519,15 @@ namespace Ledger.Game
         /// 0.55. If a landed still shows concrete WALLS reading too dark, the
         /// fix is to split the ground family out of `WetSurfaces` rather than
         /// to move this number.
+        /// 0.55 IS A STORED (GAMMA) VALUE, AND IT IS NOT A 1.8x DARKENING.
+        /// This project renders in linear (`CiBuild.cs` sets
+        /// `ColorSpace.Linear`), so the shader receives `Color.linear` of what
+        /// is written here: sRGB-to-linear of 0.55 is 0.263 (0.55^2.2 = 0.268
+        /// if you use the pow approximation). The multiplier the light path
+        /// actually sees is therefore 0.263 — a 3.8x darkening, not 1.8x.
+        /// Anyone reasoning "0.55 of what it was" in linear terms is off by a
+        /// factor of two, and the same two shows up as the 2.05..2.09 trap
+        /// named at `groundGainBy`'s emit.
         static readonly Color GroundGrade = new Color(0.55f, 0.55f, 0.55f, 1f);
 
         /// The DRY base colour of a surface, with `GroundGrade` folded in for
@@ -912,9 +921,33 @@ namespace Ledger.Game
         /// falsifier for that ruling: an off-grade member here moves the
         /// diagnosis from lighting back to materials.
         ///
-        /// IT IS THE DENOMINATOR OF THE NEXT READ. `groundMaskMeanBy / this`,
-        /// per name, dry against wet, is the lighting gain — rendered over
-        /// source — so these two must be read per NAME and never averaged.
+        /// IT IS NOT DIVISIBLE BY `groundMaskMeanBy`, AND THIS COMMENT USED TO
+        /// SAY IT WAS. The retracted sentence read "`groundMaskMeanBy / this`,
+        /// per name, is the lighting gain — rendered over source". There is no
+        /// per name: `groundMaskMeanBy` is keyed by DISTRICT (hook, copper,
+        /// ironside) and this key is keyed by MATERIAL (asphalt, sidewalk,
+        /// kerb, concrete), and the mask pooled all four materials into one
+        /// sum per shot, so the two lists share no name and never could. The
+        /// sentence was false the day it was written — a comment describing a
+        /// FUTURE read decays exactly like one describing past behaviour.
+        ///
+        /// THE DIVISION IS DONE BY `groundGainBy` INSTEAD, inside the mask's
+        /// own ray loop where one ray holds both halves at once: the frame
+        /// pixel it landed on and the material it hit. See
+        /// `SimDirector.GroundMaskRead`. Two further traps that sentence
+        /// walked into, named so nobody re-derives it:
+        ///
+        ///   * SPACE. This key is LINEAR (`MatAlbedo` is `m.color.linear`
+        ///     times a linear texture mean); `groundMaskMeanBy` is a luma of
+        ///     the committed frame's sRGB-encoded pixels. Dividing them
+        ///     directly is a gamma/linear mismatch of about 2x on its own.
+        ///   * MOMENT. This key is read once, at done time, LAST-WINS;
+        ///     `groundMaskMeanBy` was captured seven shots earlier. A quotient
+        ///     of two instants is not a measurement of either.
+        ///
+        /// What this key IS still for: the family-wide SOURCE check that
+        /// `districtGround`'s single downtown ray cannot give — did every
+        /// member of the family take the grade, or only the one the ray hit.
         ///
         /// ONE LOOP, TWO KEYS, deliberately: the list and its count come from
         /// the same pass over the same dictionary at the same instant, and
@@ -951,8 +984,9 @@ namespace Ledger.Game
                    + read + "/" + WetSurfaces.Length;
         }
 
-        /// IS THIS MATERIAL THE GROUND — the same four surfaces `WetSurfaces`
-        /// names, asked of a renderer instead of asked of the rain.
+        /// WHICH GROUND SURFACE IS THIS MATERIAL — the same four surfaces
+        /// `WetSurfaces` names, asked of a renderer instead of asked of the
+        /// rain.
         ///
         /// ONE LIST, TWO QUESTIONS. The array above is the definition of
         /// "ground the rain lands on"; this is the definition of "ground the
@@ -962,8 +996,50 @@ namespace Ledger.Game
         /// Game layer does not compile locally and a matcher written here
         /// would ship unrun — CoreTests exercises it against the exact names
         /// `BuildMaterial`, `MaterialVariant` and `MaterialGraded` produce.
-        public static bool IsGroundSurface(Material m)
-            => m != null && SurfaceNames.IsOneOf(m.name, WetSurfaces);
+        /// It returns WHICH ground surface — `asphalt`, `sidewalk`, `kerb`,
+        /// `concrete` — or the empty string for none, and the boolean
+        /// `IsGroundSurface` it replaced is gone rather than kept beside it.
+        /// The mask admits a ray into the ground denominator and files it
+        /// under a material name, and `groundGainBy` divides one by the other;
+        /// a predicate and a namer are one idea in two implementations with a
+        /// division across the seam. Callers wanting the yes/no ask
+        /// `GroundSurfaceOf(m).Length > 0`.
+        public static string GroundSurfaceOf(Material m)
+            => m == null ? "" : SurfaceNames.MatchOf(m.name, WetSurfaces);
+
+        /// THE SOURCE HALF OF `groundGainBy`, IN LINEAR, for the material a
+        /// ray actually hit.
+        ///
+        /// It is `MatAlbedo` — the same helper `groundAlbedoBy` reads — and
+        /// not a reimplementation, because the two sides of a ratio computed
+        /// by two instruments is two instruments arguing (the rule is written
+        /// out at `TownWallAlbedo`). LINEAR by construction: `MatAlbedo` is
+        /// `m.color.linear`'s luma times a texture mean read through a
+        /// `RenderTextureReadWrite.Linear` blit.
+        ///
+        /// IT TAKES THE RAY'S OWN MATERIAL, not `Material(logical)`. A graded
+        /// copy (`mat_concrete#g2`) carries a different colour from its base,
+        /// so looking the base up by name would answer a question about a
+        /// material that is not in the picture — and `Material()` BUILDS on a
+        /// miss, which would make the measurement create what it measures.
+        /// `countAbsences: false` for the same reason `GroundAlbedoEmit` uses
+        /// it: this is a reading, not an arrival.
+        public static float GroundSourceAlbedo(Material m)
+            => m == null ? -1f : MatAlbedo(m, false);
+
+        /// The `groundGainBy` / `groundGainOf` / `groundGainRays` triple.
+        ///
+        /// The tally does the arithmetic and the formatting (it is in Core so
+        /// CoreTests runs it); this wrapper exists only so the ORDER and
+        /// MEMBERSHIP of the row list come from `WetSurfaces` and from
+        /// nowhere else. Add a fifth ground surface to that array and this
+        /// key grows a row with no edit here or in `SimDirector`.
+        public static string GroundGainEmit(Ledger.Core.GroundGain tally,
+                                            long maskGroundRays)
+            => tally == null
+                ? "groundGainBy=[nothing_measured] groundGainOf=0/"
+                  + WetSurfaces.Length + " groundGainRays=0/" + maskGroundRays
+                : tally.Emit(WetSurfaces, maskGroundRays);
 
         /// How many ground surfaces the list holds, so a reading of "no
         /// ground pixels" can be told from "the list is empty".

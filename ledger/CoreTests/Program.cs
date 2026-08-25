@@ -123,6 +123,7 @@ namespace Ledger.CoreTests
                 TestFraming();
                 TestImageStats();
                 TestSurfaceNames();
+                TestGroundGain();
                 TestDetail();
                 TestFrameRate();
                 TestMotionMatching();
@@ -13242,27 +13243,178 @@ namespace Ledger.CoreTests
         {
             var ground = new[] { "asphalt", "sidewalk", "kerb", "concrete" };
 
-            Check(SurfaceNames.IsOneOf("mat_asphalt", ground), "mat_asphalt is ground");
-            Check(SurfaceNames.IsOneOf("mat_sidewalk", ground), "mat_sidewalk is ground");
-            Check(SurfaceNames.IsOneOf("mat_kerb", ground), "mat_kerb is ground");
-            Check(SurfaceNames.IsOneOf("mat_concrete", ground), "mat_concrete is ground");
-            Check(SurfaceNames.IsOneOf("mat_asphalt_b", ground), "texture variant is ground");
-            Check(SurfaceNames.IsOneOf("mat_asphalt#g2", ground), "graded copy is ground");
-            Check(SurfaceNames.IsOneOf("mat_asphalt_b#g3", ground), "graded variant is ground");
-            Check(SurfaceNames.IsOneOf("mat_concrete_b#g1 (Instance)", ground),
-                  "graded variant clone is ground");
-            Check(SurfaceNames.IsOneOf("MAT_Asphalt", ground), "case-insensitive");
+            // ASKED THROUGH `MatchOf`, WHICH IS NOW THE ONLY IMPLEMENTATION.
+            // The boolean `IsOneOf` these assertions used to call was deleted
+            // the moment `groundGainBy` needed the NAME as well as the
+            // yes/no: a predicate and a namer looping over one list, with a
+            // division across the seam, is the two-implementations shape.
+            Check(Ground("mat_asphalt"), "mat_asphalt is ground");
+            Check(Ground("mat_sidewalk"), "mat_sidewalk is ground");
+            Check(Ground("mat_kerb"), "mat_kerb is ground");
+            Check(Ground("mat_concrete"), "mat_concrete is ground");
+            Check(Ground("mat_asphalt_b"), "texture variant is ground");
+            Check(Ground("mat_asphalt#g2"), "graded copy is ground");
+            Check(Ground("mat_asphalt_b#g3"), "graded variant is ground");
+            Check(Ground("mat_concrete_b#g1 (Instance)"), "graded variant clone is ground");
+            Check(Ground("MAT_Asphalt"), "case-insensitive");
 
-            Check(!SurfaceNames.IsOneOf("mat_brickred", ground), "a wall is not ground");
-            Check(!SurfaceNames.IsOneOf("mat_flat_1f3", ground), "a flat body colour is not ground");
-            Check(!SurfaceNames.IsOneOf("mat_asphaltish", ground), "exact match, not prefix");
-            Check(!SurfaceNames.IsOneOf("mat_nosuchsurface", ground), "a surface that exists nowhere is not ground");
-            Check(!SurfaceNames.IsOneOf("", ground), "empty name is not ground");
-            Check(!SurfaceNames.IsOneOf(null, ground), "null name is not ground");
-            Check(!SurfaceNames.IsOneOf("mat_asphalt", new string[0]), "an empty ground list matches nothing");
+            Check(!Ground("mat_brickred"), "a wall is not ground");
+            Check(!Ground("mat_flat_1f3"), "a flat body colour is not ground");
+            Check(!Ground("mat_asphaltish"), "exact match, not prefix");
+            Check(!Ground("mat_nosuchsurface"), "a surface that exists nowhere is not ground");
+            Check(!Ground(""), "empty name is not ground");
+            Check(!Ground(null), "null name is not ground");
+            Check(SurfaceNames.MatchOf("mat_asphalt", new string[0]) == "",
+                  "an empty ground list matches nothing");
 
             Check(SurfaceNames.Logical("mat_asphalt_b#g3 (Instance)") == "asphalt",
                   "every decoration strips back to the logical surface");
+
+            // WHICH one, not merely whether. `groundGainBy` divides a
+            // per-material numerator by a per-family denominator produced by
+            // the yes/no half of this same rule, so the two halves agreeing is
+            // load-bearing arithmetic and not tidiness.
+            Check(SurfaceNames.MatchOf("mat_asphalt_b#g3 (Instance)", ground) == "asphalt",
+                  "MatchOf names the surface a decorated material is");
+            Check(SurfaceNames.MatchOf("MAT_Kerb", ground) == "kerb",
+                  "MatchOf normalises case");
+            Check(SurfaceNames.MatchOf("mat_nosuchsurface", ground) == "",
+                  "a surface that exists nowhere matches nothing");
+            for (int i = 0; i < ground.Length; i++)
+                Check(SurfaceNames.MatchOf("mat_" + ground[i], ground) == ground[i],
+                      "MatchOf round-trips " + ground[i]);
+            // A NAMED ROW AND AN ADMITTED RAY ARE NOW THE SAME EVENT, which
+            // is what makes `groundGainRays=<bucketed>/<mask ground rays>` a
+            // self-check rather than a coincidence: anything the family test
+            // admits, the namer names.
+            foreach (var n in new[] { "mat_asphalt", "mat_asphalt_b#g3 (Instance)",
+                                      "mat_flat_1f3", "mat_brickred", "", null })
+                Check(Ground(n) == (SurfaceNames.MatchOf(n, ground).Length > 0),
+                      "admitted and named are one decision for " + (n ?? "null"));
+        }
+
+        /// The yes/no half of the ground rule, spelled once here so these
+        /// assertions read as they did when `IsOneOf` existed.
+        static bool Ground(string materialName)
+            => SurfaceNames.MatchOf(materialName,
+                   new[] { "asphalt", "sidewalk", "kerb", "concrete" }).Length > 0;
+
+        /// `groundGainBy` — rendered-over-source per ground material.
+        ///
+        /// THE ACCEPTING CASE IS FIRST and it is an exact string, because the
+        /// expensive failure for a printer is not a wrong number, it is a
+        /// printer nobody can read: a space in a value truncates every reader
+        /// silently, and this project has six live keys with that fault. The
+        /// rejecting cases below are synthetic names that exist in no asset,
+        /// so doing the work the tool prompts cannot break the tool.
+        ///
+        /// The tally does no colour conversion — it is arithmetic on what it
+        /// is handed — so what is tested here is the arithmetic, the
+        /// statistic (ratio OF MEANS), the denominators, and the shape.
+        static void TestGroundGain()
+        {
+            Console.WriteLine("Ground gain — rendered over source, per material:");
+            var ground = new[] { "asphalt", "sidewalk", "kerb", "concrete" };
+
+            // ---- ACCEPTING ------------------------------------------------
+            var g = new GroundGain();
+            g.Add("asphalt", 0.6, 0.04);
+            g.Add("asphalt", 0.6, 0.04);
+            g.Add("asphalt", 0.6, 0.04);
+            g.Add("sidewalk", 0.8, 0.4);
+            // Two graded copies of ONE logical with different albedos: this is
+            // the case where a ratio of means and a mean of ratios diverge
+            // (8.571 against 7.500), and the row must be the first.
+            g.Add("concrete", 0.5, 0.05);
+            g.Add("concrete", 0.1, 0.02);
+            var line = g.Emit(ground, 6);
+            Check(line == "groundGainBy=[asphalt:0.6000/0.0400=15.000@3,"
+                        + "sidewalk:0.8000/0.4000=2.000@1,"
+                        + "kerb:nothing_measured@0,"
+                        + "concrete:0.3000/0.0350=8.571@2] "
+                        + "groundGainOf=3/4 groundGainRays=6/6",
+                  "a real tally prints its three keys exactly", line);
+
+            // Every reader of the verdict splits on whitespace, so the shape
+            // is part of the measurement: three tokens, three `=`, no more.
+            var tok = line.Split(' ');
+            Check(tok.Length == 3, "three space-separated key=value tokens", line);
+            foreach (var t in tok)
+            {
+                // The FIRST `=` is the separator. There are more inside the
+                // value by design (`<rendered>/<source>=<ratio>` is the shape
+                // ordered for this key), so a naive `Split('=').Length == 2`
+                // rejects the correct output — which is what the first
+                // version of this very assertion did, on the accepting case,
+                // in the test written to prove the accepting case passes.
+                int eq = t.IndexOf('=');
+                Check(eq > 0 && eq < t.Length - 1, "each token is key=value", t);
+                var key = t.Substring(0, eq);
+                bool alpha = true;
+                foreach (var ch in key) if (!char.IsLetter(ch)) alpha = false;
+                Check(alpha, "the key before the first = is a bare identifier", key);
+            }
+
+            Check(line.Contains("kerb:nothing_measured@0"),
+                  "a material no ray landed on says so in words, not as 0.0000");
+            Check(line.Contains("groundGainOf=3/4"),
+                  "the zero ships its denominator: 3 of the 4 offered surfaces");
+
+            // ---- NEVER RAN ------------------------------------------------
+            var empty = new GroundGain();
+            var none = empty.Emit(ground, 0);
+            Check(none == "groundGainBy=[asphalt:nothing_measured@0,"
+                        + "sidewalk:nothing_measured@0,kerb:nothing_measured@0,"
+                        + "concrete:nothing_measured@0] "
+                        + "groundGainOf=0/4 groundGainRays=0/0",
+                  "a run that measured nothing cannot read as a clean run", none);
+            Check(new GroundGain().Emit(null, 0)
+                  == "groundGainBy=[nothing_measured] groundGainOf=0/0 groundGainRays=0/0",
+                  "an empty surface list prints the words, not an empty bracket");
+
+            // ---- THE DOCUMENTED TRAP, PINNED TO ARITHMETIC -----------------
+            // The emit comment says ratios near 2.05..2.09 are a gamma/linear
+            // mismatch rather than a lighting gain. That claim is the stored
+            // 0.55 divided by the same 0.55 converted to linear — 0.2684 by
+            // the pow-2.2 approximation, 0.26333 by the exact sRGB curve
+            // Unity's `Color.linear` uses. Checked here so the number in the
+            // comment is a computation and not a remembered figure.
+            var trap = new GroundGain();
+            trap.Add("asphalt", 0.55, 0.2684);
+            Check(trap.Emit(ground, 1).Contains("asphalt:0.5500/0.2684=2.049@1"),
+                  "the pow-2.2 gamma/linear mismatch prints 2.049");
+            var trap2 = new GroundGain();
+            trap2.Add("asphalt", 0.55, 0.26333);
+            Check(trap2.Emit(ground, 1).Contains("asphalt:0.5500/0.2633=2.089@1"),
+                  "the exact-sRGB gamma/linear mismatch prints 2.089");
+
+            // ---- REJECTING: synthetic names, and the divide-by-zero --------
+            var odd = new GroundGain();
+            odd.Add("mat_nosuchsurface", 0.5, 0.1);   // exists in no asset
+            odd.Add("", 0.5, 0.1);
+            odd.Add(null, 0.5, 0.1);
+            odd.Add("   ", 0.5, 0.1);
+            var oddLine = odd.Emit(ground, 4);
+            Check(oddLine.Contains("groundGainRays=1/4"),
+                  "rays the row list cannot account for show as a mismatch, not silence",
+                  oddLine);
+            Check(oddLine.Contains("asphalt:nothing_measured@0"),
+                  "a name that is not a ground surface never lands in a ground row",
+                  oddLine);
+
+            var zero = new GroundGain();
+            zero.Add("kerb", 0.5, 0.0);
+            Check(zero.Emit(ground, 1).Contains("kerb:0.5000/0.0000=source0@1"),
+                  "a zero source prints words, not an enormous gain",
+                  zero.Emit(ground, 1));
+
+            // Case and whitespace fold into one row: the classifier lower-cases
+            // and the tally must agree with it or a material splits in two.
+            var cased = new GroundGain();
+            cased.Add("Asphalt", 0.6, 0.04);
+            cased.Add(" asphalt ", 0.6, 0.04);
+            Check(cased.Emit(ground, 2).Contains("asphalt:0.6000/0.0400=15.000@2"),
+                  "one material is one row whatever the casing");
         }
 
         static void TestImageStats()

@@ -85,27 +85,30 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 ### screen. Nothing from a later stage starts while an earlier one has
 ### startable work, except reading a landed verdict, which is free.
 
-1. **THE CHEAP CI CHANNEL: LANDED GREEN.** 311 consecutive reds over 7d 2h,
-   one cause — the workflow's ReachCheck lacked the `--also
-   ledger/Assets/Editor` argument `verify.py` passes, so it could not see
-   `CharacterPrefab.cs:193,199` calling the two `Proportion` APIs it called
-   unwired. `tools/ci-checks.sh` now runs all eight checks and fails at the
-   END naming which, so no red can hide the core suite again.
-   **Account, including the two wrong readings published before the right
-   one and why sampling cannot tell "dark" from ordinary red:
-   `roadmap-history.md` 2026-08-25. OPEN:** `ledger-build-{windows,mac}.yml`
-   Verdict steps report the SIM, so "lint failed" and "the sim did not run"
-   print the same sentence — name the lint/shape outcomes there as
-   `citypack-fetch.yml` does.
+1. **SYNC THE PLAYBOOK REPO — APPROVED, AFTER THE CURRENT BUILD LANDS.**
+   Jafar, 25 Aug: *"recommendations are fine, go with them"*, on the
+   recommendation of ONE batched pass rather than a trickle.
+   `jsab258/game-studio` last moved 24 Aug; `template-sync.py` holds a
+   DEFER marker naming `template-sync-batch-definition-and-turn-ceilings`
+   and goes RED on the next process-section edit, so the debt cannot rot
+   silently — it blocked a commit tonight, which is how it was noticed. **Ten
+   general lessons, with the inclusion test (would it help a project sharing
+   none of this code?): `agent-reports/template-sync-debt.md`.**
 
-1. **REPIN TWO REJECTING FIXTURES TO SYNTHETIC CASES — IN FLIGHT.**
-   `tools/clip-motion.py:439` asserts `Joe.fbx` carries no animation take;
-   `tools/prop-dimensions.py:337` asserts `police.fbx` still reproduces the
-   pooled-reader bug. Both go RED when the PROJECT improves — the exact
-   fault `ref-bench` had when our own camera re-site voided its low-content
-   fixture. The accepting case stays pointed at the live codebase; only the
-   rejecting case becomes synthetic. Director ranked this first of the
-   in-flight three (item 3 below needs `prop-dimensions` working).
+1. **THE CHEAP CI CHANNEL: LANDED GREEN, AND CATCHING THINGS AGAIN.** 311
+   consecutive reds over 7d 2h, one cause — the workflow's ReachCheck lacked
+   the `--also ledger/Assets/Editor` argument `verify.py` passes. Six
+   consecutive greens since `a1622670`, and it caught three dead APIs within
+   hours of coming back. Account: `roadmap-history.md` 2026-08-25. **OPEN:**
+   `ledger-build-{windows,mac}.yml` Verdict steps report the SIM, so "lint
+   failed" and "the sim did not run" print the same sentence.
+
+1. **REJECTING FIXTURES REPINNED TO SYNTHETIC CASES — LANDED.**
+   `clip-motion` asserted `Joe.fbx` has no take, `prop-dimensions` that
+   `police.fbx` still reproduces a bug — both would have gone red for the
+   PROJECT improving. Both now build synthetic two-rung ladders pinning the
+   bounds from either side. Third site queued: `lint-conditional-reach`
+   rewrites a tracked source file for its rejecting case (hand-run only).
 
 1. **THE DRY TOUR LANDED. ALBEDO IS RULED OUT; THE LEVER IS LIGHTING.**
    The regime break stands: **every `district_*` row before the day-5 move

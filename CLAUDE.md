@@ -1016,6 +1016,44 @@ has no `studio-director` row in `.claude/agent-log.tsv` newer than HEAD's
 commit. The spawn log is the instrument; the verify footer carries the
 count into every commit message, so the commit feed shows the cadence.
 
+**WHAT COUNTS AS ONE BATCH — AND MINIMISING FABLE (25 Aug, Jafar:
+"have we actually been minimizing fable usage now (no more than
+necessary)? fable has its own usage limit and counts double against the
+full weekly limit").** Measured before answering: **9 `studio-director`
+spawns out of 36 agents in one night, ~25%**, roughly 0.9M Fable tokens
+and ~1.8M at double weighting. The honest answer was no. The triggers
+were not the problem — trigger 1 says "builder-batch review before any
+commit of builder work" and **nobody had ever defined how big a BATCH
+is**, so each agent's output was treated as its own. Director ruling,
+same day:
+
+- **A batch is all builder work landing in ONE reviewed commit**,
+  accumulated to a natural boundary and capped at one dispatch cycle.
+  **Red fixes never wait for a batch.**
+- **Every commit containing builder work still needs a director row**, so
+  splitting a batch cannot dodge review. `director_cadence` comparing
+  against the last commit that TOUCHED `ledger/Assets/Scripts` (not HEAD)
+  is ratified as the mechanism — before that fix, a docs commit or CI
+  committing its own stills invalidated a valid review and forced a fresh
+  Fable spawn.
+- **Verifier first, director second.** Anything whose content is
+  claim-checking goes to a tier-2 Opus verifier; the director is spawned
+  with the verified position and spot-checks the verifier's citations.
+  Fable is for DECISIONS — premise, tier conflicts, scope, the
+  quality-ladder call. The review that produced this rule named itself as
+  the counter-example: its own A-D were tier-2 work sent to tier 1.
+- **One decision, one spawn.** Fold pending questions into the next
+  mandatory spawn. **A killed spawn is RESUMED, never restarted** — one
+  review cost two spawns on 25 Aug when a usage limit killed it mid-ruling.
+
+The six mandatory triggers are unchanged and are not relaxed by any of
+this. `director_cadence` prints the spawn count and the Fable share into
+the verify footer, which rides into every commit message, so the drift is
+visible in the commit feed without anyone remembering to look. It is
+DELIBERATELY NOT GATED: there is no landed series yet, a bound set from
+one night would be invented, and a gate here would block reviews that
+were legitimately needed.
+
 **REPORTING — HIGH LEVEL AND JUDGMENT, 24 Aug, his words: "don't need
 details, but high level info and judgment".** Not a status dump: what
 changed at the level a person cares about, and THE ASSESSMENT — is it

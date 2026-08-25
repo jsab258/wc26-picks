@@ -47,20 +47,29 @@ namespace Ledger.Core
             return n;
         }
 
-        /// Is this material name one of `logicals`? Case-insensitive, and
-        /// EXACT after normalising — a prefix test would make `asphaltish`
-        /// ground and `mat_flat_1f3` is deliberately not `flat`.
-        public static bool IsOneOf(string materialName, string[] logicals)
+        /// WHICH of `logicals` this material name is, normalised, or the empty
+        /// string for none. Case-insensitive, and EXACT after normalising — a
+        /// prefix test would make `asphaltish` ground and `mat_flat_1f3` is
+        /// deliberately not `flat`.
+        ///
+        /// IT REPLACED A BOOLEAN `IsOneOf`, AND THAT IS THE POINT. The
+        /// classifier that decides a pixel IS ground and the classifier that
+        /// decides WHICH ground it is must never be able to disagree: every
+        /// per-material number in `groundGainBy` is divided by a per-family
+        /// denominator the other one produced, so two loops over the same list
+        /// is one idea in two implementations with a division across the seam.
+        /// Callers wanting the yes/no ask `MatchOf(...).Length > 0`.
+        public static string MatchOf(string materialName, string[] logicals)
         {
-            if (logicals == null || logicals.Length == 0) return false;
+            if (logicals == null || logicals.Length == 0) return "";
             var n = Logical(materialName);
-            if (n.Length == 0) return false;
+            if (n.Length == 0) return "";
             for (int i = 0; i < logicals.Length; i++)
             {
                 if (string.IsNullOrEmpty(logicals[i])) continue;
-                if (n == logicals[i].Trim().ToLowerInvariant()) return true;
+                if (n == logicals[i].Trim().ToLowerInvariant()) return n;
             }
-            return false;
+            return "";
         }
     }
 }

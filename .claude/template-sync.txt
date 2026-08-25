@@ -14,11 +14,11 @@
 templateRepo=jsab258/game-studio
 state=deferred
 templateSha=none
-queueItem=template-sync-hybrid-resident
-stamped=2026-08-24
+queueItem=template-sync-batch-definition-and-turn-ceilings
+stamped=2026-08-25
 sections=4
 section=key:THE-STUDIO-SPLIT/lines:27/sha256:1429dac3024ce409
-section=key:THE-HYBRID-RESIDENT/lines:14/sha256:8decaf70866fe164
+section=key:THE-HYBRID-RESIDENT/lines:52/sha256:526529d71d32cdd4
 section=key:REPORTING/lines:14/sha256:7ec1f012b19d9a86
 section=key:AUTO-MODE/lines:296/sha256:4bf1ebc065c6ea3d
-fingerprint=fff4e7f99c58c564
+fingerprint=44e07ce8112d81c7

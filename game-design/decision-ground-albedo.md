@@ -1128,3 +1128,161 @@ staging fix; nothing that moves a lever). The second instrument batch
 grows by name: `skylineBaseDrop`/`skylineAfloat` (replacing
 `skylineFootGap`), `bodyGloss`, the cross-day noon/night margin
 printer, alongside the reader's earlier list.
+
+---
+
+# Ground-gain batch review — A–E confirmed against the tree; one stale comment found; one standing rule declared (director, 25 Aug 2026)
+
+> Review of the builder batch executing §B of the measurement-audit ruling
+> above (`groundGainBy` + the three-point order + the `:915–917` rewrite +
+> the `:522` space note). Every load-bearing claim verified against the
+> tree this session, not the report: `GroundGain.cs` read whole;
+> `SimDirector.cs:10726–10772` (classifier and `Add` three lines apart,
+> `c.linear` at :10769), `:15077–15091` (done-line emit and its comment);
+> `AssetLibrary.cs:524–531` (the `:522` gamma note), `:907–955` (the
+> rewritten comment quoting the retracted sentence), `:1007–1042`
+> (`GroundSurfaceOf` / `GroundSourceAlbedo` → `MatAlbedo` / wrapper);
+> `CoreTests/Program.cs:13314–13418` (exact accepting string, the trap
+> pair, the rejecting cases). RULING: **APPROVE-TO-COMMIT after ONE
+> one-line comment correction** (§D below), within the resident's
+> hand-apply authority.
+
+- **A. CONFIRMED.** The exact emit string is pinned in CoreTests; the
+  ratio-of-means-not-mean-of-ratios distinction is pinned by the
+  graded-copies case (concrete 8.571, where a mean of ratios gives 7.500);
+  numerator and denominator come from one `Add` three lines after the one
+  classifier call (`GroundSurfaceOf`), on the actual `sharedMaterial` the
+  ray hit — a graded copy carries its own colour; `c.linear` at the call
+  site, `GroundSourceAlbedo` → `MatAlbedo` (`m.color.linear`) on the
+  source side; whole-run, on the done line, beside a comment saying the
+  per-shot means live elsewhere and in a different space.
+- **B. RULED SOUND, and the framing stands.** The two sides of
+  `groundGainRays` are one condition counted at two points three lines
+  apart in one loop (`logical.Length == 0 → continue` feeds both
+  `_groundRaysGround++` and `Add`, whose own empty-drop cannot fire from
+  this caller) — equal by construction, so `a != b` is the classifier
+  disagreeing with itself and nothing else. The residual risk the
+  resident named is real: the `a/b` shape reads as coverage to a grepper
+  who never sees the comments. Because this key has NEVER landed, renaming
+  is free exactly once — the next rung, queued by name, not blocking:
+  **on mismatch the value grows a word** (`a/b/disagree`), the
+  `nothing_measured`/`source0` idiom applied to the self-check, so the
+  failure case cannot read as benign partial coverage. The healthy shape
+  stays grep-stable.
+- **C. CONFIRMED, with one precision the record keeps.** The 2.05..2.09
+  trap is written at the emit site inside `GroundMaskRead`
+  (`SimDirector.cs:10753–10759`) where a reader meets the number, echoed
+  on the done line and in `GroundGain`'s header; the Rec.601/709 bias is
+  named there with its measured 0.008%. Precision: the RATIOS are computed
+  by the code under test (the tally divides 0.55 by the operand and the
+  printed strings 2.049 and 2.089 are asserted), but the linear operands
+  0.2684 and 0.26333 are pinned constants in the test, not derived in it.
+  I verified both by hand this session — 0.55^2.2 ≈ 0.2684, exact sRGB
+  ((0.55+0.055)/1.055)^2.4 ≈ 0.2633 — so the figures stand; a future
+  editor changing `GroundGrade` must re-derive both operands, and this
+  sentence is where that instruction lives.
+- **D. CONFIRMED — with ONE stale comment the sweep missed, fix required
+  before commit.** No live reference to `SurfaceNames.IsOneOf`,
+  `AssetLibrary.IsGroundSurface` or `GroundGain.Rays` survives; the
+  remaining mentions are comments recording the removals, the builder's
+  report, and this file's `:868` describing pre-fix code as history —
+  correct survivals all. But `GroundGain.cs:57` (the `Add` doc comment)
+  still says "so `Rays` can be compared against the mask's own ground-ray
+  count" — naming the deleted property, in the file whose batch deleted
+  it: rule 1's second corollary, one line. Required correction: point the
+  sentence at the comparison `Emit` performs (`groundGainRays`), not at a
+  member that no longer exists. One-line hand-apply; no re-brief.
+- **E. RULED A STANDING RULE, not two ad-hoc decisions — and it already
+  has a third instance in flight.** The rule, in the words the next
+  session reads: **measurement arithmetic and formatting live in Core,
+  where CoreTests run them; the Game layer supplies only membership,
+  order and live state (lists, materials, cameras). An emit written in
+  the Game layer ships unrun in this container, and an unrun formatter
+  printing a plausible string is the silent-instrument fault.**
+  `SurfaceNames` and `GroundGain` are its first two instances; the
+  already-queued NoSpaces-to-Core move (verdict-integrity §E above) is
+  its third and was argued from the same precedent — three arguments for
+  one rule is the definition of a rule nobody wrote down. The resident
+  adds one line stating it to `.claude/rules/instruments.md` (the file
+  loaded when editing measurement code), riding this same commit train;
+  this section is the dated authority for that line.
+
+Two patterns ratified for reuse, by name. **Quote the corpse**: a comment
+retraction quotes the retracted sentence verbatim inside the repair
+(`AssetLibrary.cs:924–932` is the exemplar), so the error cannot be
+re-derived as if new — adopted as the house shape for every comment
+retraction from here. And the builder's first CoreTest assertion rejecting
+the CORRECT output (`Split('=')` on a value that legitimately contains
+`=`), caught because the accepting case was actually run before shipping,
+is rule 5b operating as designed — recorded as evidence the discipline
+works, no action.
+
+**Net: APPROVE-TO-COMMIT** after the one-line `GroundGain.cs:57` fix and
+with the two riders (the `instruments.md` rule line; the
+`groundGainRays`-mismatch-word queue item, named). Then the train
+dispatches unchanged — this key's first landed series is what sizes the
+lighting move, and nothing in this batch moves a lever.
+
+---
+
+# Fable-usage ruling — what one BATCH is, and where verification lives (director, 25 Aug 2026)
+
+> Jafar, verbatim, today: *"have we actually been minimizing fable usage
+> now (no more than necessary)? fable has its own usage limit and counts
+> double against the full weekly limit."* The measured answer is NO — 9
+> director spawns of 36 agents today (25%), five of them summing to 519k
+> tokens, the day's total roughly 0.9M Fable tokens, ~1.8M at double
+> weighting. The coordinator's four named causes are ratified as the
+> diagnosis (verification briefed to the decision-maker; small batches
+> multiplying trigger-1 reviews; a confirmation pass split from its
+> ruling; one review paying twice across a usage-limit kill). The
+> `director_cadence` repair — reference is now the last commit touching
+> `ledger/Assets/Scripts`, not `HEAD` — is RATIFIED: it removes spawns
+> that reviewed nothing, and weakens no trigger.
+
+The six mandatory triggers are Jafar's and none of them moves. What was
+never defined is the word "batch" in trigger 1, and the ambiguity is
+what multiplied spawns. Ruled, in a form that cannot be read as licence
+to skip a review:
+
+1. **A batch is all builder work that lands in ONE reviewed commit.**
+   The coordinator ACCUMULATES builder reports rather than committing
+   each as it arrives, closing the batch at a natural boundary: a CI
+   dispatch, a landing read, a queue reorder, or work that has become
+   mutually dependent. Two hard edges: nothing accumulates past one
+   dispatch cycle (a batch that waits a day is a stale queue wearing a
+   different name), and a red-verify fix or evidence-channel repair
+   never waits for a batch.
+2. **Batching reduces spawn COUNT, never review DEPTH.** Every commit
+   containing builder work still requires a director row — that is the
+   trigger, unchanged, and `director_cadence` enforces it. Splitting
+   builder work across commits to dodge a review is therefore
+   impossible by construction; accumulating IS the only way to
+   economise, which is the correct incentive.
+3. **Verifier-first.** Any brief whose main content is
+   claim-confirmation goes to a tier-2 verifier (read-only Opus) FIRST;
+   the director is spawned on the verified position and RULES. The
+   director still spot-checks the load-bearing citations — a report is
+   a claim, a verifier's included — but against the verifier's named
+   lines, which is minutes, not an audit. The ground-gain review above
+   is the worked counter-example: its §§A–D were tier-2 work sent to
+   tier 1.
+4. **One decision, one spawn.** No confirmation pass separate from its
+   ruling; a spawn killed mid-ruling RESUMES from its partial text and
+   does not re-verify what it had already verified.
+
+**Residence**: this defines a term the triggers left undefined; it
+relaxes nothing, so it does not need Jafar's sign-off — but the
+triggers live in CLAUDE.md's HYBRID RESIDENT section, and a definition
+recorded only here will not be read at the moment of spawning. The
+resident adds the batch definition and the verifier-first order there,
+dated, citing this section and Jafar's question verbatim; if Jafar
+reads any of it as loosening, his word reverts it. Until that edit
+lands, this section is the authority.
+
+The one-line answer for Jafar when he is next answered, in plain terms:
+no — a quarter of today's agents were the expensive one; the causes are
+named and fixed (verification moved to the cheaper tier, reviews now
+batched per commit, the pointless-respawn bug repaired), and the
+expected shape from here is roughly half the spawns for the same
+oversight.

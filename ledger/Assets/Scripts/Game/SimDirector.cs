@@ -10592,8 +10592,11 @@ namespace Ledger.Game
         //
         // WHAT IT MEASURES. The MEAN LUMA of the pixels whose surface is one
         // of the four ground materials — the same set `AssetLibrary.WetSurfaces`
-        // names, asked through `AssetLibrary.IsGroundSurface`, so there is one
-        // list and not a second copy here.
+        // names, asked through `AssetLibrary.GroundSurfaceOf`, so there is one
+        // list and not a second copy here. That call returns WHICH of the
+        // four, not merely whether — one classifier, so a ray in the family
+        // denominator and a ray in a material's `groundGainBy` row cannot be
+        // different rays.
         //
         // MECHANISM, AND WHAT IT APPROXIMATES. It is a RAY GRID, not a render
         // mask: `GroundGridX * GroundGridY` rays through the viewport of the
@@ -10652,6 +10655,19 @@ namespace Ledger.Game
         int _groundShotsOffered, _groundShotsMeasured;
         long _groundRaysCast, _groundRaysHit, _groundRaysRenderer, _groundRaysGround;
 
+        /// RENDERED-OVER-SOURCE PER GROUND MATERIAL, cumulative over the whole
+        /// district tour. See the emit note inside the ray loop below for what
+        /// the ratio is and what it is not; the arithmetic and the formatting
+        /// are `Ledger.Core.GroundGain`, in Core so CoreTests exercises them.
+        ///
+        /// ONE WEATHER, deliberately unlabelled here: `DistrictTour` walks all
+        /// seven cameras inside one loop with no time step, so every ray in
+        /// this tally is from the same instant of the same day and pooling
+        /// them is honest. Dry against wet is a JOIN at read time — `rain` and
+        /// `wet` are the last two columns of every `frames.tsv` row, including
+        /// the district rows — not a second key here.
+        readonly Ledger.Core.GroundGain _groundGain = new Ledger.Core.GroundGain();
+
         /// Ground-masked luma readings for one district still.
         ///
         /// `tex` is the frame that was just encoded to the committed JPEG and
@@ -10703,9 +10719,57 @@ namespace Ledger.Game
                     if (rend == null) rend = hit.collider.GetComponentInParent<Renderer>();
                     if (rend == null) continue;
                     _groundRaysRenderer++;
-                    if (!AssetLibrary.IsGroundSurface(rend.sharedMaterial)) continue;
+                    // WHICH ground surface, not merely whether. One call, so
+                    // the ray that enters the ground denominator and the ray
+                    // that enters a material's row are the same ray by
+                    // construction rather than by two predicates agreeing.
+                    var logical = AssetLibrary.GroundSurfaceOf(rend.sharedMaterial);
+                    if (logical.Length == 0) continue;
                     _groundRaysGround++;
                     gSum += l; gN++;
+
+                    // RENDERED OVER SOURCE, FROM ONE RAY AT ONE INSTANT.
+                    //
+                    // The numerator is the pixel this ray landed on in the
+                    // frame that was just encoded to the committed JPEG. The
+                    // denominator is the albedo of the material this same ray
+                    // hit, read at this same moment. They are not two peaks,
+                    // not two lists joined by name later, and not one number
+                    // from the done line divided by another from a shot line —
+                    // all four of which this project has shipped and had to
+                    // retract. `groundMaskMeanBy / groundAlbedoBy` was ordered
+                    // by a comment in `AssetLibrary` and is arithmetically
+                    // impossible: district keys against material keys.
+                    //
+                    // BOTH SIDES IN LINEAR, AND HERE IS WHERE THAT IS DONE.
+                    // `px` comes from a `RGB24` readback of an sRGB render
+                    // target, so `c` holds the display-referred values the
+                    // JPEG carries — the same numbers `l` above is a luma of,
+                    // which is why `groundMaskMeanBy` stays in that space and
+                    // this does not. `Color.linear` applies the exact sRGB
+                    // transfer (not a 2.2 pow); `AssetLibrary
+                    // .GroundSourceAlbedo` is `MatAlbedo`, already linear.
+                    //
+                    // THE FIRST SUSPECT, WRITTEN DOWN BEFORE THE FIRST
+                    // READING: ratios clustering near 2.05..2.09 are the
+                    // signature of a gamma/linear mismatch INSIDE this
+                    // instrument, not a lighting gain — that is exactly
+                    // 0.55 / 0.55-in-linear, i.e. one side of the division
+                    // having skipped the conversion above. Suspect the
+                    // instrument before concluding anything about light.
+                    //
+                    // ONE KNOWN, MEASURED BIAS: the numerator uses
+                    // `ImageStats.Luma` (Rec.601, shared with every other
+                    // frame reading in this file) and `MatAlbedo` uses Rec.709
+                    // weights. On the four ground tints — all near-neutral —
+                    // the two disagree by 0.008%, which is four orders of
+                    // magnitude under the effect being measured. Kept rather
+                    // than reconciled because making the numerator disagree
+                    // with `groundMaskMeanBy` would be the worse fault.
+                    var lin = c.linear;
+                    _groundGain.Add(logical,
+                                    ImageStats.Luma(lin.r, lin.g, lin.b),
+                                    AssetLibrary.GroundSourceAlbedo(rend.sharedMaterial));
                     int t = u < (1.0 / 3.0) ? 0 : (u < (2.0 / 3.0) ? 1 : 2);
                     thirdSum[t] += l; thirdN[t]++;
                 }
@@ -15010,6 +15074,21 @@ namespace Ledger.Game
                       $"groundMaskOverFrameBy=[{GroundRows(_groundOverFrameBy)}] " +
                       $"groundMaskOverLowerBy=[{GroundRows(_groundOverLowerBy)}] " +
                       $"groundMaskAcross={GroundAcross()} " +
+                      // RENDERED OVER SOURCE, PER GROUND MATERIAL, WHOLE RUN.
+                      // A ray-weighted mean over every district shot, so it is
+                      // a whole-run number and belongs on this line — the
+                      // per-shot ground means stay on `groundMaskMeanBy`, and
+                      // the two are in DIFFERENT COLOUR SPACES on purpose
+                      // (this one linear, that one the frame's sRGB): they are
+                      // not two views of one quantity and must not be divided.
+                      // `groundGainRays=a/b` is a self-check, not a statistic:
+                      // a and b are the same rays counted by the two halves of
+                      // one classifier and are equal by construction. NO BOUND
+                      // AND NO GATE — this number has never landed; the series
+                      // comes first. The trap to read for is at the emit site
+                      // in `GroundMaskRead`: 2.05..2.09 is a colour-space
+                      // mismatch wearing a lighting gain's clothes.
+                      $"{AssetLibrary.GroundGainEmit(_groundGain, _groundRaysGround)} " +
                       $"tourDepthMedian={Median(_tourDepth):0.0} " +
                       $"tourNearSeries=[{FracSeries(_tourNearFrac)}] " +
                       $"tourShots={_tourDepth.Count} " +

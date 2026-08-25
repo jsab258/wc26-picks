@@ -23,6 +23,12 @@ you the wrong world.
   peaks**, and named so (`xAtWorst`).
 - **A new bound needs a printed series first.** Ship the printer, read
   real runs, then set the number from evidence — in that order.
+- **Measurement arithmetic and formatting live where the tests run.** In
+  a project whose top layer does not compile locally, a formatter written
+  there ships UNRUN, and an unrun formatter printing a plausible string is
+  the silent-instrument failure. Put the tally, the maths and the string
+  in the tested layer; let the top layer supply only membership, order and
+  live state. Ruled a standing rule 25 Aug after the third instance.
 - **Selftest ships with the tool, accepting case first.** For tools that
   check the project itself, the live codebase is the accepting fixture,
   and the rejecting fixture is synthetic (a key that exists nowhere), so
