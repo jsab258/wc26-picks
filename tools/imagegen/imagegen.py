@@ -3066,7 +3066,15 @@ def main():
                          "The default is to SEND, because a run nobody is "
                          "watching that ends with files needing to be carried "
                          "by hand has not finished.")
-    ap.add_argument("--max-minutes", type=float, default=60.0)
+    ap.add_argument("--max-minutes", type=float, default=480.0,
+                    help="wall-clock cap. Default 480 (eight hours) because "
+                         "the batch this exists for runs OVERNIGHT unattended. "
+                         "It was 60, sized for a 14-item test batch, and the "
+                         "selftest caught that the moment the file grew to 42 "
+                         "items: 66 estimated minutes against a 60-minute cap, "
+                         "so a real overnight run would have stopped a third "
+                         "of the way in and needed running again. The cap is "
+                         "still a backstop against a runaway, not a target.")
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--series", nargs="?", const=".", metavar="DIR",
                     help="print the blankness series over every PNG under DIR. "

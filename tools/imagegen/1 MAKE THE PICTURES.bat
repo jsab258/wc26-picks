@@ -235,7 +235,7 @@ if defined NOGPU (
   echo   [3/3] Setting up and generating. This is the long part.
 )
 echo.
-%PY% "%~dp0imagegen.py" all --machine "%MACHINE%" --workspace "%WS%" --repo "%REPO%" --max-minutes 60 %PYARGS%
+%PY% "%~dp0imagegen.py" all --machine "%MACHINE%" --workspace "%WS%" --repo "%REPO%" --max-minutes 480 %PYARGS%
 set "RC=%errorlevel%"
 
 echo.

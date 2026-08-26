@@ -513,6 +513,273 @@
         "the twin is clean without it."
       ],
       "prompt": "a full-frame surface of grimy British stock brickwork, soot-blackened above, salt bloom and rising damp low down, crumbling lime mortar, chipped and spalled brick faces, uniform brick courses running edge to edge across the whole frame"
+    },
+    {
+      "id": "sign_ferry",
+      "kind": "sign",
+      "binds_to": "Decals/generated — MERIDIAN FERRY sign over the pontoon gate",
+      "width": 768,
+      "height": 512,
+      "seed": 8050,
+      "prompt": "a British ferry terminal sign, white enamel on a black steel plate, tall condensed capitals reading 'MERIDIAN FERRY', a single smaller line beneath reading 'FOOT PASSENGERS', salt-pitted, gull-marked, bolted at four corners",
+      "_note": [
+        "BATCH 2, written 26 Aug from `imagegen-batch-2.md`. Every one of these",
+        "obeys R1 — BIG TYPE ONLY: a bold title a player can read, and everything",
+        "below it asked for as a BLOCK or a RULED GRID read as texture, never as",
+        "rows meant to be read. Measured on batch 1's ferry board: a two-word",
+        "title at ~60px cap height came back flawless and twenty timetable rows at",
+        "~10px came back as glyph-shaped noise. Asking for legible small print is",
+        "asking for the failure.",
+        "FASCIAS ARE DELIBERATELY NOT HERE. The shop board in the code is 7.6:1",
+        "and these pictures are 1.5:1; wiring one picture answers which moves, and",
+        "writing 24 fascia prompts before that is 24 prompts at a guessed shape."
+      ]
+    },
+    {
+      "id": "sign_harbour_master",
+      "kind": "sign",
+      "binds_to": "Decals/generated — harbour master's office door plate",
+      "width": 768,
+      "height": 512,
+      "seed": 8051,
+      "prompt": "a British harbour office door plate, cast brass letters reading 'HARBOUR MASTER' on a dark green painted board, verdigris in the letter cuts, a smaller brass plate beneath bearing an even block of engraved office hours read as texture"
+    },
+    {
+      "id": "sign_weighbridge",
+      "kind": "sign",
+      "binds_to": "Decals/generated — dock weighbridge hut",
+      "width": 768,
+      "height": 512,
+      "seed": 8052,
+      "prompt": "a weighbridge sign on a dock hut, black serif capitals reading 'WEIGHBRIDGE' on flaking cream paint, an arrow beneath, coal dust in the grain of the board, rust bleeding from two fixings"
+    },
+    {
+      "id": "sign_telephone",
+      "kind": "sign",
+      "binds_to": "Decals/generated — the phone box on Copper Row",
+      "width": 768,
+      "height": 512,
+      "seed": 8053,
+      "prompt": "a British public telephone sign, white capitals reading 'TELEPHONE' on a deep red enamel panel with a fine white border, crazed enamel, a chipped corner showing bare metal beneath"
+    },
+    {
+      "id": "sign_gentlemen",
+      "kind": "sign",
+      "binds_to": "Decals/generated — public convenience, the market end",
+      "width": 768,
+      "height": 512,
+      "seed": 8054,
+      "prompt": "a Victorian public convenience sign, black capitals reading 'GENTLEMEN' on white glazed tile with a moulded tile border, one tile cracked, mortar lines darkened with soot"
+    },
+    {
+      "id": "sign_left_luggage",
+      "kind": "sign",
+      "binds_to": "Decals/generated — the station parcels window",
+      "width": 768,
+      "height": 512,
+      "seed": 8055,
+      "prompt": "a British enamel station sign, cream capitals reading 'LEFT LUGGAGE' on a dark blue plate, a smaller line beneath reading 'AND PARCELS', enamel chipped along the lower edge, screw heads painted over",
+      "_note": [
+        "The prompt said 'a British railway sign' and the content check refused it: `british rail` is a forbidden token and it matches inside 'British railway'. A substring false positive, and the wording moved rather than the check — a trade-mark guard that errs toward refusing is erring the right way, and the replacement phrase is better anyway."
+      ]
+    },
+    {
+      "id": "sign_no_waiting",
+      "kind": "sign",
+      "binds_to": "Decals/generated — kerbside plate, Quay Street",
+      "width": 768,
+      "height": 512,
+      "seed": 8056,
+      "prompt": "a British street sign plate, black capitals reading 'NO WAITING' on white with a red border, mounted on a grey pole bracket, faded and slightly bent, road grime along the bottom edge"
+    },
+    {
+      "id": "sign_private_mooring",
+      "kind": "sign",
+      "binds_to": "Decals/generated — the pontoon chain",
+      "width": 768,
+      "height": 512,
+      "seed": 8057,
+      "prompt": "a hand-painted quayside board reading 'PRIVATE MOORING' in white signwriter's capitals on tarred black timber, a smaller line beneath reading 'NO LANDING', weathered, the paint thinned to grey at the edges"
+    },
+    {
+      "id": "sign_way_out",
+      "kind": "sign",
+      "binds_to": "Decals/generated — under the station canopy",
+      "width": 768,
+      "height": 512,
+      "seed": 8058,
+      "prompt": "a British station sign, white capitals reading 'WAY OUT' on a dark blue enamel plate with a white border, a directional arrow beneath, soot-darkened, a hairline crack across one corner"
+    },
+    {
+      "id": "sign_taxis",
+      "kind": "sign",
+      "binds_to": "Decals/generated — the rank outside the Sailors' Rest",
+      "width": 768,
+      "height": 512,
+      "seed": 8059,
+      "prompt": "a British taxi rank sign, black capitals reading 'TAXIS' on a white enamel plate, a smaller line beneath reading 'CARS WAIT HERE', mounted on a cast iron post collar, rust staining downward from the fixings"
+    },
+    {
+      "id": "sign_fish_quay",
+      "kind": "sign",
+      "binds_to": "Decals/generated — the fish market gate",
+      "width": 768,
+      "height": 512,
+      "seed": 8060,
+      "prompt": "a fish market gate sign, black capitals reading 'FISH QUAY' on cream paint over rendered brick, a smaller line beneath reading 'MARKET DAILY', salt bloom low down, paint blistered and peeling"
+    },
+    {
+      "id": "sign_chandlery",
+      "kind": "sign",
+      "binds_to": "Decals/generated — the chandler's, Ironside",
+      "width": 768,
+      "height": 512,
+      "seed": 8061,
+      "prompt": "a ship chandler's sign, gold signwriter's capitals shaded in black reading 'SHIP CHANDLERS' on a dark blue painted board, a fine gold rule above and below, the varnish crazed and lifting at one end"
+    },
+    {
+      "id": "notice_tide_table",
+      "kind": "notice",
+      "binds_to": "Decals/generated — harbour board tide table, the pontoon",
+      "width": 640,
+      "height": 896,
+      "seed": 8080,
+      "prompt": "a British harbour tide table board, bold black capitals reading 'TIDE TABLE' across the top, beneath it a ruled grid of four columns and many rows filled with an even grey block of small type read as texture, thin printed rules between the columns, a hairline border, rain-spotted, one corner curled"
+    },
+    {
+      "id": "notice_council",
+      "kind": "notice",
+      "binds_to": "Decals/generated — borough council notice, the town hall board",
+      "width": 640,
+      "height": 896,
+      "seed": 8081,
+      "prompt": "a British borough council notice, heavy black capitals reading 'BOROUGH OF MERIDIAN' across the top, a second line reading 'PUBLIC NOTICE', beneath them a dense paragraph of small print read as an even grey block, a printed crest above the heading, pinned at four corners, foxed and slightly buckled"
+    },
+    {
+      "id": "notice_planning",
+      "kind": "notice",
+      "binds_to": "Decals/generated — planning notice cable-tied to a lamp post",
+      "width": 640,
+      "height": 896,
+      "seed": 8082,
+      "prompt": "a British planning application notice sealed in a clouded polythene sleeve, bold capitals reading 'NOTICE OF APPLICATION' at the top, beneath it a block of small print read as even grey texture with two ruled boxes, condensation inside the sleeve, cable ties at the corners"
+    },
+    {
+      "id": "notice_wanted",
+      "kind": "notice",
+      "binds_to": "Decals/generated — police notice, the station board",
+      "width": 640,
+      "height": 896,
+      "seed": 8083,
+      "prompt": "a British police station notice board sheet, bold capitals reading 'INFORMATION WANTED' across the top, beneath it a ruled panel and a dense block of small type read as texture, a blank photograph box outlined in black with nothing in it, drawing pins at the corners"
+    },
+    {
+      "id": "notice_sailings",
+      "kind": "notice",
+      "binds_to": "Decals/generated — sailings board, the ferry office window",
+      "width": 640,
+      "height": 896,
+      "seed": 8084,
+      "prompt": "a British shipping office sailings board, bold capitals reading 'SAILINGS' across the top, beneath it two ruled columns of small type read as an even grey block, wooden batten frame, glass reflecting a flat grey sky, a chalk smudge across one corner"
+    },
+    {
+      "id": "notice_jumble",
+      "kind": "notice",
+      "binds_to": "Decals/generated — church hall jumble sale, taped in a window",
+      "width": 640,
+      "height": 896,
+      "seed": 8085,
+      "prompt": "a British village hall notice, hand-lettered marker capitals reading 'JUMBLE SALE' large across the top, a second line reading 'SATURDAY 2PM', beneath them a short block of smaller hand lettering read as texture, sun-bleached, browning tape at the corners"
+    },
+    {
+      "id": "poster_bingo",
+      "kind": "poster",
+      "binds_to": "Decals/generated — the amusement arcade window, Quay Street",
+      "width": 640,
+      "height": 896,
+      "seed": 8086,
+      "prompt": "a British seaside bingo poster, cheap three-colour offset print, enormous condensed capitals reading 'BINGO' with a second line reading 'EVERY NIGHT', a block of smaller type beneath read as texture, garish red and yellow, sun-faded to pink, curling from the glass"
+    },
+    {
+      "id": "poster_cinema",
+      "kind": "poster",
+      "binds_to": "Decals/generated — the Tivoli, flyposted on the hoarding",
+      "width": 640,
+      "height": 896,
+      "seed": 8087,
+      "prompt": "a British cinema bill, two-colour letterpress on newsprint, huge condensed capitals reading 'THE TIVOLI' and beneath it 'CONTINUOUS PERFORMANCE', a block of smaller type read as even texture below, torn along one edge, pasted crooked over an older bill"
+    },
+    {
+      "id": "poster_coach",
+      "kind": "poster",
+      "binds_to": "Decals/generated — coach excursions, the travel agent's window",
+      "width": 640,
+      "height": 896,
+      "seed": 8088,
+      "prompt": "a British coach excursion poster, bright two-colour print, bold capitals reading 'COACH EXCURSIONS' with a second line reading 'DAY TRIPS', beneath them a ruled block of destinations and fares read as an even grey texture, sun-bleached along the right edge"
+    },
+    {
+      "id": "poster_darts",
+      "kind": "poster",
+      "binds_to": "Decals/generated — the Sailors' Rest, pinned by the bar",
+      "width": 640,
+      "height": 896,
+      "seed": 8089,
+      "prompt": "a British pub darts league sheet, bold capitals reading 'DARTS LEAGUE' across the top, beneath it a ruled fixture grid filled with an even block of small type and pencil marks read as texture, beer-stained at one corner, drawing pins holding it"
+    },
+    {
+      "id": "poster_election",
+      "kind": "poster",
+      "binds_to": "Decals/generated — election bill, the terrace window",
+      "width": 640,
+      "height": 896,
+      "seed": 8090,
+      "prompt": "a British local election bill in a terraced house window, bold capitals reading 'VOTE' large at the top with a name line beneath reading 'HOLLIS', flat single-colour print on thin card, a block of smaller type below read as texture, sun-faded, taped inside the glass"
+    },
+    {
+      "id": "poster_fete",
+      "kind": "poster",
+      "binds_to": "Decals/generated — church fete, the parish board",
+      "width": 640,
+      "height": 896,
+      "seed": 8091,
+      "prompt": "a British church fete poster, hand-lettered and duplicated in purple spirit ink on cream paper, large capitals reading 'SUMMER FETE' with a second line reading 'ALL WELCOME', beneath them a block of smaller hand lettering read as texture, damp-rippled, pinned at four corners"
+    },
+    {
+      "id": "notice_missing_cat",
+      "kind": "notice",
+      "binds_to": "Decals/generated — handwritten card on the lamp post",
+      "width": 640,
+      "height": 896,
+      "seed": 8092,
+      "prompt": "a handwritten British missing cat notice on lined paper in a polythene bag, large biro capitals reading 'MISSING' at the top, a shorter line beneath reading 'BLACK AND WHITE TOM', a block of smaller handwriting below read as texture, rain has run the ink at one edge, sticky tape wrapped round the post"
+    },
+    {
+      "id": "notice_fly_posted",
+      "kind": "notice",
+      "binds_to": "Decals/generated — a layered hoarding, Ironside",
+      "width": 640,
+      "height": 896,
+      "seed": 8093,
+      "prompt": "a British hoarding thick with layered flyposting, the topmost bill showing bold capitals reading 'STRICTLY NO BILLS' in black on white, torn corners of five older posters showing beneath it in faded reds and blues, wheatpaste runs, edges lifting in the damp"
+    },
+    {
+      "id": "notice_opening_hours",
+      "kind": "notice",
+      "binds_to": "Decals/generated — the chandler's door, Ironside",
+      "width": 640,
+      "height": 896,
+      "seed": 8094,
+      "prompt": "a British shop door notice, black capitals reading 'OPENING HOURS' across the top on white card, beneath it a ruled two-column block of small type read as even grey texture, a hairline printed border, taped inside a glass door pane, one corner lifted"
+    },
+    {
+      "id": "poster_safety",
+      "kind": "poster",
+      "binds_to": "Decals/generated — dockside safety bill, the works wall",
+      "width": 640,
+      "height": 896,
+      "seed": 8095,
+      "prompt": "a British industrial safety poster from the period, flat two-colour print, bold capitals reading 'MIND THE CHAINS' across the top, a simple graphic band beneath, a block of smaller type read as texture at the foot, curling off the brick, oil-spotted"
     }
   ]
 }
