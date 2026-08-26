@@ -175,9 +175,9 @@
   },
   "walk_start": {
     "tier": "B",
-    "found": "Female Start Walking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Catwalk Walk Start Turn 180 Left_2dee24f8-3b49-48af-b735-c6377509eaac",
     "exact": false,
-    "pattern": "\\bstart walking\\b"
+    "pattern": "\\bwalk(ing)? start\\b"
   },
   "walk_stop": {
     "tier": "B",
@@ -211,11 +211,9 @@
   },
   "walk_start_f": {
     "tier": "B",
-    "found": null,
-    "tried": [
-      "^female start walking\\b"
-    ],
-    "setAside": []
+    "found": "Female Start Walking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": true,
+    "pattern": "^female start walking\\b"
   },
   "walk_stop_f": {
     "tier": "B",
