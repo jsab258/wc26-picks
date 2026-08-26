@@ -115,6 +115,39 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    game's default idle, and a name cannot tell a monster's motion from a file
    exported off a monster rig.
 
+1. **THE SKY FORK IS SETTLED: THE DOME RENDERS AS `source^2.05` AT THE
+   HORIZON — PLUMBING, NOT ART.** *(visual, and it was the barred lever)*
+   `SkyGain` ran for the first time on `0d42f51`, sim green, and exactly ONE
+   of its four written predictions fires. Read against the prediction, not
+   after it:
+   - raw `xsrc` on sky is **0.276**, not ~1.000 -> the dome does NOT render
+     what it was authored. Prediction (b) is out.
+   - it is **not constant** across elevation — 0.149 at the horizon to 0.480
+     at 20..45deg — so it is not a scalar sitting on the dome. Out.
+   - it **CLIMBS with elevation**, which is prediction 3 verbatim: *a power
+     law, not a scalar ... SUSPECT THE PLUMBING, NOT THE ART.* **IN.**
+   - `xgrade` on sky is **4.236, the HIGHEST of the four bands** (gnd 3.707,
+     shd 3.214, lit 2.523), so the common path is not sky-hostile. Out.
+   **Fitted, the exponent at the horizon is 2.053 and 2.056** over the two
+   lowest bands — inside the **2.05..2.09** window `SkyGain`'s own comment
+   named IN ADVANCE as the gamma/linear mismatch signature. The horizon is
+   where every camera in the game looks. Higher bands drift to 1.54, which is
+   a second term (cloud/cover/curve) mixing in and is not the subject.
+   **AND THE GRADE IS EXONERATED BY THE RAW ARM.** Dry noon raw ordering is
+   `lit 0.198 > gnd 0.134 > sky 0.053 > shd 0.043`; graded is
+   `lit 0.499 > gnd 0.495 > sky 0.223 > shd 0.138`. **Identical ordering** —
+   the frame arrives inverted and the grade preserves it. The vignette
+   alternative is ruled out by its own printed number (`vig` 0.873 on sky, a
+   13% reduction against an 85% shortfall), which is exactly why it was
+   printed.
+   **NOT ACTED ON, DELIBERATELY.** Reading a landed verdict is free; deciding
+   what to change is a director trigger and this landing changes a
+   conclusion. The ruling waits for the next spawn. What it must rule on: the
+   funnel between `SceneLighting.C()` and the dome shader applies one gamma
+   too many, and the fix is at the funnel — `LightModel.SkyColour` is NOT the
+   address. Note the family: this is the same class fault as the MPB tints
+   two items below, on the largest surface in every frame.
+
 1. **WIRE ONE GENERATED PICTURE INTO THE STREET BEFORE GENERATING ANY MORE.**
    *(visual, and it gates the whole picture batch)* **Nothing in the game names
    `Decals/generated`** — zero references across all 186 Game files. Fourteen
@@ -209,27 +242,10 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    are confounded, and separating them is a measurement to design, not a
    guess to make.
 
-1. **`sky>lit` FAILS ON 15 OF 15 DRY CAMERA ROWS — the whole game, measured.**
-   Five references, seven districts, three others: **not one dry camera has the
-   sky as the brightest broad surface.** References want sky > lit > ground >
-   shadow; we read lit > ground > sky > shadow. The other two orderings largely
-   HOLD, so this is ONE BAND out of place, not a general grade fault. **Ground
-   work is invisible until it moves** — the road still renders 0.85 from albedo
-   0.008. **No lever yet:** the aperture-versus-dome fork needs a discriminator
-   that moves OPPOSITE ways under the two hypotheses.
+1. **`sky>lit` FAILS ON 15 OF 15 DRY CAMERA ROWS — CAUSE FOUND, see the sky
+   item at the top.** The ordering item stays open because the FIX is not made;
+   what is closed is the search. Full prior account in `roadmap-history.md`.
 
-1. **IDENTITY B BROKE, 63 PREDICTED vs 65 LANDED — AND THE EXPLANATION IS THE
-   POINT.** Cause, checkable on the line: **8** rows read `litnone@0` before and
-   **2** do now, so **SIX** rows gained, not the five predicted — 6x2 = 12, and
-   53 + 12 = 65. The sixth is `day5_noon`, flagged by an earlier builder as a
-   DIFFERENT fault (single perpendicular) but which also runs through
-   `TourVantage`, so the one-character change reached it uncounted. **The
-   instrument was right; the model of what it touched was incomplete — which is
-   exactly what an identity is for.** Also missed: the lit-ray RANKING.
-   Predicted downtown > copper ~ strip > hook >> fairview; actual hook 675 >
-   copper 511 > downtown 445 > fairview 354 > strip 279. **Fairview was named
-   the weak one in advance and is not.** Frontage metres did not predict lit
-   rays and whatever does is unmeasured.
 
 1. **TWO LINTS STILL CANNOT TELL A FULL SWEEP FROM AN EMPTY ONE.** *(the
    `lint-static` half of this item is DISCHARGED — it now prints `29 walked`
@@ -249,19 +265,6 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    it is not obeyed, which is where it costs most: a red run's single line
    reads as the whole problem. Owner: whoever holds `verify.py`.
 
-1. **THE VALUE INVERSION IS A DAYLIGHT FAULT, NOT A GRADE FAULT — read off
-   the 71316fa pair before any number, which is the standing rule.** At NIGHT
-   the structure is CORRECT: dark sky, dark ground, bright sodium points, one
-   wet amber pool carrying the frame. At NOON it is inverted — near-white
-   paving under a near-black storm sky, in both the new frame and the one
-   before it. **The same grade produces a right answer at night and a wrong
-   one at noon**, which localises the fault to the daylight path (aperture x
-   dome authoring) and away from `FilmGrade` generally. That is a narrowing,
-   not a conclusion: a picture is good evidence something is WRONG and poor
-   evidence of WHAT, and four correct things here were once condemned off one
-   screenshot. **`Core/ValuePanel` is being built to settle it with bands
-   rather than eyes** — do not move a lever before it lands and prints a
-   series (rule 2; the aperture moves ONCE, off a post-fix printed series).
 
 1. **THE DRESSING LANDED: 736/739 placed, ZERO missed, all gates green, cost
    inside the ~1ms noise floor** (`71316fa`; 6/6 lamp forms, `city-kit-suburban`

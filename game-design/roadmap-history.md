@@ -3223,3 +3223,51 @@ Replacing the visible dome would trade a CONTINUOUS day — dusk warmth, night
 sodium, a per-day deck the ambient reads from — for photographic detail that
 pops between four fixed states. Reflection-only is purely additive and cannot
 regress any of that, which is why it wins on evidence rather than on taste.
+
+## The value-ordering hunt, before the sky discriminator answered it — 26 Aug
+
+1. **`sky>lit` FAILS ON 15 OF 15 DRY CAMERA ROWS — the whole game, measured.**
+   Five references, seven districts, three others: **not one dry camera has the
+   sky as the brightest broad surface.** References want sky > lit > ground >
+   shadow; we read lit > ground > sky > shadow. The other two orderings largely
+   HOLD, so this is ONE BAND out of place, not a general grade fault. **Ground
+   work is invisible until it moves** — the road still renders 0.85 from albedo
+   0.008. **No lever yet:** the aperture-versus-dome fork needs a discriminator
+   that moves OPPOSITE ways under the two hypotheses.
+
+**SETTLED THE SAME DAY by `SkyGain`'s first run.** The dome renders as
+`source^2.05` at the horizon — one gamma conversion too many between the
+lighting model and the shader — and the grade is exonerated because the raw
+arm carries the identical band ordering. The search is over; the fix is a
+director ruling and is in `queue.md`.
+
+## Folded out of the queue 26 Aug, superseded by the sky finding
+
+1. **THE VALUE INVERSION IS A DAYLIGHT FAULT, NOT A GRADE FAULT — read off
+   the 71316fa pair before any number, which is the standing rule.** At NIGHT
+   the structure is CORRECT: dark sky, dark ground, bright sodium points, one
+   wet amber pool carrying the frame. At NOON it is inverted — near-white
+   paving under a near-black storm sky, in both the new frame and the one
+   before it. **The same grade produces a right answer at night and a wrong
+   one at noon**, which localises the fault to the daylight path (aperture x
+   dome authoring) and away from `FilmGrade` generally. That is a narrowing,
+   not a conclusion: a picture is good evidence something is WRONG and poor
+   evidence of WHAT, and four correct things here were once condemned off one
+   screenshot. **`Core/ValuePanel` is being built to settle it with bands
+   rather than eyes** — do not move a lever before it lands and prints a
+   series (rule 2; the aperture moves ONCE, off a post-fix printed series).
+
+## Folded out of the queue 26 Aug, superseded by the sky finding
+
+1. **IDENTITY B BROKE, 63 PREDICTED vs 65 LANDED — AND THE EXPLANATION IS THE
+   POINT.** Cause, checkable on the line: **8** rows read `litnone@0` before and
+   **2** do now, so **SIX** rows gained, not the five predicted — 6x2 = 12, and
+   53 + 12 = 65. The sixth is `day5_noon`, flagged by an earlier builder as a
+   DIFFERENT fault (single perpendicular) but which also runs through
+   `TourVantage`, so the one-character change reached it uncounted. **The
+   instrument was right; the model of what it touched was incomplete — which is
+   exactly what an identity is for.** Also missed: the lit-ray RANKING.
+   Predicted downtown > copper ~ strip > hook >> fairview; actual hook 675 >
+   copper 511 > downtown 445 > fairview 354 > strip 279. **Fairview was named
+   the weak one in advance and is not.** Frontage metres did not predict lit
+   rays and whatever does is unmeasured.
