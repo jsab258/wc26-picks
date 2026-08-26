@@ -1,0 +1,15 @@
+{
+  "what": "Generated signage and surface art for Meridian.",
+  "made_by": "tools/imagegen (stable-diffusion.cpp, MIT) running Z-Image-Turbo Q4_K",
+  "model": "Tongyi-MAI/Z-Image-Turbo",
+  "model_licence": "Apache-2.0",
+  "model_licence_note": "Apache-2.0 model weights; outputs unrestricted. No account, no terms to accept, no purchase.",
+  "text_encoder": "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+  "text_encoder_licence": "Apache-2.0 (Qwen3, Alibaba)",
+  "vae": "ae.safetensors",
+  "vae_licence": "Apache-2.0 (Z-Image / FLUX.1 autoencoder)",
+  "third_party_inputs": "none - no fetched asset was an input to any image",
+  "attribution_required": "no - Apache-2.0 weights, outputs unrestricted; recorded anyway because this project records provenance whether or not a licence compels it",
+  "rules": "invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+  "review": "every image is review=pending in manifest.json until a human has looked at it for real marks and real faces"
+}
