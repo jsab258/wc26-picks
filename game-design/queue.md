@@ -85,24 +85,48 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 ### screen. Nothing from a later stage starts while an earlier one has
 ### startable work, except reading a landed verdict, which is free.
 
-1. **CLAUDE.md's `director_cadence` PARAGRAPH IS NOW FALSE — NEXT DIRECTOR
-   SPAWN.** It says "Two candidate fixes, neither built". **The stronger one
-   is built and live**: the gate now requires a decision RECORD in
-   `game-design/decision-*.md` closing with `<!--RULING spawn=STAMP-->`,
-   the stamp quoted verbatim from the log row. Both outcomes were watched on
-   real data tonight — it REFUSED the director's own unstamped ruling ("a
-   spawn row is attendance, not a review") and went `REVIEWED` once stamped.
-   Selftest 38 -> 53 fixtures, and the refusal message now tells you to
-   RESUME a killed director rather than restart one. Touching CLAUDE.md is a
-   mandatory director trigger, so this waits for the next spawn rather than
-   being edited here — but it must not wait long: a rules file that describes
-   a hole as open when it is closed sends the next session to build it twice.
-   **AND THE WATCHDOG HAS THE SAME HOLE, UNFIXED.** Its DAILIES CHECK reads
-   *"if no `studio-director` row in the last 12 hours, spawn"* — a ROW, which
-   is attendance. A director killed mid-ruling satisfies it exactly as a
-   completed review does, which is the fault just closed in the commit gate,
-   still live one layer out. `verify.py` already has the machinery to ask the
-   better question (a stamped ruling newer than the reference). Same spawn.
+1. **THE WATCHDOG STILL TESTS ATTENDANCE, NOT A REVIEW.** *(the CLAUDE.md
+   half of this item is DISCHARGED — the "neither built" sentence is gone and
+   the paragraph now describes the live gate, the two residual holes and this
+   twin.)* The watchdog's DAILIES CHECK reads *"if no `studio-director` row in
+   the last 12 hours, spawn"* — a ROW, which is attendance. A director killed
+   mid-ruling satisfies it exactly as a completed review does: the fault
+   closed in the commit gate on 25 Aug, still live one layer out.
+   `verify.py` already has the machinery to ask the better question (a stamped
+   ruling newer than the reference), and the director ruled it must CALL that
+   parse rather than grow a second copy — one idea, one implementation.
+   Not startable without a director spawn (it changes the cadence mechanism);
+   fold it into the next mandatory one.
+
+1. **THE SASHAY IS SCREENED; ONE RE-PICK ON HIS PC CLEARS IT.** *(visual)*
+   `walk_start` holds "Catwalk Walk Start Turn 180 Left", so every man in
+   Meridian begins walking with a runway turn. Depth 3 is deleted from
+   `walk_start` and `walk_stop` (measured: its whole candidate set in both is
+   Catwalk runway clips) and `turn_ok` refuses any clip whose NAME says it
+   turns — same axis as `direction_ok` refusing one that goes backwards. **The
+   clip is still on disk until a re-pick renames it**, which is his one
+   double-click; the slot then comes back EMPTY and falls back to the
+   locomotion tree, which is the right answer.
+   **AND THE COMMENT THAT NAMED THE FAULT WAS WRONG, WHICH IS THE FINDING.**
+   It said depth 2 and "all 8 candidates are Catwalk variants"; depth 2 has
+   three candidates and none is a Catwalk. Acting on it would have deleted the
+   depth that never had the fault. Full account in `clip-findings.txt`,
+   including the costume screen written first and WITHDRAWN — it refused the
+   game's default idle, and a name cannot tell a monster's motion from a file
+   exported off a monster rig.
+
+1. **PROVE THE ONE-CLICK SENDER ON HIS MACHINE — IT HAS NEVER RUN THERE.**
+   *(visual, and it is the channel everything visual comes back through)*
+   `Publisher` was written, given a plain sentence for every failure path, and
+   **never instantiated** — `run_batch(... publisher=None)` was its only live
+   call. That is why he had to open a text file and paste it. Wired 26 Aug,
+   selftest 83 -> 100, and the accepting case goes all the way to a real push
+   into a bare clone. **What is still unproven is his PC**: whether that clone
+   is on the branch, has an `origin`, and has credentials git can use without
+   a prompt. All three refuse loudly rather than hanging (`GIT_TERMINAL_PROMPT=0`),
+   and the report now DERIVES its closing paragraph from the sender instead of
+   asserting one — but "refuses loudly" is a design, not a measurement. Next
+   run he does answers it; nothing here can.
 
 1. **`namedJunctions=1` OF 97 — 49 OF 51 STREET NAMES ARE UNREACHABLE, AND
    THE GUARD FOR THIS EXACT FAULT REPORTS ZERO.** *(moat: information)*
@@ -190,25 +214,17 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    the weak one in advance and is not.** Frontage metres did not predict lit
    rays and whatever does is unmeasured.
 
-1. **THE NOON SUN IS IN THE NORTH — CLOSED.** `Euler(52,180,0)` -> sunward
-   `(0,+0.788,+0.616)`; only north-facing walls are lit. A comment saying "due
-   SOUTH" had been quoted forward into four documents and five camera
-   placements. All corrected, re-swept, no live copy. Refs re-aimed, then
-   districts; **`litnone@0` rows went 8 -> 2**, and the two remaining are dusk
-   and a rainy noon, where no wall is lit and `?` is the honest answer.
-
-
-
-1. **OUR EXEMPLAR OF RULE 3b IS ITSELF THE FAULT — `lint-static` INFLATES ITS
-   DENOMINATOR 19x.** It prints `560 static bodies walked`; it actually scans
-   **29**, across 14 of 88 files. `collect()` keeps only files matching
-   `public partial class` exactly once and drops the rest **with no message**
-   — 531 unexamined, 95% of the printed denominator. **CLAUDE.md cites that
-   very line as the exemplar of the rule-3b fix**, so the rules file teaches
-   the disease as the cure. Two items: fix the printed number (the SCOPE may
-   be intentional; the DENOMINATOR is the bug) and correct CLAUDE.md — a
-   director trigger. `lint-conditional-reach` names its unwalked set and is
-   the model to copy. Six other lints are clean on this axis, checked.
+1. **TWO LINTS STILL CANNOT TELL A FULL SWEEP FROM AN EMPTY ONE.** *(the
+   `lint-static` half of this item is DISCHARGED — it now prints `29 walked`
+   with a named drop clause and the arithmetic `29 + 535 = 564 offered`, and
+   CLAUDE.md's exemplar paragraph is corrected. The sun item is CLOSED and
+   moved to `roadmap-history.md`.)* What remains, measured rather than
+   assumed: `lint-nested` exits 0 **byte-identically for a full 88-file sweep
+   and for a sweep of nothing** — its denominator is the REFERENCE set it
+   compares against, while the Game file count that would actually move is
+   computed and thrown away. `lint-shadow` re-globs at print time, so one line
+   carries two moments. Same one-line repair both times: print the set walked,
+   and name what was dropped. `lint-conditional-reach` is the model.
 
 1. **VERIFY'S RED PATH IS A `head -3` — it reports ONE finding of nine,**
    truncated at 90 chars, with no count and no `(+8 more)`. The cap that
@@ -231,7 +247,10 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    series (rule 2; the aperture moves ONCE, off a post-fix printed series).
 
 1. **THE DRESSING LANDED: 736/739 placed, ZERO missed, all gates green, cost
-   inside the ~1ms noise floor.** Open, and both about REPETITION — the tell
+   inside the ~1ms noise floor** (`71316fa`; 6/6 lamp forms, `city-kit-suburban`
+   is no longer an unreached kit, and the Game layer names 73 models against
+   62). Survey and signage verdicts in `agent-reports/kit-survey.md`. Open,
+   and both about REPETITION — the tell
    the GTA bar exists to kill: `yard_fence` is 163 of 166 on the SHORTEST
    panel (`1x2`/`1x3` placed zero) — read the yard-depth series before
    touching the probe, the census says the gap is a CONSTANT 3.00m whenever
@@ -255,18 +274,9 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    mints a third private copy. Onto the ladder by name: the pub-sign board
    (the kit ships a mast arm with no plate) and a British terrace — the
    terrace's next rung is blank, so it is a RESEARCH task, not a fetch.
-   **E: bank the `walk_start` re-pick and attach it to the image-gen
-   delivery** — one interruption, two one-click items.
-
-
-
-
-1. **THE TWO KITS ARE WIRED AND MEASURED (landed `71316fa`).** 736 of 739
-   placed, ZERO missed, 6/6 lamp forms; `city-kit-suburban` is no longer an
-   unreached kit and the Game layer now names 73 models against 62. Open, in
-   `agent-reports/kit-survey.md`: the signage verdicts (the warning "triangle"
-   is a US diamond — the welded one REJECTS), and the fence repetition below.
-
+   **E: DISCHARGED 26 Aug** — both one-click items ran on his PC in one
+   interruption; the re-pick's result and the probes' are in `clip-findings.txt`
+   and `imagegen/prompts.json`.
 
 1. **M17.10 — THE VISUAL BAR IS GTA V (PS3). Jafar's order, 21 Aug, twice.**
    *(the most on-screen thing there is)* Plan in `roadmap.md` 17.10,
@@ -318,22 +328,10 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
-1. **THE `e8c5949` STALL WAS THE INTERMITTENT — CLOSED, CHANNEL IMPROVED.**
-   Two later builds ran clean (`simExit=0`, 733s and 735s), so candidate B
-   stands and no behaviour fix was needed. What the episode bought: the build
-   step now prints `simExit` / `simTimedOut` / `simWaitSeconds` — it always
-   computed them and threw them away, so "killed at 24 min" and "crashed"
-   arrived identical — plus an in-sim watchdog that beats the external kill
-   and `tools/hang-report.py`, which leads with POSITION rather than a tail of
-   engine warnings. **The IK-warning lead was mine and was FALSE:** the raw
-   tail is gated behind "no done line", so a healthy run cannot emit it; the
-   warning appears in 3 of the 3 runs where it CAN appear. A printed field
-   compared against an absent one. 3 of 352 kept runs have no done line, so
-   this class recurs — the instrumentation is the deliverable, not a fix.
+1. **THE `e8c5949` STALL — CLOSED, account in `roadmap-history.md`.** Live
+   remainder only: 3 of 352 kept runs have no done line, so the class recurs
+   and the instrumentation is the deliverable, not a fix.
 
-
-1. **BODY BUDGET CLOSED AT 87.8%** (account in `roadmap-history.md`). Live:
-   the centre-third foot reading, and white pills with no committed still.
 
 1. **THE INQUIRY RUNS NOW; TWO THINGS GATED ON IT STILL DO NOT.** *(moat:
    information)* `inquiry=Manhunt` lands, but `summonsTaken=0` and
@@ -343,10 +341,11 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    cause stands; the inquiry cause does not, and the two were read as one.
 
 
-
-1. **PATROL DENSITY — open: `patrolOnBeatMean=0.00` over 3 shots vs `0.18`
-   over 17. Zero of three separates nothing.
-
+1. **THREE READINGS WHOSE SAMPLE IS TOO SMALL TO SEPARATE ANYTHING.**
+   `patrolOnBeatMean=0.00` over 3 shots against `0.18` over 17 — zero of three
+   separates nothing. The body budget closed at 87.8% (account in
+   `roadmap-history.md`) but left two the same way: the centre-third foot
+   reading, and white pills with no committed still.
 
 
 1. **Smuggling** (M21) — **BUILT** (account in `roadmap-history.md`).

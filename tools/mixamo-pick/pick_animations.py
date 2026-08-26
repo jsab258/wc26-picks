@@ -170,17 +170,25 @@ WANTS = [
     # the same rule for eleven other slots and a per-pattern lookahead is one
     # idea in fourteen implementations.
     #
-    # DEPTH 2 IS A NAMED RESIDUAL RISK, MEASURED AND LEFT ALONE: all 8 of its
-    # candidates in the 2,846-name catalogue are Catwalk variants, so the only
-    # thing it can ever return is the 30 July mis-pick. It is unreachable while
-    # a plain "Start Walking" passes the screens, and today none does — the
-    # forward clips are frozen-root in-place exports (see REVERSED). Deleting
-    # it is a decision about whether an empty slot beats a sashay, not a
-    # pattern fix, so it is written down rather than taken.
-    ("walk_start",   "B", [r"^start walking\b", r"\bstart walking\b",
-                           r"\bwalk(ing)? start\b"]),
-    ("walk_stop",    "B", [r"^stop walking\b", r"\bstop walking\b",
-                           r"\bwalk(ing)? stop\b"]),
+    # THE COMMENT THAT STOOD HERE NAMED THE WRONG PATTERN AND THE WRONG COUNT.
+    # It said depth 2 was the sashay risk and that "all 8 of its candidates are
+    # Catwalk variants". Measured against the 2,846-name catalogue, depth 2's
+    # candidates are Female Start Walking, Female Stop And Start Walking and
+    # Scary Clown Start Walking — three names, none of them Catwalk. The four
+    # Catwalk names are reached by DEPTH 3, `\bwalk(ing)? start\b`, and depth 3
+    # in `walk_stop` reaches two Catwalk names and nothing else at all.
+    #
+    # SO DEPTH 3 IS DELETED FROM BOTH, and it is a measurement rather than a
+    # taste: a pattern whose entire candidate set is runway clips has no
+    # honest use here. What is left is screened — `gender_ok` refuses the
+    # female names and `turn_ok` refuses the turns — so these slots come back
+    # EMPTY, which is the answer this file already argues for where it refuses
+    # the backwards clip: an empty slot falls back to the locomotion tree, a
+    # wrong one does not. The remaining depth-2 name, `Scary Clown Start
+    # Walking`, is NAMED AND NOT GUARDED: see `turn_ok` for why a costume
+    # screen was written, measured against the shipped clips, and withdrawn.
+    ("walk_start",   "B", [r"^start walking\b", r"\bstart walking\b"]),
+    ("walk_stop",    "B", [r"^stop walking\b", r"\bstop walking\b"]),
     ("stairs_up",    "B", [r"\bascending stairs\b"]),
     ("stairs_down",  "B", [r"\bdescending stairs\b"]),
 
@@ -510,6 +518,68 @@ def gender_ok(slot, flat_name):
                    "take the twin's clip, or both slots play one file"
                    % (m.group(0), slot))
 
+
+#: A NAME THAT SAYS THE CLIP TURNS. `direction_ok` refuses a clip that goes
+#: BACKWARDS; this refuses one that goes ROUND, on the same axis and for the
+#: same reason - the name carries a fact about the motion that no reading of
+#: the file's hips and travel can recover.
+TURNS = re.compile(r"\b(turn(ing)?|twist|180|90|pivot|about face)\b", re.I)
+
+
+def turn_ok(slot, flat_name):
+    """A straight slot may not take a clip whose NAME says it turns.
+
+    WHY THIS EXISTS, 26 Aug, AND WHY IT IS NOT THE GUARD I FIRST WROTE.
+    `walk_start` had picked `Catwalk Walk Start Turn 180 Left`, and I read
+    that as a COSTUME problem - a runway sashay - and wrote a screen refusing
+    names that declare a costumed character. Run against the 65 shipped clips,
+    which is the accepting fixture this project already trusts, it refused two:
+    the sashay, correctly, and `idle` = `Mutant Breathing Idle`, which is the
+    default idle every person in Meridian plays while standing still.
+
+    THE NAME CANNOT ANSWER THE QUESTION I WAS ASKING IT. The catalogue holds
+    Mutant Walking / Idle / Run / Jumping and Zombie Walk / Idle / Crawl in
+    the SAME SHAPE: a prefix naming the rig the motion was authored on, which
+    may or may not mean the motion is styled. A name-based screen cannot tell
+    "the motion is a monster's" from "the file was exported off a monster",
+    and shipping one would have emptied the most-seen clip in the game to fix
+    a slot nobody had looked at. That is the ratchet rule 5 names - a guard
+    that cannot tell a regression from an improvement.
+
+    So the guard moved to the axis the fault is actually ON. What is wrong
+    with `Catwalk Walk Start Turn 180 Left` in `walk_start` is not the
+    catwalk, it is the TURN 180: the slot wants a straight start and the clip
+    is a half-circle. That is a motion fact, it is in the name, and it screens
+    every one of depth 3's candidates in both slots - two Turn 180s (here),
+    two Backwards (already refused by `direction_ok`), two Stop Twists.
+    Measured against the shipped 65: it refuses ONE, and that one is the
+    sashay.
+
+    NAMED AND NOT GUARDED, because the honest answer is that nothing here can
+    settle it: `walk_start`'s remaining depth-2 candidate is `Scary Clown
+    Start Walking`, and whether that walk is a clown's or a man's exported off
+    a clown rig can only be answered by looking at it. `gender_ok` refuses the
+    other two depth-2 names, so with depth 3 deleted the slot comes back EMPTY
+    - which this file already argues is the right answer where it refuses the
+    backwards clip: an empty slot falls back to the locomotion tree, a wrong
+    one does not.
+
+    THE SCREEN CONFIGURES ITSELF FROM `WANTS`, so a slot that asks for a turn
+    gets one: if the slot's own patterns name the turn word, the clip passes.
+    The selftest asserts both directions.
+    """
+    m = TURNS.search(flat_name)
+    if m is None:
+        return True, ""
+    word = m.group(0).lower()
+    for name, _tier, pats in WANTS:
+        if name == slot and any(word in pat.lower() for pat in pats):
+            return True, ""            # asked for on purpose
+    return False, ("the name says %r — this slot wants a straight motion and "
+                   "the clip turns, which no reading of the FILE's hips and "
+                   "travel can tell you" % m.group(0))
+
+
 #: THE REJECTING CASE FOR THE SCREEN, KEPT WHERE A RE-PICK CANNOT REACH IT.
 #: Each entry is (file under `known-bad/`, the slot to ask it as, a fragment of
 #: `why` that names the branch), one per branch of `posture_ok`.
@@ -763,6 +833,10 @@ def pick(items, patterns, taken=None, cache=None, slot=None):
                 # fallback pattern put `Female Start Walking` into BOTH
                 # `walk_start` and `walk_start_f` on 26 Aug.
                 ok, why = gender_ok(slot, hit[0])
+            if ok:
+                # The third of the same family: a name that says the clip
+                # goes ROUND, where `direction_ok` says it goes BACKWARDS.
+                ok, why = turn_ok(slot, hit[0])
             if not ok:
                 if taken is not None:
                     print(f"    wrong direction: {hit[1]} — {why} — skipping")
@@ -840,6 +914,8 @@ def set_aside(out, slot):
         ok, why = direction_ok(slot, flatten(stem))
         if ok:
             ok, why = gender_ok(slot, flatten(stem))
+        if ok:
+            ok, why = turn_ok(slot, flatten(stem))
         if ok:
             ok, why = posture_ok(slot, old)
         if ok:
@@ -1197,6 +1273,48 @@ def selftest():
             if got != want_ok:
                 failures.append("direction_ok(%s, %r) is %s, wanted %s"
                                 % (slot, name, got, want_ok))
+
+        # AND `turn_ok`'S TABLE, ACCEPTING FIRST. The rejecting half is easy
+        # here and the accepting half is the one that matters: the first
+        # version of this screen was about COSTUMES, and it refused `idle` =
+        # `Mutant Breathing Idle` — the clip every person in Meridian plays
+        # while standing still. It was withdrawn for that and the axis moved
+        # to the motion; the idle is in the table below so the withdrawal
+        # cannot be quietly undone.
+        for slot, name, want_ok in (
+                ("idle", "Mutant Breathing Idle" + ID_A, True),
+                ("walk", "Walking" + ID_A, True),
+                ("walk_start", "Start Walking" + ID_A, True),
+                ("walk_start", "Catwalk Walk Start Turn 180 Left" + ID_A, False),
+                ("walk_stop", "Catwalk Walk Stop Twist L" + ID_A, False),
+                ("turn_right", "Right Turn 90" + ID_A, True)):
+            got, _why = turn_ok(slot, flatten(name))
+            if got != want_ok:
+                failures.append("turn_ok(%s, %r) is %s, wanted %s"
+                                % (slot, name, got, want_ok))
+
+        # THE SHIPPED CLIPS ARE THE ACCEPTING FIXTURE, and this asserts the
+        # SIZE of the refusal rather than that there is none: a screen that
+        # refuses nothing at all is not running, and one that refuses several
+        # is the ratchet that emptied the idle. Exactly one, and it is the
+        # sashay this screen was written for — until a re-pick empties that
+        # slot, after which zero is the right answer and the assertion says so.
+        # THE SELFTEST RUNS WITH NO `--out`, so it resolves the shipped tree
+        # the same way `CATALOGUE` does rather than borrowing main()'s local.
+        chars = os.path.dirname(CATALOGUE)
+        on_disk = sorted(glob.glob(os.path.join(chars, "*", "*__*.fbx")))
+        refused = []
+        for f in on_disk:
+            slot_s, _, stem_s = os.path.basename(f)[:-len(".fbx")].partition("__")
+            if stem_s and not turn_ok(slot_s, flatten(stem_s))[0]:
+                refused.append("%s=%s" % (slot_s, stem_s))
+        if not on_disk:
+            failures.append("no shipped clips — turn_ok's accepting fixture is "
+                            "testing nothing")
+        elif len(refused) > 1 or (refused and "walk_start" not in refused[0]):
+            failures.append("turn_ok refuses %d of %d shipped clip(s), wanted "
+                            "at most the walk_start sashay: %s"
+                            % (len(refused), len(on_disk), ", ".join(refused)))
 
         # THE FIXTURES ARE IN THE COMMITTED CATALOGUE, WHICH A RE-PICK CANNOT
         # EMPTY. `known-bad/` exists because the rejecting half used to point

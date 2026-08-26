@@ -531,3 +531,43 @@ sashay, not a pattern fix, so it is written down rather than taken."* It is
 still that decision and it is still not taken. Recommendation on the record:
 an EMPTY slot beats a sashay — a missing transition is invisible, a man
 pirouetting into a walk is a visible absurdity. Queue: `walk-start-sashay`.
+
+TAKEN THE SAME DAY, AND THE PARAGRAPH ABOVE IS WRONG ABOUT WHICH PATTERN DID
+IT — kept as written because the error is the finding. It says "the unanchored
+pattern", meaning depth 2, and so did the comment in `pick_animations.py` that
+I was quoting: *"all 8 of its candidates in the 2,846-name catalogue are
+Catwalk variants"*. Grepped against the real catalogue, depth 2's candidates
+are Female Start Walking, Female Stop And Start Walking and Scary Clown Start
+Walking — THREE names, not eight, and NOT ONE a Catwalk variant. The four
+Catwalk names are reached by depth 3. The risk was real, the count was wrong,
+and it was attached to the wrong pattern; acting on the comment would have
+deleted the depth that never had the fault. It had been quoted forward into
+this file and a queue item before anybody ran the grep, which took ten seconds.
+
+WHAT SHIPPED. Depth 3 is deleted from `walk_start` and `walk_stop` — measured,
+its entire candidate set in both is Catwalk runway clips. And a new name screen
+`turn_ok` refuses a clip whose NAME says it turns, on the same axis as
+`direction_ok` refusing one that goes backwards: what is wrong with
+`Catwalk Walk Start Turn 180 Left` is not the catwalk, it is the TURN 180.
+
+THE SCREEN I WROTE FIRST WAS ABOUT COSTUMES AND IT WAS WITHDRAWN, which is the
+more useful half of this entry. Run against the 65 shipped clips — the
+accepting fixture this project already trusts — it refused two: the sashay,
+correctly, and `idle` = `Mutant Breathing Idle`, the clip every person in
+Meridian plays while standing still. The catalogue holds Mutant Walking / Idle
+/ Run and Zombie Walk / Idle / Crawl in the SAME SHAPE, a prefix naming the rig
+the motion was authored on, so a name cannot tell "the motion is a monster's"
+from "the file was exported off a monster". Shipping it would have emptied the
+most-seen clip in the game to fix a slot nobody had looked at — rule 5's
+ratchet exactly. The idle is now in `turn_ok`'s accepting table by name, so the
+withdrawal cannot be quietly undone; putting the costume word back turns the
+selftest red and the failure names the clip.
+
+STILL TRUE AND NOT GUARDED: `walk_start`'s remaining depth-2 candidate is
+`Scary Clown Start Walking`, and whether that walk is a clown's or a man's
+exported off a clown rig can only be settled by looking at it. With the female
+names refused by `gender_ok` the slot comes back EMPTY on the next re-pick,
+which is the recommendation above and is what this file already argues for
+where it refuses the backwards clip. UNTIL THAT RE-PICK RUNS ON HIS PC THE
+SASHAY IS STILL THE SHIPPED CLIP — the screen refuses it, the file is still on
+disk, and a re-pick is what renames it.

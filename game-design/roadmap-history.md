@@ -3116,3 +3116,46 @@ failure. `verify.py`'s `tools_tracked()` was extended to walk
 workflow-named tools transitively — and the one-hop version caught
 `ci-checks.sh` while missing `reach-check.sh`, which is precisely the fault
 it exists to stop, found by running it rather than by reasoning about it.
+\n
+## The noon sun is in the NORTH — closed 26 Aug
+
+`UpdateSun` puts the noon sun at `Euler(52,180,0)`, which is sunward
+`(0,+0.788,+0.616)`: in an axis-aligned town only NORTH-facing walls are ever
+lit. A comment saying "due SOUTH" had been quoted forward into **four
+documents and five camera placements**, and every camera reading `litnone@0`
+was aimed at the shaded side because of it. Nothing had edited that comment —
+it was re-quoted because it sounded authoritative, and each copy made the next
+more credible. It was caught only because an instrument printed `litnone@0`
+and somebody asked why.
+
+All copies corrected and re-swept; no live copy remains. The five reference
+cameras were re-aimed first, then the seven districts. **`litnone@0` rows went
+8 -> 2**, and the two that remain are a dusk shot and a rainy noon, where no
+wall is lit and `?` is the honest answer rather than a fault.
+
+The rule this produced is in CLAUDE.md under rule 1's second corollary:
+**grep for the SENTENCE, not the site.** When a claim turns out false, the
+copies are not near the code it describes; they are in whatever a later reader
+was writing at the time.
+
+
+## The `e8c5949` stall was the intermittent — closed 26 Aug
+
+Two later builds ran clean (`simExit=0`, 733s and 735s), so candidate B stands
+and no behaviour fix was needed.
+
+What the episode bought is the whole value of it. The build step now prints
+`simExit` / `simTimedOut` / `simWaitSeconds` — it always computed all three and
+threw them away, so "killed at 24 minutes" and "crashed in the first second"
+arrived at the reader identical. Plus an in-sim watchdog that beats the
+external kill, and `tools/hang-report.py`, which leads with POSITION rather
+than a tail of engine warnings.
+
+**THE IK-WARNING LEAD WAS MINE AND WAS FALSE**, and it is recorded because the
+shape recurs. I read an IK warning in the raw tail as a regime break.
+`tools/sim-shots-commit.sh:227` gates that tail behind `if ! grep -q
+"SimDirector: done."`, so a HEALTHY run cannot emit it at all — the warning
+appears in 3 of the 3 runs where it *can* appear. I had compared a printed
+field against an absent one and read the absence as a difference. Rule 3b, one
+layer out: a field that only exists on the failing path cannot distinguish the
+failing path.
