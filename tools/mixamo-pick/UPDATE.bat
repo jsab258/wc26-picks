@@ -1,5 +1,16 @@
 @echo off
 setlocal
+REM  GIT MUST NEVER OPEN AN EDITOR HERE. 26 Aug: a `git pull` that made a
+REM  merge commit opened vim in Jafar's window, he closed it, and the
+REM  half-finished merge blocked every pull afterwards - which then read
+REM  as "the pull is broken" rather than "something is waiting for you".
+REM  `true` is a program that exits 0 immediately, so git takes the default
+REM  message and carries on. TWENTY-TWO .bat files ran `git pull` and NOT
+REM  ONE guarded this: one idea, twenty-two implementations, in scripts
+REM  whose entire purpose is that nobody is watching the window.
+set "GIT_EDITOR=true"
+set "GIT_MERGE_AUTOEDIT=no"
+
 title LEDGER - update
 cd /d "%~dp0"
 

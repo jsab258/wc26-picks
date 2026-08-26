@@ -1097,6 +1097,35 @@ def namespace_as_value():
 
 
 
+def bat_editor():
+    """A .bat that runs git must stop git opening an EDITOR.
+
+    26 Aug, on Jafar's PC: `git pull` in `UPDATE FROM CLAUDE.bat` made a merge
+    commit, git opened vim to ask for a message, he closed the window, and the
+    half-finished merge blocked every pull afterwards. The symptom on the next
+    run was "You have not concluded your merge" — a sentence that names the
+    state and not the cause, so it read as the pull being broken rather than as
+    something having waited for a human nobody knew was waiting.
+
+    The sweep is why this is a gate rather than a fix. TWENTY-TWO .bat files
+    run `git pull` and NOT ONE guarded it: one idea, twenty-two
+    implementations, in scripts whose entire purpose is that nobody is watching
+    the window. A hang there is the worst shape this project has — silent,
+    indefinite, and the only channel that could report it is the window that is
+    now blocked.
+    """
+    code, out = run(["python3", str(ROOT.parent / "tools" / "lint-bat-editor.py")])
+    if code != 0:
+        return False, _lint_red(code, out, "A .bat CAN HANG ON A GIT EDITOR",
+                                "lint-bat-editor")
+    m = re.search(r"(\d+) unguarded \((\d+) \.bat file\(s\) read, (\d+) run", out)
+    return True, ("0 .bat file(s) can hang on a git editor (%s read, %s run a "
+                  "git command that can open one)" % (m.group(2), m.group(3))
+                  if m else
+                  "0 .bat editor errors (%s — lint-bat-editor printed no census)"
+                  % NOTHING_MEASURED)
+
+
 def raw_avenues():
     """A raw read of `AvenuesX`/`AvenuesZ` — the unscaled source arrays.
 
@@ -2127,6 +2156,21 @@ DIRECTOR_AGENT = "studio-director"
 # own docs are not evidence). Checked 25 Aug: 10 files, 1 on fable.
 DIRECTOR_AGENTS_DIR = ".claude/agents"
 FABLE_MODEL = "fable"
+
+#: THE AGENTS THAT BUILD THE GAME, as opposed to the ones that measure, review
+#: or audit it. A literal set and not a rule, because the honest line between
+#: the two is a judgement about what an agent is FOR and no naming convention
+#: carries it: `instrument-builder` is a builder by name and is tooling by
+#: purpose, which is exactly the row that dominated 25 Aug.
+#:
+#: IT IS A DENOMINATOR'S OTHER HALF, so it ships with the count of definitions
+#: read (`agentFilesRead`) already printed beside it — a set that has drifted
+#: out of date under-reports game work and would read as MORE self-measurement
+#: than actually happened, which is the flattering direction and therefore the
+#: one to distrust. Names not in either category count as tooling by default:
+#: an unrecognised agent is not evidence that the game got built.
+GAME_AGENTS = frozenset((
+    "systems-builder", "content-wrangler", "engine-specialist"))
 # THE ARTIFACT HALF, added 25 Aug after a SPAWN ROW certified an unreviewed
 # batch for the SECOND time. CLAUDE.md named this hole in the words "the spawn
 # log is an attendance register, not a review record", listed two candidate
@@ -2453,7 +2497,7 @@ def _cadence_read(repo):
          "untracked": 0, "untracked_files": 0, "untracked_binary": 0,
          "unreadable": 0, "log": True, "newest_dir": "", "head_iso": "",
          "spawn_since": 0, "fable_rows": 0, "day_iso": "", "day_rows": 0,
-         "day_fable": 0, "fable_agents": [], "agent_files": 0,
+         "day_fable": 0, "day_game": 0, "fable_agents": [], "agent_files": 0,
          "ruling_files": 0, "ruling_stamps": 0, "ruling_fresh": 0,
          "ruling_stale": 0, "ruling_unmatched": 0, "unruled_rows": 0,
          "want_spawn": "",
@@ -2601,9 +2645,17 @@ def _cadence_read(repo):
                 continue           # undateable: counted in no TIME window
             day = datetime.datetime.fromtimestamp(
                 ts, datetime.timezone.utc).strftime("%Y-%m-%d")
-            slot = day_counts.setdefault(day, [0, 0])
+            slot = day_counts.setdefault(day, [0, 0, 0])
             slot[0] += 1 if is_fable else 0
             slot[1] += 1
+            # THE THIRD COLUMN: how many of the day's spawns BUILT THE GAME,
+            # as opposed to measuring, reviewing or auditing it. Measured 26
+            # Aug after the owner asked why a night cost so much: 25 Aug ran
+            # 110 spawns of which 39 were instrument-builder and 23 were the
+            # director — 78 of 110, 71%, were the project working on itself.
+            # That is the number the fable share could not show, because it
+            # asks a different question: WHICH MODEL, not WHICH WORK.
+            slot[2] += 1 if agent in GAME_AGENTS else 0
             if ts > r["ref_ct"]:
                 r["spawn_since"] += 1     # DENOMINATOR of since_code, same pass
             if agent != DIRECTOR_AGENT:
@@ -2627,7 +2679,7 @@ def _cadence_read(repo):
     # beside the share is what tells a reader which day it got.
     if day_counts:
         r["day_iso"] = max(day_counts)
-        r["day_fable"], r["day_rows"] = day_counts[r["day_iso"]]
+        r["day_fable"], r["day_rows"], r["day_game"] = day_counts[r["day_iso"]]
 
     # THE DIRECTOR ROW COUNTS, derived from the one row-set above.
     for ts, (cnt, _raw) in dir_rows.items():
@@ -2726,15 +2778,23 @@ def _cadence_spend(r):
         spawns = all_share = NOTHING_MEASURED
     if measured and r["day_rows"]:
         day = "%d/%d@%s" % (r["day_fable"], r["day_rows"], r["day_iso"])
+        # SAME DAY, SAME DENOMINATOR, ON THE SAME LINE. The share and the mix
+        # are one reading of one window, so they are captured together and
+        # printed together; splitting them across two lines is the fault
+        # `verdict-read.py` exists to catch one layer down.
+        mix = "%d/%d@%s" % (r["day_game"], r["day_rows"], r["day_iso"])
     else:
-        day = NOTHING_MEASURED
+        day = mix = NOTHING_MEASURED
     who = "/".join(r["fable_agents"]) if r["fable_agents"] else "none"
     text = ("; fable spend, READING ONLY (no bound, nothing here is gated): "
-            "directorSpawns=%s fableShareDay=%s fableShareAll=%s fableAgents=%s "
-            "agentFilesRead=%d — COUNT of studio-director rows over ALL spawn "
-            "rows since that same reference commit / SHARE over the newest UTC "
-            "day present in the log / CUMULATIVE share over every log row"
-            % (spawns, day, all_share, who, r["agent_files"]))
+            "directorSpawns=%s fableShareDay=%s fableShareAll=%s gameShareDay=%s "
+            "fableAgents=%s agentFilesRead=%d — COUNT of studio-director rows "
+            "over ALL spawn rows since that same reference commit / SHARE over "
+            "the newest UTC day present in the log / CUMULATIVE share over "
+            "every log row / of that same day, how many spawns BUILT THE GAME "
+            "rather than measuring or reviewing it (25 Aug read 32/110, so 71%% "
+            "was the project working on itself)"
+            % (spawns, day, all_share, mix, who, r["agent_files"]))
     # THE WORDS, for each way this can measure nothing. Values alone are
     # greppable; a person reading the footer needs the sentence.
     if not r["log"]:
@@ -3580,6 +3640,32 @@ def _cadence_selftest():
         "MEASURE the fable set is READ from the definitions and printed with "
         "the count of files examined", s1["summary"])
 
+    # MEASURED: THE GAME SHARE, WHICH ASKS A DIFFERENT QUESTION FROM THE FABLE
+    # ONE AND MUST BE ABLE TO DISAGREE WITH IT. s1's newest day is one row,
+    # `studio-director` — fable AND not game — so the shares read 1/1 and 0/1
+    # off the same window and the same denominator. A game share that merely
+    # mirrored the fable share would pass a looser fixture and tell nobody
+    # anything: 25 Aug was 13% fable and 29% game, which is why both exist.
+    say("gameShareDay=0/1@2023-11-15" in s1["summary"],
+        "MEASURE the game share reads 0/1 where the fable share reads 1/1 — "
+        "same day, same denominator, opposite answer", s1["summary"])
+
+    # AND THE ACCEPTING CASE FOR IT: a day whose spawns DID build the game must
+    # not read as self-measurement. This is the half that goes unrun, and here
+    # it is the half that matters — a mix stuck at zero would look like a
+    # damning finding every single day and nobody would question it.
+    d = _cadence_fixture(work, "s1b-game-day", 5,
+                         [(CADENCE_NEWEST, "systems-builder"),
+                          (CADENCE_NEWEST, "content-wrangler"),
+                          (CADENCE_NEWEST, "instrument-builder")],
+                         agents=ONE_FABLE)
+    s1b = _cadence_read(d)
+    say("gameShareDay=2/3@" in s1b["summary"]
+        and "fableShareDay=0/3@" in s1b["summary"],
+        "ACCEPT a day of real building reads 2/3 game and 0/3 fable — the "
+        "number moves, and it is not the fable share wearing a new name",
+        s1b["summary"])
+
     # MEASURED: A SECOND AGENT ON FABLE. The share must count it — otherwise
     # the number understates spend by a whole agent and nothing says so — while
     # directorSpawns stays a count of DIRECTOR reviews, which is a different
@@ -3623,6 +3709,7 @@ def _cadence_selftest():
     s4 = _cadence_read(d)
     say("directorSpawns=%s" % NOTHING_MEASURED in s4["summary"]
         and "fableShareDay=%s" % NOTHING_MEASURED in s4["summary"]
+        and "gameShareDay=%s" % NOTHING_MEASURED in s4["summary"]
         and "fableShareAll=%s" % NOTHING_MEASURED in s4["summary"]
         and "the agent log is ABSENT, so nothing was measured" in s4["summary"],
         "NOTHING MEASURED: an ABSENT log prints the words in all three windows, "
@@ -4443,7 +4530,7 @@ def main():
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                template_sync,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
-               static_instance, raw_avenues, filename_as_type, namespace_as_value, workflow_size,
+               static_instance, raw_avenues, bat_editor, filename_as_type, namespace_as_value, workflow_size,
                powershell_steps, sheet_read, prop_dimensions, prop_reach, ref_bench,
                decal_ink,
                frame_drift, verdict_keys, verdict_format, verdict_dupkeys,

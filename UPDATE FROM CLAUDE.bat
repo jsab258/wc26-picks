@@ -1,5 +1,16 @@
 @echo off
 setlocal
+REM  GIT MUST NEVER OPEN AN EDITOR HERE. 26 Aug: a `git pull` that made a
+REM  merge commit opened vim in Jafar's window, he closed it, and the
+REM  half-finished merge blocked every pull afterwards - which then read
+REM  as "the pull is broken" rather than "something is waiting for you".
+REM  `true` is a program that exits 0 immediately, so git takes the default
+REM  message and carries on. TWENTY-TWO .bat files ran `git pull` and NOT
+REM  ONE guarded this: one idea, twenty-two implementations, in scripts
+REM  whose entire purpose is that nobody is watching the window.
+set "GIT_EDITOR=true"
+set "GIT_MERGE_AUTOEDIT=no"
+
 title LEDGER - get the latest from Claude
 REM ===================================================================
 REM  ONE CLICK: pulls everything Claude has pushed since you last
@@ -40,6 +51,30 @@ echo.
 echo  LEDGER - get the latest from Claude
 echo  ===================================
 echo.
+REM  AN UNFINISHED MERGE BLOCKS EVERY PULL AFTER IT, AND SAYS SO IN
+REM  GIT'S WORDS RATHER THAN ANYONE'S. 26 Aug: a pull left MERGE_HEAD
+REM  behind, and from then on this script failed with "You have not
+REM  concluded your merge" — a sentence that names the state without
+REM  naming the fix, so it read as "the pull is broken".
+REM  LOOK BEFORE ABORTING (rule 5): what is half-merged is printed
+REM  first, then aborted, then said. `merge --abort` restores the
+REM  pre-merge state and does not touch untracked files, so generated
+REM  pictures and harvested clips are never at risk.
+if exist ".git\MERGE_HEAD" (
+  echo  An earlier pull stopped half-way and has been blocking every
+  echo  pull since. What was in the way:
+  echo  ------------------------------------
+  git --no-pager diff --name-only --diff-filter=U
+  echo  ------------------------------------
+  git merge --abort
+  if errorlevel 1 (
+    echo  Could not undo it automatically. Tell Claude what this says.
+    pause & exit /b 1
+  )
+  echo  Undone - back to where you were before that pull. Carrying on.
+  echo.
+)
+
 git fetch origin "%BRANCH%"
 if errorlevel 1 goto :fail
 
