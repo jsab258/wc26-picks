@@ -61,6 +61,7 @@ produce a file. Both would pass any check that reads a return code. See the
 blank-check and VULKAN_VAE_DIRECT_MAX_PX sections below.
 """
 import argparse
+import ast
 import hashlib
 import json
 import os
@@ -68,6 +69,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -807,7 +809,7 @@ def estimate_seconds(w, h, cfg=1.0):
 # ---------------------------------------------------------------------------
 # REPORT - the file we read to choose the next run.
 # ---------------------------------------------------------------------------
-def format_report(machine, pl, extra=None):
+def format_report(machine, pl, extra=None, publisher=None):
     L = []
     A = L.append
     A("LEDGER - image generation, machine report")
@@ -884,16 +886,61 @@ def format_report(machine, pl, extra=None):
         for line in extra:
             A(f"  {line}")
     A("")
-    # THE OLD INSTRUCTION SAID "Send this whole file back" AND IT SURVIVED THE
-    # REWRITE THAT MADE SENDING AUTOMATIC. So on 26 Aug the run pushed its own
-    # results AND told Jafar to paste them, and he did what it said — a second
-    # decision handed back to the person, which is the exact failure this file
-    # was built to remove. The sentence is quoted here rather than deleted
-    # because it was true when written, and a deleted error is one the next
-    # editor re-derives. What replaces it must describe what the run DOES.
-    A("Nothing to send — this run pushes its own report and pictures back.")
-    A("If the push failed, the line above says so and names what to do.")
+    # THIS PARAGRAPH HAS NOW BEEN WRONG IN BOTH DIRECTIONS, AND THE SECOND WAS
+    # MINE. It first said "Send this whole file back", which survived the
+    # rewrite that was meant to make sending automatic. I replaced that on
+    # 26 Aug with "Nothing to send - this run pushes its own report and
+    # pictures back", and wrote in the comment beside it that "the run pushed
+    # its own results AND told Jafar to paste them".
+    #
+    # IT DID NOT. `Publisher` was defined, given plain-English failure text for
+    # every path, and NEVER INSTANTIATED - `run_batch(... publisher=None)` was
+    # its only live call and nothing ever passed one. So the fix for a false
+    # sentence was a second false sentence, asserted without running the thing
+    # it described. Rule 6 and rule 1 in one paragraph.
+    #
+    # Both are quoted rather than deleted, because the shape that produced them
+    # is the point: this text was WRITTEN as a claim both times. It is now
+    # DERIVED - there is no sentence here that can be true while the pusher is
+    # off, because the pusher is asked.
+    A("SENDING BACK")
+    A("-" * 60)
+    for line in publisher_paragraph(publisher):
+        A(f"  {line}")
     return "\n".join(L) + "\n"
+
+
+def publisher_paragraph(publisher):
+    """What to tell a person about getting the results back here, DERIVED from
+    the publisher's own state. Four cases and every one of them is a normal
+    outcome; none of them is a sentence somebody typed in advance.
+
+    `None` is its own case and it is the one that bit: it means no publisher
+    was constructed at all, which for eleven days was every run.
+    """
+    if publisher is None:
+        return ["NOT WIRED: this run had no sender, so NOTHING was pushed. "
+                "Zip the pictures folder named above and send it, and send "
+                "this file. (If you are reading this in the repository, the "
+                "sender is wired and this line cannot appear.)"]
+    if publisher.pushes:
+        out = [f"Sent: {publisher.pushes} push(es) to {publisher.branch}, "
+               f"{publisher.commits} commit(s) made. The pictures and this "
+               "report are already in the project - nothing to paste."]
+        if publisher.failures:
+            out.append(f"Some pushes failed first ({len(publisher.failures)}); "
+                       "they are listed under RUN above. The last one worked.")
+        return out
+    if publisher.failures:
+        return ["Tried to send and could NOT. The pictures are safe on disk. "
+                "What went wrong:"] + [f"  {f}" for f in publisher.failures] + \
+               ["Zip the pictures folder named above and send it, plus this file."]
+    if not publisher.enabled:
+        return [f"Sending back is OFF: {publisher.off_reason}",
+                "Zip the pictures folder named above and send it, plus this file."]
+    return ["Sending back is on and nothing has been pushed yet - this report "
+            "was written before the final send. The line printed in the window "
+            "after it says which."]
 
 
 # ---------------------------------------------------------------------------
@@ -2662,6 +2709,21 @@ def selftest():
           "outcome there, not an unrecognised code (text check)",
           '"%RC%"=="5"' in mb and "STOPPED BEFORE DOWNLOADING" in mb
           and CPU_BAT in mb, '"%RC%"=="5"' in mb)
+    # THE .BAT AND THE PYTHON MUST AGREE ABOUT WHO CARRIES THE FILES, because
+    # they disagreed for eleven days: the .bat's success paragraph said SEND
+    # BACK the report while the python said it had sent it - and neither was
+    # right, since nothing was sending. Two texts, one claim, and the pair is
+    # what decays. The check reads the success paragraph ONLY: the failure
+    # paragraphs must keep saying send-by-hand, because in those cases nothing
+    # was pushed.
+    done_para = mb.split('if "%RC%"=="0" (')[-1].split(') else if')[0]
+    check("the .bat's SUCCESS paragraph does not ask for the report by hand - "
+          "the run sends it (text check)",
+          "SEND BACK" not in done_para and "NOTHING TO SEND" in done_para,
+          done_para[:200])
+    check("the .bat still asks for a HUMAN look at the pictures - the one part "
+          "no push can do",
+          "recognisable face" in done_para, done_para[-200:])
 
     # 11b. AND THE GATE THROUGH main(), WITH THE NETWORK BOOBY-TRAPPED. The
     #      check above tests the decision; this tests that the decision is
@@ -2810,6 +2872,106 @@ def selftest():
     finally:
         subprocess.run = real
 
+    # ------------------------------------------------------------------
+    # THE SENDER. It had NO coverage and NO call site: `Publisher` was
+    # defined, given a plain sentence for every failure path, and never once
+    # constructed - `run_batch(... publisher=None)` was its only live call.
+    # So every run for eleven days ended with a person carrying files by hand
+    # while the report said the run had sent them.
+    #
+    # The wiring check is FIRST, because it is the one that was missing. It
+    # reads this file's own source rather than a fixture: a test that the
+    # class behaves correctly is worth nothing while nothing calls it, which
+    # is rule 6 and is exactly what happened here.
+    src = pathlib.Path(__file__).read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    main_fn = next((n for n in ast.walk(tree)
+                    if isinstance(n, ast.FunctionDef) and n.name == "main"), None)
+    live_calls = [n for n in ast.walk(main_fn)] if main_fn else []
+    wired = any(isinstance(n, ast.Call)
+                and getattr(n.func, "id", "") == "run_batch"
+                and any(k.arg == "publisher" for k in n.keywords)
+                for n in live_calls)
+    check("WIRED: main passes a publisher to run_batch", wired,
+          "run_batch is called without publisher= - the sender is dead code")
+    made = any(isinstance(n, ast.Call) and getattr(n.func, "id", "") == "Publisher"
+               for n in live_calls)
+    check("WIRED: main constructs a Publisher", made,
+          "Publisher is never instantiated on the live path")
+
+    with tempfile.TemporaryDirectory() as td:
+        td = pathlib.Path(td)
+        bare, clone = td / "origin.git", td / "clone"
+        env = dict(os.environ, GIT_TERMINAL_PROMPT="0", LC_ALL="C")
+        def git(*args, cwd=None):
+            return subprocess.run(["git"] + list(args), cwd=str(cwd or clone),
+                                  capture_output=True, text=True, env=env)
+        have_git = subprocess.run(["git", "--version"], capture_output=True).returncode == 0
+        if not have_git:
+            check("sender: git present to test against", False, "git not installed")
+        else:
+            git("init", "--bare", "-b", EXPECTED_BRANCH, str(bare), cwd=td)
+            clone.mkdir()
+            git("init", "-b", EXPECTED_BRANCH)
+            git("remote", "add", "origin", str(bare))
+            git("config", "user.email", "t@t"); git("config", "user.name", "t")
+            (clone / "seed.txt").write_text("seed\n")
+            git("add", "seed.txt"); git("commit", "-m", "seed")
+            git("push", "-u", "origin", EXPECTED_BRANCH)
+
+            # ACCEPTING CASE FIRST, and it goes all the way to a real push -
+            # preflight passing proves nothing about whether anything lands.
+            said = []
+            pub = Publisher(clone, said.append)
+            check("sender ACCEPTING: a clone on the right branch preflights",
+                  pub.preflight() is True, said)
+            shot = clone / "pic.png"
+            shot.write_bytes(b"\x89PNG\r\n\x1a\n")
+            pub.note_image(shot)
+            res = pub.publish("selftest picture")
+            check("sender ACCEPTING: it actually pushes", res == "pushed", (res, said))
+            landed = subprocess.run(["git", "ls-tree", "-r", "--name-only",
+                                     EXPECTED_BRANCH], cwd=str(bare),
+                                    capture_output=True, text=True, env=env).stdout
+            check("sender ACCEPTING: the file is ON the remote, not just committed",
+                  "pic.png" in landed, landed)
+            check("sender ACCEPTING: a second publish with nothing new says so",
+                  pub.publish("again") == "nothing")
+            # AND THE PARAGRAPH THE PERSON READS SAYS SENT - derived, not typed.
+            para = " ".join(publisher_paragraph(pub))
+            check("report paragraph: a run that pushed says Sent",
+                  "Sent:" in para and "paste" in para, para)
+
+            # REJECTING: wrong branch. The pictures must NOT go anywhere.
+            git("checkout", "-q", "-b", "some-other-branch")
+            said2 = []
+            bad = Publisher(clone, said2.append)
+            check("sender REJECTING: wrong branch refuses",
+                  bad.preflight() is False and "branch" in (bad.off_reason or ""),
+                  bad.off_reason)
+            check("sender REJECTING: refusing is reported to the person",
+                  any("SENDING BACK IS OFF" in x for x in said2), said2)
+            check("report paragraph: a refusing run tells him to zip and send",
+                  "zip" in " ".join(publisher_paragraph(bad)).lower())
+
+            # REJECTING: not a clone at all.
+            plain = td / "plain"; plain.mkdir()
+            nope = Publisher(plain, lambda s="": None)
+            check("sender REJECTING: a folder that is not a clone refuses",
+                  nope.preflight() is False)
+
+        # REJECTING: no repository was found, which is the .bat's own failure
+        # mode and must not read as success.
+        none = Publisher(None, lambda s="": None)
+        check("sender REJECTING: no repository refuses", none.preflight() is False)
+        check("report paragraph: OFF is never silent",
+              "OFF" in " ".join(publisher_paragraph(none)))
+        check("report paragraph: NO publisher is its own case, not 'sent'",
+              "NOT WIRED" in " ".join(publisher_paragraph(None)))
+        check("sender: switched off by --no-send is a distinct, named state",
+              Publisher(None, lambda s="": None, enabled=False).off_reason
+              == "switched off for this run")
+
     print("-" * 60)
     print(f"  {ok} passed, {fail} failed, {ok + fail} checks run")
     return 1 if fail else 0
@@ -2825,6 +2987,11 @@ def main():
                                         "(OUTSIDE the repo)")
     ap.add_argument("--repo", help="repository root, for the report and outputs")
     ap.add_argument("--out", help="override the output directory")
+    ap.add_argument("--no-send", action="store_true",
+                    help="generate but do not commit or push anything back. "
+                         "The default is to SEND, because a run nobody is "
+                         "watching that ends with files needing to be carried "
+                         "by hand has not finished.")
     ap.add_argument("--max-minutes", type=float, default=60.0)
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--series", nargs="?", const=".", metavar="DIR",
@@ -2893,7 +3060,16 @@ def main():
               (repo / "ledger/Assets/StreamingAssets/Decals/generated" if repo
                else ws / "generated"))
 
-    log(format_report(machine, pl))
+    # THE SENDER, CONSTRUCTED HERE AND PREFLIGHTED BEFORE ANY GENERATING.
+    # It used to be constructed nowhere, which is why eleven days of runs
+    # ended with a person copying files by hand. Preflight is called EARLY on
+    # purpose: "this clone is on the wrong branch" is a sentence worth having
+    # in minute one, not after four hours of pictures that then cannot go
+    # anywhere. Both outcomes are normal and both print.
+    pub = Publisher(repo, log, enabled=not a.no_send)
+    pub.preflight()
+
+    log(format_report(machine, pl, publisher=pub))
     if a.command == "plan" or a.dry_run:
         spec = json.loads((pathlib.Path(__file__).parent / "prompts.json").read_text())
         log("DRY RUN - nothing downloaded. First command would be:")
@@ -3019,7 +3195,8 @@ def main():
         log(f"  CAP: {c}")
     if a.redo:
         log("  --redo: everything is made again, including items already on disk.")
-    man = run_batch(exe, ws, pl, spec, outdir, a.max_minutes, log, redo=a.redo)
+    man = run_batch(exe, ws, pl, spec, outdir, a.max_minutes, log, redo=a.redo,
+                    publisher=pub)
     man["downloads"] = fetched
     (outdir / "manifest.json").write_text(json.dumps(man, indent=2) + "\n",
                                           encoding="utf-8")
@@ -3053,9 +3230,22 @@ def main():
         log(f"  not attempted: {', '.join(man['not_attempted'])}")
     log(f"  images and manifest: {outdir}")
     log("  every image is review=pending until a human has looked at it")
+    # THE LAST PICTURES GO FIRST, THEN THE REPORT THAT NAMES THE RESULT.
+    # Two publishes on purpose: the report cannot describe a push that has not
+    # happened yet, and a report saying "nothing pushed yet" is exactly the
+    # kind of stale sentence this paragraph exists to stop. So the images are
+    # forced out, the outcome is logged, and only then is the report written
+    # and sent - which is why it can say "Sent: N push(es)" truthfully.
+    pub.note(outdir / "manifest.json")
+    pub.note(outdir / "ATTRIBUTION.json")
+    pub.maybe(f"Meridian pictures: {man['items_written']} written, "
+              f"{man['items_skipped']} already made", force=True)
     for p in reports:
-        p.write_text(format_report(machine, pl, lines[-30:]), encoding="utf-8")
+        p.write_text(format_report(machine, pl, lines[-30:], publisher=pub),
+                     encoding="utf-8")
         log(f"report written: {p}")
+        pub.note(p)
+    pub.maybe("Meridian pictures: the machine report for that run", force=True)
     # A BATCH THAT WAS ALREADY ON DISK IS A SUCCESS, NOT "EVERY IMAGE FAILED".
     # Exit 4 means the setup worked and nothing came out of the generator; a
     # run that skipped twelve good PNGs produced nothing and is entirely fine,

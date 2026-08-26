@@ -200,9 +200,15 @@ if "%RC%"=="0" (
   echo   in the summary just above. To have one made again, delete its
   echo   .png and double-click this file again.
   echo.
-  echo   SEND BACK: game-design\agent-reports\machine-report.txt
-  echo   and open a couple of the PNGs first - if any of them shows a real
-  echo   company's name or a recognisable face, say so and it gets binned.
+  echo   NOTHING TO SEND. This run pushed the pictures and its own report
+  echo   to the project itself - the lines a few above say "SENT:" and how
+  echo   many. If instead they say SENDING BACK IS OFF, or that a push
+  echo   failed, they name the reason and what to do; that is the only case
+  echo   where anything needs carrying by hand.
+  echo.
+  echo   ONE THING THAT IS STILL YOURS: open a couple of the PNGs. If any
+  echo   shows a real company's name or a recognisable face, say so and it
+  echo   gets binned.
 ) else if "%RC%"=="5" (
   echo   STOPPED BEFORE DOWNLOADING ANYTHING - on purpose. The reason is
   echo   printed above in full. Nothing was downloaded, nothing was
