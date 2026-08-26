@@ -51,27 +51,58 @@ echo.
 echo  LEDGER - get the latest from Claude
 echo  ===================================
 echo.
+REM  MAKE THIS CLONE INCAPABLE OF OPENING AN EDITOR, PERMANENTLY.
+REM  Setting it in the CLONE and not just in this window is the point:
+REM  a variable set here protects the commands in here, and Jafar also
+REM  runs git from a prompt, from other .bat files, and from whatever
+REM  desktop client is installed. The prompt that stranded him twice on
+REM  26 Aug can come from any of those.
+git config core.editor true
+git config core.mergeoptions --no-edit
+
 REM  AN UNFINISHED MERGE BLOCKS EVERY PULL AFTER IT, AND SAYS SO IN
-REM  GIT'S WORDS RATHER THAN ANYONE'S. 26 Aug: a pull left MERGE_HEAD
-REM  behind, and from then on this script failed with "You have not
-REM  concluded your merge" — a sentence that names the state without
-REM  naming the fix, so it read as "the pull is broken".
-REM  LOOK BEFORE ABORTING (rule 5): what is half-merged is printed
-REM  first, then aborted, then said. `merge --abort` restores the
-REM  pre-merge state and does not touch untracked files, so generated
-REM  pictures and harvested clips are never at risk.
+REM  GIT'S WORDS RATHER THAN ANYONE'S. 26 Aug: a pull opened vim to ask
+REM  for a merge message, the window was closed, MERGE_HEAD stayed, and
+REM  every pull afterwards failed with "You have not concluded your
+REM  merge" — a sentence that names the state without naming the fix, so
+REM  it read as "the pull is broken".
+REM
+REM  FINISH IT, DO NOT ABORT IT — and this is a correction of the first
+REM  version of this block, written an hour earlier, which aborted every
+REM  time. A merge stopped at the MESSAGE has already succeeded: every
+REM  file merged, nothing conflicted, and git is only waiting to be told
+REM  what to call it. Aborting that throws away a good merge and sends
+REM  you round the same loop on the next pull. Only a merge with
+REM  UNMERGED PATHS needs undoing, and that is a different question,
+REM  asked separately below.
 if exist ".git\MERGE_HEAD" (
   echo  An earlier pull stopped half-way and has been blocking every
-  echo  pull since. What was in the way:
-  echo  ------------------------------------
-  git --no-pager diff --name-only --diff-filter=U
-  echo  ------------------------------------
-  git merge --abort
-  if errorlevel 1 (
-    echo  Could not undo it automatically. Tell Claude what this says.
-    pause & exit /b 1
+  echo  pull since. Sorting it out now.
+  echo.
+  git --no-pager diff --name-only --diff-filter=U > "%TEMP%\ledger-conflicts.txt"
+  for %%A in ("%TEMP%\ledger-conflicts.txt") do set "CONFSIZE=%%~zA"
+  if "%CONFSIZE%"=="0" (
+    echo  Nothing actually conflicted - it was only waiting for a
+    echo  message. Finishing the merge.
+    git commit --no-edit
+    if errorlevel 1 (
+      echo  Could not finish it. Tell Claude what this says.
+      pause & exit /b 1
+    )
+    echo  Done - that merge is complete.
+  ) else (
+    echo  These files conflicted and could not be merged automatically:
+    echo  ------------------------------------
+    type "%TEMP%\ledger-conflicts.txt"
+    echo  ------------------------------------
+    echo  Undoing that pull - your own files are untouched.
+    git merge --abort
+    if errorlevel 1 (
+      echo  Could not undo it. Tell Claude what this says.
+      pause & exit /b 1
+    )
+    echo  Undone - back to where you were before that pull.
   )
-  echo  Undone - back to where you were before that pull. Carrying on.
   echo.
 )
 
