@@ -37,6 +37,26 @@ def run(cmd, cwd=None):
     return p.returncode, p.stdout + p.stderr
 
 
+# --------------------------------------------------------------- truncation
+# EVERY CAP ANNOUNCES ITSELF, and the announcement has ONE implementation:
+# `tools/capsay.py`. Swept 26 Aug — 50 red-path messages in this file truncate
+# their finding list and 2 of them carried a count, so 48 red lines said the
+# same thing whether the run had one fault or forty. `verdict_keys` kept four
+# key names and dropped the number while `tools/verdict-keys.py` underneath was
+# already printing "N measurement(s) STOPPED BEING REPORTED".
+#
+# IMPORTED RATHER THAN COPIED. A first draft of this lived here as a private
+# `_cap`, which would have made two implementations of `(+N more)` in two tools
+# — the exact shape (one idea, two sites, the second missing a line) that this
+# project has paid for with `SpeechBubble`/`NpcWalker`, `verdict-keys`/`gates`
+# and `TightestGap`/the job trace. The alias keeps the 48 call sites reading
+# `_cap(`; the code is in one place and has its own selftest, both ways.
+#
+# Grep `_cap(` before adding a 49th truncation.
+sys.path.insert(0, str(ROOT.parent / "tools"))     # tools/capsay.py
+from capsay import cap as _cap, NOTHING_MEASURED   # noqa: E402
+
+
 def core_tests():
     code, out = run(["dotnet", "run", "-c", "Release", "--project", str(ROOT / "CoreTests")])
     m = re.search(r"All (\d+) checks passed", out)
@@ -44,7 +64,7 @@ def core_tests():
         return True, "%s CoreTests" % m.group(1)
     fails = [l.strip() for l in out.splitlines() if l.strip().startswith("FAILED")]
     if fails:
-        return False, "CoreTests RED: " + fails[0][:120]
+        return False, "CoreTests RED: " + _cap(fails, width=120)
     return False, "CoreTests did not report a count (build failure?)"
 
 
@@ -72,16 +92,61 @@ def shape():
 
 
 def lint():
-    # ASSETS/EDITOR TOO. It was checked by nothing: lint and ShapeCheck both
+    # ASSETS/EDITOR IS PASSED AND, IN THIS TOOL, NOT WALKED — measured 26 Aug,
+    # and the paragraph that used to sit here said the opposite. It read
+    # "ASSETS/EDITOR TOO. It was checked by nothing: lint and ShapeCheck both
     # scanned only Assets/Scripts, so `CiBuild.cs` — the entry point the whole
-    # Windows pipeline runs through — had never been linted or shape-checked,
-    # and a typo in it costs a full twenty-eight-minute round trip to find.
-    code, out = run(["python3", str(ROOT / "lint-usings.py"),
-                     str(ROOT / "Assets" / "Scripts"), str(ROOT / "Assets" / "Editor")])
+    # Windows pipeline runs through — had never been linted or shape-checked".
+    # That is TRUE of ShapeCheck, which takes both roots as arguments and uses
+    # them. It is FALSE of `lint-usings.py`, whose `main()` reads `sys.argv[1]`
+    # and never looks at argv[2]: the second root has been accepted and
+    # discarded since the day it was added, and the footer said `0 lint errors`
+    # over it with no number attached to notice with.
+    #
+    # Kept quoted rather than deleted so the claim cannot be re-derived by the
+    # next reader who finds it plausible — it was plausible to everyone who
+    # read it, including whoever wrote the argument list. THE FIX BELONGS IN
+    # `lint-usings.py`, which this agent does not own; what is fixed here is
+    # the reporting, so the gap is a number in every commit message instead of
+    # a sentence nobody checked.
+    roots = [ROOT / "Assets" / "Scripts", ROOT / "Assets" / "Editor"]
+    code, out = run(["python3", str(ROOT / "lint-usings.py")] + [str(r) for r in roots])
     m = re.search(r"checked (\d+) files, (\d+) missing-using", out)
     if not m:
         return False, "lint did not report"
-    return m.group(2) == "0", "%s lint errors" % m.group(2)
+    # THE DENOMINATOR THE TOOL ALREADY PRINTS, AND A DROP CLAUSE THAT MEASURES
+    # ITSELF. `0 lint errors` was byte-identical in 259 landed commit messages
+    # and would read exactly the same over an empty walk — the file count moves
+    # with the repository, so a scan that stopped early shows up as a number
+    # falling rather than as a green that never changes.
+    #
+    # AND THE COMMENT ABOVE IS FALSE FOR THIS TOOL, WHICH IS WHY THE CLAUSE IS
+    # MEASURED RATHER THAN WRITTEN. `lint-usings.main` reads `sys.argv[1]` and
+    # nothing else, so the second root is accepted and silently ignored: 185
+    # walked of 191 present on 26 Aug, the 6 unwalked being `Assets/Editor` —
+    # the exact set the comment above claims coverage of. A hardcoded sentence
+    # saying so would become a lie the day somebody fixes the tool, so the
+    # clause is derived: `present` is counted here, `walked` comes from the
+    # tool, and when they agree the clause disappears on its own.
+    #
+    # This is a SECOND WALK of the file list, not a second implementation of
+    # the lint. It exists only to answer "what did that denominator count",
+    # which is the question rule 3b's lint-static incident turned on (560
+    # printed against 29 scanned). The obj/bin exclusion is copied from
+    # `lint-usings.main`; if the two ever disagree the clause goes LOUD rather
+    # than quiet, which is the right direction for an instrument to fail in.
+    present = sum(1 for r in roots for f in r.rglob("*.cs")
+                  if "/obj/" not in str(f) and "/bin/" not in str(f))
+    walked = int(m.group(1))
+    drop = ""
+    if walked < present:
+        drop = ("; %d file(s) of the %d root(s) given went UNWALKED (%s)"
+                % (present - walked, len(roots), "/".join(r.name for r in roots)))
+    elif walked > present:
+        drop = ("; the tool counted %d file(s) where %d are present — this "
+                "denominator does not describe the tree" % (walked, present))
+    return m.group(2) == "0", "%s lint errors (%d file(s) walked of %d present%s)" % (
+        m.group(2), walked, present, drop)
 
 
 def shadow():
@@ -94,9 +159,23 @@ def shadow():
     away — every cheap static catch is worth a round trip.
     """
     code, out = run(["python3", str(ROOT.parent / "tools" / "lint-shadow.py")])
-    m = re.search(r"lint-shadow: (\d+) shadowed Core types", out)
+    # THE CENSUS IS ALREADY IN THE TOOL'S OWN LINE AND WAS BEING THROWN AWAY.
+    # `lint-shadow` prints `0 shadowed Core types (285 type(s), 88 Game
+    # file(s))`; the string returned here was the hardcoded literal
+    # "0 shadowed Core types", so it printed a zero that (a) was not read from
+    # the capture beside it and (b) would have read identically over an empty
+    # Game layer. Byte-identical in 259 landed commit messages, which is the
+    # tell: the checks in this footer that carry a live denominator MOVE.
+    #
+    # The parenthetical is OPTIONAL in the pattern on purpose — if the tool
+    # ever stops printing it the check must still report, and must say that
+    # the census is missing rather than inventing one.
+    m = re.search(r"lint-shadow: (\d+) shadowed Core types"
+                  r"(?: \((\d+) type\(s\), (\d+) Game file\(s\)\))?", out)
     if m:
-        return True, "0 shadowed Core types"
+        census = (" (%s Core type(s) across %s Game file(s))" % (m.group(2), m.group(3))
+                  if m.group(2) else " (%s printed no census)" % NOTHING_MEASURED)
+        return m.group(1) == "0", "%s shadowed Core types%s" % (m.group(1), census)
     m = re.search(r"lint-shadow: (\d+) Game member", out)
     if m:
         return False, "%s SHADOWED CORE TYPE(S) — see tools/lint-shadow.py" % m.group(1)
@@ -245,7 +324,7 @@ def clip_audit():
     found, dups, frozen, read = (int(keys[k]) for k in want)
     if "SELFTEST PASSED" not in out:
         bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
-        return False, "CLIPS: " + (bad[0][:90] if bad else "selftest did not pass")
+        return False, "CLIPS: " + _cap(bad, width=90, tail="selftest did not pass")
 
     # A ZERO NEEDS A DENOMINATOR (rule 3b): "no duplicates" and "no clips
     # were read" are the same finding count and opposite facts.
@@ -281,8 +360,36 @@ def picker_selftest():
     code, out = run(["python3", str(tool), "--selftest"])
     if code != 0 or "SELFTEST PASSED" not in out:
         bad = [l.strip() for l in out.splitlines() if l.strip().startswith("  FAIL")]
-        return False, "PICKER: " + (bad[0][8:98] if bad else "selftest did not pass")
-    return True, "clip picker ok"
+        return False, "PICKER: " + _cap(bad, strip=8, width=90,
+                                        tail="selftest did not pass")
+    # `clip picker ok` CARRIED NO NUMBER OF ANY KIND and was byte-identical in
+    # 259 landed commit messages — it would print exactly the same over a
+    # selftest with zero cases in it. The picker already prints three censuses
+    # and they were being discarded at this boundary.
+    #
+    # WHICH STATISTIC EACH IS, said out loud because a number nobody has read
+    # yet is the one most likely to be quoted wrongly: all three are COUNTS
+    # over the whole selftest run — not peaks, not medians, not last-wins.
+    # `read/accepted` is over the shipped `_picks` names; `accepted/refused` is
+    # the posture screen's TWO OUTCOMES, so rule 5b's accepting half is in the
+    # footer beside the refusing half rather than only the refusing one;
+    # `live/total` is over the catalogue patterns.
+    #
+    # The picker prints "shipped names: nothing measured — no _picks.json to
+    # read" for its own never-ran case, so a non-match here IS that case and
+    # gets the word rather than a zero.
+    names = re.search(r"shipped names: (\d+) read, (\d+) accepted", out)
+    posture = re.search(r"posture screen: (\d+) shipped clip\(s\) accepted[^\n]*?"
+                        r"(\d+) known-bad clip\(s\) refused", out)
+    pats = re.search(r"patterns: (\d+) of (\d+) match at least one", out)
+    census = ", ".join((
+        ("%s shipped name(s) read, %s accepted" % (names.group(1), names.group(2)))
+        if names else "shipped names %s" % NOTHING_MEASURED,
+        ("posture screen %s accepted/%s refused" % (posture.group(1), posture.group(2)))
+        if posture else "posture screen %s" % NOTHING_MEASURED,
+        ("%s of %s pattern(s) match a catalogued name" % (pats.group(1), pats.group(2)))
+        if pats else "patterns %s" % NOTHING_MEASURED))
+    return True, "clip picker ok (%s)" % census
 
 
 def sheet_read():
@@ -299,8 +406,21 @@ def sheet_read():
     code, out = run(["python3", str(tool), "--selftest"])
     if code != 0:
         bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
-        return False, "SHEET: " + (bad[0][5:98] if bad else "selftest did not pass")
-    return True, out.strip().split("\n")[-1].replace("sheet-read ok", "sheet reader ok")
+        return False, "SHEET: " + _cap(bad, strip=5, width=93,
+                                       tail="selftest did not pass")
+    # A GREEN PATH WITH NO DENOMINATOR IS STILL A ZERO WITHOUT ONE. This took
+    # the LAST line of the tool's output verbatim, so a tool that exited 0 and
+    # printed nothing contributed an EMPTY fragment to the footer — a comma
+    # with nothing between it and the next one, which reads as a check that
+    # passed. The tool's own summary is `sheet-read ok (7 checks)`; requiring
+    # it means "the reader passed 7 assertions" and "the reader said nothing"
+    # stop looking the same.
+    summary = [l.strip() for l in out.splitlines()
+               if l.strip().startswith("sheet-read ok")]
+    return True, _cap(summary, width=110,
+                      tail="sheet reader: %s (exit 0, no summary line)"
+                           % NOTHING_MEASURED).replace("sheet-read ok",
+                                                       "sheet reader ok")
 
 
 def prop_dimensions():
@@ -323,7 +443,8 @@ def prop_dimensions():
     code, out = run(["python3", str(tool), "--selftest"])
     if code != 0:
         bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
-        return False, "PROPS: " + (bad[0][5:98] if bad else "selftest did not pass")
+        return False, "PROPS: " + _cap(bad, strip=5, width=93,
+                                       tail="selftest did not pass")
     n = len([l for l in out.splitlines() if l.strip().startswith("ok")])
     return True, "prop reader ok (%d checks)" % n
 
@@ -346,7 +467,8 @@ def prop_reach():
     code, out = run(["python3", str(tool), "--selftest"])
     if code != 0:
         bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAILED")]
-        return False, "PROP REACH: " + (bad[0][7:98] if bad else "selftest did not pass")
+        return False, "PROP REACH: " + _cap(bad, strip=7, width=91,
+                                            tail="selftest did not pass")
     code, rep = run(["python3", str(tool)])
     head = rep.splitlines()[0] if rep.strip() else "prop-reach produced no report"
     n = len([l for l in out.splitlines() if "passed" in l])
@@ -387,7 +509,8 @@ def ref_bench():
         return False, "REF BENCH: selftest did not report"
     if m.group(2) != "0":
         bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAILED")]
-        return False, "REF BENCH: " + (bad[0][7:98] if bad else "selftest failed")
+        return False, "REF BENCH: " + _cap(bad, strip=7, width=91,
+                                           tail="selftest failed")
     return True, "%s ref-bench checks (%s failed)" % (m.group(1), m.group(2))
 
 
@@ -425,7 +548,8 @@ def decal_ink():
         return False, "DECAL INK: selftest did not report"
     if m.group(2) != "0":
         bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAILED")]
-        return False, "DECAL INK: " + (bad[0][7:98] if bad else "selftest failed")
+        return False, "DECAL INK: " + _cap(bad, strip=7, width=91,
+                                           tail="selftest failed")
     code, rep = run(["python3", str(tool)])
     summary = [l for l in rep.splitlines() if l.startswith("decalInk scope=summary")]
     tail = ""
@@ -459,7 +583,8 @@ def powershell_steps():
                       "dotnet tool install --global PowerShell)")
     if code != 0:
         bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
-        return False, "PWSH: " + (bad[0][5:98] if bad else "a workflow step did not parse")
+        return False, "PWSH: " + _cap(bad, strip=5, width=93,
+                                      tail="a workflow step did not parse")
     n = out.strip().split()
     count = n[2] if len(n) > 2 else "?"
     return True, f"pwsh steps parse ({count} step(s))"
@@ -497,7 +622,7 @@ def backend_compiles():
             errs = sorted({l.split("): ")[-1].split(" [")[0]
                            for l in out.splitlines() if "error CS" in l})
             return False, ("SPEECH " + name.upper() + " WILL NOT COMPILE: "
-                           + "; ".join(errs[:2]))
+                           + _cap(errs, keep=2))
     return True, "speech backend + bench compile"
 
 
@@ -515,9 +640,8 @@ def voice_assets():
         n = re.search(r"(\d+) of (\d+)", out)
         return True, "voice assets ok (%s checks%s)" % (
             m.group(1), ", %s voices stageable" % n.group(1) if n else "")
-    bad = next((l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")),
-               "did not report")
-    return False, "VOICE ASSETS: " + bad[:110]
+    bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+    return False, "VOICE ASSETS: " + _cap(bad, width=110, tail="did not report")
 
 
 def voices_into_build():
@@ -535,9 +659,8 @@ def voices_into_build():
     m = re.search(r"put-voices-in-build --selftest: PASS — (\d+) checks", out)
     if m:
         return True, "voices-into-build ok (%s checks)" % m.group(1)
-    bad = next((l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")),
-               "did not report")
-    return False, "VOICES INTO BUILD: " + bad[:110]
+    bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+    return False, "VOICES INTO BUILD: " + _cap(bad, width=110, tail="did not report")
 
 
 def conditional_reach():
@@ -572,9 +695,8 @@ def pc_watcher():
     m = re.search(r"pc-watcher --selftest: PASS — (\d+) checks", out)
     if m:
         return True, "pc-watcher ok (%s checks)" % m.group(1)
-    bad = next((l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")),
-               "did not report")
-    return False, "PC WATCHER: " + bad[:110]
+    bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+    return False, "PC WATCHER: " + _cap(bad, width=110, tail="did not report")
 
 
 def card_writing():
@@ -597,7 +719,8 @@ def card_writing():
         n = len([l for l in out.splitlines() if l.strip().startswith("ok ")])
         return True, "%d card-writing rules" % n
     bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
-    return False, "CARD WRITING RED: " + (bad[0][:120] if bad else "no verdict (build failure?)")
+    return False, "CARD WRITING RED: " + _cap(bad, width=120,
+                                              tail="no verdict (build failure?)")
 
 
 def shipped_cards():
@@ -639,7 +762,7 @@ def shipped_cards():
                        != json.dumps(c, sort_keys=True))
         return False, ("SHIPPED CARDS RED: the game loads StreamingAssets and it "
                        "disagrees with game-design on %d card(s): %s"
-                       % (len(drift), ", ".join(drift[:5])))
+                       % (len(drift), _cap(drift, keep=5, sep=", ")))
     return True, "%d cards shipped as edited" % len(a)
 
 
@@ -662,7 +785,7 @@ def queue_depth():
     if code != 0:
         bad = [l.strip() for l in out.splitlines() if l.strip().startswith("only ")
                or l.strip().startswith("no `")]
-        return False, "QUEUE TOO THIN: " + (bad[0][:100] if bad else "see queue-check")
+        return False, "QUEUE TOO THIN: " + _cap(bad, width=100, tail="see queue-check")
     return True, "%s queue items ready" % m.group(2)
 
 
@@ -683,9 +806,10 @@ def game_compiles():
     directions."""
     code, out = run(["python3", str(ROOT.parent / "tools" / "gamecheck.py")])
     if code != 0:
-        first = next((l.strip() for l in out.splitlines()
-                      if ".cs(" in l or "NO LONGER OCCUR" in l), "see gamecheck")
-        return False, "GAME LAYER DOES NOT COMPILE: " + first[:110]
+        hits = [l.strip() for l in out.splitlines()
+                if ".cs(" in l or "NO LONGER OCCUR" in l]
+        return False, "GAME LAYER DOES NOT COMPILE: " + _cap(hits, width=110,
+                                                             tail="see gamecheck")
     m = re.search(r"(\d+) files", out)
     return True, "Game layer compiles (%s files)" % (m.group(1) if m else "?")
 
@@ -710,7 +834,8 @@ def docs_shape():
     m = re.search(r"(\d+)/(\d+) clean", out)
     if code != 0:
         bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
-        return False, "DOCS: " + (bad[0][5:105].strip() if bad else "see docs-check")
+        return False, "DOCS: " + _cap(bad, strip=5, width=100,
+                                      tail="see docs-check").strip()
     if not m:
         return False, "docs-check did not report"
     return True, "docs %s" % m.group(0)
@@ -752,17 +877,18 @@ def template_sync():
     head = next((l.strip() for l in out.splitlines()
                  if l.startswith("template-sync:")), "")
     if not head:
-        return False, "TEMPLATE SYNC READ NOTHING: " + (out.strip()[:110] or "no output")
+        return False, "TEMPLATE SYNC READ NOTHING: " + _cap(
+            out.strip().splitlines(), width=110, tail="no output")
     if code != 0:
-        return False, head[:400]
+        return False, _cap([head], width=400)
     scode, sout = run(["python3", tool, "--selftest"])
     m = re.search(r"selftest: (\d+) passed, (\d+) failed", sout)
     if not m:
         return False, "TEMPLATE SYNC CHECK BROKEN: selftest did not report"
     if m.group(2) != "0":
         bad = [l.strip() for l in sout.splitlines() if l.strip().startswith("FAILED")]
-        return False, "TEMPLATE SYNC CHECK BROKEN: " + (bad[0][7:110] if bad
-                                                        else "selftest failed")
+        return False, "TEMPLATE SYNC CHECK BROKEN: " + _cap(
+            bad, strip=7, width=103, tail="selftest failed")
     # A COMPACT FOOTER, BUILT FROM THE TOOL'S OWN TOKENS rather than retyped:
     # the state, its subject, and the denominators that make the zero readable.
     got = dict(t.split("=", 1) for t in head.split() if t.count("=") == 1)
@@ -793,7 +919,8 @@ def attribution():
     code, out = run(["python3", str(ROOT.parent / "tools" / "attribution-check.py")])
     if code != 0:
         bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
-        return False, "ATTRIBUTION: " + (bad[0][5:105].strip() if bad else "see attribution-check")
+        return False, "ATTRIBUTION: " + _cap(bad, strip=5, width=100,
+                                             tail="see attribution-check").strip()
     n = len(re.findall(r"^\s+ok\s", out, re.M))
     return True, "%d attribution check(s)" % n
 
@@ -813,8 +940,8 @@ def nested_types():
     because CS0119 cost a round trip the same way."""
     code, out = run(["python3", str(ROOT.parent / "tools" / "lint-nested.py")])
     if code != 0:
-        first = next((l.strip() for l in out.splitlines() if ".cs:" in l), "see lint-nested")
-        return False, "CS0426 WAITING TO HAPPEN: " + first[:90]
+        hits = [l.strip() for l in out.splitlines() if ".cs:" in l]
+        return False, "CS0426 WAITING TO HAPPEN: " + _cap(hits, width=90, tail="see lint-nested")
     m = re.search(r"\((\d+) top-level Core types checked\)", out)
     return True, ("0 nested-type errors (%s Core types)" % m.group(1) if m
                   else "0 nested-type errors")
@@ -842,8 +969,8 @@ def filename_as_type():
     that prompted it until that was fixed."""
     code, out = run(["python3", str(ROOT.parent / "tools" / "lint-filetype.py")])
     if code != 0:
-        first = next((l.strip() for l in out.splitlines() if ".cs:" in l), "see lint-filetype")
-        return False, "CS0103 WAITING TO HAPPEN: " + first[:90]
+        hits = [l.strip() for l in out.splitlines() if ".cs:" in l]
+        return False, "CS0103 WAITING TO HAPPEN: " + _cap(hits, width=90, tail="see lint-filetype")
     m = re.search(r"\((\d+) file\(s\) scanned, (\d+) type\(s\) declared, (\d+) filename", out)
     return True, ("0 filename-as-type errors (%s files, %s filenames that are not types)"
                   % (m.group(1), m.group(3)) if m else "0 filename-as-type errors")
@@ -870,8 +997,8 @@ def namespace_as_value():
     on hundreds of lines."""
     code, out = run(["python3", str(ROOT.parent / "tools" / "lint-namespace.py")])
     if code != 0:
-        first = next((l.strip() for l in out.splitlines() if ".cs:" in l), "see lint-namespace")
-        return False, "CS0118 WAITING TO HAPPEN: " + first[:90]
+        hits = [l.strip() for l in out.splitlines() if ".cs:" in l]
+        return False, "CS0118 WAITING TO HAPPEN: " + _cap(hits, width=90, tail="see lint-namespace")
     m = re.search(r"\((\d+) file\(s\) scanned, (\d+) namespace segment", out)
     return True, ("0 namespace-as-value errors (%s files, %s segments in scope)"
                   % (m.group(1), m.group(2)) if m else "0 namespace-as-value errors")
@@ -901,13 +1028,15 @@ def raw_avenues():
     tool = str(ROOT.parent / "tools" / "lint-avenues.py")
     code, out = run(["python3", tool, "--selftest"])
     if code != 0:
-        first = next((l.strip() for l in out.splitlines()
-                      if "Error" in l or "assert" in l), "see lint-avenues --selftest")
-        return False, "AVENUE LINT BROKEN: " + first[:110]
+        hits = [l.strip() for l in out.splitlines()
+                if "Error" in l or "assert" in l]
+        return False, "AVENUE LINT BROKEN: " + _cap(
+            hits, width=110, tail="see lint-avenues --selftest")
     code, out = run(["python3", tool])
     if code != 0:
-        first = next((l.strip() for l in out.splitlines() if ".cs:" in l), "see lint-avenues")
-        return False, "RAW AVENUE READ (unscaled coordinates): " + first[:90]
+        hits = [l.strip() for l in out.splitlines() if ".cs:" in l]
+        return False, "RAW AVENUE READ (unscaled coordinates): " + _cap(
+            hits, width=90, tail="see lint-avenues")
     m = re.search(r"\((\d+) files walked", out)
     # A DEFERRAL MUST NOT READ AS A PASS, and this line is where it would.
     # The lint exits 0 while KNOWN FAULTS sit in its DEFERRED ledger, so a
@@ -942,8 +1071,8 @@ def static_instance():
     the Windows build had reported."""
     code, out = run(["python3", str(ROOT.parent / "tools" / "lint-static.py")])
     if code != 0:
-        first = next((l.strip() for l in out.splitlines() if ".cs:" in l), "see lint-static")
-        return False, "CS0120 WAITING TO HAPPEN: " + first[:90]
+        hits = [l.strip() for l in out.splitlines() if ".cs:" in l]
+        return False, "CS0120 WAITING TO HAPPEN: " + _cap(hits, width=90, tail="see lint-static")
     m = re.search(r"\((\d+) instance members.*?(\d+) static bodies walked\)", out)
     return True, ("0 static/instance errors (%s members, %s bodies)" % (m.group(1), m.group(2))
                   if m else "0 static/instance errors")
@@ -969,8 +1098,9 @@ def workflow_size():
     guessing at it would be inventing a threshold."""
     code, out = run(["python3", str(ROOT.parent / "tools" / "workflow-size.py")])
     if code != 0:
-        first = next((l.strip() for l in out.splitlines() if ".yml:" in l), "see workflow-size")
-        return False, "WORKFLOW STEP TOO LARGE TO DISPATCH: " + first[:90]
+        hits = [l.strip() for l in out.splitlines() if ".yml:" in l]
+        return False, "WORKFLOW STEP TOO LARGE TO DISPATCH: " + _cap(
+            hits, width=90, tail="see workflow-size")
     m = re.search(r"largest step (\d+) chars \((\d+) under", out)
     return True, ("workflow steps ok (%s under the dispatch ceiling)" % m.group(2)
                   if m else "workflow steps ok")
@@ -1000,7 +1130,8 @@ def convo_probe():
         return False, "CONVO PROBE found %s cards, expected 4" % m.group(1)
     voiceless = [l.split()[0] for l in out.splitlines() if "lines=NO" in l]
     if voiceless:
-        return False, "CONVO PROBE: no spoken lines for " + ", ".join(voiceless[:3])
+        return False, "CONVO PROBE: no spoken lines for " + _cap(
+            voiceless, keep=3, sep=", ")
     return True, "%s probe calls staged" % m.group(3)
 
 
@@ -1012,12 +1143,42 @@ def shape_files():
     error and never a failing assertion — it is a clip that plays as silence,
     or two characters cast with the same throat."""
     code, out = run(["python3", str(ROOT.parent / "tools" / "shape-check.py")])
-    if "shape ok" in out:
-        return True, "shape ok (clips, barks, manifests)"
-    m = re.search(r"(\d+) problem\(s\)", out)
     bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+    # THREE NOUNS AND NO NUMBERS is what this returned for 259 landed commits —
+    # "shape ok (clips, barks, manifests)", byte-identical every time, because
+    # a noun cannot move when the repository does. Worse, the third noun was a
+    # claim over ZERO examined paths: `referenced_files` checked 0 of 1
+    # path-shaped string and said so at its own layer, and this line threw the
+    # 0 away and printed the word "manifests" instead.
+    #
+    # The tool now prints one `key=value` census line and this reads it. THE
+    # PARSE IS REQUIRED, NOT OPTIONAL: a green exit with no census is the one
+    # state indistinguishable from a green exit over an empty tree, and both
+    # would have printed `shape ok` before. Verified against the real consumer
+    # by running the real tool — this file's regexes over its own tools' output
+    # are exactly what a cosmetic edit downstream breaks in silence.
+    cen = re.search(r"^shape-check: (\S+) (.*)$", out, re.M)
+    if not cen:
+        return False, ("SHAPE: shape-check printed no census line — %s about "
+                       "clips, barks or manifest paths; %s"
+                       % (NOTHING_MEASURED,
+                          _cap(bad, width=90, tail="and no FAIL either")))
+    got = dict(tok.split("=", 1) for tok in cen.group(2).split() if "=" in tok)
+    if "shape ok" in out and not bad:
+        # `manifestPaths` carries the WORDS when the walk examined nothing, so
+        # this cannot read as a clean sweep over the manifests. Each number is
+        # a COUNT over this one run.
+        return True, ("shape ok (%s clip(s) cast/%s probed, %s bark slot(s)/%s "
+                      "line(s), manifest paths %s of %s path-shaped in %s "
+                      "file(s))"
+                      % (got.get("clipsCast", "?"), got.get("clipsProbed", "?"),
+                         got.get("barkSlots", "?"), got.get("barkLines", "?"),
+                         got.get("manifestPaths", "?"),
+                         got.get("manifestPathShaped", "?"),
+                         got.get("manifestFiles", "?")))
+    m = re.search(r"(\d+) problem\(s\)", out)
     return False, "SHAPE: %s%s" % (m.group(1) + " problem(s): " if m else "",
-                                   bad[0][:90] if bad else "did not report")
+                                   _cap(bad, width=90, tail="did not report"))
 
 
 def slop():
@@ -1139,7 +1300,8 @@ def voice_live():
             continue
         if code != 0:
             bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
-            return False, "VOICE LIVE (%s): %s" % (script, bad[0][:70] if bad else "no report")
+            return False, "VOICE LIVE (%s): %s" % (
+                script, _cap(bad, width=70, tail="no report"))
         total += int(m.group(1)) if m else 0
     n = total
     if True:
@@ -1147,7 +1309,7 @@ def voice_live():
                 if skipped else "")
         return True, "voice-live ok (%s checks%s)" % (n, note)
     bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
-    return False, "VOICE LIVE: " + (bad[0][:90] if bad else "did not report")
+    return False, "VOICE LIVE: " + _cap(bad, width=90, tail="did not report")
 
 
 def voice_gen():
@@ -1173,7 +1335,7 @@ def voice_gen():
     if code == 0:
         return True, "voice-gen ok (%s checks, %s-line batch)" % (n, renders)
     bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
-    return False, "VOICE GEN: " + (bad[0][:90] if bad else "did not report")
+    return False, "VOICE GEN: " + _cap(bad, width=90, tail="did not report")
 
 
 def barks_current():
@@ -1224,12 +1386,13 @@ def barks_current():
     committed, current = lines_of(was), lines_of(now)
     added, dropped = current - committed, committed - current
     if added or dropped:
-        first = sorted(added)[0] if added else sorted(dropped)[0]
+        first = sorted(added) or sorted(dropped)
         return False, ("BARKS: %d line(s) in the code are not in the bank and "
                        "%d in the bank are no longer spoken — their clips are "
                        "orphaned and the new ones have none. Re-run "
                        "`dotnet run --project ledger/BarkGen` and render. "
-                       "First: %s" % (len(added), len(dropped), first[:60]))
+                       "First: %s" % (len(added), len(dropped),
+                                      _cap(first, width=60)))
     return True, "barks current (%d lines enumerated, 0 drifted)" % len(current)
 
 
@@ -1249,10 +1412,31 @@ def voice_cast():
     code, out = run(["python3", str(ROOT.parent / "tools" / "voice-cast-check.py")])
     m = re.search(r"(\d+) principal\(s\) not cast yet", out)
     todo = m.group(1) if m else "0"
+    # `0 uncast` IS THE FINDING, NOT THE DENOMINATOR — and the tool's own first
+    # line carries the denominator: "voice-cast — 7 tier-1 principals, 17 cast
+    # voices, 2 alias(es), 23 clip(s)". Without it, "voice cast ok (0 uncast
+    # principal(s))" reads as a clean cast over a census of zero principals
+    # exactly as it reads over a census of seven, and it was byte-identical in
+    # 259 landed commit messages.
+    #
+    # The em dash is NOT in the pattern: it is decoration on the tool's side
+    # and matching it would make a cosmetic edit there silently drop this
+    # denominator, which is the fault being repaired one layer up.
+    census = re.search(r"(\d+) tier-1 principals, (\d+) cast voices, "
+                       r"(\d+) alias\(es\), (\d+) clip\(s\)", out)
     if code == 0:
-        return True, "voice cast ok (%s uncast principal(s))" % todo
+        if not census:
+            # NOT A PASS. A green exit with no census is the one state that
+            # cannot be told from a green exit over an empty cast, and rule 3b
+            # says a clean result that examined nothing must not read as clean.
+            return False, ("VOICE CAST: exit 0 but no census line — %s about how "
+                           "many principals were examined" % NOTHING_MEASURED)
+        return True, ("voice cast ok (%s uncast of %s tier-1 principal(s); %s cast "
+                      "voice(s), %s alias(es), %s clip(s))"
+                      % (todo, census.group(1), census.group(2),
+                         census.group(3), census.group(4)))
     bad = [l.strip() for l in out.splitlines() if l.strip().startswith("- ")]
-    return False, "VOICE CAST: " + (bad[-1][:90] if bad else "did not report")
+    return False, "VOICE CAST: " + _cap(bad, keep=1, width=90, tail="did not report")
 
 
 def save_chaos():
@@ -1287,7 +1471,7 @@ def save_chaos():
         return True, "%s save-chaos checks" % m.group(1)
     bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAILED")]
     if bad:
-        return False, "SAVE CHAOS: " + bad[0][7:97]
+        return False, "SAVE CHAOS: " + _cap(bad, strip=7, width=90)
     return False, "save chaos did not report (build failure?)"
 
 
@@ -1313,7 +1497,7 @@ def soak():
         return True, "%s soak checks (500 days x2)" % m.group(1)
     bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAILED")]
     if bad:
-        return False, "SOAK: " + bad[0][7:100]
+        return False, "SOAK: " + _cap(bad, strip=7, width=93)
     return False, "soak did not report (build failure?)"
 
 
@@ -1345,7 +1529,7 @@ def adversary():
         return True, "%s adversary checks" % m.group(1)
     bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAILED")]
     if bad:
-        return False, "ADVERSARY: " + bad[0][7:100]
+        return False, "ADVERSARY: " + _cap(bad, strip=7, width=93)
     return False, "adversary did not report (build failure?)"
 
 
@@ -1380,8 +1564,13 @@ def verdict_keys():
         gone = [l.strip()[5:] for l in out.splitlines() if l.strip().startswith("GONE")]
         demoted = [l.strip()[8:] for l in out.splitlines() if l.strip().startswith("DEMOTED")]
         if gone:
-            return False, "VERDICT KEYS GONE: " + ", ".join(gone[:4])
-        return False, "VERDICT KEYS NOW GATE-ONLY: " + ", ".join(demoted[:4])
+            # THE WORKED EXAMPLE FROM THE 26 Aug SWEEP. `verdict-keys.py`
+            # underneath already prints "N measurement(s) STOPPED BEING
+            # REPORTED"; this kept four names and dropped N, so a run
+            # losing 4 keys and a run losing 40 printed the same red line.
+            return False, "VERDICT KEYS GONE: " + _cap(gone, keep=4, sep=", ")
+        return False, "VERDICT KEYS NOW GATE-ONLY: " + _cap(demoted, keep=4,
+                                                            sep=", ")
     tail = "" if m.group(3) == "0" else ", %s new (run --learn)" % m.group(3)
     return True, "%s verdict keys%s" % (m.group(1), tail)
 
@@ -1410,15 +1599,15 @@ def verdict_format():
     code, out = run(["python3", str(ROOT.parent / "tools" / "verdict-read.py"),
                      "--selftest"])
     if code != 0:
-        first = next((l.strip() for l in out.splitlines() if "FAILED" in l),
-                     "see verdict-read --selftest")
-        return False, "VERDICT LINT BROKEN: " + first[:110]
+        hits = [l.strip() for l in out.splitlines() if "FAILED" in l]
+        return False, "VERDICT LINT BROKEN: " + _cap(
+            hits, width=110, tail="see verdict-read --selftest")
     code, out = run(["python3", str(ROOT.parent / "tools" / "verdict-read.py"),
                      "--lint"])
     if code != 0:
-        first = next((l.strip() for l in out.splitlines() if l.strip().startswith("line ")),
-                     "see verdict-read --lint")
-        return False, "VERDICT VALUE WITH A SPACE IN IT: " + first[:110]
+        hits = [l.strip() for l in out.splitlines() if l.strip().startswith("line ")]
+        return False, "VERDICT VALUE WITH A SPACE IN IT: " + _cap(
+            hits, width=110, tail="see verdict-read --lint")
     # THE HOLE THIS CHECK HAD, PRINTED RATHER THAN GATED (rule 2: series first).
     #
     # `--lint` reports UNBALANCED delimiters. It has never reported a space:
@@ -1464,9 +1653,9 @@ def verdict_dupkeys():
     tool = str(ROOT.parent / "tools" / "verdict-dupkeys.py")
     code, out = run(["python3", tool, "--selftest"])
     if code != 0:
-        first = next((l.strip() for l in out.splitlines() if "Error" in l or "assert" in l),
-                     "see verdict-dupkeys --selftest")
-        return False, "VERDICT DUPKEY CHECK BROKEN: " + first[:110]
+        hits = [l.strip() for l in out.splitlines() if "Error" in l or "assert" in l]
+        return False, "VERDICT DUPKEY CHECK BROKEN: " + _cap(
+            hits, width=110, tail="see verdict-dupkeys --selftest")
     # ABSOLUTE, BECAUSE `run` STANDS IN `ledger/`. The first version passed no
     # path and the tool's own relative default resolved against the wrong
     # directory, so the footer read "cannot read ... No such file" and the
@@ -1481,7 +1670,8 @@ def verdict_dupkeys():
     head = next((l.strip() for l in out.splitlines()
                  if l.startswith("verdict-dupkeys:")), "")
     if not head or "cannot read" in head:
-        return False, "DUPKEY CHECK READ NOTHING: " + (head or out.strip())[:110]
+        return False, "DUPKEY CHECK READ NOTHING: " + _cap(
+            [head] if head else out.strip().splitlines(), width=110)
     return True, head.replace("verdict-dupkeys: ", "dupkeys ok (selftest); landed verdict: ")
 
 
@@ -1506,12 +1696,14 @@ def gate_detail_ceiling():
     tool = str(ROOT.parent / "tools" / "gate-detail.py")
     code, out = run(["python3", tool, "--selftest"])
     if code != 0:
-        return False, "GATE DETAIL CHECK BROKEN: " + out.strip()[:110]
+        return False, "GATE DETAIL CHECK BROKEN: " + _cap(
+            out.strip().splitlines(), width=110)
     code, out = run(["python3", tool])
     head = next((l.strip() for l in out.splitlines()
                  if l.startswith("gate-detail:")), "")
     if code != 0:
-        return False, head[:170] or "gate-detail failed with no message"
+        return False, _cap([head] if head else [], width=170,
+                           tail="gate-detail failed with no message")
     return True, head.replace("gate-detail: ", "gates ")
 
 
@@ -1593,18 +1785,20 @@ def verdict_emit_dupkeys():
     tool = str(ROOT.parent / "tools" / "verdict-emit-dupkeys.py")
     code, out = run(["python3", tool, "--selftest"])
     if code != 0:
-        first = next((l.strip() for l in out.splitlines()
-                      if "Error" in l or "assert" in l),
-                     "see verdict-emit-dupkeys --selftest")
-        return False, "EMIT DUPKEY CHECK BROKEN: " + first[:110]
+        hits = [l.strip() for l in out.splitlines()
+                if "Error" in l or "assert" in l]
+        return False, "EMIT DUPKEY CHECK BROKEN: " + _cap(
+            hits, width=110, tail="see verdict-emit-dupkeys --selftest")
     code, out = run(["python3", tool, str(ROOT / "Assets" / "Scripts")])
     head = next((l.strip() for l in out.splitlines()
                  if l.startswith("verdict-emit-dupkeys:")), "")
     if not head:
-        return False, "EMIT DUPKEY CHECK READ NOTHING: " + out.strip()[:110]
+        return False, "EMIT DUPKEY CHECK READ NOTHING: " + _cap(
+            out.strip().splitlines(), width=110)
     if code != 0:
         hits = [l.strip() for l in out.splitlines() if " — emitted twice" in l]
-        return False, "SAME KEY EMITTED TWICE ON ONE LINE: " + "; ".join(hits)[:160]
+        return False, "SAME KEY EMITTED TWICE ON ONE LINE: " + _cap(
+            hits, keep=2, width=78)
     return True, head.replace("verdict-emit-dupkeys: ", "emit dupkeys ok (")\
                     .replace(" same-line duplicate key(s) (", ", ") + ")"
 
@@ -1645,20 +1839,38 @@ def stale_anchors():
     them. That is three checks the project believed it had."""
     import json
     bad = []
+    # THE DENOMINATOR NOBODY PRINTED. `0 stale anchors` was byte-identical in
+    # 259 landed commit messages and is exactly what an EMPTY `ledger/breaks/`
+    # would print — the walk covers 22 specs / 205 anchors on 26 Aug, and none
+    # of that reached the reader. COUNTED HERE, inside the walk that does the
+    # work, because a second count kept anywhere else is the copy that rots.
+    # Both are cumulative totals over the whole walk, not peaks.
+    specs = anchors = 0
     for spec in sorted((ROOT / "breaks").glob("*.json")):
+        specs += 1
         try:
             entries = json.loads(spec.read_text(encoding="utf-8"))
         except ValueError as e:                       # noqa: BLE001
             bad.append("%s unparseable: %s" % (spec.name, e))
             continue
         for i, b in enumerate(entries):
+            anchors += 1
             src = ROOT / b["file"]
             n = src.read_text(encoding="utf-8").count(b["old"]) if src.exists() else 0
             if n != 1:
                 bad.append("%s[%d] matches %dx" % (spec.name, i, n))
     if bad:
-        return False, "STALE ANCHORS: " + "; ".join(bad[:4])
-    return True, "0 stale anchors"
+        return False, ("STALE ANCHORS: %d of %d anchor(s) in %d spec(s): %s"
+                       % (len(bad), anchors, specs, _cap(bad, keep=4)))
+    # A CLEAN SWEEP OVER NOTHING IS NOT A CLEAN SWEEP (rule 3b). An empty or
+    # unreadable `ledger/breaks/` produced the identical green string for 259
+    # commits. This is a STRENGTHENING and not a loosened bound: the accepting
+    # case is today's tree, 205 anchors, and it is untouched.
+    if anchors == 0:
+        return False, ("STALE ANCHORS: %s — %d spec(s) in ledger/breaks/ "
+                       "yielded 0 anchors, so nothing was compared"
+                       % (NOTHING_MEASURED, specs))
+    return True, "0 stale anchors (%d anchor(s) in %d break spec(s))" % (anchors, specs)
 
 
 # --------------------------------------------------------- director cadence
@@ -2224,7 +2436,6 @@ def _cadence_read(repo):
     return r
 
 
-NOTHING_MEASURED = "nothing-measured"   # no spaces: the footer is split on them
 
 
 def _cadence_spend(r):
@@ -3295,7 +3506,8 @@ def _cadence_selftest():
         "every emitted spend value is one whitespace-free token, %d of %d "
         "expected key tokens scanned across %d fixture summaries"
         % (scanned, want, len(reads)),
-        "bad=%s scanned=%d want=%d" % (",".join(bad[:3]) or "none", scanned, want))
+        "bad=%s badCount=%d scanned=%d want=%d"
+        % (",".join(bad[:3]) or "none", len(bad), scanned, want))
 
     return passed, failed, lines
 
@@ -3393,9 +3605,10 @@ def director_cadence():
     shipped a gate no honest review could clear."""
     passed, failed, lines = _cadence_selftest()
     if failed:
-        first = next((l.strip() for l in lines if l.strip().startswith("FAIL")), "?")
+        fails = [l.strip() for l in lines if l.strip().startswith("FAIL")]
         return False, ("DIRECTOR CADENCE CHECK BROKEN: %d/%d fixtures failed — %s"
-                       % (failed, passed + failed, first[:120]))
+                       % (failed, passed + failed, _cap(fails, width=120,
+                                                        tail="?")))
     r = _cadence_read(ROOT.parent)
     return r["ok"], r["summary"] + " [%d/%d selftest fixtures]" % (passed, passed + failed)
 
@@ -3415,6 +3628,197 @@ def breaks(spec):
     return m.group(2) == "0" and stale == 0, "%s: %s" % (path.stem, label)
 
 
+# ------------------------------------------------- footer-string selftest
+# WHAT THIS IS FOR, and it is not tidiness.
+#
+# Six fragments of this footer were BYTE-IDENTICAL across 259 landed commits
+# (`0 lint errors`, `0 shadowed Core types`, `0 stale anchors`, `clip picker
+# ok`, `voice cast ok (0 uncast principal(s))`, `shape ok (clips, barks,
+# manifests)`), and four of them threw away a denominator that already existed
+# one process boundary away. A string that cannot move is a claim with nothing
+# behind it: the checks in this same footer that DO carry a live denominator
+# move with the repository — `0 shape errors (177 files)` -> `(181)`, `docs
+# 57/57` -> `103/103`, `clips ok (62 read)` -> `(67)`.
+#
+# THE FAILURE THIS GUARDS IS SPECIFIC. This file PARSES its own tools' output
+# with regexes, so a cosmetic edit to a tool's line silently drops the number
+# from every future GREEN footer — and a green footer is exactly where nobody
+# looks. Two builders hit that in one night. So each fixture below feeds a
+# formatter the output shape it expects and asserts the NUMBER survives.
+#
+# ACCEPTING CASES FIRST (rule 5b): the expensive failure is a validator nothing
+# survives, and half of these assertions exist to prove a healthy tool still
+# produces a healthy string. The rejecting fixtures are synthetic and name keys
+# that exist nowhere, so doing the work these checks prompt cannot break them.
+#
+# THE LIVE ACCEPTING CASE IS THE VERIFY RUN ITSELF — every one of these
+# formatters is called for real, against the real tools, in the same process.
+# What is synthetic here is only what the live tree cannot produce on demand:
+# a red tool, and a tool that went quiet.
+def _strings_selftest():
+    passed, failed, lines = 0, 0, []
+    real_run, real_root = run, ROOT
+
+    def say(ok, what, got):
+        nonlocal passed, failed
+        if ok:
+            passed += 1
+            lines.append("  ok   " + what)
+        else:
+            failed += 1
+            lines.append("  FAIL %s — %s" % (what, got))
+
+    def with_out(fn, out, code=0):
+        """Run a check with `run` stubbed to one fixed tool output."""
+        global run
+        run = lambda *a, **k: (code, out)          # noqa: E731
+        try:
+            return fn()
+        finally:
+            run = real_run
+
+    # ---------------------------------------------------------- ACCEPTING
+    ok, s = with_out(lint, "checked 191 files, 0 missing-using/collision error(s)")
+    say(ok and "191 file(s) walked of 191 present" in s and "UNWALKED" not in s,
+        "lint: a clean walk carries its file count and claims no drop", s)
+
+    ok, s = with_out(shadow,
+                     "lint-shadow: 0 shadowed Core types (285 type(s), 88 Game file(s))")
+    say(ok and "285 Core type(s) across 88 Game file(s)" in s,
+        "shadow: the census survives the parse", s)
+
+    ok, s = with_out(voice_cast,
+                     "voice-cast — 7 tier-1 principals, 17 cast voices, "
+                     "2 alias(es), 23 clip(s)\n0 problem(s)\n")
+    say(ok and "0 uncast of 7 tier-1 principal(s)" in s,
+        "voice cast: the finding keeps its denominator beside it", s)
+
+    ok, s = with_out(picker_selftest,
+                     "  posture screen: 9 shipped clip(s) accepted across the axes, "
+                     "5 known-bad clip(s) refused on 5 branch(es)\n"
+                     "  shipped names: 65 read, 64 accepted, 1 refused\n"
+                     "  patterns: 137 of 145 match at least one catalogued name\n"
+                     "SELFTEST PASSED -- duplicate content is skipped\n")
+    say(ok and "65 shipped name(s) read" in s and "9 accepted/5 refused" in s
+        and "137 of 145" in s,
+        "picker: all three censuses reach the footer", s)
+
+    ok, s = with_out(shape_files,
+                     "  ok   something\n"
+                     "shape-check: ok clipsCast=23 clipsProbed=23 clipsPending=0 "
+                     "barkSlots=42 barkLines=2604 manifestFiles=7 "
+                     "manifestStrings=13442 manifestPathShaped=1 "
+                     "manifestPaths=nothing-measured manifestDropped=1 problems=0\n"
+                     "shape ok\n")
+    say(ok and "23 clip(s) cast/23 probed" in s and "42 bark slot(s)/2604 line(s)" in s
+        and "manifest paths nothing-measured of 1 path-shaped in 7 file(s)" in s,
+        "shape: three nouns became three counts, and the empty walk says so", s)
+
+    ok, s = _anchors_on(_anchor_tree(hits=1))
+    say(ok and "1 anchor(s) in 1 break spec(s)" in s,
+        "stale anchors: a spec that matches once passes AND counts", s)
+
+    # ---------------------------------------------------------- REJECTING
+    ok, s = with_out(lint, "checked 185 files, 3 missing-using/collision error(s)")
+    say(not ok and s.startswith("3 lint errors") and "UNWALKED" in s,
+        "lint: a short walk is named as a drop, not folded into the total", s)
+
+    ok, s = with_out(lint, "no such line")
+    say(not ok and s == "lint did not report",
+        "lint: a tool that printed nothing is not a pass", s)
+
+    ok, s = with_out(shadow,
+                     "lint-shadow: 2 shadowed Core types (285 type(s), 88 Game file(s))")
+    say(not ok and s.startswith("2 shadowed Core types"),
+        "shadow: a NON-zero count is no longer hardcoded to zero", s)
+
+    ok, s = with_out(shadow, "lint-shadow: 0 shadowed Core types")
+    say(ok and NOTHING_MEASURED in s,
+        "shadow: a tool that stopped printing its census says so", s)
+
+    ok, s = with_out(voice_cast, "0 problem(s)\n")
+    say(not ok and NOTHING_MEASURED in s,
+        "voice cast: exit 0 with no census is not a pass", s)
+
+    ok, s = with_out(picker_selftest, "SELFTEST PASSED -- nothing else\n")
+    say(ok and s.count(NOTHING_MEASURED) == 3,
+        "picker: three missing censuses print three sets of words", s)
+
+    ok, s = with_out(shape_files, "shape ok\n")
+    say(not ok and NOTHING_MEASURED in s,
+        "shape: `shape ok` with no census cannot pass — the 259-commit fault", s)
+
+    ok, s = with_out(shape_files,
+                     "  FAIL every file path a manifest names exists — a -> b\n"
+                     "shape-check: PROBLEMS clipsCast=23 manifestPaths=4 problems=1\n"
+                     "1 problem(s)\n", code=1)
+    say(not ok and "1 problem(s):" in s,
+        "shape: a real problem still reports as one", s)
+
+    ok, s = _anchors_on(_anchor_tree(hits=0))
+    say(not ok and "1 of 1 anchor(s) in 1 spec(s)" in s,
+        "stale anchors: a stale anchor reports N OF the walked total", s)
+
+    ok, s = _anchors_on(_anchor_tree(specs=0))
+    say(not ok and NOTHING_MEASURED in s,
+        "stale anchors: an empty breaks/ is not `0 stale anchors`", s)
+
+    # The cap is ONE implementation and lives in tools/capsay.py, which has its
+    # own two-way selftest. One assertion here ties the two together, so a
+    # capsay that stopped announcing turns this file red as well.
+    say(_cap(["a", "b", "c"]) == "a (+2 more of 3)" and _cap([]) == NOTHING_MEASURED,
+        "capsay: the shared cap announces its bite and its empty case",
+        _cap(["a", "b", "c"]))
+
+    globals()["ROOT"] = real_root
+    return passed, failed, lines
+
+
+def _anchor_tree(hits=1, specs=1):
+    """A throwaway `ledger/` with `breaks/` in it, built in a temp directory.
+
+    SYNTHETIC ON PURPOSE. The rejecting fixture must not be pinned to a real
+    break spec: pinning it there means fixing a real anchor breaks the test,
+    which is how a guard comes to be switched off."""
+    import json
+    import tempfile
+    d = pathlib.Path(tempfile.mkdtemp(prefix="verify-anchors-"))
+    (d / "breaks").mkdir()
+    if specs:
+        (d / "src.cs").write_text("ANCHOR\n" * hits, encoding="utf-8")
+        (d / "breaks" / "fixture.json").write_text(
+            json.dumps([{"file": "src.cs", "old": "ANCHOR", "new": "X"}]),
+            encoding="utf-8")
+    return d
+
+
+def _anchors_on(tree):
+    real = ROOT
+    globals()["ROOT"] = tree
+    try:
+        return stale_anchors()
+    finally:
+        globals()["ROOT"] = real
+
+
+def footer_strings():
+    """The footer's own numbers, checked both ways, every run.
+
+    IN THE MAIN TUPLE RATHER THAN BEHIND A FLAG, because a selftest nobody
+    runs is rule 6 wearing a lab coat — and because the thing it guards is a
+    SILENT loss: a tool changes one word of its output, a regex here stops
+    matching, and the green footer quietly goes back to being a noun. Nothing
+    goes red when that happens. This does.
+
+    Costs no subprocess: every fixture is a string."""
+    passed, failed, lines = _strings_selftest()
+    if failed:
+        fails = [l.strip() for l in lines if l.strip().startswith("FAIL")]
+        return False, ("FOOTER STRINGS BROKEN: %d/%d fixtures failed — %s"
+                       % (failed, passed + failed, _cap(fails, width=120)))
+    return True, "%d footer-string fixtures (accepting and rejecting)" % passed
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--breaks", action="append", default=[],
@@ -3423,18 +3827,27 @@ def main():
                     help="run director_cadence's fixture suite, both ways, and exit")
     ap.add_argument("--cadence", action="store_true",
                     help="print the director-cadence reading for this tree and exit")
+    ap.add_argument("--selftest-strings", action="store_true",
+                    help="run the footer-string fixtures, both ways, and exit")
     args = ap.parse_args()
 
     # THE CHEAP MODES MUST SURVIVE A PIPE. `--cadence | head -1` is the way
     # anybody will actually read this, and a correct run that ends in a
     # BrokenPipeError traceback costs twenty minutes before somebody notices it
     # worked. The full run is left alone: it is not a pipe-into-head tool.
-    if args.selftest or args.cadence:
+    if args.selftest or args.cadence or args.selftest_strings:
         try:
             import signal
             signal.signal(signal.SIGPIPE, signal.SIG_DFL)
         except (ImportError, AttributeError, ValueError):
             pass
+
+    if args.selftest_strings:
+        passed, failed, lines = _strings_selftest()
+        for l in lines:
+            print(l)
+        print("footer-string selftest: %d passed, %d failed" % (passed, failed))
+        return 0 if failed == 0 else 1
 
     if args.selftest:
         passed, failed, lines = _cadence_selftest()
@@ -3450,7 +3863,7 @@ def main():
         return CADENCE_EXIT[r["state"]]
 
     parts, all_ok = [], True
-    for fn in (director_cadence,
+    for fn in (director_cadence, footer_strings,
                lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                template_sync,

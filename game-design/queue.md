@@ -147,20 +147,40 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    is DEFERRED, not stamped synced — different facts, must not print alike.
 
 
-1. **THE NOON SUN IS IN THE NORTH, AND A COMMENT SAYING OTHERWISE AIMED FIVE
-   INSTRUMENTS AT THE SHADED SIDE.** `UpdateSun` gives `Euler(52,180,0)` ->
-   sunward `(0,+0.788,+0.616)`, and the lit-wall test needs wall normal
-   z >= 0.487, so **in an axis-aligned town only NORTH-facing walls are ever
-   lit at noon.** Every camera reading `litnone@0` was aimed north; both that
-   found lit wall were not. **FOUR copies of one false sentence** ("the noon
-   sun is due SOUTH, so this is the frame that looks into it") had propagated
-   into four documents and five camera placements. All four corrected, none
-   deleted; re-swept, no live copy remains. **OPEN, director-ruled item:** the
-   seven DISTRICT cameras have the identical fault — five of seven have
-   sampled no lit wall for their whole history — but unlike the ref five they
-   carry a LANDED SERIES, so re-aiming voids it. **This is not a comment that
-   decayed under an edit — it was QUOTED FORWARD, each copy making the next
-   more credible, and only an instrument printing `litnone@0` caught it.**
+1. **`valueRungs` POOLS TWO CAMERA FAMILIES WHOSE `sky` MEDIANS DO NOT
+   OVERLAP — a measurement-validity finding, flagged and deliberately not
+   acted on.** On `c5a75c9`, one run, one weather tag: district rows read
+   `sky` 0.371-0.425, reference rows 0.596-0.698 — **disjoint, with a 0.171
+   gap.** So `sky`'s median is a function of the camera FAMILY, which means
+   `sky>lit` is asking a different question of an aerial row than of a street
+   row, while `valueRungs` sums both into one numerator. **Height and
+   occlusion are confounded and the builder explicitly did NOT claim pitch
+   causes it** — that restraint is right and the next reader should keep it.
+   **RULED 26 Aug: SPLIT BY FAMILY — two keys, one per family, each with its
+   own denominator, and the pooled key RETIRES.** Caveat-and-keep was refused
+   in as many words: *caveats decay, emits don't.* **But NOT in the same
+   commit as the re-aim**, because that landing's Identity B predicts the
+   POOLED denominator at exactly 63, and changing the instrument alongside
+   the subject confounds the identity built to validate it. **Do it in the
+   next instrument batch, after that identity has been read.** Until then the
+   standing caveat holds: do not quote a pooled `valueRungs` as a street
+   reading. The CAUSE is explicitly not ruled — height, occlusion and pitch
+   are confounded, and separating them is a measurement to design, not a
+   guess to make.
+
+1. **THE NOON SUN IS IN THE NORTH — CONFIRMED BY A LANDING, ref re-aim
+   WORKED.** `Euler(52,180,0)` -> sunward `(0,+0.788,+0.616)`; only
+   north-facing walls are lit, and a comment saying "due SOUTH" had been
+   quoted forward into four documents and five camera placements. All five
+   refs now sample lit wall (307/383/13/162/156 rays); the predicted weather
+   identity held exactly; no alarm fired. **Districts re-aimed on that
+   evidence** — one character, `az=-34f` -> `az=34f`, a reflection with
+   junction/standoff/height unchanged. Ironside and Gullwing untouched as
+   cross-break controls. **Open:** `day5_noon` still reads `litnone@0` for a
+   DIFFERENT cause — its aim takes only one of the two perpendiculars
+   (`new Vector3(-toRoad.z,0,toRoad.x)`), so for a given eye and road it can
+   never face the other way down the same street.
+
 
 1. **TWO MORE LINTS NAMED, NOT FIXED.** `lint-nested` prints `0 nested-type
    errors (255 top-level Core types checked)` and exits 0 **byte-identically
@@ -230,27 +250,7 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    **E: bank the `walk_start` re-pick and attach it to the image-gen
    delivery** — one interruption, two one-click items.
 
-1. **AFTER THE SKYLINE/APRON LANDS — three follow-ups, and they are here
-   because a LOG that supersedes itself is not a queue.** (i) **`skylineFit`
-   is SERIES-FIRST**: one slot number (95.1m) now replaces the
-   radius-dependent arc, so the 1.76 measured under the old divisor is NOT
-   comparable — nobody quotes a fit until the new series lands. (ii)
-   **`groundMask*` and `farFrac` RE-BASELINE**: the apron is a REGIME CHANGE
-   in those series (ground/sky boundary rises +22px in hook, +73px in
-   copper), so they carry the schema mark when it lands and cross-run
-   comparisons across the boundary are void. (iii) **Supersede
-   `agent-reports/skyline-period.md`** once the four skyline keys land — its
-   own header instructs it. **Not closed until `skylineByEdge` reads k/k on
-   every edge in a landed verdict and the stills are read.**
 
-1. **CHEAP CI GREEN — 311 reds, one cause.** Account in `roadmap-history.md`.
-   **OPEN:** the Windows/mac Verdict steps report the SIM, so "lint failed"
-   and "the sim did not run" read alike.
-
-1. **REJECTING FIXTURES REPINNED — ALL THREE DONE 25 Aug.**
-   `lint-conditional-reach` now builds a synthetic ladder in a temp dir and
-   carries a WRITE SENTRY that refuses any write under `ledger/`. Its
-   denominator is a finding: **one** conditional type over 88 Game files.
 
 
 1. **THE DRY TOUR LANDED; ALBEDO IS RULED OUT.** Every `district_*` row

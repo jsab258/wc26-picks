@@ -27,11 +27,26 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 from mp3probe import probe                                      # noqa: E402
+# EVERY CAP ANNOUNCES ITSELF, from the one implementation: tools/capsay.py.
+# Seven `[:4]`-style truncations in this file said nothing when they bit.
+from capsay import cap, NOTHING_MEASURED                        # noqa: E402
 
 _fails = []
 
 
-def check(ok, what, got=""):
+def check(ok, what, got="", keep=4, sep=", "):
+    """One place where a check's detail is printed, so ONE place caps it.
+
+    `got` may be a LIST, and when it is, the cap and its `(+N more of M)`
+    clause come from `capsay.cap` — the whole point being that a caller cannot
+    write `", ".join(xs[:4])` and quietly drop the count, which is how 48 sites
+    in `ledger/verify.py` came to print the same red line for one fault and for
+    forty. A plain string is passed through untouched: several callers have
+    one value, not a list, and a truncation notice on an untruncated thing is
+    its own lie."""
+    if isinstance(got, (list, tuple, set)):
+        got = cap(sorted(got) if isinstance(got, set) else got,
+                  keep=keep, sep=sep, width=200, tail="")
     print(("  ok   " if ok else "  FAIL ") + what + ("" if ok else f" — {got}"))
     if not ok:
         _fails.append(what)
@@ -91,6 +106,7 @@ def clips():
     clip_dir = ROOT / "game-design" / "picked-clips"
     on_disk = [q for q in clip_dir.iterdir() if q.is_file()]
     print(f"voice clips — {len(picks)} cast, {len(on_disk)} on disk")
+    cast_n, disk_n = len(picks), len(on_disk)
 
     rows, by_speaker, pending = [], {}, []
     for name in sorted(picks):
@@ -162,7 +178,7 @@ def clips():
     # pipeline can ship it and only a human can find it.
     shared = {sp: who for sp, who in by_speaker.items() if len(who) > 1}
     check(not shared, "no two characters share a voice",
-          "; ".join(f"{sp}: {', '.join(w)}" for sp, w in shared.items()))
+          [f"{sp}: {', '.join(w)}" for sp, w in shared.items()], sep="; ")
 
     # SAID OUT LOUD, WITH ITS DENOMINATOR. A pending pick that printed
     # nothing would make "23 cast, 19 on disk" read as a bug rather than as
@@ -174,8 +190,13 @@ def clips():
     stray = sorted(q.name for q in (ROOT / "game-design" / "picked-clips").iterdir()
                    if q.is_file() and q.name.rsplit(".", 2)[0] not in picks)
     check(not stray, "no picked clip belongs to a character nobody cast",
-          ", ".join(stray[:4]))
-    return rows
+          stray)
+    # THE CENSUS, RETURNED SO `main` CAN PRINT IT IN ONE PLACE. `probed` is
+    # the count that matters: a clip that fails to parse is `continue`d above
+    # and never reaches the per-clip assertions, so `cast` and `probed` moving
+    # apart is exactly the state that once hid two characters sharing p228.
+    return dict(rows=rows, cast=cast_n, onDisk=disk_n, probed=len(rows),
+                pending=len(pending))
 
 
 # ------------------------------------------------------------- the manifests
@@ -190,7 +211,7 @@ def barks():
           f"repeat floor {floor}s")
 
     empty = [s["id"] for s in slots if not s.get("lines")]
-    check(not empty, "every reachable slot has lines in it", ", ".join(empty[:4]))
+    check(not empty, "every reachable slot has lines in it", empty)
 
     # A slot repeats every everySeconds * len(lines). Under the floor and the
     # player hears the same sentence twice inside ten minutes.
@@ -199,7 +220,7 @@ def barks():
              if s.get("lines") and s["everySeconds"] * len(s["lines"]) < floor
              and len(s["lines"]) < s.get("wanted", 0)]
     check(not short, f"every slot clears the {floor}s repeat floor",
-          "; ".join(f"{i} repeats every {r:.0f}s" for i, r in short[:3]))
+          [f"{i} repeats every {r:.0f}s" for i, r in short], keep=3, sep="; ")
 
     dupes = []
     for s in slots:
@@ -208,46 +229,106 @@ def barks():
             if l in seen:
                 dupes.append(f"{s['id']}: {l[:40]}")
             seen.add(l)
-    check(not dupes, "no slot lists the same line twice", "; ".join(dupes[:3]))
+    check(not dupes, "no slot lists the same line twice", dupes, keep=3, sep="; ")
 
     # The manifest is a FILE, and a file drifts. It carried "How's the bar
     # treating you?" for days after the pub was renamed, because BarkGen was
     # writing to whatever directory the shell happened to be standing in.
     check(data.get("generatedBy", "").startswith("BarkGen"),
           "the manifest says what generated it", data.get("generatedBy", "")[:40])
+    return dict(slots=len(slots), lines=len(lines))
 
 
 def referenced_files():
     """Every path a design manifest names, checked to exist.
 
     Cheap, and the failure mode is a build that ships with a missing asset and
-    a silent catch block."""
+    a silent catch block.
+
+    IT HAS BEEN EXAMINING ZERO PATHS, AND `verify.py` CALLED THAT `ok`. Measured
+    26 Aug: 4 of 7 `.json` walked, 12,345 strings seen, 1 path-shaped, 1 dropped
+    for containing a space (it is prose and the drop is right), **0 CHECKED**.
+    This function was already honest at its own layer — it printed `(0 checked)`
+    — and `verify.py` compressed the whole tool to `shape ok (clips, barks,
+    manifests)`, so the word "manifests" was a claim over an empty set repeated
+    byte-identically in 259 commit messages.
+
+    TWO REPAIRS, and they are different repairs:
+
+    1. THE WALK WAS ONE LEVEL DEEP. `.glob` not `.rglob`, so `voice-conds/
+       manifest.json` — a file literally called a manifest — was never opened.
+       Widened, and MEASURED BEFORE AND AFTER: 4 files/12,345 strings becomes
+       7 files/13,442 strings and the path-shaped count stays at 1 and the
+       checked count stays at 0. So widening changes no verdict today. The
+       fault was never the three files; it was that nothing said the walk had
+       stopped, which is rule 3b's "ask what the denominator COUNTED".
+
+    2. ZERO CHECKED IS NOT `ok`. A clean result that examined nothing is not a
+       clean result, so the zero case prints the words instead of a tick and
+       the arithmetic that makes it readable — strings seen, path-shaped found,
+       and what was dropped and why. It is NOT turned into a failure: nothing
+       here is broken, the manifests genuinely name no repo-relative paths
+       today, and failing would be a ratchet on a true state. What changes is
+       that it can no longer be READ as a pass.
+
+    Returns its census so `main` can put the numbers in the summary line that
+    `verify.py` parses, rather than verify inventing a noun for them.
+    """
     missing = []
-    checked = 0
-    for path in sorted((ROOT / "game-design").glob("*.json")):
+    checked = strings = path_shaped = dropped_space = dropped_url = 0
+    files = 0
+    # rglob, NOT glob — see repair 1 above.
+    for path in sorted((ROOT / "game-design").rglob("*.json")):
+        files += 1
         text = path.read_text(encoding="utf-8")
         data = json.loads(text)
 
         def walk(node):
-            nonlocal checked
+            nonlocal checked, strings, path_shaped, dropped_space, dropped_url
             if isinstance(node, dict):
                 for v in node.values():
                     walk(v)
             elif isinstance(node, list):
                 for v in node:
                     walk(v)
-            elif isinstance(node, str) and "/" in node and "." in node.rsplit("/", 1)[-1]:
+            elif isinstance(node, str):
+                strings += 1
+                if not ("/" in node and "." in node.rsplit("/", 1)[-1]):
+                    return
+                path_shaped += 1
                 # Only things that look like repo-relative paths, not prose
-                # containing a slash and not a URL.
-                if node.startswith(("http://", "https://")) or " " in node:
+                # containing a slash and not a URL. BOTH DROPS ARE COUNTED:
+                # a filter that does not say when it bit is indistinguishable
+                # from a finding.
+                if node.startswith(("http://", "https://")):
+                    dropped_url += 1
+                    return
+                if " " in node:
+                    dropped_space += 1
                     return
                 checked += 1
                 if not (ROOT / node).exists():
                     missing.append(f"{path.name} -> {node}")
 
         walk(data)
-    check(not missing, f"every file path a manifest names exists ({checked} checked)",
-          "; ".join(missing[:4]))
+
+    census = dict(files=files, strings=strings, pathShaped=path_shaped,
+                  checked=checked, droppedSpace=dropped_space,
+                  droppedUrl=dropped_url, missing=len(missing))
+    if checked == 0:
+        # THE WORDS, not a tick. `check()` is deliberately not called: this is
+        # neither a pass nor a fail, and printing it as either is the lie.
+        print(f"  ---- every file path a manifest names exists: "
+              f"{NOTHING_MEASURED} — 0 path(s) checked "
+              f"({path_shaped} path-shaped string(s) of {strings} in "
+              f"{files} .json file(s) walked under game-design/; "
+              f"{dropped_space} dropped for a space, {dropped_url} for a URL)")
+        return census
+    check(not missing,
+          f"every file path a manifest names exists ({checked} checked of "
+          f"{path_shaped} path-shaped, {strings} string(s), {files} file(s))",
+          missing, sep="; ")
+    return census
 
 
 def selftest():
@@ -364,12 +445,34 @@ def main():
     if "--selftest" in sys.argv:
         return selftest()
     print("shape-check — Layer 2, the parts that live in files\n")
-    clips()
+    c = clips()
     print()
-    barks()
+    b = barks()
     print()
-    referenced_files()
+    r = referenced_files()
     print()
+    # THE SUMMARY LINE `verify.py` READS. It exists because verify was
+    # compressing this whole tool to the literal string "shape ok (clips,
+    # barks, manifests)" — three nouns, no numbers, byte-identical in 259
+    # landed commit messages, and the "manifests" noun was a claim over ZERO
+    # examined paths. A noun cannot move when the repository does; a count can.
+    #
+    # `key=value`, WHITESPACE-SEPARATED, NO SPACE INSIDE ANY VALUE. Every
+    # reader in this project splits on whitespace, and `crowdBodyWidth=0.45(
+    # narrowest 0.39 ...)` once came back as `0.45(narrowest` in silence.
+    # `manifestPaths` carries the WORDS when nothing was examined, so the
+    # never-measured case cannot be read as a clean sweep.
+    #
+    # Each of these is a COUNT over this one run — not a peak, not a median.
+    paths = str(r["checked"]) if r["checked"] else NOTHING_MEASURED
+    print("shape-check: %s clipsCast=%d clipsProbed=%d clipsPending=%d "
+          "barkSlots=%d barkLines=%d manifestFiles=%d manifestStrings=%d "
+          "manifestPathShaped=%d manifestPaths=%s manifestDropped=%d "
+          "problems=%d"
+          % ("ok" if not _fails else "PROBLEMS",
+             c["cast"], c["probed"], c["pending"], b["slots"], b["lines"],
+             r["files"], r["strings"], r["pathShaped"], paths,
+             r["droppedSpace"] + r["droppedUrl"], len(_fails)))
     print("shape ok" if not _fails else f"{len(_fails)} problem(s)")
     return 1 if _fails else 0
 

@@ -710,3 +710,322 @@ from landed runs; nothing here needs a hand edit.
   is a director call, not a builder one.
 - **`ref_2` at dusk and `ref_3` on an overcast roll** remain the named light
   mismatches and the next rung for this instrument.
+
+---
+
+# R3 — the district reflection, 2026-08-26
+
+> **STATUS — LOG, 2026-08-26. NOT CURRENT once the next Windows build lands.**
+> Builder report (instrument-builder). Executes the director's conditional
+> ruling now that `c5a75c9` confirmed the reference prediction. **Nothing is
+> committed. No build dispatched.** The resident reviews and commits.
+> Files touched: `ledger/Assets/Scripts/Game/SimDirector.cs` only.
+> `Core/ValuePanel.cs` was NOT touched — no arithmetic, no formatting and no
+> key changed, so there was nothing for it to do.
+
+## 0. The one-paragraph version
+
+**One character of behaviour changed.** `TourVantage`'s default approach goes
+`az = -34f` -> `az = 34f`, which reflects five district cameras through their
+own target and turns them from looking NORTH into looking SOUTH. The whole rest
+of the 318-line diff is the regime declaration and the prediction. Ironside and
+Gullwing are untouched by construction — the branch that sets `ax = 34f; az =
+0f` still writes over the new default, so their eye is byte-identical either
+side of the break and they remain the only comparators that span it.
+
+    $ git diff -U0 ... | grep -v comment
+    -            float ax = 0f, az = -34f;
+    +            float ax = 0f, az = 34f;
+
+## 1. Which five moved, and to what
+
+Junctions and block faces below are **measured by running `Core.StreetMap`
+directly** (a scratch `net8.0` console project compiling
+`Assets/Scripts/Core/**`), never read off a comment. `camZ`/`camYaw` "was"
+values are read from the landed `game-design/sim-shots/frames.tsv` at
+`c5a75c98`, not from the source.
+
+| row | eye was | eye now | yaw | target it is 34m from |
+|---|---|---|---|---|
+| `district_hook` | (0.0, 14, **-34.0**) | (0.0, 14, **+34.0**) | 0 -> **180** | `CentreOf(hook)` (0.0, 0.0) |
+| `district_copper` | (0.0, 14, **94.8**) | (0.0, 14, **162.8**) | 0 -> **180** | `CentreOf(copper)` (0.0, 128.8) |
+| `district_downtown` | (-365.5, 14, **5.1**) | (-365.5, 14, **73.1**) | 0 -> **180** | `downtown_j1_2` (-365.5, 39.1) |
+| `district_strip` | (253.7, 14, **-34.0**) | (253.7, 14, **+34.0**) | 0 -> **180** | `CentreOf(strip)` (253.7, 0.0) |
+| `district_fairview` | (-344.0, 14, **110.9**) | (-344.0, 14, **178.9**) | 0 -> **180** | `fairview_j1_1` (-344.0, 144.9) |
+| `district_ironside` | (70.6, 14, -144.9) | **unchanged** | 270 | `ironside_j2_1` (36.6, -144.9) |
+| `district_gullwing` | (240.4, 14, -147.2) | **unchanged** | 270 | `gullwing_j0_1` (206.4, -147.2) |
+
+**`downtown` is inside the break and the file said otherwise.** Its 25 Aug
+re-site chose the CROSSING; it never changed the APPROACH, so it took the
+default `az` like the other four. The doc line above `TourVantage` read *"THE
+DEFAULT, UNCHANGED FOR FOUR OF SEVEN"* — five, not four. Corrected in place and
+kept quoted, because "four of seven" is exactly the arithmetic that would let
+the next reader put `downtown` outside the break.
+
+### What each new eye actually has to photograph — measured, not asserted
+
+North-facing (i.e. sunward) block frontage inside the 45.7-degree horizontal
+half-frustum within 120m, from `StreetMap.Blocks`:
+
+| row | sunward frontage in frustum | faces | near rank | was (shaded frontage, old eye) |
+|---|---|---|---|---|
+| `district_copper` | **284.4m** | 8 | 15.0m | 92.8m |
+| `district_hook` | **194.0m** | 8 | 8.1m | 194.0m (exact mirror) |
+| `district_downtown` | **188.9m** | 5 | 38.0m | 113.0m |
+| `district_strip` | **166.7m** | 6 | 12.7m | 166.7m (exact mirror) |
+| `district_fairview` | **70.0m** | 2 | 38.0m | 70.0m (exact mirror) |
+
+Hook, strip and fairview are exact mirrors because their block grid is
+symmetric about the district centre. Copper and downtown are not, because their
+eye reflects through a JUNCTION rather than through the centre — copper's new
+sight line runs 107m down into the Hook's north faces, and downtown's runs to a
+second rank at 72.5m.
+
+**That sum is a horizontal bound, not a ray count.** It ignores vertical
+occlusion by nearer roofs, props, vehicles and walkers. Two things it does let
+me say, both arithmetic off the 52-degree noon sun:
+
+- **Self-shadowing across an 8m avenue is negligible here.** The sunward
+  vector is `(0, +0.788, +0.616)`, so a ray crossing an 8m carriageway climbs
+  `8/0.616 * 0.788 = 10.23m`. Terraces are 6.2-10.4m (`WorldBuilder` line 966),
+  so a terrace opposite shadows only the bottom **0.17m** of the wall. The near
+  rank of all five has nothing north of it at all. `lit` will not be eaten by
+  the `SunRayM` (60m) re-cast on the terrace districts.
+- **Fairview is the weak one, for a named reason.** 70m is a third of the
+  others'; its far wall is villas 5.5-7.5m seen over its own near block's roofs
+  from 14m up, leaving a visible band of roughly 11.2-14.0 degrees of
+  depression — under 3 degrees of a 60-degree frame.
+
+## 2. Where the regime change is declared
+
+**In the code, at the emit** — a block headed `REGIME BREAK, 26 AUG — FIVE
+district_* ROWS` immediately above `$"valueBands={_valuePanel.Bands()} "` in the
+done-line emit (`SimDirector.cs`). It states the director's three things
+explicitly: (1) the pre-break `lit` column on those five carries no information
+and a `none@0` from a blind camera is not a `none@0` from a district with no
+sunlit wall; (2) EVERY other column on those rows is old-aim-only —
+`valueShadowLit`, `valueGroundSpread`, `valueOrder`, `valueAlbedoOrder`,
+`valueHorizon`, and sky/gnd/shd/oth — read the next landing as a new baseline,
+not a delta; (3) `district_ironside` and `district_gullwing` are the ONLY
+comparators that span the break, and that is why they were not re-aimed.
+
+Three further declarations sit at `TourVantage` (why the sign flipped and what
+did not move), at the gullwing/ironside branch (why those two must not be
+touched, and that the line still writes `az = 0f` over the new default), and in
+the `downtown` vantage entry.
+
+**And the break is legible in the REPORTED output, not only in the source** —
+by an instrument that already exists. `tools/frame-drift.py` conditions on
+`POSE = [camX, camZ, camYaw]` with `POSE_SAME_M = 0.5`. I did not write a
+second one.
+
+    === ACCEPTING CASE: the live ledger against itself ===
+    FrameDrift:   34 of 34 shot(s) taken from the SAME VANTAGE and comparable;
+                  0 moved, 0 unrecorded.
+
+    === REJECTING CASE: the live ledger against Identity A applied ===
+    FrameDrift:   29 of 34 shot(s) taken from the SAME VANTAGE and comparable;
+                  5 moved, 0 unrecorded.
+    FrameDrift:   district_hook     ... [CAMERA MOVED 68.0m yaw 180deg]
+    FrameDrift:   district_copper   ... [CAMERA MOVED 68.0m yaw 180deg]
+    FrameDrift:   district_ironside ... [same vantage, a normal build step]
+    FrameDrift:   district_downtown ... [CAMERA MOVED 68.0m yaw 180deg]
+    FrameDrift:   district_strip    ... [CAMERA MOVED 68.0m yaw 180deg]
+    FrameDrift:   district_fairview ... [CAMERA MOVED 68.0m yaw 180deg]
+    FrameDrift:   district_gullwing ... [same vantage, a normal build step]
+
+Accepting case first, as the rule requires, and the accepting fixture is the
+live ledger. The rejecting fixture is synthetic (`camZ + 68.0`, `camYaw 180` on
+the five and nothing else touched) — it names a pose no landed run has, so
+doing the work cannot break the check. `tools/frame-drift.py --selftest`:
+**40 passed, 0 failed.**
+
+## 3. THE FRESH PREDICTION — written before the run
+
+The full text is in `SimDirector.cs` under `PREDICTED NEXT LANDING (26 AUG)`.
+Summary:
+
+**IDENTITY A — `frames.tsv`, the cheapest check on the board.** Every
+`district_*` row's `camX` is UNCHANGED; `camZ` moves by EXACTLY **+68.0** on
+five rows and EXACTLY **0.0** on two, so the seven deltas sum to **+340.0**;
+`camYaw` goes 0 -> 180 on the five and stays 270 on the two. +68.0 is 2x the
+34m standoff and nothing else in the vantage moves. Any other delta means the
+change did something besides reflect, and every reading below is void before it
+is read. `tourResited` must stay **3/3** — the re-aim touches no junction
+lookup.
+
+**IDENTITY B — `valueRungs`.** Today **30/53**. The five blind rows each
+contribute `1of1` because two of three rungs print `?` for want of a `lit`
+band; give all five a `lit` band and each denominator goes 1 -> 3. So the
+denominator must land at **exactly 63** (+10) and `valueWeathers`' `r0.00w0.00`
+row must go `rungs20of33` -> **`20of43`**.
+
+**C — per-camera `lit`, as an order of magnitude.** All five stop printing
+`none@0`, ranked **downtown > copper ~ strip > hook >> fairview**: downtown in
+the high hundreds (12-22m offices at 38m overtop a 14m lens and fill the
+frame), copper/strip/hook low-to-mid hundreds, **fairview the plausible
+remaining failure at tens or fewer**. Medians land **0.45-0.75**, not 0.8 — the
+aerial controls are the right reference class (`lit` 0.532 and 0.685) and not
+the street refs (0.780-0.814).
+
+**D — the rungs, and the sky is the band out of place.**
+
+    sky>lit   FAILS on all five   (sky ~0.36-0.45 against lit 0.45-0.75)
+    lit>gnd   FAILS on 3-5 of 5   — LEAST CONFIDENT, and the rung the ref
+                                    prediction got wrong in the good direction
+    gnd>shd   HOLDS on all five   (it already does)
+
+So `valueRungs` **30/63** if `lit>gnd` fails everywhere, up to **35/63** if it
+holds everywhere. A numerator above 35 is arithmetically impossible from this
+change.
+
+**And the sky's COUNT should rise while its MEDIAN should not.** Looking south
+there is no skyline band at all — replaying `BuildSkyline` against today's
+`StreetMap.BoundsOf` shows slots 17-26, the whole S edge, dropped by
+`if (edge == "S") continue`, where looking north there were eleven slots at
+z 317-441. So the below-horizon miss wedge widens from ~1.3 to ~3.1 degrees.
+If the count rises and the median rises with it, that is the sky gradient and
+it is a subject finding; if the median moves while the count does not, read
+alarm 1.
+
+### The four alarms, each saying which way to suspect
+
+1. **INSTRUMENT, NOT SUBJECT — any of the five returns `litnone@0` again.**
+   70-284m of measured sunward frontage stands in each frustum at 8-38m,
+   unshadowed by the arithmetic in §1. Zero lit rays against that is not a fact
+   about a district. **Read `oth` on the same row FIRST**: if `oth` has risen by
+   hundreds while `shd` fell, `GroundSurfaceOf` is claiming the facades as
+   ground and routing them out of the wall test — the material classifier is
+   the fault, not the aim.
+2. **INSTRUMENT, NOT SUBJECT — either control moves.** Printed series for the
+   two untouched cameras, all the landed data there is (the panel is two runs
+   old), newest first:
+
+   | | `district_ironside` | `district_gullwing` |
+   |---|---|---|
+   | c5a75c9 | sky0.376@489 lit0.532@37 gnd0.720@1507 shd0.209@152 oth0.087@119 | sky0.371@550 lit0.685@82 gnd0.706@634 shd0.176@276 oth0.629@762 |
+   | b7d232b | sky0.383@524 lit0.534@36 gnd0.721@1547 shd0.202@147 oth0.212@50 | sky0.376@582 lit0.689@88 gnd0.713@636 shd0.177@274 oth0.629@724 |
+
+   Every band median moved by at most **0.007** and `lit`'s count by at most
+   **6**, across a step that included the ground-albedo landing — while `oth`
+   moved 50 -> 119, so **`oth` is the volatile one and is not evidence of
+   anything on its own**. **THAT IS A TWO-POINT SERIES AND IT IS NOT A BOUND**;
+   it is printed so the third point has something to be read against. If a
+   control's `lit` or `sky` median moves by an order more than that, nothing the
+   five say is readable, because the only comparator spanning the break has
+   itself moved.
+3. **INSTRUMENT, NOT SUBJECT — any of the five returns `3of3`, or
+   `valueRungs`' numerator lands above 35.** Nothing in this commit touches an
+   albedo, a shader, a light or the sky. A camera turning round cannot make the
+   render match the references, so a rung that starts holding was measured
+   differently.
+4. **SUBJECT, NOT INSTRUMENT — `district_fairview` lands in the low tens while
+   `ref_4` reads 162.** Those two now photograph **the same wall**: fairview's
+   block row `z[114.4,140.9]` shows its north faces at z 140.9 to `ref_4` at
+   (-344.0, 1.7, 162.9) from 22m and to `district_fairview` at
+   (-344.0, 14.0, 178.9) from 38m, both yaw 180, 16m apart on the same avenue.
+   If the street camera sees the wall and the aerial one does not, the aerial
+   vantage is looking over its own rooftops — a composition finding about that
+   vantage, NOT a lie by the instrument. Named in advance so it cannot be read
+   as one.
+
+**And one margin that is 0.1m wide.** `BlockerReachM` is 8m and
+`district_hook`'s near sunward rank stands at **8.1m**. The OLD hook eye had
+its near rank at the same 8.1m (the grid is symmetric) and landed
+`nearFrac 0.00` with no nudge — so this is the mirror, not a new risk. But if
+`shotBlocker` names `district_hook`, the step-back loop moved the camera and
+that row is not from the vantage placed here.
+
+## 4. What this confirms and what it overturns
+
+**CONFIRMS** — R2's confirming-evidence claim, checked against the landed
+verdict rather than quoted: five district rows read `litnone@0` and the two
+west-facing ones read `lit@37` and `lit@82` on `c5a75c9` (36 and 88 on
+`b7d232b`). The mechanism is five for five plus two.
+
+**OVERTURNS — "THE DEFAULT, UNCHANGED FOR FOUR OF SEVEN".** Five of seven take
+the default approach; `downtown` is one of them. Anyone counting the blind
+cameras from that sentence would have found four and left `downtown` behind.
+
+**OVERTURNS — the slot-25 reasoning in the `downtown` vantage entry.** Slot 25
+does not exist. Replaying the CURRENT `BuildSkyline` against today's
+`StreetMap.BoundsOf`: the band is an offset rectangle at z 317-441 (N edge) and
+x +482..+570 / -550..-656 (E and W edges), and the entire S edge — slots 17-26,
+which is where the old circle put slot 25 at (-317.1,-24.5) — is skipped. No
+skyline mass stands within a district or south of one at all. The old entry
+reasons about a mass the repaired function no longer places. It is now
+past-tense and the measurement replaces it.
+
+**NEW, AND IT CHANGES HOW THE `sky>lit` RUNG SHOULD BE READ.** On `c5a75c9`, at
+the same `r0.00w0.00`, in one run:
+
+    seven district rows (14m eye, ~20 deg down):  sky 0.371 .. 0.425
+    five ref rows       (1.7m eye,  5 deg down):  sky 0.596 .. 0.698
+
+**Disjoint, with a gap of 0.171 and no overlap.** The cleanest single pair
+inside that is `ref_3` and `district_ironside` — same street, same yaw 270,
+same run, same weather tag, two independent cameras either of which can move
+while the other stands still — reading 0.596 against 0.376. **I am not claiming
+pitch CAUSES it**: the two families also differ in eye height and therefore in
+occlusion, and that confound is not separated by anything landed. What the
+disjointness does establish is that **`sky`'s median is a function of the
+camera family**, so `sky>lit` is asking a different question of the aerial rows
+than of the street rows — and `valueRungs` pools both into one tally. That is a
+question for the director, not a change I made.
+
+**A THIRD POSSIBLE SITE OF THE SAME SYMPTOM, OUT OF MY SCOPE AND NOT TOUCHED.**
+`day5_noon` is a dry `r0.00w0.00` noon reading `litnone@0` against
+`gnd0.697@1068`. Its camera is not compass-aimed — it takes the player's
+position and aims along the nearest carriageway — so it is NOT the same cause.
+But the aim is `new Vector3(-toRoad.z, 0, toRoad.x)` (`SimDirector.cs` ~12753),
+which is only ONE of the two perpendiculars: for a given eye and road the
+handedness is fixed and the camera can never face the other way down the same
+street. Same family of fault, different mechanism. Flagged for the resident.
+
+**Two out-of-scope documents still describe the superseded vantage**, both
+already banner-marked: `game-design/agent-reports/tour-camera-resite.md` lines
+21 and 88 ("34m south", "eye 34m south at (-365.5, 14, 5.1), yaw 0") under a
+`STATUS — LOG, 2026-08-24. NOT CURRENT` header. Its line 91 was already
+corrected on 26 Aug for the sun sentence. Not edited here.
+
+**The greps I ran and read every hit of:** `34m south|looking north|
+north-looking` across `*.cs`/`*.md`/`*.py`; `sun.*due south|noon sun.*south|
+azimuth.*south` (every surviving hit is a quoted-as-corrected one);
+`LookRotation|transform.rotation =|Quaternion.Euler` across `SimDirector.cs`
+— the two other camera-pose sites are a close-up facing a surface normal
+(line 288) and the dusk camera, which reads `GameController.SunwardDir`
+directly and is correct by construction (line 1845). **No third copy of the
+compass fault in a camera pose.**
+
+## 5. The footer
+
+**There is no footer to paste.** `ledger/.verify-footer` does not exist on
+disk, because `verify.py` deletes it on a red run and this run is red:
+
+    $ ls -la ledger/.verify-footer
+    ls: cannot access 'ledger/.verify-footer': No such file or directory
+
+**The only red is `director_cadence`** — `DIRECTOR NOT SPAWNED: 318 changed
+line(s) ... 0 director row(s) newer than the reference` — the batch-review gate
+the resident clears, not a fault in this work. Every other clause of the same
+run was green, including the ones this pass could have broken: **0 lint errors,
+0 shape errors (191 files), Game layer compiles (185 files)** — which is the
+clause that matters here, because it is the only local proof the Unity-API edit
+type-checks — **0 filename-as-type errors, 0 namespace-as-value errors, verdict
+format ok (selftest + newest run), 40 frame-drift checks (0 failed), 4104
+CoreTests.** Those clauses are quoted from the run above and are NOT a footer;
+the footer is the thing that does not exist, and that distinction is the whole
+point of the file.
+
+## 6. What this pass did NOT do
+
+- **No bound and no gate.** One landing is not a series. Nothing here is in
+  `gates.py` and no number is compared against a constant.
+- **No new verdict key, and no `ValuePanel.cs` change.** The regime marker the
+  machine reads already exists — `camZ`/`camYaw` in `frames.tsv`, which
+  `frame-drift` already conditions on. A second one would be the
+  one-idea-two-implementations shape.
+- **Ironside and Gullwing were not re-aimed**, though the same reflection was
+  available to them. They are the cross-break controls; that was the director's
+  call and it stands.
+- **`day5_noon`'s one-handed street aim was not changed.** Reported, not fixed.

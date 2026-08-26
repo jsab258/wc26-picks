@@ -10736,8 +10736,17 @@ namespace Ledger.Game
         /// `district_gullwing`, `district_downtown` or `district_ironside`
         /// with anything landed before the commit that moved each of them.
         ///
-        /// THE DEFAULT, UNCHANGED FOR FOUR OF SEVEN: the scaled middle avenue
-        /// crossing, seen from 34m south and 14m up.
+        /// THE DEFAULT, SHARED BY FIVE OF SEVEN: the scaled middle avenue
+        /// crossing, seen from 34m NORTH and 14m up, looking SOUTH.
+        ///
+        /// *(This line read "UNCHANGED FOR FOUR OF SEVEN ... seen from 34m
+        /// south and 14m up" until 26 Aug. Both halves were false by then and
+        /// neither was a typo: the default is used by five rows, not four —
+        /// `downtown` takes the re-sited crossing but keeps the default
+        /// approach — and the approach itself is now reflected. Kept quoted,
+        /// because "four of seven" is exactly the arithmetic that would let a
+        /// reader think `downtown` was outside the 26 Aug break. It is
+        /// inside it.)*
         ///
         /// `CentreOf` is asked rather than the avenue arrays read, because
         /// those arrays are UNSCALED SOURCE DATA — reading them raw aimed four
@@ -10810,27 +10819,50 @@ namespace Ledger.Game
         /// THE NEW VANTAGES, CHOSEN BY WHAT THE FRAME CONTAINS.
         ///
         ///   downtown  Exchange Street x Court Street (`downtown_j1_2`,
-        ///             -365.5,39.1), eye 34m SOUTH at (-365.5,5.1), yaw 0 —
-        ///             the same north-looking pose as the other five, so the
-        ///             sun-relative geometry does not move. Two-sided: the
-        ///             corridor runs between block x[-426,-369.5] and block
-        ///             x[-361.5,-305] with building lines 6.6m either side of
-        ///             the carriageway. Slot 25's nearest face is 14.1m BEHIND
-        ///             the eye and 18.1m to its right, so it is out of frustum
-        ///             and its 26.6m noon shadow (34m tall, sun 52 degrees)
-        ///             falls clear of the corridor, which starts 5.1m north of
-        ///             the eye.
+        ///             -365.5,39.1), eye 34m NORTH at (-365.5,73.1), yaw 180.
+        ///             It KEEPS the default approach — the re-site chose the
+        ///             crossing, never the direction — so the 26 Aug
+        ///             reflection reaches it like the other four. Two-sided:
+        ///             the corridor runs between block x[-426.0,-369.5] and
+        ///             block x[-361.5,-305.0] with building lines 4m either
+        ///             side of the 8m carriageway, and looking SOUTH those
+        ///             blocks present their NORTH faces at z 35.1 — 38.0m
+        ///             ahead, sunward, ~34.9m of frontage each inside the
+        ///             45.7-degree half-frustum. The second rank
+        ///             (z[-25.9,0.6]) shows its north faces at 72.5m down the
+        ///             same avenue.
+        ///
+        ///             AND THE SLOT-25 PARAGRAPH THIS ENTRY USED TO CARRY IS
+        ///             GONE BECAUSE SLOT 25 IS GONE. Measured by replaying
+        ///             `BuildSkyline` against today's `StreetMap.BoundsOf`:
+        ///             the band is an offset RECTANGLE now, its 34 slots sit
+        ///             at z 317..441 on the N edge and x +482..+570 / -550..
+        ///             -656 on the E and W edges, and slots 17-26 — the whole
+        ///             S edge, which is where the old circle put slot 25 —
+        ///             are SKIPPED by `if (edge == "S") continue`. No skyline
+        ///             mass stands within a district or south of one at all.
+        ///             Two consequences, and the second is the one to hold
+        ///             on to: nothing obstructs any of the five new
+        ///             south-looking eyes, and nothing BACKS them either —
+        ///             looking south there is no silhouette band, so their
+        ///             far field is the docks, the shore at `GroundMinZ`
+        ///             (-224) and then rays that hit nothing.
         ///
         ///             THIS ENTRY USED TO SAY THE NOON AZIMUTH WAS DUE SOUTH
         ///             AND THE SHADOW FELL EAST. Both were wrong and the
         ///             conclusion survived them: `UpdateSun` puts the noon
         ///             azimuth at 180 with `SunwardDir` +Z, so the sun is
         ///             NORTH and every noon shadow falls due SOUTH — slot 25
-        ///             sits at z[-42.1,-6.9] and its shadow runs to z -68.7,
-        ///             away from a corridor that begins at z 5.1. Corrected
+        ///             sat at z[-42.1,-6.9] and its shadow ran to z -68.7,
+        ///             away from a corridor that began at z 5.1. Corrected
         ///             rather than deleted because the same sentence in
         ///             `RefVantage` aimed three cameras at the shaded side of
-        ///             the street; see THE SUN, MEASURED there.
+        ///             the street, and the SAME sentence in this file's
+        ///             `TourVantage` aimed five more — which is the 26 Aug
+        ///             repair. One false sentence, three sites, and the third
+        ///             was found only because somebody greped the second.
+        ///             (Past tense throughout: that corridor and that slot
+        ///             both belong to vantages this file no longer uses.)
         ///   gullwing  Promenade x Bathhouse Row (`gullwing_j0_1`,
         ///             206.4,-147.2), eye 34m EAST at (240.4,-147.2), yaw 270.
         ///             The approach turns because Gullwing's ONLY two-sided
@@ -10840,7 +10872,15 @@ namespace Ledger.Game
         ///             blocks x[210.4,271.2] flank the road for 27m, and slot
         ///             11 is 22.6m BEHIND the lens.
         ///
-        /// PREDICTED NEXT LANDING — predictions, not measurements (rule 2),
+        /// PREDICTED LANDING FOR THE 25 AUG RE-SITE — SETTLED, AND KEPT AS
+        /// THE RECORD OF A PREDICTION THAT WAS SCORED. Both landed and both
+        /// were read; the outcome is three paragraphs down. It is NOT the
+        /// prediction for the 26 Aug reflection — that one is under
+        /// PREDICTED NEXT LANDING (26 AUG) at the end of this note, and
+        /// `downtown`'s row here (camZ 5.1, camYaw 0) names a vantage that no
+        /// longer exists. Do not read the two blocks as one.
+        ///
+        /// Predictions, not measurements (rule 2),
         /// from a box model of this same 84-ray grid that reproduces five of
         /// the seven landed rows within 0.10 on `farFrac` and 3m on depth
         /// (hook, copper, strip, fairview, downtown). It over-counts the
@@ -10966,6 +11006,190 @@ namespace Ledger.Game
         /// legible — today's frame cannot tell "Ironside is empty" from
         /// "Ironside is behind a crane".
         ///
+        /// ================================================================
+        /// PREDICTED NEXT LANDING (26 AUG) — THE DISTRICT REFLECTION.
+        /// ================================================================
+        /// Predictions, not measurements (rule 2), written BEFORE the run.
+        /// The ref reflection's prediction is the model this copies: an
+        /// IDENTITY that must balance, a per-camera expectation, and alarms
+        /// that say WHICH WAY TO SUSPECT. Its one miss was in the good
+        /// direction — it expected `lit>gnd` to fail on all three re-aimed
+        /// refs and the rung HELD, so the subject was healthier than
+        /// predicted and the instrument did not misreport. That is the
+        /// distinction to keep when scoring this one.
+        ///
+        /// IDENTITY A — `frames.tsv`, and it is the cheapest check on the
+        /// board. Every `district_*` row's `camX` is UNCHANGED. `camZ` moves
+        /// by EXACTLY +68.0 on five rows and EXACTLY 0.0 on two, so the seven
+        /// deltas sum to +340.0:
+        ///
+        ///     hook      -34.0 -> +34.0     camYaw 0   -> 180
+        ///     copper     94.8 -> 162.8     camYaw 0   -> 180
+        ///     downtown    5.1 ->  73.1     camYaw 0   -> 180
+        ///     strip     -34.0 -> +34.0     camYaw 0   -> 180
+        ///     fairview  110.9 -> 178.9     camYaw 0   -> 180
+        ///     ironside -144.9 -> -144.9    camYaw 270 -> 270   CONTROL
+        ///     gullwing -147.2 -> -147.2    camYaw 270 -> 270   CONTROL
+        ///
+        /// +68.0 is 2x the 34m standoff and nothing else in the vantage
+        /// moves, which is what "a reflection, not a new composition" means
+        /// arithmetically. ANY other delta — a moved camX, a camZ off by a
+        /// metre, a camYaw that is not 180 or 270 — means the change did
+        /// something besides reflect, and every reading below is void before
+        /// it is read. `tourResited` must stay 3/3: the re-aim touches no
+        /// junction lookup at all.
+        ///
+        /// IDENTITY B — `valueRungs`. Today it is 30/53, and the five blind
+        /// rows each contribute `1of1` because two of their three rungs print
+        /// `?` for want of a `lit` band. Give all five a `lit` band and each
+        /// denominator goes 1 -> 3. So the DENOMINATOR must land at EXACTLY
+        /// 63 (+10, two per re-aimed row) and the r0.00w0.00 row of
+        /// `valueWeathers` must go `rungs20of33` -> `20of43`. The NUMERATOR
+        /// is the interesting half and is predicted separately in D.
+        ///
+        /// WHAT EACH CAMERA HAS TO PHOTOGRAPH, MEASURED not assumed — run
+        /// against `Core.StreetMap` directly, north-facing block frontage
+        /// inside the 45.7-degree horizontal half-frustum within 120m:
+        ///
+        ///     downtown  188.9m over 5 faces; near rank 38.0m, offices 12-22m
+        ///     copper    284.4m over 8 faces; near rank 15.0m
+        ///     hook      194.0m over 8 faces; near rank  8.1m
+        ///     strip     166.7m over 6 faces; near rank 12.7m
+        ///     fairview   70.0m over 2 faces; near rank 38.0m, villas 5.5-7.5m
+        ///
+        /// THAT SUM IS A HORIZONTAL BOUND AND NOT A RAY COUNT — it ignores
+        /// vertical occlusion by nearer roofs, props, vehicles and walkers.
+        /// Two things it lets me say that are not guesses, both arithmetic
+        /// off the 52-degree noon sun:
+        ///
+        ///   * SELF-SHADOWING ACROSS AN 8m AVENUE IS NEGLIGIBLE HERE. The
+        ///     sunward ray climbs 0.788 per 0.616 of north, so it gains
+        ///     10.23m of height crossing an 8m carriageway. A terrace across
+        ///     the street is 6.2-10.4m, so it shadows only the bottom 0.17m
+        ///     of the wall opposite. The near rank of all five has nothing
+        ///     north of it at all. `lit` will NOT be eaten by the `SunRayM`
+        ///     re-cast on the terrace districts. (Downtown's SECOND rank is
+        ///     the exception — 22m offices 8m north shadow everything below
+        ///     ~11.8m — and it is occluded by the first rank anyway.)
+        ///   * FAIRVIEW IS THE WEAK ONE AND IT IS WEAK FOR A NAMED REASON.
+        ///     70m of frontage is a third of the others', and its far wall
+        ///     is villas 5.5-7.5m seen over its own near block's roofs from
+        ///     14m up: the visible band is roughly 11.2-14.0 degrees of
+        ///     depression, under 3 degrees of a 60-degree frame.
+        ///
+        /// C — PER-CAMERA `lit`, AS AN ORDER OF MAGNITUDE. I predict all five
+        /// stop printing `none@0`, ranked downtown > copper ~ strip > hook >>
+        /// fairview, with downtown in the high hundreds (a 12-22m office wall
+        /// at 38m from a 14m lens overtops the eye and fills the frame),
+        /// copper/strip/hook in the low-to-mid hundreds, and FAIRVIEW THE
+        /// PLAUSIBLE REMAINING FAILURE at tens or fewer. The aerial controls
+        /// are the reference class, not the refs: `lit` medians on
+        /// `district_ironside` and `district_gullwing` are 0.532 and 0.685
+        /// against the street-level refs' 0.780-0.814, so aerial lit is
+        /// DIMMER and the five should land 0.45-0.75, not 0.8.
+        ///
+        /// D — WHAT THE RUNGS WILL SAY, AND THE SKY IS THE BAND OUT OF
+        /// PLACE. Across the five refs the landed order is lit > gnd > sky >
+        /// shd where the references want sky > lit > gnd > shd: two of three
+        /// rungs hold and the one failing on all five is `sky>lit`. On the
+        /// districts I predict it fails HARDER, and the evidence is that on
+        /// c5a75c9, in ONE run at the same `r0.00w0.00`, the two camera
+        /// families' `sky` medians are DISJOINT with a 0.171 gap:
+        ///
+        ///     seven district rows (14m eye, ~20 deg down)  sky 0.371..0.425
+        ///     five ref rows       (1.7m eye,  5 deg down)  sky 0.596..0.698
+        ///
+        /// The cleanest single pair inside that is `ref_3` and
+        /// `district_ironside` — same street, same yaw 270, same run, same
+        /// weather tag, two independent cameras either of which can move
+        /// while the other stands still — reading 0.596 against 0.376.
+        ///
+        /// I AM NOT CLAIMING PITCH CAUSES IT, and the difference matters. The
+        /// two families differ in eye HEIGHT as well as pitch, and therefore
+        /// in what occludes them, and nothing landed separates those. What
+        /// the disjointness does establish is that `sky`'s median is a
+        /// function of the CAMERA FAMILY — so `sky>lit` asks a different
+        /// question of an aerial row than of a street row, while
+        /// `valueRungs` pools both into one tally. That is a question for the
+        /// director and nothing here acts on it. So:
+        ///
+        ///     sky>lit   FAILS on all five (sky ~0.36-0.45 vs lit 0.45-0.75)
+        ///     lit>gnd   FAILS on 3-5 of the five — gnd is 0.747-0.796 on
+        ///               these rows and the aerial controls read lit 0.532
+        ///               and 0.685, gullwing's only 0.021 under its ground.
+        ///               THIS IS THE RUNG I AM LEAST SURE OF and it is the
+        ///               one the ref prediction got wrong in the good
+        ///               direction.
+        ///     gnd>shd   HOLDS on all five (it already does, `1of1` today)
+        ///
+        /// So the numerator: `valueRungs` 30/53 -> 30/63 if `lit>gnd` fails
+        /// everywhere, up to 35/63 if it holds everywhere. A numerator ABOVE
+        /// 35 is arithmetically impossible from this change and is alarm 3.
+        ///
+        /// AND THE SKY CLAIM HAS A SECOND HALF WORTH LANDING: looking south
+        /// there is NO skyline band at all (slots 17-26, the whole S edge,
+        /// are skipped) where looking north there were eleven slots at z
+        /// 317-441. The far field of all five becomes docks, then the shore
+        /// at `GroundMinZ` -224, then rays that hit nothing. `sky`'s COUNT
+        /// should therefore rise modestly on all five — the below-horizon
+        /// miss wedge widens from ~1.3 to ~3.1 degrees — while its MEDIAN
+        /// does not move much, because pitch is what sets which slice of sky
+        /// is sampled and pitch does not change. If the count rises and the
+        /// median rises WITH it, that is the sky gradient talking and it is a
+        /// subject finding; if the median moves while the count does not,
+        /// read alarm 1.
+        ///
+        /// THE FOUR ALARMS, EACH SAYING WHICH WAY TO SUSPECT.
+        ///
+        ///  1. INSTRUMENT, NOT SUBJECT — any of the five returns `litnone@0`
+        ///     again. Between 70m and 284m of measured north-facing frontage
+        ///     stands inside each frustum at 8-38m, unshadowed by the
+        ///     arithmetic above. Zero lit rays against that is not a fact
+        ///     about a district. Read `oth` on the same row FIRST: if `oth`
+        ///     has risen by hundreds while `shd` fell, `GroundSurfaceOf` is
+        ///     claiming the facades as ground and routing them out of the
+        ///     wall test — the material classifier is the fault, not the aim.
+        ///  2. INSTRUMENT, NOT SUBJECT — either CONTROL moves. `ironside` and
+        ///     `gullwing` have a byte-identical eye and yaw across this
+        ///     commit. Their whole landed series is two runs long (b7d232b,
+        ///     c5a75c9) and across it every band median moved by at most
+        ///     0.007 and `lit`'s count by at most 6 (36->37, 88->82) — while
+        ///     `oth` moved 50->119, so `oth` is the volatile one and is not
+        ///     evidence of anything on its own. THAT IS A TWO-POINT SERIES
+        ///     AND IT IS NOT A BOUND; it is printed here so the third point
+        ///     has something to be read against. If a control's `lit` or
+        ///     `sky` median moves by an order more than that, nothing the
+        ///     five say is readable, because the only comparator spanning the
+        ///     break has itself moved.
+        ///  3. INSTRUMENT, NOT SUBJECT — any of the five returns `3of3`, or
+        ///     `valueRungs`' numerator lands above 35. Nothing in this commit
+        ///     touches an albedo, a shader, a light or the sky. A camera
+        ///     turning round cannot make the render match the references, so
+        ///     a rung that starts holding was measured differently.
+        ///  4. SUBJECT, NOT INSTRUMENT — `district_fairview` lands in the low
+        ///     tens while `ref_4` reads 162. Those two now photograph THE
+        ///     SAME WALL: fairview's block row z[114.4,140.9] shows its north
+        ///     faces at z 140.9 to `ref_4` at (-344.0,1.7,162.9) from 22m and
+        ///     to `district_fairview` at (-344.0,14.0,178.9) from 38m, both
+        ///     yaw 180, 16m apart on the same avenue. If the street camera
+        ///     sees the wall and the aerial one does not, the aerial vantage
+        ///     is looking over its own rooftops — a composition finding about
+        ///     that vantage, NOT a lie by the instrument. Named in advance so
+        ///     it cannot be read as one.
+        ///
+        /// AND ONE MARGIN THAT IS 0.1m WIDE, NAMED BECAUSE IT IS THIN.
+        /// `BlockerReachM` is 8m and `district_hook`'s near sunward rank
+        /// stands at 8.1m. The OLD hook eye had its near rank at the same
+        /// 8.1m — the block grid is symmetric about the district centre, so
+        /// this is the mirror and not a new risk — and it landed `nearFrac
+        /// 0.00` with no nudge. But if `shotBlocker` names `district_hook`,
+        /// the step-back loop moved the camera and the row is not from the
+        /// vantage placed here. `copper` and `downtown` are the two whose
+        /// frontage is NOT a mirror of the old view (92.8m -> 284.4m and
+        /// 113.0m -> 188.9m) because their eye is reflected through their
+        /// junction rather than through the district centre; hook, strip and
+        /// fairview are exact mirrors at 194.0m, 166.7m and 70.0m.
+        ///
         /// NOT VERIFIABLE HERE. The Game layer does not compile in this
         /// container and ShapeCheck is reference-independent, so the Unity
         /// API surface (`StreetMap.Node`, the transform writes) is first
@@ -11045,8 +11269,18 @@ namespace Ledger.Game
         {
             Ledger.Core.StreetMap.CentreOf(d, out var dcx, out var dcz);
             float tx = (float)dcx, tz = (float)dcz;
-            // The default approach: 34m south of the target, looking north.
-            float ax = 0f, az = -34f;
+            // THE DEFAULT APPROACH: 34m NORTH of the target, looking SOUTH.
+            //
+            // It was 34m SOUTH looking NORTH from the day this was written
+            // until 26 Aug, and that sign is the whole of `THE SUN, REFLECTED`
+            // above: the noon sun stands in the +Z sky, so only NORTH-facing
+            // walls are ever lit, and a north-looking camera photographs the
+            // shaded side of every wall in the district. Five of the seven
+            // rows read `litnone@0` in every landed run because of this one
+            // sign. Nothing else moves: the 34m standoff MAGNITUDE, the 14m
+            // eye, the 1.6m aim point and the middle-crossing target are all
+            // unchanged, so the frame is the same street from the other end.
+            float ax = 0f, az = 34f;
 
             string crossing = d.Id == "downtown" ? "downtown_j1_2"
                             : d.Id == "gullwing" ? "gullwing_j0_1"
@@ -11066,6 +11300,19 @@ namespace Ledger.Game
                     // east-west, so a north-looking camera there frames one
                     // row of terraces and a field (Gullwing) or a crane at
                     // arm's length (Ironside).
+                    //
+                    // THESE TWO ARE THE CROSS-BREAK CONTROLS AND MUST NOT BE
+                    // RE-AIMED. They already look away from north (yaw 270)
+                    // and already find lit wall — 37 and 82 rays on c5a75c9 —
+                    // so the sign fault above never touched them. They are
+                    // the ONLY two `district_*` rows whose series spans the
+                    // 26 Aug break, which is what lets a reader of the other
+                    // five tell "the world changed" from "the instrument
+                    // changed". Keeping them is worth more than uniformity;
+                    // re-aiming them would leave the break with no comparator
+                    // at all. Note this line still writes `az = 0f` over the
+                    // new +34 default, so their eye is byte-identical to
+                    // every run before the break.
                     if (d.Id == "gullwing" || d.Id == "ironside") { ax = 34f; az = 0f; }
                 }
             }
@@ -16078,6 +16325,52 @@ namespace Ledger.Game
                       // band, which is why `valueGroundSpread` — a p10..p90
                       // over the same samples — is a separate row rather than
                       // a summary of this one.
+                      //
+                      // ================================================
+                      // REGIME BREAK, 26 AUG — FIVE `district_*` ROWS.
+                      // ================================================
+                      // `district_hook`, `district_copper`,
+                      // `district_downtown`, `district_strip` and
+                      // `district_fairview` were photographed from 34m SOUTH
+                      // looking NORTH in every run up to and including
+                      // c5a75c9, and are photographed from 34m NORTH looking
+                      // SOUTH from this commit on. `TourVantage`'s note says
+                      // why. THREE THINGS A READER OF THE OLD ROWS MUST BE
+                      // TOLD, because none of them is visible in the numbers:
+                      //
+                      //  1. THE PRE-BREAK `lit` COLUMN ON THOSE FIVE ROWS
+                      //     CONTAINS NO INFORMATION. It is `none@0` in every
+                      //     landed run, and that is a fact about which way
+                      //     the camera pointed, not about the district. Do
+                      //     not read it as "these districts have no sunlit
+                      //     wall", do not average it, do not put it in a
+                      //     series beside the post-break value — a `none@0`
+                      //     from a camera that could not see lit wall and a
+                      //     `none@0` from a district that has none are the
+                      //     same three characters and different findings.
+                      //  2. EVERY OTHER COLUMN ON THOSE FIVE ROWS IS
+                      //     OLD-AIM-ONLY, not merely the `lit` one. sky, gnd,
+                      //     shd, oth, `valueShadowLit`, `valueGroundSpread`,
+                      //     `valueOrder`, `valueAlbedoOrder` and
+                      //     `valueHorizon` all describe a different half of a
+                      //     different street. Read the next landing as a NEW
+                      //     BASELINE for those five rows, not as a delta.
+                      //  3. `district_ironside` AND `district_gullwing` ARE
+                      //     THE ONLY COMPARATORS THAT SPAN THE BREAK. They
+                      //     look west, they were not touched, and their eye
+                      //     is byte-identical either side of it. Anything
+                      //     that has to be told apart across 26 Aug — "did
+                      //     the world change or did the instrument?" — is
+                      //     asked of those two rows and of no others. That is
+                      //     why they were not re-aimed even though the same
+                      //     reflection was available to them.
+                      //
+                      // The ref five broke one commit earlier, on c5a75c9,
+                      // for the same reason: `ref_1`, `ref_4` and `ref_5`
+                      // reset there and `ref_2`/`ref_3` are that break's
+                      // controls. Two breaks, two commits, four controls
+                      // between them — and the seven non-district shots
+                      // (`day*`, `street`) have never moved and span both.
                       $"valueBands={_valuePanel.Bands()} " +
                       // SHADOW OVER LIT: a ratio of two medians from ONE
                       // frame at ONE instant over DISJOINT sample sets, with
