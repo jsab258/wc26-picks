@@ -99,6 +99,27 @@ echo   repository : %REPO%
 echo   workspace  : %WS%
 echo.
 
+REM --- UPDATE FIRST. This did not used to happen, and it cost a whole run:
+REM     the sender was wired in the repository while this PC kept running the
+REM     copy it had, so the pictures were made and nothing was sent and the
+REM     window said to paste a file by hand. REPICK.bat has pulled since the
+REM     day it was written; one idea, two implementations, and this was the
+REM     one nobody looked at.
+REM     A FAILED PULL IS NOT FATAL - the pictures are worth making either way -
+REM     but it is SAID, because "ran the old code" and "ran the new code" must
+REM     not look identical in the only window anybody reads.
+if defined REPO (
+  echo   [0/3] Updating the project...
+  pushd "%REPO%"
+  git pull origin claude/game-dev-ai-automation-2h67ix
+  if errorlevel 1 (
+    echo         PULL FAILED - carrying on with the copy already on this PC.
+    echo         If this run behaves like an older one, that is why.
+  )
+  popd
+  echo.
+)
+
 REM --- step 1: what is this machine? -----------------------------------
 echo   [1/3] Looking at this PC...
 set "MACHINE=%WS%\machine.json"

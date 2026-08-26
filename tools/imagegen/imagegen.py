@@ -2724,6 +2724,15 @@ def selftest():
     check("the .bat still asks for a HUMAN look at the pictures - the one part "
           "no push can do",
           "recognisable face" in done_para, done_para[-200:])
+    # AND IT MUST UPDATE ITSELF FIRST. `REPICK.bat` has pulled since the day it
+    # was written and this one never did, so a fix landing in the repository
+    # could not reach the PC that runs it - the sender was wired here while
+    # that machine kept running the copy it had. One idea, two implementations,
+    # and the one nobody looked at is the one missing the line.
+    check("the .bat pulls before generating - a fix in the repo must reach the "
+          "PC that runs it (text check)",
+          "git pull origin" in mb and "PULL FAILED" in mb,
+          "git pull origin" in mb)
 
     # 11b. AND THE GATE THROUGH main(), WITH THE NETWORK BOOBY-TRAPPED. The
     #      check above tests the decision; this tests that the decision is
