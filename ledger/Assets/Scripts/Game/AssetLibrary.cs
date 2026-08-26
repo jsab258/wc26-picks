@@ -1053,6 +1053,27 @@ namespace Ledger.Game
         /// `countAbsences: false` for the same reason `GroundAlbedoEmit` uses
         /// it: this is a reading, not an arrival.
         public static float GroundSourceAlbedo(Material m)
+            => SourceAlbedoOf(m);
+
+        /// THE SAME NUMBER FOR ANY MATERIAL A RAY HIT, WITH A NAME THAT DOES
+        /// NOT CLAIM THE SURFACE IS GROUND.
+        ///
+        /// `GroundSourceAlbedo` has never had a line of ground-specific logic
+        /// in it — its body was `MatAlbedo(m, false)` — but `skyGainBands`
+        /// needs the albedo of a FACADE, and calling a function called
+        /// `GroundSourceAlbedo` on a wall is how a name stops describing what
+        /// it does. So the body moved here and the old name delegates: ONE
+        /// implementation, two names, and the ground one keeps its own
+        /// docstring above because that is where the LINEAR argument and the
+        /// `Material()`-builds-on-a-miss argument are written down. Both
+        /// apply here unchanged.
+        ///
+        /// -1 FOR "NO MATERIAL", never 0. A ray that hit an object with no
+        /// material has no authored value, and a zero would divide into an
+        /// enormous gain that reads as a finding; `SkyGain`'s caller tests the
+        /// sign and files the ray with `srcKnown: false` so it prints the
+        /// words instead.
+        public static float SourceAlbedoOf(Material m)
             => m == null ? -1f : MatAlbedo(m, false);
 
         /// The `groundGainBy` / `groundGainOf` / `groundGainRays` triple —

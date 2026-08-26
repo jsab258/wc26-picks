@@ -28,6 +28,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent
 
@@ -133,7 +134,7 @@ def shape():
         m.group(2), m.group(1), cond)
 
 
-def lint():
+def lint(roots=None):
     # ASSETS/EDITOR IS PASSED AND, IN THIS TOOL, NOT WALKED — measured 26 Aug,
     # and the paragraph that used to sit here said the opposite. It read
     # "ASSETS/EDITOR TOO. It was checked by nothing: lint and ShapeCheck both
@@ -151,7 +152,16 @@ def lint():
     # `lint-usings.py`, which this agent does not own; what is fixed here is
     # the reporting, so the gap is a number in every commit message instead of
     # a sentence nobody checked.
-    roots = [ROOT / "Assets" / "Scripts", ROOT / "Assets" / "Editor"]
+    #
+    # `roots` IS A PARAMETER SO A FIXTURE CAN OWN BOTH HALVES OF THE FRACTION.
+    # The footer-string fixture below stubs the TOOL's output ("checked N
+    # files") but `present` was counted from the live tree, so the accepting
+    # case asserted a property of THIS REPOSITORY — 191 files — and went red
+    # the moment two agents added six between them, reporting `FOOTER STRINGS
+    # BROKEN` for a repository that had grown. That is the pin this batch
+    # exists to remove, written into the batch that removed the other five.
+    # Live callers pass nothing and get the real pair.
+    roots = roots or [ROOT / "Assets" / "Scripts", ROOT / "Assets" / "Editor"]
     code, out = run(["python3", str(ROOT / "lint-usings.py")] + [str(r) for r in roots])
     m = re.search(r"checked (\d+) files, (\d+) missing-using", out)
     if not m:
@@ -518,11 +528,18 @@ def prop_reach():
                                             tail="selftest did not pass")
     code, rep = run(["python3", str(tool)])
     head = rep.splitlines()[0] if rep.strip() else "prop-reach produced no report"
-    n = len([l for l in out.splitlines() if "passed" in l])
+    # THE SELFTEST'S OWN DENOMINATOR, WHICH THIS LINE COMPUTED AND THREW AWAY
+    # UNTIL 26 AUG — `n` was assigned and never used, so a selftest that ran
+    # ZERO rungs and one that ran seventeen reached this footer identically.
+    # That is `lint-nested` exiting 0 byte-identically for a full sweep and for
+    # a sweep of nothing, in the file that polices it.
+    m = re.search(r"prop-reach selftest: (\d+) passed", out)
+    rungs = ("%s rung(s)" % m.group(1)) if m else NOTHING_MEASURED
     unreached = [l.strip() for l in rep.splitlines()
                  if l.strip().startswith("ENTIRE KIT UNREACHED")]
     tail = (" — " + unreached[0]) if unreached else ""
-    return True, head.replace("prop-reach: ", "prop reach ok, ") + tail
+    return True, ("%s [selftest %s]%s"
+                  % (head.replace("prop-reach: ", "prop reach ok, "), rungs, tail))
 
 
 def ref_bench():
@@ -1185,7 +1202,32 @@ def workflow_size():
                   if m else "workflow steps ok")
 
 
-def convo_probe():
+def _convo_wanted(src=None):
+    """The character ids the probe is WRITTEN to load, read from the one copy.
+
+    `ConvoProbe/Program.cs` holds `var want = new[] { "lena", "rocco", ... }`
+    and this file held `if m.group(1) != "4"` — the same constant, in two
+    languages, and the one that BLOCKS THE COMMIT was the copy in Python. Add a
+    fifth probed character and verify goes red saying the probe is broken,
+    which is a sentence about a tool describing a deliberate change to the
+    cast. Derived now, so the C# list is the only place the cast is stated.
+
+    Returns (ids, why-not). A parse that finds nothing is a FAILING check and
+    never a quiet pass: `want` moving or being renamed must not read as a
+    healthy probe of zero characters (rule 3b).
+    """
+    path = pathlib.Path(src) if src else ROOT / "ConvoProbe" / "Program.cs"
+    if not path.exists():
+        return [], "no such file: %s" % path.name
+    m = re.search(r"var\s+want\s*=\s*new\[\]\s*\{([^}]*)\}",
+                  path.read_text(encoding="utf-8", errors="replace"))
+    if not m:
+        return [], "no `var want = new[] {...}` in %s" % path.name
+    ids = re.findall(r'"([^"]+)"', m.group(1))
+    return ids, "" if ids else "the want list parsed empty"
+
+
+def convo_probe(src=None):
     """The conversation probe finds the real cards, without spending anything.
 
     This is the one tool here that costs Jafar money, and its whole job is to
@@ -1200,18 +1242,32 @@ def convo_probe():
     characters and a market trader; and a spoken-lines check that knew only one
     of the two conventions in this repo and reported three good cards as
     voiceless."""
+    want, why = _convo_wanted(src)
+    if not want:
+        # THE BOUND IS DERIVED, SO A FAILED DERIVATION IS RED. A tool that
+        # cannot find out what it is checking has not checked anything.
+        return False, ("CONVO PROBE: %s about the cast — could not read the "
+                       "card list (%s)" % (NOTHING_MEASURED, why))
     code, out = run(["dotnet", "run", "--project", str(ROOT / "ConvoProbe"), "--", "--dry"],
                     cwd=str(ROOT.parent))
     m = re.search(r"(\d+) card\(s\), (\d+) scripted turns each = (\d+) calls", out)
     if not m:
         return False, "CONVO PROBE did not report (build failure?)"
-    if m.group(1) != "4":
-        return False, "CONVO PROBE found %s cards, expected 4" % m.group(1)
+    # PER ID, NOT PER COUNT. `!= "4"` could only ever say a number changed;
+    # this says WHICH character the probe failed to find, which is the
+    # difference between "the cast grew" and "Ada's card moved".
+    found = re.findall(r"\bid=(\S+)", out)
+    missing = [w for w in want if w not in found]
+    if missing:
+        return False, ("CONVO PROBE found %s of %d card(s) named in "
+                       "ConvoProbe/Program.cs; no card for %s"
+                       % (m.group(1), len(want), _cap(missing, keep=3, sep=", ")))
     voiceless = [l.split()[0] for l in out.splitlines() if "lines=NO" in l]
     if voiceless:
         return False, "CONVO PROBE: no spoken lines for " + _cap(
             voiceless, keep=3, sep=", ")
-    return True, "%s probe calls staged" % m.group(3)
+    return True, ("%s probe calls staged (%s of %d card(s) wanted, ids read "
+                  "from ConvoProbe)" % (m.group(3), m.group(1), len(want)))
 
 
 def shape_files():
@@ -3875,9 +3931,66 @@ def _strings_selftest():
             run = real_run
 
     # ---------------------------------------------------------- ACCEPTING
-    ok, s = with_out(lint, "checked 191 files, 0 missing-using/collision error(s)")
-    say(ok and "191 file(s) walked of 191 present" in s and "UNWALKED" not in s,
-        "lint: a clean walk carries its file count and claims no drop", s)
+    # THE FIXTURE OWNS BOTH HALVES OF THE FRACTION, and this is the sixth
+    # instance of tonight's ruled fault rather than a tidy-up.
+    #
+    # WHAT STOOD HERE, kept in words because it read as careful:
+    #
+    #     ok, s = with_out(lint, "checked 191 files, 0 missing-using ...")
+    #     say(ok and "191 file(s) walked of 191 present" in s and ...)
+    #
+    # The stub supplied the WALKED count and `lint` counted PRESENT off the
+    # live tree, so the accepting case asserted that this repository contains
+    # 191 `.cs` files. Two agents added six tonight, and the fixture whose own
+    # batch was about making denominators honest went red saying `FOOTER
+    # STRINGS BROKEN` — an artifact the project intends to keep growing, used
+    # as an accepting fixture, failing for growth. Updating 191 to 192 is the
+    # same fault with a fresh expiry date; the world becomes synthetic instead.
+    #
+    # A LADDER OF THREE RUNGS OVER ONE SYNTHETIC TREE, one contributor toggled
+    # — the walked count the tool claims — read against a `present` this
+    # fixture built and can count. The middle and top rungs had NO fixture at
+    # all before today: `lint`'s two drop clauses were written, never run, and
+    # a clause that has never been printed is the `lint-shadow` selftest that
+    # fell through to the live sweep and exited 0.
+    SYNTH_PRESENT = 8            # what `with_synth_tree` puts on disk
+
+    def with_synth_tree(walked, errors=0):
+        """`lint` against a tree THIS FIXTURE BUILT, so both halves of
+        "N walked of M present" are synthetic and neither moves when the
+        repository does. ONE implementation, used by every lint rung
+        including the rejecting one below."""
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td) / "SynthScripts"
+            (root / "obj").mkdir(parents=True)
+            for i in range(SYNTH_PRESENT):
+                (root / ("Synth%d.cs" % i)).write_text("// synthetic\n")
+            # Excluded by the same obj/bin rule the walk uses — present on
+            # disk, absent from BOTH counts, so the fixture pins that
+            # agreement too. Break the exclusion in either place and rung 1
+            # goes red (checked, 26 Aug).
+            (root / "obj" / "SynthGenerated.cs").write_text("// synthetic\n")
+            return with_out(lambda: lint(roots=[root]),
+                            "checked %d files, %d missing-using/collision error(s)"
+                            % (walked, errors))
+
+    ok, s = with_synth_tree(SYNTH_PRESENT)
+    say(ok and "%d file(s) walked of %d present" % (SYNTH_PRESENT, SYNTH_PRESENT) in s
+        and "UNWALKED" not in s,
+        "lint rung 1 — ACCEPTING: walked == present, so no drop clause "
+        "and obj/ is excluded from both", s)
+
+    ok, s = with_synth_tree(SYNTH_PRESENT - 2)
+    say(ok and "%d file(s) walked of %d present" % (SYNTH_PRESENT - 2, SYNTH_PRESENT) in s
+        and "2 file(s) of the 1 root(s) given went UNWALKED" in s,
+        "lint rung 2 — a short walk says how many it dropped, and stays "
+        "green: an unwalked file is not a lint error", s)
+
+    ok, s = with_synth_tree(SYNTH_PRESENT + 90)
+    say(ok and "does not describe the tree" in s
+        and "counted %d file(s) where %d are present" % (SYNTH_PRESENT + 90, SYNTH_PRESENT) in s,
+        "lint rung 3 — a denominator LARGER than the tree is called out by "
+        "name: the lint-static 560-against-29 shape", s)
 
     ok, s = with_out(shadow,
                      "lint-shadow: 0 shadowed Core types (285 type(s), 88 Game file(s))")
@@ -3982,10 +4095,50 @@ def _strings_selftest():
     say("NOTE abbrev is 8 chars and run files are 7" in s,
         "runs map: an 8-char abbrev against 7-char stems still warns", s)
 
+    # THE CAST IS DERIVED, SO A FIFTH CHARACTER IS GREEN. `convo_probe` held
+    # `if m.group(1) != "4"` — a second copy of `ConvoProbe/Program.cs`'s
+    # `want = new[] { "lena", "rocco", "ada", "sam" }`, in the language that
+    # blocks the commit rather than the one that states the cast. This fixture
+    # is FIVE synthetic characters precisely because that is the case the old
+    # bound turned red while saying the probe was broken.
+    def with_synth_cast(ids, found, turns=10):
+        with tempfile.TemporaryDirectory() as td:
+            src = pathlib.Path(td) / "Program.cs"
+            src.write_text('var want = new[] { %s };\n'
+                           % ", ".join('"%s"' % i for i in ids))
+            dry = "".join("  Synth id=%s tier=ambient lines=yes\n" % f for f in found)
+            dry += ("ConvoProbe --dry: %d card(s), %d scripted turns each = "
+                    "%d calls if run for real.\n" % (len(found), turns, len(found) * turns))
+            return with_out(lambda: convo_probe(src=src), dry)
+
+    _cast = ["synthone", "synthtwo", "synththree", "synthfour", "synthfive"]
+    ok, s = with_synth_cast(_cast, _cast)
+    say(ok and "5 of 5 card(s) wanted" in s and "50 probe calls staged" in s,
+        "convo probe: the cast size is READ from the C# want list, so a fifth "
+        "character is green and carries its denominator", s)
+
     # ---------------------------------------------------------- REJECTING
-    ok, s = with_out(lint, "checked 185 files, 3 missing-using/collision error(s)")
+    # ON THE SYNTHETIC TREE FOR THE SAME REASON AS RUNGS 1-3. This stubbed
+    # `checked 185 files` against a PRESENT counted live, so it asserted the
+    # repository holds MORE than 185 `.cs` files — the mirror of the accepting
+    # pin, and an inverse ratchet: it forbids the tree ever shrinking. Found by
+    # break-testing the rungs above, which is the only reason anyone looked.
+    ok, s = with_synth_tree(SYNTH_PRESENT - 2, errors=3)
     say(not ok and s.startswith("3 lint errors") and "UNWALKED" in s,
         "lint: a short walk is named as a drop, not folded into the total", s)
+
+    ok, s = with_synth_cast(_cast, _cast[:3])
+    say(not ok and "no card for synthfour" in s and "3 of 5 card(s)" in s,
+        "convo probe: a card that did not load is named, not counted — "
+        "\"the cast grew\" and \"Ada's card moved\" are different findings", s)
+
+    with tempfile.TemporaryDirectory() as _td:
+        _empty = pathlib.Path(_td) / "Program.cs"
+        _empty.write_text("// a Program.cs with no want list at all\n")
+        ok, s = with_out(lambda: convo_probe(src=_empty), "")
+        say(not ok and NOTHING_MEASURED in s and "no `var want" in s,
+            "convo probe: a bound that could not be derived is RED and says so "
+            "— a probe of nobody must not read as a probe of everybody", s)
 
     ok, s = with_out(lint, "no such line")
     say(not ok and s == "lint did not report",

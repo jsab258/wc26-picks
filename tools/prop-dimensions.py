@@ -31,7 +31,9 @@ than carrying a second parser — one idea, one implementation.
 import importlib.util
 import os
 import re
+import struct
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROPS = os.path.join(HERE, "..", "ledger", "Assets", "Props")
@@ -40,6 +42,9 @@ _spec = importlib.util.spec_from_file_location(
     "body_proportions", os.path.join(HERE, "body-proportions.py"))
 _bp = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_bp)
+
+sys.path.insert(0, HERE)                       # tools/capsay.py
+from capsay import cap as _cap, NOTHING_MEASURED   # noqa: E402
 
 
 VERT_CAP = 10_000_000
@@ -294,13 +299,14 @@ def _pnode(name, *props, children=()):
 
 
 def _capped(names, n=4):
-    """A comma list that SAYS WHEN IT BIT. A `[:4]` nobody is told about
-    is indistinguishable from a finding — the `head -3` fault."""
-    if not names:
-        return "none"
-    if len(names) <= n:
-        return ", ".join(names)
-    return ", ".join(names[:n]) + " (+%d more not shown)" % (len(names) - n)
+    """A comma list that SAYS WHEN IT BIT — `tools/capsay.py`, imported.
+
+    This was a local `(+N more not shown)` until 26 Aug, which made it the
+    SECOND implementation of the one idea this project has already paid for
+    twice (`SpeechBubble`/`NpcWalker`, `verdict-keys`/`gates`). The count is
+    now of the list AS HANDED IN, so a caller may not slice before calling.
+    """
+    return _cap(names, keep=n, width=40, sep=", ", tail="none")
 
 
 #: The synthetic car's parts, in the same shape the real kit uses: each
@@ -370,6 +376,101 @@ def synthetic_car():
                             _pnode("Connections", children=tuple(conns))))
 
 
+#: THE ARRAY-CAP FIXTURE — a lattice of vertices dense enough that the
+#: DEFAULT cap must refuse it and the lifted cap must inflate it. 6^3 = 216
+#: vertices is 648 doubles against `_bp.SMALL_ARRAY`'s 64 ELEMENTS (21
+#: vertices); the selftest asserts that relation from the constants rather
+#: than trusting the arithmetic written here.
+#:
+#: The size is invented and unlike any vehicle in the kit ON PURPOSE: nobody
+#: reading `48/12/96` can mistake this fixture's numbers for a measurement of
+#: a shipped asset, which is exactly the confusion the pin it replaces caused.
+_CAP_N = 6
+_CAP_SIZE = (48.0, 12.0, 96.0)
+_CAP_AT = (13.0, 7.0, 5.0)            # a translation, so the OO walk runs too
+CAP_VERTS = _CAP_N ** 3
+
+
+def _fbx_prop(v):
+    """One FBX property record. WRITER, not reader — the reader is
+    `body-proportions._read_property` and there is still exactly one of it."""
+    if isinstance(v, str):
+        b = v.encode("utf-8")
+        return b"S" + struct.pack("<I", len(b)) + b
+    if isinstance(v, int):
+        return b"L" + struct.pack("<q", v)
+    if isinstance(v, float):
+        return b"D" + struct.pack("<d", v)
+    if isinstance(v, tuple):          # a double ARRAY, encoding 0 = uncompressed
+        return (b"d" + struct.pack("<III", len(v), 0, 0)
+                + struct.pack("<%dd" % len(v), *v))
+    raise TypeError("no FBX property encoding for %r" % (v,))
+
+
+_NULL_RECORD = b"\x00" * 13          # ends a child list in a pre-7500 file
+
+
+def _fbx_node_bytes(node, offset):
+    """A node record and everything under it, at a known absolute offset.
+
+    `end_offset` is ABSOLUTE in this format, so the writer has to know where
+    it sits — which is why this takes an offset rather than returning bytes
+    to be concatenated blindly."""
+    name = node.name.encode("utf-8")
+    props = b"".join(_fbx_prop(p) for p in node.props)
+    cur = offset + 12 + 1 + len(name) + len(props)
+    kids = b""
+    for c in node.children:
+        b = _fbx_node_bytes(c, cur)
+        kids += b
+        cur += len(b)
+    if node.children:
+        kids += _NULL_RECORD
+        cur += 13
+    return (struct.pack("<III", cur, len(node.props), len(props))
+            + bytes([len(name)]) + name + props + kids)
+
+
+def write_synthetic_fbx(path, verts, at=_CAP_AT):
+    """A REAL BINARY FBX ON DISK, written by this file, holding one mesh.
+
+    WHY BYTES AND NOT A TREE. `synthetic_car` above builds `Node` objects and
+    goes straight to `assemble`, and its own docstring says what that cannot
+    reach: `_bp.parse_fbx`, the byte reader, where the ARRAY CAP lives. That
+    layer's only fixture was `car-kit/police.fbx` with `total > 1000` and
+    `100 < size[2] < 400` asserted on it — a shipped asset, 90 units of
+    headroom, and a failure mode (a re-export at a different FBX unit scale)
+    that moves by a factor of 100. So the accepting case for the byte reader
+    is now a file with no asset behind it, and its expected numbers are
+    DERIVED from `verts` rather than typed.
+    """
+    flat = tuple(c for v in verts for c in v)
+    objects = [
+        _pnode("Model", 100, "cap-fixture\x00Model", "Mesh",
+               children=(_pnode("Properties70", children=(
+                   _pnode("P", "Lcl Translation", "Lcl Translation", "", "A",
+                          at[0], at[1], at[2]),)),)),
+        _pnode("Geometry", 200, "cap-fixture\x00Geometry", "Mesh",
+               children=(_pnode("Vertices", flat),)),
+    ]
+    top = [_pnode("Objects", children=tuple(objects)),
+           _pnode("Connections", children=(_pnode("C", "OO", 200, 100),))]
+    out = b"Kaydara FBX Binary  \x00\x1a\x00" + struct.pack("<I", 7400)
+    for n in top:
+        out += _fbx_node_bytes(n, len(out))
+    out += _NULL_RECORD
+    with open(path, "wb") as f:
+        f.write(out)
+    return len(out)
+
+
+def cap_fixture_verts(n=_CAP_N, size=_CAP_SIZE):
+    """`n**3` lattice points spanning exactly `size` from the origin."""
+    step = [size[a] / (n - 1) for a in range(3)]
+    return [(i * step[0], j * step[1], k * step[2])
+            for i in range(n) for j in range(n) for k in range(n)]
+
+
 def selftest():
     """Both outcomes, and the accepting case is a fact about cars.
 
@@ -399,7 +500,12 @@ def selftest():
     check(len(vehicles) >= 20, "the car kit is on disk to measure against",
           "%d models walked" % len(vehicles))
 
-    floors, unplaced, rotated = [], [], []
+    # ONE PARSE PER MODEL, and every number below comes out of it — the floor,
+    # the vertex count and the size are therefore all from the SAME read of the
+    # same file. The live reading at the bottom used to re-parse all 25 models
+    # for its counts, which is a second implementation of this walk and two
+    # moments printed as one.
+    floors, unplaced, rotated, live = [], [], [], []
     for n in vehicles:
         root, _ = _bp.parse_fbx(os.path.join(CAR_KIT, n), max_array=VERT_CAP)
         parts = assemble(root)
@@ -409,6 +515,9 @@ def selftest():
         if any("ROTATED" in p[0] for p in parts):
             rotated.append(n)
         floors.append((n[:-4], min(p[2][1] for p in parts)))
+        live.append((n[:-4], sum(v for _nm, v, _lo, _hi in parts),
+                     tuple(max(p[3][a] for p in parts) - min(p[2][a] for p in parts)
+                           for a in range(3))))
 
     check(not unplaced, "every vehicle yields placed geometry",
           "%d of %d unplaced: %s" % (len(unplaced), len(vehicles), _capped(unplaced)))
@@ -418,11 +527,13 @@ def selftest():
           "%d of %d rotated or scaled: %s"
           % (len(rotated), len(vehicles), _capped(rotated)))
     worst = max((abs(y), nm) for nm, y in floors) if floors else (0, "")
+    # THE SERIES ITSELF, above any summary of it — a floor per vehicle, so a
+    # reader can see a regime change (one kit re-exported) that no aggregate
+    # can. The cap is `capsay`'s and counts the whole list, not the slice.
     print("  .. floors, %d measured: %s"
           % (len(floors),
-             " ".join("%s=%.0f" % (nm, y) for nm, y in floors[:8])
-             + ((" (+%d more not shown)" % (len(floors) - 8)) if len(floors) > 8
-                else "")))
+             _cap(["%s=%.0f" % (nm, y) for nm, y in floors],
+                  keep=8, width=40, sep=" ", tail=NOTHING_MEASURED)))
     # WORST OF A SET OF PER-VEHICLE MINIMA, not a median and not a sample:
     # "is ANY vehicle buried" is never a median question. The denominator is
     # on the line because 0 buried out of 24 and 0 out of 0 are the same
@@ -496,7 +607,7 @@ def selftest():
     check(len(models) >= 4, "and the kit mapping out of Game/TrafficHost.cs",
           "%d kinds mapped" % len(models))
 
-    squash = []
+    squash, unmeasurable = [], []
     keypaths = kit_key_paths()
     for kid, (L, W, H) in sorted(kinds.items()):
         model = models.get(kid)
@@ -513,10 +624,21 @@ def selftest():
             # a skip nobody is told about reads as a measurement (rule 3b).
             print("  .. %s: first candidate %s ships as %s — not measurable here"
                   % (kid, model, os.path.splitext(path)[1]))
+            unmeasurable.append("%s%s" % (kid, os.path.splitext(path)[1]))
             continue
         parts = assemble(_bp.parse_fbx(path, max_array=VERT_CAP)[0])
         # The game drops the push bar before it measures, so this must too.
         parts = [p for p in parts if not p[0].startswith("grill")]
+        # FAIL READABLE (found by break-testing this file, 26 Aug). With the
+        # array cap put back to its default — the historical bug — this loop
+        # raised `ValueError: max() arg is an empty sequence` and the run ended
+        # in a stack trace, so the CAP LADDER BELOW NEVER RAN AT ALL. A guard
+        # that cannot be reached by the case it was written for is `lint-shadow`'s
+        # selftest falling through to the live sweep and exiting 0.
+        if not parts:
+            check(False, "kit model for %s yields geometry to measure" % kid,
+                  "%s parsed to 0 part(s) — the array cap, or a moved file" % model)
+            continue
         mw = max(p[3][0] for p in parts) - min(p[2][0] for p in parts)
         mh = max(p[3][1] for p in parts) - min(p[2][1] for p in parts)
         md = max(p[3][2] for p in parts) - min(p[2][2] for p in parts)
@@ -532,24 +654,104 @@ def selftest():
     # today's kit is a false positive by definition, which is what makes
     # this bound trustworthy without a fixture.
     worst = min([(min(w, h), k) for k, _m, w, h in squash] or [(1.0, "")])
+    # THE PASS CARRIES ITS DENOMINATOR AND ITS SKIP CLAUSE. "0 kinds squashed
+    # past half" over 5 measured kinds and over 0 is the same sentence and the
+    # opposite fact, and a kind that shipped as OBJ was examined by nothing —
+    # so the count of what was SKIPPED prints on the same line as the verdict
+    # rather than only in the scroll above it (`lint-static`'s 560-vs-29).
     check(worst[0] >= 0.50,
           "no kit model is squashed past half to fit its kind",
-          ("nothing measured" if not squash else
-           "worst of %d kinds is %s at %.2f" % (len(squash), worst[1], worst[0])))
+          ("%s — %d kind(s) mapped, %d not measurable here: %s"
+           % (NOTHING_MEASURED, len(models), len(unmeasurable),
+              _cap(unmeasurable, keep=4, width=30, sep=", ", tail="none"))
+           if not squash else
+           "worst of %d kinds is %s at %.2f (%d not measurable here: %s)"
+           % (len(squash), worst[1], worst[0], len(unmeasurable),
+              _cap(unmeasurable, keep=4, width=30, sep=", ", tail="none"))))
 
-    # And the cap, because this file's whole history is that it was reading
-    # nothing and saying so quietly.
-    total, size = geometry(os.path.join(CAR_KIT, "police.fbx"))
-    check(total > 1000, "the vertex cap is lifted, so a model reads whole",
-          "%d verts" % total)
-    check(size is not None and 100 < size[2] < 400, "and it has a size",
-          str(size))
+    # -- THE ARRAY CAP, ON A FILE THIS FILE WROTE ----------------------
+    #
+    # THE PIN THIS REPLACES, kept in words because it is the whole lesson:
+    #
+    #     total, size = geometry(CAR_KIT/"police.fbx")
+    #     check(total > 1000, "the vertex cap is lifted ...")
+    #     check(100 < size[2] < 400, "and it has a size")
+    #
+    # An ACCEPTING fixture asserting the VALUES of a tracked asset — 1430
+    # verts and 310 units deep, with 90 units of headroom on a bound whose
+    # failure mode is a factor of 100. Re-export police at a different FBX
+    # unit scale, the commonest thing that happens on a kit swap, and
+    # `verify.py:489` returns False and blocks every commit in the project
+    # while saying the READER is broken. `ref-bench` did precisely that,
+    # pinned to a committed still, the hour the district cameras were
+    # deliberately re-aimed. And `police.fbx` had ALREADY been taken out of
+    # this file as a REJECTING fixture (see `synthetic_car`) — this was a
+    # second site using the same asset for the opposite job, and the first
+    # repair grepped for the pattern rather than for the asset's name.
+    #
+    # A LADDER OF TWO RUNGS OVER ONE FILE, one contributor toggled — the cap
+    # — read in the same run from the same vantage. Neither rung means
+    # anything alone: inflating 216 vertices proves nothing unless the same
+    # bytes at the default cap come back empty, which is the exact symptom
+    # this file shipped with for weeks ("no vertex data" on eleven of twelve
+    # models, read as a fact about the files).
+    with tempfile.TemporaryDirectory() as td:          # cleanup registered
+        fx = os.path.join(td, "cap-fixture.fbx")
+        verts = cap_fixture_verts()
+        nbytes = write_synthetic_fbx(fx, verts)
+        check(len(verts) * 3 > _bp.SMALL_ARRAY,
+              "the fixture is denser than the DEFAULT cap, so the rungs can differ",
+              "%d doubles against a %d-element default"
+              % (len(verts) * 3, _bp.SMALL_ARRAY))
+        lifted_total, lifted_size = geometry(fx)
+        parts_default = assemble(_bp.parse_fbx(fx)[0])
+        default_total = sum(n for _n, n, _lo, _hi in parts_default)
+        check(lifted_total == CAP_VERTS
+              and lifted_size is not None
+              and all(abs(lifted_size[a] - _CAP_SIZE[a]) < 1e-6 for a in range(3)),
+              "CAP LADDER, rung 1 — ACCEPTING: cap lifted, the fixture reads whole",
+              "%d verts (wanted %d), size %s (wanted %s), %d bytes written"
+              % (lifted_total, CAP_VERTS,
+                 "/".join("%.1f" % v for v in (lifted_size or (0, 0, 0))),
+                 "/".join("%.1f" % v for v in _CAP_SIZE), nbytes))
+        check(default_total == 0,
+              "CAP LADDER, rung 2 — REJECTING: at the default cap the same "
+              "bytes read as nothing",
+              "%d verts, %d part(s) — the `no vertex data` this file shipped"
+              % (default_total, len(parts_default)))
+        # AND THE RUNGS MUST STAND APART. Both expectations above are derived
+        # from `cap_fixture_verts`, so each alone is close to a tautology —
+        # the same trap the synthetic car's separation check exists for.
+        check(lifted_total > default_total,
+              "CAP LADDER — and the two rungs stand apart, so the cap is what "
+              "made the difference",
+              "lifted/default %d/%d verts" % (lifted_total, default_total))
+
+    # THE LIVE KIT, AS A READING AND NOT AS A BOUND. This is the number the
+    # pin above used to assert; it is worth printing and it is not worth
+    # blocking a commit on, because every way it can move is a kit changing
+    # rather than the reader breaking. The reader's own guard is the ladder.
+    counts = sorted(t for _n, t, _s in live)
+    print("  .. live kit reading, NOT a bound — %d model(s) read whole, verts "
+          "%s..%s (median %s); %s"
+          % (len(live),
+             counts[0] if counts else NOTHING_MEASURED,
+             counts[-1] if counts else NOTHING_MEASURED,
+             counts[len(counts) // 2] if counts else NOTHING_MEASURED,
+             _cap(["%s=%dv/%s" % (nm, t,
+                                  "/".join("%.0f" % v for v in sz) if sz else "nosize")
+                   for nm, t, sz in live],
+                  keep=4, width=40, sep=" ", tail=NOTHING_MEASURED)))
 
     # THE FOOTER CARRIES THE DENOMINATOR AND NAMES THE SYNTHETIC INPUT
     # SEPARATELY, so nobody later reads the rejecting rung as coverage of a
     # real model: 1 of these inputs is one this file wrote.
+    # THE DENOMINATOR NAMES THE SYNTHETIC INPUTS SEPARATELY, so nobody later
+    # reads a rejecting rung as coverage of a real model: 2 of these inputs
+    # are ones this file wrote, and one of them is bytes on disk.
     tally = ("%d kit vehicles measured, %d kinds squash-checked, "
-             "1 synthetic car (built here, no asset)"
+             "2 synthetic inputs (1 car tree + 1 FBX file, both built here, "
+             "no asset)"
              % (len(floors), len(squash)))
     print("\nprop-dimensions selftest %s — %s"
           % ("ok" if not fails else "%d problem(s)" % len(fails), tally))

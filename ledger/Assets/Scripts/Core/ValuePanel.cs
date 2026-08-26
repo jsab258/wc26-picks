@@ -240,7 +240,15 @@ namespace Ledger.Core
         /// `r<rain>w<wet>`, or the WORDS `weather_unknown`. Two decimals,
         /// matching `frames.tsv`'s own `0.00` so a row and a tsv column can be
         /// compared character for character rather than by eye.
-        static string WeatherTag(double rain, double wet)
+        ///
+        /// PUBLIC SINCE 26 AUG BECAUSE A SECOND READER ARRIVED, and the
+        /// alternative was a copy. `SkyGain.RegimeTag` needs this exact
+        /// string with a night term appended; a second formatter would be one
+        /// idea in two implementations with a JOIN across the seam, which is
+        /// the shape this project keeps finding wrong on the copy nobody
+        /// looks at. The format is UNCHANGED — visibility only — so every
+        /// landed `valueBands` row still reads byte for byte as before.
+        public static string WeatherTag(double rain, double wet)
         {
             if (rain < 0 || wet < 0) return "weather_unknown";
             return "r" + Num(rain, "0.00") + "w" + Num(wet, "0.00");

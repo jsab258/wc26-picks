@@ -11464,12 +11464,101 @@ namespace Ledger.Game
         int _groundRawShots;
 
 
+        /// THE UNGRADED TWIN OF A FRAME THAT WAS JUST COMMITTED — ONE
+        /// IMPLEMENTATION, TWO READERS.
+        ///
+        /// WHY IT IS THE DECIDING MEASUREMENT. Every frame-sampled number in
+        /// this fork is POST-GRADE: `FilmGrade` runs exposure, an ACES
+        /// tonemap, bloom, vignette and grain before the still is encoded, so
+        /// `groundGainBy`'s numerator is `tonemap(exposure x light x albedo) +
+        /// bloom + grain` and its denominator is a raw material constant.
+        /// Bloom is ADDITIVE and ALBEDO-BLIND, so a fixed additive term over a
+        /// falling denominator explodes the ratio on the darkest surface —
+        /// which is exactly the shape of 3a4e335's `asphalt:68.121` against
+        /// `kerb:4.911`. Graded over raw is the only pair that can tell an
+        /// in-scene lighting lift from an ACES shoulder from bloom.
+        ///
+        /// IT WAS INSIDE `GroundMaskRead` AND IS HOISTED HERE BECAUSE A SECOND
+        /// READER ARRIVED (26 Aug, `skyGain*`). Two copies of a
+        /// bypass-render-restore block is one idea in two implementations, and
+        /// the copy nobody looks at is the one that forgets to put
+        /// `FilmGrade.Bypass` back. Worse than that here: rendering the twin
+        /// twice for the same still would give the ground tally and the sky
+        /// tally two DIFFERENT ungraded frames of the same instant, and the
+        /// grain is reseeded per frame — two moments printed as one, which is
+        /// the fault this project has found four times in pairs of maxima.
+        /// One render per committed still, both readers fed from it.
+        ///
+        /// SAME INSTANT, SAME CAMERA, SAME PIXELS. Nothing here moves `cam`,
+        /// so this is the same photograph with one pass switched off, and the
+        /// callers raycast ONCE and read both pixel arrays at the same
+        /// `row * w + col`.
+        ///
+        /// `Color32`, NOT `Color`, AND THE REASON IS MEMORY. The readback
+        /// texture is `RGB24`, so `GetPixels32` is byte-exact with
+        /// `GetPixels` — `(Color)c32` is `c / 255f` and RGB24 holds nothing
+        /// finer — at a quarter of the allocation (3.7MB against 14.7MB per
+        /// 1280x720 shot). `research/performance-budget.md` names MEMORY as
+        /// the real ceiling of the visual plan, and this now runs on EVERY
+        /// committed still rather than on seven.
+        ///
+        /// WHAT ELSE THIS RENDER MOVES, SAID BEFORE SOMEBODY READS IT AS A
+        /// REGRESSION: `postFrames` is `FilmGrade.Frames`, incremented at the
+        /// top of `OnRenderImage` whether or not `Bypass` short-cuts the pass,
+        /// so it gains ONE PER COMMITTED STILL — about two dozen on a full
+        /// run, against a landed 25,876. `postOk` is `Frames > 0` and cannot
+        /// move. Nothing else here writes a number anything reads: the still
+        /// is already encoded to JPEG before either caller runs, so this
+        /// render is not the picture.
+        ///
+        /// Returns null when the bypass render failed, and every caller must
+        /// print the WORDS for that case rather than reading it as black.
+        Color32[] UngradedTwin(Camera cam, int w, int h)
+        {
+            if (cam == null || w <= 0 || h <= 0) return null;
+            Color32[] outPx = null;
+            RenderTexture rawRt = null; Texture2D rawTex = null;
+            var keptTarget = cam.targetTexture;
+            var keptActive = RenderTexture.active;
+            try
+            {
+                FilmGrade.Bypass = true;
+                rawRt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32);
+                cam.targetTexture = rawRt;
+                cam.Render();
+                RenderTexture.active = rawRt;
+                rawTex = new Texture2D(w, h, TextureFormat.RGB24, false);
+                rawTex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+                rawTex.Apply();
+                var got = rawTex.GetPixels32();
+                // `GetPixels32` returns a COPY, so the array outlives the
+                // texture destroyed in the finally below.
+                if (got != null && got.Length >= w * h) outPx = got;
+            }
+            catch (Exception e) { _errors.Add("UngradedTwin: " + e.Message); outPx = null; }
+            finally
+            {
+                // BYPASS OFF FIRST AND UNCONDITIONALLY. It is a static on a
+                // post-process that every later shot in the run renders
+                // through; leaving it set on a throw would silently ungrade
+                // every committed still after this one, which is the
+                // `glossDropped/glossRestored` fault with a worse blast
+                // radius.
+                FilmGrade.Bypass = false;
+                cam.targetTexture = keptTarget;
+                RenderTexture.active = keptActive;
+                if (rawTex != null) UnityEngine.Object.Destroy(rawTex);
+                if (rawRt != null) rawRt.Release();
+            }
+            return outPx;
+        }
+
         /// Ground-masked luma readings for one district still.
         ///
         /// `tex` is the frame that was just encoded to the committed JPEG and
         /// `cam` is the camera that rendered it, after every step-back — same
         /// instant, same vantage, same pixels as the picture a person opens.
-        void GroundMaskRead(Camera cam, Texture2D tex, string name)
+        void GroundMaskRead(Camera cam, Texture2D tex, string name, Color32[] rawPx)
         {
             if (cam == null || tex == null) return;
             _groundShotsOffered++;
@@ -11519,42 +11608,21 @@ namespace Ledger.Game
             // `Frames > 0` and cannot move. Nothing else here writes a number
             // anything reads: the still is already encoded to JPEG before
             // `GroundMaskRead` is called, so this render is not the picture.
-            Color[] rawPx = null;
-            {
-                RenderTexture rawRt = null; Texture2D rawTex = null;
-                var keptTarget = cam.targetTexture;
-                var keptActive = RenderTexture.active;
-                try
-                {
-                    FilmGrade.Bypass = true;
-                    rawRt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32);
-                    cam.targetTexture = rawRt;
-                    cam.Render();
-                    RenderTexture.active = rawRt;
-                    rawTex = new Texture2D(w, h, TextureFormat.RGB24, false);
-                    rawTex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
-                    rawTex.Apply();
-                    var got = rawTex.GetPixels();
-                    // `GetPixels` returns a COPY, so the array outlives the
-                    // texture destroyed in the finally below.
-                    if (got != null && got.Length >= w * h) { rawPx = got; _groundRawShots++; }
-                }
-                catch (Exception e) { _errors.Add("GroundMaskRead raw: " + e.Message); rawPx = null; }
-                finally
-                {
-                    // BYPASS OFF FIRST AND UNCONDITIONALLY. It is a static on
-                    // a post-process that every later shot in the run renders
-                    // through; leaving it set on a throw would silently
-                    // ungrade every committed still after this one, which is
-                    // the `glossDropped/glossRestored` fault with a worse
-                    // blast radius.
-                    FilmGrade.Bypass = false;
-                    cam.targetTexture = keptTarget;
-                    RenderTexture.active = keptActive;
-                    if (rawTex != null) UnityEngine.Object.Destroy(rawTex);
-                    if (rawRt != null) rawRt.Release();
-                }
-            }
+            // THE UNGRADED TWIN ARRIVES FROM THE CALLER (26 Aug). It used to
+            // be rendered here; `UngradedTwin` above holds the whole argument
+            // for why, and the short version is that `ValuePanelRead` needs
+            // the same frame and a second render would hand the two tallies
+            // two different ungraded photographs of one instant.
+            //
+            // `_groundRawShots` still counts here and still means the same
+            // thing — how many DISTRICT shots got a twin — because this is
+            // still the only place that knows a shot was a district one.
+            // The same length check `ValuePanelRead` makes, and for the same
+            // reason: the twin is rendered by a caller that owns the
+            // dimensions, and a short array must read as NO TWIN rather than
+            // as an index off the end.
+            bool twinUsable = rawPx != null && rawPx.Length >= w * h;
+            if (twinUsable) _groundRawShots++;
 
             double gSum = 0; int gN = 0;
             var thirdSum = new double[3]; var thirdN = new int[3];
@@ -11684,11 +11752,15 @@ namespace Ledger.Game
                     // bypass render above failed, and then the raw row prints
                     // the words rather than reading as a black road.
                     var lin = c.linear;
-                    bool rawKnown = rawPx != null;
+                    bool rawKnown = twinUsable;
                     double rawLuma = 0;
                     if (rawKnown)
                     {
-                        var rc = rawPx[row * w + col].linear;
+                        // `(Color)` on a `Color32` is `c / 255f`, which is
+                        // byte-exact for the RGB24 readback `UngradedTwin`
+                        // makes — the same numbers the old `GetPixels` path
+                        // returned, at a quarter of the allocation.
+                        var rc = ((Color)rawPx[row * w + col]).linear;
                         rawLuma = ImageStats.Luma(rc.r, rc.g, rc.b);
                     }
                     // ONE CALL, BOTH NUMERATORS. See `GroundGain.Add`: two
@@ -11841,6 +11913,42 @@ namespace Ledger.Game
         /// the silent-instrument failure (ruled standing 25 Aug).
         readonly Ledger.Core.ValuePanel _valuePanel = new Ledger.Core.ValuePanel();
 
+        /// THE SKY-GAIN DISCRIMINATOR, accumulated over every committed still
+        /// of the run beside the panel and off the SAME ray loop.
+        ///
+        /// It answers the one question `valueBands` cannot: `sky>lit` fails on
+        /// 15 of 15 dry rows, and a band median cannot say whether that is the
+        /// common daylight path being scaled wrong or the dome being authored
+        /// dark, because both produce the same median. The arithmetic and
+        /// every string are `Ledger.Core.SkyGain`, in Core so CoreTests
+        /// exercises them — a formatter written here ships UNRUN.
+        ///
+        /// NO BOUND AND NO GATE READS IT. It is a printer; the series comes
+        /// first (rule 2).
+        readonly Ledger.Core.SkyGain _skyGain = new Ledger.Core.SkyGain();
+
+        /// A COLOUR THAT WAS WRITTEN THROUGH `SceneLighting.C()`, EXPRESSED IN
+        /// LINEAR — the space every `skyGain*` number is in.
+        ///
+        /// `C()` converts `LightModel`'s display-authored colours with
+        /// `.linear` WHEN THE PROJECT IS IN LINEAR SPACE and passes them raw
+        /// when it is not, so what a material holds is linear in one mode and
+        /// display in the other. This is the inverse of that fork and the only
+        /// place in this file that knows about it.
+        ///
+        /// BOTH BRANCHES LAND IN THE SAME SPACE AS THE NUMERATOR, which is the
+        /// property that makes the division mean anything. In Linear mode the
+        /// readback is sRGB-encoded and `Color.linear` recovers the shader's
+        /// own value, while the material is already linear; in Gamma mode the
+        /// readback IS the shader's value and both sides take `.linear`. If
+        /// this fork is ever wrong, the signature is the one `GroundGain`
+        /// names: ratios clustering near 2.05..2.09.
+        static double AuthoredLinearLuma(Color c)
+        {
+            var lin = QualitySettings.activeColorSpace == ColorSpace.Linear ? c : c.linear;
+            return ImageStats.Luma(lin.r, lin.g, lin.b);
+        }
+
         /// One still's value-band read. `tex` is the frame that was just
         /// encoded to the committed JPEG and `cam` is the camera that
         /// rendered it, after every step-back.
@@ -11864,7 +11972,7 @@ namespace Ledger.Game
         /// `day3_noon` shot and has NO row of its own in `frames.tsv`, so
         /// "look the weather up by shot name" fails on it silently — the
         /// exact shape of a reader getting a confident wrong answer.
-        void ValuePanelRead(Camera cam, Texture2D tex, string name)
+        void ValuePanelRead(Camera cam, Texture2D tex, string name, Color32[] rawPx)
         {
             if (cam == null || tex == null) return;
             var shot = _valuePanel.Open(name, Weather.Rain, Weather.Wetness);
@@ -11893,6 +12001,82 @@ namespace Ledger.Game
             // `GetPixels`' order and viewport v with no flip.
             var skyCell = new bool[GroundGridX * GroundGridY];
 
+            // THE DOME'S AUTHORED STOPS, READ OFF THE LIVE MATERIAL AT THE
+            // SHOT'S OWN INSTANT — the source half of `skyGainBands`' sky row.
+            //
+            // READ BACK, NOT RECOMPUTED. `SceneLighting.LateUpdate` writes
+            // these from `LightModel` every frame; asking `LightModel` again
+            // here would answer a question about the sky somebody MEANT to put
+            // in the frame rather than the one that is in it, and the two
+            // differ the moment `LateUpdate` has not run, the shader failed to
+            // load, or a later writer appears. `RenderSettings.skybox` is the
+            // only handle either party shares.
+            //
+            // AND THE FALLBACK IS MEASURED RATHER THAN SKIPPED. With no dome
+            // the camera clears to `cam.backgroundColor` (a flat card the
+            // colour of maximum fog, written by `GameController`), so the
+            // authored value is that colour at EVERY elevation. That is a
+            // completely different finding from a dark dome — the ladder goes
+            // flat — and `skyDomeBy`'s `live<n>/<shots>` is what tells them
+            // apart.
+            double night = GameController.NightAmount;
+            var domeMat = RenderSettings.skybox;
+            bool domeLive = SceneLighting.SkyboxLive && domeMat != null
+                            && domeMat.HasProperty("_SkyColor");
+            double domeTop, domeHor, domeGnd, skyCurve = 1.0, groundCurve = 1.0;
+            double[] domeStops = new double[Ledger.Core.SkyGain.StopCount];
+            if (domeLive)
+            {
+                domeTop = AuthoredLinearLuma(domeMat.GetColor("_SkyColor"));
+                domeHor = AuthoredLinearLuma(domeMat.GetColor("_HorizonColor"));
+                domeGnd = AuthoredLinearLuma(domeMat.GetColor("_GroundColor"));
+                // THE CURVES COME OFF THE MATERIAL, NOT OFF A CONSTANT RETYPED
+                // HERE. `SkyGain.DomeLuma` mirrors the shader's gradient, and a
+                // mirror that carries its own copy of the shader's numbers goes
+                // stale the first time somebody tunes the dome.
+                skyCurve = domeMat.HasProperty("_SkyCurve") ? domeMat.GetFloat("_SkyCurve") : 1.0;
+                groundCurve = domeMat.HasProperty("_GroundCurve") ? domeMat.GetFloat("_GroundCurve") : 1.0;
+                domeStops[Ledger.Core.SkyGain.StopTop] = domeTop;
+                domeStops[Ledger.Core.SkyGain.StopHor] = domeHor;
+                domeStops[Ledger.Core.SkyGain.StopGnd] = domeGnd;
+                domeStops[Ledger.Core.SkyGain.StopCloud] =
+                    domeMat.HasProperty("_CloudColor")
+                        ? AuthoredLinearLuma(domeMat.GetColor("_CloudColor")) : 0;
+                domeStops[Ledger.Core.SkyGain.StopCover] =
+                    domeMat.HasProperty("_CloudCoverage") ? domeMat.GetFloat("_CloudCoverage") : 0;
+                domeStops[Ledger.Core.SkyGain.StopGlow] =
+                    domeMat.HasProperty("_SunGlowAmt") ? domeMat.GetFloat("_SunGlowAmt") : 0;
+            }
+            else
+            {
+                // ONE COLOUR AT EVERY ELEVATION, and all three stops are it,
+                // so the ladder reading flat is the SUBJECT and not a hole in
+                // the instrument.
+                domeTop = domeHor = domeGnd = AuthoredLinearLuma(cam.backgroundColor);
+                domeStops[Ledger.Core.SkyGain.StopTop] = domeTop;
+                domeStops[Ledger.Core.SkyGain.StopHor] = domeHor;
+                domeStops[Ledger.Core.SkyGain.StopGnd] = domeGnd;
+            }
+
+            // The gain tally's own shot. It carries the regime (weather AND
+            // hour — see `SkyGain.RegimeTag`), whether the ungraded twin
+            // rendered, whether the dome was live, and the six authored
+            // numbers, all read at THIS instant from the same statics
+            // `_valuePanel.Open` reads two lines above.
+            // ONE FLAG, COMPUTED ONCE, USED BY THE SHOT AND BY EVERY RAY.
+            // `UngradedTwin` is handed the frame's own dimensions at the
+            // district and review sites and the RENDER TEXTURE's at the street
+            // site, and a reader has to go two functions away to see that
+            // those agree. A length check here makes the disagreement
+            // impossible to index off the end of, and — the part that matters
+            // more — makes `skyGainShots`' with-twin count and the rays'
+            // `rn` denominator the SAME fact rather than two tests that could
+            // drift apart.
+            bool twinUsable = rawPx != null && rawPx.Length >= w * h;
+            var skyShot = _skyGain.Open(Weather.Rain, Weather.Wetness, night,
+                                        twinUsable, domeLive, domeStops);
+            double vigNight = night;
+
             for (int j = 0; j < GroundGridY; j++)
                 for (int i = 0; i < GroundGridX; i++)
                 {
@@ -11916,62 +12100,123 @@ namespace Ledger.Game
                     // look like plausible numbers, which is the whole reason
                     // this line has a comment.
                     double l = ImageStats.Luma(c.r / 255.0, c.g / 255.0, c.b / 255.0);
+                    // AND THE SAME PIXEL IN LINEAR, FOR `skyGainBands`. Two
+                    // spaces, one pixel, one instant: `valueBands` stays
+                    // display-referred because that is the space the picture
+                    // and every other band reading in this file live in, and
+                    // the gain tally is linear because `GroundGain` is and the
+                    // two must be readable against each other. `Color.linear`
+                    // applies the exact sRGB transfer, not a 2.2 pow.
+                    var lin = ((Color)c).linear;
+                    double lLin = ImageStats.Luma(lin.r, lin.g, lin.b);
+                    bool rawKnown = twinUsable;
+                    double rawLin = 0;
+                    if (rawKnown)
+                    {
+                        var rc = ((Color)rawPx[row * w + col]).linear;
+                        rawLin = ImageStats.Luma(rc.r, rc.g, rc.b);
+                    }
+                    // WHAT THE GRADE'S VIGNETTE WILL HAVE DONE TO THIS RAY,
+                    // from `LightModel.VignetteAt`, which mirrors the shader's
+                    // `saturate(1 - dot(d,d) * _Vignette * 4)` squared. `dd` is
+                    // the shader's own `dot(d,d)` on the same uv. It is here
+                    // because "the sky band is dark because it sits at the top
+                    // of the frame" is a cheap alternative explanation for the
+                    // whole finding, and it should be settled by a printed
+                    // number rather than by argument.
+                    double du = u - 0.5, dv = v - 0.5;
+                    double vig = Ledger.Core.LightModel.VignetteAt(du * du + dv * dv, vigNight);
                     shot.CountCast();
 
                     var ray = cam.ViewportPointToRay(new Vector3((float)u, (float)v, 0f));
+                    // ONE FILING STATEMENT PER RAY, AND THAT IS THE WHOLE
+                    // POINT OF THIS SHAPE. The branches below decide a BAND
+                    // and nothing else; the two tallies are fed once, at the
+                    // bottom, from one set of locals. The previous shape had
+                    // six `shot.Add(...); continue;` sites, and adding a
+                    // second tally to it would have meant six more adjacent
+                    // statements — the exact shape that gave this project four
+                    // pairs of numbers taken at different instants and printed
+                    // as one event.
+                    int band;
+                    string logical = "";
+                    double src = -1;
+                    double sinElev = 0;
                     RaycastHit hit;
                     if (!Physics.Raycast(ray, out hit, far, ~0,
                                          QueryTriggerInteraction.Ignore)
                         || hit.collider == null)
                     {
                         skyCell[j * GroundGridX + i] = true;
-                        shot.Add(Ledger.Core.ValuePanel.Sky, l);
-                        continue;
+                        band = Ledger.Core.ValuePanel.Sky;
+                        // THE RAY'S OWN ELEVATION, which is what the dome
+                        // shader uses: its `i.dir` is the object-space vertex
+                        // of a unit cube around the camera, i.e. the view
+                        // direction, and `h` is that direction's y.
+                        var d = ray.direction.normalized;
+                        sinElev = d.y;
+                        src = Ledger.Core.SkyGain.DomeLuma(sinElev, domeTop, domeHor,
+                                                           domeGnd, skyCurve, groundCurve);
                     }
-                    shot.CountHit();
-                    var rend = hit.collider.GetComponent<Renderer>();
-                    if (rend == null) rend = hit.collider.GetComponentInParent<Renderer>();
-                    if (rend == null)
-                    { shot.Add(Ledger.Core.ValuePanel.Other, l); continue; }
-                    shot.CountRenderer();
-
-                    // GROUND FIRST, name AND normal — see `GroundUpDot`.
-                    var logical = AssetLibrary.GroundSurfaceOf(rend.sharedMaterial);
-                    if (logical.Length > 0)
+                    else
                     {
-                        if (hit.normal.y > GroundUpDot)
+                        shot.CountHit();
+                        var rend = hit.collider.GetComponent<Renderer>();
+                        if (rend == null) rend = hit.collider.GetComponentInParent<Renderer>();
+                        if (rend == null) band = Ledger.Core.ValuePanel.Other;
+                        else
                         {
-                            // ONE STATEMENT PAIR, ONE RAY. The band sample and
-                            // the material row take the SAME `l` at the same
-                            // instant; two tallies fed by two loops is how
-                            // this project shipped four pairs of numbers taken
-                            // at different moments and printed as one event.
-                            shot.Add(Ledger.Core.ValuePanel.Ground, l);
-                            shot.AddGround(logical, l,
-                                AssetLibrary.GroundSourceAlbedo(rend.sharedMaterial));
+                            shot.CountRenderer();
+                            src = AssetLibrary.SourceAlbedoOf(rend.sharedMaterial);
+                            // GROUND FIRST, name AND normal — see `GroundUpDot`.
+                            logical = AssetLibrary.GroundSurfaceOf(rend.sharedMaterial);
+                            if (logical.Length > 0)
+                                band = hit.normal.y > GroundUpDot
+                                     ? Ledger.Core.ValuePanel.Ground
+                                     : Ledger.Core.ValuePanel.Other;
+                            else if (Mathf.Abs(hit.normal.y) > WallFaceDot)
+                                band = Ledger.Core.ValuePanel.Other;
+                            else
+                            {
+                                bool faces = Vector3.Dot(hit.normal, sunward) >= SunFaceDot;
+                                // Offset along the normal so the surface does
+                                // not shadow itself at the origin —
+                                // `FindShadowPair`'s own 0.05.
+                                bool blocked = faces
+                                    && Physics.Raycast(hit.point + hit.normal * 0.05f, sunward,
+                                                       SunRayM, ~0, QueryTriggerInteraction.Ignore);
+                                band = faces && !blocked
+                                     ? Ledger.Core.ValuePanel.LitWall
+                                     : Ledger.Core.ValuePanel.Shadow;
+                            }
                         }
-                        else shot.Add(Ledger.Core.ValuePanel.Other, l);
-                        continue;
                     }
 
-                    if (Mathf.Abs(hit.normal.y) > WallFaceDot)
-                    { shot.Add(Ledger.Core.ValuePanel.Other, l); continue; }
-
-                    bool faces = Vector3.Dot(hit.normal, sunward) >= SunFaceDot;
-                    // Offset along the normal so the surface does not shadow
-                    // itself at the origin — `FindShadowPair`'s own 0.05.
-                    bool blocked = faces
-                        && Physics.Raycast(hit.point + hit.normal * 0.05f, sunward,
-                                           SunRayM, ~0, QueryTriggerInteraction.Ignore);
-                    shot.Add(faces && !blocked
-                             ? Ledger.Core.ValuePanel.LitWall
-                             : Ledger.Core.ValuePanel.Shadow, l);
+                    // ONE STATEMENT PAIR, ONE RAY. The band sample and the
+                    // material row take the SAME `l` at the same instant; two
+                    // tallies fed by two loops is how this project shipped
+                    // four pairs of numbers taken at different moments and
+                    // printed as one event.
+                    shot.Add(band, l);
+                    if (band == Ledger.Core.ValuePanel.Ground && logical.Length > 0)
+                        shot.AddGround(logical, l, (float)src);
+                    // AND THE GAIN TALLY, FROM THE SAME RAY AND THE SAME
+                    // PIXEL. `src < 0` is `SourceAlbedoOf`'s "no material",
+                    // and it files as srcKnown:false so the row prints the
+                    // words rather than dividing by an invented denominator.
+                    skyShot.Add(band, lLin, rawLin, rawKnown, src, src >= 0, vig,
+                                sinElev >= 1 ? 90.0
+                                : sinElev <= -1 ? -90.0
+                                : Mathf.Asin((float)sinElev) * Mathf.Rad2Deg);
                 }
 
             int colsWithSky;
             double hz = Ledger.Core.ValuePanel.HorizonRow(
                 skyCell, GroundGridX, GroundGridY, out colsWithSky);
             _valuePanel.Land(shot, hz, colsWithSky, GroundGridX);
+            // LANDED IN THE SAME STATEMENT PAIR, so a shot cannot be in
+            // one tally and missing from the other.
+            _skyGain.Land(skyShot);
         }
 
         void Shot(string name)
@@ -12707,7 +12952,15 @@ namespace Ledger.Game
                     // seven aerial `district_*` cameras are the ones whose
                     // band-mean is not a ground mean, and `_touring` is the
                     // flag those shots already carry.
-                    if (_touring) GroundMaskRead(cam, tex, name);
+                    // THE UNGRADED TWIN OF THIS EXACT FRAME, RENDERED ONCE
+                    // AND HANDED TO BOTH READERS. Two renders would give the
+                    // ground tally and the sky tally two different ungraded
+                    // photographs of one instant — the grain is reseeded per
+                    // frame — and the whole value of the pair is that it is
+                    // one moment. Null when the bypass render failed, and both
+                    // readers print the words for that case.
+                    var rawTwin = UngradedTwin(cam, tex.width, tex.height);
+                    if (_touring) GroundMaskRead(cam, tex, name, rawTwin);
 
                     // AND THE VALUE-BAND PANEL, ON EVERY COMMITTED STILL.
                     //
@@ -12721,7 +12974,7 @@ namespace Ledger.Game
                     // existing key's meaning. `groundMaskAcross` could not
                     // have taken the same widening: it is BY NAME a statistic
                     // of the seven district shots.
-                    ValuePanelRead(cam, tex, name);
+                    ValuePanelRead(cam, tex, name, rawTwin);
                 }
 
                 // AND ONE FRAME FROM WHERE A PLAYER ACTUALLY STANDS. Every
@@ -13016,7 +13269,11 @@ namespace Ledger.Game
                     // the text-collision sample at the top of `Shot` was moved
                     // for. Named `street` rather than `name`, because the row
                     // would otherwise claim to be about `day3_noon`.
-                    ValuePanelRead(cam, tex, "street");
+                    // ITS OWN TWIN: this frame is rendered from a vantage
+                    // the sim walks away from four lines down, so the twin has
+                    // to be taken here or it would be of somewhere else.
+                    ValuePanelRead(cam, tex, "street",
+                                   UngradedTwin(cam, rt.width, rt.height));
                     cam.transform.position = keepPos;
                     cam.transform.rotation = keepRot;
                 }
@@ -16428,6 +16685,65 @@ namespace Ledger.Game
                       // construction — comparable in direction, never to
                       // three decimals.
                       $"valueHorizon={_valuePanel.Horizon()} " +
+                      // ---- THE SKY-GAIN DISCRIMINATOR ------------------
+                      //
+                      // WHAT IT DECIDES, and it is the only thing on this line
+                      // that decides it: `sky>lit` fails on 15 of 15 dry rows
+                      // while the other two rungs hold, and a band median
+                      // cannot tell "the common daylight path is scaled wrong"
+                      // from "the dome is authored dark" because both print
+                      // the same median. These keys separate them and they
+                      // move OPPOSITE ways under the two hypotheses — the full
+                      // fork, with which reading means which, is at the top of
+                      // `Core/SkyGain.cs` and is not repeated here so there is
+                      // one copy of it.
+                      //
+                      // ALL OF IT IS LINEAR AND ALL OF IT IS A MEAN. Not the
+                      // display-referred MEDIANS `valueBands` prints two lines
+                      // up: same rays, same instant, different space and
+                      // different statistic, and the two may not be quoted as
+                      // one reading. Linear because `groundGainBy` is, so this
+                      // key's `gnd` row and that key's rows are readable
+                      // against each other.
+                      //
+                      // WHOLE-RUN NUMBERS, SO THEY BELONG ON THIS LINE. Every
+                      // row pools a REGIME across shots and a regime is
+                      // complete only when the run ends; putting them on the
+                      // shot lines would put one key on two dozen lines, which
+                      // `verdict-read.py` refuses.
+                      $"skyGainShots={_skyGain.Shots()} " +
+                      $"skyGainRays={_skyGain.Rays()} " +
+                      $"skyGainListed={_skyGain.Listed()} " +
+                      // WHAT THE SKY'S AUTHORED VALUE ACTUALLY IS — six
+                      // numbers per regime, not a scalar, because the dome is
+                      // a three-stop gradient with a cloud layer and a sun
+                      // glow over it. A single "authored at X" would be a
+                      // number invented to make a division possible, which is
+                      // worse than no gain at all. `live<n>/<shots>` separates
+                      // a dark dome from no dome: with the shader missing the
+                      // camera clears to a flat card and the ladder goes flat.
+                      $"skyDomeBy={_skyGain.DomeBy()} " +
+                      // THE FOUR BANDS. `xgrade` is graded-over-raw and is the
+                      // COMMON PATH alone — same rays, same scene, one pass
+                      // toggled — so it is the number that can be compared
+                      // ACROSS bands. `xrawsrc` on the `sky` row is the dome's
+                      // own transfer with no grade in it and is the one number
+                      // here with an expected value, 1.000; on the three
+                      // geometry rows the same column is the irradiance and
+                      // has none. That asymmetry is deliberate and is the
+                      // discriminator.
+                      $"skyGainBands={_skyGain.Bands()} " +
+                      // THE LADDER — one regime, named, rung by elevation.
+                      // A single sky gain would be a mean over whatever slice
+                      // of dome the camera framed, and the landed evidence
+                      // already says the slice decides the number (aerial rows
+                      // 0.368..0.440 against street rows 0.591..0.696 in one
+                      // run at one regime). `skyGainElevOf` names the regime
+                      // and `skyGainElevRegimes` is the denominator for that
+                      // choice — what the ladder passed over.
+                      $"skyGainElevOf={_skyGain.ElevOf()} " +
+                      $"skyGainElevRegimes={_skyGain.ElevRegimes()} " +
+                      $"skyGainByElev={_skyGain.ByElev()} " +
                       // RENDERED OVER SOURCE, PER GROUND MATERIAL, WHOLE RUN.
                       // A ray-weighted mean over every district shot, so it is
                       // a whole-run number and belongs on this line — the

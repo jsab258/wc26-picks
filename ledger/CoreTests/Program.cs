@@ -127,6 +127,7 @@ namespace Ledger.CoreTests
                 TestSurfaceNames();
                 TestGroundGain();
                 TestValuePanel();
+                TestSkyGain();
                 TestSkylineTally();
                 TestKitDressing();
                 TestYardDepth();
@@ -13467,6 +13468,273 @@ namespace Ledger.CoreTests
         /// The tally does no colour conversion — it is arithmetic on what it
         /// is handed — so what is tested here is the arithmetic, the
         /// statistic (ratio OF MEANS), the denominators, and the shape.
+
+        /// THE SKY-GAIN DISCRIMINATOR. `Core/SkyGain.cs` — rendered over
+        /// authored for the sky band, per elevation, with the three
+        /// comparator bands beside it.
+        ///
+        /// THE ACCEPTING CASE IS FIRST AND IT IS SHAPED LIKE A REAL DRY NOON,
+        /// because the expensive failure is a validator nothing survives. The
+        /// rejecting cases below it are the ones that must NOT print like a
+        /// clean reading: a shot with no ungraded twin, a band no ray landed
+        /// in, a run that never opened a shot, a cap that bit, and a source of
+        /// zero.
+        static void TestSkyGain()
+        {
+            Console.WriteLine("Sky gain — rendered over authored, per band and per elevation:");
+
+            // ---- ACCEPTING -------------------------------------------------
+            // One dry-noon shot: three sky rays at two elevations, one sunlit
+            // wall, two road rays with the real asphalt/kerb spread, one ray
+            // in `other`, and nothing in shadow — which is the case that must
+            // print the WORDS rather than a zero.
+            var dome = new double[SkyGain.StopCount];
+            dome[SkyGain.StopTop] = 0.6559; dome[SkyGain.StopHor] = 0.1640;
+            dome[SkyGain.StopGnd] = 0.1444; dome[SkyGain.StopCloud] = 0.5704;
+            dome[SkyGain.StopCover] = 0.60;  dome[SkyGain.StopGlow] = 0.16;
+
+            var sg = new SkyGain();
+            var sh = sg.Open(0.0, 0.0, 0.0, true, true, dome);
+            sh.Add(SkyGain.Sky, 0.12, 0.030, true, 0.164, true, 0.85, 4.0);
+            sh.Add(SkyGain.Sky, 0.14, 0.036, true, 0.164, true, 0.85, 4.0);
+            sh.Add(SkyGain.Sky, 0.40, 0.100, true, 0.300, true, 0.90, 25.0);
+            sh.Add(SkyGain.LitWall, 0.68, 0.18, true, 0.15, true, 0.92, 0.0);
+            sh.Add(SkyGain.Ground, 0.48, 0.12, true, 0.0075, true, 0.95, 0.0);
+            sh.Add(SkyGain.Ground, 0.44, 0.13, true, 0.0085, true, 0.95, 0.0);
+            sh.Add(SkyGain.Other, 0.30, 0.09, true, 0.20, true, 0.90, 0.0);
+            sg.Land(sh);
+
+            var bands = sg.Bands();
+            Check(bands ==
+                "[r0.00w0.00n0.00@sky:gr0.2200/rw0.0553/sc0.2093/xgrade3.976/xsrc1.051/xrawsrc0.264@n3/rn3/sn3/vig0.867,"
+              + "r0.00w0.00n0.00@lit:gr0.6800/rw0.1800/sc0.1500/xgrade3.778/xsrc4.533/xrawsrc1.200@n1/rn1/sn1/vig0.920,"
+              + "r0.00w0.00n0.00@gnd:gr0.4600/rw0.1250/sc0.0080/xgrade3.680/xsrc57.500/xrawsrc15.625@n2/rn2/sn2/vig0.950,"
+              + "r0.00w0.00n0.00@shd:nothing_measured@n0/rn0/sn0]",
+                "a real dry-noon tally prints its four band rows exactly", bands);
+
+            // THE RATIOS ARE RATIOS OF MEANS, NOT MEANS OF RATIOS, and the
+            // two ground rays are the case where that matters: per-ray the
+            // ratios are 64.000 and 51.765 (mean 57.882), and the ratio of
+            // means is 57.500. The row must carry the second.
+            Check(bands.Contains("xsrc57.500"),
+                  "xsrc is a ratio of means, not a mean of ratios", bands);
+
+            Check(sg.Rays() == "sky3/lit1/gnd2/shd0/oth1/of7",
+                  "the band ray counts add up on the printed line", sg.Rays());
+            Check(sg.Shots() == "1/1/1/1",
+                  "measured/offered/with-twin/with-dome", sg.Shots());
+            Check(sg.Listed() == "4/4", "the band list shows every row it has", sg.Listed());
+            Check(sg.ElevOf() == "r0.00w0.00n0.00@sky3/shots1",
+                  "the ladder names its regime and its sky-ray count", sg.ElevOf());
+            Check(sg.ElevRegimes() == "[r0.00w0.00n0.00:sky3/all7/shots1]",
+                  "every regime's sky-ray count is the ladder choice's denominator",
+                  sg.ElevRegimes());
+
+            var elev = sg.ByElev();
+            Check(elev ==
+                "[below0:nothing_measured@n0/rn0/sn0,"
+              + "e00..02:nothing_measured@n0/rn0/sn0,"
+              + "e02..05:gr0.1300/rw0.0330/sc0.1640/xgrade3.939/xsrc0.793/xrawsrc0.201@n2/rn2/sn2,"
+              + "e05..10:nothing_measured@n0/rn0/sn0,"
+              + "e10..20:nothing_measured@n0/rn0/sn0,"
+              + "e20..45:gr0.4000/rw0.1000/sc0.3000/xgrade4.000/xsrc1.333/xrawsrc0.333@n1/rn1/sn1,"
+              + "e45..90:nothing_measured@n0/rn0/sn0]",
+                "the ladder prints every rung, including the empty ones", elev);
+
+            Check(sg.DomeBy() ==
+                "[r0.00w0.00n0.00:top0.6559/hor0.1640/gnd0.1444/cloud0.5704/cover0.6000/glow0.1600/live1/1]",
+                "the authored dome prints its six numbers rather than a scalar", sg.DomeBy());
+
+            // NO SPACES ANYWHERE. Every reader of the verdict splits on
+            // whitespace and truncates silently; `crowdBodyWidth` cost a whole
+            // reading by emitting one space.
+            foreach (var v in new[] { bands, elev, sg.DomeBy(), sg.ElevRegimes(),
+                                      sg.ElevOf(), sg.Rays(), sg.Shots(), sg.Listed() })
+                Check(!v.Contains(" "), "no verdict value carries a space", v);
+
+            // ---- THE MIRROR OF THE SHADER'S GRADIENT ----------------------
+            // Endpoints first: straight up is the zenith stop, the horizon is
+            // the horizon stop, straight down is the ground stop — whatever
+            // the curves are.
+            Check(Math.Abs(SkyGain.DomeLuma(1.0, 0.6559, 0.1640, 0.1444, 1.7, 1.2) - 0.6559) < 1e-9,
+                  "straight up is the zenith stop");
+            Check(Math.Abs(SkyGain.DomeLuma(0.0, 0.6559, 0.1640, 0.1444, 1.7, 1.2) - 0.1640) < 1e-9,
+                  "the horizon is the horizon stop");
+            Check(Math.Abs(SkyGain.DomeLuma(-1.0, 0.6559, 0.1640, 0.1444, 1.7, 1.2) - 0.1444) < 1e-9,
+                  "straight down is the ground stop");
+            // AND THE CURVE IS THE SHADER'S, NOT A LINEAR RAMP. `>1` keeps the
+            // horizon band BROAD, which is the whole reason the shader takes a
+            // curve: at 30 degrees a linear ramp would already be a third of
+            // the way to the zenith and this must be far less.
+            double at30 = SkyGain.DomeLuma(0.5, 0.6559, 0.1640, 0.1444, 1.7, 1.2);
+            double linearAt30 = 0.1640 + (0.6559 - 0.1640) * 0.5;
+            Check(at30 < linearAt30 - 0.05,
+                  "the sky curve keeps the horizon band broad", at30.ToString("0.0000"));
+            // Monotone climbing on the sky side, so a ladder rung that reads
+            // higher than the one below it is the dome and not the mirror.
+            double prev = -1;
+            for (int d = 0; d <= 90; d += 5)
+            {
+                double v = SkyGain.DomeLuma(Math.Sin(d * Math.PI / 180.0),
+                                            0.6559, 0.1640, 0.1444, 1.7, 1.2);
+                Check(v >= prev, "the mirrored gradient climbs with elevation");
+                prev = v;
+            }
+
+            // Every rung of the ladder is reachable and they are in order.
+            Check(SkyGain.ElevOfDegrees(-3) == 0 && SkyGain.ElevOfDegrees(0) == 1
+                  && SkyGain.ElevOfDegrees(1.9) == 1 && SkyGain.ElevOfDegrees(2) == 2
+                  && SkyGain.ElevOfDegrees(4.9) == 2 && SkyGain.ElevOfDegrees(5) == 3
+                  && SkyGain.ElevOfDegrees(9.9) == 3 && SkyGain.ElevOfDegrees(10) == 4
+                  && SkyGain.ElevOfDegrees(19.9) == 4 && SkyGain.ElevOfDegrees(20) == 5
+                  && SkyGain.ElevOfDegrees(44.9) == 5 && SkyGain.ElevOfDegrees(45) == 6
+                  && SkyGain.ElevOfDegrees(90) == 6,
+                  "every rung of the ladder is reachable and in order");
+
+            // ---- REJECTING: A RUN THAT NEVER MEASURED ANYTHING ------------
+            // The words, everywhere, and a shots line that cannot be read as
+            // a clean pass.
+            var never = new SkyGain();
+            Check(never.Bands() == "nothing_measured"
+                  && never.ByElev() == "nothing_measured"
+                  && never.ElevOf() == "nothing_measured"
+                  && never.ElevRegimes() == "nothing_measured"
+                  && never.DomeBy() == "nothing_measured",
+                  "a run that never measured prints the words on every row");
+            Check(never.Shots() == "0/0/0/0" && never.Rays() == "sky0/lit0/gnd0/shd0/oth0/of0",
+                  "never-ran prints zero over zero, not a clean-looking zero",
+                  never.Shots() + " " + never.Rays());
+
+            // ---- REJECTING: SHOTS OFFERED, NOTHING READ BACK --------------
+            // `0/19` is a fault and must not look like `0/0`.
+            var offered = new SkyGain();
+            for (int i = 0; i < 19; i++) offered.Open(0, 0, 0, true, true, dome);
+            Check(offered.Shots() == "0/19/0/0",
+                  "nineteen shots offered and none landed is not the same as never running",
+                  offered.Shots());
+
+            // ---- REJECTING: NO UNGRADED TWIN ------------------------------
+            // The discriminator's own failure mode. Without the twin every
+            // `xgrade` is unavailable, and it must say so in words rather than
+            // print a ratio against zero.
+            var noTwin = new SkyGain();
+            var nt = noTwin.Open(0, 0, 0, false, true, dome);
+            nt.Add(SkyGain.Sky, 0.12, 0, false, 0.164, true, 0.85, 4.0);
+            noTwin.Land(nt);
+            Check(noTwin.Bands().Contains("gr0.1200/rwnone/sc0.1640/xgradenone/xsrc0.732/xrawsrcnone"),
+                  "a shot with no ungraded twin prints the words, not a zero", noTwin.Bands());
+            Check(noTwin.Shots() == "1/1/0/1",
+                  "the with-twin denominator is what makes that legible", noTwin.Shots());
+
+            // ---- REJECTING: NO DOME READ ----------------------------------
+            // A build whose sky material could not be read has no authored
+            // value at all; the row must not divide by an invented one.
+            var noDome = new SkyGain();
+            var nd = noDome.Open(0, 0, 0, true, false, null);
+            nd.Add(SkyGain.Sky, 0.12, 0.03, true, 0, false, 0.85, 4.0);
+            noDome.Land(nd);
+            Check(noDome.Bands().Contains("/scnone/xgrade4.000/xsrcnone/xrawsrcnone"),
+                  "a shot with no dome read prints the words on every ratio that needed it",
+                  noDome.Bands());
+            Check(noDome.DomeBy() == "[r0.00w0.00n0.00:nothing_measured@shots1]",
+                  "and the dome row says so rather than printing zeros", noDome.DomeBy());
+            Check(noDome.Shots() == "1/1/1/0",
+                  "the live-dome denominator separates a flat card from a dark dome",
+                  noDome.Shots());
+
+            // ---- REJECTING: A SOURCE OF ZERO ------------------------------
+            // Dividing by it would print an enormous gain that reads as a
+            // finding. `GroundGain`'s word, deliberately the same one.
+            var zero = new SkyGain();
+            var zs = zero.Open(0, 0, 0, true, true, dome);
+            zs.Add(SkyGain.Ground, 0.5, 0.1, true, 0.0, true, 0.9, 0.0);
+            zero.Land(zs);
+            Check(zero.Bands().Contains("xsrcsource0"),
+                  "a source of zero says source0 rather than printing a huge gain",
+                  zero.Bands());
+
+            // ---- REJECTING: AN UNKNOWN REGIME -----------------------------
+            // A shot whose weather or hour was not recorded must not default
+            // to a dry noon, which is the exact regime the discriminator is
+            // about.
+            Check(SkyGain.RegimeTag(-1, 0, 0) == "weather_unknownn0.00",
+                  "unknown weather prints the words", SkyGain.RegimeTag(-1, 0, 0));
+            Check(SkyGain.RegimeTag(0, 0, -1) == "r0.00w0.00nunknown",
+                  "an unknown hour prints the words", SkyGain.RegimeTag(0, 0, -1));
+            Check(SkyGain.RegimeTag(0.35, 1.0, 1.0) == "r0.35w1.00n1.00",
+                  "and a known one is ValuePanel's tag with the hour on the end",
+                  SkyGain.RegimeTag(0.35, 1.0, 1.0));
+            Check(ValuePanel.WeatherTag(0.35, 1.0) == "r0.35w1.00",
+                  "the weather half is ValuePanel's own, called and not copied",
+                  ValuePanel.WeatherTag(0.35, 1.0));
+
+            // ---- A DRY NOON AND A DRY MIDNIGHT ARE TWO REGIMES ------------
+            // Both tag `r0.00w0.00` on weather alone; pooling them would be
+            // `bodyReadWhen`'s fault, 35.7 against 10.8 quoted side by side.
+            var hours = new SkyGain();
+            var noon = hours.Open(0, 0, 0.0, true, true, dome);
+            noon.Add(SkyGain.Sky, 0.40, 0.10, true, 0.164, true, 0.9, 4.0);
+            hours.Land(noon);
+            var mid = hours.Open(0, 0, 1.0, true, true, dome);
+            mid.Add(SkyGain.Sky, 0.04, 0.01, true, 0.010, true, 0.9, 4.0);
+            hours.Land(mid);
+            Check(hours.Bands().Contains("r0.00w0.00n0.00@sky:gr0.4000")
+                  && hours.Bands().Contains("r0.00w0.00n1.00@sky:gr0.0400"),
+                  "a dry noon and a dry midnight land in different regimes", hours.Bands());
+
+            // ---- REGIMES ARE ORDERED BY RAYS, NOT BY FIRST SIGHT ----------
+            // The cap must not be able to bite the row with the most evidence
+            // in it: a run opens on a soaked day and the dry noon rows arrive
+            // late.
+            var order = new SkyGain();
+            var wetFirst = order.Open(0.9, 1.0, 0.0, true, true, dome);
+            wetFirst.Add(SkyGain.Ground, 0.1, 0.02, true, 0.01, true, 0.9, 0.0);
+            order.Land(wetFirst);
+            var dryLater = order.Open(0.0, 0.0, 0.0, true, true, dome);
+            for (int i = 0; i < 5; i++)
+                dryLater.Add(SkyGain.Ground, 0.5, 0.12, true, 0.01, true, 0.9, 0.0);
+            order.Land(dryLater);
+            Check(order.Bands().IndexOf("r0.00w0.00n0.00@sky")
+                  < order.Bands().IndexOf("r0.90w1.00n0.00@sky"),
+                  "the regime with the most rays is printed first", order.Bands());
+
+            // ---- THE CAP ANNOUNCES ITSELF ---------------------------------
+            // Nine regimes make 36 rows against a cap of 32; a truncation that
+            // does not say it bit reads as a finding.
+            var capped = new SkyGain();
+            for (int i = 0; i < 9; i++)
+            {
+                var cs = capped.Open(i / 100.0, 0, 0, true, true, dome);
+                cs.Add(SkyGain.Sky, 0.2, 0.05, true, 0.164, true, 0.9, 4.0);
+                capped.Land(cs);
+            }
+            Check(capped.Bands().EndsWith(",+4more-not-shown]"),
+                  "the band cap announces when it bites", capped.Bands());
+            Check(capped.Listed() == "32/36",
+                  "and the listed count carries the same fact as a pair",
+                  capped.Listed());
+
+            // ---- A STOP THAT MOVED INSIDE ITS REGIME ----------------------
+            // `top`, `hor` and `gnd` are deterministic in (night, rain) and
+            // must be constant inside a tag; `cover` is seeded off the
+            // calendar day and must not be. The row prints one number for the
+            // first and `lo..hi` for the second, so the difference is visible
+            // rather than assumed.
+            var spread = new SkyGain();
+            var dayA = new double[SkyGain.StopCount]; Array.Copy(dome, dayA, SkyGain.StopCount);
+            var dayB = new double[SkyGain.StopCount]; Array.Copy(dome, dayB, SkyGain.StopCount);
+            dayA[SkyGain.StopCover] = 0.40; dayB[SkyGain.StopCover] = 0.80;
+            var sa = spread.Open(0, 0, 0, true, true, dayA);
+            sa.Add(SkyGain.Sky, 0.2, 0.05, true, 0.164, true, 0.9, 4.0);
+            spread.Land(sa);
+            var sb = spread.Open(0, 0, 0, true, true, dayB);
+            sb.Add(SkyGain.Sky, 0.2, 0.05, true, 0.164, true, 0.9, 4.0);
+            spread.Land(sb);
+            Check(spread.DomeBy().Contains("top0.6559/") && spread.DomeBy().Contains("cover0.4000..0.8000"),
+                  "a stop that moved inside its regime prints lo..hi and one that did not prints one number",
+                  spread.DomeBy());
+        }
+
         static void TestSkylineTally()
         {
             Console.WriteLine("Skyline — what the horizon is made of, and whether it stands on anything:");
