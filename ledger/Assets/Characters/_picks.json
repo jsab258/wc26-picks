@@ -175,9 +175,14 @@
   },
   "walk_start": {
     "tier": "B",
-    "found": "Catwalk Walk Start Turn 180 Left_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": false,
-    "pattern": "\\bwalk(ing)? start\\b"
+    "found": null,
+    "tried": [
+      "^start walking\\b",
+      "\\bstart walking\\b"
+    ],
+    "setAside": [
+      "walk_start__Catwalk Walk Start Turn 180 Left_2dee24f8-3b49-48af-b735-c6377509eaac.fbx"
+    ]
   },
   "walk_stop": {
     "tier": "B",
