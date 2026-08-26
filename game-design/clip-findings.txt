@@ -21,7 +21,7 @@
 # LOWER THIS NUMBER WHEN THE FINDINGS DROP. Never raise it to make red go
 # away; that is the move rule 2 forbids.
 
-clipFindings=3
+clipFindings=2
 
 # CLOSED 2026-08-18, ON THE FIRST RUN OF THE GUARD THAT FOUND IT:
 #
@@ -514,3 +514,20 @@ SO THIS NUMBER IS DEBT WITH A NAMED DISCHARGE, not an accepted finding: after
 the next re-pick the count returns to 2 and the ratchet itself will go RED
 until this line is put back — which is the mechanism doing its job in the
 other direction. Queue: `repick-after-gender-guard`.
+
+DISCHARGED THE SAME MORNING, 26 Aug. The re-pick ran with the guard and the
+duplicate is gone: `walk_start_f` holds `Female Start Walking` and
+`walk_start` no longer shares it. `clipFindings` measured back at 2,
+duplicates 0. Lowered 3 -> 2, and the ratchet DID go red in the other
+direction first, exactly as written above — which is the only reason anybody
+had to come back and lower it.
+
+AND THE NEXT THING THE FALLBACK GRABBED IS A DECISION, NOT A BUG. With the
+female clip refused, `walk_start`'s unanchored pattern reached
+`Catwalk Walk Start Turn 180 Left` — a runway turn, so every man would begin
+walking with a sashay. **`pick_animations.py` PREDICTED THIS IN WRITING**
+before it happened: *"it is a decision about whether an empty slot beats a
+sashay, not a pattern fix, so it is written down rather than taken."* It is
+still that decision and it is still not taken. Recommendation on the record:
+an EMPTY slot beats a sashay — a missing transition is invisible, a man
+pirouetting into a walk is a visible absurdity. Queue: `walk-start-sashay`.
