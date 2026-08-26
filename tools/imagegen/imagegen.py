@@ -1397,8 +1397,20 @@ class Publisher:
     # -- plumbing ----------------------------------------------------------
     def _git(self, args, timeout=180):
         env = dict(os.environ)
-        env.update(GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never",
-                   GIT_PAGER="cat", LC_ALL="C")
+        # `GIT_TERMINAL_PROMPT=0` STAYS: it is what turns a terminal waiting
+        # forever for a username into a fast, named failure, and that is the
+        # whole reason an unattended run is safe to leave alone.
+        #
+        # `GCM_INTERACTIVE=never` IS GONE, 26 Aug, AND THIS IS A HYPOTHESIS
+        # RATHER THAN A FINDING. His run failed with "could not read Username
+        # for https://github.com" while `REPICK.bat` pushed successfully from
+        # the same clone minutes later - so a working credential exists and
+        # this process could not reach it. The likeliest reason is that
+        # `GCM_INTERACTIVE=never` makes Git Credential Manager decline
+        # entirely rather than serve what it has cached, which would explain
+        # both halves exactly. Only his machine can settle it; the next run
+        # is the test, and the failure text names itself either way.
+        env.update(GIT_TERMINAL_PROMPT="0", GIT_PAGER="cat", LC_ALL="C")
         try:
             p = subprocess.run(["git", "-C", str(self.repo)] + args,
                                capture_output=True, text=True, errors="replace",
@@ -1908,6 +1920,17 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
                 log(f"  [{n}/{len(items_run)}] {item['id']}  SKIP, already made "
                     f"({png.stat().st_size/1024:.0f} KB, spread {st.get('spread')}"
                     f"/255) - delete {png.name} to make it again")
+                # A SKIPPED PICTURE STILL HAS TO REACH THE PROJECT, and until
+                # 26 Aug it did not: only images this run WROTE were handed to
+                # the sender, so the run that was dispatched specifically to
+                # bank twelve finished pictures skipped all fourteen, pushed
+                # the manifest and the report, and left every PNG on the PC.
+                # The question the sender answers is "is this picture in the
+                # repository", not "did this run make it" - and `note` is
+                # idempotent, so one already committed costs an unchanged path
+                # in `git add` and nothing else.
+                if publisher is not None:
+                    publisher.note(png)
                 save()
                 continue
         cmd = [str(exe),
@@ -2820,8 +2843,23 @@ def selftest():
 
             subprocess.run = _Count(0)
             logs = []
+            # A SENDER THAT RECORDS WHAT IT WAS OFFERED, so the skip path can
+            # be asked the question that actually failed on 26 Aug: not "did
+            # it skip", which was always right, but "did the pictures still
+            # reach the project".
+            offered = []
+
+            class _Noting:
+                enabled = True
+                def note(self, path):
+                    offered.append(pathlib.Path(path).name)
+                def note_image(self, path):
+                    self.note(path)
+                def maybe(self, message, force=False):
+                    return None
+
             again = run_batch(pathlib.Path("stub"), td, gpu, spec, out, 60,
-                              lambda s="": logs.append(s))
+                              lambda s="": logs.append(s), publisher=_Noting())
             check("skip ACCEPTING CASE: a second run over a finished batch makes "
                   "NOTHING again - every item is skipped and the generator is "
                   "never called",
@@ -2834,6 +2872,19 @@ def selftest():
                   "afterwards - this is the overwrite that cost him his two "
                   "hand-picked fascias",
                   sha256(keep) == before, keep)
+            # THE FAULT THIS SELFTEST EXISTS FOR. Every item skipped, and the
+            # run that was dispatched to BANK twelve finished pictures pushed
+            # the manifest and the report and not one PNG - because only
+            # images the run WROTE were handed to the sender. The count is
+            # asserted, not just "some picture was offered": one missing name
+            # is one picture left on a PC nobody backs up.
+            pngs = [o for o in offered if o.endswith(".png")]
+            check("skip: EVERY skipped picture is still offered to the sender - "
+                  "the question is whether it is in the project, not whether "
+                  "this run made it",
+                  len(pngs) == len(spec["items"]),
+                  "%d of %d offered: %s" % (len(pngs), len(spec["items"]), pngs))
+
             check("skip: it is ANNOUNCED per item and says how to undo it - a "
                   "silent skip is as bad as a silent overwrite",
                   any("SKIP, already made" in s for s in logs)

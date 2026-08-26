@@ -84,7 +84,14 @@ if exist ".git\MERGE_HEAD" (
   if "%CONFSIZE%"=="0" (
     echo  Nothing actually conflicted - it was only waiting for a
     echo  message. Finishing the merge.
-    git commit --no-edit
+    REM  `--cleanup=strip` IS NOT DECORATION. `--no-edit` skips the editor
+    REM  AND skips git's comment-stripping, which normally happens only when
+    REM  a message is edited — so the merge lands carrying git's own "#
+    REM  Please enter a commit message" template inside the subject line.
+    REM  Watched happening on Jafar's PC, 26 Aug, from the command this
+    REM  block runs. Two behaviours behind one flag, and only one of them
+    REM  is the one anybody wants.
+    git commit --no-edit --cleanup=strip
     if errorlevel 1 (
       echo  Could not finish it. Tell Claude what this says.
       pause & exit /b 1
