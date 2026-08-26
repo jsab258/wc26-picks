@@ -115,18 +115,36 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    game's default idle, and a name cannot tell a monster's motion from a file
    exported off a monster rig.
 
-1. **PROVE THE ONE-CLICK SENDER ON HIS MACHINE — IT HAS NEVER RUN THERE.**
-   *(visual, and it is the channel everything visual comes back through)*
-   `Publisher` was written, given a plain sentence for every failure path, and
-   **never instantiated** — `run_batch(... publisher=None)` was its only live
-   call. That is why he had to open a text file and paste it. Wired 26 Aug,
-   selftest 83 -> 100, and the accepting case goes all the way to a real push
-   into a bare clone. **What is still unproven is his PC**: whether that clone
-   is on the branch, has an `origin`, and has credentials git can use without
-   a prompt. All three refuse loudly rather than hanging (`GIT_TERMINAL_PROMPT=0`),
-   and the report now DERIVES its closing paragraph from the sender instead of
-   asserting one — but "refuses loudly" is a design, not a measurement. Next
-   run he does answers it; nothing here can.
+1. **WIRE ONE GENERATED PICTURE INTO THE STREET BEFORE GENERATING ANY MORE.**
+   *(visual, and it gates the whole picture batch)* **Nothing in the game names
+   `Decals/generated`** — zero references across all 186 Game files. Fourteen
+   pictures are in the repository and no code loads one, so a four-hour batch
+   would change nothing on screen. `fascia_mickeys.png` is the candidate: shop
+   fascias today are `StreetFurniture` building a plaster box at 2.6x0.34x0.06
+   and lettering it with `WorldBuilder.Letter`, so the geometry, placement and
+   yaw already exist and are correct — the picture replaces the material and
+   drops the `Letter` call. **First real question: the board is 7.6:1 and the
+   picture is 2:1.** Done means SEEN in a committed frame, not "wired".
+   Full spec: `imagegen-batch-2.md`.
+
+1. **NOTHING ANSWERS "DOES THIS TILE" — AND THE MOST VISIBLE POSSIBLE FAULT
+   SAILED THROUGH.** *(visual)* `wall_salt_render.png` has a WHITE BORDER
+   around the whole image; tiled, it draws a white grid across every building
+   in the district. The blank check reads it at spread 242/255 and calls it
+   healthy, CORRECTLY — it asks "is this picture blank" and a border is a
+   small fraction of the pixels. Compare the first N rows against the last N
+   (and columns), print the edge difference per item, refuse an item whose
+   opposite edges do not meet. Both fixtures are free and already on disk:
+   `fascia_mickeys` accepts (and should be exempt BY KIND, not by luck),
+   `wall_salt_render` rejects.
+
+1. **THE WALL EXPERIMENT — ONE IMAGE, AND IT DECIDES A WHOLE KIND.**
+   *(visual)* Both wall items failed and the negative channel meant to prevent
+   one of them **has never been tested against a frame that had the fault** —
+   I concluded off two 512 probes that neither reproduced it. The untried run
+   is the picture that FAILED: seed 8036 at 1024 with cfg 2.0, so the negative
+   is live. About two minutes on his card. Until it comes back clean AND
+   tiles, walls do not ride the long batch.
 
 1. **`namedJunctions=1` OF 97 — 49 OF 51 STREET NAMES ARE UNREACHABLE, AND
    THE GUARD FOR THIS EXACT FAULT REPORTS ZERO.** *(moat: information)*
@@ -169,7 +187,6 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    THE-HYBRID-RESIDENT section was rewritten 25 Aug; `jsab258/game-studio` has
    not absorbed it and is outside this session's push scope. `template-sync`
    is DEFERRED, not stamped synced — different facts, must not print alike.
-
 
 1. **`valueRungs` POOLS TWO CAMERA FAMILIES WHOSE `sky` MEDIANS DO NOT
    OVERLAP — a measurement-validity finding, flagged and deliberately not
@@ -257,23 +274,17 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    the row-depth cap binds; and one street corner cannot see 736 objects,
    which is the argument for the eye-level cameras, not evidence of absence.
 
-
-1. **DIRECTOR RULED THE DRESSING BATCH, 25 Aug — `decision-dressing-batch.md`.**
-   **A: commit now, commit is not dispatch.** Re-DISPATCH stays barred until
-   the hang fix AND the parser-breaking audit fixes land — the first build
-   back is the run everyone reads. **B: the welded diamond REJECTS** (a US
-   diamond on a post is the loudest wrong-country tell there is; the premise
-   outranks a free asset). The rolled plate is honest **iff** no US livery
-   survives the 45° roll — **confirm off the first still, not off the
-   apex-midpoint number.** **C: signage is a named gap, and it queues HIGH** —
-   street nameplates first: named streets whose names cannot be read is the
-   information moat with a hole in it. **D: closes as first-working, with two
-   that do NOT close** — `kitAlbedo`'s cap is a silently-biting instrument
-   fault, not a rung, so it rides the audit-fix commit; and the duplicated
-   TextMesh idiom is signage's FIRST task, because building signage otherwise
-   mints a third private copy. Onto the ladder by name: the pub-sign board
-   (the kit ships a mast arm with no plate) and a British terrace — the
-   terrace's next rung is blank, so it is a RESEARCH task, not a fetch.
+1. **DIRECTOR RULED THE DRESSING BATCH, 25 Aug — full text in
+   `decision-dressing-batch.md`.** Live parts only: **the welded diamond
+   REJECTS** (a US diamond on a post is the loudest wrong-country tell there
+   is); the rolled plate is honest **iff** no US livery survives the 45° roll,
+   confirmed off the first still and not off the apex-midpoint number.
+   **Signage queues HIGH** — named streets whose names cannot be read is the
+   information moat with a hole in it — and the duplicated TextMesh idiom is
+   signage's FIRST task, because building signage otherwise mints a third
+   private copy. On the ladder by name: the pub-sign board (the kit ships a
+   mast arm with no plate) and a British terrace, whose next rung is blank and
+   is therefore a RESEARCH task, not a fetch.
    **E: DISCHARGED 26 Aug** — both one-click items ran on his PC in one
    interruption; the re-pick's result and the probes' are in `clip-findings.txt`
    and `imagegen/prompts.json`.
@@ -296,42 +307,31 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
    **DECIDED 24 Aug, ON EVIDENCE: THE REFLECTION/ENVIRONMENT SOURCE ONLY,
    VISIBLE DOME UNTOUCHED.** The numbers make the pick, not a preference.
-   **Glass is smoothness 0.90 and Window 0.85** (`SurfaceSpec`), on every
-   facade in town — already highly reflective. What they reflect is a **64px
-   cubemap baked off a three-colour gradient**, no structure at all. The
-   near-black windows in every landed frame are dark BECAUSE there is
-   nothing to reflect, not because they were authored dark: that is the
-   largest reflective area in the game sitting on an empty environment. The
-   blend shape trades a CONTINUOUS day (dusk warmth, night sodium, a per-day
-   deck the ambient reads from) for photographic detail and pops between
-   four fixed states; reflection-only is additive and cannot regress it.
-   **Obstacles, both real:** (a) `Resources.Load` cannot reach `Assets/Sky`
-   and `LoadImage` does not read `.hdr`, so the captures must MOVE under
-   `Assets/Resources`, which moves the directory `attribution-check.py` maps
-   to Poly Haven; (b) there is no NIGHT capture, so night keeps the
-   procedural cubemap and the handover needs a ramp.
+   Glass 0.90 / Window 0.85 across town reflects a **64px cubemap off a
+   three-colour gradient** — the largest reflective area in the game sitting
+   on an empty environment, which is why every landed frame has near-black
+   windows. Reflection-only is additive and cannot regress the continuous
+   day. **Two real obstacles:** the captures must move under
+   `Assets/Resources` (`Resources.Load` cannot reach `Assets/Sky`, `LoadImage`
+   will not read `.hdr`), which moves the directory `attribution-check.py`
+   maps to Poly Haven; and there is no NIGHT capture, so night keeps the
+   procedural cubemap and the handover needs a ramp. **Ship the measurement:**
+   the environment cubemap's own luma spread before and after — a flat
+   gradient and a real sky differ by an order of magnitude there. Full
+   reasoning in `roadmap-history.md`.
 
-   **Ship the measurement with it:** the environment cubemap's own luma
-   spread, before and after — a flat gradient and a real sky differ by an
-   order of magnitude there, and that is the number that says the wire took.
-
-
-   **LINEAR MPB CLASS-FAULT UNDER TEST:** MPB colours skip
-   gamma-to-linear, so display-authored tints weakened at the flip. BODY
-   WASH fixed first; 13 other MPB sites wait on the verdict, which was
-   itself blocked by its own instrument until 23 Aug (the palest-part table
-   named BlobShadow — a multiply quad sampling the pavement — four runs
-   running; attribution skips Hidden/ shaders now). Real remainder: feet and
-   shoes at 224-234, both tiers. **And a SECOND MPB fault is now open
-   beside it:** `_Color` set through a property block on a shader that has
-   no `_Color` is a silent no-op — see the kit-paint items below.
+   **LINEAR MPB CLASS-FAULT UNDER TEST:** MPB colours skip gamma-to-linear,
+   so display-authored tints weakened at the flip. Body wash fixed; 13 other
+   MPB sites wait on the verdict. Real remainder: feet and shoes at 224-234,
+   both tiers. **Second MPB fault open beside it:** `_Color` set through a
+   property block on a shader with no `_Color` is a silent no-op — see the
+   kit-paint items below.
 
    **V6 FIRST SLICE LANDED** (dusk warmth, sun glow, sodium deck). Open
    from V6: the dome's cloud structure per time of day.
 1. **THE `e8c5949` STALL — CLOSED, account in `roadmap-history.md`.** Live
    remainder only: 3 of 352 kept runs have no done line, so the class recurs
    and the instrumentation is the deliverable, not a fix.
-
 
 1. **THE INQUIRY RUNS NOW; TWO THINGS GATED ON IT STILL DO NOT.** *(moat:
    information)* `inquiry=Manhunt` lands, but `summonsTaken=0` and
@@ -340,13 +340,11 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    rows (79 never-moved keys of 1347 harvested, 177 rows swept). The phone-line
    cause stands; the inquiry cause does not, and the two were read as one.
 
-
 1. **THREE READINGS WHOSE SAMPLE IS TOO SMALL TO SEPARATE ANYTHING.**
    `patrolOnBeatMean=0.00` over 3 shots against `0.18` over 17 — zero of three
    separates nothing. The body budget closed at 87.8% (account in
    `roadmap-history.md`) but left two the same way: the centre-third foot
    reading, and white pills with no committed still.
-
 
 1. **Smuggling** (M21) — **BUILT** (account in `roadmap-history.md`).
    Remainders: a player verb to recruit the signer, and gambling behind it.

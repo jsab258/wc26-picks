@@ -3159,3 +3159,67 @@ appears in 3 of the 3 runs where it *can* appear. I had compared a printed
 field against an absent one and read the absence as a difference. Rule 3b, one
 layer out: a field that only exists on the failing path cannot distinguish the
 failing path.
+
+## The one-click picture run — closed 26 Aug, after four faults in one morning
+
+The deliverable was Jafar's: *"it should run in 1 go"*. It now does — the run
+generates, commits and pushes its own pictures and its own report, and the
+window says `Sent: 1 push(es) ... nothing to paste`. Four separate faults sat
+between those two states and each one is a different shape.
+
+**1. The sender was never constructed.** `Publisher` was 170 lines with a
+plain-English sentence for every failure path, an incremental interval, and a
+refusal for every way a clone can be the wrong one to push from. Nothing
+instantiated it: `run_batch(... publisher=None)` was its only live call and
+every other call to it was a selftest. Rule 6. Worse, I had already "fixed"
+the complaint by replacing the report's closing line with *"this run pushes
+its own report and pictures back"* — a sentence written over a thing that was
+not happening. The paragraph is DERIVED now; there is no wording available to
+it that says "sent" while the sender is off.
+
+**2. A pull cannot deliver itself.** The `git pull` added to the picture .bat
+could not reach the PC, because the copy on the PC was the old .bat without
+it. The first run after any change to a .bat is always the old one. It now
+fingerprints itself across the pull and re-launches once.
+
+**3. Twenty-two .bat files could hang on a git editor.** A pull made a merge
+commit, git opened vim to ask for a message, the window was closed, and the
+half-finished merge blocked every pull afterwards with "You have not concluded
+your merge" — a sentence naming the state and not the cause. Swept: 22 files
+ran git, NOT ONE guarded the editor. All 22 fixed, `tools/lint-bat-editor.py`
+keeps them that way, and `UPDATE FROM CLAUDE.bat` now FINISHES a merge stopped
+at the message rather than aborting it — a merge waiting for a message has
+already succeeded, and the first version of that recovery threw it away.
+
+**4. A skipped picture was never handed to the sender.** The run dispatched
+specifically to bank twelve finished pictures skipped all fourteen, pushed the
+manifest and the report, and left every PNG on the PC. Only images a run WROTE
+reached the sender. The question is whether a picture is IN THE PROJECT, not
+whether this run made it. The selftest asserts the count and was watched
+failing on the live fault: `0 of 14 offered`.
+
+**And the credential, which was a fifth thing wearing the fourth one's
+clothes.** The push failed with `could not read Username` while `REPICK.bat`
+pushed from the same clone minutes later — so a credential existed and this
+process could not reach it. `GCM_INTERACTIVE=never` was making the credential
+manager decline outright rather than serve what it had cached. Removed;
+`GIT_TERMINAL_PROMPT=0` stays, and it is the reason every one of these
+diagnoses was a sentence in a file rather than a window hung overnight.
+
+## Why the sky HDRIs go to reflection only — the reasoning, 24 Aug
+
+Four Poly Haven captures were fetched and wired to nothing. The choice was
+between replacing the VISIBLE dome and using them as the reflection and
+environment source. The numbers made the pick.
+
+Glass is smoothness 0.90 and Window 0.85 in `SurfaceSpec`, on every facade in
+town, so those surfaces are already highly reflective. What they reflect is a
+64px cubemap baked off a three-colour gradient with no structure in it at all.
+**The near-black windows in every landed frame are dark BECAUSE there is
+nothing to reflect, not because anybody authored them dark** — the largest
+reflective area in the game is sitting on an empty environment.
+
+Replacing the visible dome would trade a CONTINUOUS day — dusk warmth, night
+sodium, a per-day deck the ambient reads from — for photographic detail that
+pops between four fixed states. Reflection-only is purely additive and cannot
+regress any of that, which is why it wins on evidence rather than on taste.
