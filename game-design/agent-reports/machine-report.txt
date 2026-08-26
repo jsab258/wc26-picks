@@ -1,0 +1,133 @@
+LEDGER - image generation, machine report
+============================================================
+written   2026-08-26 10:21:42 local
+host      JAFAR-DESKTOP
+os        Microsoft Windows 11 Pro  (26200)
+cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
+ram       31.9 GB
+free disk 120.3 GB on C:
+python    C:\Users\Jafar\miniconda3\python.exe
+probe     ok  (probe version 2)
+
+GPUs   2 found via Win32_VideoController (CIM)
+  [0] Parsec Virtual Display Adapter   (from Win32_VideoController (CIM))
+      driver 0.45.0.0   vendor string Parsec Cloud, Inc.
+      AdapterRAM 0.00 GB (uint32, saturates at 4.00)
+      registry qwMemorySize 0.00 GB (the one to believe)  [exact name match]
+  [1] AMD Radeon RX 6700   (from Win32_VideoController (CIM))
+      driver 32.0.21045.5002   vendor string Advanced Micro Devices, Inc.
+      AdapterRAM 4.00 GB (uint32, saturates at 4.00)
+      registry qwMemorySize 9.98 GB (the one to believe)  [exact name match]
+
+vulkan drivers registered: 0
+vulkan status:             loader present but NO Khronos key - the display driver registered no Vulkan device
+vulkan loader dll:         present
+directml dll present:      present
+
+PLAN CHOSEN FROM THE ABOVE
+------------------------------------------------------------
+  vendor        amd
+  vram          9.98 GB  (known: True)
+  backend       vulkan   fallback chain vulkan -> cpu
+  model         Z-Image-Turbo Q4_K  (Apache-2.0)
+  flags         --offload-to-cpu --diffusion-fa
+  download      6.7 GB one time
+  free disk ok  True  (need 20 GB)
+
+  why:
+    - VRAM 10.0 GB from vram_bytes_registry
+    - amd adapter, so Vulkan - it is the one vendor-neutral GPU path on Windows and needs no SDK at runtime, the same reasoning that made DirectML the speech baseline
+    - AMD, so the NEXT RUNG applies and is named rather than taken: win-rocm-7.14.0-x64 (189 MB, same release) is the named next rung for an AMD card if Vulkan is slow or wrong - not wired, not measured, conditional on what this probe reports.
+    - quantisation Q4_K: 7-10GB
+
+  next rung (model):   FLUX.1-schnell (Apache-2.0, 12B + T5-XXL, ~10GB more download) is the named next rung if Z-Image's lettering is not good enough. stable-diffusion.cpp runs both; the switch is one field. It is Apache-2.0 and UNGATED - see the VAE comment above, where the opposite was asserted and is retracted.
+  next rung (runtime): win-rocm-7.14.0-x64 (189 MB, same release) is the named next rung for an AMD card if Vulkan is slow or wrong - not wired, not measured, conditional on what this probe reports.
+      ^ this machine is the AMD case that rung is for. It is NOT wired and NOT measured; it is here so the next run has somewhere to go.
+
+RUN
+------------------------------------------------------------
+  LEDGER - image generation, machine report
+============================================================
+written   2026-08-26 10:21:35 local
+host      JAFAR-DESKTOP
+os        Microsoft Windows 11 Pro  (26200)
+cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
+ram       31.9 GB
+free disk 120.3 GB on C:
+python    C:\Users\Jafar\miniconda3\python.exe
+probe     ok  (probe version 2)
+
+GPUs   2 found via Win32_VideoController (CIM)
+  [0] Parsec Virtual Display Adapter   (from Win32_VideoController (CIM))
+      driver 0.45.0.0   vendor string Parsec Cloud, Inc.
+      AdapterRAM 0.00 GB (uint32, saturates at 4.00)
+      registry qwMemorySize 0.00 GB (the one to believe)  [exact name match]
+  [1] AMD Radeon RX 6700   (from Win32_VideoController (CIM))
+      driver 32.0.21045.5002   vendor string Advanced Micro Devices, Inc.
+      AdapterRAM 4.00 GB (uint32, saturates at 4.00)
+      registry qwMemorySize 9.98 GB (the one to believe)  [exact name match]
+
+vulkan drivers registered: 0
+vulkan status:             loader present but NO Khronos key - the display driver registered no Vulkan device
+vulkan loader dll:         present
+directml dll present:      present
+
+PLAN CHOSEN FROM THE ABOVE
+------------------------------------------------------------
+  vendor        amd
+  vram          9.98 GB  (known: True)
+  backend       vulkan   fallback chain vulkan -> cpu
+  model         Z-Image-Turbo Q4_K  (Apache-2.0)
+  flags         --offload-to-cpu --diffusion-fa
+  download      6.7 GB one time
+  free disk ok  True  (need 20 GB)
+
+  why:
+    - VRAM 10.0 GB from vram_bytes_registry
+    - amd adapter, so Vulkan - it is the one vendor-neutral GPU path on Windows and needs no SDK at runtime, the same reasoning that made DirectML the speech baseline
+    - AMD, so the NEXT RUNG applies and is named rather than taken: win-rocm-7.14.0-x64 (189 MB, same release) is the named next rung for an AMD card if Vulkan is slow or wrong - not wired, not measured, conditional on what this probe reports.
+    - quantisation Q4_K: 7-10GB
+
+  next rung (model):   FLUX.1-schnell (Apache-2.0, 12B + T5-XXL, ~10GB more download) is the named next rung if Z-Image's lettering is not good enough. stable-diffusion.cpp runs both; the switch is one field. It is Apache-2.0 and UNGATED - see the VAE comment above, where the opposite was asserted and is retracted.
+  next rung (runtime): win-rocm-7.14.0-x64 (189 MB, same release) is the named next rung for an AMD card if Vulkan is slow or wrong - not wired, not measured, conditional on what this probe reports.
+      ^ this machine is the AMD case that rung is for. It is NOT wired and NOT measured; it is here so the next run has somewhere to go.
+
+SENDING BACK
+------------------------------------------------------------
+  Sending back is on and nothing has been pushed yet - this report was written before the final send. The line printed in the window after it says which.
+
+  Downloading about 6.7 GB, once. It resumes if interrupted.
+    generator: C:\Users\Jafar\ledger-imagegen\runtime-vulkan\sd-cli.exe
+  
+  Generating 14 images into C:\Users\Jafar\wc26-picks\ledger\Assets\StreamingAssets\Decals\generated
+    [1/14] fascia_mickeys  SKIP, already made (1060 KB, spread 252/255) - delete fascia_mickeys.png to make it again
+    [2/14] fascia_ritas_pawn  SKIP, already made (1021 KB, spread 255/255) - delete fascia_ritas_pawn.png to make it again
+    [3/14] fascia_fish_market  SKIP, already made (991 KB, spread 249/255) - delete fascia_fish_market.png to make it again
+    [4/14] fascia_steam_laundry  SKIP, already made (929 KB, spread 254/255) - delete fascia_steam_laundry.png to make it again
+    [5/14] sign_marquee  SKIP, already made (727 KB, spread 246/255) - delete sign_marquee.png to make it again
+    [6/14] sign_open_all_nite  SKIP, already made (726 KB, spread 251/255) - delete sign_open_all_nite.png to make it again
+    [7/14] sign_baths  SKIP, already made (774 KB, spread 244/255) - delete sign_baths.png to make it again
+    [8/14] notice_dock_regulations  SKIP, already made (1028 KB, spread 249/255) - delete notice_dock_regulations.png to make it again
+    [9/14] poster_gig_bill  SKIP, already made (1049 KB, spread 244/255) - delete poster_gig_bill.png to make it again
+    [10/14] notice_ferry_times  SKIP, already made (1070 KB, spread 244/255) - delete notice_ferry_times.png to make it again
+    [11/14] wall_soot_brick  SKIP, already made (2650 KB, spread 247/255) - delete wall_soot_brick.png to make it again
+    [12/14] wall_salt_render  SKIP, already made (2066 KB, spread 242/255) - delete wall_salt_render.png to make it again
+    [13/14] probe_wall_cfg1  SKIP, already made (666 KB, spread 225/255) - delete probe_wall_cfg1.png to make it again
+    [14/14] probe_wall_cfg2  SKIP, already made (594 KB, spread 221/255) - delete probe_wall_cfg2.png to make it again
+  
+  DONE: 0 written, 14 skipped, 0 failed, 0 attempted of 14 in the batch
+    blank check: 0 blank, 0 undecodable, of 0 PNGs decoded (blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled)
+    already made: 14 skipped, 0 remade because what was on disk was blank or unreadable, of 14 PNGs found already on disk
+    Those files were left exactly as they were - anything you picked out by hand is safe.
+    To make one again: delete its .png and double-click again. To make them all again: run with --redo.
+    images and manifest: C:\Users\Jafar\wc26-picks\ledger\Assets\StreamingAssets\Decals\generated
+    every image is review=pending until a human has looked at it
+    COULD NOT SEND: this PC could not sign in to GitHub, so the pictures could not be sent. They are SAFE - saved in this PC's copy of the project. Nothing needs installing; tell Claude and it will fetch them another way.
+        fatal: Cannot prompt because user interactivity has been disabled.
+        fatal: could not read Username for 'https://github.com': terminal prompts disabled
+
+SENDING BACK
+------------------------------------------------------------
+  Tried to send and could NOT. The pictures are safe on disk. What went wrong:
+    this PC could not sign in to GitHub, so the pictures could not be sent. They are SAFE - saved in this PC's copy of the project. Nothing needs installing; tell Claude and it will fetch them another way.
+  Zip the pictures folder named above and send it, plus this file.
