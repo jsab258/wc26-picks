@@ -91,9 +91,9 @@
   },
   "draw_reach": {
     "tier": "A",
-    "found": "Grabbing Pistol_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "found": "Draw Sword 1_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
     "exact": true,
-    "pattern": "\\bgrabbing pistol\\b"
+    "pattern": "\\bdraw sword 1\\b"
   },
   "draw_holster": {
     "tier": "A",
@@ -175,9 +175,9 @@
   },
   "walk_start": {
     "tier": "B",
-    "found": "Start Walking Backwards_4f5d21e1-4ccc-41f1-b35b-fb2547bd8493",
-    "exact": true,
-    "pattern": "^start walking\\b"
+    "found": "Female Start Walking_2dee24f8-3b49-48af-b735-c6377509eaac",
+    "exact": false,
+    "pattern": "\\bstart walking\\b"
   },
   "walk_stop": {
     "tier": "B",
@@ -211,9 +211,11 @@
   },
   "walk_start_f": {
     "tier": "B",
-    "found": "Female Start Walking_2dee24f8-3b49-48af-b735-c6377509eaac",
-    "exact": true,
-    "pattern": "^female start walking\\b"
+    "found": null,
+    "tried": [
+      "^female start walking\\b"
+    ],
+    "setAside": []
   },
   "walk_stop_f": {
     "tier": "B",
