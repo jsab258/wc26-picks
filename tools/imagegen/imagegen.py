@@ -2733,6 +2733,20 @@ def selftest():
           "PC that runs it (text check)",
           "git pull origin" in mb and "PULL FAILED" in mb,
           "git pull origin" in mb)
+    # AND THE PULL CANNOT DELIVER ITSELF. The first run after this .bat
+    # changes is always the OLD copy - which is what happened on 26 Aug: the
+    # pull landed in the repository and the run that would have used it was
+    # the run without it. So the .bat compares its own timestamp across the
+    # pull and re-launches once. Both halves are pinned: the re-launch, and
+    # the guard that makes it strictly once, because a loop here is worse
+    # than the hole it closes.
+    check("the .bat re-launches itself when the pull updates it - a pull "
+          "cannot otherwise deliver a change to the puller (text check)",
+          "SELFWAS" in mb and "SELFNOW" in mb and 'call "%~f0"' in mb,
+          "SELFWAS" in mb)
+    check("the re-launch can happen at most once (text check)",
+          "LEDGER_RELAUNCHED" in mb and mb.count('call "%~f0"') == 1,
+          mb.count('call "%~f0"'))
 
     # 11b. AND THE GATE THROUGH main(), WITH THE NETWORK BOOBY-TRAPPED. The
     #      check above tests the decision; this tests that the decision is

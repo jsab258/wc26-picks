@@ -110,6 +110,11 @@ REM     but it is SAID, because "ran the old code" and "ran the new code" must
 REM     not look identical in the only window anybody reads.
 if defined REPO (
   echo   [0/3] Updating the project...
+  REM  THE FINGERPRINT OF THIS FILE BEFORE THE PULL. A .bat is read by cmd
+  REM  line by line AS IT RUNS, so a pull that rewrites this file mid-run
+  REM  leaves cmd reading from a byte offset into different text. Comparing
+  REM  the timestamp is how we find out, and re-launching is how we survive.
+  for %%F in ("%~f0") do set "SELFWAS=%%~tF %%~zF"
   pushd "%REPO%"
   git pull origin claude/game-dev-ai-automation-2h67ix
   if errorlevel 1 (
@@ -117,6 +122,21 @@ if defined REPO (
     echo         If this run behaves like an older one, that is why.
   )
   popd
+  for %%F in ("%~f0") do set "SELFNOW=%%~tF %%~zF"
+  REM  THE BOOTSTRAP HOLE, AND IT COST A RUN ON 26 AUG. The pull above was
+  REM  added to fix "a fix in the repo cannot reach the PC that runs it" -
+  REM  and it could not fix ITSELF, because the copy on the PC is the OLD
+  REM  .bat with no pull in it. The first run after any change to this file
+  REM  is always the old one. So: if the pull changed this file, start the
+  REM  new one and stop. LEDGER_RELAUNCHED makes it strictly once - a loop
+  REM  here would be worse than the hole.
+  if not "%SELFWAS%"=="%SELFNOW%" if not defined LEDGER_RELAUNCHED (
+    echo         This file was updated by the pull. Starting the new one.
+    echo.
+    set "LEDGER_RELAUNCHED=1"
+    call "%~f0"
+    goto :theend
+  )
   echo.
 )
 
