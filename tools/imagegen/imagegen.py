@@ -884,7 +884,15 @@ def format_report(machine, pl, extra=None):
         for line in extra:
             A(f"  {line}")
     A("")
-    A("Send this whole file back. It is what chooses the model for the next run.")
+    # THE OLD INSTRUCTION SAID "Send this whole file back" AND IT SURVIVED THE
+    # REWRITE THAT MADE SENDING AUTOMATIC. So on 26 Aug the run pushed its own
+    # results AND told Jafar to paste them, and he did what it said — a second
+    # decision handed back to the person, which is the exact failure this file
+    # was built to remove. The sentence is quoted here rather than deleted
+    # because it was true when written, and a deleted error is one the next
+    # editor re-derives. What replaces it must describe what the run DOES.
+    A("Nothing to send — this run pushes its own report and pictures back.")
+    A("If the push failed, the line above says so and names what to do.")
     return "\n".join(L) + "\n"
 
 
@@ -2443,11 +2451,25 @@ def selftest():
           "was never about",
           "--vae-conv-direct" in image_flags(nv, 1024, 1024)[0], image_flags(nv, 1024, 1024))
     sizes = {(round16(i["width"]), round16(i["height"])) for i in spec["items"]}
-    check(f"vae flags: all {len(spec['items'])} shipped items ({len(sizes)} distinct "
-          "sizes) are larger than 512x512, so on Vulkan every one of them takes "
-          "the workaround - stated because a flag that never fires is worse "
-          "than one that is gone",
-          all(image_flags(unknown_vram, w, h)[1] for w, h in sizes), sizes)
+    # THIS ASSERTION WAS "all ... are larger than 512x512" AND THE PROBE PAIR
+    # MADE IT FALSE. Both probes are EXACTLY 512x512, so the Vulkan workaround
+    # does not fire for them while it fires for all twelve content items. The
+    # assertion is kept as a COUNT rather than an "all", because the number is
+    # the thing worth watching: a size added below the threshold changes which
+    # decoder path an image takes, and an "all" would simply go red without
+    # saying what changed.
+    #
+    # IT DOES NOT INVALIDATE THE PROBE EXPERIMENT: both probes are the same
+    # size, so they differ only in the setting under test. It DOES mean a
+    # probe result may not transfer to the 1024x1024 walls it stands for —
+    # said out loud, because that is a comparison somebody will make.
+    takes = [(w, h) for w, h in sizes if image_flags(unknown_vram, w, h)[1]]
+    check(f"vae flags: {len(takes)} of {len(sizes)} distinct size(s) take the "
+          "Vulkan workaround; the 512x512 probe pair does NOT, and a probe "
+          "result therefore may not transfer to the 1024x1024 wall it stands "
+          "for - stated because a flag that never fires is worse than one "
+          "that is gone",
+          len(takes) == len(sizes) - 1 and (512, 512) not in takes, sorted(sizes))
 
     # 10. FIX 3 - the model GGUF has a candidate list, and a gate still stops.
     for q in QUANTS:

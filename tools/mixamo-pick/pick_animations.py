@@ -470,6 +470,46 @@ def direction_ok(slot, flat_name):
                    "clip, and no reading of the FILE can tell them apart"
                    % m.group(0))
 
+#: A CLIP WHOSE NAME SAYS FEMALE, FOR THE GENDERED-SLOT SCREEN BELOW.
+FEMALE = re.compile(r"\bfemale\b", re.I)
+
+#: Slots that have an `_f` twin in SLOTS. The general one must not eat the
+#: twin's clip.
+def _twinned_slots():
+    names = {row[0] for row in WANTS}
+    return {n for n in names if n + "_f" in names}
+
+TWINNED = _twinned_slots()
+
+
+def gender_ok(slot, flat_name):
+    """A general slot may not take a clip whose NAME says female.
+
+    WHY THIS EXISTS, 26 Aug. `walk_start`'s patterns are anchored first
+    (`^start walking`) and unanchored second (`\bstart walking\b`). No male
+    start clip was in the harvest, so the anchored pattern found nothing, the
+    unanchored one matched `Female Start Walking`, and the SAME FILE landed in
+    both `walk_start` and `walk_start_f`. `clip-motion` caught it as a
+    duplicate — "one slot in each group plays the wrong clip, and the filename
+    cannot say which" — and it is the second time a fallback pattern has
+    quietly filled a forward slot with the wrong thing, after the reversed
+    clip this file already screens for.
+
+    THE SHAPE IS `direction_ok`'S ON PURPOSE: name-based, runnable with no
+    file to read, and `why` names the offending word so a refusal in the log
+    says which word did it. Only slots with an `_f` twin are screened — a slot
+    with no twin has nowhere else for a female clip to go, and refusing it
+    there would empty the slot to no benefit.
+    """
+    if slot not in TWINNED:
+        return True, ""
+    m = FEMALE.search(flat_name)
+    if m is None:
+        return True, ""
+    return False, ("the name says %r and %s_f exists — the general slot cannot "
+                   "take the twin's clip, or both slots play one file"
+                   % (m.group(0), slot))
+
 #: THE REJECTING CASE FOR THE SCREEN, KEPT WHERE A RE-PICK CANNOT REACH IT.
 #: Each entry is (file under `known-bad/`, the slot to ask it as, a fragment of
 #: `why` that names the branch), one per branch of `posture_ok`.
@@ -718,6 +758,11 @@ def pick(items, patterns, taken=None, cache=None, slot=None):
             # catalogue dryrun skips it — and the dryrun is the check that runs
             # HERE, on the machine with no harvest.
             ok, why = direction_ok(slot, hit[0])
+            if ok:
+                # The twin screen, same shape and same reason: an unanchored
+                # fallback pattern put `Female Start Walking` into BOTH
+                # `walk_start` and `walk_start_f` on 26 Aug.
+                ok, why = gender_ok(slot, hit[0])
             if not ok:
                 if taken is not None:
                     print(f"    wrong direction: {hit[1]} — {why} — skipping")
@@ -793,6 +838,8 @@ def set_aside(out, slot):
         # `{slot}__{stem}.fbx` — the stem is the Mixamo name it was picked by.
         stem = os.path.basename(old)[len(slot) + 2:-len(".fbx")]
         ok, why = direction_ok(slot, flatten(stem))
+        if ok:
+            ok, why = gender_ok(slot, flatten(stem))
         if ok:
             ok, why = posture_ok(slot, old)
         if ok:

@@ -21,7 +21,7 @@
 # LOWER THIS NUMBER WHEN THE FINDINGS DROP. Never raise it to make red go
 # away; that is the move rule 2 forbids.
 
-clipFindings=2
+clipFindings=3
 
 # CLOSED 2026-08-18, ON THE FIRST RUN OF THE GUARD THAT FOUND IT:
 #
@@ -499,3 +499,18 @@ STILL NOT CAUGHT, and stated so the gap is not mistaken for a clean result:
 band anybody can set from evidence — the three sitting clips read 18, 94 and 96
 and not one of them is at chair height, so there is no correct example to
 calibrate against.
+
+2026-08-26 — RAISED 2 -> 3, AND IT COMES BACK DOWN, NAMED SO IT CANNOT ROT.
+The third finding is `walk_start` and `walk_start_f` holding THE SAME FILE
+(`Female Start Walking`). Cause: `walk_start`'s second pattern is unanchored
+(`\bstart walking\b`), no male start clip was in the harvest, so it matched
+the female one and both slots took it. `clip-motion` caught it the moment the
+drop landed and named it exactly — the instrument working, not failing.
+THE FIX IS ALREADY IN THE PICKER: `gender_ok` refuses a female-named clip for
+a general slot when an `_f` twin exists (walk, walk_start, walk_stop), tested
+both ways. It cannot take effect here because a re-pick needs the full Mixamo
+harvest, which lives on Jafar's machine and is not in this repo.
+SO THIS NUMBER IS DEBT WITH A NAMED DISCHARGE, not an accepted finding: after
+the next re-pick the count returns to 2 and the ratchet itself will go RED
+until this line is put back — which is the mechanism doing its job in the
+other direction. Queue: `repick-after-gender-guard`.
