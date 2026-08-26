@@ -3271,3 +3271,63 @@ director ruling and is in `queue.md`.
    copper 511 > downtown 445 > fairview 354 > strip 279. **Fairview was named
    the weak one in advance and is not.** Frontage metres did not predict lit
    rays and whatever does is unmeasured.
+
+## The queue's 'where the street got to' narrative, folded out 26 Aug
+
+### Where the street got to
+
+Clips: 65 filled, 0 wrong. The street talks, argues, leans, works
+counters. **The front is M17.10: the visual bar is GTA V** — item 1.
+
+**THE PLAYTEST IS RETARGETED (22 Aug, Jafar):** *"I'll try to run it on
+my windows machine after visual stuff is done. live voices/speech should
+be working too."* His pipeline run came back ALL CLEAR at **1.7x real
+time** on DirectML — the overhang is the SERIAL stages, not the model
+(~25 tok/s both ways). Speech stage's first item: **the fp16 lever,
+measured on his card** (one-click converter+timer shipped 22 Aug). The
+streaming overlap exists in the backend, gated on a sustainability test
+his card misses by ~15%; if his number clears ~1.0x the backend needs
+Float16 binds and edge conversions (fp32-typed today).
+`playtest-plan.md` has the session runbook; keep speech self-checks
+green on every landing.
+**THE RUNNER IS REGISTERED AND FLIPPED (22 Aug): `ledger-pc` builds
+on his machine**; account in `roadmap-history.md`. **ALL 72 GATES
+GREEN and holding.** ~17.6 min/round on his GPU vs cloud 33-41 over
+11 rounds; the BUILD is no longer the bottleneck, the dispatch
+cadence is. Closed 23 Aug: hair, furniture, clip sheet, dayJob and
+beats (both onto StreetMap.Route), shopfront joinery.
+
+**PERFORMANCE IS MEASURED; THREE GUESSES DIED.** `frameCost` ladder:
+all:22.4 noShadow:17.3 noPixLights:18.0 noBodies:23.3. **Shadows 5.1ms
+and per-pixel lights 4.4ms hold the frame; the crowd is not in the
+bill.** Dead: draw calls, vertex budget, shadow reach. Only the rungs'
+DIFFERENCES are a frame time.
+
+**THE STREET WAS NEVER AS EMPTY AS THE PICTURES.** Three faults, all
+found by measuring, all closed: the draw radius stopped at 34m (now
+70); `streetBodies` counted people THROUGH WALLS (linecast now); and
+the cameras stood badly (`ShotMidBlockedAt=0.30` off its own bimodal
+series, 12 of 13 shots fixed; the street shot also FLED the crowd).
+Day frames are NOT like-for-like across these.
+
+**Closed 23 Aug and moved to `roadmap-history.md`:** the day/night
+exposure fix (aperture was the lever, noon:night 1.25 -> **2.35:1**;
+the Clamp ceiling and the rain term would each have eaten it silently
+— both still live, do not re-raise without reading the history entry),
+and the sills + ground roughness binding. Full accounts there.
+
+**THE CROWD BEHAVES.** Density arrived as 13 people in convoy down the
+CARRIAGEWAY: `Steer`'s first branch tested only for SOLID blockers, so
+tarmac stopped nobody and every pavement rule below it was
+unreachable. Guard on how far a line RUNS ON road (12m): headingIntoRoad
+13 -> 5, crowdTightest 0.04 -> 0.23; its sampling cost 1.9ms until
+coarsened 0.5m -> 1.5m. The frame then showed 1-2 people — correct
+behaviour, fewer visible. DO NOT chase this by loosening the guard;
+the lever is where ROUTES go. **meanFrame ~28.4ms with a ~1ms NOISE
+FLOOR** (a comment-only build moved it 0.9ms), so single-run diffs
+under 1ms mean nothing. `places` went red once and recovered untouched
+(3/289 flaky). Revert `runs-on` if he bows out.
+**BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT** (Jafar, 22 Aug:
+"a full ultracode audit before playtesting is a good idea"). Multi-agent
+sweep of the whole codebase against every rule in CLAUDE.md, triaged into
+the queue before he downloads the build. Pre-approved, token-heavy by design.

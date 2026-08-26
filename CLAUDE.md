@@ -1210,10 +1210,25 @@ session re-derives it differently:
   ancestry watchers, batching, one-build-at-a-time, verify-before-commit,
   stills before gates — stays in force: those are working rules, not the
   ceremony he retired.
-- **The watchdog trigger stays enabled** as the restart mechanism only: the
-  container is ephemeral and a dead chain with no watchdog is a silently
-  stopped project, which is the opposite of "keep working". Its prompt no
-  longer carries report instructions.
+- **The watchdog trigger is the restart mechanism only**: the container is
+  ephemeral and a dead chain with no watchdog is a silently stopped project,
+  which is the opposite of "keep working". Its prompt no longer carries
+  report instructions.
+
+  **IT IS DISABLED RIGHT NOW — 26 Aug, and this sentence used to read "stays
+  enabled", which was true when written and false the moment it mattered.**
+  Jafar put the project on a usage hold to Monday afternoon (85% of the
+  weekly limit spent in under two days) and told me to stop. Disabling it is
+  step 1 of STOPPING, below, and it is the step that makes a stop real: the
+  prompt says *"take the next item from `game-design/queue.md`"*, so leaving
+  it on would have restarted the loop hourly through the hold and looked
+  exactly like the stop being ignored. **To resume: STARTING IT, step 1.**
+
+  The reason this paragraph is corrected rather than quietly edited is that
+  it is the file's own thesis happening to the file. A rules doc that says
+  "the watchdog is enabled" while the watchdog is off is a claim with no
+  instrument, read by every session, and it would have sent the next one
+  looking for a fault in a loop that was deliberately parked.
 
 The section below is kept as the operating manual for the loop; read
 "report" anywhere in it as retired.

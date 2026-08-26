@@ -21,63 +21,61 @@ failing. Full account in CLAUDE.md under AUTO MODE.
 
 ## Now
 
+### START HERE — the project is PARKED, and this is how it restarts
+
+**26 Aug: usage hold to Monday afternoon.** 85% of the weekly limit went in
+under two days, so the loop was stopped deliberately. Nothing is broken and
+nothing is mid-flight: tree clean, everything pushed, no watcher armed, no
+build running. **The watchdog is DISABLED** — re-enable it (CLAUDE.md, AUTO
+MODE, *Starting it*, step 1) as the FIRST action, or the chain has no restart
+mechanism and one bad turn parks the project silently again.
+
+**Then do these three, in this order. The order is not preference — each one
+makes the next one cheaper or possible.**
+
+1. **WIRE ONE PICTURE AND LOOK AT IT** (item 2 below). Nothing in the game
+   loads a generated picture, so the picture batch cannot pay off until this
+   does. It is also the cheapest thing here and it answers the aspect
+   question that would otherwise make ~50 prompts the wrong size.
+2. **BUILD THE TILING CHECK** (item 3). It needs no build and no agent, both
+   fixtures are already on disk, and without it a wall batch can ship a fault
+   nothing measures.
+3. **THEN WRITE THE ~50 PROMPT ENTRIES** (`imagegen-batch-2.md` has the list
+   in prose; `tools/imagegen/prompts.json` still holds only the 14 already
+   made). Jafar runs the batch Monday NIGHT, so the entries must be in the
+   file before he goes to bed — that is the one hard deadline on this page.
+
+**WHAT NOT TO DO FIRST, because it is what happened last time.** Do not open
+the queue and grind the most interesting item. Do not spawn a verifier sweep.
+Do not restructure documents. **Measured: of 110 agent spawns on 25 Aug, 78
+were the project working on itself and 32 built the game** — `gameShareDay`
+is in the verify footer of every commit for exactly this reason, and it read
+`0/22` on the day this was written.
+
+**THE ONE DECISION WAITING FOR A DIRECTOR** is the sky fix (item 1). It is a
+mandatory trigger — a landing that changes a conclusion — and the finding is
+already measured and written down, so the spawn is a RULING, not an
+investigation. Fold any other pending questions into that same spawn: one
+decision, one spawn.
+
 ### Where the street got to
 
-Clips: 65 filled, 0 wrong. The street talks, argues, leans, works
-counters. **The front is M17.10: the visual bar is GTA V** — item 1.
+Clips: 64 filled (`walk_start` deliberately empty), 0 wrong. The street talks,
+argues, leans, works counters. **The front is M17.10: the visual bar is GTA
+V.** Playtest retargeted to Jafar's Windows machine after the visual stage,
+with live speech; `playtest-plan.md` has the runbook. The self-hosted runner
+`ledger-pc` builds on his machine, ~17.6 min a round against 33-41 in the
+cloud, all 72 gates green.
 
-**THE PLAYTEST IS RETARGETED (22 Aug, Jafar):** *"I'll try to run it on
-my windows machine after visual stuff is done. live voices/speech should
-be working too."* His pipeline run came back ALL CLEAR at **1.7x real
-time** on DirectML — the overhang is the SERIAL stages, not the model
-(~25 tok/s both ways). Speech stage's first item: **the fp16 lever,
-measured on his card** (one-click converter+timer shipped 22 Aug). The
-streaming overlap exists in the backend, gated on a sustainability test
-his card misses by ~15%; if his number clears ~1.0x the backend needs
-Float16 binds and edge conversions (fp32-typed today).
-`playtest-plan.md` has the session runbook; keep speech self-checks
-green on every landing.
-**THE RUNNER IS REGISTERED AND FLIPPED (22 Aug): `ledger-pc` builds
-on his machine**; account in `roadmap-history.md`. **ALL 72 GATES
-GREEN and holding.** ~17.6 min/round on his GPU vs cloud 33-41 over
-11 rounds; the BUILD is no longer the bottleneck, the dispatch
-cadence is. Closed 23 Aug: hair, furniture, clip sheet, dayJob and
-beats (both onto StreetMap.Route), shopfront joinery.
+**Three standing warnings that cost a day each and are easy to re-derive
+wrongly.** `meanFrame` has a ~1ms NOISE FLOOR, so single-run diffs under 1ms
+mean nothing. Shadows (5.1ms) and per-pixel lights (4.4ms) hold the frame —
+the crowd does NOT; draw calls, vertex budget and shadow reach are all dead
+ends, measured. And the crowd guard on how far a line runs on road is
+CORRECT: the frame showing 1-2 people is the guard working, so do not chase
+density by loosening it — the lever is where ROUTES go.
 
-**PERFORMANCE IS MEASURED; THREE GUESSES DIED.** `frameCost` ladder:
-all:22.4 noShadow:17.3 noPixLights:18.0 noBodies:23.3. **Shadows 5.1ms
-and per-pixel lights 4.4ms hold the frame; the crowd is not in the
-bill.** Dead: draw calls, vertex budget, shadow reach. Only the rungs'
-DIFFERENCES are a frame time.
-
-**THE STREET WAS NEVER AS EMPTY AS THE PICTURES.** Three faults, all
-found by measuring, all closed: the draw radius stopped at 34m (now
-70); `streetBodies` counted people THROUGH WALLS (linecast now); and
-the cameras stood badly (`ShotMidBlockedAt=0.30` off its own bimodal
-series, 12 of 13 shots fixed; the street shot also FLED the crowd).
-Day frames are NOT like-for-like across these.
-
-**Closed 23 Aug and moved to `roadmap-history.md`:** the day/night
-exposure fix (aperture was the lever, noon:night 1.25 -> **2.35:1**;
-the Clamp ceiling and the rain term would each have eaten it silently
-— both still live, do not re-raise without reading the history entry),
-and the sills + ground roughness binding. Full accounts there.
-
-**THE CROWD BEHAVES.** Density arrived as 13 people in convoy down the
-CARRIAGEWAY: `Steer`'s first branch tested only for SOLID blockers, so
-tarmac stopped nobody and every pavement rule below it was
-unreachable. Guard on how far a line RUNS ON road (12m): headingIntoRoad
-13 -> 5, crowdTightest 0.04 -> 0.23; its sampling cost 1.9ms until
-coarsened 0.5m -> 1.5m. The frame then showed 1-2 people — correct
-behaviour, fewer visible. DO NOT chase this by loosening the guard;
-the lever is where ROUTES go. **meanFrame ~28.4ms with a ~1ms NOISE
-FLOOR** (a comment-only build moved it 0.9ms), so single-run diffs
-under 1ms mean nothing. `places` went red once and recovered untouched
-(3/289 flaky). Revert `runs-on` if he bows out.
-**BEFORE THE PLAYTEST, THE FULL ULTRACODE AUDIT** (Jafar, 22 Aug:
-"a full ultracode audit before playtesting is a good idea"). Multi-agent
-sweep of the whole codebase against every rule in CLAUDE.md, triaged into
-the queue before he downloads the build. Pre-approved, token-heavy by design.
+Full accounts of all of it in `roadmap-history.md`.
 
 ### Startable right now — JAFAR'S SEQUENCE (22 Aug, his words):
 ### "1. visual, 2. voices/speech, 3. playtest, then feedback/fixes and
