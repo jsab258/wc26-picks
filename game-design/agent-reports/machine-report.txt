@@ -1,11 +1,11 @@
 LEDGER - image generation, machine report
 ============================================================
-written   2026-08-26 10:21:42 local
+written   2026-08-26 11:05:33 local
 host      JAFAR-DESKTOP
 os        Microsoft Windows 11 Pro  (26200)
 cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
 ram       31.9 GB
-free disk 120.3 GB on C:
+free disk 119.2 GB on C:
 python    C:\Users\Jafar\miniconda3\python.exe
 probe     ok  (probe version 2)
 
@@ -46,14 +46,15 @@ PLAN CHOSEN FROM THE ABOVE
 
 RUN
 ------------------------------------------------------------
+    sending back is ON: branch claude/game-dev-ai-automation-2h67ix, every 3 pictures or 10 minutes
   LEDGER - image generation, machine report
 ============================================================
-written   2026-08-26 10:21:35 local
+written   2026-08-26 11:05:17 local
 host      JAFAR-DESKTOP
 os        Microsoft Windows 11 Pro  (26200)
 cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
 ram       31.9 GB
-free disk 120.3 GB on C:
+free disk 119.2 GB on C:
 python    C:\Users\Jafar\miniconda3\python.exe
 probe     ok  (probe version 2)
 
@@ -122,12 +123,8 @@ SENDING BACK
     To make one again: delete its .png and double-click again. To make them all again: run with --redo.
     images and manifest: C:\Users\Jafar\wc26-picks\ledger\Assets\StreamingAssets\Decals\generated
     every image is review=pending until a human has looked at it
-    COULD NOT SEND: this PC could not sign in to GitHub, so the pictures could not be sent. They are SAFE - saved in this PC's copy of the project. Nothing needs installing; tell Claude and it will fetch them another way.
-        fatal: Cannot prompt because user interactivity has been disabled.
-        fatal: could not read Username for 'https://github.com': terminal prompts disabled
+    SENT: 16 file(s) pushed to claude/game-dev-ai-automation-2h67ix (Meridian pictures: 0 written, 14 already made)
 
 SENDING BACK
 ------------------------------------------------------------
-  Tried to send and could NOT. The pictures are safe on disk. What went wrong:
-    this PC could not sign in to GitHub, so the pictures could not be sent. They are SAFE - saved in this PC's copy of the project. Nothing needs installing; tell Claude and it will fetch them another way.
-  Zip the pictures folder named above and send it, plus this file.
+  Sent: 1 push(es) to claude/game-dev-ai-automation-2h67ix, 1 commit(s) made. The pictures and this report are already in the project - nothing to paste.
