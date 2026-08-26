@@ -85,6 +85,20 @@ re-read the comments on everything it touched — including the ones you did not
 edit — and grep for the claim you have just falsified elsewhere.** The
 `persist-credentials: false` comment was eleven lines above the step I broke.
 
+**AND A COMMENT DOES NOT ONLY DECAY — IT IS QUOTED FORWARD, WHICH IS WORSE
+BECAUSE NOBODY EVER TOUCHED IT. 26 Aug: "`UpdateSun` puts the noon sun due
+SOUTH".** Measured, it is `Euler(52,180,0)` -> sunward `(0,+0.788,+0.616)`:
+the noon sun is in the NORTH, so in an axis-aligned town only north-facing
+walls are ever lit. That one sentence had been copied into **four documents
+and five camera placements**, and every camera reading `litnone@0` was aimed
+at the shaded side because of it. The rule above catches a comment falsified
+by an edit to the code beside it. **Nothing edited this one** — it was
+re-quoted because it sounded authoritative, and each copy made the next more
+credible. It was caught only because an instrument printed `litnone@0` and
+somebody asked why. **So: grep for the SENTENCE, not the site.** When a claim
+turns out false, the copies are not near the code it describes; they are in
+whatever a later reader was writing at the time.
+
 **Third corollary: WHEN YOU FIX A BUG, GREP FOR THE SAME BUG.** The corollary
 above is about comments. This is about the fault itself, and on 4 August it was
 the single most repeated mistake of the night — three times, each time within an
@@ -414,6 +428,52 @@ what was examined.** `lint-static` now prints "354 static bodies walked", `Audio
 has `soundsOffered`, the contrast check has a `contrastTightest` whose default
 text is the words "nothing measured" so that case cannot read as clean. It is
 the same repair every time and it is one line: **the denominator.**
+
+**AND THE EXEMPLAR IN THAT SENTENCE IS ITSELF THE FAULT — 25 Aug, found by a
+lint written to catch this exact shape.** The sentence above is kept as
+written, because it is the trap: a rules file can teach the disease as the
+cure and read perfectly while doing it.
+
+`lint-static` prints a count of static bodies over EVERY Game file, while its
+scan walks only files matching `public partial class` exactly once and with
+detected instance members — and drops the rest **with no message**. Measured:
+**560 printed against 29 actually scanned, across 14 of 88 files.** Roughly a
+19x inflated denominator, and the 531 unexamined bodies are silent. So the
+line quoted above as the model of "ship the denominator" ships a denominator
+that describes something the tool never looked at.
+
+**The SCOPE is intentional and stays** — the tool exists for partial-spread
+invisibility and must not be widened. **The printed NUMBER is the bug**: it
+prints the walked denominator plus a named drop clause, so what was skipped is
+said out loud rather than folded into the total. `lint-conditional-reach`,
+which names its unwalked set, is the model to copy.
+
+**SIX OF SEVEN, NOT SIX OTHERS — this paragraph said "six other lints were
+checked and are clean" and that was a claim about a set nobody had counted.**
+Swept: `lint-nested` prints `0 nested-type errors (255 top-level Core types
+checked)` and exits 0 **byte-identically for a full 88-file sweep and for a
+sweep of NOTHING** — its denominator is the REFERENCE set it compares against,
+while the Game file count that would actually move is computed and thrown
+away. `lint-shadow` re-globs at print time, so one line carries two moments.
+Neither is fixed; both are named.
+
+**AND THE SERIES IS WORTH MORE THAN THE FIX.** This number rode **550 landed
+commit footers**, ranging **418 -> 560 over two days**, while the walked set
+never left **29**. So the footer showed a denominator that CLIMBED — reading
+as coverage growing with the codebase — while coverage never moved at all.
+**A wrong number that tracks something looks alive**, and that is far harder
+to doubt than a wrong number sitting still. When a count only ever goes up
+with the repo, ask what it is counting before trusting that it is measuring.
+
+*(560 and 562 are both true four minutes apart: the old tool read every file
+THREE times per run, so one printed line could carry three moments. One read
+per file per run now.)*
+
+**The lesson is not "that number was wrong".** It is that a denominator can be
+larger than the set examined, and when it is, a clean result is not merely
+unhelpful — it is a false claim with a number attached, which is the most
+convincing kind. **Ask what the denominator COUNTED, not just whether one is
+printed.**
 
 **AND A TRUNCATION IS A ZERO WITH THE SAME PROBLEM: IT READS AS A FINDING.**
 Same morning, and it cost the longest wrong turn of it. The workflow step that

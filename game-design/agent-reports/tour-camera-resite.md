@@ -87,7 +87,10 @@ All 24 crossing/approach combinations per district were scored. The chosen two:
 **downtown** — Exchange Street × Court Street (`downtown_j1_2`, -365.5,39.1),
 eye 34m south at (-365.5, 14, 5.1), yaw 0.
 - keeps the north-looking pose of the other five, so the sun-relative geometry
-  does not move (noon azimuth is due south, elevation 52°, per
+  does not move (elevation 52°, per
+  *(CORRECTED 26 Aug: this line said "noon azimuth is due south". FALSE —
+  `Euler(52,180,0)` gives sunward (0,+0.788,+0.616), so the noon sun is in the
+  NORTH. Fourth copy of one wrong sentence; three cameras were aimed by it.)*
   `GameController.UpdateSun`);
 - two-sided: the corridor runs between block x[-426,-369.5] and block
   x[-361.5,-305], building lines 6.6m either side of the carriageway;

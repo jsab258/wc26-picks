@@ -1223,6 +1223,9 @@ namespace Ledger.Game
             // Emitted here because the generator makes specs and geometry
             // belongs to the build pass.
             int cn = 0, aerials = 0;
+            // Cumulative over THIS build pass and zeroed with it, so a
+            // rebuild cannot carry the previous city's members forward.
+            AerialMembers = 0; AerialMembersMatte = 0;
             foreach (var (cpos, baseY) in TerraceChimneys)
             {
                 MakeBox($"Chimney_{cn}", cpos + new Vector3(0, baseY + 0.65f, 0),
@@ -1241,12 +1244,18 @@ namespace Ledger.Game
                 // a boom, three elements; members kept chunky enough (3.5cm)
                 // to survive 1280x720 rather than shimmer away like the first
                 // cables did.
+                //
+                // Every member goes through `AerialMember`, which wears the
+                // DERIVED matte metal rather than the shared `Metal` mirror.
+                // A 3.5cm bar against sky is the same geometry that turned
+                // the 5cm overhead spans into white scratches, thinner; see
+                // `AerialMaterial` for the measurement and the values.
                 if (Ledger.Core.Dressing.Roll(cpos.x, cpos.z, 51) < 0.62)
                 {
                     float my = baseY + 1.4f;
                     var mast = cpos + new Vector3(0.38f, my + 0.9f, 0.1f);
-                    MakeBox($"AerialMast_{cn}", mast,
-                        new Vector3(0.035f, 1.8f, 0.035f), AssetLibrary.Metal);
+                    AerialMember($"AerialMast_{cn}", mast,
+                        new Vector3(0.035f, 1.8f, 0.035f));
                     float ay = my + 1.68f;
                     float yaw = (float)Ledger.Core.Dressing.Roll(cpos.x, cpos.z, 52);
                     // The boom points roughly one way per street (everyone
@@ -1254,8 +1263,8 @@ namespace Ledger.Game
                     bool ew = yaw < 0.7f;
                     var boomSize = ew ? new Vector3(1.1f, 0.035f, 0.035f)
                                       : new Vector3(0.035f, 0.035f, 1.1f);
-                    MakeBox($"AerialBoom_{cn}",
-                        new Vector3(mast.x, ay, mast.z), boomSize, AssetLibrary.Metal);
+                    AerialMember($"AerialBoom_{cn}",
+                        new Vector3(mast.x, ay, mast.z), boomSize);
                     for (int el = 0; el < 3; el++)
                     {
                         float t = -0.42f + el * 0.36f;
@@ -1264,7 +1273,7 @@ namespace Ledger.Game
                             : new Vector3(mast.x, ay, mast.z + t);
                         var esize = ew ? new Vector3(0.035f, 0.035f, 0.55f - el * 0.09f)
                                        : new Vector3(0.55f - el * 0.09f, 0.035f, 0.035f);
-                        MakeBox($"AerialEl_{cn}_{el}", epos, esize, AssetLibrary.Metal);
+                        AerialMember($"AerialEl_{cn}_{el}", epos, esize);
                     }
                     aerials++;
                 }
@@ -1282,6 +1291,121 @@ namespace Ledger.Game
         /// pass) — the roll is 0.62 so this should sit near two-thirds of
         /// ChimneyCount; zero with chimneys present means the branch died.
         public static int AerialCount;
+
+        /// WHICH SHADER PROPERTIES THE DERIVED AERIAL MATERIAL ACTUALLY TOOK
+        /// — `color+metallic+gloss` on a build whose Standard shader has all
+        /// three, plus `+glossmap` when `_METALLICGLOSSMAP` is bound.
+        /// Last-wins over the single derived material, which is correct
+        /// because there is exactly one. The default is the words
+        /// `nothing_measured`, so a build where the material was never
+        /// derived cannot read as a build where the shader refused
+        /// everything.
+        public static string AerialProps { get; private set; } = "nothing_measured";
+
+        /// AERIAL MEMBERS EMITTED, AND HOW MANY WEAR THE MATTE METAL. Both
+        /// are cumulative over one build pass and both move inside the same
+        /// `AerialMember` call, so the pair is a same-instant numerator and
+        /// denominator rather than two independent totals. Five members per
+        /// aerial (mast, boom, three elements), so a healthy build has
+        /// `AerialMembers == 5 * AerialCount` and
+        /// `AerialMembersMatte == AerialMembers`. The denominator is the
+        /// point: `0/0` means no aerial was built at all — a `Roll` or
+        /// chimney fault — and `0/N` means the derivation failed, which is
+        /// the mirror still being on every roofline. Without it a zero
+        /// numerator reads as either.
+        public static int AerialMembers;
+        public static int AerialMembersMatte;
+
+        /// THE AERIAL'S OWN MATERIAL, for the same reason the overhead
+        /// spans got one (`StreetFurniture.WireMaterial`, which this copies
+        /// the shape of). `AssetLibrary.Metal` is tint 0.30/0.31/0.33
+        /// at smoothness 0.55 and metallic 0.9 (AssetLibrary.cs:1553) — a
+        /// mid-grey mirror. A 3.5cm member sweeps every normal across its
+        /// width, so somewhere along it the specular condition is always met
+        /// and the whole member lights up at once. Measured on the spans,
+        /// which are the same geometry with the same surface: a MEDIAN 2.77x
+        /// the luma of the sky in the SAME COLUMN, 11 columns of a dry frame
+        /// (`rain=0.00 wet=0.00`), peaking at RGB 231,243,243. An aerial is
+        /// thinner still and stands ON the roofline, which is the worst
+        /// place in the frame to put a bright line: it is against sky on
+        /// every roof in the city, from every camera.
+        ///
+        /// DERIVED, NOT EDITED IN PLACE — counted rather than guessed:
+        /// `Assets/Scripts` holds 45 non-comment references to
+        /// `AssetLibrary.Metal`, of which 40 are ordinary call sites once
+        /// the palette entry itself and the derived materials' own fallbacks
+        /// are taken out, and a mirror is right for most of them (a dumpster
+        /// lid, a bar counter, a car body, a gasholder). One material is
+        /// derived once and shared by every member, so batching survives;
+        /// the pattern is `MaterialGraded`'s and the shape is
+        /// `StreetFurniture.WireMaterial`.
+        ///
+        /// A MATERIAL RATHER THAN A PROPERTY BLOCK, and that is not a
+        /// preference. Half the fault is the GLOSS, which no colour set can
+        /// reach; and an MPB colour skips the gamma-to-linear conversion
+        /// `Material.SetColor` performs, so a display-authored dark tint
+        /// would land weaker than authored.
+        ///
+        /// THE JUDGEMENT, AND IT IS NOT THE WIRE'S. A span is street
+        /// ironwork, so it took `TrafficHost.SignalHousing`'s near-black
+        /// (0.13/0.15/0.14) for colour and only its gloss and metallic from
+        /// `Roof`. An aerial is galvanised steel bolted to a chimney stack,
+        /// weathering in the same salt air as the slates a foot beneath it
+        /// and catching more sky than anything at street level — so it takes
+        /// `AssetLibrary.Roof`'s entry WHOLE: colour 0.17/0.18/0.20,
+        /// smoothness 0.12, metallic 0.1 (AssetLibrary.cs:1552), the
+        /// palette's existing weathered-outdoor-metal surface and the literal
+        /// material of the roof it stands on. That is lighter than the wire
+        /// black deliberately, and by a CITED value rather than a chosen one:
+        /// an aerial as dark as a telegraph wire is the same fault in the
+        /// other direction, a black scratch on the skyline instead of a white
+        /// one. Nothing here is invented; whether it is far enough down is
+        /// what `aerialMatte` and the next dry frame are for.
+        static readonly Color AerialGalv = new Color(0.17f, 0.18f, 0.20f);
+        const float AerialSmoothness = 0.12f;
+        const float AerialMetallic = 0.10f;
+        static Material _aerialMat;
+
+        static Material AerialMaterial()
+        {
+            // Unity's null check also catches a material destroyed with the
+            // previous scene, so a rebuild derives a fresh one.
+            if (_aerialMat != null) return _aerialMat;
+            var baseMat = AssetLibrary.Material(AssetLibrary.Metal);
+            if (baseMat == null) { AerialProps = "no_base_material"; return null; }
+            var mat = new Material(baseMat) { name = "aerial_galv" };
+            var took = "";
+            if (mat.HasProperty("_Color")) { mat.SetColor("_Color", AerialGalv); took += "+color"; }
+            if (mat.HasProperty("_Metallic")) { mat.SetFloat("_Metallic", AerialMetallic); took += "+metallic"; }
+            // A BOUND GLOSS MAP MAKES `_Glossiness` A SILENT NO-OP: with
+            // `_METALLICGLOSSMAP` enabled the Standard shader reads
+            // smoothness from the map's alpha times `_GlossMapScale` and
+            // ignores the scalar entirely. `SetWetness` hit exactly this in
+            // this project. Whether `metal` carries a map depends on what
+            // the fetched texture pack shipped, so BOTH are set and
+            // `AerialProps` says which the shader took.
+            if (mat.HasProperty("_Glossiness")) { mat.SetFloat("_Glossiness", AerialSmoothness); took += "+gloss"; }
+            if (mat.IsKeywordEnabled("_METALLICGLOSSMAP") && mat.HasProperty("_GlossMapScale"))
+            { mat.SetFloat("_GlossMapScale", AerialSmoothness); took += "+glossmap"; }
+            AerialProps = took.Length == 0 ? "none_accepted" : took.Substring(1);
+            _aerialMat = mat;
+            return mat;
+        }
+
+        /// One member of a rooftop aerial. It is built through `MakeBox` so
+        /// the geometry stays identical, then re-materialled — and when the
+        /// derivation fails it KEEPS the shared `Metal` rather than losing
+        /// its surface, with the fallback visible in `AerialMembersMatte`
+        /// instead of being silent.
+        static void AerialMember(string name, Vector3 center, Vector3 size)
+        {
+            var go = MakeBox(name, center, size, AssetLibrary.Metal);
+            AerialMembers++;
+            var galv = AerialMaterial();
+            if (galv == null) return;
+            go.GetComponent<Renderer>().sharedMaterial = galv;
+            AerialMembersMatte++;
+        }
 
         /// THE BACK OF A BLOCK, WHICH HAS BINS AND DRAINPIPES AND NO SHAPE.
         ///

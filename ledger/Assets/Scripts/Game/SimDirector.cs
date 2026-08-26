@@ -10546,23 +10546,35 @@ namespace Ledger.Game
         ///          densest street life in the town and the only district
         ///          whose brief is shopfronts. Junction `copper_j2_1` (Copper
         ///          Row x Market Road, the district's own centre by
-        ///          construction), eye 16m south on the carriageway, canted
-        ///          18 degrees right of north so the near block's north-west
-        ///          corner sits right of centre with the avenue receding past
-        ///          it — the reference's shop-right / street-left shape.
+        ///          construction, measured at 0.0,128.8), eye 16m NORTH on the
+        ///          carriageway, canted 18 degrees so the south-west block's
+        ///          corner sits just left of centre with its NORTH frontage
+        ///          filling right of it and the avenue receding down the left
+        ///          — the reference's shop-right / street-left shape, and now
+        ///          with the shop frontage in sun.
         ///          JUDGED: the cant, and which of the four corners.
+        ///          MOVED 25 Aug from 16m SOUTH / yaw 18. See THE SUN,
+        ///          MEASURED below: the old pose faced north and every wall
+        ///          in it was a south or side face, so `lit` was `none@0`.
         ///
         ///   ref_2  `gta5_2_dusk_vespucci` — "almost nothing but light: low
-        ///          warm sun, silhouetted poles and WIRES". A road running AT
-        ///          the sun. `GameController.UpdateSun` puts the noon sun due
-        ///          SOUTH, so the frame that looks into it is a north-south
-        ///          avenue faced southward: HOOK STREET, the founding cross's
-        ///          own street, from junction `j2_3` (Hook Street x Chapel
-        ///          Street), eye 14m north, yaw 180 — down the street toward
-        ///          the cross and the pub, into the sun.
+        ///          warm sun, silhouetted poles and WIRES". HOOK STREET, the
+        ///          founding cross's own street, from junction `j2_3` (Hook
+        ///          Street x Chapel Street), eye 14m north, yaw 180 — down
+        ///          the street toward the cross and the pub.
         ///          JUDGED: nothing about the geometry; the LIGHT is the
         ///          named mismatch above — this is noon, the reference is
         ///          dusk.
+        ///
+        ///          THIS PARAGRAPH USED TO SAY "the noon sun is due SOUTH, so
+        ///          the frame that looks into it is faced southward", AND THAT
+        ///          WAS FALSE — quoted rather than deleted because it is the
+        ///          reason three of these five cameras photographed no sunlit
+        ///          wall at all. See THE SUN, MEASURED below: yaw 180 looks
+        ///          AWAY from the noon sun, which is why this camera is one of
+        ///          the two that DID find lit wall (404 samples on b7d232b).
+        ///          The composition was right and the sentence explaining it
+        ///          was backwards.
         ///
         ///   ref_3  `gta5_3_overcast_morning` — "THE KILLER ARGUMENT: no
         ///          interesting light, still fully real — five asphalt tones,
@@ -10581,22 +10593,84 @@ namespace Ledger.Game
         ///          FAIRVIEW, the design doc's residential rise: gardens
         ///          between the junctions and the only low-rise district in
         ///          the town. Junction `fairview_j1_1` (Fairview Crescent x
-        ///          Vista Terrace, the district centre), eye 18m south, yaw 0
-        ///          — north up the Crescent with houses either side and the
-        ///          skyline band beyond them.
+        ///          Vista Terrace, the district centre, measured at
+        ///          -344.0,144.9), eye 18m NORTH, yaw 180 — SOUTH down the
+        ///          Crescent with houses either side and the skyline band
+        ///          beyond them. The composition is symmetric about the
+        ///          street axis, so reversing the direction of travel keeps
+        ///          it and turns 37m of frontage sunward.
         ///          JUDGED: the 18m standoff and the direction of travel.
+        ///          MOVED 25 Aug from 18m SOUTH / yaw 0, for the same reason
+        ///          as `ref_1`; the direction of travel was already named a
+        ///          judgement here, and this is the measurement retiring it.
         ///
         ///   ref_5  `gta5_5_ps3_sidewalk` — "shadow dapple on a sidewalk,
         ///          leaning poles, a stained wall ... texture density at
         ///          PLAYER height". The camera is OFF the road centre with a
         ///          wall close on one side. THE PARADE, the promenade
         ///          district whose brief is being seen walking. Junction
-        ///          `strip_j1_2` (The Parade x Chorus Lane), eye 20m south
-        ///          and 2.5m EAST of the centreline — 1.5m clear of the east
-        ///          block's face — yaw 0, so that frontage runs close down
-        ///          the right of frame.
+        ///          `strip_j1_2` (The Parade x Chorus Lane, measured at
+        ///          253.7,0.0), eye 20m NORTH and 2.5m WEST of the centreline
+        ///          — 1.5m clear of the west block's face at x 249.7 — yaw
+        ///          180, so that frontage still runs close down the right of
+        ///          frame (facing south, west IS the right of frame).
         ///          JUDGED: the 2.5m lateral offset, which is the one number
         ///          here that changes what kind of picture this is.
+        ///          MOVED 25 Aug: both offsets and the yaw mirrored through
+        ///          the junction, which is the whole composition reflected
+        ///          rather than a new one. The close wall stays a SIDE face
+        ///          and stays unlit — that is the reference, a shaded near
+        ///          wall — and what the mirror buys is the cross-street
+        ///          frontage beyond it: the north face at z=-4 is visible
+        ///          from x 249.7 down to about x 226.6, roughly 23m of wall
+        ///          at 24-34m, filling the right half beyond the near
+        ///          corner. If `lit` still comes back `none@0` here, THIS
+        ///          camera is the one whose composition genuinely fights the
+        ///          light, and the next rung is Chorus Lane rather than The
+        ///          Parade.
+        ///
+        /// THE SUN, MEASURED — AND IT IS THE REASON THREE OF THESE FIVE
+        /// PHOTOGRAPHED NO SUNLIT WALL. On b7d232b `valueBands` came back
+        /// `litnone@0` for `ref_1`, `ref_4` and `ref_5`, so two of the three
+        /// R0 orderings printed `?` on three of five cameras. The `?` was
+        /// honest; the instrument was blind.
+        ///
+        /// The cause is arithmetic, not taste. `GameController.UpdateSun` sets
+        /// `azim = Lerp(70, 290, dayT)` and `elev = Sin(dayT*PI)*52`, so at
+        /// noon (`dayT` 0.5) the light is `Euler(52, 180, 0)` and
+        ///
+        ///     SunwardDir = -forward = (0.000, +0.788, +0.616)
+        ///
+        /// — the noon sun stands in the +Z sky, which is NORTH. A vertical
+        /// wall enters the `lit` band when `dot(n, sunward) >= SunFaceDot`
+        /// (0.30), i.e. when its normal's z is at or above 0.30/0.616 =
+        /// 0.487. In a town built out of axis-aligned boxes that admits
+        /// exactly one family of walls: the NORTH-FACING ones.
+        ///
+        /// Every camera that came back blind was aimed NORTH (yaw 18, 0, 0)
+        /// and therefore photographed south faces and side faces only. Both
+        /// cameras that found lit wall were aimed away from north — `ref_2`
+        /// at yaw 180 (404 lit samples) and `ref_3` at yaw 270 (9, grazing).
+        /// Five for five, with a mechanism. The seven district cameras are
+        /// the same table again and were not touched: five of them look north
+        /// and read `litnone@0`; Ironside and Gullwing look west and read 36
+        /// and 88. That is CONFIRMING evidence, not a second repair — those
+        /// seven carry a landed series the ref five do not.
+        ///
+        /// SO THE REPAIR IS A REFLECTION, NOT A NEW COMPOSITION. Each of the
+        /// three keeps its junction, its standoff MAGNITUDE and its cant or
+        /// lateral-offset MAGNITUDE; what flips is the sign of the along-street
+        /// offset and the yaw, which is the same picture taken from the other
+        /// end of the same street with the frame's handedness preserved. The
+        /// pitch is untouched at `RefPitchDeg`, so `valueHorizon` keeps
+        /// measuring one instrument across all five and can still retire that
+        /// judgement from a landed series.
+        ///
+        /// DECLARE THE REGIME CHANGE RATHER THAN LET IT BE DISCOVERED. Every
+        /// `ref_1`, `ref_4` and `ref_5` number landed before this commit was
+        /// taken from a different vantage: read the next landing as a new
+        /// baseline for those three, not as a delta. `ref_2` and `ref_3` are
+        /// untouched and their series continues.
         ///
         /// THE STEP-BACK LOOP IN `Shot` MAY STILL MOVE ANY OF THESE. It backs
         /// straight off along the view axis when the near or mid band is
@@ -10610,11 +10684,17 @@ namespace Ledger.Game
             string id; float dx, dz;
             switch (n)
             {
-                case 1: id = "copper_j2_1"; dx = 0f; dz = -16f; yaw = 18f; break;
+                // THE ALONG-STREET OFFSET AND THE YAW ARE ONE DECISION, not
+                // two: a camera 16m north of a junction looking north
+                // photographs the far side of a crossing, and 16m north
+                // looking south photographs the near one. Read each row as a
+                // pair. Cameras 2 and 3 are unchanged and are the two that
+                // found lit wall; 1, 4 and 5 are the reflections.
+                case 1: id = "copper_j2_1"; dx = 0f; dz = 16f; yaw = 198f; break;
                 case 2: id = "j2_3"; dx = 0f; dz = 14f; yaw = 180f; break;
                 case 3: id = "ironside_j2_1"; dx = 20f; dz = 0f; yaw = 270f; break;
-                case 4: id = "fairview_j1_1"; dx = 0f; dz = -18f; yaw = 0f; break;
-                default: id = "strip_j1_2"; dx = 2.5f; dz = -20f; yaw = 0f; break;
+                case 4: id = "fairview_j1_1"; dx = 0f; dz = 18f; yaw = 180f; break;
+                default: id = "strip_j1_2"; dx = -2.5f; dz = 20f; yaw = 180f; break;
             }
             _refAsked++;
             float jx = 0f, jz = 0f;
@@ -10732,14 +10812,25 @@ namespace Ledger.Game
         ///   downtown  Exchange Street x Court Street (`downtown_j1_2`,
         ///             -365.5,39.1), eye 34m SOUTH at (-365.5,5.1), yaw 0 —
         ///             the same north-looking pose as the other five, so the
-        ///             sun-relative geometry does not move (noon azimuth is
-        ///             due south, `GameController.UpdateSun`). Two-sided: the
+        ///             sun-relative geometry does not move. Two-sided: the
         ///             corridor runs between block x[-426,-369.5] and block
         ///             x[-361.5,-305] with building lines 6.6m either side of
         ///             the carriageway. Slot 25's nearest face is 14.1m BEHIND
         ///             the eye and 18.1m to its right, so it is out of frustum
         ///             and its 26.6m noon shadow (34m tall, sun 52 degrees)
-        ///             falls east of the corridor, not on it.
+        ///             falls clear of the corridor, which starts 5.1m north of
+        ///             the eye.
+        ///
+        ///             THIS ENTRY USED TO SAY THE NOON AZIMUTH WAS DUE SOUTH
+        ///             AND THE SHADOW FELL EAST. Both were wrong and the
+        ///             conclusion survived them: `UpdateSun` puts the noon
+        ///             azimuth at 180 with `SunwardDir` +Z, so the sun is
+        ///             NORTH and every noon shadow falls due SOUTH — slot 25
+        ///             sits at z[-42.1,-6.9] and its shadow runs to z -68.7,
+        ///             away from a corridor that begins at z 5.1. Corrected
+        ///             rather than deleted because the same sentence in
+        ///             `RefVantage` aimed three cameras at the shaded side of
+        ///             the street; see THE SUN, MEASURED there.
         ///   gullwing  Promenade x Bathhouse Row (`gullwing_j0_1`,
         ///             206.4,-147.2), eye 34m EAST at (240.4,-147.2), yaw 270.
         ///             The approach turns because Gullwing's ONLY two-sided
@@ -11512,10 +11603,24 @@ namespace Ledger.Game
         /// counts as MEASURED, so `refPanelShots=0/19` — nineteen frames that
         /// read nothing back — cannot look like `0/0`, the panel never having
         /// run at all.
+        ///
+        /// AND IT CARRIES THE WEATHER, FROM THE SAME TWO STATICS `LedgerRow`
+        /// WRITES INTO `frames.tsv`. `Weather.Rain` and `Weather.Wetness` are
+        /// read HERE, inside the same `Shot` call that encodes the JPEG and
+        /// writes the tsv row, with no time step between the three — so the
+        /// panel row, the picture and the tsv row are one instant by
+        /// construction. ONE SOURCE, ONE IMPLEMENTATION: there is no second
+        /// wetness rule here and no join for a reader to perform.
+        ///
+        /// A JOIN WOULD NOT HAVE WORKED ANYWAY, WHICH IS THE ARGUMENT FOR
+        /// CARRYING IT. The `street` row below is taken inside the
+        /// `day3_noon` shot and has NO row of its own in `frames.tsv`, so
+        /// "look the weather up by shot name" fails on it silently — the
+        /// exact shape of a reader getting a confident wrong answer.
         void ValuePanelRead(Camera cam, Texture2D tex, string name)
         {
             if (cam == null || tex == null) return;
-            var shot = _valuePanel.Open(name);
+            var shot = _valuePanel.Open(name, Weather.Rain, Weather.Wetness);
             // `GetPixels32`, NOT `GetPixels`, AND THE REASON IS MEMORY. A
             // 1280x720 `Color[]` is 921,600 structs of four floats — 14.7MB of
             // garbage per shot — and this read runs on EVERY committed still,
@@ -15950,6 +16055,23 @@ namespace Ledger.Game
                       $"valueRays={_valuePanel.Rays()} " +
                       $"valueListed={_valuePanel.Listed()} " +
                       $"valueRungs={_valuePanel.Rungs()} " +
+                      // THE SAME RUNG TALLY SPLIT BY WEATHER — MEASURED shots
+                      // and rungs held/judged per distinct `r<rain>w<wet>`
+                      // state, in first-seen order. `valueRungs` above POOLS
+                      // soaked noons, dry noons, dusk and night into one
+                      // number that describes none of them; this is the row
+                      // that answers "does the order hold on a DRY road".
+                      //
+                      // It exists because a conclusion was published and
+                      // retracted inside an hour for want of it: `day1_noon`
+                      // read in the reference order because it is `rain=0.35
+                      // wet=1.00`, and the DRY aerial `day5_noon` is inverted
+                      // exactly like the five eye-level frames. Nothing here
+                      // classifies a state as wet or dry — where that line
+                      // falls is a question for the landed series (rule 2),
+                      // and every per-shot row below carries its own tag so
+                      // the comparison needs no hunting.
+                      $"valueWeathers={_valuePanel.Weathers()} " +
                       // EVERY BAND VALUE IS A MEDIAN over that shot's samples
                       // in that band, with the count it is a median OF. A
                       // median cannot see a fault touching under half the
@@ -17356,6 +17478,14 @@ namespace Ledger.Game
                       // actually accepted — half the fault was GLOSS, which
                       // no colour set reaches.
                       $"wireDark={StreetFurniture.WireSegmentsDark}/{StreetFurniture.WireSegments} wireProps={StreetFurniture.WireProps} " +
+                      // Roof aerials, the SAME mirror on thinner geometry —
+                      // found by grepping the wire fix's own token, which is
+                      // why the pair lands together. Numerator and denominator
+                      // move inside one call, so `0/0` (no aerial built) can
+                      // never read as `0/N` (derivation failed and every
+                      // roofline still wears the mirror). Healthy is 5 members
+                      // per aerial, all matte.
+                      $"aerialMatte={WorldBuilder.AerialMembersMatte}/{WorldBuilder.AerialMembers} aerialProps={WorldBuilder.AerialProps} " +
                       // The back of a block has a shape now. Zero means the
                       // near-core test rejected everything, which is a finding
                       // about the density ramp rather than about fire escapes.

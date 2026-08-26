@@ -147,6 +147,30 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    is DEFERRED, not stamped synced — different facts, must not print alike.
 
 
+1. **THE NOON SUN IS IN THE NORTH, AND A COMMENT SAYING OTHERWISE AIMED FIVE
+   INSTRUMENTS AT THE SHADED SIDE.** `UpdateSun` gives `Euler(52,180,0)` ->
+   sunward `(0,+0.788,+0.616)`, and the lit-wall test needs wall normal
+   z >= 0.487, so **in an axis-aligned town only NORTH-facing walls are ever
+   lit at noon.** Every camera reading `litnone@0` was aimed north; both that
+   found lit wall were not. **FOUR copies of one false sentence** ("the noon
+   sun is due SOUTH, so this is the frame that looks into it") had propagated
+   into four documents and five camera placements. All four corrected, none
+   deleted; re-swept, no live copy remains. **OPEN, director-ruled item:** the
+   seven DISTRICT cameras have the identical fault — five of seven have
+   sampled no lit wall for their whole history — but unlike the ref five they
+   carry a LANDED SERIES, so re-aiming voids it. **This is not a comment that
+   decayed under an edit — it was QUOTED FORWARD, each copy making the next
+   more credible, and only an instrument printing `litnone@0` caught it.**
+
+1. **TWO MORE LINTS NAMED, NOT FIXED.** `lint-nested` prints `0 nested-type
+   errors (255 top-level Core types checked)` and exits 0 **byte-identically
+   whether it sweeps 88 files or NOTHING** — its denominator is the REFERENCE
+   set it compares against, while the Game file count that would move is
+   computed and discarded. `lint-shadow` re-globs at print time, so one line
+   carries two moments. Same class as the static-body fault; found by the
+   sweep that fault prompted. `lint-conditional-reach` and `lint-avenues` are
+   the two clean models.
+
 1. **OUR EXEMPLAR OF RULE 3b IS ITSELF THE FAULT — `lint-static` INFLATES ITS
    DENOMINATOR 19x.** It prints `560 static bodies walked`; it actually scans
    **29**, across 14 of 88 files. `collect()` keeps only files matching
@@ -178,18 +202,14 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    rather than eyes** — do not move a lever before it lands and prints a
    series (rule 2; the aperture moves ONCE, off a post-fix printed series).
 
-1. **THE DRESSING LANDED AND MEASURED — 736 of 739 placed, ZERO missed, all
-   gates green, 6/6 lamp forms, cost inside the ~1ms noise floor.** But TWO
-   things the frame and the numbers say, and both are about REPETITION, which
-   is the tell the GTA bar exists to kill. (i) **`yard_fence` is 163 of 166 on
-   the SHORTEST 3.52m panel; `1x2` and `1x3` placed ZERO and `1x4` placed
-   three.** The yard-depth probe classifies nearly every site as shallow, so
-   the alleys get 163 identical panels — more draw calls and a visibly
-   repeating boundary. Read the probe's thresholds against the measured yard
-   census before touching the placement. (ii) **The noon frame shows the lamp
-   MIX working and almost none of the clutter**, because one street corner
-   cannot see 736 objects — which is the argument for the five player-height
-   convergence cameras, not an argument that the clutter is missing.
+1. **THE DRESSING LANDED: 736/739 placed, ZERO missed, all gates green, cost
+   inside the ~1ms noise floor.** Open, and both about REPETITION — the tell
+   the GTA bar exists to kill: `yard_fence` is 163 of 166 on the SHORTEST
+   panel (`1x2`/`1x3` placed zero) — read the yard-depth series before
+   touching the probe, the census says the gap is a CONSTANT 3.00m whenever
+   the row-depth cap binds; and one street corner cannot see 736 objects,
+   which is the argument for the eye-level cameras, not evidence of absence.
+
 
 1. **DIRECTOR RULED THE DRESSING BATCH, 25 Aug — `decision-dressing-batch.md`.**
    **A: commit now, commit is not dispatch.** Re-DISPATCH stays barred until

@@ -62,6 +62,30 @@ namespace Ledger.Core
     ///   horizonRow    a MEDIAN over grid COLUMNS of where the top-connected
     ///                 sky run ends, as a fraction from the TOP of frame.
     ///                 OUR SIDE ONLY — see `HorizonRow`.
+    ///   weathers      a COUNT of MEASURED shots per distinct weather state,
+    ///                 with that state's own rungs-held-over-judged. A tally,
+    ///                 not a rate, and the states are whatever the run
+    ///                 actually produced — nothing here classifies.
+    ///
+    /// EVERY ROW CARRIES THE WEATHER ITS SHOT WAS TAKEN IN, AND A READER MAY
+    /// NOT COMPARE ACROSS TWO OF THEM. This is not decoration; it is the
+    /// repair for a published-and-retracted conclusion. On b7d232b the
+    /// resident read `day1_noon` (sky 0.445 / ground 0.237, the reference
+    /// order) against the `ref_*` frames (ground brighter than sky) and
+    /// concluded the inversion was hidden by camera angle — aerial frames
+    /// read right, eye-level ones did not. `frames.tsv` said otherwise:
+    /// `day1_noon` is `rain=0.35 wet=1.00`, a soaked road, and the DRY
+    /// aerial `day5_noon` reads sky 0.441 / ground 0.719, inverted exactly
+    /// like the eye-level five. It was the rain, not the angle, and the
+    /// panel's own rows could not say so because they did not carry it.
+    ///
+    /// So the row label is `<shot>%r<rain>w<wet>` — one entry carrying the
+    /// reading and the regime it was taken in, rather than two keys whose
+    /// relationship a reader must remember. `%` appears nowhere else in any
+    /// row and `Safe` folds it out of shot names, so it cannot be forged.
+    /// A shot whose weather was NOT recorded prints `%weather_unknown` in
+    /// WORDS: an unrecorded shot defaulting to `r0.00w0.00` would read as
+    /// DRY, which is the regime confusion this exists to end (rule 3b).
     ///
     /// IT HOLDS NO CLASSIFIER AND MUST NOT GROW ONE. The caller decides which
     /// band a sample is in — that decision needs a hit normal, a sun vector
@@ -102,6 +126,15 @@ namespace Ledger.Core
         readonly List<string> _albedo = new List<string>();
         readonly List<string> _horizon = new List<string>();
 
+        /// THE WEATHER STATES THIS RUN ACTUALLY PRODUCED, in FIRST-SEEN order
+        /// (a list, not the dictionary's order, because a dictionary's
+        /// enumeration order is not a guarantee and a row that reorders
+        /// between runs is a diff nobody can read). Three parallel tallies
+        /// per state: MEASURED shots, rungs held, rungs judged.
+        readonly List<string> _weatherSeen = new List<string>();
+        readonly Dictionary<string, long[]> _weatherTally
+            = new Dictionary<string, long[]>();
+
         /// WHOLE-RUN DENOMINATORS, cumulative over every shot the panel was
         /// offered. `shots measured` and `shots offered` differ when a frame
         /// could not be read back; the ray chain says WHERE classification
@@ -123,6 +156,13 @@ namespace Ledger.Core
         public sealed class ShotAcc
         {
             internal readonly string Name;
+
+            /// THE WEATHER THIS SHOT WAS TAKEN IN, formatted once at Open and
+            /// carried on every row the shot produces. A LAST-WINS read of the
+            /// live weather at the instant the frame was encoded — which is
+            /// the only instant a shot has, because a shot is one frame.
+            internal readonly string Weather;
+
             internal readonly List<double>[] Band = new List<double>[BandCount];
             internal readonly Dictionary<string, List<double>> GroundRendered
                 = new Dictionary<string, List<double>>();
@@ -132,11 +172,16 @@ namespace Ledger.Core
                 = new Dictionary<string, long>();
             internal long RaysCast, RaysHit, RaysRenderer;
 
-            internal ShotAcc(string name)
+            internal ShotAcc(string name, double rain, double wet)
             {
                 Name = Safe(name);
+                Weather = WeatherTag(rain, wet);
                 for (int i = 0; i < BandCount; i++) Band[i] = new List<double>();
             }
+
+            /// The row label: shot and regime in ONE token, so a reader
+            /// cannot line a wet row up against a dry one by accident.
+            internal string Label { get { return Name + "%" + Weather; } }
 
             /// A ray that was cast. Called for EVERY sample including the
             /// ones that hit nothing, or the chain loses its denominator.
@@ -173,10 +218,32 @@ namespace Ledger.Core
             }
         }
 
-        public ShotAcc Open(string shotName)
+        /// OPEN A SHOT, WITH THE WEATHER IT IS BEING TAKEN IN.
+        ///
+        /// `rain` and `wet` are the SAME two numbers `SimDirector.LedgerRow`
+        /// writes as the last two columns of every `frames.tsv` row — read
+        /// from `Weather.Rain` and `Weather.Wetness` inside the same `Shot`
+        /// call, with no time step between, so the panel row and the tsv row
+        /// describe one instant. ONE SOURCE, not two: nothing here recomputes
+        /// a weather, and there is no second wetness rule to drift.
+        ///
+        /// Pass a NEGATIVE for either when the caller genuinely does not know
+        /// — it prints `weather_unknown` in words. It must never be passed a
+        /// zero to mean "unknown": zero is DRY, and a dry road is the regime
+        /// this whole repair exists to keep separate.
+        public ShotAcc Open(string shotName, double rain, double wet)
         {
             _shotsOffered++;
-            return new ShotAcc(shotName);
+            return new ShotAcc(shotName, rain, wet);
+        }
+
+        /// `r<rain>w<wet>`, or the WORDS `weather_unknown`. Two decimals,
+        /// matching `frames.tsv`'s own `0.00` so a row and a tsv column can be
+        /// compared character for character rather than by eye.
+        static string WeatherTag(double rain, double wet)
+        {
+            if (rain < 0 || wet < 0) return "weather_unknown";
+            return "r" + Num(rain, "0.00") + "w" + Num(wet, "0.00");
         }
 
         /// FOLD ONE SHOT'S SAMPLES INTO THE PANEL. Every row for this shot is
@@ -195,7 +262,7 @@ namespace Ledger.Core
             double sky = Median(s.Band[Sky]), lit = Median(s.Band[LitWall]);
             double gnd = Median(s.Band[Ground]), shd = Median(s.Band[Shadow]);
 
-            _bands.Add(s.Name + ":sky" + BandVal(sky, s.Band[Sky].Count)
+            _bands.Add(s.Label + ":sky" + BandVal(sky, s.Band[Sky].Count)
                        + "/lit" + BandVal(lit, s.Band[LitWall].Count)
                        + "/gnd" + BandVal(gnd, s.Band[Ground].Count)
                        + "/shd" + BandVal(shd, s.Band[Shadow].Count)
@@ -207,19 +274,19 @@ namespace Ledger.Core
             string ratio = (s.Band[Shadow].Count == 0 || s.Band[LitWall].Count == 0)
                 ? "none"
                 : (lit > 1e-9 ? Num(shd / lit, "0.000") : "lit0");
-            _shadowLit.Add(s.Name + ":" + ratio
+            _shadowLit.Add(s.Label + ":" + ratio
                            + "@" + s.Band[Shadow].Count + ".." + s.Band[LitWall].Count);
 
             // GROUND SPREAD, printed as the two percentiles it is the
             // difference OF, so a wide spread low down and a wide spread up
             // in the highlights are distinguishable.
             if (s.Band[Ground].Count == 0)
-                _spread.Add(s.Name + ":none@0");
+                _spread.Add(s.Label + ":none@0");
             else
             {
                 var g = new List<double>(s.Band[Ground]); g.Sort();
                 double p10 = Percentile(g, 0.10), p90 = Percentile(g, 0.90);
-                _spread.Add(s.Name + ":" + Num(p10, "0.000") + ".." + Num(p90, "0.000")
+                _spread.Add(s.Label + ":" + Num(p10, "0.000") + ".." + Num(p90, "0.000")
                             + "=" + Num(p90 - p10, "0.000") + "@" + g.Count);
             }
 
@@ -233,16 +300,26 @@ namespace Ledger.Core
             Rung(s.Band[LitWall].Count, s.Band[Ground].Count, lit, gnd, ref rungs[1], ref held, ref judged);
             Rung(s.Band[Ground].Count, s.Band[Shadow].Count, gnd, shd, ref rungs[2], ref held, ref judged);
             _rungsHeld += held; _rungsJudged += judged;
-            _order.Add(s.Name + ":" + RungNames[0] + rungs[0]
+            _order.Add(s.Label + ":" + RungNames[0] + rungs[0]
                        + "/" + RungNames[1] + rungs[1]
                        + "/" + RungNames[2] + rungs[2]
                        + "=" + held + "of" + judged);
 
-            _albedo.Add(s.Name + ":" + AlbedoChain(s));
+            _albedo.Add(s.Label + ":" + AlbedoChain(s));
 
-            _horizon.Add(s.Name + ":"
+            _horizon.Add(s.Label + ":"
                          + (horizonRow < 0 ? "none" : Num(horizonRow, "0.000"))
                          + "@" + horizonCols + "/" + horizonColsTotal);
+
+            // THE PER-REGIME TALLY, taken HERE so its shot count and its rung
+            // counts come from the same shot in the same statement — the
+            // denominator captured at the instant its numerator moves. It
+            // groups by the PRINTED tag, so the grouping and the row label can
+            // never disagree about which regime a shot was in.
+            long[] t;
+            if (!_weatherTally.TryGetValue(s.Weather, out t))
+            { t = new long[3]; _weatherTally[s.Weather] = t; _weatherSeen.Add(s.Weather); }
+            t[0]++; t[1] += held; t[2] += judged;
         }
 
         static void Rung(int upperN, int lowerN, double upper, double lower,
@@ -397,7 +474,39 @@ namespace Ledger.Core
         /// not a rate, and not a gate. A rung nobody could judge (an empty
         /// band) is in neither number, so a run that photographed no sunlit
         /// wall reads as a small denominator rather than as a failure.
+        ///
+        /// IT POOLS EVERY WEATHER AND EVERY HOUR, AND MAY NOT BE QUOTED AS A
+        /// DRY READING. A run photographs soaked noons, dry noons, dusk and
+        /// night; this number sums all of them, so it answers "how often did
+        /// the order hold across everything we shot" and nothing narrower.
+        /// The number that answers "does the order hold on a dry road" is
+        /// `Weathers()`, which is the same tally split by regime.
         public string Rungs() => _rungsHeld + "/" + _rungsJudged;
+
+        /// SHOTS AND RUNGS PER WEATHER STATE, first-seen order, capped and
+        /// announced like every other row. `r0.00w0.00:shots7/rungs7of7` is
+        /// seven MEASURED dry shots that between them offered seven judgeable
+        /// rungs and held all seven.
+        ///
+        /// THIS IS THE ROW THAT MAKES A DRY-VS-WET COMPARISON POSSIBLE WITHOUT
+        /// HUNTING, and it is a TALLY, not a rate: dividing 7 by 7 across a
+        /// regime with one shot in it and a regime with eleven would print two
+        /// numbers of completely different weight as though they were
+        /// comparable. Nothing here classifies a state as wet or dry — the
+        /// states are whatever the run produced, and where the line between
+        /// them falls is a question for the landed series, not for this file.
+        public string Weathers()
+        {
+            if (_weatherSeen.Count == 0) return "nothing_measured";
+            var rows = new List<string>();
+            for (int i = 0; i < _weatherSeen.Count; i++)
+            {
+                var t = _weatherTally[_weatherSeen[i]];
+                rows.Add(_weatherSeen[i] + ":shots" + t[0]
+                         + "/rungs" + t[1] + "of" + t[2]);
+            }
+            return Rows(rows);
+        }
 
         /// How many rows the capped lists actually show, over how many exist.
         public string Listed()
@@ -454,9 +563,14 @@ namespace Ledger.Core
             string.IsNullOrEmpty(logical) ? "" : logical.Trim().ToLowerInvariant();
 
         /// A SHOT NAME IS FREE TEXT AND THE VERDICT IS SPACE-SEPARATED. This
-        /// row already uses `:`, `/`, `=`, `@`, `<`, `,`, `[` and `]`
+        /// row already uses `:`, `/`, `=`, `@`, `<`, `,`, `[`, `]` and now `%`
         /// structurally, so every one of them plus whitespace folds to `_`.
         /// `crowdBodyWidth` cost a reading by emitting a single space.
+        ///
+        /// `%` IS IN THAT LIST BECAUSE IT SEPARATES THE SHOT FROM ITS WEATHER.
+        /// A shot literally called `ref_1%r0.00w0.00` would otherwise print a
+        /// row carrying two weather tags, and the second one would be a lie
+        /// nobody could see.
         static string Safe(string name)
         {
             if (string.IsNullOrEmpty(name)) return "unnamed";
@@ -466,7 +580,7 @@ namespace Ledger.Core
                 char c = name[i];
                 bool bad = char.IsWhiteSpace(c) || c == ',' || c == '[' || c == ']'
                            || c == '=' || c == '@' || c == '/' || c == ':'
-                           || c == '<' || c == '>';
+                           || c == '<' || c == '>' || c == '%';
                 sb.Append(bad ? '_' : c);
             }
             var outName = sb.ToString().Trim('_');

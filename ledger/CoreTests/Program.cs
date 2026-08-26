@@ -13798,7 +13798,7 @@ namespace Ledger.CoreTests
 
             // ---- ACCEPTING: A FRAME SHAPED LIKE THE REFERENCES -------------
             var p = new ValuePanel();
-            var s = p.Open("ref_1");
+            var s = p.Open("ref_1", 0.00, 0.00);   // a DRY shot; see the weather rows below
             // Every sample is CAST; the ones that hit nothing are sky, which
             // is why `cast - hit == sky` is an identity on the printed chain.
             for (int i = 0; i < 15; i++) s.CountCast();
@@ -13832,22 +13832,22 @@ namespace Ledger.CoreTests
                   "the horizon is a median over the columns that HAVE sky", hz.ToString("0.000"));
             p.Land(s, hz, cols, 4);
 
-            Check(p.Bands() == "[ref_1:sky0.720@3/lit0.510@2/gnd0.370@6/shd0.190@2/othnone@0]",
+            Check(p.Bands() == "[ref_1%r0.00w0.00:sky0.720@3/lit0.510@2/gnd0.370@6/shd0.190@2/othnone@0]",
                   "the four band medians print with the counts they are medians OF",
                   p.Bands());
-            Check(p.ShadowLit() == "[ref_1:0.373@2..2]",
+            Check(p.ShadowLit() == "[ref_1%r0.00w0.00:0.373@2..2]",
                   "shadow over lit is one ratio carrying BOTH denominators",
                   p.ShadowLit());
-            Check(p.Spread() == "[ref_1:0.310..0.430=0.120@6]",
+            Check(p.Spread() == "[ref_1%r0.00w0.00:0.310..0.430=0.120@6]",
                   "the ground spread prints the two percentiles it is the difference of",
                   p.Spread());
-            Check(p.Order() == "[ref_1:sky>lity/lit>gndy/gnd>shdy=3of3]",
+            Check(p.Order() == "[ref_1%r0.00w0.00:sky>lity/lit>gndy/gnd>shdy=3of3]",
                   "a reference-shaped frame holds all three rungs", p.Order());
             Check(p.AlbedoOrder()
-                  == "[ref_1:asphalt0.200:0.310<kerb0.260:0.370<sidewalk0.300:0.430=2of2@m3/n6]",
+                  == "[ref_1%r0.00w0.00:asphalt0.200:0.310<kerb0.260:0.370<sidewalk0.300:0.430=2of2@m3/n6]",
                   "rendered ground lumas ordered as source albedos, sorted BY source",
                   p.AlbedoOrder());
-            Check(p.Horizon() == "[ref_1:0.500@3/4]",
+            Check(p.Horizon() == "[ref_1%r0.00w0.00:0.500@3/4]",
                   "the horizon row prints the columns it is a median over", p.Horizon());
             Check(p.Shots() == "1/1", "shots measured over shots offered", p.Shots());
             Check(p.Rays() == "15/12/12/sky3/lit2/gnd6/shd2/oth0",
@@ -13861,9 +13861,62 @@ namespace Ledger.CoreTests
             // reading by emitting one.
             foreach (var v in new[] { p.Bands(), p.ShadowLit(), p.Spread(), p.Order(),
                                       p.AlbedoOrder(), p.Horizon(), p.Shots(),
-                                      p.Rays(), p.Rungs(), p.Listed() })
+                                      p.Rays(), p.Rungs(), p.Listed(), p.Weathers() })
                 Check(v.IndexOf(' ') < 0 && v.IndexOf('\t') < 0,
                       "no panel value contains whitespace", v);
+
+            // ---- THE WEATHER RIDES ON EVERY ROW ----------------------------
+            // The repair for a conclusion published and retracted inside an
+            // hour: `day1_noon` read in the reference order because the road
+            // was SOAKED, and the dry aerial `day5_noon` was inverted exactly
+            // like the eye-level five. Rows that do not carry their regime let
+            // a reader line those two up as one series, which is what happened.
+            foreach (var v in new[] { p.Bands(), p.ShadowLit(), p.Spread(),
+                                      p.Order(), p.AlbedoOrder(), p.Horizon() })
+                Check(v.IndexOf("ref_1%r0.00w0.00:") == 1,
+                      "every per-shot row is labelled with the weather it was taken in", v);
+            Check(p.Weathers() == "[r0.00w0.00:shots1/rungs3of3]",
+                  "the weather tally carries MEASURED shots and that regime's own rungs",
+                  p.Weathers());
+
+            // A SHOT WHOSE WEATHER WAS NOT RECORDED PRINTS WORDS, NOT ZEROES.
+            // `r0.00w0.00` is DRY — a real, common regime — so defaulting an
+            // unknown to it would silently file the unmeasured with the dry,
+            // which is rule 3b's fault wearing a weather's clothes.
+            var unk = new ValuePanel();
+            var uk = unk.Open("mystery", -1, -1);
+            uk.CountCast(); uk.CountHit(); uk.CountRenderer();
+            uk.Add(ValuePanel.Ground, 0.5);
+            unk.Land(uk, -1, 0, 0);
+            Check(unk.Bands() == "[mystery%weather_unknown:skynone@0/litnone@0/gnd0.500@1/shdnone@0/othnone@0]",
+                  "an unrecorded weather prints WORDS and cannot read as dry",
+                  unk.Bands());
+            Check(unk.Weathers() == "[weather_unknown:shots1/rungs0of0]",
+                  "and it is its own regime in the tally, not folded into the dry one",
+                  unk.Weathers());
+
+            // TWO REGIMES IN ONE RUN, WHICH IS EVERY RUN THIS SIM DOES.
+            // The wet shot holds the order and the dry one does not — the
+            // landed shape exactly — and the pooled `Rungs()` reads 4/6, a
+            // number that describes neither regime. That is why `Weathers()`
+            // exists and why `Rungs()` says in its comment that it pools.
+            var mix = new ValuePanel();
+            var wetShot = mix.Open("day1_noon", 0.35, 1.00);
+            for (int i = 0; i < 4; i++) { wetShot.CountCast(); wetShot.CountHit(); wetShot.CountRenderer(); }
+            wetShot.Add(ValuePanel.Sky, 0.45); wetShot.Add(ValuePanel.LitWall, 0.40);
+            wetShot.Add(ValuePanel.Ground, 0.24); wetShot.Add(ValuePanel.Shadow, 0.12);
+            mix.Land(wetShot, -1, 0, 0);
+            var dryShot = mix.Open("day5_noon", 0.00, 0.00);
+            for (int i = 0; i < 4; i++) { dryShot.CountCast(); dryShot.CountHit(); dryShot.CountRenderer(); }
+            dryShot.Add(ValuePanel.Sky, 0.44); dryShot.Add(ValuePanel.LitWall, 0.62);
+            dryShot.Add(ValuePanel.Ground, 0.72); dryShot.Add(ValuePanel.Shadow, 0.22);
+            mix.Land(dryShot, -1, 0, 0);
+            Check(mix.Weathers()
+                  == "[r0.35w1.00:shots1/rungs3of3,r0.00w0.00:shots1/rungs1of3]",
+                  "a wet shot and a dry shot are two regimes, in first-seen order",
+                  mix.Weathers());
+            Check(mix.Rungs() == "4/6",
+                  "and the pooled run tally describes neither of them", mix.Rungs());
 
             // ---- THE FAULT THE INSTRUMENT EXISTS FOR -----------------------
             // Near-white ground under a storm-dark sky: the inversion the
@@ -13871,19 +13924,19 @@ namespace Ledger.CoreTests
             // `n` and the tally must say 1of3, or this instrument is blind to
             // the one thing it was built for.
             var inv = new ValuePanel();
-            var iv = inv.Open("day1_noon");
+            var iv = inv.Open("day5_noon", 0.00, 0.00);
             for (int i = 0; i < 8; i++) { iv.CountCast(); iv.CountHit(); iv.CountRenderer(); }
             iv.Add(ValuePanel.Sky, 0.34); iv.Add(ValuePanel.Sky, 0.36);
             iv.Add(ValuePanel.LitWall, 0.40); iv.Add(ValuePanel.LitWall, 0.40);
             iv.Add(ValuePanel.Ground, 0.88); iv.Add(ValuePanel.Ground, 0.92);
             iv.Add(ValuePanel.Shadow, 0.20); iv.Add(ValuePanel.Shadow, 0.20);
             inv.Land(iv, -1, 0, 4);
-            Check(inv.Order() == "[day1_noon:sky>litn/lit>gndn/gnd>shdy=1of3]",
+            Check(inv.Order() == "[day5_noon%r0.00w0.00:sky>litn/lit>gndn/gnd>shdy=1of3]",
                   "an inverted frame prints WHICH rung broke, not a single word",
                   inv.Order());
             Check(inv.Rungs() == "1/3", "and the run tally carries the same count",
                   inv.Rungs());
-            Check(inv.Horizon() == "[day1_noon:none@0/4]",
+            Check(inv.Horizon() == "[day5_noon%r0.00w0.00:none@0/4]",
                   "a frame with no sky prints words for its horizon, not a zero",
                   inv.Horizon());
 
@@ -13896,7 +13949,8 @@ namespace Ledger.CoreTests
                   && never.Spread() == "nothing_measured"
                   && never.ShadowLit() == "nothing_measured"
                   && never.AlbedoOrder() == "nothing_measured"
-                  && never.Horizon() == "nothing_measured",
+                  && never.Horizon() == "nothing_measured"
+                  && never.Weathers() == "nothing_measured",
                   "a panel that never ran prints WORDS in every row", never.Bands());
             Check(never.Shots() == "0/0" && never.Rungs() == "0/0"
                   && never.Listed() == "0/0"
@@ -13907,10 +13961,13 @@ namespace Ledger.CoreTests
             // fact from one that never ran, and the denominator is what says
             // so: 0 measured of 1 offered.
             var blind = new ValuePanel();
-            blind.Land(blind.Open("day2_noon"), -1, 0, 0);
+            blind.Land(blind.Open("day2_noon", 0.00, 0.62), -1, 0, 0);
             Check(blind.Shots() == "0/1" && blind.Bands() == "nothing_measured",
                   "a shot that cast no rays counts as offered and not as measured",
                   blind.Shots());
+            Check(blind.Weathers() == "nothing_measured",
+                  "and it contributes no regime, because it measured no weather either",
+                  blind.Weathers());
 
             // ---- EMPTY BANDS ARE A READING, NOT A ZERO ---------------------
             // A shot down a shaded alley genuinely contains no sunlit wall.
@@ -13918,43 +13975,43 @@ namespace Ledger.CoreTests
             // the tally, or a frame with nothing to judge would read as a
             // failure.
             var alley = new ValuePanel();
-            var al = alley.Open("day1_night");
+            var al = alley.Open("day1_night", 0.35, 1.00);
             for (int i = 0; i < 4; i++) { al.CountCast(); al.CountHit(); al.CountRenderer(); }
             al.Add(ValuePanel.Ground, 0.10); al.Add(ValuePanel.Ground, 0.12);
             al.Add(ValuePanel.Shadow, 0.04); al.Add(ValuePanel.Shadow, 0.06);
             alley.Land(al, -1, 0, 0);
-            Check(alley.Bands() == "[day1_night:skynone@0/litnone@0/gnd0.110@2/shd0.050@2/othnone@0]",
+            Check(alley.Bands() == "[day1_night%r0.35w1.00:skynone@0/litnone@0/gnd0.110@2/shd0.050@2/othnone@0]",
                   "an empty band prints none@0, which cannot read as black",
                   alley.Bands());
-            Check(alley.Order() == "[day1_night:sky>lit?/lit>gnd?/gnd>shdy=1of1]",
+            Check(alley.Order() == "[day1_night%r0.35w1.00:sky>lit?/lit>gnd?/gnd>shdy=1of1]",
                   "a rung nobody could judge is ? and is in neither half of the tally",
                   alley.Order());
-            Check(alley.ShadowLit() == "[day1_night:none@2..0]",
+            Check(alley.ShadowLit() == "[day1_night%r0.35w1.00:none@2..0]",
                   "a ratio with no denominator prints words and keeps both counts",
                   alley.ShadowLit());
-            Check(alley.AlbedoOrder() == "[day1_night:nothing_measured@0]",
+            Check(alley.AlbedoOrder() == "[day1_night%r0.35w1.00:nothing_measured@0]",
                   "a shot with no classified ground material says so in words",
                   alley.AlbedoOrder());
 
             // A lit band whose median is genuinely zero cannot be divided by,
             // and printing a huge ratio there would read as a deep shadow.
             var black = new ValuePanel();
-            var bl = black.Open("dark");
+            var bl = black.Open("dark", 0.00, 0.00);
             bl.CountCast(); bl.CountHit(); bl.CountRenderer();
             bl.Add(ValuePanel.LitWall, 0.0); bl.Add(ValuePanel.Shadow, 0.05);
             black.Land(bl, -1, 0, 0);
-            Check(black.ShadowLit() == "[dark:lit0@1..1]",
+            Check(black.ShadowLit() == "[dark%r0.00w0.00:lit0@1..1]",
                   "a zero lit median prints words rather than an enormous ratio",
                   black.ShadowLit());
 
             // ---- THE ALBEDO ORDER CAN FAIL, AND MUST SAY SO ----------------
             var disc = new ValuePanel();
-            var dc = disc.Open("x");
+            var dc = disc.Open("x", 0.00, 0.00);
             for (int i = 0; i < 2; i++) { dc.CountCast(); dc.CountHit(); dc.CountRenderer(); }
             dc.Add(ValuePanel.Ground, 0.50); dc.AddGround("asphalt", 0.50, 0.20);
             dc.Add(ValuePanel.Ground, 0.40); dc.AddGround("sidewalk", 0.40, 0.30);
             disc.Land(dc, -1, 0, 0);
-            Check(disc.AlbedoOrder() == "[x:asphalt0.200:0.500<sidewalk0.300:0.400=0of1@m2/n2]",
+            Check(disc.AlbedoOrder() == "[x%r0.00w0.00:asphalt0.200:0.500<sidewalk0.300:0.400=0of1@m2/n2]",
                   "the darker source rendering brighter is a discordant pair",
                   disc.AlbedoOrder());
 
@@ -13962,12 +14019,12 @@ namespace Ledger.CoreTests
             // Marking such a pair discordant would invent a requirement the
             // references never made.
             var tie = new ValuePanel();
-            var tc = tie.Open("y");
+            var tc = tie.Open("y", 0.00, 0.00);
             for (int i = 0; i < 2; i++) { tc.CountCast(); tc.CountHit(); tc.CountRenderer(); }
             tc.Add(ValuePanel.Ground, 0.50); tc.AddGround("asphalt", 0.50, 0.25);
             tc.Add(ValuePanel.Ground, 0.40); tc.AddGround("kerb", 0.40, 0.25);
             tie.Land(tc, -1, 0, 0);
-            Check(tie.AlbedoOrder() == "[y:asphalt0.250:0.500~kerb0.250:0.400=0of0@m2/n2]",
+            Check(tie.AlbedoOrder() == "[y%r0.00w0.00:asphalt0.250:0.500~kerb0.250:0.400=0of0@m2/n2]",
                   "equal source albedos join with ~ and sit in neither half of the tally",
                   tie.AlbedoOrder());
 
@@ -13977,7 +14034,7 @@ namespace Ledger.CoreTests
             var many = new ValuePanel();
             for (int i = 0; i < ValuePanel.RowCap + 2; i++)
             {
-                var m = many.Open("shot" + i);
+                var m = many.Open("shot" + i, 0.00, 0.00);
                 m.CountCast(); m.CountHit(); m.CountRenderer();
                 m.Add(ValuePanel.Ground, 0.5);
                 many.Land(m, -1, 0, 0);
@@ -13992,7 +14049,7 @@ namespace Ledger.CoreTests
 
             // ---- A SHOT NAME IS FREE TEXT ----------------------------------
             var dirty = new ValuePanel();
-            var dt = dirty.Open("day 1, noon=[a]:b/c<d>");
+            var dt = dirty.Open("day 1, noon=[a]:b/c<d>%r9w9", 0.00, 0.00);
             dt.CountCast(); dt.CountHit(); dt.CountRenderer();
             dt.Add(ValuePanel.Ground, 0.5);
             dirty.Land(dt, -1, 0, 0);
@@ -14001,6 +14058,12 @@ namespace Ledger.CoreTests
             Check(dirty.Bands().Substring(1).Split(',').Length == 1
                   || dirty.Bands().IndexOf("day_1__noon__a__b_c_d") >= 0,
                   "every structural character in a shot name folds to _",
+                  dirty.Bands());
+            // A NAME CANNOT FORGE A SECOND WEATHER TAG. The fixture name ends
+            // `%r9w9`; if `%` survived, the row would carry two tags and the
+            // wrong one would be unreadable as wrong.
+            Check(dirty.Bands().Split('%').Length == 2,
+                  "exactly one % per row, so a shot name cannot forge a weather",
                   dirty.Bands());
 
             // ---- THE HORIZON REFUSES WHAT IT CANNOT MEASURE ----------------
