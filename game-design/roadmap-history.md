@@ -2930,7 +2930,13 @@ primitive's free collider, and a theory refuted by its own counter.
    `LawHost.ClaimsCaught` while testing the bool `_claimCaught` — so a red
    showed a healthy-looking `caught=1`. Both fixed, with `perf`.
    **`tools/gate-detail.py` ratchets the count** (18, ceiling 18), in
-   `verify`. It does NOT demand the eighteen be fixed — each needs its
+   `verify`. **CORRECTED 26 Aug: it was 31, not 18.** `BARE` required the
+   second tuple element to end in `Ok`, so **13 bare gates were invisible to
+   the tool written to find them — including `jobRan`, the THIRD most common
+   failure in this project's history (73 reds, 22.6%).** Ceiling 18 -> 31,
+   and the guard gets STRICTER by it: a 14th genuinely-bare gate is now
+   refused where before it was unseen. The integer rose because the
+   denominator was wrong, which is the opposite of a loosened bound. It does NOT demand the eighteen be fixed — each needs its
    condition read and its operands chosen, which is judgement, not a rename —
    it refuses an addition. **A count, not a list of blessed names**, because a
    list decays on every rename and an entry nobody re-reads is the reach

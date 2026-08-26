@@ -57,6 +57,48 @@ sys.path.insert(0, str(ROOT.parent / "tools"))     # tools/capsay.py
 from capsay import cap as _cap, NOTHING_MEASURED   # noqa: E402
 
 
+# ------------------------------------------------ a lint that went non-zero
+# EXIT 2 IS "I COULD NOT LOOK", NOT "I FOUND SOMETHING" — AND FOUR WRAPPERS IN
+# THIS FILE CALLED IT A COMPILE ERROR.
+#
+# Measured on 26 Aug, not reasoned: `tools/` was copied over a tree with no
+# `Assets/`, each lint was run there for real, and its real output and real
+# exit code were fed to the wrapper that consumes it. The series:
+#
+#   nested_types       tool exit=2 -> RED   CS0426 WAITING TO HAPPEN: see lint-nested
+#   static_instance    tool exit=2 -> RED   CS0120 WAITING TO HAPPEN: see lint-static
+#   namespace_as_value tool exit=1 -> RED   CS0118 WAITING TO HAPPEN: see lint-namespace
+#   raw_avenues        tool exit=2 -> RED   RAW AVENUE READ (unscaled coordinates): ...
+#   filename_as_type   tool exit=0 -> GREEN 0 filename-as-type errors (0 files, 0 ...)
+#   shadow             tool exit=2 -> RED   lint-shadow did not report
+#   conditional_reach  tool exit=2 -> RED   conditional-reach did not report
+#
+# Four of the seven were red for the right reason with the wrong sentence, and
+# a reader chasing a CS0426 that does not exist is a worse turn than a reader
+# told the lint refused to run. (The fifth was worse still and is fixed in the
+# tool: `lint-filetype` exited 0 over an empty tree, so verify printed GREEN.)
+#
+# IT DOES NOT KEY ON EXIT 2 ALONE, because `lint-namespace` prints "the check
+# did not run" and exits 1. The structural test is the one that holds for all
+# of them: a lint that goes red WITHOUT naming a `.cs:` line has not found
+# anything, whatever code it exited with — there is no finding to chase.
+#
+# ONE IMPLEMENTATION, five call sites. The three-line copy-paste at each of
+# them is exactly the shape this project keeps paying for: one idea, several
+# sites, and the fix lands in all but one.
+def _lint_red(code, out, finding, tool, width=90):
+    """The red half of a lint wrapper. Returns the message; the caller is red
+    either way, because a lint that cannot look is not a pass."""
+    hits = [l.strip() for l in out.splitlines() if ".cs:" in l]
+    if hits:
+        return "%s: %s" % (finding, _cap(hits, width=width, tail="see " + tool))
+    said = [l.strip() for l in out.splitlines() if l.strip()]
+    return ("%s NOTHING MEASURED (exit %d, no source line named — it refused "
+            "to look, so this is NOT %s): %s"
+            % (tool, code, finding.split(" WAITING")[0],
+               _cap(said, width=140, tail="and it printed nothing at all")))
+
+
 def core_tests():
     code, out = run(["dotnet", "run", "-c", "Release", "--project", str(ROOT / "CoreTests")])
     m = re.search(r"All (\d+) checks passed", out)
@@ -179,7 +221,12 @@ def shadow():
     m = re.search(r"lint-shadow: (\d+) Game member", out)
     if m:
         return False, "%s SHADOWED CORE TYPE(S) — see tools/lint-shadow.py" % m.group(1)
-    return False, "lint-shadow did not report"
+    # NOT A FINDING CLAIM — and now not a mute one either: an exit-2 refusal
+    # ("nothing measured — Core and Game not found") reached this line and was
+    # flattened to four words that could equally mean the tool crashed.
+    return False, "lint-shadow did not report: " + _cap(
+        [l.strip() for l in out.splitlines() if l.strip()], width=140,
+        tail="it printed nothing at all")
 
 
 def reach():
@@ -677,7 +724,9 @@ def conditional_reach():
     code, out = run(["python3", str(ROOT.parent / "tools" / "lint-conditional-reach.py")])
     m = re.search(r"lint-conditional-reach: (\d+) unreachable, (\d+) conditional", out)
     if not m:
-        return False, "conditional-reach did not report"
+        return False, "conditional-reach did not report: " + _cap(
+            [l.strip() for l in out.splitlines() if l.strip()], width=140,
+            tail="it printed nothing at all")
     return m.group(1) == "0", ("%s unreachable behind #if (%s type(s) checked)"
                                % (m.group(1), m.group(2)))
 
@@ -937,14 +986,17 @@ def nested_types():
     So it was a twenty-eight-minute round trip, and the cost was not the error:
     three commits went out on top of it before the verdict said the sim had
     never run. Same shape and same remedy as `lint-shadow`, which exists
-    because CS0119 cost a round trip the same way."""
+    because CS0119 cost a round trip the same way.
+
+    EXIT 2 IS NOT A CS0426 — see `_lint_red`. This wrapper called an empty
+    sweep a latent compile error until 26 Aug."""
     code, out = run(["python3", str(ROOT.parent / "tools" / "lint-nested.py")])
     if code != 0:
-        hits = [l.strip() for l in out.splitlines() if ".cs:" in l]
-        return False, "CS0426 WAITING TO HAPPEN: " + _cap(hits, width=90, tail="see lint-nested")
+        return False, _lint_red(code, out, "CS0426 WAITING TO HAPPEN", "lint-nested")
     m = re.search(r"\((\d+) top-level Core types checked\)", out)
     return True, ("0 nested-type errors (%s Core types)" % m.group(1) if m
-                  else "0 nested-type errors")
+                  else "0 nested-type errors (%s — lint-nested printed no census)"
+                  % NOTHING_MEASURED)
 
 
 def filename_as_type():
@@ -966,14 +1018,32 @@ def filename_as_type():
     blind to `SimDirector`'s done-line, which is one interpolated string
     hundreds of expressions long and the largest concentration of Game-layer
     static reads in the project. The new check scored zero on the very line
-    that prompted it until that was fixed."""
-    code, out = run(["python3", str(ROOT.parent / "tools" / "lint-filetype.py")])
+    that prompted it until that was fixed.
+
+    AND IT REPORTED GREEN OVER AN EMPTY TREE until 26 Aug: the tool exited 0
+    printing `(0 file(s) scanned, 0 type(s) declared, 0 filename(s) ...)` and
+    the parse below happily lifted the zeros into the footer. The tool now
+    exits 2 with the words `nothing measured`; `_lint_red` reads it."""
+    tool = str(ROOT.parent / "tools" / "lint-filetype.py")
+    code, out = run(["python3", tool])
     if code != 0:
-        hits = [l.strip() for l in out.splitlines() if ".cs:" in l]
-        return False, "CS0103 WAITING TO HAPPEN: " + _cap(hits, width=90, tail="see lint-filetype")
+        return False, _lint_red(code, out, "CS0103 WAITING TO HAPPEN", "lint-filetype")
+    # THE SWEEP FIRST, THE SELFTEST SECOND, AND THE ORDER IS THE POINT: run the
+    # guard first and a REAL CS0103 comes back as "the lint is broken", because
+    # the selftest asserts the live tree is clean. A finding must report as a
+    # finding. Only once the sweep is green is there a question left to ask —
+    # is this green worth anything — and that is what the selftest answers.
+    scode, sout = run(["python3", tool, "--selftest"])
+    if scode != 0:
+        hits = [l.strip() for l in sout.splitlines()
+                if l.strip().startswith("FAIL") or "Error" in l]
+        return False, "FILETYPE LINT BROKEN: " + _cap(
+            hits, width=110, tail="see lint-filetype --selftest")
     m = re.search(r"\((\d+) file\(s\) scanned, (\d+) type\(s\) declared, (\d+) filename", out)
     return True, ("0 filename-as-type errors (%s files, %s filenames that are not types)"
-                  % (m.group(1), m.group(3)) if m else "0 filename-as-type errors")
+                  % (m.group(1), m.group(3)) if m
+                  else "0 filename-as-type errors (%s — lint-filetype printed no census)"
+                  % NOTHING_MEASURED)
 
 
 def namespace_as_value():
@@ -997,11 +1067,16 @@ def namespace_as_value():
     on hundreds of lines."""
     code, out = run(["python3", str(ROOT.parent / "tools" / "lint-namespace.py")])
     if code != 0:
-        hits = [l.strip() for l in out.splitlines() if ".cs:" in l]
-        return False, "CS0118 WAITING TO HAPPEN: " + _cap(hits, width=90, tail="see lint-namespace")
+        # THE THIRD SITE, AND IT EXITS 1 RATHER THAN 2. `lint-namespace` prints
+        # "NO NAMESPACES FOUND — the check did not run" and returns 1, which
+        # this wrapper reported as a CS0118 waiting to happen. Keying the
+        # repair on exit 2 alone would have fixed two of three.
+        return False, _lint_red(code, out, "CS0118 WAITING TO HAPPEN", "lint-namespace")
     m = re.search(r"\((\d+) file\(s\) scanned, (\d+) namespace segment", out)
     return True, ("0 namespace-as-value errors (%s files, %s segments in scope)"
-                  % (m.group(1), m.group(2)) if m else "0 namespace-as-value errors")
+                  % (m.group(1), m.group(2)) if m
+                  else "0 namespace-as-value errors (%s — lint-namespace printed no census)"
+                  % NOTHING_MEASURED)
 
 
 
@@ -1034,9 +1109,10 @@ def raw_avenues():
             hits, width=110, tail="see lint-avenues --selftest")
     code, out = run(["python3", tool])
     if code != 0:
-        hits = [l.strip() for l in out.splitlines() if ".cs:" in l]
-        return False, "RAW AVENUE READ (unscaled coordinates): " + _cap(
-            hits, width=90, tail="see lint-avenues")
+        # THE FOURTH SITE. `lint-avenues` exits 2 when its owner file is not
+        # found — nothing was swept, and this used to print it as a raw read.
+        return False, _lint_red(code, out, "RAW AVENUE READ (unscaled coordinates)",
+                                "lint-avenues")
     m = re.search(r"\((\d+) files walked", out)
     # A DEFERRAL MUST NOT READ AS A PASS, and this line is where it would.
     # The lint exits 0 while KNOWN FAULTS sit in its DEFERRED ledger, so a
@@ -1068,14 +1144,17 @@ def static_instance():
     that had produced the error. That is why its self-test now contains the
     real method's shape, and why this wiring went in only after running it
     against the pre-fix file and getting back lines 129 and 132 — the two
-    the Windows build had reported."""
+    the Windows build had reported.
+
+    EXIT 2 IS NOT A CS0120 — see `_lint_red`. This wrapper called an empty
+    sweep a latent compile error until 26 Aug."""
     code, out = run(["python3", str(ROOT.parent / "tools" / "lint-static.py")])
     if code != 0:
-        hits = [l.strip() for l in out.splitlines() if ".cs:" in l]
-        return False, "CS0120 WAITING TO HAPPEN: " + _cap(hits, width=90, tail="see lint-static")
+        return False, _lint_red(code, out, "CS0120 WAITING TO HAPPEN", "lint-static")
     m = re.search(r"\((\d+) instance members.*?(\d+) static bodies walked\)", out)
     return True, ("0 static/instance errors (%s members, %s bodies)" % (m.group(1), m.group(2))
-                  if m else "0 static/instance errors")
+                  if m else "0 static/instance errors (%s — lint-static printed no census)"
+                  % NOTHING_MEASURED)
 
 
 def workflow_size():
@@ -1733,18 +1812,105 @@ def runs_map_to_commits():
     and it is what would have fired the day it changed. It is a WARNING and
     not a failure, because the tools use prefix matching now and are immune;
     it exists so the next person who writes `==` against a stem is told.
-    """
+
+    AND THE PARAGRAPH ABOVE DIAGNOSED THE DISEASE WHILE THE LINE UNDERNEATH
+    HAD IT — 26 Aug. "Unmatched runs fall into a fallback sorted by SHA,
+    which is sorted by nothing" is written up there about the SIX TOOLS. This
+    check's own `git log --format=%H -400` had the same window, and what it
+    did with the runs outside it was quieter than a sha bucket: they were
+    absent from the numerator and NOTHING SAID SO. The footer read
+
+        runs map to commits (108 of 356 within 400)
+
+    on every commit for weeks, and 30% read as a fact about run files when it
+    was a fact about the window.
+
+    MEASURED at c03ead22, not reasoned. 356 run files, 2403 commits on HEAD.
+    Coverage by window: 100 -> 22 runs (6%), 200 -> 63 (18%), **400 -> 108
+    (30%)**, 800 -> 192 (54%), 1200 -> 226 (63%), 1600 -> 324 (91%), 2000 ->
+    356 (100%). The oldest run sits at commit index 1707, so any fixed window
+    under 1708 was already wrong the day it was written and every window rots
+    as the repository grows.
+
+    THE LANDED SERIES IS THE PROOF AND IT WAS IN THE COMMIT FEED ALL ALONG.
+    73 footers carry this reading, 24-26 Aug, oldest first: 123 of 335, 124 of
+    339, 122 of 341, 122 of 345, 119 of 348, 115 of 350, 111 of 351, 108 of
+    354, 108 of 355. **The numerator FALLS while the denominator RISES** —
+    37% to 31% in two days. A number that goes down as the corpus goes up is
+    measuring the window closing, and no reader could see that from one
+    footer because nothing on the line said what the number should be.
+
+    SO THE LINE NOW CARRIES THREE THINGS IT DID NOT.
+      * THE WINDOW IS THE WHOLE HISTORY, and it is also FASTER. Timed on
+        this tree: the old nested loop (`for full in log for stem in stems`)
+        over a 400-commit window took **8.5ms to place 108 runs**; the dict
+        in `place_runs` over all 2403 commits takes **0.7ms to place 356**.
+        The `git log` itself is 49ms with no `-N`. The window bought nothing
+        it was supposed to buy — 12x slower for a third of the coverage.
+      * AN EXPECTED VALUE. `expect all` — every run file is named after a
+        commit CI checked out, and CI commits its stills on top of that
+        commit, so the named commit is an ancestor of HEAD by construction.
+        The numerator SHOULD equal the denominator. A bare fraction with no
+        referent is the fault rule 3b's sibling names: a reader cannot judge
+        30% or 100% without being told which one is health.
+      * WHAT HAPPENS TO THE UNPLACED. `unplaced=N` in BOTH states, and when
+        it is non-zero the stems are NAMED — `NOT COUNTED ABOVE, on no commit
+        in this history` — capped, with the cap announcing its bite. Silence
+        is what made 248 missing runs look like a passing check. This check
+        never sorted them by sha the way the six tools did; it just left them
+        out of the numerator, which is quieter and reads the same.
+
+    UNPLACED IS PRINTED, NOT GATED, and that is rule 2 rather than timidity:
+    it reads 0 today and has no landed series above zero, so any bound would
+    be invented. The honest non-zero causes — a rebase, a force-push, a run
+    file copied in by hand, the container rolling this checkout back — are
+    all things a person must look at, and failing the commit would be a
+    ratchet against the very commit that fixes them. Ship the printer; the
+    bound comes from evidence later. The hard failure stays where it has a
+    real rejecting case: `hit == 0` is the naming convention and the log
+    format having diverged entirely, which is what happened on 24 Aug.
+
+    ONE IMPLEMENTATION OF THE PLACEMENT. `tools/gates.py::place_runs` is the
+    same idea — stems onto commits, newest first, with the unplaced named —
+    written PURE so a test can drive it, and it was repaired for this exact
+    window on 26 Aug. A second copy here is the site nobody looks at when the
+    first gets fixed (`SpeechBubble`/`NpcWalker`, `verdict-keys`/`gates`).
+    It is imported lazily and an import failure is RED and names the file,
+    rather than a traceback at module load that would block every commit.
+
+    AND THE NUMERATOR NOW COUNTS THE SAME THING AS THE DENOMINATOR. The old
+    `sum(1 for full in log for stem in stems if ...)` counted (commit, stem)
+    PAIRS from the log side against a denominator counting FILES. Zero 7-char
+    prefix collisions in 2403 commits today, so the two agree — but they are
+    different quantities printed as one fraction, which is the pairing fault
+    this project has paid for four times."""
     runs = ROOT.parent / "game-design" / "sim-shots" / "runs"
     if not runs.is_dir():
         return True, "no runs directory yet"
     stems = {p.stem for p in runs.glob("*.txt")}
     if not stems:
         return True, "no run files yet"
-    code, out = run(["git", "-C", str(ROOT.parent), "log", "--format=%H", "-400"])
+    # NO `-N`. Any cap here is a silent undercount of everything past it, and
+    # this line sells a fraction. Measured: 49ms for the full 2403-commit log,
+    # and placing all 356 runs out of it is 0.7ms against the 8.5ms the old
+    # nested loop spent placing 108 out of a 400-commit window.
+    code, out = run(["git", "-C", str(ROOT.parent), "log", "--format=%H"])
     if code != 0 or not out.strip():
-        return True, f"runs ok ({len(stems)} file(s), no git history to check against)"
+        # COULD NOT LOOK, and it must not read as `ok`. The denominator ships
+        # so "no runs" and "runs I could not check" stop looking alike.
+        return True, (f"runs map to commits {NOTHING_MEASURED} "
+                      f"({len(stems)} run file(s) on disk, git log gave no "
+                      f"history to place them against)")
     log = out.split()
-    hit = sum(1 for full in log for stem in stems if full.startswith(stem))
+    try:
+        from gates import place_runs      # tools/ is already on sys.path
+    except Exception as exc:              # noqa: BLE001 — the name is the report
+        return False, ("RUNS-MAP CHECK BROKEN: tools/gates.py::place_runs "
+                       "would not import (%s: %s) — the placement arithmetic "
+                       "has ONE implementation and it lives there"
+                       % (type(exc).__name__, _cap([str(exc)], width=80)))
+    placed, unplaced = place_runs(stems, log)
+    hit = len(placed)                     # RUN FILES placed, same unit as len(stems)
     if hit == 0:
         return False, (f"NO RUN FILE MATCHES ANY COMMIT: {len(stems)} run file(s) "
                        f"against {len(log)} commit(s) — the naming convention and "
@@ -1758,7 +1924,23 @@ def runs_map_to_commits():
         if n != stem_len:
             note = (f"; NOTE abbrev is {n} chars and run files are {stem_len} — "
                     f"compare by PREFIX, never by equality")
-    return True, f"runs map to commits ({hit} of {len(stems)} within {len(log)}){note}"
+    # NAMED, NEVER FOLDED INTO THE TOTAL — this is where 248 runs went.
+    # `unplaced=N` is emitted in BOTH states, so a grep for it gets a number
+    # when there is a problem instead of getting nothing; the names follow as
+    # prose, because a `key=value` value may not contain a space.
+    gap = "unplaced=%d" % len(unplaced)
+    if unplaced:
+        gap += (" NOT COUNTED ABOVE, on no commit in this history: "
+                + _cap(sorted(unplaced), keep=4, width=12, sep=","))
+    # `runs map to commits (N of M within W)` CLOSES WHERE IT ALWAYS CLOSED,
+    # and everything new is added BESIDE it. The 73 landed footers were
+    # harvested with `runs map to commits \((\d+) of (\d+) within (\d+)\)`;
+    # a first draft of this line put the additions INSIDE the bracket and that
+    # regex stopped matching — the series that proved the fault would have been
+    # unreadable from the commit that fixed it. Checked both ways below.
+    return True, (f"runs map to commits ({hit} of {len(stems)} within {len(log)})"
+                  f" — the whole history, no window; expect all {len(stems)}; "
+                  f"{gap}{note}")
 
 
 def verdict_emit_dupkeys():
@@ -3677,6 +3859,21 @@ def _strings_selftest():
         finally:
             run = real_run
 
+    def with_seq(fn, outs):
+        """Run a check with `run` stubbed to a SEQUENCE of (code, output).
+
+        `raw_avenues` and `filename_as_type` each call their tool twice — a
+        selftest and a sweep — so a single fixed output tests whichever call
+        happens to come first and silently skips the other.
+        """
+        global run
+        seq = list(outs)
+        run = lambda *a, **k: seq.pop(0) if seq else (0, "")   # noqa: E731
+        try:
+            return fn()
+        finally:
+            run = real_run
+
     # ---------------------------------------------------------- ACCEPTING
     ok, s = with_out(lint, "checked 191 files, 0 missing-using/collision error(s)")
     say(ok and "191 file(s) walked of 191 present" in s and "UNWALKED" not in s,
@@ -3717,6 +3914,73 @@ def _strings_selftest():
     ok, s = _anchors_on(_anchor_tree(hits=1))
     say(ok and "1 anchor(s) in 1 break spec(s)" in s,
         "stale anchors: a spec that matches once passes AND counts", s)
+
+    # THE ACCEPTING CASE FOR THE EXIT-2 REPAIR, AND IT COMES FIRST ON PURPOSE:
+    # the expensive failure of `_lint_red` would be a wrapper that stopped
+    # reporting real compile errors as compile errors. Every one of these is a
+    # tool that DID find something and exited 1.
+    ok, s = with_out(nested_types,
+                     "lint-nested: 1 Core type(s) qualified by another Core type:\n"
+                     "  Mixing.cs:41  Mixing.Bus  — 'Bus' is a SIBLING of that type\n",
+                     code=1)
+    say(not ok and s.startswith("CS0426 WAITING TO HAPPEN") and "Mixing.cs:41" in s,
+        "nested types: a real CS0426 still reads as a finding, with its line", s)
+
+    ok, s = with_out(static_instance,
+                     "lint-static: 2 static method(s) reaching an instance member:\n"
+                     "  TrafficHost.cs:129  'Populace' is an instance member of GameController\n",
+                     code=1)
+    say(not ok and s.startswith("CS0120 WAITING TO HAPPEN") and "TrafficHost.cs:129" in s,
+        "static/instance: a real CS0120 still reads as a finding, with its line", s)
+
+    ok, s = with_seq(filename_as_type,
+                     [(1, "SimDirector.cs:16074: `TrafficHost.` is not a type — "
+                          "TrafficHost.cs declares no type of that name (CS0103)\n"
+                          "lint-filetype: 1 filename-as-type error(s) (191 file(s) "
+                          "scanned, 465 type(s) declared, 13 filename(s) that are "
+                          "not types)\n")])
+    say(not ok and s.startswith("CS0103 WAITING TO HAPPEN")
+        and "SimDirector.cs:16074" in s,
+        "filename-as-type: a real CS0103 reads as a finding — and the SWEEP is "
+        "read before the selftest, so a finding cannot report as a broken lint", s)
+
+    ok, s = with_seq(filename_as_type,
+                     [(0, "lint-filetype: 0 filename-as-type error(s) (191 file(s) "
+                          "scanned, 465 type(s) declared, 13 filename(s) that are "
+                          "not types)\n"),
+                      (0, "lint-filetype --selftest: PASS — 14 checks, 0 failed\n")])
+    say(ok and "191 files, 13 filenames that are not types" in s,
+        "filename-as-type: a clean sweep lifts BOTH denominators into the footer", s)
+
+    # --- runs map to commits. ACCEPTING FIRST, and the first two are the
+    # window: a run 480 commits back must be COUNTED, and the git call must
+    # ask for no window at all.
+    _log500 = _fake_log(500)
+    _idx = (0, 3, 97, 210, 399, 401, 480, 499)
+    _stems = [_log500[i][:7] for i in _idx]
+    (ok, s), calls = _runs_map_on(_runs_tree(_stems),
+                                  [(0, "\n".join(_log500)), (0, "abcd1234\n")])
+    say(ok and "8 of 8 within 500)" in s and "expect all 8" in s
+        and "unplaced=0" in s,
+        "runs map: 8 runs spread over 500 commits read 8 of 8 within 500, with "
+        "an expected value beside the fraction and the unplaced count", s)
+
+    _gitlog = next((c for c in calls if "log" in c and "--format=%H" in c), [])
+    say(bool(_gitlog) and not any(re.fullmatch(r"-\d+", a) for a in _gitlog),
+        "runs map: the git log asks for NO -N window — the ONE assertion that "
+        "fails against the pre-repair function (it passed `-400`)",
+        " ".join(_gitlog) or "no `git log --format=%H` call was made")
+
+    from gates import place_runs as _place            # ONE implementation
+    _all, _none = _place(_stems, _log500)
+    _win, _lost = _place(_stems, _log500[:400])
+    say(len(_all) == 8 and not _none and len(_win) == 5 and len(_lost) == 3,
+        "runs map: the shared placement puts 8 of 8 on the full log and 5 of 8 "
+        "on a 400-commit slice — the window's bite, as a number",
+        "full %d/%d, sliced %d/%d" % (len(_all), 8, len(_win), 8))
+
+    say("NOTE abbrev is 8 chars and run files are 7" in s,
+        "runs map: an 8-char abbrev against 7-char stems still warns", s)
 
     # ---------------------------------------------------------- REJECTING
     ok, s = with_out(lint, "checked 185 files, 3 missing-using/collision error(s)")
@@ -3763,6 +4027,97 @@ def _strings_selftest():
     say(not ok and NOTHING_MEASURED in s,
         "stale anchors: an empty breaks/ is not `0 stale anchors`", s)
 
+    # EXIT 2 IS "I COULD NOT LOOK". Every fixture below is the REAL first line
+    # the real tool prints over a tree with no `Assets/`, captured by running
+    # it there on 26 Aug — not a sentence invented to match the parse.
+    ok, s = with_out(nested_types,
+                     "lint-nested: nothing measured — Core and Game not found "
+                     "(Core ledger/Assets/Scripts/Core, Game ledger/Assets/Scripts/Game)",
+                     code=2)
+    say(not ok and "NOTHING MEASURED" in s and "WAITING TO HAPPEN" not in s,
+        "nested types: exit 2 is a refusal to look, NOT a latent CS0426", s)
+
+    ok, s = with_out(static_instance,
+                     "lint-static: nothing measured — no Game folder at "
+                     "/x/ledger/Assets/Scripts/Game", code=2)
+    say(not ok and "NOTHING MEASURED" in s and "WAITING TO HAPPEN" not in s,
+        "static/instance: exit 2 is a refusal to look, NOT a latent CS0120", s)
+
+    ok, s = with_seq(filename_as_type,
+                     [(2, "lint-filetype: nothing measured — no `.cs` file under "
+                          "ledger/Assets/Scripts, ledger/Assets/Editor")])
+    say(not ok and "NOTHING MEASURED" in s and "WAITING TO HAPPEN" not in s,
+        "filename-as-type: an empty tree is red and says so — it reported "
+        "GREEN `0 filename-as-type errors (0 files, ...)` until 26 Aug", s)
+
+    # THE THIRD SITE, AND IT EXITS 1: a repair keyed on exit 2 alone misses it.
+    ok, s = with_out(namespace_as_value,
+                     "lint-namespace: NO NAMESPACES FOUND — the check did not run",
+                     code=1)
+    say(not ok and "NOTHING MEASURED" in s and "WAITING TO HAPPEN" not in s,
+        "namespace-as-value: a red with no source line named is not a CS0118, "
+        "whatever the tool exited with", s)
+
+    ok, s = with_seq(raw_avenues,
+                     [(0, "lint-avenues --selftest: PASS — 41 checks, 0 failed"),
+                      (2, "lint-avenues: 0 file(s) swept, owner StreetMap.cs NOT "
+                          "FOUND under ledger/Assets/Scripts — NOTHING MEASURED "
+                          "about the file the fault lives in")])
+    # `not in` WAS THE WRONG TEST AND THE FIXTURE CAUGHT IT: the message names
+    # the finding it is NOT ("this is NOT RAW AVENUE READ ..."), so the phrase
+    # is present on purpose. What must not happen is the message CLAIMING it.
+    say(not ok and "NOTHING MEASURED" in s
+        and not s.startswith("RAW AVENUE READ"),
+        "raw avenues: a sweep with no owner file is not a raw read", s)
+
+    ok, s = with_out(shadow, "lint-shadow: nothing measured — Core and Game not "
+                             "found (Core ledger/Assets/Scripts/Core, Game "
+                             "ledger/Assets/Scripts/Game)", code=2)
+    say(not ok and "nothing measured" in s and "did not report" in s,
+        "shadow: `did not report` now carries what the tool actually said", s)
+
+    # --- runs map to commits, REJECTING. Every stem below is invented and
+    # exists in no repository, so landing another real run cannot break these.
+    _log50 = _fake_log(50)
+    _mixed = [_log50[0][:7], _log50[7][:7],
+              "0badbad", "1badbad", "2badbad", "3badbad", "4badbad"]
+    (ok, s), _ = _runs_map_on(_runs_tree(_mixed),
+                              [(0, "\n".join(_log50)), (0, "abcd123\n")])
+    say(ok and "2 of 7 within 50)" in s and "unplaced=5 NOT COUNTED ABOVE" in s
+        and "0badbad" in s and "(+1 more of 5)" in s
+        and "NOTE abbrev" not in s,
+        "runs map: 5 runs on no commit are counted, named, and the cap says it "
+        "bit — the silence here is what hid 248 of them", s)
+
+    (ok, s), _ = _runs_map_on(_runs_tree(["0badbad", "1badbad"]),
+                              [(0, "\n".join(_log50))])
+    say(not ok and s.startswith("NO RUN FILE MATCHES ANY COMMIT")
+        and "2 run file(s)" in s and "50 commit(s)" in s,
+        "runs map: total divergence is RED and ships both counts — the 24 Aug "
+        "incident, where %h grew to 8 chars and 0 of 333 matched", s)
+
+    (ok, s), _ = _runs_map_on(_runs_tree(["0badbad"]),
+                              [(128, "fatal: not a git repository")])
+    say(ok and NOTHING_MEASURED in s and "1 run file(s) on disk" in s
+        and "runs ok" not in s,
+        "runs map: a git that could not look reads nothing-measured with its "
+        "denominator, not `runs ok`", s)
+
+    _real_gates = sys.modules.get("gates")
+    sys.modules["gates"] = type(sys)("gates")          # no `place_runs` on it
+    try:
+        (ok, s), _ = _runs_map_on(_runs_tree([_log50[0][:7]]),
+                                  [(0, "\n".join(_log50))])
+    finally:
+        if _real_gates is None:
+            sys.modules.pop("gates", None)
+        else:
+            sys.modules["gates"] = _real_gates
+    say(not ok and s.startswith("RUNS-MAP CHECK BROKEN")
+        and "tools/gates.py::place_runs" in s,
+        "runs map: losing the ONE shared placement is RED and names the file, "
+        "not a traceback at import that would block every commit", s)
+
     # The cap is ONE implementation and lives in tools/capsay.py, which has its
     # own two-way selftest. One assertion here ties the two together, so a
     # capsay that stopped announcing turns this file red as well.
@@ -3799,6 +4154,73 @@ def _anchors_on(tree):
         return stale_anchors()
     finally:
         globals()["ROOT"] = real
+
+
+def _runs_tree(stems):
+    """A throwaway tree with `game-design/sim-shots/runs/<stem>.txt` in it.
+
+    SYNTHETIC ON PURPOSE, same argument as `_anchor_tree`: a rejecting fixture
+    pinned to a real run file goes red the day CI lands another one, and a
+    guard that reddens when the project improves is a guard somebody switches
+    off. The live corpus is the ACCEPTING case and it is checked by the real
+    `runs_map_to_commits()` call in `main()`, in the same process, every run.
+    """
+    import atexit
+    import shutil
+    import tempfile
+    d = pathlib.Path(tempfile.mkdtemp(prefix="verify-runsmap-"))
+    # REGISTER THE CLEANUP. Six of these are built on every verify run and the
+    # suite runs on every commit; a fixture that litters /tmp for weeks is the
+    # cheap half of "fail readable" left undone.
+    atexit.register(shutil.rmtree, str(d), True)
+    (d / "ledger").mkdir()
+    runs = d / "game-design" / "sim-shots" / "runs"
+    runs.mkdir(parents=True)
+    for s in stems:
+        (runs / (s + ".txt")).write_text("done pass=True\n", encoding="utf-8")
+    return d / "ledger"
+
+
+def _fake_log(n):
+    """`n` commit hashes whose SHA ORDER IS NOT COMMIT ORDER — and it asserts it.
+
+    THE PROBE HAS TO BE ABLE TO TELL BROKEN FROM FIXED. A fixture log that is
+    already sorted makes "ordered by sha" and "ordered by commit" the same
+    list, so the broken code scores identically and the fixture tests nothing.
+    That is this file's own recorded failure — the prefix guard that passed
+    "122 hits either way" against the exact broken state it was written for.
+    """
+    import hashlib
+    log = [hashlib.sha1(b"ledger-fixture-%d" % i).hexdigest() for i in range(n)]
+    assert sorted(log) != log, "fixture log is in sha order — it would test nothing"
+    return log
+
+
+def _runs_map_on(tree, outs):
+    """`runs_map_to_commits` on a throwaway tree, RETURNING THE GIT ARGV TOO.
+
+    The argv is half the assertion and there is no other way to get it. A
+    stubbed `run` hands back the same log whatever window the caller asked
+    for, so a fixture that reads only the OUTPUT scores the same against
+    `git log -400` and against the full history — the window is visible in
+    the ARGV alone. Checked by running these fixtures against the pre-repair
+    function: the string fixtures pass on both, the argv one fails on the old.
+    """
+    global run
+    real, real_root = run, ROOT
+    seq, calls = list(outs), []
+
+    def stub(cmd, cwd=None):
+        calls.append(list(cmd))
+        return seq.pop(0) if seq else (0, "")
+
+    globals()["ROOT"] = tree
+    run = stub
+    try:
+        return runs_map_to_commits(), calls
+    finally:
+        run = real
+        globals()["ROOT"] = real_root
 
 
 def footer_strings():

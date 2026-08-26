@@ -58,6 +58,22 @@ FAILING = re.compile(r"FAILING GATES:\s*(?:\d+ of \d+:\s*)?(.+)")
 PASS = re.compile(r"\bpass=(True|False)\b")
 
 
+def gate_verdict(text):
+    """Does this verdict carry a gate outcome at all?
+
+    THE POSITIVE TEST, and it exists because the negative one counted silence
+    as health. A clean run prints `pass=True` and no `FAILING GATES` line, so
+    "no FAILING line" cannot mean "nothing failed" on its own — it also
+    describes a build that never reached the gate table. Only the presence of
+    `pass=` or a `FAILING GATES` line distinguishes them, and that is what a
+    rate over gate outcomes is allowed to be divided by.
+
+    Presence, not a marker list: a sentence can be reworded, a missing number
+    cannot be argued with. See `flaky()` for the seven runs this found.
+    """
+    return bool(PASS.search(text) or FAILING.search(text))
+
+
 def read(path):
     # errors="replace": these are written by a Windows runner and carry bytes
     # this side does not assume. A tool that throws on its own input is a tool
@@ -89,50 +105,120 @@ def split_gates(line):
     return [g for g in out if g]
 
 
-def ordered_runs():
-    """Every kept run, NEWEST COMMIT FIRST.
+def place_runs(stems, log):
+    """Order run-file stems by commit, newest first. PURE, so a test can drive it.
 
-    `glob` returns files in whatever order the filesystem gives, and sorting
-    those by name sorts by sha, which is sorting by nothing. Commit order is
-    the only order in which "how long ago" means anything, so it is built once
-    here and both readers use it.
+    `stems` is any iterable of run-file names; `log` is the full list of commit
+    hashes newest-first. Returns `(ordered, unplaced)` — the stems that sit on a
+    commit in this history, in that history's order, and the ones that do not.
 
-    Runs whose commit is older than the log window are appended at the end,
-    oldest-ish, rather than dropped — a run that fell off the log is still
-    evidence about the past, and silently discarding it would make the counts
-    disagree with the runs directory for no visible reason.
+    IT IS A SEPARATE FUNCTION BECAUSE THE ORDERING HAD NEVER BEEN UNDER TEST.
+    `--selftest` handed `constant_report` synthetic text directly, which
+    exercises the harvest and skips the corpus entirely — so the fault in
+    finding A lived in the one part of this file no assertion could reach. The
+    arithmetic lives where the test runs (rules/instruments.md).
     """
     # FULL SHAS AND A PREFIX MATCH, because `%h` GREW AND SILENTLY BROKE THIS.
+    # The caller used `--format=%h` and compared it to the run file's stem.
+    # Git sizes that abbreviation to whatever stays unambiguous and it went
+    # from seven characters to EIGHT while run files kept seven, so the
+    # comparison stopped matching anything: measured 24 Aug, 333 run files
+    # against 400 commits, ZERO matched — and nothing failed, because every
+    # run fell into a fallback sorted by SHA. `%H` is the full hash, never
+    # changes length, and the stem is a prefix of it. That cannot rot.
     #
-    # This used `--format=%h` and compared it to the run file's stem with `in`.
-    # Git chooses the abbreviation length dynamically — enough characters to
-    # stay unambiguous — and as this repository grew it went from seven to
-    # EIGHT. Run files are named with seven. So the comparison stopped
-    # matching anything at all: measured 24 Aug, 333 run files against 400
-    # commits, ZERO matched.
-    #
-    # Nothing failed. Every run simply fell into the "older than the log
-    # window" bucket below, which is sorted by SHA — that is, by nothing —
-    # and this function's own docstring says commit order is the only order in
-    # which "how long ago" means anything. So every `last N runs ago` and
-    # every recent-window rate has been arbitrary since the day the
-    # abbreviation grew, and it looked exactly like working output.
-    #
-    # `%H` is the full hash and never changes length; the run file's stem is a
-    # prefix of it. That comparison cannot rot.
-    have = {p.stem: p for p in RUNS.glob("*.txt")}
-    log = subprocess.run(["git", "-C", str(ROOT), "log", "--format=%H", "-400"],
-                         capture_output=True, text=True).stdout.split()
-    out, seen = [], set()
-    for full in log:
-        for stem in have:
-            if stem in seen:
-                continue
-            if full.startswith(stem):
-                out.append((stem, have[stem]))
-                seen.add(stem)
-                break
-    out.extend((s, p) for s, p in sorted(have.items()) if s not in seen)
+    # Index by every stem WIDTH actually present rather than assuming seven.
+    # A dict lookup, not the old nested loop: the loop was O(commits x runs) and
+    # that cost is what made a 400-commit window look like a reasonable economy.
+    widths = {len(s) for s in stems}
+    idx = {}
+    for i, full in enumerate(log):
+        for w in widths:
+            idx.setdefault(full[:w], i)
+    placed = [s for s in stems if s in idx]
+    unplaced = sorted(s for s in stems if s not in idx)
+    return sorted(placed, key=lambda s: idx[s]), unplaced
+
+
+class Corpus:
+    """The run files, split into what each reading may count. Pure data.
+
+    THE THREE COUNTS ARE NOT INTERCHANGEABLE AND THE OLD CODE PRINTED ONE.
+    `offered` is what is on disk; `ordered` is what can be placed in time and
+    measured something; `no_sim` and `unplaced` are the two ways a file leaves
+    the set. `identity()` prints the sum so a reader can check it against
+    `ls runs/*.txt | wc -l` on the line, which is the whole repair shape
+    `lint-static`, `lint-nested` and `lint-avenues` already carry.
+    """
+
+    def __init__(self, ordered, no_sim, unplaced, offered):
+        self.ordered = ordered          # [(stem, path)] newest commit first
+        self.no_sim = no_sim            # stems dropped: the build ran no sim
+        self.unplaced = unplaced        # stems on no commit in this history
+        self.offered = offered          # run files on disk
+        self.subject = {}               # short sha -> commit subject
+        self.all_runs = []              # ordered INCLUDING no-sim, for listing
+        self.log7 = []                  # every commit sha7, newest first
+
+    def identity(self):
+        """The checkable line. `walked + skipped-by-reason = offered`."""
+        return (f"corpus: {len(self.ordered)} measuring + {len(self.no_sim)} "
+                f"no-sim + {len(self.unplaced)} unplaced = {self.offered} "
+                f"run file(s) offered")
+
+    def unplaced_note(self):
+        """Named, never folded into the total — this is where 248 runs went."""
+        if not self.unplaced:
+            return ""
+        shown = ", ".join(self.unplaced[:6])
+        more = (f" (+{len(self.unplaced) - 6} more not shown)"
+                if len(self.unplaced) > 6 else "")
+        return (f"  {len(self.unplaced)} run(s) sit on no commit in this "
+                f"history and CANNOT BE ORDERED, so they are left out rather "
+                f"than mixed in: {shown}{more}")
+
+
+def run_corpus():
+    """Every kept run, NEWEST COMMIT FIRST, with what was dropped and why.
+
+    ONE IMPLEMENTATION. Three copies of the log-and-match loop lived in this
+    file — here, in `pending()` and in `main()` — and the window below was
+    wrong in all three because a fix applied to one is a fix applied to one.
+
+    THE WINDOW WAS THE FAULT AND IT LOOKED LIKE A KINDNESS. This read
+    `git log -400` and appended every unmatched run `sorted(have.items())` —
+    by SHA, which this function's own docstring called "sorted by nothing"
+    while doing it. Measured 26 Aug at c03ead22: **355 run files, 2402 commits
+    on HEAD, 107 placed, 248 in the sha bucket.** 228 of the 329 returned
+    positions were not in commit order and the first divergence was at index
+    101 — so the newest hundred were right, which is exactly why nothing
+    caught it: every reading checked against a landing run was correct and
+    only the history was fiction.
+
+    What it cost: `confabs` over series positions 100-135 printed
+    `56 43 77 25 47 21 58 31 55 …` where the truth is `21 17 23 21 22 20 14
+    26 19 …`. Mean adjacent step 18.7 printed against 10.7 true; `meanFrame`
+    111.9 against 32.8. The shuffle MORE THAN TRIPLES apparent instability and
+    smears every regime boundary into noise — in the tool whose stated purpose
+    is that a reader can see the break by eye.
+
+    The 24 Aug repair recorded in `place_runs` is the OTHER end of this: `%h`
+    grew from seven characters to eight and nothing matched. That fixed the
+    comparison and left the window, and the window closed on the corpus as the
+    repository grew past 400 commits. Both halves are gone now — the full
+    history is read, and a run that genuinely sits on no commit is COUNTED and
+    NAMED rather than shuffled into the middle of the evidence.
+    """
+    have = {p.stem: p for p in RUNS.glob("*.txt")} if RUNS.is_dir() else {}
+    # NO `-N`. The full history, because any cap here is a silent reordering
+    # of everything past it and this tool sells ordering. 2402 commits against
+    # 355 runs is a dict build and a sort; the old nested loop over a 400-line
+    # window was the expensive one.
+    raw = subprocess.run(["git", "-C", str(ROOT), "log", "--format=%H\t%s"],
+                         capture_output=True, text=True).stdout.splitlines()
+    pairs = [l.partition("\t") for l in raw if l.strip()]
+    log = [h for h, _, _ in pairs]
+    ordered, unplaced = place_runs(have, log)
     # A BUILD THAT NEVER RAN A SIM IS NOT A RUN, and counting it as one makes
     # every gate look quieter than it is.
     #
@@ -140,14 +226,31 @@ def ordered_runs():
     # licence seat, three on a compile error — and each one says so in words.
     # They have no gates in them, so they can never contribute a failure, and
     # leaving them in pushes "last N runs ago" up by one apiece and dilutes
-    # every rate in the table. The first reading after those five showed the
-    # live section EMPTY, which is a pleasant thing to be told by an instrument
-    # that had just been handed five blanks.
+    # every rate in the table.
     #
-    # Exactly the repair made to `verdict-keys` an hour earlier, in this same
-    # session, for the same reason — and rule 1's corollary says to grep for the
-    # claim you have just falsified elsewhere, which I did not.
-    return [(s, p) for s, p in out if NO_SIM not in read(p)]
+    # THE MARKER IS THE REASON LABEL, NOT THE TEST. `verdict-keys.py` matches
+    # TWO spellings and this file matched one, so `e17e91e` — which says
+    # `(no SimDirector lines matched)` — was counted as a measuring run here
+    # and dropped there. Growing this tuple to two would be growing an
+    # allow-list, which discards everything nobody thought of and looks
+    # identical to a clean result. So `--flaky` now tests for the PRESENCE of
+    # what it counts (see `gate_verdict`), and this marker only decides which
+    # bucket a never-ran build is NAMED in.
+    keep, no_sim = [], []
+    for stem in ordered:
+        (no_sim if NO_SIM in read(have[stem]) else keep).append(stem)
+    c = Corpus([(s, have[s]) for s in keep], no_sim, unplaced, len(have))
+    # ONE LOG CALL FEEDS BOTH ORDER AND SUBJECT. `main()` used to make its own
+    # with its own `-400`, which is how one window became three.
+    c.subject = {h[:7]: sub for h, _, sub in pairs}
+    c.log7 = [h[:7] for h, _, _ in pairs]       # every commit, newest first
+    c.all_runs = [(s, have[s]) for s in ordered]
+    return c
+
+
+def ordered_runs():
+    """Every kept run, NEWEST COMMIT FIRST. The list half of `run_corpus`."""
+    return run_corpus().ordered
 
 
 NUMBER = r"[-+]?\d+(?:\.\d+)?"
@@ -184,6 +287,69 @@ def key_pattern(key):
     return r"(?<![\w])" + re.escape(key) + r"=(" + VALUE + r")"
 
 
+# A leading number and whatever trails it. `29.53ms` -> `29.53`, `ms`.
+NUMBER_UNIT = re.compile(r"^([-+]?\d+(?:\.\d+)?)(.*)$")
+
+
+def numeric(hits):
+    """`(values, unit)` if this series is numbers, `(None, why)` if it is not.
+
+    THE UNIT MUST BE IDENTICAL IN EVERY RUN, and that is the whole safety
+    argument rather than a nicety. A series of `29.53ms 28.06ms ...` is one
+    quantity in one unit and a median of it is a median. A series of `4/0.00`
+    and `12/0.30` is two quantities glued together and a median of the leading
+    number is a number about nothing — so the test is not "does it start with a
+    digit", it is "do all of them end the same way".
+
+    A `0/40` series does pass, and that is correct and worth stating: the
+    denominator is genuinely constant across every run, so the leading numbers
+    ARE a series and the summary prints the unit beside them so the reader
+    never sees a numerator naked. The moment that denominator moves, the
+    remainders differ and the whole thing falls back to words.
+
+    The unit is returned rather than discarded because dropping it is how a
+    millisecond becomes a bare number — this project has a `bodyReadWhen` key
+    that exists because two readings were quoted side by side without the
+    thing that distinguished them.
+    """
+    parts = [NUMBER_UNIT.match(v) for _, v in hits]
+    if not all(parts):
+        bare = next(v for (_, v), m in zip(hits, parts) if not m)
+        return None, f"values are not numbers (e.g. `{bare}`)"
+    units = {m.group(2) for m in parts}
+    if len(units) > 1:
+        sample = ", ".join(f"`{u}`" for u in sorted(units)[:3])
+        more = f" (+{len(units) - 3} more not shown)" if len(units) > 3 else ""
+        return None, (f"the text after the leading number differs across runs "
+                      f"({len(units)} forms: {sample}{more}) — these are "
+                      f"structured values, not one quantity, so no median is "
+                      f"printed")
+    return [float(m.group(1)) for m in parts], units.pop()
+
+
+# HOW MANY VALUES PER ROW. A display width, not a claim about anything — but
+# it is what puts an index and a sha in front of every group, and without a
+# coordinate a reader who SEES a break in the series cannot cite it. The word
+# path has printed transition shas since it was written; the numeric path
+# printed a bare run of values and the prose underneath told the reader to go
+# and find the regime change in it.
+ROW = 10
+
+
+def print_positioned(xs, hits, unit=""):
+    """The series, newest first, with a POSITION and SHA every `ROW` values.
+
+    Nothing is capped here and nothing may be: the series IS the evidence and
+    the summaries below it are the convenience. What changes is only that each
+    row says where it starts, so "the break is around run 62" becomes a commit
+    somebody can open.
+    """
+    suffix = unit or ""
+    for i in range(0, len(xs), ROW):
+        chunk = "  ".join(f"{v:g}{suffix}" for v in xs[i:i + ROW])
+        print(f"  [{i:>3}] {hits[i][0]}  {chunk}")
+
+
 # EVERY `key=value` IN A VERDICT, harvested with the grammar above. Note what
 # consuming brackets whole does to the harvest: `k=1.4[lit=14.34% all=64,58,44]`
 # now yields `k` only, where the old class yielded `all=64,58,44` as though
@@ -214,7 +380,8 @@ def series(key):
     statistic can see that break and every statistic is ruined by it. A
     reader looking at the series sees it immediately.
     """
-    runs = ordered_runs()
+    corpus = run_corpus()
+    runs = corpus.ordered
     # THE SAME VALUE GRAMMAR `verdict-read.py` USES, COPIED DELIBERATELY.
     #
     # The first version of the categorical fix matched `[^\s\[\(]+`, which
@@ -268,9 +435,11 @@ def series(key):
         print("  lists every such name with its line numbers.\n")
 
     if not hits:
-        print(f"gates --series {key}: no landed run carries that name.")
+        print(f"gates --series {key}: nothing measured — no landed run carries "
+              f"that name.")
         print(f"  {len(runs)} runs read. Check the spelling against a verdict, or the")
         print("  number may never have reached the verdict — see tools/verdict-reach.py.")
+        print("  " + corpus.identity())
         return 1
 
     # A VALUE THAT IS A WORD IS STILL A SERIES, and refusing it was the tool
@@ -286,13 +455,36 @@ def series(key):
     # a word series shows is the REGIME CHANGE, which the numeric path's own
     # closing paragraph says no statistic can see. `inquiry` is None for sixty
     # runs and then Procedure, and that transition IS the reading.
-    try:
-        xs = [float(v) for _, v in hits]
-    except ValueError:
-        return words(key, hits)
-    print(f"{key}: {len(xs)} landed run(s), newest first")
+    # A UNIT SUFFIX IS NOT A CATEGORY, AND IT WAS BEING READ AS ONE.
+    # `float("29.53ms")` raises, so `--series meanFrame` fell through to the
+    # word path and printed a 322-entry tally of near-unique strings plus
+    # `changed 321 time(s)` — and NO min, median or quartiles at all, for the
+    # key `game-design/research/performance-budget.md:78` cites as the
+    # performance measurement. Nothing said it had failed to read them as
+    # numbers.
+    #
+    # `numeric()` splits a leading number from a trailing remainder and only
+    # summarises numerically when EVERY run shares the same remainder. That
+    # condition is what makes it safe rather than clever: a varying remainder
+    # (`4/0.00`, `0.45/0.39..0.53`) means the values are structured, not
+    # united, and those still go to the word path — which now says so.
+    xs, unit = numeric(hits)
+    if xs is None:
+        return words(key, hits, why=unit, offered=len(runs))
+    # `len(xs)` is runs that CONTRIBUTED; `len(runs)` is runs OFFERED. Printing
+    # only the first is a numerator with no denominator: a key in 322 of 329
+    # and a key in 322 of 3000 read identically, and the second is a key that
+    # stopped being emitted. The leading token is unchanged on purpose so a
+    # landed quote of this line still matches (rules/instruments.md).
+    print(f"{key}: {len(xs)} landed run(s), newest first"
+          f"   — of {len(runs)} measuring run(s) offered"
+          + (f", values in {unit}" if unit else ""))
+    print("  " + corpus.identity())
+    note = corpus.unplaced_note()
+    if note:
+        print(note)
     print()
-    print("  " + "  ".join(f"{v:g}" for v in xs))
+    print_positioned(xs, hits, unit)
     print()
     if len(xs) < 5:
         print(f"  n={len(xs)} — TOO FEW TO SUMMARISE. The values above are the evidence;")
@@ -306,14 +498,19 @@ def series(key):
     # not a claim about where a regime starts; the series above is the evidence
     # and this is a convenience over it.
     recent = xs[:10]
-    print(f"  newest {xs[0]:g}")
-    print(f"  last {len(recent)}:  min {min(recent):g}   median "
-          f"{statistics.median(recent):g}   max {max(recent):g}"
+    # THE UNIT RIDES EVERY SUMMARY NUMBER. These are the lines that get quoted
+    # into a queue item or a report, and a millisecond quoted as a bare number
+    # is how two readings taken under different conditions get compared as
+    # though they were the same measurement.
+    u = unit or ""
+    print(f"  newest {xs[0]:g}{u}")
+    print(f"  last {len(recent)}:  min {min(recent):g}{u}   median "
+          f"{statistics.median(recent):g}{u}   max {max(recent):g}{u}"
           f"      <- compare a landing run against THIS")
     srt = sorted(xs)
     q = statistics.quantiles(srt, n=4)
-    print(f"  all {len(xs)}:  min {srt[0]:g}   quartiles {q[0]:g} / "
-          f"{statistics.median(srt):g} / {q[2]:g}   max {srt[-1]:g}")
+    print(f"  all {len(xs)}:  min {srt[0]:g}{u}   quartiles {q[0]:g}{u} / "
+          f"{statistics.median(srt):g}{u} / {q[2]:g}{u}   max {srt[-1]:g}{u}")
     print()
     print("  READ THE SERIES BEFORE EITHER SUMMARY, and distrust the all-runs line.")
     print("  If the old values sit in a different band from the new ones the test")
@@ -324,8 +521,14 @@ def series(key):
     return 0
 
 
-def words(key, hits):
+def words(key, hits, why="", offered=None):
     """The series of a verdict value that is a word rather than a number.
+
+    `why` SAYS WHICH PATH THIS IS AND WHY, because falling through silently is
+    how `--series meanFrame` printed a tally of 322 near-unique millisecond
+    strings and no summary at all. A reader who asked for a trend and got a
+    category list must be told the tool could not read the values as numbers,
+    and told what it saw.
 
     A median of `None, None, Procedure` is not a thing, so the summary here is
     the one a word series actually supports: how many runs said each value, and
@@ -339,9 +542,14 @@ def words(key, hits):
     the commit to go and read.
     """
     vals = [v for _, v in hits]
-    print(f"{key}: {len(vals)} landed run(s), newest first")
+    print(f"{key}: {len(vals)} landed run(s), newest first"
+          + (f"   — of {offered} measuring run(s) offered" if offered else "")
+          + "   [CATEGORICAL]")
+    if why:
+        print(f"  summarised as words, not numbers: {why}")
     print()
-    print("  " + "  ".join(vals))
+    for i in range(0, len(vals), ROW):
+        print(f"  [{i:>3}] {hits[i][0]}  " + "  ".join(vals[i:i + ROW]))
     print()
     print(f"  newest {vals[0]}   ({hits[0][0]})")
 
@@ -604,8 +812,22 @@ def constant(minimum_runs=20):
     still cannot tell a fault counter from an unentered branch and still does
     not try.
     """
-    runs = ordered_runs()
-    texts = [(sha, read(path)) for sha, path in runs]
+    corpus = run_corpus()
+    texts = [(sha, read(path)) for sha, path in corpus.ordered]
+    # THE IDENTITY, PRINTED WHERE THE COUNT IS. `329 measuring run(s) read`
+    # could not be checked against `ls runs/*.txt | wc -l` because the 26 it
+    # dropped were never mentioned — a denominator that describes a set the
+    # reader cannot reconstruct is the fault this whole sweep exists to find,
+    # happening to the sweep.
+    print("gates --constant: " + corpus.identity())
+    note = corpus.unplaced_note()
+    if note:
+        print(note)
+    mute = sum(1 for _, txt in texts if not gate_verdict(txt))
+    if mute:
+        print(f"  {mute} of the {len(texts)} measuring run(s) carry no gate "
+              f"verdict (partial builds); their keys ARE harvested, so a key's "
+              f"own `in N/{len(texts)} runs` is the denominator to read.")
     constant_report(texts, minimum_runs=minimum_runs)
     # EXIT 0 WHATEVER IT FINDS. This is a READING, not a gate: a dead branch is
     # a thing to go and look at, and failing a commit on one would block the
@@ -723,9 +945,18 @@ def constant_report(texts, minimum_runs=20, out=print):
         f"key(s) harvested, {len(stuck)} that have never been anything but "
         f"zero/false/none/nothing-* — {len(fresh)} unexamined, "
         f"{len(settled)} already explained.")
+    # THE DROP CLAUSE, SPELT OUT RATHER THAN LEFT AS SUBTRACTION. A reader who
+    # has to work out 149-67 to learn that 82 bracketed keys were never opened
+    # will not do it, and `528 rows swept` reads as coverage until they do.
+    # `lint-avenues` is the shape being copied: walked, skipped by reason, and
+    # an arithmetic line that checks on sight.
+    unrowed = len(s.bracket_keys) - len(s.row_keys)
     out(f"  ({len(s.bracket_keys)} of those keys carry a bracketed list; "
         f"{len(s.row_keys)} of those parse as name:value rows, giving "
         f"{len(s.rows)} row(s) swept below.)")
+    out(f"  arithmetic: {len(s.row_keys)} row-parsed + {unrowed} not "
+        f"name:value at depth zero = {len(s.bracket_keys)} bracketed key(s) "
+        f"offered. The {unrowed} hold no rows this sweep can see.")
     out("Read each one and ask which it is: a fault counter doing its job, "
         "or a branch nothing has ever entered.\n")
 
@@ -784,7 +1015,12 @@ def constant_report(texts, minimum_runs=20, out=print):
             "(Not a cap: no row list is truncated by this tool.)")
     for key, name in dead_rows:
         vs = sorted(s.rows[(key, name)])
-        v = vs[0] if len(vs) == 1 else "/".join(vs[:3])
+        # THE ONLY CAP IN THIS FILE THAT DID NOT SAY IT BIT. `vs[:3]` with no
+        # ellipsis and no count reads as the complete set of values a row has
+        # ever held, and a truncation nobody is told about is worse than a
+        # zero — a zero at least looks like a number somebody should check.
+        v = vs[0] if len(vs) == 1 else "/".join(vs[:3]) + (
+            f"(+{len(vs) - 3}more)" if len(vs) > 3 else "")
         out(f"  {key}[{name}]={v:<28} in {s.row_runs[(key, name)]}/{s.runs} runs")
     if s.capped_keys:
         out(f"  ({len(s.capped_keys)} bracketed key(s) printed their own "
@@ -826,9 +1062,35 @@ def flaky():
     if not RUNS.is_dir():
         print("gates: no runs directory yet")
         return 0
-    runs = ordered_runs()
+    corpus = run_corpus()
+    # THE DENOMINATOR IS RUNS THAT CARRY WHAT THIS TOOL COUNTS, and it was not.
+    #
+    # This read every measuring run and did `if not m: continue` on a missing
+    # `FAILING GATES` line — so a run with no gate verdict at all contributed
+    # silently to `total` as a run in which nothing failed. Silence read as
+    # health, in the tool whose whole job is finding the rare red.
+    #
+    # Measured 26 Aug over the 329 it called measuring: pass=True 119,
+    # pass=False 203 (reconciling exactly with 203 FAILING lines), and SEVEN
+    # with no `pass=` and no `FAILING GATES` whatsoever. Those seven are
+    # partial builds — `e17e91e` says `(no SimDirector lines matched)`, the
+    # second never-ran spelling that `verdict-keys.py:49` has and this file
+    # did not; `8132974` and `3e3cdc2` rendered and drift-measured frames but
+    # no done line reached the verdict.
+    #
+    # The repair is NOT a second marker string. `verdict-keys` matching two
+    # spellings and this matching one is one idea with two implementations,
+    # and growing the tuple to two only moves the next unlisted spelling one
+    # step away — an allow-list discards everything nobody thought of and
+    # looks identical to a clean result. So the test is the PRESENCE of a gate
+    # verdict, which cannot be defeated by rewording a sentence.
+    runs = [(s, p) for s, p in corpus.ordered if gate_verdict(read(p))]
+    mute = [s for s, p in corpus.ordered if not gate_verdict(read(p))]
     if not runs:
-        print("gates: no run files yet")
+        print("gates --flaky: nothing measured — "
+              f"0 run(s) carry a gate verdict, of {corpus.offered} run file(s) "
+              f"offered. This is not a clean result.")
+        print("  " + corpus.identity())
         return 0
 
     total = len(runs)
@@ -861,8 +1123,27 @@ def flaky():
                 newest[name] = sha
                 ago[name] = i
 
+    # THE DROP CLAUSE, PRINTED WHETHER OR NOT ANYTHING IS RED. A zero ships
+    # its denominator and its denominator ships what it excluded — `0 failures
+    # in 329 runs` and `0 failures in 322 runs, 7 of which could not be asked`
+    # are different claims and the second one is the true one.
+    def preamble():
+        print("  " + corpus.identity())
+        if mute:
+            shown = ", ".join(mute[:6])
+            more = (f" (+{len(mute) - 6} more not shown)"
+                    if len(mute) > 6 else "")
+            print(f"  {len(mute)} measuring run(s) carry NO gate verdict "
+                  f"(no pass=, no FAILING GATES) and are NOT in the "
+                  f"{total} above — a partial build cannot vote 'nothing "
+                  f"failed': {shown}{more}")
+        note = corpus.unplaced_note()
+        if note:
+            print(note)
+
     if not counts:
-        print(f"gates: no failures in {total} kept run(s)")
+        print(f"gates: no failures in {total} kept run(s) carrying a gate verdict")
+        preamble()
         return 0
 
     # QUIET IS A JUDGEMENT AND IT NEEDS A NUMBER. Ten clean runs is roughly a
@@ -878,6 +1159,7 @@ def flaky():
     # a dead regime answers a different one.
     print(f"gate failures across {total} kept run(s), newest commit first "
           f"(recent = the last {recent_n}):")
+    preamble()
     for name, n in sorted(live.items(),
                           key=lambda kv: -(recent.get(kv[0], 0) / max(1, recent_n))):
         pct = 100.0 * n / total
@@ -933,25 +1215,30 @@ def pending():
     if not RUNS.is_dir():
         print("gates: no runs directory yet")
         return 0
-    have = {p.stem for p in RUNS.glob("*.txt")}
-    # `%H` truncated to the run-file convention, not `%h` — see
-    # `ordered_runs`. The abbreviation grew to eight characters and every
-    # `sha in have` test against a seven-character stem silently stopped
-    # matching, here as everywhere else it was written.
-    log = [f"{h[:7]}\t{rest}" for h, _, rest in
-           (l.partition("\t") for l in subprocess.run(
-               ["git", "-C", str(ROOT), "log", "--format=%H\t%s", "-60"],
-               capture_output=True, text=True).stdout.splitlines())]
+    corpus = run_corpus()
+    have = {s for s, _ in corpus.all_runs} | set(corpus.no_sim)
+    # AND A VERDICT IS NOT AN ANSWER. `landed.py` separates "the build carried
+    # your change" from "the build measured anything" and exits 3 for the
+    # second; this printed `Last answered: <sha>` for a no-sim build, which is
+    # the same false sentence one tool along. The commit IS answered — the
+    # answer is that nothing ran — so it still stops the walk, and it says
+    # which kind of answer it was.
+    WINDOW = 60
+    log = corpus.log7[:WINDOW]
     waiting = []
-    for entry in log:
-        sha, _, subject = entry.partition("\t")
+    for sha in log:
+        subject = corpus.subject.get(sha, "")
         if sha in have:
+            kind = ("NO SIM — it measured nothing" if sha in corpus.no_sim
+                    else "measured")
             print(f"{len(waiting)} commit(s) with no verdict, newest first. "
-                  f"Last answered: {sha}  {subject[:52]}")
+                  f"Last answered: {sha} [{kind}]  {subject[:52]}")
             break
         waiting.append((sha, subject))
     else:
-        print(f"{len(waiting)} commit(s) with no verdict — none of the last 60 has one")
+        print(f"{len(waiting)} commit(s) with no verdict — none of the last "
+              f"{WINDOW} commit(s) examined has one (that is the whole window; "
+              f"{len(corpus.log7)} commit(s) exist)")
     for sha, subject in waiting:
         print(f"  ....  {sha}  {subject[:58]}")
     if not waiting:
@@ -1039,6 +1326,113 @@ def selftest():
         ok = False
         print("gates --selftest: " + msg)
 
+    # ---- 0. THE CORPUS: ORDERING, WHICH NO ASSERTION HERE COULD REACH ----
+    #
+    # This section is first because the fault it covers is the one that got
+    # through. Everything below hands `constant_report` text directly, so the
+    # harvest was tested and `ordered_runs` never was — and that is where a
+    # 400-commit window sat, shuffling 248 of 355 real runs into sha order in
+    # the tool whose product is "newest first".
+    #
+    # SYNTHETIC AND UNPINNED. Forty fake hashes; nothing here names a real
+    # commit, run or key, so doing the work this tool prompts can never break
+    # it. `place_runs` is pure for exactly this reason.
+    # THE HASHES ARE SCRAMBLED ON PURPOSE, and the first version of this
+    # fixture was not — it numbered commits 0..39 in log order, so SHA order
+    # and COMMIT order were the same sequence and the broken code passed the
+    # ordering assertion identically. That is `verify.py`'s own recorded
+    # mistake ("122 hits either way"): a guard whose rejecting case cannot be
+    # expressed by the fixture. `(i*17) % 40` is a permutation, so the two
+    # orders differ and the assertion can tell them apart.
+    log = [f"{(i * 17) % 40:07d}" + "f" * 33 for i in range(40)]  # newest first
+    #   ACCEPTING FIRST: stems from anywhere in the log come back in log order,
+    #   including ones far past any window a previous version would have used.
+    #   Depths 30, 2, 39, 11 — so a window of any size under 40 loses some.
+    stems = ["0000030", "0000034", "0000023", "0000027"]
+    order, unplaced = place_runs(stems, log)
+    if order != ["0000034", "0000027", "0000030", "0000023"]:
+        bad(f"FAILED THE CASE IT MUST ACCEPT — placed runs came back "
+            f"{order}, not in commit order (depths 2, 11, 30, 39). Note the "
+            f"SHA order is the ASCENDING one, so a fallback bucket shows up "
+            f"here as exactly that. This is finding A.")
+    if unplaced:
+        bad(f"FAILED THE CASE IT MUST ACCEPT — {unplaced} sit on real "
+            f"commits and were reported unplaceable.")
+    #   ACCEPTING: an EIGHT-character stem against the same log. The 24 Aug
+    #   fault was `%h` growing from seven to eight; widths must not be assumed.
+    if place_runs(["0000030f"], log)[0] != ["0000030f"]:   # depth 30, 8 chars
+        bad("FAILED THE CASE IT MUST ACCEPT — an 8-character stem was not "
+            "placed; the width of a run-file name is not a constant.")
+    #   ACCEPTING: the DEEPEST stem in the log is placed last, not dropped —
+    #   the exact rejecting case for a log window, expressed as an accept.
+    deep, _ = place_runs(["0000023", "0000000"], log)      # depths 39 and 0
+    if deep != ["0000000", "0000023"]:
+        bad(f"FAILED — a run on the oldest commit was not ordered against a "
+            f"new one: {deep}. A window here reorders everything past it.")
+    #   REJECTING: a stem on no commit is NAMED, never silently appended.
+    order, unplaced = place_runs(["0000028", "deadbee"], log)   # depth 4
+    if unplaced != ["deadbee"] or order != ["0000028"]:
+        bad(f"FAILED THE CASE IT MUST REJECT — a stem on no commit was not "
+            f"separated out: ordered={order} unplaced={unplaced}. Mixing it "
+            f"in is how 248 runs were sorted by sha.")
+    #   THE IDENTITY MUST ADD UP, because it is what a reader checks on sight.
+    c = Corpus([("a", None), ("b", None)], ["c"], ["d"], 4)
+    if c.identity() != ("corpus: 2 measuring + 1 no-sim + 1 unplaced = "
+                        "4 run file(s) offered"):
+        bad(f"FAILED — the checkable identity does not read as expected: "
+            f"{c.identity()}")
+    if "not shown" in Corpus([], [], ["x"], 1).unplaced_note():
+        bad("FAILED — a single unplaced run must not claim a truncation.")
+    if "(+4 more not shown)" not in Corpus(
+            [], [], [f"s{i}" for i in range(10)], 10).unplaced_note():
+        bad("FAILED — ten unplaced runs must announce the cap on the six "
+            "shown. A cap that does not say it bit reads as a finding.")
+
+    # ---- 0b. GATE VERDICT: PRESENCE, NOT A MARKER LIST ----
+    #   ACCEPTING FIRST, and the accepting case is the SUBTLE one: a clean run
+    #   has no FAILING GATES line, so "no FAILING line" must not mean "no gate
+    #   verdict" or every green run drops out of the denominator.
+    if not gate_verdict("selftestThing=1 pass=True"):
+        bad("FAILED THE CASE IT MUST ACCEPT — a clean run carries a gate "
+            "verdict (`pass=True`) and was read as a partial build.")
+    if not gate_verdict("FAILING GATES: 2 of 9: alpha, beta"):
+        bad("FAILED THE CASE IT MUST ACCEPT — a red run was read as having "
+            "no gate verdict.")
+    #   REJECTING: a build that ran and never reached the gate table.
+    if gate_verdict("selftestThing=1 selftestOther=2"):
+        bad("FAILED THE CASE IT MUST REJECT — a verdict with no pass= and no "
+            "FAILING GATES was counted as a run in which nothing failed.")
+
+    # ---- 0c. NUMERIC vs CATEGORICAL, AND THE UNIT ----
+    def h(*vs):
+        return [(f"fix{i:04d}", v) for i, v in enumerate(vs)]
+    #   ACCEPTING FIRST: plain numbers, and numbers under ONE unit.
+    xs, u = numeric(h("1", "2.5", "-3"))
+    if xs != [1.0, 2.5, -3.0] or u != "":
+        bad(f"FAILED THE CASE IT MUST ACCEPT — plain numbers came back "
+            f"{xs!r} unit {u!r}.")
+    xs, u = numeric(h("29.53qq", "28.06qq"))
+    if xs != [29.53, 28.06] or u != "qq":
+        bad(f"FAILED THE CASE IT MUST ACCEPT — a uniform unit suffix was not "
+            f"summarised numerically: {xs!r} unit {u!r}. This is the fault "
+            f"that gave a continuous quantity a 322-entry word tally.")
+    #   ACCEPTING: a constant denominator IS a unit — the numerators are a
+    #   series and the summary keeps the denominator visible beside them.
+    xs, u = numeric(h("0/40", "12/40"))
+    if xs != [0.0, 12.0] or u != "/40":
+        bad(f"FAILED THE CASE IT MUST ACCEPT — a constant denominator: "
+            f"{xs!r} unit {u!r}.")
+    #   REJECTING: a remainder that MOVES is two quantities glued together.
+    xs, why = numeric(h("4/0.00", "3/0.90"))
+    if xs is not None or "differs across runs" not in why:
+        bad(f"FAILED THE CASE IT MUST REJECT — a varying remainder was "
+            f"summarised as one quantity: {xs!r} / {why!r}.")
+    #   REJECTING: words are words, and the reason is said out loud.
+    xs, why = numeric(h("None", "Procedure"))
+    if xs is not None or "not numbers" not in why:
+        bad(f"FAILED THE CASE IT MUST REJECT — words parsed as numbers: "
+            f"{xs!r} / {why!r}.")
+
     lines = []
     s = constant_report(_fixture_runs(), out=lines.append)
     text = "\n".join(lines)
@@ -1102,8 +1496,20 @@ def selftest():
         bad("FAILED — three runs is not a corpus and must print the words.")
 
     if ok:
-        print(f"gates --selftest: ok — over {s.runs} synthetic verdicts and "
-              f"{len(s.values)} keys:")
+        print(f"gates --selftest: ok — over {s.runs} synthetic verdicts, "
+              f"{len(s.values)} keys and a 40-commit synthetic log:")
+        print("  ORDERING (finding A, previously untested): placed in commit "
+              "order at depths 2/11/30/39 from a SCRAMBLED log (sha order "
+              "differs from commit order, so the fallback is visible), "
+              "8-char stem placed, oldest commit "
+              "ordered against newest, `deadbee` reported UNPLACED not "
+              "appended; identity adds up; 10 unplaced announce `(+4 more "
+              "not shown)`")
+        print("  GATE VERDICT: `pass=True` with no FAILING line ACCEPTED as a "
+              "verdict; a run with neither REJECTED from the rate")
+        print("  UNITS: `1/2.5/-3` and `29.53qq` and `0/40` summarise "
+              "numerically; `4/0.00`..`3/0.90` and `None`..`Procedure` fall "
+              "to words and say why")
         print("  ACCEPTS (not reported): selftestMoved, selftestFilled "
               "(nothing-offered -> 17/19), selftestRowsMove, selftestMixedRows")
         print("  REPORTS: selftestDead, selftestFlagDead (nothing-flagged/12"
@@ -1142,24 +1548,21 @@ def main():
     if not RUNS.is_dir():
         print("gates: no runs directory yet")
         return 0
-    have = {p.stem: p for p in RUNS.glob("*.txt")}
-    if not have:
+    # THE THIRD COPY OF THE LOG LOOP, AND IT HAD THE SAME `-400`. It is gone:
+    # the corpus is built once, ordered over the full history, and this walks
+    # its `all_runs` — which keeps the no-sim builds, because naming them is
+    # the whole point of this listing.
+    corpus = run_corpus()
+    if not corpus.offered:
         print("gates: no run files yet")
         return 0
 
-    # Same repair as above: full hash, truncated to the stem convention.
-    log = [f"{h[:7]}\t{rest}" for h, _, rest in
-           (l.partition("\t") for l in subprocess.run(
-               ["git", "-C", str(ROOT), "log", "--format=%H\t%s", "-400"],
-               capture_output=True, text=True).stdout.splitlines())]
-
     shown = 0
     red = 0
-    for entry in log:
-        sha, _, subject = entry.partition("\t")
-        if sha not in have:
-            continue
-        text = read(have[sha])
+    nogate = 0
+    for sha, path in corpus.all_runs:
+        subject = corpus.subject.get(sha, "")
+        text = read(path)
         # NAMED, NOT SKIPPED — the opposite of what `flaky()` does with the
         # same file, and on purpose.
         #
@@ -1176,6 +1579,20 @@ def main():
         if NO_SIM in text:
             print(f"NOSIM {sha}  {subject[:58]}")
             print("        the build produced no player — licence or compile, see the verdict")
+            shown += 1
+            if shown >= count:
+                break
+            continue
+        # AND THE THIRD OUTCOME NAMED, for the same reason NOSIM is. `??? `
+        # meant "no pass= in this file", which covers both a verdict this tool
+        # could not parse AND a build that ran, rendered, and never reached the
+        # gate table — seven of those are on disk (see `flaky`). Those are
+        # different facts and one of them is not a parse failure.
+        if not gate_verdict(text):
+            print(f"NOGTE {sha}  {subject[:58]}")
+            print("        the build ran but no gate verdict reached the "
+                  "verdict — partial; not counted as pass or red")
+            nogate += 1
             shown += 1
             if shown >= count:
                 break
@@ -1198,9 +1615,33 @@ def main():
         print("gates: none of the recent commits has a verdict")
         return 0
     print()
-    print(f"{shown} run(s) read, {red} not green. Newest commit first — NOT newest to land.")
+    print(f"{shown} run(s) read, {red} not green, {nogate} with no gate "
+          f"verdict. Newest commit first — NOT newest to land.")
+    print("  " + corpus.identity())
+    note = corpus.unplaced_note()
+    if note:
+        print(note)
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # GUARD THE SIGPIPE. This tool prints hundreds of lines and the only way
+    # anybody reads it is `| head`, which makes Python raise BrokenPipeError
+    # and end a CORRECT run in a stack trace — twenty minutes of reading a
+    # traceback before noticing the tool worked. Restoring the default signal
+    # handler makes `| head` end the process the way every other command line
+    # tool ends it, and the flush/devnull dance stops the interpreter printing
+    # `Exception ignored` at shutdown for the same reason.
+    try:
+        import signal
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    except (ImportError, AttributeError, ValueError):
+        pass                        # not POSIX, or not the main thread
+    try:
+        rc = main()
+        sys.stdout.flush()
+    except BrokenPipeError:
+        import os
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        rc = 0                      # a reader that stopped reading is not an error
+    sys.exit(rc)

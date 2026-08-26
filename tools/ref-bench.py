@@ -214,8 +214,19 @@ blown ones. A symmetric P90 ceiling would annotate exactly the two frames whose
 below-band shadowRatio (0.149 and 0.140) the 24 Aug ruling requires to stay
 visible as the residual the ambient-fill rung owns. So the ceiling is carried
 by the mean, which moves only when the WHOLE band is brighter than anything the
-target shows. `district_hook` is the selftest's live accepting fixture for
-exactly this.
+target shows.
+
+THOSE TWO SENTENCES ARE STILL THE RULE; THE FRAMES QUOTED IN THEM ARE NOT THE
+FIXTURE ANY MORE, AND WERE — which is what broke verify on 26 Aug. The line
+here used to end "`district_hook` is the selftest's live accepting fixture for
+exactly this". Build b63e271f re-aimed the district cameras and hook's ground
+band came up to groundMean 0.547 / groundP90 0.770: it is now ANNOTATED on the
+ceiling side, which is the annotation working, and its P90 no longer clears the
+ceiling at all, so it had stopped exercising the case as well as failing. The
+accepting fixture is generated now — see THE FROZEN FIXTURE beside the
+selftest, which carries the ten-revision series. The numbers in the paragraph
+above are the 25 Aug readings and are kept because they are what the ceiling
+rule was decided on; today's are on every run's table.
 
 WHICH ROWS EACH SIDE MAKES UNREADABLE IS PER ROW, NOT PER FRAME. `shadowRatio`
 is degenerate at both ends (p10/p90 tends to 1 as a band flattens, black or
@@ -237,8 +248,19 @@ frame the instrument was complaining about. Doing the work the instrument
 exists to prompt must never break the instrument. The rejecting case is now
 three generated images that no improvement to the game can reach: a near-black
 frame (floor side), a uniform pale sheet (ceiling side) and a mid-tone frame
-that must NOT qualify. The accepting cases stay pinned to the live set, where
-they belong.
+that must NOT qualify.
+
+AND THE SENTENCE THAT USED TO CLOSE THIS PARAGRAPH WAS THE NEXT BUG, KEPT HERE
+VERBATIM SO NOBODY RE-DERIVES IT: *"The accepting cases stay pinned to the live
+set, where they belong."* Written 25 Aug, directly under the story above, and
+it pinned the ACCEPTING case to `district_hook` in the same breath as recording
+what a pinned REJECTING case had just cost. Twenty-four hours later the
+cameras moved again and verify went red on three accepting checks — same
+fault, same file, opposite door. What is true in it is only this: the live
+directories are the right accepting fixture for "does the tool RUN on today's
+project" (§1 of the selftest does exactly that and asserts no value). What is
+false is using a live frame's NUMBERS as the thing a rule is tested against.
+Those two are separated now: see THE FROZEN FIXTURE beside the selftest.
 --------------------------------------------------------------------------
 THE CUTS, TAKEN FROM THE SERIES AND NOT THE OTHER WAY ROUND (rule 2 — a bound
 chosen first and defended after is a rounding wearing a measurement's clothes).
@@ -350,6 +372,32 @@ camera triple and the rain/wet this run put it at, read from frames.tsv, so the
 claim above stays checkable instead of becoming a comment that decays — and
 because `review_day2_wet` at rain=0.90 is the single grainiest frame in the set,
 rain belongs beside any reading of its ground band.
+
+AND THE CLAIM DECAYED ANYWAY, ON 26 AUG, WHICH IS WHY IT WAS WRITTEN TO BE
+CHECKABLE. Build b63e271f re-aimed the district cameras, and reading the same
+`camZ/camYaw` columns out of five landed revisions of frames.tsv says how far:
+
+    shot         fae0c707 .. 64fac6ad        b63e271f        moved?
+    hook           -34.0/0                    34.0/180        YES
+    copper          94.8/0                   162.8/180        YES
+    downtown         5.1/0                    73.1/180        YES
+    strip          -34.0/0                    34.0/180        YES
+    fairview       110.9/0                   178.9/180        YES
+    ironside      -144.9/270                -144.9/270        no
+    gullwing      -147.2/270                -147.2/270        no
+
+FIVE OF SEVEN. So `*` means "fixed WITHIN a camera-siting regime", not "fixed
+for ever", and a district reading from before b63e271f against one after is the
+same two-photographs problem the `day1_noon` row is about.
+
+`poseHash` IS A PROPOSAL AND DOES NOT EXIST — one token per regime on the
+summary line, so that two runs whose pose differs cannot be silently
+differenced however stable their names look. It is written here as a
+PROPOSAL and not as a description because the author documented it, noticed
+mid-sentence that documenting it did not build it, and ran out of budget
+before it did. **A comment describing a feature that is not there is the
+exact fault this file was being repaired for**, so it says so in its own
+words rather than reading as shipped. Queue: `refbench-posehash`.
 
 THE MACHINE TAIL. `refGap` lines, one per image, every value space-free, the
 whole reading on ONE line — a reader greping two keys off two lines gets two
@@ -817,6 +865,33 @@ def shot_rows():
             row.get("camX", "?"), row.get("camZ", "?"), row.get("camYaw", "?"),
             row.get("rain", "?"), row.get("wet", "?"))
     return rows
+
+
+def pose_hash(rows, paths):
+    """ONE TOKEN FOR THE CAMERA REGIME the pose-stable stills were shot in.
+
+    Returns (token, contributing, examined) — the count is the denominator and
+    the caller prints it, because a hash over nothing is a perfectly
+    respectable-looking hex string.
+
+    WHY. `*` and `--stable` rest on the claim that the `district_*` cameras do
+    not move between builds, and on 26 Aug five of the seven moved (the table is
+    in POSE). Nothing in a number says which siting produced it, so two runs'
+    district readings can be differenced by a reader who has no way to see that
+    they are two photographs. This token is that way: same hash, comparable;
+    different hash, not.
+
+    POSE ONLY, NOT WEATHER. `rain`/`wet` are meant to vary run to run — folding
+    them in would make every run its own regime and the token would say nothing.
+    Tested both ways in the selftest: a moved camera changes it, a changed
+    rain/wet does not."""
+    import hashlib
+    stable = [shot_name(p) for p in paths if p.name.startswith(STABLE_PREFIX)]
+    have = [(n, rows[n].split(" rain=")[0]) for n in sorted(stable) if n in rows]
+    if not have:
+        return "nothing-measured", 0, len(stable)
+    blob = ";".join("%s=%s" % (n, r) for n, r in have)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:8], len(have), len(stable)
 
 
 def _printed(v, fmt):
@@ -1481,6 +1556,233 @@ def spearman(a, b):
     return num / den if den else float("nan")
 
 
+# ------------------------------------------------------------ frozen fixture
+#
+# THE ACCEPTING FIXTURE IS FROZEN, AND UNTIL 26 AUG IT WAS THE LIVE STILL.
+#
+# The rejecting-fixture section in the docstring ends "The accepting cases stay
+# pinned to the live set, where they belong." That sentence is kept up there
+# because it is the trap: it was written on 25 Aug, one paragraph below the
+# story of a REJECTING fixture pinned to `district_downtown` going red when the
+# camera improved, and it pinned the ACCEPTING case to `district_hook` in the
+# same breath. Build b63e271f re-aimed the district cameras (az -34 -> +34) and
+# replaced the JPEG at 02:29 on 26 Aug; hook's ground band came up from 0.471 to
+# 0.547, three accepting checks went red, and verify blocked every commit in the
+# project because the project had improved. Fourth instance of one class in two
+# days — `Joe.fbx` and `police.fbx` as rejecting fixtures, and
+# `lint-conditional-reach` overwriting the tracked `Audio.cs`.
+#
+# THE PIN WAS ALSO NOT EXERCISING ITS CASE, WHICH IS THE HALF NOBODY SAW.
+# `district_hook` was chosen for one property: a groundP90 ABOVE the references'
+# ceiling on a frame whose mean sits mid-band, so the annotation must not fire.
+# Every landed revision of that JPEG, measured 26 Aug through this code
+# (groundMean / groundP90, against the references' 0.142..0.543 / 0.233..0.831):
+#
+#     a41d0d5b  0.471 / 0.868   P90 over ceiling — case exercised
+#     fae0c707  0.471 / 0.868   P90 over ceiling — case exercised
+#     2a708418  0.443 / 0.804   under the ceiling — case NOT exercised
+#     7ec933f3  0.443 / 0.799   under the ceiling — case NOT exercised
+#     a6d9338d  0.443 / 0.803   under the ceiling — case NOT exercised
+#     7485a369  0.443 / 0.804   under the ceiling — case NOT exercised
+#     ad0def3a  0.444 / 0.807   under the ceiling — case NOT exercised
+#     47c19538  0.444 / 0.799   under the ceiling — case NOT exercised
+#     64fac6ad  0.443 / 0.803   under the ceiling — case NOT exercised
+#     b63e271f  0.547 / 0.770   RED: mean above the ceiling
+#
+# 2 of 10 landed revisions exercised the property the fixture was chosen for.
+# The guard looked green in the other seven because the assertion it made was
+# trivially true, which is rule 5b's corollary — a guard needs a run in which
+# the thing it asserts CAN happen — arriving through the accepting door.
+#
+# THE TWO JOBS THAT LIVE STILL WAS DOING, NOW SEPARATED:
+#   1. "does the tool read an image correctly, and does the annotation spare a
+#      bright street whose highlight lifts its P90 past the ceiling" — a
+#      question about the INSTRUMENT. Answered below by a frame generated from
+#      constants and hashed, in a reference world also generated from constants.
+#      Nothing the game does can reach it.
+#   2. "is our ground brighter than anything the target shows" — a question
+#      about the GAME. It stays a READING: the live table, the `!` flags, the
+#      `lowContent=` token on every refGap line, and the LIVE READING line the
+#      selftest prints (reported, never asserted, with its denominators). Today
+#      that reading says yes, on `district_hook` among others, and it is one of
+#      the strongest measurements in the project — which is exactly why it must
+#      not be able to fail a selftest.
+#
+# WHY GENERATED AND NOT A COMMITTED JPEG, MEASURED RATHER THAN ASSUMED: a
+# frozen copy under `tools/fixtures/` was built and run, and
+# `tools/attribution-check.py` failed on it — "no asset files live outside a
+# directory this file knows about" — because its stray-asset sweep covers
+# `.jpg`. Freezing an image there would have turned this repair into a second
+# instrument going red plus a row needed in another agent's file. A generated
+# frame needs nobody else's permission and is frozen by a hash of its own
+# pixels, which is stronger than a copy nothing checks.
+
+FROZEN_TOL = 0.002          # see FROZEN_EXPECT for the series this came from
+
+# The frozen street, as levels. Named constants so the fixture's shape is
+# readable and so a change to it is visible in a diff rather than buried in an
+# array literal. ROAD/HIGHLIGHT/BAND_FRAC are what make it the hook SHAPE: a
+# mid-band mean with one bright strip that carries the P90 over the ceiling.
+FROZEN_SKY = 150
+FROZEN_ROAD = 86
+FROZEN_HIGHLIGHT = 225
+FROZEN_BAND_FRAC = 0.20     # of the ground band's rows, at the far end
+FROZEN_LIFT = 25            # levels, the rejecting rung's ground lift
+
+# THE GROUND BAND AS IT STOOD WHEN THE FIXTURE WAS FROZEN, AS LITERAL ROWS.
+# int(0.667*720)=480 and int(0.88*720)=633, which is GROUND_Y today — and they
+# are written out rather than computed ON PURPOSE. The first version built the
+# fixture from GROUND_Y, so editing that constant moved the IMAGE and the
+# MEASUREMENT together and the two changes could cancel: an instrument edit
+# would be partly hidden by the fixture following it. A frozen fixture must be
+# the same pixels whatever the tool believes, so that only the reading moves.
+# WATCHED, not reasoned, on a copy of this tool with GROUND_Y slipped to 0.617
+# and nothing else changed: the pixel hash stays GREEN (the fixture did not
+# follow the instrument) and one check fails naming 8 of 21 moved keys —
+# `groundMean=0.5002/0.4737 groundPatch=0.1830/0.0029 _pxGround=202320/156384`.
+# Before this constant was frozen the same mutation ALSO failed the hash, which
+# is a second red saying nothing a reader can act on.
+FROZEN_ROWS = (480, 633)
+
+
+def frozen_street(np, lift=0):
+    """The FROZEN ACCEPTING FIXTURE: a grey street with a sunlit far road.
+
+    GENERATED FROM CONSTANTS, so it is the same image on every machine and in
+    every build, and `FROZEN_PIXEL_SHA256` pins that rather than trusting it.
+    Returns an HxWx3 uint8 array.
+
+    `lift` is the LADDER'S SECOND RUNG and the only contributor that moves: it
+    adds levels to the GROUND BAND ONLY, which is the physical claim "our road
+    material got brighter" — the same move that took the live `district_hook`
+    from 0.471 to 0.547 and broke the pin this fixture replaces. One toggle, two
+    rungs, both printed from the same vantage in the same run."""
+    h, w = WORK[1], WORK[0]
+    a = np.full((h, w), FROZEN_SKY, dtype=np.int16)
+    a[::9, :] += 10                                 # window courses
+    a[:, ::13] -= 8                                 # brick coursing
+    for x in range(60, w, 210):                     # uprights: poles, drainpipes
+        a[0:int(0.62 * h), x:x + 4] = 235
+    g0, g1 = FROZEN_ROWS
+    a[g0:, :] = FROZEN_ROAD
+    a[g0:g0 + int(FROZEN_BAND_FRAC * (g1 - g0)), :] = FROZEN_HIGHLIGHT
+    a[g0::5, :] += 7                                # tar seams
+    a[g0:, ::9] -= 6
+    a[g0:, :] += lift
+    plane = np.clip(a, 0, 255).astype(np.uint8)
+    return np.repeat(plane.reshape(h, w, 1), 3, axis=2)
+
+
+def frozen_ref(np, base, hi, sky):
+    """One frame of the FROZEN REFERENCE WORLD — a plain band at `base` with a
+    strip at `hi`, so the band this fixture is judged against is generated too.
+
+    WHY THE REFERENCES ARE FROZEN HERE AS WELL. The five GTA frames are the
+    target definition and change rarely, but "rarely" is what the pin this file
+    just removed was also true of. Judging the frozen street against the live
+    reference directory would leave one live asset able to turn the accepting
+    case red — the whole fault, one layer out. Measured 26 Aug, this pair
+    reproduces the live band to three decimals (dim/lit groundMean 0.142/0.541
+    against the references' 0.142/0.543; groundP90 0.231/0.831 against
+    0.233/0.831), so the numbers a reader sees here are the numbers they see in
+    the table, and none of them can move."""
+    h, w = WORK[1], WORK[0]
+    a = np.full((h, w), sky, dtype=np.int16)
+    g0, g1 = FROZEN_ROWS
+    a[g0:, :] = base
+    a[g0:g0 + int(FROZEN_BAND_FRAC * (g1 - g0)), :] = hi
+    plane = np.clip(a, 0, 255).astype(np.uint8)
+    return np.repeat(plane.reshape(h, w, 1), 3, axis=2)
+
+
+FROZEN_REFS = {"frozen_ref_dim": (29, 59, 40),      # floor side of the band
+               "frozen_ref_lit": (114, 212, 150)}   # ceiling side
+
+# sha256 over the RGB PIXEL BYTES, not over a file: encoder-independent, so it
+# is the same on any PIL/zlib. If the generator above is edited, this fails
+# FIRST and by name, instead of the value checks failing in a way that reads
+# like the measurement broke.
+FROZEN_PIXEL_SHA256 = "3414bfd9fe75e237411dab00f435a3104e6d2c47a173cf55d555ed956bd2cc5a"
+
+# WHAT THE TOOL READS OFF THE FROZEN STREET. Recorded 26 Aug 2026 from the
+# generator above, decoded back off a PNG on disk (round trip measured: max
+# delta 0.0 over all 17 dimensions — PNG is lossless, so this is exact, not
+# approximately exact).
+#
+# THE TOLERANCE CAME FROM A SERIES, NOT FROM TASTE (rule 2). Perturbations of
+# the same fixture, max delta over the 17 dimensions:
+#     write and re-read as PNG      0.0000   (reproducibility)
+#     +1 level on the whole frame   0.0039
+#     +10 levels on the whole frame 0.0392   (10 of 17 dimensions move)
+# FROZEN_TOL = 0.002 sits above the reproducibility and below the smallest
+# perturbation this fixture can express, which is one level of 255.
+#
+# WHEN THIS IS ALLOWED TO CHANGE: only when the INSTRUMENT changes on purpose —
+# a band definition, a luma convention, a kernel. Then these numbers are
+# re-recorded in the same commit, and the failure message prints every key as
+# `got/want` so the new block can be read straight off the run. A change to the
+# GAME can never reach them, which is the entire point.
+FROZEN_EXPECT = {
+    "lumaMean": 0.5483,
+    "lumaP10": 0.3373,
+    "lumaP50": 0.5882,
+    "lumaP90": 0.6275,
+    "groundMean": 0.4737,
+    "groundP10": 0.3373,
+    "groundP50": 0.3373,
+    "groundP90": 0.8824,
+    "satMean": 0.0000,
+    "satAbove50": 0.0000,
+    "groundPatch": 0.0029,
+    "groundOverFrame": 0.8639,
+    "edgeGround": 0.2719,
+    "edgeMid": 0.2077,
+    "grainSigma": 0.0077,
+    "vertRuns": 6.0,
+    "shadowRatio": 0.3822,
+}
+# The band denominators, frozen with the values they are denominators OF. A
+# band definition that silently narrowed would move every statistic above and
+# these are the numbers that say WHY.
+FROZEN_PX = {"_pxWhole": 831960, "_pxGround": 156384, "_pxMid": 307516,
+             "_nPatch": 330}
+
+
+def frozen_mismatch(m, expect=None, px=None, tol=FROZEN_TOL):
+    """Every recorded value this measurement does not reproduce, as
+    [(key, got, want)]. EMPTY MEANS AGREEMENT and the caller prints the count it
+    checked beside it, so "matched" cannot be confused with "checked nothing" —
+    a mismatch list is a zero that needs its denominator like any other.
+
+    Pixel counts are compared EXACTLY (they are counts); dimensions within
+    `tol`. Returns keys in DIMS order, then the pixel counts, so the message is
+    stable enough to diff between runs."""
+    expect = FROZEN_EXPECT if expect is None else expect
+    px = FROZEN_PX if px is None else px
+    bad = []
+    for key, _l, _f, _s in DIMS:
+        if key not in expect:
+            continue
+        if abs(m[key] - expect[key]) > tol:
+            bad.append((key, m[key], expect[key]))
+    for key, want in sorted(px.items()):
+        if int(m[key]) != int(want):
+            bad.append((key, float(m[key]), float(want)))
+    return bad
+
+
+def frozen_pairs(bad, cap=NAME_CAP):
+    """A mismatch list as space-free `key=got/want` pairs — value and the value
+    it should have been in ONE token, never two keys a reader has to relate —
+    with the truncation announced."""
+    if not bad:
+        return "none"
+    shown = ["%s=%.4f/%.4f" % (k, got, want) for k, got, want in bad[:cap]]
+    if len(bad) > cap:
+        shown.append("(+%dmore-not-shown)" % (len(bad) - cap))
+    return ",".join(shown)
+
+
 # ------------------------------------------------------------------- selftest
 
 def selftest():
@@ -1488,7 +1790,7 @@ def selftest():
     survives, and the live directories are the accepting fixture that cannot be
     fooled by one I wrote (rule 5b, and the CS0426 lint's "run it against the
     whole repository" argument applied to pixels)."""
-    global REFDIR, SIMDIR
+    global REFDIR, SIMDIR, FRAMES
     import atexit
     import contextlib
     import io
@@ -1511,6 +1813,23 @@ def selftest():
     text = buf.getvalue()
     n_sims = len(images_in(SIMDIR, prefixes=SIM_PREFIXES)[0])
     check("accepting: report exits 0 on the live directories", code == 0)
+    if code != 0:
+        # FAIL READABLE, AND SAY THAT THE REST DID NOT RUN. Every check below
+        # parses this table; without one the selftest died ten checks later in
+        # an IndexError on `text.split("refGap scope=summary")[1]`, which reads
+        # as a broken instrument rather than as an empty directory — and left
+        # "N passed" on the floor with no sign that the N was a fraction of the
+        # suite. The report's own output already names the directory and its
+        # file count, so it is printed whole rather than summarised.
+        check("accepting: the live report is parseable by the rest of the "
+              "suite — IT IS NOT (exit %d), so every check after this one was "
+              "NOT RUN and the %d passed above is not a clean bill"
+              % (code, ok), False)
+        print(text.strip())
+        print("ref-bench selftest: %d passed, %d failed" % (ok, len(fails)))
+        for f in fails:
+            print("  FAILED " + f)
+        return 1
     check("accepting: every dimension has a row",
           all(label in text for _k, label, _f, _s in DIMS))
     check("accepting: the reference band line is emitted",
@@ -1594,49 +1913,191 @@ def selftest():
           "clean)" % (sum(1 for _n, lc in ref_lc if not lc), len(ref_lc)),
           bool(ref_lc) and not any(lc for _n, lc in ref_lc))
 
-    # THE LIVE ONE SECOND. `district_hook` is a bright street frame reading
-    # BELOW the shadow band at 0.149, and that reading is the residual the
-    # ambient-fill rung owns. If this annotation ever swallows it, the tool has
-    # started hiding the finding it was built beside — the exclusion the 24 Aug
-    # ruling refused. The expensive failure of an outlier rule is the one that
-    # eats real frames, not the one that misses a black one.
-    by_name = {shot_name(p2): m for p2, m in lsims}
-    hook = by_name.get("district_hook")
-    check("accepting: the live fixture district_hook is present", hook is not None)
-    if hook:
-        hook_lc = low_content_of(hook, lranges, FMTS)
-        check("accepting: district_hook is NOT low-content (%s)"
-              % low_content_token(hook_lc, FMTS), not hook_lc)
-        check("accepting: district_hook's inputs are inside every bound it is "
-              "judged by (groundP90 %.3f in %.3f..%.3f, groundMean %.3f in "
-              "%.3f..%.3f)"
-              % (hook["groundP90"], lranges["groundP90"][0],
-                 lranges["groundP90"][1], hook["groundMean"],
-                 lranges["groundMean"][0], lranges["groundMean"][1]),
-              all(not below_floor(lranges[k][0], hook[k], FMTS[k])
-                  for k in LOW_CONTENT_FLOOR_KEYS)
-              and all(not above_ceiling(lranges[k][1], hook[k], FMTS[k])
-                      for k in LOW_CONTENT_CEIL_KEYS))
-        # AN IMPLICATION, NOT A CONJUNCTION, and the difference is this whole
-        # section's lesson: hook's groundP90 sits ABOVE the references' ceiling
-        # today (0.868 > 0.831) and darkening the ground could move it back
-        # under. Asserting the state would pin an accepting case to a number the
-        # queued work is trying to change; asserting the RULE — a P90 over the
-        # ceiling must not by itself annotate a frame — holds either way, and
-        # says which case it saw.
-        p90_over = above_ceiling(lranges["groundP90"][1], hook["groundP90"],
-                                 FMTS["groundP90"])
-        check("accepting: a groundP90 above the ceiling does not annotate on "
-              "its own (hook P90 %.3f vs ceiling %.3f — %s today)"
-              % (hook["groundP90"], lranges["groundP90"][1],
-                 "live case exercised" if p90_over
-                 else "live case absent, planted case below covers it"),
-              (not p90_over) or not low_content_of(hook, lranges, FMTS))
-        check("accepting: district_hook's line says lowContent=none "
-              "ratioUnreadable=none",
-              any(l.startswith("refGap image=district_hook ")
-                  and "lowContent=none" in l and "ratioUnreadable=none" in l
-                  for l in text.splitlines()))
+    # THE FROZEN ONE SECOND, AND IT USED TO BE THE LIVE `district_hook`. The
+    # whole argument, the series behind it and the reason this is generated
+    # rather than committed are in THE FROZEN FIXTURE above; what is asserted
+    # here is the INSTRUMENT — that the tool reads a known image to known
+    # numbers, and that the annotation spares a bright street whose highlight
+    # carries its P90 past the ceiling. The GAME's ground brightness is a
+    # reading, printed in 1b-iii below and asserted nowhere.
+    npx = _np()
+    from PIL import Image as _Img
+    import hashlib
+
+    frozen_world = pathlib.Path(tempfile.mkdtemp(prefix="refbench-frozen-"))
+    atexit.register(shutil.rmtree, frozen_world, True)
+    fref_dir, fsim_dir, flift_dir = (frozen_world / "refs",
+                                     frozen_world / "sims",
+                                     frozen_world / "lifted")
+    for d in (fref_dir, fsim_dir, flift_dir):
+        d.mkdir()
+    farr = frozen_street(npx)
+    fsha = hashlib.sha256(farr.tobytes()).hexdigest()
+    check("frozen: the fixture's own pixels are the recorded ones "
+          "(sha256 %s.., %d bytes)" % (fsha[:16], farr.nbytes),
+          fsha == FROZEN_PIXEL_SHA256)
+    # PNG, not JPEG: lossless, so what comes back off the disk is what went on
+    # it and the recorded values are exact rather than approximately exact.
+    _Img.fromarray(farr, "RGB").save(fsim_dir / "district_frozen_street.png")
+    _Img.fromarray(frozen_street(npx, lift=FROZEN_LIFT), "RGB").save(
+        flift_dir / "district_frozen_lifted.png")
+    for _nm, (_b, _h, _s) in sorted(FROZEN_REFS.items()):
+        _Img.fromarray(frozen_ref(npx, _b, _h, _s), "RGB").save(
+            fref_dir / (_nm + ".png"))
+
+    # READ BACK OFF THE DISK, so the decode path is exercised and not just the
+    # array the generator returned.
+    fm = measure(load(fsim_dir / "district_frozen_street.png"), keep_arrays=False)
+    n_frozen_keys = len(FROZEN_EXPECT) + len(FROZEN_PX)
+    fbad = frozen_mismatch(fm)
+    # THE MISMATCHED PAIRS COME FIRST IN THIS MESSAGE, MEASURED REASON:
+    # `verify.py`'s `ref_bench` caps a failing line at 91 characters, so a
+    # label that opens with prose and ends with the evidence arrives as
+    # "...reads the frozen street to its recorded values (13 of 21 keys match
+    # within..." — every actionable number cut off. Watched through the real
+    # consumer, not assumed.
+    check("frozen: MIS-READ %s (%d of %d recorded keys match within %.3f)"
+          % (frozen_pairs(fbad), n_frozen_keys - len(fbad), n_frozen_keys,
+             FROZEN_TOL),
+          n_frozen_keys > 0 and not fbad)
+    # THE REJECTING TWIN OF THE LINE ABOVE, so "matches" cannot be a check that
+    # would accept anything: one level of 255 on every pixel must be refused.
+    off_by_one = measure(_Img.fromarray(
+        npx.clip(farr.astype(npx.int16) + 1, 0, 255).astype(npx.uint8), "RGB"),
+        keep_arrays=False)
+    obad = frozen_mismatch(off_by_one)
+    check("frozen REJECTING: a mis-read of ONE LEVEL in 255 is refused (%d of "
+          "%d keys move past tol %.3f: %s)"
+          % (len(obad), n_frozen_keys, FROZEN_TOL, frozen_pairs(obad)),
+          bool(obad))
+
+    # THE FROZEN WORLD, references included — see `frozen_ref` for why the
+    # band is generated too.
+    keep_ref0, keep_sim0 = REFDIR, SIMDIR
+    REFDIR, SIMDIR = fref_dir, fsim_dir
+    frefs, _fsims, _fe, _fc = gather()
+    franges = {k: (min(m2[k] for _p2, m2 in frefs),
+                   max(m2[k] for _p2, m2 in frefs)) for k, _l, _f, _s in DIMS}
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        fcode = report()
+    ftext = buf.getvalue()
+    SIMDIR = flift_dir
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        lcode = report()
+    ltext = buf.getvalue()
+    REFDIR, SIMDIR = keep_ref0, keep_sim0
+
+    check("frozen: the frozen world produces a report from %d generated "
+          "references and 1 generated still (exit %d)" % (len(frefs), fcode),
+          fcode == 0 and len(frefs) == len(FROZEN_REFS))
+    fmean_lo, fmean_hi = franges["groundMean"]
+    fp90_hi = franges["groundP90"][1]
+    # THE PRECONDITION THAT MAKES THIS A TEST AT ALL, and the live pin failed it
+    # in 8 of its 10 landed revisions without anybody noticing: the fixture must
+    # HAVE the property the rule is being asked about. Here it holds by
+    # construction, in every run, on every machine.
+    check("frozen: PRECONDITION — the generated band brackets the fixture's "
+          "mean (%.3f < %.3f < %.3f) and its P90 ceiling %.3f is BELOW the "
+          "fixture's P90 %.3f, so the case is exercised by construction"
+          % (fmean_lo, fm["groundMean"], fmean_hi, fp90_hi, fm["groundP90"]),
+          fmean_lo < fm["groundMean"] < fmean_hi and fp90_hi < fm["groundP90"])
+    flc = low_content_of(fm, franges, FMTS)
+    check("frozen: a groundP90 above the ceiling does not annotate on its own "
+          "(P90 %.3f over ceiling %.3f, mean %.3f mid-band -> lowContent %s)"
+          % (fm["groundP90"], fp90_hi, fm["groundMean"],
+             low_content_token(flc, FMTS)),
+          not flc)
+    check("frozen: the frozen street's line says lowContent=none "
+          "ratioUnreadable=none",
+          any(l.startswith("refGap image=district_frozen_street ")
+              and "lowContent=none" in l and "ratioUnreadable=none" in l
+              for l in ftext.splitlines()))
+
+    # THE LADDER — one contributor toggled, both rungs from the same vantage in
+    # the same run. The lift reproduces, synthetically and for ever, the live
+    # event that broke the old pin: `district_hook`'s ground band came up from
+    # 0.471 to 0.547 when the cameras were re-aimed, and the annotation is
+    # SUPPOSED to fire on that.
+    lline = next((l for l in ltext.splitlines()
+                  if l.startswith("refGap image=district_frozen_lifted ")), "")
+    lmean = float(lline.split(" groundMean=")[1].split()[0]) if lline else -1.0
+    check("frozen LADDER: +%d levels on the GROUND BAND ONLY moves groundMean "
+          "%.3f -> %.3f, past the ceiling %.3f, and the annotation fires on the "
+          "CEILING side (%s)"
+          % (FROZEN_LIFT, fm["groundMean"], lmean, fmean_hi,
+             lline.split("lowContent=")[1].split()[0] if lline else "no line"),
+          lcode == 0 and lmean > fmean_hi and bool(lline)
+          and ">" in lline.split("lowContent=")[1].split()[0])
+    check("frozen LADDER: the lifted rung keeps both ratio rows' VALUES and "
+          "loses only shadowRatio as unreadable — annotated, never dropped",
+          bool(lline) and "groundOverFrame=" in lline and "shadowRatio=" in lline
+          and lline.split("ratioUnreadable=")[1].split()[0] == "shadowRatio")
+
+    # ---- 1b-iii. THE LIVE STILLS ARE A READING, NOT A FIXTURE.
+    #
+    # Reported with its denominators and asserted NOWHERE. This is the half the
+    # old `district_hook` checks were quietly doing as well as their instrument
+    # job, and doing it as a gate: "our ground band is brighter than anything
+    # the target shows" is a true and load-bearing finding about the GAME, so a
+    # selftest that goes red when it becomes true is a selftest that punishes
+    # measurement. The bound it is read against is printed beside it.
+    live_floor, live_ceil = [], []
+    for p2, m2 in lsims:
+        lc2 = low_content_of(m2, lranges, FMTS)
+        sides = {s3 for _k, _v, _b, s3 in lc2}
+        entry = "%s:%s" % (shot_name(p2), low_content_token(lc2, FMTS))
+        if "floor" in sides:
+            live_floor.append(entry)
+        if "ceiling" in sides:
+            live_ceil.append(entry)
+    print("ref-bench LIVE READING (reported, never asserted) — "
+          "the live band this run: groundMean %.3f..%.3f groundP90 %.3f..%.3f "
+          "from %d reference frames; %d of %d live stills sit ABOVE the "
+          "ceiling, %d BELOW the floor."
+          % (lranges["groundMean"][0], lranges["groundMean"][1],
+             lranges["groundP90"][0], lranges["groundP90"][1], len(lrefs),
+             len(live_ceil), len(lsims), len(live_floor)))
+    # SPACE-SEPARATED, and the entries themselves are space-free: a
+    # comma-joined list of tokens that already contain commas
+    # (`day1_night:groundP90:0.124<0.233,groundMean:0.090<0.142`) gives a reader
+    # no way to see where one still ends and the next begins. Same reason the
+    # verdict channel forbids spaces INSIDE a value.
+    print("  above the ceiling: %s"
+          % (capped(live_ceil, sep=" ") if lsims
+             else "nothing measured — 0 live stills"))
+    print("  below the floor:   %s"
+          % (capped(live_floor, sep=" ") if lsims
+             else "nothing measured — 0 live stills"))
+
+    # AND THE SHAPE CHECKS THAT REPLACE THE OLD VALUE PIN. These say the
+    # annotation RAN on live pixels and printed something a reader can parse;
+    # they cannot go red because a camera moved, because they assert no value.
+    live_lines = [l for l in text.splitlines() if l.startswith("refGap image=")
+                  and not l.startswith("refGap image=REFBAND")]
+    wellformed = 0
+    for l in live_lines:
+        tok = l.split("lowContent=")[1].split()[0]
+        if tok == "none":
+            wellformed += 1
+            continue
+        parts = tok.split(",")
+        if all(any(c in p for c in "<>") and p.split(":")[0] in LOW_CONTENT_KEYS
+               and len(p.split(":")) == 2 for p in parts):
+            wellformed += 1
+    check("accepting: every live still's lowContent token is `none` or pairs "
+          "carrying key, value and the bound it failed (%d of %d well formed)"
+          % (wellformed, len(live_lines)),
+          bool(live_lines) and wellformed == len(live_lines))
+    ru_ok = sum(1 for l in live_lines
+                if l.split("ratioUnreadable=")[1].split()[0] == "none"
+                or all(d2 in RATIO_DIMS for d2
+                       in l.split("ratioUnreadable=")[1].split()[0].split(",")))
+    check("accepting: every live still's ratioUnreadable token names only "
+          "declared ratio rows, or the word none (%d of %d)"
+          % (ru_ok, len(live_lines)),
+          bool(live_lines) and ru_ok == len(live_lines))
 
     # ---- 1c. REJECTING, AND THE FIXTURE IS SYNTHETIC ON PURPOSE.
     #
@@ -1878,9 +2339,29 @@ def selftest():
     with contextlib.redirect_stdout(buf):
         code = report(stable_only=True)
     stxt = buf.getvalue()
-    check("accepting: --stable also produces a table", code == 0)
-    check("accepting: --stable keeps only district_*",
-          "review_day1_noon.jpg" not in stxt and "district_hook.jpg" in stxt)
+    # NO STILL IS NAMED HERE, and it named two until 26 Aug
+    # (`review_day1_noon.jpg` and `district_hook.jpg`). A camera re-site renames
+    # and re-sites these files — that is what `district_*` MEANS — so a literal
+    # name is the same pin as the one this file just removed, one assertion
+    # over. The kept and dropped sets are read off the live directory instead,
+    # and both outcomes are covered: a run with no pose-stable still is a
+    # legitimate state of the project and must report NOTHING MEASURED rather
+    # than fail.
+    live_all = images_in(SIMDIR, prefixes=SIM_PREFIXES)[0]
+    live_stable = [p.name for p in live_all if p.name.startswith(STABLE_PREFIX)]
+    live_moving = [p.name for p in live_all if not p.name.startswith(STABLE_PREFIX)]
+    if live_stable:
+        kept = sum(1 for n in live_stable if n in stxt)
+        dropped = sum(1 for n in live_moving if n not in stxt)
+        check("accepting: --stable produces a table and keeps every pose-stable "
+              "still while dropping every moving one (%d of %d kept, %d of %d "
+              "dropped)" % (kept, len(live_stable), dropped, len(live_moving)),
+              code == 0 and kept == len(live_stable)
+              and dropped == len(live_moving))
+    else:
+        check("accepting: --stable says NOTHING MEASURED when the live set "
+              "holds no pose-stable still (0 of %d stills)" % len(live_all),
+              code == 3 and "NOTHING MEASURED" in stxt)
 
     # ---- 2. REJECTING: a directory that is not there.
     keep_ref, keep_sim = REFDIR, SIMDIR
@@ -1910,9 +2391,23 @@ def selftest():
           "2 files examined" in buf.getvalue())
 
     # ---- 4. REJECTING: an image that will not decode is REPORTED, not dropped.
-    src = sorted(p for p in SIMDIR.iterdir()
-                 if p.name.startswith("district_") and p.suffix == ".jpg")
-    check("rejecting: a district still exists to truncate", bool(src))
+    #
+    # THE BYTES TO TRUNCATE ARE THE FROZEN FIXTURE'S, NOT A LIVE STILL'S. This
+    # block used to open `SIMDIR` and take the first `district_*.jpg` it found,
+    # with `check("a district still exists to truncate")` above it — a check
+    # that goes red the day the sim renames its cameras, which is a thing the
+    # sim does. Encoded as JPEG here on purpose: a truncated JPEG is the real
+    # failure this path exists for (CI has committed one), and the frozen
+    # generator can produce as many distinct ones as the tests need.
+    src = []
+    for nm, lift in (("district_frozen_a.jpg", 0), ("district_frozen_b.jpg", 40)):
+        q = frozen_world / nm
+        _Img.fromarray(frozen_street(npx, lift=lift), "RGB").save(q, quality=90)
+        src.append(q)
+    check("rejecting: two distinct frozen stills were generated to truncate "
+          "and to swap (%d files, %d and %d bytes)"
+          % (len(src), src[0].stat().st_size, src[1].stat().st_size),
+          len(src) == 2 and src[0].read_bytes() != src[1].read_bytes())
     if src:
         simtmp = pathlib.Path(tempfile.mkdtemp(prefix="refbench-sim-"))
         atexit.register(shutil.rmtree, simtmp, True)
@@ -2050,7 +2545,41 @@ def selftest():
     check("mask: the border is dropped", not mask[0, 0] and not mask[h - 1, w - 1])
 
     # ---- 7. The helpers that read the project's own files.
-    check("frames.tsv parses to shot rows", len(shot_rows()) > 5)
+    #
+    # THE PARSE IS TESTED ON A FROZEN TSV, AND THE LIVE FILE IS REPORTED. This
+    # was `len(shot_rows()) > 5` — a bound on how many cameras the sim happens
+    # to ship, which is a number the project is allowed to change, and which
+    # asserts nothing about whether the columns were read correctly. Four
+    # cameras would have failed it while a file parsed into the wrong columns
+    # would have passed.
+    keep_frames = FRAMES
+    ftsv = frozen_world / "frames.tsv"
+    ftsv.write_text(
+        "shot\tcamX\tcamZ\tcamYaw\train\twet\n"
+        "district_frozen_street\t0.0\t-34.0\t0\t0.00\t0.10\n"
+        "day9_noon\t1.0\t24.6\t163\t0.90\t0.80\n", encoding="utf-8")
+    FRAMES = ftsv
+    frows = shot_rows()
+    check("frames.tsv: a frozen two-row file parses to exactly its two rows, "
+          "columns in the right places (%s)"
+          % frows.get("day9_noon", "no row"),
+          frows == {"district_frozen_street":
+                    "pose=0.0/-34.0/0 rain=0.00 wet=0.10",
+                    "day9_noon": "pose=1.0/24.6/163 rain=0.90 wet=0.80"})
+    ftsv.write_text("frame\tcamX\tcamZ\n1\t2\t3\n", encoding="utf-8")
+    check("frames.tsv REJECTING: a file with no `shot` column yields no rows "
+          "rather than rows keyed on whatever the first column was",
+          shot_rows() == {})
+    FRAMES = frozen_world / "no-such-frames.tsv"
+    check("frames.tsv REJECTING: a missing file yields no rows and does not "
+          "raise — the column prints its absence instead", shot_rows() == {})
+    FRAMES = keep_frames
+    # LIVE, REPORTED, NEVER ASSERTED: how many rows today's file carries. The
+    # report already prints "(N of M stills matched a frames.tsv row)" per run;
+    # this is the same number said where the selftest's reader is standing.
+    print("  frames.tsv rows parsed from the live file: %d (reported, not "
+          "asserted — the number of cameras is the project's to change)"
+          % len(shot_rows()))
     check("shot names strip review_ and keep district_",
           shot_name(pathlib.Path("review_day1_noon.jpg")) == "day1_noon"
           and shot_name(pathlib.Path("district_hook.jpg")) == "district_hook")

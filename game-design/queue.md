@@ -162,34 +162,42 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
    commit as the re-aim**, because that landing's Identity B predicts the
    POOLED denominator at exactly 63, and changing the instrument alongside
    the subject confounds the identity built to validate it. **Do it in the
-   next instrument batch, after that identity has been read.** Until then the
-   standing caveat holds: do not quote a pooled `valueRungs` as a street
-   reading. The CAUSE is explicitly not ruled — height, occlusion and pitch
+   next instrument batch. **UNBLOCKED 26 Aug — the identity has been read at
+   `c03ead2`, so the split may proceed.** Until it lands the standing caveat
+   holds: do not quote a pooled `valueRungs` as a street reading. The CAUSE is explicitly not ruled — height, occlusion and pitch
    are confounded, and separating them is a measurement to design, not a
    guess to make.
 
-1. **THE NOON SUN IS IN THE NORTH — CONFIRMED BY A LANDING, ref re-aim
-   WORKED.** `Euler(52,180,0)` -> sunward `(0,+0.788,+0.616)`; only
-   north-facing walls are lit, and a comment saying "due SOUTH" had been
-   quoted forward into four documents and five camera placements. All five
-   refs now sample lit wall (307/383/13/162/156 rays); the predicted weather
-   identity held exactly; no alarm fired. **Districts re-aimed on that
-   evidence** — one character, `az=-34f` -> `az=34f`, a reflection with
-   junction/standoff/height unchanged. Ironside and Gullwing untouched as
-   cross-break controls. **Open:** `day5_noon` still reads `litnone@0` for a
-   DIFFERENT cause — its aim takes only one of the two perpendiculars
-   (`new Vector3(-toRoad.z,0,toRoad.x)`), so for a given eye and road it can
-   never face the other way down the same street.
+1. **`sky>lit` FAILS ON 15 OF 15 DRY CAMERA ROWS — the whole game, measured.**
+   Five references, seven districts, three others: **not one dry camera has the
+   sky as the brightest broad surface.** References want sky > lit > ground >
+   shadow; we read lit > ground > sky > shadow. The other two orderings largely
+   HOLD, so this is ONE BAND out of place, not a general grade fault. **Ground
+   work is invisible until it moves** — the road still renders 0.85 from albedo
+   0.008. **No lever yet:** the aperture-versus-dome fork needs a discriminator
+   that moves OPPOSITE ways under the two hypotheses.
+
+1. **IDENTITY B BROKE, 63 PREDICTED vs 65 LANDED — AND THE EXPLANATION IS THE
+   POINT.** Cause, checkable on the line: **8** rows read `litnone@0` before and
+   **2** do now, so **SIX** rows gained, not the five predicted — 6x2 = 12, and
+   53 + 12 = 65. The sixth is `day5_noon`, flagged by an earlier builder as a
+   DIFFERENT fault (single perpendicular) but which also runs through
+   `TourVantage`, so the one-character change reached it uncounted. **The
+   instrument was right; the model of what it touched was incomplete — which is
+   exactly what an identity is for.** Also missed: the lit-ray RANKING.
+   Predicted downtown > copper ~ strip > hook >> fairview; actual hook 675 >
+   copper 511 > downtown 445 > fairview 354 > strip 279. **Fairview was named
+   the weak one in advance and is not.** Frontage metres did not predict lit
+   rays and whatever does is unmeasured.
+
+1. **THE NOON SUN IS IN THE NORTH — CLOSED.** `Euler(52,180,0)` -> sunward
+   `(0,+0.788,+0.616)`; only north-facing walls are lit. A comment saying "due
+   SOUTH" had been quoted forward into four documents and five camera
+   placements. All corrected, re-swept, no live copy. Refs re-aimed, then
+   districts; **`litnone@0` rows went 8 -> 2**, and the two remaining are dusk
+   and a rainy noon, where no wall is lit and `?` is the honest answer.
 
 
-1. **TWO MORE LINTS NAMED, NOT FIXED.** `lint-nested` prints `0 nested-type
-   errors (255 top-level Core types checked)` and exits 0 **byte-identically
-   whether it sweeps 88 files or NOTHING** — its denominator is the REFERENCE
-   set it compares against, while the Game file count that would move is
-   computed and discarded. `lint-shadow` re-globs at print time, so one line
-   carries two moments. Same class as the static-body fault; found by the
-   sweep that fault prompted. `lint-conditional-reach` and `lint-avenues` are
-   the two clean models.
 
 1. **OUR EXEMPLAR OF RULE 3b IS ITSELF THE FAULT — `lint-static` INFLATES ITS
    DENOMINATOR 19x.** It prints `560 static bodies walked`; it actually scans
@@ -253,10 +261,6 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
 
 
-1. **THE DRY TOUR LANDED; ALBEDO IS RULED OUT.** Every `district_*` row
-   before the day-5 move is incomparable. `GroundGrade` does NOT move
-   again — the lever is the light-to-JPEG path. Ruling:
-   `decision-ground-albedo.md`.
 1. **THE TWO KITS ARE WIRED AND MEASURED (landed `71316fa`).** 736 of 739
    placed, ZERO missed, 6/6 lamp forms; `city-kit-suburban` is no longer an
    unreached kit and the Game layer now names 73 models against 62. Open, in
@@ -340,9 +344,8 @@ the queue before he downloads the build. Pre-approved, token-heavy by design.
 
 
 
-1. **PATROL DENSITY FOLLOWS THE INQUIRY — whether it READS is unfinished.**
-   Open: `patrolOnBeatMean=0.00` over 3 shots vs `0.18` over 17 — zero of
-   three separates nothing. A PARKED beacon reads where six crossings do not.
+1. **PATROL DENSITY — open: `patrolOnBeatMean=0.00` over 3 shots vs `0.18`
+   over 17. Zero of three separates nothing.
 
 
 
