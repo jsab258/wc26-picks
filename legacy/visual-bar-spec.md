@@ -1,3 +1,9 @@
+> **SUPERSEDED 2026-08-31 by the LEDGER v2 respec package.** The plan and the
+> authority live in `ledger-v2/` (entry point `ledger-v2/handoff/HANDOFF.md`);
+> world facts live in `canon.md` at the repo root. This file is kept whole as
+> raw material, per the handoff: legacy documents are inputs, not law. Nothing
+> in it may be cited as current without checking `ledger-v2/` first.
+
 # The visual bar — GTA V, on Meridian's content: THE PLAN
 
 > **STATUS — SPEC.** Bar set 2026-08-21 (Jafar, twice over hedging; re-escalated

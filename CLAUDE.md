@@ -1,5 +1,21 @@
 # CLAUDE.md — how to work on LEDGER
 
+> **THE V2 RESPEC IS THE SOURCE OF TRUTH — 2026-08-31, Jafar.** The package
+> at `ledger-v2/` (entry point `ledger-v2/handoff/HANDOFF.md`) supersedes all
+> prior roadmaps, design docs and specs; on any conflict between this file's
+> project-specific claims and `ledger-v2/`, the package wins. `canon.md` at
+> the repo root outranks everything once Jafar approves it; violating canon
+> is a gate failure, not a style note. Two laws the package makes binding:
+> **the license allowlist** (`ledger-v2/research/license-allowlist.md`) is
+> law — nothing ships that is not on it, new tools enter only via a decision
+> record naming the weights license; and **the formatting law** — no
+> em-dashes and no italic text in project documents written from 31 Aug on
+> (this file's older text is corrected opportunistically, not rewritten
+> wholesale, so the incident record keeps its original wording).
+> The epistemics below — never assert unchecked, thresholds from printed
+> series, every zero ships a denominator, open the artifact, guards tested
+> both ways — are carried forward by the v2 constitution and remain in force.
+
 Read this first, every session. It is not style guidance. **Every rule below
 exists because it was broken, and the incident is named so the rule is
 believable rather than decorative.**

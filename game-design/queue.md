@@ -21,7 +21,18 @@ failing. Full account in CLAUDE.md under AUTO MODE.
 
 ## Now
 
-### START HERE — the project is PARKED, and this is how it restarts
+### SUPERSEDED 2026-08-31 — the v2 respec landed; read this before the block below
+
+The block below was written 26 Aug for a Monday that arrived differently:
+Jafar delivered the LEDGER v2 respec package (`ledger-v2/`, entry point
+`handoff/HANDOFF.md`), which supersedes the old roadmap and this queue's
+priorities. **The current work is the handoff's Phase 0**, and the queue
+mechanism itself is being replaced by `production/queue/` per
+`ledger-v2/studio-v2/runner.md`. Items below stay valid as raw material and
+several (the sky fix, the picture wiring) will reappear as Phase 2 work; do
+not START from them.
+
+### START HERE — the 26 Aug parked-state block (superseded, kept for its facts)
 
 **26 Aug: usage hold to Monday afternoon.** 85% of the weekly limit went in
 under two days, so the loop was stopped deliberately. Nothing is broken and
@@ -30,27 +41,11 @@ build running. **The watchdog is DISABLED** — re-enable it (CLAUDE.md, AUTO
 MODE, *Starting it*, step 1) as the FIRST action, or the chain has no restart
 mechanism and one bad turn parks the project silently again.
 
-**Then do these three, in this order. The order is not preference — each one
-makes the next one cheaper or possible.**
-
-1. **WIRE ONE PICTURE AND LOOK AT IT** (item 2 below). Nothing in the game
-   loads a generated picture, so the picture batch cannot pay off until this
-   does. It is also the cheapest thing here and it answers the aspect
-   question that would otherwise make ~50 prompts the wrong size.
-2. **BUILD THE TILING CHECK** (item 3). It needs no build and no agent, both
-   fixtures are already on disk, and without it a wall batch can ship a fault
-   nothing measures.
-3. **THEN WRITE THE ~50 PROMPT ENTRIES** (`imagegen-batch-2.md` has the list
-   in prose; `tools/imagegen/prompts.json` still holds only the 14 already
-   made). Jafar runs the batch Monday NIGHT, so the entries must be in the
-   file before he goes to bed — that is the one hard deadline on this page.
-
-**WHAT NOT TO DO FIRST, because it is what happened last time.** Do not open
-the queue and grind the most interesting item. Do not spawn a verifier sweep.
-Do not restructure documents. **Measured: of 110 agent spawns on 25 Aug, 78
-were the project working on itself and 32 built the game** — `gameShareDay`
-is in the verify footer of every commit for exactly this reason, and it read
-`0/22` on the day this was written.
+**The three items it ordered** (wire one picture; build the tiling check;
+write the prompt entries — 28 of ~52 were written 26 Aug) **stay valid as
+Phase 2 raw material.** The what-not-to-do lesson stands under v2 as the
+routing law: of 110 agent spawns on 25 Aug, 78 were the project working on
+itself; `gameShareDay` rides in every verify footer because of it.
 
 **THE ONE DECISION WAITING FOR A DIRECTOR** is the sky fix (item 1). It is a
 mandatory trigger — a landing that changes a conclusion — and the finding is
