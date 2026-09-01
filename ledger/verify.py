@@ -2161,9 +2161,117 @@ def stale_anchors():
 # contract, in one place, because the check and its fixtures must not be able
 # to disagree about it.
 DIRECTOR_MIN_LINES = 100                      # MORE than this is "substantial"
+# WHERE THE 100 CAME FROM AND WHAT IT NO LONGER DESCRIBES (1 Sep). It was set
+# from a printed series of per-commit changed lines under `ledger/Assets/Scripts`
+# alone, and it sat in a real gap in that distribution (nothing between 81 and
+# 107). The reviewed scope below is now seven prefixes wide, so that series is
+# a different population and this bound is INHERITED rather than measured for
+# it. It is kept because a gate with no bound tonight is a gate that measures
+# nothing tonight, and it SAYS SO on every line it prints. The printer that
+# replaces it with evidence ships in the same change:
+#     python3 ledger/verify.py --cadence-series 120
+# Rule 2: the printer first, the number from what it printed, in that order.
+DIRECTOR_MIN_SOURCE = ("INHERITED from the Assets/Scripts-only scope and NOT "
+                       "yet evidence-based for this wider set — print the "
+                       "series with --cadence-series and set it from that")
 DIRECTOR_SCRIPTS = "ledger/Assets/Scripts/"   # git paths are repo-root relative
 DIRECTOR_LOG = ".claude/agent-log.tsv"
 DIRECTOR_AGENT = "studio-director"
+
+#: THE REVIEWED SCOPE — (git path prefix, LABEL, why it counts as work), IN
+#: ORDER. Repo-root relative, forward slashes, exactly as git prints them.
+#:
+#: WHY THIS IS A SET AND NOT ONE STRING — 1 Sep, learning.md L27. Until today
+#: this gate measured substantial work as changed lines under
+#: `ledger/Assets/Scripts/` and nothing else. On 1 Sep the session wrote new
+#: tools, a rewritten verify gate, three workflows, new C++ under `ue-probe/`,
+#: new content and a new git hook, with ZERO director reviews and zero agent
+#: spawns, and this gate printed `0 changed line(s) ... under threshold, review
+#: not required` all day. It did not fail; it was aimed at where the work USED
+#: to be. Measured while writing this: the newest commit touching the old scope
+#: was `184c9c94`, 6.7 days back, so the reference instant the freshness test
+#: compared against was a week stale as well.
+#:
+#: The transferable finding is L27's: AN INSTRUMENT IS SCOPED TO WHERE THE WORK
+#: WAS WHEN IT WAS WRITTEN. When a project's centre of gravity moves, every
+#: gate's SCOPE is stale even when its logic is perfect, and nothing goes red
+#: to say so.
+#:
+#: ORDER IS LOAD-BEARING: a path is attributed to the FIRST prefix it matches,
+#: so `ledger/Assets/Scripts/` must stay ahead of `ledger/` or the Unity layer
+#: would disappear into the general bucket and the breakdown would lose the
+#: ability to answer the question this gate used to ask.
+#:
+#: LABELS carry no whitespace, no `/` and no `:` — they are printed as ONE
+#: `key=value` token (`workByScope=scripts:0/tools:1206/...`) into a channel
+#: that splits on whitespace and truncates silently.
+DIRECTOR_WORK = (
+    ("ledger/Assets/Scripts/", "scripts",
+     "the Unity game layer: the ORIGINAL scope, kept first and reported "
+     "separately so the question this gate used to ask is still asked"),
+    ("ledger/", "ledger",
+     "the rest of the game project and its local toolchain — verify.py, "
+     "breakrun.py, ShapeCheck, CoreTests, break specs, project settings"),
+    ("tools/", "tools",
+     "every instrument, generator and checker the studio runs; since the v2 "
+     "respec this is where most of a working day lands"),
+    (".github/workflows/", "workflows",
+     "CI is the evidence channel, so a workflow edit changes what every build "
+     "is able to measure"),
+    (".githooks/", "githooks",
+     "the hooks that enforce process on every commit"),
+    ("ue-probe/", "ueprobe",
+     "the Unreal probe: C++ sources and project config"),
+    ("content/", "content",
+     "authored and generated game content — props, brands, dialogue"),
+)
+
+#: EVIDENCE, NOT WORK — (git path prefix or one exact file, LABEL, why it is
+#: evidence). A trailing `/` means a directory prefix; anything else is one
+#: exact path, which is the same shape git pathspecs use.
+#:
+#: EVIDENCE OUTRANKS WORK, deliberately and in that order: these are files a
+#: machine writes ABOUT a run, so counting them would have the gate demand a
+#: director review of its own output. `STATUS.md`, the mesh reports and the
+#: d1-probe outputs are rewritten by tooling several times an hour; without
+#: this every commit in the project would look substantial and the gate would
+#: become the ratchet rule 5b names — refuse everything, then get switched off.
+#:
+#: MEASURED, SO NOBODY READS THIS LIST AS MORE LOAD-BEARING THAN IT IS: of the
+#: entries below, only `ledger/.verify-footer` sits INSIDE a work prefix, so it
+#: is the only one whose exclusion changes the gated number today. The other
+#: ten are outside the reviewed scope already and are named here so the printed
+#: line can say WHICH of the unscoped paths were known outputs
+#: (`pathsEvidence`) rather than merely unrecognised (`pathsOther`) — and so
+#: they stay excluded if a work prefix ever widens over them.
+DIRECTOR_EVIDENCE = (
+    ("game-design/sim-shots/", "simshots",
+     "CI's own stills, verdict and per-run copies: a report ABOUT a build, "
+     "never a change to one"),
+    ("production/d1-probe/ue-build.txt", "d1out",
+     "the D1 probe's Unreal build log, written by the machine that ran it"),
+    ("production/d1-probe/ue-machine.txt", "d1out",
+     "the D1 probe's machine reading, written by the probe"),
+    ("production/d1-probe/ue-verdict.txt", "d1out",
+     "the D1 probe's verdict line, written by the probe"),
+    ("production/d1-probe/ue-shot.png", "d1out",
+     "the D1 probe's frame: an artifact to open, not a change to review"),
+    ("production/d1-probe/msvc-setup.txt", "d1out",
+     "the toolchain setup transcript from the Windows machine"),
+    ("production/mesh-reports/", "meshreports",
+     "meshgen's own run reports, rewritten on every generation run"),
+    ("production/briefs/", "briefs",
+     "briefs handed TO agents: the input to work, not the work"),
+    (".claude/agent-log.tsv", "agentlog",
+     "the spawn log this very gate reads; a row landing in it is attendance, "
+     "and counting it as work would let the instrument feed itself"),
+    ("ledger/.verify-footer", "verifyfooter",
+     "written by every green verify run — the ONE evidence path that sits "
+     "inside a work prefix, so it is the one exclusion that changes the number"),
+    ("STATUS.md", "status",
+     "regenerated by tooling many times a day; a status line is a report on "
+     "the work, not the work"),
+)
 # THE SPEND READING'S OWN INPUTS. `.claude/agents/*.md` carries a `model:` line
 # in its front matter; which agents run on Fable is READ from those files rather
 # than remembered, because "studio-director is the only fable agent" is exactly
@@ -2224,6 +2332,93 @@ def _git(repo, *args):
     p = subprocess.run(["git", "-C", str(repo)] + list(args),
                        capture_output=True, text=True)
     return p.returncode, p.stdout
+
+
+def _cadence_scope(path):
+    """One repo-relative git path -> (bucket, label), bucket in
+    evidence / work / other.
+
+    ONE IMPLEMENTATION OF "IS THIS WORK", read by the pending diff, by the
+    untracked walk and by the series printer. The reference-commit lookup uses
+    `_cadence_pathspec()`, which is DERIVED from the same two constants rather
+    than restating them — the second copy of an idea is the one that misses a
+    line when the first is fixed.
+
+    EVIDENCE IS TESTED FIRST. It has to be: `ledger/.verify-footer` is inside
+    the `ledger/` work prefix, and a work-first order would count the file that
+    every green verify run writes as a reason to demand a director review."""
+    p = (path or "").strip()
+    if p.startswith("./"):
+        p = p[2:]
+    for entry, label, _why in DIRECTOR_EVIDENCE:
+        if p.startswith(entry) if entry.endswith("/") else p == entry:
+            return "evidence", label
+    for prefix, label, _why in DIRECTOR_WORK:
+        if p.startswith(prefix):
+            return "work", label
+    return "other", ""
+
+
+def _cadence_rename_paths(field):
+    """The path COLUMN of one `git diff --numstat` row -> every concrete path
+    it names (one, or two for a rename).
+
+    git prints a rename two ways and this reader has to survive both:
+
+        ledger/{Assets => Attic}/Scripts/Sim.cs      common prefix survives
+        tools/old.py => production/scratch/old.py    it does not
+
+    The version before 1 Sep tested one substring (`"ledger/Assets/Scripts/"
+    in path`) against the raw column, which happened to work for the single
+    prefix it knew and cannot work for seven — `a/{x => y}/f.cs` contains
+    neither concrete path as a substring. Renames usually carry 0/0 lines, so
+    the cost of getting this wrong is a MISCOUNTED PATH rather than miscounted
+    lines; a rename detected with an edit does carry lines, which is why both
+    sides are returned and the caller takes the stricter answer."""
+    s = (field or "").strip()
+    if "=>" not in s:
+        return [s]
+    m = re.match(r"^(.*)\{(.*?) => (.*?)\}(.*)$", s)
+    if m:
+        pre, old, new, post = m.groups()
+        # `{ => sub}` gives an empty side, so the join can leave `a//f.cs`.
+        return [re.sub(r"/{2,}", "/", pre + old + post),
+                re.sub(r"/{2,}", "/", pre + new + post)]
+    return [x for x in (part.strip() for part in s.split("=>")) if x]
+
+
+def _cadence_classify(field):
+    """(bucket, label) for one numstat path column, renames included.
+
+    EVIDENCE beats WORK beats OTHER across the two sides of a rename, which is
+    the same precedence `_cadence_scope` uses within one path: a file renamed
+    INTO an evidence location is evidence at rest, and one renamed out of the
+    scope is still work that happened."""
+    seen = [_cadence_scope(p) for p in _cadence_rename_paths(field)]
+    for want in ("evidence", "work"):
+        for bucket, label in seen:
+            if bucket == want:
+                return bucket, label
+    return "other", ""
+
+
+def _cadence_pathspec():
+    """The reviewed scope as a git pathspec, DERIVED from the two constants.
+
+    Used for exactly one question — WHICH COMMIT IS THE REFERENCE — because
+    `git log -1 -- <pathspec>` answers it in one call over the whole history,
+    where a python walk would need `--name-only` over an arbitrary window and
+    would have to say what it did when the window ran out.
+
+    IT IS DERIVED AND NOT RESTATED. A hand-written pathspec beside a
+    hand-written classifier is one idea with two implementations, and this
+    project has a table of what that costs. The selftest asserts the derivation
+    covers every constant, and the `a18` fixture asserts the behaviour that
+    matters: a commit touching only `ledger/.verify-footer` — inside a work
+    prefix, excluded as evidence — does NOT move the reference, which is only
+    true if the exclusion reached the git call as well as the python one."""
+    return ([prefix for prefix, _l, _w in DIRECTOR_WORK]
+            + [":(exclude)" + entry for entry, _l, _w in DIRECTOR_EVIDENCE])
 
 
 def _cadence_epoch(text):
@@ -2356,19 +2551,34 @@ def _cadence_read(repo):
     What each number is a statistic OF, because a number whose statistic is
     unnamed is the thing this project keeps mis-reading:
 
-      changed   CUMULATIVE total of PENDING lines against HEAD under
-                `ledger/Assets/Scripts/` — `tracked` + `untracked`, and the
-                ONLY number compared against the threshold
+      changed   CUMULATIVE total of PENDING lines against HEAD inside THE
+                REVIEWED SCOPE (`DIRECTOR_WORK`, minus `DIRECTOR_EVIDENCE`) —
+                `tracked` + `untracked`, and the ONLY number compared against
+                the threshold
       tracked   CUMULATIVE adds+dels over the staged+unstaged diff vs HEAD
-      untracked LINES in untracked files under Assets/Scripts — a component
+      untracked LINES in untracked files inside that scope — a component
                 of `changed` since 24 Aug, not a footnote to it (see below)
+      walked    COUNT of PENDING paths examined, tracked and untracked — the
+                denominator of the three counts below, which partition it
+      work_paths / evidence_paths / other_paths  COUNTs of those paths by
+                bucket: inside the scope, excluded by a named evidence rule,
+                or outside it and unrecognised. Added 1 Sep because `0 changed
+                line(s)` and "nothing I look at happened" printed identically
+      by_scope  {label: CUMULATIVE lines}, one entry per work prefix, always
+                including the zeroes — the breakdown per the axis this metric
+                actually varies on, which is WHERE the work is
+      evidence_hits  {label: COUNT of paths} for the evidence rules that BIT;
+                absent labels bit nothing
       rows      COUNT of data rows in the agent log — the denominator every
                 zero below is meaningless without
-      ref_sha   the NEWEST commit that TOUCHED `ledger/Assets/Scripts` — the
+      ref_sha   the NEWEST commit that TOUCHED THE REVIEWED SCOPE — the
                 reference INSTANT, and deliberately not HEAD (see below).
                 Falls back to HEAD when no such commit is in this clone.
+                WIDENING THE SCOPE MOVES THIS TOO, on purpose: a commit under
+                `tools/` now spends a review exactly as one under
+                `Assets/Scripts` always did (fixture r19)
       noncode   COUNT of commits between that reference commit and HEAD, every
-                one of which changed no code under Assets/Scripts
+                one of which changed nothing inside the reviewed scope
       since_code COUNT of `studio-director` rows dated strictly AFTER the
                 reference commit; the numerator, taken from the same read of
                 the same file as `rows`
@@ -2455,10 +2665,10 @@ def _cadence_read(repo):
     different population from the bound's evidence; this makes them the same
     measurement.
 
-    WHY THE REFERENCE IS THE LAST CODE COMMIT AND NOT HEAD (25 Aug). This is
+    WHY THE REFERENCE IS THE LAST WORK COMMIT AND NOT HEAD (25 Aug). This is
     not a loosened bound — the bound is still 100 lines — it is the instrument
     being asked the question it was always meant to ask. The threshold already
-    scopes to `Assets/Scripts`; the reference point did not, and that
+    scoped to the reviewed paths; the reference point did not, and that
     inconsistency WAS the bug. It fired three times in one night, from three
     causes that share nothing except touching no code: a `git commit --amend`
     of a message, a docs-only commit, and CI's own `Sim stills from <sha>`
@@ -2470,13 +2680,25 @@ def _cadence_read(repo):
     commit 01:12:18Z — red against HEAD, green against the code commit, and
     green is the true answer.
 
-    A commit that touches no code under Assets/Scripts cannot invalidate a
-    review OF code under Assets/Scripts. So `since_code` counts rows after the
-    newest commit that touched it. THE STRICT CASE IS UNCHANGED: a real code
-    commit lands, and every director row at or before it is stale again.
+    A commit that touches nothing in the reviewed scope cannot invalidate a
+    review OF that scope. So `since_code` counts rows after the newest commit
+    that touched it. THE STRICT CASE IS UNCHANGED: a real work commit lands,
+    and every director row at or before it is stale again.
+
+    THE 1 SEP WIDENING DID NOT WEAKEN THIS AND THE FIXTURES SAY SO BOTH WAYS.
+    The reference is still "the last commit that TOUCHED the reviewed scope"
+    and never HEAD; what changed is which commits count as touching it, and
+    that cuts BOTH ways rather than one. Looser: `ledger/.verify-footer` is
+    excluded as evidence, so the file every green verify writes cannot move
+    the reference (a18). Stricter, and this is the half a careless widening
+    would have missed: a landed commit under `tools/` now moves it, so a
+    director row older than that commit is stale and its ruling is spent
+    (r19). Measured on the live tree the day it was written — the newest
+    commit touching the OLD scope was 6.7 days back, so the freshness test had
+    been comparing against a week-old instant while the studio worked daily.
 
     THE FALLBACK IS THE STRICTER DIRECTION, ON PURPOSE. When no commit touching
-    Assets/Scripts is reachable the reference falls back to HEAD, which is this
+    the reviewed scope is reachable the reference falls back to HEAD, which is this
     gate's pre-25-Aug behaviour and can only ask for MORE freshness, never
     less. It says which world it is in, in words, because "reviewed since the
     last code change" and "nothing to compare against" are different facts
@@ -2506,6 +2728,9 @@ def _cadence_read(repo):
     """
     repo = pathlib.Path(repo)
     r = {"changed": 0, "tracked": 0, "files": 0, "binary": 0, "rows": 0,
+         "walked": 0, "work_paths": 0, "evidence_paths": 0, "other_paths": 0,
+         "by_scope": {label: 0 for _p, label, _w in DIRECTOR_WORK},
+         "evidence_hits": {},
          "since_code": 0, "stale_code": 0, "unparsed": 0, "unparsed_dir": 0,
          "ref_ct": None, "ref_iso": "", "ref_sha": "", "ref_kind": "nocode",
          "noncode": 0, "shallow": False,
@@ -2547,7 +2772,7 @@ def _cadence_read(repo):
     # commit is reachable HERE, which is two different worlds (never happened /
     # not fetched) and both fall back to HEAD.
     code, out = _git(repo, "log", "-1", "--format=%ct\t%h", "HEAD",
-                     "--", DIRECTOR_SCRIPTS)
+                     "--", *_cadence_pathspec())
     cols = out.strip().split("\t")
     if code == 0 and len(cols) == 2 and cols[0].isdigit():
         r["ref_ct"] = int(cols[0])
@@ -2573,17 +2798,30 @@ def _cadence_read(repo):
         if len(cols) < 3:
             continue
         adds, dels, path = cols[0], cols[1], "\t".join(cols[2:])
-        # A rename printed as `a/{x => y}/f.cs` only matches when the literal
-        # prefix survives it. Pure renames carry 0/0 lines anyway, so the
-        # worst case is a rename OUT of Scripts reading as 0 — noted, not
-        # papered over.
-        if DIRECTOR_SCRIPTS not in path:
+        # EVERY PATH IS WALKED AND BUCKETED, including the ones this does not
+        # count — that is the denominator half of the printed line. Before
+        # 1 Sep the `continue` below was silent, so `0 changed line(s)` and
+        # "nothing I look at happened" printed identically, which is exactly
+        # how a full day of work outside Assets/Scripts read as a quiet day.
+        r["walked"] += 1
+        bucket, label = _cadence_classify(path)
+        if bucket == "evidence":
+            r["evidence_paths"] += 1
+            r["evidence_hits"][label] = r["evidence_hits"].get(label, 0) + 1
             continue
+        if bucket != "work":
+            r["other_paths"] += 1
+            continue
+        r["work_paths"] += 1
         r["files"] += 1
         if adds == "-" or dels == "-":           # binary: no line count exists
             r["binary"] += 1
             continue
-        r["tracked"] += int(adds) + int(dels)
+        n = int(adds) + int(dels)
+        r["tracked"] += n
+        # CUMULATIVE lines per work prefix, attributed to the FIRST prefix the
+        # path matched — the breakdown that says WHICH part of the scope moved.
+        r["by_scope"][label] = r["by_scope"].get(label, 0) + n
 
     # THE ENUMERATOR IS THE ONE ALREADY HERE, and that is the point. A sibling
     # repo's twin of this gate walked `git status --porcelain`, which COLLAPSES
@@ -2600,8 +2838,18 @@ def _cadence_read(repo):
     # the threshold comparison.
     code, out = _git(repo, "ls-files", "--others", "--exclude-standard")
     for rel in out.splitlines():
-        if DIRECTOR_SCRIPTS not in rel:
+        if not rel.strip():
             continue
+        r["walked"] += 1
+        bucket, label = _cadence_scope(rel)
+        if bucket == "evidence":
+            r["evidence_paths"] += 1
+            r["evidence_hits"][label] = r["evidence_hits"].get(label, 0) + 1
+            continue
+        if bucket != "work":
+            r["other_paths"] += 1
+            continue
+        r["work_paths"] += 1
         r["untracked_files"] += 1
         try:
             data = (repo / rel).read_bytes()
@@ -2617,7 +2865,9 @@ def _cadence_read(repo):
             r["binary"] += 1
             r["untracked_binary"] += 1
             continue
-        r["untracked"] += len(data.decode("utf-8", "replace").splitlines())
+        n = len(data.decode("utf-8", "replace").splitlines())
+        r["untracked"] += n
+        r["by_scope"][label] = r["by_scope"].get(label, 0) + n
 
     # THE GATED TOTAL, named as the sum it is. Both components print beside it
     # in the summary as one paired reading, so "0 changed" can never again mean
@@ -2833,6 +3083,59 @@ def _cadence_spend(r):
     return text
 
 
+def _cadence_scope_phrase(r):
+    """WHAT WAS WALKED AND WHAT WAS NOT — tokens first, then the sentence.
+
+    THE FAULT THIS EXISTS FOR, 1 Sep: the line read `0 changed line(s) ... vs
+    100 threshold under Assets/Scripts`, which a reader takes for NOTHING
+    HAPPENED when the truth was NOTHING I LOOK AT HAPPENED. Those two must
+    stop looking alike, so the denominator is not one number but four, and the
+    breakdown says which part of the scope moved.
+
+    Five keys, each named for the statistic it is:
+
+      workByScope=<label>:<lines>/...  CUMULATIVE pending lines per work
+          prefix, in the constant's own order, EVERY prefix printed including
+          the zeroes. Uncapped by construction rather than by luck: the set is
+          a compile-time constant, `scopePrefixes` beside it is its count, and
+          the selftest asserts every label appears — so a prefix can never go
+          missing quietly, which is the thing a cap would otherwise hide.
+      pathsWalked=<n>   COUNT of pending paths examined: tracked diff entries
+          plus untracked files. THE DENOMINATOR OF THE OTHER THREE, and they
+          sum to it exactly (asserted by a fixture, not just written here).
+      pathsWork=<n>     COUNT that landed inside the reviewed scope.
+      pathsEvidence=<n> COUNT excluded by a named EVIDENCE rule.
+      pathsOther=<n>    COUNT outside the scope and matching no evidence rule
+          — unrecognised, not certified. Kept separate from `pathsEvidence`
+          because "a known machine output" and "a path nobody has classified"
+          have different next actions, and the second is how a scope goes
+          stale without anything going red.
+
+    Every value is whitespace-free and none can collect a bracket from the
+    sentence around it: the tokens come first and each is followed by a space,
+    the same construction `_cadence_ruling_phrase` uses one clause down."""
+    by = "/".join("%s:%d" % (label, r["by_scope"].get(label, 0))
+                  for _p, label, _w in DIRECTOR_WORK) or NOTHING_MEASURED
+    toks = ("workByScope=%s scopePrefixes=%d pathsWalked=%d pathsWork=%d "
+            "pathsEvidence=%d pathsOther=%d "
+            % (by, len(DIRECTOR_WORK), r["walked"], r["work_paths"],
+               r["evidence_paths"], r["other_paths"]))
+    if not r["walked"]:
+        return toks + ("— 0 pending path(s) walked, so the scope measured "
+                       "NOTHING; the %d-line bound above is %s"
+                       % (DIRECTOR_MIN_LINES, DIRECTOR_MIN_SOURCE))
+    words = ("— %d pending path(s) walked across %d work prefix(es) and %d "
+             "evidence rule(s)" % (r["walked"], len(DIRECTOR_WORK),
+                                   len(DIRECTOR_EVIDENCE)))
+    if r["evidence_hits"]:
+        hits = ["%s x%d" % (k, v) for k, v in sorted(r["evidence_hits"].items())]
+        words += ("; %d path(s) excluded as EVIDENCE by %d of %d rule(s): %s"
+                  % (r["evidence_paths"], len(r["evidence_hits"]),
+                     len(DIRECTOR_EVIDENCE), _cap(hits, keep=4, sep=", ")))
+    words += "; the %d-line bound is %s" % (DIRECTOR_MIN_LINES, DIRECTOR_MIN_SOURCE)
+    return toks + words
+
+
 def _cadence_ref_phrase(r):
     """WHICH INSTANT the freshness was measured against, in words.
 
@@ -2847,16 +3150,17 @@ def _cadence_ref_phrase(r):
             # THE PAIRED READING: the reference and the distance from HEAD to
             # it, one entry, so nobody has to hold two stamps in their head to
             # see why HEAD is not the answer. Non-code by construction: the
-            # reference IS the newest commit that touched Assets/Scripts.
+            # reference IS the newest commit that touched the reviewed scope,
+            # so everything after it touched none of it.
             p += " (HEAD %s is +%d non-code commit(s) later)" % (
                 r["head_iso"], r["noncode"])
         return p
     if r["ref_kind"] == "nocode-shallow":
-        return ("HEAD %s — SHALLOW clone, no commit touching Assets/Scripts is "
-                "reachable in it, so the reference falls back to HEAD (stricter)"
-                % r["head_iso"])
-    return ("HEAD %s — NO commit in this history has ever touched "
-            "Assets/Scripts, so the reference falls back to HEAD (stricter)"
+        return ("HEAD %s — SHALLOW clone, no commit touching the reviewed scope "
+                "is reachable in it, so the reference falls back to HEAD "
+                "(stricter)" % r["head_iso"])
+    return ("HEAD %s — NO commit in this history has ever touched the reviewed "
+            "scope, so the reference falls back to HEAD (stricter)"
             % r["head_iso"])
 
 
@@ -2933,7 +3237,7 @@ def _cadence_summary(r):
     # line(s)" for "nothing is pending" while 300 untracked lines sat beside it
     # in a note — two keys whose relationship the reader had to remember.
     lines = ("%d changed line(s) (%d tracked + %d untracked in %d new file(s)) "
-             "vs %d threshold under Assets/Scripts" % (
+             "vs %d threshold over the reviewed scope" % (
                  r["changed"], r["tracked"], r["untracked"],
                  r["untracked_files"], DIRECTOR_MIN_LINES))
     if not r["log"]:
@@ -2948,6 +3252,12 @@ def _cadence_summary(r):
     # defect as a zero with no denominator, and the fallback worlds are exactly
     # the ones whose log is likeliest to be empty.
     ref = "reference = " + _cadence_ref_phrase(r)
+    # UNCONDITIONAL FOR THE SAME REASON AS `ref`, and it is the clause 1 Sep
+    # was missing: without it a zero cannot be told from a scope that looked
+    # nowhere near the work. It rides the red branches too, because the run
+    # where the gate has something to say is the run where a reader most needs
+    # to know what it walked.
+    scope = _cadence_scope_phrase(r)
     # UNCONDITIONAL LIKE `ref`, and for the same reason: the artifact half is
     # now what the gate turns on, so a reader must never have to infer from
     # the absence of a clause whether anything was looked for.
@@ -2967,19 +3277,20 @@ def _cadence_summary(r):
         notes += "; %d untracked file(s) UNREADABLE, counted as 0 lines" % r["unreadable"]
 
     if r["state"] == "logmissing":
-        return ("DIRECTOR LOG MISSING: %s, %s, %s, %s — an absent instrument is "
-                "not compliance; spawn studio-director and let the hook write "
+        return ("DIRECTOR LOG MISSING: %s, %s, %s, %s, %s — an absent instrument "
+                "is not compliance; spawn studio-director and let the hook write "
                 "the row%s%s"
-                % (lines, rows, ref, rule, notes, _cadence_spend(r)))
+                % (lines, rows, ref, scope, rule, notes, _cadence_spend(r)))
     if r["state"] == "unspawned":
         seen = ""
         if r["stale_code"]:
             seen = (" (%d director row(s) in the log, all older than that "
                     "reference; newest %s vs reference %s)" % (
                         r["stale_code"], r["newest_dir"] or "?", r["ref_iso"]))
-        return ("DIRECTOR NOT SPAWNED: %s, %s, %s%s, %s — spawn studio-director "
-                "for the batch review, then re-run verify%s%s"
-                % (lines, rows, ref, seen, rule, notes, _cadence_spend(r)))
+        return ("DIRECTOR NOT SPAWNED: %s, %s, %s%s, %s, %s — spawn "
+                "studio-director for the batch review, then re-run verify%s%s"
+                % (lines, rows, ref, seen, scope, rule, notes,
+                   _cadence_spend(r)))
     # THE HOLE CLAUDE.md NAMED, NOW A STATE OF ITS OWN. A spawn row proves
     # attendance; it cannot prove a ruling, and on 25 Aug a director killed by
     # a session limit at 17:01:24Z cleared this gate over an ~1,800-line batch
@@ -2987,14 +3298,14 @@ def _cadence_summary(r):
     # than spawn, because CLAUDE.md's ruling is that a killed spawn is resumed
     # and never restarted — a restart burns a second Fable seat for one review.
     if r["state"] == "unruled":
-        return ("DIRECTOR RAN BUT DID NOT RULE: %s, %s, %s, %s — a spawn row is "
-                "attendance, not a review. The ruling must land in %s/%s and "
+        return ("DIRECTOR RAN BUT DID NOT RULE: %s, %s, %s, %s, %s — a spawn row "
+                "is attendance, not a review. The ruling must land in %s/%s and "
                 "close with the HTML comment <!--RULING spawn=STAMP--> where "
                 "STAMP is the rulingUnruledNewest value above, quoted from the "
                 "log verbatim; RESUME the killed director rather than "
                 "restarting it, "
                 "then re-run verify%s%s"
-                % (lines, rows, ref, rule, DIRECTOR_DECISION_DIR,
+                % (lines, rows, ref, scope, rule, DIRECTOR_DECISION_DIR,
                    DIRECTOR_DECISION_GLOB, notes, _cadence_spend(r)))
     # THE WORD TRACKS THE NUMBER IT NAMES. "REVIEWED" is a claim about director
     # rows, so it is computed from `since` and not from the line count — a mutant
@@ -3014,20 +3325,116 @@ def _cadence_summary(r):
         verdict = "under threshold, review not required"
     # THE SPEND READING RIDES EVERY BRANCH, red ones included — drift is most
     # worth seeing on the run where the gate also has something to say.
-    return "director cadence ok (%s, %s; %s; %s; %s)%s%s" % (
-        lines, verdict, rows, ref, rule, notes, _cadence_spend(r))
+    return "director cadence ok (%s, %s; %s; %s; %s; %s)%s%s" % (
+        lines, verdict, rows, ref, scope, rule, notes, _cadence_spend(r))
+
+
+def _cadence_series(repo, n=60):
+    """PRINT THE SERIES BEFORE ANYONE SETS A BOUND (rule 2). Returns lines.
+
+    Per-commit work lines under the CURRENT reviewed scope, newest first, then
+    the sorted non-zero distribution, then where the inherited bound sits in
+    it. The raw series is printed ABOVE both summaries on purpose, the same
+    order `tools/gates.py --series` uses: a human reading the row of numbers
+    sees a regime change in a second and no aggregate can show it at all —
+    and this scope has just had one, which is the whole reason this exists.
+
+    IT READS THE SAME CLASSIFIER THE GATE DOES. `_cadence_classify` walks every
+    path of every commit here, so the series and the gated number cannot
+    disagree about what work is; a printer with its own pathspec would be the
+    second implementation that quietly drifts from the first.
+
+    WHAT THE NUMBER IS A STATISTIC OF, said out loud because three numbers on
+    one screen invite the wrong reading: each entry is a CUMULATIVE adds+dels
+    over one landed commit, restricted to work paths. `zeroes` counts commits
+    that touched no work path at all. The median is over the NON-ZERO entries
+    only — over the whole series it would be the median of "did a commit touch
+    code", which is a different question — and the max is printed beside it
+    because a median structurally cannot see the tail.
+
+    THE GATE READS PENDING LINES, THESE ARE LANDED ONES. They are the same
+    measurement over different populations, which is exactly the relationship
+    the old 100 had to its own evidence; it is named here so nobody quotes a
+    per-commit percentile as if it were a reading of the working tree."""
+    out = []
+    code, blob = _git(repo, "log", "-n", str(n), "--numstat",
+                      "--format=%x01%h %ct", "--no-renames", "HEAD")
+    per, cur = [], None
+    for line in blob.splitlines():
+        if line.startswith("\x01"):
+            if cur is not None:
+                per.append(cur)
+            cur = [line[1:].split()[0] if line[1:].split() else "?", 0]
+            continue
+        cols = line.split("\t")
+        if cur is None or len(cols) < 3 or cols[0] == "-":
+            continue
+        bucket, _label = _cadence_classify("\t".join(cols[2:]))
+        if bucket == "work":
+            cur[1] += int(cols[0]) + int(cols[1])
+    if cur is not None:
+        per.append(cur)
+    if not per:
+        out.append("director-cadence series: %s — 0 commit(s) walked, so "
+                   "nothing was measured (is this a repository with history?)"
+                   % NOTHING_MEASURED)
+        return out
+    vals = [v for _sha, v in per]
+    nz = sorted(v for v in vals if v)
+    out.append("director-cadence series: CUMULATIVE work lines per landed "
+               "commit, over %d commit(s) walked" % len(per))
+    out.append("  scope: %d work prefix(es) [%s], %d evidence rule(s)"
+               % (len(DIRECTOR_WORK),
+                  "/".join(l for _p, l, _w in DIRECTOR_WORK),
+                  len(DIRECTOR_EVIDENCE)))
+    out.append("  newest first: " + " ".join(str(v) for v in vals))
+    out.append("  non-zero sorted: " + (" ".join(str(v) for v in nz)
+                                        if nz else NOTHING_MEASURED))
+    if nz:
+        out.append("  zeroes=%d of %d walked; non-zero median=%d p90=%d max=%d"
+                   % (len(vals) - len(nz), len(vals), nz[len(nz) // 2],
+                      nz[min(len(nz) - 1, int(len(nz) * 0.9))], nz[-1]))
+    else:
+        out.append("  zeroes=%d of %d walked; no commit in the window touched "
+                   "the reviewed scope, so the distribution measured NOTHING"
+                   % (len(vals), len(vals)))
+    over = [v for v in vals if v > DIRECTOR_MIN_LINES]
+    out.append("  at the current bound of %d: %d of %d walked commit(s) would "
+               "be substantial (%s)"
+               % (DIRECTOR_MIN_LINES, len(over), len(vals),
+                  DIRECTOR_MIN_SOURCE))
+    top = ["%s:%d" % (sha, v) for sha, v in sorted(
+        per, key=lambda x: -x[1]) if v]
+    out.append("  biggest: " + _cap(top, keep=6, sep=" ",
+                                    tail="nothing-measured"))
+    return out
 
 
 def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True,
                      untracked=0, untracked_binary=0, noncode_commit=False,
                      shallow=False, agents=None, ruling=None,
-                     ruling_path=None, ruling_tracked=False):
+                     ruling_path=None, ruling_tracked=False,
+                     work_path=None, also=None, noncode_path=None):
     """One throwaway repo: a commit at a PINNED time, then a pending change.
 
     The commit date is pinned so "newer than HEAD" is arithmetic rather than a
     race with the wall clock — a fixture that passes because the test ran fast
     is a fixture that will fail on a slow machine and teach everyone to re-run
-    the suite until it goes green."""
+    the suite until it goes green.
+
+    THE THREE PARAMETERS ADDED 1 SEP, all for one question — WHERE the work
+    is, which is the thing the gate had stopped being able to see:
+
+      work_path   repo-relative path carrying the `added` lines, instead of
+                  the Scripts/docs pair `in_scripts` chooses between. This is
+                  how a fixture puts a batch under `tools/` or a workflow.
+      also        [(relpath, lines), ...] written as UNTRACKED pending files,
+                  so one fixture can spread a batch across several prefixes or
+                  drop content on an evidence path.
+      noncode_path  the path the later `noncode_commit` touches. Its default
+                  is CI's stills file; naming it is how the suite asks whether
+                  a given path MOVES THE REFERENCE, which is the half of this
+                  gate a widened scope changes."""
     d = work / name
     (d / "ledger" / "Assets" / "Scripts").mkdir(parents=True)
     (d / "game-design").mkdir(parents=True, exist_ok=True)
@@ -3037,8 +3444,10 @@ def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True,
                GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
     subprocess.run(["git", "init", "-q", "-b", "main", str(d)],
                    capture_output=True, text=True)
-    target = (d / "ledger" / "Assets" / "Scripts" / "Sim.cs") if in_scripts \
-        else (d / "game-design" / "notes.md")
+    target = (d / work_path) if work_path else (
+        (d / "ledger" / "Assets" / "Scripts" / "Sim.cs") if in_scripts
+        else (d / "game-design" / "notes.md"))
+    target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text("baseline\n", encoding="utf-8")
     subprocess.run(["git", "-C", str(d), "add", "-A"], capture_output=True, text=True)
     subprocess.run(["git", "-C", str(d), "commit", "-q", "-m", "base"],
@@ -3050,9 +3459,10 @@ def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True,
     if noncode_commit:
         env2 = dict(env, GIT_AUTHOR_DATE="%d +0000" % CADENCE_NONCODE_CT,
                     GIT_COMMITTER_DATE="%d +0000" % CADENCE_NONCODE_CT)
-        (d / "game-design" / "stills.txt").write_text(
-            "Sim stills from deadbee\n", encoding="utf-8")
-        subprocess.run(["git", "-C", str(d), "add", "game-design/stills.txt"],
+        later = noncode_path or "game-design/stills.txt"
+        (d / later).parent.mkdir(parents=True, exist_ok=True)
+        (d / later).write_text("Sim stills from deadbee\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(d), "add", later],
                        capture_output=True, text=True)
         subprocess.run(["git", "-C", str(d), "commit", "-q", "-m",
                         "Sim stills from deadbee"],
@@ -3065,8 +3475,9 @@ def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True,
         subprocess.run(["git", "clone", "-q", "--depth", "1", "-b", "main",
                         "file://" + str(d), str(c)], capture_output=True, text=True)
         d = c
-        target = (d / "ledger" / "Assets" / "Scripts" / "Sim.cs") if in_scripts \
-            else (d / "game-design" / "notes.md")
+        target = (d / work_path) if work_path else (
+            (d / "ledger" / "Assets" / "Scripts" / "Sim.cs") if in_scripts
+            else (d / "game-design" / "notes.md"))
     if added:
         with target.open("a", encoding="utf-8") as fh:
             fh.write("".join("line %d\n" % i for i in range(added)))
@@ -3074,6 +3485,14 @@ def _cadence_fixture(work, name, added, rows, log=True, in_scripts=True,
     # holding the lines. Not a new file in an existing folder — the directory
     # is what `git status --porcelain` collapses to one entry, and a fixture
     # that used an existing folder would pass against the broken version.
+    # PENDING CONTENT AT NAMED PATHS, untracked so it needs no staging: the
+    # shape a builder leaves for review, and the only way to put lines under
+    # several prefixes (or on an evidence path) in one fixture.
+    for rel, count in (also or []):
+        f = d / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("".join("also %d\n" % i for i in range(count)),
+                     encoding="utf-8")
     if untracked or untracked_binary:
         u = d / "ledger" / "Assets" / "Scripts" / "NewMod"
         u.mkdir(parents=True, exist_ok=True)
@@ -3156,7 +3575,7 @@ def _cadence_selftest():
     The accepting cases go first because this guard can block every commit in
     the project: the expensive failure here is not a review that slips through,
     it is a validator nothing survives. Two of the accepting cases exist only
-    because of that — a large diff OUTSIDE Assets/Scripts, and a fresh row
+    because of that — a large diff OUTSIDE the reviewed scope, and a fresh row
     written with an offset instead of a Z.
 
     THE ARTIFACT HALF (25 Aug) IS HELD TO THE SAME ORDER. `a2` is a COMPLETED
@@ -3166,6 +3585,12 @@ def _cadence_selftest():
     holds the other end: a small change gains no new way to be blocked.
 
     Returns (passed, failed, lines)."""
+    # DECLARED HERE BECAUSE PYTHON REQUIRES IT BEFORE FIRST USE, and used ONCE,
+    # far below: the `r18` ladder re-reads one fixture under the pre-1-Sep
+    # scope so the before/after is measured rather than inferred. Restored in a
+    # `finally` and the restoration is asserted, because a suite that leaked
+    # the narrow scope would quietly test the old gate from there on.
+    global DIRECTOR_WORK, DIRECTOR_EVIDENCE
     import atexit
     import shutil
     import tempfile
@@ -3192,6 +3617,63 @@ def _cadence_selftest():
         else:
             failed += 1
             lines.append("  FAIL " + label + (" — " + detail if detail else ""))
+
+    # ==================================================================
+    # THE CLASSIFIER, BEFORE ANY REPO. Every number below is downstream of
+    # one question — is this path work — so it is asserted first and on its
+    # own, where a failure says "the scope is wrong" instead of arriving as
+    # eleven confusing fixture failures. ACCEPTING CASES FIRST inside this
+    # block too: the paths that MUST count as work come before the ones that
+    # must not, because a classifier that calls nothing work is the validator
+    # nothing survives, wearing a scope's clothes.
+    # ==================================================================
+    say(_cadence_scope("ledger/Assets/Scripts/Sim.cs") == ("work", "scripts")
+        and _cadence_scope("ledger/verify.py") == ("work", "ledger")
+        and _cadence_scope("tools/gates.py") == ("work", "tools")
+        and _cadence_scope(".github/workflows/ledger-core-tests.yml")
+            == ("work", "workflows")
+        and _cadence_scope(".githooks/commit-msg") == ("work", "githooks")
+        and _cadence_scope("ue-probe/Source/Probe.cpp") == ("work", "ueprobe")
+        and _cadence_scope("content/props/manifest.json") == ("work", "content"),
+        "ACCEPT one live path per work prefix, each labelled with the prefix "
+        "it matched — the seven the 1 Sep day was invisible to")
+    say(_cadence_scope("ledger/Assets/Scripts/A.cs")[1] == "scripts"
+        and _cadence_scope("ledger/Assets/Art/A.png")[1] == "ledger",
+        "ACCEPT ORDER IS LOAD-BEARING: Assets/Scripts is attributed to the "
+        "scripts bucket and the rest of ledger/ is not")
+    say(_cadence_scope("game-design/roadmap.md")[0] == "other"
+        and _cadence_scope("production/queue/010.md")[0] == "other"
+        and _cadence_scope("CLAUDE.md")[0] == "other",
+        "REJECT docs, queue files and the rules file are OUTSIDE the reviewed "
+        "scope — planning is not the batch a director reviews")
+    say(_cadence_scope("ledger/.verify-footer") == ("evidence", "verifyfooter")
+        and _cadence_scope("STATUS.md") == ("evidence", "status")
+        and _cadence_scope("game-design/sim-shots/verdict.txt")[0] == "evidence"
+        and _cadence_scope(".claude/agent-log.tsv")[0] == "evidence",
+        "REJECT evidence beats work: the verify footer sits INSIDE ledger/ and "
+        "is still excluded, which is the precedence the order encodes")
+    say(_cadence_classify("ledger/{Assets => Attic}/Scripts/Sim.cs")
+            == ("work", "scripts")
+        and _cadence_classify("tools/old.py => game-design/old.py")[0] == "work"
+        and _cadence_classify("production/{scratch => mesh-reports}/r.txt")[0]
+            == "evidence"
+        and _cadence_rename_paths("a/{ => sub}/f.cs") == ["a/f.cs", "a/sub/f.cs"],
+        "ACCEPT both git rename spellings resolve to their two real paths, and "
+        "the stricter side wins",
+        str(_cadence_rename_paths("a/{ => sub}/f.cs")))
+    spec = _cadence_pathspec()
+    say(len(spec) == len(DIRECTOR_WORK) + len(DIRECTOR_EVIDENCE)
+        and all(p in spec for p, _l, _w in DIRECTOR_WORK)
+        and all(":(exclude)" + e in spec for e, _l, _w in DIRECTOR_EVIDENCE),
+        "ACCEPT the git pathspec is DERIVED from the same two constants — %d "
+        "include(s) + %d exclude(s), none hand-written"
+        % (len(DIRECTOR_WORK), len(DIRECTOR_EVIDENCE)), " ".join(spec))
+    labels = [l for _p, l, _w in DIRECTOR_WORK] + [l for _e, l, _w in DIRECTOR_EVIDENCE]
+    say(all(l and not re.search(r"[\s/:]", l) for l in labels)
+        and len(set(l for _p, l, _w in DIRECTOR_WORK)) == len(DIRECTOR_WORK),
+        "ACCEPT every scope label is whitespace-free, holds no / or :, and the "
+        "work labels are unique — they ride a key=value channel",
+        "/".join(labels))
 
     d = _cadence_fixture(work, "a1-small-no-director", 5,
                          [(CADENCE_FRESH, "systems-builder")])
@@ -3229,10 +3711,24 @@ def _cadence_selftest():
     say(a3["ok"] and a3["changed"] == 100,
         "ACCEPT exactly 100 changed lines (the bound is MORE than 100)", a3["summary"])
 
+    # THE LABEL ON THIS ONE USED TO SAY "outside Assets/Scripts" AND WOULD NOW
+    # BE FALSE — the lines are in `game-design/notes.md`, which is outside the
+    # REVIEWED SCOPE, a set of seven prefixes since 1 Sep. Renamed rather than
+    # left, because a fixture label is a claim with a test attached and this
+    # one would have decayed into describing a scope that no longer exists.
     d = _cadence_fixture(work, "a4-large-outside", 500, [], in_scripts=False)
     a4 = _cadence_read(d)
-    say(a4["ok"] and a4["changed"] == 0,
-        "ACCEPT 500 lines outside Assets/Scripts", a4["summary"])
+    # The second walked path is the fixture's own `.claude/agent-log.tsv`,
+    # untracked and excluded as EVIDENCE — the instrument's input file, caught
+    # by the rule that stops the gate feeding itself. Asserted rather than
+    # tolerated, because it is the cheapest live proof that the exclusion runs.
+    say(a4["ok"] and a4["changed"] == 0 and a4["other_paths"] == 1
+        and "pathsWalked=2 pathsWork=0 pathsEvidence=1 pathsOther=1"
+            in a4["summary"]
+        and "agentlog x1" in a4["summary"],
+        "ACCEPT 500 lines of DOCS, outside the reviewed scope: 2 path(s) "
+        "walked, 0 work, and the agent log named as the excluded one",
+        a4["summary"])
 
     d = _cadence_fixture(work, "a5-small-no-log", 5, [], log=False)
     a5 = _cadence_read(d)
@@ -3381,6 +3877,82 @@ def _cadence_selftest():
         "ACCEPT two fresh spawns with one ruling — green, and the unruled "
         "spawn is still NAMED on the green line", a14["summary"])
 
+    # ==================================================================
+    # THE WIDENED SCOPE (1 Sep), ACCEPTING SIDE FIRST AND FOR THE USUAL
+    # REASON: widening what counts as work is a NEW WAY FOR THIS GATE TO GO
+    # RED, and this gate blocks every commit in the project. The three cases
+    # below are the ones a careless widening breaks — a small change under a
+    # newly-watched prefix, a large pile of machine-written EVIDENCE, and the
+    # reference-commit fix that cost three false reds to get right.
+    # ==================================================================
+    d = _cadence_fixture(work, "a15-small-tools", 5,
+                         [(CADENCE_FRESH, "systems-builder")],
+                         work_path="tools/gates.py")
+    a15 = _cadence_read(d)
+    say(a15["ok"] and a15["changed"] == 5 and a15["by_scope"]["tools"] == 5
+        and "under threshold, review not required" in a15["summary"],
+        "ACCEPT a SMALL change under a newly-watched prefix (tools/) stays "
+        "green — widening the scope must not make small work reviewable",
+        a15["summary"])
+
+    # EVIDENCE IS NOT WORK, AND THIS IS THE RATCHET GUARD FOR IT. `STATUS.md`
+    # and the mesh reports are rewritten by tooling many times a day; if they
+    # counted, every commit in the project would be "substantial" and the gate
+    # would demand a director review of its own machinery's output.
+    d = _cadence_fixture(work, "a16-large-evidence-only", 0,
+                         [(CADENCE_FRESH, "systems-builder")],
+                         in_scripts=False,
+                         also=[("STATUS.md", 200),
+                               ("production/mesh-reports/mesh-machine-report.txt", 200),
+                               ("game-design/sim-shots/verdict.txt", 40)])
+    a16 = _cadence_read(d)
+    say(a16["ok"] and a16["changed"] == 0 and a16["evidence_paths"] == 4
+        and a16["work_paths"] == 0
+        and "excluded as EVIDENCE by 4 of %d rule(s)" % len(DIRECTOR_EVIDENCE)
+            in a16["summary"],
+        "ACCEPT 440 lines of machine-written EVIDENCE (STATUS.md, a mesh "
+        "report, a CI verdict) count as 0 work and are NAMED", a16["summary"])
+
+    # EVERY EXCLUSION RULE CAN BITE, asserted rather than assumed. A rule that
+    # matches nothing is decoration that reads as protection, and this list is
+    # exactly the kind that acquires a stale path nobody notices — one file at
+    # every entry, and the count must come back equal to the list length.
+    d = _cadence_fixture(work, "a17-every-evidence-rule", 5,
+                         [(CADENCE_FRESH, "systems-builder")],
+                         also=[((e + "probe.txt") if e.endswith("/") else e, 3)
+                               for e, _l, _w in DIRECTOR_EVIDENCE])
+    a17 = _cadence_read(d)
+    say(a17["ok"] and a17["evidence_paths"] == len(DIRECTOR_EVIDENCE)
+        and sorted(a17["evidence_hits"]) == sorted(
+            set(l for _e, l, _w in DIRECTOR_EVIDENCE))
+        and a17["changed"] == 5,
+        "ACCEPT every one of the %d evidence rules BITES on a file at its own "
+        "path, and none of them adds a line to the gated total"
+        % len(DIRECTOR_EVIDENCE),
+        "%d hit(s): %s" % (a17["evidence_paths"], sorted(a17["evidence_hits"])))
+
+    # THE REFERENCE-COMMIT FIX, RE-ASSERTED UNDER THE WIDER SCOPE. `a9` proves
+    # a docs commit does not invalidate a review; this proves the harder case
+    # the widening creates: `ledger/.verify-footer` is INSIDE the `ledger/`
+    # work prefix and is excluded as evidence, so a commit touching only it
+    # must not move the reference either. That is only true if the exclusion
+    # reached the GIT PATHSPEC as well as the python classifier — one idea,
+    # two consumers, and this is the fixture that would catch them drifting.
+    d = _cadence_fixture(work, "a18-footer-commit-not-reference", 150,
+                         [(CADENCE_FRESH, "studio-director")],
+                         work_path="tools/build-dashboard.py",
+                         noncode_commit=True,
+                         noncode_path="ledger/.verify-footer",
+                         ruling=_ruling_doc(STAMP_FRESH))
+    a18 = _cadence_read(d)
+    say(a18["ok"] and a18["ref_kind"] == "code" and a18["noncode"] == 1
+        and a18["since_code"] == 1 and a18["ruling_fresh"] == 1
+        and a18["ref_iso"] < CADENCE_FRESH < a18["head_iso"]
+        and "REVIEWED" in a18["summary"],
+        "ACCEPT a commit touching ONLY ledger/.verify-footer — inside a work "
+        "prefix, excluded as evidence — does not move the reference",
+        a18["summary"])
+
     # REJECTING — the states the escalation rule actually decays into.
     d = _cadence_fixture(work, "r1-101-no-director", 101,
                          [(CADENCE_FRESH, "instrument-builder")])
@@ -3455,7 +4027,7 @@ def _cadence_selftest():
         "REJECT a director row OLDER than the last code commit, even with a "
         "non-code commit on top", r8["summary"])
 
-    # NO COMMIT HAS EVER TOUCHED Assets/Scripts. The reference has nothing to
+    # NO COMMIT HAS EVER TOUCHED THE REVIEWED SCOPE. The reference has nothing to
     # point at, so it falls back to HEAD — the pre-25-Aug behaviour, which is
     # the STRICTER direction — and says which world it is in rather than
     # printing a reference that looks like a code commit.
@@ -3589,20 +4161,132 @@ def _cadence_selftest():
         "instrument is not compliance, and the record has nothing to pair to",
         r17["summary"])
 
+    # ==================================================================
+    # 1 SEPTEMBER 2026, REPRODUCED. THE WHOLE POINT OF THE WIDENING.
+    # That day the session wrote tools, a workflow, C++ under ue-probe and a
+    # git hook — a full day of substantive work, zero director reviews, zero
+    # agent spawns — and this gate printed `0 changed line(s) ... under
+    # threshold, review not required` on every run. It did not fail. It was
+    # aimed at `ledger/Assets/Scripts/`, where the work used to be.
+    #
+    # The fixture asserts BOTH readings from ONE run, which is what makes it
+    # evidence rather than a claim: `changed=170` is the new gate's number and
+    # `by_scope["scripts"]=0` is the number the old gate would have compared
+    # against 100. Same tree, same instant, two answers — red now, green then.
+    # ==================================================================
+    d = _cadence_fixture(work, "r18-work-outside-scripts", 90,
+                         [(CADENCE_FRESH, "instrument-builder")],
+                         work_path="tools/dashboard/build-dashboard.py",
+                         also=[(".github/workflows/ledger-build-windows.yml", 30),
+                               ("ue-probe/Source/Probe.cpp", 40),
+                               (".githooks/commit-msg", 10)])
+    d18 = d
+    r18 = _cadence_read(d)
+    say(not r18["ok"] and r18["state"] == "unspawned"
+        and r18["changed"] == 170 and r18["by_scope"]["scripts"] == 0
+        and r18["by_scope"]["tools"] == 90
+        and r18["by_scope"]["workflows"] == 30
+        and r18["by_scope"]["ueprobe"] == 40
+        and r18["by_scope"]["githooks"] == 10
+        and "workByScope=scripts:0/ledger:0/tools:90/workflows:30/githooks:10/"
+            "ueprobe:40/content:0" in r18["summary"],
+        "REJECT 1 SEPTEMBER: 170 lines of tools, a workflow, C++ and a hook "
+        "with no director row — RED now, and scripts:0 is what the old gate "
+        "measured on the same tree", r18["summary"])
+    # THE LADDER: ONE CONTRIBUTOR TOGGLED, BOTH RUNGS READ FROM THE SAME
+    # VANTAGE IN THE SAME RUN. The rung above is the widened scope; this one
+    # re-reads THE SAME FIXTURE DIRECTORY with the pre-1-Sep configuration
+    # restored — `ledger/Assets/Scripts/` alone, no evidence list — so the
+    # claim "this would have gone green before" is a MEASUREMENT and not an
+    # inference off `by_scope`. A rung compared across runs would be a
+    # different photograph; these two are one tree, one second, two answers.
+    #
+    # The globals are restored in a `finally`, and the restoration is asserted
+    # below, because a suite that leaked the narrow scope into the fixtures
+    # after it would quietly test the OLD gate and pass.
+    wide_work, wide_evidence = DIRECTOR_WORK, DIRECTOR_EVIDENCE
+    try:
+        DIRECTOR_WORK = ((DIRECTOR_SCRIPTS, "scripts",
+                          "the scope as it stood before 1 Sep 2026"),)
+        DIRECTOR_EVIDENCE = ()
+        r18_old = _cadence_read(d18)
+    finally:
+        DIRECTOR_WORK, DIRECTOR_EVIDENCE = wide_work, wide_evidence
+    say(r18_old["ok"] and r18_old["state"] == "ok" and r18_old["changed"] == 0
+        and "under threshold, review not required" in r18_old["summary"]
+        and not r18["ok"] and r18["changed"] == 170,
+        "THE LADDER, ONE TREE, TWO SCOPES: the pre-1-Sep gate reads %d changed "
+        "line(s) and says review not required; the widened one reads %d and "
+        "refuses. That difference is the fix"
+        % (r18_old["changed"], r18["changed"]), r18_old["summary"])
+    say(DIRECTOR_WORK is wide_work and DIRECTOR_EVIDENCE is wide_evidence
+        and len(DIRECTOR_WORK) == 7,
+        "the ladder restored the widened scope before any later fixture ran "
+        "(%d work prefix(es), %d evidence rule(s))"
+        % (len(DIRECTOR_WORK), len(DIRECTOR_EVIDENCE)))
+
+    # AND THE REFERENCE MOVES WITH THE SCOPE, which is the half a widening can
+    # silently get wrong in the LOOSER direction. A commit landing under
+    # `tools/` is now a work commit, so a director row older than it is stale
+    # and its review is spent — the same strictness `r8` asserts for a commit
+    # under Assets/Scripts. Without this, widening the diff scope while
+    # leaving the reference narrow would let one review cover every batch
+    # until somebody happened to touch the Unity tree.
+    d = _cadence_fixture(work, "r19-tools-commit-moves-reference", 150,
+                         [(CADENCE_FRESH, "studio-director")],
+                         work_path="tools/gates.py", noncode_commit=True,
+                         noncode_path="tools/newly-landed.py",
+                         ruling=_ruling_doc(STAMP_FRESH))
+    r19 = _cadence_read(d)
+    say(not r19["ok"] and r19["state"] == "unspawned"
+        and r19["since_code"] == 0 and r19["stale_code"] == 1
+        and r19["ref_kind"] == "code" and r19["noncode"] == 0
+        and r19["ref_iso"] > CADENCE_FRESH,
+        "REJECT a landed commit under tools/ MOVES the reference, so the "
+        "director row before it is stale and the ruling is spent",
+        r19["summary"])
+
     # NEVER LOOSER THAN THE VERSION IT REPLACES, asserted over every fixture in
     # the suite rather than argued in prose: any substantial diff that goes
     # GREEN must have BOTH a fresh spawn row (the old gate's whole test) and a
     # ruling record (the new one). A regression that stopped reading the log
     # would pass every individual case above and die here.
     every = (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14,
+             a15, a16, a17, a18,
              r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14,
-             r15, r16, r17)
+             r15, r16, r17, r18, r19)
     loose = [x for x in every if x["ok"] and x["changed"] > DIRECTOR_MIN_LINES
              and not (x["since_code"] > 0 and x["ruling_fresh"] > 0)]
     say(not loose,
         "NEVER LOOSER: across %d fixtures, every GREEN substantial diff has "
         "both a fresh spawn row and a ruling record" % len(every),
         "loose=%d" % len(loose))
+
+    # THE BUCKETS ARE A PARTITION, asserted over every fixture rather than
+    # written down once. `pathsWalked` is the denominator of the other three,
+    # so if they stop summing to it the printed line is quietly claiming to
+    # have looked at paths it dropped — rule 3b's failure with a number
+    # attached, which is the convincing kind.
+    split = [x for x in every
+             if x["walked"] != x["work_paths"] + x["evidence_paths"]
+             + x["other_paths"]]
+    say(not split,
+        "EVERY PATH LANDS IN EXACTLY ONE BUCKET: across %d fixtures, "
+        "pathsWork + pathsEvidence + pathsOther == pathsWalked" % len(every),
+        _cap(["%d!=%d" % (x["walked"], x["work_paths"] + x["evidence_paths"]
+                          + x["other_paths"]) for x in split], keep=3))
+
+    # AND NO WORK PREFIX MAY GO MISSING FROM THE PRINTED BREAKDOWN. The token
+    # is uncapped BY CONSTRUCTION (a compile-time constant of %d entries), so
+    # the thing to assert is that construction: every label present, in every
+    # fixture summary, zeroes included.
+    missing = [x["summary"][:40] for x in every
+               if any(("%s:%d" % (l, x["by_scope"].get(l, 0)))
+                      not in x["summary"] for _p, l, _w in DIRECTOR_WORK)]
+    say(not missing,
+        "EVERY WORK PREFIX PRINTS ITS OWN LINE COUNT, zeroes included, in all "
+        "%d fixture summaries — nothing is dropped from workByScope"
+        % len(every), _cap(missing, keep=2))
 
     # The exit-code contract, asserted rather than documented: every accepting
     # case exits 0, and the three reds are DISTINCT from each other.
@@ -3618,6 +4302,47 @@ def _cadence_selftest():
         "%s / %s / %s" % (r1["state"], r4["state"], r11["state"]))
 
     # ======================================================================
+    # ==================================================================
+    # THE SERIES PRINTER (1 Sep). It sets no bound and gates nothing — it is
+    # what a bound must be READ FROM before one is set, so its two outcomes
+    # are MEASURED and NOTHING-MEASURED rather than accept/reject. The
+    # measured case runs first for the usual reason: a printer that says
+    # "nothing measured" over a live repository is the silent-instrument
+    # failure, and it reads exactly like a quiet week.
+    # ==================================================================
+    d = _cadence_fixture(work, "p1-series-measured", 5,
+                         [(CADENCE_FRESH, "systems-builder")],
+                         work_path="tools/gates.py", noncode_commit=True,
+                         noncode_path="tools/newly-landed.py")
+    p1 = _cadence_series(d, 10)
+    say(p1 and "CUMULATIVE work lines per landed commit" in p1[0]
+        and "2 commit(s) walked" in p1[0]
+        and any("newest first:" in l for l in p1)
+        and any("at the current bound of %d" % DIRECTOR_MIN_LINES in l
+                for l in p1)
+        and any(DIRECTOR_MIN_SOURCE in l for l in p1),
+        "MEASURE the series printer walks a real history, names the statistic "
+        "as CUMULATIVE per landed commit, and says the bound is inherited",
+        _cap(p1, keep=2, sep=" | "))
+    # THE RAW SERIES ABOVE THE SUMMARIES, asserted rather than intended: that
+    # ordering is the whole argument for printing a series at all, because a
+    # regime change is visible in the row of numbers and in no aggregate. This
+    # scope has just had one, which is why the printer exists at all.
+    first_raw = [i for i, l in enumerate(p1) if "newest first:" in l]
+    first_sum = [i for i, l in enumerate(p1)
+                 if "median=" in l or "no commit in the window" in l]
+    say(first_raw and first_sum and first_raw[0] < first_sum[0],
+        "MEASURE the raw series prints ABOVE its own summaries",
+        _cap(p1, keep=6, sep=" | "))
+
+    empty = work / "p2-series-nothing"
+    empty.mkdir(parents=True, exist_ok=True)
+    p2 = _cadence_series(empty, 10)
+    say(p2 and NOTHING_MEASURED in p2[0] and "0 commit(s) walked" in p2[0],
+        "NOTHING MEASURED: a directory with no history prints the words and a "
+        "zero denominator, never an empty series that reads as a quiet week",
+        _cap(p2, keep=1))
+
     # THE SPEND READING (25 Aug). A READING, NOT A GATE — so its two outcomes
     # are not accept/reject but MEASURED and NOTHING-MEASURED, and the
     # measured cases run FIRST for the same reason the accepting ones do
@@ -3826,7 +4551,13 @@ def _cadence_selftest():
     # gets half a stamp.
     KEYS = ("directorSpawns", "fableShareDay", "fableShareAll", "fableAgents",
             "agentFilesRead", "rulingRecords", "rulingFiles", "rulingUnmatched",
-            "rulingRowsUnruled", "rulingUnruledNewest")
+            "rulingRowsUnruled", "rulingUnruledNewest",
+            # THE SCOPE KEYS RIDE THE SAME SCAN (1 Sep). `workByScope` is the
+            # longest value this line has ever carried and it is built from a
+            # constant, which is exactly the shape that acquires a space the
+            # day somebody adds a prefix with one in it.
+            "workByScope", "scopePrefixes", "pathsWalked", "pathsWork",
+            "pathsEvidence", "pathsOther")
     reads = (("s1", s1), ("s2", s2), ("s3", s3), ("s4", s4), ("s5", s5),
              ("s6", s6), ("s7", s7), ("s8a", s8a), ("s8c", s8c),
              ("s8d", s8d))
@@ -3868,9 +4599,37 @@ def director_cadence():
     and this file is a list of rules that decayed exactly that way.
 
     So: RED when a substantial change (more than DIRECTOR_MIN_LINES = 100
-    changed lines under Assets/Scripts, staged+unstaged, adds+dels summed) is
-    pending and there is no COMPLETED REVIEW newer than THE NEWEST COMMIT THAT
-    TOUCHED `ledger/Assets/Scripts` — not newer than HEAD.
+    changed lines inside THE REVIEWED SCOPE, staged+unstaged, adds+dels
+    summed) is pending and there is no COMPLETED REVIEW newer than THE NEWEST
+    COMMIT THAT TOUCHED THAT SCOPE — not newer than HEAD.
+
+    THE SCOPE IS A NAMED SET SINCE 1 SEP, AND THAT IS THE SECOND TIME THIS
+    GATE HAS BEEN WRONG IN A WAY NOTHING WENT RED ABOUT. It measured work as
+    changed lines under `ledger/Assets/Scripts/` alone. On 1 Sep the session
+    wrote new tools, a rewritten verify gate, three workflows, new C++ and a
+    new git hook, with zero director reviews and zero agent spawns, and this
+    line read `0 changed line(s) ... under threshold, review not required` all
+    day. Nothing was broken. The v2 respec had moved the centre of gravity out
+    of the Unity tree in a single day and nobody re-asked what the gate was
+    watching — learning.md L27, and the transferable half of it is the sharp
+    one: AN INSTRUMENT IS SCOPED TO WHERE THE WORK WAS WHEN IT WAS WRITTEN.
+
+    `DIRECTOR_WORK` is that scope, seven prefixes, each carrying why it counts;
+    `DIRECTOR_EVIDENCE` is what a machine WRITES ABOUT a run and outranks it.
+    The printed line now carries `pathsWalked` with `pathsWork`,
+    `pathsEvidence` and `pathsOther` beside it, and `workByScope` per prefix,
+    so "nothing happened" and "nothing I look at happened" stop looking alike
+    — which is the whole reason 1 Sep went unnoticed for a day.
+
+    THE BOUND IS STILL 100 AND IT IS NOT EVIDENCE FOR THIS SCOPE. It was set
+    from a printed series over `Assets/Scripts` only, so it is INHERITED, it
+    says so on every line it prints, and the printer that replaces it ships
+    beside it: `--cadence-series N` walks the last N landed commits with the
+    SAME classifier and prints the series above its own summaries. First real
+    reading, 120 commits on 1 Sep: 67 zeroes, non-zero median 123, p90 1920,
+    max 6188, and 28 of 120 commits over the inherited 100. Rule 2 says the
+    number comes from what the printer printed, so the bound moves in a later
+    change with that series quoted, not in this one.
 
     A COMPLETED REVIEW IS AN ARTIFACT, NOT AN ATTENDANCE ROW (25 Aug). The
     version this replaces asked only for a `studio-director` row newer than
@@ -3908,8 +4667,8 @@ def director_cadence():
 
     TWO THINGS IT STILL CANNOT SEE, stated here rather than discovered later.
     (1) A ruling stays fresh until the next commit that TOUCHES
-    Assets/Scripts, so a second batch arriving in that window rides the first
-    batch's record. That window is narrower than the one it replaces and it
+    the reviewed scope, so a second batch arriving in that window rides the
+    first batch's record. That window is narrower than the one it replaces and it
     closes itself the moment code lands — the same instant the old gate
     re-armed. (2) The stamp binds a record to A fresh spawn, not to THE spawn
     that wrote it: measured on the live tree, a stamp naming the DEAD
@@ -3919,16 +4678,21 @@ def director_cadence():
     replaces needed nobody to do anything at all. It is not trying to catch a
     director that lies; it exists for the review that never happened.
 
-    THE REFERENCE IS UNCHANGED AND MUST STAY THAT WAY.
+    THE REFERENCE RULE IS UNCHANGED AND MUST STAY THAT WAY: the last commit
+    that TOUCHED the reviewed scope, never HEAD.
     That reference moved on 25 Aug and the reason is in `_cadence_read`: the
-    threshold has always scoped to Assets/Scripts, the reference point did not,
-    and a stills-only commit from CI was invalidating a review given three
-    minutes earlier. A MISSING log is RED too on a substantial diff — the instrument
+    threshold has always scoped to the reviewed paths, the reference point did
+    not, and a stills-only commit from CI was invalidating a review given three
+    minutes earlier. The 1 Sep widening changes WHICH commits touch the scope
+    and nothing else about that rule — asserted in both directions, a18 (an
+    excluded evidence path does not move it) and r19 (a landed `tools/` commit
+    does). A MISSING log is RED too on a substantial diff — the instrument
     being absent must not read as compliance, which is the same fault as a zero
     with no denominator.
 
-    WHERE THE 100 CAME FROM, measured before it was written down rather than
-    defended afterwards: per-commit changed lines under `ledger/Assets/Scripts`
+    WHERE THE 100 CAME FROM — the series it was set against, which is now a
+    NARROWER POPULATION than the one it is applied to (see above): per-commit
+    changed lines under `ledger/Assets/Scripts`
     over the last 60 commits are 37 zeroes, then 19 21 22 23 29 35 36 38 46 48
     48 49 55 58 81, then 107 128 130 132 302 352 359 415. Nothing at all lands
     between 81 and 107, so the bound sits in a real gap in this project's own
@@ -4504,6 +5268,11 @@ def main():
                     help="run director_cadence's fixture suite, both ways, and exit")
     ap.add_argument("--cadence", action="store_true",
                     help="print the director-cadence reading for this tree and exit")
+    ap.add_argument("--cadence-series", nargs="?", type=int, const=60,
+                    metavar="N",
+                    help="print per-commit work lines under the reviewed scope "
+                         "over the last N landed commits (default 60) and exit "
+                         "— the printer a bound comes from, never the reverse")
     ap.add_argument("--selftest-strings", action="store_true",
                     help="run the footer-string fixtures, both ways, and exit")
     args = ap.parse_args()
@@ -4512,7 +5281,8 @@ def main():
     # anybody will actually read this, and a correct run that ends in a
     # BrokenPipeError traceback costs twenty minutes before somebody notices it
     # worked. The full run is left alone: it is not a pipe-into-head tool.
-    if args.selftest or args.cadence or args.selftest_strings:
+    if (args.selftest or args.cadence or args.selftest_strings
+            or args.cadence_series):
         try:
             import signal
             signal.signal(signal.SIGPIPE, signal.SIG_DFL)
@@ -4538,6 +5308,15 @@ def main():
         print(r["summary"])
         # 0 green / 1 nobody spawned / 2 no log / 3 spawned but never ruled
         return CADENCE_EXIT[r["state"]]
+
+    if args.cadence_series:
+        # FAIL READABLE: 0 when a series was printed, 2 when the walk measured
+        # NOTHING — a caller piping this into a bound-setting decision must be
+        # able to tell an empty window from a quiet one without reading prose.
+        out = _cadence_series(ROOT.parent, args.cadence_series)
+        for l in out:
+            print(l)
+        return 2 if any(NOTHING_MEASURED in l for l in out[:1]) else 0
 
     parts, all_ok = [], True
     for fn in (director_cadence, footer_strings,

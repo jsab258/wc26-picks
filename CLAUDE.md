@@ -1113,6 +1113,8 @@ last commit that TOUCHED `ledger/Assets/Scripts`**. The spawn log is the
 instrument; the verify footer carries the count into every commit message,
 so the commit feed shows the cadence.
 
+**CORRECTED 1 Sep by director ruling (game-design/decision-2026-09-01-cadence-widening-and-propview-batch.md): the scope in the sentence above is stale and is kept so it cannot be re-derived.** Since 1 Sep the gate counts pending lines across a NAMED SET of work prefixes minus a NAMED EVIDENCE LIST, and the reference instant is the newest commit that touched that set. On 1 Sep the old scope printed `0 changed line(s) ... review not required` through a full day of tools, workflow, C++ and hook work with no director review, and its freshness test was comparing against a commit 6.7 days old. The 100-line bound is inherited from the old scope and every printed line says so until a series under the new scope has been read and ruled on. The list itself lives in `DIRECTOR_WORK` and `DIRECTOR_EVIDENCE` in `ledger/verify.py`; read those, not this paragraph, because a copied list decays and the constants are tested.
+
 **This paragraph used to end "newer than HEAD's commit", and that was
 wrong** — quoted rather than deleted so the error cannot be re-derived by
 the next reader who finds it plausible, which it was to everyone who read
@@ -1196,6 +1198,8 @@ same day:
   is ratified as the mechanism — before that fix, a docs commit or CI
   committing its own stills invalidated a valid review and forced a fresh
   Fable spawn.
+
+  (Since 1 Sep the reference is the last commit that touched the REVIEWED SCOPE, a named set wider than `ledger/Assets/Scripts`. The mechanism is unchanged; the set moved. See the correction above.)
 - **Verifier first, director second.** Anything whose content is
   claim-checking goes to a tier-2 Opus verifier; the director is spawned
   with the verified position and spot-checks the verifier's citations.

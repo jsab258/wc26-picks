@@ -2,8 +2,16 @@ line: infrastructure (governance)
 spec: this file, plus learning.md L26 and L27
 acceptance: director_cadence counts work across a named prefix set with an evidence-exclusion list; the printed line names what was walked and what was excluded; the selftest gains a fixture reproducing 2026-09-01 (substantial work entirely outside Assets/Scripts, no director row) that MUST go red and would have gone green before
 max_sessions: 2
-status: STARTED AND STOPPED 2026-09-01 for usage. Nothing was written to disk;
-        the builder was still reading. Restart from this brief, not from scratch.
+status: DONE 2026-09-01, landed by director ruling
+        game-design/decision-2026-09-01-cadence-widening-and-propview-batch.md.
+        The gate now counts a named work set minus a named evidence list, prints
+        the per-prefix breakdown with its denominators, and says out loud that the
+        100-line bound is INHERITED and not yet evidence-based. Selftest 55 to 75,
+        including a fixture reproducing 1 September that goes RED under the new
+        scope and GREEN under the old, restored in a finally and asserted.
+        Measured on landing: 20,618 work lines across 89 commits dated 2026-09-01
+        under the new scope, 0 under the old, and the old reference instant was
+        6.7 days stale.
 
 director_cadence measures substantial work ONLY as changed lines under
 ledger/Assets/Scripts (constant DIRECTOR_SCRIPTS in ledger/verify.py). On
