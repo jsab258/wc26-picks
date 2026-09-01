@@ -1,3 +1,18 @@
-# UE machine probe - 6db148c
-NO PROBE - the probe step did not reach its end (outcome: failure).
-Nothing was measured on this commit; do not read an older file as this run.
+# UE machine probe -  @1788263890
+# Line 1 names the commit this was measured on. D1 measurement a, setup cost.
+
+ueInstalls=2
+ue version=4.0 path=C:\Program~Files\Epic~Games\4.0\ editorCmd=False
+ue version=5.8 path=C:\Program~Files\Epic~Games\UE_5.8 editorCmd=True
+msvc NOT FOUND - vswhere absent, so no Visual Studio at all. THIS BLOCKS A C++ BUILD.
+dotnet=8.0.424
+disk C freeGB=87.3 usedGB=843.4
+disk D freeGB=0.1 usedGB=0.0
+disk E freeGB=9.6 usedGB=921.8
+disk F freeGB=104.9 usedGB=6.4
+disk G freeGB=1.5 usedGB=13.5
+disk H freeGB=58.5 usedGB=239.5
+disk I freeGB=83.0 usedGB=317.0
+disk Temp freeGB=87.3 usedGB=843.4
+
+probeReached=end
