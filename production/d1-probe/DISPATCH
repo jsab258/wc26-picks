@@ -13,3 +13,9 @@ run 2 - 2026-09-01 - run 1 died on "pwsh: command not found": the PATH
 bootstrap had been copied without its pwsh half. Complete block restored.
 run 3 - 2026-09-01 - run 2 measured correctly but shipped an empty sha on
 line 1; provenance now reads GITHUB_SHA. Re-run to confirm the fix.
+run 4 - 2026-09-01 - FIRST BUILD ATTEMPT. Compiles the ported perception core
+as a UE Program target, times a cold and a warm build separately, and runs
+the 1221-row golden test. Written to be informative when it fails: the exact
+UBT invocation for a project-hosted Program target in 5.8 is not testable
+from the container, so the step captures the command, the exit code, the
+elapsed time and the log tail either way.

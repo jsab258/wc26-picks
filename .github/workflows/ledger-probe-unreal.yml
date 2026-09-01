@@ -197,6 +197,91 @@ jobs:
           $L | Set-Content $out -Encoding utf8
           Write-Host ($L -join "`n")
 
+      # THE BUILD, AND IT IS THE FIRST ATTEMPT AT ONE.
+      #
+      # This is D1 measurement a: the edit-build-test cycle on the UE side,
+      # timed, against a port already proven correct under g++ so that a
+      # failure here can only be the toolchain. It is written to be
+      # INFORMATIVE WHEN IT FAILS rather than to be right first time: the
+      # exact UBT invocation for a project-hosted Program target in 5.8 is
+      # not something this container can test, so the step captures the full
+      # command, the exit code, the elapsed time and the log tail either way.
+      # A first build that fails and says exactly how is worth more than a
+      # guess that happens to work.
+      #
+      # Cold and warm are different measurements and the file says which it
+      # got: the first build compiles engine headers and is dominated by
+      # them; the number D1 actually wants is the SECOND one, which is what
+      # an edit-build-test cycle really costs.
+      - name: Build the UE probe target and run the golden test
+        id: build
+        timeout-minutes: 60
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $out = "production/d1-probe/ue-build.txt"
+          $sha = $env:GITHUB_SHA
+          if ($sha) { $sha = $sha.Substring(0, [Math]::Min(7, $sha.Length)) } else { $sha = "SHA-UNKNOWN" }
+          $L = @("# UE probe build - $sha", "")
+
+          $ue = "C:\Program Files\Epic Games\UE_5.8"
+          $buildBat = Join-Path $ue "Engine\Build\BatchFiles\Build.bat"
+          if (-not (Test-Path $buildBat)) {
+            $L += "BUILD TOOL NOT FOUND at $($buildBat -replace ' ','~')"
+            $L += "buildReached=end"; $L | Set-Content $out -Encoding utf8
+            Write-Host ($L -join "`n"); exit 1
+          }
+          $proj = Join-Path $PWD "ue-probe\LedgerProbe.uproject"
+          $golden = Join-Path $PWD "ue-probe\perception-golden.txt"
+          $L += "engine=$($ue -replace ' ','~')"
+          $L += "project=$($proj -replace ' ','~')"
+
+          # COLD BUILD. Timed separately and named, because it is dominated
+          # by engine headers and is not the cycle number.
+          $args = @("LedgerProbe", "Win64", "Development", "-Project=`"$proj`"", "-WaitMutex", "-NoHotReload")
+          $L += "cmd=Build.bat $($args -join ' ')"
+          $t0 = Get-Date
+          $p = Start-Process -FilePath $buildBat -ArgumentList $args -Wait -PassThru -NoNewWindow `
+               -RedirectStandardOutput "build-cold.log" -RedirectStandardError "build-cold.err"
+          $coldMin = [math]::Round(((Get-Date) - $t0).TotalMinutes, 2)
+          $L += "coldBuildExit=$($p.ExitCode) coldBuildMinutes=$coldMin"
+          if ($p.ExitCode -ne 0) {
+            $L += "COLD BUILD FAILED. Last 40 lines of output:"
+            if (Test-Path "build-cold.log") { $L += (Get-Content "build-cold.log" -Tail 40) }
+            if (Test-Path "build-cold.err") { $L += "--- stderr ---"; $L += (Get-Content "build-cold.err" -Tail 20) }
+            $L += "buildReached=end"; $L | Set-Content $out -Encoding utf8
+            Write-Host ($L -join "`n"); exit 1
+          }
+
+          # WARM BUILD: no edit, so this is the floor of a cycle, the cost of
+          # asking UBT whether anything changed. The real cycle sits between
+          # this and cold, and both bounds are worth having.
+          $t1 = Get-Date
+          $p2 = Start-Process -FilePath $buildBat -ArgumentList $args -Wait -PassThru -NoNewWindow `
+                -RedirectStandardOutput "build-warm.log" -RedirectStandardError "build-warm.err"
+          $warmMin = [math]::Round(((Get-Date) - $t1).TotalMinutes, 2)
+          $L += "warmBuildExit=$($p2.ExitCode) warmBuildMinutes=$warmMin"
+
+          # THE TEST. A build that compiles proves the toolchain; only this
+          # proves the port, and it is the same 1221 rows the C# emitted.
+          $exe = Get-ChildItem -Path "ue-probe" -Filter "LedgerProbe*.exe" -Recurse -ErrorAction SilentlyContinue |
+                 Select-Object -First 1
+          if (-not $exe) {
+            $L += "BINARY NOT FOUND under ue-probe after a successful build."
+            $L += "buildReached=end"; $L | Set-Content $out -Encoding utf8
+            Write-Host ($L -join "`n"); exit 1
+          }
+          $L += "binary=$($exe.FullName -replace ' ','~') sizeKB=$([math]::Round($exe.Length/1KB))"
+          $t2 = Get-Date
+          $testOut = & $exe.FullName $golden 2>&1
+          $testSec = [math]::Round(((Get-Date) - $t2).TotalSeconds, 2)
+          $L += "testExit=$LASTEXITCODE testSeconds=$testSec"
+          $L += $testOut
+          $L += "buildReached=end"
+          $L | Set-Content $out -Encoding utf8
+          Write-Host ($L -join "`n")
+
       # THE EVIDENCE CHANNEL, and the two rules the Unity workflow paid for.
       # A run that measured nothing must SAY so rather than committing a
       # stale checkout's file as its own, and every output is staged BY NAME.
@@ -213,6 +298,7 @@ jobs:
         run: |
           set -u
           OUT=production/d1-probe/ue-machine.txt
+          BUILDOUT=production/d1-probe/ue-build.txt
           # A RUN THAT MEASURED NOTHING SAYS SO. Without this the previous
           # run's file would be committed again under this run's sha, which
           # is the exact fault sim-shots-stage.sh exists to prevent.
@@ -222,7 +308,10 @@ jobs:
           fi
           git config user.name "LEDGER probe"
           git config user.email "probe@ledger.local"
+          # STAGED BY NAME, both of them. A build that did not run leaves no
+          # file and nothing is invented for it: absent is a fact.
           git add -- "$OUT"
+          [ -f "$BUILDOUT" ] && git add -- "$BUILDOUT"
           git diff --cached --quiet && { echo "probe result unchanged; nothing to commit"; exit 0; }
           git commit -m "UE machine probe from $(git rev-parse --short HEAD)"
           BR="${GITHUB_REF_NAME}"
