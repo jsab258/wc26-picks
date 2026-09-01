@@ -93,3 +93,9 @@ tools/voice-live/speak-out/
 production/logs/
 production/scratch/
 tools/runner/config.local
+ledger/PerceptionGolden/bin/
+ledger/PerceptionGolden/obj/
+ue-probe/Binaries/
+ue-probe/Intermediate/
+ue-probe/Saved/
+ue-probe/DerivedDataCache/

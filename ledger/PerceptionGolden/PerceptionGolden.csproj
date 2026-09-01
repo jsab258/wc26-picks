@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Ledger.PerceptionGolden</RootNamespace>
+    <AssemblyName>PerceptionGolden</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The REAL Core, compiled as shipped. A golden table generated from a
+         copy of the logic would prove the copy agrees with itself. -->
+    <Compile Include="../Assets/Scripts/Core/**/*.cs" />
+    <Compile Remove="../Assets/Scripts/Core/**/obj/**" />
+  </ItemGroup>
+</Project>

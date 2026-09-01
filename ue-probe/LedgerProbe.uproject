@@ -1,0 +1,13 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.8",
+	"Category": "",
+	"Description": "D1 engine probe: the smallest UE C++ project that can carry a ported Core type and its tests. Not a game.",
+	"Modules": [
+		{
+			"Name": "LedgerProbe",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

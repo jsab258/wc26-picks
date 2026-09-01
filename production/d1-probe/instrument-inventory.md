@@ -53,3 +53,29 @@ evidence channel unknown until tested. That cost is real but it is not
 disqualifying on its own; D1's rule turns on (b) being decisively better with
 (a) tolerable, and this number belongs in the "what it costs to say yes"
 column rather than in either of those.
+
+
+## Addendum 2026-09-01: measurement a, the setup cost, now partly measured
+
+The UE path's setup cost is no longer an estimate. Measured on the machine:
+
+| step | cost | how it was taken |
+|---|---|---|
+| UE 5.8.2 install | manual, Jafar, one launcher bug in the way | the launcher offered no engine version until a free Samples item was taken; a known bug, thirty seconds once researched, and hours before that |
+| MSVC build tools | 2.9 minutes, exit 0, VERIFIED 17.14.37614.0 | automated, one workflow, idempotent, bootstrapper not winget |
+| probe round trip | about 90 seconds per run | three runs, wall clock from push to result committed |
+
+MY ESTIMATE OF THE MSVC INSTALL WAS WRONG BY AN ORDER OF MAGNITUDE. I said
+tens of minutes; it took 2.9. Recorded because rule 7 says name what
+dominates or do not give a number, and I gave a number that dominated
+nothing. The download is 4.5 MB of bootstrapper; the workload itself came
+down fast on that connection.
+
+WHAT THIS DOES TO THE COMPARISON, stated carefully because a fast install is
+not the same as a cheap engine. Setup cost for the UE path is now roughly:
+one large engine download, one launcher bug that cost a human evening, and
+three automated minutes of toolchain. Unity needed none of it because it was
+already there, which is momentum rather than an engine property, and D1's
+rule already accounts for that by giving ties to Unity. The number that will
+actually decide measurement a is the EDIT-BUILD-TEST cycle, not the install,
+and that is still unmeasured on the UE side.
