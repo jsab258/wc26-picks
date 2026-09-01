@@ -595,9 +595,21 @@ def selftest():                                                  # noqa: C901
            "the %.3f m median footprint)" % (plan["gap"], plan["median_footprint"]),
            abs(plan["gap"] - max(GAP_FLOOR_M,
                                  GAP_FRACTION_OF_MEDIAN * plan["median_footprint"])) < 1e-9)
-        ok("the grid is roughly square, not a 37-wide line (%dx%d)"
-           % (plan["cols"], plan["rows"]), plan["cols"] == 7 and plan["rows"] == 6,
-           "%dx%d" % (plan["cols"], plan["rows"]))
+        # PINNED TO THE PROPERTY, NOT TO TONIGHT'S BATCH SIZE. This read
+        # `cols == 7 and rows == 6`, which is the square of 37 props and goes
+        # RED the day the batch reaches 38, so doing the work the viewer
+        # exists for would have broken the viewer's own test. The claim is
+        # that the grid is roughly square rather than a single long line, and
+        # that claim is `ceil(sqrt(n))` at any n.
+        want_cols = max(1, int(math.ceil(math.sqrt(len(props)))))
+        want_rows = int(math.ceil(float(len(props)) / want_cols))
+        ok("the grid is roughly square, not a %d-wide line (%dx%d for %d prop(s))"
+           % (len(props), plan["cols"], plan["rows"], len(props)),
+           plan["cols"] == want_cols and plan["rows"] == want_rows
+           and plan["cols"] * plan["rows"] >= len(props)
+           and abs(plan["cols"] - plan["rows"]) <= 1,
+           "%dx%d, wanted %dx%d" % (plan["cols"], plan["rows"],
+                                    want_cols, want_rows))
         ok("it is centred on the origin, so framing needs no offset",
            abs(min(p["x"] - p["cell_w"] / 2 for p in plan["placements"])
                + max(p["x"] + p["cell_w"] / 2 for p in plan["placements"])) < 1e-6)

@@ -1,0 +1,116 @@
+{
+ "schema": 1,
+ "name": "vignette-fetch-01",
+ "written": "2026-09-01",
+ "reads": "production/specs/vignette-bill-of-materials.json, the five route=FETCH lines and the one route=BLOCKED line, by id. This file adds nothing to that list and removes nothing from it.",
+ "answers": "Step 3 of game-design/decision-2026-09-01-production-prep-sequence.md: prove the CC0 fetch-clean-tag route end to end on about five BOM lines.",
+ "_where_this_runs": [
+  "NOT IN THE DEV CONTAINER. Measured 2026-09-01, not assumed:",
+  "  ambientcg.com:443      CONNECT rejected, gateway 403 (egress policy)",
+  "  api.polyhaven.com:443  CONNECT rejected, gateway 403",
+  "  api.sketchfab.com:443  CONNECT rejected, gateway 403",
+  "  dl.polyhaven.org, cdn.polyhaven.com, opengameart.org, sketchfab.com: no connection",
+  "  raw.githubusercontent.com 301, api.github.com 200 (both reachable)",
+  "The proxy README says report a 403 and do not route around it, so every",
+  "network mode below runs on Jafar's PC or in CI, and --plan is the only",
+  "mode the container can execute. --plan needs no network at all, which is",
+  "the point: the picking is done here from committed evidence and the",
+  "machine only does the transferring."
+ ],
+ "_what_was_checked_against_what": [
+  "tools/citypack/catalogue.json, 2,008 ambientCG assets, note 'complete',",
+  "pulled by CI and committed 2026-08-17 (3e98e782). ITS DENOMINATOR IS THE",
+  "WHOLE POINT AND IT IS NARROW: the pull passes type=Material, so it is a",
+  "complete list of MATERIALS and says nothing at all about ambientCG's",
+  "Decal, Atlas, 3DModel, Substance, HDRI or Terrain types. Proof that the",
+  "gap is real and not theoretical: AsphaltDamageSet001 is on disk in this",
+  "repo, fetched from ambientCG, and is NOT in catalogue.json.",
+  "It records id, published sizes and the 1K-JPG link per asset. It does not",
+  "record tags, descriptions or preview images, so it can prove an id EXISTS",
+  "and which resolutions it publishes, and it cannot prove what the material",
+  "LOOKS like. Every verdict below states which of the two it is."
+ ],
+ "resolution_policy": "Take the largest the asset publishes up to 4K, from the sizes list in catalogue.json, never from a guess. 8K is refused: the held pack is 201.2 MB at 2K over 17 surfaces (measured on disk) and 8K is 16x the pixels of 2K for a surface the camera sees at street distance. If a later look says a surface smears, that is a named rung, not a default.",
+ "targets": [
+  {
+   "bom_id": "A2_road_asphalt_maps_upgrade",
+   "asked_for": "The AO and displacement maps the original fetch did not take, and 4K where published",
+   "verdict": "PRESENT-BY-ID",
+   "evidence": "catalogue.json holds Asphalt012 and lists sizes 1K-JPG, 1K-PNG, 2K-JPG, 2K-PNG, 4K-JPG, 4K-PNG. No 8K. So 4K IS published and the BOM's 'where published' resolves to yes.",
+   "held_now": "ledger/Assets/StreamingAssets/CityPack/textures/asphalt.jpg + _n + _r, all measured 2048x2048 this session (16.7 MB for the three), attributed to Asphalt012 at 2K-JPG in CityPack/ATTRIBUTION.json.",
+   "assets": [{"id": "Asphalt012", "resolution": "4K-JPG", "logical": "road_asphalt"}],
+   "maps_wanted": ["Color", "NormalGL", "Roughness", "AmbientOcclusion", "Displacement"],
+   "consumer_warning": "AO AND DISPLACEMENT HAVE NO CONSUMER TODAY AND THIS LINE MUST NOT PRETEND OTHERWISE. tools/citypack/fetch_textures.py takes Color, NormalGL and Roughness and says why in a live comment: 'AO alone stays behind: nothing samples it'. tools/citypack/pack_check.py only ever looks for the _n and _r suffixes. Measured second opinion from the files already on disk: of the 16 held ambientCG decal sets, 16 ship Color, 16 NormalDX, 16 NormalGL, 14 Opacity, 11 Roughness, 11 Displacement and only 3 AmbientOcclusion. Fetching AO into CityPack today is the fetched-is-not-shipped trap by name. It is fetched HERE, into the engine-neutral vignette directory, because the D1b scene generator is the consumer being built and it can bind what it is given; if the D1b scene JSON does not name an AO or height input when it lands, this line reverts to colour, normal and roughness only.",
+   "priority": "DRESSING",
+   "route_after_check": "FETCH, unchanged"
+  },
+  {
+   "bom_id": "A4_pavement_tarmac_patch",
+   "asked_for": "Tarmac repair patch over slabs, the commonest British pavement fault",
+   "verdict": "ABSENT-FROM-MATERIALS",
+   "evidence": "Zero of 2,008 material ids match tarmac, patch, repair, crack or damage (case-insensitive, on the id). 46 Asphalt* ids exist and none of them carries a name suggesting a repair patch. This is an absence in the MATERIAL type only.",
+   "held_now": "ledger/Assets/StreamingAssets/Decals/ambientcg/AsphaltDamageSet001, 7 files, 2K PNG, carrying Color, NormalGL, NormalDX, Roughness, Displacement and Opacity. An opacity map is what makes it a patch rather than a tiling ground, so the held decal is closer to this line than any material would be.",
+   "assets": [],
+   "probe_first": "ambientCG type=Decal, which no committed catalogue covers. AsphaltDamageSet001 proves that type exists and holds asphalt content. --probe answers it in one run.",
+   "priority": "DRESSING",
+   "route_after_check": "FETCH, but from the Decal type and only after --probe; if the Decal pull is also empty, the BOM's own stated fallback (a 2D generated patch decal) is the route and this line becomes GENERATE/2D."
+  },
+  {
+   "bom_id": "C4_render_pebbledash",
+   "asked_for": "Pebbledash or roughcast render, the late-20th-century British facade",
+   "verdict": "ABSENT-FROM-MATERIALS",
+   "evidence": "Zero of 2,008 material ids match pebble, roughcast, stucco or render. 25 Plaster* ids exist, which is the smooth-render family the BOM already named as the fallback and already holds (Plaster001 and Plaster002, both publishing up to 8K).",
+   "held_now": "CityPack plaster.jpg and plaster_b.jpg, measured 2048x2048, from Plaster001 and Plaster002 per CityPack/ATTRIBUTION.json.",
+   "assets": [],
+   "probe_first": "Two open questions, both cheap in the same run: ambientCG type=Decal and type=Substance, and Poly Haven's texture list, which no committed file in this repo covers at all.",
+   "priority": "DRESSING",
+   "route_after_check": "FETCH is now the weakest of the five. If the probe comes back empty this is the strongest candidate on the whole BOM for the 2D generator, which already runs free on Jafar's AMD card and produced the 14 signage images in the repo. That would be a BOM route change from FETCH to GENERATE/2D and it needs the director, not a builder."
+  },
+  {
+   "bom_id": "C10_roller_shutter",
+   "asked_for": "Closed roller shutter over a shopfront, MANDATORY for the night condition",
+   "verdict": "PRESENT-BY-ID, LOOK NOT VERIFIED",
+   "evidence": "15 CorrugatedSteel ids exist: 001 to 005, 006A-C, 007A-C, 008A-C, 009. CorrugatedSteel002 publishes 1K, 2K, 4K and 8K in both JPG and PNG.",
+   "held_now": "nothing in this family.",
+   "assets": [{"id": "CorrugatedSteel002", "resolution": "4K-JPG", "logical": "shutter_slat"}],
+   "maps_wanted": ["Color", "NormalGL", "Roughness", "AmbientOcclusion", "Displacement"],
+   "look_warning": "THE ID EXISTS AND THAT IS NOT THE SAME AS THE PICTURE BEING RIGHT, and this is the one MANDATORY line of the five so the difference matters. A British roller shutter is horizontal slats at a regular pitch; corrugated steel is continuous fluting, and which way it runs against the shopfront is a tiling decision the catalogue cannot answer. No preview image is reachable from this container. --probe records the preview URL for all 15 so the pick is made by eye, once, from evidence, the same shape as the listening page for voices.",
+   "priority": "MANDATORY",
+   "route_after_check": "FETCH, and the pick among the 15 is deferred to the probe's previews rather than taken now on the lowest id."
+  },
+  {
+   "bom_id": "F4_parked_vehicle",
+   "asked_for": "One parked period British car, boxy hatchback or estate, IF-IN-FRAME",
+   "verdict": "NOT-CHECKABLE-FROM-HERE",
+   "evidence": "Not an ambientCG kind of thing, so the committed catalogue is silent by construction and its silence is not evidence. The only named route is the Sketchfab CC0 filter, and api.sketchfab.com answered CONNECT 403 at the egress proxy this session. Nothing here opened that catalogue and nothing here will claim what it holds.",
+   "held_now": "ledger/Assets/Props/oga-vehicles, 60 files, 3.3 MB, and the Kenney car kit under ledger/Assets/Props. Flat-colormap low-poly, several American types, per the BOM.",
+   "assets": [],
+   "blocked_on": [
+    "The Sketchfab CC0 catalogue, reachable from the PC and not from here.",
+    "A GATE HOLE THAT WOULD LET A MODEL LAND UNLICENSED, measured this session and not fixed here because it is outside this task's scope: tools/attribution-check.py does not list .glb in ASSET_SUFFIXES, so ledger/Assets/Props/base-mesh (37 .glb) produces NO LINE AT ALL in the sweep, neither ok nor fail, and its 'The Base Mesh' token is never checked. Any model fetch that lands .glb today is invisible to the one sweep whose job is noticing other people's files. Fix that before any model class fetch, this line included.",
+    "canon.md forbids real car models, so a recognisable real shape fails canon before it fails the visual bar."
+   ],
+   "priority": "IF-IN-FRAME",
+   "route_after_check": "UNCHANGED and recommended out of the first shot, per the BOM's own note. Do not block D1b on it."
+  },
+  {
+   "bom_id": "F2_period_wardrobe",
+   "asked_for": "carried here only so the five FETCH lines are not confused with the sixth line the BOM marks BLOCKED",
+   "verdict": "NOT-A-FETCH-LINE",
+   "evidence": "BOM route is BLOCKED, needing a Jafar decision about where the character pipeline goes. No fetch exists to attempt and none is attempted.",
+   "assets": [],
+   "priority": "DRESSING",
+   "route_after_check": "BLOCKED, unchanged"
+  }
+ ],
+ "destination": {
+  "dir": "production/assets/vignette/surfaces",
+  "why_not_citypack": "CityPack is Unity StreamingAssets and its two gates are keyed to a hardcoded list of the 17 logical surfaces AssetLibrary asks for, in two separate copies (tools/citypack/fetch_textures.py SURFACES and tools/citypack/pack_check.py SURFACES). Adding shutter_slat there means editing both plus AssetLibrary, for a scene whose engine is undecided until the D1 timebox ends. The vignette is engine-neutral by ruling, so its assets sit outside any engine's asset folder and each engine's generator reads them from the shared JSON.",
+  "attribution": "production/assets/vignette/surfaces/ATTRIBUTION.json, written by the same run that writes the files, plus a row in THIRD-PARTY.md carrying the token 'vignette-surfaces' so tools/attribution-check.py enforces it. The row is added ahead of the assets on purpose: the obligation is recorded before the bytes arrive."
+ },
+ "gates": [
+  "licence: refuse any asset whose catalogue entry or page does not say CC0, per run, never trusted from research",
+  "dims: measured from the file's own header at ingest and written into the manifest, never invented",
+  "denominator: the run prints asked / resolved / fetched / refused, and a run that banks nothing exits non-zero"
+ ]
+}

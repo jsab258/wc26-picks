@@ -66,6 +66,12 @@ WATCHED = {
     # containment and the token check is per-row, so both hold.
     "ledger/Assets/Props/base-mesh": "The Base Mesh",
     "ledger/Assets/StreamingAssets/Decals": "ambientCG",
+    # The D1b vignette's own surfaces, engine-neutral and therefore outside
+    # any engine's asset folder. The token is deliberately NOT "ambientCG":
+    # that word is already in THIRD-PARTY.md for the decals, so a row keyed on
+    # it would pass without anybody writing anything, which is a guard that
+    # goes green for the wrong reason.
+    "production/assets/vignette": "vignette-surfaces",
     "ledger/Assets/Resources/Sky": "Poly Haven",
     # NOT AN ASSET DROP — the visual bar's reference frames. Five GTA V
     # screenshots supplied by Jafar, committed byte-exact after the project

@@ -2,6 +2,7 @@ line: infrastructure (instruments)
 spec: this file
 acceptance: propview --selftest runs inside ledger/verify.py with its count in the footer; the same pass covers meshgen --selftest, which is also unwired
 max_sessions: 1
+done: 2026-09-01 by director ruling game-design/decision-2026-09-01-cadence-bound-and-batch-review.md, Ruling 1 item 7. Acceptance met: both selftests run inside ledger/verify.py with their counts in the footer (check list at line 5574), and every widening the item carried is in the constants.
 status: READY 2026-09-01. Unblocked by the cadence ruling and WIDENED by it: this
         is now the single next touch of ledger/verify.py and carries every code
         consequence of that ruling, one builder spawn rather than three.

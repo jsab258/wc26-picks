@@ -188,6 +188,25 @@ Attribution not required; recorded anyway under this file's standing rule.
 
 Same source as the M17.6 surface set; same licence, same recording rule.
 
+## Vignette surfaces, ambientCG, CC0 (vignette-surfaces)
+
+| | |
+|---|---|
+| **Source** | **ambientCG** (https://ambientcg.com), fetched by `tools/props/fetch_vignette.py --fetch` from the ids named in `production/specs/vignette-fetch-01.json` |
+| **Licence** | CC0 1.0 Universal (ambientcg.com/license) |
+| **Where** | `production/assets/vignette/surfaces/`, with `ATTRIBUTION.json` written by the same run that writes the files |
+| **What** | the D1b street vignette's surfaces: road asphalt and a shopfront shutter slat, colour, normal, roughness and whatever else the zip carries |
+
+THIS ROW IS AHEAD OF THE BYTES ON PURPOSE. The directory does not exist yet;
+`tools/attribution-check.py` treats an unpopulated watched path as an
+obligation recorded early rather than as a failure, which is the order this
+project wants: the licence is identified before the fetch and recorded with
+it, so the two cannot drift apart.
+
+The directory sits outside any engine's asset folder because the D1b vignette
+is engine-neutral by ruling and the engine is undecided until the comparison
+timebox ends.
+
 ## Skies — Poly Haven, CC0
 
 | | |

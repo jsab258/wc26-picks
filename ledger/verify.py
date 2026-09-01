@@ -542,6 +542,94 @@ def prop_reach():
                   % (head.replace("prop-reach: ", "prop reach ok, "), rungs, tail))
 
 
+def _meshgen_suite(script, label, uncovered):
+    """One implementation for both meshgen-family selftests: run it, parse the
+    one line it ends on, and refuse three ways.
+
+    THE THREE OUTCOMES ARE KEPT DISTINCT because two of them are green-looking:
+
+      the line is ABSENT     RED, and it says NOTHING MEASURED. A tool that
+                             crashed on import, printed a usage message or was
+                             renamed exits without that line, and "no failures
+                             were reported" must never read as "no failures".
+                             This is rule 3b: the zero needs its denominator,
+                             and here the denominator IS the checks-run count.
+      failed > 0             RED, with the failing labels quoted so the footer
+                             names the assertion rather than a number.
+      failed == 0            green, carrying the count and the half of these
+                             tools this container cannot execute.
+
+    THE UNCOVERED HALF RIDES THE GREEN ON PURPOSE. Neither suite can run
+    Blender, TRELLIS, Windows or PowerShell, so a bare "102 checks passed"
+    would read as "the pipeline works", which is a claim nothing here can
+    make. Both tools print their own NOT COVERED line; this reads it back and
+    says so if it ever stops being printed."""
+    tool = ROOT.parent / "tools" / "meshgen" / script
+    if not tool.exists():
+        return False, ("%s: %s, no %s on disk"
+                       % (label.upper(), NOTHING_MEASURED, script))
+    code, out = run(["python3", str(tool), "--selftest"])
+    m = re.search(r"%s selftest: (\d+) passed, (\d+) failed, (\d+) checks run"
+                  % re.escape(label), out)
+    if not m:
+        return False, ("%s: %s, the selftest printed no count line (exit %s)"
+                       % (label.upper(), NOTHING_MEASURED, code))
+    if m.group(2) != "0" or code != 0:
+        bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+        return False, ("%s: %s of %s check(s) FAILED: "
+                       % (label.upper(), m.group(2), m.group(3))
+                       + _cap(bad, strip=5, width=91, tail="selftest failed"))
+    # ONE FOOTER ENTRY, NOT TWO. The footer is comma-joined, so a top-level
+    # comma here would read as a second check to anything splitting on ", ".
+    named = "NOT COVERED HERE" in out
+    return True, ("%s %s checks (%s failed; %s)"
+                  % (m.group(3), label, m.group(2),
+                     uncovered if named
+                     else "the tool NAMED NO uncovered half, which it used to"))
+
+
+def propview():
+    """The prop viewer's own selftest, run here so it cannot decay.
+
+    UNWIRED UNTIL 1 SEP, WHICH IS THE FAULT AND NOT A DETAIL. It passed 59
+    checks and nothing in the project ran them, so the first regression would
+    have been found by Jafar double-clicking a .bat on his own machine, which
+    is the slowest and most expensive channel this project has. A test nobody
+    runs is already wrong and does not know it (rule 6: built is not running).
+
+    WHAT IT ACTUALLY GUARDS is the seam list rather than the pixels: that the
+    viewer reads the keys `glb_stats` really returns, that every flag the .bat
+    passes is in KNOWN_FLAGS, that the PowerShell wrapper reuses probe-tools'
+    Blender search rather than copying it, and that nothing under
+    tools/meshgen carries an em-dash. Every one of those is a claim about a
+    file this container CAN read; the run itself is the half it cannot."""
+    return _meshgen_suite(
+        "propview.py", "propview",
+        "Blender/Windows/PowerShell uncovered here; the first double-click "
+        "on the PC is their accepting case")
+
+
+def meshgen_suite():
+    """The prop generator's selftest, wired in the same pass as propview's.
+
+    BOTH IN ONE PASS ON PURPOSE. Wiring one and leaving the other is how a
+    rule becomes a habit of doing half of it, and these two are one pipeline:
+    propview reads the manifest meshgen writes, so a change to either side of
+    that seam that only one suite covers is the shape rule 1's third corollary
+    is about (one idea, two implementations, and the one nobody runs is the
+    one missing a line).
+
+    ITS 102 CHECKS INCLUDE THE LICENCE GATE, which is law here: nothing ships
+    that is not on the allowlist, and the accounting that proves it is what
+    writes content/props/ATTRIBUTION.json. That file is EVIDENCE to
+    director_cadence above, so this suite is the instrument standing behind a
+    thing the cadence gate deliberately does not read."""
+    return _meshgen_suite(
+        "meshgen.py", "meshgen",
+        "TRELLIS/Blender/Windows uncovered here; the expensive half; the "
+        "first run on the PC is its accepting case")
+
+
 def ref_bench():
     """The visual-bar benchmark's instrument, not its verdict.
 
@@ -2161,19 +2249,28 @@ def stale_anchors():
 # contract, in one place, because the check and its fixtures must not be able
 # to disagree about it.
 DIRECTOR_MIN_LINES = 100                      # MORE than this is "substantial"
-# WHERE THE 100 CAME FROM AND WHAT IT NO LONGER DESCRIBES (1 Sep). It was set
-# from a printed series of per-commit changed lines under `ledger/Assets/Scripts`
-# alone, and it sat in a real gap in that distribution (nothing between 81 and
-# 107). The reviewed scope below is now seven prefixes wide, so that series is
-# a different population and this bound is INHERITED rather than measured for
-# it. It is kept because a gate with no bound tonight is a gate that measures
-# nothing tonight, and it SAYS SO on every line it prints. The printer that
-# replaces it with evidence ships in the same change:
+# WHERE THE 100 CAME FROM, TWICE. It was first set from a printed series of
+# per-commit changed lines under `ledger/Assets/Scripts` alone, where it sat
+# in a real gap (nothing between 81 and 107). When the scope widened to the
+# eight prefixes below (1 Sep) that series became a different population and
+# the bound was carried as INHERITED until a series under the new scope had
+# been printed and read.
+#
+# MEASURED 1 SEP 2026 (director ruling, game-design/decision-2026-09-01-
+# cadence-bound-and-batch-review.md) from `--cadence-series 120` under the
+# eight-prefix scope with the props outputs excluded: 70 zeroes of 120;
+# non-zero sorted ... 67 79 81 89 | 110 124 144 ...; non-zero median 124,
+# p90 1939, max 4388; 26 of 120 substantial at 100. The bound sits in the
+# gap 89..110 of that row as it sat in 81..107 of the old one, and nothing
+# in the row argued for either neighbour: 200 would exempt the eight commits
+# between 110 and 183, 50 would add six between 51 and 89, and no harm is on
+# record for either band. The printer that produced the row stays beside it:
 #     python3 ledger/verify.py --cadence-series 120
-# Rule 2: the printer first, the number from what it printed, in that order.
-DIRECTOR_MIN_SOURCE = ("INHERITED from the Assets/Scripts-only scope and NOT "
-                       "yet evidence-based for this wider set — print the "
-                       "series with --cadence-series and set it from that")
+# REVISIT when a per-prefix series exists (the printer's next rung, queue
+# 018) or when a fresh 120-commit row shows a value inside 89..110.
+DIRECTOR_MIN_SOURCE = ("MEASURED 1 Sep 2026 from --cadence-series 120 under "
+                       "the eight-prefix scope (gap 89..110, 26 of 120 over); "
+                       "a per-prefix series is the next rung")
 DIRECTOR_SCRIPTS = "ledger/Assets/Scripts/"   # git paths are repo-root relative
 DIRECTOR_LOG = ".claude/agent-log.tsv"
 DIRECTOR_AGENT = "studio-director"
@@ -2220,6 +2317,11 @@ DIRECTOR_WORK = (
      "is able to measure"),
     (".githooks/", "githooks",
      "the hooks that enforce process on every commit"),
+    (".claude/", "claude",
+     "the studio's own process code: hooks, the permission surface in "
+     "settings.json, the two rules files loaded into every session, and the "
+     "agent definitions carrying the `model:` line THIS GATE'S OWN spend "
+     "reading consumes, so a change to one changes what every footer reports"),
     ("ue-probe/", "ueprobe",
      "the Unreal probe: C++ sources and project config"),
     ("content/", "content",
@@ -2237,13 +2339,22 @@ DIRECTOR_WORK = (
 #: this every commit in the project would look substantial and the gate would
 #: become the ratchet rule 5b names — refuse everything, then get switched off.
 #:
-#: MEASURED, SO NOBODY READS THIS LIST AS MORE LOAD-BEARING THAN IT IS: of the
-#: entries below, only `ledger/.verify-footer` sits INSIDE a work prefix, so it
-#: is the only one whose exclusion changes the gated number today. The other
-#: ten are outside the reviewed scope already and are named here so the printed
-#: line can say WHICH of the unscoped paths were known outputs
-#: (`pathsEvidence`) rather than merely unrecognised (`pathsOther`) — and so
-#: they stay excluded if a work prefix ever widens over them.
+#: MEASURED, SO NOBODY READS THIS LIST AS MORE LOAD-BEARING THAN IT IS.
+#: Counted 1 Sep 2026, after the props and `.claude/` widening: 5 of the 14
+#: entries below sit INSIDE a work prefix and are the only ones whose exclusion
+#: changes the gated number today. They are `ledger/.verify-footer` (inside
+#: `ledger/`), both `content/props/` outputs (inside `content/`) and both
+#: `.claude/` machine files (inside `.claude/`). The other 9 are outside the
+#: reviewed scope already and are named here so the printed line can say WHICH
+#: of the unscoped paths were known outputs (`pathsEvidence`) rather than
+#: merely unrecognised (`pathsOther`), and so they stay excluded if a work
+#: prefix ever widens over them.
+#:
+#: THIS PARAGRAPH USED TO SAY `ledger/.verify-footer` WAS THE ONLY ONE INSIDE A
+#: WORK PREFIX, which was true when written and false the moment `content/` and
+#: `.claude/` became work. Kept as a correction rather than a silent edit: the
+#: count is a claim about the pair of constants and it decays whenever either
+#: moves, so re-count it here on any edit to either list.
 DIRECTOR_EVIDENCE = (
     ("game-design/sim-shots/", "simshots",
      "CI's own stills, verdict and per-run copies: a report ABOUT a build, "
@@ -2262,12 +2373,24 @@ DIRECTOR_EVIDENCE = (
      "meshgen's own run reports, rewritten on every generation run"),
     ("production/briefs/", "briefs",
      "briefs handed TO agents: the input to work, not the work"),
+    ("content/props/manifest.json", "propsout",
+     "meshgen writes it about a run (timestamp, tool versions, per-item "
+     "stages) and its own Publisher commits it straight from Jafar's PC with "
+     "no verify in the path; nobody authors it, and a director reading a "
+     "6,000-line JSON diff by eye catches nothing"),
+    ("content/props/ATTRIBUTION.json", "propsout",
+     "the derived licence rows for the same run, written by the same tool in "
+     "the same commit; the instrument for what it contains is meshgen's own "
+     "licence gate, which prints its denominators"),
     (".claude/agent-log.tsv", "agentlog",
      "the spawn log this very gate reads; a row landing in it is attendance, "
      "and counting it as work would let the instrument feed itself"),
+    (".claude/template-sync.txt", "templatesync",
+     "written by `tools/template-sync.py --stamp`: a fingerprint OF CLAUDE.md's "
+     "process sections, not an edit to them"),
     ("ledger/.verify-footer", "verifyfooter",
-     "written by every green verify run — the ONE evidence path that sits "
-     "inside a work prefix, so it is the one exclusion that changes the number"),
+     "written by every green verify run; the first evidence path to sit "
+     "inside a work prefix and, since 1 Sep, one of five (counted above)"),
     ("STATUS.md", "status",
      "regenerated by tooling many times a day; a status line is a report on "
      "the work, not the work"),
@@ -2370,7 +2493,7 @@ def _cadence_rename_paths(field):
 
     The version before 1 Sep tested one substring (`"ledger/Assets/Scripts/"
     in path`) against the raw column, which happened to work for the single
-    prefix it knew and cannot work for seven — `a/{x => y}/f.cs` contains
+    prefix it knew and cannot work for a set of eight — `a/{x => y}/f.cs` contains
     neither concrete path as a substring. Renames usually carry 0/0 lines, so
     the cost of getting this wrong is a MISCOUNTED PATH rather than miscounted
     lines; a rename detected with an edit does carry lines, which is why both
@@ -2767,10 +2890,14 @@ def _cadence_read(repo):
         r["ok"] = True
         return r
 
-    # THE REFERENCE INSTANT. `git log -1 -- <path>` walks first-parent history
-    # for the newest commit that CHANGED that path; empty output means no such
-    # commit is reachable HERE, which is two different worlds (never happened /
-    # not fetched) and both fall back to HEAD.
+    # THE REFERENCE INSTANT. `git log -1 -- <pathspec>` walks the FULL history
+    # with git's default path simplification (not first-parent; that is a
+    # separate flag) for the newest commit that CHANGED a path in the scope.
+    # On this linear branch the two agree; if merges ever appear, a side-branch
+    # commit can be the answer, which is the right answer to "when was this
+    # scope last touched". Empty output means no such commit is reachable HERE,
+    # which is two different worlds (never happened / not fetched) and both
+    # fall back to HEAD.
     code, out = _git(repo, "log", "-1", "--format=%ct\t%h", "HEAD",
                      "--", *_cadence_pathspec())
     cols = out.strip().split("\t")
@@ -3333,7 +3460,7 @@ def _cadence_series(repo, n=60):
     """PRINT THE SERIES BEFORE ANYONE SETS A BOUND (rule 2). Returns lines.
 
     Per-commit work lines under the CURRENT reviewed scope, newest first, then
-    the sorted non-zero distribution, then where the inherited bound sits in
+    the sorted non-zero distribution, then where the bound sits in
     it. The raw series is printed ABOVE both summaries on purpose, the same
     order `tools/gates.py --series` uses: a human reading the row of numbers
     sees a regime change in a second and no aggregate can show it at all —
@@ -3633,25 +3760,44 @@ def _cadence_selftest():
         and _cadence_scope(".github/workflows/ledger-core-tests.yml")
             == ("work", "workflows")
         and _cadence_scope(".githooks/commit-msg") == ("work", "githooks")
+        and _cadence_scope(".claude/hooks/session-start.sh") == ("work", "claude")
         and _cadence_scope("ue-probe/Source/Probe.cpp") == ("work", "ueprobe")
-        and _cadence_scope("content/props/manifest.json") == ("work", "content"),
+        and _cadence_scope("content/dialogue/pub-regular-v1.json")
+            == ("work", "content"),
         "ACCEPT one live path per work prefix, each labelled with the prefix "
-        "it matched — the seven the 1 Sep day was invisible to")
+        "it matched: the eight the 1 Sep day was invisible to")
     say(_cadence_scope("ledger/Assets/Scripts/A.cs")[1] == "scripts"
         and _cadence_scope("ledger/Assets/Art/A.png")[1] == "ledger",
         "ACCEPT ORDER IS LOAD-BEARING: Assets/Scripts is attributed to the "
         "scripts bucket and the rest of ledger/ is not")
+    # PLANS, SPECS AND THE RESPEC ARE OUT BY DECISION (Ruling 4, 1 Sep), so
+    # the decision gets an assertion rather than a sentence. They reach the
+    # director by trigger KIND (queue refill, anything touching the premise),
+    # not by volume: a 100-line bound was never measured against prose, a
+    # queue refill of three items is over it, and a gate that fires on every
+    # planning commit is the ratchet rule 5b names. Widening over them again
+    # is then a deliberate edit here, which is what a decision should cost.
     say(_cadence_scope("game-design/roadmap.md")[0] == "other"
         and _cadence_scope("production/queue/010.md")[0] == "other"
+        and _cadence_scope("production/specs/prop-batch.md")[0] == "other"
+        and _cadence_scope("ledger-v2/respec/vision-pillars-v2.md")[0] == "other"
         and _cadence_scope("CLAUDE.md")[0] == "other",
-        "REJECT docs, queue files and the rules file are OUTSIDE the reviewed "
-        "scope — planning is not the batch a director reviews")
+        "REJECT docs, queue files, specs, the v2 respec and the rules file are "
+        "OUTSIDE the reviewed scope: planning is not the batch a director "
+        "reviews, and a prose bound was never measured")
     say(_cadence_scope("ledger/.verify-footer") == ("evidence", "verifyfooter")
         and _cadence_scope("STATUS.md") == ("evidence", "status")
         and _cadence_scope("game-design/sim-shots/verdict.txt")[0] == "evidence"
-        and _cadence_scope(".claude/agent-log.tsv")[0] == "evidence",
-        "REJECT evidence beats work: the verify footer sits INSIDE ledger/ and "
-        "is still excluded, which is the precedence the order encodes")
+        and _cadence_scope(".claude/agent-log.tsv") == ("evidence", "agentlog")
+        and _cadence_scope(".claude/template-sync.txt")
+            == ("evidence", "templatesync")
+        and _cadence_scope("content/props/manifest.json")
+            == ("evidence", "propsout")
+        and _cadence_scope("content/props/ATTRIBUTION.json")
+            == ("evidence", "propsout"),
+        "REJECT evidence beats work at all FIVE paths that now sit inside a "
+        "work prefix: the verify footer inside ledger/, both props outputs "
+        "inside content/, both machine files inside .claude/")
     say(_cadence_classify("ledger/{Assets => Attic}/Scripts/Sim.cs")
             == ("work", "scripts")
         and _cadence_classify("tools/old.py => game-design/old.py")[0] == "work"
@@ -3713,7 +3859,7 @@ def _cadence_selftest():
 
     # THE LABEL ON THIS ONE USED TO SAY "outside Assets/Scripts" AND WOULD NOW
     # BE FALSE — the lines are in `game-design/notes.md`, which is outside the
-    # REVIEWED SCOPE, a set of seven prefixes since 1 Sep. Renamed rather than
+    # REVIEWED SCOPE, a set of eight prefixes since 1 Sep. Renamed rather than
     # left, because a fixture label is a claim with a test attached and this
     # one would have decayed into describing a scope that no longer exists.
     d = _cadence_fixture(work, "a4-large-outside", 500, [], in_scripts=False)
@@ -3953,6 +4099,38 @@ def _cadence_selftest():
         "prefix, excluded as evidence — does not move the reference",
         a18["summary"])
 
+    # THE PROPS PUBLISH, AT THE SIZE IT ACTUALLY LANDED (Ruling 3, 1 Sep).
+    # `content/` is a work prefix because the dialogue bank and the brand bible
+    # under it are authored; the two files below are not authored by anyone.
+    # meshgen writes them about a run and its own Publisher commits them
+    # straight from Jafar's PC with no verify in the path, which is the same
+    # shape as CI committing its own stills.
+    #
+    # THE 6188 IS NOT AN INVENTED SIZE: it is the largest reading in the live
+    # `--cadence-series 120` row printed on 1 Sep, and it was a manifest. Under
+    # the classifier before this fixture it was the biggest "substantial batch"
+    # in the project's recent history and no human wrote a line of it.
+    d = _cadence_fixture(work, "a19-props-publish-is-evidence", 0,
+                         [(CADENCE_FRESH, "systems-builder")],
+                         in_scripts=False,
+                         also=[("content/props/manifest.json", 6188),
+                               ("content/props/ATTRIBUTION.json", 240)])
+    a19 = _cadence_read(d)
+    # The third evidence path is the fixture's own `.claude/agent-log.tsv`,
+    # which every fixture leaves pending and which `.claude/` becoming work
+    # would have started counting had Ruling 4 not kept it evidence. Asserted
+    # by name rather than absorbed into a total, so the two rules that bit are
+    # legible: `propsout x2` is this fixture's claim.
+    say(a19["ok"] and a19["changed"] == 0 and a19["work_paths"] == 0
+        and a19["evidence_paths"] == 3
+        and a19["by_scope"]["content"] == 0
+        and a19["evidence_hits"].get("propsout") == 2
+        and "propsout x2" in a19["summary"]
+        and "under threshold, review not required" in a19["summary"],
+        "ACCEPT 6,428 lines of machine-written props manifest count as 0 work "
+        "under content/ and are NAMED as evidence, not merely unrecognised",
+        a19["summary"])
+
     # REJECTING — the states the escalation rule actually decays into.
     d = _cadence_fixture(work, "r1-101-no-director", 101,
                          [(CADENCE_FRESH, "instrument-builder")])
@@ -4189,7 +4367,7 @@ def _cadence_selftest():
         and r18["by_scope"]["ueprobe"] == 40
         and r18["by_scope"]["githooks"] == 10
         and "workByScope=scripts:0/ledger:0/tools:90/workflows:30/githooks:10/"
-            "ueprobe:40/content:0" in r18["summary"],
+            "claude:0/ueprobe:40/content:0" in r18["summary"],
         "REJECT 1 SEPTEMBER: 170 lines of tools, a workflow, C++ and a hook "
         "with no director row — RED now, and scripts:0 is what the old gate "
         "measured on the same tree", r18["summary"])
@@ -4220,7 +4398,7 @@ def _cadence_selftest():
         "refuses. That difference is the fix"
         % (r18_old["changed"], r18["changed"]), r18_old["summary"])
     say(DIRECTOR_WORK is wide_work and DIRECTOR_EVIDENCE is wide_evidence
-        and len(DIRECTOR_WORK) == 7,
+        and len(DIRECTOR_WORK) == 8,
         "the ladder restored the widened scope before any later fixture ran "
         "(%d work prefix(es), %d evidence rule(s))"
         % (len(DIRECTOR_WORK), len(DIRECTOR_EVIDENCE)))
@@ -4246,15 +4424,37 @@ def _cadence_selftest():
         "director row before it is stale and the ruling is spent",
         r19["summary"])
 
+    # AND `.claude/` IS WORK (Ruling 4, 1 Sep). The hooks are process
+    # enforcement code, `settings.json` is the permission surface, and the
+    # agent definitions carry the `model:` line THIS GATE'S OWN spend reading
+    # consumes, so a change to one changes what every footer reports. This is
+    # the counterpart of a19 on the same directory pair: the machine-written
+    # files inside these prefixes are evidence, everything a person edits
+    # beside them is a batch, and the two must not be able to swap.
+    d = _cadence_fixture(work, "r20-claude-hooks-are-work", 120,
+                         [(CADENCE_FRESH, "instrument-builder")],
+                         work_path=".claude/hooks/session-start.sh",
+                         also=[(".claude/settings.json", 40),
+                               (".claude/template-sync.txt", 20)])
+    r20 = _cadence_read(d)
+    say(not r20["ok"] and r20["state"] == "unspawned"
+        and r20["changed"] == 160 and r20["by_scope"]["claude"] == 160
+        and r20["evidence_paths"] == 2
+        and sorted(r20["evidence_hits"]) == ["agentlog", "templatesync"],
+        "REJECT a hook rewrite plus a permissions edit under .claude/ is 160 "
+        "line(s) of WORK and needs a review, while the agent log and the "
+        "template-sync stamp beside them stay evidence at 0",
+        r20["summary"])
+
     # NEVER LOOSER THAN THE VERSION IT REPLACES, asserted over every fixture in
     # the suite rather than argued in prose: any substantial diff that goes
     # GREEN must have BOTH a fresh spawn row (the old gate's whole test) and a
     # ruling record (the new one). A regression that stopped reading the log
     # would pass every individual case above and die here.
     every = (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14,
-             a15, a16, a17, a18,
+             a15, a16, a17, a18, a19,
              r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14,
-             r15, r16, r17, r18, r19)
+             r15, r16, r17, r18, r19, r20)
     loose = [x for x in every if x["ok"] and x["changed"] > DIRECTOR_MIN_LINES
              and not (x["since_code"] > 0 and x["ruling_fresh"] > 0)]
     say(not loose,
@@ -4292,7 +4492,7 @@ def _cadence_selftest():
     # case exits 0, and the three reds are DISTINCT from each other.
     say(all(CADENCE_EXIT[x["state"]] == 0
             for x in (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13,
-                      a14)),
+                      a14, a19)),
         "every accepting case exits 0")
     say(CADENCE_EXIT[r1["state"]] == 1 and CADENCE_EXIT[r4["state"]] == 2
         and CADENCE_EXIT[r11["state"]] == 3
@@ -4322,7 +4522,7 @@ def _cadence_selftest():
                 for l in p1)
         and any(DIRECTOR_MIN_SOURCE in l for l in p1),
         "MEASURE the series printer walks a real history, names the statistic "
-        "as CUMULATIVE per landed commit, and says the bound is inherited",
+        "as CUMULATIVE per landed commit, and says where the bound came from",
         _cap(p1, keep=2, sep=" | "))
     # THE RAW SERIES ABOVE THE SUMMARIES, asserted rather than intended: that
     # ordering is the whole argument for printing a series at all, because a
@@ -4614,7 +4814,7 @@ def director_cadence():
     watching — learning.md L27, and the transferable half of it is the sharp
     one: AN INSTRUMENT IS SCOPED TO WHERE THE WORK WAS WHEN IT WAS WRITTEN.
 
-    `DIRECTOR_WORK` is that scope, seven prefixes, each carrying why it counts;
+    `DIRECTOR_WORK` is that scope, eight prefixes, each carrying why it counts;
     `DIRECTOR_EVIDENCE` is what a machine WRITES ABOUT a run and outranks it.
     The printed line now carries `pathsWalked` with `pathsWork`,
     `pathsEvidence` and `pathsOther` beside it, and `workByScope` per prefix,
@@ -4625,11 +4825,27 @@ def director_cadence():
     from a printed series over `Assets/Scripts` only, so it is INHERITED, it
     says so on every line it prints, and the printer that replaces it ships
     beside it: `--cadence-series N` walks the last N landed commits with the
-    SAME classifier and prints the series above its own summaries. First real
-    reading, 120 commits on 1 Sep: 67 zeroes, non-zero median 123, p90 1920,
-    max 6188, and 28 of 120 commits over the inherited 100. Rule 2 says the
-    number comes from what the printer printed, so the bound moves in a later
-    change with that series quoted, not in this one.
+    SAME classifier and prints the series above its own summaries.
+
+    TWO READINGS OF ONE WINDOW, 1 SEP, taken seconds apart in ONE command with
+    one contributor toggled (the classifier itself), so the difference is a
+    measurement and not an inference. Both walked the same 120 landed commits,
+    the window ending at 6fd19190:
+
+      before this change  67 zeroes, non-zero median 123, p90 1920, max 6188,
+                          28 of 120 over the inherited 100
+      after it            70 zeroes, non-zero median 124, p90 1939, max 4388,
+                          26 of 120 over the inherited 100
+
+    WHAT THE SECOND READING EXCLUDES, and it is why the first could not set a
+    bound: `content/props/manifest.json` and `ATTRIBUTION.json` are evidence
+    from this change on, so the largest reading in the window (6188, commit
+    0615d189) leaves the series entirely, along with 123 and 78. `.claude/`
+    became work in the same edit and put lines back in the other direction:
+    1920 became 1939 and 497 became 585. A bound read off the first row would
+    have been a bound on machine-written manifests wearing a work bound's
+    name. Rule 2 says the number comes from what the printer printed, so the
+    bound moves in a later change with the row quoted, not in this one.
 
     A COMPLETED REVIEW IS AN ARTIFACT, NOT AN ATTENDANCE ROW (25 Aug). The
     version this replaces asked only for a `studio-director` row newer than
@@ -4931,6 +5147,30 @@ def _strings_selftest():
     say(ok and "191 files, 13 filenames that are not types" in s,
         "filename-as-type: a clean sweep lifts BOTH denominators into the footer", s)
 
+    # THE TWO MESHGEN-FAMILY SUITES, WIRED 1 SEP AFTER PASSING UNRUN. Both
+    # parse the same line shape, so both are pinned here: the count that
+    # reaches the footer is the CHECKS-RUN number and not the passed number,
+    # which only differ when something failed and is exactly the pair a
+    # careless edit swaps.
+    ok, s = with_out(propview,
+                     "  ok   a check\n\npropview selftest: 59 passed, 0 failed, "
+                     "59 checks run\n  NOT COVERED HERE: Blender itself, Windows, "
+                     "PowerShell never execute in this container.\n")
+    say(ok and "59 propview checks (0 failed; " in s
+        and "Blender/Windows/PowerShell uncovered here" in s
+        and ", " not in s,
+        "propview: the count reaches the footer WITH the half this container "
+        "cannot run named beside it", s)
+
+    ok, s = with_out(meshgen_suite,
+                     "meshgen selftest: 102 passed, 0 failed, 102 checks run\n"
+                     "  NOT COVERED HERE, and it is the expensive half: TRELLIS, "
+                     "Blender and both .bat files never execute here.\n")
+    say(ok and "102 meshgen checks (0 failed; " in s
+        and "TRELLIS/Blender/Windows uncovered here" in s
+        and ", " not in s,
+        "meshgen: same parse, same shape, both suites wired in one pass", s)
+
     # --- runs map to commits. ACCEPTING FIRST, and the first two are the
     # window: a run 480 commits back must be COUNTED, and the git call must
     # ask for no window at all.
@@ -5005,6 +5245,24 @@ def _strings_selftest():
         say(not ok and NOTHING_MEASURED in s and "no `var want" in s,
             "convo probe: a bound that could not be derived is RED and says so "
             "— a probe of nobody must not read as a probe of everybody", s)
+
+    # THE EXPENSIVE HALF OF WIRING A SELFTEST: a tool that crashed, was
+    # renamed or printed a usage message exits with NO count line, and
+    # "no failures were reported" must not read as "no failures". Both
+    # rejecting shapes are pinned, absent line first.
+    ok, s = with_out(propview, "Traceback (most recent call last):\n", code=1)
+    say(not ok and NOTHING_MEASURED in s and "printed no count line" in s,
+        "propview: a selftest that printed NO count line is RED and says "
+        "nothing measured, never a silent pass", s)
+
+    ok, s = with_out(meshgen_suite,
+                     "  FAIL the licence gate accepted an unlisted weight\n"
+                     "meshgen selftest: 99 passed, 3 failed, 102 checks run\n",
+                     code=1)
+    say(not ok and "3 of 102 check(s) FAILED" in s
+        and "licence gate accepted an unlisted weight" in s,
+        "meshgen: a real failure keeps its denominator AND quotes the "
+        "assertion, so the footer names what broke", s)
 
     ok, s = with_out(lint, "no such line")
     say(not ok and s == "lint did not report",
@@ -5325,7 +5583,8 @@ def main():
                template_sync,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, raw_avenues, bat_editor, bootstrap_single, blender_hash_parse, filename_as_type, namespace_as_value, workflow_size,
-               powershell_steps, sheet_read, prop_dimensions, prop_reach, ref_bench,
+               powershell_steps, sheet_read, prop_dimensions, prop_reach,
+               propview, meshgen_suite, ref_bench,
                decal_ink,
                frame_drift, verdict_keys, verdict_format, verdict_dupkeys,
                verdict_emit_dupkeys, runs_map_to_commits, gate_detail_ceiling,
