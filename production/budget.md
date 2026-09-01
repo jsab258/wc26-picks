@@ -30,8 +30,16 @@ MONDAY'S RATE.
 
 ## What that buys, per day, for the rest of this week
 
-About 6 points of weekly budget. That is roughly two short working sessions,
-not one long one, and no more than three dispatched builds.
+THE ARITHMETIC GIVES 7.9, THE WORKING FIGURE IS 6, AND THE GAP IS DELIBERATE.
+46 points over the 5.8 days remaining is 7.9 points a day. Six is that with
+roughly a quarter held back, because every estimate this project has made
+about its own consumption has been low, and because a reserve that is spent
+is a reserve that was never needed. Six is a CHOICE with a named reason, not
+a derivation, and it is written that way so the next reader does not treat it
+as measured.
+
+That buys roughly two short working sessions, not one long one, and no more
+than three dispatched builds.
 
 ## Stop conditions, mechanical
 
@@ -45,5 +53,12 @@ not one long one, and no more than three dispatched builds.
 ## Why a file rather than a rule in somebody's head
 
 Because a session that resets cannot remember a number Jafar said on Monday.
-This file is the only thing that survives, and the watchdog prompt points at
-it.
+This file is the only thing that survives.
+
+The watchdog is told to read this file first, and THAT CLAIM NEEDS AN
+ARTIFACT LIKE ANY OTHER. The prompt lives in the trigger system rather than
+in the tree, so nothing here could be checked against it and a director
+review could not verify it. The text is now kept at
+`production/watchdog-prompt.md` with its enabled state and the date it was
+set. When the prompt changes, that file changes in the same commit, or the
+claim goes back to being unverifiable.
