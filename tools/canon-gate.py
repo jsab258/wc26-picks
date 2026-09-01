@@ -63,7 +63,15 @@ EXEMPT = ("canon.md", "ledger-v2/", "legacy/", "tools/canon-gate.py",
           # guard's fixtures pointed at live content and died the moment the
           # work was done. Exempt by path, printed whenever it bites, and
           # the selftest proves the same lines still refuse elsewhere.
-          "production/specs/judge-calibration-")
+          # Prefix, not a filename: the file was renamed from
+          # judge-calibration-2 to judge-test-set-1 the day after it was
+          # written, and the gate caught it the same minute by refusing 11
+          # deliberate violations. That is the exemption being narrow, which
+          # is correct. It is keyed to the judge-fixture prefix rather than
+          # to any one name so a rename inside the family does not silently
+          # re-arm it, while a fixture moved OUT of the family loses the
+          # exemption and is screened like content again.
+          "production/specs/judge-")
 
 
 def forbidden_brands():

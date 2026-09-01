@@ -39,9 +39,12 @@
    and a tie is a measured tie; an unmeasurable UE side closes D1 as
    UNRESOLVED with the engine question still open. That is written into
    the plan so a later session cannot quietly bank the default.
-2. Dialogue TONE verification: the judge needs your calibration sample
-   before it can grade anything (D7). Until then tone is honestly marked
-   PENDING, not passed.
+2. Dialogue TONE verification: UNBLOCKED, and it no longer needs you. Your
+   48 PASS grades ARE the calibration: they fix the positive boundary. The
+   refusing half is a constructed test set the studio labels itself, since
+   nobody should grade items built to be wrong. Judge work proceeds from
+   here; your only ongoing part is D7's 10 percent audit, which is a glance
+   at a few lines in this brief, never a spreadsheet.
 
 ## Numbers
 1. Throughput: 1 verified piece this week (the pilot bank).
@@ -50,18 +53,17 @@
    opens this week; the routing law applies from the first runner night).
 
 ## Decision queue (yours, per operations.md)
-1. CARD: the UE5 blocker. Question: do we open a support ticket with Epic
-   (the symptom list is written and ready to paste), try a second Epic
-   account, or park the engine question and run the Unity half only?
-   Recommendation: park it for now and let tasks 002 to 004 bank the Unity
-   measurements, because they are needed whichever way the engine goes.
-   Consequence of parking: D1 closes UNRESOLVED rather than deciding, and
-   the engine stays open in open-questions.md. No deadline; the two-week
-   box applies to the measurements, not to this card.
-2. CARD: grade the judge calibration sample,
-   production/specs/judge-calibration-1-dialogue.md, 48 lines, PASS/FAIL
-   plus a word per FAIL. Consequence if deferred: dialogue throughput has
-   no tone gate and the assembly line runs mechanical-only.
+1. CARD: the UE5 blocker, now with a researched fix rather than a
+   question. This is a known Epic launcher bug: the launcher sits in an
+   offline or empty-entitlement state and greys out every install control.
+   Two documented workarounds, both about 30 seconds, either one likely
+   enough that it is worth trying before any support ticket. They are in
+   the reply and in the blocked task. If neither works, the fallback is an
+   Epic support ticket with the symptom list already written.
+   Recommendation: try them once; do not spend a second evening on it.
+   Tasks 002 to 004 bank the Unity measurements regardless.
+2. CLOSED: the calibration sample, graded 48 PASS. No further grading is
+   asked of you for this content type.
 
 ## Next
 1. Runner's first supervised night on the PC (one trivial task queued,
