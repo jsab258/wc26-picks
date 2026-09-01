@@ -1,11 +1,11 @@
 LEDGER - prop pipeline (meshgen), machine report
 ================================================================
-written   2026-09-01T20:00:54Z
+written   2026-09-01T20:01:29Z
 host      JAFAR-DESKTOP
 os        Microsoft Windows 11 Pro  (26200)
 cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
 ram       31.9 GB
-free disk 90.6 GB on C:
+free disk 90.7 GB on C:
 machine probe read: True   toolchain probe read: True
 
 GPUs   2 found  (sources tried: Win32_VideoController (CIM) -> 2 adapter(s) from 2 row(s) seen)
@@ -37,7 +37,7 @@ CAN THIS MACHINE RUN IT?
             found: C:\LedgerTools\blender\4.5.13\blender-4.5.13-windows-x64\blender.exe
       [ok ] free disk
             need : 2 GB for the exports
-            found: 90.6 GB on C:
+            found: 90.7 GB on C:
 
   backend trellis: NO  (4 of 8 requirements met)
       [NO ] an NVIDIA GPU
@@ -67,20 +67,20 @@ CAN THIS MACHINE RUN IT?
             found: C:\Program Files\Git\cmd\git.exe
       [ok ] free disk
             need : about 40 GB (ESTIMATE, not measured: torch+CUDA env, a 1.2B model, build trees)
-            found: 90.6 GB on C:
+            found: 90.7 GB on C:
 
 BATCH     meridian-street-furniture-01 - 37 item(s), backend local
 LICENCE   every output carries tool, weights licence and source provenance; the law is ledger-v2/research/license-allowlist.md
 DONE 37/37
-      $ C:\LedgerTools\blender\4.5.13\blender-4.5.13-windows-x64\blender.exe --background --factory-startup --python C:\Users\Jafar\wc26-picks\tools\meshgen\blender\clean_lod.py -- --in C:\Users\Jafar\wc26-picks\ledger\Assets\Props\base-mesh\wood_barrel.glb --out-dir C:\Users\Jafar\wc26-picks\content\props\wood_barrel --id wood_barrel --lods LOD0=1.0,LOD1=0.5,LOD2=0.25 --result C:\Users\Jafar\wc26-picks\content\props\wood_barrel\blender-result.json --pivot base-centre
-  [34/37] wood_barrel: done - 3 LOD(s), 3359 verts, [0.6009, 0.8148, 0.6171] m
-      $ C:\LedgerTools\blender\4.5.13\blender-4.5.13-windows-x64\blender.exe --background --factory-startup --python C:\Users\Jafar\wc26-picks\tools\meshgen\blender\clean_lod.py -- --in C:\Users\Jafar\wc26-picks\ledger\Assets\Props\base-mesh\wooden_crate_01.glb --out-dir C:\Users\Jafar\wc26-picks\content\props\wooden_crate_01 --id wooden_crate_01 --lods LOD0=1.0,LOD1=0.5,LOD2=0.25 --result C:\Users\Jafar\wc26-picks\content\props\wooden_crate_01\blender-result.json --pivot base-centre
-  [35/37] wooden_crate_01: done - 3 LOD(s), 1704 verts, [0.8804, 1.0447, 0.9244] m
-      $ C:\LedgerTools\blender\4.5.13\blender-4.5.13-windows-x64\blender.exe --background --factory-startup --python C:\Users\Jafar\wc26-picks\tools\meshgen\blender\clean_lod.py -- --in C:\Users\Jafar\wc26-picks\ledger\Assets\Props\base-mesh\wooden_crate_02.glb --out-dir C:\Users\Jafar\wc26-picks\content\props\wooden_crate_02 --id wooden_crate_02 --lods LOD0=1.0,LOD1=0.5,LOD2=0.25 --result C:\Users\Jafar\wc26-picks\content\props\wooden_crate_02\blender-result.json --pivot base-centre
-  [36/37] wooden_crate_02: done - 3 LOD(s), 1736 verts, [0.8811, 1.0455, 0.9251] m
-      $ C:\LedgerTools\blender\4.5.13\blender-4.5.13-windows-x64\blender.exe --background --factory-startup --python C:\Users\Jafar\wc26-picks\tools\meshgen\blender\clean_lod.py -- --in C:\Users\Jafar\wc26-picks\ledger\Assets\Props\base-mesh\wooden_square_bollard.glb --out-dir C:\Users\Jafar\wc26-picks\content\props\wooden_square_bollard --id wooden_square_bollard --lods LOD0=1.0 --result C:\Users\Jafar\wc26-picks\content\props\wooden_square_bollard\blender-result.json --pivot base-centre
-  [37/37] wooden_square_bollard: done - 1 LOD(s), 80 verts, [0.1247, 1.0, 0.1247] m
+  [30/37] traffic_cone_01: SKIPPED - 3 output(s) on disk and measured
+  [31/37] traffic_cone_02: SKIPPED - 2 output(s) on disk and measured
+  [32/37] trunk_protection_railing: SKIPPED - 3 output(s) on disk and measured
+  [33/37] weathertop_chimney: SKIPPED - 3 output(s) on disk and measured
+  [34/37] wood_barrel: SKIPPED - 3 output(s) on disk and measured
+  [35/37] wooden_crate_01: SKIPPED - 3 output(s) on disk and measured
+  [36/37] wooden_crate_02: SKIPPED - 3 output(s) on disk and measured
+  [37/37] wooden_square_bollard: SKIPPED - 1 output(s) on disk and measured
 
-DONE 37/37: 37 made, 0 skipped, 0 failed, 0 not attempted, of 37 in the batch
+DONE 37/37: 0 made, 37 skipped, 0 failed, 0 not attempted, of 37 in the batch
   CAP: (+1 more item(s) in the batch not attempted on this run)
 licence gate: 0 problem(s) and 0 caveat(s) over 37 completed item(s)
