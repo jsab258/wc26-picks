@@ -55,3 +55,13 @@ the test because it is the one with content beside it, and the golden table
 copied next to it because a staged build's ProjectDir is the staged tree.
 The cook time is not a workaround, it is the half of the UE cycle that
 Build.bat was never measuring.
+run 9 - 2026-09-01 - the cook died in two seconds on "Editor target not
+found!". Cooking is not a build step in Unreal, it is a commandlet run
+inside the editor, so UAT refuses before it starts unless the project
+declares an editor target; the project had only a game target. Added, with
+the same Shared build environment for the same installed-engine reason.
+-nocompileeditor is dropped with it: a C++ project cannot be cooked without
+its editor module built, and that compile is real UE setup cost that
+belongs in the cold cook number rather than being hidden by a flag that
+makes the cook fail instead. Expect the cold cook to be the longest step
+this probe has run.
