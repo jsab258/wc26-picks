@@ -108,3 +108,16 @@ run prefers the binary under Binaries\Win64, prints both counts, copies the
 golden table to four named places and looks for the result in four. It
 should close the probe: build proven, port proven, cook measured, test
 running against the packaged artifact.
+run 14 - 2026-09-01 - TASK 007 STEP 1: the evidence channel on the UE side.
+This is the question D1 actually turns on and it is not a performance one.
+The probe now writes ue-verdict.txt with the commit on line 1, no spaces in
+any value, whole-run numbers on one done line, and the words NO RUN when
+nothing was measured. The workflow collects it by name, never by directory,
+and guards it: the file is TRACKED, so a checkout restores the previous
+run's copy, and a build step that died before rewriting it would commit that
+older file under this run's message. Line 1 is checked for this commit as a
+seven-character PREFIX, which is what the game was handed; comparing against
+this repo's eight-character abbrev would have condemned every fresh verdict
+and looked like a working guard. Both outcomes were run before shipping.
+The success condition is small and exact: a committed file that
+tools/verdict-read.py opens exactly as it opens the Unity one.

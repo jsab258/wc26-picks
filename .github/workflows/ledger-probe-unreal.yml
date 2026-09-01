@@ -446,7 +446,7 @@ jobs:
           $gameErr = Join-Path $PWD "game-run.err"
           $t2 = Get-Date
           $p3 = Start-Process -FilePath $exe.FullName `
-                -ArgumentList @("-LedgerGoldenTest","-nullrhi","-unattended","-nosplash","-nopause","-stdout","-FullStdOutLogOutput") `
+                -ArgumentList @("-LedgerGoldenTest","-LedgerCommit=$sha","-nullrhi","-unattended","-nosplash","-nopause","-stdout","-FullStdOutLogOutput") `
                 -Wait -PassThru -NoNewWindow `
                 -RedirectStandardOutput $gameOut -RedirectStandardError $gameErr
           $testSec = [math]::Round(((Get-Date) - $t2).TotalSeconds, 2)
@@ -487,6 +487,32 @@ jobs:
           if ((Test-Path $gameErr) -and (Get-Item $gameErr).Length -gt 0) {
             $L += "--- game stderr, last 20 lines ---"; $L += (Get-Content $gameErr -Tail 20)
           }
+          # TASK 007 STEP 1: THE UE-SIDE VERDICT, COLLECTED BY NAME.
+          # The game writes it beside its own project; this brings it into
+          # the repository under a fixed path so verdict-read.py and every
+          # other reader can open it exactly as they open the Unity one.
+          # A run that produced none says NO RUN here rather than leaving
+          # whatever the last run wrote to pass as this run's.
+          $verdictCandidates = @((Join-Path $PWD "ue-probe\ue-verdict.txt"))
+          if ($packagedExe) {
+            $bd2 = Split-Path $packagedExe.FullName -Parent
+            $verdictCandidates += (Join-Path (Split-Path (Split-Path $bd2 -Parent) -Parent) "ue-verdict.txt")
+            $verdictCandidates += (Join-Path $bd2 "ue-verdict.txt")
+          }
+          $ueVerdict = "production/d1-probe/ue-verdict.txt"
+          $vfound = $verdictCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          $L += "ueVerdictCandidates=$($verdictCandidates.Count) ueVerdictFound=$(if ($vfound) { 'yes' } else { 'no' })"
+          if ($vfound) {
+            Copy-Item $vfound $ueVerdict -Force
+            $L += "ueVerdictFrom=$($vfound -replace ' ','~')"
+          } else {
+            @("# UE probe verdict $sha @$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())",
+              "# Line 1 names the commit this was measured on, as the Unity verdict does.",
+              "",
+              "NO RUN - the probe binary wrote no verdict on this commit; nothing here was measured.",
+              "verdictReached=end") | Set-Content $ueVerdict -Encoding utf8
+          }
+
           $L += "buildReached=end"
           $L | Set-Content $out -Encoding utf8
           Write-Host ($L -join "`n")
@@ -508,6 +534,7 @@ jobs:
           set -u
           OUT=production/d1-probe/ue-machine.txt
           BUILDOUT=production/d1-probe/ue-build.txt
+          UEVERDICT=production/d1-probe/ue-verdict.txt
           # A RUN THAT MEASURED NOTHING SAYS SO. Without this the previous
           # run's file would be committed again under this run's sha, which
           # is the exact fault sim-shots-stage.sh exists to prevent.
@@ -515,12 +542,32 @@ jobs:
             printf '# UE machine probe - %s\nNO PROBE - the probe step did not reach its end (outcome: %s).\nNothing was measured on this commit; do not read an older file as this run.\n' \
               "$(git rev-parse --short HEAD)" "${PROBE_OUTCOME:-unknown}" > "$OUT"
           fi
+          # THE UE VERDICT IS A TRACKED FILE, SO THE CHECKOUT RESTORES THE
+          # PREVIOUS RUN'S COPY. If the build step never got as far as
+          # replacing it, that older file would be committed under this run's
+          # message and read as this run's answer, which is the precise fault
+          # sim-shots-stage.sh exists for. So it is checked for THIS commit's
+          # sha on line 1 and replaced with NO RUN when it does not carry it.
+          # SEVEN CHARS, COMPARED AS A PREFIX. This repo's abbrev is 8 while
+          # the value handed to the game is 7, and the project already paid
+          # for that mismatch once: an 8-char needle never matches a 7-char
+          # haystack, so a perfectly fresh verdict would be condemned as
+          # stale on every single run and the guard would look like it was
+          # working. Cut to 7 first, which is what the game was given.
+          SHORT="$(git rev-parse HEAD | cut -c1-7)"
+          if [ ! -f "$UEVERDICT" ] || ! head -1 "$UEVERDICT" | grep -q "$SHORT"; then
+            printf '# UE probe verdict %s @%s\n# Line 1 names the commit this was measured on, as the Unity verdict does.\n\nNO RUN - no verdict carrying this commit was produced; do not read an older file as this run.\nverdictReached=end\n' \
+              "$SHORT" "$(date -u +%s)" > "$UEVERDICT"
+          fi
           git config user.name "LEDGER probe"
           git config user.email "probe@ledger.local"
           # STAGED BY NAME, both of them. A build that did not run leaves no
           # file and nothing is invented for it: absent is a fact.
           git add -- "$OUT"
           [ -f "$BUILDOUT" ] && git add -- "$BUILDOUT"
+          # STAGED BY NAME, like the other two. The UE verdict is the whole
+          # point of task 007 and it must never ride in on a directory add.
+          [ -f "$UEVERDICT" ] && git add -- "$UEVERDICT"
           git diff --cached --quiet && { echo "probe result unchanged; nothing to commit"; exit 0; }
           git commit -m "UE machine probe from $(git rev-parse --short HEAD)"
           BR="${GITHUB_REF_NAME}"

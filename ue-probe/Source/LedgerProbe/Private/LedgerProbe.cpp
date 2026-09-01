@@ -18,6 +18,7 @@
 #include "HAL/PlatformProcess.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "Misc/DateTime.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -59,6 +60,64 @@ namespace
 			if (FPaths::FileExists(C)) { return C; }
 		}
 		return FString();
+	}
+
+	// THE EVIDENCE CHANNEL, REPRODUCED ON THE UE SIDE. Task 007, step 1.
+	//
+	// This is the question D1 actually turns on, and it is not a performance
+	// question. Unity's loop costs what it costs partly because the answer
+	// has to travel through CI to be readable at all; if UE cannot produce
+	// the same committed, traceable file, then D1 is comparing an
+	// instrumented engine against an uninstrumented one and the comparison
+	// is worthless whichever way it lands.
+	//
+	// FOUR PROPERTIES HAVE TO SURVIVE THE MOVE and each one is here because
+	// breaking it cost this project a day:
+	//   line 1 names the commit, so a stale file cannot pass as a fresh one;
+	//   no value contains a space, because every reader splits on whitespace
+	//     and truncates silently when one does;
+	//   whole-run numbers sit on the done line, never split across lines a
+	//     grep would merge;
+	//   a run that measured nothing says so rather than staying quiet.
+	//
+	// The commit comes in on the command line rather than being discovered,
+	// because a game binary has no business running git and a sha it guessed
+	// would be a provenance line with no provenance.
+	void WriteVerdict(long Rows, long Bad, long Unknown, const FString& GoldenUsed, double Tol)
+	{
+		FString Sha;
+		if (!FParse::Value(FCommandLine::Get(), TEXT("LedgerCommit="), Sha) || Sha.IsEmpty())
+		{
+			Sha = TEXT("SHA-UNKNOWN");
+		}
+		Sha = Sha.Replace(TEXT(" "), TEXT("~"));
+
+		const FString Path = FPaths::Combine(FPaths::ProjectDir(), TEXT("ue-verdict.txt"));
+		TArray<FString> Out;
+		Out.Add(FString::Printf(TEXT("# UE probe verdict %s @%lld"),
+		                        *Sha, (long long)FDateTime::UtcNow().ToUnixTimestamp()));
+		Out.Add(TEXT("# Line 1 names the commit this was measured on, as the Unity verdict does."));
+		Out.Add(TEXT(""));
+
+		if (Rows == 0)
+		{
+			// NO RUN, said in words. A run that measured nothing must not
+			// leave a file that reads like a clean one.
+			Out.Add(TEXT("NO RUN - the golden table was empty or unreadable, so nothing was measured on this commit."));
+		}
+		else
+		{
+			// The done line: whole-run numbers only, no spaces in any value.
+			Out.Add(FString::Printf(
+				TEXT("perceptionRows=%ld perceptionMismatches=%ld perceptionUnknownFns=%ld ")
+				TEXT("perceptionTolerance=%g probeTest=%s goldenTable=%s"),
+				Rows, Bad, Unknown, Tol,
+				Bad == 0 ? TEXT("PASS") : TEXT("FAIL"),
+				GoldenUsed.IsEmpty() ? TEXT("NONE-FOUND")
+				                     : *FPaths::GetCleanFilename(GoldenUsed)));
+		}
+		Out.Add(TEXT("verdictReached=end"));
+		FFileHelper::SaveStringToFile(FString::Join(Out, TEXT("\n")) + TEXT("\n"), *Path);
 	}
 
 	void RunGoldenTest()
@@ -127,6 +186,8 @@ namespace
 				}
 			}
 		}
+
+		WriteVerdict(Rows, Bad, Unknown, Found, Tol);
 
 		FString Result;
 		// A GOLDEN FILE THAT LOADED NOTHING MUST NOT READ AS AGREEMENT.
