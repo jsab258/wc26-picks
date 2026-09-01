@@ -53,8 +53,15 @@
    asked of you for this content type.
 
 ## Next
-1. Runner's first supervised night on the PC (one trivial task queued,
-   watched, then -Register the schedule).
-2. D1 week 1: perception core transliteration once UE5 exists.
-3. Second assembly line spec (signage/brand bible) once the calibration
-   sample is back.
+1. THE CRITICAL PATH IS THE RUNNER'S FIRST SUPERVISED NIGHT. The container
+   here is Linux with no engine: it cannot run UE5, compile against it,
+   screenshot either engine, or time a real edit-build-test cycle. D1's
+   measurements a, b and d are all machine-side, so the night runner is how
+   the probe happens at all, not a convenience. One double-click,
+   tools\runner\run-night.bat, watched for the first half hour.
+2. D1 measurement c: DONE (production/d1-probe/instrument-inventory.md).
+   Half the tool surface would be rebuilt on a move to C++, and the obvious
+   count flatters the move because the coupling is to the language, not the
+   engine.
+3. Second assembly line spec (signage and brand bible), which needs no
+   engine and can run here.

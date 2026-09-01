@@ -2,7 +2,7 @@ line: infrastructure (D1 probe)
 spec: production/d1-probe/plan.md, week 1 item 1
 acceptance: UE5 launches on the build PC; version and disk noted here
 max_sessions: 1
-status: DONE 2026-09-01. UE 5.8.2 installing on the build PC.
+status: DONE 2026-09-01. UE 5.8.2 INSTALLED on the build PC, confirmed 2026-09-01.
 
 JAFAR ACTION: install Unreal Engine 5 on the build PC.
 

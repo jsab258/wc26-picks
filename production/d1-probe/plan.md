@@ -45,6 +45,26 @@ D1 closes as UNRESOLVED with the blocker named, and the engine question
 stays open in open-questions.md. It does not close as "Unity wins" by
 default: that would be a decision made by a launcher.
 
+## WHERE THE WORK CAN PHYSICALLY HAPPEN, 2026-09-01
+
+Stated plainly because it changes the critical path and it is easy to miss:
+the container this session runs in is Linux with no engine, so it cannot
+run UE5, cannot compile against it, cannot take a screenshot from either
+engine, and cannot time an edit-build-test cycle on the machine that
+matters. Measurement c was done here because it is a counting job over
+source. Measurements a, b and d are ALL machine-side.
+
+The night runner is therefore not a convenience, it is the mechanism by
+which the probe happens at all: it runs worker sessions ON the Windows PC
+where both engines live. Its first supervised run is now the critical path
+for D1, ahead of any further planning here.
+
+Until it runs, the honest state of a, b and d is NOT STARTED rather than in
+progress, and the two-week box should be read against that. If the box
+expires with the runner unproven, D1 closes UNRESOLVED per the rule already
+recorded; it does not close on partial measurements taken in the wrong
+place.
+
 ## Week 1 (to 2026-09-07)
 1. UE5 install on the build PC (JAFAR ACTION: one click, about 40 GB free
    disk needed; the installer link and steps go in the decision queue).
