@@ -34,3 +34,13 @@ build step's cap (25 vs 60 would have killed a legitimate cold build and
 reported it as NO PROBE) and made the binary pick newest-first with a
 candidate count. Expect the cold build to take real minutes for the first
 time: the engine is genuinely linked now, and that is the measurement.
+run 7 - 2026-09-01 - run 6 BUILT: cold 1.12 min, warm 0.03, 324 MB binary.
+The toolchain question is closed. The binary then exited 3 in six seconds
+having written nothing, and the step could say nothing about why. This run
+is about that: the game's stdout and stderr are captured and tailed,
+LedgerProbe.log is tailed by name, the module writes a moduleStartup
+breadcrumb before any work so "never loaded" and "loaded and died" separate,
+and the project gets the minimum Config it was missing (UBT does not need
+one, the runtime does). Cold is also MADE cold now by clearing Intermediate
+and Binaries first, because run 6 was the last run that would have been
+honestly cold by accident.
