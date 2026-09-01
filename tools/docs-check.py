@@ -122,7 +122,25 @@ def main():
     check("this wins" in road or "wins" in road,
           "roadmap.md claims precedence over other docs")
 
-    print(f"\n{len(docs) * 0 + sum(1 for _ in docs) - len(_fails)}/{len(docs)} clean"
+    # THE UNWALKED SET, NAMED. "117/117 clean" reads as full coverage of the
+    # project's documents and is nothing of the kind: this checker's root is
+    # game-design/ alone, and since the v2 respec landed there are two more
+    # markdown trees it has never opened. Saying so out loud costs three lines
+    # and stops a clean result being read as a claim about documents nobody
+    # examined. Widening the scope is a DECISION, not a tidy-up: the v2
+    # package carries its own conventions and would go red on this one.
+    root = DOCS.parent
+    unwalked = []
+    for other in ("production", "ledger-v2", "legacy"):
+        d = root / other
+        if d.is_dir():
+            unwalked.append((other, sum(1 for _ in d.rglob("*.md"))))
+    if unwalked:
+        print("\nNOT WALKED (this checker's root is game-design/ only): " +
+              ", ".join(f"{n}/ {c} doc(s)" for n, c in unwalked) +
+              " — those trees carry the v2 conventions and are not checked here.")
+
+    print(f"\n{len(docs) - len(_fails)}/{len(docs)} clean under game-design/"
           if not _fails else f"\n{len(_fails)} problem(s)")
     return 1 if _fails else 0
 

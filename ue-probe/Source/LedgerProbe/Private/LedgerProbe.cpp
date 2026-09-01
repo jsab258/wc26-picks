@@ -42,6 +42,18 @@ namespace
 		const FString GoldenPath = FPaths::Combine(FPaths::ProjectDir(), TEXT("perception-golden.txt"));
 		const FString OutPath    = FPaths::Combine(FPaths::ProjectDir(), TEXT("golden-result.txt"));
 
+		// A BREADCRUMB, WRITTEN BEFORE ANY WORK. Run 6 exited 3 in six seconds
+		// with no file at all, and "the module never loaded" and "the module
+		// loaded and the test died" looked identical from the outside. They
+		// have completely different next actions. This costs one write and
+		// makes them distinguishable: no file means startup was never reached,
+		// a file holding only this line means it was reached and the test
+		// did not finish.
+		FFileHelper::SaveStringToFile(
+			FString::Printf(TEXT("moduleStartup=reached projectDir=%s\nprobeTest=FAIL reason=test-did-not-finish\n"),
+			                *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir())),
+			*OutPath);
+
 		FString Contents;
 		if (!FFileHelper::LoadFileToString(Contents, *GoldenPath))
 		{

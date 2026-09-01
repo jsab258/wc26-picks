@@ -244,6 +244,20 @@ jobs:
           $L += "engine=$($ue -replace ' ','~')"
           $L += "project=$($proj -replace ' ','~')"
 
+          # COLD MEANS COLD, AND FROM RUN 7 ON IT HAS TO BE MADE SO.
+          # Run 6 was the first build to compile, so its 1.12 minutes was
+          # honestly cold. Every run after it inherits Intermediate/ and
+          # Binaries/ from the agent's persistent workspace, so a second
+          # "cold" reading would be a warm build wearing a cold label: a
+          # number keeping its name after the question it answers moved.
+          # Clearing them is one line and it is what makes the series
+          # comparable across runs.
+          $cleared = 0
+          foreach ($d in @("ue-probe\Intermediate", "ue-probe\Binaries")) {
+            if (Test-Path $d) { Remove-Item $d -Recurse -Force -ErrorAction SilentlyContinue; $cleared++ }
+          }
+          $L += "clearedBeforeCold=$cleared/2 (Intermediate, Binaries)"
+
           # COLD BUILD. Timed separately and named, because it is dominated
           # by engine headers and is not the cycle number.
           $args = @("LedgerProbe", "Win64", "Development", "-Project=`"$proj`"", "-WaitMutex", "-NoHotReload")
@@ -294,14 +308,40 @@ jobs:
           # is the evidence-channel rule the rest of this project runs on.
           $resultFile = Join-Path $PWD "ue-probe\golden-result.txt"
           Remove-Item $resultFile -ErrorAction SilentlyContinue
+          # THE GAME'S OWN OUTPUT IS CAPTURED, which run 6 did not do. It
+          # exited 3 in six seconds and left nothing behind, so the run said
+          # only that something went wrong and could not say what. A blocked
+          # feedback channel is the highest-leverage bug on the board and this
+          # is the whole of the repair: redirect the streams, tail the log UE
+          # writes itself, and print both whatever the exit code was.
+          $gameOut = Join-Path $PWD "game-run.log"
+          $gameErr = Join-Path $PWD "game-run.err"
           $t2 = Get-Date
           $p3 = Start-Process -FilePath $exe.FullName `
-                -ArgumentList @("-nullrhi","-unattended","-nosplash","-nopause","-stdout") `
-                -Wait -PassThru -NoNewWindow
+                -ArgumentList @("-nullrhi","-unattended","-nosplash","-nopause","-stdout","-FullStdOutLogOutput") `
+                -Wait -PassThru -NoNewWindow `
+                -RedirectStandardOutput $gameOut -RedirectStandardError $gameErr
           $testSec = [math]::Round(((Get-Date) - $t2).TotalSeconds, 2)
           $L += "gameExit=$($p3.ExitCode) testSeconds=$testSec"
           if (Test-Path $resultFile) { $L += (Get-Content $resultFile) }
           else { $L += "probeTest=FAIL reason=no-result-file-written (the module did not reach its write)" }
+
+          # UE's own log, which says why engine init stopped when it stopped.
+          # Named explicitly rather than globbed into a directory add: a tail
+          # of the WRONG log would be worse than none.
+          $ueLog = Join-Path $PWD "ue-probe\Saved\Logs\LedgerProbe.log"
+          if (Test-Path $ueLog) {
+            $L += "--- LedgerProbe.log, last 60 lines ---"
+            $L += (Get-Content $ueLog -Tail 60)
+          } else {
+            $L += "--- no LedgerProbe.log at $($ueLog -replace ' ','~'): the engine did not get as far as opening one ---"
+          }
+          if ((Test-Path $gameOut) -and (Get-Item $gameOut).Length -gt 0) {
+            $L += "--- game stdout, last 40 lines ---"; $L += (Get-Content $gameOut -Tail 40)
+          }
+          if ((Test-Path $gameErr) -and (Get-Item $gameErr).Length -gt 0) {
+            $L += "--- game stderr, last 20 lines ---"; $L += (Get-Content $gameErr -Tail 20)
+          }
           $L += "buildReached=end"
           $L | Set-Content $out -Encoding utf8
           Write-Host ($L -join "`n")
