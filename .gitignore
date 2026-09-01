@@ -99,3 +99,9 @@ ue-probe/Binaries/
 ue-probe/Intermediate/
 ue-probe/Saved/
 ue-probe/DerivedDataCache/
+ue-probe/Packaged/
+ue-probe/Saved/
+ue-probe/Intermediate/
+ue-probe/Binaries/
+ue-probe/DerivedDataCache/
+ue-probe/golden-result.txt

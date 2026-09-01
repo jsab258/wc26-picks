@@ -15,6 +15,7 @@
 #include "Misc/Paths.h"
 #include "Misc/FileHelper.h"
 #include "HAL/PlatformMisc.h"
+#include "HAL/PlatformProcess.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -37,9 +38,33 @@ namespace
 	double D(const FString& S) { return FCString::Atod(*S); }
 	bool   B(const FString& S) { return S == TEXT("1"); }
 
+	// THE TABLE IS LOOKED FOR IN SEVERAL PLACES AND THE ONE USED IS NAMED.
+	// A packaged build's ProjectDir is the STAGED project, not the source
+	// tree, so a single hard-coded location works in exactly one of the two
+	// ways this binary gets run. Searching is fine; searching silently is
+	// not, which is why the result file says which path answered.
+	FString FindGoldenTable(FString& OutTried)
+	{
+		TArray<FString> Candidates;
+		Candidates.Add(FPaths::Combine(FPaths::ProjectDir(), TEXT("perception-golden.txt")));
+		Candidates.Add(FPaths::Combine(FPaths::ProjectContentDir(), TEXT("perception-golden.txt")));
+		Candidates.Add(FPaths::Combine(FPaths::LaunchDir(), TEXT("perception-golden.txt")));
+		Candidates.Add(FPaths::Combine(
+			FPaths::GetPath(FPlatformProcess::ExecutablePath()), TEXT("perception-golden.txt")));
+		for (const FString& C : Candidates)
+		{
+			OutTried += TEXT(" ") + FPaths::ConvertRelativePathToFull(C).Replace(TEXT(" "), TEXT("~"));
+			if (FPaths::FileExists(C)) { return C; }
+		}
+		return FString();
+	}
+
 	void RunGoldenTest()
 	{
-		const FString GoldenPath = FPaths::Combine(FPaths::ProjectDir(), TEXT("perception-golden.txt"));
+		FString Tried;
+		const FString Found      = FindGoldenTable(Tried);
+		const FString GoldenPath = Found.IsEmpty()
+			? FPaths::Combine(FPaths::ProjectDir(), TEXT("perception-golden.txt")) : Found;
 		const FString OutPath    = FPaths::Combine(FPaths::ProjectDir(), TEXT("golden-result.txt"));
 
 		// A BREADCRUMB, WRITTEN BEFORE ANY WORK. Run 6 exited 3 in six seconds
@@ -50,8 +75,11 @@ namespace
 		// a file holding only this line means it was reached and the test
 		// did not finish.
 		FFileHelper::SaveStringToFile(
-			FString::Printf(TEXT("moduleStartup=reached projectDir=%s\nprobeTest=FAIL reason=test-did-not-finish\n"),
-			                *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir())),
+			FString::Printf(TEXT("moduleStartup=reached projectDir=%s goldenPath=%s\ngoldenTried:%s\nprobeTest=FAIL reason=test-did-not-finish\n"),
+			                *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()).Replace(TEXT(" "), TEXT("~")),
+			                Found.IsEmpty() ? TEXT("NONE-FOUND")
+			                                : *FPaths::ConvertRelativePathToFull(Found).Replace(TEXT(" "), TEXT("~")),
+			                *Tried),
 			*OutPath);
 
 		FString Contents;

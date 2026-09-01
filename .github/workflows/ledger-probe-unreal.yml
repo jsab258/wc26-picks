@@ -252,11 +252,17 @@ jobs:
           # number keeping its name after the question it answers moved.
           # Clearing them is one line and it is what makes the series
           # comparable across runs.
+          # Packaged/ and Saved/ are cleared for PROVENANCE rather than for
+          # timing: a cook that fails would otherwise leave the previous
+          # run's binary and log sitting there to be picked up and reported
+          # as this run's, which is the fault sim-shots-stage.sh exists for.
+          $toClear = @("ue-probe\Intermediate", "ue-probe\Binaries",
+                       "ue-probe\Packaged", "ue-probe\Saved")
           $cleared = 0
-          foreach ($d in @("ue-probe\Intermediate", "ue-probe\Binaries")) {
+          foreach ($d in $toClear) {
             if (Test-Path $d) { Remove-Item $d -Recurse -Force -ErrorAction SilentlyContinue; $cleared++ }
           }
-          $L += "clearedBeforeCold=$cleared/2 (Intermediate, Binaries)"
+          $L += "clearedBeforeCold=$cleared/$($toClear.Count) (Intermediate, Binaries, Packaged, Saved)"
 
           # COLD BUILD. Timed separately and named, because it is dominated
           # by engine headers and is not the cycle number.
@@ -284,6 +290,67 @@ jobs:
           $warmMin = [math]::Round(((Get-Date) - $t1).TotalMinutes, 2)
           $L += "warmBuildExit=$($p2.ExitCode) warmBuildMinutes=$warmMin"
 
+          # COOK AND PACKAGE, WHICH IS THE FIX AND THE MEASUREMENT AT ONCE.
+          #
+          # Run 7 built cleanly and then the binary died in the async package
+          # loader: "Failed to load premade asset registry", then an assertion
+          # inside BufferReader on an IO thread. Build.bat compiles code. It
+          # does not cook content, and an uncooked game binary crashes trying
+          # to read packages that were never produced. Nothing was wrong with
+          # the C++.
+          #
+          # Cooking is also the honest UE cycle. A UE game is not shipped or
+          # run from a compile; it is cooked, staged and packaged, and that
+          # cost belongs to measurement a as much as the compile does. Timing
+          # it separately means the two halves can be compared to Unity's two
+          # halves rather than to each other.
+          #
+          # Failure here is informative and must not eat the build numbers
+          # already collected, so it writes what it knows and carries on.
+          $uat = Join-Path $ue "Engine\Build\BatchFiles\RunUAT.bat"
+          $archive = Join-Path $PWD "ue-probe\Packaged"
+          $packagedExe = $null
+          if (-not (Test-Path $uat)) {
+            $L += "cookSkipped=RunUAT.bat not found at $($uat -replace ' ','~')"
+          } else {
+            $uatArgs = @("BuildCookRun", "-project=`"$proj`"", "-noP4", "-nocompileeditor",
+                         "-platform=Win64", "-clientconfig=Development",
+                         "-cook", "-build", "-stage", "-pak", "-archive",
+                         "-archivedirectory=`"$archive`"", "-utf8output")
+            $L += "cookCmd=RunUAT.bat $($uatArgs -join ' ')"
+            $t4 = Get-Date
+            $p4 = Start-Process -FilePath $uat -ArgumentList $uatArgs -Wait -PassThru -NoNewWindow `
+                  -RedirectStandardOutput "cook-cold.log" -RedirectStandardError "cook-cold.err"
+            $L += "coldCookExit=$($p4.ExitCode) coldCookMinutes=$([math]::Round(((Get-Date) - $t4).TotalMinutes, 2))"
+            if ($p4.ExitCode -ne 0) {
+              $L += "COLD COOK FAILED. Last 40 lines:"
+              if (Test-Path "cook-cold.log") { $L += (Get-Content "cook-cold.log" -Tail 40) }
+              if (Test-Path "cook-cold.err") { $L += "--- cook stderr ---"; $L += (Get-Content "cook-cold.err" -Tail 20) }
+            } else {
+              # THE INCREMENTAL COOK IS THE CYCLE NUMBER. The first one pays
+              # for every shader and every engine asset once; the second is
+              # what an edit actually costs, and it is the one comparable to
+              # Unity's 2.47 minute warm build.
+              $t5 = Get-Date
+              $p5 = Start-Process -FilePath $uat -ArgumentList $uatArgs -Wait -PassThru -NoNewWindow `
+                    -RedirectStandardOutput "cook-warm.log" -RedirectStandardError "cook-warm.err"
+              $L += "warmCookExit=$($p5.ExitCode) warmCookMinutes=$([math]::Round(((Get-Date) - $t5).TotalMinutes, 2))"
+            }
+            $pk = @(Get-ChildItem -Path $archive -Filter "LedgerProbe.exe" -Recurse -ErrorAction SilentlyContinue |
+                    Sort-Object LastWriteTime -Descending)
+            $L += "packagedCandidates=$($pk.Count)"
+            if ($pk.Count -gt 0) {
+              $packagedExe = $pk[0]
+              $L += "packaged=$($packagedExe.FullName -replace ' ','~')"
+              # The table travels with the binary: a staged build's ProjectDir
+              # is the staged tree, not this checkout.
+              $stagedProj = Split-Path (Split-Path (Split-Path $packagedExe.FullName -Parent) -Parent) -Parent
+              foreach ($dest in @((Split-Path $packagedExe.FullName -Parent), $stagedProj)) {
+                Copy-Item $golden (Join-Path $dest "perception-golden.txt") -Force -ErrorAction SilentlyContinue
+              }
+            }
+          }
+
           # THE TEST. A build that compiles proves the toolchain; only this
           # proves the port, and it is the same 1221 rows the C# emitted.
           # NEWEST FIRST, AND SAY WHICH. An unordered -First 1 over a recursive
@@ -295,7 +362,12 @@ jobs:
           $cands = @(Get-ChildItem -Path "ue-probe\Binaries" -Filter "LedgerProbe*.exe" -Recurse -ErrorAction SilentlyContinue |
                      Sort-Object LastWriteTime -Descending)
           $L += "binaryCandidates=$($cands.Count)"
-          $exe = $cands | Select-Object -First 1
+          # THE PACKAGED BINARY WINS WHEN THERE IS ONE, because it is the one
+          # with cooked content beside it, and content is what run 7 died on.
+          # Which one was run is printed: two binaries with one name is the
+          # shape that makes a result untraceable.
+          if ($packagedExe) { $exe = $packagedExe; $L += "ranBinary=packaged" }
+          else              { $exe = $cands | Select-Object -First 1; $L += "ranBinary=uncooked-build-output" }
           if (-not $exe) {
             $L += "BINARY NOT FOUND under ue-probe after a successful build."
             $L += "buildReached=end"; $L | Set-Content $out -Encoding utf8
@@ -306,8 +378,17 @@ jobs:
           # comes back in a FILE the module wrote rather than from stdout,
           # because UE's log is noisy and truncated and a file opened by name
           # is the evidence-channel rule the rest of this project runs on.
-          $resultFile = Join-Path $PWD "ue-probe\golden-result.txt"
-          Remove-Item $resultFile -ErrorAction SilentlyContinue
+          # THE RESULT IS LOOKED FOR IN BOTH PLACES A RUN COULD HAVE WRITTEN IT,
+          # and every candidate is cleared first: a leftover file from the
+          # previous run read as this run's answer is the exact provenance
+          # fault the verdict channel exists to prevent.
+          $resultCandidates = @((Join-Path $PWD "ue-probe\golden-result.txt"))
+          if ($packagedExe) {
+            $resultCandidates += (Join-Path (Split-Path $packagedExe.FullName -Parent) "golden-result.txt")
+            $resultCandidates += (Join-Path (Split-Path (Split-Path (Split-Path $packagedExe.FullName -Parent) -Parent) -Parent) "golden-result.txt")
+          }
+          foreach ($rc in $resultCandidates) { Remove-Item $rc -Force -ErrorAction SilentlyContinue }
+          $resultFile = $resultCandidates[0]
           # THE GAME'S OWN OUTPUT IS CAPTURED, which run 6 did not do. It
           # exited 3 in six seconds and left nothing behind, so the run said
           # only that something went wrong and could not say what. A blocked
@@ -323,18 +404,27 @@ jobs:
                 -RedirectStandardOutput $gameOut -RedirectStandardError $gameErr
           $testSec = [math]::Round(((Get-Date) - $t2).TotalSeconds, 2)
           $L += "gameExit=$($p3.ExitCode) testSeconds=$testSec"
-          if (Test-Path $resultFile) { $L += (Get-Content $resultFile) }
+          $found = $resultCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          $L += "resultCandidates=$($resultCandidates.Count) resultFound=$(if ($found) { 'yes' } else { 'no' })"
+          if ($found) { $L += "resultFrom=$($found -replace ' ','~')"; $L += (Get-Content $found) }
           else { $L += "probeTest=FAIL reason=no-result-file-written (the module did not reach its write)" }
 
           # UE's own log, which says why engine init stopped when it stopped.
           # Named explicitly rather than globbed into a directory add: a tail
           # of the WRONG log would be worse than none.
-          $ueLog = Join-Path $PWD "ue-probe\Saved\Logs\LedgerProbe.log"
-          if (Test-Path $ueLog) {
-            $L += "--- LedgerProbe.log, last 60 lines ---"
+          $logCandidates = @((Join-Path $PWD "ue-probe\Saved\Logs\LedgerProbe.log"))
+          if ($packagedExe) {
+            $logCandidates += (Join-Path (Split-Path (Split-Path (Split-Path $packagedExe.FullName -Parent) -Parent) -Parent) "Saved\Logs\LedgerProbe.log")
+          }
+          $ueLog = $logCandidates |
+                   Where-Object { Test-Path $_ } |
+                   Sort-Object { (Get-Item $_).LastWriteTime } -Descending |
+                   Select-Object -First 1
+          if ($ueLog) {
+            $L += "--- LedgerProbe.log ($($ueLog -replace ' ','~')), last 60 lines ---"
             $L += (Get-Content $ueLog -Tail 60)
           } else {
-            $L += "--- no LedgerProbe.log at $($ueLog -replace ' ','~'): the engine did not get as far as opening one ---"
+            $L += "--- no LedgerProbe.log in any of $($logCandidates.Count) location(s): the engine did not get as far as opening one ---"
           }
           if ((Test-Path $gameOut) -and (Get-Item $gameOut).Length -gt 0) {
             $L += "--- game stdout, last 40 lines ---"; $L += (Get-Content $gameOut -Tail 40)

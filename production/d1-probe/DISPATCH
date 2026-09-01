@@ -44,3 +44,14 @@ and the project gets the minimum Config it was missing (UBT does not need
 one, the runtime does). Cold is also MADE cold now by clearing Intermediate
 and Binaries first, because run 6 was the last run that would have been
 honestly cold by accident.
+run 8 - 2026-09-01 - the diagnosis channel worked and named the fault
+exactly. Run 7 built clean and then died in the async package loader:
+"Failed to load premade asset registry", then an assertion in BufferReader
+on an IO thread. Build.bat compiles code; it does not cook content, and an
+uncooked game binary crashes reading packages that were never produced.
+Nothing was wrong with the C++. So this run cooks: RunUAT BuildCookRun,
+cold and incremental timed separately, the packaged binary preferred for
+the test because it is the one with content beside it, and the golden table
+copied next to it because a staged build's ProjectDir is the staged tree.
+The cook time is not a workaround, it is the half of the UE cycle that
+Build.bat was never measuring.
