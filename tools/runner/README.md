@@ -1,4 +1,21 @@
-# tools/runner: two tenants, one directory
+# tools/runner: TWO DIFFERENT RUNNERS, and the name is the problem
+
+READ THIS FIRST. This project has two things called "the runner" and
+confusing them cost a wrong critical path on 2026-09-01:
+
+1. THE CI BUILD AGENT. C:\actions-runner-ledger on Jafar's PC, label
+   `ledger-pc`, a GitHub Actions self-hosted runner listening for jobs. It
+   is what the numbered .bat files here SET UP. Dispatched remotely, it
+   builds, runs the sim, captures stills and commits them back, and it
+   needs nothing from Jafar. This is how machine-side work has happened
+   since 22 Aug.
+2. THE NIGHT LOOP. run-night.bat and run-night.ps1 here, written
+   2026-08-31: a local loop launching Claude sessions against
+   production/queue/. For continuous autonomous development. NOT required
+   for CI work, and not a prerequisite for anything the build agent can do.
+
+If a task says "the runner", it is ambiguous and should be rejected at
+spec until it names which one.
 
 The NUMBERED bats and the .txt notes are the v1 Unity build-runner setup for
 the self-hosted CI runner (ledger-pc): untouched, still what CI builds run

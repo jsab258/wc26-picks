@@ -53,15 +53,15 @@
    asked of you for this content type.
 
 ## Next
-1. THE CRITICAL PATH IS THE RUNNER'S FIRST SUPERVISED NIGHT. The container
-   here is Linux with no engine: it cannot run UE5, compile against it,
-   screenshot either engine, or time a real edit-build-test cycle. D1's
-   measurements a, b and d are all machine-side, so the night runner is how
-   the probe happens at all, not a convenience. One double-click,
-   tools\runner\run-night.bat, watched for the first half hour.
-2. D1 measurement c: DONE (production/d1-probe/instrument-inventory.md).
-   Half the tool surface would be rebuilt on a move to C++, and the obvious
-   count flatters the move because the coupling is to the language, not the
-   engine.
-3. Second assembly line spec (signage and brand bible), which needs no
-   engine and can run here.
+1. A UE workflow mirroring the Unity one (queue 005), dispatched to the CI
+   build agent already running on the PC. That is how the UE half of D1
+   gets measured, and it asks nothing of Jafar. My earlier claim that the
+   night loop was the critical path was wrong: two different things were
+   both called "the runner" and the build agent has been doing machine-side
+   work since 22 Aug.
+2. D1 measurement c: DONE. Half the tool surface would be rebuilt on a move
+   to C++; the obvious count flatters the move because the coupling is to
+   the language, not the engine.
+3. The night loop remains wanted for continuous autonomous development
+   against the queue, which is a different job from the probe. It is no
+   longer blocking anything.

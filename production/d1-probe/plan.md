@@ -45,7 +45,45 @@ D1 closes as UNRESOLVED with the blocker named, and the engine question
 stays open in open-questions.md. It does not close as "Unity wins" by
 default: that would be a decision made by a launcher.
 
-## WHERE THE WORK CAN PHYSICALLY HAPPEN, 2026-09-01
+## CORRECTED 2026-09-01, SAME DAY: the CI runner already does this
+
+The paragraph below said the night runner is the mechanism by which the
+probe happens at all, and that its first supervised run is D1's critical
+path. That is WRONG and Jafar caught it by asking what the .bat does, which
+is the question that exposes it.
+
+TWO DIFFERENT RUNNERS, AND I NAMED BOTH "THE RUNNER":
+1. The GitHub Actions self-hosted agent, C:\actions-runner-ledger, label
+   `ledger-pc`, listening for jobs since 22 Aug. Dispatched from this
+   container, it builds on Jafar's PC, runs the sim, captures stills and
+   commits the verdict back. It needs NOTHING from him: no double-click, no
+   supervision. Every still read this week came through it.
+2. tools/runner/run-night.bat, written yesterday: a loop launching local
+   Claude sessions against the production queue.
+
+The confusion was mine and it cost a wrong critical path. What is true: the
+container has no engine, so the WORK must happen on the PC. What is false:
+that only the night runner can put it there. The CI agent has been putting
+work on that PC for ten days.
+
+WHAT EACH D1 MEASUREMENT ACTUALLY NEEDS:
+a. cycle friction: mostly CI. The Unity workflow already times every step
+   (checkout 64s, lint 8s, ShapeCheck 26s, unity-setup 547s, build 170s,
+   sim 861s, measured off run 32294117005). A UE workflow times the same
+   things. The failed-edit-rate-on-binary-assets half needs an agent
+   editing binary assets, which is genuinely the night-runner case or a
+   dispatched edit whose result CI reports.
+b. visual ceiling: fully CI. Mirror the Unity workflow for UE, commit
+   paired stills, same evidence channel.
+c. instrument cost: DONE here, no machine.
+d. faces: a headless UE commandlet in CI, probably; the first run may need
+   the editor interactively, which is the one honest maybe.
+
+THE NIGHT RUNNER IS STILL WANTED, for continuous autonomous development
+against the queue, which is a different job from the probe. It stops being
+D1's blocker and becomes its own item.
+
+## SUPERSEDED, 2026-09-01: where the work can physically happen
 
 Stated plainly because it changes the critical path and it is easy to miss:
 the container this session runs in is Linux with no engine, so it cannot
