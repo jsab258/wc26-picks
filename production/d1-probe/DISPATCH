@@ -24,3 +24,13 @@ unique build environment cannot be built with an installed engine". The
 target overrode five engine-wide settings; removed, and BuildEnvironment is
 now Shared explicitly. An installed engine is the configuration Jafar has and
 therefore the one D1 must measure.
+run 6 - 2026-09-01 - build attempt 2 failed in 2.72s with "Program targets
+are not currently supported from this engine distribution". Not a setting: an
+installed engine cannot build a Program target at all. Converted to a GAME
+target, which is what LEDGER would be and therefore the cycle worth pricing;
+the golden test moved into the primary game module's startup and writes
+golden-result.txt, which the step reads. Also raised the job cap above the
+build step's cap (25 vs 60 would have killed a legitimate cold build and
+reported it as NO PROBE) and made the binary pick newest-first with a
+candidate count. Expect the cold build to take real minutes for the first
+time: the engine is genuinely linked now, and that is the measurement.
