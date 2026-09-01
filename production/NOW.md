@@ -11,22 +11,11 @@ looks like a live state.
 
 ## In flight
 
-- Director: reviewing the meshgen batch for commit (mandatory trigger), plus
-  ruling on whether to resume the builder and on the budget documents.
-- Builder: FINISHED but killed at its turn limit mid-report after 222k tokens.
-  Its code is in `tools/meshgen/` and its selftest returns 86 passed, 0 failed,
-  naming what it cannot cover here (TRELLIS, Blender and both .bat files never
-  execute in this container). Local image-to-3D batch pipeline for the PC.
-  UNCOMMITTED AND UNREVIEWED, deliberately. The stop hook asks for a clean
-  tree and the constitution forbids sweeping an agent's work-in-progress into
-  a commit under that pressure, so the path is named here instead. If a reset
-  session finds `tools/meshgen/` untracked, that is this, and it needs a
-  review before it lands, not a commit to tidy the tree.
-  imagegen already exists and works; the 3D, cleanup and licensing stages are
-  what is being added.
-- Two CI runs dispatched at 4165bf5 for task 006's acceptance: the Unity
-  build and the UE probe against the shared PATH bootstrap. Their results
-  commit themselves; check ue-build.txt and sim-shots/verdict.txt.
+- Director: ruling on the front-loading sequence. Jafar's constraint is
+  budget, and his goal is to prepare enough with Claude that large local
+  batches (images, 3D, voices) can run unattended at zero cost. The question
+  is the cheapest preparation that unlocks the most unattended production
+  without inverting the roadmap's order.
 
 ## Waiting on Jafar
 

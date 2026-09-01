@@ -17,6 +17,7 @@ than any single row.
 | when | hours into week | total used | fable used | note |
 |---|---|---|---|---|
 | 2026-09-01 | 28 of 168 | 34% | 41% | 2.5x over pace. The day the studio split was not used. |
+| 2026-09-01 | ~31 of 168 | 38% | not read | Reported by Jafar. 42 points left for 5 and a bit days. |
 
 Ceiling for LEDGER: 80% of the weekly limit. The other 20% is his.
 
