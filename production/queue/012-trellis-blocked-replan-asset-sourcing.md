@@ -1,7 +1,15 @@
 line: content (asset production)
 spec: this file; ledger-v2/research/license-allowlist.md is law
-acceptance: a local batch route that runs on THIS machine, producing licensed meshes with no NVIDIA GPU and no purchase; the week plan and quality ladder updated to match
+acceptance: steps 3 and 4 of game-design/decision-2026-09-01-production-prep-sequence.md,
+            namely the CC0 fetch-clean-tag route proven end to end on five items and
+            then a first full overnight batch driven from the vignette bill of materials
 max_sessions: 2
+
+RE-POINTED 2026-09-01 by the production-prep-sequence ruling. The AMD
+image-to-3D probe this task was originally about is DEMOTED to contingent:
+it happens only if the bill of materials shows gaps the free libraries
+cannot fill. Probing a capability before knowing whether we need it is the
+kind of curiosity this week cannot afford.
 
 TRELLIS CANNOT RUN ON JAFAR'S PC AND THAT IS A HARDWARE FACT.
 
