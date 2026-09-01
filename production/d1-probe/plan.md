@@ -20,6 +20,20 @@ c. CI and instrument rebuild cost: estimated from (a) plus a written
 d. Faces path: MetaHuman plus Audio2Face against CC4 plus Audio2Face,
    assessed on the talking-head test scene D2 names.
 
+## AMENDED 2026-08-31: the UE half is blocked, the Unity half runs first
+
+The Epic launcher will not offer any engine version to Jafar's account
+(symptom recorded in production/queue/blocked/000-d1-ue5-install.md). That
+blocks week 1 items 1 to 3 and nothing else. Measurements a and c, and the
+Unity half of b, need no UE5 and are now queue tasks 002 to 004.
+
+THE DECISION RULE IS NOT AFFECTED AND MUST NOT BE BENT. D1 says Unreal wins
+only if (b) is decisively better and (a) is tolerable, and that ties go to
+Unity. A tie is a MEASURED tie. If the UE side cannot be measured at all,
+D1 closes as UNRESOLVED with the blocker named, and the engine question
+stays open in open-questions.md. It does not close as "Unity wins" by
+default: that would be a decision made by a launcher.
+
 ## Week 1 (to 2026-09-07)
 1. UE5 install on the build PC (JAFAR ACTION: one click, about 40 GB free
    disk needed; the installer link and steps go in the decision queue).

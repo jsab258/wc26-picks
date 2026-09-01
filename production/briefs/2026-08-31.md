@@ -23,13 +23,23 @@
    ledger.
 
 ## In flight
-1. D1 engine probe, kicked off, two-week box ending 2026-09-14. Plan at
-   production/d1-probe/plan.md; first two queue tasks written. The probe
-   cannot start until UE5 is on the build PC, which is queue task 000 and
-   yours.
+1. D1 engine probe, two-week box ending 2026-09-14, REORDERED: the Unity
+   half runs first (queue 002 cycle baseline, 003 instrument inventory,
+   004 the street to the Unity ceiling). None of it needs UE5.
 
 ## Blocked
-1. Dialogue TONE verification: the judge needs your calibration sample
+1. UE5 will not install: the Epic launcher offers this account no engine
+   version at all. Greyed-out add control, dead install button, empty
+   vault, 0.0 B. Six routes tried including the licence acceptance, an
+   admin relaunch, the webcache delete, a launcher reinstall and the Store
+   tab. Reads as account entitlement, not a machine fault. Full symptom
+   list in production/queue/blocked/000-d1-ue5-install.md; the next step,
+   if we want it, is Epic account support with that list.
+   D1 CANNOT CLOSE AS "UNITY WINS" ON THIS. Its rule gives ties to Unity,
+   and a tie is a measured tie; an unmeasurable UE side closes D1 as
+   UNRESOLVED with the engine question still open. That is written into
+   the plan so a later session cannot quietly bank the default.
+2. Dialogue TONE verification: the judge needs your calibration sample
    before it can grade anything (D7). Until then tone is honestly marked
    PENDING, not passed.
 
@@ -40,9 +50,14 @@
    opens this week; the routing law applies from the first runner night).
 
 ## Decision queue (yours, per operations.md)
-1. CARD: install UE5 on the build PC (queue/000). Question: none, it is an
-   action; about 40 GB disk, one click in the Epic launcher. Consequence
-   if deferred: D1 measures Unity only and the probe becomes a formality.
+1. CARD: the UE5 blocker. Question: do we open a support ticket with Epic
+   (the symptom list is written and ready to paste), try a second Epic
+   account, or park the engine question and run the Unity half only?
+   Recommendation: park it for now and let tasks 002 to 004 bank the Unity
+   measurements, because they are needed whichever way the engine goes.
+   Consequence of parking: D1 closes UNRESOLVED rather than deciding, and
+   the engine stays open in open-questions.md. No deadline; the two-week
+   box applies to the measurements, not to this card.
 2. CARD: grade the judge calibration sample,
    production/specs/judge-calibration-1-dialogue.md, 48 lines, PASS/FAIL
    plus a word per FAIL. Consequence if deferred: dialogue throughput has

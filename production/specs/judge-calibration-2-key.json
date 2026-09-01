@@ -1,0 +1,186 @@
+{
+  "sample": "judge-calibration-2-dialogue",
+  "note": "The objective half of the key. Canon-band items break canon BY CONSTRUCTION and the judge must FAIL every one of them; that is D7's zero-false-passes clause and it is measurable only because these exist. Tone and good bands carry no key: Jafar's grades ARE the answer for those, which is the entire point of calibration.",
+  "items": [
+    {
+      "id": "cal2-001",
+      "band": "tone",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-002",
+      "band": "canon",
+      "canon_violation": "camera phones"
+    },
+    {
+      "id": "cal2-003",
+      "band": "tone",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-004",
+      "band": "canon",
+      "canon_violation": "real brand"
+    },
+    {
+      "id": "cal2-005",
+      "band": "tone",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-006",
+      "band": "canon",
+      "canon_violation": "email"
+    },
+    {
+      "id": "cal2-007",
+      "band": "canon",
+      "canon_violation": "internet plus real brand"
+    },
+    {
+      "id": "cal2-008",
+      "band": "tone",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-009",
+      "band": "canon",
+      "canon_violation": "SMS in the window"
+    },
+    {
+      "id": "cal2-010",
+      "band": "canon",
+      "canon_violation": "social media"
+    },
+    {
+      "id": "cal2-011",
+      "band": "good",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-012",
+      "band": "tone",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-013",
+      "band": "tone",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-014",
+      "band": "good",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-015",
+      "band": "good",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-016",
+      "band": "tone",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-017",
+      "band": "tone",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-018",
+      "band": "good",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-019",
+      "band": "good",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-020",
+      "band": "good",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-021",
+      "band": "good",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-022",
+      "band": "good",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-023",
+      "band": "tone",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-024",
+      "band": "good",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-025",
+      "band": "tone",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-026",
+      "band": "good",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-027",
+      "band": "tone",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-028",
+      "band": "canon",
+      "canon_violation": "real brand"
+    },
+    {
+      "id": "cal2-029",
+      "band": "canon",
+      "canon_violation": "real brand"
+    },
+    {
+      "id": "cal2-030",
+      "band": "canon",
+      "canon_violation": "internet"
+    },
+    {
+      "id": "cal2-031",
+      "band": "tone",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-032",
+      "band": "canon",
+      "canon_violation": "CCTV is rare"
+    },
+    {
+      "id": "cal2-033",
+      "band": "good",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-034",
+      "band": "canon",
+      "canon_violation": "real brand"
+    },
+    {
+      "id": "cal2-035",
+      "band": "good",
+      "canon_violation": null
+    },
+    {
+      "id": "cal2-036",
+      "band": "canon",
+      "canon_violation": "mobile phone"
+    }
+  ]
+}

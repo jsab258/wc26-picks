@@ -55,7 +55,15 @@ MODERNITY = {
 #: Paths whose text may legitimately DISCUSS banned things: the law itself,
 #: the decisions that made it, and this tool.
 EXEMPT = ("canon.md", "ledger-v2/", "legacy/", "tools/canon-gate.py",
-          "production/queue/README.md", ".claude/agents/")
+          "production/queue/README.md", ".claude/agents/",
+          # THE JUDGE'S REJECTING FIXTURES. Sample 2 contains canon
+          # violations BY CONSTRUCTION: without them D7's zero-false-passes
+          # clause cannot be measured at all. A gate that refused its own
+          # rejecting fixture would be the 21 Aug incident again, where a
+          # guard's fixtures pointed at live content and died the moment the
+          # work was done. Exempt by path, printed whenever it bites, and
+          # the selftest proves the same lines still refuse elsewhere.
+          "production/specs/judge-calibration-")
 
 
 def forbidden_brands():
@@ -161,6 +169,17 @@ def selftest():
             rc_debt = gate([str(debt)])
         check("BOUNDARY: 'debts' and 'doubt' pass, the premise is not a brand",
               rc_debt == 0, buf.getvalue())
+        # THE EXEMPTION MUST NOT BE A HOLE. The fixture path is exempt; the
+        # same text anywhere else must still refuse, or the exemption has
+        # quietly become a way to smuggle canon violations into content.
+        fixture_line = "Give us a ring on the mobile phone when you are outside."
+        smuggled = td / "not-a-fixture.md"
+        smuggled.write_text(fixture_line + "\n")
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc_smug = gate([str(smuggled)])
+        check("EXEMPTION IS NOT A HOLE: fixture text outside the fixture path "
+              "still refuses", rc_smug == 1, buf.getvalue())
         bt = td / "bt.md"
         bt.write_text("He rang from the BT box on the corner.\n")
         buf = io.StringIO()

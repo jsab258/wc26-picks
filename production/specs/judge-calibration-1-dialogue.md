@@ -1,5 +1,29 @@
 # Judge calibration sample 1: dialogue tone (D7)
 
+## GRADED 2026-08-31 by Jafar: 48 PASS, 0 FAIL.
+
+That result is genuine and useful: it says the register in D3 was hit and
+the bank ships. It is NOT a usable calibration set on its own, and the
+reason is structural rather than a criticism of the grading.
+
+A judge is tuned until it agrees with Jafar at 80 percent or better WITH
+ZERO FALSE PASSES ON CANON VIOLATIONS. Against an all-PASS sample, a judge
+that returns PASS for every input scores 100 percent agreement. The sample
+cannot separate a calibrated judge from a broken one, because it contains
+no case the judge must refuse. It is rule 5b, wearing a calibration set's
+clothes: a guard tested only on the case it should accept.
+
+Worse for D7's second clause: canon-gate cleaned this bank before it was
+sent, so there is no canon violation anywhere in it. The requirement of
+zero false passes on canon violations is therefore not merely unmet, it is
+UNMEASURABLE here.
+
+Sample 2 (judge-calibration-2-dialogue.md) supplies the missing half: lines
+that span the decision boundary, including deliberate canon violations. The
+two samples together are the calibration set. This one stays as the
+positive half and its 48 PASS grades stand.
+
+
 Jafar: grade each line PASS or FAIL for tone and register, one short
 reason per FAIL (a word or a phrase is enough: too jokey, too American,
 wrong era, too crude, flat). PASS needs no reason. The judge is tuned
