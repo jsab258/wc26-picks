@@ -624,6 +624,31 @@ def decal_ink():
     return True, "%s decal-ink checks (%s failed)%s" % (m.group(1), m.group(2), tail)
 
 
+def blender_hash_parse():
+    """The Blender checksum parse, tested against fixtures.
+
+    WIRED HERE BECAUSE AN UNWIRED TEST DECAYS, which is this project's whole
+    record in one sentence. The builder that wrote it said so itself and left
+    the wiring as a call rather than doing it out of scope; a test nobody runs
+    is a test that is already wrong and does not know it.
+
+    What it protects is small and sharp. Blender publishes a COMBINED
+    checksum file, one line per platform archive, so a first-64-hex grep over
+    that body returns the Linux tarball's hash and stops a perfectly good
+    Windows download with an invented mismatch. The parse must match by
+    FILENAME. The test extracts the function from the shipped workflow rather
+    than keeping a copy, so it cannot drift from what actually runs.
+    """
+    code, out = run(["python3", str(ROOT.parent / "tools" / "test-blender-hash-parse.py")])
+    if code != 0:
+        return False, _lint_red(code, out, "THE BLENDER CHECKSUM PARSE IS WRONG",
+                                "test-blender-hash-parse")
+    m = re.search(r"(\d+) ok, (\d+) failed, (\d+) fixture", out)
+    return True, ("blender hash parse ok (%s fixture(s), accepting and rejecting)"
+                  % m.group(3) if m else
+                  "blender hash parse ok (%s)" % NOTHING_MEASURED)
+
+
 def powershell_steps():
     """Do the workflow's pwsh steps parse.
 
@@ -4520,7 +4545,7 @@ def main():
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                template_sync,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
-               static_instance, raw_avenues, bat_editor, bootstrap_single, filename_as_type, namespace_as_value, workflow_size,
+               static_instance, raw_avenues, bat_editor, bootstrap_single, blender_hash_parse, filename_as_type, namespace_as_value, workflow_size,
                powershell_steps, sheet_read, prop_dimensions, prop_reach, ref_bench,
                decal_ink,
                frame_drift, verdict_keys, verdict_format, verdict_dupkeys,

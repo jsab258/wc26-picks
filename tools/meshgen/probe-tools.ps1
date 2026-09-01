@@ -59,8 +59,24 @@ function Run-Line([string]$exe, [string[]]$argv) {
 Try-Step "blender" {
     $p = Where-First "blender.exe"
     if (-not $p) {
+        # C:\LedgerTools\blender IS FIRST AND IS THE ONE THIS PROJECT PUTS
+        # THERE. The setup workflow extracts Blender's portable zip to
+        # C:\LedgerTools\blender\<version>\ because a per-machine MSI needs an
+        # elevated runner service and does not get one (msiexec 1603, 1 Sep).
+        # That root is this project's established unprivileged tool location:
+        # tools/runner/bootstrap-paths.cmd looks for pwsh under it and the
+        # Windows build unpacks a python zip into it.
+        #
+        # IT IS MACHINE-WIDE ON PURPOSE, and that is the whole reason this
+        # line exists rather than the setup step extracting into the
+        # LOCALAPPDATA base already listed below. LOCALAPPDATA is PER ACCOUNT:
+        # the setup workflow runs as the runner SERVICE account and
+        # "1 MAKE THE PROPS.bat" is double-clicked by Jafar, so an install
+        # under one profile is invisible to the other and the setup step's own
+        # verification would go green on a path the consumer can never see.
         $cands = @()
-        foreach ($base in @("$env:ProgramFiles\Blender Foundation",
+        foreach ($base in @("C:\LedgerTools\blender",
+                            "$env:ProgramFiles\Blender Foundation",
                             "${env:ProgramFiles(x86)}\Steam\steamapps\common\Blender",
                             "$env:LOCALAPPDATA\Programs\Blender Foundation",
                             "$env:LOCALAPPDATA\Microsoft\WindowsApps")) {
@@ -75,7 +91,10 @@ Try-Step "blender" {
     }
     $t["blender"] = $p
     if ($p) { $t["blender_version"] = (Run-Line $p @("--version")) }
-    else { Note "no blender.exe on PATH, under Program Files, Steam, or WindowsApps" }
+    # The note NAMES EVERY PLACE IT LOOKED, so "not found" ships the search
+    # it was the answer to. A machine report that says "not found" without
+    # the list cannot be read against a machine that has one somewhere else.
+    else { Note "no blender.exe on PATH, under C:\LedgerTools\blender, Program Files, Steam, or WindowsApps" }
 }
 
 # --- Python, conda -----------------------------------------------------------

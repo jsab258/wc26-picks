@@ -47,6 +47,23 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 FLOWS = ROOT / ".github" / "workflows"
 
+# STANDALONE SCRIPTS A WORKFLOW CALLS, named rather than globbed.
+#
+# THIS LIST EXISTS BECAUSE A MOVE CAN DELETE COVERAGE SILENTLY. The Blender
+# setup was a `shell: pwsh` step and was parsed here every run. On 1 Sep it
+# outgrew GitHub's dispatch ceiling (25,259 chars against a measured 23,184)
+# and its 411 lines moved into a file - and the moment they did, this sweep
+# stopped seeing them while still reporting "0 problems". Nothing about that
+# reads as a loss: the count goes DOWN by one step and every remaining step
+# still passes. A shell mistake in that file would then reach the runner
+# exactly as the two faults in this tool's docstring did.
+#
+# Named and not globbed, for the reason lint-bootstrap-single names its
+# workflows: adding a script to the sweep should be a decision somebody made,
+# and a missing entry here is then a visible omission rather than a glob that
+# quietly matched nothing.
+SCRIPTS = ("tools/runner/setup-blender.ps1",)
+
 # dotnet puts its global tools here and it is not on PATH by default in a
 # fresh container, so look for it directly before giving up.
 EXTRA_PATH = pathlib.Path.home() / ".dotnet" / "tools"
@@ -158,19 +175,35 @@ def check(verbose=True):
     parser.write_text(PARSE, encoding="utf-8")
 
     parsed, problems = 0, []
+    target = scratch / "step.ps1"
+
+    def parse_one(label, text):
+        nonlocal parsed
+        parsed += 1
+        target.write_text(EXPR.sub("'__gh_expr__'", text), encoding="utf-8")
+        r = subprocess.run([exe, "-NoProfile", "-File", str(parser), str(target)],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            for line in r.stdout.strip().split("\n"):
+                problems.append(f"{label} :: {line}")
+        elif verbose:
+            print(f"  ok   {label} ({len(text.splitlines())} lines)")
+
     for flow in sorted(FLOWS.glob("*.yml")):
         for name, body in steps(flow):
-            parsed += 1
-            target = scratch / "step.ps1"
-            target.write_text(EXPR.sub("'__gh_expr__'", body), encoding="utf-8")
-            r = subprocess.run([exe, "-NoProfile", "-File", str(parser), str(target)],
-                               capture_output=True, text=True)
-            if r.returncode != 0:
-                for line in r.stdout.strip().split("\n"):
-                    problems.append(f"{flow.name} :: {name} :: {line}")
-            elif verbose:
-                print(f"  ok   {flow.name} :: {name} ({len(body.splitlines())} lines)")
-    sweep(scratch, parser, scratch / "step.ps1")
+            parse_one(f"{flow.name} :: {name}", body)
+    # A NAMED SCRIPT THAT IS NOT THERE IS A PROBLEM, never a quiet skip: the
+    # whole point of the list is that its entries stop being parsed the moment
+    # somebody moves or renames one, and that must be said out loud.
+    scripts = 0
+    for rel in SCRIPTS:
+        path = ROOT / rel
+        if not path.exists():
+            problems.append(f"{rel} :: NAMED IN ps-check.SCRIPTS BUT NOT ON DISK")
+            continue
+        scripts += 1
+        parse_one(rel, path.read_text(encoding="utf-8"))
+    sweep(scratch, parser, target)
     return parsed, problems
 
 
@@ -264,7 +297,11 @@ def main():
             print(f"  FAIL {p}")
         print(f"ps-check — {len(problems)} problem(s) in {parsed} step(s)")
         return 1
-    print(f"ps-check — {parsed} pwsh step(s) parsed, 0 problems")
+    # The count stays the THIRD token of this line: ledger/verify.py reads it
+    # positionally and prints it into the commit footer.
+    print(f"ps-check — {parsed} pwsh block(s) parsed "
+          f"({parsed - len(SCRIPTS)} workflow step(s), {len(SCRIPTS)} named "
+          f"script(s)), 0 problems")
     return 0
 
 
