@@ -1091,6 +1091,31 @@ def bat_editor():
                   % NOTHING_MEASURED)
 
 
+def bootstrap_single():
+    """One idea, one implementation: the self-hosted PATH bootstrap.
+
+    The queued task said the block existed TWICE. It existed three times,
+    and the third was a SHORTENED variant missing the diagnostic messages
+    that are the only part a person acts on. The first duplication had
+    already drifted within a day and killed a workflow's first run on
+    "pwsh: command not found".
+
+    This gate cannot tell you the script WORKS on the machine; only a green
+    dispatch of both workflows does that. It tells you there is exactly one
+    of it, which is the part a lint can know and the part that decayed.
+    """
+    code, out = run(["python3", str(ROOT.parent / "tools" / "lint-bootstrap-single.py")])
+    if code != 0:
+        return False, _lint_red(code, out, "THE PATH BOOTSTRAP HAS DUPLICATED AGAIN",
+                                "lint-bootstrap-single")
+    m = re.search(r"(\d+) workflow\(s\) read, (\d+) call the shared script, (\d+) named", out)
+    return True, ("one PATH bootstrap (%s workflow(s) read, %s call the shared "
+                  "script, %s named as needing it)" % (m.group(1), m.group(2), m.group(3))
+                  if m else
+                  "PATH bootstrap ok (%s — lint-bootstrap-single printed no census)"
+                  % NOTHING_MEASURED)
+
+
 def raw_avenues():
     """A raw read of `AvenuesX`/`AvenuesZ` — the unscaled source arrays.
 
@@ -4495,7 +4520,7 @@ def main():
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
                template_sync,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
-               static_instance, raw_avenues, bat_editor, filename_as_type, namespace_as_value, workflow_size,
+               static_instance, raw_avenues, bat_editor, bootstrap_single, filename_as_type, namespace_as_value, workflow_size,
                powershell_steps, sheet_read, prop_dimensions, prop_reach, ref_bench,
                decal_ink,
                frame_drift, verdict_keys, verdict_format, verdict_dupkeys,

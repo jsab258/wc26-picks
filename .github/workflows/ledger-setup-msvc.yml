@@ -36,40 +36,19 @@ jobs:
     timeout-minutes: 120
 
     steps:
-      - name: tool PATH bootstrap (self-hosted parity)
-        timeout-minutes: 1
-        shell: cmd
-        run: |
-          where bash >nul 2>nul
-          if not errorlevel 1 goto :bashok
-          if exist "C:\Program Files\Git\bin\bash.exe" (
-            >>"%GITHUB_PATH%" echo C:\Program Files\Git\bin
-            goto :bashok
-          )
-          echo NO bash ON THIS MACHINE - Git for Windows normally provides it.
-          exit /b 1
-          :bashok
-          where pwsh >nul 2>nul
-          if not errorlevel 1 goto :pwshok
-          if exist "C:\Program Files\PowerShell\7\pwsh.exe" (
-            >>"%GITHUB_PATH%" echo C:\Program Files\PowerShell\7
-            goto :pwshok
-          )
-          if exist "C:\LedgerTools\pwsh7\pwsh.exe" (
-            >>"%GITHUB_PATH%" echo C:\LedgerTools\pwsh7
-            goto :pwshok
-          )
-          echo NO pwsh ON THIS MACHINE.
-          exit /b 1
-          :pwshok
-          echo tool PATH bootstrap done.
-          exit /b 0
 
       - name: Checkout
         timeout-minutes: 6
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      - name: tool PATH bootstrap (self-hosted parity)
+        timeout-minutes: 1
+        shell: cmd
+        run: |
+          call tools\runner\bootstrap-paths.cmd
+          exit /b %ERRORLEVEL%
 
       - name: Install the MSVC build tools
         id: install

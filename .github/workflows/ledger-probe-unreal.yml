@@ -77,44 +77,6 @@ jobs:
       # silent as this one. Extracting it into one script that both call is
       # the right shape, and doing it in the same change that fixes a live
       # bug would put the proven Unity workflow at risk for no reason.
-      - name: tool PATH bootstrap (self-hosted parity)
-        timeout-minutes: 1
-        shell: cmd
-        run: |
-          where bash >nul 2>nul
-          if not errorlevel 1 goto :bashok
-          if exist "C:\Program Files\Git\bin\bash.exe" (
-            >>"%GITHUB_PATH%" echo C:\Program Files\Git\bin
-            echo bash found at C:\Program Files\Git\bin and put on the job PATH
-            goto :bashok
-          )
-          echo NO bash ON THIS MACHINE - Git for Windows normally provides it.
-          echo Reinstall Git for Windows on this runner, then dispatch again.
-          exit /b 1
-          :bashok
-          where pwsh >nul 2>nul
-          if not errorlevel 1 goto :pwshok
-          if exist "C:\Program Files\PowerShell\7\pwsh.exe" (
-            >>"%GITHUB_PATH%" echo C:\Program Files\PowerShell\7
-            echo pwsh found at C:\Program Files\PowerShell\7 and put on the job PATH
-            goto :pwshok
-          )
-          if exist "C:\LedgerTools\pwsh7\pwsh.exe" (
-            >>"%GITHUB_PATH%" echo C:\LedgerTools\pwsh7
-            echo pwsh found at C:\LedgerTools\pwsh7 and put on the job PATH
-            goto :pwshok
-          )
-          echo NO pwsh ON THIS MACHINE - the build and verdict steps run on it.
-          echo Run "tools/runner/3 FINISH THE BUILD MACHINE.bat" once on this
-          echo runner, then dispatch again.
-          exit /b 1
-          :pwshok
-          echo tool PATH bootstrap done.
-          REM Explicit, because cmd exits with the LAST-SET errorlevel and
-          REM echo/goto never clear one: a failed `where` above left 1 behind,
-          REM and run 32595203790 did every append right, printed done, and
-          REM still reported failure - skipping the whole build after it.
-          exit /b 0
       - name: Checkout
         timeout-minutes: 6
         uses: actions/checkout@v4
@@ -122,6 +84,13 @@ jobs:
           # The commit step below brings its own credential, exactly as the
           # Unity job does. Nothing else here pushes.
           persist-credentials: false
+
+      - name: tool PATH bootstrap (self-hosted parity)
+        timeout-minutes: 1
+        shell: cmd
+        run: |
+          call tools\runner\bootstrap-paths.cmd
+          exit /b %ERRORLEVEL%
 
       # THE PROBE. Every question it asks has a NAMED answer in the output,
       # including the negative ones: "not found" is a measurement, and a
