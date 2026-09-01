@@ -1,0 +1,161 @@
+name: LEDGER Unreal probe
+
+# D1 MEASUREMENT a AND b, THE MACHINE HALF. Mirrors ledger-build-windows.yml
+# in shape and in evidence discipline, deliberately, because that workflow
+# learned its rules the hard way and they transfer unchanged.
+#
+# RUN 1 IS A PROBE OF THE MACHINE, NOT A BUILD, and that is the whole design.
+# Nothing here knows yet where UE 5.8.2 installed, whether a C++ toolchain is
+# present, or whether a SECOND workflow can reach the evidence channel at all.
+# Building a street before those three are facts would produce a failure that
+# could mean any of them. So this run answers them and commits the answers;
+# the build comes after, when its failures can only mean one thing.
+#
+# It also produces real D1 input rather than only plumbing: the setup cost of
+# the UE path (is a toolchain missing, how big is the install, what does the
+# first cold run cost) belongs to measurement a, and it is measured here
+# rather than estimated later.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe-unreal:
+    runs-on: [self-hosted, ledger-pc]
+    timeout-minutes: 25
+
+    steps:
+      # SAME BOOTSTRAP AS THE UNITY JOB. The self-hosted agent does not carry
+      # GitHub's hosted-image PATH, so bash has to be found before any bash
+      # step runs. Copied in shape rather than referenced because a workflow
+      # that depends on another workflow's step ordering is a workflow that
+      # breaks when somebody reorders the other one.
+      - name: tool PATH bootstrap (self-hosted parity)
+        timeout-minutes: 1
+        shell: cmd
+        run: |
+          where bash >nul 2>nul
+          if not errorlevel 1 goto :bashok
+          if exist "C:\Program Files\Git\bin\bash.exe" (
+            >>"%GITHUB_PATH%" echo C:\Program Files\Git\bin
+            echo bash found at C:\Program Files\Git\bin and put on the job PATH
+          )
+          :bashok
+          where python3 >nul 2>nul || where python >nul 2>nul || echo no python on PATH
+
+      - name: Checkout
+        timeout-minutes: 6
+        uses: actions/checkout@v4
+        with:
+          # The commit step below brings its own credential, exactly as the
+          # Unity job does. Nothing else here pushes.
+          persist-credentials: false
+
+      # THE PROBE. Every question it asks has a NAMED answer in the output,
+      # including the negative ones: "not found" is a measurement, and a
+      # missing toolchain is a finding for measurement a rather than a broken
+      # run. Nothing in this step may fail the job for a negative answer.
+      - name: Probe the machine for Unreal and a C++ toolchain
+        id: probe
+        timeout-minutes: 10
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $out = "production/d1-probe/ue-machine.txt"
+          New-Item -ItemType Directory -Force -Path "production/d1-probe" | Out-Null
+          $sha = git rev-parse --short HEAD
+          $L = @()
+          $L += "# UE machine probe - $sha @$([int][double]::Parse((Get-Date -UFormat %s)))"
+          $L += "# Line 1 names the commit this was measured on. D1 measurement a, setup cost."
+          $L += ""
+
+          # 1. UNREAL. Ask the registry and the usual roots; report every hit
+          #    with its version, and print the count so a zero is readable.
+          $ueRoots = @()
+          $reg = "HKLM:\SOFTWARE\EpicGames\Unreal Engine"
+          if (Test-Path $reg) {
+            Get-ChildItem $reg | ForEach-Object {
+              $p = (Get-ItemProperty $_.PSPath).InstalledDirectory
+              if ($p) { $ueRoots += [pscustomobject]@{ ver = $_.PSChildName; path = $p } }
+            }
+          }
+          foreach ($guess in @("C:\Program Files\Epic Games", "D:\Epic Games", "D:\Program Files\Epic Games")) {
+            if (Test-Path $guess) {
+              Get-ChildItem $guess -Directory -Filter "UE_*" -ErrorAction SilentlyContinue | ForEach-Object {
+                if (-not ($ueRoots.path -contains $_.FullName)) {
+                  $ueRoots += [pscustomobject]@{ ver = $_.Name.Replace("UE_",""); path = $_.FullName }
+                }
+              }
+            }
+          }
+          $L += "ueInstalls=$($ueRoots.Count)"
+          foreach ($u in $ueRoots) {
+            $editor = Join-Path $u.path "Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
+            $L += "ue version=$($u.ver) path=$($u.path -replace ' ','~') editorCmd=$(Test-Path $editor)"
+          }
+          if ($ueRoots.Count -eq 0) { $L += "ue NOT FOUND - registry and the three usual roots were checked" }
+
+          # 2. THE C++ TOOLCHAIN. UE cannot compile a C++ project without it,
+          #    and its absence is the single likeliest reason a later build
+          #    step fails. Measured now so that failure cannot be ambiguous.
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (Test-Path $vswhere) {
+            $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationVersion 2>$null
+            $vsp = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2>$null
+            if ($vs) { $L += "msvc version=$vs path=$($vsp -replace ' ','~')" }
+            else     { $L += "msvc NOT FOUND - vswhere present, no VC.Tools workload. THIS BLOCKS A C++ BUILD." }
+          } else {
+            $L += "msvc NOT FOUND - vswhere absent, so no Visual Studio at all. THIS BLOCKS A C++ BUILD."
+          }
+          $L += "dotnet=$(if (Get-Command dotnet -EA SilentlyContinue) { (dotnet --version) } else { 'NOT FOUND' })"
+
+          # 3. DISK, because a UE project plus derived data is tens of GB and
+          #    running out mid-build is a failure that looks like something else.
+          Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Free -ne $null } | ForEach-Object {
+            $L += ("disk {0} freeGB={1:N1} usedGB={2:N1}" -f $_.Name, ($_.Free/1GB), ($_.Used/1GB))
+          }
+          $L += ""
+          $L += "probeReached=end"
+          $L | Set-Content $out -Encoding utf8
+          Write-Host ($L -join "`n")
+
+      # THE EVIDENCE CHANNEL, and the two rules the Unity workflow paid for.
+      # A run that measured nothing must SAY so rather than committing a
+      # stale checkout's file as its own, and every output is staged BY NAME.
+      - name: Commit the probe result
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: "*"
+        run: |
+          set -u
+          OUT=production/d1-probe/ue-machine.txt
+          # A RUN THAT MEASURED NOTHING SAYS SO. Without this the previous
+          # run's file would be committed again under this run's sha, which
+          # is the exact fault sim-shots-stage.sh exists to prevent.
+          if [ ! -f "$OUT" ] || ! grep -q "probeReached=end" "$OUT"; then
+            printf '# UE machine probe - %s\nNO PROBE - the probe step did not reach its end (outcome: %s).\nNothing was measured on this commit; do not read an older file as this run.\n' \
+              "$(git rev-parse --short HEAD)" "${PROBE_OUTCOME:-unknown}" > "$OUT"
+          fi
+          git config user.name "LEDGER probe"
+          git config user.email "probe@ledger.local"
+          git add -- "$OUT"
+          git diff --cached --quiet && { echo "probe result unchanged; nothing to commit"; exit 0; }
+          git commit -m "UE machine probe from $(git rev-parse --short HEAD)"
+          BR="${GITHUB_REF_NAME}"
+          for i in 1 2 3; do
+            git pull --rebase --no-edit origin "$BR" || git rebase --abort || true
+            if git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${BR}"; then
+              echo "probe result pushed to $BR"; exit 0
+            fi
+            sleep $((i * 5))
+          done
+          echo "could not push the probe result; it is committed locally on the agent"
