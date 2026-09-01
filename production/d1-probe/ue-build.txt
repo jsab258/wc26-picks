@@ -1,4 +1,4 @@
-# UE probe build - 01b09ec
+# UE probe build - 1a1716c
 
 engine=C:\Program~Files\Epic~Games\UE_5.8
 project=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject
@@ -7,36 +7,47 @@ cmd=Build.bat LedgerProbe Win64 Development -Project="C:\actions-runner-ledger\_
 coldBuildExit=0 coldBuildMinutes=0.75
 warmBuildExit=0 warmBuildMinutes=0.03
 cookCmd=RunUAT.bat BuildCookRun -project="C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject" -noP4 -platform=Win64 -clientconfig=Development -cook -build -stage -pak -archive -archivedirectory="C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged" -utf8output
-coldCookExit=8 coldCookMinutes=0.07
+coldCookExit=25 coldCookMinutes=1.5
 COLD COOK FAILED. Last 40 lines:
-Running AutomationTool...
-Using bundled DotNet SDK version: 10.0 win-x64
-Starting AutomationTool...
-Parsing command line: BuildCookRun -project=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject -noP4 -platform=Win64 -clientconfig=Development -cook -build -stage -pak -archive -archivedirectory=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged -utf8output
-Initializing script modules...
-Total script module initialization time: 0.22 s.
-Using C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe
-Executing commands...
-Setting up ProjectParams for C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject
-********** BUILD COMMAND STARTED **********
-Running: C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\ThirdParty\DotNet\10.0\win-x64\dotnet.exe "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" -Target="LedgerProbeEditor Win64 Development -Project=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject" -Target="LedgerProbe Win64 Development -Project=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject  -remoteini=\"C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\"  " -log="C:\Users\Jafar\AppData\Roaming\Unreal Engine\AutomationTool\Logs\C+Program+Files+Epic+Games+UE_5.8\UBA-LedgerProbeEditor-Win64-Development.txt"
-Log file: C:\Users\Jafar\AppData\Roaming\Unreal Engine\AutomationTool\Logs\C+Program+Files+Epic+Games+UE_5.8\UBA-LedgerProbeEditor-Win64-Development.txt
-Determining max actions to execute in parallel (6 physical cores, 12 logical cores)
-  Executing up to 6 processes, one per physical core
-Using 'git status' to determine working set for adaptive non-unity build (C:\actions-runner-ledger\_work\wc26-picks\wc26-picks).
-Creating makefile for LedgerProbeEditor (no existing makefile)
-UbaServer - Listening on 0.0.0.0:1345
-Creating makefile for LedgerProbe (command line arguments changed)
-Unable to instantiate module 'SwarmInterface': Could not find NetFxSDK install dir; this will prevent SwarmInterface from installing.  Install a version of .NET Framework SDK at 4.6.0 or higher.
-(referenced via LedgerProbeEditor -> Launch.Build.cs -> SessionServices.Build.cs -> Core.Build.cs -> Virtualization.Build.cs -> SourceControl.Build.cs -> RenderCore.Build.cs -> RHI.Build.cs -> D3D11RHI.Build.cs -> Engine.Build.cs -> AssetRegistry.Build.cs -> TargetPlatform.Build.cs -> TurnkeySupport.Build.cs -> LauncherServices.Build.cs -> TurnkeyIO.Build.cs -> ToolWidgets.Build.cs -> AppFramework.Build.cs -> SlateReflector.Build.cs -> PropertyEditor.Build.cs -> EditorConfig.Build.cs -> UnrealEd.Build.cs)
-
-Result: Failed (RulesError)
-Total execution time: 1.78 seconds
-Trace written to file C:\Users\Jafar\AppData\Local\UnrealBuildTool\Trace.uba with size 2.4kb
-Took 1.99s to run dotnet.exe, ExitCode=8
-UnrealBuildTool failed. See log for more details. (C:\Users\Jafar\AppData\Roaming\Unreal Engine\AutomationTool\Logs\C+Program+Files+Epic+Games+UE_5.8\UBA-LedgerProbeEditor-Win64-Development.txt)
-AutomationTool executed for 0h 0m 3s
-AutomationTool exiting with ExitCode=8 (8)
+LogShaderCompilers: Display: Using 9 local workers for shader compilation
+LogShaderCompilers: Display: Compiling shader autogen file: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM6/AutogenShaderHeaders.ush
+LogShaderCompilers: Display: Failed to delete old shader autogen file: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM6/AutogenShaderHeaders.ush
+LogShaderCompilers: Display: Shader autogen file written: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM6/AutogenShaderHeaders.ush
+LogEditorDomain: Display: EditorDomain is Disabled
+LogAssetRegistry: Display: AssetDataGatherer spent 0.000s loading caches from ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/CachedAssetRegistry.
+LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
+LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
+LogCsvProfiler: Display: Metadata set : deviceprofile="WindowsEditor"
+LogStreaming: Display: FlushAsyncLoading(1): 1 QueuedPackages, 0 AsyncPackages
+LogTextureEncodingSettings: Display: Texture Encode Speed: Final (cook).
+LogTextureEncodingSettings: Display: Oodle Texture Encode Speed settings: Fast: RDO Off Lambda=0, Effort=Normal Final: RDO Off Lambda=0, Effort=Normal
+LogTextureEncodingSettings: Display: Shared linear texture encoding: Disabled
+LogMeshReduction: Display: Using QuadricMeshReduction for automatic static mesh reduction
+LogMeshReduction: Display: Using SkeletalMeshReduction for automatic skeletal mesh reduction
+LogMeshReduction: Display: Using ProxyLODMeshReduction for automatic mesh merging
+LogMeshReduction: Display: No distributed automatic mesh merging module available
+LogShaderCompilers: Display: Compiling shader autogen file: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM5/AutogenShaderHeaders.ush
+LogShaderCompilers: Display: Failed to delete old shader autogen file: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM5/AutogenShaderHeaders.ush
+LogShaderCompilers: Display: Shader autogen file written: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM5/AutogenShaderHeaders.ush
+LogVirtualization: Display: VirtualizationSystem name found in ini file: None
+LogVirtualization: Display: FNullVirtualizationSystem mounted, virtualization will be disabled
+LogWorldPartition: Display: FWorldPartitionClassDescRegistry::Initialize started...
+LogWorldPartition: Display: FWorldPartitionClassDescRegistry::Initialize took 11.340 ms
+LogMetaSound: Display: MetaSound Page Target Initialized to 'Default'
+LogAudio: Display: Registering Engine Module Parameter Interfaces...
+LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
+LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
+LogAssetRegistry: Display: CleanupOrphanedCacheFiles (PostWrite): 0 .ref files found, 0 referenced binaries
+LogAssetRegistry: Display: CleanupOrphanedCacheFiles: 0 total binaries, 0 referenced (kept), 0 old-style pre-migration (kept), 0 orphans deleted, 0 orphans locked (kept)
+LogStreaming: Display: ============ Loader Stats ============
+LogStreaming: Display: Unique Partial Flushes: 0
+LogStreaming: Display: ============ Loader Stats End ============
+LogShaderCompilers: Display: Exiting ShaderCompilingThread
+Took 32.15s to run UnrealEditor-Cmd.exe, ExitCode=1
+Cook failed.
+(see C:\Users\Jafar\AppData\Roaming\Unreal Engine\AutomationTool\Logs\C+Program+Files+Epic+Games+UE_5.8\Log.txt for full exception trace)
+AutomationTool executed for 0h 1m 29s
+AutomationTool exiting with ExitCode=25 (Error_UnknownCookFailure)
 BUILD FAILED
 --- cook stderr ---
 packagedCandidates=0
@@ -47,105 +58,105 @@ gameExit=3 testSeconds=6.22
 resultCandidates=1 resultFound=no
 probeTest=FAIL reason=no-result-file-written (the module did not reach its write)
 --- LedgerProbe.log (C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Saved\Logs\LedgerProbe.log), last 60 lines ---
-[2026.09.01-13.39.44:572][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
-[2026.09.01-13.39.44:572][  0]LogInit: Initializing FReadOnlyCVARCache
-[2026.09.01-13.39.44:576][  0]LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
-[2026.09.01-13.39.44:577][  0]LogInit: Running DelayedAutoRegister Phase ShaderTypesReady
-[2026.09.01-13.39.44:584][  0]LogSlate: Using FreeType 2.14.1
-[2026.09.01-13.39.44:585][  0]LogSlate: SlateFontServices - WITH_FREETYPE: 1, WITH_HARFBUZZ: 1
-[2026.09.01-13.39.44:587][  0]LogInit: Using OS detected language (en-US).
-[2026.09.01-13.39.44:587][  0]LogInit: Using OS detected locale (en-CH).
-[2026.09.01-13.39.44:587][  0]LogTextLocalizationManager: No localization for 'en-US' exists, so 'en' will be used for the language.
-[2026.09.01-13.39.44:587][  0]LogTextLocalizationManager: No localization for 'en-CH' exists, so 'en' will be used for the locale.
-[2026.09.01-13.39.44:587][  0]LogSlate: FontCache flush requested. Reason: Culture for localization was changed
-[2026.09.01-13.39.44:589][  0]LogAssetRegistry: ActiveMountsLoading is disabled.
-[2026.09.01-13.39.44:589][  0]LogAssetRegistry: FAssetRegistry took 0.0013 seconds to start up
-[2026.09.01-13.39.44:594][  0]LogAssetRegistry: Error: Failed to load premade asset registry. LoadResult == 1.
-[2026.09.01-13.39.44:594][  0]LogInit: Running DelayedAutoRegister Phase PreObjectSystemReady
-[2026.09.01-13.39.44:759][  0]LogConfig: Display: Read in platform Android ini files took 0.02 seconds
-[2026.09.01-13.39.44:776][  0]LogConfig: Display: Read in platform IOS ini files took 0.02 seconds
-[2026.09.01-13.39.44:805][  0]LogConfig: Display: Read in platform Linux ini files took 0.03 seconds
-[2026.09.01-13.39.44:822][  0]LogConfig: Display: Read in platform Mac ini files took 0.02 seconds
-[2026.09.01-13.39.44:845][  0]LogConfig: Display: Read in platform TVOS ini files took 0.02 seconds
-[2026.09.01-13.39.44:869][  0]LogConfig: Display: Read in platform VisionOS ini files took 0.02 seconds
-[2026.09.01-13.39.44:871][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
-[2026.09.01-13.39.44:871][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
-[2026.09.01-13.39.44:873][  0]LogDeviceProfileManager: Active device profile: [00007FE87470CB40][00007FF3D3FFB800 82] Windows
-[2026.09.01-13.39.44:873][  0]LogCsvProfiler: Display: Metadata set : deviceprofile="Windows"
-[2026.09.01-13.39.44:873][  0]LogInit: Running DelayedAutoRegister Phase DeviceProfileManagerReady
-[2026.09.01-13.39.44:879][  0]LogStreaming: Display: FlushAsyncLoading(8): 8 QueuedPackages, 0 AsyncPackages
-[2026.09.01-13.39.44:880][  0]LogPackageLocalizationCache: Processed 82 localized package path(s) for 1 prioritized culture(s) in 0.001187 seconds
-[2026.09.01-13.39.44:888][  0]LogWindows: Error: appError called: Assertion failed: ReaderPos + Num <= ReaderSize [File:D:\build\++UE5\Sync\Engine\Source\Runtime\Core\Public\Serialization\BufferReader.h] [Line: 52] 
+[2026.09.01-13.49.43:331][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
+[2026.09.01-13.49.43:331][  0]LogInit: Initializing FReadOnlyCVARCache
+[2026.09.01-13.49.43:336][  0]LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
+[2026.09.01-13.49.43:336][  0]LogInit: Running DelayedAutoRegister Phase ShaderTypesReady
+[2026.09.01-13.49.43:343][  0]LogSlate: Using FreeType 2.14.1
+[2026.09.01-13.49.43:344][  0]LogSlate: SlateFontServices - WITH_FREETYPE: 1, WITH_HARFBUZZ: 1
+[2026.09.01-13.49.43:346][  0]LogInit: Using OS detected language (en-US).
+[2026.09.01-13.49.43:346][  0]LogInit: Using OS detected locale (en-CH).
+[2026.09.01-13.49.43:346][  0]LogTextLocalizationManager: No localization for 'en-US' exists, so 'en' will be used for the language.
+[2026.09.01-13.49.43:347][  0]LogTextLocalizationManager: No localization for 'en-CH' exists, so 'en' will be used for the locale.
+[2026.09.01-13.49.43:347][  0]LogSlate: FontCache flush requested. Reason: Culture for localization was changed
+[2026.09.01-13.49.43:348][  0]LogAssetRegistry: ActiveMountsLoading is disabled.
+[2026.09.01-13.49.43:349][  0]LogAssetRegistry: FAssetRegistry took 0.0012 seconds to start up
+[2026.09.01-13.49.43:353][  0]LogAssetRegistry: Error: Failed to load premade asset registry. LoadResult == 1.
+[2026.09.01-13.49.43:353][  0]LogInit: Running DelayedAutoRegister Phase PreObjectSystemReady
+[2026.09.01-13.49.43:518][  0]LogConfig: Display: Read in platform Android ini files took 0.02 seconds
+[2026.09.01-13.49.43:535][  0]LogConfig: Display: Read in platform IOS ini files took 0.02 seconds
+[2026.09.01-13.49.43:564][  0]LogConfig: Display: Read in platform Linux ini files took 0.03 seconds
+[2026.09.01-13.49.43:580][  0]LogConfig: Display: Read in platform Mac ini files took 0.02 seconds
+[2026.09.01-13.49.43:604][  0]LogConfig: Display: Read in platform TVOS ini files took 0.02 seconds
+[2026.09.01-13.49.43:627][  0]LogConfig: Display: Read in platform VisionOS ini files took 0.02 seconds
+[2026.09.01-13.49.43:629][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
+[2026.09.01-13.49.43:630][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
+[2026.09.01-13.49.43:631][  0]LogDeviceProfileManager: Active device profile: [00007FE87A6FCB40][00007FF3D9FE9000 82] Windows
+[2026.09.01-13.49.43:631][  0]LogCsvProfiler: Display: Metadata set : deviceprofile="Windows"
+[2026.09.01-13.49.43:631][  0]LogInit: Running DelayedAutoRegister Phase DeviceProfileManagerReady
+[2026.09.01-13.49.43:637][  0]LogStreaming: Display: FlushAsyncLoading(8): 8 QueuedPackages, 0 AsyncPackages
+[2026.09.01-13.49.43:638][  0]LogPackageLocalizationCache: Processed 83 localized package path(s) for 1 prioritized culture(s) in 0.001172 seconds
+[2026.09.01-13.49.43:650][  0]LogWindows: Error: appError called: Assertion failed: ReaderPos + Num <= ReaderSize [File:D:\build\++UE5\Sync\Engine\Source\Runtime\Core\Public\Serialization\BufferReader.h] [Line: 52] 
 
 
-[2026.09.01-13.39.44:889][  0]LogWindows: Windows GetLastError: The operation completed successfully. (0)
-[2026.09.01-13.39.45:192][  0]LogThreadingWindows: Error: Runnable thread IOThreadPool #2 crashed.
-[2026.09.01-13.39.45:192][  0]LogWindows: Error: === Critical error: ===
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: 
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: Assertion failed: ReaderPos + Num <= ReaderSize [File:D:\build\++UE5\Sync\Engine\Source\Runtime\Core\Public\Serialization\BufferReader.h] [Line: 52] 
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: 
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: 
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: 
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: [Callstack] 0x00007ff6708ad4f8 LedgerProbe.exe!FDebug::CheckVerifyFailedImpl2() []
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: [Callstack] 0x00007ff67099c95b LedgerProbe.exe!FBufferReaderBase::Serialize() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff67061b1a3 LedgerProbe.exe!operator<<() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff670968191 LedgerProbe.exe!operator<<() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff671240e41 LedgerProbe.exe!operator<<() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff67123ec2a LedgerProbe.exe!operator<<() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff67102ce04 LedgerProbe.exe!FAsyncArchive::ReadCallback() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff6706f7928 LedgerProbe.exe!IAsyncReadRequest::SetComplete() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff6706e9c23 LedgerProbe.exe!FGenericReadRequest::PerformRequest() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff6706ced34 LedgerProbe.exe!FAsyncTaskBase::DoWork() []
-[2026.09.01-13.39.45:195][  0]LogWindows: Error: [Callstack] 0x00007ff6706cda2e LedgerProbe.exe!FAsyncTaskBase::DoThreadedWork() []
-[2026.09.01-13.39.45:195][  0]LogWindows: Error: [Callstack] 0x00007ff6707ac878 LedgerProbe.exe!FQueuedThread::Run() []
-[2026.09.01-13.39.45:195][  0]LogWindows: Error: [Callstack] 0x00007ff670c20f98 LedgerProbe.exe!FRunnableThreadWin::Run() []
-[2026.09.01-13.39.45:195][  0]LogWindows: Error: [Callstack] 0x00007ff670c1a995 LedgerProbe.exe!FRunnableThreadWin::GuardedRun() []
-[2026.09.01-13.39.45:195][  0]LogWindows: Error: [Callstack] 0x00007ff8f71cccb7 KERNEL32.DLL!UnknownFunction []
-[2026.09.01-13.39.45:195][  0]LogWindows: Error: 
-[2026.09.01-13.39.45:195][  0]LogWindows: Error: Crash in runnable thread IOThreadPool #2
-[2026.09.01-13.39.45:207][  0]LogExit: Executing StaticShutdownAfterError
-[2026.09.01-13.39.45:208][  0]LogWindows: FPlatformMisc::RequestExit(1, FRunnableThreadWin::GuardedRun.ExceptionHandler)
-[2026.09.01-13.39.45:208][  0]LogWindows: FPlatformMisc::RequestExitWithStatus(1, 3, FRunnableThreadWin::GuardedRun.ExceptionHandler)
-[2026.09.01-13.39.45:208][  0]LogCore: Engine exit requested (reason: Win RequestExit)
+[2026.09.01-13.49.43:650][  0]LogWindows: Windows GetLastError: The operation completed successfully. (0)
+[2026.09.01-13.49.43:957][  0]LogThreadingWindows: Error: Runnable thread IOThreadPool #2 crashed.
+[2026.09.01-13.49.43:957][  0]LogWindows: Error: === Critical error: ===
+[2026.09.01-13.49.43:957][  0]LogWindows: Error: 
+[2026.09.01-13.49.43:957][  0]LogWindows: Error: Assertion failed: ReaderPos + Num <= ReaderSize [File:D:\build\++UE5\Sync\Engine\Source\Runtime\Core\Public\Serialization\BufferReader.h] [Line: 52] 
+[2026.09.01-13.49.43:957][  0]LogWindows: Error: 
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: 
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: 
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff750bcd4f8 LedgerProbe.exe!FDebug::CheckVerifyFailedImpl2() []
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff750cbc95b LedgerProbe.exe!FBufferReaderBase::Serialize() []
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff75093b1a3 LedgerProbe.exe!operator<<() []
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff750c88191 LedgerProbe.exe!operator<<() []
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff751560e41 LedgerProbe.exe!operator<<() []
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff75155ec2a LedgerProbe.exe!operator<<() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff75134ce04 LedgerProbe.exe!FAsyncArchive::ReadCallback() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750a17928 LedgerProbe.exe!IAsyncReadRequest::SetComplete() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750a09c23 LedgerProbe.exe!FGenericReadRequest::PerformRequest() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff7509eed34 LedgerProbe.exe!FAsyncTaskBase::DoWork() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff7509eda2e LedgerProbe.exe!FAsyncTaskBase::DoThreadedWork() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750acc878 LedgerProbe.exe!FQueuedThread::Run() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750f40f98 LedgerProbe.exe!FRunnableThreadWin::Run() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750f3a995 LedgerProbe.exe!FRunnableThreadWin::GuardedRun() []
+[2026.09.01-13.49.43:960][  0]LogWindows: Error: [Callstack] 0x00007ff8f71cccb7 KERNEL32.DLL!UnknownFunction []
+[2026.09.01-13.49.43:960][  0]LogWindows: Error: 
+[2026.09.01-13.49.43:960][  0]LogWindows: Error: Crash in runnable thread IOThreadPool #2
+[2026.09.01-13.49.43:970][  0]LogExit: Executing StaticShutdownAfterError
+[2026.09.01-13.49.43:971][  0]LogWindows: FPlatformMisc::RequestExit(1, FRunnableThreadWin::GuardedRun.ExceptionHandler)
+[2026.09.01-13.49.43:971][  0]LogWindows: FPlatformMisc::RequestExitWithStatus(1, 3, FRunnableThreadWin::GuardedRun.ExceptionHandler)
+[2026.09.01-13.49.43:971][  0]LogCore: Engine exit requested (reason: Win RequestExit)
 --- game stdout, last 40 lines ---
-[2026.09.01-13.39.44:869][  0]LogConfig: Display: Read in platform VisionOS ini files took 0.02 seconds
-[2026.09.01-13.39.44:871][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
-[2026.09.01-13.39.44:871][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
-[2026.09.01-13.39.44:873][  0]LogDeviceProfileManager: Active device profile: [00007FE87470CB40][00007FF3D3FFB800 82] Windows
-[2026.09.01-13.39.44:873][  0]LogCsvProfiler: Display: Metadata set : deviceprofile="Windows"
-[2026.09.01-13.39.44:873][  0]LogInit: Running DelayedAutoRegister Phase DeviceProfileManagerReady
-[2026.09.01-13.39.44:879][  0]LogStreaming: Display: FlushAsyncLoading(8): 8 QueuedPackages, 0 AsyncPackages
-[2026.09.01-13.39.44:880][  0]LogPackageLocalizationCache: Processed 82 localized package path(s) for 1 prioritized culture(s) in 0.001187 seconds
-[2026.09.01-13.39.44:888][  0]LogWindows: Error: appError called: Assertion failed: ReaderPos + Num <= ReaderSize [File:D:\build\++UE5\Sync\Engine\Source\Runtime\Core\Public\Serialization\BufferReader.h] [Line: 52] 
+[2026.09.01-13.49.43:627][  0]LogConfig: Display: Read in platform VisionOS ini files took 0.02 seconds
+[2026.09.01-13.49.43:629][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
+[2026.09.01-13.49.43:629][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
+[2026.09.01-13.49.43:631][  0]LogDeviceProfileManager: Active device profile: [00007FE87A6FCB40][00007FF3D9FE9000 82] Windows
+[2026.09.01-13.49.43:631][  0]LogCsvProfiler: Display: Metadata set : deviceprofile="Windows"
+[2026.09.01-13.49.43:631][  0]LogInit: Running DelayedAutoRegister Phase DeviceProfileManagerReady
+[2026.09.01-13.49.43:637][  0]LogStreaming: Display: FlushAsyncLoading(8): 8 QueuedPackages, 0 AsyncPackages
+[2026.09.01-13.49.43:638][  0]LogPackageLocalizationCache: Processed 83 localized package path(s) for 1 prioritized culture(s) in 0.001172 seconds
+[2026.09.01-13.49.43:650][  0]LogWindows: Error: appError called: Assertion failed: ReaderPos + Num <= ReaderSize [File:D:\build\++UE5\Sync\Engine\Source\Runtime\Core\Public\Serialization\BufferReader.h] [Line: 52] 
 
 
-[2026.09.01-13.39.44:888][  0]LogWindows: Windows GetLastError: The operation completed successfully. (0)
-[2026.09.01-13.39.45:192][  0]LogThreadingWindows: Error: Runnable thread IOThreadPool #2 crashed.
-[2026.09.01-13.39.45:192][  0]LogWindows: Error: === Critical error: ===
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: 
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: Assertion failed: ReaderPos + Num <= ReaderSize [File:D:\build\++UE5\Sync\Engine\Source\Runtime\Core\Public\Serialization\BufferReader.h] [Line: 52] 
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: 
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: 
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: 
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: [Callstack] 0x00007ff6708ad4f8 LedgerProbe.exe!FDebug::CheckVerifyFailedImpl2() []
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: [Callstack] 0x00007ff67099c95b LedgerProbe.exe!FBufferReaderBase::Serialize() []
-[2026.09.01-13.39.45:193][  0]LogWindows: Error: [Callstack] 0x00007ff67061b1a3 LedgerProbe.exe!operator<<() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff670968191 LedgerProbe.exe!operator<<() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff671240e41 LedgerProbe.exe!operator<<() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff67123ec2a LedgerProbe.exe!operator<<() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff67102ce04 LedgerProbe.exe!FAsyncArchive::ReadCallback() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff6706f7928 LedgerProbe.exe!IAsyncReadRequest::SetComplete() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff6706e9c23 LedgerProbe.exe!FGenericReadRequest::PerformRequest() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff6706ced34 LedgerProbe.exe!FAsyncTaskBase::DoWork() []
-[2026.09.01-13.39.45:194][  0]LogWindows: Error: [Callstack] 0x00007ff6706cda2e LedgerProbe.exe!FAsyncTaskBase::DoThreadedWork() []
-[2026.09.01-13.39.45:195][  0]LogWindows: Error: [Callstack] 0x00007ff6707ac878 LedgerProbe.exe!FQueuedThread::Run() []
-[2026.09.01-13.39.45:195][  0]LogWindows: Error: [Callstack] 0x00007ff670c20f98 LedgerProbe.exe!FRunnableThreadWin::Run() []
-[2026.09.01-13.39.45:195][  0]LogWindows: Error: [Callstack] 0x00007ff670c1a995 LedgerProbe.exe!FRunnableThreadWin::GuardedRun() []
-[2026.09.01-13.39.45:195][  0]LogWindows: Error: [Callstack] 0x00007ff8f71cccb7 KERNEL32.DLL!UnknownFunction []
-[2026.09.01-13.39.45:195][  0]LogWindows: Error: 
-[2026.09.01-13.39.45:195][  0]LogWindows: Error: Crash in runnable thread IOThreadPool #2
-[2026.09.01-13.39.45:207][  0]LogExit: Executing StaticShutdownAfterError
-[2026.09.01-13.39.45:208][  0]LogWindows: FPlatformMisc::RequestExit(1, FRunnableThreadWin::GuardedRun.ExceptionHandler)
-[2026.09.01-13.39.45:208][  0]LogWindows: FPlatformMisc::RequestExitWithStatus(1, 3, FRunnableThreadWin::GuardedRun.ExceptionHandler)
-[2026.09.01-13.39.45:208][  0]LogCore: Engine exit requested (reason: Win RequestExit)
+[2026.09.01-13.49.43:650][  0]LogWindows: Windows GetLastError: The operation completed successfully. (0)
+[2026.09.01-13.49.43:957][  0]LogThreadingWindows: Error: Runnable thread IOThreadPool #2 crashed.
+[2026.09.01-13.49.43:957][  0]LogWindows: Error: === Critical error: ===
+[2026.09.01-13.49.43:957][  0]LogWindows: Error: 
+[2026.09.01-13.49.43:957][  0]LogWindows: Error: Assertion failed: ReaderPos + Num <= ReaderSize [File:D:\build\++UE5\Sync\Engine\Source\Runtime\Core\Public\Serialization\BufferReader.h] [Line: 52] 
+[2026.09.01-13.49.43:957][  0]LogWindows: Error: 
+[2026.09.01-13.49.43:957][  0]LogWindows: Error: 
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: 
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff750bcd4f8 LedgerProbe.exe!FDebug::CheckVerifyFailedImpl2() []
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff750cbc95b LedgerProbe.exe!FBufferReaderBase::Serialize() []
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff75093b1a3 LedgerProbe.exe!operator<<() []
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff750c88191 LedgerProbe.exe!operator<<() []
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff751560e41 LedgerProbe.exe!operator<<() []
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff75155ec2a LedgerProbe.exe!operator<<() []
+[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff75134ce04 LedgerProbe.exe!FAsyncArchive::ReadCallback() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750a17928 LedgerProbe.exe!IAsyncReadRequest::SetComplete() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750a09c23 LedgerProbe.exe!FGenericReadRequest::PerformRequest() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff7509eed34 LedgerProbe.exe!FAsyncTaskBase::DoWork() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff7509eda2e LedgerProbe.exe!FAsyncTaskBase::DoThreadedWork() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750acc878 LedgerProbe.exe!FQueuedThread::Run() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750f40f98 LedgerProbe.exe!FRunnableThreadWin::Run() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750f3a995 LedgerProbe.exe!FRunnableThreadWin::GuardedRun() []
+[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff8f71cccb7 KERNEL32.DLL!UnknownFunction []
+[2026.09.01-13.49.43:960][  0]LogWindows: Error: 
+[2026.09.01-13.49.43:960][  0]LogWindows: Error: Crash in runnable thread IOThreadPool #2
+[2026.09.01-13.49.43:970][  0]LogExit: Executing StaticShutdownAfterError
+[2026.09.01-13.49.43:971][  0]LogWindows: FPlatformMisc::RequestExit(1, FRunnableThreadWin::GuardedRun.ExceptionHandler)
+[2026.09.01-13.49.43:971][  0]LogWindows: FPlatformMisc::RequestExitWithStatus(1, 3, FRunnableThreadWin::GuardedRun.ExceptionHandler)
+[2026.09.01-13.49.43:971][  0]LogCore: Engine exit requested (reason: Win RequestExit)
 buildReached=end
