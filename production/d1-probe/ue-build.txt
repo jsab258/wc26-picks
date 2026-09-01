@@ -1,4 +1,4 @@
-# UE probe build - 3161074
+# UE probe build - db8097d
 
 engine=C:\Program~Files\Epic~Games\UE_5.8
 project=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject
@@ -7,119 +7,121 @@ cmd=Build.bat LedgerProbe Win64 Development -Project="C:\actions-runner-ledger\_
 coldBuildExit=0 coldBuildMinutes=0.75
 warmBuildExit=0 warmBuildMinutes=0.03
 cookCmd=RunUAT.bat BuildCookRun -project="C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject" -noP4 -platform=Win64 -clientconfig=Development -cook -build -stage -pak -archive -archivedirectory="C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged" -utf8output
-coldCookExit=0 coldCookMinutes=1.7
+coldCookExit=0 coldCookMinutes=1.75
 warmCookExit=0 warmCookMinutes=0.43
 packagedCandidates=2 packagedUnderBinaries=1
 packaged=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Binaries\Win64\LedgerProbe.exe
 stagedProject=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe
 binaryCandidates=1
 ranBinary=packaged
-binary=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Binaries\Win64\LedgerProbe.exe sizeKB=323998
-gameExit=1 testSeconds=2.2
+binary=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Binaries\Win64\LedgerProbe.exe sizeKB=324002
+gameExit=1 testSeconds=2.31 gameExitIsNotTheVerdict=true
 resultCandidates=4 resultFound=yes
 resultFrom=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\golden-result.txt
 perceptionRows=1221 perceptionMismatches=0 tolerance=1e-09
 probeTest=PASS
 --- LedgerProbe.log (C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Saved\Logs\LedgerProbe.log), last 60 lines ---
-[2026.09.01-14.10.52:056][  0]LogHAL: Display: Platform has ~ 32 GB [34282192896 / 34359738368 / 32], which maps to Largest [LargestMinGB=32, LargerMinGB=12, DefaultMinGB=8, SmallerMinGB=6, SmallestMinGB=0)
-[2026.09.01-14.10.52:056][  0]LogDeviceProfileManager: Going up to parent DeviceProfile []
-[2026.09.01-14.10.52:056][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[UI.SlateSDFText.RasterizationMode:Bitmap -> Msdf]]
-[2026.09.01-14.10.52:056][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[UI.SlateSDFText.ResolutionLevel:2 -> 2]]
-[2026.09.01-14.10.52:056][  0]LogConfig: Applying CVar settings from Section [Startup] File [../../../Engine/Config/ConsoleVariables.ini]
-[2026.09.01-14.10.52:056][  0]LogConfig: Set CVar [[p.chaos.AllowCreatePhysxBodies:1]]
-[2026.09.01-14.10.52:056][  0]LogConfig: Set CVar [[fx.SkipVectorVMBackendOptimizations:1]]
-[2026.09.01-14.10.52:056][  0]LogConfig: Applying CVar settings from Section [Startup_Windows] File [../../../Engine/Config/ConsoleVariables.ini]
-[2026.09.01-14.10.52:057][  0]LogConfig: Applying CVar settings from Section [ConsoleVariables] File [Engine]
-[2026.09.01-14.10.52:057][  0]LogConfig: Set CVar [[WindowsApplication.UseWorkerThreadForRawInput:0]]
-[2026.09.01-14.10.52:057][  0]LogConfig: Set CVar [[r.PSOPrecache.KeepInMemoryForActiveMaterials:1]]
-[2026.09.01-14.10.52:057][  0]LogInit: Computer: JAFAR-DESKTOP
-[2026.09.01-14.10.52:057][  0]LogInit: User: Jafar
-[2026.09.01-14.10.52:057][  0]LogInit: CPU Page size=4096, Cores=6
-[2026.09.01-14.10.52:057][  0]LogInit: High frequency timer resolution =10.000000 MHz
-[2026.09.01-14.10.52:057][  0]LogInit: Gaming Handheld Device: 0
-[2026.09.01-14.10.52:057][  0]LogMemory: Process is running as part of a Windows Job with separate resource limits
-[2026.09.01-14.10.52:058][  0]LogMemory: Memory total: Physical=31.9GB (32GB approx) Virtual=33.9GB
-[2026.09.01-14.10.52:058][  0]LogMemory: Platform Memory Stats for Windows
-[2026.09.01-14.10.52:058][  0]LogMemory: Process Physical Memory: 190.70 MB used, 190.70 MB peak
-[2026.09.01-14.10.52:058][  0]LogMemory: Process Virtual Memory: 132.05 MB used, 132.05 MB peak
-[2026.09.01-14.10.52:058][  0]LogMemory: Physical Memory: 13311.77 MB used,  19382.27 MB free, 32694.05 MB total
-[2026.09.01-14.10.52:058][  0]LogMemory: Virtual Memory: 19358.54 MB used,  15383.51 MB free, 34742.05 MB total
-[2026.09.01-14.10.52:058][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
-[2026.09.01-14.10.52:058][  0]LogWindows: WindowsPlatformFeatures enabled
-[2026.09.01-14.10.52:058][  0]LogSpline: Registered spline type: TypeId=0x54E3AD22, Impl=MultiSpline, Value=Vector
-[2026.09.01-14.10.52:059][  0]LogChaosDD: Chaos Debug Draw Startup
-[2026.09.01-14.10.52:059][  0]LogInit: Physics initialised using underlying interface: Chaos
-[2026.09.01-14.10.52:059][  0]LogInit: Using OS detected language (en-US).
-[2026.09.01-14.10.52:059][  0]LogInit: Using OS detected locale (en-US).
-[2026.09.01-14.10.52:059][  0]LogTextLocalizationManager: No specific localization for 'en-US' exists, so 'en' will be used for the language.
-[2026.09.01-14.10.52:100][  0]LogWindowsTouchpad: Display: CacheForceMaxTouchpadSensitivityMode SetMaxTouchpadSensitivity
-[2026.09.01-14.10.52:100][  0]LogInputDeviceRegistry: RegisterDevice: DeviceId=0 InputDeviceName=WindowsApplication HardwareDeviceIdentifier=KBM (changed=true)
-[2026.09.01-14.10.52:103][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
-[2026.09.01-14.10.52:104][  0]LogSlate: New Slate User Created. Platform User Id 0, User Index 0, Is Virtual User: 0
-[2026.09.01-14.10.52:104][  0]LogSlate: Slate User Registered.  User Index 0, Is Virtual User: 0
-[2026.09.01-14.10.52:133][  0]LogInit: Running DelayedAutoRegister Phase PreRHIInit
-[2026.09.01-14.10.52:141][  0]LogVRS: Current RHI does not support Variable Rate Shading
-[2026.09.01-14.10.52:142][  0]LogRHI: Render tracing channels set: 'Submission' -> 0xf
-[2026.09.01-14.10.52:142][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Null"
-[2026.09.01-14.10.52:142][  0]LogCsvProfiler: Display: Metadata set : rhiname="Null"
-[2026.09.01-14.10.52:142][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
-[2026.09.01-14.10.52:142][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
-[2026.09.01-14.10.52:142][  0]LogCsvProfiler: Display: Metadata set : gpu=""
-[2026.09.01-14.10.52:142][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
-[2026.09.01-14.10.52:142][  0]LogInit: Initializing FReadOnlyCVARCache
-[2026.09.01-14.10.52:147][  0]LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
-[2026.09.01-14.10.52:147][  0]LogInit: Running DelayedAutoRegister Phase ShaderTypesReady
-[2026.09.01-14.10.52:147][  0]LogCore: Engine exit requested (reason: EngineExit() was called; note: exit was already requested)
-[2026.09.01-14.10.52:147][  0]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: )...
-[2026.09.01-14.10.52:148][  0]LogAudio: Display: Audio Device Manager Shutdown
-[2026.09.01-14.10.52:149][  0]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
-[2026.09.01-14.10.52:149][  0]LogExit: Preparing to exit.
-[2026.09.01-14.10.52:150][  0]LogUObjectArray: CloseDisregardForGC: 5602/5602 objects in disregard for GC pool
-[2026.09.01-14.10.52:153][  0]LogExit: Object subsystem successfully closed.
-[2026.09.01-14.10.52:154][  0]LogChaosDD: Chaos Debug Draw Shutdown
-[2026.09.01-14.10.52:155][  0]LogNFORDenoise: NFORDenoise function shutting down
-[2026.09.01-14.10.52:156][  0]LogPakFile: Destroying PakPlatformFile
-[2026.09.01-14.10.52:157][  0]LogExit: Exiting.
-[2026.09.01-14.10.52:169][  0]Log file closed, 09/01/26 16:10:52
+[2026.09.01-14.21.50:309][  0]LogHAL: Display: Platform has ~ 32 GB [34282192896 / 34359738368 / 32], which maps to Largest [LargestMinGB=32, LargerMinGB=12, DefaultMinGB=8, SmallerMinGB=6, SmallestMinGB=0)
+[2026.09.01-14.21.50:309][  0]LogDeviceProfileManager: Going up to parent DeviceProfile []
+[2026.09.01-14.21.50:309][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[UI.SlateSDFText.RasterizationMode:Bitmap -> Msdf]]
+[2026.09.01-14.21.50:309][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[UI.SlateSDFText.ResolutionLevel:2 -> 2]]
+[2026.09.01-14.21.50:309][  0]LogConfig: Applying CVar settings from Section [Startup] File [../../../Engine/Config/ConsoleVariables.ini]
+[2026.09.01-14.21.50:310][  0]LogConfig: Set CVar [[p.chaos.AllowCreatePhysxBodies:1]]
+[2026.09.01-14.21.50:310][  0]LogConfig: Set CVar [[fx.SkipVectorVMBackendOptimizations:1]]
+[2026.09.01-14.21.50:310][  0]LogConfig: Applying CVar settings from Section [Startup_Windows] File [../../../Engine/Config/ConsoleVariables.ini]
+[2026.09.01-14.21.50:310][  0]LogConfig: Applying CVar settings from Section [ConsoleVariables] File [Engine]
+[2026.09.01-14.21.50:310][  0]LogConfig: Set CVar [[WindowsApplication.UseWorkerThreadForRawInput:0]]
+[2026.09.01-14.21.50:310][  0]LogConfig: Set CVar [[r.PSOPrecache.KeepInMemoryForActiveMaterials:1]]
+[2026.09.01-14.21.50:310][  0]LogInit: Computer: JAFAR-DESKTOP
+[2026.09.01-14.21.50:310][  0]LogInit: User: Jafar
+[2026.09.01-14.21.50:310][  0]LogInit: CPU Page size=4096, Cores=6
+[2026.09.01-14.21.50:311][  0]LogInit: High frequency timer resolution =10.000000 MHz
+[2026.09.01-14.21.50:311][  0]LogInit: Gaming Handheld Device: 0
+[2026.09.01-14.21.50:311][  0]LogMemory: Process is running as part of a Windows Job with separate resource limits
+[2026.09.01-14.21.50:311][  0]LogMemory: Memory total: Physical=31.9GB (32GB approx) Virtual=33.9GB
+[2026.09.01-14.21.50:311][  0]LogMemory: Platform Memory Stats for Windows
+[2026.09.01-14.21.50:311][  0]LogMemory: Process Physical Memory: 190.54 MB used, 190.54 MB peak
+[2026.09.01-14.21.50:311][  0]LogMemory: Process Virtual Memory: 132.07 MB used, 132.07 MB peak
+[2026.09.01-14.21.50:311][  0]LogMemory: Physical Memory: 13389.52 MB used,  19304.52 MB free, 32694.05 MB total
+[2026.09.01-14.21.50:311][  0]LogMemory: Virtual Memory: 19370.56 MB used,  15371.48 MB free, 34742.05 MB total
+[2026.09.01-14.21.50:312][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
+[2026.09.01-14.21.50:312][  0]LogWindows: WindowsPlatformFeatures enabled
+[2026.09.01-14.21.50:312][  0]LogSpline: Registered spline type: TypeId=0x54E3AD22, Impl=MultiSpline, Value=Vector
+[2026.09.01-14.21.50:312][  0]LogChaosDD: Chaos Debug Draw Startup
+[2026.09.01-14.21.50:312][  0]LogInit: Physics initialised using underlying interface: Chaos
+[2026.09.01-14.21.50:312][  0]LogInit: Using OS detected language (en-US).
+[2026.09.01-14.21.50:312][  0]LogInit: Using OS detected locale (en-US).
+[2026.09.01-14.21.50:312][  0]LogTextLocalizationManager: No specific localization for 'en-US' exists, so 'en' will be used for the language.
+[2026.09.01-14.21.50:352][  0]LogWindowsTouchpad: Display: CacheForceMaxTouchpadSensitivityMode SetMaxTouchpadSensitivity
+[2026.09.01-14.21.50:353][  0]LogInputDeviceRegistry: RegisterDevice: DeviceId=0 InputDeviceName=WindowsApplication HardwareDeviceIdentifier=KBM (changed=true)
+[2026.09.01-14.21.50:355][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+[2026.09.01-14.21.50:356][  0]LogSlate: New Slate User Created. Platform User Id 0, User Index 0, Is Virtual User: 0
+[2026.09.01-14.21.50:357][  0]LogSlate: Slate User Registered.  User Index 0, Is Virtual User: 0
+[2026.09.01-14.21.50:382][  0]LogInit: Running DelayedAutoRegister Phase PreRHIInit
+[2026.09.01-14.21.50:391][  0]LogVRS: Current RHI does not support Variable Rate Shading
+[2026.09.01-14.21.50:391][  0]LogRHI: Render tracing channels set: 'Submission' -> 0xf
+[2026.09.01-14.21.50:391][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Null"
+[2026.09.01-14.21.50:391][  0]LogCsvProfiler: Display: Metadata set : rhiname="Null"
+[2026.09.01-14.21.50:392][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
+[2026.09.01-14.21.50:392][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
+[2026.09.01-14.21.50:392][  0]LogCsvProfiler: Display: Metadata set : gpu=""
+[2026.09.01-14.21.50:392][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
+[2026.09.01-14.21.50:392][  0]LogInit: Initializing FReadOnlyCVARCache
+[2026.09.01-14.21.50:397][  0]LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
+[2026.09.01-14.21.50:397][  0]LogInit: Running DelayedAutoRegister Phase ShaderTypesReady
+[2026.09.01-14.21.50:398][  0]LogCore: Engine exit requested (reason: EngineExit() was called; note: exit was already requested)
+[2026.09.01-14.21.50:398][  0]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: )...
+[2026.09.01-14.21.50:398][  0]LogAudio: Display: Audio Device Manager Shutdown
+[2026.09.01-14.21.50:400][  0]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
+[2026.09.01-14.21.50:400][  0]LogExit: Preparing to exit.
+[2026.09.01-14.21.50:400][  0]LogUObjectArray: CloseDisregardForGC: 5602/5602 objects in disregard for GC pool
+[2026.09.01-14.21.50:403][  0]LogExit: Object subsystem successfully closed.
+[2026.09.01-14.21.50:404][  0]LogChaosDD: Chaos Debug Draw Shutdown
+[2026.09.01-14.21.50:406][  0]LogNFORDenoise: NFORDenoise function shutting down
+[2026.09.01-14.21.50:406][  0]LogPakFile: Destroying PakPlatformFile
+[2026.09.01-14.21.50:407][  0]LogExit: Exiting.
+[2026.09.01-14.21.50:420][  0]Log file closed, 09/01/26 16:21:50
 --- game stdout, last 40 lines ---
-[2026.09.01-14.10.52:058][  0]LogMemory: Process Physical Memory: 190.70 MB used, 190.70 MB peak
-[2026.09.01-14.10.52:058][  0]LogMemory: Process Virtual Memory: 132.05 MB used, 132.05 MB peak
-[2026.09.01-14.10.52:058][  0]LogMemory: Physical Memory: 13311.77 MB used,  19382.27 MB free, 32694.05 MB total
-[2026.09.01-14.10.52:058][  0]LogMemory: Virtual Memory: 19358.54 MB used,  15383.51 MB free, 34742.05 MB total
-[2026.09.01-14.10.52:058][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
-[2026.09.01-14.10.52:058][  0]LogWindows: WindowsPlatformFeatures enabled
-[2026.09.01-14.10.52:058][  0]LogSpline: Registered spline type: TypeId=0x54E3AD22, Impl=MultiSpline, Value=Vector
-[2026.09.01-14.10.52:058][  0]LogChaosDD: Chaos Debug Draw Startup
-[2026.09.01-14.10.52:059][  0]LogInit: Physics initialised using underlying interface: Chaos
-[2026.09.01-14.10.52:059][  0]LogInit: Using OS detected language (en-US).
-[2026.09.01-14.10.52:059][  0]LogInit: Using OS detected locale (en-US).
-[2026.09.01-14.10.52:059][  0]LogTextLocalizationManager: No specific localization for 'en-US' exists, so 'en' will be used for the language.
-[2026.09.01-14.10.52:100][  0]LogWindowsTouchpad: Display: CacheForceMaxTouchpadSensitivityMode SetMaxTouchpadSensitivity
-[2026.09.01-14.10.52:100][  0]LogInputDeviceRegistry: RegisterDevice: DeviceId=0 InputDeviceName=WindowsApplication HardwareDeviceIdentifier=KBM (changed=true)
-[2026.09.01-14.10.52:103][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
-[2026.09.01-14.10.52:104][  0]LogSlate: New Slate User Created. Platform User Id 0, User Index 0, Is Virtual User: 0
-[2026.09.01-14.10.52:104][  0]LogSlate: Slate User Registered.  User Index 0, Is Virtual User: 0
-[2026.09.01-14.10.52:132][  0]LogInit: Running DelayedAutoRegister Phase PreRHIInit
-[2026.09.01-14.10.52:141][  0]LogVRS: Current RHI does not support Variable Rate Shading
-[2026.09.01-14.10.52:141][  0]LogRHI: Render tracing channels set: 'Submission' -> 0xf
-[2026.09.01-14.10.52:142][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Null"
-[2026.09.01-14.10.52:142][  0]LogCsvProfiler: Display: Metadata set : rhiname="Null"
-[2026.09.01-14.10.52:142][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
-[2026.09.01-14.10.52:142][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
-[2026.09.01-14.10.52:142][  0]LogCsvProfiler: Display: Metadata set : gpu=""
-[2026.09.01-14.10.52:142][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
-[2026.09.01-14.10.52:142][  0]LogInit: Initializing FReadOnlyCVARCache
-[2026.09.01-14.10.52:147][  0]LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
-[2026.09.01-14.10.52:147][  0]LogInit: Running DelayedAutoRegister Phase ShaderTypesReady
-[2026.09.01-14.10.52:147][  0]LogCore: Engine exit requested (reason: EngineExit() was called; note: exit was already requested)
-[2026.09.01-14.10.52:147][  0]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: )...
-[2026.09.01-14.10.52:147][  0]LogAudio: Display: Audio Device Manager Shutdown
-[2026.09.01-14.10.52:149][  0]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
-[2026.09.01-14.10.52:149][  0]LogExit: Preparing to exit.
-[2026.09.01-14.10.52:149][  0]LogUObjectArray: CloseDisregardForGC: 5602/5602 objects in disregard for GC pool
-[2026.09.01-14.10.52:153][  0]LogExit: Object subsystem successfully closed.
-[2026.09.01-14.10.52:154][  0]LogChaosDD: Chaos Debug Draw Shutdown
-[2026.09.01-14.10.52:155][  0]LogNFORDenoise: NFORDenoise function shutting down
-[2026.09.01-14.10.52:155][  0]LogPakFile: Destroying PakPlatformFile
-[2026.09.01-14.10.52:157][  0]LogExit: Exiting.
+[2026.09.01-14.21.50:311][  0]LogMemory: Process Physical Memory: 190.54 MB used, 190.54 MB peak
+[2026.09.01-14.21.50:311][  0]LogMemory: Process Virtual Memory: 132.07 MB used, 132.07 MB peak
+[2026.09.01-14.21.50:311][  0]LogMemory: Physical Memory: 13389.52 MB used,  19304.52 MB free, 32694.05 MB total
+[2026.09.01-14.21.50:311][  0]LogMemory: Virtual Memory: 19370.56 MB used,  15371.48 MB free, 34742.05 MB total
+[2026.09.01-14.21.50:311][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
+[2026.09.01-14.21.50:312][  0]LogWindows: WindowsPlatformFeatures enabled
+[2026.09.01-14.21.50:312][  0]LogSpline: Registered spline type: TypeId=0x54E3AD22, Impl=MultiSpline, Value=Vector
+[2026.09.01-14.21.50:312][  0]LogChaosDD: Chaos Debug Draw Startup
+[2026.09.01-14.21.50:312][  0]LogInit: Physics initialised using underlying interface: Chaos
+[2026.09.01-14.21.50:312][  0]LogInit: Using OS detected language (en-US).
+[2026.09.01-14.21.50:312][  0]LogInit: Using OS detected locale (en-US).
+[2026.09.01-14.21.50:312][  0]LogTextLocalizationManager: No specific localization for 'en-US' exists, so 'en' will be used for the language.
+[2026.09.01-14.21.50:352][  0]LogWindowsTouchpad: Display: CacheForceMaxTouchpadSensitivityMode SetMaxTouchpadSensitivity
+[2026.09.01-14.21.50:353][  0]LogInputDeviceRegistry: RegisterDevice: DeviceId=0 InputDeviceName=WindowsApplication HardwareDeviceIdentifier=KBM (changed=true)
+[2026.09.01-14.21.50:355][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+[2026.09.01-14.21.50:356][  0]LogSlate: New Slate User Created. Platform User Id 0, User Index 0, Is Virtual User: 0
+[2026.09.01-14.21.50:356][  0]LogSlate: Slate User Registered.  User Index 0, Is Virtual User: 0
+[2026.09.01-14.21.50:382][  0]LogInit: Running DelayedAutoRegister Phase PreRHIInit
+[2026.09.01-14.21.50:391][  0]LogVRS: Current RHI does not support Variable Rate Shading
+[2026.09.01-14.21.50:391][  0]LogRHI: Render tracing channels set: 'Submission' -> 0xf
+[2026.09.01-14.21.50:391][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Null"
+[2026.09.01-14.21.50:391][  0]LogCsvProfiler: Display: Metadata set : rhiname="Null"
+[2026.09.01-14.21.50:392][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
+[2026.09.01-14.21.50:392][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
+[2026.09.01-14.21.50:392][  0]LogCsvProfiler: Display: Metadata set : gpu=""
+[2026.09.01-14.21.50:392][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
+[2026.09.01-14.21.50:392][  0]LogInit: Initializing FReadOnlyCVARCache
+[2026.09.01-14.21.50:397][  0]LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
+[2026.09.01-14.21.50:397][  0]LogInit: Running DelayedAutoRegister Phase ShaderTypesReady
+[2026.09.01-14.21.50:397][  0]LogCore: Engine exit requested (reason: EngineExit() was called; note: exit was already requested)
+[2026.09.01-14.21.50:398][  0]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: )...
+[2026.09.01-14.21.50:398][  0]LogAudio: Display: Audio Device Manager Shutdown
+[2026.09.01-14.21.50:399][  0]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
+[2026.09.01-14.21.50:400][  0]LogExit: Preparing to exit.
+[2026.09.01-14.21.50:400][  0]LogUObjectArray: CloseDisregardForGC: 5602/5602 objects in disregard for GC pool
+[2026.09.01-14.21.50:403][  0]LogExit: Object subsystem successfully closed.
+[2026.09.01-14.21.50:404][  0]LogChaosDD: Chaos Debug Draw Shutdown
+[2026.09.01-14.21.50:406][  0]LogNFORDenoise: NFORDenoise function shutting down
+[2026.09.01-14.21.50:406][  0]LogPakFile: Destroying PakPlatformFile
+[2026.09.01-14.21.50:407][  0]LogExit: Exiting.
+ueVerdictCandidates=3 ueVerdictFound=yes
+ueVerdictFrom=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\ue-verdict.txt
 buildReached=end
