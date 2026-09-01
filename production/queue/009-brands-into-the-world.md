@@ -18,3 +18,14 @@ how people SAY the name, and never the full form.
 Ship the reach check with it. A brand with no consumer should be visible as
 one, the way the reach ledger makes an uncalled API visible, rather than
 depending on somebody grepping again in a month.
+
+DO NOT EDIT content/dialogue/pub-regular-v1.json. Those 48 lines are the
+judge calibration sample Jafar graded, and grading is the one thing in this
+process that costs a person's time. Changing a graded line silently
+invalidates the calibration and nothing would report it: the bank would
+still pass every mechanical gate, and the judge would be tuned against a
+sample that no longer exists.
+
+So the brands go into a NEW bank, or into new lines in a new file, and the
+graded one is left exactly as it is. If that turns out to be impossible,
+the answer is to say so and ask, not to edit and mention it afterwards.
