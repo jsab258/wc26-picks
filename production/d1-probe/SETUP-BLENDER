@@ -1,0 +1,42 @@
+# The sentinel that runs .github/workflows/ledger-setup-msvc.yml.
+#
+# TOUCH THIS FILE AND COMMIT IT TO INSTALL BLENDER on the build PC. The
+# workflow keeps its MSVC name and its MSVC sentinel; this is a second
+# trigger path on the same file, because a third near-copy of a
+# checkout/bootstrap/install/verify/commit workflow is how the PATH
+# bootstrap ended up existing three times with the third one shortened.
+#
+# IT LIVES HERE, beside SETUP-MSVC, and not in production/mesh-reports/
+# where its report goes. mesh-reports is an OUTPUT directory: a trigger
+# inside one is how a run's own output re-fires the workflow that made it,
+# or how a cleanup quietly deletes the trigger. The REPORT belongs there,
+# next to the mesh machine report that names Blender as the missing piece.
+#
+# WHY. tools/meshgen's local backend refused on JAFAR-DESKTOP with
+# "backend local: NO (1 of 2 requirements met)" - see
+# production/mesh-reports/mesh-machine-report.txt. The one missing
+# requirement is Blender. Nothing else about that backend is missing and
+# 84 GB is free.
+#
+# Blender is free and GPL from blender.org. No purchase, no account, and
+# none is used. Authorized by Jafar 2026-09-01: "can't you installed
+# blender like oyu installed MSVC".
+#
+# IDEMPOTENT, AND IT SAYS WHICH. If Blender is already there the run
+# reports outcome=already-present and changes nothing, so touching this
+# file again is free. The report it writes is
+# production/mesh-reports/blender-setup.txt, committed by the run itself
+# and naming the commit it was measured on.
+#
+# NOTE that touching this also re-runs the MSVC step, which is idempotent
+# too: with the required set already complete it prints ALREADY COMPLETE
+# and exits in seconds. That is a re-measurement, not a change.
+#
+# One line per run, appended, so this file is also the setup log.
+run 1 - 2026-09-01 - install Blender, the only requirement tools/meshgen's
+local backend is missing. The version is DISCOVERED, never guessed: the run
+reads https://download.blender.org/release/, takes the newest LTS line it
+finds from a named preference list, takes the highest Windows x64 MSI in
+that line, and prints the URL and version it chose. If the index cannot be
+read it stops and says so rather than falling back to a hardcoded URL that
+404s the day Blender ships a patch.

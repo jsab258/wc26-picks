@@ -1,4 +1,4 @@
-name: LEDGER setup MSVC build tools
+name: LEDGER setup build machine (MSVC, Blender)
 
 # ONE-OFF MACHINE SETUP, AUTHORIZED BY JAFAR 2026-09-01 ("go ahead").
 #
@@ -19,11 +19,39 @@ name: LEDGER setup MSVC build tools
 # TRIGGER: its own sentinel, for the same reason the probe has one. This
 # workflow is not on the default branch and cannot be dispatched from the
 # API until it is; touching production/d1-probe/SETUP-MSVC runs it.
+#
+# IT SETS UP MORE THAN MSVC NOW, AUTHORIZED BY JAFAR 2026-09-01 ("can't you
+# installed blender like oyu installed MSVC"). Blender is the ONE missing
+# requirement of tools/meshgen's local backend, which refused on his machine
+# with "backend local: NO (1 of 2 requirements met)". It is free and GPL from
+# blender.org: no purchase, no account, and none is used.
+#
+# WHY IT IS A SECOND STEP HERE RATHER THAN A SECOND WORKFLOW. The PATH
+# bootstrap was inline in three places once and the third copy was a
+# silently shortened variant; tools/lint-bootstrap-single.py exists because
+# of it. A third near-copy of this file - checkout, bootstrap, install,
+# verify, commit - would recreate exactly that. So the file keeps its name
+# and its sentinel and grows a second tool.
+#
+# THE SENTINEL SITS BESIDE THE OTHER ONE, in production/d1-probe/, and NOT
+# in production/mesh-reports/ where its report goes. mesh-reports is an
+# OUTPUT directory - meshgen writes its machine report there - and a trigger
+# living inside an output directory is the shape where a run's own output
+# re-fires the workflow that produced it, or where a cleanup deletes the
+# trigger. The report still goes to mesh-reports, because that is where the
+# person reading "backend local: NO, missing Blender" is already looking.
+#
+# BOTH INSTALL STEPS RUN ON EVERY TRIGGER, and that is safe because both are
+# idempotent: each checks its own required set first and exits without
+# touching the machine when the set is already complete. Touching either
+# sentinel therefore RE-MEASURES both tools on this commit, which is a
+# reading rather than a change.
 on:
   workflow_dispatch:
   push:
     paths:
       - 'production/d1-probe/SETUP-MSVC'
+      - 'production/d1-probe/SETUP-BLENDER'
 
 permissions:
   contents: write
@@ -174,6 +202,292 @@ jobs:
           $L | Set-Content $out -Encoding utf8
           Write-Host ($L -join "`n")
 
+      - name: Install Blender (meshgen's only missing requirement)
+        id: blender
+        timeout-minutes: 45
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          # Without this, Invoke-WebRequest spends most of a 400 MB download
+          # drawing a progress bar into a log nobody can tail.
+          $ProgressPreference = "SilentlyContinue"
+          $script:out = "production/mesh-reports/blender-setup.txt"
+          New-Item -ItemType Directory -Force -Path "production/mesh-reports" | Out-Null
+          $sha = $env:GITHUB_SHA
+          if ($sha) { $sha = $sha.Substring(0, [Math]::Min(7, $sha.Length)) } else { $sha = "SHA-UNKNOWN" }
+          $script:L = @("# Blender setup - $sha", "")
+          $script:L += "host=$env:COMPUTERNAME written=$((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))"
+          # Nothing has touched the machine yet, and this key must be able to
+          # say so even on the paths that stop early.
+          $script:changed = "no"
+          $tmp = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { $env:TEMP }
+
+          # ONE ENDING, so every exit writes the file, prints it, and carries
+          # the same three keys. An early stop that forgot one of them would
+          # leave the commit step unable to tell "did not run" from "ran and
+          # found nothing".
+          function Finish([string]$outcome) {
+            $script:L += "changedMachine=$script:changed"
+            $script:L += "outcome=$outcome"
+            $script:L += "setupReached=end"
+            $script:L | Set-Content $script:out -Encoding utf8
+            Write-Host ($script:L -join "`n")
+          }
+          # Paths on Windows have spaces in them and a verdict value may not.
+          function Tilde([string]$s) { if ($s) { return ($s -replace ' ', '~') } else { return "none" } }
+
+          # ASK THE CONSUMER WHERE IT LOOKS - DO NOT RE-IMPLEMENT ITS LOOKUP.
+          # An install that lands somewhere meshgen does not search would
+          # "succeed" here and the batch would still refuse, so the test is
+          # meshgen's own probe, run the same way its .bat runs it (Windows
+          # PowerShell, -NoProfile -ExecutionPolicy Bypass). It writes one
+          # JSON to the path it is given and touches nothing else.
+          # "NOBODY LOOKED" MUST NOT READ AS "NOT THERE", so the flag below
+          # says whether the probe produced a reading at all, and a probe that
+          # wrote nothing prints its own last lines rather than being folded
+          # into a silent empty answer.
+          $script:probeWrote = "no"
+          function Get-BlenderPath {
+            $j = Join-Path $tmp "blender-setup-tools.json"
+            if (Test-Path $j) { Remove-Item $j -Force -ErrorAction SilentlyContinue }
+            $probeOut = @(& powershell -NoProfile -ExecutionPolicy Bypass -File "tools\meshgen\probe-tools.ps1" -Out $j 2>&1)
+            if (-not (Test-Path $j)) {
+              $script:probeWrote = "no"
+              $script:L += "note: meshgen's probe wrote no JSON at $j, so it did not run. That is not the same finding as Blender being absent."
+              $tail = @($probeOut | Select-Object -Last 5)
+              if ($probeOut.Count -gt $tail.Count) { $script:L += "(+$($probeOut.Count - $tail.Count) earlier probe output lines not shown)" }
+              foreach ($ln in $tail) { $script:L += "probe: $ln" }
+              return ""
+            }
+            $script:probeWrote = "yes"
+            try {
+              $raw = (Get-Content $j -Raw).TrimStart([char]0xFEFF)
+              $t = $raw | ConvertFrom-Json
+            } catch {
+              $script:probeWrote = "unreadable"
+              $script:L += "note: the probe's JSON at $j could not be parsed: $($_.Exception.Message)"
+              return ""
+            }
+            if ($t.blender) { return "$($t.blender)" }
+            return ""
+          }
+
+          $before = Get-BlenderPath
+          if ($before) {
+            $script:L += "presentBeforeThisRun=yes"
+            $script:L += "ALREADY PRESENT: meshgen's probe found blender.exe before this run."
+            $script:L += "Nothing was downloaded and nothing was installed. Verification below still RAN it."
+          } else {
+            $script:L += "presentBeforeThisRun=no"
+            $script:L += "not present: meshgen's probe found no blender.exe, so this run installs one."
+
+            # DISCOVER THE INSTALLER, NEVER GUESS ITS URL. A hardcoded version
+            # 404s the day Blender ships a patch, and a failed guess costs a
+            # round trip on a machine nobody here can log into. If the index
+            # cannot be read this step STOPS; there is no fallback URL,
+            # because a fallback is the guess with extra steps.
+            $indexUrl = "https://download.blender.org/release/"
+            $script:L += "reading the release index: $indexUrl"
+            $idx = $null
+            try { $idx = Invoke-WebRequest -Uri $indexUrl -UseBasicParsing -TimeoutSec 120 }
+            catch { $script:L += "INDEX UNREADABLE: $($_.Exception.Message)" }
+            if (-not $idx) {
+              $script:L += "indexRead=no"
+              $script:L += "STOPPING: no index, no version, and this step does not fall back to a guessed URL."
+              Finish "failed"; exit 1
+            }
+            $script:L += "indexRead=yes indexBytes=$($idx.Content.Length)"
+
+            $seen = @{}
+            foreach ($m in [regex]::Matches($idx.Content, 'Blender(\d+)\.(\d+)/')) {
+              $seen["$($m.Groups[1].Value).$($m.Groups[2].Value)"] = $true
+            }
+            $sortedLines = @($seen.Keys | Sort-Object { [version]$_ } -Descending)
+            $script:L += "lineDirsSeen=$($seen.Count)"
+            if ($seen.Count -gt 0) { $script:L += "newestLineInIndex=$($sortedLines[0])" }
+
+            # WHICH LINE IS LTS IS A CLAIM, AND CLAIMS DECAY. The patch is
+            # discovered; the LINE comes from this named list, newest first,
+            # because "is 4.5 an LTS" is not derivable from a directory
+            # listing. The report prints the newest line the index actually
+            # has beside the one chosen, so the day this list goes stale is
+            # a line in the report rather than a silent old install.
+            # LTS is deliberate: tools/meshgen/blender/clean_lod.py has never
+            # been run against a real bpy, so the conservative line is the
+            # one upstream keeps fixing for two years.
+            $ltsPreference = @("4.5", "4.2", "3.6", "3.3")
+            $script:L += "ltsPreference=$($ltsPreference -join ',')"
+            $chosen = ""
+            foreach ($v in $ltsPreference) { if ($seen.ContainsKey($v)) { $chosen = $v; break } }
+            if (-not $chosen) {
+              $script:L += "ltsLineChosen=none"
+              $script:L += "STOPPING: the index has $($seen.Count) release line(s) and none of them is on the LTS list above."
+              Finish "failed"; exit 1
+            }
+            $script:L += "ltsLineChosen=$chosen"
+            if ($sortedLines.Count -gt 0 -and $sortedLines[0] -ne $chosen) {
+              $script:L += "note: the newest line in the index is $($sortedLines[0]), which is not on the LTS list. If it has become an LTS line, add it to ltsPreference in this workflow."
+            }
+
+            $lineUrl = $indexUrl + "Blender$chosen/"
+            $script:L += "reading the line index: $lineUrl"
+            $dir = $null
+            try { $dir = Invoke-WebRequest -Uri $lineUrl -UseBasicParsing -TimeoutSec 120 }
+            catch { $script:L += "LINE INDEX UNREADABLE: $($_.Exception.Message)" }
+            if (-not $dir) {
+              $script:L += "lineIndexRead=no"
+              $script:L += "STOPPING: the chosen line's directory could not be read."
+              Finish "failed"; exit 1
+            }
+            $script:L += "lineIndexRead=yes lineIndexBytes=$($dir.Content.Length)"
+
+            # Every filename appears twice in an autoindex row (the href and
+            # the link text), so the hashtable is what makes the count a
+            # count of FILES rather than of mentions.
+            $files = @{}
+            foreach ($m in [regex]::Matches($dir.Content, 'blender-(\d+)\.(\d+)\.(\d+)-windows-?(?:x64|64)\.msi(?![\w.])')) {
+              $files[$m.Value] = [version]("$($m.Groups[1].Value).$($m.Groups[2].Value).$($m.Groups[3].Value)")
+            }
+            $script:L += "msiCandidates=$($files.Count)"
+            if ($files.Count -eq 0) {
+              $script:L += "STOPPING: no Windows x64 MSI matched in $lineUrl. The page was read ($($dir.Content.Length) bytes) and contained no filename of the form blender-N.N.N-windows-x64.msi."
+              Finish "failed"; exit 1
+            }
+            $best = @($files.GetEnumerator() | Sort-Object -Property Value -Descending)[0]
+            $file = $best.Key
+            $ver = $best.Value.ToString()
+            $url = $lineUrl + $file
+            $script:L += "blenderVersionChosen=$ver"
+            $script:L += "blenderMsiUrl=$url"
+
+            $msi = Join-Path $tmp $file
+            try { Invoke-WebRequest -Uri $url -OutFile $msi -UseBasicParsing -TimeoutSec 1800 }
+            catch {
+              $script:L += "DOWNLOAD FAILED: $($_.Exception.Message)"
+              Finish "failed"; exit 1
+            }
+            $bytes = (Get-Item $msi).Length
+            $script:L += "downloadedBytes=$bytes"
+            if ($bytes -lt 50000000) {
+              $script:L += "STOPPING: a Blender installer is a few hundred MB. $bytes bytes is an error page, not an MSI."
+              Finish "failed"; exit 1
+            }
+
+            # THE HASH IS PUBLISHED BESIDE THE FILE, so check it rather than
+            # trusting that 400 MB arrived intact. A MISMATCH stops; a hash
+            # that is simply not published is reported as not-checked, which
+            # must not read the same way as a match.
+            $published = ""
+            try {
+              $s = Invoke-WebRequest -Uri "$url.sha256" -UseBasicParsing -TimeoutSec 60
+              $mm = [regex]::Match($s.Content, '[0-9a-fA-F]{64}')
+              if ($mm.Success) { $published = $mm.Value.ToLower() }
+            } catch { }
+            $actual = (Get-FileHash -Path $msi -Algorithm SHA256).Hash.ToLower()
+            if ($published -and $published -eq $actual) {
+              $script:L += "checksum=match sha256=$actual"
+            } elseif ($published) {
+              $script:L += "checksum=MISMATCH published=$published actual=$actual"
+              $script:L += "STOPPING: refusing to install a file that does not match its published hash."
+              Finish "failed"; exit 1
+            } else {
+              $script:L += "checksum=not-published sha256=$actual"
+              $script:L += "note: nothing was readable at $url.sha256, so the download is unverified. The hash above is what arrived, not what upstream says."
+            }
+
+            # msiexec /qn is the unattended per-machine install. /norestart
+            # matters on a self-hosted runner: a reboot mid-job kills the
+            # agent and the run reports nothing.
+            $msilog = Join-Path $tmp "blender-msi.log"
+            $argv = @("/i", "`"$msi`"", "/qn", "/norestart", "/L*v", "`"$msilog`"")
+            $script:L += "running msiexec $($argv -join ' ')"
+            $script:changed = "yes"
+            $t0 = Get-Date
+            $p = Start-Process -FilePath "msiexec.exe" -ArgumentList $argv -Wait -PassThru
+            $mins = [math]::Round(((Get-Date) - $t0).TotalMinutes, 1)
+            $script:L += "msiexecExit=$($p.ExitCode) minutes=$mins"
+            # 0 is success. 3010 is installed-pending-reboot and 1641 is
+            # installed-and-rebooting: both are SUCCESS and must not read as
+            # failure, the same handling the MSVC step gives them.
+            $installOk = $false
+            if ($p.ExitCode -eq 0) { $installOk = $true }
+            elseif ($p.ExitCode -eq 3010) { $installOk = $true; $script:L += "note: 3010 means installed, reboot pending. This is success." }
+            elseif ($p.ExitCode -eq 1641) { $installOk = $true; $script:L += "note: 1641 means installed and a restart was initiated. This is success." }
+            else {
+              $script:L += "INSTALL FAILED with exit $($p.ExitCode)."
+              if ($p.ExitCode -eq 1603) { $script:L += "hint: 1603 is the generic MSI failure. Under /qn it is usually rights: a per-machine install needs the runner service to be elevated." }
+              if ($p.ExitCode -eq 1625) { $script:L += "hint: 1625 means system policy forbids this installation." }
+              if ($p.ExitCode -eq 1618) { $script:L += "hint: 1618 means another install is already in progress. Re-run this workflow when it finishes." }
+              if (Test-Path $msilog) {
+                $all = @(Get-Content $msilog -ErrorAction SilentlyContinue)
+                $tail = @($all | Select-Object -Last 12)
+                $script:L += "msiLogLines=$($all.Count) shown=$($tail.Count)"
+                if ($all.Count -gt $tail.Count) { $script:L += "(+$($all.Count - $tail.Count) earlier msi log lines not shown; the whole log is at $msilog on the runner)" }
+                foreach ($ln in $tail) { $script:L += "msilog: $ln" }
+              } else {
+                $script:L += "msiLogLines=0"
+                $script:L += "note: msiexec wrote no log at $msilog, which usually means it never started."
+              }
+            }
+            $script:L += "installReportedOk=$(if ($installOk) { 'yes' } else { 'no' })"
+          }
+
+          # VERIFY BY RUNNING IT, on BOTH paths - an exit code is not evidence
+          # and neither is a file existing. The required set is named and
+          # counted so "found it and it runs" cannot read like "found a file".
+          $required = 2
+          $ok = 0
+          $path = Get-BlenderPath
+          if ($path) {
+            $ok++
+            $script:L += "verified: meshgen's own probe finds blender.exe, so the install landed where the consumer looks."
+            $script:L += "blenderPath=$(Tilde $path)"
+            $script:L += "the same path with its real spaces: $path"
+            $verLine = ""
+            try {
+              $o = & $path --version 2>&1
+              foreach ($ln in @($o)) { if ("$ln".Trim() -ne "") { $verLine = "$ln".Trim(); break } }
+            } catch { $script:L += "running it threw: $($_.Exception.Message)" }
+            if ($verLine) {
+              $script:L += "its own first line: $verLine"
+              # A line came back is not the same fact as a VERSION came back:
+              # a stderr record redirected in here would also be a line. The
+              # requirement is met only when the thing names its version.
+              $mv = [regex]::Match($verLine, '(\d+\.\d+(\.\d+)?)')
+              if ($mv.Success) {
+                $ok++
+                $script:L += "verified: it RAN and reported its version."
+                $script:L += "blenderVersion=$($mv.Groups[1].Value)"
+              } else {
+                $script:L += "NOT VERIFIED: it printed something, but no version number was in it."
+                $script:L += "blenderVersion=unparsed"
+              }
+            } else {
+              $script:L += "NOT VERIFIED: blender.exe is on disk but --version printed nothing at all."
+              $script:L += "blenderVersion=none"
+            }
+          } else {
+            $script:L += "NOT VERIFIED: after this run meshgen's probe still finds no blender.exe."
+            $script:L += "blenderPath=none"
+            $script:L += "blenderVersion=none"
+          }
+          $onPath = ""
+          try { $onPath = (& where.exe blender.exe 2>$null | Select-Object -First 1) } catch { }
+          $script:L += "onPath=$(if ($onPath) { 'yes' } else { 'no' })"
+          $script:L += "note: PATH is not a requirement. probe-tools.ps1 searches Program Files\Blender Foundation when PATH has nothing, and that is the branch meshgen relies on. Nothing here edits the machine PATH; that global belongs to the runner bootstrap."
+          $script:L += "probeJsonWritten=$script:probeWrote"
+          $script:L += "verifiedRequirements=$ok/$required"
+
+          if ($ok -eq $required) {
+            if ($before) { $script:L += "DONE: Blender was already on this machine and it runs. Nothing changed."; Finish "already-present" }
+            else { $script:L += "DONE: Blender was installed by THIS run and it runs."; Finish "installed" }
+            exit 0
+          }
+          $script:L += "meshgen's local backend will still refuse: $($required - $ok) of $required requirement(s) unmet."
+          Finish "failed"
+          exit 1
+
       - name: Commit the setup result
         if: always()
         continue-on-error: true
@@ -181,6 +495,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          BLENDER_OUTCOME: ${{ steps.blender.outcome }}
           GIT_CONFIG_COUNT: "1"
           GIT_CONFIG_KEY_0: safe.directory
           GIT_CONFIG_VALUE_0: "*"
@@ -191,11 +506,23 @@ jobs:
             printf '# MSVC build tools setup - %s\nNO SETUP - the install step did not reach its end (outcome: %s).\nNothing was measured on this commit.\n' \
               "$(git rev-parse --short HEAD)" "${INSTALL_OUTCOME:-unknown}" > "$OUT"
           fi
+          # Same rule for the Blender report, and it is the rule that stops a
+          # PREVIOUS run's file passing as this one's: a step that died before
+          # its end writes NO SETUP in words rather than leaving the older
+          # file in place to be read as today's answer.
+          BOUT=production/mesh-reports/blender-setup.txt
+          if [ ! -f "$BOUT" ] || ! grep -q "setupReached=end" "$BOUT"; then
+            printf '# Blender setup - %s\nNO SETUP - the Blender step did not reach its end (outcome: %s).\nNothing was measured on this commit.\nsetupReached=absent\n' \
+              "$(git rev-parse --short HEAD)" "${BLENDER_OUTCOME:-unknown}" > "$BOUT"
+          fi
           git config user.name "LEDGER setup"
           git config user.email "setup@ledger.local"
-          git add -- "$OUT"
+          # BY NAME, never `git add <directory>`: a run that measured nothing
+          # would otherwise commit its stale checkout's files as its own
+          # evidence.
+          git add -- "$OUT" "$BOUT"
           git diff --cached --quiet && { echo "setup result unchanged; nothing to commit"; exit 0; }
-          git commit -m "MSVC setup result from $(git rev-parse --short HEAD)"
+          git commit -m "Machine setup results (MSVC, Blender) from $(git rev-parse --short HEAD)"
           BR="${GITHUB_REF_NAME}"
           for i in 1 2 3; do
             git pull --rebase --no-edit origin "$BR" || git rebase --abort || true
