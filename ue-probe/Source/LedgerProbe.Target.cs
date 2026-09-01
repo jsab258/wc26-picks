@@ -1,37 +1,31 @@
-// UnrealBuildTool target for the D1 probe. C# by UBT's convention, and it
-// lives OUTSIDE ledger/Assets so the Unity-layer linters never see it.
+// UnrealBuildTool target for the D1 probe.
 //
-// BUILD ATTEMPT 1 FAILED HERE, AND THE ERROR NAMED THE RULE EXACTLY:
-// "Targets with a unique build environment cannot be built with an installed
-// engine." A launcher-installed Unreal ships prebuilt engine binaries, so it
-// can only build targets that use the SHARED build environment; the moment a
-// target changes an ENGINE-WIDE setting it needs the engine recompiled, which
-// an installed engine will not do.
+// TWO BUILD FAILURES GOT US HERE AND BOTH ARE KEPT, because the second
+// invalidated the whole shape rather than a setting:
 //
-// The first version set bCompileAgainstEngine, bCompileAgainstCoreUObject,
-// bCompileAgainstApplicationCore, bBuildDeveloperTools and bUseMallocProfiler
-// to trim what gets linked. Every one of those is engine-wide, and together
-// they were the unique environment. They are gone; the defaults for a Program
-// target already exclude the engine, so the trimming was buying almost
-// nothing and costing the entire build.
+//   attempt 1: "Targets with a unique build environment cannot be built with
+//              an installed engine." Five engine-wide overrides removed.
+//   attempt 2: "Program targets are not currently supported from this engine
+//              distribution." Not a flag. An installed engine cannot build a
+//              Program target AT ALL, and no amount of tuning one changes it.
 //
-// This is not a workaround. Jafar's machine has an installed engine and that
-// is the configuration D1 is measuring, so a target that only builds against
-// a source engine would be measuring a machine nobody has.
+// SO IT IS A GAME TARGET, AND THAT IS MORE HONEST RATHER THAN A CONCESSION.
+// LEDGER would be a game, not a console program. A Program target linking
+// almost nothing was never representative of the cycle D1 is trying to price;
+// it was the cheapest thing to compile, which is a different thing from the
+// thing worth measuring. The cold build gets slower because the engine is
+// really linked now, and that slowness IS the measurement.
 using UnrealBuildTool;
 
 public class LedgerProbeTarget : TargetRules
 {
 	public LedgerProbeTarget(TargetInfo Target) : base(Target)
 	{
-		Type = TargetType.Program;
+		Type = TargetType.Game;
 		DefaultBuildSettings = BuildSettingsVersion.Latest;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
-		// EXPLICIT, not inherited: the whole failure was about which
-		// environment this target asks for, so it says which one out loud.
+		// Explicit, because attempt 1 died on exactly this question.
 		BuildEnvironment = TargetBuildEnvironment.Shared;
-		LinkType = TargetLinkType.Monolithic;
-		LaunchModuleName = "LedgerProbe";
-		bIsBuildingConsoleApplication = true;
+		ExtraModuleNames.Add("LedgerProbe");
 	}
 }

@@ -50,7 +50,14 @@ permissions:
 jobs:
   probe-unreal:
     runs-on: [self-hosted, ledger-pc]
-    timeout-minutes: 25
+    # A CEILING ON A HANG, NOT A TARGET, AND IT MUST SIT ABOVE THE STEP CAPS.
+    # It was 25 while the build step said 60, so the job would have killed a
+    # legitimate cold build at 25 minutes and the evidence file would have
+    # read NO PROBE: a clock running out, wearing the costume of a build
+    # fault. Cold linking a Game target against an installed engine is the
+    # one step here that can plausibly run long, which is precisely why the
+    # measurement must be allowed to finish.
+    timeout-minutes: 95
 
     steps:
       # THE COMPLETE BOOTSTRAP FROM THE UNITY JOB, VERBATIM.
@@ -265,19 +272,36 @@ jobs:
 
           # THE TEST. A build that compiles proves the toolchain; only this
           # proves the port, and it is the same 1221 rows the C# emitted.
-          $exe = Get-ChildItem -Path "ue-probe" -Filter "LedgerProbe*.exe" -Recurse -ErrorAction SilentlyContinue |
-                 Select-Object -First 1
+          # NEWEST FIRST, AND SAY WHICH. An unordered -First 1 over a recursive
+          # glob picks whatever the filesystem hands back, so a stale binary
+          # from an earlier attempt could be tested and reported as this
+          # build's. Ordering by write time makes that impossible to happen
+          # silently, and the count is printed so "one candidate" and "six
+          # candidates, took the newest" stop looking identical.
+          $cands = @(Get-ChildItem -Path "ue-probe\Binaries" -Filter "LedgerProbe*.exe" -Recurse -ErrorAction SilentlyContinue |
+                     Sort-Object LastWriteTime -Descending)
+          $L += "binaryCandidates=$($cands.Count)"
+          $exe = $cands | Select-Object -First 1
           if (-not $exe) {
             $L += "BINARY NOT FOUND under ue-probe after a successful build."
             $L += "buildReached=end"; $L | Set-Content $out -Encoding utf8
             Write-Host ($L -join "`n"); exit 1
           }
           $L += "binary=$($exe.FullName -replace ' ','~') sizeKB=$([math]::Round($exe.Length/1KB))"
+          # A GAME TARGET, SO IT IS A GAME: headless flags, and the result
+          # comes back in a FILE the module wrote rather than from stdout,
+          # because UE's log is noisy and truncated and a file opened by name
+          # is the evidence-channel rule the rest of this project runs on.
+          $resultFile = Join-Path $PWD "ue-probe\golden-result.txt"
+          Remove-Item $resultFile -ErrorAction SilentlyContinue
           $t2 = Get-Date
-          $testOut = & $exe.FullName $golden 2>&1
+          $p3 = Start-Process -FilePath $exe.FullName `
+                -ArgumentList @("-nullrhi","-unattended","-nosplash","-nopause","-stdout") `
+                -Wait -PassThru -NoNewWindow
           $testSec = [math]::Round(((Get-Date) - $t2).TotalSeconds, 2)
-          $L += "testExit=$LASTEXITCODE testSeconds=$testSec"
-          $L += $testOut
+          $L += "gameExit=$($p3.ExitCode) testSeconds=$testSec"
+          if (Test-Path $resultFile) { $L += (Get-Content $resultFile) }
+          else { $L += "probeTest=FAIL reason=no-result-file-written (the module did not reach its write)" }
           $L += "buildReached=end"
           $L | Set-Content $out -Encoding utf8
           Write-Host ($L -join "`n")
