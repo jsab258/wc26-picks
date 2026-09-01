@@ -84,19 +84,48 @@ jobs:
           if ($sha) { $sha = $sha.Substring(0, [Math]::Min(7, $sha.Length)) } else { $sha = "SHA-UNKNOWN" }
           $L = @("# MSVC build tools setup - $sha", "")
 
-          # ALREADY THERE? Then do nothing and say so. Re-running must be
-          # free, because a setup task that reinstalls on every trigger is a
-          # setup task somebody will be afraid to run.
+          # THE REQUIRED SET, CHECKED COMPONENT BY COMPONENT.
+          #
+          # THIS USED TO ASK ABOUT ONE COMPONENT AND THAT MADE IT A ONE-SHOT
+          # TOOL PRETENDING TO BE IDEMPOTENT. It reported ALREADY PRESENT the
+          # moment VC.Tools existed, so it could never add anything else, and
+          # when the UE editor turned out to need the .NET Framework SDK the
+          # workflow whose whole job is machine setup would have skipped the
+          # setup and said everything was fine. A guard that can only ever
+          # answer about its first requirement is the accepting-case failure
+          # in guard form.
+          #
+          # VC.Tools compiles the game. NetFX is what the EDITOR needs, and
+          # the editor is not optional: cooking is a commandlet run inside it,
+          # so a project that cannot build the editor cannot be packaged at
+          # all. Run 9 found this by failing on SwarmInterface with "Could not
+          # find NetFxSDK install dir".
+          $required = [ordered]@{
+            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64" = "the C++ toolchain, for the game target"
+            "Microsoft.Net.Component.4.8.SDK"                   = "the .NET Framework SDK, for the editor target"
+            "Microsoft.Net.Component.4.6.2.TargetingPack"       = "the targeting pack UE names alongside it"
+          }
           $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installPath = ""
+          $missing = @()
           if (Test-Path $vswhere) {
-            $have = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationVersion 2>$null
-            if ($have) {
-              $L += "ALREADY PRESENT: msvc version=$have. Nothing installed, nothing changed."
-              $L += "setupReached=end"
-              $L | Set-Content $out -Encoding utf8
-              Write-Host ($L -join "`n")
-              exit 0
+            $installPath = (& $vswhere -latest -products * -property installationPath 2>$null | Select-Object -First 1)
+            foreach ($c in $required.Keys) {
+              $hit = & $vswhere -latest -products * -requires $c -property installationVersion 2>$null
+              if ($hit) { $L += "present: $c ($($required[$c]))" }
+              else      { $L += "MISSING: $c ($($required[$c]))"; $missing += $c }
             }
+          } else {
+            $L += "vswhere absent: treating every required component as missing."
+            $missing = @($required.Keys)
+          }
+          $L += "requiredComponents=$($required.Count) missing=$($missing.Count)"
+          if ($missing.Count -eq 0) {
+            $L += "ALREADY COMPLETE: all $($required.Count) required component(s) present. Nothing changed."
+            $L += "setupReached=end"
+            $L | Set-Content $out -Encoding utf8
+            Write-Host ($L -join "`n")
+            exit 0
           }
 
           # THE UNATTENDED BOOTSTRAPPER, not winget. winget under a runner
@@ -117,12 +146,23 @@ jobs:
             Write-Host ($L -join "`n"); exit 1
           }
 
-          # VCTools is the C++ toolchain workload. --includeRecommended
-          # brings the Windows SDK, which UE also needs and whose absence
-          # would be the next identical failure one step later.
-          $args = @("--quiet", "--wait", "--norestart", "--nocache",
-                    "--add", "Microsoft.VisualStudio.Workload.VCTools",
-                    "--includeRecommended")
+          # MODIFY AN EXISTING INSTALL, INSTALL A NEW ONE. Passing --add to a
+          # bare bootstrapper against an existing installation is the shape
+          # that quietly does nothing; `modify --installPath` is the
+          # documented way to add components to what is already there.
+          if ($installPath) {
+            $args = @("modify", "--installPath", "`"$installPath`"",
+                      "--quiet", "--wait", "--norestart", "--nocache")
+            $L += "modifying the existing install at $($installPath -replace ' ','~')"
+          } else {
+            $args = @("--quiet", "--wait", "--norestart", "--nocache",
+                      "--add", "Microsoft.VisualStudio.Workload.VCTools",
+                      "--includeRecommended")
+            $L += "no existing install found: installing the VCTools workload"
+          }
+          # Only what is actually missing, named one by one, so the log says
+          # what this run changed rather than what it might have.
+          foreach ($c in $missing) { $args += "--add"; $args += $c }
           $L += "running vs_BuildTools.exe $($args -join ' ')"
           $t0 = Get-Date
           $p = Start-Process -FilePath $exe -ArgumentList $args -Wait -PassThru
@@ -133,15 +173,23 @@ jobs:
           if ($p.ExitCode -eq 3010) { $L += "note: 3010 means installed, reboot pending. This is success." }
           elseif ($p.ExitCode -ne 0) { $L += "INSTALL FAILED with exit $($p.ExitCode)." }
 
-          # PROVE IT, rather than trusting the exit code. The probe's own
-          # question, asked again: does vswhere now report the workload.
+          # PROVE IT, rather than trusting the exit code, and prove EVERY
+          # component rather than the first one. The count is printed with
+          # its denominator so "all three" and "one of three" cannot read
+          # the same way.
           if (Test-Path $vswhere) {
-            $now = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationVersion 2>$null
-            $nowp = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2>$null
-            if ($now) { $L += "VERIFIED: msvc version=$now path=$($nowp -replace ' ','~')" }
-            else      { $L += "NOT VERIFIED: vswhere present but reports no VC.Tools workload." }
+            $ok = 0
+            foreach ($c in $required.Keys) {
+              $hit = & $vswhere -latest -products * -requires $c -property installationVersion 2>$null
+              if ($hit) { $ok++; $L += "verified: $c version=$hit" }
+              else      { $L += "STILL MISSING AFTER INSTALL: $c" }
+            }
+            $L += "verifiedComponents=$ok/$($required.Count)"
+            if ($ok -eq $required.Count) { $L += "VERIFIED: every required component is present." }
+            else { $L += "NOT VERIFIED: $($required.Count - $ok) component(s) still missing." }
           } else {
             $L += "NOT VERIFIED: vswhere still absent after the installer ran."
+            $L += "verifiedComponents=0/$($required.Count)"
           }
           $L += "setupReached=end"
           $L | Set-Content $out -Encoding utf8

@@ -17,3 +17,5 @@
 unreal	005-d1-ue-workflow	2026-09-01T12:57:34Z	2026-09-01T13:01:10Z	fail	shared build environment: five engine-wide target overrides removed
 unreal	005-d1-ue-workflow	2026-09-01T13:01:10Z	2026-09-01T13:11:10Z	pass	Program target converted to Game; job timeout raised above the step cap; binary pick ordered newest-first
 unreal	005-d1-ue-workflow	2026-09-01T13:11:10Z	2026-09-01T13:26:46Z	fail	diagnosis channel: game streams and UE log tailed, startup breadcrumb, minimum runtime Config, cold made cold
+unreal	005-d1-ue-workflow	2026-09-01T13:26:46Z	2026-09-01T13:33:04Z	fail	cook and package added: RunUAT BuildCookRun, cold and incremental timed, packaged binary preferred, provenance clearing
+unreal	005-d1-ue-workflow	2026-09-01T13:33:04Z	2026-09-01T13:39:44Z	fail	editor target added so the cook has something to launch; -nocompileeditor dropped

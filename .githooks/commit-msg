@@ -1,0 +1,53 @@
+#!/bin/sh
+# REFUSE A COMMIT MESSAGE THAT IS NOT ABOUT THIS COMMIT.
+#
+# WHY THIS EXISTS. Twice in one session a commit landed carrying the
+# PREVIOUS commit's message, because the message was written to a fixed
+# filename in a scratch directory that survives between sessions and then
+# appended to. The append succeeded, the file was stale, the commit was
+# clean, and nothing anywhere said so. Both were caught by eye, which is
+# exactly the kind of catching this project does not rely on.
+#
+# It matters more than a tidy log. The commit feed is the only heartbeat
+# Jafar has between asks, and a commit describing work that happened an
+# hour ago is a false report with a timestamp on it.
+#
+# THE TEST IS THE SUBJECT LINE AGAINST HEAD'S. That is narrow on purpose:
+# it catches the whole-message-reused case exactly, and it cannot fire on
+# any honest commit, because two different commits do not get the same
+# first line by accident in a project whose subjects are sentences.
+#
+# THE ONE LEGITIMATE COLLISION IS AN AMEND, where the subject is meant to
+# survive; git sets no flag a hook can read for that, so the escape is
+# explicit and has to be typed: LEDGER_ALLOW_REPEAT_SUBJECT=1.
+set -e
+MSGFILE="$1"
+[ -f "$MSGFILE" ] || exit 0
+
+SUBJECT=$(sed -n '1p' "$MSGFILE")
+case "$SUBJECT" in
+  ""|"#"*) exit 0 ;;   # empty or a comment: git will handle it
+esac
+
+# No HEAD yet (the first commit) means nothing to collide with.
+git rev-parse --verify HEAD >/dev/null 2>&1 || exit 0
+HEADSUBJECT=$(git log -1 --format=%s 2>/dev/null || true)
+
+if [ "$SUBJECT" = "$HEADSUBJECT" ]; then
+  if [ "${LEDGER_ALLOW_REPEAT_SUBJECT:-}" = "1" ]; then
+    echo "commit-msg: subject repeats HEAD's, allowed by LEDGER_ALLOW_REPEAT_SUBJECT=1."
+    exit 0
+  fi
+  echo "commit-msg: REFUSED — this subject is identical to HEAD's:"
+  echo "  $SUBJECT"
+  echo ""
+  echo "That is what a stale message file looks like: the message you meant to"
+  echo "write was never read, and the previous commit's text is about to be"
+  echo "committed as a description of different work."
+  echo ""
+  echo "Write the message to a FRESH file (mktemp), append the verify footer,"
+  echo "and check its first line before committing. If you really are"
+  echo "reusing this subject on purpose, set LEDGER_ALLOW_REPEAT_SUBJECT=1."
+  exit 1
+fi
+exit 0
