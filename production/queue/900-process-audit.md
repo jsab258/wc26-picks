@@ -22,3 +22,12 @@ Checks, each with its denominator:
 6. Harvest coverage: every phase marked closed since the last audit has a
    matching harvest commit on game-studio main (D10); a closed phase
    without one is a violation.
+7. Goal block verbatim: the goal block at the top of CLAUDE.md matches
+   ledger-v2/respec/vision-pillars-v2.md word for word. Run
+   `python3 tools/goal-block-check.py`; a non-zero exit is a violation.
+   THE SOURCE WINS in any mismatch, because the copy is a copy: fix
+   vision-pillars-v2.md if the goal itself changed, then re-copy.
+   Jafar's instruction, 2026-09-01. It is a tool rather than a reading
+   because comparing a paragraph inside a 15,000 word file against another
+   file by eye, once a week, is exactly the check this project has watched
+   decay before.

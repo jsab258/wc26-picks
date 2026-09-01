@@ -1,7 +1,7 @@
 # LEDGER Vision and Pillars v2 (2026-08-31)
 
 ## The goal
-Build a photoreal, immersive crime sim and social RPG in Meridian, a fictional late-80s/early-90s British port town, that within its deliberately small footprint feels as dense, alive and high-quality as GTA 6 and KCD2, and does the one thing neither can: people who genuinely perceive, permanently remember, gossip through their days, and hold real spoken conversations with the player. Built almost entirely by Claude Code operating as an autonomous studio; Jafar directs (non-technical decisions, feel checks, one-click generation runs). Success is the game clearing the bar below, not shipping or sales.
+Build a photoreal, immersive crime sim and social RPG in Meridian, a fictional late-80s/early-90s British port town, that within its deliberately small footprint feels as dense, alive and high-quality as GTA 6 and KCD2, and does the one thing neither can: people who genuinely perceive, permanently remember, gossip through their days, and hold real spoken conversations with the player. Built almost entirely by Claude Code operating as an autonomous studio; Jafar directs (non-technical decisions, feel checks, one-click generation runs, evenings and weekends, small budget, no deadline). Underneath the game sit two quieter goals: prove the method (that one person directing AI agents can produce this class of game at all) and learn game development by doing it. Success is the game clearing the bar below, not shipping or sales.
 
 ## The Meridian Test (the goal's instrument, approved 2026-08-31)
 The goal is met when all four hold:

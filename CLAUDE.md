@@ -1,3 +1,23 @@
+# THE GOAL (read nothing else if you read nothing else)
+
+Copied VERBATIM from ledger-v2/respec/vision-pillars-v2.md, which is the
+source. If these two ever differ, the source wins and the difference is a
+process-audit violation, not a formatting question. Do not edit this copy;
+edit the source and re-copy.
+
+## The goal
+Build a photoreal, immersive crime sim and social RPG in Meridian, a fictional late-80s/early-90s British port town, that within its deliberately small footprint feels as dense, alive and high-quality as GTA 6 and KCD2, and does the one thing neither can: people who genuinely perceive, permanently remember, gossip through their days, and hold real spoken conversations with the player. Built almost entirely by Claude Code operating as an autonomous studio; Jafar directs (non-technical decisions, feel checks, one-click generation runs, evenings and weekends, small budget, no deadline). Underneath the game sit two quieter goals: prove the method (that one person directing AI agents can produce this class of game at all) and learn game development by doing it. Success is the game clearing the bar below, not shipping or sales.
+
+## The Meridian Test (the goal's instrument, approved 2026-08-31)
+The goal is met when all four hold:
+1. A person who loves GTA or KCD2 plays 30 minutes and does not bounce off the visuals.
+2. Within those 30 minutes the world visibly knows them at least once: recognized, gossiped about, or confronted with something they did earlier.
+3. They describe the town as alive without being prompted.
+4. Jafar, on a free evening, chooses playing LEDGER over replaying KCD2.
+This gate sits at the end of roadmap-v2.md. Every phase gate exists to move these four numbers.
+
+---
+
 # CLAUDE.md — how to work on LEDGER
 
 > **THE V2 RESPEC IS THE SOURCE OF TRUTH — 2026-08-31, Jafar.** The package
