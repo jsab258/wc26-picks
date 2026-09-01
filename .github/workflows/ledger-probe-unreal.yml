@@ -313,7 +313,12 @@ jobs:
           if (-not (Test-Path $uat)) {
             $L += "cookSkipped=RunUAT.bat not found at $($uat -replace ' ','~')"
           } else {
-            $uatArgs = @("BuildCookRun", "-project=`"$proj`"", "-noP4", "-nocompileeditor",
+            # -nocompileeditor is GONE. A C++ project cannot be cooked without
+            # its editor module built, and skipping that compile is what the
+            # flag does. The editor build is genuine UE setup cost and belongs
+            # in the cold cook number rather than being hidden by a flag that
+            # makes the cook fail instead.
+            $uatArgs = @("BuildCookRun", "-project=`"$proj`"", "-noP4",
                          "-platform=Win64", "-clientconfig=Development",
                          "-cook", "-build", "-stage", "-pak", "-archive",
                          "-archivedirectory=`"$archive`"", "-utf8output")

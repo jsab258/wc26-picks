@@ -1,0 +1,19 @@
+# D1 measurement a, LIVE rows. One row per real edit, written AT THE TIME.
+# The statistic over this file is a MEDIAN of minutes, never a mean and
+# never a best case. failedEdit means the edit could not be applied or was
+# lost, which is the binary-asset failure mode UE is being measured for.
+# Rows come from work that was happening anyway. A manufactured cycle
+# measures the harness, not the loop.
+#
+# engine	task	editStartIso	resultSeenIso	outcome	whatWasEdited
+#
+# EDIT START, FOR THE UE ROWS, IS WHEN THE PREVIOUS ANSWER BECAME READABLE.
+# That is genuinely when work began: the loop here is read a landed result,
+# edit, dispatch, wait. Both endpoints are landed CI commits with real
+# timestamps, traced from git rather than recalled. The first version of
+# these rows was written from memory of which run was which and two of the
+# three were wrong, in a file whose own header says not to do that.
+#
+unreal	005-d1-ue-workflow	2026-09-01T12:57:34Z	2026-09-01T13:01:10Z	fail	shared build environment: five engine-wide target overrides removed
+unreal	005-d1-ue-workflow	2026-09-01T13:01:10Z	2026-09-01T13:11:10Z	pass	Program target converted to Game; job timeout raised above the step cap; binary pick ordered newest-first
+unreal	005-d1-ue-workflow	2026-09-01T13:11:10Z	2026-09-01T13:26:46Z	fail	diagnosis channel: game streams and UE log tailed, startup breadcrumb, minimum runtime Config, cold made cold
