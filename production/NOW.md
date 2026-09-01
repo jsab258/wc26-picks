@@ -12,18 +12,21 @@ looks like a live state. It was stale for three hours on 1 Sep, claiming
 
 ## In flight
 
-- TWO AGENTS RUNNING, and the working tree is THEIRS, not yours. Nine paths
-  dirty. Do not edit any of them and do not commit until both report.
-  - `instrument-builder` (Apply the cadence ruling to verify): owns
-    `ledger/verify.py` and `tools/meshgen/propview.py`.
-  - `studio-director` (Batch review and set the bound): reading the same
-    diff, mandatory trigger, must produce a decision record with a
-    `<!--RULING spawn=...-->` stamp or the batch cannot be committed.
-- The one open question in that brief: the cadence BOUND. It has been
-  INHERITED at 100 through two rulings and the raw 120-commit series is now
-  in hand (zeroes 70 of 120, non-zero median 124, p90 1939, max 4388, 26 of
-  120 substantial at 100). It gets set there or explicitly re-deferred with
-  a named condition.
+- TWO BUILDERS RUNNING. The tree is theirs, not yours. Do not commit their
+  files until each reports and you have read the diff.
+  - `engine-specialist` (Revive the PC job channel): owns `tools/pc-watcher.py`,
+    the job table, and a new start-the-machine bat. Serving Jafar's standing
+    "ideally 1 click": every generation run today costs a message and a
+    double-click, and the channel that removes that has been dormant since
+    23 August.
+  - `instrument-builder` (queue 016): owns `tools/attribution-check.py`. The
+    sweep is blind to `.glb`, so 37 landed props produce no line at all,
+    neither ok nor fail. Carries two director additions: the 23
+    `game-design/voice-conds/*.bin` files whose provenance nobody has
+    verified, and a missing rejecting fixture on the record-ahead-of-bytes
+    branch.
+- NO DIRECTOR SPAWN IS DUE. The ruling says 016 and 017 do not need one
+  unless they exceed 100 lines; 018 will. Do not spawn Fable before then.
 
 ## Landed since the last edit of this file
 
@@ -50,8 +53,9 @@ looks like a live state. It was stale for three hours on 1 Sep, claiming
 
 The ruled sequence is game-design/decision-2026-09-01-production-prep-sequence.md.
 
-1. Land the reviewed batch (both agents above), in ONE commit, after applying
-   whatever conditions the director attaches.
+1. DONE 2026-09-01T23:34:45+00:00: the reviewed batch landed as `8dc54d3e`, all six
+   dictated corrections applied, verify green, pushed. The cadence bound is
+   now MEASURED at 100 rather than INHERITED.
 2. Step 4 of the ruled sequence, RE-SCOPED and pending a director ruling:
    see `production/queue/019`. Read against the landed BOM it is SEVEN
    image-generation lines, not an overnight batch. The other 26 GENERATE
