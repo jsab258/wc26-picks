@@ -19,3 +19,8 @@ the 1221-row golden test. Written to be informative when it fails: the exact
 UBT invocation for a project-hosted Program target in 5.8 is not testable
 from the container, so the step captures the command, the exit code, the
 elapsed time and the log tail either way.
+run 5 - 2026-09-01 - build attempt 1 failed in 44s with "Targets with a
+unique build environment cannot be built with an installed engine". The
+target overrode five engine-wide settings; removed, and BuildEnvironment is
+now Shared explicitly. An installed engine is the configuration Jafar has and
+therefore the one D1 must measure.
