@@ -4,11 +4,25 @@
     python3 tools/dashboard/build-dashboard.py            # write the two artifacts
     python3 tools/dashboard/build-dashboard.py --selftest  # accepting case first
     python3 tools/dashboard/build-dashboard.py --print     # STATUS.md to stdout, write nothing
+    python3 tools/dashboard/build-dashboard.py --emit-json       # + the live document
+    python3 tools/dashboard/build-dashboard.py --emit-live-page  # + the live page
 
 WHAT IT IS. Deterministic, zero model calls. It reads repo files and writes
 exactly two artifacts: dashboard.html and STATUS.md at the repo root. It is
 NEVER a second source of truth: if a number here is wrong, the source file or
 this generator is wrong, and this page is not the place to fix it.
+
+AND TWO OPT-IN OUTPUTS, ADDED 2026-09-01 BECAUSE THE HOSTED PAGE WAS A
+SNAPSHOT. It froze at publish time and went on looking current, which is worse
+than no page at all. --emit-json writes the same model as one JSON document
+and --emit-live-page writes a page that renders that document out of the
+artifact document store, subscribing with onSnapshot so it updates in front of
+a reader with no reload and no republish. Neither is written by a bare run.
+The live page contains NO READINGS: render_live_page() takes no model, so
+there is no argument for a number to arrive through, and the selftest asserts
+not one of the live repository's readings appears in its bytes. A page that
+fell back to numbers frozen at publish time would be the same snapshot fault
+wearing a fallback's clothes, and frozen numbers look exactly like fresh ones.
 
 WHY IT IS DANGEROUS, which is why the honesty machinery below is not
 decoration. A dashboard is read at a GLANCE, so it is the highest-leverage
@@ -31,23 +45,28 @@ that means "I could not find out" reading as a zero that means "fine". So:
     touched.
 
 THE SINGLE WRITE PATH. write_artifact() is the only function in this file that
-writes anything, and it refuses any filename other than the two artifacts. The
+writes anything, and it refuses any filename outside the four it knows. The
 selftest proves that statically (an AST walk over this file: every write call
 site is either that function or the selftest's own temp fixture) and at run
-time (a generation into a temp directory creates exactly two files and leaves
-the repo it read untouched). Weekly process audit check 9 asks for that proof.
+time: a generation into a temp directory with no flags creates exactly two
+files, the same generation with both flags creates exactly those two plus the
+two named live outputs, and neither leaves anything in the repo it read.
+Weekly process audit check 9 asks for that proof.
 
-EXIT CODES. 0 wrote both artifacts (or --print). 1 selftest failed. 2 a write
+EXIT CODES. 0 wrote the artifacts (or --print). 1 selftest failed. 2 a write
 failed. 3 the repo root does not look like this repo. 4 a helper module this
 program refuses to run without (tools/capsay.py) could not be imported: a
 truncation notice that silently stops announcing is the fault this whole file
-is about, so it stops rather than carrying on without one.
+is about, so it stops rather than carrying on without one. 5 the live document
+is over the store's per-document byte cap, so db.set() would reject it: it
+refuses rather than leaving a file on disk that looks ready to publish.
 """
 import argparse
 import ast
 import datetime
 import html
 import importlib.util
+import json
 import pathlib
 import re
 import sys
@@ -60,7 +79,34 @@ HTML_NAME = "dashboard.html"
 STATUS_NAME = "STATUS.md"
 ARTIFACTS = (HTML_NAME, STATUS_NAME)
 
+# THE TWO OPT-IN OUTPUTS. Neither is written by a bare run: the spec says the
+# generator writes exactly two files, and the selftest asserts that in both
+# directions (no flag -> 2 files on disk; both flags -> those 2 plus these 2,
+# by name). They exist because the hosted page was a SNAPSHOT: it froze at
+# publish time and went on looking current, which is the exact fault this whole
+# file is written against, wearing a web page's clothes.
+LIVE_PAGE_NAME = "live-dashboard.html"
+LIVE_JSON_NAME = "live-dashboard.json"
+LIVE_OUTPUTS = (LIVE_PAGE_NAME, LIVE_JSON_NAME)
+WRITABLE = ARTIFACTS + LIVE_OUTPUTS
+
+# THE CONTRACT BETWEEN THE TWO. The page carries the schema string; the JSON
+# carries it too, and the page REFUSES to render a document whose schema it
+# does not know rather than painting a wall of blanks that read as zeros. Bump
+# this whenever a key the page reads changes shape, and the old page then says
+# "this document is newer than this page" instead of lying quietly.
+LIVE_SCHEMA = "ledger-status/1"
+LIVE_DOC_PATH = "status/current"        # even segment count: collection/doc
+
 REFRESH_SECONDS = 300
+# The local page's rebuild cadence and the age at which it calls itself stale.
+# NOT a measured series: 15 is what open-dashboard.bat /register schedules, and
+# 20 is that interval plus a margin. Both numbers are PRINTED on the page next
+# to the age, with the sentence naming where they come from, so a reader can
+# see the bound rather than infer one. They live here as constants because the
+# local page and the live page must not drift into two different rules.
+REBUILD_MINUTES = 15
+STALE_AFTER_MINUTES = 20
 FOOTER_LINE = "Derived from repo state. If wrong, fix the source, never this page."
 
 # TWO CAPS, BOTH SET FROM A PRINTED SERIES RATHER THAN FROM TASTE, and both
@@ -986,16 +1032,21 @@ def inflight_shown(model):
 
 # ----------------------------------------------------------------- rendering
 
-CSS = """
-:root { color-scheme: light dark;
-  --bg:#fbfbfa; --fg:#1b1b1a; --dim:#5d5d58; --line:#dedcd6; --card:#ffffff;
+# THE TOKENS ARE WRITTEN ONCE. The live page needs the same two palettes for
+# its [data-theme] rules, and a second copy of a colour set is the site nobody
+# updates when the first is corrected. CSS below is assembled from them and is
+# byte-identical to the string that used to be typed out here; the selftest
+# pins that, because "same tokens" is only true if it is checked.
+LIGHT_VARS = """  --bg:#fbfbfa; --fg:#1b1b1a; --dim:#5d5d58; --line:#dedcd6; --card:#ffffff;
   --amber:#8a5a00; --amberbg:#fff5e0; --pass:#1d6b3a; --passbg:#e4f3e9;
-  --fail:#9a2020; --failbg:#fbe6e6; --na:#5d5d58; --nabg:#eeedea; }
-@media (prefers-color-scheme: dark) { :root {
-  --bg:#15161a; --fg:#e9e8e4; --dim:#a3a19a; --line:#2e3038; --card:#1d1f25;
+  --fail:#9a2020; --failbg:#fbe6e6; --na:#5d5d58; --nabg:#eeedea;"""
+
+DARK_VARS = """  --bg:#15161a; --fg:#e9e8e4; --dim:#a3a19a; --line:#2e3038; --card:#1d1f25;
   --amber:#f0c060; --amberbg:#2f2612; --pass:#7fd4a0; --passbg:#16301f;
-  --fail:#ff9a9a; --failbg:#331717; --na:#a3a19a; --nabg:#24262c; } }
-* { box-sizing:border-box; }
+  --fail:#ff9a9a; --failbg:#331717; --na:#a3a19a; --nabg:#24262c;"""
+
+CSS = "\n:root { color-scheme: light dark;\n" + LIGHT_VARS + " }\n" \
+      "@media (prefers-color-scheme: dark) { :root {\n" + DARK_VARS + " } }\n" + """* { box-sizing:border-box; }
 body { margin:0; padding:14px; background:var(--bg); color:var(--fg);
   font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   max-width:760px; margin-inline:auto; }
@@ -1040,15 +1091,20 @@ footer { margin-top:26px; padding-top:10px; border-top:1px solid var(--line);
   color:var(--dim); font-size:12px; }
 """
 
+# ONE IMPLEMENTATION OF THE STALENESS RULE. The two numbers used to be typed
+# into this script; the live page needs the same rule, and a second copy is the
+# site nobody looks at when the first is fixed. Substituted rather than
+# rewritten, so the rendered local page is byte-identical to the one that
+# shipped: the selftest pins that sentence verbatim.
 AGE_JS = """
 (function(){var e=document.getElementById("age");if(!e)return;
 var t=new Date(e.getAttribute("data-gen"));
 var m=Math.round((Date.now()-t.getTime())/60000);
 e.textContent=(m<1?"just now":m+" min ago");
-if(m>20){e.className="stale";
-e.textContent=m+" min ago, older than the 15 minute regeneration interval: "+
+if(m>%d){e.className="stale";
+e.textContent=m+" min ago, older than the %d minute regeneration interval: "+
 "treat every number below as that old, the regenerator may not be running";}})();
-"""
+""" % (STALE_AFTER_MINUTES, REBUILD_MINUTES)
 
 
 def esc(s):
@@ -1299,22 +1355,721 @@ def render_status(model):
     return "\n".join(L)
 
 
+# --------------------------------------------------- the live document (JSON)
+# WHY THIS EXISTS. The hosted page was a SNAPSHOT: it froze at publish time and
+# went on looking current, which is worse than no page. The repair is a
+# document store the page subscribes to, and a JSON document the resident
+# writes into it whenever this generator runs.
+#
+# ONE COMPUTATION, THREE RENDERINGS. build_model() is read once; render_html,
+# render_status and build_json all take that model and none of them opens a
+# source of its own. The JSON is therefore not a second set of numbers, and
+# the selftest asserts every reading's text and note are identical across the
+# markdown and the document.
+#
+# EVERY DISPLAY STRING IS FORMATTED HERE, in the layer the tests run. The page
+# prints `text` and `note` verbatim and computes exactly one thing: how many
+# minutes ago the stamp beside them was written. A formatter written in the
+# page's JavaScript would ship unrun, and an unrun formatter printing a
+# plausible string is the silent-instrument failure.
+
+GATE_DETAIL_WIDTH = 220        # the width both renderings clip a pill title to
+DOC_BYTE_CAP = 256 * 1024      # the store's own per-document cap (db.d.ts)
+
+
+def aware(dt):
+    """A timestamp that names its own offset.
+
+    THE FAULT THIS EXISTS FOR, and it is the sharpest one on this page.
+    datetime.now() is NAIVE, and a browser reads a naive ISO string as the
+    VIEWER's local time. Writer in UTC, viewer at +02:00, and a document
+    written two hours ago reads as written two hours in the FUTURE: the age
+    goes negative, "just now" prints, and a feed that has stopped looks live
+    for exactly as long as the offset between the two clocks. The live page
+    does its arithmetic on the epoch integer beside this string, never on the
+    string, and the string carries its offset so a human is not misled either.
+    """
+    return dt if dt.tzinfo else dt.astimezone()
+
+
+def reading_json(r):
+    """One Reading as the live document carries it.
+
+    text and note are what the page prints. value, derivation, denominator and
+    reason ride along for an auditor reading the raw document; nothing
+    recomputes text from them.
+    """
+    return {"label": r.label, "text": r.text, "note": r.note,
+            "available": bool(r.available),
+            "value": None if r.value is None else str(r.value),
+            "derivation": r.derivation, "denominator": r.denominator,
+            "reason": r.reason}
+
+
+def build_json(model):
+    """The whole page as one plain-JSON object: the document the page reads."""
+    g = aware(model["generated"])
+    q, b = model["queue"], model["budget"]
+    gates, dec, ph = model["gates"], model["decisions"], model["phases"]
+    rows, clause = inflight_shown(model)
+    return {
+        "schema": LIVE_SCHEMA,
+        "generator": "tools/dashboard/build-dashboard.py",
+        "docPath": LIVE_DOC_PATH,
+        "repo": str(model["repo"]),
+        # THREE FIELDS FOR ONE INSTANT, and they are one instant: g is bound
+        # once above. The text is for a human, the epoch is for the arithmetic,
+        # the ISO carries the offset so neither can be read in the wrong zone.
+        "generatedAt": g.isoformat(),
+        "generatedAtEpochMs": int(g.timestamp() * 1000),
+        "generatedAtText": g.strftime("%Y-%m-%d %H:%M %z"),
+        "staleAfterMinutes": STALE_AFTER_MINUTES,
+        "rebuildMinutes": REBUILD_MINUTES,
+        "cadenceNote": (
+            "This feed carries whatever the last regeneration wrote into the "
+            "store; it does not poll the repository. The registered rebuild "
+            "runs every %d minutes, so an age past %d minutes means the WRITER "
+            "has stopped, not that the project is quiet."
+            % (REBUILD_MINUTES, STALE_AFTER_MINUTES)),
+        "phase": reading_json(ph["current"]),
+        "phaseRows": [{"phase": p, "milestone": clip(plain(mst), 110),
+                       "state": st, "why": why}
+                      for p, mst, st, why in ph["rows"]],
+        "phaseRule": ph["rule"],
+        "decisions": {"count": reading_json(dec["count"]),
+                      "items": list(dec["items"]),
+                      "verified": dec["verified"]},
+        "queue": {"cards": [reading_json(c) for c in q["cards"]],
+                  "rule": q["rule"],
+                  "unclassifiedText": (cap(q["unclassified"], keep=4)
+                                       if q["unclassified"] else None),
+                  "misfiledText": (cap(q["misfiled"], keep=4)
+                                   if q["misfiled"] else None)},
+        "inflight": {"rows": [{"name": r["name"], "status": r["status"],
+                               "note": r["note"],
+                               "available": bool(r["available"])}
+                              for r in rows],
+                     "capText": clause},
+        "budget": {k: reading_json(b[k])
+                   for k in ("monthly", "oneoff", "spend", "usage")},
+        "gates": {"pills": [{"name": n, "state": s,
+                             "detail": clip(d, GATE_DETAIL_WIDTH)}
+                            for n, s, d in gates["pills"]],
+                  "notes": list(gates["notes"]),
+                  "overflowText": gates["overflow"]},
+        "verification": {"throughput": reading_json(model["throughput"]),
+                         "judge": reading_json(model["judge"])},
+        "readings": [reading_json(r) for r in all_readings(model)],
+        "sourcesText": ", ".join("%s%s" % (p, "" if ok else " (ABSENT)")
+                                 for _, p, ok in model["sources"]),
+        "reusedText": ", ".join(model["reused"]) or NOTHING,
+        "footer": FOOTER_LINE,
+    }
+
+
+def doc_bytes(doc):
+    """What the STORE will measure: the compact serialization, not the file."""
+    return len(json.dumps(doc, separators=(",", ":")).encode("utf-8"))
+
+
+def doc_size_fault(doc):
+    """None, or the sentence to refuse with. A document over the store's cap
+    would be rejected by db.set() at write time, and a file sitting on disk
+    looking ready to publish is the wrong place to find that out."""
+    n = doc_bytes(doc)
+    if n <= DOC_BYTE_CAP:
+        return None
+    return ("the live document is %d bytes compact, over the store's %d byte "
+            "per-document cap; db.set() would reject it with invalid_argument"
+            % (n, DOC_BYTE_CAP))
+
+
+# ------------------------------------------------------------- the live page
+# THE ONE RULE THIS PAGE IS BUILT AROUND: it contains NO READINGS. render_live
+# _page() takes no model, so there is nothing for a number to be baked from -
+# the fault is structurally unreachable rather than guarded against. A page
+# that fell back to numbers frozen at publish time would be the snapshot fault
+# wearing a fallback's clothes, and it would be invisible: frozen numbers look
+# exactly like fresh ones.
+#
+# It is published by the Artifact tool, which supplies its own skeleton, so
+# there is no doctype, html, head or body tag here: title, style, content.
+
+LIVE_THEME_CSS = ("\n/* The host's explicit viewer choice must beat the OS "
+                  "setting. These sit AFTER the\n   prefers-color-scheme block "
+                  "and match its specificity, so source order decides\n   and "
+                  "the later rule wins. Custom properties inherit, so the "
+                  "attribute works\n   on the html element or on the body element. */\n"
+                  '[data-theme="light"] {\n' + LIGHT_VARS + " }\n"
+                  '[data-theme="dark"] {\n' + DARK_VARS + " }\n"
+                  """body { padding:0; }
+.wrap { max-width:760px; margin-inline:auto; padding:14px; }
+.feed { border:1px solid var(--line); background:var(--card); border-radius:6px;
+  padding:9px 11px; margin:10px 0 2px; font-size:12.5px; color:var(--dim); }
+.feed b { color:var(--fg); font-size:13.5px; }
+.feed.stopped { border-color:var(--fail); background:var(--failbg); color:var(--fail); }
+.feed.stopped b { color:var(--fail); }
+.note { border:1px solid var(--amber); background:var(--amberbg); color:var(--amber);
+  border-radius:6px; padding:11px 13px; margin:12px 0; font-size:13px; }
+.note b { display:block; margin-bottom:4px; font-size:14px; }
+.note.calm { border-color:var(--line); background:var(--card); color:var(--dim); }
+.note code { background:var(--nabg); padding:1px 4px; border-radius:3px; }
+.pending { color:var(--dim); font-size:12.5px; }
+""")
+
+# Every string the page can print while it has no document. They live in
+# Python because that is where they are read by a test; the page prints them
+# and composes none of them. No newlines in any of them: they are carried into
+# the script as JSON, and a literal backslash-n inside a script block is a
+# fault this repo has shipped before and now checks for.
+LIVE_TEXT = {
+    "connecting": "Connecting to the live store.",
+    "connectingWhy":
+        "The db capability resolves asynchronously and can take up to 10 "
+        "seconds when the host does not answer. No numbers are shown until a "
+        "document arrives, because every number on this page comes from the "
+        "store and this page has none of its own.",
+    "noHostTitle": "This page is not running inside the artifact host.",
+    "noHostWhy":
+        "window.claude is absent, so there is no capability to reach the "
+        "store through. That happens to a saved copy of this file or a copy "
+        "served from another host. Nothing is shown, because a page with no "
+        "feed has no numbers.",
+    "noDbTitle": "The live data store is not available in this view.",
+    "noDbWhy":
+        "The db capability resolved null, which means it is not served on "
+        "this view, was not granted at initialization, or its module failed "
+        "to load. Those three are indistinguishable by design, so this page "
+        "cannot say which. Nothing is shown: the only numbers this page has "
+        "ever had come from that store.",
+    "emptyTitle": "The live store has no status document yet.",
+    "emptyWhy":
+        "Nothing has ever been written to this feed, which is a different "
+        "fact from the project having nothing to report. What puts data "
+        "there: run the generator with --emit-json and write the resulting "
+        "document into the store at the path above.",
+    "schemaTitle": "This page cannot read the document in the store.",
+    "schemaWhy":
+        "The document carries a schema this page does not know, so its fields "
+        "may have moved. Rendering it would print blanks that read as zeros. "
+        "Republish this page from the generator that wrote the document.",
+    "noStampTitle": "The document carries no write time.",
+    "noStampWhy":
+        "generatedAtEpochMs is missing or not a number, so this page cannot "
+        "say how old the numbers below are. Treat their age as UNKNOWN, which "
+        "is not the same as fresh.",
+    "deadTitle": "The live feed has stopped and this page is now frozen.",
+    "deadWhy":
+        "The subscription ended with a terminal error, so nothing below can "
+        "update again on this page load. The stamp on the feed line is when "
+        "the numbers were read, and it is the last one this page will ever "
+        "see. Reload to reconnect.",
+    "futureWarn":
+        "The stamp is AHEAD of this browser's clock, so the age is not "
+        "trustworthy: one of the two clocks is wrong.",
+    "cachedNote":
+        "This delivery is a cached view and is not yet server-definitive; a "
+        "definitive one follows on its own.",
+    "footerLive":
+        "Live from the artifact document store. Numbers change in front of "
+        "you when the writer writes; nothing here is baked into the page.",
+}
+
+LIVE_JS = r"""
+(function(){
+var K = __LIVE_CONSTANTS__;
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s === null || s === undefined ? "" : s)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;"); }
+function why(t){ return t ? '<p class="why">' + esc(t) + '</p>' : ""; }
+function note(cls, title, body){ return '<div class="note ' + cls + '"><b>'
+  + esc(title) + '</b>' + esc(body) + '</div>'; }
+
+/* THE ONLY STATE, AND IT IS ONE ASSIGNMENT. The body and the stamp are taken
+   from the same snapshot in the same statement, so the age line can never
+   describe a different document from the numbers under it. */
+var doc = null, stampMs = 0, dead = false;
+
+function card(r){
+  if(!r){ return '<div class="card"><div class="num none">' + esc(K.nothing)
+    + '</div><div class="lab">absent</div><div class="why">'
+    + esc(K.missingField) + '</div></div>'; }
+  return '<div class="card"><div class="' + (r.available ? "num" : "num none")
+    + '">' + esc(r.text) + '</div><div class="lab">' + esc(r.label)
+    + '</div><div class="why">' + esc(r.note) + '</div></div>';
+}
+function pill(name, state, title){
+  return '<span class="pill ' + esc(state) + '" title="' + esc(title) + '">'
+    + esc(name) + '</span>';
+}
+function section(id, html){ var e = $(id); if(e){ e.innerHTML = html; } }
+function blank(msg){
+  var ids = K.sectionIds, i;
+  for(i = 0; i < ids.length; i++){ section(ids[i], why(msg)); }
+  var p = $("phase"); if(p){ p.textContent = msg; }
+}
+function stop(title, body){
+  blank(K.nothing + ": " + title);
+  $("state").innerHTML = note("", title, body);
+  var f = $("feed"); if(f){ f.className = "feed"; f.innerHTML = esc(K.nothing)
+    + ": nothing has been read from the store on this page load."; }
+}
+
+function ageText(mins){
+  if(mins < -1){ return Math.abs(mins) + " min IN THE FUTURE. " + K.futureWarn; }
+  if(mins < 1){ return "less than a minute ago"; }
+  return mins + " min ago";
+}
+/* Recomputed on a timer as well as on delivery: a feed that has stopped must
+   go on ageing in front of the reader rather than sitting at whatever it said
+   when the last document arrived. */
+function paintAge(){
+  var f = $("feed"); if(!f || !doc){ return; }
+  if(!stampMs){
+    f.className = "feed stopped";
+    f.innerHTML = "<b>" + esc(K.noStampTitle) + "</b> " + esc(K.noStampWhy);
+    return;
+  }
+  var mins = Math.round((Date.now() - stampMs) / 60000);
+  var lim = (typeof doc.staleAfterMinutes === "number")
+    ? doc.staleAfterMinutes : K.staleAfterMinutes;
+  var stopped = dead || mins > lim;
+  f.className = stopped ? "feed stopped" : "feed";
+  f.innerHTML = "<b>" + esc(dead ? "FEED DEAD" : (stopped ? "FEED STOPPED"
+    : "Live")) + "</b> " + esc("Repo read " + (doc.generatedAtText || "?")
+    + ", " + ageText(mins) + ". ") + esc(doc.cadenceNote || "")
+    + (dead ? " " + esc(K.deadWhy) : "");
+}
+
+function paint(d, meta){
+  var i, h;
+  var p = $("phase");
+  if(p){ p.textContent = "Current phase: "
+    + ((d.phase && d.phase.text) || K.nothing)
+    + ((d.phase && d.phase.note) ? ". " + d.phase.note : ""); }
+
+  var dc = d.decisions || {};
+  var n = dc.count;
+  if(!n){ section("sec-decisions", why(K.missingField)); }
+  else if(!n.available){
+    section("sec-decisions", note("", "Decision inbox: " + n.text, n.note)); }
+  else if(String(n.value) === "0"){
+    section("sec-decisions", note("calm",
+      "Decision inbox: nothing waiting on Jafar.", n.note)); }
+  else {
+    h = "";
+    for(i = 0; i < (dc.items || []).length; i++){
+      h += "<li>" + esc(dc.items[i]) + "</li>"; }
+    section("sec-decisions", '<div class="note"><b>'
+      + esc("Decision inbox: " + n.text + " waiting on Jafar")
+      + "</b><ol>" + h + "</ol>" + why(n.note) + "</div>"); }
+
+  var rows = d.phaseRows || [];
+  h = '<div class="pills">';
+  for(i = 0; i < rows.length; i++){
+    h += pill(rows[i].phase + " " + rows[i].state, rows[i].state,
+      rows[i].milestone + " | " + rows[i].why); }
+  h += "</div>" + why(d.phaseRule);
+  section("sec-phases", rows.length ? h : why(K.missingField));
+
+  var q = d.queue || {};
+  h = '<div class="cards">';
+  for(i = 0; i < (q.cards || []).length; i++){ h += card(q.cards[i]); }
+  h += "</div>" + why(q.rule ? q.rule + "." : "");
+  if(q.unclassifiedText){ h += why("unclassified status word(s), counted in no card: "
+    + q.unclassifiedText); }
+  if(q.misfiledText){ h += why("carrying a DONE status but still in queue/: "
+    + q.misfiledText); }
+  section("sec-queue", (q.cards || []).length ? h : why(K.missingField));
+
+  var fl = d.inflight || {};
+  h = "";
+  for(i = 0; i < (fl.rows || []).length; i++){
+    var r = fl.rows[i];
+    h += '<div class="row' + (r.available ? "" : " na") + '"><div class="nm">'
+      + esc(r.name) + '</div><div class="st">' + esc(r.status)
+      + '</div><div class="why">' + esc(r.note) + "</div></div>"; }
+  if(fl.capText){ h += why("(+ not shown) " + fl.capText); }
+  section("sec-inflight", h || why(K.missingField));
+
+  var b = d.budget || {};
+  h = '<div class="cards">' + card(b.monthly) + card(b.oneoff) + "</div>";
+  h += (b.spend && b.spend.available)
+    ? '<div class="bar"><div style="width:0"></div></div>'
+    : '<div class="bar none"></div>';
+  if(b.spend){ h += '<p class="why"><b>' + esc("Spend to date: " + b.spend.text
+    + ".") + "</b> " + esc(b.spend.note) + "</p>"; }
+  if(b.usage){ h += why(b.usage.label + ": " + b.usage.text + ". "
+    + b.usage.note); }
+  section("sec-budget", h);
+
+  var g = d.gates || {};
+  h = "";
+  for(i = 0; i < (g.notes || []).length; i++){ h += why(g.notes[i]); }
+  if((g.pills || []).length){
+    h += '<div class="pills">';
+    for(i = 0; i < g.pills.length; i++){
+      h += pill(g.pills[i].name, g.pills[i].state, g.pills[i].detail); }
+    h += "</div>";
+  } else { h += why(K.nothing); }
+  if(g.overflowText){ h += why("(+ not shown) " + g.overflowText); }
+  section("sec-gates", h);
+
+  var v = d.verification || {};
+  section("sec-verification", '<div class="cards">' + card(v.throughput)
+    + card(v.judge) + "</div>");
+
+  h = "<table><tr><th>reading</th><th>value</th><th>derivation</th></tr>";
+  for(i = 0; i < (d.readings || []).length; i++){
+    var rr = d.readings[i];
+    h += "<tr><td>" + esc(rr.label) + "</td><td>" + esc(rr.text) + "</td><td>"
+      + esc(rr.note) + "</td></tr>"; }
+  h += "</table>" + why("Sources opened under " + (d.repo || "?") + ": "
+    + (d.sourcesText || K.nothing))
+    + why("Reused rather than reimplemented: " + (d.reusedText || K.nothing))
+    + why(d.footer || "");
+  section("sec-derivations", (d.readings || []).length ? h : why(K.missingField));
+
+  $("state").innerHTML = (meta && meta.fromCache) ? why(K.cachedNote) : "";
+}
+
+function onDoc(snap){
+  if(!snap || !snap.exists){ stop(K.emptyTitle, K.emptyWhy + " Path: "
+    + K.docPath + ". Command: " + K.emitCmd); return; }
+  var d = snap.data();
+  if(!d){ stop(K.emptyTitle, K.emptyWhy + " Path: " + K.docPath
+    + ". Command: " + K.emitCmd); return; }
+  if(d.schema !== K.schema){ stop(K.schemaTitle, K.schemaWhy
+    + " This page reads " + K.schema + "; the document says "
+    + (d.schema || "nothing at all") + "."); return; }
+  doc = d; stampMs = (typeof d.generatedAtEpochMs === "number")
+    ? d.generatedAtEpochMs : 0;
+  paint(d, snap.metadata);
+  paintAge();
+}
+
+function onErr(e){
+  dead = true;
+  var code = (e && e.code) ? e.code : "unknown";
+  if(doc){ paintAge(); $("state").innerHTML = note("", K.deadTitle,
+    K.deadWhy + " Error code: " + code + "."); }
+  else { stop(K.deadTitle, K.deadWhy + " Error code: " + code + "."); }
+}
+
+function boot(){
+  if(typeof window === "undefined" || !window.claude
+     || typeof window.claude.use !== "function"){
+    stop(K.noHostTitle, K.noHostWhy); return; }
+  $("state").innerHTML = note("calm", K.connecting, K.connectingWhy);
+  window.claude.use("db").then(function(db){
+    if(!db){ stop(K.noDbTitle, K.noDbWhy); return; }
+    var ref;
+    try { ref = db.doc(K.docPath); }
+    catch(err){ stop(K.schemaTitle, "The document path " + K.docPath
+      + " is not valid: " + (err && err.message) + "."); return; }
+    ref.onSnapshot(onDoc, onErr);
+    setInterval(paintAge, 15000);
+  }, function(){ stop(K.noDbTitle, K.noDbWhy); });
+}
+boot();
+})();
+"""
+
+LIVE_SECTION_IDS = ["sec-decisions", "sec-phases", "sec-queue", "sec-inflight",
+                    "sec-budget", "sec-gates", "sec-verification",
+                    "sec-derivations"]
+
+
+def live_constants():
+    """Every literal the page needs, assembled here so the page composes none
+    of them. Carried into the script as one JSON object."""
+    k = dict(LIVE_TEXT)
+    k.update({
+        "schema": LIVE_SCHEMA,
+        "docPath": LIVE_DOC_PATH,
+        "emitCmd": "python3 tools/dashboard/build-dashboard.py --emit-json",
+        "nothing": NOTHING,
+        "staleAfterMinutes": STALE_AFTER_MINUTES,
+        "sectionIds": LIVE_SECTION_IDS,
+        "missingField": (NOTHING + ": the live document has no data for this "
+                         "panel. The writer and this page are out of step."),
+    })
+    return k
+
+
+def render_live_page():
+    """The live page. TAKES NO MODEL, ON PURPOSE.
+
+    There is no argument here for a reading to arrive through, so the page
+    cannot carry a number frozen at publish time even by accident. Its output
+    is a function of this file's constants alone, which the selftest checks the
+    hard way: it renders once against the live repository's readings and
+    asserts not one of them appears in the bytes.
+
+    No doctype, html, head or body tag: the Artifact tool supplies the
+    skeleton and this is the content that goes inside it.
+    """
+    head = ["<title>LEDGER studio status (live)</title>",
+            "<style>%s</style>" % (CSS + LIVE_THEME_CSS)]
+    a = head.append
+    a('<div class="wrap">')
+    a("<h1>LEDGER studio status</h1>")
+    a('<p class="sub" id="phase">Current phase: waiting for the live store.</p>')
+    a('<div class="feed" id="feed">%s</div>'
+      % esc(NOTHING + ": nothing has been read from the store yet."))
+    a('<div id="state"></div>')
+    a('<div id="sec-decisions" class="pending">Decision inbox: waiting for the '
+      "live store.</div>")
+    for title, ident in (("Phases", "sec-phases"), ("Queue", "sec-queue"),
+                         ("In flight", "sec-inflight"), ("Budget", "sec-budget"),
+                         ("Gates", "sec-gates"),
+                         ("Verification", "sec-verification"),
+                         ("Where every number came from", "sec-derivations")):
+        a("<h2>%s</h2>" % esc(title))
+        a('<div id="%s" class="pending">waiting for the live store.</div>'
+          % ident)
+    a("<footer>%s %s Document: %s. Page schema: %s.</footer>"
+      % (esc(FOOTER_LINE), esc(LIVE_TEXT["footerLive"]), esc(LIVE_DOC_PATH),
+         esc(LIVE_SCHEMA)))
+    a("</div>")
+    a("<script>%s</script>" % LIVE_JS.replace(
+        "__LIVE_CONSTANTS__", json.dumps(live_constants(), sort_keys=True)))
+    return "\n".join(head) + "\n"
+
+
+def live_page_faults(page, forbidden=()):
+    """OPEN THE ARTIFACT, for the page nobody in this container can render.
+
+    THERE IS NO BROWSER HERE and there is no artifact host here either, so the
+    first load on Jafar's machine is this page's real accepting case and that
+    is said out loud rather than implied. What a parser CAN settle is every
+    fault this contract makes cheap to ship: a skeleton tag the host also
+    emits, a capability member that does not exist (window.claude.db), a page
+    that never subscribes, and above all a reading baked into the bytes.
+
+    `forbidden` is the live repository's own readings. Returns findings, so it
+    runs against a deliberately broken page as well as the real one.
+    """
+    found = tag_balance(page)
+    for tag in ("<!doctype", "<html", "<head", "<body"):
+        if tag in page.lower():
+            found.append("carries %s, which the artifact host also emits" % tag)
+    if not page.startswith("<title>"):
+        found.append("does not open with the title element")
+    if "<style>" not in page.split("<div", 1)[0]:
+        found.append("the style block is not above the content")
+    if 'claude.use("db")' not in page:
+        found.append("never calls claude.use(\"db\")")
+    if "onSnapshot" not in page:
+        found.append("never subscribes: onSnapshot is not called, so the page "
+                     "reads once and is a snapshot again")
+    if re.search(r"claude\s*\.\s*db\b", page):
+        found.append("reads window.claude.db, which this contract says is "
+                     "undefined at every moment")
+    if "[data-theme=" not in page:
+        found.append("no [data-theme] rules: an explicit viewer choice cannot "
+                     "beat the OS setting")
+    if "prefers-color-scheme" not in page:
+        found.append("no prefers-color-scheme block")
+    if "position:fixed" in page.replace(" ", ""):
+        found.append("a fixed element can sit on top of the content under it")
+    for m in re.finditer(r"(?<![-a-z])width:\s*(\d+)px", page):
+        if int(m.group(1)) > PHONE_WIDTH:
+            found.append("a %spx fixed width scrolls a %dpx phone sideways"
+                         % (m.group(1), PHONE_WIDTH))
+    body = (page.split("<script>", 1)[-1].split("</script>", 1)[0]
+            if "<script>" in page else "")
+    if not body:
+        found.append("no script at all, so nothing can ever read the store")
+    if "\\n" in body:
+        found.append("a literal backslash-n inside the script: the listening "
+                     "page shipped one and it killed every control")
+    if "src=" in body or "http://" in body or "https://" in body:
+        found.append("the script reaches outside the file")
+    baked = [f for f in forbidden if f and len(str(f)) >= 5 and str(f) in page]
+    if baked:
+        found.append("BAKED READING(S) in the page, which is the snapshot "
+                     "fault wearing a fallback's clothes: %s"
+                     % cap(baked, keep=3, sep=", ", width=60))
+    return found
+
+
+# ----------------------------------------------- running the page's own script
+# RULE 4: OPEN THE ARTIFACT YOU ARE SHIPPING. There is no browser here and no
+# artifact host either, so the rendered PIXELS stay unverified and that is said
+# out loud in the selftest's closing note. Its LOGIC does not have to stay
+# unverified: node is a JavaScript engine, the script in the page is ordinary
+# script, and a DOM shim of four methods is enough to drive it through every
+# state it can be in. Six of the seven states below can never be produced by
+# hand on the real page - nobody can make claude.use() return null on demand -
+# so without this they would ship having been reasoned about and never run,
+# which is the shape of every guard in rule 5b that blocked the good case.
+#
+# The harness supplies the fakes; the assertions live in Python beside every
+# other assertion in this file. If node is absent it reports NOT MEASURED with
+# its reason and passes nothing: a checker that quietly skips is the zero with
+# no denominator.
+
+LIVE_HARNESS_JS = r"""
+var fs = require("fs");
+var page = fs.readFileSync(process.argv[2], "utf8");
+var doc = JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
+var src = page.split("<script>")[1].split("</scr" + "ipt>")[0];
+var ids = (page.match(/id="[^"]+"/g) || []).map(function(s){
+  return s.slice(4, -1); });
+
+globalThis.setInterval = function(){ return 0; };
+
+function mkdom(){
+  var els = {};
+  ids.forEach(function(id){
+    els[id] = { innerHTML: "", textContent: "", className: "" }; });
+  globalThis.document = { getElementById: function(id){
+    return Object.prototype.hasOwnProperty.call(els, id) ? els[id] : null; } };
+  return els;
+}
+function dump(els){
+  return Object.keys(els).map(function(k){
+    return k + " >> " + els[k].className + " >> " + els[k].innerHTML + " "
+      + els[k].textContent; }).join("\n");
+}
+function fakeDb(plan){
+  return { doc: function(){ return { onSnapshot: function(next, err){
+    if(plan.snap){ next(plan.snap); }
+    if(plan.err){ err(plan.err); }
+    return function(){}; } }; } };
+}
+function snap(body, fromCache){
+  return { exists: body !== null, data: function(){ return body; },
+           metadata: { fromCache: !!fromCache, hasPendingWrites: false } };
+}
+function copy(o){ return JSON.parse(JSON.stringify(o)); }
+
+function run(win){
+  var els = mkdom();
+  globalThis.window = win;
+  (0, eval)(src);
+  return new Promise(function(res){
+    setTimeout(function(){ setTimeout(function(){ res(dump(els)); }, 1); }, 1);
+  });
+}
+function withDb(plan){
+  return { claude: { use: function(){ return Promise.resolve(fakeDb(plan)); } } };
+}
+
+var now = Date.now();
+var fresh = copy(doc); fresh.generatedAtEpochMs = now - 60000;
+var stale = copy(doc); stale.generatedAtEpochMs = now - 3600000;
+var future = copy(doc); future.generatedAtEpochMs = now + 10800000;
+var nostamp = copy(doc); delete nostamp.generatedAtEpochMs;
+var wrongschema = copy(doc); wrongschema.schema = "something-else/9";
+
+var plan = [
+  ["noHost", function(){ return run({}); }],
+  ["noDb", function(){ return run({ claude: { use: function(){
+      return Promise.resolve(null); } } }); }],
+  ["useThrows", function(){ return run({ claude: { use: function(){
+      return Promise.reject(new Error("boom")); } } }); }],
+  ["empty", function(){ return run(withDb({ snap: snap(null) })); }],
+  ["wrongSchema", function(){ return run(withDb({ snap: snap(wrongschema) })); }],
+  ["fresh", function(){ return run(withDb({ snap: snap(fresh) })); }],
+  ["stale", function(){ return run(withDb({ snap: snap(stale) })); }],
+  ["future", function(){ return run(withDb({ snap: snap(future) })); }],
+  ["noStamp", function(){ return run(withDb({ snap: snap(nostamp) })); }],
+  ["cached", function(){ return run(withDb({ snap: snap(fresh, true) })); }],
+  ["deadCold", function(){ return run(withDb({ err: { code: "revoked",
+      message: "grant withdrawn" } })); }],
+  ["deadAfterDoc", function(){ return run(withDb({ snap: snap(fresh),
+      err: { code: "revoked", message: "grant withdrawn" } })); }]
+];
+
+(async function(){
+  var out = {};
+  for(var i = 0; i < plan.length; i++){
+    try { out[plan[i][0]] = await plan[i][1](); }
+    catch(e){ out[plan[i][0]] = "THREW: " + (e && e.stack ? e.stack : e); }
+  }
+  process.stdout.write(JSON.stringify(out));
+})();
+"""
+
+
+def run_live_harness(harness_path, page_path, doc_path):
+    """(results, reason). results is None when node is not here, and the reason
+    says so rather than a caller inferring a clean run from an empty dict."""
+    import subprocess
+    try:
+        r = subprocess.run(["node", str(harness_path), str(page_path),
+                            str(doc_path)], capture_output=True, timeout=60)
+    except (OSError, ValueError) as e:
+        return None, "node could not be started (%s)" % e
+    except Exception as e:                                       # noqa: BLE001
+        return None, "node did not finish (%s)" % e
+    if r.returncode != 0:
+        return None, "node exited %d: %s" % (
+            r.returncode, r.stderr.decode("utf-8", "replace")[-400:])
+    try:
+        return json.loads(r.stdout.decode("utf-8", "replace")), ""
+    except ValueError as e:
+        return None, "node printed something that is not JSON (%s): %s" % (
+            e, r.stdout.decode("utf-8", "replace")[:200])
+
+
 # ------------------------------------------------------------- the only write
 
 def write_artifact(path, text):
     """THE ONLY FUNCTION IN THIS PROGRAM THAT WRITES ANYTHING.
 
-    It refuses any name other than the two artifacts, so "this generator is
-    read-only apart from its two outputs" is enforced here and provable by the
-    selftest's AST walk rather than asserted in a comment. A dashboard that
-    repaired, normalised or wrote back to a source would be a second source of
-    truth, which is the one thing it must never become.
+    It refuses any name outside WRITABLE, so "this generator is read-only apart
+    from its named outputs" is enforced here and provable by the selftest's AST
+    walk rather than asserted in a comment. A dashboard that repaired,
+    normalised or wrote back to a source would be a second source of truth,
+    which is the one thing it must never become.
+
+    WRITABLE IS FOUR NAMES AND A BARE RUN STILL WRITES TWO. The two live
+    outputs are opt-in and this function is not what keeps them opt-in -
+    generate() is, and the selftest counts the files a real run leaves on disk
+    in both directions rather than trusting either.
     """
-    if path.name not in ARTIFACTS:
+    if path.name not in WRITABLE:
         raise ValueError("write_artifact refuses %r: this program writes only "
-                         "%s" % (path.name, " and ".join(ARTIFACTS)))
+                         "%s, and the last two only when asked for by name"
+                         % (path.name, ", ".join(WRITABLE)))
     path.write_text(text, encoding="utf-8")
     return len(text)
+
+
+def generate(model, out_dir, live_dir=None, live_page=False, emit_json=False):
+    """THE ONE WRITE SEQUENCE. main() calls it and so does the selftest.
+
+    Returns [(path, bytes)] in write order, and a (path, fault) pair is never
+    returned: a refusal raises. The selftest drives THIS rather than a copy of
+    it, because a second implementation of the run is exactly how a file-count
+    assertion comes to describe something the tool never does.
+
+    THE DEFAULT RUN WRITES TWO FILES. Each live output is added only by its own
+    flag, and each has one fixed name, so "exactly two artifacts" stays a
+    checkable sentence rather than a remembered one.
+    """
+    out_dir = pathlib.Path(out_dir)
+    live_dir = pathlib.Path(live_dir) if live_dir else HERE
+    made = []
+    for name, text in ((HTML_NAME, render_html(model)),
+                       (STATUS_NAME, render_status(model))):
+        made.append((out_dir / name, write_artifact(out_dir / name, text)))
+    if emit_json:
+        doc = build_json(model)
+        fault = doc_size_fault(doc)
+        if fault:
+            raise ValueError(fault)
+        p = live_dir / LIVE_JSON_NAME
+        made.append((p, write_artifact(
+            p, json.dumps(doc, indent=1, sort_keys=False) + "\n")))
+    if live_page:
+        p = live_dir / LIVE_PAGE_NAME
+        made.append((p, write_artifact(p, render_live_page())))
+    return made
 
 
 # ------------------------------------------------------------------ selftest
@@ -1372,23 +2127,11 @@ def _write_calls(source):
 PHONE_WIDTH = 390          # the viewport page_check.py drives, kept in step
 
 
-def page_faults(page):
-    """OPEN THE ARTIFACT, as far as this container can open it.
-
-    THERE IS NO BROWSER HERE. tools/voice-fetch/page_check.py drives a real
-    Chromium at 390x844; playwright is not installed in this container and
-    neither is chromium, so the first open on Jafar's machine is this page's
-    real accepting case and that is said out loud in the selftest output.
-
-    What can be checked without one is the shape of the faults the listening
-    page actually shipped with: no viewport tag, a fixed bar sitting on top of
-    the controls, a page that scrolled sideways, and a stray newline inside a
-    script that killed every control on the page. Those are structural and a
-    parser can see them. Returns a list of findings, so it can be run against a
-    deliberately broken page as well as against the real one.
-    """
+def tag_balance(page):
+    """Unclosed and out-of-order tags. ONE IMPLEMENTATION: both page checkers
+    call this rather than carrying a parser each, because the copy nobody looks
+    at is the one that stops catching things."""
     import html.parser as _hp
-    found = []
 
     class Balance(_hp.HTMLParser):
         VOID = {"meta", "br", "img", "link", "hr", "input", "source"}
@@ -1414,9 +2157,28 @@ def page_faults(page):
 
     b = Balance()
     b.feed(page)
-    found += b.bad
+    found = list(b.bad)
     if b.stack:
         found.append("never closed: " + cap(b.stack, keep=3, sep=","))
+    return found
+
+
+def page_faults(page):
+    """OPEN THE ARTIFACT, as far as this container can open it.
+
+    THERE IS NO BROWSER HERE. tools/voice-fetch/page_check.py drives a real
+    Chromium at 390x844; playwright is not installed in this container and
+    neither is chromium, so the first open on Jafar's machine is this page's
+    real accepting case and that is said out loud in the selftest output.
+
+    What can be checked without one is the shape of the faults the listening
+    page actually shipped with: no viewport tag, a fixed bar sitting on top of
+    the controls, a page that scrolled sideways, and a stray newline inside a
+    script that killed every control on the page. Those are structural and a
+    parser can see them. Returns a list of findings, so it can be run against a
+    deliberately broken page as well as against the real one.
+    """
+    found = tag_balance(page)
     if "width=device-width" not in page:
         found.append("no viewport tag: the phone renders it at desktop width")
     if "http-equiv=\"refresh\"" not in page:
@@ -1452,6 +2214,9 @@ def selftest(repo=None):                                         # noqa: C901
     """
     repo = pathlib.Path(repo or REPO)
     passed, failed = 0, []
+    # Checks that could NOT run here, with the reason. A skipped check
+    # that prints nothing is indistinguishable from a passing one.
+    unrun = []
 
     def ok(name, cond, got=""):
         nonlocal passed
@@ -1743,14 +2508,258 @@ def selftest(repo=None):                                         # noqa: C901
     ok("a throughput ledger with no current-week row is not a zero",
        not noweek.available, noweek.text)
 
-    print("\ndashboard selftest: %d passed, %d failed" % (passed, len(failed)))
+    # ------------------------------------------------------------------ live
+    # C. THE LIVE DOCUMENT AND THE LIVE PAGE, accepting case first again: the
+    # live repository's own model must serialise, and the page rendered here
+    # must carry none of it.
+    print("\nC. the live document and the live page, ACCEPTING CASE FIRST")
+    doc = build_json(live)
+    ok("the live document round-trips as strict JSON (%d key(s))" % len(doc),
+       json.loads(json.dumps(doc, allow_nan=False)) == doc)
+    ok("it names its schema so a page can refuse a shape it cannot read",
+       doc["schema"] == LIVE_SCHEMA, doc.get("schema"))
+    ok("its stamp carries an OFFSET, so no browser can read it in the wrong "
+       "zone (%s)" % doc["generatedAt"],
+       bool(re.search(r"(\+|-)\d{2}:\d{2}$|Z$", doc["generatedAt"])),
+       doc["generatedAt"])
+    ok("and an epoch integer beside it, which is what the age is computed "
+       "from (%d)" % doc["generatedAtEpochMs"],
+       isinstance(doc["generatedAtEpochMs"], int)
+       and abs(doc["generatedAtEpochMs"] / 1000.0
+               - aware(live["generated"]).timestamp()) < 1.0,
+       doc["generatedAtEpochMs"])
+    # THE REJECTING HALF OF THE SAME IDEA. A naive timestamp is the fault:
+    # a browser reads it as ITS OWN local time, so a stopped feed can read as
+    # fresh for exactly the offset between the two clocks.
+    naive = datetime.datetime(2026, 9, 1, 12, 0, 0)
+    ok("a naive timestamp has no offset, which is the fault aware() exists for",
+       not re.search(r"(\+|-)\d{2}:\d{2}$", naive.isoformat()), naive.isoformat())
+    ok("and aware() gives it one", bool(re.search(
+        r"(\+|-)\d{2}:\d{2}$", aware(naive).isoformat())), aware(naive).isoformat())
+
+    # ONE COMPUTATION, THREE RENDERINGS. Not asserted about the code: checked
+    # value by value, because "the JSON and the HTML cannot disagree" is only
+    # true while nothing has grown a second parser.
+    by_label = {r["label"]: r for r in doc["readings"]}
+    drift = []
+    for r in all_readings(live):
+        j = by_label.get(r.label)
+        if not j or j["text"] != r.text or j["note"] != r.note:
+            drift.append(r.label)
+        elif r.text not in status:
+            drift.append(r.label + " (absent from STATUS.md)")
+    ok("every one of the %d reading(s) is identical in the document and the "
+       "markdown" % len(all_readings(live)), not drift, drift)
+    ok("the document carries the same %d gate pill(s) as the page"
+       % len(doc["gates"]["pills"]),
+       len(doc["gates"]["pills"]) == len(live["gates"]["pills"]))
+
+    n_doc = doc_bytes(doc)
+    ok("the document fits the store's per-document cap (%d bytes compact, "
+       "%.1f%% of %d)" % (n_doc, 100.0 * n_doc / DOC_BYTE_CAP, DOC_BYTE_CAP),
+       doc_size_fault(doc) is None, doc_size_fault(doc))
+    big = dict(doc)
+    big["padding"] = "y" * (DOC_BYTE_CAP + 10)
+    ok("and an over-cap document is REFUSED rather than written",
+       doc_size_fault(big) is not None and "cap" in (doc_size_fault(big) or ""),
+       doc_size_fault(big))
+
+    live_page = render_live_page()
+    # The forbidden set is the live repository's own readings. `text` is not
+    # used for unavailable ones: their text is the words nothing-measured,
+    # which the page prints legitimately as its empty state.
+    forbidden = []
+    for r in all_readings(live):
+        if r.available:
+            forbidden.append(str(r.value))
+        forbidden += [r.derivation, r.denominator or ""]
+    forbidden += [p[0] for p in live["gates"]["pills"]]
+    forbidden += [r["name"] for r in live["inflight"]]
+    forbidden += list(live["decisions"]["items"])
+    lfaults = live_page_faults(live_page, forbidden)
+    ok("THE LIVE PAGE CARRIES NO READING AT ALL: %d candidate string(s) from "
+       "today's repo, none of them in its bytes" % len(forbidden), not lfaults,
+       lfaults)
+    ok("it opens with a title and a style block and carries no host skeleton "
+       "tag", live_page.startswith("<title>")
+       and not re.search(r"<(!doctype|html|head|body)\b", live_page, re.I))
+    ok("it reaches the store the one documented way: claude.use(\"db\")",
+       'claude.use("db")' in live_page)
+    ok("and never reads window.claude.db, which the contract says is undefined",
+       not re.search(r"claude\s*\.\s*db\b", live_page))
+    ok("it SUBSCRIBES rather than reading once (onSnapshot)",
+       "onSnapshot" in live_page)
+    ok("it re-times the age on a clock too, so a stopped feed goes on ageing",
+       "setInterval" in live_page and "paintAge" in live_page)
+    ok("an explicit viewer theme beats the OS setting ([data-theme] after the "
+       "media query)",
+       live_page.index('[data-theme="dark"]') > live_page.index(
+           "prefers-color-scheme"))
+    ok("the same two palettes, written once and used twice each",
+       live_page.count(LIGHT_VARS) == 2 and live_page.count(DARK_VARS) == 2,
+       (live_page.count(LIGHT_VARS), live_page.count(DARK_VARS)))
+    lpos = [live_page.find(s) for s in SECTIONS]
+    ok("the live page carries all %d sections in the specified order"
+       % len(SECTIONS), all(p >= 0 for p in lpos) and lpos == sorted(lpos), lpos)
+    ok("db unavailable says so plainly and shows nothing",
+       LIVE_TEXT["noDbTitle"] in live_page and LIVE_TEXT["noDbWhy"] in live_page)
+    ok("the empty store says the feed has never been written and names what "
+       "would write it", LIVE_TEXT["emptyTitle"] in live_page
+       and "--emit-json" in live_page and LIVE_DOC_PATH in live_page)
+    ok("a dead subscription says the numbers are frozen",
+       LIVE_TEXT["deadTitle"] in live_page)
+    ok("a document with no write time refuses to claim an age",
+       LIVE_TEXT["noStampTitle"] in live_page)
+    ok("a stamp ahead of the browser's clock is called out, not printed as "
+       "just now", LIVE_TEXT["futureWarn"] in live_page
+       and "IN THE FUTURE" in live_page)
+    ok("no em dash in the live page or the live document", dash not in live_page
+       and dash not in json.dumps(doc))
+
+    print("\nD. the live page's rejecting cases, all synthetic")
+    baked = live_page.replace("</footer>", "queued: 8 tasks</footer>")
+    bf = live_page_faults(baked, ["queued: 8 tasks"])
+    ok("A BAKED READING IS CAUGHT, which is the whole point of the page",
+       any("BAKED" in f for f in bf), bf)
+    ok("and the same page WITHOUT it is accepted, so the check is not simply "
+       "refusing everything", not live_page_faults(live_page, ["queued: 8 tasks"]))
+    snapshot = live_page.replace("onSnapshot", "getOnce")
+    ok("a page that reads once instead of subscribing is caught",
+       any("snapshot again" in f for f in live_page_faults(snapshot)),
+       live_page_faults(snapshot))
+    memberbug = live_page.replace('window.claude.use("db")', "window.claude.db")
+    ok("a page reading window.claude.db is caught",
+       any("undefined at every moment" in f
+           for f in live_page_faults(memberbug)))
+    skeleton = "<!doctype html><html><body>" + live_page + "</body></html>"
+    ok("a page carrying the host's own skeleton tags is caught",
+       len([f for f in live_page_faults(skeleton) if "host also emits" in f]) >= 3,
+       live_page_faults(skeleton))
+    ok("and a page with no script at all is caught",
+       any("no script at all" in f for f in live_page_faults("<title>x</title>")))
+
+    print("\nE. the write scope, in both directions")
+    live_out = pathlib.Path(tempfile.mkdtemp(prefix="dash-live-"))
+    made = generate(blank, live_out, live_out)
+    ok("a run with NO flags still writes exactly the two artifacts",
+       sorted(p.name for p in live_out.iterdir()) == sorted(ARTIFACTS),
+       [p.name for p in live_out.iterdir()])
+    both = pathlib.Path(tempfile.mkdtemp(prefix="dash-both-"))
+    made = generate(live, both, both, live_page=True, emit_json=True)
+    ok("and a run with both flags writes those two plus the two named live "
+       "outputs, and nothing else",
+       sorted(p.name for p in both.iterdir()) == sorted(WRITABLE),
+       [p.name for p in both.iterdir()])
+    ok("generate() reports every file it wrote with its size (%d)" % len(made),
+       len(made) == 4 and all(n > 0 for _, n in made), made)
+    try:
+        write_artifact(both / "notes.txt", "x")
+        ok("write_artifact still refuses a name outside the four", False,
+           "it accepted one")
+    except ValueError as e:
+        ok("write_artifact still refuses a name outside the four",
+           "refuses" in str(e))
+
+    print("\nF. the page's own script, RUN, through every state it can be in")
+    hdir = pathlib.Path(tempfile.mkdtemp(prefix="dash-node-"))
+    (hdir / "harness.js").write_text(LIVE_HARNESS_JS, encoding="utf-8")
+    (hdir / "page.html").write_text(live_page, encoding="utf-8")
+    (hdir / "doc.json").write_text(json.dumps(doc), encoding="utf-8")
+    res, why_not = run_live_harness(hdir / "harness.js", hdir / "page.html",
+                                    hdir / "doc.json")
+    if res is None:
+        unrun.append("the %d live-page state(s) the node harness drives: %s"
+                     % (12, why_not))
+        print("  NOT MEASURED  the live page's script did not run here: %s"
+              % why_not)
+    else:
+        threw = [k for k, v in res.items() if v.startswith("THREW")]
+        ok("the script runs without throwing in any of the %d states"
+           % len(res), not threw, [res[k][:200] for k in threw])
+        # THE ACCEPTING CASE FIRST, and it is the one that matters: with a
+        # document in the store the page must actually PRINT the numbers.
+        sample = [r.text for r in all_readings(live) if r.available
+                  and len(str(r.text)) >= 3][:6]
+        shown = [t for t in sample if t in res.get("fresh", "")]
+        ok("with a document in the store the page renders the readings (%d of "
+           "%d sampled found in the DOM it built)" % (len(shown), len(sample)),
+           len(shown) == len(sample), [t for t in sample if t not in shown])
+        ok("and the gate pills come from the document, not from the page",
+           all(p["name"] in res.get("fresh", "")
+               for p in doc["gates"]["pills"][:5]))
+        ok("a fresh document reads Live, with the stamp and the age beside it",
+           "Live" in res["fresh"] and doc["generatedAtText"] in res["fresh"]
+           and "min ago" in res["fresh"], res["fresh"][:200])
+        ok("an hour-old document reads FEED STOPPED", "FEED STOPPED"
+           in res["stale"] and "FEED STOPPED" not in res["fresh"],
+           res["stale"][:200])
+        ok("a cached delivery says it is not yet server-definitive",
+           LIVE_TEXT["cachedNote"] in res["cached"])
+        ok("no db means the words, no numbers, and no empty panels",
+           LIVE_TEXT["noDbTitle"] in res["noDb"]
+           and not [t for t in sample if t in res["noDb"]],
+           [t for t in sample if t in res["noDb"]])
+        ok("a rejected use() lands in the same place rather than hanging",
+           LIVE_TEXT["noDbTitle"] in res["useThrows"])
+        ok("no host at all says so plainly",
+           LIVE_TEXT["noHostTitle"] in res["noHost"])
+        ok("an empty store names the path and the command that would fill it",
+           LIVE_TEXT["emptyTitle"] in res["empty"]
+           and LIVE_DOC_PATH in res["empty"] and "--emit-json" in res["empty"])
+        ok("a document this page cannot read is REFUSED, not rendered blank",
+           LIVE_TEXT["schemaTitle"] in res["wrongSchema"]
+           and not [t for t in sample if t in res["wrongSchema"]])
+        ok("a stamp in the future is called out rather than read as just now",
+           "IN THE FUTURE" in res["future"], res["future"][:200])
+        ok("a document with no stamp refuses to claim an age",
+           LIVE_TEXT["noStampTitle"] in res["noStamp"])
+        # TWO WAYS A SUBSCRIPTION DIES, AND THEY LOOK NOTHING ALIKE. Dying
+        # before any document arrived leaves an empty page, which is easy.
+        # Dying AFTER one arrived leaves the numbers sitting on screen with
+        # nothing behind them, which is this whole page's failure mode: it is
+        # the snapshot fault, reached at run time instead of at publish time.
+        # The first version of this test asserted only the cold case and
+        # called it covered.
+        ok("a terminal error before any document says so and shows no numbers",
+           LIVE_TEXT["deadTitle"] in res["deadCold"]
+           and "revoked" in res["deadCold"]
+           and not [t for t in sample if t in res["deadCold"]],
+           res["deadCold"][:200])
+        ok("a terminal error AFTER a document keeps the numbers and marks the "
+           "feed FEED DEAD, so a frozen page cannot read as a live one",
+           "FEED DEAD" in res["deadAfterDoc"]
+           and LIVE_TEXT["deadTitle"] in res["deadAfterDoc"]
+           and "revoked" in res["deadAfterDoc"]
+           and len([t for t in sample if t in res["deadAfterDoc"]]) == len(sample)
+           and ">Live</b>" not in res["deadAfterDoc"],
+           res["deadAfterDoc"][:300])
+
+    # THE LOCAL PAGE MUST NOT HAVE MOVED. The staleness numbers were pulled out
+    # into constants so the live page could share the rule; that is exactly the
+    # kind of refactor that changes an output by one byte and nobody notices.
+    ok("the local page's staleness sentence is unchanged, word for word",
+       "older than the 15 minute regeneration interval" in page
+       and "if(m>20)" in page)
+    ok("and the local page still carries no [data-theme] rules, because it was "
+       "not restyled", "[data-theme=" not in page)
+
+    print("\ndashboard selftest: %d passed, %d failed, %d check(s) not run "
+          "here" % (passed, len(failed), len(unrun)))
     for f in failed:
         print("  FAILED: %s" % f)
+    for u in unrun:
+        print("  NOT RUN: %s" % u)
     print("  NOT COVERED HERE, and it is the half that runs elsewhere: "
           "open-dashboard.bat and the Windows scheduled task never execute in "
           "this container (no Windows, no cmd), and the SessionStart hook and "
           "the night runner's per-iteration call are first-run questions. "
           "Their accepting case is the first run on the machine that has them.")
+    print("  AND THE LIVE PAGE'S PIXELS ARE UNVERIFIED. Section F runs its "
+          "SCRIPT against a DOM shim in node, which settles what it decides "
+          "and what it writes; nothing here renders it, so layout, contrast, "
+          "the [data-theme] cascade against the host's real attribute, and "
+          "the real db capability are all first-load questions on the "
+          "published artifact.")
     return 1 if failed else 0
 
 
@@ -1765,6 +2774,14 @@ def main(argv=None):
                     help="where the two artifacts go (default: the repo root)")
     ap.add_argument("--now", default=None,
                     help="ISO timestamp to treat as now (tests and reruns)")
+    ap.add_argument("--emit-json", action="store_true",
+                    help="ALSO write %s: the same readings as one JSON "
+                         "document, the shape the live page reads" % LIVE_JSON_NAME)
+    ap.add_argument("--emit-live-page", action="store_true",
+                    help="ALSO write %s: the page that renders from the "
+                         "document store, with no numbers in it" % LIVE_PAGE_NAME)
+    ap.add_argument("--live-dir", default=None,
+                    help="where those two opt-in outputs go (default: %s)" % HERE)
     args = ap.parse_args(argv)
 
     # A correct run that ends in a BrokenPipeError traceback costs twenty
@@ -1795,18 +2812,35 @@ def main(argv=None):
         print(render_status(model))
         return 0
     out = pathlib.Path(args.out_dir).resolve() if args.out_dir else repo
+    live_dir = pathlib.Path(args.live_dir).resolve() if args.live_dir else HERE
     try:
-        n1 = write_artifact(out / HTML_NAME, render_html(model))
-        n2 = write_artifact(out / STATUS_NAME, render_status(model))
+        made = generate(model, out, live_dir, live_page=args.emit_live_page,
+                        emit_json=args.emit_json)
+    except ValueError as e:                 # the document is over the store cap
+        print("REFUSING TO WRITE: %s" % e, file=sys.stderr)
+        return 5
     except OSError as e:
         print("WRITE FAILED: %s" % e, file=sys.stderr)
         return 2
     unavailable = [r.label for r in all_readings(model) if not r.available]
-    print("dashboard: wrote %s (%d bytes) and %s (%d bytes) from %d source(s), "
+    # EVERY ZERO SHIPS ITS DENOMINATOR, including this line's: it names how
+    # many files it wrote AND how many readings it had, so a run that measured
+    # nothing cannot print the same sentence as a clean one.
+    print("dashboard: wrote %d file(s) [%s] from %d source(s), "
           "%d of %d reading(s) not yet applicable%s"
-          % (HTML_NAME, n1, STATUS_NAME, n2, len(model["sources"]),
-             len(unavailable), len(all_readings(model)),
+          % (len(made), ", ".join("%s %d bytes" % (p.name, n) for p, n in made),
+             len(model["sources"]), len(unavailable), len(all_readings(model)),
              (": " + cap(unavailable, keep=3, sep=", ")) if unavailable else ""))
+    if args.emit_json:
+        doc = build_json(model)
+        n = doc_bytes(doc)
+        print("dashboard: live document %s carries %d reading(s), %d gate "
+              "pill(s), %d in-flight row(s); %d bytes compact against the "
+              "store's %d byte cap (%.1f%% of it). Written at %s. Write it to "
+              "the store at %s."
+              % (LIVE_JSON_NAME, len(doc["readings"]), len(doc["gates"]["pills"]),
+                 len(doc["inflight"]["rows"]), n, DOC_BYTE_CAP,
+                 100.0 * n / DOC_BYTE_CAP, doc["generatedAtText"], LIVE_DOC_PATH))
     return 0
 
 

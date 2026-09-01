@@ -5,12 +5,74 @@ STATUS: LIVE. Verified 2026-09-01.
     python3 tools/dashboard/build-dashboard.py            # write the two artifacts
     python3 tools/dashboard/build-dashboard.py --selftest  # accepting case first
     python3 tools/dashboard/build-dashboard.py --print     # STATUS.md to stdout, write nothing
+    python3 tools/dashboard/build-dashboard.py --emit-json       # + the live document
+    python3 tools/dashboard/build-dashboard.py --emit-live-page  # + the live page
     open-dashboard.bat                                     # Windows: rebuild, then open
 
-A read-only lens over repo state. Deterministic, no model calls, and it
+A read-only lens over repo state. Deterministic, no model calls. A bare run
 writes exactly two files: `dashboard.html` and `STATUS.md` at the repo root.
 One model is read once and rendered twice, so the page and the markdown
 cannot disagree with each other.
+
+## The live page, added 2026-09-01 because the hosted page was a snapshot
+
+Published to a host, `dashboard.html` froze at publish time and went on
+looking current. That is worse than no page: a stale number with a fresh
+frame around it is a false claim nobody can see. The repair is a document
+store the page subscribes to.
+
+- `--emit-json` writes `tools/dashboard/live-dashboard.json`: the SAME model
+  as one JSON document, at schema `ledger-status/1`. The JSON and the local
+  HTML are two renderings of one computation, and the selftest checks every
+  reading's text and derivation is identical across them, value by value.
+- `--emit-live-page` writes `tools/dashboard/live-dashboard.html`: the page
+  that renders that document. It calls `claude.use("db")`, reads
+  `status/current`, and subscribes with `onSnapshot`, so it updates in front
+  of a viewer with no reload and no republish.
+- Neither is written by a bare run, and each has one fixed name. The selftest
+  counts the files a real generation leaves on disk in both directions.
+- The resident publishes the page and writes the document. This generator
+  does neither.
+
+### The live page contains no numbers, by construction
+
+`render_live_page()` takes no model. There is no argument for a reading to
+arrive through, so a copy of the numbers frozen at publish time cannot get
+into it even by accident, which matters because frozen numbers look exactly
+like fresh ones. The selftest renders it once and asserts that not one of the
+live repository's 124 candidate reading strings appears in its bytes, and
+proves the check is not merely refusing everything by flagging a fixture with
+one deliberately baked in.
+
+When the store is empty the page says the feed has never been written and
+names the path and the command that would fill it. When `claude.use("db")`
+resolves null it says the capability is unavailable and shows nothing. It
+never shows a number it did not just receive.
+
+### Staleness, and the timestamp fault it is built around
+
+The document carries three fields for one instant: a human stamp, an ISO
+string with its OFFSET, and an epoch integer. The page does its arithmetic on
+the integer. A naive timestamp is read by a browser as the VIEWER's own local
+time, so a writer in UTC and a viewer at +02:00 turn a document written two
+hours ago into one written two hours in the future: the age goes negative,
+"just now" prints, and a feed that has stopped looks live for exactly the
+offset between the two clocks. The page also calls out a stamp ahead of the
+browser's clock rather than smoothing it, and re-times the age on an interval
+so a stopped feed goes on ageing in front of the reader.
+
+### What was actually run here, and what was not
+
+`node` runs the emitted page's own script against a DOM shim through twelve
+states: no host, no db, a rejected `use()`, an empty store, an unreadable
+schema, fresh, hour-old, future-stamped, unstamped, cached, a subscription
+that dies before any document, and one that dies after one arrived. Six of
+those cannot be produced by hand on the real page. When node is absent the
+selftest prints NOT RUN with the reason and passes nothing.
+
+Nothing here renders the page. Layout, contrast, the `[data-theme]` cascade
+against the host's real attribute and the real db capability are first-load
+questions on the published artifact.
 
 ## The rule that governs it
 
@@ -50,11 +112,14 @@ missing, so a moved file shows as an absent source rather than as a zero.
 ## The one write path
 
 `write_artifact()` is the only function that writes, and it refuses any
-filename other than the two artifacts. The selftest proves that two ways: an
-AST walk over the generator (every filesystem-write call site is either that
-function or the selftest's own temp fixture) and a live generation into a
-temp directory that must create exactly two files and leave the tree it read
-untouched.
+filename outside the four it knows. `generate()` is the one write SEQUENCE,
+called by `main()` and by the selftest rather than copied into either. The
+selftest proves the scope two ways: an AST walk over the generator (every
+filesystem-write call site is either that function or the selftest's own temp
+fixture) and live generations into a temp directory, one with no flags that
+must create exactly the two artifacts and one with both flags that must
+create exactly those two plus the two named live outputs, neither leaving
+anything in the tree it read.
 
 ## Exit codes
 
@@ -65,6 +130,9 @@ untouched.
     4  tools/capsay.py could not be imported, so no truncation on the page
        could announce itself; it refuses to run rather than print a cap that
        does not say it bit
+    5  the live document is over the store's 256 KiB per-document cap, so
+       db.set() would reject it; it refuses rather than leaving a file on
+       disk that looks ready to publish
 
 ## Regeneration, and which parts have been watched run
 

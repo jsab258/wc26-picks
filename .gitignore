@@ -111,3 +111,5 @@ tools/meshgen/blender/__pycache__/
 # The dashboard PAGE is derived state, regenerated every session; STATUS.md
 # is committed because it is the phone-readable twin and renders on GitHub.
 dashboard.html
+tools/dashboard/live-dashboard.html
+tools/dashboard/live-dashboard.json
