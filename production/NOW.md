@@ -11,11 +11,7 @@ looks like a live state.
 
 ## In flight
 
-- Director: ruling on the front-loading sequence. Jafar's constraint is
-  budget, and his goal is to prepare enough with Claude that large local
-  batches (images, 3D, voices) can run unattended at zero cost. The question
-  is the cheapest preparation that unlocks the most unattended production
-  without inverting the roadmap's order.
+- Nothing running. The tree is clean and pushed.
 
 ## Waiting on Jafar
 
@@ -23,12 +19,17 @@ looks like a live state.
 
 ## The next three things, in order
 
-1. Task 010, widen director_cadence. The gate that enforces the studio split
-   is blind to where the work now happens. Brief is complete in the queue.
-2. Land the local generation pipeline once the builder reports, and get one
-   real batch running on his PC overnight. Zero Claude cost per asset.
-3. The re-scoped D1 measurement (b): one JSON scene, two emitters, paired
-   stills judged blind. Ruling in game-design/decision-D1b-rescope.md.
+The ruled sequence is game-design/decision-2026-09-01-production-prep-sequence.md.
+
+1. Step 2 of it: the vignette bill of materials. THIS IS A BUILDER TASK, not
+   resident work; brief a tier-3 agent. Costs about half a day of budget, so
+   start it at the START of a session, never at the end of a heavy one.
+2. Step 3: prove the CC0 fetch-clean-tag route on five items. The largest
+   single unlock of the week, and cheap.
+3. Task 010, widen director_cadence. Brief is complete in the queue.
+
+Step 1 of the sequence is Jafar's click on the prop batch and he has been
+told; it needs nothing from us until he asks for instructions.
 
 ## Standing hazards a fresh session will otherwise walk into
 

@@ -50,6 +50,24 @@ than three dispatched builds.
    on items that cost no model time (reading landed results, committing
    finished work). An unknown budget is not permission.
 3. `production/STOP` exists: stop, same as the night runner.
+4. THE DAY'S ALLOCATION IS SPENT: stop for the day even though the week is
+   fine. Added 2026-09-01 17:20Z by a watchdog firing that found no stop
+   condition holding and correctly concluded it should work, on a day whose
+   readings had gone 34 to 38 percent in about three hours against a six
+   point daily target. Every condition above is WEEKLY, so all three passed
+   and the governor said go on a day that was already over.
+
+   The test, and it is deliberately rough because nothing here can measure
+   its own spend: if the newest reading minus the oldest reading FROM THE
+   SAME DAY is at or above 6, the day is done. Land what is finished, update
+   NOW.md, and end. With only one reading for the day, use judgement and
+   prefer stopping; a day that started heavy is exactly the day this
+   condition exists for.
+
+   THIS CANNOT BE ENFORCED MECHANICALLY and saying so is the point. Nothing
+   in the container can read Jafar's usage page. It works only if readings
+   keep arriving, which is why the ask is one number per session and not a
+   promise to be careful.
 
 ## Why a file rather than a rule in somebody's head
 
