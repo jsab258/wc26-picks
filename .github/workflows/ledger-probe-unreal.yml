@@ -328,8 +328,31 @@ jobs:
                   -RedirectStandardOutput "cook-cold.log" -RedirectStandardError "cook-cold.err"
             $L += "coldCookExit=$($p4.ExitCode) coldCookMinutes=$([math]::Round(((Get-Date) - $t4).TotalMinutes, 2))"
             if ($p4.ExitCode -ne 0) {
-              $L += "COLD COOK FAILED. Last 40 lines:"
-              if (Test-Path "cook-cold.log") { $L += (Get-Content "cook-cold.log" -Tail 40) }
+              # A TAIL IS THE WRONG SHAPE FOR A COOK FAILURE AND RUN 10 PROVED
+              # IT. The cook ran for 32 seconds and failed; the last 40 lines
+              # held shader-thread shutdown chatter and "Cook failed", and the
+              # sentence saying WHY was above the window. So the error lines
+              # are pulled from the WHOLE log first, and the tail is kept
+              # after them as context rather than as the only view. Both caps
+              # announce themselves, because a cap nobody is told about is
+              # indistinguishable from a finding.
+              $L += "COLD COOK FAILED."
+              if (Test-Path "cook-cold.log") {
+                $all = @(Get-Content "cook-cold.log")
+                $errs = @($all | Select-String -Pattern "Error:|Fatal|Cook failed|Missing|Unable to|Could not|Assertion failed" -SimpleMatch:$false)
+                $L += "cookLogLines=$($all.Count) cookErrorLines=$($errs.Count)"
+                if ($errs.Count -gt 0) {
+                  $L += "--- error lines from the whole cook log ---"
+                  $L += ($errs | Select-Object -First 40 | ForEach-Object { $_.ToString() })
+                  if ($errs.Count -gt 40) { $L += "(+$($errs.Count - 40) more error line(s) not shown)" }
+                } else {
+                  $L += "--- no line in $($all.Count) matched the error patterns; the tail is all there is ---"
+                }
+                $L += "--- last 40 lines of the cook log, as context ---"
+                $L += ($all | Select-Object -Last 40)
+              } else {
+                $L += "cookLogLines=0 (no cook-cold.log was written at all)"
+              }
               if (Test-Path "cook-cold.err") { $L += "--- cook stderr ---"; $L += (Get-Content "cook-cold.err" -Tail 20) }
             } else {
               # THE INCREMENTAL COOK IS THE CYCLE NUMBER. The first one pays

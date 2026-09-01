@@ -72,3 +72,16 @@ have reported ALREADY PRESENT and changed nothing. Nothing in the probe
 changed for this run. It is the same cook, on a machine that can now build
 an editor target, and it is the first run with a chance of producing a cook
 number at all.
+run 11 - 2026-09-01 - run 10 got the editor BUILT and the cook actually
+running: 32 seconds inside UnrealEditor-Cmd before Error_UnknownCookFailure.
+The reason was above the 40-line tail, which is the cap-biting-silently
+fault in my own instrument, so error lines are now pulled from the whole
+cook log with both caps announced. Two hypotheses ride this run. The cook
+has no content to cook, so MapsToCook points at an engine map that
+certainly exists, which tests the cook path without inventing a binary
+asset. And the game module never reaches StartupModule at all: the
+breadcrumb has come back absent on every run since it was added, so the
+package-loader crash happens BEFORE Default-phase module loading. The
+module moves to PostConfigInit. That is a deliberate gamble: UE may refuse
+a non-Default phase for a primary game module, and if it does it will say
+so plainly and cost one round trip.

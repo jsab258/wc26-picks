@@ -7,7 +7,7 @@
 		{
 			"Name": "LedgerProbe",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "PostConfigInit"
 		}
 	]
 }
