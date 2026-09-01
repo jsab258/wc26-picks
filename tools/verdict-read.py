@@ -398,6 +398,25 @@ def main():
         i = argv.index("--run")
         run = SHOTS / "runs" / f"{argv[i + 1]}.txt"
         del argv[i:i + 2]
+    if "--file" in argv:
+        # ANY VERDICT-SHAPED FILE, NOT ONLY THE UNITY ONES.
+        #
+        # This reader was wired to game-design/sim-shots because that was the
+        # only place a verdict had ever been written. The UE probe now writes
+        # one too, and the D1 question it exists to answer is precisely
+        # whether the EXISTING readers keep working across the move. They
+        # could not even be pointed at the file, which is a smaller finding
+        # than a format incompatibility and would have read as the same
+        # thing if nobody had tried it.
+        #
+        # The same-line rule and every refusal below are unchanged and apply
+        # to whatever file is named. That is the part that had to survive.
+        i = argv.index("--file")
+        run = Path(argv[i + 1])
+        if not run.exists():
+            print("verdict-read: nothing measured — no file at %s" % run)
+            return 2
+        del argv[i:i + 2]
     if "--spaced" in argv:
         # NOT GATED, AND THAT IS DELIBERATE (rule 2: no bound before a series).
         # This prints the whole series off the newest measuring run so the

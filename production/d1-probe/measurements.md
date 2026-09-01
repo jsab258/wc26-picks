@@ -140,14 +140,35 @@ trips each were the two where the step could not say why it failed.
    round trip to compare against Unity's 26 min. Measurement a is half done.
 3. Nothing here speaks to measurements b, c or d.
 
-## The named unknown that decides the shape of the answer
+## The unknown that decides the shape of the answer: ANSWERED for step 1
 
-Whether the verdict channel reproduces in UE. Unity's loop is expensive partly
-because the answer has to travel through CI to be readable at all. If a UE
-build can produce the same committed verdict locally on ledger-pc, the
-comparison changes from build-time to whether the evidence discipline survives
-the move. That is the question worth the next probe, and it is not a
-performance question.
+Whether the verdict channel reproduces in UE. It does.
+
+Run 14 committed production/d1-probe/ue-verdict.txt: line 1 naming the commit
+it was measured on, no spaces in any value, whole-run numbers on one done
+line, and the words NO RUN reserved for a run that measured nothing. It was
+collected by name and guarded against the checkout restoring the previous
+run's copy.
+
+THE PART THAT MATTERS IS THAT THE EXISTING READER OPENS IT. tools/verdict-read.py,
+unchanged in behaviour, reads the UE verdict and keeps every refusal it has:
+
+    three keys from one line       accepted, line number printed for each
+    keys from two lines            REFUSED, with the full explanation
+    a file that is not there       REFUSED as nothing measured, not as clean
+
+One small change was needed and it is worth naming precisely, because it is
+the kind of thing that would otherwise be reported as a format problem. The
+reader was wired to game-design/sim-shots, the only place a verdict had ever
+been written, so it could not be POINTED at the new file. That is a smaller
+finding than an incompatibility and would have looked identical if nobody had
+tried it. It takes a --file argument now; the same-line rule and every
+refusal are untouched.
+
+So measurement c's one named UNKNOWN is closed for the verdict half. What
+remains of task 007 is steps 2 to 4: a still, offscreen, then a placed camera.
+Those need -RenderOffScreen rather than -nullrhi, which are opposite things,
+and the exact capture call is still unrun here.
 
 ## The protection on this decision
 

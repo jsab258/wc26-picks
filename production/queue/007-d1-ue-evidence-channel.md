@@ -2,7 +2,13 @@ line: instrument (D1 probe, the deciding unknown)
 spec: production/d1-probe/evidence-channel-spec.md
 acceptance: a UE run commits a verdict file naming its commit on line 1 and at least one still, both staged by name; a run that rendered nothing says so and carries nothing forward; tools/verdict-read.py reads the UE verdict unchanged
 max_sessions: 3
-status: BLOCKED on run 7 answering whether the game module starts at all.
+status: STEP 1 DONE 2026-09-01 (run 14). The UE side commits a traceable
+        verdict and tools/verdict-read.py opens it with every refusal intact:
+        same-line keys accepted with line numbers, cross-line keys refused,
+        a missing file refused as nothing measured. The reader needed a --file
+        argument because it was wired to the Unity shots directory; its
+        behaviour is unchanged. Steps 2 to 4 (a still, then a placed camera)
+        remain and need -RenderOffScreen rather than -nullrhi.
 
 Reproduce LEDGER's evidence channel on the UE side.
 

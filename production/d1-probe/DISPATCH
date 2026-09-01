@@ -121,3 +121,12 @@ this repo's eight-character abbrev would have condemned every fresh verdict
 and looked like a working guard. Both outcomes were run before shipping.
 The success condition is small and exact: a committed file that
 tools/verdict-read.py opens exactly as it opens the Unity one.
+run 15 - 2026-09-01 - two things at once, neither of them new probe work.
+The PATH bootstrap is now one script called by all three self-hosted
+workflows instead of three inline copies, and this run is the probe half of
+proving that; the Unity build is dispatched alongside it, because that is
+the proven job and the change touched it, and a green probe alone would not
+show the shared copy behaves for both. Nothing else in the probe changed.
+Run 14 already answered what it was dispatched for: the UE verdict lands,
+names its commit, and tools/verdict-read.py opens it with every refusal
+intact.
