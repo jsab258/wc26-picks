@@ -9,3 +9,5 @@
 # One line per run, appended, so the file is also the dispatch log.
 run 1 - 2026-09-01 - first UE machine probe: where is 5.8.2, is there a C++
 toolchain, and can a second workflow reach the evidence channel
+run 2 - 2026-09-01 - run 1 died on "pwsh: command not found": the PATH
+bootstrap had been copied without its pwsh half. Complete block restored.

@@ -53,11 +53,23 @@ jobs:
     timeout-minutes: 25
 
     steps:
-      # SAME BOOTSTRAP AS THE UNITY JOB. The self-hosted agent does not carry
-      # GitHub's hosted-image PATH, so bash has to be found before any bash
-      # step runs. Copied in shape rather than referenced because a workflow
-      # that depends on another workflow's step ordering is a workflow that
-      # breaks when somebody reorders the other one.
+      # THE COMPLETE BOOTSTRAP FROM THE UNITY JOB, VERBATIM.
+      # Run 1 of this workflow died on `pwsh: command not found` because I
+      # copied this step and dropped its second half: the part that finds
+      # PowerShell 7 at its two known locations and puts it on GITHUB_PATH,
+      # and the explicit `exit /b 0` that stops cmd's last errorlevel from
+      # failing a step that did everything right. pwsh is NOT on that
+      # machine's default PATH; the Unity job works because this step puts
+      # it there. The comment above the truncated copy said it was copied
+      # in shape rather than referenced, which is how a partial copy gets
+      # waved through: the justification was for copying, and the copying
+      # was the part done badly.
+      #
+      # DUPLICATION IS THE ROOT AND IT IS QUEUED, NOT FIXED HERE (task 006):
+      # both workflows carry this block, and the next drift will be as
+      # silent as this one. Extracting it into one script that both call is
+      # the right shape, and doing it in the same change that fixes a live
+      # bug would put the proven Unity workflow at risk for no reason.
       - name: tool PATH bootstrap (self-hosted parity)
         timeout-minutes: 1
         shell: cmd
@@ -67,10 +79,35 @@ jobs:
           if exist "C:\Program Files\Git\bin\bash.exe" (
             >>"%GITHUB_PATH%" echo C:\Program Files\Git\bin
             echo bash found at C:\Program Files\Git\bin and put on the job PATH
+            goto :bashok
           )
+          echo NO bash ON THIS MACHINE - Git for Windows normally provides it.
+          echo Reinstall Git for Windows on this runner, then dispatch again.
+          exit /b 1
           :bashok
-          where python3 >nul 2>nul || where python >nul 2>nul || echo no python on PATH
-
+          where pwsh >nul 2>nul
+          if not errorlevel 1 goto :pwshok
+          if exist "C:\Program Files\PowerShell\7\pwsh.exe" (
+            >>"%GITHUB_PATH%" echo C:\Program Files\PowerShell\7
+            echo pwsh found at C:\Program Files\PowerShell\7 and put on the job PATH
+            goto :pwshok
+          )
+          if exist "C:\LedgerTools\pwsh7\pwsh.exe" (
+            >>"%GITHUB_PATH%" echo C:\LedgerTools\pwsh7
+            echo pwsh found at C:\LedgerTools\pwsh7 and put on the job PATH
+            goto :pwshok
+          )
+          echo NO pwsh ON THIS MACHINE - the build and verdict steps run on it.
+          echo Run "tools/runner/3 FINISH THE BUILD MACHINE.bat" once on this
+          echo runner, then dispatch again.
+          exit /b 1
+          :pwshok
+          echo tool PATH bootstrap done.
+          REM Explicit, because cmd exits with the LAST-SET errorlevel and
+          REM echo/goto never clear one: a failed `where` above left 1 behind,
+          REM and run 32595203790 did every append right, printed done, and
+          REM still reported failure - skipping the whole build after it.
+          exit /b 0
       - name: Checkout
         timeout-minutes: 6
         uses: actions/checkout@v4
