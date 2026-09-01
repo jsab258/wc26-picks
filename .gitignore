@@ -90,3 +90,6 @@ tools/voice-live/env-export/
 tools/voice-live/env/
 tools/voice-live/game-out/
 tools/voice-live/speak-out/
+production/logs/
+production/scratch/
+tools/runner/config.local

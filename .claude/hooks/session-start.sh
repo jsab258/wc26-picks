@@ -33,6 +33,13 @@ if [ -n "$BR" ] && git fetch -q origin "$BR" 2>/dev/null; then
     fi
 fi
 
+# The morning brief, when one exists (v2 runner.md: the SessionStart hook
+# surfaces the latest brief unprompted, so the morning starts with the night).
+if [ -f "production/briefs/latest.md" ]; then
+    echo "--- latest brief (production/briefs/latest.md) ---"
+    head -12 "production/briefs/latest.md" | sed 's/^/  /'
+fi
+
 if [ -f "$QUEUE" ]; then
     echo "--- queue head ($QUEUE) ---"
     # First numbered item under '## Now', first 3 lines of it.
