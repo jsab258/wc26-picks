@@ -18,10 +18,25 @@ than any single row.
 |---|---|---|---|---|
 | 2026-09-01 | 28 of 168 | 34% | 41% | 2.5x over pace. The day the studio split was not used. |
 | 2026-09-01 | ~31 of 168 | 38% | not read | Reported by Jafar. 42 points left for 5 and a bit days. |
+| 2026-09-01 | new week, hours in | 8% | not read | THE WEEKLY LIMIT RESET. Reported by Jafar. This is a different week from the two rows above, and the delta between this row and the one before it is meaningless. |
 
 Ceiling for LEDGER: 80% of the weekly limit. The other 20% is his.
 
-## The arithmetic, so nobody has to redo it
+## THE WEEK RESET ON 2026-09-01 AND THAT VOIDS THE ARITHMETIC BELOW
+
+The reset is recorded rather than the old rows deleted, because the series is
+worth more than any row in it and a table that quietly drops its history
+cannot show a regime change. What it does mean: the 34, 38 sequence and every
+number derived from it describe a week that has ENDED. Do not compute a delta
+across the boundary; two readings either side of a reset are two different
+quantities with one name, which is the fault this project has a rule about.
+
+The daily condition still applies within the new week. The ceiling still
+applies. What has gone is the specific pressure: 8 percent used means the
+quarter-rate discipline set on 1 September was for the old week and should be
+re-derived, not carried over out of habit.
+
+## The arithmetic, so nobody has to redo it (FOR THE WEEK THAT ENDED)
 
 At 28 hours the week was 17 percent gone and 34 percent of budget was spent.
 On-pace would have been about 13 percent. Remaining for LEDGER: 46 points
