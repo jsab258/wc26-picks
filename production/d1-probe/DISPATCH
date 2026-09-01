@@ -1,0 +1,11 @@
+# The sentinel that runs .github/workflows/ledger-probe-unreal.yml.
+#
+# Touching this file and pushing runs the UE machine probe on Jafar's PC.
+# It exists because a workflow_dispatch workflow must live on the default
+# branch to be dispatchable, and this one lives on the working branch by
+# standing instruction. Delete this file and the push trigger together when
+# the workflow reaches main.
+#
+# One line per run, appended, so the file is also the dispatch log.
+run 1 - 2026-09-01 - first UE machine probe: where is 5.8.2, is there a C++
+toolchain, and can a second workflow reach the evidence channel

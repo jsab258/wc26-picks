@@ -15,8 +15,34 @@ name: LEDGER Unreal probe
 # the UE path (is a toolchain missing, how big is the install, what does the
 # first cold run cost) belongs to measurement a, and it is measured here
 # rather than estimated later.
+# HOW THIS IS TRIGGERED, and why it is not workflow_dispatch alone.
+#
+# GitHub only dispatches a `workflow_dispatch` workflow that exists on the
+# DEFAULT BRANCH. This repo's default is `main`; the four dispatchable
+# workflows all live there, and this one lives on the working branch, so a
+# dispatch of it returns 404. Confirmed by dispatching and reading the error,
+# not assumed from the docs.
+#
+# Putting it on `main` is the clean fix and it is NOT MINE TO MAKE: the
+# standing instruction is to push only to the working branch, and a
+# permission boundary is not something to route around quietly. So this
+# workflow triggers on a PUSH THAT TOUCHES ONE SENTINEL FILE, which runs it
+# from whatever branch was pushed and needs no access to main.
+#
+# It stays OPT-IN, which is the property that matters (expensive jobs are
+# never automatic here): nothing runs unless production/d1-probe/DISPATCH is
+# deliberately changed. Ordinary work on this branch never wakes it.
+#
+# WHEN THIS FILE REACHES `main`, DELETE THE PUSH TRIGGER AND THE SENTINEL.
+# The dispatch entry below is already correct and will start working the
+# moment the file is on the default branch; the push trigger is a workaround
+# for a permission boundary, not a design, and leaving it in place after the
+# boundary moves would be the kind of scaffolding that outlives its reason.
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'production/d1-probe/DISPATCH'
 
 permissions:
   contents: write
