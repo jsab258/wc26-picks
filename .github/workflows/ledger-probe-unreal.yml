@@ -129,7 +129,19 @@ jobs:
           $ErrorActionPreference = "Continue"
           $out = "production/d1-probe/ue-machine.txt"
           New-Item -ItemType Directory -Force -Path "production/d1-probe" | Out-Null
-          $sha = git rev-parse --short HEAD
+          # LINE 1 MUST NAME THE COMMIT, AND RUN 2 SHIPPED IT EMPTY.
+          # `git rev-parse --short HEAD` returned nothing here and
+          # $ErrorActionPreference=Continue swallowed the reason, so the
+          # verdict read "# UE machine probe -  @1788263890": a provenance
+          # line with no provenance, which is the one rule every verdict in
+          # this project carries. GITHUB_SHA is set by Actions itself, needs
+          # no git on PATH and cannot be empty in a real run; the git call
+          # stays only as a fallback, and if BOTH are empty the line says so
+          # rather than printing a blank where a sha belongs.
+          $sha = $env:GITHUB_SHA
+          if (-not $sha) { $sha = (git rev-parse HEAD 2>$null) }
+          if ($sha) { $sha = $sha.Substring(0, [Math]::Min(7, $sha.Length)) }
+          else      { $sha = "SHA-UNKNOWN" }
           $L = @()
           $L += "# UE machine probe - $sha @$([int][double]::Parse((Get-Date -UFormat %s)))"
           $L += "# Line 1 names the commit this was measured on. D1 measurement a, setup cost."

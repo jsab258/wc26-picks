@@ -11,3 +11,5 @@ run 1 - 2026-09-01 - first UE machine probe: where is 5.8.2, is there a C++
 toolchain, and can a second workflow reach the evidence channel
 run 2 - 2026-09-01 - run 1 died on "pwsh: command not found": the PATH
 bootstrap had been copied without its pwsh half. Complete block restored.
+run 3 - 2026-09-01 - run 2 measured correctly but shipped an empty sha on
+line 1; provenance now reads GITHUB_SHA. Re-run to confirm the fix.
