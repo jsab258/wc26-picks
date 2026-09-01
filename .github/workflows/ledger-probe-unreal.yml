@@ -450,7 +450,13 @@ jobs:
                 -Wait -PassThru -NoNewWindow `
                 -RedirectStandardOutput $gameOut -RedirectStandardError $gameErr
           $testSec = [math]::Round(((Get-Date) - $t2).TotalSeconds, 2)
-          $L += "gameExit=$($p3.ExitCode) testSeconds=$testSec"
+          # gameExit IS NOT THE VERDICT AND IS PRINTED NEXT TO ONE THAT IS.
+          # Asking the engine to quit from inside module startup exits 1 by
+          # design, so a passing run reads "gameExit=1 probeTest=PASS" and
+          # the pair is exactly the shape a later reader misreads. The
+          # evidence is the result FILE; the exit code only says the process
+          # ended.
+          $L += "gameExit=$($p3.ExitCode) testSeconds=$testSec gameExitIsNotTheVerdict=true"
           $found = $resultCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
           $L += "resultCandidates=$($resultCandidates.Count) resultFound=$(if ($found) { 'yes' } else { 'no' })"
           if ($found) { $L += "resultFrom=$($found -replace ' ','~')"; $L += (Get-Content $found) }

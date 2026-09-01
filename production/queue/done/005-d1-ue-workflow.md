@@ -18,3 +18,16 @@ DEPENDENCIES ON THE MACHINE, to check in the first dispatch rather than
 assume: UE 5.8.2 is installed; a C++ toolchain may not be. If the build
 step fails for a missing toolchain, that is a finding for measurement a
 (setup cost), not a broken workflow, and it is recorded as such.
+
+status: DONE 2026-09-01, run 13. The workflow builds, cooks, stages,
+        packages and runs the probe on ledger-pc, and the golden test passes
+        against the PACKAGED artifact: 1221 rows, 0 mismatches. Thirteen runs;
+        every failure was diagnosed from a committed file and none from a log
+        tail. Numbers in production/d1-probe/measurements.md.
+
+        The quality-ladder question, asked at close: the first working result
+        would have been the run-11 build with the test passing on the compile
+        output. Running it against the packaged artifact instead is the better
+        available rung and it was taken, because a compile output is not what
+        anybody would ever be given. The next rung is task 007, the evidence
+        channel, and it is queued rather than folded in here.

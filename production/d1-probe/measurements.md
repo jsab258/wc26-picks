@@ -63,10 +63,20 @@ of the last two, meaning the checkout wipes the workspace, so nothing carries
 over. The 0.03 warm figure is a SECOND INVOCATION INSIDE ONE RUN, not a
 next-day rebuild, and it is labelled that way wherever it appears.
 
-Cook, measured for the first time on run 12:
+Cook, over the two runs that reached one:
 
-    cold cook       2.00 min   (first cook, pays for shaders and staging once)
-    incremental     0.45 min   (no edit between them: the floor of a cook)
+    cold cook       2.00, 1.70 min   (pays for shaders and staging once)
+    incremental     0.45, 0.43 min   (no edit between: the floor of a cook)
+
+THE PIPELINE IS COMPLETE AS OF RUN 13: build, cook, stage, package, and the
+golden test running against the PACKAGED artifact rather than the compile
+output. 1221 rows, 0 mismatches, from the binary a player would be given.
+
+One reading to not misread: the packaged run exits 1, because asking the
+engine to quit from inside module startup does that by design. A passing run
+therefore prints gameExit=1 beside probeTest=PASS. The evidence is the result
+file; the exit code only says the process ended. The verdict line says so
+now, because that pair is exactly the shape a later reader gets wrong.
 
 Four attempts preceded it and every failure was setup rather than cycle: no
 editor target, then the .NET Framework SDK missing, then the golden test
