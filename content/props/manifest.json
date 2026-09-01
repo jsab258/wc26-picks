@@ -2,7 +2,7 @@
   "schema": 1,
   "batch": "meridian-street-furniture-01",
   "backend": "local",
-  "written": "2026-09-01T20:01:29Z",
+  "written": "2026-09-01T20:02:10Z",
   "meshgen": "meshgen 1",
   "tool_versions": {
     "blender": "Blender 4.5.13 LTS",
@@ -110,7 +110,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:10Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "awning_02",
@@ -281,7 +281,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:11Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "cigarette_bin",
@@ -452,7 +452,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:12Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "crowd_control_barrier",
@@ -623,7 +623,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:14Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "curved_stone_bench",
@@ -794,7 +794,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:15Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "decorative_bollard_01",
@@ -965,7 +965,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:16Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "decorative_bollard_02",
@@ -1136,7 +1136,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:17Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "drain_cover_01",
@@ -1307,7 +1307,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:19Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "drainage_grate_01",
@@ -1478,7 +1478,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:20Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "finger_post_sign_01",
@@ -1577,7 +1577,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:21Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "finger_post_sign_02",
@@ -1676,7 +1676,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:22Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "finger_post_sign_03",
@@ -1847,7 +1847,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:24Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "framed_poster",
@@ -1946,7 +1946,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:25Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "garden_bench_01",
@@ -2117,7 +2117,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:26Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "lamp_post_01",
@@ -2288,7 +2288,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:27Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "large_pallet",
@@ -2423,7 +2423,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:29Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "mesh_bin",
@@ -2594,7 +2594,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:30Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "oil_barrel",
@@ -2765,7 +2765,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:31Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "ornate_bench",
@@ -2936,7 +2936,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:32Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "outdoor_bin",
@@ -3107,7 +3107,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:34Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "pallet",
@@ -3242,7 +3242,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:35Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "park_bench",
@@ -3413,7 +3413,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:36Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "pavement_sign",
@@ -3584,7 +3584,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:37Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "poster",
@@ -3719,7 +3719,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:39Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "roll_top_chimney",
@@ -3890,7 +3890,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:39Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "rounded_concrete_bollard",
@@ -4025,7 +4025,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:41Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "skip",
@@ -4196,7 +4196,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:42Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "small_pallet",
@@ -4295,7 +4295,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:44Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "swing_bin",
@@ -4466,7 +4466,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:44Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "traffic_cone_01",
@@ -4637,7 +4637,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:46Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "traffic_cone_02",
@@ -4772,7 +4772,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:47Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "trunk_protection_railing",
@@ -4943,7 +4943,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:49Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "weathertop_chimney",
@@ -5114,7 +5114,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:49Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "wood_barrel",
@@ -5285,7 +5285,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:51Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "wooden_crate_01",
@@ -5456,7 +5456,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:52Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "wooden_crate_02",
@@ -5627,7 +5627,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:54Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     },
     {
       "id": "wooden_square_bollard",
@@ -5726,7 +5726,7 @@
       },
       "status": "done",
       "finished": "2026-09-01T20:00:54Z",
-      "skipped_on": "2026-09-01T20:01:29Z"
+      "skipped_on": "2026-09-01T20:02:10Z"
     }
   ],
   "counts": {

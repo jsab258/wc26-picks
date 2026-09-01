@@ -2,7 +2,7 @@
   "what": "Meshes produced by tools/meshgen. Every row names its source, that source's licence and the tools that touched it.",
   "law": "ledger-v2/research/license-allowlist.md",
   "batch": "meridian-street-furniture-01",
-  "written": "2026-09-01T20:01:29Z",
+  "written": "2026-09-01T20:02:10Z",
   "items": [
     {
       "id": "awning_01",
