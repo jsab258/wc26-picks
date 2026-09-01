@@ -1,4 +1,4 @@
-# UE probe build - 1a1716c
+# UE probe build - ff51c2b
 
 engine=C:\Program~Files\Epic~Games\UE_5.8
 project=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject
@@ -7,156 +7,163 @@ cmd=Build.bat LedgerProbe Win64 Development -Project="C:\actions-runner-ledger\_
 coldBuildExit=0 coldBuildMinutes=0.75
 warmBuildExit=0 warmBuildMinutes=0.03
 cookCmd=RunUAT.bat BuildCookRun -project="C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject" -noP4 -platform=Win64 -clientconfig=Development -cook -build -stage -pak -archive -archivedirectory="C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged" -utf8output
-coldCookExit=25 coldCookMinutes=1.5
-COLD COOK FAILED. Last 40 lines:
-LogShaderCompilers: Display: Using 9 local workers for shader compilation
-LogShaderCompilers: Display: Compiling shader autogen file: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM6/AutogenShaderHeaders.ush
-LogShaderCompilers: Display: Failed to delete old shader autogen file: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM6/AutogenShaderHeaders.ush
-LogShaderCompilers: Display: Shader autogen file written: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM6/AutogenShaderHeaders.ush
-LogEditorDomain: Display: EditorDomain is Disabled
-LogAssetRegistry: Display: AssetDataGatherer spent 0.000s loading caches from ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/CachedAssetRegistry.
-LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
-LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
-LogCsvProfiler: Display: Metadata set : deviceprofile="WindowsEditor"
-LogStreaming: Display: FlushAsyncLoading(1): 1 QueuedPackages, 0 AsyncPackages
-LogTextureEncodingSettings: Display: Texture Encode Speed: Final (cook).
-LogTextureEncodingSettings: Display: Oodle Texture Encode Speed settings: Fast: RDO Off Lambda=0, Effort=Normal Final: RDO Off Lambda=0, Effort=Normal
-LogTextureEncodingSettings: Display: Shared linear texture encoding: Disabled
-LogMeshReduction: Display: Using QuadricMeshReduction for automatic static mesh reduction
-LogMeshReduction: Display: Using SkeletalMeshReduction for automatic skeletal mesh reduction
-LogMeshReduction: Display: Using ProxyLODMeshReduction for automatic mesh merging
-LogMeshReduction: Display: No distributed automatic mesh merging module available
-LogShaderCompilers: Display: Compiling shader autogen file: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM5/AutogenShaderHeaders.ush
-LogShaderCompilers: Display: Failed to delete old shader autogen file: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM5/AutogenShaderHeaders.ush
-LogShaderCompilers: Display: Shader autogen file written: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM5/AutogenShaderHeaders.ush
-LogVirtualization: Display: VirtualizationSystem name found in ini file: None
-LogVirtualization: Display: FNullVirtualizationSystem mounted, virtualization will be disabled
-LogWorldPartition: Display: FWorldPartitionClassDescRegistry::Initialize started...
-LogWorldPartition: Display: FWorldPartitionClassDescRegistry::Initialize took 11.340 ms
-LogMetaSound: Display: MetaSound Page Target Initialized to 'Default'
-LogAudio: Display: Registering Engine Module Parameter Interfaces...
-LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
-LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
-LogAssetRegistry: Display: CleanupOrphanedCacheFiles (PostWrite): 0 .ref files found, 0 referenced binaries
-LogAssetRegistry: Display: CleanupOrphanedCacheFiles: 0 total binaries, 0 referenced (kept), 0 old-style pre-migration (kept), 0 orphans deleted, 0 orphans locked (kept)
-LogStreaming: Display: ============ Loader Stats ============
-LogStreaming: Display: Unique Partial Flushes: 0
-LogStreaming: Display: ============ Loader Stats End ============
-LogShaderCompilers: Display: Exiting ShaderCompilingThread
-Took 32.15s to run UnrealEditor-Cmd.exe, ExitCode=1
-Cook failed.
+coldCookExit=1 coldCookMinutes=0.87
+COLD COOK FAILED.
+cookLogLines=235 cookErrorLines=2
+--- error lines from the whole cook log ---
+Unable to find required SDK version 'MainVersion' for platform LinuxArm64. Check your SDK.json files
+Unable to find required SDK version 'MainVersion' for platform VisionOS. Check your SDK.json files
+--- last 40 lines of the cook log, as context ---
+Excluding config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\Localization\Editor.ini
+Excluding config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BaseEditorPerProjectUserSettings.ini
+Excluding config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BasePakFileRules.ini
+Excluding config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BaseUnrealInsightsSettings.ini
+Excluding config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\Localization\WordCount.ini
+Excluding config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\Localization\PortableObjectImport.ini
+Excluding config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\Localization\Engine.ini
+Excluding config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BaseEditorSettings.ini
+Excluding config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\Localization\PropertyNames.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BaseEngine.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\Windows\WindowsInput.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\Windows\WindowsGame.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BaseScalability.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BaseRuntimeOptions.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BaseMaterialExpressions.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BaseInstallBundle.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\Windows\DataDrivenPlatformInfo.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\Windows\BaseWindowsInput.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BaseInput.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BaseHardware.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BaseGameUserSettings.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BaseGame.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BaseDeviceProfiles.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\BaseCompat.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\Base.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\Layouts\UE4ClassicLayout.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\Windows\BaseWindowsGame.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\Windows\BaseWindowsEngine.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\VulkanPC\DataDrivenPlatformInfo.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\Layouts\DefaultLayout.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\PluginBase.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\ConsoleVariables.ini
+Including config file C:\Program Files\Epic Games\UE_5.8\Engine\Config\ConfigRedirects.ini
+Including config file C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Config\DefaultGame.ini
+Including config file C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Config\DefaultEngine.ini
+A package store manifest or project store is required when staging to IoStore. Expected to find cooked directory C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Saved\Cooked\Windows. Ensure that cooking was successful.
 (see C:\Users\Jafar\AppData\Roaming\Unreal Engine\AutomationTool\Logs\C+Program+Files+Epic+Games+UE_5.8\Log.txt for full exception trace)
-AutomationTool executed for 0h 1m 29s
-AutomationTool exiting with ExitCode=25 (Error_UnknownCookFailure)
+AutomationTool executed for 0h 0m 51s
+AutomationTool exiting with ExitCode=1 (Error_Unknown)
 BUILD FAILED
 --- cook stderr ---
 packagedCandidates=0
 binaryCandidates=1
 ranBinary=uncooked-build-output
 binary=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Binaries\Win64\LedgerProbe.exe sizeKB=323998
-gameExit=3 testSeconds=6.22
-resultCandidates=1 resultFound=no
-probeTest=FAIL reason=no-result-file-written (the module did not reach its write)
+gameExit=1 testSeconds=6.23
+resultCandidates=1 resultFound=yes
+resultFrom=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\golden-result.txt
+perceptionRows=1221 perceptionMismatches=0 tolerance=1e-09
+probeTest=PASS
 --- LedgerProbe.log (C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Saved\Logs\LedgerProbe.log), last 60 lines ---
-[2026.09.01-13.49.43:331][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
-[2026.09.01-13.49.43:331][  0]LogInit: Initializing FReadOnlyCVARCache
-[2026.09.01-13.49.43:336][  0]LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
-[2026.09.01-13.49.43:336][  0]LogInit: Running DelayedAutoRegister Phase ShaderTypesReady
-[2026.09.01-13.49.43:343][  0]LogSlate: Using FreeType 2.14.1
-[2026.09.01-13.49.43:344][  0]LogSlate: SlateFontServices - WITH_FREETYPE: 1, WITH_HARFBUZZ: 1
-[2026.09.01-13.49.43:346][  0]LogInit: Using OS detected language (en-US).
-[2026.09.01-13.49.43:346][  0]LogInit: Using OS detected locale (en-CH).
-[2026.09.01-13.49.43:346][  0]LogTextLocalizationManager: No localization for 'en-US' exists, so 'en' will be used for the language.
-[2026.09.01-13.49.43:347][  0]LogTextLocalizationManager: No localization for 'en-CH' exists, so 'en' will be used for the locale.
-[2026.09.01-13.49.43:347][  0]LogSlate: FontCache flush requested. Reason: Culture for localization was changed
-[2026.09.01-13.49.43:348][  0]LogAssetRegistry: ActiveMountsLoading is disabled.
-[2026.09.01-13.49.43:349][  0]LogAssetRegistry: FAssetRegistry took 0.0012 seconds to start up
-[2026.09.01-13.49.43:353][  0]LogAssetRegistry: Error: Failed to load premade asset registry. LoadResult == 1.
-[2026.09.01-13.49.43:353][  0]LogInit: Running DelayedAutoRegister Phase PreObjectSystemReady
-[2026.09.01-13.49.43:518][  0]LogConfig: Display: Read in platform Android ini files took 0.02 seconds
-[2026.09.01-13.49.43:535][  0]LogConfig: Display: Read in platform IOS ini files took 0.02 seconds
-[2026.09.01-13.49.43:564][  0]LogConfig: Display: Read in platform Linux ini files took 0.03 seconds
-[2026.09.01-13.49.43:580][  0]LogConfig: Display: Read in platform Mac ini files took 0.02 seconds
-[2026.09.01-13.49.43:604][  0]LogConfig: Display: Read in platform TVOS ini files took 0.02 seconds
-[2026.09.01-13.49.43:627][  0]LogConfig: Display: Read in platform VisionOS ini files took 0.02 seconds
-[2026.09.01-13.49.43:629][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
-[2026.09.01-13.49.43:630][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
-[2026.09.01-13.49.43:631][  0]LogDeviceProfileManager: Active device profile: [00007FE87A6FCB40][00007FF3D9FE9000 82] Windows
-[2026.09.01-13.49.43:631][  0]LogCsvProfiler: Display: Metadata set : deviceprofile="Windows"
-[2026.09.01-13.49.43:631][  0]LogInit: Running DelayedAutoRegister Phase DeviceProfileManagerReady
-[2026.09.01-13.49.43:637][  0]LogStreaming: Display: FlushAsyncLoading(8): 8 QueuedPackages, 0 AsyncPackages
-[2026.09.01-13.49.43:638][  0]LogPackageLocalizationCache: Processed 83 localized package path(s) for 1 prioritized culture(s) in 0.001172 seconds
-[2026.09.01-13.49.43:650][  0]LogWindows: Error: appError called: Assertion failed: ReaderPos + Num <= ReaderSize [File:D:\build\++UE5\Sync\Engine\Source\Runtime\Core\Public\Serialization\BufferReader.h] [Line: 52] 
-
-
-[2026.09.01-13.49.43:650][  0]LogWindows: Windows GetLastError: The operation completed successfully. (0)
-[2026.09.01-13.49.43:957][  0]LogThreadingWindows: Error: Runnable thread IOThreadPool #2 crashed.
-[2026.09.01-13.49.43:957][  0]LogWindows: Error: === Critical error: ===
-[2026.09.01-13.49.43:957][  0]LogWindows: Error: 
-[2026.09.01-13.49.43:957][  0]LogWindows: Error: Assertion failed: ReaderPos + Num <= ReaderSize [File:D:\build\++UE5\Sync\Engine\Source\Runtime\Core\Public\Serialization\BufferReader.h] [Line: 52] 
-[2026.09.01-13.49.43:957][  0]LogWindows: Error: 
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: 
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: 
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff750bcd4f8 LedgerProbe.exe!FDebug::CheckVerifyFailedImpl2() []
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff750cbc95b LedgerProbe.exe!FBufferReaderBase::Serialize() []
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff75093b1a3 LedgerProbe.exe!operator<<() []
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff750c88191 LedgerProbe.exe!operator<<() []
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff751560e41 LedgerProbe.exe!operator<<() []
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff75155ec2a LedgerProbe.exe!operator<<() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff75134ce04 LedgerProbe.exe!FAsyncArchive::ReadCallback() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750a17928 LedgerProbe.exe!IAsyncReadRequest::SetComplete() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750a09c23 LedgerProbe.exe!FGenericReadRequest::PerformRequest() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff7509eed34 LedgerProbe.exe!FAsyncTaskBase::DoWork() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff7509eda2e LedgerProbe.exe!FAsyncTaskBase::DoThreadedWork() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750acc878 LedgerProbe.exe!FQueuedThread::Run() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750f40f98 LedgerProbe.exe!FRunnableThreadWin::Run() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750f3a995 LedgerProbe.exe!FRunnableThreadWin::GuardedRun() []
-[2026.09.01-13.49.43:960][  0]LogWindows: Error: [Callstack] 0x00007ff8f71cccb7 KERNEL32.DLL!UnknownFunction []
-[2026.09.01-13.49.43:960][  0]LogWindows: Error: 
-[2026.09.01-13.49.43:960][  0]LogWindows: Error: Crash in runnable thread IOThreadPool #2
-[2026.09.01-13.49.43:970][  0]LogExit: Executing StaticShutdownAfterError
-[2026.09.01-13.49.43:971][  0]LogWindows: FPlatformMisc::RequestExit(1, FRunnableThreadWin::GuardedRun.ExceptionHandler)
-[2026.09.01-13.49.43:971][  0]LogWindows: FPlatformMisc::RequestExitWithStatus(1, 3, FRunnableThreadWin::GuardedRun.ExceptionHandler)
-[2026.09.01-13.49.43:971][  0]LogCore: Engine exit requested (reason: Win RequestExit)
+[2026.09.01-13.56.16:833][  0]LogHAL: Display: Platform has ~ 32 GB [34282192896 / 34359738368 / 32], which maps to Largest [LargestMinGB=32, LargerMinGB=12, DefaultMinGB=8, SmallerMinGB=6, SmallestMinGB=0)
+[2026.09.01-13.56.16:833][  0]LogDeviceProfileManager: Going up to parent DeviceProfile []
+[2026.09.01-13.56.16:833][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[UI.SlateSDFText.RasterizationMode:Bitmap -> Msdf]]
+[2026.09.01-13.56.16:833][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[UI.SlateSDFText.ResolutionLevel:2 -> 2]]
+[2026.09.01-13.56.16:833][  0]LogConfig: Applying CVar settings from Section [Startup] File [../../../../../../../Program Files/Epic Games/UE_5.8/Engine/Config/ConsoleVariables.ini]
+[2026.09.01-13.56.16:834][  0]LogConfig: Set CVar [[p.chaos.AllowCreatePhysxBodies:1]]
+[2026.09.01-13.56.16:834][  0]LogConfig: Set CVar [[fx.SkipVectorVMBackendOptimizations:1]]
+[2026.09.01-13.56.16:834][  0]LogConfig: Applying CVar settings from Section [Startup_Windows] File [../../../../../../../Program Files/Epic Games/UE_5.8/Engine/Config/ConsoleVariables.ini]
+[2026.09.01-13.56.16:834][  0]LogConfig: Applying CVar settings from Section [ConsoleVariables] File [Engine]
+[2026.09.01-13.56.16:834][  0]LogConfig: Set CVar [[WindowsApplication.UseWorkerThreadForRawInput:0]]
+[2026.09.01-13.56.16:834][  0]LogConfig: Set CVar [[r.PSOPrecache.KeepInMemoryForActiveMaterials:1]]
+[2026.09.01-13.56.16:834][  0]LogInit: Computer: JAFAR-DESKTOP
+[2026.09.01-13.56.16:834][  0]LogInit: User: Jafar
+[2026.09.01-13.56.16:834][  0]LogInit: CPU Page size=4096, Cores=6
+[2026.09.01-13.56.16:835][  0]LogInit: High frequency timer resolution =10.000000 MHz
+[2026.09.01-13.56.16:835][  0]LogInit: Gaming Handheld Device: 0
+[2026.09.01-13.56.16:835][  0]LogMemory: Process is running as part of a Windows Job with separate resource limits
+[2026.09.01-13.56.16:835][  0]LogMemory: Memory total: Physical=31.9GB (32GB approx) Virtual=33.9GB
+[2026.09.01-13.56.16:835][  0]LogMemory: Platform Memory Stats for Windows
+[2026.09.01-13.56.16:835][  0]LogMemory: Process Physical Memory: 193.12 MB used, 193.12 MB peak
+[2026.09.01-13.56.16:835][  0]LogMemory: Process Virtual Memory: 135.47 MB used, 135.47 MB peak
+[2026.09.01-13.56.16:835][  0]LogMemory: Physical Memory: 12242.96 MB used,  20451.08 MB free, 32694.05 MB total
+[2026.09.01-13.56.16:835][  0]LogMemory: Virtual Memory: 19104.64 MB used,  15637.41 MB free, 34742.05 MB total
+[2026.09.01-13.56.16:836][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
+[2026.09.01-13.56.16:836][  0]LogWindows: WindowsPlatformFeatures enabled
+[2026.09.01-13.56.16:836][  0]LogSpline: Registered spline type: TypeId=0x54E3AD22, Impl=MultiSpline, Value=Vector
+[2026.09.01-13.56.16:836][  0]LogChaosDD: Chaos Debug Draw Startup
+[2026.09.01-13.56.16:836][  0]LogInit: Physics initialised using underlying interface: Chaos
+[2026.09.01-13.56.16:836][  0]LogInit: Using OS detected language (en-US).
+[2026.09.01-13.56.16:836][  0]LogInit: Using OS detected locale (en-CH).
+[2026.09.01-13.56.16:836][  0]LogTextLocalizationManager: No specific localization for 'en-US' exists, so 'en' will be used for the language.
+[2026.09.01-13.56.16:841][  0]LogWindowsTouchpad: Display: CacheForceMaxTouchpadSensitivityMode SetMaxTouchpadSensitivity
+[2026.09.01-13.56.16:842][  0]LogInputDeviceRegistry: RegisterDevice: DeviceId=0 InputDeviceName=WindowsApplication HardwareDeviceIdentifier=KBM (changed=true)
+[2026.09.01-13.56.16:848][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+[2026.09.01-13.56.16:853][  0]LogSlate: New Slate User Created. Platform User Id 0, User Index 0, Is Virtual User: 0
+[2026.09.01-13.56.16:853][  0]LogSlate: Slate User Registered.  User Index 0, Is Virtual User: 0
+[2026.09.01-13.56.16:933][  0]LogInit: Running DelayedAutoRegister Phase PreRHIInit
+[2026.09.01-13.56.16:944][  0]LogVRS: Current RHI does not support Variable Rate Shading
+[2026.09.01-13.56.16:945][  0]LogRHI: Render tracing channels set: 'Submission' -> 0xf
+[2026.09.01-13.56.16:945][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Null"
+[2026.09.01-13.56.16:945][  0]LogCsvProfiler: Display: Metadata set : rhiname="Null"
+[2026.09.01-13.56.16:945][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
+[2026.09.01-13.56.16:945][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
+[2026.09.01-13.56.16:945][  0]LogCsvProfiler: Display: Metadata set : gpu=""
+[2026.09.01-13.56.16:945][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
+[2026.09.01-13.56.16:946][  0]LogInit: Initializing FReadOnlyCVARCache
+[2026.09.01-13.56.16:950][  0]LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
+[2026.09.01-13.56.16:950][  0]LogInit: Running DelayedAutoRegister Phase ShaderTypesReady
+[2026.09.01-13.56.16:953][  0]LogCore: Engine exit requested (reason: EngineExit() was called; note: exit was already requested)
+[2026.09.01-13.56.16:954][  0]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: )...
+[2026.09.01-13.56.16:954][  0]LogAudio: Display: Audio Device Manager Shutdown
+[2026.09.01-13.56.16:960][  0]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
+[2026.09.01-13.56.16:960][  0]LogExit: Preparing to exit.
+[2026.09.01-13.56.16:960][  0]LogUObjectArray: CloseDisregardForGC: 5602/5602 objects in disregard for GC pool
+[2026.09.01-13.56.16:965][  0]LogExit: Object subsystem successfully closed.
+[2026.09.01-13.56.16:966][  0]LogChaosDD: Chaos Debug Draw Shutdown
+[2026.09.01-13.56.16:969][  0]LogNFORDenoise: NFORDenoise function shutting down
+[2026.09.01-13.56.16:971][  0]LogPakFile: Destroying PakPlatformFile
+[2026.09.01-13.56.16:973][  0]LogExit: Exiting.
+[2026.09.01-13.56.16:981][  0]Log file closed, 09/01/26 15:56:16
 --- game stdout, last 40 lines ---
-[2026.09.01-13.49.43:627][  0]LogConfig: Display: Read in platform VisionOS ini files took 0.02 seconds
-[2026.09.01-13.49.43:629][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
-[2026.09.01-13.49.43:629][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
-[2026.09.01-13.49.43:631][  0]LogDeviceProfileManager: Active device profile: [00007FE87A6FCB40][00007FF3D9FE9000 82] Windows
-[2026.09.01-13.49.43:631][  0]LogCsvProfiler: Display: Metadata set : deviceprofile="Windows"
-[2026.09.01-13.49.43:631][  0]LogInit: Running DelayedAutoRegister Phase DeviceProfileManagerReady
-[2026.09.01-13.49.43:637][  0]LogStreaming: Display: FlushAsyncLoading(8): 8 QueuedPackages, 0 AsyncPackages
-[2026.09.01-13.49.43:638][  0]LogPackageLocalizationCache: Processed 83 localized package path(s) for 1 prioritized culture(s) in 0.001172 seconds
-[2026.09.01-13.49.43:650][  0]LogWindows: Error: appError called: Assertion failed: ReaderPos + Num <= ReaderSize [File:D:\build\++UE5\Sync\Engine\Source\Runtime\Core\Public\Serialization\BufferReader.h] [Line: 52] 
-
-
-[2026.09.01-13.49.43:650][  0]LogWindows: Windows GetLastError: The operation completed successfully. (0)
-[2026.09.01-13.49.43:957][  0]LogThreadingWindows: Error: Runnable thread IOThreadPool #2 crashed.
-[2026.09.01-13.49.43:957][  0]LogWindows: Error: === Critical error: ===
-[2026.09.01-13.49.43:957][  0]LogWindows: Error: 
-[2026.09.01-13.49.43:957][  0]LogWindows: Error: Assertion failed: ReaderPos + Num <= ReaderSize [File:D:\build\++UE5\Sync\Engine\Source\Runtime\Core\Public\Serialization\BufferReader.h] [Line: 52] 
-[2026.09.01-13.49.43:957][  0]LogWindows: Error: 
-[2026.09.01-13.49.43:957][  0]LogWindows: Error: 
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: 
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff750bcd4f8 LedgerProbe.exe!FDebug::CheckVerifyFailedImpl2() []
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff750cbc95b LedgerProbe.exe!FBufferReaderBase::Serialize() []
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff75093b1a3 LedgerProbe.exe!operator<<() []
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff750c88191 LedgerProbe.exe!operator<<() []
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff751560e41 LedgerProbe.exe!operator<<() []
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff75155ec2a LedgerProbe.exe!operator<<() []
-[2026.09.01-13.49.43:958][  0]LogWindows: Error: [Callstack] 0x00007ff75134ce04 LedgerProbe.exe!FAsyncArchive::ReadCallback() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750a17928 LedgerProbe.exe!IAsyncReadRequest::SetComplete() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750a09c23 LedgerProbe.exe!FGenericReadRequest::PerformRequest() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff7509eed34 LedgerProbe.exe!FAsyncTaskBase::DoWork() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff7509eda2e LedgerProbe.exe!FAsyncTaskBase::DoThreadedWork() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750acc878 LedgerProbe.exe!FQueuedThread::Run() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750f40f98 LedgerProbe.exe!FRunnableThreadWin::Run() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff750f3a995 LedgerProbe.exe!FRunnableThreadWin::GuardedRun() []
-[2026.09.01-13.49.43:959][  0]LogWindows: Error: [Callstack] 0x00007ff8f71cccb7 KERNEL32.DLL!UnknownFunction []
-[2026.09.01-13.49.43:960][  0]LogWindows: Error: 
-[2026.09.01-13.49.43:960][  0]LogWindows: Error: Crash in runnable thread IOThreadPool #2
-[2026.09.01-13.49.43:970][  0]LogExit: Executing StaticShutdownAfterError
-[2026.09.01-13.49.43:971][  0]LogWindows: FPlatformMisc::RequestExit(1, FRunnableThreadWin::GuardedRun.ExceptionHandler)
-[2026.09.01-13.49.43:971][  0]LogWindows: FPlatformMisc::RequestExitWithStatus(1, 3, FRunnableThreadWin::GuardedRun.ExceptionHandler)
-[2026.09.01-13.49.43:971][  0]LogCore: Engine exit requested (reason: Win RequestExit)
+[2026.09.01-13.56.16:835][  0]LogMemory: Process Physical Memory: 193.12 MB used, 193.12 MB peak
+[2026.09.01-13.56.16:835][  0]LogMemory: Process Virtual Memory: 135.47 MB used, 135.47 MB peak
+[2026.09.01-13.56.16:835][  0]LogMemory: Physical Memory: 12242.96 MB used,  20451.08 MB free, 32694.05 MB total
+[2026.09.01-13.56.16:835][  0]LogMemory: Virtual Memory: 19104.64 MB used,  15637.41 MB free, 34742.05 MB total
+[2026.09.01-13.56.16:835][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
+[2026.09.01-13.56.16:836][  0]LogWindows: WindowsPlatformFeatures enabled
+[2026.09.01-13.56.16:836][  0]LogSpline: Registered spline type: TypeId=0x54E3AD22, Impl=MultiSpline, Value=Vector
+[2026.09.01-13.56.16:836][  0]LogChaosDD: Chaos Debug Draw Startup
+[2026.09.01-13.56.16:836][  0]LogInit: Physics initialised using underlying interface: Chaos
+[2026.09.01-13.56.16:836][  0]LogInit: Using OS detected language (en-US).
+[2026.09.01-13.56.16:836][  0]LogInit: Using OS detected locale (en-CH).
+[2026.09.01-13.56.16:836][  0]LogTextLocalizationManager: No specific localization for 'en-US' exists, so 'en' will be used for the language.
+[2026.09.01-13.56.16:841][  0]LogWindowsTouchpad: Display: CacheForceMaxTouchpadSensitivityMode SetMaxTouchpadSensitivity
+[2026.09.01-13.56.16:842][  0]LogInputDeviceRegistry: RegisterDevice: DeviceId=0 InputDeviceName=WindowsApplication HardwareDeviceIdentifier=KBM (changed=true)
+[2026.09.01-13.56.16:848][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+[2026.09.01-13.56.16:853][  0]LogSlate: New Slate User Created. Platform User Id 0, User Index 0, Is Virtual User: 0
+[2026.09.01-13.56.16:853][  0]LogSlate: Slate User Registered.  User Index 0, Is Virtual User: 0
+[2026.09.01-13.56.16:933][  0]LogInit: Running DelayedAutoRegister Phase PreRHIInit
+[2026.09.01-13.56.16:944][  0]LogVRS: Current RHI does not support Variable Rate Shading
+[2026.09.01-13.56.16:945][  0]LogRHI: Render tracing channels set: 'Submission' -> 0xf
+[2026.09.01-13.56.16:945][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Null"
+[2026.09.01-13.56.16:945][  0]LogCsvProfiler: Display: Metadata set : rhiname="Null"
+[2026.09.01-13.56.16:945][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
+[2026.09.01-13.56.16:945][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
+[2026.09.01-13.56.16:945][  0]LogCsvProfiler: Display: Metadata set : gpu=""
+[2026.09.01-13.56.16:945][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
+[2026.09.01-13.56.16:945][  0]LogInit: Initializing FReadOnlyCVARCache
+[2026.09.01-13.56.16:950][  0]LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
+[2026.09.01-13.56.16:950][  0]LogInit: Running DelayedAutoRegister Phase ShaderTypesReady
+[2026.09.01-13.56.16:953][  0]LogCore: Engine exit requested (reason: EngineExit() was called; note: exit was already requested)
+[2026.09.01-13.56.16:954][  0]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: )...
+[2026.09.01-13.56.16:954][  0]LogAudio: Display: Audio Device Manager Shutdown
+[2026.09.01-13.56.16:959][  0]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
+[2026.09.01-13.56.16:960][  0]LogExit: Preparing to exit.
+[2026.09.01-13.56.16:960][  0]LogUObjectArray: CloseDisregardForGC: 5602/5602 objects in disregard for GC pool
+[2026.09.01-13.56.16:965][  0]LogExit: Object subsystem successfully closed.
+[2026.09.01-13.56.16:966][  0]LogChaosDD: Chaos Debug Draw Shutdown
+[2026.09.01-13.56.16:969][  0]LogNFORDenoise: NFORDenoise function shutting down
+[2026.09.01-13.56.16:971][  0]LogPakFile: Destroying PakPlatformFile
+[2026.09.01-13.56.16:973][  0]LogExit: Exiting.
 buildReached=end
