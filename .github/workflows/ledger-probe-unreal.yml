@@ -382,6 +382,16 @@ jobs:
           # shape that makes a result untraceable.
           if ($packagedExe) { $exe = $packagedExe; $L += "ranBinary=packaged" }
           else              { $exe = $cands | Select-Object -First 1; $L += "ranBinary=uncooked-build-output" }
+          # Where a run writes its files: the staged project for a packaged
+          # binary, this checkout's project otherwise. Named once and reused,
+          # because computing it twice is how the two halves drift apart.
+          if ($packagedExe) {
+            $b3 = Split-Path $packagedExe.FullName -Parent
+            $stagedProjOrCwd = Split-Path (Split-Path $b3 -Parent) -Parent
+          } else {
+            $stagedProjOrCwd = Join-Path $PWD "ue-probe"
+          }
+          $L += "runWritesTo=$($stagedProjOrCwd -replace ' ','~')"
           if (-not $exe) {
             $L += "BINARY NOT FOUND under ue-probe after a successful build."
             $L += "buildReached=end"; $L | Set-Content $out -Encoding utf8
@@ -456,6 +466,49 @@ jobs:
           if ((Test-Path $gameErr) -and (Get-Item $gameErr).Length -gt 0) {
             $L += "--- game stderr, last 20 lines ---"; $L += (Get-Content $gameErr -Tail 20)
           }
+          # TASK 007 STEP 2: ONE STILL, OFFSCREEN. A SEPARATE INVOCATION.
+          #
+          # -RenderOffScreen, not -nullrhi. They are opposite things: nullrhi
+          # means no rendering at all, which is right for the golden test
+          # above and useless for a picture. Two runs rather than one flag
+          # set, because the golden path works and must not be disturbed by
+          # the half that is still being proved.
+          #
+          # It is allowed to fail without costing the golden result: this is
+          # step 2 of a four-step spec and the run has already answered step
+          # 1 by the time it gets here.
+          if ($exe) {
+            $shotPng = Join-Path $stagedProjOrCwd "ue-shot.png"
+            $shotVerdict = Join-Path $stagedProjOrCwd "ue-shot-verdict.txt"
+            Remove-Item $shotPng, $shotVerdict -Force -ErrorAction SilentlyContinue
+            # AND THE TRACKED COPY, DELETED UP FRONT. It is a tracked file,
+            # so the checkout restores the PREVIOUS run's picture; a run that
+            # rendered nothing would leave that older image sitting in the
+            # repository beside a verdict saying no shot was taken, and a
+            # reader would attribute it to this commit. Deleting it first
+            # means the file exists only if THIS run wrote it, and the
+            # staging below records its absence as a deletion. A picture is
+            # evidence about the commit beside it only if that commit made it.
+            Remove-Item "production/d1-probe/ue-shot.png" -Force -ErrorAction SilentlyContinue
+            $t6 = Get-Date
+            $p6 = Start-Process -FilePath $exe.FullName `
+                  -ArgumentList @("-LedgerShot","-LedgerCommit=$sha","-RenderOffScreen",
+                                  "-unattended","-nosplash","-nopause","-stdout") `
+                  -Wait -PassThru -NoNewWindow `
+                  -RedirectStandardOutput "shot-run.log" -RedirectStandardError "shot-run.err"
+            $L += "shotExit=$($p6.ExitCode) shotSeconds=$([math]::Round(((Get-Date) - $t6).TotalSeconds, 2)) shotExitIsNotTheVerdict=true"
+            if (Test-Path $shotVerdict) { $L += (Get-Content $shotVerdict | Where-Object { $_ -notmatch "^#" -and $_ -ne "" }) }
+            else { $L += "shotStatus=NO-VERDICT reason=the shot run wrote no verdict file" }
+            if (Test-Path $shotPng) {
+              Copy-Item $shotPng "production/d1-probe/ue-shot.png" -Force
+              $L += "shotCommittedBytes=$((Get-Item $shotPng).Length)"
+            } else {
+              $L += "shotCommittedBytes=0 (no png; nothing is carried forward for it)"
+            }
+          } else {
+            $L += "shotStatus=SKIPPED reason=no binary to run"
+          }
+
           # TASK 007 STEP 1: THE UE-SIDE VERDICT, COLLECTED BY NAME.
           # The game writes it beside its own project; this brings it into
           # the repository under a fixed path so verdict-read.py and every
@@ -537,6 +590,11 @@ jobs:
           # STAGED BY NAME, like the other two. The UE verdict is the whole
           # point of task 007 and it must never ride in on a directory add.
           [ -f "$UEVERDICT" ] && git add -- "$UEVERDICT"
+          # The still, by name, with -A so that its ABSENCE is staged too.
+          # The probe step deletes the tracked copy before running, so this
+          # path either holds a picture this run rendered or holds nothing,
+          # and a plain `git add` would quietly leave a stale one behind.
+          git add -A -- production/d1-probe/ue-shot.png 2>/dev/null || true
           git diff --cached --quiet && { echo "probe result unchanged; nothing to commit"; exit 0; }
           git commit -m "UE machine probe from $(git rev-parse --short HEAD)"
           BR="${GITHUB_REF_NAME}"

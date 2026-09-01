@@ -19,6 +19,9 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "Misc/DateTime.h"
+#include "Containers/Ticker.h"
+#include "UnrealClient.h"
+#include "HAL/FileManager.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -118,6 +121,90 @@ namespace
 		}
 		Out.Add(TEXT("verdictReached=end"));
 		FFileHelper::SaveStringToFile(FString::Join(Out, TEXT("\n")) + TEXT("\n"), *Path);
+	}
+
+	// TASK 007 STEP 2: ONE STILL, OFFSCREEN. THE PICTURE IS NOT THE POINT.
+	//
+	// The spec is explicit that content is irrelevant at this stage: the
+	// default map is an engine map and the frame will be nearly empty. What
+	// is being proved is that a capture happens, a file appears, and the
+	// file can be committed with provenance. A grey box photographed
+	// correctly beats a good-looking screenshot nothing can trace.
+	//
+	// THIS CANNOT RUN AT MODULE STARTUP AND THAT IS THE WHOLE DESIGN.
+	// RequestScreenshot is ASYNCHRONOUS: it flags the next rendered frame.
+	// The golden test can write its file and quit immediately because it
+	// touches nothing but arithmetic; a screenshot needs the engine to
+	// actually render, so this ticks, requests, waits, checks and only then
+	// asks to exit.
+	//
+	// IT IS ALSO -RenderOffScreen AND NOT -nullrhi, WHICH ARE OPPOSITE
+	// THINGS. nullrhi means no rendering at all, which is correct for the
+	// golden test and useless here. The workflow passes the right one for
+	// each invocation and they are separate runs on purpose.
+	//
+	// The whole thing is behind its own switch so it cannot disturb the
+	// golden path, which works and is the more important of the two.
+	FTSTicker::FDelegateHandle GShotTicker;
+	int32   GShotFrames   = 0;
+	bool    GShotAsked    = false;
+	FString GShotPath;
+
+	void WriteShotVerdict(const TCHAR* Status, int32 Frames, int64 Bytes)
+	{
+		FString Sha;
+		if (!FParse::Value(FCommandLine::Get(), TEXT("LedgerCommit="), Sha) || Sha.IsEmpty())
+		{
+			Sha = TEXT("SHA-UNKNOWN");
+		}
+		const FString Path = FPaths::Combine(FPaths::ProjectDir(), TEXT("ue-shot-verdict.txt"));
+		const FString Body = FString::Printf(
+			TEXT("# UE probe shot %s @%lld\n")
+			TEXT("# Line 1 names the commit this was measured on.\n\n")
+			TEXT("shotStatus=%s shotFramesWaited=%d shotBytes=%lld shotPath=%s\n")
+			TEXT("shotReached=end\n"),
+			*Sha.Replace(TEXT(" "), TEXT("~")),
+			(long long)FDateTime::UtcNow().ToUnixTimestamp(),
+			Status, Frames, (long long)Bytes,
+			GShotPath.IsEmpty() ? TEXT("NONE")
+			                    : *FPaths::GetCleanFilename(GShotPath));
+		FFileHelper::SaveStringToFile(Body, *Path);
+	}
+
+	bool ShotTick(float)
+	{
+		++GShotFrames;
+		// A few frames to let the renderer settle before asking. The number
+		// is small and arbitrary and is printed, so if it turns out to be
+		// too few the verdict says how few rather than leaving a guess.
+		if (!GShotAsked && GShotFrames >= 10)
+		{
+			GShotAsked = true;
+			GShotPath = FPaths::Combine(FPaths::ProjectDir(), TEXT("ue-shot.png"));
+			IFileManager::Get().Delete(*GShotPath, false, true, true);
+			FScreenshotRequest::RequestScreenshot(GShotPath, false, false);
+			return true;
+		}
+		if (GShotAsked && GShotFrames >= 90)
+		{
+			// EIGHTY FRAMES IS A CEILING ON A HANG, NOT A TARGET, and the
+			// two outcomes are named differently so a slow capture and a
+			// capture that never happened cannot read alike.
+			const int64 Bytes = IFileManager::Get().FileSize(*GShotPath);
+			WriteShotVerdict(Bytes > 0 ? TEXT("WROTE") : TEXT("NO-FILE"), GShotFrames, Bytes);
+			FPlatformMisc::RequestExit(false);
+			// Returning false unregisters this ticker. Calling RemoveTicker
+			// from inside the callback as well would be removing it twice,
+			// and the tidier-looking version is the one that can go wrong.
+			return false;
+		}
+		return true;
+	}
+
+	void StartShot()
+	{
+		GShotTicker = FTSTicker::GetCoreTicker().AddTicker(
+			FTickerDelegate::CreateStatic(&ShotTick), 0.0f);
 	}
 
 	void RunGoldenTest()
@@ -232,6 +319,14 @@ public:
 		// A switch the workflow passes only for the game run separates them
 		// with no guessing about which host we are in. IsRunningCommandlet
 		// would also work today and would be a guess about tomorrow.
+		// TWO INVOCATIONS, TWO SWITCHES, AND NEITHER IS THE DEFAULT. A
+		// module with no switch does nothing at all, which is what the cook
+		// commandlet needs from it.
+		if (FParse::Param(FCommandLine::Get(), TEXT("LedgerShot")))
+		{
+			StartShot();
+			return;
+		}
 		if (!FParse::Param(FCommandLine::Get(), TEXT("LedgerGoldenTest")))
 		{
 			return;
