@@ -1,8 +1,10 @@
-# Blender setup - c2769c7
+# Blender setup - 7a2b52a
 
-host=JAFAR-DESKTOP written=2026-09-01T18:19:03Z
+host=JAFAR-DESKTOP written=2026-09-01T18:56:57Z
 presentBeforeThisRun=no
-not present: meshgen's probe found no blender.exe, so this run installs one.
+not present: meshgen's probe found no blender.exe, so this run unpacks one.
+method=portable-zip
+note: this step no longer runs an installer. The MSI path was DELETED on 1 Sep, not kept as a fallback, because msiexec returned 1603 here (rights: a per-machine MSI needs an elevated runner service) and the same PC has already refused the PowerShell 7 installer. Blender's portable zip is the same build and needs no elevation. If you want the MSI back it comes back as its own named step with its own keys.
 reading the release index: https://download.blender.org/release/
 indexRead=yes indexBytes=12133
 lineDirsSeen=74
@@ -12,39 +14,34 @@ ltsLineChosen=4.5
 note: the newest line in the index is 5.2, which is not on the LTS list. If it has become an LTS line, add it to ltsPreference in this workflow.
 reading the line index: https://download.blender.org/release/Blender4.5/
 lineIndexRead=yes lineIndexBytes=21010
-msiCandidates=14
+zipCandidates=14
 blenderVersionChosen=4.5.13
-blenderMsiUrl=https://download.blender.org/release/Blender4.5/blender-4.5.13-windows-x64.msi
-downloadedBytes=359968768
-checksum=not-published sha256=3d5cb2e769215d8d31a4b417ed56c20f25c5139f441faaa85daaef34839af56e
-note: nothing was readable at https://download.blender.org/release/Blender4.5/blender-4.5.13-windows-x64.msi.sha256, so the download is unverified. The hash above is what arrived, not what upstream says.
-running msiexec /i "C:\actions-runner-ledger\_work\_temp\blender-4.5.13-windows-x64.msi" /qn /norestart /L*v "C:\actions-runner-ledger\_work\_temp\blender-msi.log"
-msiexecExit=1603 minutes=0.2
-INSTALL FAILED with exit 1603.
-hint: 1603 is the generic MSI failure. Under /qn it is usually rights: a per-machine install needs the runner service to be elevated.
-msiLogLines=20238 shown=12
-(+20226 earlier msi log lines not shown; the whole log is at C:\actions-runner-ledger\_work\_temp\blender-msi.log on the runner)
-msilog: MSI (s) (C8:68) [20:19:25:699]: No System Restore sequence number for this installation.
-msilog: === Logging stopped: 01/09/2026  20:19:25 ===
-msilog: MSI (s) (C8:68) [20:19:25:702]: User policy value 'DisableRollback' is 0
-msilog: MSI (s) (C8:68) [20:19:25:702]: Machine policy value 'DisableRollback' is 0
-msilog: MSI (s) (C8:68) [20:19:25:702]: Incrementing counter to disable shutdown. Counter after increment: 0
-msilog: MSI (s) (C8:68) [20:19:25:702]: Note: 1: 1402 2: HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Installer\Rollback\Scripts 3: 2 
-msilog: MSI (s) (C8:68) [20:19:25:702]: Note: 1: 1402 2: HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Installer\Rollback\Scripts 3: 2 
-msilog: MSI (s) (C8:68) [20:19:25:702]: Decrementing counter to disable shutdown. If counter >= 0, shutdown will be denied.  Counter after decrement: -1
-msilog: MSI (c) (FC:60) [20:19:25:703]: Decrementing counter to disable shutdown. If counter >= 0, shutdown will be denied.  Counter after decrement: -1
-msilog: MSI (c) (FC:60) [20:19:25:704]: MainEngineThread is returning 1603
-msilog: === Verbose logging stopped: 01/09/2026  20:19:25 ===
-msilog: 
-installReportedOk=no
-NOT VERIFIED: after this run meshgen's probe still finds no blender.exe.
-blenderPath=none
-blenderVersion=none
+blenderZipUrl=https://download.blender.org/release/Blender4.5/blender-4.5.13-windows-x64.zip
+note: three keys changed name with the method, so a diff against the run of 1 Sep reads as a change of method rather than a missing key: blenderMsiUrl is now blenderZipUrl, msiCandidates is now zipCandidates, and outcome=installed is now outcome=extracted. Every discovery key above is unchanged.
+extractRoot=C:\LedgerTools\blender\4.5.13
+destExistedBefore=no
+writeTest=ok
+downloadedBytes=398648740
+checksumSourcesTried=2
+checksum=match sha256=b5fdf800ce65fa2f209e8f68d02667e4d720fa1c42f247c72d1882ab04decba6
+checksumSource=https://download.blender.org/release/Blender4.5/blender-4.5.13.sha256
+extractTool=tar.exe
+extractExit=0
+extractMinutes=0.1
+extractedFiles=5525
+blenderExeInExtract=C:\LedgerTools\blender\4.5.13\blender-4.5.13-windows-x64\blender.exe
+extractReportedOk=yes
+verified: meshgen's own probe finds blender.exe, so the unpacked copy landed where the consumer looks.
+blenderPath=C:\LedgerTools\blender\4.5.13\blender-4.5.13-windows-x64\blender.exe
+the same path with its real spaces: C:\LedgerTools\blender\4.5.13\blender-4.5.13-windows-x64\blender.exe
+its own first line: Blender 4.5.13 LTS
+verified: it RAN and reported its version.
+blenderVersion=4.5.13
 onPath=no
-note: PATH is not a requirement. probe-tools.ps1 searches Program Files\Blender Foundation when PATH has nothing, and that is the branch meshgen relies on. Nothing here edits the machine PATH; that global belongs to the runner bootstrap.
+note: PATH is not a requirement. probe-tools.ps1 searches C:\LedgerTools\blender FIRST, then Program Files\Blender Foundation, Steam and WindowsApps, and the LedgerTools branch is the one an unpacked copy is found by. That search list was extended for this step; without that edit an extracted Blender would be invisible to meshgen and this whole step would land nothing. Nothing here edits the machine PATH; that global belongs to the runner bootstrap.
 probeJsonWritten=yes
-verifiedRequirements=0/2
-meshgen's local backend will still refuse: 2 of 2 requirement(s) unmet.
+verifiedRequirements=2/2
+DONE: Blender was unpacked by THIS run and it runs.
 changedMachine=yes
-outcome=failed
+outcome=extracted
 setupReached=end
