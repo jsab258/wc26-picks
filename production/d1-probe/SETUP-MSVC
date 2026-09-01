@@ -1,0 +1,13 @@
+# The sentinel that runs .github/workflows/ledger-setup-msvc.yml.
+#
+# One-off machine setup: installs the Visual Studio 2022 BUILD TOOLS with the
+# C++ workload on the build PC, which the UE probe found entirely absent.
+# Idempotent: if MSVC is already there the workflow reports it and exits
+# without touching anything, so touching this file again is free.
+#
+# Authorized by Jafar 2026-09-01.
+#
+# One line per run, appended, so the file is also the setup log.
+run 1 - 2026-09-01 - install VS 2022 Build Tools, VCTools workload plus
+recommended (which brings the Windows SDK UE also needs). Probe run 2 found
+vswhere absent, so there is no Visual Studio of any kind on the machine.

@@ -1,0 +1,180 @@
+name: LEDGER setup MSVC build tools
+
+# ONE-OFF MACHINE SETUP, AUTHORIZED BY JAFAR 2026-09-01 ("go ahead").
+#
+# The UE probe found no Visual Studio of any kind on the build PC, which
+# blocks every C++ step of the D1 probe. This installs the BUILD TOOLS, not
+# the full IDE: the headless MSVC toolchain is what UE needs to compile, and
+# it is the smaller footprint of the two.
+#
+# WHY A SEPARATE WORKFLOW rather than a step in the probe. This changes the
+# machine, it takes tens of minutes, and it should happen exactly once. A
+# setup action living inside a measurement workflow would run on every
+# measurement, and the first time somebody wondered why a probe took an hour
+# the answer would be buried in a step nobody reads.
+#
+# IT IS IDEMPOTENT AND SAYS SO. If MSVC is already present it reports that
+# and exits without touching anything, so re-running is free and safe.
+#
+# TRIGGER: its own sentinel, for the same reason the probe has one. This
+# workflow is not on the default branch and cannot be dispatched from the
+# API until it is; touching production/d1-probe/SETUP-MSVC runs it.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'production/d1-probe/SETUP-MSVC'
+
+permissions:
+  contents: write
+
+jobs:
+  setup-msvc:
+    runs-on: [self-hosted, ledger-pc]
+    # A Visual Studio install is tens of minutes on a good connection and
+    # this is a ceiling on a hang, not a target.
+    timeout-minutes: 120
+
+    steps:
+      - name: tool PATH bootstrap (self-hosted parity)
+        timeout-minutes: 1
+        shell: cmd
+        run: |
+          where bash >nul 2>nul
+          if not errorlevel 1 goto :bashok
+          if exist "C:\Program Files\Git\bin\bash.exe" (
+            >>"%GITHUB_PATH%" echo C:\Program Files\Git\bin
+            goto :bashok
+          )
+          echo NO bash ON THIS MACHINE - Git for Windows normally provides it.
+          exit /b 1
+          :bashok
+          where pwsh >nul 2>nul
+          if not errorlevel 1 goto :pwshok
+          if exist "C:\Program Files\PowerShell\7\pwsh.exe" (
+            >>"%GITHUB_PATH%" echo C:\Program Files\PowerShell\7
+            goto :pwshok
+          )
+          if exist "C:\LedgerTools\pwsh7\pwsh.exe" (
+            >>"%GITHUB_PATH%" echo C:\LedgerTools\pwsh7
+            goto :pwshok
+          )
+          echo NO pwsh ON THIS MACHINE.
+          exit /b 1
+          :pwshok
+          echo tool PATH bootstrap done.
+          exit /b 0
+
+      - name: Checkout
+        timeout-minutes: 6
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install the MSVC build tools
+        id: install
+        timeout-minutes: 100
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $out = "production/d1-probe/msvc-setup.txt"
+          New-Item -ItemType Directory -Force -Path "production/d1-probe" | Out-Null
+          $sha = $env:GITHUB_SHA
+          if ($sha) { $sha = $sha.Substring(0, [Math]::Min(7, $sha.Length)) } else { $sha = "SHA-UNKNOWN" }
+          $L = @("# MSVC build tools setup - $sha", "")
+
+          # ALREADY THERE? Then do nothing and say so. Re-running must be
+          # free, because a setup task that reinstalls on every trigger is a
+          # setup task somebody will be afraid to run.
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (Test-Path $vswhere) {
+            $have = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationVersion 2>$null
+            if ($have) {
+              $L += "ALREADY PRESENT: msvc version=$have. Nothing installed, nothing changed."
+              $L += "setupReached=end"
+              $L | Set-Content $out -Encoding utf8
+              Write-Host ($L -join "`n")
+              exit 0
+            }
+          }
+
+          # THE UNATTENDED BOOTSTRAPPER, not winget. winget under a runner
+          # session has known trouble with package sources and elevation;
+          # the bootstrapper is Microsoft's documented unattended path and
+          # its exit codes are defined, which matters more here than
+          # convenience: this step must be able to say WHY it failed.
+          $url = "https://aka.ms/vs/17/release/vs_BuildTools.exe"
+          $exe = Join-Path $env:RUNNER_TEMP "vs_BuildTools.exe"
+          $L += "downloading $url"
+          try {
+            Invoke-WebRequest -Uri $url -OutFile $exe -UseBasicParsing
+            $L += "downloaded bytes=$((Get-Item $exe).Length)"
+          } catch {
+            $L += "DOWNLOAD FAILED: $($_.Exception.Message)"
+            $L += "setupReached=end"
+            $L | Set-Content $out -Encoding utf8
+            Write-Host ($L -join "`n"); exit 1
+          }
+
+          # VCTools is the C++ toolchain workload. --includeRecommended
+          # brings the Windows SDK, which UE also needs and whose absence
+          # would be the next identical failure one step later.
+          $args = @("--quiet", "--wait", "--norestart", "--nocache",
+                    "--add", "Microsoft.VisualStudio.Workload.VCTools",
+                    "--includeRecommended")
+          $L += "running vs_BuildTools.exe $($args -join ' ')"
+          $t0 = Get-Date
+          $p = Start-Process -FilePath $exe -ArgumentList $args -Wait -PassThru
+          $mins = [math]::Round(((Get-Date) - $t0).TotalMinutes, 1)
+          # 0 is success; 3010 is success needing a reboot, which is still a
+          # successful install and must not read as a failure.
+          $L += "exitCode=$($p.ExitCode) minutes=$mins"
+          if ($p.ExitCode -eq 3010) { $L += "note: 3010 means installed, reboot pending. This is success." }
+          elseif ($p.ExitCode -ne 0) { $L += "INSTALL FAILED with exit $($p.ExitCode)." }
+
+          # PROVE IT, rather than trusting the exit code. The probe's own
+          # question, asked again: does vswhere now report the workload.
+          if (Test-Path $vswhere) {
+            $now = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationVersion 2>$null
+            $nowp = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2>$null
+            if ($now) { $L += "VERIFIED: msvc version=$now path=$($nowp -replace ' ','~')" }
+            else      { $L += "NOT VERIFIED: vswhere present but reports no VC.Tools workload." }
+          } else {
+            $L += "NOT VERIFIED: vswhere still absent after the installer ran."
+          }
+          $L += "setupReached=end"
+          $L | Set-Content $out -Encoding utf8
+          Write-Host ($L -join "`n")
+
+      - name: Commit the setup result
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: "*"
+        run: |
+          set -u
+          OUT=production/d1-probe/msvc-setup.txt
+          if [ ! -f "$OUT" ] || ! grep -q "setupReached=end" "$OUT"; then
+            printf '# MSVC build tools setup - %s\nNO SETUP - the install step did not reach its end (outcome: %s).\nNothing was measured on this commit.\n' \
+              "$(git rev-parse --short HEAD)" "${INSTALL_OUTCOME:-unknown}" > "$OUT"
+          fi
+          git config user.name "LEDGER setup"
+          git config user.email "setup@ledger.local"
+          git add -- "$OUT"
+          git diff --cached --quiet && { echo "setup result unchanged; nothing to commit"; exit 0; }
+          git commit -m "MSVC setup result from $(git rev-parse --short HEAD)"
+          BR="${GITHUB_REF_NAME}"
+          for i in 1 2 3; do
+            git pull --rebase --no-edit origin "$BR" || git rebase --abort || true
+            if git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${BR}"; then
+              echo "setup result pushed to $BR"; exit 0
+            fi
+            sleep $((i * 5))
+          done
+          echo "could not push the setup result; it is committed locally on the agent"
