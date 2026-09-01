@@ -908,63 +908,28 @@ def docs_shape():
 
 
 def template_sync():
-    """CLAUDE.md's process sections, against the claim that the template carries them.
+    """RETIRED 2026-08-31 by decision D10 (ledger-v2/respec/decision-register/
+    D10-framework-freeze.md). The game-studio repo is FROZEN as legacy
+    reference; ledger-v2/studio-v2/ is the single operative framework, and
+    game-studio is updated only by HARVEST at phase exit, never by continuous
+    sync. This check WAS the continuous sync: it fingerprinted CLAUDE.md's
+    process sections and went red until game-studio absorbed the change or a
+    queue item deferred it. Under D10 that is the forbidden mechanism, so the
+    gate is retired rather than left to fight the decision.
 
-    THE INCIDENT, 24 Aug. The template repo (`jsab258/game-studio`) drifted from
-    LEDGER's process sections within HOURS of shipping — it still said the
-    resident was Fable while CLAUDE.md had moved to the hybrid — and it was
-    caught by Jafar reading it, not by any instrument. Every other mechanism
-    considered (a dailies review, a standing queue item, syncing on demand) is
-    list-based or clock-based; this file is a list of proofs that a rule with no
-    trigger point decays, and "sync on demand" IS the incident.
+    THE INCIDENT THAT BUILT IT IS STILL TRUE and is why harvest is mandatory
+    rather than optional: on 24 Aug the template drifted from the process
+    sections within hours of shipping and was caught by Jafar reading it, not
+    by any instrument. The replacement trigger is structural instead of
+    per-edit: a phase CANNOT CLOSE without a harvest commit, and the weekly
+    process audit checks that every closed phase has one
+    (ledger-v2/studio-v2/learning.md). tools/template-sync.py and its marker
+    stay on disk as the fingerprint machinery a harvest may reuse.
 
-    SAME-REPO ON PURPOSE, and that is the design decision rather than a
-    convenience: `tools/template-sync.py` fingerprints the four process sections
-    (THE STUDIO SPLIT, THE HYBRID RESIDENT, REPORTING, AUTO MODE) and compares
-    against `.claude/template-sync.txt`, which records the fingerprint plus
-    either the template commit that absorbed it or a named queue item deferring
-    it. It NEVER reads the other repo — that checkout exists in this container
-    and not on the Windows runner, and a check that means different things in
-    different places is not a check. The marker is the claim; the job here is to
-    force the claim to be MADE, at the moment the sections change.
-
-    THE CHECK RUNS BEFORE THE SELFTEST, deliberately. The selftest's first
-    accepting fixture is the live pair, so a real drift would fail it too — and
-    reporting a drift as "the checker is broken" sends the next session reading
-    the tool instead of the marker. Red for the tree comes first; red for the
-    instrument comes second; green needs both.
-
-    A DEFERRAL IS GREEN AND LOUD. `state=deferred` passes, and its queue item is
-    named in the footer of every commit made while it stands, so a deferral
-    nobody discharges is visible in the commit feed rather than resting in a
-    file nobody opens."""
-    tool = str(ROOT.parent / "tools" / "template-sync.py")
-    code, out = run(["python3", tool])
-    head = next((l.strip() for l in out.splitlines()
-                 if l.startswith("template-sync:")), "")
-    if not head:
-        return False, "TEMPLATE SYNC READ NOTHING: " + _cap(
-            out.strip().splitlines(), width=110, tail="no output")
-    if code != 0:
-        return False, _cap([head], width=400)
-    scode, sout = run(["python3", tool, "--selftest"])
-    m = re.search(r"selftest: (\d+) passed, (\d+) failed", sout)
-    if not m:
-        return False, "TEMPLATE SYNC CHECK BROKEN: selftest did not report"
-    if m.group(2) != "0":
-        bad = [l.strip() for l in sout.splitlines() if l.strip().startswith("FAILED")]
-        return False, "TEMPLATE SYNC CHECK BROKEN: " + _cap(
-            bad, strip=7, width=103, tail="selftest failed")
-    # A COMPACT FOOTER, BUILT FROM THE TOOL'S OWN TOKENS rather than retyped:
-    # the state, its subject, and the denominators that make the zero readable.
-    got = dict(t.split("=", 1) for t in head.split() if t.count("=") == 1)
-    state = got.get("state", "?")
-    subject = ("deferred to %s" % got.get("queueItem", "?")) if state == "deferred" \
-        else "synced at %s" % got.get("templateSha", "?")
-    return True, ("template sync %s (%s, %s sections, fingerprint %s, %s fixtures)"
-                  % (state.upper() if state == "deferred" else "ok", subject,
-                     got.get("sections", "?"), got.get("fingerprint", "?"),
-                     m.group(1)))
+    This retirement is lesson L1 in learning.md's index: terminated as a gate
+    change, which is exactly the pipeline the decision creates."""
+    return True, ("template sync RETIRED by D10: game-studio frozen, harvest "
+                  "at phase exit replaces continuous sync (learning.md L1)")
 
 
 def attribution():

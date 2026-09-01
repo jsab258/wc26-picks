@@ -15,6 +15,21 @@
 6. Context hygiene: agents read schemas and slices, not the repo; readers get file paths plus line ranges where known.
 7. Autonomous operation runs as a loop of disposable headless sessions per studio-v2/runner.md. Manual /clear discipline applies to interactive human sessions only; the runner never needs it.
 
+## Phase exit checklist (a phase is not closed until all four hold)
+1. The phase's exit gate, as instrumented in roadmap-v2.md, is green.
+2. Phase-exit retrospective held: what cost more than it should, what a
+   gate missed, what a person had to catch. Findings enter through
+   learning.md like every other lesson and terminate the same four ways.
+3. HARVEST executed per learning.md: portable lessons distilled into
+   game-studio (frozen otherwise, D10), committed to its main naming the
+   phase, diff summarized in the morning brief, README status line updated.
+4. The weekly process audit (production/queue/900) is clean or its
+   violations are queue items.
+
+The lessons pipeline, the harvest mechanics and the terminated-lessons
+index live in learning.md; that file is the front door to how this studio
+learns.
+
 ## Token economics
 1. Ledger: production/token-ledger.md records per-department spend estimates per week and escalations to top models with reasons.
 2. Routing law as in organization.md; violations are audit findings.
