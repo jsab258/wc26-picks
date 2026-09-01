@@ -63,9 +63,23 @@ of the last two, meaning the checkout wipes the workspace, so nothing carries
 over. The 0.03 warm figure is a SECOND INVOCATION INSIDE ONE RUN, not a
 next-day rebuild, and it is labelled that way wherever it appears.
 
-Cook: NOT YET MEASURED. Three attempts, none of which reached a cook.
-Failures were, in order: no editor target, then the .NET Framework SDK
-missing. Both are setup, not cycle.
+Cook, measured for the first time on run 12:
+
+    cold cook       2.00 min   (first cook, pays for shaders and staging once)
+    incremental     0.45 min   (no edit between them: the floor of a cook)
+
+Four attempts preceded it and every failure was setup rather than cycle: no
+editor target, then the .NET Framework SDK missing, then the golden test
+itself killing the cook commandlet it was running inside.
+
+SO A UE EDIT-BUILD-COOK CYCLE ON THIS MACHINE IS ABOUT HALF A MINUTE, warm
+build plus incremental cook, against Unity's 2.47 minute warm build. That
+comparison is closer to fair than anything above it, because both are the
+repeat cost on the same PC. It is still not fair, and the reason is the same
+one as before and has not moved: the UE project is two source files and no
+content, and Unity is building a whole game with its assets. The number to
+watch is not this one, it is whether it holds when the UE side has a street
+in it.
 
 Loop, over five real edits: median 10 min, from cycles.tsv, every endpoint
 traced to a landed CI commit.

@@ -364,17 +364,34 @@ jobs:
                     -RedirectStandardOutput "cook-warm.log" -RedirectStandardError "cook-warm.err"
               $L += "warmCookExit=$($p5.ExitCode) warmCookMinutes=$([math]::Round(((Get-Date) - $t5).TotalMinutes, 2))"
             }
-            $pk = @(Get-ChildItem -Path $archive -Filter "LedgerProbe.exe" -Recurse -ErrorAction SilentlyContinue |
-                    Sort-Object LastWriteTime -Descending)
-            $L += "packagedCandidates=$($pk.Count)"
-            if ($pk.Count -gt 0) {
-              $packagedExe = $pk[0]
+            # A STAGED WINDOWS BUILD SHIPS TWO EXES WITH THE SAME NAME, and
+            # run 12 ran the wrong one. The one at the archive root is a
+            # LAUNCHER STUB that starts the real binary and returns; it
+            # exited 1 in two seconds and wrote nothing, which read exactly
+            # like the module failing to start. The real binary is the one
+            # under Binaries\Win64, so that is what gets preferred, and the
+            # count of each kind is printed rather than just a total.
+            $pk = @(Get-ChildItem -Path $archive -Filter "LedgerProbe.exe" -Recurse -ErrorAction SilentlyContinue)
+            $real = @($pk | Where-Object { $_.FullName -match "\\Binaries\\Win64\\" } |
+                      Sort-Object LastWriteTime -Descending)
+            $L += "packagedCandidates=$($pk.Count) packagedUnderBinaries=$($real.Count)"
+            if ($real.Count -gt 0) { $packagedExe = $real[0] }
+            elseif ($pk.Count -gt 0) {
+              $packagedExe = ($pk | Sort-Object LastWriteTime -Descending)[0]
+              $L += "packagedWarning=no exe under Binaries\Win64; falling back to the archive-root stub"
+            }
+            if ($packagedExe) {
               $L += "packaged=$($packagedExe.FullName -replace ' ','~')"
-              # The table travels with the binary: a staged build's ProjectDir
-              # is the staged tree, not this checkout.
-              $stagedProj = Split-Path (Split-Path (Split-Path $packagedExe.FullName -Parent) -Parent) -Parent
-              foreach ($dest in @((Split-Path $packagedExe.FullName -Parent), $stagedProj)) {
-                Copy-Item $golden (Join-Path $dest "perception-golden.txt") -Force -ErrorAction SilentlyContinue
+              # The staged PROJECT dir is the parent of Binaries, which is
+              # what FPaths::ProjectDir returns in a packaged run. The table
+              # goes there and beside the binary, and both are named.
+              $binDir = Split-Path $packagedExe.FullName -Parent
+              $stagedProj = Split-Path (Split-Path $binDir -Parent) -Parent
+              $L += "stagedProject=$($stagedProj -replace ' ','~')"
+              foreach ($dest in @($binDir, $stagedProj, $archive, (Join-Path $archive "Windows"))) {
+                if (Test-Path $dest) {
+                  Copy-Item $golden (Join-Path $dest "perception-golden.txt") -Force -ErrorAction SilentlyContinue
+                }
               }
             }
           }
@@ -412,8 +429,10 @@ jobs:
           # fault the verdict channel exists to prevent.
           $resultCandidates = @((Join-Path $PWD "ue-probe\golden-result.txt"))
           if ($packagedExe) {
-            $resultCandidates += (Join-Path (Split-Path $packagedExe.FullName -Parent) "golden-result.txt")
-            $resultCandidates += (Join-Path (Split-Path (Split-Path (Split-Path $packagedExe.FullName -Parent) -Parent) -Parent) "golden-result.txt")
+            $bd = Split-Path $packagedExe.FullName -Parent
+            $resultCandidates += (Join-Path $bd "golden-result.txt")
+            $resultCandidates += (Join-Path (Split-Path (Split-Path $bd -Parent) -Parent) "golden-result.txt")
+            $resultCandidates += (Join-Path (Join-Path $archive "Windows") "golden-result.txt")
           }
           foreach ($rc in $resultCandidates) { Remove-Item $rc -Force -ErrorAction SilentlyContinue }
           $resultFile = $resultCandidates[0]
@@ -442,7 +461,9 @@ jobs:
           # of the WRONG log would be worse than none.
           $logCandidates = @((Join-Path $PWD "ue-probe\Saved\Logs\LedgerProbe.log"))
           if ($packagedExe) {
-            $logCandidates += (Join-Path (Split-Path (Split-Path (Split-Path $packagedExe.FullName -Parent) -Parent) -Parent) "Saved\Logs\LedgerProbe.log")
+            $bd = Split-Path $packagedExe.FullName -Parent
+            $logCandidates += (Join-Path (Split-Path (Split-Path $bd -Parent) -Parent) "Saved\Logs\LedgerProbe.log")
+            $logCandidates += (Join-Path (Join-Path $archive "Windows") "LedgerProbe\Saved\Logs\LedgerProbe.log")
           }
           $ueLog = $logCandidates |
                    Where-Object { Test-Path $_ } |

@@ -21,3 +21,4 @@ unreal	005-d1-ue-workflow	2026-09-01T13:26:46Z	2026-09-01T13:33:04Z	fail	cook an
 unreal	005-d1-ue-workflow	2026-09-01T13:33:04Z	2026-09-01T13:39:44Z	fail	editor target added so the cook has something to launch; -nocompileeditor dropped
 unreal	005-d1-ue-workflow	2026-09-01T13:39:44Z	2026-09-01T13:53:10Z	fail	NET SDK setup run; no probe change
 unreal	001-d1-ue5-port-perception	2026-09-01T13:53:10Z	2026-09-01T14:15:00Z	pass	module moved to PostConfigInit, MapsToCook added, cook errors pulled from the whole log: golden test PASSED 1221/0
+unreal	005-d1-ue-workflow	2026-09-01T14:15:00Z	2026-09-01T14:35:00Z	pass	golden test gated on a switch so it stops killing the cook commandlet: COOK SUCCEEDED, cold 2.00 min, incremental 0.45 min

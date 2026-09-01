@@ -96,3 +96,15 @@ and was told to quit before cooking anything. The log said "ensure that
 cooking was successful", which was true and pointed nowhere. The test now
 runs only when the harness passes -LedgerGoldenTest, which it does for the
 game run and not for the cook. This run is about the cook alone.
+run 13 - 2026-09-01 - THE COOK WORKS. Run 12: cold 2.00 min, incremental
+0.45 min, packaged binary produced. Gating the golden test on a switch was
+the fix; it had been killing the cook commandlet it ran inside. The test
+then did not run, for a new and smaller reason: a staged Windows build
+ships two exes with the same name, a launcher stub at the archive root and
+the real binary under Binaries\Win64, and newest-first took the stub. The
+stub starts the real one and returns, so it exited 1 in two seconds having
+written nothing, which reads exactly like the module failing to start. This
+run prefers the binary under Binaries\Win64, prints both counts, copies the
+golden table to four named places and looks for the result in four. It
+should close the probe: build proven, port proven, cook measured, test
+running against the packaged artifact.
