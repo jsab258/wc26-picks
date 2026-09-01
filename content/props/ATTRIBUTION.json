@@ -1,0 +1,474 @@
+{
+  "what": "Meshes produced by tools/meshgen. Every row names its source, that source's licence and the tools that touched it.",
+  "law": "ledger-v2/research/license-allowlist.md",
+  "batch": "meridian-street-furniture-01",
+  "written": "2026-09-01T20:00:54Z",
+  "items": [
+    {
+      "id": "awning_01",
+      "files": [
+        "awning_01/awning_01_LOD0.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/awning_01.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "awning_02",
+      "files": [
+        "awning_02/awning_02_LOD0.glb",
+        "awning_02/awning_02_LOD1.glb",
+        "awning_02/awning_02_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/awning_02.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "cigarette_bin",
+      "files": [
+        "cigarette_bin/cigarette_bin_LOD0.glb",
+        "cigarette_bin/cigarette_bin_LOD1.glb",
+        "cigarette_bin/cigarette_bin_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/cigarette_bin.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "crowd_control_barrier",
+      "files": [
+        "crowd_control_barrier/crowd_control_barrier_LOD0.glb",
+        "crowd_control_barrier/crowd_control_barrier_LOD1.glb",
+        "crowd_control_barrier/crowd_control_barrier_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/crowd_control_barrier.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "curved_stone_bench",
+      "files": [
+        "curved_stone_bench/curved_stone_bench_LOD0.glb",
+        "curved_stone_bench/curved_stone_bench_LOD1.glb",
+        "curved_stone_bench/curved_stone_bench_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/curved_stone_bench.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "decorative_bollard_01",
+      "files": [
+        "decorative_bollard_01/decorative_bollard_01_LOD0.glb",
+        "decorative_bollard_01/decorative_bollard_01_LOD1.glb",
+        "decorative_bollard_01/decorative_bollard_01_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/decorative_bollard_01.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "decorative_bollard_02",
+      "files": [
+        "decorative_bollard_02/decorative_bollard_02_LOD0.glb",
+        "decorative_bollard_02/decorative_bollard_02_LOD1.glb",
+        "decorative_bollard_02/decorative_bollard_02_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/decorative_bollard_02.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "drain_cover_01",
+      "files": [
+        "drain_cover_01/drain_cover_01_LOD0.glb",
+        "drain_cover_01/drain_cover_01_LOD1.glb",
+        "drain_cover_01/drain_cover_01_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/drain_cover_01.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "drainage_grate_01",
+      "files": [
+        "drainage_grate_01/drainage_grate_01_LOD0.glb",
+        "drainage_grate_01/drainage_grate_01_LOD1.glb",
+        "drainage_grate_01/drainage_grate_01_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/drainage_grate_01.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "finger_post_sign_01",
+      "files": [
+        "finger_post_sign_01/finger_post_sign_01_LOD0.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/finger_post_sign_01.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "finger_post_sign_02",
+      "files": [
+        "finger_post_sign_02/finger_post_sign_02_LOD0.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/finger_post_sign_02.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "finger_post_sign_03",
+      "files": [
+        "finger_post_sign_03/finger_post_sign_03_LOD0.glb",
+        "finger_post_sign_03/finger_post_sign_03_LOD1.glb",
+        "finger_post_sign_03/finger_post_sign_03_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/finger_post_sign_03.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "framed_poster",
+      "files": [
+        "framed_poster/framed_poster_LOD0.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/framed_poster.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "garden_bench_01",
+      "files": [
+        "garden_bench_01/garden_bench_01_LOD0.glb",
+        "garden_bench_01/garden_bench_01_LOD1.glb",
+        "garden_bench_01/garden_bench_01_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/garden_bench_01.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "lamp_post_01",
+      "files": [
+        "lamp_post_01/lamp_post_01_LOD0.glb",
+        "lamp_post_01/lamp_post_01_LOD1.glb",
+        "lamp_post_01/lamp_post_01_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/lamp_post_01.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "large_pallet",
+      "files": [
+        "large_pallet/large_pallet_LOD0.glb",
+        "large_pallet/large_pallet_LOD1.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/large_pallet.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "mesh_bin",
+      "files": [
+        "mesh_bin/mesh_bin_LOD0.glb",
+        "mesh_bin/mesh_bin_LOD1.glb",
+        "mesh_bin/mesh_bin_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/mesh_bin.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "oil_barrel",
+      "files": [
+        "oil_barrel/oil_barrel_LOD0.glb",
+        "oil_barrel/oil_barrel_LOD1.glb",
+        "oil_barrel/oil_barrel_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/oil_barrel.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "ornate_bench",
+      "files": [
+        "ornate_bench/ornate_bench_LOD0.glb",
+        "ornate_bench/ornate_bench_LOD1.glb",
+        "ornate_bench/ornate_bench_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/ornate_bench.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "outdoor_bin",
+      "files": [
+        "outdoor_bin/outdoor_bin_LOD0.glb",
+        "outdoor_bin/outdoor_bin_LOD1.glb",
+        "outdoor_bin/outdoor_bin_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/outdoor_bin.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "pallet",
+      "files": [
+        "pallet/pallet_LOD0.glb",
+        "pallet/pallet_LOD1.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/pallet.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "park_bench",
+      "files": [
+        "park_bench/park_bench_LOD0.glb",
+        "park_bench/park_bench_LOD1.glb",
+        "park_bench/park_bench_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/park_bench.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "pavement_sign",
+      "files": [
+        "pavement_sign/pavement_sign_LOD0.glb",
+        "pavement_sign/pavement_sign_LOD1.glb",
+        "pavement_sign/pavement_sign_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/pavement_sign.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "poster",
+      "files": [
+        "poster/poster_LOD0.glb",
+        "poster/poster_LOD1.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/poster.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "roll_top_chimney",
+      "files": [
+        "roll_top_chimney/roll_top_chimney_LOD0.glb",
+        "roll_top_chimney/roll_top_chimney_LOD1.glb",
+        "roll_top_chimney/roll_top_chimney_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/roll_top_chimney.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "rounded_concrete_bollard",
+      "files": [
+        "rounded_concrete_bollard/rounded_concrete_bollard_LOD0.glb",
+        "rounded_concrete_bollard/rounded_concrete_bollard_LOD1.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/rounded_concrete_bollard.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "skip",
+      "files": [
+        "skip/skip_LOD0.glb",
+        "skip/skip_LOD1.glb",
+        "skip/skip_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/skip.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "small_pallet",
+      "files": [
+        "small_pallet/small_pallet_LOD0.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/small_pallet.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "swing_bin",
+      "files": [
+        "swing_bin/swing_bin_LOD0.glb",
+        "swing_bin/swing_bin_LOD1.glb",
+        "swing_bin/swing_bin_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/swing_bin.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "traffic_cone_01",
+      "files": [
+        "traffic_cone_01/traffic_cone_01_LOD0.glb",
+        "traffic_cone_01/traffic_cone_01_LOD1.glb",
+        "traffic_cone_01/traffic_cone_01_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/traffic_cone_01.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "traffic_cone_02",
+      "files": [
+        "traffic_cone_02/traffic_cone_02_LOD0.glb",
+        "traffic_cone_02/traffic_cone_02_LOD1.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/traffic_cone_02.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "trunk_protection_railing",
+      "files": [
+        "trunk_protection_railing/trunk_protection_railing_LOD0.glb",
+        "trunk_protection_railing/trunk_protection_railing_LOD1.glb",
+        "trunk_protection_railing/trunk_protection_railing_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/trunk_protection_railing.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "weathertop_chimney",
+      "files": [
+        "weathertop_chimney/weathertop_chimney_LOD0.glb",
+        "weathertop_chimney/weathertop_chimney_LOD1.glb",
+        "weathertop_chimney/weathertop_chimney_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/weathertop_chimney.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "wood_barrel",
+      "files": [
+        "wood_barrel/wood_barrel_LOD0.glb",
+        "wood_barrel/wood_barrel_LOD1.glb",
+        "wood_barrel/wood_barrel_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/wood_barrel.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "wooden_crate_01",
+      "files": [
+        "wooden_crate_01/wooden_crate_01_LOD0.glb",
+        "wooden_crate_01/wooden_crate_01_LOD1.glb",
+        "wooden_crate_01/wooden_crate_01_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/wooden_crate_01.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "wooden_crate_02",
+      "files": [
+        "wooden_crate_02/wooden_crate_02_LOD0.glb",
+        "wooden_crate_02/wooden_crate_02_LOD1.glb",
+        "wooden_crate_02/wooden_crate_02_LOD2.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/wooden_crate_02.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    },
+    {
+      "id": "wooden_square_bollard",
+      "files": [
+        "wooden_square_bollard/wooden_square_bollard_LOD0.glb"
+      ],
+      "source": "ledger/Assets/Props/base-mesh/wooden_square_bollard.glb",
+      "licence": "CC0-1.0",
+      "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+      "made_by": "existing repository asset -> Blender",
+      "ship_ok": true
+    }
+  ],
+  "items_attributed": 37,
+  "items_in_batch": 37
+}

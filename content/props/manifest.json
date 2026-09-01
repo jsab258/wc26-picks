@@ -1,0 +1,5714 @@
+{
+  "schema": 1,
+  "batch": "meridian-street-furniture-01",
+  "backend": "local",
+  "written": "2026-09-01T20:00:54Z",
+  "meshgen": "meshgen 1",
+  "tool_versions": {
+    "blender": "Blender 4.5.13 LTS",
+    "python": "3.12.8",
+    "backend": "local"
+  },
+  "allowlist": "ledger-v2/research/license-allowlist.md",
+  "decision_records": {},
+  "items_in_spec": 37,
+  "items": [
+    {
+      "id": "awning_01",
+      "category": "awning",
+      "recipe": "9e9b2d25a02d8e10",
+      "started": "2026-09-01T20:00:02Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/awning_01.glb",
+          "bytes": 3036
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 36,
+            "tris": 20,
+            "dims_m": [
+              3.0,
+              1.7351,
+              1.3233
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 36,
+              "tris": 20,
+              "bytes": 2424
+            }
+          },
+          "dims_m": [
+            3.0,
+            1.7351,
+            1.3233
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "c7e92fb0be268955d70963a9c44ab45685fc1d22653133245dc5c29a8d868f78"
+      },
+      "outputs": {
+        "LOD0": "awning_01/awning_01_LOD0.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "awning_01_LOD0.glb",
+          "bytes": 2424,
+          "verts": 36,
+          "tris": 20,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            3.0,
+            1.3233,
+            1.7351
+          ],
+          "min_m": [
+            -1.5,
+            0.0,
+            -0.8675
+          ],
+          "max_m": [
+            1.5,
+            1.3233,
+            0.8675
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/awning_01.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:10Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:10Z"
+    },
+    {
+      "id": "awning_02",
+      "category": "awning",
+      "recipe": "bb9008a547c71f0d",
+      "started": "2026-09-01T20:00:10Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/awning_02.glb",
+          "bytes": 40584
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 1091,
+            "tris": 644,
+            "dims_m": [
+              3.0,
+              1.7351,
+              1.3233
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 1091,
+              "tris": 644,
+              "bytes": 39976
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 770,
+              "tris": 322,
+              "bytes": 23476
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 610,
+              "tris": 161,
+              "bytes": 12000
+            }
+          },
+          "dims_m": [
+            3.0,
+            1.7351,
+            1.3233
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "20752cf1ec62dc343bc6b63b65cf263c92257c5e97d944a09c336100bb9f860b",
+        "LOD1": "a47f97be0f4ceb426d7f885041a5be3f5de806de11d209035a0329b3c8553a2c",
+        "LOD2": "2e881b71e2361174cf778b183b71807078eeed755bd6318dd1776cb41f122589"
+      },
+      "outputs": {
+        "LOD0": "awning_02/awning_02_LOD0.glb",
+        "LOD1": "awning_02/awning_02_LOD1.glb",
+        "LOD2": "awning_02/awning_02_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "awning_02_LOD0.glb",
+          "bytes": 39976,
+          "verts": 1091,
+          "tris": 644,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            3.0,
+            1.3233,
+            1.7351
+          ],
+          "min_m": [
+            -1.5,
+            0.0,
+            -0.8675
+          ],
+          "max_m": [
+            1.5,
+            1.3233,
+            0.8675
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "awning_02_LOD1.glb",
+          "bytes": 23476,
+          "verts": 636,
+          "tris": 322,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            3.0,
+            1.3233,
+            1.7351
+          ],
+          "min_m": [
+            -1.5,
+            0.0,
+            -0.8675
+          ],
+          "max_m": [
+            1.5,
+            1.3233,
+            0.8675
+          ],
+          "base_y": 0.0
+        },
+        "LOD2": {
+          "file": "awning_02_LOD2.glb",
+          "bytes": 12000,
+          "verts": 307,
+          "tris": 161,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            3.0,
+            1.3189,
+            1.7351
+          ],
+          "min_m": [
+            -1.5,
+            0.0043,
+            -0.8675
+          ],
+          "max_m": [
+            1.5,
+            1.3233,
+            0.8675
+          ],
+          "base_y": 0.0043
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/awning_02.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:11Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:11Z"
+    },
+    {
+      "id": "cigarette_bin",
+      "category": "bin",
+      "recipe": "c3d43ad86b476baf",
+      "started": "2026-09-01T20:00:11Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/cigarette_bin.glb",
+          "bytes": 50400
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 1229,
+            "tris": 1536,
+            "dims_m": [
+              0.3099,
+              0.3099,
+              0.62
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 1229,
+              "tris": 1536,
+              "bytes": 49756
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 737,
+              "tris": 768,
+              "bytes": 29420
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 460,
+              "tris": 384,
+              "bytes": 16012
+            }
+          },
+          "dims_m": [
+            0.3099,
+            0.3099,
+            0.62
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "8526bcee8e2bf3037fa7961848955f1014d70c8d42f6520d0888e992ada20c3e",
+        "LOD1": "a5f966a93db5b2794543ab775a5961543ad147473322158a300c18acaf014eee",
+        "LOD2": "62aa01369ce56cb743f6f3fcc42000475175746dd228a19cd85d8b8e972a1074"
+      },
+      "outputs": {
+        "LOD0": "cigarette_bin/cigarette_bin_LOD0.glb",
+        "LOD1": "cigarette_bin/cigarette_bin_LOD1.glb",
+        "LOD2": "cigarette_bin/cigarette_bin_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "cigarette_bin_LOD0.glb",
+          "bytes": 49756,
+          "verts": 1229,
+          "tris": 1536,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.3099,
+            0.62,
+            0.3099
+          ],
+          "min_m": [
+            -0.155,
+            0.0,
+            -0.155
+          ],
+          "max_m": [
+            0.155,
+            0.62,
+            0.155
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "cigarette_bin_LOD1.glb",
+          "bytes": 29420,
+          "verts": 737,
+          "tris": 768,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.3063,
+            0.6214,
+            0.3095
+          ],
+          "min_m": [
+            -0.1555,
+            -0.0014,
+            -0.1549
+          ],
+          "max_m": [
+            0.1508,
+            0.62,
+            0.1546
+          ],
+          "base_y": -0.0014
+        },
+        "LOD2": {
+          "file": "cigarette_bin_LOD2.glb",
+          "bytes": 16012,
+          "verts": 390,
+          "tris": 384,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.3063,
+            0.622,
+            0.3063
+          ],
+          "min_m": [
+            -0.1563,
+            -0.0017,
+            -0.1522
+          ],
+          "max_m": [
+            0.15,
+            0.6203,
+            0.154
+          ],
+          "base_y": -0.0017
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/cigarette_bin.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:12Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:12Z"
+    },
+    {
+      "id": "crowd_control_barrier",
+      "category": "roadworks",
+      "recipe": "b1afb16732175952",
+      "started": "2026-09-01T20:00:12Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/crowd_control_barrier.glb",
+          "bytes": 32144
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 774,
+            "tris": 912,
+            "dims_m": [
+              2.2907,
+              0.3953,
+              1.1359
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 774,
+              "tris": 912,
+              "bytes": 31628
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 443,
+              "tris": 456,
+              "bytes": 18300
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 264,
+              "tris": 228,
+              "bytes": 11072
+            }
+          },
+          "dims_m": [
+            2.2907,
+            0.3953,
+            1.1359
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "2a3daa9e7c3184b9bcf9ad7edd28870ead2974dea74812197d9d5ee51bafb8bb",
+        "LOD1": "a61c53f4ab9988fb82de724faffc4971fd30823ba70fcb951f66f92687661581",
+        "LOD2": "c55295a812ca45ee88cbc39e316f31a6a202a549b95e2e921f0291ade4757269"
+      },
+      "outputs": {
+        "LOD0": "crowd_control_barrier/crowd_control_barrier_LOD0.glb",
+        "LOD1": "crowd_control_barrier/crowd_control_barrier_LOD1.glb",
+        "LOD2": "crowd_control_barrier/crowd_control_barrier_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "crowd_control_barrier_LOD0.glb",
+          "bytes": 31628,
+          "verts": 774,
+          "tris": 912,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            2.2907,
+            1.1359,
+            0.3953
+          ],
+          "min_m": [
+            -1.1454,
+            -0.0,
+            -0.1977
+          ],
+          "max_m": [
+            1.1454,
+            1.1359,
+            0.1977
+          ],
+          "base_y": -0.0
+        },
+        "LOD1": {
+          "file": "crowd_control_barrier_LOD1.glb",
+          "bytes": 18300,
+          "verts": 443,
+          "tris": 456,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            2.2869,
+            1.1359,
+            0.3953
+          ],
+          "min_m": [
+            -1.1436,
+            -0.0,
+            -0.1977
+          ],
+          "max_m": [
+            1.1433,
+            1.1359,
+            0.1977
+          ],
+          "base_y": -0.0
+        },
+        "LOD2": {
+          "file": "crowd_control_barrier_LOD2.glb",
+          "bytes": 11072,
+          "verts": 260,
+          "tris": 228,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            2.283,
+            1.1377,
+            0.3953
+          ],
+          "min_m": [
+            -1.1423,
+            -0.0,
+            -0.1977
+          ],
+          "max_m": [
+            1.1407,
+            1.1377,
+            0.1977
+          ],
+          "base_y": -0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/crowd_control_barrier.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:14Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:14Z"
+    },
+    {
+      "id": "curved_stone_bench",
+      "category": "seating",
+      "recipe": "92d60c39b54fc18f",
+      "started": "2026-09-01T20:00:14Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/curved_stone_bench.glb",
+          "bytes": 21976
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 494,
+            "tris": 724,
+            "dims_m": [
+              1.2483,
+              0.401,
+              0.45
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 494,
+              "tris": 724,
+              "bytes": 21368
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 296,
+              "tris": 362,
+              "bytes": 13168
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 175,
+              "tris": 181,
+              "bytes": 8368
+            }
+          },
+          "dims_m": [
+            1.2483,
+            0.401,
+            0.45
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "d40fb046330f51f0b7abfcdbfb997ae3e7d20056dd9b69e92907ed6c516f0a18",
+        "LOD1": "1043d3351aeff211bbdcd58b2207e4e02860de47ab1efe2c7115240e940fbdbe",
+        "LOD2": "194cee0ff270f17b1d5057c7b0227b911024ca40d68cf3d6877bd87cbe9ca1e1"
+      },
+      "outputs": {
+        "LOD0": "curved_stone_bench/curved_stone_bench_LOD0.glb",
+        "LOD1": "curved_stone_bench/curved_stone_bench_LOD1.glb",
+        "LOD2": "curved_stone_bench/curved_stone_bench_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "curved_stone_bench_LOD0.glb",
+          "bytes": 21368,
+          "verts": 494,
+          "tris": 724,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.2483,
+            0.45,
+            0.401
+          ],
+          "min_m": [
+            -0.6242,
+            0.0,
+            -0.2005
+          ],
+          "max_m": [
+            0.6242,
+            0.45,
+            0.2005
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "curved_stone_bench_LOD1.glb",
+          "bytes": 13168,
+          "verts": 305,
+          "tris": 362,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.2483,
+            0.4502,
+            0.401
+          ],
+          "min_m": [
+            -0.6242,
+            -0.0002,
+            -0.2005
+          ],
+          "max_m": [
+            0.6242,
+            0.45,
+            0.2005
+          ],
+          "base_y": -0.0002
+        },
+        "LOD2": {
+          "file": "curved_stone_bench_LOD2.glb",
+          "bytes": 8368,
+          "verts": 189,
+          "tris": 181,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.2483,
+            0.4504,
+            0.401
+          ],
+          "min_m": [
+            -0.6242,
+            -0.0004,
+            -0.2005
+          ],
+          "max_m": [
+            0.6242,
+            0.45,
+            0.2005
+          ],
+          "base_y": -0.0004
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/curved_stone_bench.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:15Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:15Z"
+    },
+    {
+      "id": "decorative_bollard_01",
+      "category": "bollard",
+      "recipe": "930f0e93960580d3",
+      "started": "2026-09-01T20:00:15Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/decorative_bollard_01.glb",
+          "bytes": 86036
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 2148,
+            "tris": 2564,
+            "dims_m": [
+              0.1171,
+              0.1163,
+              0.7867
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 2148,
+              "tris": 2564,
+              "bytes": 85548
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 1221,
+              "tris": 1282,
+              "bytes": 48192
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 650,
+              "tris": 641,
+              "bytes": 26068
+            }
+          },
+          "dims_m": [
+            0.1171,
+            0.1163,
+            0.7867
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "d2bd1e134ba043c37706678f8a8117aef8ccb847f12999cfb28adb22d90dc1f1",
+        "LOD1": "84faaf07c68ecb58e6e224ac4aeea5168267e3d1d259c30ef67e4d20e90cb20c",
+        "LOD2": "b846fa45752c58e61bd330c7138405cf226cd28ed3291f1868b7860cb19f63e4"
+      },
+      "outputs": {
+        "LOD0": "decorative_bollard_01/decorative_bollard_01_LOD0.glb",
+        "LOD1": "decorative_bollard_01/decorative_bollard_01_LOD1.glb",
+        "LOD2": "decorative_bollard_01/decorative_bollard_01_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "decorative_bollard_01_LOD0.glb",
+          "bytes": 85548,
+          "verts": 2149,
+          "tris": 2564,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.1171,
+            0.7867,
+            0.1163
+          ],
+          "min_m": [
+            -0.0586,
+            -0.0,
+            -0.0582
+          ],
+          "max_m": [
+            0.0586,
+            0.7867,
+            0.0582
+          ],
+          "base_y": -0.0
+        },
+        "LOD1": {
+          "file": "decorative_bollard_01_LOD1.glb",
+          "bytes": 48192,
+          "verts": 1222,
+          "tris": 1282,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.1171,
+            0.7867,
+            0.1163
+          ],
+          "min_m": [
+            -0.0586,
+            -0.0,
+            -0.0582
+          ],
+          "max_m": [
+            0.0586,
+            0.7867,
+            0.0582
+          ],
+          "base_y": -0.0
+        },
+        "LOD2": {
+          "file": "decorative_bollard_01_LOD2.glb",
+          "bytes": 26068,
+          "verts": 651,
+          "tris": 641,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.1171,
+            0.7869,
+            0.1163
+          ],
+          "min_m": [
+            -0.0586,
+            -0.0,
+            -0.0582
+          ],
+          "max_m": [
+            0.0586,
+            0.7869,
+            0.0582
+          ],
+          "base_y": -0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/decorative_bollard_01.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:16Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:16Z"
+    },
+    {
+      "id": "decorative_bollard_02",
+      "category": "bollard",
+      "recipe": "feaea338d018831e",
+      "started": "2026-09-01T20:00:16Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/decorative_bollard_02.glb",
+          "bytes": 50220
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 1197,
+            "tris": 1680,
+            "dims_m": [
+              0.201,
+              0.201,
+              1.0083
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 1197,
+              "tris": 1680,
+              "bytes": 49612
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 706,
+              "tris": 840,
+              "bytes": 28876
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 393,
+              "tris": 420,
+              "bytes": 16340
+            }
+          },
+          "dims_m": [
+            0.201,
+            0.201,
+            1.0083
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "f3f6c91364f7ad84024283c79ee8edff6dc1f68c6cde6a47eb43d611fb363350",
+        "LOD1": "e83522c7b7127a8f36122ac58786f2eb4019fc5a079893163a3926f6c05204cc",
+        "LOD2": "01eac19fee776922a2a8b2f74afcb0f1565eb3e2246d56263345023ad92ab59e"
+      },
+      "outputs": {
+        "LOD0": "decorative_bollard_02/decorative_bollard_02_LOD0.glb",
+        "LOD1": "decorative_bollard_02/decorative_bollard_02_LOD1.glb",
+        "LOD2": "decorative_bollard_02/decorative_bollard_02_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "decorative_bollard_02_LOD0.glb",
+          "bytes": 49612,
+          "verts": 1197,
+          "tris": 1680,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.201,
+            1.0083,
+            0.201
+          ],
+          "min_m": [
+            -0.1005,
+            0.0,
+            -0.1005
+          ],
+          "max_m": [
+            0.1005,
+            1.0083,
+            0.1005
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "decorative_bollard_02_LOD1.glb",
+          "bytes": 28876,
+          "verts": 706,
+          "tris": 840,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.2025,
+            1.0083,
+            0.201
+          ],
+          "min_m": [
+            -0.1007,
+            -0.0,
+            -0.1006
+          ],
+          "max_m": [
+            0.1018,
+            1.0082,
+            0.1004
+          ],
+          "base_y": -0.0
+        },
+        "LOD2": {
+          "file": "decorative_bollard_02_LOD2.glb",
+          "bytes": 16340,
+          "verts": 393,
+          "tris": 420,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.2033,
+            1.0077,
+            0.2027
+          ],
+          "min_m": [
+            -0.1007,
+            -0.0,
+            -0.0992
+          ],
+          "max_m": [
+            0.1027,
+            1.0077,
+            0.1035
+          ],
+          "base_y": -0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/decorative_bollard_02.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:17Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:17Z"
+    },
+    {
+      "id": "drain_cover_01",
+      "category": "ground",
+      "recipe": "3b00a3e784d897de",
+      "started": "2026-09-01T20:00:17Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/drain_cover_01.glb",
+          "bytes": 73060
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 1872,
+            "tris": 1888,
+            "dims_m": [
+              0.1,
+              0.1,
+              0.0015
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 1872,
+              "tris": 1888,
+              "bytes": 72452
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 1004,
+              "tris": 944,
+              "bytes": 39032
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 532,
+              "tris": 472,
+              "bytes": 20260
+            }
+          },
+          "dims_m": [
+            0.1,
+            0.1,
+            0.0015
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "df957825e0655367a345660e3ad18b1a647de78354cf7001ba495169ce605ce8",
+        "LOD1": "2c696ccb031c46040a339c757e6b58c53d18d37eefc6ae2529ba621be709549e",
+        "LOD2": "ba1ebd6546ae981c147e7f69d19875e31a083f68d88cec4ac96bfd5ec740f6e2"
+      },
+      "outputs": {
+        "LOD0": "drain_cover_01/drain_cover_01_LOD0.glb",
+        "LOD1": "drain_cover_01/drain_cover_01_LOD1.glb",
+        "LOD2": "drain_cover_01/drain_cover_01_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "drain_cover_01_LOD0.glb",
+          "bytes": 72452,
+          "verts": 1872,
+          "tris": 1888,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.1,
+            0.0015,
+            0.1
+          ],
+          "min_m": [
+            -0.05,
+            0.0,
+            -0.05
+          ],
+          "max_m": [
+            0.05,
+            0.0015,
+            0.05
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "drain_cover_01_LOD1.glb",
+          "bytes": 39032,
+          "verts": 1004,
+          "tris": 944,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.1008,
+            0.0015,
+            0.1
+          ],
+          "min_m": [
+            -0.0502,
+            -0.0,
+            -0.05
+          ],
+          "max_m": [
+            0.0506,
+            0.0015,
+            0.05
+          ],
+          "base_y": -0.0
+        },
+        "LOD2": {
+          "file": "drain_cover_01_LOD2.glb",
+          "bytes": 20260,
+          "verts": 506,
+          "tris": 472,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.1032,
+            0.0015,
+            0.1012
+          ],
+          "min_m": [
+            -0.0517,
+            -0.0,
+            -0.0506
+          ],
+          "max_m": [
+            0.0515,
+            0.0015,
+            0.0506
+          ],
+          "base_y": -0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/drain_cover_01.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:19Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:19Z"
+    },
+    {
+      "id": "drainage_grate_01",
+      "category": "ground",
+      "recipe": "c6b61f1065a35c63",
+      "started": "2026-09-01T20:00:19Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/drainage_grate_01.glb",
+          "bytes": 24124
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 600,
+            "tris": 504,
+            "dims_m": [
+              0.3999,
+              0.3999,
+              0.015
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 600,
+              "tris": 504,
+              "bytes": 23600
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 348,
+              "tris": 252,
+              "bytes": 14152
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 237,
+              "tris": 126,
+              "bytes": 7408
+            }
+          },
+          "dims_m": [
+            0.3999,
+            0.3999,
+            0.015
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "1e901b2e6d2b73c8e069aa09661e531df436c93e898d85ad071f1e70992a2a10",
+        "LOD1": "8bdcdca6a28ea1cb1f57450a4e3b3ef33dcc9764139569d46b1b200b5a13cc1d",
+        "LOD2": "dddc334f7e2ea03ceaba104dede4122d97ea94e3337645be331c475bc413d865"
+      },
+      "outputs": {
+        "LOD0": "drainage_grate_01/drainage_grate_01_LOD0.glb",
+        "LOD1": "drainage_grate_01/drainage_grate_01_LOD1.glb",
+        "LOD2": "drainage_grate_01/drainage_grate_01_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "drainage_grate_01_LOD0.glb",
+          "bytes": 23600,
+          "verts": 600,
+          "tris": 504,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.3999,
+            0.015,
+            0.3999
+          ],
+          "min_m": [
+            -0.2,
+            -0.0,
+            -0.2
+          ],
+          "max_m": [
+            0.2,
+            0.015,
+            0.2
+          ],
+          "base_y": -0.0
+        },
+        "LOD1": {
+          "file": "drainage_grate_01_LOD1.glb",
+          "bytes": 14152,
+          "verts": 352,
+          "tris": 252,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.4152,
+            0.015,
+            0.4108
+          ],
+          "min_m": [
+            -0.2097,
+            -0.0,
+            -0.2054
+          ],
+          "max_m": [
+            0.2055,
+            0.015,
+            0.2054
+          ],
+          "base_y": -0.0
+        },
+        "LOD2": {
+          "file": "drainage_grate_01_LOD2.glb",
+          "bytes": 7408,
+          "verts": 165,
+          "tris": 126,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.4005,
+            0.015,
+            0.4108
+          ],
+          "min_m": [
+            -0.2003,
+            -0.0,
+            -0.2054
+          ],
+          "max_m": [
+            0.2003,
+            0.015,
+            0.2054
+          ],
+          "base_y": -0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/drainage_grate_01.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:20Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:20Z"
+    },
+    {
+      "id": "finger_post_sign_01",
+      "category": "signage",
+      "recipe": "f3c0ebbfdbfe3068",
+      "started": "2026-09-01T20:00:20Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/finger_post_sign_01.glb",
+          "bytes": 3992
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 62,
+            "tris": 32,
+            "dims_m": [
+              0.3845,
+              0.04,
+              0.5003
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 62,
+              "tris": 32,
+              "bytes": 3384
+            }
+          },
+          "dims_m": [
+            0.3845,
+            0.04,
+            0.5003
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "edef988e7317c26eaa0185114d87181df4c3f1b06a2cd005791f8fdfd5540782"
+      },
+      "outputs": {
+        "LOD0": "finger_post_sign_01/finger_post_sign_01_LOD0.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "finger_post_sign_01_LOD0.glb",
+          "bytes": 3384,
+          "verts": 62,
+          "tris": 32,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.3845,
+            0.5003,
+            0.04
+          ],
+          "min_m": [
+            -0.1922,
+            0.0,
+            -0.02
+          ],
+          "max_m": [
+            0.1922,
+            0.5003,
+            0.02
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/finger_post_sign_01.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:21Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:21Z"
+    },
+    {
+      "id": "finger_post_sign_02",
+      "category": "signage",
+      "recipe": "17b3e110607b2002",
+      "started": "2026-09-01T20:00:21Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/finger_post_sign_02.glb",
+          "bytes": 6224
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 126,
+            "tris": 62,
+            "dims_m": [
+              1.2,
+              0.65,
+              2.7763
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 126,
+              "tris": 62,
+              "bytes": 5616
+            }
+          },
+          "dims_m": [
+            1.2,
+            0.65,
+            2.7763
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "931513e9d4ff2a921ba9daf3ae3399ec2a25809b5a1b9cc5216d46a2da97b77f"
+      },
+      "outputs": {
+        "LOD0": "finger_post_sign_02/finger_post_sign_02_LOD0.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "finger_post_sign_02_LOD0.glb",
+          "bytes": 5616,
+          "verts": 126,
+          "tris": 62,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.2,
+            2.7763,
+            0.65
+          ],
+          "min_m": [
+            -0.6,
+            0.0,
+            -0.325
+          ],
+          "max_m": [
+            0.6,
+            2.7763,
+            0.325
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/finger_post_sign_02.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:22Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:22Z"
+    },
+    {
+      "id": "finger_post_sign_03",
+      "category": "signage",
+      "recipe": "5923cdb152a5794b",
+      "started": "2026-09-01T20:00:22Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/finger_post_sign_03.glb",
+          "bytes": 88760
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 2190,
+            "tris": 2808,
+            "dims_m": [
+              1.3955,
+              0.7662,
+              2.7997
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 2190,
+              "tris": 2808,
+              "bytes": 88148
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 1371,
+              "tris": 1404,
+              "bytes": 53516
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 809,
+              "tris": 702,
+              "bytes": 31504
+            }
+          },
+          "dims_m": [
+            1.3955,
+            0.7662,
+            2.7997
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "272e5eb327a8517c76e51de8eaea0e5b32bd48d1228cc2eed21a3ad229e99d0f",
+        "LOD1": "880ec9b1af027c9d52ed28b0a54f9d806c4d681f5e3f92edaecad8c9e84f12ec",
+        "LOD2": "0a55246963b42a03be1528379606898869235cfa0b0cd527f0ca2f391a2b32d7"
+      },
+      "outputs": {
+        "LOD0": "finger_post_sign_03/finger_post_sign_03_LOD0.glb",
+        "LOD1": "finger_post_sign_03/finger_post_sign_03_LOD1.glb",
+        "LOD2": "finger_post_sign_03/finger_post_sign_03_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "finger_post_sign_03_LOD0.glb",
+          "bytes": 88148,
+          "verts": 2190,
+          "tris": 2808,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.3955,
+            2.7997,
+            0.7662
+          ],
+          "min_m": [
+            -0.6977,
+            0.0,
+            -0.3831
+          ],
+          "max_m": [
+            0.6977,
+            2.7997,
+            0.3831
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "finger_post_sign_03_LOD1.glb",
+          "bytes": 53516,
+          "verts": 1371,
+          "tris": 1404,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.3955,
+            2.7997,
+            0.7669
+          ],
+          "min_m": [
+            -0.6977,
+            0.0,
+            -0.3838
+          ],
+          "max_m": [
+            0.6977,
+            2.7997,
+            0.3831
+          ],
+          "base_y": 0.0
+        },
+        "LOD2": {
+          "file": "finger_post_sign_03_LOD2.glb",
+          "bytes": 31504,
+          "verts": 815,
+          "tris": 702,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.3955,
+            2.7997,
+            0.7695
+          ],
+          "min_m": [
+            -0.6977,
+            0.0,
+            -0.3864
+          ],
+          "max_m": [
+            0.6977,
+            2.7997,
+            0.3831
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/finger_post_sign_03.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:24Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:24Z"
+    },
+    {
+      "id": "framed_poster",
+      "category": "signage",
+      "recipe": "acd4bd044c6829db",
+      "started": "2026-09-01T20:00:24Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/framed_poster.glb",
+          "bytes": 3796
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 56,
+            "tris": 28,
+            "dims_m": [
+              0.5057,
+              0.0134,
+              0.8005
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 56,
+              "tris": 28,
+              "bytes": 3280
+            }
+          },
+          "dims_m": [
+            0.5057,
+            0.0134,
+            0.8005
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "d1341968bae983e577e9e959ba746409d8c7de01c0da139255074a5797f4eae0"
+      },
+      "outputs": {
+        "LOD0": "framed_poster/framed_poster_LOD0.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "framed_poster_LOD0.glb",
+          "bytes": 3280,
+          "verts": 56,
+          "tris": 28,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.5057,
+            0.8005,
+            0.0134
+          ],
+          "min_m": [
+            -0.2528,
+            0.0,
+            -0.0067
+          ],
+          "max_m": [
+            0.2528,
+            0.8005,
+            0.0067
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/framed_poster.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:25Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:25Z"
+    },
+    {
+      "id": "garden_bench_01",
+      "category": "seating",
+      "recipe": "4cd4f1c7af7662f6",
+      "started": "2026-09-01T20:00:25Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/garden_bench_01.glb",
+          "bytes": 44240
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 1113,
+            "tris": 1134,
+            "dims_m": [
+              1.0953,
+              0.4844,
+              0.8289
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 1113,
+              "tris": 1134,
+              "bytes": 43636
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 724,
+              "tris": 567,
+              "bytes": 27972
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 445,
+              "tris": 283,
+              "bytes": 17724
+            }
+          },
+          "dims_m": [
+            1.0953,
+            0.4844,
+            0.8289
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "6cfc0d2624637554432e1b0bb327f40639e9aac05551f4d0ed068bb79e81b27f",
+        "LOD1": "082b10b4e5d2b91428d269ed9c19d270c189b0b839586f268e1131a170959613",
+        "LOD2": "e0d87459ddb5b55cf61c437c5dabfe617b0573bd54c21cd52ef66bfe9e53237a"
+      },
+      "outputs": {
+        "LOD0": "garden_bench_01/garden_bench_01_LOD0.glb",
+        "LOD1": "garden_bench_01/garden_bench_01_LOD1.glb",
+        "LOD2": "garden_bench_01/garden_bench_01_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "garden_bench_01_LOD0.glb",
+          "bytes": 43636,
+          "verts": 1113,
+          "tris": 1134,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.0953,
+            0.8289,
+            0.4844
+          ],
+          "min_m": [
+            -0.5476,
+            0.0,
+            -0.2422
+          ],
+          "max_m": [
+            0.5476,
+            0.8289,
+            0.2422
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "garden_bench_01_LOD1.glb",
+          "bytes": 27972,
+          "verts": 730,
+          "tris": 567,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.0953,
+            0.8289,
+            0.4844
+          ],
+          "min_m": [
+            -0.5476,
+            0.0,
+            -0.2422
+          ],
+          "max_m": [
+            0.5476,
+            0.8289,
+            0.2422
+          ],
+          "base_y": 0.0
+        },
+        "LOD2": {
+          "file": "garden_bench_01_LOD2.glb",
+          "bytes": 17724,
+          "verts": 463,
+          "tris": 283,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.0953,
+            0.8289,
+            0.4883
+          ],
+          "min_m": [
+            -0.5476,
+            0.0,
+            -0.2422
+          ],
+          "max_m": [
+            0.5476,
+            0.8289,
+            0.2462
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/garden_bench_01.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:26Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:26Z"
+    },
+    {
+      "id": "lamp_post_01",
+      "category": "lighting",
+      "recipe": "4da1ddedc9684fb7",
+      "started": "2026-09-01T20:00:26Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/lamp_post_01.glb",
+          "bytes": 139956
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 3475,
+            "tris": 4492,
+            "dims_m": [
+              0.368,
+              0.2708,
+              3.0022
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 3475,
+              "tris": 4492,
+              "bytes": 139848
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 2088,
+              "tris": 2246,
+              "bytes": 82048
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 1254,
+              "tris": 1123,
+              "bytes": 48368
+            }
+          },
+          "dims_m": [
+            0.368,
+            0.2708,
+            3.0022
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "de315a3c928d342388de1190e85d253e38d68c3a0dbfa5da3231b27313c40ed8",
+        "LOD1": "88e0112ed6139c89550f99df099e80ce5c28453808548070e81de2b1a415320d",
+        "LOD2": "df09b81e6a6e1692bb4d0c11cf4cf92b7134c4ee8bc4d023eca18b833bd3490c"
+      },
+      "outputs": {
+        "LOD0": "lamp_post_01/lamp_post_01_LOD0.glb",
+        "LOD1": "lamp_post_01/lamp_post_01_LOD1.glb",
+        "LOD2": "lamp_post_01/lamp_post_01_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "lamp_post_01_LOD0.glb",
+          "bytes": 139848,
+          "verts": 3490,
+          "tris": 4492,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.368,
+            3.0022,
+            0.2708
+          ],
+          "min_m": [
+            -0.184,
+            0.0,
+            -0.1354
+          ],
+          "max_m": [
+            0.184,
+            3.0022,
+            0.1354
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "lamp_post_01_LOD1.glb",
+          "bytes": 82048,
+          "verts": 2105,
+          "tris": 2246,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.3684,
+            3.0021,
+            0.2708
+          ],
+          "min_m": [
+            -0.1844,
+            0.0,
+            -0.1354
+          ],
+          "max_m": [
+            0.184,
+            3.0021,
+            0.1354
+          ],
+          "base_y": 0.0
+        },
+        "LOD2": {
+          "file": "lamp_post_01_LOD2.glb",
+          "bytes": 48368,
+          "verts": 1263,
+          "tris": 1123,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.3695,
+            2.9989,
+            0.2708
+          ],
+          "min_m": [
+            -0.1861,
+            0.0,
+            -0.1354
+          ],
+          "max_m": [
+            0.1834,
+            2.9989,
+            0.1354
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/lamp_post_01.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:27Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:27Z"
+    },
+    {
+      "id": "large_pallet",
+      "category": "dock",
+      "recipe": "b1658ea09e3e8616",
+      "started": "2026-09-01T20:00:27Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/large_pallet.glb",
+          "bytes": 25404
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 672,
+            "tris": 336,
+            "dims_m": [
+              2.0,
+              1.1001,
+              0.19
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 672,
+              "tris": 336,
+              "bytes": 24888
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 504,
+              "tris": 168,
+              "bytes": 13188
+            }
+          },
+          "dims_m": [
+            2.0,
+            1.1001,
+            0.19
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "09aaf04e3a26bc1f9655f2f21bfe70fc9f2b6eac22a243738d79dc3f2250b768",
+        "LOD1": "e3cd1e9f918ad342ea59d2ff4a08f5bc432e21a373f714df96c30ecee90fbd1b"
+      },
+      "outputs": {
+        "LOD0": "large_pallet/large_pallet_LOD0.glb",
+        "LOD1": "large_pallet/large_pallet_LOD1.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "large_pallet_LOD0.glb",
+          "bytes": 24888,
+          "verts": 672,
+          "tris": 336,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            2.0,
+            0.19,
+            1.1001
+          ],
+          "min_m": [
+            -1.0,
+            -0.0,
+            -0.5501
+          ],
+          "max_m": [
+            1.0,
+            0.19,
+            0.5501
+          ],
+          "base_y": -0.0
+        },
+        "LOD1": {
+          "file": "large_pallet_LOD1.glb",
+          "bytes": 13188,
+          "verts": 338,
+          "tris": 168,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            2.0,
+            0.19,
+            1.1001
+          ],
+          "min_m": [
+            -1.0,
+            -0.0,
+            -0.5501
+          ],
+          "max_m": [
+            1.0,
+            0.19,
+            0.5501
+          ],
+          "base_y": -0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/large_pallet.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:29Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:29Z"
+    },
+    {
+      "id": "mesh_bin",
+      "category": "bin",
+      "recipe": "46f0ccb5e72ac2dc",
+      "started": "2026-09-01T20:00:29Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/mesh_bin.glb",
+          "bytes": 149152
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 4182,
+            "tris": 2252,
+            "dims_m": [
+              0.2762,
+              0.2762,
+              0.3061
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 4182,
+              "tris": 2252,
+              "bytes": 187648
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 3064,
+              "tris": 1126,
+              "bytes": 89176
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 2501,
+              "tris": 563,
+              "bytes": 37576
+            }
+          },
+          "dims_m": [
+            0.2762,
+            0.2762,
+            0.3061
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "11e330552d7403e9f3e06b28e068ed5c42035e0b817823113d33f6c8832bb8a9",
+        "LOD1": "562852c76529c6f17c41060d5bea6e4f16db3aa7bda5275c587749ec50b3688d",
+        "LOD2": "441ad03638593d13bc87ebbd12d250eb0fcb10ce6f91962a2007333dbe4d94f4"
+      },
+      "outputs": {
+        "LOD0": "mesh_bin/mesh_bin_LOD0.glb",
+        "LOD1": "mesh_bin/mesh_bin_LOD1.glb",
+        "LOD2": "mesh_bin/mesh_bin_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "mesh_bin_LOD0.glb",
+          "bytes": 187648,
+          "verts": 5404,
+          "tris": 2252,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.2762,
+            0.3061,
+            0.2762
+          ],
+          "min_m": [
+            -0.1381,
+            0.0,
+            -0.1381
+          ],
+          "max_m": [
+            0.1381,
+            0.3061,
+            0.1381
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "mesh_bin_LOD1.glb",
+          "bytes": 89176,
+          "verts": 2538,
+          "tris": 1126,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.2762,
+            0.3061,
+            0.2762
+          ],
+          "min_m": [
+            -0.1381,
+            0.0,
+            -0.1381
+          ],
+          "max_m": [
+            0.1381,
+            0.3061,
+            0.1381
+          ],
+          "base_y": 0.0
+        },
+        "LOD2": {
+          "file": "mesh_bin_LOD2.glb",
+          "bytes": 37576,
+          "verts": 1031,
+          "tris": 563,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.2762,
+            0.3061,
+            0.2762
+          ],
+          "min_m": [
+            -0.1381,
+            0.0,
+            -0.1381
+          ],
+          "max_m": [
+            0.1381,
+            0.3061,
+            0.1381
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/mesh_bin.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:30Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:30Z"
+    },
+    {
+      "id": "oil_barrel",
+      "category": "dock",
+      "recipe": "8084f0a7a99edb73",
+      "started": "2026-09-01T20:00:30Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/oil_barrel.glb",
+          "bytes": 99484
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 2362,
+            "tris": 3680,
+            "dims_m": [
+              0.597,
+              0.597,
+              0.8602
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 2362,
+              "tris": 3680,
+              "bytes": 99316
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 1323,
+              "tris": 1840,
+              "bytes": 54924
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 803,
+              "tris": 920,
+              "bytes": 32692
+            }
+          },
+          "dims_m": [
+            0.597,
+            0.597,
+            0.8602
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "6f6b77f4c1501197b8a698f78b433918cd2301c1e41441f49d53f2d593544740",
+        "LOD1": "e0fafba4ed53ca0257c4d22f70f2404e2a2a4e33262b91a74687294df86d2365",
+        "LOD2": "f8032e53847a56355754398d7cfc9fc197b77ae3e0f834bcf6420fba47c3969a"
+      },
+      "outputs": {
+        "LOD0": "oil_barrel/oil_barrel_LOD0.glb",
+        "LOD1": "oil_barrel/oil_barrel_LOD1.glb",
+        "LOD2": "oil_barrel/oil_barrel_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "oil_barrel_LOD0.glb",
+          "bytes": 99316,
+          "verts": 2376,
+          "tris": 3680,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.597,
+            0.8602,
+            0.597
+          ],
+          "min_m": [
+            -0.2985,
+            0.0,
+            -0.2985
+          ],
+          "max_m": [
+            0.2985,
+            0.8602,
+            0.2985
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "oil_barrel_LOD1.glb",
+          "bytes": 54924,
+          "verts": 1333,
+          "tris": 1840,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.597,
+            0.8603,
+            0.5972
+          ],
+          "min_m": [
+            -0.2985,
+            -0.0,
+            -0.2985
+          ],
+          "max_m": [
+            0.2985,
+            0.8602,
+            0.2987
+          ],
+          "base_y": -0.0
+        },
+        "LOD2": {
+          "file": "oil_barrel_LOD2.glb",
+          "bytes": 32692,
+          "verts": 811,
+          "tris": 920,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.5987,
+            0.8611,
+            0.5979
+          ],
+          "min_m": [
+            -0.2993,
+            -0.0009,
+            -0.2992
+          ],
+          "max_m": [
+            0.2994,
+            0.8602,
+            0.2987
+          ],
+          "base_y": -0.0009
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/oil_barrel.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:31Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:31Z"
+    },
+    {
+      "id": "ornate_bench",
+      "category": "seating",
+      "recipe": "425678a0c9357924",
+      "started": "2026-09-01T20:00:31Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/ornate_bench.glb",
+          "bytes": 86816
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 2286,
+            "tris": 1976,
+            "dims_m": [
+              1.5,
+              0.7128,
+              0.8499
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 2286,
+              "tris": 1976,
+              "bytes": 86508
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 1308,
+              "tris": 988,
+              "bytes": 49176
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 894,
+              "tris": 493,
+              "bytes": 29048
+            }
+          },
+          "dims_m": [
+            1.5,
+            0.7128,
+            0.8499
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "f2f9fe6f0b12bfb126828b8cbe0a68a5d966b9791e5589c01c2dfc2517152d90",
+        "LOD1": "e0386c58f56fff85cec383f493c57e17031bc6a5460e6a89d32d4745f65c3f5b",
+        "LOD2": "587b9d1211c806382c5cddd38d1d54ee9e860e07624a3287dd0dd3294b16960c"
+      },
+      "outputs": {
+        "LOD0": "ornate_bench/ornate_bench_LOD0.glb",
+        "LOD1": "ornate_bench/ornate_bench_LOD1.glb",
+        "LOD2": "ornate_bench/ornate_bench_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "ornate_bench_LOD0.glb",
+          "bytes": 86508,
+          "verts": 2296,
+          "tris": 1976,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.5,
+            0.8499,
+            0.7128
+          ],
+          "min_m": [
+            -0.75,
+            0.0,
+            -0.3564
+          ],
+          "max_m": [
+            0.75,
+            0.8499,
+            0.3564
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "ornate_bench_LOD1.glb",
+          "bytes": 49176,
+          "verts": 1314,
+          "tris": 988,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.5,
+            0.854,
+            0.7132
+          ],
+          "min_m": [
+            -0.75,
+            -0.0041,
+            -0.3564
+          ],
+          "max_m": [
+            0.75,
+            0.8499,
+            0.3568
+          ],
+          "base_y": -0.0041
+        },
+        "LOD2": {
+          "file": "ornate_bench_LOD2.glb",
+          "bytes": 29048,
+          "verts": 778,
+          "tris": 493,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.5,
+            0.8697,
+            0.7123
+          ],
+          "min_m": [
+            -0.75,
+            -0.0198,
+            -0.3564
+          ],
+          "max_m": [
+            0.75,
+            0.8499,
+            0.3559
+          ],
+          "base_y": -0.0198
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/ornate_bench.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:32Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:32Z"
+    },
+    {
+      "id": "outdoor_bin",
+      "category": "bin",
+      "recipe": "4f8ae9484aaada79",
+      "started": "2026-09-01T20:00:32Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/outdoor_bin.glb",
+          "bytes": 33660
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 848,
+            "tris": 788,
+            "dims_m": [
+              0.5996,
+              0.5996,
+              0.7636
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 848,
+              "tris": 788,
+              "bytes": 33288
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 497,
+              "tris": 394,
+              "bytes": 19272
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 328,
+              "tris": 197,
+              "bytes": 11788
+            }
+          },
+          "dims_m": [
+            0.5996,
+            0.5996,
+            0.7636
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "3f90e4d9dd83a740817c71445a0761c7533cb79faa0fd01cdfc5575ddb988bbe",
+        "LOD1": "50fd16087fac119c796d33ca7e7fbd8d447f300de15716b3419594ccc0a82f7e",
+        "LOD2": "54c3fbd36c6854372f1a21e954437e5d316219b8b0d7fe0b8379227b1ae8dd12"
+      },
+      "outputs": {
+        "LOD0": "outdoor_bin/outdoor_bin_LOD0.glb",
+        "LOD1": "outdoor_bin/outdoor_bin_LOD1.glb",
+        "LOD2": "outdoor_bin/outdoor_bin_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "outdoor_bin_LOD0.glb",
+          "bytes": 33288,
+          "verts": 855,
+          "tris": 788,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.5996,
+            0.7636,
+            0.5996
+          ],
+          "min_m": [
+            -0.2998,
+            0.0,
+            -0.2998
+          ],
+          "max_m": [
+            0.2998,
+            0.7636,
+            0.2998
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "outdoor_bin_LOD1.glb",
+          "bytes": 19272,
+          "verts": 491,
+          "tris": 394,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.5996,
+            0.7636,
+            0.5996
+          ],
+          "min_m": [
+            -0.2998,
+            0.0,
+            -0.2998
+          ],
+          "max_m": [
+            0.2998,
+            0.7636,
+            0.2998
+          ],
+          "base_y": 0.0
+        },
+        "LOD2": {
+          "file": "outdoor_bin_LOD2.glb",
+          "bytes": 11788,
+          "verts": 294,
+          "tris": 197,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.5985,
+            0.7569,
+            0.5985
+          ],
+          "min_m": [
+            -0.2993,
+            0.0,
+            -0.2993
+          ],
+          "max_m": [
+            0.2993,
+            0.7569,
+            0.2993
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/outdoor_bin.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:34Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:34Z"
+    },
+    {
+      "id": "pallet",
+      "category": "dock",
+      "recipe": "2b1c65b96fc72d8b",
+      "started": "2026-09-01T20:00:34Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/pallet.glb",
+          "bytes": 27760
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 504,
+            "tris": 252,
+            "dims_m": [
+              1.2,
+              1.2,
+              0.18
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 504,
+              "tris": 252,
+              "bytes": 25184
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 378,
+              "tris": 126,
+              "bytes": 13512
+            }
+          },
+          "dims_m": [
+            1.2,
+            1.2,
+            0.18
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "c6abf03a886ecc9f73391bdb93e880f37d2b060f5ba04e8f294837000ac1c7e9",
+        "LOD1": "7bade326e9863f0f83b93a5677d74f792e129b62654a13287e81a75e52abc5bb"
+      },
+      "outputs": {
+        "LOD0": "pallet/pallet_LOD0.glb",
+        "LOD1": "pallet/pallet_LOD1.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "pallet_LOD0.glb",
+          "bytes": 25184,
+          "verts": 504,
+          "tris": 252,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.2,
+            0.18,
+            1.2
+          ],
+          "min_m": [
+            -0.6,
+            -0.0,
+            -0.6
+          ],
+          "max_m": [
+            0.6,
+            0.18,
+            0.6
+          ],
+          "base_y": -0.0
+        },
+        "LOD1": {
+          "file": "pallet_LOD1.glb",
+          "bytes": 13512,
+          "verts": 256,
+          "tris": 126,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.2,
+            0.18,
+            1.2
+          ],
+          "min_m": [
+            -0.6,
+            -0.0,
+            -0.6
+          ],
+          "max_m": [
+            0.6,
+            0.18,
+            0.6
+          ],
+          "base_y": -0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/pallet.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:35Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:35Z"
+    },
+    {
+      "id": "park_bench",
+      "category": "seating",
+      "recipe": "f9136dfd156a3e8a",
+      "started": "2026-09-01T20:00:35Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/park_bench.glb",
+          "bytes": 71556
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 1876,
+            "tris": 1618,
+            "dims_m": [
+              1.1997,
+              0.6389,
+              0.9097
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 1876,
+              "tris": 1618,
+              "bytes": 71008
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 1185,
+              "tris": 809,
+              "bytes": 44076
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 802,
+              "tris": 404,
+              "bytes": 26856
+            }
+          },
+          "dims_m": [
+            1.1997,
+            0.6389,
+            0.9097
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "f9ba18736cb2cdc270668b7fe450bfd12499878a5e2bc4dbd17e69aa017c199a",
+        "LOD1": "dbe3ad7b415a013c37d39231315ea0db3aab1221bf92ee3e99f840b53b768716",
+        "LOD2": "decd3bfc76bc66ea6b1d4a2720021b64d629786760a74eed1b6a98983bfe2010"
+      },
+      "outputs": {
+        "LOD0": "park_bench/park_bench_LOD0.glb",
+        "LOD1": "park_bench/park_bench_LOD1.glb",
+        "LOD2": "park_bench/park_bench_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "park_bench_LOD0.glb",
+          "bytes": 71008,
+          "verts": 1878,
+          "tris": 1618,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.1997,
+            0.9097,
+            0.6389
+          ],
+          "min_m": [
+            -0.5998,
+            0.0,
+            -0.3194
+          ],
+          "max_m": [
+            0.5998,
+            0.9097,
+            0.3194
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "park_bench_LOD1.glb",
+          "bytes": 44076,
+          "verts": 1188,
+          "tris": 809,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.1997,
+            0.91,
+            0.6394
+          ],
+          "min_m": [
+            -0.5998,
+            0.0,
+            -0.3194
+          ],
+          "max_m": [
+            0.5998,
+            0.91,
+            0.32
+          ],
+          "base_y": 0.0
+        },
+        "LOD2": {
+          "file": "park_bench_LOD2.glb",
+          "bytes": 26856,
+          "verts": 726,
+          "tris": 404,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            1.1997,
+            0.9074,
+            0.6442
+          ],
+          "min_m": [
+            -0.5998,
+            0.0,
+            -0.3192
+          ],
+          "max_m": [
+            0.5998,
+            0.9074,
+            0.325
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/park_bench.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:36Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:36Z"
+    },
+    {
+      "id": "pavement_sign",
+      "category": "signage",
+      "recipe": "b8863ffb3d5b8588",
+      "started": "2026-09-01T20:00:36Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/pavement_sign.glb",
+          "bytes": 81312
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 2201,
+            "tris": 1104,
+            "dims_m": [
+              0.6811,
+              0.3569,
+              0.9038
+            ],
+            "objects": 3
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 2201,
+              "tris": 1104,
+              "bytes": 81792
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 1650,
+              "tris": 552,
+              "bytes": 44520
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 1374,
+              "tris": 276,
+              "bytes": 24480
+            }
+          },
+          "dims_m": [
+            0.6811,
+            0.3569,
+            0.9038
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "2df060670d43ec151987ffb5ce471675e7a3886bb0b3f8a66e810e032998a00e",
+        "LOD1": "dfcd283e2783c446856daad904758c3043e1fd8e64a396be0583b2796488ad13",
+        "LOD2": "ca8b48a6942e60f795b8fa9478a9424f6087228c1006e34e4d317ca8a5b812c2"
+      },
+      "outputs": {
+        "LOD0": "pavement_sign/pavement_sign_LOD0.glb",
+        "LOD1": "pavement_sign/pavement_sign_LOD1.glb",
+        "LOD2": "pavement_sign/pavement_sign_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "pavement_sign_LOD0.glb",
+          "bytes": 81792,
+          "verts": 2249,
+          "tris": 1104,
+          "primitives": 3,
+          "primitives_with_bounds": 3,
+          "meshes": 3,
+          "nodes": 3,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.6811,
+            0.9038,
+            0.3569
+          ],
+          "min_m": [
+            -0.3405,
+            0.0,
+            -0.1784
+          ],
+          "max_m": [
+            0.3405,
+            0.9038,
+            0.1784
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "pavement_sign_LOD1.glb",
+          "bytes": 44520,
+          "verts": 1188,
+          "tris": 552,
+          "primitives": 3,
+          "primitives_with_bounds": 3,
+          "meshes": 3,
+          "nodes": 3,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.6811,
+            0.9038,
+            0.3569
+          ],
+          "min_m": [
+            -0.3405,
+            0.0,
+            -0.1784
+          ],
+          "max_m": [
+            0.3405,
+            0.9038,
+            0.1784
+          ],
+          "base_y": 0.0
+        },
+        "LOD2": {
+          "file": "pavement_sign_LOD2.glb",
+          "bytes": 24480,
+          "verts": 614,
+          "tris": 276,
+          "primitives": 3,
+          "primitives_with_bounds": 3,
+          "meshes": 3,
+          "nodes": 3,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.6811,
+            0.8216,
+            0.3272
+          ],
+          "min_m": [
+            -0.3405,
+            0.0822,
+            -0.1636
+          ],
+          "max_m": [
+            0.3405,
+            0.9038,
+            0.1636
+          ],
+          "base_y": 0.0822
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/pavement_sign.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:37Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:37Z"
+    },
+    {
+      "id": "poster",
+      "category": "signage",
+      "recipe": "ac4e4386daed1c5a",
+      "started": "2026-09-01T20:00:37Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/poster.glb",
+          "bytes": 11216
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 222,
+            "tris": 373,
+            "dims_m": [
+              0.6541,
+              0.0237,
+              1.0031
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 222,
+              "tris": 373,
+              "bytes": 10700
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 120,
+              "tris": 186,
+              "bytes": 6316
+            }
+          },
+          "dims_m": [
+            0.6541,
+            0.0237,
+            1.0031
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "c37e4e346d1309d100b111612da9e8adf25dfebaef476a03b71e81258be75251",
+        "LOD1": "0f876644ffec7e8188e45a351cb25da0e3056d74401be8afe565b2dcfe5466e1"
+      },
+      "outputs": {
+        "LOD0": "poster/poster_LOD0.glb",
+        "LOD1": "poster/poster_LOD1.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "poster_LOD0.glb",
+          "bytes": 10700,
+          "verts": 222,
+          "tris": 373,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.6541,
+            1.0031,
+            0.0237
+          ],
+          "min_m": [
+            -0.3271,
+            0.0,
+            -0.0119
+          ],
+          "max_m": [
+            0.3271,
+            1.0031,
+            0.0119
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "poster_LOD1.glb",
+          "bytes": 6316,
+          "verts": 120,
+          "tris": 186,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.6541,
+            1.0031,
+            0.0237
+          ],
+          "min_m": [
+            -0.327,
+            -0.0,
+            -0.0119
+          ],
+          "max_m": [
+            0.327,
+            1.0031,
+            0.0119
+          ],
+          "base_y": -0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/poster.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:39Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:39Z"
+    },
+    {
+      "id": "roll_top_chimney",
+      "category": "roof",
+      "recipe": "fd18cf715f43f448",
+      "started": "2026-09-01T20:00:39Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/roll_top_chimney.glb",
+          "bytes": 37204
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 858,
+            "tris": 1312,
+            "dims_m": [
+              0.6738,
+              0.6738,
+              1.0011
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 858,
+              "tris": 1312,
+              "bytes": 36708
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 481,
+              "tris": 655,
+              "bytes": 20700
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 276,
+              "tris": 327,
+              "bytes": 12172
+            }
+          },
+          "dims_m": [
+            0.6738,
+            0.6738,
+            1.0011
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "3faacc87c1b8244f7966c42fcd68fee949bbe97fe96b348c591e4a81449cf685",
+        "LOD1": "702aea3475c3d4213d79c8e2a48b4a0c483c4b51f19e5569d8d253605ae4feba",
+        "LOD2": "b8815eb945db616c0c7600a58b3c65ec7ffee5562ff008db7794ef6bc19a582b"
+      },
+      "outputs": {
+        "LOD0": "roll_top_chimney/roll_top_chimney_LOD0.glb",
+        "LOD1": "roll_top_chimney/roll_top_chimney_LOD1.glb",
+        "LOD2": "roll_top_chimney/roll_top_chimney_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "roll_top_chimney_LOD0.glb",
+          "bytes": 36708,
+          "verts": 858,
+          "tris": 1312,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.6738,
+            1.0011,
+            0.6738
+          ],
+          "min_m": [
+            -0.3369,
+            -0.0,
+            -0.3369
+          ],
+          "max_m": [
+            0.3369,
+            1.0011,
+            0.3369
+          ],
+          "base_y": -0.0
+        },
+        "LOD1": {
+          "file": "roll_top_chimney_LOD1.glb",
+          "bytes": 20700,
+          "verts": 481,
+          "tris": 655,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.6738,
+            1.0012,
+            0.6738
+          ],
+          "min_m": [
+            -0.3369,
+            -0.0,
+            -0.3369
+          ],
+          "max_m": [
+            0.3369,
+            1.0012,
+            0.3369
+          ],
+          "base_y": -0.0
+        },
+        "LOD2": {
+          "file": "roll_top_chimney_LOD2.glb",
+          "bytes": 12172,
+          "verts": 276,
+          "tris": 327,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.6748,
+            1.0039,
+            0.6704
+          ],
+          "min_m": [
+            -0.3333,
+            -0.0014,
+            -0.3371
+          ],
+          "max_m": [
+            0.3415,
+            1.0025,
+            0.3333
+          ],
+          "base_y": -0.0014
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/roll_top_chimney.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:39Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:39Z"
+    },
+    {
+      "id": "rounded_concrete_bollard",
+      "category": "bollard",
+      "recipe": "0d574d508643d088",
+      "started": "2026-09-01T20:00:39Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/rounded_concrete_bollard.glb",
+          "bytes": 9836
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 196,
+            "tris": 288,
+            "dims_m": [
+              0.1852,
+              0.1852,
+              0.4449
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 196,
+              "tris": 288,
+              "bytes": 9224
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 107,
+              "tris": 144,
+              "bytes": 5532
+            }
+          },
+          "dims_m": [
+            0.1852,
+            0.1852,
+            0.4449
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "004bc40a7ee4bdc564557af877bbc32e049c1e328e876f465c55c3b89796c933",
+        "LOD1": "20a48c173e5a990698c2caaae30e94fdf3f2ee6c404713d47fb8bcef05c2972e"
+      },
+      "outputs": {
+        "LOD0": "rounded_concrete_bollard/rounded_concrete_bollard_LOD0.glb",
+        "LOD1": "rounded_concrete_bollard/rounded_concrete_bollard_LOD1.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "rounded_concrete_bollard_LOD0.glb",
+          "bytes": 9224,
+          "verts": 196,
+          "tris": 288,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.1852,
+            0.4449,
+            0.1852
+          ],
+          "min_m": [
+            -0.0926,
+            0.0,
+            -0.0926
+          ],
+          "max_m": [
+            0.0926,
+            0.4449,
+            0.0926
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "rounded_concrete_bollard_LOD1.glb",
+          "bytes": 5532,
+          "verts": 107,
+          "tris": 144,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.1853,
+            0.4451,
+            0.1855
+          ],
+          "min_m": [
+            -0.0927,
+            -0.0,
+            -0.0927
+          ],
+          "max_m": [
+            0.0926,
+            0.445,
+            0.0927
+          ],
+          "base_y": -0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/rounded_concrete_bollard.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:41Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:41Z"
+    },
+    {
+      "id": "skip",
+      "category": "dock",
+      "recipe": "6869dfbc73ca73d1",
+      "started": "2026-09-01T20:00:41Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/skip.glb",
+          "bytes": 44056
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 1148,
+            "tris": 928,
+            "dims_m": [
+              2.0,
+              3.3083,
+              0.9999
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 1148,
+              "tris": 928,
+              "bytes": 43716
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 734,
+              "tris": 464,
+              "bytes": 27424
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 518,
+              "tris": 232,
+              "bytes": 16748
+            }
+          },
+          "dims_m": [
+            2.0,
+            3.3083,
+            0.9999
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "b6d0f5e0af4297cb5e5b2444060d13926cd3bc645351890d2bd01ad96d1054d8",
+        "LOD1": "5d0e9bd8492ea4cb25a8db73a356013e95dab8c23bd6cdaf3f9428a2d5966a41",
+        "LOD2": "b5603b09172328983ac028bb0fc1bca0ce21da98f972eb24083553e041aec1a7"
+      },
+      "outputs": {
+        "LOD0": "skip/skip_LOD0.glb",
+        "LOD1": "skip/skip_LOD1.glb",
+        "LOD2": "skip/skip_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "skip_LOD0.glb",
+          "bytes": 43716,
+          "verts": 1156,
+          "tris": 928,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            2.0,
+            0.9999,
+            3.3083
+          ],
+          "min_m": [
+            -1.0,
+            0.0,
+            -1.6541
+          ],
+          "max_m": [
+            1.0,
+            0.9999,
+            1.6541
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "skip_LOD1.glb",
+          "bytes": 27424,
+          "verts": 734,
+          "tris": 464,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            2.0,
+            0.9999,
+            3.3083
+          ],
+          "min_m": [
+            -1.0,
+            0.0,
+            -1.6541
+          ],
+          "max_m": [
+            1.0,
+            0.9999,
+            1.6541
+          ],
+          "base_y": 0.0
+        },
+        "LOD2": {
+          "file": "skip_LOD2.glb",
+          "bytes": 16748,
+          "verts": 444,
+          "tris": 232,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            2.0,
+            0.9999,
+            3.3083
+          ],
+          "min_m": [
+            -1.0,
+            0.0,
+            -1.6541
+          ],
+          "max_m": [
+            1.0,
+            0.9999,
+            1.6541
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/skip.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:42Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:42Z"
+    },
+    {
+      "id": "small_pallet",
+      "category": "dock",
+      "recipe": "d89d758a920f8866",
+      "started": "2026-09-01T20:00:42Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/small_pallet.glb",
+          "bytes": 13536
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 224,
+            "tris": 120,
+            "dims_m": [
+              0.8658,
+              1.0005,
+              0.155
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 224,
+              "tris": 120,
+              "bytes": 12080
+            }
+          },
+          "dims_m": [
+            0.8658,
+            1.0005,
+            0.155
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "040d695c757625dfa8c7359ab69bd5e6cc2be78305d788529d97b232c9838f4d"
+      },
+      "outputs": {
+        "LOD0": "small_pallet/small_pallet_LOD0.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "small_pallet_LOD0.glb",
+          "bytes": 12080,
+          "verts": 224,
+          "tris": 120,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.8658,
+            0.155,
+            1.0005
+          ],
+          "min_m": [
+            -0.4329,
+            -0.0,
+            -0.5002
+          ],
+          "max_m": [
+            0.4329,
+            0.155,
+            0.5002
+          ],
+          "base_y": -0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/small_pallet.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:44Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:44Z"
+    },
+    {
+      "id": "swing_bin",
+      "category": "bin",
+      "recipe": "457851a55ac7e4a7",
+      "started": "2026-09-01T20:00:44Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/swing_bin.glb",
+          "bytes": 31268
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 736,
+            "tris": 800,
+            "dims_m": [
+              0.33,
+              0.32,
+              0.7123
+            ],
+            "objects": 2
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 736,
+              "tris": 800,
+              "bytes": 30344
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 418,
+              "tris": 399,
+              "bytes": 19800
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 248,
+              "tris": 200,
+              "bytes": 12544
+            }
+          },
+          "dims_m": [
+            0.33,
+            0.32,
+            0.7123
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "a47cf62499084734f3f38c620d494e579d01c87c6de610a06344cfc416d38342",
+        "LOD1": "5fbde67b821c32e2402ec2ecbef3c2146f1d30089a1bf35a5d465123c11029f6",
+        "LOD2": "8aece8b7d662e44b94269377d0a7655ea094e7afe275dd08034d26055f55fbc2"
+      },
+      "outputs": {
+        "LOD0": "swing_bin/swing_bin_LOD0.glb",
+        "LOD1": "swing_bin/swing_bin_LOD1.glb",
+        "LOD2": "swing_bin/swing_bin_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "swing_bin_LOD0.glb",
+          "bytes": 30344,
+          "verts": 736,
+          "tris": 800,
+          "primitives": 2,
+          "primitives_with_bounds": 2,
+          "meshes": 2,
+          "nodes": 2,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.33,
+            0.7123,
+            0.32
+          ],
+          "min_m": [
+            -0.165,
+            0.0,
+            -0.16
+          ],
+          "max_m": [
+            0.165,
+            0.7123,
+            0.16
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "swing_bin_LOD1.glb",
+          "bytes": 19800,
+          "verts": 481,
+          "tris": 399,
+          "primitives": 2,
+          "primitives_with_bounds": 2,
+          "meshes": 2,
+          "nodes": 2,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.33,
+            0.7165,
+            0.32
+          ],
+          "min_m": [
+            -0.165,
+            -0.0,
+            -0.16
+          ],
+          "max_m": [
+            0.165,
+            0.7165,
+            0.16
+          ],
+          "base_y": -0.0
+        },
+        "LOD2": {
+          "file": "swing_bin_LOD2.glb",
+          "bytes": 12544,
+          "verts": 292,
+          "tris": 200,
+          "primitives": 2,
+          "primitives_with_bounds": 2,
+          "meshes": 2,
+          "nodes": 2,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.33,
+            0.7165,
+            0.3152
+          ],
+          "min_m": [
+            -0.165,
+            -0.0,
+            -0.1576
+          ],
+          "max_m": [
+            0.165,
+            0.7165,
+            0.1576
+          ],
+          "base_y": -0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/swing_bin.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:44Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:44Z"
+    },
+    {
+      "id": "traffic_cone_01",
+      "category": "roadworks",
+      "recipe": "456a6e209b37adb7",
+      "started": "2026-09-01T20:00:44Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/traffic_cone_01.glb",
+          "bytes": 28388
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 678,
+            "tris": 800,
+            "dims_m": [
+              0.4009,
+              0.3472,
+              0.45
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 678,
+              "tris": 800,
+              "bytes": 27872
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 391,
+              "tris": 400,
+              "bytes": 16288
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 231,
+              "tris": 200,
+              "bytes": 9708
+            }
+          },
+          "dims_m": [
+            0.4009,
+            0.3472,
+            0.45
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "fc8c41c92b09d2ccbfef8fc34540c93592f0923e3d83082cb20bb748e7770776",
+        "LOD1": "3e147b1232c13d81a90b2c09df2033583030b56f19b113483e632c51cacbf586",
+        "LOD2": "c45d04c11e08a514c4c737090897acf3a2cb8a75fba4c5b76daf20b3aa94bd68"
+      },
+      "outputs": {
+        "LOD0": "traffic_cone_01/traffic_cone_01_LOD0.glb",
+        "LOD1": "traffic_cone_01/traffic_cone_01_LOD1.glb",
+        "LOD2": "traffic_cone_01/traffic_cone_01_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "traffic_cone_01_LOD0.glb",
+          "bytes": 27872,
+          "verts": 678,
+          "tris": 800,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.4009,
+            0.45,
+            0.3472
+          ],
+          "min_m": [
+            -0.2005,
+            -0.0,
+            -0.1736
+          ],
+          "max_m": [
+            0.2005,
+            0.45,
+            0.1736
+          ],
+          "base_y": -0.0
+        },
+        "LOD1": {
+          "file": "traffic_cone_01_LOD1.glb",
+          "bytes": 16288,
+          "verts": 391,
+          "tris": 400,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.4009,
+            0.4501,
+            0.3472
+          ],
+          "min_m": [
+            -0.2005,
+            -0.0,
+            -0.1736
+          ],
+          "max_m": [
+            0.2005,
+            0.4501,
+            0.1736
+          ],
+          "base_y": -0.0
+        },
+        "LOD2": {
+          "file": "traffic_cone_01_LOD2.glb",
+          "bytes": 9708,
+          "verts": 223,
+          "tris": 200,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.4009,
+            0.4508,
+            0.3472
+          ],
+          "min_m": [
+            -0.2005,
+            -0.0007,
+            -0.1736
+          ],
+          "max_m": [
+            0.2005,
+            0.45,
+            0.1736
+          ],
+          "base_y": -0.0007
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/traffic_cone_01.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:46Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:46Z"
+    },
+    {
+      "id": "traffic_cone_02",
+      "category": "roadworks",
+      "recipe": "80e32de7a8229ad7",
+      "started": "2026-09-01T20:00:46Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/traffic_cone_02.glb",
+          "bytes": 12132
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 266,
+            "tris": 288,
+            "dims_m": [
+              0.3002,
+              0.3002,
+              0.45
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 266,
+              "tris": 288,
+              "bytes": 11616
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 149,
+              "tris": 144,
+              "bytes": 7004
+            }
+          },
+          "dims_m": [
+            0.3002,
+            0.3002,
+            0.45
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "c667f0b04f6cc14ab67f1f9dc31da85e6070624d706a955808952170fe8089a6",
+        "LOD1": "6d14a575aeb85fcc3650cdb8a3c2017afaa7912612522f71b831c83953776003"
+      },
+      "outputs": {
+        "LOD0": "traffic_cone_02/traffic_cone_02_LOD0.glb",
+        "LOD1": "traffic_cone_02/traffic_cone_02_LOD1.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "traffic_cone_02_LOD0.glb",
+          "bytes": 11616,
+          "verts": 266,
+          "tris": 288,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.3002,
+            0.45,
+            0.3002
+          ],
+          "min_m": [
+            -0.1501,
+            -0.0,
+            -0.1501
+          ],
+          "max_m": [
+            0.1501,
+            0.45,
+            0.1501
+          ],
+          "base_y": -0.0
+        },
+        "LOD1": {
+          "file": "traffic_cone_02_LOD1.glb",
+          "bytes": 7004,
+          "verts": 149,
+          "tris": 144,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.3002,
+            0.45,
+            0.3197
+          ],
+          "min_m": [
+            -0.1501,
+            -0.0,
+            -0.1599
+          ],
+          "max_m": [
+            0.1501,
+            0.45,
+            0.1599
+          ],
+          "base_y": -0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/traffic_cone_02.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:47Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:47Z"
+    },
+    {
+      "id": "trunk_protection_railing",
+      "category": "street",
+      "recipe": "e567f53ccea3905b",
+      "started": "2026-09-01T20:00:47Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/trunk_protection_railing.glb",
+          "bytes": 41388
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 936,
+            "tris": 1600,
+            "dims_m": [
+              2.065,
+              2.0359,
+              0.5999
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 936,
+              "tris": 1600,
+              "bytes": 40780
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 506,
+              "tris": 800,
+              "bytes": 22236
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 280,
+              "tris": 400,
+              "bytes": 12604
+            }
+          },
+          "dims_m": [
+            2.065,
+            2.0359,
+            0.5999
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "576d0e2360632c85743afd8897e6dd73b08e30dd7eb6d34c50c47785beb94392",
+        "LOD1": "8549c165aed9d8aa022d9b1ddf68d251ec802d7127d9986ef115a2f90cbe8fbb",
+        "LOD2": "f8a40c65ec90237571a90397694a8b6aa78812fa5d1eb91771ce3a33c7df301b"
+      },
+      "outputs": {
+        "LOD0": "trunk_protection_railing/trunk_protection_railing_LOD0.glb",
+        "LOD1": "trunk_protection_railing/trunk_protection_railing_LOD1.glb",
+        "LOD2": "trunk_protection_railing/trunk_protection_railing_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "trunk_protection_railing_LOD0.glb",
+          "bytes": 40780,
+          "verts": 936,
+          "tris": 1600,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            2.065,
+            0.5999,
+            2.0359
+          ],
+          "min_m": [
+            -1.0325,
+            0.0,
+            -1.018
+          ],
+          "max_m": [
+            1.0325,
+            0.5999,
+            1.018
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "trunk_protection_railing_LOD1.glb",
+          "bytes": 22236,
+          "verts": 506,
+          "tris": 800,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            2.065,
+            0.6,
+            2.0359
+          ],
+          "min_m": [
+            -1.0325,
+            -0.0,
+            -1.018
+          ],
+          "max_m": [
+            1.0325,
+            0.6,
+            1.018
+          ],
+          "base_y": -0.0
+        },
+        "LOD2": {
+          "file": "trunk_protection_railing_LOD2.glb",
+          "bytes": 12604,
+          "verts": 280,
+          "tris": 400,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            2.054,
+            0.604,
+            2.0262
+          ],
+          "min_m": [
+            -1.027,
+            -0.0,
+            -1.0151
+          ],
+          "max_m": [
+            1.027,
+            0.604,
+            1.0111
+          ],
+          "base_y": -0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/trunk_protection_railing.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:49Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:49Z"
+    },
+    {
+      "id": "weathertop_chimney",
+      "category": "roof",
+      "recipe": "80646ba1757567de",
+      "started": "2026-09-01T20:00:49Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/weathertop_chimney.glb",
+          "bytes": 31068
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 738,
+            "tris": 936,
+            "dims_m": [
+              0.9505,
+              0.9505,
+              0.6668
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 738,
+              "tris": 936,
+              "bytes": 30476
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 453,
+              "tris": 468,
+              "bytes": 18568
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 265,
+              "tris": 233,
+              "bytes": 11124
+            }
+          },
+          "dims_m": [
+            0.9505,
+            0.9505,
+            0.6668
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "25128befa72ee513907e197b6846d741eb1073fee38b8014e70b0843dff56393",
+        "LOD1": "df98e441cf1766cf1ce17d41725976010a0f0841fc2624eac4eb7f4430680d35",
+        "LOD2": "7277ba95c44bab163218edfed6f997a78060521c507e493005a08c6fc45a18df"
+      },
+      "outputs": {
+        "LOD0": "weathertop_chimney/weathertop_chimney_LOD0.glb",
+        "LOD1": "weathertop_chimney/weathertop_chimney_LOD1.glb",
+        "LOD2": "weathertop_chimney/weathertop_chimney_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "weathertop_chimney_LOD0.glb",
+          "bytes": 30476,
+          "verts": 738,
+          "tris": 936,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.9505,
+            0.6668,
+            0.9505
+          ],
+          "min_m": [
+            -0.4752,
+            0.0,
+            -0.4752
+          ],
+          "max_m": [
+            0.4752,
+            0.6668,
+            0.4752
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "weathertop_chimney_LOD1.glb",
+          "bytes": 18568,
+          "verts": 453,
+          "tris": 468,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.9505,
+            0.6668,
+            0.9505
+          ],
+          "min_m": [
+            -0.4752,
+            -0.0,
+            -0.4752
+          ],
+          "max_m": [
+            0.4752,
+            0.6668,
+            0.4752
+          ],
+          "base_y": -0.0
+        },
+        "LOD2": {
+          "file": "weathertop_chimney_LOD2.glb",
+          "bytes": 11124,
+          "verts": 265,
+          "tris": 233,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.9722,
+            0.662,
+            0.9575
+          ],
+          "min_m": [
+            -0.4771,
+            0.0,
+            -0.4751
+          ],
+          "max_m": [
+            0.4951,
+            0.662,
+            0.4824
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/weathertop_chimney.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:49Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:49Z"
+    },
+    {
+      "id": "wood_barrel",
+      "category": "dock",
+      "recipe": "ebd9c443c0d2cc68",
+      "started": "2026-09-01T20:00:49Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/wood_barrel.glb",
+          "bytes": 133692
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 3359,
+            "tris": 4058,
+            "dims_m": [
+              0.6009,
+              0.6171,
+              0.8148
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 3359,
+              "tris": 4058,
+              "bytes": 133172
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 2035,
+              "tris": 2029,
+              "bytes": 78628
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 1329,
+              "tris": 1013,
+              "bytes": 48276
+            }
+          },
+          "dims_m": [
+            0.6009,
+            0.6171,
+            0.8148
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "1fe0eb434b3085be10b4f34bbb8c84e099982e75f3027e29fbeb94547c319ee0",
+        "LOD1": "08445d0c9db6a5cb1deafae99566875fca30eae8177f21a427390c94cad345c4",
+        "LOD2": "6417677a942fa20e013a592e4b7fca37d35ab0919bb64f3b27a0ad52f2e46b40"
+      },
+      "outputs": {
+        "LOD0": "wood_barrel/wood_barrel_LOD0.glb",
+        "LOD1": "wood_barrel/wood_barrel_LOD1.glb",
+        "LOD2": "wood_barrel/wood_barrel_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "wood_barrel_LOD0.glb",
+          "bytes": 133172,
+          "verts": 3359,
+          "tris": 4058,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.6009,
+            0.8148,
+            0.6171
+          ],
+          "min_m": [
+            -0.3004,
+            -0.0,
+            -0.3086
+          ],
+          "max_m": [
+            0.3004,
+            0.8148,
+            0.3086
+          ],
+          "base_y": -0.0
+        },
+        "LOD1": {
+          "file": "wood_barrel_LOD1.glb",
+          "bytes": 78628,
+          "verts": 2035,
+          "tris": 2029,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.6046,
+            0.8149,
+            0.6186
+          ],
+          "min_m": [
+            -0.3023,
+            -0.0001,
+            -0.3104
+          ],
+          "max_m": [
+            0.3023,
+            0.8148,
+            0.3081
+          ],
+          "base_y": -0.0001
+        },
+        "LOD2": {
+          "file": "wood_barrel_LOD2.glb",
+          "bytes": 48276,
+          "verts": 1277,
+          "tris": 1013,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.6054,
+            0.8153,
+            0.6215
+          ],
+          "min_m": [
+            -0.3027,
+            -0.0003,
+            -0.3134
+          ],
+          "max_m": [
+            0.3027,
+            0.8151,
+            0.3081
+          ],
+          "base_y": -0.0003
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/wood_barrel.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:51Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:51Z"
+    },
+    {
+      "id": "wooden_crate_01",
+      "category": "dock",
+      "recipe": "7b5a881cbdda7520",
+      "started": "2026-09-01T20:00:51Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/wooden_crate_01.glb",
+          "bytes": 62624
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 1704,
+            "tris": 852,
+            "dims_m": [
+              0.8804,
+              0.9244,
+              1.0447
+            ],
+            "objects": 2
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 1704,
+              "tris": 852,
+              "bytes": 61680
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 1278,
+              "tris": 426,
+              "bytes": 33776
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 1065,
+              "tris": 213,
+              "bytes": 18204
+            }
+          },
+          "dims_m": [
+            0.8804,
+            0.9244,
+            1.0447
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "b7e9d32fad0054d9774def1e5d1c3559a96eab90553b774d3d0a2e7aed04ac23",
+        "LOD1": "2393b9ce142a64fdbf462b8b18315040f1b531bff894643f4465c1bc808fd50c",
+        "LOD2": "c228f37226d8b959308c567219e6adc6eb8993b76be424181e96fc13db30a070"
+      },
+      "outputs": {
+        "LOD0": "wooden_crate_01/wooden_crate_01_LOD0.glb",
+        "LOD1": "wooden_crate_01/wooden_crate_01_LOD1.glb",
+        "LOD2": "wooden_crate_01/wooden_crate_01_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "wooden_crate_01_LOD0.glb",
+          "bytes": 61680,
+          "verts": 1704,
+          "tris": 852,
+          "primitives": 2,
+          "primitives_with_bounds": 2,
+          "meshes": 2,
+          "nodes": 2,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.8804,
+            1.0447,
+            0.9244
+          ],
+          "min_m": [
+            -0.4402,
+            0.0,
+            -0.4622
+          ],
+          "max_m": [
+            0.4402,
+            1.0447,
+            0.4622
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "wooden_crate_01_LOD1.glb",
+          "bytes": 33776,
+          "verts": 912,
+          "tris": 426,
+          "primitives": 2,
+          "primitives_with_bounds": 2,
+          "meshes": 2,
+          "nodes": 2,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.8804,
+            1.0447,
+            0.9244
+          ],
+          "min_m": [
+            -0.4402,
+            0.0,
+            -0.4622
+          ],
+          "max_m": [
+            0.4402,
+            1.0447,
+            0.4622
+          ],
+          "base_y": 0.0
+        },
+        "LOD2": {
+          "file": "wooden_crate_01_LOD2.glb",
+          "bytes": 18204,
+          "verts": 465,
+          "tris": 213,
+          "primitives": 2,
+          "primitives_with_bounds": 2,
+          "meshes": 2,
+          "nodes": 2,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.8804,
+            1.0447,
+            0.9244
+          ],
+          "min_m": [
+            -0.4402,
+            0.0,
+            -0.4622
+          ],
+          "max_m": [
+            0.4402,
+            1.0447,
+            0.4622
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/wooden_crate_01.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:52Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:52Z"
+    },
+    {
+      "id": "wooden_crate_02",
+      "category": "dock",
+      "recipe": "2f267317010866be",
+      "started": "2026-09-01T20:00:52Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/wooden_crate_02.glb",
+          "bytes": 63760
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 1736,
+            "tris": 868,
+            "dims_m": [
+              0.8811,
+              0.9251,
+              1.0455
+            ],
+            "objects": 2
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 1736,
+              "tris": 868,
+              "bytes": 62796
+            },
+            "LOD1": {
+              "ratio": 0.5,
+              "verts": 1302,
+              "tris": 434,
+              "bytes": 33496
+            },
+            "LOD2": {
+              "ratio": 0.25,
+              "verts": 1085,
+              "tris": 217,
+              "bytes": 17884
+            }
+          },
+          "dims_m": [
+            0.8811,
+            0.9251,
+            1.0455
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "93740f573419a34a8964229becb68cac1a92d31141dc66f100f3135cdd045ba6",
+        "LOD1": "5493db7a33880ea10f05fce48e44afbfd51e3ef6fdb8a876b0510af21c8ca7b0",
+        "LOD2": "f1dcda1fce3e58d02820b6677fe050155be192b9f86cdc2e39eb9c8c499aa6ed"
+      },
+      "outputs": {
+        "LOD0": "wooden_crate_02/wooden_crate_02_LOD0.glb",
+        "LOD1": "wooden_crate_02/wooden_crate_02_LOD1.glb",
+        "LOD2": "wooden_crate_02/wooden_crate_02_LOD2.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "wooden_crate_02_LOD0.glb",
+          "bytes": 62796,
+          "verts": 1736,
+          "tris": 868,
+          "primitives": 2,
+          "primitives_with_bounds": 2,
+          "meshes": 2,
+          "nodes": 2,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.8811,
+            1.0455,
+            0.9251
+          ],
+          "min_m": [
+            -0.4405,
+            0.0,
+            -0.4626
+          ],
+          "max_m": [
+            0.4405,
+            1.0455,
+            0.4626
+          ],
+          "base_y": 0.0
+        },
+        "LOD1": {
+          "file": "wooden_crate_02_LOD1.glb",
+          "bytes": 33496,
+          "verts": 902,
+          "tris": 434,
+          "primitives": 2,
+          "primitives_with_bounds": 2,
+          "meshes": 2,
+          "nodes": 2,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.8811,
+            1.0455,
+            0.9251
+          ],
+          "min_m": [
+            -0.4405,
+            0.0,
+            -0.4626
+          ],
+          "max_m": [
+            0.4405,
+            1.0455,
+            0.4626
+          ],
+          "base_y": 0.0
+        },
+        "LOD2": {
+          "file": "wooden_crate_02_LOD2.glb",
+          "bytes": 17884,
+          "verts": 455,
+          "tris": 217,
+          "primitives": 2,
+          "primitives_with_bounds": 2,
+          "meshes": 2,
+          "nodes": 2,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.8811,
+            1.0455,
+            0.9251
+          ],
+          "min_m": [
+            -0.4405,
+            0.0,
+            -0.4626
+          ],
+          "max_m": [
+            0.4405,
+            1.0455,
+            0.4626
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/wooden_crate_02.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:54Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:54Z"
+    },
+    {
+      "id": "wooden_square_bollard",
+      "category": "bollard",
+      "recipe": "7fab704c5e129336",
+      "started": "2026-09-01T20:00:54Z",
+      "stages": {
+        "source": {
+          "path": "ledger/Assets/Props/base-mesh/wooden_square_bollard.glb",
+          "bytes": 4628
+        },
+        "clean": {
+          "ok": true,
+          "error": null,
+          "blender": "4.5.13 LTS",
+          "source": {
+            "verts": 80,
+            "tris": 46,
+            "dims_m": [
+              0.1247,
+              0.1247,
+              1.0
+            ],
+            "objects": 1
+          },
+          "scale_applied": 1.0,
+          "pivot": "base-centre",
+          "ladder": {
+            "LOD0": {
+              "ratio": 1.0,
+              "verts": 80,
+              "tris": 46,
+              "bytes": 4028
+            }
+          },
+          "dims_m": [
+            0.1247,
+            0.1247,
+            1.0
+          ]
+        }
+      },
+      "sha256": {
+        "LOD0": "42c24d8df7f7a98d2b0370c6b578216a7b561b2b7cc95691fc9872e9fcadc136"
+      },
+      "outputs": {
+        "LOD0": "wooden_square_bollard/wooden_square_bollard_LOD0.glb"
+      },
+      "measured": {
+        "LOD0": {
+          "file": "wooden_square_bollard_LOD0.glb",
+          "bytes": 4028,
+          "verts": 80,
+          "tris": 46,
+          "primitives": 1,
+          "primitives_with_bounds": 1,
+          "meshes": 1,
+          "nodes": 1,
+          "materials": 1,
+          "images": 0,
+          "dims_m": [
+            0.1247,
+            1.0,
+            0.1247
+          ],
+          "min_m": [
+            -0.0624,
+            0.0,
+            -0.0624
+          ],
+          "max_m": [
+            0.0624,
+            1.0,
+            0.0624
+          ],
+          "base_y": 0.0
+        }
+      },
+      "licence": {
+        "tool": "existing repository asset -> Blender",
+        "tool_licence": "existing repository asset: n/a; Blender: GPL-3.0 (the tool; it places no condition on the geometry it exports)",
+        "weights_licence": "existing repository asset: n/a; Blender: n/a - not a model",
+        "source": "ledger/Assets/Props/base-mesh/wooden_square_bollard.glb",
+        "source_licence": "CC0-1.0",
+        "source_credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes",
+        "output_licence": "derivative of CC0-1.0 source; the source's obligation travels with it",
+        "produced": "2026-09-01T20:00:54Z",
+        "allowlist": "source's own row in THIRD-PARTY.md (law: ledger-v2/research/license-allowlist.md)",
+        "tool_versions": {
+          "blender": "Blender 4.5.13 LTS",
+          "python": "3.12.8",
+          "backend": "local"
+        },
+        "caveats": [],
+        "ship_ok": true
+      },
+      "status": "done",
+      "finished": "2026-09-01T20:00:54Z"
+    }
+  ],
+  "counts": {
+    "done": 37,
+    "skipped": 0,
+    "failed": 0,
+    "attempted": 37,
+    "not_attempted": 0,
+    "in_spec": 37
+  },
+  "caps": [
+    "(+1 more item(s) in the batch not attempted on this run)"
+  ],
+  "elapsed_minutes": 0.87,
+  "status": "DONE 37/37",
+  "licence_gate": {
+    "examined": 37,
+    "problems": [],
+    "caveats": [],
+    "note": ""
+  }
+}
