@@ -2,7 +2,13 @@ line: code feature (D1 probe)
 spec: production/d1-probe/plan.md, week 1 item 2
 acceptance: ported perception tests pass in UE5; cycles.tsv rows written for every edit; no hand-edited binary assets
 max_sessions: 3
-status: FULLY UNBLOCKED 2026-09-01. UE 5.8.2 installed; MSVC 17.14.37614.0 installed and verified.
+status: DONE 2026-09-01. The transliterated perception core runs inside a real
+        Unreal build on ledger-pc and agrees with the shipped C# on 1221 rows,
+        0 mismatches, to 1e-9 (probe run 11). Cycle rows written for every edit,
+        each endpoint traced to a landed CI commit rather than recalled.
+        The golden table is emitted from the REAL Core by ledger/PerceptionGolden,
+        so there is one source of truth and no second implementation of the
+        expectations. No binary asset was hand-edited.
 
 Transliterate the perception core (seven slots, five-rung ladder) and its
 tests from ledger/Assets/Scripts/Core to UE5 C++. Transliteration, not
