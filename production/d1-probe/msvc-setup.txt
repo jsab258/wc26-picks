@@ -1,8 +1,17 @@
-# MSVC build tools setup - d10ad66
+# MSVC build tools setup - ddee161
 
+present: Microsoft.VisualStudio.Component.VC.Tools.x86.x64 (the C++ toolchain, for the game target)
+MISSING: Microsoft.Net.Component.4.8.SDK (the .NET Framework SDK, for the editor target)
+MISSING: Microsoft.Net.Component.4.6.2.TargetingPack (the targeting pack UE names alongside it)
+requiredComponents=3 missing=2
 downloading https://aka.ms/vs/17/release/vs_BuildTools.exe
 downloaded bytes=4473896
-running vs_BuildTools.exe --quiet --wait --norestart --nocache --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended
-exitCode=0 minutes=2.9
-VERIFIED: msvc version=17.14.37614.0 path=C:\Program~Files~(x86)\Microsoft~Visual~Studio\2022\BuildTools
+modifying the existing install at C:\Program~Files~(x86)\Microsoft~Visual~Studio\2022\BuildTools
+running vs_BuildTools.exe modify --installPath "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools" --quiet --wait --norestart --nocache --add Microsoft.Net.Component.4.8.SDK --add Microsoft.Net.Component.4.6.2.TargetingPack
+exitCode=0 minutes=0.4
+verified: Microsoft.VisualStudio.Component.VC.Tools.x86.x64 version=17.14.37614.0
+verified: Microsoft.Net.Component.4.8.SDK version=17.14.37614.0
+verified: Microsoft.Net.Component.4.6.2.TargetingPack version=17.14.37614.0
+verifiedComponents=3/3
+VERIFIED: every required component is present.
 setupReached=end
