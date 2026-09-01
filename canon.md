@@ -1,7 +1,8 @@
 # canon.md: world facts that outrank everything
 
-STATUS: DRAFT for Jafar's approval, 2026-08-31. On approval this outranks every
-document and agent; violating it is a gate failure.
+STATUS: APPROVED 2026-08-31 by Jafar, with rulings recorded in
+ledger-v2/respec/decision-register/D8 and D9. This outranks every document and
+agent; violating it is a gate failure.
 
 ## Game
 - LEDGER: open-town crime sim and social RPG. Single player, PC first.
@@ -23,9 +24,10 @@ document and agent; violating it is a gate failure.
 - Grounded noir. Comedy: dry British wit plus seaside-postcard smut, sparingly, so
   the noir holds. Tabloid and Viz-adjacent flavour. Never GTA-style American satire.
 - Visual target: photoreal, wet, overcast, grimy Britain. Weather and grime are the
-  strategy, not stylization. See CONFLICTS 1.
+  strategy, not stylization. The bar is the Meridian Test (D8, D9); GTA V PS3 is
+  retired as a reference bar.
 
-## Premise and cast
+## Premise and cast (baseline pending OPEN 2)
 - Player: Tom Novak, arriving with one suitcase and a letter. His uncle Mickey
   has died and left him the pub, Mickey's, in the Hook, plus a half-dead criminal
   outfit and a book of uncollectable debts.
@@ -55,13 +57,6 @@ document and agent; violating it is a gate failure.
 - Minted: Mickey's (the pub), the Tivoli (cinema), Meridian Harbour Board, Meridian
   Ferry. The brand bible still owes: the football club, the local paper, the pirate
   radio station, the regional TV channel.
-
-## CONFLICTS (nothing silently resolved)
-1. Visual bar. Legacy design-doc, Jafar's direct order 21 Aug: match GTA V (PS3,
-   2013). The v2 package, 31 Aug: photoreal wet Britain at GTA 6 and KCD2 quality in a
-   small footprint. The package supersedes; flagged because both were direct orders.
-2. Quality ceiling. Legacy design-doc: AA or premium indie. The v2 Meridian Test: a
-   GTA or KCD2 player plays 30 minutes and does not bounce off the visuals.
 
 ## OPEN
 1. Engine. Unity holds the codebase; the UE5 probe is authorized (D1). No document
