@@ -33,6 +33,25 @@ if [ -n "$BR" ] && git fetch -q origin "$BR" 2>/dev/null; then
     fi
 fi
 
+# The status dashboard: REGENERATED, then read. A session that starts by
+# reading yesterday's page is the stale-artifact fault this project keeps
+# paying for, so the page is rebuilt from repo state first and the head of
+# STATUS.md is printed. It writes exactly two files (dashboard.html and
+# STATUS.md at the root), so an otherwise clean tree will show those two as
+# modified after a session starts: that is this hook, not somebody's work.
+# Failure is NOT fatal to the hook: a dashboard that cannot build must not
+# stop a session, but it must say so rather than print nothing.
+if [ -f "tools/dashboard/build-dashboard.py" ]; then
+    if DASH=$(python3 tools/dashboard/build-dashboard.py 2>&1); then
+        echo "--- status (STATUS.md, just regenerated) ---"
+        echo "  $DASH"
+        sed -n '7,12p' STATUS.md 2>/dev/null | sed 's/^/  /'
+    else
+        echo "DASHBOARD DID NOT REBUILD: $(echo "$DASH" | tail -1)"
+        echo "  STATUS.md on disk is as old as its own header line says."
+    fi
+fi
+
 # The morning brief, when one exists (v2 runner.md: the SessionStart hook
 # surfaces the latest brief unprompted, so the morning starts with the night).
 if [ -f "production/briefs/latest.md" ]; then

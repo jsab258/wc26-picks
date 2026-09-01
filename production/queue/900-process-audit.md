@@ -31,3 +31,17 @@ Checks, each with its denominator:
    because comparing a paragraph inside a 15,000 word file against another
    file by eye, once a week, is exactly the check this project has watched
    decay before.
+8. Status dashboard currency: STATUS.md carries the timestamp it was
+   generated at, on line 3. It must be less than a day old at audit time,
+   and the check reports the age it found rather than a yes or no. A page
+   older than that is not a small untidiness: it is a page a reader will
+   still read as current, which is worse than no page.
+9. The dashboard writes nothing else: run
+   `python3 tools/dashboard/build-dashboard.py --selftest`. Its AST walk
+   asserts that every filesystem write in the generator is either
+   write_artifact (which refuses any name but the two artifacts) or the
+   selftest's own temp fixture, and its scope test asserts that a whole
+   generation creates exactly two files and leaves the tree it read
+   untouched. Report the passed and failed counts, both numbers, always.
+   A derived page that quietly repairs a source it read is a second source
+   of truth, which is the one thing it must never become.

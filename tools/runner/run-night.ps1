@@ -39,6 +39,29 @@ while ($true) {
     Write-Host ("Iteration {0}: {1} task(s) queued. Logging to {2}" -f $i, $queued.Count, $log)
     & claude -p $dispatch --max-turns 200 *> $log
     if ($LASTEXITCODE -ne 0) { Write-Host ("Session exited {0}; see log." -f $LASTEXITCODE) }
+
+    # THE DASHBOARD IS REGENERATED AT THE END OF EVERY ITERATION, so the page
+    # describes the night as it happens rather than as it was at 23:30.
+    # NEVER FATAL: a night that stops because a status page failed to build
+    # would be the instrument breaking the work it measures. It says so
+    # instead, and the page then carries the age of its own last rebuild.
+    $py = $null
+    foreach ($cand in @("python", "python3", "py")) {
+        if (Get-Command $cand -ErrorAction SilentlyContinue) { $py = $cand; break }
+    }
+    if ($py) {
+        & $py "tools/dashboard/build-dashboard.py" 2>&1 | Write-Host
+        if ($LASTEXITCODE -ne 0) { Write-Host "Dashboard did not rebuild this iteration; STATUS.md is as old as its own header." }
+        # STAGE ONLY WHAT IS ALREADY TRACKED. `git add -u -- <paths>` touches
+        # tracked files and ignores untracked ones, so whether dashboard.html
+        # is committed at all stays a repository decision rather than one this
+        # script makes silently at 3am.
+        git add -u -- STATUS.md dashboard.html 2>$null
+        git diff --cached --quiet
+        if ($LASTEXITCODE -ne 0) { git commit -m ("Status dashboard, iteration {0}" -f $i) 2>$null }
+    } else {
+        Write-Host "No python found; the dashboard was not rebuilt this iteration."
+    }
     git push -u origin $night
 }
 
