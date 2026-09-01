@@ -65,3 +65,10 @@ its editor module built, and that compile is real UE setup cost that
 belongs in the cold cook number rather than being hidden by a flag that
 makes the cook fail instead. Expect the cold cook to be the longest step
 this probe has run.
+run 10 - 2026-09-01 - the .NET Framework SDK is in. The fixed setup guard
+found 2 of 3 required components missing, modified the existing Build Tools
+install in place, and verified 3 of 3 in 0.4 minutes; the old guard would
+have reported ALREADY PRESENT and changed nothing. Nothing in the probe
+changed for this run. It is the same cook, on a machine that can now build
+an editor target, and it is the first run with a chance of producing a cook
+number at all.

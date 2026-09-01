@@ -52,11 +52,59 @@ single summary, which is why the series is printed above them.
 
 ### Unreal, on ledger-pc
 
-n = 1. Cold build 1.12 min, warm build 0.03 min, binary 324 MB.
+Build, over four runs that reached the compiler:
 
-ONE RUN IS NOT EVIDENCE and this number is not yet a median. It is recorded
-because it establishes something else that is worth more right now: the
-toolchain works, the target links, and the loop is measurable.
+    cold build      1.12, 0.75, 0.75, 0.75 min
+    warm build      0.03 min every time
+    binary          324 MB
+
+Cold is genuinely cold every run: clearedBeforeCold has read 0 of 4 on each
+of the last two, meaning the checkout wipes the workspace, so nothing carries
+over. The 0.03 warm figure is a SECOND INVOCATION INSIDE ONE RUN, not a
+next-day rebuild, and it is labelled that way wherever it appears.
+
+Cook: NOT YET MEASURED. Three attempts, none of which reached a cook.
+Failures were, in order: no editor target, then the .NET Framework SDK
+missing. Both are setup, not cycle.
+
+Loop, over five real edits: median 10 min, from cycles.tsv, every endpoint
+traced to a landed CI commit.
+
+THE LOOP NUMBER IS NOT COMPARABLE TO UNITY'S 17.6 AND MUST NOT BE QUOTED AS
+IF IT WERE. The UE side runs no simulation, renders nothing, captures no
+stills and commits no verdict of its own. It is a shorter loop because it
+does less, and it will grow when it does more. What the four builds do
+establish is worth more than a premature comparison: the toolchain works, the
+target links, the ported core compiles under UE's own build system, and every
+failure so far has been diagnosable from a committed file.
+
+## Setup cost, which is part of measurement a and was not being counted
+
+D1 asks what a cycle costs. It also has to ask what it costs to have a cycle
+at all, and on the UE side that is being paid now, one round trip at a time.
+
+    UE 5.8.2 install            blocked for hours by a launcher bug, then
+                                worked around in about a minute once the
+                                symptom was searched rather than reasoned about
+    MSVC build tools            2.9 min, unattended, verified by vswhere
+    .NET Framework SDK          found missing by run 9; the editor needs it
+    discovery round trips       runs 4 to 9: target shape, runtime config,
+                                editor target, and the SDK gap. Six round
+                                trips, none of which measured anything about
+                                the engine
+
+THE HONEST FRAMING, because this number is easy to misuse in both directions.
+Unity's equivalent setup was paid months ago and is invisible, not absent. A
+fair reading is not "UE costs six round trips and Unity costs none"; it is
+that the UE path is currently unpaved on this machine and each unpaved step
+has cost between two seconds and twenty minutes to find. What matters for D1
+is whether that curve flattens: setup cost is paid once, cycle cost is paid
+forever, and only the second belongs in the decision.
+
+What is worth recording either way: every one of those six failures was
+diagnosed from a committed file, and after the diagnosis channel was built,
+each took one round trip instead of several. The two that took two round
+trips each were the two where the step could not say why it failed.
 
 ## What CANNOT yet be concluded, stated plainly so nobody quotes it as if it can
 
