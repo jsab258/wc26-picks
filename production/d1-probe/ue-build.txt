@@ -1,22 +1,12 @@
-# UE probe build - 10b892a
+# UE probe build - d48c02c
 
 engine=C:\Program~Files\Epic~Games\UE_5.8
 project=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject
 cmd=Build.bat LedgerProbe Win64 Development -Project="C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject" -WaitMutex -NoHotReload
-coldBuildExit=6 coldBuildMinutes=0.05
-COLD BUILD FAILED. Last 40 lines of output:
-Using bundled DotNet SDK version: 10.0 win-x64
-Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" LedgerProbe Win64 Development -Project="C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject" -WaitMutex -NoHotReload
-Log file: C:\Users\Jafar\AppData\Local\UnrealBuildTool\Log.txt
-Determining max actions to execute in parallel (6 physical cores, 12 logical cores)
-  Executing up to 6 processes, one per physical core
-Using 'git status' to determine working set for adaptive non-unity build (C:\actions-runner-ledger\_work\wc26-picks\wc26-picks).
-Creating makefile for LedgerProbe (no existing makefile)
-UbaServer - Listening on 0.0.0.0:1345
-Program targets are not currently supported from this engine distribution.
-
-Result: Failed (OtherCompilationError)
-Total execution time: 2.72 seconds
-Trace written to file C:\Users\Jafar\AppData\Local\UnrealBuildTool\Trace.uba with size 1.9kb
---- stderr ---
+coldBuildExit=0 coldBuildMinutes=1.12
+warmBuildExit=0 warmBuildMinutes=0.03
+binaryCandidates=1
+binary=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Binaries\Win64\LedgerProbe.exe sizeKB=323996
+gameExit=3 testSeconds=6.19
+probeTest=FAIL reason=no-result-file-written (the module did not reach its write)
 buildReached=end
