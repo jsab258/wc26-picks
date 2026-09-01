@@ -105,3 +105,5 @@ ue-probe/Intermediate/
 ue-probe/Binaries/
 ue-probe/DerivedDataCache/
 ue-probe/golden-result.txt
+tools/meshgen/__pycache__/
+tools/meshgen/blender/__pycache__/

@@ -1,0 +1,149 @@
+{
+ "schema": 1,
+ "batch_name": "meridian-props-trellis-01",
+ "backend": "trellis",
+ "out_dir": "content/props",
+ "image_spec": "tools/meshgen/specs/prop-images-01.json",
+ "_comment": [
+  "THE BATCH THAT CANNOT RUN ON THIS PROJECT'S MACHINE, written so the route",
+  "exists the day a qualifying one does, and so the refusal is about a real",
+  "batch rather than a hypothetical.",
+  "",
+  "microsoft/TRELLIS README, read 2026-09-01: 'An NVIDIA GPU with at least",
+  "16GB of memory is necessary', the CUDA Toolkit 'is needed to compile",
+  "certain submodules', and 'The code is currently tested only on Linux'",
+  "(Windows is issue #3, 'not fully tested'). Jafar's PC is an AMD Radeon RX",
+  "6700 with 9.98 GB and no Visual Studio at all. Four blockers, each",
+  "sufficient alone. meshgen.py --command probe prints all four with the",
+  "measured value beside each.",
+  "",
+  "TARGET HEIGHTS ARE REQUIRED HERE AND ABSENT FROM THE LOCAL BATCH, and the",
+  "difference is not style: TRELLIS output is normalised into a unit cube, so",
+  "it has no scale at all until one is given. Each number below is the",
+  "real-world size of the object named, and the pipeline measures the export",
+  "afterwards so a wrong one shows up as a bound rather than as a belief.",
+  "",
+  "LICENCE, AND IT IS NOT SETTLED. The allowlist says TRELLIS is MIT. TRELLIS",
+  "says 'models and the majority of the code' are MIT and names submodules",
+  "that are not (diffoctreerast, derived from INRIA diff-gaussian-",
+  "rasterization; modified FlexiCubes under an NVIDIA source licence). Until a",
+  "decision record names which of those the mesh path loads, every row this",
+  "batch produces is tagged ship_ok=false with that sentence attached."
+ ],
+ "default_lods": {
+  "LOD0": 1.0,
+  "LOD1": 0.5,
+  "LOD2": 0.25
+ },
+ "default_pivot": "base-centre",
+ "items": [
+  {
+   "id": "prop_phone_kiosk",
+   "category": "street",
+   "target_height_m": 2.51,
+   "source": {
+    "kind": "image",
+    "image_id": "prop_phone_kiosk"
+   }
+  },
+  {
+   "id": "prop_pillar_box",
+   "category": "street",
+   "target_height_m": 1.4,
+   "source": {
+    "kind": "image",
+    "image_id": "prop_pillar_box"
+   }
+  },
+  {
+   "id": "prop_mooring_bollard",
+   "category": "dock",
+   "target_height_m": 0.55,
+   "source": {
+    "kind": "image",
+    "image_id": "prop_mooring_bollard"
+   }
+  },
+  {
+   "id": "prop_fish_crate",
+   "category": "dock",
+   "target_height_m": 0.6,
+   "source": {
+    "kind": "image",
+    "image_id": "prop_fish_crate"
+   }
+  },
+  {
+   "id": "prop_lobster_creel",
+   "category": "dock",
+   "target_height_m": 0.45,
+   "source": {
+    "kind": "image",
+    "image_id": "prop_lobster_creel"
+   }
+  },
+  {
+   "id": "prop_tyre_fender",
+   "category": "dock",
+   "target_height_m": 0.7,
+   "source": {
+    "kind": "image",
+    "image_id": "prop_tyre_fender"
+   }
+  },
+  {
+   "id": "prop_milk_crate",
+   "category": "street",
+   "target_height_m": 0.3,
+   "source": {
+    "kind": "image",
+    "image_id": "prop_milk_crate"
+   }
+  },
+  {
+   "id": "prop_gas_meter_box",
+   "category": "street",
+   "target_height_m": 0.6,
+   "source": {
+    "kind": "image",
+    "image_id": "prop_gas_meter_box"
+   }
+  },
+  {
+   "id": "prop_hydrant_marker_post",
+   "category": "street",
+   "target_height_m": 0.9,
+   "source": {
+    "kind": "image",
+    "image_id": "prop_hydrant_marker_post"
+   }
+  },
+  {
+   "id": "prop_cable_cabinet",
+   "category": "street",
+   "target_height_m": 1.1,
+   "source": {
+    "kind": "image",
+    "image_id": "prop_cable_cabinet"
+   }
+  },
+  {
+   "id": "prop_belisha_beacon",
+   "category": "street",
+   "target_height_m": 2.4,
+   "source": {
+    "kind": "image",
+    "image_id": "prop_belisha_beacon"
+   }
+  },
+  {
+   "id": "prop_rope_coil",
+   "category": "dock",
+   "target_height_m": 0.35,
+   "source": {
+    "kind": "image",
+    "image_id": "prop_rope_coil"
+   }
+  }
+ ]
+}

@@ -1,0 +1,216 @@
+{
+ "schema": 2,
+ "batch_name": "meridian-props-01",
+ "_comment": [
+  "REFERENCE IMAGES FOR THE MESH PIPELINE, in imagegen.py's own schema so",
+  "imagegen validates them with its own rules rather than a second copy of",
+  "them living here. tools/meshgen/specs/props-trellis-01.json names these",
+  "image ids; nothing else reads this file.",
+  "",
+  "THIS BATCH HAS NEVER BEEN GENERATED, and on the machine this project has",
+  "it should not be: TRELLIS cannot run on an AMD card, so making twelve",
+  "images for a mesh stage that will refuse them is GPU hours spent on",
+  "nothing. meshgen.py runs the probe FIRST and never reaches stage 1 unless",
+  "stage 2 can run - the same order imagegen uses to decide before it",
+  "downloads 6.7 GB.",
+  "",
+  "WHY THESE TWELVE. They are what a British port town needs and what the CC0",
+  "kits in ledger/Assets/Props do not contain: the kits give benches, bins,",
+  "bollards, pallets, barrels, crates, cones, chimney pots and a lamp post.",
+  "A telephone kiosk, a pillar box, a mooring bollard, creels, fenders and a",
+  "belisha beacon are the difference between a generic street and Meridian.",
+  "",
+  "THE FRAMING IS FOR IMAGE-TO-3D, NOT FOR A WALL. A single object, isolated,",
+  "whole in frame, evenly lit, on a plain background: that is what a",
+  "reconstruction model can use. The signage batch's straight-on elevation",
+  "framing would give a flat plate.",
+  "",
+  "SETTING: Meridian is a British port town in the LATE-ANALOG eighties and",
+  "nineties. Landlines, cash, paper. Not the 1950s.",
+  "",
+  "NEGATIVES ARE RECORDED AND INERT AT cfg 1.0 - the same measured fact",
+  "prompts.json records: sd-cli only evaluates the unconditional branch when",
+  "cfg != 1.0, and Z-Image-Turbo is distilled for 1.0. They are written",
+  "correctly (nouns, not refusals) so they start acting the day cfg moves."
+ ],
+ "content_rules": {
+  "rules_clause": "invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+  "forbidden_tokens": [
+   "coca-cola",
+   "coca cola",
+   "pepsi",
+   "guinness",
+   "carlsberg",
+   "heineken",
+   "bass ",
+   "watneys",
+   "courage",
+   "whitbread",
+   "tetley",
+   "boddingtons",
+   "woolworths",
+   "marks and spencer",
+   "tesco",
+   "sainsbury",
+   "wimpy",
+   "british rail",
+   "royal mail",
+   "bt ",
+   "british telecom",
+   "post office",
+   "walkers",
+   "cadbury",
+   "mcvitie",
+   "hovis",
+   "bovril",
+   "oxo",
+   "silk cut",
+   "benson and hedges",
+   "embassy",
+   "regal",
+   "players",
+   "castella",
+   "ford ",
+   "vauxhall",
+   "austin rover",
+   "leyland",
+   "shell",
+   "esso",
+   "bp ",
+   "thatcher",
+   "princess diana",
+   "the queen",
+   "elizabeth ii"
+  ]
+ },
+ "style": {
+  "_comment": [
+   "Isolated-object framing. `by_kind.prop` overrides both halves,",
+   "because the shared signage style asks for a straight-on flat",
+   "elevation of a wall and that is the opposite of what an",
+   "image-to-3D model needs."
+  ],
+  "prefix": "photograph, straight-on flat elevation, evenly lit,",
+  "suffix": "British port town, late 1980s, overcast North Sea daylight",
+  "by_kind": {
+   "prop": {
+    "prefix": "product photograph of one single object alone, centred on a plain flat mid-grey seamless backdrop, three-quarter view from slightly above, the whole object inside the frame with clear margins, soft even studio lighting from every side,",
+    "suffix": "British port town, late 1980s, damp salt-weathered paintwork, soot and grime, matte surfaces, sharp focus throughout the object, uniform illumination, plain empty backdrop"
+   }
+  }
+ },
+ "negatives": {
+  "_comment": [
+   "Nouns to push away, never sentences of refusal - a negative",
+   "prompt reading `no shadow` asks to push away the phrase.",
+   "Inert at cfg 1.0; see the batch comment."
+  ],
+  "default": "watermark, signature, oversaturated, hdr, colour cast, people, person, hands, face, crowd, cars, traffic, real company logo, real brand, trade mark, celebrity, recognisable face",
+  "by_kind": {
+   "prop": "background clutter, other objects, multiple objects, second object, duplicate, cropped object, cut off edges, ground shadow, cast shadow, harsh shadow, contact shadow, reflections, mirror, text, lettering, numbers, label, room, interior, table, floor boards, street scene, buildings, horizon, depth of field, blurred edges, vignette, extreme wide angle, fisheye"
+  }
+ },
+ "defaults": {
+  "steps": 8,
+  "cfg": 1.0,
+  "seed_base": 9101
+ },
+ "items": [
+  {
+   "id": "prop_phone_kiosk",
+   "kind": "prop",
+   "width": 768,
+   "height": 768,
+   "seed": 57790,
+   "prompt": "a cast iron and glass public telephone kiosk, domed roof with a plain unlettered fascia band, eighteen small square glazing panes per side, deep red gloss paintwork chipped to primer at the corners"
+  },
+  {
+   "id": "prop_pillar_box",
+   "kind": "prop",
+   "width": 768,
+   "height": 768,
+   "seed": 80925,
+   "prompt": "a cast iron cylindrical pillar letter box, plain unlettered door plate, domed cap, deep red gloss paint over rust bloom at the base"
+  },
+  {
+   "id": "prop_mooring_bollard",
+   "kind": "prop",
+   "width": 768,
+   "height": 768,
+   "seed": 43045,
+   "prompt": "a squat cast iron quayside mooring bollard, mushroom head, flaking black paint, salt bloom and rope wear on the shoulder"
+  },
+  {
+   "id": "prop_fish_crate",
+   "kind": "prop",
+   "width": 768,
+   "height": 768,
+   "seed": 91402,
+   "prompt": "a stacked pair of wooden fish crates, salt-bleached slats, blue-grey painted ends worn to bare timber, fish scales dried on the boards"
+  },
+  {
+   "id": "prop_lobster_creel",
+   "kind": "prop",
+   "width": 768,
+   "height": 768,
+   "seed": 16976,
+   "prompt": "a wicker lobster creel pot with tarred netting and a wooden frame base, seaweed dried on the withies"
+  },
+  {
+   "id": "prop_tyre_fender",
+   "kind": "prop",
+   "width": 768,
+   "height": 768,
+   "seed": 84399,
+   "prompt": "a black rubber tyre boat fender on a thick frayed rope, rubber scuffed grey, barnacle marks on the lower edge"
+  },
+  {
+   "id": "prop_milk_crate",
+   "kind": "prop",
+   "width": 768,
+   "height": 768,
+   "seed": 50141,
+   "prompt": "a moulded plastic milk bottle crate holding empty glass pint bottles, crate scuffed and sun-faded"
+  },
+  {
+   "id": "prop_gas_meter_box",
+   "kind": "prop",
+   "width": 768,
+   "height": 768,
+   "seed": 74880,
+   "prompt": "a wall-mounted cast iron utility meter box with a hinged lid and a padlock hasp, thick layers of overpainted green gloss"
+  },
+  {
+   "id": "prop_hydrant_marker_post",
+   "kind": "prop",
+   "width": 768,
+   "height": 768,
+   "seed": 45175,
+   "prompt": "a slim cast iron hydrant marker post with a plain rectangular enamel plate on top, yellow paint dulled by salt"
+  },
+  {
+   "id": "prop_cable_cabinet",
+   "kind": "prop",
+   "width": 768,
+   "height": 768,
+   "seed": 55457,
+   "prompt": "a street cable junction cabinet in pressed steel with a plain door and a lock, dark green paint, kick marks and rust streaks at the base"
+  },
+  {
+   "id": "prop_belisha_beacon",
+   "kind": "prop",
+   "width": 768,
+   "height": 768,
+   "seed": 35335,
+   "prompt": "a black and white banded pole carrying an amber glass globe lamp on a cast iron base"
+  },
+  {
+   "id": "prop_rope_coil",
+   "kind": "prop",
+   "width": 768,
+   "height": 768,
+   "seed": 60032,
+   "prompt": "a coil of thick weathered hemp mooring rope laid flat on a quay, strands frayed and tarred"
+  }
+ ]
+}

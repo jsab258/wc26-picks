@@ -1,0 +1,87 @@
+LEDGER - prop pipeline (meshgen), machine report
+================================================================
+written   2026-09-01T16:22:22Z
+host      JAFAR-DESKTOP
+os        Microsoft Windows 11 Pro  (26200)
+cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
+ram       31.9 GB
+free disk 92.3 GB on C:
+machine probe read: True   toolchain probe read: True
+
+GPUs   2 found  (sources tried: Win32_VideoController (CIM): 2 row(s))
+  - Parsec Virtual Display Adapter
+  - AMD Radeon RX 6700
+vram   9.98 GB from vram_bytes_registry (known: True)
+
+TOOLCHAIN
+----------------------------------------------------------------
+  blender          C:\Program Files\Blender Foundation\Blender 4.2\blender.exe
+  blender_version  Blender 4.2.1
+  python           C:\Users\Jafar\miniconda3\python.exe
+  python_version   3.12.4
+  conda            C:\Users\Jafar\miniconda3\Scripts\conda.exe
+  nvcc             
+  msvc             
+  bash             
+  git              C:\Program Files\Git\cmd\git.exe
+  nvidia_smi       
+  note: no blender.exe on PATH, under Program Files, Steam, or WindowsApps
+  note: no nvidia-smi: there is no NVIDIA driver on this machine
+  note: vswhere.exe is absent, so there is no Visual Studio installation of any kind
+
+CAN THIS MACHINE RUN IT?
+----------------------------------------------------------------
+  backend local: YES  (2 of 2 requirements met)
+      [ok ] Blender
+            need : blender on PATH or in a standard install location
+            found: C:\Program Files\Blender Foundation\Blender 4.2\blender.exe
+      [ok ] free disk
+            need : 2 GB for the exports
+            found: 92.3 GB on C:
+
+  backend trellis: NO  (3 of 8 requirements met)
+      [NO ] an NVIDIA GPU
+            need : NVIDIA adapter (TRELLIS is CUDA-only)
+            found: 2 adapter(s), none NVIDIA: Parsec Virtual Display Adapter, AMD Radeon RX 6700
+            fix  : an NVIDIA card, or a different backend. There is no CUDA on AMD, and TRELLIS's kernels are CUDA.
+      [NO ] VRAM
+            need : at least 16 GB (TRELLIS README, read 2026-09-01: 'An NVIDIA GPU with at least 16GB of memory is necessary')
+            found: 9.98 GB from vram_bytes_registry
+            fix  : a bigger card. This bound is upstream's number, not ours - we have measured nothing below it because we cannot.
+      [NO ] CUDA toolkit
+            need : nvcc on PATH (TRELLIS compiles submodules)
+            found: not found
+            fix  : install the CUDA Toolkit (11.8 or 12.2 are the tested versions)
+      [NO ] C++ compiler
+            need : MSVC (cl.exe) to build the CUDA submodules on Windows
+            found: not found
+            fix  : Visual Studio Build Tools with the C++ workload. production/d1-probe/ue-machine-read.md records this same gap blocking the UE C++ half, so it is one install for two problems.
+      [NO ] a POSIX shell
+            need : bash, because TRELLIS ships setup.sh and the README says 'The code is currently tested only on Linux'; Windows is issue #3, 'not fully tested'
+            found: not found
+            fix  : Git for Windows provides bash. Note that this requirement is a warning about the whole route, not a missing binary: nobody here has run TRELLIS on Windows and upstream does not claim it works.
+      [ok ] python 3.8+
+            need : for the trellis environment
+            found: 3.12.4
+      [ok ] git
+            need : clone --recurse-submodules
+            found: C:\Program Files\Git\cmd\git.exe
+      [ok ] free disk
+            need : about 40 GB (ESTIMATE, not measured: torch+CUDA env, a 1.2B model, build trees)
+            found: 92.3 GB on C:
+
+BATCH     meridian-street-furniture-01 - 37 item(s), backend local
+LICENCE   every output carries tool, weights licence and source provenance; the law is ledger-v2/research/license-allowlist.md
+COMPLETE WITH FAILURES 0/37
+      $ C:\Program Files\Blender Foundation\Blender 4.2\blender.exe --background --factory-startup --python /home/user/wc26-picks/tools/meshgen/blender/clean_lod.py -- --in /home/user/wc26-picks/ledger/Assets/Props/base-mesh/wood_barrel.glb --out-dir /tmp/claude-0/-home-user-wc26-picks/b9cd91ae-0774-5237-89a0-83f5e9373b08/scratchpad/out/wood_barrel --id wood_barrel --lods LOD0=1.0,LOD1=0.5,LOD2=0.25 --result /tmp/claude-0/-home-user-wc26-picks/b9cd91ae-0774-5237-89a0-83f5e9373b08/scratchpad/out/wood_barrel/blender-result.json --pivot base-centre
+  [34/37] wood_barrel: FAILED - blender: executable not found ([Errno 2] No such file or directory: 'C:\\Program Files\\Blender Foundation\\Blender 4.2\\blender.exe')
+      $ C:\Program Files\Blender Foundation\Blender 4.2\blender.exe --background --factory-startup --python /home/user/wc26-picks/tools/meshgen/blender/clean_lod.py -- --in /home/user/wc26-picks/ledger/Assets/Props/base-mesh/wooden_crate_01.glb --out-dir /tmp/claude-0/-home-user-wc26-picks/b9cd91ae-0774-5237-89a0-83f5e9373b08/scratchpad/out/wooden_crate_01 --id wooden_crate_01 --lods LOD0=1.0,LOD1=0.5,LOD2=0.25 --result /tmp/claude-0/-home-user-wc26-picks/b9cd91ae-0774-5237-89a0-83f5e9373b08/scratchpad/out/wooden_crate_01/blender-result.json --pivot base-centre
+  [35/37] wooden_crate_01: FAILED - blender: executable not found ([Errno 2] No such file or directory: 'C:\\Program Files\\Blender Foundation\\Blender 4.2\\blender.exe')
+      $ C:\Program Files\Blender Foundation\Blender 4.2\blender.exe --background --factory-startup --python /home/user/wc26-picks/tools/meshgen/blender/clean_lod.py -- --in /home/user/wc26-picks/ledger/Assets/Props/base-mesh/wooden_crate_02.glb --out-dir /tmp/claude-0/-home-user-wc26-picks/b9cd91ae-0774-5237-89a0-83f5e9373b08/scratchpad/out/wooden_crate_02 --id wooden_crate_02 --lods LOD0=1.0,LOD1=0.5,LOD2=0.25 --result /tmp/claude-0/-home-user-wc26-picks/b9cd91ae-0774-5237-89a0-83f5e9373b08/scratchpad/out/wooden_crate_02/blender-result.json --pivot base-centre
+  [36/37] wooden_crate_02: FAILED - blender: executable not found ([Errno 2] No such file or directory: 'C:\\Program Files\\Blender Foundation\\Blender 4.2\\blender.exe')
+      $ C:\Program Files\Blender Foundation\Blender 4.2\blender.exe --background --factory-startup --python /home/user/wc26-picks/tools/meshgen/blender/clean_lod.py -- --in /home/user/wc26-picks/ledger/Assets/Props/base-mesh/wooden_square_bollard.glb --out-dir /tmp/claude-0/-home-user-wc26-picks/b9cd91ae-0774-5237-89a0-83f5e9373b08/scratchpad/out/wooden_square_bollard --id wooden_square_bollard --lods LOD0=1.0 --result /tmp/claude-0/-home-user-wc26-picks/b9cd91ae-0774-5237-89a0-83f5e9373b08/scratchpad/out/wooden_square_bollard/blender-result.json --pivot base-centre
+  [37/37] wooden_square_bollard: FAILED - blender: executable not found ([Errno 2] No such file or directory: 'C:\\Program Files\\Blender Foundation\\Blender 4.2\\blender.exe')
+
+COMPLETE WITH FAILURES 0/37: 0 made, 0 skipped, 37 failed, 0 not attempted, of 37 in the batch
+  CAP: (+1 more item(s) in the batch not attempted on this run)
+licence gate: 0 problem(s) and 0 caveat(s) over 0 completed item(s) - 0 problems over 0 examined rows is not a pass - the examined count is the denominator

@@ -1,0 +1,917 @@
+{
+ "schema": 1,
+ "batch_name": "meridian-street-furniture-01",
+ "backend": "local",
+ "out_dir": "content/props",
+ "_comment": [
+  "THE BATCH THAT CAN RUN TONIGHT, on the machine this project actually has.",
+  "Thirty-seven CC0 street props already in the repository, turned into a",
+  "measured, pivoted, LOD'd, engine-neutral library. It needs Blender and",
+  "nothing else: no download, no GPU, no account, no Claude tokens.",
+  "",
+  "WHY THESE AND NOT GENERATED ONES. The trellis backend needs an NVIDIA card",
+  "with 16 GB (upstream's own number) and this project's machine is an AMD RX",
+  "6700 with 9.98 GB and no C++ toolchain. The probe says so in one minute and",
+  "refuses. That is not a reason to leave the night empty: D1 has the engine",
+  "undecided, both candidates import GLB, and not one of these props has a",
+  "measured bound, a pivot convention or an LOD chain today.",
+  "",
+  "NOTHING IS RESCALED, AND THAT IS A DECISION FROM A MEASUREMENT. The series",
+  "printed by `meshgen.py --series ledger/Assets/Props/base-mesh` reads lamp",
+  "post 3.00 m, skip 2.00x1.00x3.31 m, park bench 1.20x0.91 m, traffic cone",
+  "0.45 m - real-world sizes, already in metres. So no target_height_m is set",
+  "on any item: inventing one would be scaling a correct model to a number",
+  "nobody measured. The field exists and is REQUIRED for the trellis backend,",
+  "whose output is unit-less by construction.",
+  "",
+  "THE LOD LADDER IS PER ITEM AND COMES FROM THE MEASURED TRIANGLE COUNT.",
+  "A rung is only added while it would leave at least 100 triangles, so a",
+  "36-vertex awning gets LOD0 alone and a 4,492-triangle bin gets three rungs.",
+  "6 items take one rung, 5 take two, 26 take three. A flat 0.5/0.25 ladder",
+  "over everything would have produced five-triangle props and called it an",
+  "optimisation.",
+  "",
+  "`measured_at_spec_time` is recorded so a later run can be compared against",
+  "what was true when the batch was written. It is NOT read by the pipeline:",
+  "every output is measured again from its own file."
+ ],
+ "default_lods": {
+  "LOD0": 1.0,
+  "LOD1": 0.5,
+  "LOD2": 0.25
+ },
+ "default_pivot": "base-centre",
+ "items": [
+  {
+   "id": "awning_01",
+   "category": "awning",
+   "measured_at_spec_time": {
+    "verts": 36,
+    "tris": 20,
+    "dims_m": [
+     3.0,
+     1.3233,
+     1.7351
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/awning_01.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "awning_02",
+   "category": "awning",
+   "measured_at_spec_time": {
+    "verts": 1091,
+    "tris": 644,
+    "dims_m": [
+     3.0,
+     1.3233,
+     1.7351
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/awning_02.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "cigarette_bin",
+   "category": "bin",
+   "measured_at_spec_time": {
+    "verts": 1229,
+    "tris": 1536,
+    "dims_m": [
+     0.3099,
+     0.62,
+     0.3099
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/cigarette_bin.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "crowd_control_barrier",
+   "category": "roadworks",
+   "measured_at_spec_time": {
+    "verts": 774,
+    "tris": 912,
+    "dims_m": [
+     2.2907,
+     1.1359,
+     0.3953
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/crowd_control_barrier.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "curved_stone_bench",
+   "category": "seating",
+   "measured_at_spec_time": {
+    "verts": 494,
+    "tris": 724,
+    "dims_m": [
+     1.2483,
+     0.45,
+     0.401
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/curved_stone_bench.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "decorative_bollard_01",
+   "category": "bollard",
+   "measured_at_spec_time": {
+    "verts": 2148,
+    "tris": 2564,
+    "dims_m": [
+     0.1171,
+     0.7867,
+     0.1163
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/decorative_bollard_01.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "decorative_bollard_02",
+   "category": "bollard",
+   "measured_at_spec_time": {
+    "verts": 1197,
+    "tris": 1680,
+    "dims_m": [
+     0.201,
+     1.0083,
+     0.201
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/decorative_bollard_02.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "drain_cover_01",
+   "category": "ground",
+   "measured_at_spec_time": {
+    "verts": 1872,
+    "tris": 1888,
+    "dims_m": [
+     0.1,
+     0.0015,
+     0.1
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/drain_cover_01.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "drainage_grate_01",
+   "category": "ground",
+   "measured_at_spec_time": {
+    "verts": 600,
+    "tris": 504,
+    "dims_m": [
+     0.3999,
+     0.015,
+     0.3999
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/drainage_grate_01.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "finger_post_sign_01",
+   "category": "signage",
+   "measured_at_spec_time": {
+    "verts": 62,
+    "tris": 32,
+    "dims_m": [
+     0.3845,
+     0.5003,
+     0.04
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/finger_post_sign_01.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "finger_post_sign_02",
+   "category": "signage",
+   "measured_at_spec_time": {
+    "verts": 126,
+    "tris": 62,
+    "dims_m": [
+     1.2,
+     2.7763,
+     0.65
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/finger_post_sign_02.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "finger_post_sign_03",
+   "category": "signage",
+   "measured_at_spec_time": {
+    "verts": 2190,
+    "tris": 2808,
+    "dims_m": [
+     1.3955,
+     2.7997,
+     0.7662
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/finger_post_sign_03.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "framed_poster",
+   "category": "signage",
+   "measured_at_spec_time": {
+    "verts": 56,
+    "tris": 28,
+    "dims_m": [
+     0.5057,
+     0.8005,
+     0.0134
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/framed_poster.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "garden_bench_01",
+   "category": "seating",
+   "measured_at_spec_time": {
+    "verts": 1113,
+    "tris": 1134,
+    "dims_m": [
+     1.0953,
+     0.8289,
+     0.4844
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/garden_bench_01.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "lamp_post_01",
+   "category": "lighting",
+   "measured_at_spec_time": {
+    "verts": 3475,
+    "tris": 4492,
+    "dims_m": [
+     0.368,
+     3.0022,
+     0.2708
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/lamp_post_01.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "large_pallet",
+   "category": "dock",
+   "measured_at_spec_time": {
+    "verts": 672,
+    "tris": 336,
+    "dims_m": [
+     2.0,
+     0.19,
+     1.1001
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/large_pallet.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "mesh_bin",
+   "category": "bin",
+   "measured_at_spec_time": {
+    "verts": 4182,
+    "tris": 2252,
+    "dims_m": [
+     0.2762,
+     0.3061,
+     0.2762
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/mesh_bin.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "oil_barrel",
+   "category": "dock",
+   "measured_at_spec_time": {
+    "verts": 2362,
+    "tris": 3680,
+    "dims_m": [
+     0.597,
+     0.8602,
+     0.597
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/oil_barrel.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "ornate_bench",
+   "category": "seating",
+   "measured_at_spec_time": {
+    "verts": 2286,
+    "tris": 1976,
+    "dims_m": [
+     1.5,
+     0.8499,
+     0.7128
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/ornate_bench.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "outdoor_bin",
+   "category": "bin",
+   "measured_at_spec_time": {
+    "verts": 848,
+    "tris": 788,
+    "dims_m": [
+     0.5996,
+     0.7636,
+     0.5996
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/outdoor_bin.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "pallet",
+   "category": "dock",
+   "measured_at_spec_time": {
+    "verts": 504,
+    "tris": 252,
+    "dims_m": [
+     1.2,
+     0.18,
+     1.2
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/pallet.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "park_bench",
+   "category": "seating",
+   "measured_at_spec_time": {
+    "verts": 1876,
+    "tris": 1618,
+    "dims_m": [
+     1.1997,
+     0.9097,
+     0.6389
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/park_bench.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "pavement_sign",
+   "category": "signage",
+   "measured_at_spec_time": {
+    "verts": 2201,
+    "tris": 1104,
+    "dims_m": [
+     0.6811,
+     0.9038,
+     0.3569
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/pavement_sign.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "poster",
+   "category": "signage",
+   "measured_at_spec_time": {
+    "verts": 222,
+    "tris": 373,
+    "dims_m": [
+     0.6541,
+     1.0031,
+     0.0237
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/poster.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "roll_top_chimney",
+   "category": "roof",
+   "measured_at_spec_time": {
+    "verts": 858,
+    "tris": 1312,
+    "dims_m": [
+     0.6738,
+     1.0011,
+     0.6738
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/roll_top_chimney.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "rounded_concrete_bollard",
+   "category": "bollard",
+   "measured_at_spec_time": {
+    "verts": 196,
+    "tris": 288,
+    "dims_m": [
+     0.1852,
+     0.4449,
+     0.1852
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/rounded_concrete_bollard.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "skip",
+   "category": "dock",
+   "measured_at_spec_time": {
+    "verts": 1148,
+    "tris": 928,
+    "dims_m": [
+     2.0,
+     0.9999,
+     3.3083
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/skip.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "small_pallet",
+   "category": "dock",
+   "measured_at_spec_time": {
+    "verts": 224,
+    "tris": 120,
+    "dims_m": [
+     0.8658,
+     0.155,
+     1.0005
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/small_pallet.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "swing_bin",
+   "category": "bin",
+   "measured_at_spec_time": {
+    "verts": 736,
+    "tris": 800,
+    "dims_m": [
+     0.33,
+     0.7123,
+     0.32
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/swing_bin.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "traffic_cone_01",
+   "category": "roadworks",
+   "measured_at_spec_time": {
+    "verts": 678,
+    "tris": 800,
+    "dims_m": [
+     0.4009,
+     0.45,
+     0.3472
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/traffic_cone_01.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "traffic_cone_02",
+   "category": "roadworks",
+   "measured_at_spec_time": {
+    "verts": 266,
+    "tris": 288,
+    "dims_m": [
+     0.3002,
+     0.45,
+     0.3002
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/traffic_cone_02.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "trunk_protection_railing",
+   "category": "street",
+   "measured_at_spec_time": {
+    "verts": 936,
+    "tris": 1600,
+    "dims_m": [
+     2.065,
+     0.5999,
+     2.0359
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/trunk_protection_railing.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "weathertop_chimney",
+   "category": "roof",
+   "measured_at_spec_time": {
+    "verts": 738,
+    "tris": 936,
+    "dims_m": [
+     0.9505,
+     0.6668,
+     0.9505
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/weathertop_chimney.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "wood_barrel",
+   "category": "dock",
+   "measured_at_spec_time": {
+    "verts": 3359,
+    "tris": 4058,
+    "dims_m": [
+     0.6009,
+     0.8148,
+     0.6171
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/wood_barrel.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "wooden_crate_01",
+   "category": "dock",
+   "measured_at_spec_time": {
+    "verts": 1704,
+    "tris": 852,
+    "dims_m": [
+     0.8804,
+     1.0447,
+     0.9244
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/wooden_crate_01.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "wooden_crate_02",
+   "category": "dock",
+   "measured_at_spec_time": {
+    "verts": 1736,
+    "tris": 868,
+    "dims_m": [
+     0.8811,
+     1.0455,
+     0.9251
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0,
+    "LOD1": 0.5,
+    "LOD2": 0.25
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/wooden_crate_02.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  },
+  {
+   "id": "wooden_square_bollard",
+   "category": "bollard",
+   "measured_at_spec_time": {
+    "verts": 80,
+    "tris": 46,
+    "dims_m": [
+     0.1247,
+     1.0,
+     0.1247
+    ]
+   },
+   "lods": {
+    "LOD0": 1.0
+   },
+   "source": {
+    "kind": "file",
+    "path": "ledger/Assets/Props/base-mesh/wooden_square_bollard.glb",
+    "licence": "CC0-1.0",
+    "credit": "The Base Mesh (https://thebasemesh.com), CC0 1.0; mirror https://github.com/M3-org/base-meshes"
+   }
+  }
+ ]
+}
