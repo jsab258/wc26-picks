@@ -16,6 +16,8 @@
 #include "Misc/FileHelper.h"
 #include "HAL/PlatformMisc.h"
 #include "HAL/PlatformProcess.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -156,6 +158,23 @@ class FLedgerProbeModule : public FDefaultGameModuleImpl
 public:
 	virtual void StartupModule() override
 	{
+		// THE TEST RUNS ONLY WHEN ASKED, AND THAT IS NOT FUSSINESS.
+		//
+		// Moving this module to PostConfigInit made the golden test work in
+		// the game and simultaneously broke the cook, because a module loads
+		// in EVERY host that loads it, and one of those hosts is the cook
+		// commandlet's editor. So the cook started, loaded this module, ran
+		// the test, and was told to quit before it had cooked anything.
+		// The failure read as "cooking was unsuccessful", which was true and
+		// gave no hint that the saboteur was the test.
+		//
+		// A switch the workflow passes only for the game run separates them
+		// with no guessing about which host we are in. IsRunningCommandlet
+		// would also work today and would be a guess about tomorrow.
+		if (!FParse::Param(FCommandLine::Get(), TEXT("LedgerGoldenTest")))
+		{
+			return;
+		}
 		RunGoldenTest();
 		// Ask the engine to quit rather than sitting in a game loop on
 		// somebody's desktop. The workflow also passes -unattended.

@@ -1,0 +1,96 @@
+{
+  "_spec": "production/specs/brand-bible-v1.md",
+  "_canon": "canon.md, sections Era and Brands and law",
+  "_note": "The four minted entries are RECORDED from canon.md, not invented here. Renaming one is a canon violation, not an edit.",
+  "window": { "from": 1988, "to": 1992 },
+  "brands": [
+    {
+      "id": "meridian-town-afc",
+      "name": "Meridian Town AFC",
+      "kind": "club",
+      "founded": 1904,
+      "register": "the Town, or just Town. Nobody says the full name except the paper and the announcer.",
+      "physical": "Ashlar Lane ground: one covered stand, three open sides, a corrugated end that drums in rain. Blue and white halves on scarves in pub windows and on the back shelf of cars. A club shop that is a portacabin open two hours on a Saturday.",
+      "says": "The town had money once and spent it on a stand. Fourth tier, one promotion in living memory, a cup run in 1979 that men still date things from.",
+      "neverConfuse": "Any real English club. There is no Meridian in the league pyramid and the name is chosen because it is a harbour word, not a place name borrowed from anywhere.",
+      "license": "original-fiction"
+    },
+    {
+      "id": "meridian-argus",
+      "name": "The Meridian Argus",
+      "kind": "paper",
+      "founded": 1871,
+      "register": "the Argus. Older people say the local. A copy is a paper, never a newspaper.",
+      "physical": "Broadsheet masthead in blackletter over a front page that is two thirds photograph. Yellow vendor boards chained to lamp posts with one line hand-marked in marker. A first edition on the stands by two, a late edition with the results by six.",
+      "says": "This is where the town finds out what happened to it. Court reports, planning notices, deaths, and the harbour tonnage. If the Argus has not printed a thing, it did not officially happen.",
+      "neverConfuse": "Any real regional title. Argus is a common enough name for a paper that the qualifier does the work: it is always The Meridian Argus in print.",
+      "license": "original-fiction"
+    },
+    {
+      "id": "radio-tideline",
+      "name": "Radio Tideline",
+      "kind": "radio",
+      "founded": 1986,
+      "register": "Tideline. On air the presenters say this is Tideline, and never the word radio twice.",
+      "physical": "A transmitter cabled to a tower block roof on the Barrows estate and moved when the vans come. A phone-in on a landline with the number read out slowly and twice. Stickers on van doors and inside bus shelters. No premises anybody admits to.",
+      "says": "Somebody in this town wanted a voice enough to break the law for it. Soul and dub after dark, the football phone-in on Saturday, and small ads for cash work read out as favours.",
+      "neverConfuse": "Any real pirate station of the period. The name is a harbour word, and no real broadcaster is referenced, sampled or named on air.",
+      "license": "original-fiction"
+    },
+    {
+      "id": "coastway-television",
+      "name": "Coastway Television",
+      "kind": "television",
+      "founded": 1968,
+      "register": "Coastway. The regional news programme is Coastway Tonight, said in full because that is how the announcer says it.",
+      "physical": "A rotating station ident in blue and grey. Outside-broadcast van with the logo on both flanks, parked at anything that happens. A rooftop mast on the studio at Weare Point that is visible from most of the town.",
+      "says": "Meridian is big enough to be part of a region and small enough to be its third story. The town appears on Coastway when something has gone wrong at the docks.",
+      "neverConfuse": "Any real regional franchise of the era. The name, the idents and the programme titles are invented, and no real presenter, logo or jingle appears.",
+      "license": "original-fiction"
+    },
+    {
+      "id": "mickeys",
+      "name": "Mickey's",
+      "kind": "pub",
+      "founded": 1962,
+      "register": "Mickey's. Never the Mickey's, never the full name of whoever Mickey was.",
+      "physical": "Etched glass, a carpet that has given up, a bell nobody rings. Sign hand-painted and repainted a shade off each time.",
+      "says": "The room where the town's memory is actually kept. Canon: this name is fixed.",
+      "neverConfuse": "Any real public house. Recorded from canon.md, not invented in this batch.",
+      "license": "original-fiction"
+    },
+    {
+      "id": "the-tivoli",
+      "name": "the Tivoli",
+      "kind": "cinema",
+      "founded": 1937,
+      "register": "the Tivoli. Going to the pictures, not going to the cinema.",
+      "physical": "A single screen behind a frontage built for three times the audience it gets. Plastic letters on a rail, some missing, changed on Thursdays.",
+      "says": "A grand thing the town cannot quite afford to keep. Canon: this name is fixed.",
+      "neverConfuse": "Tivoli is a widely used cinema name; here it is always the Tivoli, lower-case article, in Meridian. Recorded from canon.md.",
+      "license": "original-fiction"
+    },
+    {
+      "id": "meridian-harbour-board",
+      "name": "Meridian Harbour Board",
+      "kind": "body",
+      "founded": 1871,
+      "register": "the Board. Dockers say the Board decided it, meaning something has been done to them.",
+      "physical": "Blue and white enamel signage on gates, cranes and the weighbridge. Notices in a glass case by the dock office, drawing-pinned and curling. A crest on letterhead and on the side of every vehicle.",
+      "says": "The harbour is governed by people who are not from the harbour. Canon: this name is fixed.",
+      "neverConfuse": "Harbour boards are a real category of British body; this one is invented and no real board's crest, wording or officers appear.",
+      "license": "original-fiction"
+    },
+    {
+      "id": "meridian-ferry",
+      "name": "Meridian Ferry",
+      "kind": "ferry",
+      "founded": 1954,
+      "register": "the ferry. The boat, if you work on it.",
+      "physical": "One vessel, white over black, a funnel in Board blue. A timetable board at each ramp with the winter service pasted over the summer one. Foot passengers on the upper deck in all weather because the lounge smells of diesel.",
+      "says": "The town is a crossing point, and the crossing is the thing that has not stopped. Canon: this name is fixed.",
+      "neverConfuse": "Any real operator. Recorded from canon.md, not invented in this batch.",
+      "license": "original-fiction"
+    }
+  ]
+}

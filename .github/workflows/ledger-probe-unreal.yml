@@ -427,7 +427,7 @@ jobs:
           $gameErr = Join-Path $PWD "game-run.err"
           $t2 = Get-Date
           $p3 = Start-Process -FilePath $exe.FullName `
-                -ArgumentList @("-nullrhi","-unattended","-nosplash","-nopause","-stdout","-FullStdOutLogOutput") `
+                -ArgumentList @("-LedgerGoldenTest","-nullrhi","-unattended","-nosplash","-nopause","-stdout","-FullStdOutLogOutput") `
                 -Wait -PassThru -NoNewWindow `
                 -RedirectStandardOutput $gameOut -RedirectStandardError $gameErr
           $testSec = [math]::Round(((Get-Date) - $t2).TotalSeconds, 2)

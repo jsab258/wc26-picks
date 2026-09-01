@@ -85,3 +85,14 @@ package-loader crash happens BEFORE Default-phase module loading. The
 module moves to PostConfigInit. That is a deliberate gamble: UE may refuse
 a non-Default phase for a primary game module, and if it does it will say
 so plainly and cost one round trip.
+run 12 - 2026-09-01 - THE PORT IS PROVEN. Run 11 came back probeTest=PASS,
+perceptionRows=1221, perceptionMismatches=0: the transliterated perception
+core agrees with the shipped C# on every row, inside a real Unreal build,
+on Jafar's machine. Task 001's acceptance is met. The cook failed in the
+same run for a reason that is entirely my own doing: moving the module to
+PostConfigInit made the golden test reachable, and a module loads in every
+host that loads it, so the cook commandlet's editor loaded it, ran the test
+and was told to quit before cooking anything. The log said "ensure that
+cooking was successful", which was true and pointed nowhere. The test now
+runs only when the harness passes -LedgerGoldenTest, which it does for the
+game run and not for the cook. This run is about the cook alone.
