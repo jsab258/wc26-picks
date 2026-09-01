@@ -40,3 +40,12 @@ finds from a named preference list, takes the highest Windows x64 MSI in
 that line, and prints the URL and version it chose. If the index cannot be
 read it stops and says so rather than falling back to a hardcoded URL that
 404s the day Blender ships a patch.
+
+run 2 - 2026-09-01 - run 1 reached msiexec and failed with 1603, which under
+a silent install is rights: the runner service cannot write to Program Files.
+Everything before it worked, including discovering 4.5.13 from the release
+index and downloading 360 MB. This run does not install at all. It extracts
+the portable zip to C:\LedgerTools\blender, which needs no elevation, and it
+tests whether it can write there BEFORE spending the download. Verification
+calls meshgen's own probe rather than checking a path, so an extraction
+landing somewhere the prop batch does not look cannot pass.
