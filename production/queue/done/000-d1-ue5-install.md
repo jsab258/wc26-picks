@@ -2,7 +2,7 @@ line: infrastructure (D1 probe)
 spec: production/d1-probe/plan.md, week 1 item 1
 acceptance: UE5 launches on the build PC; version and disk noted here
 max_sessions: 1
-status: BLOCKED 2026-08-31, external dependency, not retryable by an agent
+status: DONE 2026-09-01. UE 5.8.2 installing on the build PC.
 
 JAFAR ACTION: install Unreal Engine 5 on the build PC.
 
@@ -55,3 +55,19 @@ Two documented workarounds, either of which flips it back:
 
 If neither works, the fallback is an Epic support ticket with the symptom
 list above, which is why it is written in that shape.
+
+
+RESOLVED 2026-09-01. Workaround 2 worked: taking a free item from the
+Samples tab gave the launcher's empty vault something to sync, which flipped
+it out of the state that greys out every install control. Unreal Engine
+5.8.2 is installing.
+
+WHAT THIS COST AND WHAT IT IS WORTH KEEPING. Six troubleshooting routes were
+tried from reasoning before anybody searched, and the reasoning produced a
+confident wrong diagnosis (account entitlement) that would have sent the
+next step to Epic support. One search found a widely reported launcher bug
+with exactly these symptoms and two thirty-second workarounds. The lesson is
+not "search first" as a slogan; it is that a symptom which looks like an
+account state and a symptom which looks like a UI bug are indistinguishable
+from the inside, and the cheap discriminator is whether other people have
+seen it. Terminated as learning.md L7.

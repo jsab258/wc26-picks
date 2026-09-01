@@ -20,7 +20,18 @@ c. CI and instrument rebuild cost: estimated from (a) plus a written
 d. Faces path: MetaHuman plus Audio2Face against CC4 plus Audio2Face,
    assessed on the talking-head test scene D2 names.
 
-## AMENDED 2026-08-31: the UE half is blocked, the Unity half runs first
+## AMENDED 2026-09-01: UNBLOCKED. UE 5.8.2 is installing; both halves run.
+
+The launcher fault was a known bug, not an account state, and the fix took
+thirty seconds once it was researched rather than reasoned about (account
+of the wrong diagnosis in production/queue/done/000-d1-ue5-install.md).
+Tasks 002 to 004 keep their order because the Unity measurements are needed
+whichever way the engine decision goes, and they are not waiting on a
+download. The paragraph below stands as written: it was the contingency, it
+is no longer the situation, and its protection of the decision rule holds
+regardless.
+
+## SUPERSEDED CONTINGENCY, 2026-08-31: the UE half is blocked
 
 The Epic launcher will not offer any engine version to Jafar's account
 (symptom recorded in production/queue/blocked/000-d1-ue5-install.md). That

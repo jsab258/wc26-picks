@@ -28,23 +28,10 @@
    004 the street to the Unity ceiling). None of it needs UE5.
 
 ## Blocked
-1. UE5 will not install: the Epic launcher offers this account no engine
-   version at all. Greyed-out add control, dead install button, empty
-   vault, 0.0 B. Six routes tried including the licence acceptance, an
-   admin relaunch, the webcache delete, a launcher reinstall and the Store
-   tab. Reads as account entitlement, not a machine fault. Full symptom
-   list in production/queue/blocked/000-d1-ue5-install.md; the next step,
-   if we want it, is Epic account support with that list.
-   D1 CANNOT CLOSE AS "UNITY WINS" ON THIS. Its rule gives ties to Unity,
-   and a tie is a measured tie; an unmeasurable UE side closes D1 as
-   UNRESOLVED with the engine question still open. That is written into
-   the plan so a later session cannot quietly bank the default.
-2. Dialogue TONE verification: UNBLOCKED, and it no longer needs you. Your
-   48 PASS grades ARE the calibration: they fix the positive boundary. The
-   refusing half is a constructed test set the studio labels itself, since
-   nobody should grade items built to be wrong. Judge work proceeds from
-   here; your only ongoing part is D7's 10 percent audit, which is a glance
-   at a few lines in this brief, never a spreadsheet.
+1. Nothing. Both blockers cleared 2026-09-01: UE 5.8.2 is installing (the
+   launcher fault was a known bug with a thirty-second workaround, not the
+   account state I first diagnosed), and dialogue tone verification no
+   longer needs Jafar at all.
 
 ## Numbers
 1. Throughput: 1 verified piece this week (the pilot bank).
