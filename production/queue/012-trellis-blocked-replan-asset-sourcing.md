@@ -4,6 +4,11 @@ acceptance: steps 3 and 4 of game-design/decision-2026-09-01-production-prep-seq
             namely the CC0 fetch-clean-tag route proven end to end on five items and
             then a first full overnight batch driven from the vignette bill of materials
 max_sessions: 2
+status: BLOCKED 2026-09-01. Hardware, not effort: the machine has an AMD
+        Radeon and no NVIDIA card, and TRELLIS kernels are CUDA. Contingent
+        on the bill of materials showing a gap the free libraries cannot
+        fill; unblocks only by a purchase Jafar has not authorised, or by a
+        different tool that runs without CUDA.
 
 RE-POINTED 2026-09-01 by the production-prep-sequence ruling. The AMD
 image-to-3D probe this task was originally about is DEMOTED to contingent:
