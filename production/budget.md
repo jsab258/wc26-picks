@@ -64,6 +64,16 @@ than three dispatched builds.
    prefer stopping; a day that started heavy is exactly the day this
    condition exists for.
 
+   IT IS BLIND TO SPEND AFTER THE LAST READING, and that hole was found the
+   same evening it was written. The test compares two READINGS, so a day with
+   one reading at noon and six hours of agent work after it computes a delta
+   of zero and reports the day as young. On 1 September the 38 percent
+   reading was taken before roughly five agent spawns; the real number was
+   never known and the condition said carry on. When substantial work has
+   happened since the newest reading, treat the day as UNMEASURED and prefer
+   stopping, exactly as with a stale one. A reading describes the moment it
+   was taken and nothing after it.
+
    THIS CANNOT BE ENFORCED MECHANICALLY and saying so is the point. Nothing
    in the container can read Jafar's usage page. It works only if readings
    keep arriving, which is why the ask is one number per session and not a

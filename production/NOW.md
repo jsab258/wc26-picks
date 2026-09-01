@@ -11,7 +11,13 @@ looks like a live state.
 
 ## In flight
 
-- Nothing running. The tree is clean and pushed.
+- Nothing running here. Tree clean and pushed.
+- ON JAFAR'S PC: the prop batch is unblocked and waiting for his double-click
+  on the MAKE THE PROPS batch file under tools/meshgen. Blender 4.5.13 is
+  extracted to C:/LedgerTools/blender and verified through meshgen's own
+  probe (verifiedRequirements=2/2), so the refusal that stopped run 1 is
+  gone. Nothing had landed in production/mesh-reports/ as of 19:20Z. If a
+  manifest appears there, read it before starting anything else.
 
 ## Waiting on Jafar
 
@@ -20,16 +26,14 @@ looks like a live state.
 ## The next three things, in order
 
 The ruled sequence is game-design/decision-2026-09-01-production-prep-sequence.md.
+Step 1 of it (the prop batch) is now unblocked and is Jafar's click.
 
-1. Step 2 of it: the vignette bill of materials. THIS IS A BUILDER TASK, not
-   resident work; brief a tier-3 agent. Costs about half a day of budget, so
-   start it at the START of a session, never at the end of a heavy one.
+1. Step 2: the vignette bill of materials. A BUILDER task, not resident work,
+   and it costs about half a day of budget, so it starts at the START of a
+   session and never at the end of a heavy one.
 2. Step 3: prove the CC0 fetch-clean-tag route on five items. The largest
-   single unlock of the week, and cheap.
-3. Task 010, widen director_cadence. Brief is complete in the queue.
-
-Step 1 of the sequence is Jafar's click on the prop batch and he has been
-told; it needs nothing from us until he asks for instructions.
+   single unlock of the week and cheap.
+3. Task 010, widen director_cadence. Brief complete in the queue.
 
 ## Standing hazards a fresh session will otherwise walk into
 
