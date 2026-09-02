@@ -53,6 +53,14 @@ namespace Ledger.Core
             public double SX, SY, SZ;// full size, metres, before rotation
             public double PitchDeg;  // about +x, positive tips the +z end DOWN
             public double YawDeg;    // about +y, compass from +x
+            // ABOUT +z, AND IT EXISTS SO A PIPE CAN LIE DOWN. A cylinder's
+            // axis is local +y in both engines, so the only way to express a
+            // gutter, an aerial boom or a handrail is to ROTATE it: roll 90
+            // lays the axis along the street (x), pitch 90 lays it across
+            // (z). Without this field the alternative is to stretch one
+            // diameter to the pipe's length, which renders as a flattened
+            // disc and reads as a pipe only in the piece count.
+            public double RollDeg;
             public string Edge;      // lateral band: the axis placement varies on
             public string Region;    // longitudinal band: the other axis
             public bool Emissive;    // the lantern bowls, and nothing else
@@ -266,8 +274,11 @@ namespace Ledger.Core
             internal void Foot5(Piece p, double footY)
             {
                 double hx = p.SX * 0.5, hz = p.SZ * 0.5;
-                // Yaw is 0 or 90 for everything this scene places, so the
-                // footprint half-extents swap rather than needing a rotation.
+                // The half-extents swap at yaw 90; every other yaw is probed
+                // UNROTATED. Nothing footed carries yaw 90 today, and the
+                // litter (G8) carries an arbitrary yaw, so its true footprint
+                // reaches up to 6 cm beyond where its probes look on the
+                // widest piece at 45 degrees; queue 033 rotates the corners.
                 if (Math.Abs(((p.YawDeg % 180) + 180) % 180 - 90) < 1e-6) { var t = hx; hx = hz; hz = t; }
                 double[] dx = { 0, -hx, hx, -hx, hx };
                 double[] dz = { 0, -hz, -hz, hz, hz };
@@ -292,6 +303,45 @@ namespace Ledger.Core
             if (b < 0) b = 0;
             return string.Format(CultureInfo.InvariantCulture, "x{0:00}_{1:00}",
                                  b * (int)RegionSpanM, (b + 1) * (int)RegionSpanM);
+        }
+
+        /// WHAT SHAPES A PLAN ASKED FOR, IN ONE LINE, AND HOW MANY OF ITS
+        /// PIPES ARE LYING DOWN.
+        ///
+        /// A piece count cannot see the failure this line exists for. Every
+        /// cylinder's axis is local +y in both engines, so a gutter, an
+        /// aerial boom or a handrail is a cylinder ROTATED: roll about +z
+        /// lays the axis along the street, pitch about +x lays it across.
+        /// An emitter that drops the rotation stands the same number of
+        /// pieces up and every pipe among them is a flattened disc. So the
+        /// count of rolled and pitched cylinders is printed beside the count
+        /// of cylinders, and the verdict can say how many pipes were laid.
+        ///
+        /// WHOLE-PLAN COUNTS, one line per plan, never per piece. The three
+        /// cylinder columns partition the cylinders exactly (roll is
+        /// classified first, so a piece carrying both is counted as rolled
+        /// and only once), and `box + cyl + unknown` is `pieces`.
+        ///
+        /// FORMATTED HERE, not in the emitter, because this layer is the one
+        /// CoreTests can run: a formatter written in the Unity layer ships
+        /// unrun, and an unrun formatter printing a plausible string is the
+        /// silent-instrument failure this project keeps paying for.
+        public static string ShapeReport(List<Piece> pieces)
+        {
+            int box = 0, cyl = 0, unknown = 0, rolled = 0, pitched = 0, upright = 0;
+            foreach (var p in pieces)
+            {
+                if (p.Shape == "box") { box++; continue; }
+                if (p.Shape != "cyl") { unknown++; continue; }
+                cyl++;
+                if (Math.Abs(p.RollDeg) > 1e-9) rolled++;
+                else if (Math.Abs(p.PitchDeg) > 1e-9) pitched++;
+                else upright++;
+            }
+            return string.Format(CultureInfo.InvariantCulture,
+                "shapes pieces={0} box={1} cyl={2} unknown={3} "
+                + "cylRolled={4} cylPitched={5} cylUpright={6}",
+                pieces.Count, box, cyl, unknown, rolled, pitched, upright);
         }
 
         /// READ THE SHARED SCENE AND LAY IT OUT.
@@ -771,7 +821,13 @@ namespace Ledger.Core
             {
                 Bom = "D6_gutter_run", Name = id + "_gutter", Shape = "cyl", Surface = Str(g, "surface"),
                 X = x0 + len * 0.5, Y = eavesY + gd * 0.5, Z = frontEaveZ,
-                SX = len, SY = gd, SZ = gd, YawDeg = 90, Edge = side + "_plot", Region = "all"
+                // A LYING PIPE, NOT A STRETCHED DISC. The length is SY
+                // because SY is the axis of a cylinder in both engines, and
+                // RollDeg 90 lays that axis along the street. The yaw that
+                // used to be here rotated nothing: yaw turns a cylinder
+                // about its own axis.
+                SX = gd, SY = len, SZ = gd, RollDeg = 90,
+                Edge = side + "_plot", Region = "all"
             });
             plan.Add(new Piece
             {
@@ -820,7 +876,9 @@ namespace Ledger.Core
             plan.Add(new Piece
             {
                 Bom = "D4_tv_aerial", Name = name + "_boom", Shape = "cyl", Surface = "metal",
-                X = x, Y = boomY, Z = z, SX = bl, SY = bd, SZ = bd, YawDeg = 90,
+                // Rolled, so the boom runs ALONG the street, which is the
+                // axis its elements are already spread along below.
+                X = x, Y = boomY, Z = z, SX = bd, SY = bl, SZ = bd, RollDeg = 90,
                 Edge = side + "_plot", Region = reg
             });
             for (int i = 0; i < n; i++)
@@ -832,7 +890,11 @@ namespace Ledger.Core
                 {
                     Bom = "D4_tv_aerial", Name = name + "_el" + i, Shape = "cyl", Surface = "metal",
                     X = x - bl * 0.5 + bl * t, Y = boomY, Z = z,
-                    SX = ed, SY = ed, SZ = el, Edge = side + "_plot", Region = reg
+                    // Pitched 90, so each element lies ACROSS the street, at
+                    // right angles to the boom, which is what makes it an
+                    // aerial rather than a ladder.
+                    SX = ed, SY = el, SZ = ed, PitchDeg = 90,
+                    Edge = side + "_plot", Region = reg
                 });
             }
         }
@@ -1113,7 +1175,9 @@ namespace Ledger.Core
                     {
                         Bom = B, Name = "rail_bar" + p + "_" + (int)(ry * 100), Shape = "cyl",
                         Surface = "metal", X = pxm, Y = gy + ry, Z = z,
-                        SX = pl, SY = rd, SZ = rd, YawDeg = 90, Edge = edge, Region = reg
+                        // Rolled, so the bar runs along the railing between
+                        // its two posts instead of standing on end.
+                        SX = rd, SY = pl, SZ = rd, RollDeg = 90, Edge = edge, Region = reg
                     });
                 for (int i = 0; i < infill; i++)
                     plan.Add(new Piece

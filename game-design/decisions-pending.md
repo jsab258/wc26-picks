@@ -56,8 +56,9 @@ hours and weeks of budget rather than dates, and the project runs
 continuously.
 
 What follows, and the director works it through rather than the resident:
-the 2026-09-14 timebox in decision-D1b-rescope.md and roadmap-v2.md is
-retired; measurement (a), agent-loop friction, can no longer be failed by a
+the 2026-09-14 timebox in decision-D1b-rescope.md and production/d1-probe/plan.md is
+retired (roadmap-v2.md never carried the date; it carries the standing rule
+"time or attempt budget", which the ruling satisfies with an attempt budget); measurement (a), agent-loop friction, can no longer be failed by a
 date; and the standing preference tips toward INVESTING in the Unreal path
 rather than defaulting to Unity, because the visual ceiling is what serves
 the Meridian Test and Jafar has said so plainly.

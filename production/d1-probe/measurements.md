@@ -174,3 +174,36 @@ and the exact capture call is still unrun here.
 
 D1 gives ties to Unity. A tie is a MEASURED tie. If the UE side cannot be
 measured, D1 closes UNRESOLVED, never "Unity wins".
+
+## What fails measurement a, ruled 2026-09-02 (the timebox is retired)
+
+Until 2 September (a) was going to be failed by a date: no textured UE
+still of the shared scene by 2026-09-12 12:00Z would read NOT TOLERABLE.
+Jafar retired the date. What fails (a) now is a property of the series in
+DISPATCH and cycles.tsv, never of the calendar:
+
+1. NON-CONVERGENCE. Three consecutive dispatches on one phase fail on the
+   same failure mode and the committed evidence cannot name the cause. Two
+   is the worst this probe has printed (the setup section above: two
+   failures took two round trips each, and those were the two where the
+   step could not say why). Three is the first point outside the record.
+   At three, a director is spawned and either closes (a) NOT TOLERABLE on
+   the series or names the instrument change that makes the failure
+   readable (rule 12); the count restarts only when the instrument changed,
+   never when the guess did.
+2. HAND-EDIT DEPENDENCE. A phase that cannot land without a hand-made
+   binary asset. D1b's admissibility rule already disqualifies the still;
+   the finding here is about the loop: a failed-edit rate of 100 percent on
+   that asset class, which is the UE-specific friction (a) was written to
+   catch. One interactive session for SETUP (a plugin, a licence prompt) is
+   a named ask to Jafar and is not this; a hand-made asset is.
+3. THE COST HALF stays a printed pair, not a bound: median cycle and
+   dispatches spent for the SAME job (the four vign_* stills) in each
+   engine, quoted in the close-out beside the (b) reading. No number is set
+   for "tolerable" because no series covers a UE scene with content yet;
+   when both engines have the job landed the pair is put to Jafar with the
+   blind reading, and a close that cannot quote the pair is not a close.
+
+Rows in cycles.tsv from the compile-only lane (queue 032) carry the word
+compile-only in whatWasEdited and are never pooled with full-loop rows: a
+lane that does less is faster because it does less.

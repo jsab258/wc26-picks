@@ -241,8 +241,7 @@ project wants: the licence is identified before the fetch and recorded with
 it, so the two cannot drift apart.
 
 The directory sits outside any engine's asset folder because the D1b vignette
-is engine-neutral by ruling and the engine is undecided until the comparison
-timebox ends.
+is engine-neutral by ruling and the engine is undecided until D1 closes.
 
 ## Skies — Poly Haven, CC0
 

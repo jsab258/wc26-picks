@@ -19295,6 +19295,51 @@ namespace Ledger.CoreTests
             // bar the engine decision is made against.
             Check(plan.Shots.Count == 4, "four matched shots", plan.Shots.Count.ToString());
 
+            // WHAT SHAPE EVERY PIECE IS, AND HOW MANY PIPES ARE LYING DOWN.
+            // Printed through the same formatter the Unity host prints, so
+            // the string in the verdict file is one that has been run here.
+            string shapes = StreetVignette.ShapeReport(plan.Pieces);
+            Console.WriteLine("    " + shapes);
+            // THE PIPE COUNTS ARE ASSERTED AS WELL AS PRINTED, because the
+            // circular-in-plan guard below is satisfied by a pipe shrunk to
+            // a disc. Nine lie along the street (one gutter, two booms, six
+            // rail bars) and thirty-two are pitched (twenty aerial elements,
+            // twelve swan-neck segments); both read off this print on the
+            // live tree, 2 Sep. Planting on_stacks [1] in the JSON prints
+            // cylRolled=8 cylPitched=22 and goes red here.
+            Check(shapes.Contains("cylRolled=9 cylPitched=32 "),
+                  "nine cylinders lie along the street and thirty-two are pitched, as printed on the live tree",
+                  shapes);
+
+            // A CYLINDER HAS ONE DIAMETER, NOT TWO, AND THIS GUARD WENT RED
+            // ON THE LIVE TREE BEFORE IT WENT GREEN. A pipe's length is SY,
+            // its axis is local +y, and a pipe that lies down does so by
+            // RollDeg or PitchDeg. Expressing a 42 m gutter as SX = 42 with
+            // SY = SZ = 0.112 renders a flattened disc stretched along the
+            // street in every engine that takes the shape at its word, and
+            // the piece count, the bill-of-materials roll call and the
+            // placement metric all pass while it does. Run red on the live
+            // tree before the fix, which is the half of a guard that is
+            // usually never watched: 29 of 146 cylinders non-circular, first
+            // east_parade_gutter(SX=36.000/SZ=0.112/SY=0.112), with
+            // cylRolled=0 on the shapes line beside it. Green after: 146 of
+            // 146 circular, cylRolled=9 cylPitched=32.
+            int cyls = 0, oval = 0; string firstOval = "none";
+            foreach (var p in plan.Pieces)
+            {
+                if (p.Shape != "cyl") continue;
+                cyls++;
+                if (Math.Abs(p.SX - p.SZ) <= 1e-9) continue;
+                oval++;
+                if (firstOval == "none")
+                    firstOval = $"{p.Name}(SX={p.SX:0.000}/SZ={p.SZ:0.000}/SY={p.SY:0.000})";
+            }
+            Console.WriteLine($"    cylinders: {cyls - oval}/{cyls} circular in plan " +
+                              $"(first non-circular: {firstOval})");
+            Check(oval == 0,
+                  "every cylinder has one diameter both ways, so a lying pipe is a roll and not a stretched disc",
+                  oval + " of " + cyls + " cylinders, first " + firstOval);
+
             // H4 ASKS FOR FOUR PRACTICALS AND THE SPACING RATIO HAS TO PRODUCE
             // FOUR. This is the one place a data change (the mounting height)
             // moves a count in the bill of materials, so it is asserted here

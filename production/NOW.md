@@ -9,87 +9,54 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
-## STOPPED FOR BUDGET. READ THIS BEFORE STARTING ANYTHING.
+## Where this is, 2026-09-02: the rotation fix is in the tree, the second render is the proof
 
-`production/budget.md` records the position: Jafar's newest reading is 8
-percent, taken during the evening of 1 September, and TWENTY agent spawns
-landed after it, three of them `studio-director`, which carries its own
-weekly limit and counts double. Nothing in this container can read his usage
-page, so the day is UNMEASURED rather than young, and the file's own rule for
-an unmeasured day is to prefer stopping.
+THE STREET VIGNETTE RENDERED ONCE, SIDEWAYS. Run 8f19add (landed 10:22Z)
+drew all four stills with every piece turned 90 degrees: the engine-side
+placement probe read datumMissing=521/845 against the plan-side 0/845
+(game-design/sim-shots/runs/8f19add.txt line 97), which is the two-halves
+instrument catching the emitter fault the 05:43 ruling had dictated a fix
+for and the 06:26 batch committed without. The fix is in the tree under
+game-design/decision-2026-09-02-rotation-fix-lands.md: yaw 0 is the
+identity, lying pipes are rolled cylinders, the sun sits at Unity yaw 65
+and not 205, and the pipe-count guard was watched red then green.
 
-THE ONE THING NEEDED FROM JAFAR IS A NUMBER. Until he gives one: no builder
-spawns, no director spawns, no verifier spawns. Reading landed results and
-committing finished work are free and are allowed.
+THE NEXT UNITY DISPATCH IS THE PROOF. Read, in this order and before any
+still: placement datumMissing=0/845; the shapes line equal to the CoreTests
+print (cylRolled=9 cylPitched=32 cylUpright=105); sun elevation=36.0
+bearing=205.0 unityYaw=65.0 appliedYaw=65.0. Then open all four stills:
+cam_B square to the parade with the roofline in frame, cam_A up the kerb
+line into the fog with the parade on the LEFT (Unity is left-handed, so
+facing +x puts +z on the left); day shadows toward bearing 25, which is
+away and a little left in cam_A and mostly right in cam_B. A datumMissing
+above zero or a float the crossfall does not explain is an emitter finding,
+never a plan finding, and the run is not evidence about the plan.
 
-Midnight passing does not change this. The daily allocation is a discipline
-laid over a WEEKLY limit and a UTC rollover hands nothing back.
+## The D1 question: ANSWERED, and one still open
 
-## What landed after the batch, unattended
+Jafar retired the timebox on 2 September ("forget the deadline, it's not
+relevant... rather spend more time to get UE working"). D1 is bounded by
+`production/budget.md` and by the attempt budget on queue 027, NEVER by a
+date. Ruling: `game-design/decision-2026-09-02-d1-timebox-retired.md`.
 
-A CC0 content fetch (`13c40d93`, Kenney kits) landed on top of the batch
-while nothing was watching. Read before assuming it needs anything:
-
-- IT REGENERATED `ledger/Assets/Props/ATTRIBUTION.json`, AND THE DIRECTOR'S
-  D3 CORRECTION SURVIVED. That is the design being confirmed by accident
-  within the hour: D3 fixed the GENERATOR STRING as well as the committed
-  file, precisely so a regeneration could not quietly restore the false
-  "sources for every model in this directory" note. A hand edit alone would
-  have been gone by 00:30.
-- The stricter attribution sweep PASSES over the new content: 3848 walked
-  (was 3828), 2715 asset files (was 2703), 0 unclassified, exit 0. The new
-  kinds classified without a change, which is what the two-declared-sets
-  shape was for.
-- `pc-results` has NOT moved (still `e6f9f6f3`, 14 August), so the watcher
-  has not run and the `vignette-fetch-01` request is still pending Jafar's
-  one click. Nothing to chase.
-
-## Where this is, 2026-09-02
-
-THE STREET VIGNETTE IS BUILT AND HAS NEVER BEEN RENDERED. That sentence is
-the whole state. `production/specs/vignette-scene.json` is the shared source,
-the Unity emitter places 546 pieces from 24 BOM lines, and the placement
-instrument reports `datumMissing=0/845`. Neither engine has drawn it.
-
-The push that lands this batch DISPATCHES THREE JOBS on the one self-hosted
-runner: the UE probe (run 16, the first ever `-LedgerShot`), the vignette
-surface fetch, and a hand-dispatched Unity build. They run SERIAL, roughly 60
-to 80 minutes for all three, and the later two show "Queued". THAT IS A WAIT
-AND NOT A HANG; a job is hung only past its own timeout-minutes (115, 40,
-110). Watch by ancestry, and pull afterwards because the branch moves three
-times.
-
-Read `datumMissing` and `floatMax` BEFORE opening any still, then open all
-four. A green number is not a picture and a picture is not a measurement.
-
-## The D1 question that is Jafar's, not the studio's
-
-The director's read: a grey debug frame out of Unreal is likely within one to
-three runs if the 5.8 signatures hold. A TEXTURED frame of the shared scene
-through the UE generator, which is what a judged pair actually needs, is
-unlikely inside the timebox. What dominates is blind C++ on a 20-minute loop
-with no compiler in this container; what could blow it up is runtime
-materials in a content-less project, with the character import behind it.
-
-It recommends PRE-REGISTERING the close now, before any run, so the bar is
-not set after the result is known: if by 2026-09-12 12:00Z the pipeline has
-not committed one textured UE still of the shared scene, measurement (a)
-reads NOT TOLERABLE and D1 closes Unity on its own clause, with (b) recorded
-UNMEASURED. That is deliberately distinct from "cannot be measured", which
-was written for an external blocker.
-
-JAFAR HAS NOT ANSWERED THIS. Under either reading the work is identical until
-he does, so it blocks nothing.
+STILL OPEN and on the dashboard: if the two engines look about the same,
+which wins. The existing rule says Unity and nobody has checked that with
+him. It matters more now, because removing the deadline makes "they look
+close" the likeliest outcome rather than "Unreal ran out of time".
 
 ## Budget
 
-17 percent at 04:40Z against a week 24 percent elapsed, anchored Monday 14:00
-CEST. The mid-week reset on 1 September was an ANOMALY and must not be
-expected again; `production/budget.md` says so.
+17 percent at 04:40Z, reported by Jafar. The week starts MONDAY 14:00 CEST
+and the ceiling is 80 percent. A session limit was hit at about 09:20Z and
+killed two agents mid-work, so the day has cost more than the last reading
+shows. The mid-week reset on 1 September was an ANOMALY and must not be
+expected again.
 
 ## In flight
 
-- Nothing running.
+- Nothing running. The rotation fix is reviewed and landing.
+- NEXT ACTION: dispatch `ledger-build-windows.yml` by hand on the branch,
+  then read the three lines above in that order before opening any still.
 
 ## Standing hazards a fresh session will otherwise walk into
 

@@ -93,7 +93,7 @@ Anything short of that is a tie, and ties go to Unity.
 
 ## Ruling 2: cost
 
-- **Timebox: unchanged, ends 2026-09-14. No extension granted.**
+- **Timebox retired 2026-09-02 by Jafar.** This line read "unchanged, ends 2026-09-14, no extension granted" until then; the retirement and what bounds the probe instead are in game-design/decision-2026-09-02-d1-timebox-retired.md.
 - Round trips, with what dominates named per rule 7: the dominant unknowns
   are the UE still-capture path (unrun) and headless UE asset import
   (unproven). Estimate: order of 10 to 20 UE round trips at the current

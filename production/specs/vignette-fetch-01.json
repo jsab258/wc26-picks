@@ -105,7 +105,7 @@
  ],
  "destination": {
   "dir": "production/assets/vignette/surfaces",
-  "why_not_citypack": "CityPack is Unity StreamingAssets and its two gates are keyed to a hardcoded list of the 17 logical surfaces AssetLibrary asks for, in two separate copies (tools/citypack/fetch_textures.py SURFACES and tools/citypack/pack_check.py SURFACES). Adding shutter_slat there means editing both plus AssetLibrary, for a scene whose engine is undecided until the D1 timebox ends. The vignette is engine-neutral by ruling, so its assets sit outside any engine's asset folder and each engine's generator reads them from the shared JSON.",
+  "why_not_citypack": "CityPack is Unity StreamingAssets and its two gates are keyed to a hardcoded list of the 17 logical surfaces AssetLibrary asks for, in two separate copies (tools/citypack/fetch_textures.py SURFACES and tools/citypack/pack_check.py SURFACES). Adding shutter_slat there means editing both plus AssetLibrary, for a scene whose engine is undecided until D1 closes. The vignette is engine-neutral by ruling, so its assets sit outside any engine's asset folder and each engine's generator reads them from the shared JSON.",
   "attribution": "production/assets/vignette/surfaces/ATTRIBUTION.json, written by the same run that writes the files, plus a row in THIRD-PARTY.md carrying the token 'vignette-surfaces' so tools/attribution-check.py enforces it. The row is added ahead of the assets on purpose: the obligation is recorded before the bytes arrive."
  },
  "gates": [

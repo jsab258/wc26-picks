@@ -56,6 +56,7 @@ namespace Ledger.Game
         Light _sun;
         readonly List<Light> _lanterns = new List<Light>();
         readonly List<Light> _windows = new List<Light>();
+        bool _sunLogged;
         int _errors;
 
         void Start() { StartCoroutine(Run()); }
@@ -101,6 +102,11 @@ namespace Ledger.Game
                 if (Emit(root.transform, plan, p)) made++;
             Log(string.Format(CultureInfo.InvariantCulture,
                 "emitted pieces={0}/{1} errors={2}", made, plan.Pieces.Count, _errors));
+            // HOW MANY PIPES WERE LAID, from the formatter CoreTests runs.
+            // A piece count cannot tell a gutter from a disc; this line can,
+            // and the same string is printed by the tested layer, so the
+            // verdict never carries a string nothing ever ran.
+            Log(StreetVignette.ShapeReport(plan.Pieces));
 
             Lights(root.transform, plan);
             Log(string.Format(CultureInfo.InvariantCulture,
@@ -141,11 +147,37 @@ namespace Ledger.Game
             go.name = p.Name;
             go.transform.SetParent(parent, false);
             go.transform.position = new Vector3((float)p.X, (float)p.Y, (float)p.Z);
-            // Unity's yaw is measured from +z and the scene file's from +x, so
-            // the ninety is the frame conversion and it happens HERE, once,
-            // which is where the scene file says each emitter must do it.
+            // THE FRAME CONVERSION FOR A BOX, WHICH IS NOT THE ONE FOR A
+            // CAMERA, and the difference cost the first four frames.
+            //
+            // A camera is a FACING: it looks along its +z, so a bearing b is
+            // Unity yaw 90 - b. That is what `Shoot` does and it is correct
+            // there and unchanged. A piece is a FRAME: Core has already laid
+            // its SX along the street at YawDeg 0 (`Slab` sets SX = x1 - x0,
+            // `KerbPiece` sets SX = len, `Block` sets SX = bw), so yaw 0 has
+            // to be the IDENTITY here. The 90 that used to sit in this line
+            // was copied from the camera conversion, and Unity's
+            // Euler(0,90,0) sends local +x to world -z: it built the road
+            // ACROSS the street, faced the shopfronts at each other and
+            // tilted the camber along the kerb instead of toward it. That is
+            // what the first render showed on run 8f19add: the still under
+            // game-design/sim-shots/ is overwritten by every run, so the
+            // durable evidence is game-design/sim-shots/runs/8f19add.txt
+            // line 97, where the engine-side probe read datumMissing=521/845
+            // while the plan-side probe read 0/845 on the same scene.
+            //
+            // THE MINUS is the two yaw senses: the scene file's yaw turns +x
+            // toward +z, Unity's turns +x toward -z. THE ROLL is what lets a
+            // pipe lie down, because a cylinder's axis is local +y in both
+            // engines; roll 90 lays that axis along the street and pitch 90
+            // lays it across. NO piece in this scene carries two non-zero
+            // rotations (0 of 546 by reading every emitting family in Core; no shipped test counts it), so
+            // the composition order has never been exercised; if one ever
+            // does, Unity composes Euler as Z then X then Y and Core owes a
+            // statement of what it meant by the pair.
             go.transform.rotation = Quaternion.Euler((float)p.PitchDeg,
-                                                     90f - (float)p.YawDeg, 0f);
+                                                     -(float)p.YawDeg,
+                                                     (float)p.RollDeg);
             // A Unity cylinder is 2 units tall and 1 across, so its Y scale is
             // half the height asked for. A cube is 1 in every axis.
             go.transform.localScale = p.Shape == "cyl"
@@ -324,8 +356,40 @@ namespace Ledger.Game
             // elevation is arithmetic off the latitude art-direction R-B1
             // sets. A Los Santos noon sun is the fastest way to make a
             // British street read as somewhere else.
+            //
+            // AND THE AZIMUTH IS A COMPASS BEARING, NOT A UNITY YAW. The
+            // scene file's frame block puts north at +x and east at +z, so
+            // the JSON's azimuth is a bearing TO the sun; a facing at
+            // bearing b is Unity yaw 90 - b (the camera's own conversion);
+            // and a directional light faces the way its light TRAVELS,
+            // which is bearing azimuth - 180. So the yaw is 270 - azimuth,
+            // and handing the bearing straight to Unity, as this line did,
+            // was 140 degrees out on this scene's own numbers: the JSON's
+            // day azimuth is 205, the yaw is 65, the old line set 205.
+            //
+            // WHAT THE DAY FRAME SHOULD SHOW, so the reading is a check and
+            // not an impression: the light travels toward bearing 25, so
+            // every shadow runs north-north-east, which in this frame is +x
+            // rotated 25 degrees toward +z. If they run any other way, this
+            // conversion is still wrong and the line below says what was
+            // applied.
+            float sunYaw = 270f - (float)plan.SunAzimuthDeg;
             _sun.transform.rotation = Quaternion.Euler((float)plan.SunElevationDeg,
-                                                       (float)plan.SunAzimuthDeg, 0f);
+                                                       sunYaw, 0f);
+            if (!_sunLogged)
+            {
+                // ONE LINE PER RUN, and it prints the value ASKED FOR beside
+                // the value the transform HOLDS afterwards, because the only
+                // proof a conversion reached the object is reading it back.
+                // The conversion itself stays UNVERIFIED until a day frame is
+                // opened and the shadow direction is read against the
+                // bearing: this line is what makes that reading possible.
+                _sunLogged = true;
+                Log(string.Format(CultureInfo.InvariantCulture,
+                    "sun elevation={0:0.0} bearing={1:0.0} unityYaw={2:0.0} appliedYaw={3:0.0}",
+                    plan.SunElevationDeg, plan.SunAzimuthDeg, sunYaw,
+                    _sun.transform.eulerAngles.y));
+            }
             _sun.intensity = c.SunOn ? 0.85f : 0f;
             _sun.color = new Color(0.95f, 0.96f, 1f, 1f);
             foreach (var l in _lanterns) l.enabled = c.LanternsOn;

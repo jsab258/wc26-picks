@@ -44,7 +44,7 @@ Monday used one director spawn, which is the right rate.
 5. D1 GETS DECIDED and recorded with its numbers.
 6. BUFFER, with the PC producing assets in the background.
 
-Items 3 to 5 are the timebox that ends 2026-09-14 and it is not extended.
+Items 3 to 5 were the timebox ending 2026-09-14; Jafar RETIRED it on 2026-09-02 (game-design/decision-2026-09-02-d1-timebox-retired.md). They are bounded by the rates above and production/budget.md, not by a date.
 
 ## What is deliberately not in this week
 

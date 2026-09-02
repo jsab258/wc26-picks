@@ -23,6 +23,12 @@ than any single row.
 
 Ceiling for LEDGER: 80% of the weekly limit. The other 20% is his.
 
+Told by Jafar 2026-09-02, retiring the D1 deadline: "we are limited by 5h
+and weekly usage limits in claude". Dates are not a planning unit here. Any
+bound on a piece of work is written in dispatches, sessions or points of
+this ceiling, never as a calendar date. Ruling:
+game-design/decision-2026-09-02-d1-timebox-retired.md.
+
 ## THE MID-WEEK RESET WAS AN ANOMALY, told by Jafar 2026-09-02
 
 Do not build any expectation on it. His words: the limit reset on the Tuesday

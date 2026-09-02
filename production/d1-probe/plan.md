@@ -1,7 +1,7 @@
-# D1 engine probe: execution plan (kicked off 2026-08-31, ends 2026-09-14)
+# D1 engine probe: execution plan (kicked off 2026-08-31, timebox retired 2026-09-02)
 
 Authority: ledger-v2/respec/decision-register/D1-engine-probe.md, followed
-exactly. Two-week timebox; the decision record cites measurements, never
+exactly. The two-week timebox was RETIRED 2026-09-02 (amendment below); the decision record cites measurements, never
 taste. Ties go to Unity.
 
 ## The four measurements and how each is taken
@@ -19,6 +19,19 @@ c. CI and instrument rebuild cost: estimated from (a) plus a written
    rebuilding.
 d. Faces path: MetaHuman plus Audio2Face against CC4 plus Audio2Face,
    assessed on the talking-head test scene D2 names.
+
+## AMENDED 2026-09-02: THE TIMEBOX IS RETIRED. Jafar: "forget the deadline, it's not relevant"
+
+Ruling: game-design/decision-2026-09-02-d1-timebox-retired.md. The dates on
+the two week headings below are the original plan's and no longer bind. The
+probe is bounded by production/budget.md (the weekly ceiling) and by the
+attempt budget on queue item 027: a director review every 6 dispatches a
+phase spends without landing, 6 being the longest stretch this probe spent
+on one sub-goal (the cook, runs 8 to 13), the only series that exists.
+Measurement (a) is failed by non-convergence or hand-edit dependence, defined
+in measurements.md, and never by a date. The decision rule is unchanged,
+ties go to Unity, and "if the UE side cannot be measured, D1 closes
+UNRESOLVED" still means an external blocker, not a slow loop.
 
 ## AMENDED 2026-09-01: UNBLOCKED. UE 5.8.2 is installing; both halves run.
 

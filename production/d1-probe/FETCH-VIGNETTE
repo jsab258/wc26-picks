@@ -15,7 +15,7 @@
 # a trigger inside an output directory is how a run re-fires itself.
 #
 # One line per run, appended, so the file is also the dispatch log.
-run 1 - 2026-09-02 - not yet dispatched. The first run answers four things in
+run 1 - 2026-09-02 - dispatched and LANDED (plan/probe/fetch/attribution all success, commit ce017114). The first run answered four things in
 one round trip: does the committed spec still resolve (--plan), what does
 ambientCG hold in the eight asset types the committed catalogue never asked
 about (--probe, which is what closes A4 tarmac patch and C4 pebbledash), do
