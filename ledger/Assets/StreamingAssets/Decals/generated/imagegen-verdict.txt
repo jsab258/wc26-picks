@@ -1,0 +1,13 @@
+# LEDGER imagegen - 11bc1c1 @1788371727
+# Line 1 names the commit this was measured on. No value has a space.
+# Every blankness number here was re-measured from the PNG itself, not copied from the manifest.
+
+steps selftest=success,probe=success,generate=success,attribution=failure,shaFrom=checkout,stopper=none
+manifestRun=11bc1c1 thisRun=11bc1c1 manifestIsThisRun=yes manifestState=read batchStatus=INCOMPLETE outDir=generated
+bound blank-when-spread<=2/255-AND-stdev<=1.0,-or-alpha-0-everywhere-sampled
+image fascia_mickeys status=OK madeThisRun=yes file=fascia_mickeys.png size=1024x512 seconds=91.1 remeasured=varied/spread252/stdev79.074/levels253/21115of524288px/1085064B
+image fascia_ritas_pawn status=OK madeThisRun=yes file=fascia_ritas_pawn.png size=1024x512 seconds=88.9 remeasured=varied/spread255/stdev76.593/levels253/21115of524288px/1045849B
+image fascia_fish_market status=OK madeThisRun=yes file=fascia_fish_market.png size=1024x512 seconds=89.0 remeasured=varied/spread249/stdev81.189/levels249/21115of524288px/1014300B
+image fascia_steam_laundry status=OK madeThisRun=yes file=fascia_steam_laundry.png size=1024x512 seconds=88.9 remeasured=varied/spread254/stdev74.446/levels254/21115of524288px/950806B
+disk pngsInOutDir=14 namedByThisManifest=4 blankFilesOnDisk=0 missingFromDisk=0
+done imagegenVerdict=BANKED why=none wroteThisRun=4 failed=0 skipped=0 selected=45 inSpec=45 limit=4 blankThisRun=0 undecodableThisRun=0 checkedThisRun=4 remade=0 rechecked=5 remeasured=4 remeasuredBlank=0 remeasuredUnreadable=0 missingFromDisk=0 bytes=4096019

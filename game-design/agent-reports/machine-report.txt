@@ -1,11 +1,11 @@
 LEDGER - image generation, machine report
 ============================================================
-written   2026-08-26 11:05:33 local
+written   2026-09-02 19:55:26 local
 host      JAFAR-DESKTOP
 os        Microsoft Windows 11 Pro  (26200)
 cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
 ram       31.9 GB
-free disk 119.2 GB on C:
+free disk 88.4 GB on C:
 python    C:\Users\Jafar\miniconda3\python.exe
 probe     ok  (probe version 2)
 
@@ -46,85 +46,38 @@ PLAN CHOSEN FROM THE ABOVE
 
 RUN
 ------------------------------------------------------------
-    sending back is ON: branch claude/game-dev-ai-automation-2h67ix, every 3 pictures or 10 minutes
-  LEDGER - image generation, machine report
-============================================================
-written   2026-08-26 11:05:17 local
-host      JAFAR-DESKTOP
-os        Microsoft Windows 11 Pro  (26200)
-cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
-ram       31.9 GB
-free disk 119.2 GB on C:
-python    C:\Users\Jafar\miniconda3\python.exe
-probe     ok  (probe version 2)
-
-GPUs   2 found via Win32_VideoController (CIM)
-  [0] Parsec Virtual Display Adapter   (from Win32_VideoController (CIM))
-      driver 0.45.0.0   vendor string Parsec Cloud, Inc.
-      AdapterRAM 0.00 GB (uint32, saturates at 4.00)
-      registry qwMemorySize 0.00 GB (the one to believe)  [exact name match]
-  [1] AMD Radeon RX 6700   (from Win32_VideoController (CIM))
-      driver 32.0.21045.5002   vendor string Advanced Micro Devices, Inc.
-      AdapterRAM 4.00 GB (uint32, saturates at 4.00)
-      registry qwMemorySize 9.98 GB (the one to believe)  [exact name match]
-
-vulkan drivers registered: 0
-vulkan status:             loader present but NO Khronos key - the display driver registered no Vulkan device
-vulkan loader dll:         present
-directml dll present:      present
-
-PLAN CHOSEN FROM THE ABOVE
-------------------------------------------------------------
-  vendor        amd
-  vram          9.98 GB  (known: True)
-  backend       vulkan   fallback chain vulkan -> cpu
-  model         Z-Image-Turbo Q4_K  (Apache-2.0)
-  flags         --offload-to-cpu --diffusion-fa
-  download      6.7 GB one time
-  free disk ok  True  (need 20 GB)
-
-  why:
-    - VRAM 10.0 GB from vram_bytes_registry
-    - amd adapter, so Vulkan - it is the one vendor-neutral GPU path on Windows and needs no SDK at runtime, the same reasoning that made DirectML the speech baseline
-    - AMD, so the NEXT RUNG applies and is named rather than taken: win-rocm-7.14.0-x64 (189 MB, same release) is the named next rung for an AMD card if Vulkan is slow or wrong - not wired, not measured, conditional on what this probe reports.
-    - quantisation Q4_K: 7-10GB
-
-  next rung (model):   FLUX.1-schnell (Apache-2.0, 12B + T5-XXL, ~10GB more download) is the named next rung if Z-Image's lettering is not good enough. stable-diffusion.cpp runs both; the switch is one field. It is Apache-2.0 and UNGATED - see the VAE comment above, where the opposite was asserted and is retracted.
-  next rung (runtime): win-rocm-7.14.0-x64 (189 MB, same release) is the named next rung for an AMD card if Vulkan is slow or wrong - not wired, not measured, conditional on what this probe reports.
-      ^ this machine is the AMD case that rung is for. It is NOT wired and NOT measured; it is here so the next run has somewhere to go.
-
-SENDING BACK
-------------------------------------------------------------
-  Sending back is on and nothing has been pushed yet - this report was written before the final send. The line printed in the window after it says which.
-
-  Downloading about 6.7 GB, once. It resumes if interrupted.
-    generator: C:\Users\Jafar\ledger-imagegen\runtime-vulkan\sd-cli.exe
+  Generating into C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ledger\Assets\StreamingAssets\Decals\generated
+    45 item(s) selected of 45 in the batch
+    --limit 4: at most 4 picture(s) will be GENERATED this run. Items already on disk are skipped and do not count against it.
+    --fail-on-blank: the first blank or unreadable PNG stops the run and the exit code is 6.
+    [1/45] fascia_mickeys  nothing on record says which prompt made the PNG already here, so it is NOT skipped - making it again
+    [1/45] fascia_mickeys  1024x512  seed 8026  cfg 1.0  about 90s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  91s  1060 KB  varied: spread 252/255, 253 levels over 21115 of 524288 px
+        first image took 91s, so the batch projects to about 68 min for 45 images
+    [2/45] fascia_ritas_pawn  nothing on record says which prompt made the PNG already here, so it is NOT skipped - making it again
+    [2/45] fascia_ritas_pawn  1024x512  seed 8027  cfg 1.0  about 90s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  89s  1021 KB  varied: spread 255/255, 253 levels over 21115 of 524288 px
+    [3/45] fascia_fish_market  nothing on record says which prompt made the PNG already here, so it is NOT skipped - making it again
+    [3/45] fascia_fish_market  1024x512  seed 8028  cfg 1.0  about 90s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  89s  991 KB  varied: spread 249/255, 249 levels over 21115 of 524288 px
+    [4/45] fascia_steam_laundry  nothing on record says which prompt made the PNG already here, so it is NOT skipped - making it again
+    [4/45] fascia_steam_laundry  1024x512  seed 8029  cfg 1.0  about 90s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  89s  929 KB  varied: spread 254/255, 254 levels over 21115 of 524288 px
+    [5/45] sign_marquee  nothing on record says which prompt made the PNG already here, so it is NOT skipped - making it again
+    STOPPING: --limit 4 reached after generating 4 picture(s); 41 of 45 selected item(s) are left and are listed in the manifest under not_attempted. Re-run to continue: nothing already made will be made again.
   
-  Generating 14 images into C:\Users\Jafar\wc26-picks\ledger\Assets\StreamingAssets\Decals\generated
-    [1/14] fascia_mickeys  SKIP, already made (1060 KB, spread 252/255) - delete fascia_mickeys.png to make it again
-    [2/14] fascia_ritas_pawn  SKIP, already made (1021 KB, spread 255/255) - delete fascia_ritas_pawn.png to make it again
-    [3/14] fascia_fish_market  SKIP, already made (991 KB, spread 249/255) - delete fascia_fish_market.png to make it again
-    [4/14] fascia_steam_laundry  SKIP, already made (929 KB, spread 254/255) - delete fascia_steam_laundry.png to make it again
-    [5/14] sign_marquee  SKIP, already made (727 KB, spread 246/255) - delete sign_marquee.png to make it again
-    [6/14] sign_open_all_nite  SKIP, already made (726 KB, spread 251/255) - delete sign_open_all_nite.png to make it again
-    [7/14] sign_baths  SKIP, already made (774 KB, spread 244/255) - delete sign_baths.png to make it again
-    [8/14] notice_dock_regulations  SKIP, already made (1028 KB, spread 249/255) - delete notice_dock_regulations.png to make it again
-    [9/14] poster_gig_bill  SKIP, already made (1049 KB, spread 244/255) - delete poster_gig_bill.png to make it again
-    [10/14] notice_ferry_times  SKIP, already made (1070 KB, spread 244/255) - delete notice_ferry_times.png to make it again
-    [11/14] wall_soot_brick  SKIP, already made (2650 KB, spread 247/255) - delete wall_soot_brick.png to make it again
-    [12/14] wall_salt_render  SKIP, already made (2066 KB, spread 242/255) - delete wall_salt_render.png to make it again
-    [13/14] probe_wall_cfg1  SKIP, already made (666 KB, spread 225/255) - delete probe_wall_cfg1.png to make it again
-    [14/14] probe_wall_cfg2  SKIP, already made (594 KB, spread 221/255) - delete probe_wall_cfg2.png to make it again
-  
-  DONE: 0 written, 14 skipped, 0 failed, 0 attempted of 14 in the batch
-    blank check: 0 blank, 0 undecodable, of 0 PNGs decoded (blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled)
-    already made: 14 skipped, 0 remade because what was on disk was blank or unreadable, of 14 PNGs found already on disk
-    Those files were left exactly as they were - anything you picked out by hand is safe.
-    To make one again: delete its .png and double-click again. To make them all again: run with --redo.
-    images and manifest: C:\Users\Jafar\wc26-picks\ledger\Assets\StreamingAssets\Decals\generated
+  INCOMPLETE: 4 written, 0 skipped, 0 failed, 4 attempted of 45 in the batch
+    blank check: 0 blank, 0 undecodable, of 4 PNGs decoded (blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled)
+    already made: 0 skipped, 0 remade because what was on disk was blank or unreadable, of 5 PNGs found already on disk
+    not attempted: sign_marquee, sign_open_all_nite, sign_baths, notice_dock_regulations, poster_gig_bill, notice_ferry_times, wall_soot_brick, wall_salt_render, probe_wall_cfg1, probe_wall_cfg2, sign_ferry, sign_harbour_master, sign_weighbridge, sign_telephone, sign_gentlemen, sign_left_luggage, sign_no_waiting, sign_private_mooring, sign_way_out, sign_taxis, sign_fish_quay, sign_chandlery, notice_tide_table, notice_council, notice_planning, notice_wanted, notice_sailings, notice_jumble, poster_bingo, poster_cinema, poster_coach, poster_darts, poster_election, poster_fete, notice_missing_cat, notice_fly_posted, notice_opening_hours, poster_safety, interior_shop_shelves, interior_bar_back, interior_stair_landing
+    images and manifest: C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ledger\Assets\StreamingAssets\Decals\generated
     every image is review=pending until a human has looked at it
-    SENT: 16 file(s) pushed to claude/game-dev-ai-automation-2h67ix (Meridian pictures: 0 written, 14 already made)
 
 SENDING BACK
 ------------------------------------------------------------
-  Sent: 1 push(es) to claude/game-dev-ai-automation-2h67ix, 1 commit(s) made. The pictures and this report are already in the project - nothing to paste.
+  Sending back is OFF: switched off for this run
+  Zip the pictures folder named above and send it, plus this file.

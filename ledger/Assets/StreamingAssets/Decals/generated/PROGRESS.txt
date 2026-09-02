@@ -1,0 +1,56 @@
+LEDGER imagegen - progress
+==========================================================
+batch     meridian-signage-01
+status    INCOMPLETE
+updated   2026-09-02 19:55:26 local
+elapsed   6 min
+done      4 written, 0 already there, 0 failed, of 45 in the batch
+still to do  41, about 64 min at the measured rate (measured on an RX 6700 / Vulkan / Z-Image-Turbo Q4_K / 8 steps, 25 Aug)
+
+  [made]    fascia_mickeys             1024x512  91s
+  [made]    fascia_ritas_pawn          1024x512  89s
+  [made]    fascia_fish_market         1024x512  89s
+  [made]    fascia_steam_laundry       1024x512  89s
+  [pending] sign_marquee               768x512  about 68s
+  [pending] sign_open_all_nite         768x512  about 68s
+  [pending] sign_baths                 768x512  about 68s
+  [pending] notice_dock_regulations    640x896  about 100s
+  [pending] poster_gig_bill            640x896  about 100s
+  [pending] notice_ferry_times         640x896  about 100s
+  [pending] wall_soot_brick            1024x1024  about 290s
+  [pending] wall_salt_render           1024x1024  about 290s
+  [pending] probe_wall_cfg1            512x512  about 45s
+  [pending] probe_wall_cfg2            512x512  about 90s
+  [pending] sign_ferry                 768x512  about 68s
+  [pending] sign_harbour_master        768x512  about 68s
+  [pending] sign_weighbridge           768x512  about 68s
+  [pending] sign_telephone             768x512  about 68s
+  [pending] sign_gentlemen             768x512  about 68s
+  [pending] sign_left_luggage          768x512  about 68s
+  [pending] sign_no_waiting            768x512  about 68s
+  [pending] sign_private_mooring       768x512  about 68s
+  [pending] sign_way_out               768x512  about 68s
+  [pending] sign_taxis                 768x512  about 68s
+  [pending] sign_fish_quay             768x512  about 68s
+  [pending] sign_chandlery             768x512  about 68s
+  [pending] notice_tide_table          640x896  about 100s
+  [pending] notice_council             640x896  about 100s
+  [pending] notice_planning            640x896  about 100s
+  [pending] notice_wanted              640x896  about 100s
+  [pending] notice_sailings            640x896  about 100s
+  [pending] notice_jumble              640x896  about 100s
+  [pending] poster_bingo               640x896  about 100s
+  [pending] poster_cinema              640x896  about 100s
+  [pending] poster_coach               640x896  about 100s
+  [pending] poster_darts               640x896  about 100s
+  [pending] poster_election            640x896  about 100s
+  [pending] poster_fete                640x896  about 100s
+  [pending] notice_missing_cat         640x896  about 100s
+  [pending] notice_fly_posted          640x896  about 100s
+  [pending] notice_opening_hours       640x896  about 100s
+  [pending] poster_safety              640x896  about 100s
+  [pending] interior_shop_shelves      768x512  about 68s
+  [pending] interior_bar_back          768x512  about 68s
+  [pending] interior_stair_landing     512x768  about 68s
+
+Every image is review=pending until a human has looked at it.
