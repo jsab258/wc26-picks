@@ -11,7 +11,7 @@ Each entry has options and a recommendation so they can be answered in batch.
 Newest first. Every entry says what it means in plain terms, what the options
 cost, and what the studio recommends, so it can be answered in one line.
 
-### If the two engines look about the same, which one wins? (added 2026-09-02)
+#### ANSWERED 2026-09-02: TIES GO TO UNREAL, reversing the standing rule
 
 **In plain terms.** You removed the deadline so Unreal gets the time it
 needs. Good. But the engine test still has a tie-breaker written into it from
@@ -34,6 +34,18 @@ ties toward the familiar option is a thumb on the scale against exactly that.
 **The studio recommends A**, on the grounds that "equal" is not evidence for
 a change this expensive. If a picture later changes your mind, that is a
 better reason than a tie-break rule.
+
+JAFAR ANSWERED: Unreal. His words: "UE - but tell me pros/cons of each". The
+standing rule (ties to Unity) is REVERSED. It sits alongside his earlier
+ruling that removed the deadline so Unreal would get the time it needs, and
+his reason for that one: "rather spend more time to get UE working, that's
+what will help us achieve our main goal".
+
+He asked for the pros and cons WITH the answer rather than before it, so
+this card stays readable as a decision that can be revisited on evidence
+rather than one closed by preference. If the comparison later shows Unreal
+costing more than the ceiling buys, that is a reason to reopen; a tie is
+not.
 
 ## ANSWERED, kept for the reasoning (these do NOT count as waiting)
 
