@@ -6,7 +6,40 @@
 Standing queue for anything the autonomous build loop cannot decide alone.
 Each entry has options and a recommendation so they can be answered in batch.
 
-## TWO ARE WAITING
+## WHAT IS WAITING
+
+Newest first. Every entry says what it means in plain terms, what the options
+cost, and what the studio recommends, so it can be answered in one line.
+
+### Do we agree NOW what happens if Unreal cannot show us a picture in time? (added 2026-09-02, URGENT: decide before 12 September)
+
+**In plain terms.** We are choosing between two game engines, Unity and
+Unreal, and the deadline to choose is 14 September. The test is: build one
+street corner, render it in both, look at the two pictures side by side, pick
+the better looking one.
+
+**The problem.** The Unreal half may not produce a comparable picture in
+time. Nobody can compile Unreal code here, so it is written blind and each
+attempt takes about twenty minutes to find out if it even builds. A rough
+grey picture is likely. A proper textured one, which is what a fair
+comparison needs, probably is not.
+
+**Why this is a question and not just bad news.** If we wait to see the
+result and THEN decide what counts as good enough, we will be moving the
+goalposts after the fact, which is how a decision gets made by whatever
+happened rather than by what we wanted. Agreeing the rule now costs nothing
+and protects the answer.
+
+| | what it means | what it costs |
+|---|---|---|
+| A | **Agree the rule now (RECOMMENDED).** If there is no proper Unreal picture by 12 September, we go with Unity, on the grounds that an engine we cannot iterate on fast enough is not usable here, and we record honestly that we never got to compare the visuals. | Nothing. The work between now and then is identical either way. |
+| B | **Extend the deadline** past 14 September to give Unreal a fair shot. | Two weeks of the only hard deadline this project has, spent on a question that may not be answerable with the tools available. |
+| C | **Decide later, when we see what happens.** | Free today, and it is the option where the goalposts move. |
+
+**The studio recommends A.** It does not favour either engine; it just fixes
+the rule before we know the result.
+
+
 
 ### How close should strangers stand? (added 2026-08-04, late)
 

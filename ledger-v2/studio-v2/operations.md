@@ -164,3 +164,33 @@ is one line rather than more words.
 He has said twice that updates were too long and too technical, and once that a
 report was buried mid-message and he never saw it. Say *"the player is upside
 down"*, not the name of the metric that measured it.
+
+## HOW JAFAR IS TOLD THINGS, ruled by him 2026-09-02 after it went wrong
+
+His words: "I just got back a wall of text with details I don't care about
+... somewhere buried in that wall of text, it seems like you've asked me for
+a decision ... and it's the only part that's relevant to me."
+
+Three rules, and they are not style preferences.
+
+1. **THE DASHBOARD IS THE UPDATE SURFACE, not the chat.** Progress, state and
+   numbers go there and he reads them when he wants them. Regenerate and push
+   the live document whenever something lands.
+
+2. **ANYTHING NEEDING HIM GOES IN THE DECISION INBOX FIRST**, which is a
+   `### ` heading in `game-design/decisions-pending.md` and surfaces on the
+   dashboard automatically. Written in PLAIN TERMS: what it means, the
+   options with what each costs, and a recommendation, so it can be answered
+   in one line. A decision mentioned only in chat prose does not exist; he
+   has to be able to find it without reading everything else.
+
+3. **CHAT IS SHORT.** It is for his questions and his answers, not for
+   narration. No agent-by-agent accounts, no findings he did not ask for, no
+   restating what the dashboard already says. If something genuinely needs
+   his attention it is one or two lines pointing at the inbox entry.
+
+WHAT THIS IS NOT. It is not permission to hide bad news or to stop recording
+findings. Everything still gets written down in the repo, in full, with its
+incident; that discipline is the project and it does not move. What changed
+is WHERE it is written: the casebooks, the queue and the decision records,
+not a message to Jafar.
