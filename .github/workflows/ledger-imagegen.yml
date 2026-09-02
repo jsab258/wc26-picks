@@ -90,7 +90,7 @@ name: LEDGER imagegen batch
 #
 # THIS FILE HAS NEVER RUN. Nothing in the container it was written in can
 # reach ledger-pc, a GPU or a Windows shell. Everything it hands to Python is
-# covered by `imagegen.py --selftest` (123 checks, both outcomes); this file's
+# covered by `imagegen.py --selftest` (137 checks, both outcomes); this file's
 # own control flow is not, which is why the first dispatch is deliberately
 # four pictures and why the selftest runs here as a step before anything else.
 on:
@@ -128,16 +128,35 @@ jobs:
     # an RX 6700 / Vulkan / Z-Image-Turbo Q4_K / 8 steps on 25 Aug. What could
     # blow it up is a download that stalls rather than fails, which is exactly
     # what this cap is here to end.
-    timeout-minutes: 130
+    # NESTED CAPS, AND THE ORDER IS THE WHOLE POINT. The generating loop must
+    # stop ITSELF and hand back to the commit step, because the commit step is
+    # what banks the night. A job killed by its own timeout does not reliably
+    # run anything afterwards, and then the pictures stay on a PC nobody can
+    # reach - which is the exact failure this whole task exists to end.
+    #   imagegen.py --max-minutes  <= 250   (MAX_MINUTES_CEILING, enforced there)
+    #   generate step timeout-minutes 260
+    #   job timeout-minutes         300
+    # Sized against evidence, not taste: PROGRESS.txt after run 2 says 41
+    # items left, about 64 min at the measured rate (RX 6700 / Vulkan / Q4_K /
+    # 8 steps). 250 is nearly four times that. What could still blow it up is
+    # a weight download that stalls rather than fails on an account whose
+    # workspace is empty; that sits inside the generate step's 260 and is what
+    # these caps are here to end.
+    timeout-minutes: 300
 
     env:
-      # ONE PLACE EACH NUMBER LIVES. The dispatch inputs above carry no
-      # defaults of their own on purpose: a default written twice is a default
-      # that disagrees with itself the first time one copy is edited. On a
-      # sentinel push `inputs` is empty and these fallbacks are what run.
-      BATCH_LIMIT: ${{ github.event.inputs.limit || '4' }}
-      BATCH_ONLY: ${{ github.event.inputs.only || '' }}
-      BATCH_MAX_MINUTES: ${{ github.event.inputs.max_minutes || '60' }}
+      # THE DISPATCH INPUTS, PASSED THROUGH BY NAME to the step that decides.
+      # They carry no defaults here on purpose: a default written twice is a
+      # default that disagrees with itself the first time one copy is edited.
+      # WHERE THE NIGHT'S SIZE IS SET, and it is NOT this file. A sentinel push
+      # cannot carry dispatch inputs, so the size has to be settable in the
+      # same commit that starts the run: the step below reads `limit:`,
+      # `only:` and `max_minutes:` out of production/d1-probe/RUN-IMAGEGEN and
+      # prints which source won. Editing the workflow to change a batch would
+      # mean every later sentinel touch inherited the night's numbers.
+      INPUT_LIMIT: ${{ github.event.inputs.limit || '' }}
+      INPUT_ONLY: ${{ github.event.inputs.only || '' }}
+      INPUT_MAX_MINUTES: ${{ github.event.inputs.max_minutes || '' }}
 
     # WHICH STEPS MAY STOP THE JOB, DECIDED ONCE AND WRITTEN DOWN RATHER THAN
     # DRIFTED INTO. Run 33654488608 raised the question the honest way: one
@@ -207,6 +226,25 @@ jobs:
         timeout-minutes: 3
         shell: bash
         run: bash tools/runner/python3-shim.sh
+
+      # HOW BIG IS TONIGHT? Read from the sentinel that started the run, so a
+      # batch is resized in the same commit that dispatches it. The parsing,
+      # the validation and the ceiling live in imagegen.py where the selftest
+      # runs (7 checks, both outcomes); this step supplies only the file and
+      # the dispatch inputs. It does NOT stop the job: the fallback is the
+      # small four-picture batch and the generate step says so out loud if it
+      # ever has to use it, which is the named-fallback rule this file already
+      # applies to the sha.
+      - name: How big is tonight, and who said so
+        id: batch
+        timeout-minutes: 2
+        continue-on-error: true
+        shell: bash
+        run: |
+          python3 tools/imagegen/imagegen.py \
+            --batch-settings production/d1-probe/RUN-IMAGEGEN \
+            2>&1 | tee -a imagegen-run.log
+          echo "BATCH_SETTINGS_OK=yes" >> "$GITHUB_ENV"
 
       # THE WORKSPACE IS THE ONE-CLICK .BAT'S WORKSPACE, ON PURPOSE: whatever
       # "1 MAKE THE PICTURES.bat" already downloaded is reused rather than
@@ -288,7 +326,19 @@ jobs:
           set +e
           SHORT=""
           SRC="none"
-          SHA="$(git rev-parse HEAD 2>.imagegen-sha.err)"
+          # THE SCRATCH FILE GOES OUTSIDE THE WORKSPACE, and that is fault 4 of
+          # run 2 fixed rather than noticed. `2>.imagegen-sha.err` creates the
+          # file whether or not git fails, tools/attribution-check.py walks the
+          # whole tree, and `.err` is in neither ASSET_SUFFIXES nor
+          # NOT_ASSET_SUFFIXES - so the sweep reported "1 unclassified of 3919
+          # walked" and the run's own temp file became `attribution=failure`.
+          # Reproduced in the container on 2026-09-02 by touching that exact
+          # name: the check goes from 0 fails to 1 and names the file.
+          # A SELF-HOSTED RUNNER KEEPS ITS WORKSPACE BETWEEN RUNS, so the copy
+          # run 2 left behind is deleted here too, not merely avoided.
+          rm -f .imagegen-sha.err
+          ERRF="${RUNNER_TEMP:-.}/imagegen-sha.err"
+          SHA="$(git rev-parse HEAD 2>"$ERRF")"
           rc=$?
           # `tr -d` for a trailing CR: git under git-bash on Windows is one of
           # the places a bare \r rides along and turns a sha into a non-match.
@@ -298,7 +348,7 @@ jobs:
             SRC="checkout"
           else
             echo "git rev-parse HEAD gave no sha (exit $rc). What git said, which is the line run 1 could not print:"
-            sed -n '1,5p' .imagegen-sha.err 2>/dev/null
+            sed -n '1,5p' "$ERRF" 2>/dev/null
             if printf '%s' "${GITHUB_SHA:-}" | grep -Eq '^[0-9a-f]{7,40}$'; then
               SHORT="$(printf '%s' "$GITHUB_SHA" | cut -c1-7)"
               SRC="event"
@@ -325,7 +375,7 @@ jobs:
           exit 0
 
       # THE TOOL'S OWN TESTS, ON THE MACHINE THAT RUNS IT, BEFORE IT RUNS IT.
-      # 2 seconds and 123 checks, no GPU and no network. It is
+      # 2 seconds and 137 checks, no GPU and no network. It is
       # continue-on-error like every step here so that one red cannot hide the
       # others' findings, and the verdict step names it.
       - name: imagegen selftest
@@ -363,7 +413,7 @@ jobs:
       #   --workspace      outside the repo, where the weights already are
       - name: Generate the batch
         id: generate
-        timeout-minutes: 110
+        timeout-minutes: 260
         continue-on-error: true
         shell: bash
         run: |
@@ -372,6 +422,18 @@ jobs:
           # marker, so a report left behind by an earlier run can never be
           # committed as this one's answer.
           touch .imagegen-started
+          # THE NAMED FALLBACK, SAID OUT LOUD. If the settings step did not
+          # run, BATCH_LIMIT unset and BATCH_LIMIT deliberately empty look
+          # identical, and empty means NO CAP - which is the one direction a
+          # missing step must never fail in. So the marker is checked, not the
+          # value.
+          if [ "${BATCH_SETTINGS_OK:-no}" != "yes" ]; then
+            echo "batchSettings=DID-NOT-RUN falling back to the small batch: limit 4, 60 min"
+            BATCH_LIMIT=4
+            BATCH_ONLY=""
+            BATCH_MAX_MINUTES=60
+          fi
+          echo "batchLimit=${BATCH_LIMIT:-none} batchOnly=${BATCH_ONLY:-none} batchMaxMinutes=${BATCH_MAX_MINUTES}"
           ARGS=(all
                 --machine "$IMAGEGEN_MACHINE"
                 --workspace "$IMAGEGEN_WS"
@@ -440,15 +502,13 @@ jobs:
           # through verbatim and which needs no parser change.
           STOPPER="$(bash tools/runner/step-verdict.sh --setup "$SETUP_STEPS" --stopper-only || echo unknown)"
           STEPS="selftest=${SELFTEST_OUTCOME:-none},probe=${PROBE_OUTCOME:-none},generate=${GENERATE_OUTCOME:-none},attribution=${ATTRIB_OUTCOME:-none},shaFrom=$SRC,stopper=${STOPPER:-unknown}"
-          # `|| vrc=$?` RATHER THAN `$?` ON THE NEXT LINE: Actions runs bash
-          # with -e, so a red verdict would end this step before its own exit
-          # code was captured and the last step would read a missing file
-          # instead of the answer.
-          vrc=0
-          python3 tools/imagegen/imagegen.py --verdict --repo "$GITHUB_WORKSPACE" \
-            --run-sha "$SHORT" --steps "$STEPS" || vrc=$?
-          echo "$vrc" > .imagegen-verdict-rc
-          echo "verdict exit code $vrc (0 means this commit banked pictures with no blank)"
+          # THE ORDER CHANGED, AND THE ORDER IS THE FIX. The verdict used to be
+          # written BEFORE anything was staged, so the only thing it could
+          # measure was the output DIRECTORY - and run 2 printed BANKED while
+          # `git show --name-only c685aa93` returned not one PNG. Now the
+          # pictures are staged first, git is asked what it is actually about
+          # to carry, and the verdict is written from THAT. The verdict file
+          # itself is staged afterwards, by name.
           git config user.name "LEDGER imagegen"
           git config user.email "imagegen@ledger.local"
           # STAGED BY NAME, and the names come from the manifest THIS RUN
@@ -485,7 +545,47 @@ jobs:
           else
             echo "machine report NOT staged: nothing wrote it after this run started"
           fi
-          echo "staged=$staged path(s) by name (verdict, manifest, resume record, progress, pictures, report)"
+          # TWO NUMBERS, BECAUSE THEY ARE TWO FACTS AND RUN 2 CONFLATED THEM.
+          # `gitAddCalls` is how many paths were handed to `git add`; run 2
+          # printed that one and it said 5. `pathsWithAChange` is how many of
+          # them git will actually CARRY - `git add` of a file whose bytes
+          # already match HEAD stages nothing at all, which is exactly what
+          # happened to four PNGs regenerated byte-identically.
+          STAGEDLIST="${RUNNER_TEMP:-.}/imagegen-staged.txt"
+          HEADLIST="${RUNNER_TEMP:-.}/imagegen-head.txt"
+          GENDIR=ledger/Assets/StreamingAssets/Decals/generated
+          rm -f "$STAGEDLIST" "$HEADLIST"
+          if git diff --cached --name-only > "$STAGEDLIST"; then
+            echo "gitAddCalls=$staged pathsWithAChange=$(grep -c . "$STAGEDLIST" || echo 0)"
+          else
+            # ABSENT, NOT EMPTY. An unreadable list must not look like "git
+            # says nothing is staged", so the file is REMOVED and the verdict
+            # reports stagedList=absent and refuses BANKED.
+            rm -f "$STAGEDLIST"
+            echo "git diff --cached FAILED; the verdict will say stagedList=absent and refuse to call anything banked"
+          fi
+          if git ls-tree -r --name-only HEAD -- "$GENDIR" > "$HEADLIST"; then
+            echo "alreadyInHead=$(grep -c . "$HEADLIST" || echo 0) file(s) under $GENDIR"
+          else
+            rm -f "$HEADLIST"
+            echo "git ls-tree FAILED; a picture regenerated byte-identically will read as NOT-IN-THIS-COMMIT rather than as already there"
+          fi
+          # `|| vrc=$?` RATHER THAN `$?` ON THE NEXT LINE: Actions runs bash
+          # with -e, so a red verdict would end this step before its own exit
+          # code was captured and the last step would read a missing file
+          # instead of the answer.
+          vrc=0
+          python3 tools/imagegen/imagegen.py --verdict --repo "$GITHUB_WORKSPACE" \
+            --run-sha "$SHORT" --steps "$STEPS" \
+            --staged-list "$STAGEDLIST" --in-head-list "$HEADLIST" || vrc=$?
+          echo "$vrc" > .imagegen-verdict-rc
+          echo "verdict exit code $vrc (0 means the pictures this run made are IN THIS COMMIT)"
+          # THE VERDICT ITSELF, STAGED LAST, so the file that names the commit
+          # travels in the same commit as the pictures it names. That is what
+          # makes the claim checkable after the fact: if this commit never
+          # lands, no verdict lands either, and the newest verdict in the
+          # repository still names an older sha on line 1.
+          git add -- "$GENDIR/imagegen-verdict.txt" || true
           if git diff --cached --quiet; then
             echo "nothing arrived that was not already committed"
             exit 0

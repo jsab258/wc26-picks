@@ -17,14 +17,24 @@
 # directory is the job's OUTPUT and a trigger inside an output directory is how
 # a run re-fires itself.
 #
-# WHAT A SENTINEL PUSH GENERATES, and how to change it. The push path cannot
-# carry dispatch inputs, so the batch is whatever the workflow's BATCH_LIMIT,
-# BATCH_ONLY and BATCH_MAX_MINUTES fall back to: 4 pictures, chosen by
-# prompts.json order, 60 minutes of loop. `--limit` bounds what a run
-# GENERATES rather than where it starts, so items already on disk are skipped
-# for free and each dispatch takes the next four. To run a different batch,
-# edit those three fallbacks in the workflow in the same commit that touches
-# this file.
+# WHAT A SENTINEL PUSH GENERATES, and how to change it. THE SETTINGS ARE THE
+# UNCOMMENTED LINES AT THE BOTTOM OF THIS FILE. The push path cannot carry
+# dispatch inputs, so the size of a run has to be settable in the same commit
+# that starts it; `imagegen.py --batch-settings` reads `limit:`, `only:` and
+# `max_minutes:` from here and the workflow exports what it returns. Anything
+# behind a `#` is prose, including this paragraph, and is never read as a
+# setting. Precedence, printed in the log of every run: a dispatch input
+# outranks this file, this file outranks the fallback (4 pictures, 60 min),
+# and inside this file the LAST line for a key wins, because this file is
+# appended to per run. `limit: all` means no cap on how many are generated;
+# `--limit` bounds GENERATIONS rather than positions, so items already on disk
+# that pass the skip check cost nothing either way.
+#
+# `max_minutes` IS CAPPED AT 250 by imagegen.py, and that is deliberate rather
+# than mean. The generating loop must stop itself and hand back, because the
+# step AFTER it is the one that commits: a job killed by its own timeout can
+# leave the night's pictures on a PC nobody can reach. 250 < the generate
+# step's 260 < the job's 300.
 #
 # WHAT THE FIRST RUN IS FOR. Proving the route, not filling the queue. 31 of
 # the 45 written prompts have never been generated, and a night that produces
@@ -55,3 +65,30 @@
 # The verdict's steps line now carries stopper= and shaFrom=, and the commit
 # step prints every staging candidate with %q, so a trailing \r from Windows
 # Python shows as $'\r' and the second fault is measured, not believed.
+
+# run 3 - THE NIGHT RUN, and the first run under a verdict that measures the
+# COMMIT rather than the output directory. Run 2 reported BANKED and
+# `git show --name-only c685aa93` returned not one picture: it had regenerated
+# four PNGs that were already on disk, byte for byte (all four sha256 in its
+# manifest equal the ones cb332751 committed on 26 Aug, measured 2026-09-02),
+# so `git add` staged nothing and the commit carried no art. BANKED now
+# requires the pictures to be in what git is about to carry; a byte-identical
+# regeneration reads NOTHING-NEW and a picture that is nowhere in the commit
+# reads NOT-BANKED, loudly, with the file names.
+# Expected tonight: 31 items that have never been generated, plus 14 already
+# on disk which are now SKIPPED FOR FREE rather than remade (the resume record
+# reads the recipe the previous manifest recorded; run 2 insisted on rebuilding
+# it from a seed that SKIPPED rows do not carry, so it reconstructed zero of
+# fourteen and spent six minutes of GPU reproducing four). About 64 minutes at
+# the rate measured on 25 Aug, against a 250-minute cap.
+# Also fixed: `attribution=failure` was this workflow's own scratch file. The
+# sha step wrote `.imagegen-sha.err` into the workspace whether or not git
+# failed, `.err` is in neither suffix list in tools/attribution-check.py, and
+# the sweep reported 1 unclassified of 3919 walked. Reproduced in the
+# container by touching that name; the file now lives in RUNNER_TEMP and the
+# copy run 2 left on the runner is deleted at the start of the step.
+
+# ---------------------------------------------------------------------------
+# THE SETTINGS. Uncommented lines only. Last-wins.
+limit: all
+max_minutes: 240

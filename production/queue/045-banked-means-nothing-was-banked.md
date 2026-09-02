@@ -2,7 +2,7 @@ line: infrastructure (instruments, the imagegen evidence channel)
 spec: this file, from imagegen run 2
 acceptance: BANKED is true only when the pictures it names are IN THE COMMIT; a run that generates and commits nothing reads as its own state and never BANKED; remade counts what was remade; both outcomes fixtured against a real commit, not a directory listing
 max_sessions: 1
-status: READY 2026-09-02. engine-specialist. BLOCKS the free lane: until this is right, a green verdict cannot be trusted to mean pictures exist.
+status: LANDED 2026-09-02, run-3 landing commit, under the director ruling game-design/decision-2026-09-02-imagegen-run3-banked-means-in-the-commit.md. Three-state BANKED, load_made reading the row's own recipe, --staged-list and --in-head-list. The night run re-measures the boundary live through alreadyInHead= and pathsWithAChange=. Was: READY 2026-09-02. engine-specialist. BLOCKS the free lane: until this is right, a green verdict cannot be trusted to mean pictures exist.
 
 ## What run 2 actually did
 

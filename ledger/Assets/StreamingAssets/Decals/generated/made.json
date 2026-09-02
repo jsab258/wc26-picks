@@ -29,6 +29,67 @@
       "file": "fascia_steam_laundry.png",
       "when": "2026-09-02T19:55:25",
       "from": "made by this run"
+    },
+    "sign_marquee": {
+      "recipe": "ce9d8294398b41ce",
+      "file": "sign_marquee.png",
+      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
+      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+    },
+    "sign_open_all_nite": {
+      "recipe": "fdc51924dfdf0403",
+      "file": "sign_open_all_nite.png",
+      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
+      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+    },
+    "sign_baths": {
+      "recipe": "db3b196a3c3d571f",
+      "file": "sign_baths.png",
+      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
+      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+    },
+    "notice_dock_regulations": {
+      "recipe": "c51b50950c7cd883",
+      "file": "notice_dock_regulations.png",
+      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
+      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+    },
+    "poster_gig_bill": {
+      "recipe": "f66cd74f487c264e",
+      "file": "poster_gig_bill.png",
+      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
+      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+    },
+    "notice_ferry_times": {
+      "recipe": "c243283a1a02a739",
+      "file": "notice_ferry_times.png",
+      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
+      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+    },
+    "wall_soot_brick": {
+      "recipe": "f52bd09ab72757a1",
+      "file": "wall_soot_brick.png",
+      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
+      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+    },
+    "wall_salt_render": {
+      "recipe": "da85911941d31aad",
+      "file": "wall_salt_render.png",
+      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
+      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+    },
+    "probe_wall_cfg1": {
+      "recipe": "f491df16ec98bd80",
+      "file": "probe_wall_cfg1.png",
+      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
+      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+    },
+    "probe_wall_cfg2": {
+      "recipe": "d91a47f72f422a17",
+      "file": "probe_wall_cfg2.png",
+      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
+      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
     }
-  }
+  },
+  "_repaired": "2026-09-02: 10 item(s) recovered by hand from cb332751's manifest, which run 2 overwrote. Without them the night's run rechecks 10 finished PNGs, finds nothing on record, and regenerates them byte-identically for about 15 minutes of GPU - which is what run 2 did to the other four. Evidence that the recipes are still current: the four rows that appear in BOTH cb332751's manifest and run 2's carry identical recipe hashes, so recipe_of and these prompts have not moved. A recipe that HAS moved since simply does not match and the item is made again, which is the correct outcome."
 }

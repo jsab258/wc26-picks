@@ -100,31 +100,61 @@ prints every candidate with %q and strips it, which is the measurement.
 The vignette-fetch loop is the same shape and has never staged a file in
 this tree either (no fetch-verdict.txt, no surfaces/); queue 044 carries it.
 
+## THE ASSETS ARE NOT IN THE FRAME (queue 046, found 2026-09-02)
+
+37 props and 14 generated decals sit in this repository and THE STREET SCENE
+USES NEITHER. Measured: `grep -c "base-mesh|BaseMesh"` returns 0 in both
+`StreetVignetteHost.cs` and `StreetVignette.cs`, and no C# file names any
+generated decal by key. The four frames Jafar has seen are built entirely
+from primitive shapes.
+
+BUILT IS NOT RUNNING, and the resident missed it while reporting asset
+counts as progress. Jafar found it by asking what the images are FOR.
+
+This outranks generating more pictures. The overnight batch adds 31 files to
+a directory nothing reads: worth doing because it is free, but it moves no
+number the Meridian Test measures. Queue 046 is what turns the inventory
+into a street, and it is also the only way to learn whether a generated
+decal looks right AT SIZE, ON A SURFACE, IN THE RAIN.
+
 ## In flight
 
-- Nothing running. RUN 2 LANDED AND ITS RESULT IS HALF GOOD.
+- **RUN 3 IS THE NIGHT RUN, and it starts on the push that lands this file.**
+  The sentinel `production/d1-probe/RUN-IMAGEGEN` carries `limit: all` and
+  `max_minutes: 240`; the push trigger fires imagegen plus one cheap
+  core-tests run on ubuntu-latest and nothing else. Landed under the ruling
+  `game-design/decision-2026-09-02-imagegen-run3-banked-means-in-the-commit.md`.
 
-  WHAT WORKED: the stopper fix. `stopper=none shaFrom=checkout`, all four
-  work steps ran, generation used the GPU for real, and `made.json` records
-  four images made at 19:50 to 19:52. Run 1's blocker is gone.
+- **RULE 9 HOLD, in force from the landing push until the night lands.**
+  `ledger-pc` is one PC and a batch running is a Unity build waiting.
+  DISPATCH NOTHING at `ledger-pc` until a commit whose subject reads
+  `Meridian pictures from <sha>` CONTAINS the landing commit. That means the
+  Windows build, the Unreal probe, the MSVC setup and the vignette fetch all
+  wait. Check ancestry, never branch movement: capture the landing sha, then
+  `git merge-base --is-ancestor <landing-sha> <pictures-commit>`.
 
-  WHAT IS BROKEN, and it blocks the free lane: the verdict says
-  `imagegenVerdict=BANKED wroteThisRun=4` and `git show --name-only
-  c685aa93 | grep -c png` returns 0. NOT ONE PICTURE IS IN THE COMMIT. The
-  four PNGs in this checkout are from 26 August (`cb332751`). The verdict
-  measured the runner's output DIRECTORY rather than the commit, so its
-  headline word is false in the only sense a reader acts on. Queue 045.
+- **READING ORDER when the night lands, and the order is the point.** Open
+  the pictures before any number (rule 4). Then read, in this order:
+  1. `imagegenVerdict=` and `wroteThisRun=` on the verdict's done line.
+  2. `pathsWithAChange=` and `alreadyInHead=`. These are what run 2 could not
+     say. BANKED with `pathsWithAChange=0` means the night added nothing to
+     git no matter how many pictures the GPU made, and NOTHING-NEW exits 1
+     deliberately so that case cannot read green.
+  3. `skipped=` against `remadeUnrecorded=`. `skipped=14 remadeUnrecorded=0`
+     is the hand-recovered `made.json` proven correct; a non-zero
+     `remadeUnrecorded` means recovered rows did not match and GPU time was
+     spent making what already existed.
+  4. `blank` counts with their denominators, then `attribution=`, which read
+     `failure` on run 2 and is still undiagnosed.
 
-  Second fault on the same line: `remade=0` while `made.json` says all four
-  were made this run and all four already existed. Either four were remade
-  uncounted, or `--limit`'s skip-what-exists promise failed and GPU time was
-  spent reproducing what was there. The numbers cannot tell those apart.
-  `manifest.json` says `status: INCOMPLETE` while the verdict says BANKED.
-  And `attribution=failure` is undiagnosed.
+- **WHAT RUN 2 SETTLED, so nobody re-litigates it.** The stopper is gone
+  (`stopper=none shaFrom=checkout`), all four work steps ran, and generation
+  used the GPU for real. What run 2 could NOT say was whether anything
+  reached the repository, which is the single thing run 3's verdict is now
+  built to answer. Queue 045 is LANDED.
 
-- NEXT ACTION: queue 045, one engine-specialist. Until it lands, a green
-  imagegen verdict does NOT mean pictures exist, and no bulk night run
-  should be dispatched on the strength of one.
+- NEXT ACTION after the night: queue 046, the assets are not in the frame.
+  Ordered ahead of generating more pictures.
 
 ## Standing hazards a fresh session will otherwise walk into
 

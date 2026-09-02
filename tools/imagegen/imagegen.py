@@ -1600,47 +1600,70 @@ def load_made(outdir, spec):
     what lets a changed prompt regenerate and an unchanged one skip.
 
     LEGACY, and it is not hypothetical: the first real run (25 Aug) wrote a
-    manifest and no made.json. Rather than treat those twelve as unknown, the
-    recipe is reconstructed from the PROMPT THE MANIFEST RECORDED, so an item
-    whose prompt has not changed is still skipped. Where the old record cannot
-    supply the prompt or the size, the item is unknown and is made again -
-    "there is a file" was never the question.
+    manifest and no made.json. Rather than treat those as unknown, the record
+    is taken from the manifest - its own recorded `recipe` first, and only
+    failing that rebuilt from the PROMPT AND SEED it recorded - so an item
+    whose prompt has not changed is still skipped. Where neither is available
+    the item is unknown and is made again: "there is a file" was never the
+    question.
     """
-    made, source = {}, "nothing on record"
+    made, parts = {}, []
     mp = pathlib.Path(outdir) / "made.json"
     if mp.exists():
         try:
             made = json.loads(mp.read_text(encoding="utf-8")).get("items", {})
-            source = f"made.json, {len(made)} item(s)"
-            return made, source
+            parts.append(f"made.json {len(made)} item(s)")
         except Exception as e:                                # noqa: BLE001
-            source = f"made.json unreadable ({type(e).__name__}), falling back"
+            parts.append(f"made.json unreadable ({type(e).__name__})")
+    # THE MANIFEST IS READ TOO, NOT ONLY WHEN made.json IS MISSING, and this is
+    # a repair rather than a tidy-up. Run 2 (c685aa93) regenerated four
+    # pictures that were already on disk, byte for byte, and the record that
+    # would have skipped them was RIGHT THERE: every image row in the previous
+    # manifest carries its own `recipe`. The reconstruction below insisted on
+    # rebuilding that hash from `prompt` + `seed`, and a SKIPPED row records no
+    # seed, so a manifest of fourteen finished pictures reconstructed ZERO and
+    # every one of them counted as unrecorded. Measured 2026-09-02: the four
+    # recipes cb332751's manifest recorded on 26 Aug are identical to the four
+    # run 2 computed on 2 Sep, so the recorded hash is exactly as good as the
+    # rebuilt one and needs no seed.
+    #
+    # made.json WINS PER ITEM. It is written after every picture and is the
+    # newer of the two; the manifest only fills gaps.
     legacy = pathlib.Path(outdir) / "manifest.json"
     if legacy.exists():
         try:
-            old = json.loads(legacy.read_text(encoding="utf-8"))
+            prev = json.loads(legacy.read_text(encoding="utf-8"))
             by_id = {i["id"]: i for i in spec.get("items", [])}
             d = spec.get("defaults", {})
-            n = 0
-            for rec in old.get("images", []):
+            recorded = rebuilt = 0
+            for rec in prev.get("images", []):
                 it = by_id.get(rec.get("id"))
                 if not it or rec.get("status") not in ("OK", "SKIPPED"):
                     continue
-                if not rec.get("prompt") or rec.get("seed") is None:
+                if rec["id"] in made:
                     continue
-                made[rec["id"]] = {
-                    "recipe": recipe_of(it, rec["prompt"], "",
-                                        rec.get("width"), rec.get("height"),
-                                        rec.get("cfg", d.get("cfg", 1.0)),
-                                        rec.get("steps", d.get("steps", 8)),
-                                        rec["seed"], False),
-                    "from": "reconstructed from the previous manifest",
-                }
-                n += 1
-            source = f"the previous manifest, {n} item(s) reconstructed"
+                if rec.get("recipe"):
+                    made[rec["id"]] = {
+                        "recipe": rec["recipe"],
+                        "from": "the recipe the previous manifest recorded",
+                    }
+                    recorded += 1
+                elif rec.get("prompt") and rec.get("seed") is not None:
+                    made[rec["id"]] = {
+                        "recipe": recipe_of(it, rec["prompt"], "",
+                                            rec.get("width"), rec.get("height"),
+                                            rec.get("cfg", d.get("cfg", 1.0)),
+                                            rec.get("steps", d.get("steps", 8)),
+                                            rec["seed"], False),
+                        "from": "reconstructed from the previous manifest",
+                    }
+                    rebuilt += 1
+            parts.append(f"the previous manifest {recorded} recorded + "
+                         f"{rebuilt} reconstructed")
         except Exception as e:                                # noqa: BLE001
-            source = f"previous manifest unreadable ({type(e).__name__})"
-    return made, source
+            parts.append(f"previous manifest unreadable ({type(e).__name__})")
+    source = "; ".join(parts) if parts else "nothing on record"
+    return made, f"{source}; {len(made)} item(s) on record in total"
 
 
 def save_made(outdir, made):
@@ -1804,12 +1827,23 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
             "checked": 0, "blank": 0, "undecodable": 0,
             # A DIFFERENT MOMENT, SO A DIFFERENT KEY. `checked` counts PNGs
             # THIS RUN WROTE and then measured. `rechecked` counts PNGs found
-            # already on disk and measured to decide whether to skip them, and
-            # `remade` is how many of those failed that check and were
-            # generated again. Folding them into `checked` would put two
-            # moments under one key and make "0 blank" ambiguous about which
-            # population it describes.
-            "rechecked": 0, "remade": 0,
+            # already on disk and measured to decide whether to skip them.
+            #
+            # `remade` COUNTS PICTURES THAT WERE ON DISK AND WERE GENERATED
+            # AGAIN, WHATEVER THE REASON, and that is a correction rather than
+            # a nicety. Run 2 printed `remade=0` beside four pictures its own
+            # made.json called "made by this run", every one of which was
+            # already on disk: `remade` counted only the blank-triggered
+            # remakes, so the run that spent six minutes of GPU reproducing
+            # four existing files reported none. It is incremented at the
+            # instant the GPU time is committed, not at the instant the
+            # decision is taken, because run 2 decided to remake FIVE and
+            # generated four - `--limit` stopped the fifth, and a counter
+            # sitting on the decision would have said five.
+            #
+            # The reason breakdown stays, one key each: three different facts.
+            "rechecked": 0, "remade": 0, "remade_blank": 0,
+            "remade_unrecorded": 0, "remade_recipe_changed": 0,
         },
         # A THIRD REASON TO REMAKE, AND IT IS NOT A BLANK ONE. `remade` above
         # counts pictures that were on disk and were not pictures. These two
@@ -1874,6 +1908,15 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
 
     made, made_source = load_made(outdir, spec)
     manifest["resume"]["record"] = made_source
+    # PERSIST WHAT WAS RECOVERED, IMMEDIATELY AND NOT ONLY AFTER A GENERATION.
+    # `save_made` ran in exactly one place - after a picture was written - so a
+    # run that skipped everything left no resume record behind at all, and the
+    # NEXT run had to reconstruct it again from a manifest that this run had
+    # meanwhile overwritten. That is run 2's chain in one sentence: 26 Aug
+    # skipped fourteen and wrote no record, 2 Sep found no record and remade
+    # four of them, byte for byte, and committed none of them.
+    if made:
+        save_made(outdir, made)
     save()
     t_start = time.time()
     rows, consecutive_fail = [], 0
@@ -1961,23 +2004,29 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
         # ALREADY MADE? Three questions, not one: is there a file, is there a
         # PICTURE in it, and was it made from THIS prompt. Only all three earn
         # the skip, and each failure is counted under its own name.
+        # WHY THIS ONE IS BEING MADE AGAIN, carried to the moment it actually
+        # is. None means "not on disk at all", which is a first make and not a
+        # remake; the two must never be added together.
+        remake_reason = None
         if png.exists() and not redo:
             st = png_stats(png)
             verdict, why = blank_verdict(st)
             manifest["blank_check"]["rechecked"] += 1
             on_record = (made.get(item["id"]) or {}).get("recipe")
             if verdict != "varied":
-                manifest["blank_check"]["remade"] += 1
+                remake_reason = "blank"
                 log(f"  [{n}/{len(items_run)}] {item['id']}  the PNG already here is "
                     f"{verdict.upper()}, so it is NOT skipped - making it again")
                 log(f"      {why}")
             elif on_record is None:
                 manifest["resume"]["unrecorded"] += 1
+                remake_reason = "unrecorded"
                 log(f"  [{n}/{len(items_run)}] {item['id']}  nothing on record says "
                     "which prompt made the PNG already here, so it is NOT skipped "
                     "- making it again")
             elif on_record != recipe:
                 manifest["resume"]["prompt_changed"] += 1
+                remake_reason = "recipe_changed"
                 log(f"  [{n}/{len(items_run)}] {item['id']}  the prompt or settings "
                     "changed since the PNG already here was made, so it is NOT "
                     "skipped - making it again")
@@ -2035,6 +2084,15 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
                 f"generated, {len(items_run) - n + 1} of {len(items_run)} "
                 "selected item(s) left")
             break
+        # PAST THE LIMIT CHECK, SO THE GPU TIME IS NOW BEING SPENT. This is
+        # where a remake is counted, and it is deliberately below the `break`
+        # above: run 2 rejected five pictures on disk and generated four, and
+        # a counter at the decision would have reported five remakes for four
+        # generations. An attempt that then FAILS still counts, because the
+        # count is of time spent on a picture that was already there.
+        if remake_reason is not None:
+            manifest["blank_check"]["remade"] += 1
+            manifest["blank_check"]["remade_" + remake_reason] += 1
         cmd = [str(exe),
                "--diffusion-model", str(ws / "models" / pl["quant_file"]),
                "--vae", str(ws / "models" / VAE["file"]),
@@ -2246,10 +2304,113 @@ def write_attribution(outdir, manifest):
 # with a manifest calling it art.
 # ---------------------------------------------------------------------------
 VERDICT_NAME = "imagegen-verdict.txt"
-# A CAP THAT ANNOUNCES ITSELF. Forty per-picture lines is more than any batch
-# this run can generate under the limit the unattended lane uses, and if it
-# ever bites the next line says by how much.
-VERDICT_SAMPLE_CAP = 40
+# A CAP THAT ANNOUNCES ITSELF. Sixty per-picture lines is above the whole
+# batch: prompts.json holds 45 items, so even the night that empties the queue
+# fits under it. It was 40, sized when the unattended lane's limit was 4, and
+# 40 would have bitten on a 45-item night and printed "(+5-more-not-shown)"
+# over the run this lane exists for. If it ever bites, the next line says by
+# how much.
+VERDICT_SAMPLE_CAP = 60
+
+# THE NIGHT'S SIZE, AND WHERE IT IS SET. The push trigger cannot carry dispatch
+# inputs (a workflow_dispatch of a file that is not on the default branch is a
+# 404), so until this workflow reaches `main` the ONLY way to start a run is a
+# push that touches the sentinel. The size of that run therefore has to be
+# settable in the same commit that starts it, and the place that has to be is
+# THE SENTINEL FILE ITSELF - not a fallback in the workflow, which would mean
+# editing the workflow to change a batch and would make every future sentinel
+# touch inherit the night's numbers.
+#
+# Precedence, and every run prints which source won:
+#   dispatch input  >  a `key: value` line in the sentinel  >  the fallback.
+# LAST-WINS within the sentinel, because that file is an append-only dispatch
+# log and the newest line is the one being asked for.
+BATCH_FALLBACK = {"limit": "4", "only": "", "max_minutes": "60"}
+# THE CEILING IS A FUNCTION OF THE STEP TIMEOUT ABOVE IT, and this number is
+# the reason the night cannot lose its pictures. The generating loop must stop
+# ITSELF and return to the workflow, because the commit step is what banks the
+# batch: if the JOB is killed by its own timeout instead, the pictures stay on
+# the runner. Nested caps, each strictly inside the next:
+#   --max-minutes <= 250  <  generate step timeout-minutes 260  <  job 300.
+# Estimated need on 2026-09-02 evidence: 41 items left, about 64 min at the
+# measured rate (PROGRESS.txt, RX 6700 / Vulkan / Q4_K / 8 steps), so 250 is
+# nearly four times the estimate and still ends before midnight-plus-five.
+MAX_MINUTES_CEILING = 250.0
+
+
+def batch_settings(sentinel_text="", limit_in="", only_in="", max_minutes_in=""):
+    """What this run generates, decided in the tested layer.
+
+    Returns (values, notes): `values` is the three env keys the workflow
+    exports, `notes` is one printed line per key naming the SOURCE and, when a
+    value was refused or capped, why. The workflow supplies only live state
+    (the sentinel's text and the dispatch inputs); the parsing, the validation
+    and the string live here, where the selftest runs - an unrun parser that
+    prints a plausible number is the silent-instrument failure this project
+    keeps paying for.
+
+    A VALUE IT CANNOT READ FALLS BACK TO THE SMALL BATCH AND SAYS SO. Failing
+    open would mean a typo in a sentinel line spending the whole night and the
+    whole GPU on a run nobody asked for.
+    """
+    from_file, seen = {}, {}
+    for raw in (sentinel_text or "").splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        for sep in (":", "="):
+            if sep in line:
+                k, v = line.split(sep, 1)
+                k = k.strip().lower().replace("-", "_")
+                if k in BATCH_FALLBACK:
+                    from_file[k] = v.strip()          # last-wins
+                    seen[k] = seen.get(k, 0) + 1
+                break
+    values, notes = {}, []
+    given = {"limit": (limit_in or "").strip(),
+             "only": (only_in or "").strip(),
+             "max_minutes": (max_minutes_in or "").strip()}
+    for key in ("limit", "only", "max_minutes"):
+        if given[key]:
+            val, src = given[key], "dispatch-input"
+        elif key in from_file:
+            val, src = from_file[key], f"sentinel-file/lastOf{seen[key]}"
+        else:
+            val, src = BATCH_FALLBACK[key], "fallback"
+        why = ""
+        if key == "limit":
+            if val.lower() in ("all", "everything", "none", "0", ""):
+                val = ""                              # no --limit at all
+            else:
+                try:
+                    n = int(val)
+                    if n < 1:
+                        raise ValueError(val)
+                    val = str(n)
+                except ValueError:
+                    val, src, why = (BATCH_FALLBACK["limit"], "fallback",
+                                     f"unreadable-limit-{_nospace(val)[:20]}")
+        elif key == "max_minutes":
+            try:
+                m = float(val)
+                if m <= 0:
+                    raise ValueError(val)
+            except ValueError:
+                m, src, why = (float(BATCH_FALLBACK["max_minutes"]), "fallback",
+                               f"unreadable-max_minutes-{_nospace(val)[:20]}")
+            if m > MAX_MINUTES_CEILING:
+                why = (f"asked-{m:g}-capped-to-{MAX_MINUTES_CEILING:g}-so-the-"
+                       "loop-stops-before-the-step-does")
+                m = MAX_MINUTES_CEILING
+            val = f"{m:g}"
+        else:
+            val = val.replace(" ", "")
+        values[key] = val
+        notes.append(f"batch {key}={_nospace(val) if val else 'none'} "
+                     f"source={src}" + (f" why={why}" if why else ""))
+    notes.append("batch limit-none-means-no-cap-on-how-many-are-generated "
+                 f"ceilingMinutes={MAX_MINUTES_CEILING:g}")
+    return values, notes
 
 
 def output_dir(repo=None, ws=None, out=None):
@@ -2282,8 +2443,62 @@ def _nospace(v):
     return str(v).replace(" ", "-") or "none"
 
 
-def imagegen_verdict(outdir, sha="local", steps="", out=None, repo=None):
+def _read_path_list(path):
+    """(set-of-repo-relative-paths, state). THE EVIDENCE THAT A PICTURE IS IN
+    THE COMMIT, and it cannot be gathered from a directory listing.
+
+    Run 2 (c685aa93) reported BANKED and `git show --name-only` on its own
+    commit returned not one PNG. The verdict had measured the runner's OUTPUT
+    DIRECTORY, which held the files, rather than the COMMIT, which did not, so
+    a word meaning "safely stored" was printed over work that existed nowhere
+    a reader could reach. This function is how that boundary is measured
+    instead of assumed: CI writes what git says is in the index and what git
+    says is in HEAD, and both are read here.
+
+    ABSENT IS NOT EMPTY. A missing list means nobody asked git anything, which
+    is exactly the state run 2 was in, so it is its own state and it fails
+    closed: no list, no BANKED.
+    """
+    if not path:
+        return set(), "not-supplied"
+    q = pathlib.Path(path)
+    if not q.exists():
+        return set(), "absent"
+    try:
+        lines = [x.strip().strip('"') for x in
+                 q.read_text(encoding="utf-8", errors="replace").splitlines()]
+        got = {x for x in lines if x}
+        return got, f"read/{len(got)}paths"
+    except Exception as e:                                    # noqa: BLE001
+        return set(), f"unreadable:{type(e).__name__}"
+
+
+def _rel_to_repo(repo, q):
+    """The repository-relative posix path git would print for `q`, or None when
+    there is no repository root to be relative to. ONE IMPLEMENTATION, shared
+    with staged_file_list: a verdict comparing one spelling of a path against
+    git's other spelling is a verdict that reads NOT-BANKED on a good night."""
+    if repo is None:
+        return None
+    try:
+        return pathlib.Path(q).resolve().relative_to(
+            pathlib.Path(repo).resolve()).as_posix()
+    except ValueError:
+        return None
+
+
+def imagegen_verdict(outdir, sha="local", steps="", out=None, repo=None,
+                     staged_list=None, head_list=None):
     """Write the evidence file and return 0 only if this run banked pictures.
+
+    BANKED MEANS IN THE COMMIT. Not on disk, not in a directory on a PC nobody
+    can reach: in the set of paths git is about to commit. `staged_list` is
+    the file CI writes from `git diff --cached --name-only`, which lists the
+    paths whose content DIFFERS FROM HEAD and will therefore actually be in
+    this commit; `head_list` is `git ls-tree` over the output directory, which
+    is how a picture that was regenerated byte-identically is told from one
+    that exists only on the runner. Without the staged list nothing can be
+    shown to be committed, and the word is refused rather than guessed.
 
     LINE 1 NAMES THE COMMIT. Whole-run numbers are on the done line and
     per-picture numbers on the picture lines, because a grep across two lines
@@ -2322,10 +2537,23 @@ def imagegen_verdict(outdir, sha="local", steps="", out=None, repo=None):
     skipped = sum(1 for r in images if r.get("status") == "SKIPPED")
     rows, remeasured, remeasured_blank, remeasured_unreadable = [], 0, 0, 0
     missing, total_bytes = [], 0
+    # WHAT GIT SAYS, READ ONCE. `staged` is what will be IN this commit as a
+    # change; `in_head` is what the repository already had. Two lists because
+    # they answer two different questions and run 2 needed both: its four
+    # pictures were regenerated BYTE-IDENTICALLY (all four sha256 in its
+    # manifest equal the ones committed on 26 Aug by cb332751, measured), so
+    # `git add` changed nothing in the index and the commit carried no PNG.
+    # "Not in the staged set" alone would have called that a lost night; it
+    # was a wasted one, which is a different finding and gets a different word.
+    staged_set, staged_state = _read_path_list(staged_list)
+    head_set, head_state = _read_path_list(head_list)
+    pics_total = pics_new = pics_identical = pics_absent = 0
+    absent_names = []
     for r in images:
         mine = (r.get("made_on_run") == sha)
         fname = r.get("file")
         measured = "not-a-file"
+        where = "not-a-picture"
         if fname and r.get("status") in ("OK", "SKIPPED"):
             q = outdir / fname
             if not q.exists():
@@ -2346,6 +2574,31 @@ def imagegen_verdict(outdir, sha="local", steps="", out=None, repo=None):
                             f"/{q.stat().st_size}B")
         elif r.get("status") == "FAILED":
             measured = "no-picture/" + _nospace((r.get("why") or "no-reason")[:60])
+        # IS THIS PICTURE IN THE COMMIT? Asked only of pictures THIS RUN
+        # MADE, because those are the only ones the night is judged on: a
+        # picture skipped from an earlier run is somebody else's evidence.
+        if mine and r.get("status") == "OK" and fname:
+            pics_total += 1
+            relp = _rel_to_repo(repo, outdir / fname)
+            if measured == "MISSING-FROM-DISK":
+                where = "MISSING-FROM-DISK"
+            elif relp is None:
+                where = "UNKNOWABLE-no-repo-root-given"
+            elif staged_list is None:
+                where = "UNPROVEN-nothing-was-asked-of-git"
+            elif relp in staged_set:
+                where = "new-in-this-commit"
+            elif relp in head_set:
+                where = "already-in-the-repo-byte-identical"
+            else:
+                where = "NOT-IN-THIS-COMMIT"
+            if where == "new-in-this-commit":
+                pics_new += 1
+            elif where == "already-in-the-repo-byte-identical":
+                pics_identical += 1
+            else:
+                pics_absent += 1
+                absent_names.append(fname)
         if mine or r.get("status") == "FAILED":
             rows.append(f"image {_nospace(r.get('id', 'NONE'))} "
                         f"status={_nospace(r.get('status', 'NONE'))} "
@@ -2353,6 +2606,7 @@ def imagegen_verdict(outdir, sha="local", steps="", out=None, repo=None):
                         f"file={_nospace(fname or 'none')} "
                         f"size={r.get('width', '?')}x{r.get('height', '?')} "
                         f"seconds={r.get('seconds', '?')} "
+                        f"inCommit={_nospace(where)} "
                         f"remeasured={measured}")
     shown = rows[:VERDICT_SAMPLE_CAP]
     L.extend(shown)
@@ -2392,12 +2646,39 @@ def imagegen_verdict(outdir, sha="local", steps="", out=None, repo=None):
         word = "NO-RUN"
         why = ("nothing-generated-" + ("all-selected-items-were-already-on-disk"
                                        if skipped else "nothing-was-attempted"))
+    # THE TWO STATES RUN 2 HAD NO WORD FOR, and they are tested here, after
+    # NO-RUN and BLANKS, because a run with no pictures at all and a run with
+    # blank pictures are already named and are worse.
+    elif pics_absent:
+        word = "NOT-BANKED"
+        why = (f"{pics_absent}-of-{pics_total}-pictures-this-run-made-are-not-"
+               f"in-this-commit/stagedList-{_nospace(staged_state)}")
+    elif pics_new == 0:
+        word = "NOTHING-NEW"
+        why = (f"all-{pics_total}-picture(s)-this-run-made-were-already-in-the-"
+               "repository-byte-identical/GPU-time-was-spent-and-nothing-"
+               "was-added")
     else:
         word, why = "BANKED", "none"
     if word == "NO-RUN":
         L.append(f"NO RUN - this commit ({sha}) generated no picture: "
                  f"{why.replace('-', ' ')}. Nothing older is being read as this "
                  "run's answer.")
+    if word == "NOT-BANKED":
+        L.append(f"NOT BANKED - this run made {pics_total} picture(s) and "
+                 f"{pics_absent} of them are NOT in this commit: "
+                 + ",".join(sorted(absent_names)[:20])
+                 + (f"-(+{len(absent_names) - 20}-more-not-shown)"
+                    if len(absent_names) > 20 else "")
+                 + ". They exist on the runner and nowhere a reader can get "
+                   "at them. The staged list git was asked for was "
+                 + f"{staged_state}.")
+    if word == "NOTHING-NEW":
+        L.append(f"NOTHING NEW - this run generated {pics_total} picture(s) "
+                 "and every one of them was already in the repository, "
+                 "byte for byte. The GPU time was spent and the commit adds "
+                 "no picture. This is not a failure to bank; it is a failure "
+                 "of the resume record to skip what was already made.")
     sel = (man or {}).get("selection", {}) or {}
     L.append(f"done imagegenVerdict={word} why={why} "
              f"wroteThisRun={wrote} failed={failed} skipped={skipped} "
@@ -2407,10 +2688,32 @@ def imagegen_verdict(outdir, sha="local", steps="", out=None, repo=None):
              f"blankThisRun={bc.get('blank', 0)} "
              f"undecodableThisRun={bc.get('undecodable', 0)} "
              f"checkedThisRun={bc.get('checked', 0)} "
-             f"remade={bc.get('remade', 0)} rechecked={bc.get('rechecked', 0)} "
+             f"remade={bc.get('remade', 0)} "
+             f"remadeBlank={bc.get('remade_blank', 0)} "
+             f"remadeUnrecorded={bc.get('remade_unrecorded', 0)} "
+             f"remadeRecipeChanged={bc.get('remade_recipe_changed', 0)} "
+             f"rechecked={bc.get('rechecked', 0)} "
              f"remeasured={remeasured} remeasuredBlank={remeasured_blank} "
              f"remeasuredUnreadable={remeasured_unreadable} "
              f"missingFromDisk={len(missing)} bytes={total_bytes}")
+    # THE COMMIT-SIDE HALF, ON ITS OWN LINE because these are whole-run facts
+    # about a DIFFERENT boundary from every count above: those measure the
+    # pixels on the runner, these measure what git is about to carry away.
+    # `picsThisRun` is the denominator for all three.
+    L.append(f"commit picsThisRun={pics_total} newInThisCommit={pics_new} "
+             f"alreadyInRepoIdentical={pics_identical} "
+             f"notInThisCommit={pics_absent} "
+             f"stagedList={_nospace(staged_state)} "
+             f"headList={_nospace(head_state)} "
+             f"repoRoot={_nospace('given' if repo else 'NOT-GIVEN')}")
+    # WHICH FILE IS AUTHORITATIVE ABOUT WHAT, said here because run 2 shipped
+    # `batchStatus=INCOMPLETE` beside `imagegenVerdict=BANKED` and a reader had
+    # two files making opposite-sounding claims. They are not in conflict:
+    # batchStatus is about the BATCH ACROSS ALL RUNS (INCOMPLETE = items left
+    # in prompts.json), imagegenVerdict is about THIS RUN AND THIS COMMIT.
+    L.append("# authority: imagegenVerdict answers 'did THIS commit bank "
+             "pictures'. batchStatus answers 'is the 45-item batch finished'. "
+             "INCOMPLETE beside BANKED is normal and means there is more to do.")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(L) + "\n", encoding="utf-8")
     print("\n".join(L))
@@ -2435,13 +2738,10 @@ def staged_file_list(outdir, sha="local", repo=None, out=None):
     root = pathlib.Path(repo).resolve() if repo else None
 
     def rel(q):
-        q = pathlib.Path(q).resolve()
-        if root is None:
-            return None
-        try:
-            return q.relative_to(root).as_posix()
-        except ValueError:
-            return None
+        # ONE IMPLEMENTATION, shared with the verdict: the path spelling this
+        # prints is the path spelling the verdict compares against git's, and
+        # two spellings of one path is how a good night reads NOT-BANKED.
+        return _rel_to_repo(root, q)
 
     lines, outside = [], 0
     man, _state = _read_manifest(outdir)
@@ -3301,6 +3601,68 @@ def selftest():
                   and redone["items_written"] == len(spec["items"])
                   and redone["blank_check"]["rechecked"] == 0,
                   f"calls={len(calls)} skipped={redone['items_skipped']}")
+
+            # ----------------------------------------------------------
+            # THE RESUME RECORD, AND THE COUNT OF WHAT IT FAILED TO SAVE.
+            # Run 2 (c685aa93) generated four pictures that were already on
+            # disk - byte for byte, all four sha256 identical to the ones
+            # committed eight days earlier - and reported `remade=0`. Two
+            # faults in one line: the record that should have skipped them was
+            # not read, and the counter that should have said they were remade
+            # counted only blank-triggered remakes.
+            rz = td / "resume"
+            subprocess.run = _Fake(0)
+            run_batch(pathlib.Path("stub"), td, gpu, spec, rz, 60,
+                      lambda s="": None)
+            # (a) ACCEPTING: made.json gone, manifest kept. This is exactly the
+            # runner's state on 2 Sep - the previous run committed a manifest
+            # of SKIPPED rows and no resume record - and the recipe was in
+            # those rows all along.
+            (rz / "made.json").unlink()
+            calls.clear()
+            subprocess.run = _Count(0)
+            recov = run_batch(pathlib.Path("stub"), td, gpu, spec, rz, 60,
+                              lambda s="": None)
+            check("resume ACCEPTING: with made.json deleted, the recipe the "
+                  "PREVIOUS MANIFEST recorded is read and nothing is generated "
+                  "again - this is the read that would have saved run 2 six "
+                  "minutes of GPU and four false 'made by this run' rows",
+                  calls == [] and recov["items_skipped"] == len(spec["items"])
+                  and recov["blank_check"]["remade"] == 0
+                  and recov["resume"]["unrecorded"] == 0
+                  and "recorded" in recov["resume"]["record"],
+                  f"calls={len(calls)} record={recov['resume']['record']}")
+            check("resume: the recovered record is WRITTEN BACK, so the run "
+                  "after this one does not have to reconstruct it again - "
+                  "save_made used to run only after a generation, which is why "
+                  "a run that skipped fourteen left no record at all",
+                  (rz / "made.json").exists()
+                  and len(json.loads((rz / "made.json").read_text(
+                      encoding="utf-8"))["items"]) == len(spec["items"]),
+                  (rz / "made.json").exists())
+            # (b) REJECTING: no record anywhere. Every picture is on disk and
+            # every one is made again - which is correct, and which must be
+            # COUNTED, because this is the state run 2 was actually in.
+            (rz / "made.json").unlink()
+            (rz / "manifest.json").unlink()
+            calls.clear()
+            subprocess.run = _Count(0)
+            blind_run = run_batch(pathlib.Path("stub"), td, gpu, spec, rz, 60,
+                                  lambda s="": None, limit=2)
+            bc = blind_run["blank_check"]
+            check("remade ACCEPTING: pictures on disk with NO record are "
+                  "generated again and `remade` COUNTS THEM, under the reason "
+                  "that caused it - run 2 printed remade=0 for exactly this",
+                  bc["remade"] == 2 and bc["remade_unrecorded"] == 2
+                  and bc["remade_blank"] == 0 and len(calls) == 2,
+                  f"remade={bc['remade']} unrecorded={bc['remade_unrecorded']} "
+                  f"calls={calls}")
+            check("remade: it counts GENERATIONS, not decisions - --limit "
+                  "stopped the third, so 3 items were rejected for the skip "
+                  "and 2 were remade. Run 2 rejected five and generated four",
+                  blind_run["resume"]["unrecorded"] == 3 and bc["remade"] == 2,
+                  f"unrecorded={blind_run['resume']['unrecorded']} "
+                  f"remade={bc['remade']}")
     finally:
         subprocess.run = real
 
@@ -3443,16 +3805,99 @@ def selftest():
             # THE VERDICT FILE CI COMMITS. Accepting case first, on the
             # directory the --only run above actually wrote.
             vpath = out / VERDICT_NAME
-            rc = imagegen_verdict(out, "aaaaaaa", "generate=success extra=one")
+            # THE COMMIT-SIDE EVIDENCE, WHICH IS WHAT BANKED NOW MEANS. These
+            # two files are what CI writes from git: `staged` is
+            # `git diff --cached --name-only` (what will be in the commit as a
+            # change) and `head` is `git ls-tree -r --name-only HEAD` over the
+            # output directory (what the repository already had).
+            # THE TWO THE `--only` RUN ABOVE ACTUALLY GENERATED, not all 45
+            # ids in the spec: the staged set CI writes holds what git says is
+            # in the index, and a fixture that names 43 files nobody made
+            # would be testing a list, not a commit.
+            made_ids = [ids[1], ids[3]]
+            pics = [(out / (i + ".png")).relative_to(td).as_posix()
+                    for i in made_ids]
+            staged_all = td / "staged-all.txt"
+            staged_all.write_text("\n".join(pics) + "\n", encoding="utf-8")
+            staged_none = td / "staged-none.txt"
+            staged_none.write_text("ledger/other.txt\n", encoding="utf-8")
+            head_has = td / "head-has.txt"
+            head_has.write_text("\n".join(pics) + "\n", encoding="utf-8")
+            head_empty = td / "head-empty.txt"
+            head_empty.write_text("", encoding="utf-8")
+
+            rc = imagegen_verdict(out, "aaaaaaa", "generate=success extra=one",
+                                  repo=td, staged_list=staged_all,
+                                  head_list=head_empty)
             text = vpath.read_text(encoding="utf-8")
             done = [x for x in text.splitlines() if x.startswith("done ")][0]
-            check("verdict ACCEPTING: a run that generated two pictures is "
-                  "BANKED, line 1 names the commit, and the counts are on the "
-                  "done line",
+            commit_line = [x for x in text.splitlines() if x.startswith("commit ")][0]
+            check("verdict ACCEPTING: two pictures generated AND named in the "
+                  "staged set are BANKED, line 1 names the commit, and the "
+                  "counts are on the done line",
                   rc == 0 and text.splitlines()[0].startswith("# LEDGER imagegen - aaaaaaa")
                   and "imagegenVerdict=BANKED" in done and "wroteThisRun=2" in done
-                  and "remeasured=2" in done and "remeasuredBlank=0" in done,
-                  done)
+                  and "remeasured=2" in done and "remeasuredBlank=0" in done
+                  and "picsThisRun=2 newInThisCommit=2" in commit_line
+                  and "notInThisCommit=0" in commit_line
+                  and text.count("inCommit=new-in-this-commit") == 2,
+                  done + " | " + commit_line)
+
+            # REJECTING, AND THIS IS THE ONE THE TASK EXISTS FOR: the pictures
+            # are on disk, exactly as run 2's were, and the commit carries
+            # none of them. A verdict that measures the output DIRECTORY reads
+            # BANKED here, which is what c685aa93 did.
+            rc_absent = imagegen_verdict(out, "aaaaaaa", "generate=success",
+                                         repo=td, staged_list=staged_none,
+                                         head_list=head_empty)
+            absent_text = vpath.read_text(encoding="utf-8")
+            adone = [x for x in absent_text.splitlines() if x.startswith("done ")][0]
+            check("verdict REJECTING: pictures ON DISK but in NEITHER the "
+                  "staged set NOR HEAD are NOT-BANKED, and the file names are "
+                  "printed - this is run 2's shape and it read BANKED",
+                  rc_absent == 1 and "imagegenVerdict=NOT-BANKED" in adone
+                  and "notInThisCommit=2" in absent_text
+                  and "newInThisCommit=0" in absent_text
+                  and "NOT BANKED" in absent_text
+                  and all(i + ".png" in absent_text for i in made_ids)
+                  and absent_text.count("inCommit=NOT-IN-THIS-COMMIT") == 2,
+                  adone)
+
+            # REJECTING: the SAME pictures, regenerated byte-identically. They
+            # are in the repository, so nothing is lost, and they are not in
+            # this commit, so nothing was banked either. Its own word, because
+            # the action it calls for is different: fix the resume record.
+            rc_same = imagegen_verdict(out, "aaaaaaa", "generate=success",
+                                       repo=td, staged_list=staged_none,
+                                       head_list=head_has)
+            same_text = vpath.read_text(encoding="utf-8")
+            sdone = [x for x in same_text.splitlines() if x.startswith("done ")][0]
+            check("verdict REJECTING: pictures regenerated BYTE-IDENTICALLY "
+                  "are NOTHING-NEW, not BANKED and not lost - GPU time spent, "
+                  "nothing added",
+                  rc_same == 1 and "imagegenVerdict=NOTHING-NEW" in sdone
+                  and "alreadyInRepoIdentical=2" in same_text
+                  and "newInThisCommit=0" in same_text
+                  and "NOTHING NEW" in same_text,
+                  sdone)
+
+            # REJECTING: nobody asked git anything. Fail closed, because that
+            # is precisely the state the old verdict was always in.
+            rc_blind = imagegen_verdict(out, "aaaaaaa", "generate=success",
+                                        repo=td)
+            blind = vpath.read_text(encoding="utf-8")
+            check("verdict REJECTING: with NO staged list, BANKED is refused "
+                  "rather than guessed - a directory listing is not evidence "
+                  "of a commit",
+                  rc_blind == 1 and "imagegenVerdict=NOT-BANKED" in blind
+                  and "stagedList=not-supplied" in blind,
+                  [x for x in blind.splitlines() if x.startswith("done ")])
+            # And back to the banked state, so the checks below read the file
+            # the accepting case wrote rather than a rejecting one's.
+            imagegen_verdict(out, "aaaaaaa", "generate=success extra=one",
+                             repo=td, staged_list=staged_all,
+                             head_list=head_empty)
+            text = vpath.read_text(encoding="utf-8")
             check("verdict: NO VALUE CARRIES A SPACE, including the step "
                   "outcomes CI hands in - every reader splits on whitespace "
                   "and truncates silently",
@@ -3557,6 +4002,54 @@ def selftest():
           "exit code the unattended lane reads is in main",
           "imagegen_verdict(od" in src and "staged_files(od" in src
           and "return 6" in src, "")
+
+    # ------------------------------------------------------------------
+    # THE NIGHT'S SIZE, READ FROM THE SENTINEL. The push trigger carries no
+    # dispatch inputs, so this is the only way to ask for a different batch
+    # without editing the workflow - and a parser that is never run is the
+    # silent-instrument failure, so both outcomes are here.
+    night = ("# prose that mentions limit: 99 and max_minutes: 999\n"
+             "limit: all\n"
+             "max_minutes: 240\n")
+    v, notes = batch_settings(night)
+    check("batch settings ACCEPTING: the sentinel sets the night - `limit: "
+          "all` means no cap on how many are generated, and the source of "
+          "every value is printed beside it",
+          v["limit"] == "" and v["max_minutes"] == "240" and v["only"] == ""
+          and any("limit=none source=sentinel-file" in x for x in notes)
+          and any("max_minutes=240 source=sentinel-file" in x for x in notes),
+          notes)
+    check("batch settings: a COMMENTED line is prose, not a setting - this "
+          "file is a dispatch log full of sentences about limits",
+          "99" not in v["limit"] and v["max_minutes"] != "999", v)
+    v2, notes2 = batch_settings(night + "limit: 6\n")
+    check("batch settings: LAST-WINS inside the sentinel, because it is "
+          "appended to per run, and the count of lines seen is printed",
+          v2["limit"] == "6" and any("lastOf2" in x for x in notes2), notes2)
+    v3, _ = batch_settings(night, limit_in="3", max_minutes_in="30")
+    check("batch settings: a dispatch input OUTRANKS the sentinel, so this "
+          "keeps working unchanged the day the workflow reaches main",
+          v3["limit"] == "3" and v3["max_minutes"] == "30", v3)
+    v4, notes4 = batch_settings("limit: lots\nmax_minutes: soon\n")
+    check("batch settings REJECTING: a value it cannot read falls back to the "
+          "SMALL batch and says why - failing open would spend the night on a "
+          "typo",
+          v4["limit"] == BATCH_FALLBACK["limit"]
+          and v4["max_minutes"] == BATCH_FALLBACK["max_minutes"]
+          and any("why=unreadable-limit" in x for x in notes4)
+          and any("why=unreadable-max_minutes" in x for x in notes4), notes4)
+    v5, notes5 = batch_settings("max_minutes: 600\n")
+    check("batch settings REJECTING: a loop longer than the step that holds "
+          "it is CAPPED and says so - the generator must stop itself, because "
+          "a job killed by its own timeout never reaches the commit step and "
+          "the night stays on the runner",
+          float(v5["max_minutes"]) == MAX_MINUTES_CEILING
+          and any("capped-to" in x for x in notes5), notes5)
+    check("batch settings: no value carries a space, because the workflow "
+          "writes these straight into GITHUB_ENV and every reader splits on "
+          "whitespace",
+          all(" " not in x for x in batch_settings("only: a, b\n")[0].values()),
+          batch_settings("only: a, b\n")[0])
 
     # ------------------------------------------------------------------
     # THE SENDER. It had NO coverage and NO call site: `Publisher` was
@@ -3740,6 +4233,24 @@ def main():
                          "banked nothing or produced a blank.")
     ap.add_argument("--staged-files", action="store_true",
                     help="print, one per line, the paths CI may git add")
+    ap.add_argument("--batch-settings", metavar="SENTINEL",
+                    help="read the night's size from the sentinel file and "
+                         "print the three env keys the workflow exports, each "
+                         "with the source that won. This is how a batch is "
+                         "resized in the same commit that starts it, without "
+                         "editing the workflow.")
+    ap.add_argument("--staged-list", default="",
+                    help="a file holding `git diff --cached --name-only`, one "
+                         "repository-relative path per line: what is IN this "
+                         "commit as a change. BANKED is refused without it, "
+                         "because a directory listing is what let run 2 print "
+                         "BANKED over a commit carrying no picture.")
+    ap.add_argument("--in-head-list", default="",
+                    help="a file holding `git ls-tree -r --name-only HEAD` "
+                         "over the output directory: what the repository "
+                         "already had. It is what tells a picture regenerated "
+                         "byte-identically (NOTHING-NEW) from one that exists "
+                         "only on the runner (NOT-BANKED).")
     ap.add_argument("--steps", default="",
                     help="step outcomes as key=value pairs with no spaces, "
                          "recorded verbatim in the verdict")
@@ -3749,6 +4260,30 @@ def main():
         return png_series(a.series)
     if a.selftest:
         return selftest()
+    if a.batch_settings:
+        q = pathlib.Path(a.batch_settings)
+        text = q.read_text(encoding="utf-8", errors="replace") if q.exists() else ""
+        if not q.exists():
+            print(f"batch sentinel={_nospace(a.batch_settings)} state=absent "
+                  "# every value below is the fallback")
+        values, notes = batch_settings(
+            text,
+            os.environ.get("INPUT_LIMIT", ""),
+            os.environ.get("INPUT_ONLY", ""),
+            os.environ.get("INPUT_MAX_MINUTES", ""))
+        for line in notes:
+            print(line)
+        # THE VALUES THE WORKFLOW EXPORTS, in the shape GITHUB_ENV wants and
+        # on stdout too, so the log shows what the next step was handed.
+        env = os.environ.get("GITHUB_ENV")
+        out = [f"BATCH_LIMIT={values['limit']}",
+               f"BATCH_ONLY={values['only']}",
+               f"BATCH_MAX_MINUTES={values['max_minutes']}"]
+        if env:
+            with open(env, "a", encoding="utf-8") as fh:
+                fh.write("\n".join(out) + "\n")
+        print("\n".join(out))
+        return 0
 
     # THE TWO READ-ONLY MODES, ANSWERED BEFORE ANYTHING LOOKS AT THE MACHINE.
     # CI calls them after the batch, on a runner where the probe has already
@@ -3761,7 +4296,9 @@ def main():
         od = output_dir(repo0, ws0, a.out)
         if a.staged_files:
             return staged_files(od, a.run_sha, repo0)
-        return imagegen_verdict(od, a.run_sha, a.steps, repo=repo0)
+        return imagegen_verdict(od, a.run_sha, a.steps, repo=repo0,
+                                staged_list=a.staged_list or None,
+                                head_list=a.in_head_list or None)
 
     machine = {}
     if a.machine and pathlib.Path(a.machine).exists():
