@@ -11,7 +11,37 @@ Each entry has options and a recommendation so they can be answered in batch.
 Newest first. Every entry says what it means in plain terms, what the options
 cost, and what the studio recommends, so it can be answered in one line.
 
-### ANSWERED 2026-09-02: the engine deadline is REMOVED, and Unreal gets more time, not less
+### If the two engines look about the same, which one wins? (added 2026-09-02)
+
+**In plain terms.** You removed the deadline so Unreal gets the time it
+needs. Good. But the engine test still has a tie-breaker written into it from
+before: if neither engine's picture is clearly better, we pick Unity. Nobody
+has checked that with you, and it now matters more, because with no deadline
+the likeliest outcome is not "Unreal loses" but "they look close".
+
+**Why it is a real question and not a formality.** A tie going to Unity means
+the safe, already-working option wins by default. That is defensible: it is
+where the game already runs, and switching costs months. But you have just
+said the visual ceiling is what serves the main goal, and a rule that breaks
+ties toward the familiar option is a thumb on the scale against exactly that.
+
+| | what it means | what it costs |
+|---|---|---|
+| A | **Ties go to Unity (RECOMMENDED, and it is the existing rule).** Unreal has to be visibly better to win, not merely equal. | Nothing new. If they tie, we keep the working engine and the months that switching would cost. |
+| B | **Ties go to Unreal.** Equal-looking means we take the engine with the higher ceiling for later. | The switch cost, paid on a comparison that by definition showed no advantage today. |
+| C | **A tie means keep looking.** Neither wins; we improve the scene and compare again. | Time, with no guarantee the second look is more decisive than the first. |
+
+**The studio recommends A**, on the grounds that "equal" is not evidence for
+a change this expensive. If a picture later changes your mind, that is a
+better reason than a tie-break rule.
+
+## ANSWERED, kept for the reasoning (these do NOT count as waiting)
+
+An answered card is demoted from `###` to `####` so the dashboard's inbox
+count means "waiting on Jafar" and nothing else. The reasoning stays,
+because why a thing was decided outlives the decision.
+
+#### ANSWERED 2026-09-02: the engine deadline is REMOVED, and Unreal gets more time, not less
 
 Jafar's ruling, verbatim: "yes but forget the deadline, it's not relevant.
 doesn't make sense to set a hard deadline when we can work continuously, we
