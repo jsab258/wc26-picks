@@ -81,31 +81,37 @@ don't care if we get to 80% before monday, we just stop when our budget is
 used up". So there is no daily ration; run to the ceiling and stop there.
 The 80 percent ceiling still binds and the other 20 percent is his.
 
-IN FLIGHT RIGHT NOW: imagegen run 1. Queue 039's workflow and 027 Phase A
-(the flat piece list, 546 pieces, three guards) were reviewed together and
-landed under game-design/decision-2026-09-02-free-lane-and-piece-list-batch.md.
-Landing the batch pushed production/d1-probe/RUN-IMAGEGEN, and that push
-IS the first imagegen dispatch: four signs on ledger-pc, zero Claude
-points, 4.5 minutes if the weights are already on the runner's account and
-a 7 to 10 GB download first if they are not.
+IMAGEGEN RUN 1 RAN AND FAILED, and the failure is a setup fault rather
+than a broken route. Run 33654488608 on commit b8b805f2, 105 seconds,
+conclusion failure.
+
+WHAT HAPPENED: the four work steps (selftest, probe, generate, attribution)
+were SKIPPED, not run. A step before them failed without
+`continue-on-error`, so Actions skipped the rest; `Commit` and `The verdict`
+still ran because both carry `if: always()`. WHICH earlier step failed is
+NOT YET PINNED: read the HEAD of the run log, not the tail, which is what
+the resident read.
+
+THE SUMMARY LIED AND THE VERDICT DID NOT. The summary printed "SELFTEST
+FAILED", "ATTRIBUTION CHECK FAILED" and "GENERATE FAILED" because it tests
+each outcome against `success` and cannot tell skipped from failed. None of
+those happened. Queue 043 is that fix. The verdict meanwhile printed
+`steps ...=skipped`, `NO RUN`, `staged=0`, and carried NONE of the fourteen
+existing PNGs forward as this run's work, which is exactly what it exists to
+refuse.
+
+SO THE ROUTE IS PARTLY PROVEN: the workflow dispatches, checks out, reaches
+the runner, writes a verdict and refuses to bank anything false. What is
+NOT proven is that a picture can be generated on that machine. One setup
+fix away.
 
 ## In flight
 
-- Imagegen run 1, fired by the batch push. Watch by ancestry for a commit
-  titled `Meridian pictures from <sha>`. Read, in this order, before
-  opening anything: ledger/Assets/StreamingAssets/Decals/generated/
-  imagegen-verdict.txt line 1 (the sha must be the batch's), the
-  `done imagegenVerdict=` line (BANKED, BLANKS or NO-RUN with its why),
-  then the run log's `runnerAccount=` and `weightsDirectory=` lines. Then
-  open the four PNGs. A red is a finding with its cause in the verdict,
-  never a broken runner. Run 1's own commit moves the cadence reference
-  (queue 042 item 2 says why); expected, not a fault.
-- NEXT ACTION, tomorrow: slot 1 is the 027 Phase A close-out (queue 040
-  window practicals in Core, Phase A2 the feet file, queue 041 the
-  acknowledgement key), one engine-specialist, one Unity dispatch at the
-  end; the night frame will show THREE lit bays, not six, and that is the
-  JSON applied. Slot 2 is 037. The report to Jafar after run 1 carries
-  one of the four signs as its picture, or the verdict's why if red.
+- Nothing running. Queue 043 (skipped is not failed, plus pinning the real
+  failing step) rides the next imagegen touch and is small.
+- NEXT ACTION: read the head of run 33654488608's log to name the failing
+  setup step, then one engine-specialist for 043 plus that fix, then
+  re-dispatch. Free lane still costs zero Claude points once it works.
 
 ## Standing hazards a fresh session will otherwise walk into
 
