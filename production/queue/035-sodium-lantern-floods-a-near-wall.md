@@ -2,7 +2,7 @@ line: production (visual)
 spec: production/specs/vignette-scene.json, the lighting block
 acceptance: a printed series of lantern intensity and range against a measured wall luminance, then a bound chosen from it; cam_B night stops reading as a flood and cam_A night keeps its pooling
 max_sessions: 1
-status: READY 2026-09-02. Found by opening all four stills, which is the only way it could have been found.
+status: WAITS 2026-09-02 behind 027 Phase B (game-design/decision-2026-09-02-tiebreak-reversed-and-the-moat-item.md, Ruling 4). Found by opening all four stills, which is the only way it could have been found. The lantern values live in the shared JSON, so both engines render the same flood and the pair stays fair; the first UE night frame says whether the flood is the JSON or Unity's light-unit conversion, and that is worth knowing before the printer is written.
 
 THE TWO NIGHT FRAMES DISAGREE AND THE DIFFERENCE IS THE FINDING.
 

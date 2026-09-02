@@ -91,6 +91,8 @@ not a measurement, and the close-out must say so if the case arises.
 
 Anything short of that is a tie, and ties go to Unity.
 
+REVERSED 2026-09-02 by Jafar: ties go to Unreal, and the definition above is now the bar UNITY must clear; the register's second 2026-09-02 amendment is the reading copy (game-design/decision-2026-09-02-tiebreak-reversed-and-the-moat-item.md).
+
 ## Ruling 2: cost
 
 - **Timebox retired 2026-09-02 by Jafar.** This line read "unchanged, ends 2026-09-14, no extension granted" until then; the retirement and what bounds the probe instead are in game-design/decision-2026-09-02-d1-timebox-retired.md.

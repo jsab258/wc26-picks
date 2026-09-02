@@ -31,35 +31,37 @@ the scene is NOT YET an admissible (b) scene under D1b; shopfronts are flat
 untextured panels; the plates carry the wrong district (queue 028); nothing
 of Unreal renders at all yet (queue 027).
 
-## Two decisions Jafar made on 2 September, and the work they owe
+## Two decisions Jafar made on 2 September: RULED
 
-**THE ENGINE TIE-BREAK NOW GOES TO UNREAL**, reversing the standing rule.
-With the deadline already retired, this is the second half of one direction:
-he wants the visual ceiling and is willing to pay the loop for it. What
-would reopen it is NOT a tie, but the Unreal loop proving so slow the
-ceiling is never reached in practice, which is queue 032's measurement.
+Ruling: `game-design/decision-2026-09-02-tiebreak-reversed-and-the-moat-item.md`.
 
-**D12, INFORMATION SURFACES** is recorded at
-`ledger-v2/respec/decision-register/D12-information-surfaces.md`. The
-player's own memory is fully surfaced in an in-game Ledger; NPC minds are
-NEVER ground truth, only the player character's evidence-bounded model with
-confidence levels; divergence between model and truth is intended design
-space; learning what people know runs through diegetic verbs that are
-themselves perceivable acts.
+**THE TIE-BREAK IS REVERSED AND IT MOVES THE WHOLE PROBE.** Unity now wins
+only if the visuals are decisively better FOR UNITY, or if the Unreal loop
+fails by non-convergence or hand-edit dependence. Otherwise Unreal wins, on
+equal as on better. Named consequence, not softened: Unity ahead in one or
+two pairs with Unreal ahead in none is a TIE and goes to Unreal.
 
-A DIRECTOR SPAWN IS OWED ON BOTH AND HAS NOT HAPPENED, held only by the
-budget stop below. It is one spawn, not two. What it must work through:
+So the weight moves from (b) the visual ceiling to (a) the loop. Landing
+four admissible pairs through a converging loop is now winning, which makes
+queue 032's round-trip printer the decisive instrument rather than a
+nice-to-have. It rides 027's first UE dispatch.
 
-- What "ties go to Unreal" changes in the D1 record and the decision rule,
-  and how a tilt toward one engine coexists with judging the pairs blind.
-  Those can both hold and a later reader will assume they cannot.
-- What D12 reorders. If the information layer is the moat rather than a UI,
-  the queue's current order was set before that was written down.
-- D11 IS MISSING. D12's judgment-legibility clause cites it; the decision
-  register holds D4 to D9, and a repo-wide grep outside legacy/ finds no D11
-  and no D10 record, though verify.py cites D10 by name. Either they were
-  decided outside the repo and must be written down, or something is
-  misfiled. Ask Jafar rather than reconstructing them.
+**THE PREFERENCE AND THE BLIND LOOK COEXIST BY ORDER.** Write A, B or EQUAL
+for each pair on the D8 decomposition, and why, BEFORE any label is
+unmasked; the tie-break is applied to that sheet afterwards. Today no blind
+look is possible at all, because both engines commit files named after
+themselves. Queue 038 is the fix and WAITS for a UE still.
+
+**D11 AND D12 DID NOT REORDER 027. They exposed something worse:** the queue
+held twenty-two ready items and not one of them was a moat item. Queue 037
+is that item, engine-neutral C# in Core, not blocked by D1, and it takes the
+SECOND builder slot of a day ahead of every governance item.
+
+## A correction to carry, from the ruling
+
+The 20-minute UE round trip is run 16's ESTIMATE with cook and capture in
+the loop, not a measurement. The measured figure is a 10-minute median over
+9 rows taken before either was in it. That gap is exactly why 032 rises.
 
 ## Budget: RUNNING, at a measured pace rule
 

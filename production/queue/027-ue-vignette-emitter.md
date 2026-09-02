@@ -2,7 +2,7 @@ line: production (D1 comparison, the critical path)
 spec: game-design/decision-2026-09-02-vignette-batch-canon-crews-d1-timebox.md, Ruling 10
 acceptance: phase by phase below; each phase is ONE dispatch and its DISPATCH line names what that run will prove
 max_sessions: 3
-status: READY 2026-09-02. engine-specialist. THE CRITICAL PATH on merit, not on a clock: the timebox was retired 2026-09-02 (game-design/decision-2026-09-02-d1-timebox-retired.md); this item stays first because it is the only queued work that moves the Phase 0 exit gate.
+status: READY 2026-09-02. engine-specialist. THE CRITICAL PATH on merit, not on a clock: the timebox was retired 2026-09-02 (game-design/decision-2026-09-02-d1-timebox-retired.md); this item stays first because it is the only queued work that moves the Phase 0 exit gate. Since the tie-break reversal (2026-09-02, same ruling as 037), landing its four admissible pairs through a converging loop is winning unless Unity is decisively better: (a) is the decisive measurement, and 032's round-trip printer rides this item's first UE dispatch.
 
 ## Phase A: a flat piece list, so the two engines cannot disagree on layout
 

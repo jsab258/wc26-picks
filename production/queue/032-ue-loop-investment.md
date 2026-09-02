@@ -2,7 +2,7 @@ line: infrastructure (D1 probe)
 spec: game-design/decision-2026-09-02-d1-timebox-retired.md, Ruling 5
 acceptance: the round trip's cost measured before anything is built to reduce it; then one named change, with the before and after times printed
 max_sessions: 2
-status: READY 2026-09-02. Numbered 032 because 031 was taken by a different finding written the same hour.
+status: READY 2026-09-02. Numbered 032 because 031 was taken by a different finding written the same hour. RISES 2026-09-02 (game-design/decision-2026-09-02-tiebreak-reversed-and-the-moat-item.md, Ruling 1): with ties to Unreal, (a) decides D1 and this item's printer is (a)'s instrument. Step one rides 027's first UE dispatch; the named change waits for the printed series.
 
 Jafar removed the engine deadline and said to spend the time on getting
 Unreal working. MORE TIME THROUGH THE SAME LOOP IS NOT THE SAME THING AS

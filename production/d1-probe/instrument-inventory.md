@@ -75,7 +75,8 @@ WHAT THIS DOES TO THE COMPARISON, stated carefully because a fast install is
 not the same as a cheap engine. Setup cost for the UE path is now roughly:
 one large engine download, one launcher bug that cost a human evening, and
 three automated minutes of toolchain. Unity needed none of it because it was
-already there, which is momentum rather than an engine property, and D1's
-rule already accounts for that by giving ties to Unity. The number that will
+already there, which is momentum rather than an engine property. D1's rule
+credited that momentum by giving ties to Unity until 2026-09-02; since then
+ties go to Unreal and momentum is not credited. The number that will
 actually decide measurement a is the EDIT-BUILD-TEST cycle, not the install,
 and that is still unmeasured on the UE side.

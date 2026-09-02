@@ -47,6 +47,8 @@ rather than one closed by preference. If the comparison later shows Unreal
 costing more than the ceiling buys, that is a reason to reopen; a tie is
 not.
 
+Ruled: game-design/decision-2026-09-02-tiebreak-reversed-and-the-moat-item.md, Ruling 1 (the rule as it now reads) and Ruling 5 (the pros and cons he asked for, carried in the next brief).
+
 ## ANSWERED, kept for the reasoning (these do NOT count as waiting)
 
 An answered card is demoted from `###` to `####` so the dashboard's inbox

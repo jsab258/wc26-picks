@@ -172,8 +172,11 @@ and the exact capture call is still unrun here.
 
 ## The protection on this decision
 
-D1 gives ties to Unity. A tie is a MEASURED tie. If the UE side cannot be
-measured, D1 closes UNRESOLVED, never "Unity wins".
+D1 gave ties to Unity until 2026-09-02 and gives them to Unreal since (the
+register's second amendment of that date). A tie is a MEASURED tie either
+way. If the UE side cannot be measured, D1 closes UNRESOLVED, never "Unity
+wins" and, now that the preference points the other way, never "Unreal
+wins" either.
 
 ## What fails measurement a, ruled 2026-09-02 (the timebox is retired)
 

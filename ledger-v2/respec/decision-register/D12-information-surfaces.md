@@ -85,3 +85,7 @@ inference the player can be WRONG about is the only kind worth building.
 The Ledger's visual design, its information density, and whether a page is a
 book, a card stack or a corkboard. Those are UI work against the standard,
 not premise, and they wait for a frame the way everything visual does.
+
+## Queued 2026-09-02
+
+Queue 037 (the Core rescope, a spec and a call-site survey, one session) by game-design/decision-2026-09-02-tiebreak-reversed-and-the-moat-item.md, Ruling 3. The roadmap's Phase 2 row and reference-extraction item 1 were corrected in the same ruling to carry the scope-down.

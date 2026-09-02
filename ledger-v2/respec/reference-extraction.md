@@ -3,7 +3,7 @@
 Cheap per-session read. Detail and rationale live in research/gta6-triage.md (steal, adapt, skip, plus era corrections) and research/kcd2-rdr2-summary.md (adopt, reject, failure modes). Full reports in research/full/.
 
 ADOPTED SURFACES AND VERBS (mostly from GTA 6)
-1. The what-they-know HUD over the seven slots and the identification ladder.
+1. The what-they-know HUD over the seven slots and the identification ladder. SCOPED DOWN 2026-09-02 by D12-information-surfaces: law enforcement's institutional knowledge during wanted states only; the player-facing surface is the Ledger.
 2. Pre-crime prep verbs: disguise slots, weapon concealment, clean getaway vehicle, route choice.
 3. Petty crime verb set (small robberies as repeatable systemic crimes); witnesses with a courage value who may intervene.
 4. Eavesdropping is itself perceived; contextual verbs on anyone (greet, intimidate, rob, mock) as the button layer under typed and spoken input.

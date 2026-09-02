@@ -2,7 +2,7 @@
 
 Authority: ledger-v2/respec/decision-register/D1-engine-probe.md, followed
 exactly. The two-week timebox was RETIRED 2026-09-02 (amendment below); the decision record cites measurements, never
-taste. Ties go to Unity.
+taste. Ties went to Unity until 2026-09-02 and go to Unreal since (register, second amendment of that date).
 
 ## The four measurements and how each is taken
 a. Agent-loop friction: median edit-build-test cycle time and failed-edit
@@ -29,9 +29,11 @@ attempt budget on queue item 027: a director review every 6 dispatches a
 phase spends without landing, 6 being the longest stretch this probe spent
 on one sub-goal (the cook, runs 8 to 13), the only series that exists.
 Measurement (a) is failed by non-convergence or hand-edit dependence, defined
-in measurements.md, and never by a date. The decision rule is unchanged,
-ties go to Unity, and "if the UE side cannot be measured, D1 closes
-UNRESOLVED" still means an external blocker, not a slow loop.
+in measurements.md, and never by a date. Later the same day Jafar REVERSED
+the tie-break (register, second 2026-09-02 amendment): ties go to Unreal,
+Unity wins only decisively, and "if the UE side cannot be measured, D1
+closes UNRESOLVED" still means an external blocker, not a slow loop, and
+never becomes either engine's win by default.
 
 ## AMENDED 2026-09-01: UNBLOCKED. UE 5.8.2 is installing; both halves run.
 

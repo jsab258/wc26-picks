@@ -69,5 +69,5 @@ reference street, not here.
 
 If a UE run cannot commit a traceable verdict from the self-hosted agent
 after a fair attempt, that is a finding and it is written as one. It does not
-become "Unity wins" by default: D1 gives ties to Unity, and a tie is a
-MEASURED tie. An unmeasurable UE side closes D1 UNRESOLVED.
+become either engine's win by default: a tie is a MEASURED tie (to Unity
+until 2026-09-02, to Unreal since). An unmeasurable UE side closes D1 UNRESOLVED.
