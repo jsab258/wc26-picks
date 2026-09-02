@@ -139,8 +139,52 @@ jobs:
       BATCH_ONLY: ${{ github.event.inputs.only || '' }}
       BATCH_MAX_MINUTES: ${{ github.event.inputs.max_minutes || '60' }}
 
+    # WHICH STEPS MAY STOP THE JOB, DECIDED ONCE AND WRITTEN DOWN RATHER THAN
+    # DRIFTED INTO. Run 33654488608 raised the question the honest way: one
+    # setup step went red and took four findings with it, so the run cost a
+    # round trip on the shared PC and learned nothing about the GPU, the
+    # weights or the generator. The tempting fix is `continue-on-error` on
+    # every setup step. That is refused, and the line is drawn here instead:
+    #
+    #   A STEP MAY STOP THE JOB IF, AND ONLY IF, WHAT IT PROVES IS A
+    #   PRECONDITION FOR GENERATING AND BANKING SAFELY. A step that only
+    #   reads a LABEL carries a named fallback and prints which source won;
+    #   it stops the job only when every source is empty, because a batch
+    #   with no name cannot be banked and generating it spends the GPU on
+    #   nothing.
+    #
+    # Applied, with the reason for each:
+    #   Checkout, PATH bootstrap, python3 shim   STOP THE JOB. No bash means no
+    #     bash step can run; no python means the generator cannot start. Making
+    #     these soft buys nothing except four steps failing for a reason that
+    #     was already known one step earlier, and it lets a batch be generated
+    #     by an unverified toolchain and then BANKED, which is worse than not
+    #     generating: the pictures are the artifact, and a manifest describing
+    #     pictures made by a toolchain nothing checked is exactly the "green
+    #     number standing in for the frame" this project keeps paying for.
+    #   Where the weights live                   STOPS THE JOB. It creates the
+    #     workspace the generator writes into; a failure is a real setup fault
+    #     and not a missing label.
+    #   The commit this run is measuring         DOES NOT stop the job for the
+    #     reason it stopped run 1. It reads a NAME, so it now falls back to
+    #     GITHUB_SHA and prints which source won. It keeps its red only for
+    #     every-source-empty, which is the case the rule above names: the
+    #     reason is at that step.
+    #   selftest, probe, generate, attribution   continue-on-error, unchanged.
+    #     These are the four findings, and one red must never hide the others.
+    #
+    # The cost of this decision, said out loud: a broken toolchain still costs
+    # a whole dispatch and answers nothing about the GPU. That is accepted,
+    # because the machine-probe answer is available from ledger-probe-unreal
+    # and ledger-setup-msvc without risking a banked batch from this one.
     steps:
+      # EVERY SETUP STEP CARRIES AN `id`, AND THAT IS NOT DECORATION. A step
+      # without one cannot be referenced from `steps.*`, so the summary at the
+      # bottom cannot name it as the thing that stopped the job. Run 1 skipped
+      # four work steps and could not say what stopped them, because the step
+      # that did had no id to be named by.
       - name: Checkout
+        id: checkout
         timeout-minutes: 6
         uses: actions/checkout@v4
         with:
@@ -149,6 +193,7 @@ jobs:
           persist-credentials: false
 
       - name: tool PATH bootstrap (self-hosted parity)
+        id: paths
         timeout-minutes: 1
         shell: cmd
         run: |
@@ -158,6 +203,7 @@ jobs:
       # Git-bash on this PC knows `python` and `py`, not `python3`. One idea,
       # one implementation, with its own selftest covering both outcomes.
       - name: python3 shim (self-hosted parity)
+        id: shim
         timeout-minutes: 3
         shell: bash
         run: bash tools/runner/python3-shim.sh
@@ -171,6 +217,7 @@ jobs:
       # the path and what is already in it are PRINTED, and the answer is in
       # the first run's log rather than in anybody's head.
       - name: Where the weights live, and whether they are already here
+        id: workspace
         timeout-minutes: 2
         shell: cmd
         run: |
@@ -191,13 +238,91 @@ jobs:
       # THE EVENT. A dispatch takes a BRANCH, and the runner checks out
       # whatever it points at when the job starts, which is not always the sha
       # that triggered it. Everything downstream stamps and reads this one.
+      #
+      # RUN 33654488608 DIED HERE, IN ZERO SECONDS, AND TOOK THE WHOLE BATCH
+      # WITH IT. Step conclusions from the API, which is a positive record and
+      # not an absence: checkout, PATH bootstrap, shim and workspace all
+      # success; THIS STEP failure at 0s; selftest, probe, generate and
+      # attribution all skipped. Zero seconds, so a command returned non-zero
+      # and it was not the 1-minute timeout.
+      #
+      # WHICH command is NOT proven, because the raw log lives on a host this
+      # container's egress policy denies, so the fix below is deliberately
+      # CAUSE-AGNOSTIC: it survives git being unusable for any reason and it
+      # makes the next run print git's own message instead of dying mute.
+      # What IS evidence is a differential with both halves inside ONE run:
+      # this was the only bash step in the repo that ran git WITHOUT
+      # `GIT_CONFIG_* safe.directory=*`, and it failed, while the commit step
+      # below ran `git rev-parse HEAD` successfully under that env in the same
+      # run (its verdict named b8b805f). Every other git call on this machine
+      # carries it too: build-windows 579, probe-unreal 694, setup-msvc 268,
+      # vignette-fetch 144. This step was hoisted out of the commit step,
+      # where vignette-fetch computes the same sha on its line 152 under that
+      # env, and the env stayed behind. So it is restored here.
+      #
+      # AND IT NO LONGER STOPS THE JOB FOR A LABEL IT COULD NOT READ. The sha
+      # is a NAME for the work, and there is a second source for it:
+      # ledger-probe-unreal line 115 records the same failure on this same
+      # machine ("`git rev-parse --short HEAD` returned nothing here") and the
+      # answer it settled on was GITHUB_SHA, which Actions sets itself and
+      # which needs no git on any PATH.
+      #
+      # IT STILL STOPS THE JOB IF EVERY SOURCE IS EMPTY, which is the rule
+      # above applied and not an exception to it. An empty sha is worse than
+      # no run: imagegen.py's freshness guard compares the manifest's stamp
+      # against this one, so "" == "" reads as FRESH, and the next
+      # empty-stamped run would bank the previous run's manifest as its own
+      # work. A batch with no name cannot be banked.
       - name: The commit this run is measuring
+        id: sha
         timeout-minutes: 1
         shell: bash
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: "*"
         run: |
-          SHORT="$(git rev-parse HEAD | cut -c1-7)"
-          echo "IMAGEGEN_SHA=$SHORT" >> "$GITHUB_ENV"
-          echo "measuring $SHORT ($(git log -1 --format=%s | cut -c1-70))"
+          # `set +e`, because git's own message is the FINDING here and -e
+          # would kill this step before it could print it. That is exactly how
+          # run 1 managed to fail without saying anything.
+          set +e
+          SHORT=""
+          SRC="none"
+          SHA="$(git rev-parse HEAD 2>.imagegen-sha.err)"
+          rc=$?
+          # `tr -d` for a trailing CR: git under git-bash on Windows is one of
+          # the places a bare \r rides along and turns a sha into a non-match.
+          SHA="$(printf '%s' "$SHA" | tr -d '[:space:]')"
+          if [ "$rc" -eq 0 ] && printf '%s' "$SHA" | grep -Eq '^[0-9a-f]{7,40}$'; then
+            SHORT="$(printf '%s' "$SHA" | cut -c1-7)"
+            SRC="checkout"
+          else
+            echo "git rev-parse HEAD gave no sha (exit $rc). What git said, which is the line run 1 could not print:"
+            sed -n '1,5p' .imagegen-sha.err 2>/dev/null
+            if printf '%s' "${GITHUB_SHA:-}" | grep -Eq '^[0-9a-f]{7,40}$'; then
+              SHORT="$(printf '%s' "$GITHUB_SHA" | cut -c1-7)"
+              SRC="event"
+              echo "falling back to GITHUB_SHA, which Actions sets itself and which needs no git"
+            fi
+          fi
+          # THE VALUE AND ITS PROVENANCE, TOGETHER. A sha whose source is not
+          # printed cannot be told from a sha that came from the wrong place,
+          # and `event` versus `checkout` is a real difference on a dispatch:
+          # the runner checks out whatever the branch points at when it starts.
+          # `shaSource=event` in run 2 means the env was not the whole story
+          # and the stderr above is the next lead.
+          echo "shaSource=$SRC sha=${SHORT:-none}"
+          if [ -z "$SHORT" ]; then
+            echo "NO SHA FROM EITHER SOURCE - nothing downstream could name the commit it measured, and an unnamed batch cannot be banked. Stopping rather than stamping a manifest with a label that means nothing."
+            exit 1
+          fi
+          {
+            echo "IMAGEGEN_SHA=$SHORT"
+            echo "IMAGEGEN_SHA_SOURCE=$SRC"
+          } >> "$GITHUB_ENV"
+          SUBJ="$(git log -1 --format=%s 2>/dev/null | cut -c1-70)"
+          echo "measuring $SHORT from $SRC (${SUBJ:-subject-unreadable})"
+          exit 0
 
       # THE TOOL'S OWN TESTS, ON THE MACHINE THAT RUNS IT, BEFORE IT RUNS IT.
       # 2 seconds and 123 checks, no GPU and no network. It is
@@ -287,10 +412,34 @@ jobs:
           PROBE_OUTCOME: ${{ steps.probe.outcome }}
           GENERATE_OUTCOME: ${{ steps.generate.outcome }}
           ATTRIB_OUTCOME: ${{ steps.attribution.outcome }}
+          # CONCLUSIONS, NOT OUTCOMES, and the difference is the point: a step
+          # stops the job only when its result AFTER continue-on-error is
+          # failure. See tools/runner/step-verdict.sh.
+          SETUP_STEPS: "Checkout=${{ steps.checkout.conclusion }},tool-PATH-bootstrap=${{ steps.paths.conclusion }},python3-shim=${{ steps.shim.conclusion }},weights-workspace=${{ steps.workspace.conclusion }},commit-being-measured=${{ steps.sha.conclusion }}"
         run: |
           set -u
-          SHORT="${IMAGEGEN_SHA:-$(git rev-parse HEAD | cut -c1-7)}"
-          STEPS="selftest=${SELFTEST_OUTCOME:-none},probe=${PROBE_OUTCOME:-none},generate=${GENERATE_OUTCOME:-none},attribution=${ATTRIB_OUTCOME:-none}"
+          # THE NAME COMES FROM THE SHA STEP, ELSE FROM THE EVENT, ELSE IT IS
+          # `none`, WHICH imagegen.py REFUSES AS FRESH. Never git here: this
+          # step runs under -e, and a git that failed the sha step would end
+          # it before the verdict was written, in exactly the run where the
+          # verdict is the only evidence of what stopped it.
+          SHORT="${IMAGEGEN_SHA:-}"
+          SRC="${IMAGEGEN_SHA_SOURCE:-none}"
+          if [ -z "$SHORT" ] && printf '%s' "${GITHUB_SHA:-}" | grep -Eq '^[0-9a-f]{7,40}$'; then
+            SHORT="$(printf '%s' "$GITHUB_SHA" | cut -c1-7)"
+            SRC="event-at-commit"
+          fi
+          SHORT="${SHORT:-none}"
+          # THE STEP THAT STOPPED THE JOB GOES IN THE COMMITTED VERDICT, not
+          # only in a log. Run 1's log held the answer and nobody could get at
+          # it: the raw log lives on a host this project's container cannot
+          # reach, the resident read the tail, and the tail does not hold a
+          # failure that happened at the head. The channel that works here is
+          # a file committed by CI (.claude/rules/ci.md), so the name travels
+          # in the `steps` line of the verdict, which imagegen.py passes
+          # through verbatim and which needs no parser change.
+          STOPPER="$(bash tools/runner/step-verdict.sh --setup "$SETUP_STEPS" --stopper-only || echo unknown)"
+          STEPS="selftest=${SELFTEST_OUTCOME:-none},probe=${PROBE_OUTCOME:-none},generate=${GENERATE_OUTCOME:-none},attribution=${ATTRIB_OUTCOME:-none},shaFrom=$SRC,stopper=${STOPPER:-unknown}"
           # `|| vrc=$?` RATHER THAN `$?` ON THE NEXT LINE: Actions runs bash
           # with -e, so a red verdict would end this step before its own exit
           # code was captured and the last step would read a missing file
@@ -311,8 +460,20 @@ jobs:
           # and its four numbers are already in the verdict.
           staged=0
           while read -r f; do
+            # PRINTED WITH %q BEFORE ANYTHING TOUCHES IT. Windows Python ends
+            # every stdout line in \r\n, pipe or not, and bash keeps the \r;
+            # `[ -e "$f" ]` then names a file that does not exist and the
+            # loop goes on in silence, which is the one reading of run 1's
+            # `staged=0` beside a verdict that had just been printed. A
+            # carriage return shows here as $'\r'; measured, then stripped.
+            printf 'stage-candidate=%q\n' "$f"
+            f="${f%$'\r'}"
             [ -n "$f" ] || continue
-            if [ -e "$f" ]; then git add -- "$f" && staged=$((staged + 1)); fi
+            if [ -e "$f" ]; then
+              git add -- "$f" && staged=$((staged + 1))
+            else
+              echo "  NOT ON DISK under $PWD, not staged"
+            fi
           done < <(python3 tools/imagegen/imagegen.py --staged-files \
                      --repo "$GITHUB_WORKSPACE" --run-sha "$SHORT")
           # The machine report, by name, and only if THIS run wrote it. It is
@@ -348,20 +509,40 @@ jobs:
         if: always()
         shell: bash
         run: |
+          # THREE STATES, NOT TWO. This block used to test each outcome against
+          # `success` and print a named cause on anything else, so when run
+          # 33654488608 stopped at a setup step and Actions SKIPPED all four
+          # work steps, it announced a selftest failure, an attribution failure
+          # and a generate failure that nobody had observed. The decision now
+          # lives in a file with a selftest covering both outcomes, because
+          # nothing in the container this was written in can run a step on
+          # ledger-pc, and an unrun summariser printing a plausible sentence is
+          # the silent-instrument failure (.claude/rules/instruments.md).
+          # THIS STEP SUPPLIES ONLY MEMBERSHIP, ORDER AND LIVE STATE.
+          #   --setup gets CONCLUSIONS: a step stops the job only when its
+          #           result after continue-on-error is failure.
+          #   --work  gets OUTCOMES: those four are continue-on-error, so their
+          #           conclusion is always success and only the outcome is true.
           bad=0
-          [ "${{ steps.selftest.outcome }}"    = "success" ] || { echo "SELFTEST FAILED - imagegen.py does not pass its own checks on this machine; nothing below is trustworthy"; bad=1; }
-          [ "${{ steps.attribution.outcome }}" = "success" ] || { echo "ATTRIBUTION CHECK FAILED"; bad=1; }
-          case "${{ steps.generate.outcome }}" in
-            success) ;;
-            *) echo "GENERATE FAILED - the exit code says which: 2 disk, 3 setup, 4 nothing came out, 5 stopped before downloading (no GPU found), 6 a BLANK or unreadable PNG. The machine report in the commit above says what was found."; bad=1 ;;
-          esac
-          # THE PROBE IS NOT A GATE. Exit 10 means no display adapter was
-          # found, and imagegen.py's gate is what decides what that is worth.
-          [ "${{ steps.probe.outcome }}" = "success" ] || echo "note: the probe step reported non-success; imagegen.py's own gate is what acted on it"
+          bash tools/runner/step-verdict.sh \
+            --setup "Checkout=${{ steps.checkout.conclusion }},tool-PATH-bootstrap=${{ steps.paths.conclusion }},python3-shim=${{ steps.shim.conclusion }},weights-workspace=${{ steps.workspace.conclusion }},commit-being-measured=${{ steps.sha.conclusion }}" \
+            --work "selftest=${{ steps.selftest.outcome }},probe=${{ steps.probe.outcome }},generate=${{ steps.generate.outcome }},attribution=${{ steps.attribution.outcome }}" \
+            --non-gating "probe" \
+            --cause "selftest=imagegen.py does not pass its own checks on this machine; nothing below is trustworthy" \
+            --cause "generate=the exit code says which: 2 disk, 3 setup, 4 nothing came out, 5 stopped before downloading (no GPU found), 6 a BLANK or unreadable PNG. The machine report in the commit above says what was found." \
+            --cause "attribution=tools/attribution-check.py returned non-zero; a file arrived without the attribution it owes" \
+            --cause "probe=the probe reported non-success. THE PROBE IS NOT A GATE: exit 10 means no display adapter was found, and imagegen.py's own gate is what decided what that is worth" \
+            || bad=1
           echo "--- the committed verdict ---"
           cat ledger/Assets/StreamingAssets/Decals/generated/imagegen-verdict.txt 2>/dev/null \
             || echo "NO VERDICT FILE - the run did not reach the verdict step's own writer"
           rc="$(cat .imagegen-verdict-rc 2>/dev/null || echo 1)"
           [ "$rc" = "0" ] || { echo "VERDICT RED - this commit banked no picture, or banked a blank one. The done line above says which and how many, with its denominator."; bad=1; }
-          [ "$bad" -eq 0 ] && echo "selftest, generate, attribution and the verdict are all green"
+          # `if`, not `[ ... ] && echo`. The two behave the same under -e (a
+          # failing left-hand side of && is exempt from errexit, so the old
+          # form reached `exit $bad` too); `if` is kept because it says what
+          # it means without sending the reader to the bash manual.
+          if [ "$bad" -eq 0 ]; then
+            echo "selftest, generate, attribution and the verdict are all green"
+          fi
           exit $bad

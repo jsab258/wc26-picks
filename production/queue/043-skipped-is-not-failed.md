@@ -2,7 +2,7 @@ line: infrastructure (instruments)
 spec: this file, from imagegen run 1
 acceptance: the summary step distinguishes skipped from failed and from success, and says WHICH step stopped the run; a skipped step never produces a sentence naming a cause that was never observed; both outcomes fixtured
 max_sessions: 1
-status: READY 2026-09-02. engine-specialist, small, rides the next imagegen touch.
+status: LANDED 2026-09-02 (game-design/decision-2026-09-02-imagegen-run1-stopper-and-run2.md): tools/runner/step-verdict.sh, three states plus NO-READABLE-OUTCOME, 32 checks accepting first, both callers wired; the stopper and shaFrom ride the committed verdict's steps line; the sha step carries safe.directory, a GITHUB_SHA fallback and prints git's stderr. Item 3 decided, no blanket continue-on-error, the rule is written above `steps:` in the workflow. Proven by run 2's committed verdict, not by this line.
 
 ## What run 1 actually did
 
@@ -67,6 +67,47 @@ and an absence is the weakest evidence there is: a variable can be missing
 from a dump for reasons other than its writer failing. Read the HEAD of run
 33654488608's log and confirm or refute it before changing a line. If it is
 refuted, the refutation is more interesting than the lead and belongs here.
+
+### CONFIRMED 2026-09-02, and not from the log
+
+The raw log could not be read: GitHub redirects the log endpoint to
+`productionresultssa1.blob.core.windows.net`, which this container's egress
+policy answers with 403, and that host is not to be routed around.
+
+So the lead was checked against a stronger source than the log, the API's own
+per-step conclusions, which are a positive record rather than an absence:
+
+    GET /repos/.../actions/runs/33654488608/jobs
+      1 success  Set up job
+      2 success  Checkout                              (86s)
+      3 success  tool PATH bootstrap
+      4 success  python3 shim
+      5 success  Where the weights live
+      6 FAILURE  The commit this run is measuring      (0s)
+      7 skipped  imagegen selftest
+      8 skipped  Look at this PC
+      9 skipped  Generate the batch
+     10 skipped  Attribution still holds
+     11 success  Commit what arrived, by name
+     12 failure  The verdict, named step by step
+
+Step 6 is workflow line 194, the lead's prime suspect, and it is the only
+step in the job with a `failure` conclusion before the skip cascade. It ran
+for ZERO seconds, so it is a command returning non-zero and not the
+1-minute timeout.
+
+WHICH command inside it failed is STILL NOT PROVEN, and the fix is written to
+survive that: it is cause-agnostic, and it makes the next run print git's own
+stderr instead of dying mute. What IS evidence is a differential over the
+whole repo: line 198 was the ONLY place in `.github/workflows` where git ran
+in a bash step without `GIT_CONFIG_* safe.directory=*`. Every other git call
+on this runner carries it (build-windows 578, probe-unreal 693, setup-msvc
+267, vignette-fetch 143, and this file's own commit step at 283), and every
+other one has run on this machine. The step was hoisted out of the commit
+step, where vignette-fetch computes the same sha on its line 152 under that
+env, and the env stayed behind. Second-hand support: probe-unreal line 115
+records `git rev-parse --short HEAD` returning nothing ON THIS SAME MACHINE,
+and the answer it settled on was GITHUB_SHA.
 
 ## The fix
 

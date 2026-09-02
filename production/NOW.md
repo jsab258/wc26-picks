@@ -81,41 +81,41 @@ don't care if we get to 80% before monday, we just stop when our budget is
 used up". So there is no daily ration; run to the ceiling and stop there.
 The 80 percent ceiling still binds and the other 20 percent is his.
 
-IMAGEGEN RUN 1 RAN AND FAILED, and the failure is a setup fault rather
-than a broken route. Run 33654488608 on commit b8b805f2, 105 seconds,
-conclusion failure.
+IMAGEGEN RUN 1 RAN AND FAILED AT ONE SETUP STEP, AND THE FIX IS LANDED. Run
+33654488608 on b8b805f2: the API's per-step conclusions put the only
+failure at `The commit this run is measuring`, 0 seconds, and the four work
+steps skipped behind it. Cause, from a differential over .github/workflows:
+that step ran git without the safe.directory env every other git step on
+ledger-pc carries, and the commit step's own git rev-parse succeeded under
+it in the same run. The summary that named three causes it never observed
+is replaced by tools/runner/step-verdict.sh (three states plus
+NO-READABLE-OUTCOME, 32 checks). Ruling:
+game-design/decision-2026-09-02-imagegen-run1-stopper-and-run2.md.
 
-WHAT HAPPENED: the four work steps (selftest, probe, generate, attribution)
-were SKIPPED, not run. A step before them failed without
-`continue-on-error`, so Actions skipped the rest; `Commit` and `The verdict`
-still ran because both carry `if: always()`. WHICH earlier step failed is NOT
-CONFIRMED, but it is narrowed: the commit step's env dump carries
-IMAGEGEN_WS and IMAGEGEN_MACHINE but NOT IMAGEGEN_SHA, which is written by
-`The commit this run is measuring` (workflow line 194), the last step before
-the four that skipped. That is a LEAD resting on an absence, which is weak
-evidence; queue 043 says to confirm it against the HEAD of the log before
-changing a line, and to record a refutation as the more interesting result.
-
-THE SUMMARY LIED AND THE VERDICT DID NOT. The summary printed "SELFTEST
-FAILED", "ATTRIBUTION CHECK FAILED" and "GENERATE FAILED" because it tests
-each outcome against `success` and cannot tell skipped from failed. None of
-those happened. Queue 043 is that fix. The verdict meanwhile printed
-`steps ...=skipped`, `NO RUN`, `staged=0`, and carried NONE of the fourteen
-existing PNGs forward as this run's work, which is exactly what it exists to
-refuse.
-
-SO THE ROUTE IS PARTLY PROVEN: the workflow dispatches, checks out, reaches
-the runner, writes a verdict and refuses to bank anything false. What is
-NOT proven is that a picture can be generated on that machine. One setup
-fix away.
+A SECOND FAULT IS NAMED AND NOT YET PROVEN: run 1 printed a verdict and
+then `staged=0`, so the verdict never reached the committed channel.
+Reading: Windows Python ends every stdout line in \r\n and bash keeps the
+\r, so `[ -e "$f" ]` looked for a name ending in a carriage return. Run 2
+prints every candidate with %q and strips it, which is the measurement.
+The vignette-fetch loop is the same shape and has never staged a file in
+this tree either (no fetch-verdict.txt, no surfaces/); queue 044 carries it.
 
 ## In flight
 
-- Nothing running. Queue 043 (skipped is not failed, plus pinning the real
-  failing step) rides the next imagegen touch and is small.
-- NEXT ACTION: read the head of run 33654488608's log to name the failing
-  setup step, then one engine-specialist for 043 plus that fix, then
-  re-dispatch. Free lane still costs zero Claude points once it works.
+- Imagegen run 2, fired by the push that landed the ruling. Watch by
+  ancestry for a commit titled `Meridian pictures from <sha>`. Read, in this
+  order: the verdict's line 1 (the sha must be the landing commit's), the
+  `steps` line (`stopper=none shaFrom=checkout` is the fix confirmed;
+  `stopper=<name>` is the next finding, named), the `done imagegenVerdict=`
+  line, then the log's `stage-candidate=` lines (a $'\r' confirms the
+  second fault and its strip), `runnerAccount=` and `weightsDirectory=`.
+  Then open the four PNGs, and open the verdict file for CRLF. No commit at
+  all after the run concludes is `staged=0` again, and the %q lines say why.
+- NEXT ACTION, tomorrow: slot 1 is the 027 Phase A close-out (040, A2,
+  041), one engine-specialist, one Unity dispatch at the end; slot 2 is 037.
+  Queue 044 rides the next imagegen touch after run 2 is read. The report
+  to Jafar after run 2 carries one of the four signs, or the verdict's
+  stopper if red.
 
 ## Standing hazards a fresh session will otherwise walk into
 

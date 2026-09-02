@@ -42,3 +42,16 @@
 # estimated 68 seconds each on the card measured 25 Aug. The verdict lands at
 # ledger/Assets/StreamingAssets/Decals/generated/imagegen-verdict.txt with the
 # commit on line 1.
+#
+# run 1 - RAN 2026-09-02 on b8b805f2 (run 33654488608), 105 s, FAILED at the
+# setup step `The commit this run is measuring` in 0 s; all four work steps
+# skipped; nothing banked, nothing carried forward. Cause: git ran in that
+# step without the safe.directory env every other git step on ledger-pc
+# carries, and the commit step's own git rev-parse succeeded under it in the
+# same run. A second fault: the verdict was printed and staged=0. Ruling:
+# game-design/decision-2026-09-02-imagegen-run1-stopper-and-run2.md.
+#
+# run 2 - fired by the push that lands that ruling. Same four items expected.
+# The verdict's steps line now carries stopper= and shaFrom=, and the commit
+# step prints every staging candidate with %q, so a trailing \r from Windows
+# Python shows as $'\r' and the second fault is measured, not believed.
