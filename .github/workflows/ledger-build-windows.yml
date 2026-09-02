@@ -194,6 +194,18 @@ jobs:
         shell: bash
         run: python3 tools/stage-voice-assets.py
 
+      # THE D1b SHARED SCENE, STAGED THE SAME WAY AND FOR THE SAME REASON.
+      # `production/specs/vignette-scene.json` is the single source both
+      # engines' generators read; the player cannot see `production/`, so it
+      # is copied into StreamingAssets before the build carries it. NOT
+      # continue-on-error: a scene that fails to stage produces a vignette run
+      # that reports `nothing measured`, which is honest but arrives a round
+      # trip after this line could have said it.
+      - name: Stage the D1b vignette scene
+        timeout-minutes: 2
+        shell: bash
+        run: python3 tools/stage-vignette-scene.py
+
       # THE SPEECH RUNTIME, AND IT IS ALLOWED TO FAIL.
       #
       # `Game/OnnxSpeech.cs` sits inside `#if LEDGER_ONNX` and the fetcher
@@ -487,6 +499,55 @@ jobs:
       # run, so this overwrites rather than accumulates, and it is scoped to the
       # one directory the sim writes — nothing else is added, and nothing is
       # removed.
+      # THE D1b STREET VIGNETTE, AS ITS OWN SHORT RUN OF THE SAME PLAYER.
+      #
+      # WHY A SECOND PROCESS RATHER THAN A CORNER OF THE SIM. The vignette is
+      # one small street shot under two named conditions with the camera
+      # exactly where a JSON file puts it. Standing it up inside the eleven-day
+      # run would put five hundred more renderers into `SceneAudit`'s count,
+      # the game's own weather over its two fixed conditions, and a second
+      # author on every RenderSettings the sim already owns. It is also the
+      # shape the Unreal half has to be, since nothing in that engine runs this
+      # game's simulation, and measurement (b) is only a comparison if the two
+      # halves are the same kind of thing.
+      #
+      # CONTINUE-ON-ERROR, LIKE THE SPEECH RUNTIME ABOVE AND FOR THE SAME
+      # REASON: a fault in this scene must not cost the Unity build every other
+      # answer it was dispatched for. Its outcome still reaches the verdict,
+      # because the step writes vign-run/vign-exit.txt and
+      # tools/sim-shots-commit.sh turns that plus the player log into lines.
+      # Three minutes: the sim takes about twelve for eleven days, and this
+      # builds one street and renders four frames.
+      - name: Run the D1b street vignette (four matched frames)
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 6
+        run: |
+          New-Item -ItemType Directory -Force vign-run/sim-out | Out-Null
+          # THE RUNNER IS SELF-HOSTED AND vign-run/ SURVIVES BETWEEN JOBS, so
+          # the previous run's stills are removed BY NAME before this one
+          # starts. A dead build inheriting four good frames and committing
+          # them as its own is the exact fault that made a failed run commit
+          # six stills it could not have rendered.
+          Remove-Item vign-run/sim-out/vign_*.jpg,vign-run/vign-exit.txt `
+            -Force -ErrorAction SilentlyContinue
+          $exe = Resolve-Path "ledger/build/LEDGER/LEDGER.exe"
+          $p = Start-Process -FilePath $exe -WorkingDirectory vign-run -PassThru -ArgumentList `
+            "-vignette","-screen-width","1280","-screen-height","720","-screen-fullscreen","0",`
+            "-force-d3d11","-logFile","player.log"
+          $timedOut = $false
+          try { Wait-Process -Id $p.Id -Timeout 300 -ErrorAction Stop }
+          catch { $timedOut = $true }
+          if ($timedOut) {
+            Set-Content vign-run/vign-exit.txt @("vignTimedOut=yes","vignExit=killed")
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          } else {
+            Set-Content vign-run/vign-exit.txt @("vignTimedOut=no","vignExit=$($p.ExitCode)")
+          }
+          if (Test-Path vign-run/player.log) {
+            Get-Content vign-run/player.log | Select-String -Pattern "StreetVignette: "
+          }
+
       - name: Commit the review stills
         if: always()
         continue-on-error: true

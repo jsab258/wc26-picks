@@ -184,7 +184,8 @@
       "notice": "photographic street scene, background buildings, perspective, tilted camera, depth of field",
       "poster": "photographic street scene, perspective, tilted camera, depth of field",
       "fascia": "perspective, three-quarter view, tilted camera, extreme wide angle",
-      "sign": "perspective, three-quarter view, tilted camera, extreme wide angle"
+      "sign": "perspective, three-quarter view, tilted camera, extreme wide angle",
+      "interior": "photographic street scene, exterior, building facade, window frame, curtains, pavement, sky, perspective, tilted camera, wide angle, depth of field, blurred edges, vignette, picture frame, border"
     }
   },
   "defaults": {
@@ -780,6 +781,33 @@
       "height": 896,
       "seed": 8095,
       "prompt": "a British industrial safety poster from the period, flat two-colour print, bold capitals reading 'MIND THE CHAINS' across the top, a simple graphic band beneath, a block of smaller type read as texture at the foot, curling off the brick, oil-spotted"
+    },
+    {
+      "id": "interior_shop_shelves",
+      "kind": "interior",
+      "binds_to": "BOM C11_lit_interior_card - the card behind a lit shop window",
+      "width": 768,
+      "height": 512,
+      "seed": 8096,
+      "prompt": "the back wall of a small British corner shop at night, plain timber shelves stacked with unlabelled tins and cardboard boxes, a counter edge across the foot of the frame, a single fluorescent strip light overhead, warm interior glow falling on the shelves"
+    },
+    {
+      "id": "interior_bar_back",
+      "kind": "interior",
+      "binds_to": "BOM C11_lit_interior_card - the card behind Mickey's lit window",
+      "width": 768,
+      "height": 512,
+      "seed": 8097,
+      "prompt": "the back bar of a small British pub at night, rows of plain unlabelled bottles on glass shelves, an etched mirror panel behind them, brass pump handles along the counter, warm tungsten light, cigarette haze"
+    },
+    {
+      "id": "interior_stair_landing",
+      "kind": "interior",
+      "binds_to": "BOM C11_lit_interior_card - the card behind a lit flat window",
+      "width": 512,
+      "height": 768,
+      "seed": 8098,
+      "prompt": "a narrow stair landing inside a British flat at night, painted banister and newel post, patterned carpet runner on the treads, woodchip wallpaper, a bare bulb on a flex casting a dim yellow light up the wall"
     }
   ]
 }

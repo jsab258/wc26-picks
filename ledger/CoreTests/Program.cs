@@ -143,6 +143,8 @@ namespace Ledger.CoreTests
                 TestTraces();
                 TestCoat();
                 TestDressing();
+                TestStreetVignette();
+                TestStreetVignettePlacement();
                 TestInteraction();
                 TestDirector();
                 await TestDirectorAsync();
@@ -19219,6 +19221,290 @@ namespace Ledger.CoreTests
             Check(nothing.Kind == IntentKind.Narrative && llm.LastRequest == null,
                 "with nothing to route to, no call is made");
         }
+        /// THE D1b STREET VIGNETTE, READ FROM THE SHIPPED SCENE FILE.
+        ///
+        /// THE LIVE JSON IS THE ACCEPTING FIXTURE, per the standing rule for
+        /// tools that check the project itself: the scene both engines are
+        /// going to read is the one tested here, so a dimension changed in
+        /// `production/specs/vignette-scene.json` is checked by this run
+        /// rather than by a copy of itself that can drift. The REJECTING
+        /// fixture below is synthetic, so doing the work this prompts can
+        /// never break the test.
+        ///
+        /// IT ALSO PRINTS THE SERIES. Rule 2: ship the printer, read a real
+        /// run, then set a bound. The levels and the piece counts below are
+        /// printed on every CoreTests run, and the numbers quoted in the
+        /// asserts are read off that print rather than chosen first.
+        static void TestStreetVignette()
+        {
+            Console.WriteLine("StreetVignette:");
+            var path = Root("production/specs/vignette-scene.json");
+            Check(path != null, "the shared scene json is on disk",
+                  "production/specs/vignette-scene.json not found from " + AppContext.BaseDirectory);
+            var plan = StreetVignette.Read(File.ReadAllText(path));
+            Check(plan.Error == null, "the shared scene json reads without a missing key", plan.Error);
+
+            var s = plan.Sec;
+            Console.WriteLine($"    section: crown=0.000 channel={s.ChannelY:0.000} kerbTop={s.KerbTopY:0.000} " +
+                              $"footwayBack={s.FootwayBackY:0.000} buildingLine={s.BuildingLineZ:0.000}");
+            // THE CAMBER IS THE REASON A0 EXISTS. 3.0 m at a fall of 1 in 40
+            // is 75 mm, and if this is ever zero the wet condition's water is
+            // everywhere instead of at the kerb.
+            Check(Math.Abs(s.ChannelY + 0.075) < 1e-9, "the crown stands 75 mm above the channel",
+                  s.ChannelY.ToString("0.0000"));
+            Check(Math.Abs(s.KerbTopY - 0.050) < 1e-9, "the kerb top is 50 mm above the road crown",
+                  s.KerbTopY.ToString("0.0000"));
+            Check(Math.Abs(s.FootwayBackY - 0.100) < 1e-9,
+                  "the pavement at the building line is 100 mm above the crown",
+                  s.FootwayBackY.ToString("0.0000"));
+
+            // THE DROPPED KERB AND THE GULLY BOTH BITE, AND ONLY WHERE THEY
+            // SHOULD. A guard that cannot tell the crossover from the run is
+            // a ratchet.
+            Check(Math.Abs(s.KerbTopAt(22.5, "west") - (s.ChannelY + 0.006)) < 1e-9,
+                  "the kerb is flush at the middle of the crossover");
+            Check(Math.Abs(s.KerbTopAt(22.5, "east") - s.KerbTopY) < 1e-9,
+                  "the crossover does not drop the kerb on the other side of the street");
+            Check(s.KerbTopAt(19.0, "west") > s.KerbTopY - 1e-9,
+                  "the kerb is back to full upstand well clear of the crossover");
+            Check(Math.Abs(s.KerbTopAt(12.0, "east") - (s.KerbTopY - 0.050)) < 1e-9,
+                  "the gully recess drops the kerb 50 mm at the grate");
+
+            // THE DATUM QUERY, WHICH IS HALF THE PLACEMENT INSTRUMENT. It has
+            // to say NO somewhere or it cannot tell ground from no ground.
+            Check(plan.GroundAt(20, 0, out double crownY, out string e0) && e0 == "east_carriageway"
+                  && Math.Abs(crownY) < 1e-9, "there is ground at the crown, and it is at zero");
+            Check(plan.GroundAt(20, 4.0, out double fy, out string e1) && e1 == "east_footway"
+                  && fy > s.KerbTopY, "there is footway under the camera and it is above the kerb top");
+            Check(!plan.GroundAt(20, 40.0, out _, out _),
+                  "there is NO ground forty metres off the street, and the query says so");
+            Check(!plan.GroundAt(-5, 0, out _, out _),
+                  "there is NO ground before the start of the street");
+            Check(plan.GroundAt(20, 7.0, out _, out string e2) && e2 == "east_plot",
+                  "there IS ground under the terrace, which is what stops every building reporting a false alarm");
+
+            // WHAT THE PLAN ACTUALLY CONTAINS. Printed, then asserted, in that
+            // order.
+            Console.WriteLine($"    plan: pieces={plan.Pieces.Count} feet={plan.Feet.Count} " +
+                              $"bomLines={plan.PerBom.Count} cameras={plan.Cameras.Count} " +
+                              $"conditions={plan.Conditions.Count} shots={plan.Shots.Count}");
+            Check(plan.Cameras.Count == 2, "two cameras", plan.Cameras.Count.ToString());
+            Check(plan.Conditions.Count == 2, "two conditions", plan.Conditions.Count.ToString());
+            // FOUR MATCHED FRAMES: two cameras by two conditions is what the
+            // re-scope ruling judges on, and eight would silently change the
+            // bar the engine decision is made against.
+            Check(plan.Shots.Count == 4, "four matched shots", plan.Shots.Count.ToString());
+
+            // H4 ASKS FOR FOUR PRACTICALS AND THE SPACING RATIO HAS TO PRODUCE
+            // FOUR. This is the one place a data change (the mounting height)
+            // moves a count in the bill of materials, so it is asserted here
+            // rather than trusted.
+            plan.PerBom.TryGetValue("E2_sodium_lantern_head", out int lanterns);
+            Console.WriteLine($"    lanterns={lanterns} (BOM H4 asks for 4)");
+            Check(lanterns == 4, "four sodium lanterns, from the spacing ratio and the street length",
+                  lanterns.ToString());
+
+            // THE 26 PROC LINES ARE THE SCOPE, AND THREE OF THEM ARE EXCLUDED
+            // BY THEIR OWN IF-IN-FRAME CONDITION. Naming them here means the
+            // exclusion is a decision on the record rather than a gap.
+            var authorised = StreetVignetteAuthorised();
+            var bom = StreetVignettePlacement.BomReport(plan.PerBom, authorised);
+            Console.WriteLine("    " + bom);
+            Check(bom.Contains("placed=" + authorised.Count + "/" + authorised.Count),
+                  "every bill-of-materials line this scene is answerable for emitted at least one piece", bom);
+
+            // EVERY FOOT PROBE IS OVER GROUND THE PLAN ITSELF BELIEVES IN.
+            // This is the plan-side half; the emitter re-asks it of the
+            // geometry it actually built, which is the half that can catch a
+            // bug.
+            int off = 0; string firstOff = "none";
+            foreach (var f in plan.Feet)
+                if (!plan.GroundAt(f.X, f.Z, out _, out _))
+                { off++; if (firstOff == "none") firstOff = f.Name; }
+            Console.WriteLine($"    feet over ground: {plan.Feet.Count - off}/{plan.Feet.Count} " +
+                              $"(first off-datum: {firstOff})");
+            Check(off == 0, "every footprint probe in the plan has ground under it",
+                  off + " of " + plan.Feet.Count + ", first " + firstOff);
+
+            // AND THE PLACEMENT PRINTER, RUN OVER THE WHOLE REAL SCENE.
+            //
+            // WHAT THE DATUM IS HERE, SAID PLAINLY SO NOBODY READS THIS AS
+            // THE ENGINE'S ANSWER. This run probes against the PLAN's own
+            // analytic ground (`plan.GroundAt`), so it can prove the layout
+            // puts nothing over a hole and can NOT prove the emitter built
+            // the ground where the plan said. The engine-side half of that
+            // pair is `StreetVignetteHost.Probe`, which raycasts the
+            // geometry Unity actually stood up and prints the identical rows
+            // through the same formatter. Two probes, one printer.
+            var placed = new StreetVignettePlacement();
+            placed.NotePieces(plan.Pieces.Count);
+            foreach (var f in plan.Feet)
+            {
+                bool hit = plan.GroundAt(f.X, f.Z, out double datumY, out _);
+                placed.Probe(f.Bom, f.Edge, f.Region, f.Name, f.FootY, hit, datumY);
+            }
+            var rows = placed.Report();
+            foreach (var l in rows) Console.WriteLine("    " + l);
+            Check(rows[0].Contains("datumMissing=0/" + plan.Feet.Count),
+                  "the whole scene's footprints all have ground under them, with the denominator",
+                  rows[0]);
+            Check(rows.Count >= 3, "and the report is broken down per edge and per region, not one number",
+                  rows.Count.ToString());
+
+            // THE BOUND, SET FROM THE SERIES THIS PRINTER PRINTED AND NOT
+            // BEFORE IT (rule 2). The first real run reported floatMax 0.011
+            // at kiosk_plinth, 0.007 at pillarbox_body and 0.006 at
+            // dustbin0, and all three are ARITHMETIC rather than faults: a
+            // level object standing on a footway that falls 1 in 40 lifts its
+            // upslope corner by half its footprint times the crossfall.
+            //     kiosk      0.914 x 0.025 / 2 = 0.0114   printed 0.011
+            //     pillar box 0.597 x 0.025 / 2 = 0.0075   printed 0.007
+            //     dustbin    0.460 x 0.025 / 2 = 0.0058   printed 0.006
+            // Three independent objects, three agreements to the millimetre,
+            // so the model is right and the number is not a placement error.
+            // A real British kerbside object is bedded level on a mortar
+            // haunch and does exactly this. The bound is therefore the
+            // WIDEST footprint in the scene through the same arithmetic,
+            // 0.914 x 0.025 / 2 = 0.0114, plus a millimetre for the rounding
+            // in the printed value. Anything above it is something else and
+            // wants looking at.
+            double widestFootprintM = 0.914, cornerBound = widestFootprintM * 0.025 / 2 + 0.001;
+            double worst = 0; string worstAt = "none";
+            foreach (var f in plan.Feet)
+            {
+                plan.GroundAt(f.X, f.Z, out double dy, out _);
+                if (Math.Abs(f.FootY - dy) > worst) { worst = Math.Abs(f.FootY - dy); worstAt = f.Name; }
+            }
+            Console.WriteLine($"    worst foot gap {worst:0.0000} m at {worstAt}, " +
+                              $"corner bound {cornerBound:0.0000} m");
+            Check(worst <= cornerBound,
+                  "no footprint sits further off the ground than the crossfall under it explains",
+                  worst.ToString("0.0000") + " at " + worstAt);
+
+            // AND IT REFUSES A SCENE THAT IS MISSING A DIMENSION rather than
+            // defaulting one, because a default is how two engines quietly
+            // build two different streets.
+            var broken = StreetVignette.Read("{\"street\":{\"length_m\":42.0}}");
+            Check(broken.Error != null, "a scene json missing a dimension is an error, not a default",
+                  broken.Error ?? "(no error raised)");
+            var notJson = StreetVignette.Read("this is not json");
+            Check(notJson.Error != null, "an unreadable scene json is an error");
+        }
+
+        /// The bill-of-materials lines this scene is answerable for: the 26
+        /// PROC lines minus the three whose own IF-IN-FRAME condition does not
+        /// hold here, plus C7 whose glazing geometry the shopfront emits.
+        /// Written out rather than derived, so that adding a PROC line to the
+        /// bill of materials and forgetting to emit it fails this test.
+        static List<string> StreetVignetteAuthorised() => new List<string>
+        {
+            "A0_ground_planes", "B1_kerbstone_run", "B2_dropped_kerb", "B3_gully_recess",
+            "C1_terrace_carcass", "C5_shopfront_assembly", "C7_shop_glazing",
+            "C8_door_shop", "C9_door_side", "C13_sills_lintels",
+            "D2_chimney_stack", "D4_tv_aerial", "D5_downpipe", "D6_gutter_run",
+            "D7_parapet_coping", "D8_upper_windows",
+            "E1_lighting_column", "E2_sodium_lantern_head", "E3_telephone_kiosk",
+            "E4_pillar_box", "E8_guard_railing", "E13_household_dustbin",
+            "G8_litter", "G9_chewing_gum",
+        };
+
+        /// THE PLACEMENT INSTRUMENT, ON THE CASE IT MUST PASS FIRST AND THEN
+        /// ON THE ONE IT MUST CATCH.
+        ///
+        /// The case it must catch is the one this instrument exists for and
+        /// it is planted deliberately: an object whose foot gap is EXACTLY
+        /// 0.00 and which has no ground under it at all. Eight blocks hung
+        /// over open sea in that state and the averaged gap number said
+        /// nothing was wrong.
+        static void TestStreetVignettePlacement()
+        {
+            Console.WriteLine("StreetVignettePlacement:");
+
+            // ACCEPTING CASE FIRST. Everything landed, nothing floating.
+            var good = new StreetVignettePlacement();
+            good.NotePieces(3);
+            good.Probe("A0", "east_footway", "x00_06", "bin", 0.100, true, 0.100);
+            good.Probe("A0", "east_footway", "x00_06", "bin", 0.100, true, 0.0995);
+            good.Probe("A0", "east_kerb", "x06_12", "post", 0.050, true, 0.050);
+            var lines = good.Report();
+            foreach (var l in lines) Console.WriteLine("    " + l);
+            Check(lines[0].Contains("datumMissing=0/3"),
+                  "the accepting case prints a zero WITH its denominator", lines[0]);
+            Check(lines[0].Contains("landed=3"), "and how many probes it is a gap of", lines[0]);
+            Check(!lines[0].Contains("nothing measured"), "the accepting case is not a nothing-measured");
+
+            // THE CASE IT MUST CATCH. Gap exactly zero, no ground under it.
+            var sea = new StreetVignettePlacement();
+            sea.NotePieces(9);
+            for (int i = 0; i < 8; i++)
+                sea.Probe("C1", "east_plot", "x30_36", "block" + i, 0.0, false, 0.0);
+            sea.Probe("C1", "east_footway", "x00_06", "good", 0.100, true, 0.100);
+            var seaLines = sea.Report();
+            foreach (var l in seaLines) Console.WriteLine("    " + l);
+            Check(seaLines[0].Contains("datumMissing=8/9"),
+                  "eight footprints over nothing are counted, at a gap of exactly zero", seaLines[0]);
+            bool named = false;
+            foreach (var l in seaLines)
+                if (l.StartsWith("place/edge east_plot") && l.Contains("gap=nothing-landed-here")) named = true;
+            Check(named, "and the EDGE they are on says so rather than printing a clean gap",
+                  string.Join(" | ", seaLines));
+
+            // A FLOATING OBJECT IS NOT A SUNK ONE. Same absolute number,
+            // different fault, so they are two keys and each names its worst.
+            var mixed = new StreetVignettePlacement();
+            mixed.NotePieces(2);
+            mixed.Probe("E1", "east_footway", "x06_12", "column_floating", 0.140, true, 0.100);
+            mixed.Probe("E1", "east_footway", "x06_12", "column_sunk", 0.060, true, 0.100);
+            var mixedLines = mixed.Report();
+            foreach (var l in mixedLines) Console.WriteLine("    " + l);
+            Check(mixedLines[0].Contains("floatMax=0.040/at=column_floating"),
+                  "the worst float is named at the instant it peaks", mixedLines[0]);
+            Check(mixedLines[0].Contains("sinkMax=0.040/at=column_sunk"),
+                  "and so is the worst sink, which is a different fault", mixedLines[0]);
+
+            // NOTHING MEASURED PRINTS THE WORDS.
+            var empty = new StreetVignettePlacement();
+            empty.NotePieces(500);
+            var emptyLines = empty.Report();
+            Console.WriteLine("    " + emptyLines[0]);
+            Check(emptyLines[0].Contains("nothing measured") && emptyLines[0].Contains("pieces=500"),
+                  "a run that probed nothing says so in words, with what it could have probed",
+                  emptyLines[0]);
+
+            // THE CAP ANNOUNCES ITSELF. Seven regions against a cap of six.
+            var many = new StreetVignettePlacement();
+            many.NotePieces(7);
+            for (int i = 0; i < StreetVignettePlacement.MaxRows + 1; i++)
+                many.Probe("G8", "east_channel", "x" + i.ToString("00") + "_zz", "bit" + i, 0.0, true, 0.0);
+            var manyLines = many.Report();
+            bool announced = false;
+            foreach (var l in manyLines) if (l.Contains("more of 7 not shown")) announced = true;
+            Check(announced, "a breakdown that outgrows the cap says how many rows it dropped",
+                  string.Join(" | ", manyLines));
+
+            // NO SPACES IN ANY VALUE. Every reader of these lines splits on
+            // whitespace, so a name with a space in it truncates the line in
+            // silence.
+            var spacey = new StreetVignettePlacement();
+            spacey.NotePieces(1);
+            spacey.Probe("X", "east_footway", "x00_06", "a name with spaces", 0.1, true, 0.0);
+            var sp = spacey.Report()[0];
+            foreach (var pair in sp.Split(' '))
+            {
+                int eq = pair.IndexOf('=');
+                if (eq <= 0) continue;
+                Check(!pair.Substring(eq + 1).Contains(" "), "no value carries a space: " + pair);
+            }
+            Check(sp.Contains("a_name_with_spaces"), "a name with spaces is made safe rather than dropped", sp);
+
+            // THE BILL-OF-MATERIALS REPORT NAMES WHAT IT DID NOT PLACE.
+            var per = new Dictionary<string, int> { { "A0", 12 } };
+            var report = StreetVignettePlacement.BomReport(per, new List<string> { "A0", "B1" });
+            Console.WriteLine("    " + report);
+            Check(report.Contains("placed=1/2") && report.Contains("unplaced=B1"),
+                  "a bill-of-materials line that emitted nothing is named, not silently zero", report);
+        }
+
         /// Walk up from the test binary to a file in the repository. Same
         /// shape as the voice-conditionals check above, which is the only
         /// reason it can be trusted to find the same tree.

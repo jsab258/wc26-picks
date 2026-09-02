@@ -2380,8 +2380,8 @@ DIRECTOR_WORK = (
 #: become the ratchet rule 5b names — refuse everything, then get switched off.
 #:
 #: MEASURED, SO NOBODY READS THIS LIST AS MORE LOAD-BEARING THAN IT IS.
-#: Counted 1 Sep 2026, after the props and `.claude/` widening: 5 of the 14
-#: entries below sit INSIDE a work prefix and are the only ones whose exclusion
+#: Re-counted 2 Sep 2026, when the D1 probe's still verdict was added: 5 of
+#: the 15 entries below sit INSIDE a work prefix and are the only ones whose exclusion
 #: changes the gated number today. They are `ledger/.verify-footer` (inside
 #: `ledger/`), both `content/props/` outputs (inside `content/`) and both
 #: `.claude/` machine files (inside `.claude/`). The other 9 are outside the
@@ -2405,6 +2405,9 @@ DIRECTOR_EVIDENCE = (
      "the D1 probe's machine reading, written by the probe"),
     ("production/d1-probe/ue-verdict.txt", "d1out",
      "the D1 probe's verdict line, written by the probe"),
+    ("production/d1-probe/ue-shot-verdict.txt", "d1out",
+     "the D1 probe's still verdict: pixel statistics over the frame beside "
+     "it, written by the binary that rendered it"),
     ("production/d1-probe/ue-shot.png", "d1out",
      "the D1 probe's frame: an artifact to open, not a change to review"),
     ("production/d1-probe/msvc-setup.txt", "d1out",

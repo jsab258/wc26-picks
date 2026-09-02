@@ -23,6 +23,21 @@ than any single row.
 
 Ceiling for LEDGER: 80% of the weekly limit. The other 20% is his.
 
+## THE MID-WEEK RESET WAS AN ANOMALY, told by Jafar 2026-09-02
+
+Do not build any expectation on it. His words: the limit reset on the Tuesday
+evening after reaching almost 40 percent, possibly because a model was
+released that day, and it should NOT be expected to happen again.
+
+That matters because a session reading the rows below could otherwise infer a
+pattern from one event: "the week resets when it gets tight" is exactly the
+shape of a rule invented from a single reading. There is one rule and it is
+the next section: Monday 14:00 CEST, ceiling 80 percent, and nothing else.
+
+The 34 and 38 percent rows therefore describe a week that ended EARLY by
+accident, not a week that ran its course. They are kept because deleting a
+regime change is worse than recording one, and they are useless for pace.
+
 ## WHEN THE WEEK STARTS, told by Jafar 2026-09-02 and not known before
 
 MONDAY 14:00 CEST, which is 12:00 UTC. Every "hours into week" figure in the

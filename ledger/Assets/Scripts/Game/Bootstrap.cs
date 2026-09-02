@@ -40,6 +40,20 @@ namespace Ledger.Game
             foreach (var root in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
                 Object.Destroy(root);
 
+            // THE D1b STREET VIGNETTE STANDS UP INSTEAD OF THE CITY, and it
+            // is checked BEFORE the settings, the audio and the caption bar
+            // because it needs none of them and a still that carries the
+            // game's UI over it is not a comparison frame. A `-vignette` run
+            // builds one street from
+            // `production/specs/vignette-scene.json`, shoots the four matched
+            // frames the engine decision is judged on, and quits.
+            if (SimMode.Vignette)
+            {
+                var vign = new GameObject("StreetVignetteHost");
+                vign.AddComponent<StreetVignetteHost>();
+                return;
+            }
+
             // Settings and sound come up before anything else; the self-test
             // skips the front end entirely and drops straight into the city.
             UiTheme.SetColourblind(GameSettings.Current.ColourblindSafe);

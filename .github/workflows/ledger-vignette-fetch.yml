@@ -1,0 +1,203 @@
+name: LEDGER vignette surface fetch
+
+# THE CC0 SURFACE FETCH FOR THE D1b STREET VIGNETTE, ON THE MACHINE THAT CAN
+# REACH THE LIBRARY. `tools/props/fetch_vignette.py --fetch` cannot run in the
+# dev container: ambientcg.com, api.polyhaven.com and api.sketchfab.com all
+# answer CONNECT 403 at its egress proxy, measured 2026-09-01 and written into
+# production/specs/vignette-fetch-01.json under `_where_this_runs`. The proxy
+# README says to report a policy denial and not route around it, so the picking
+# happens in the container and the transferring happens here.
+#
+# IT RUNS ON THE CHANNEL THAT ALREADY EXISTS AND NEEDS NO CLICK FROM JAFAR.
+# A self-hosted runner labelled `ledger-pc` has been up on his PC continuously,
+# and three workflows already target it: ledger-build-windows.yml,
+# ledger-probe-unreal.yml and ledger-setup-msvc.yml. This is the fourth. It was
+# modelled on them line by line rather than invented:
+#   trigger and the reason for the sentinel   ledger-probe-unreal.yml:18-45
+#   runs-on / timeout as a hang ceiling       ledger-probe-unreal.yml:51-60
+#   checkout with persist-credentials: false  ledger-probe-unreal.yml:80-86
+#   the shared PATH bootstrap call            ledger-setup-msvc.yml:107-113
+#   the python3 shim (now a shared script)    ledger-build-windows.yml:104-156
+#   commit by NAME, with the NO RUN guard     ledger-probe-unreal.yml:545-608
+#
+# HOW THIS IS TRIGGERED, and why it is not workflow_dispatch alone. GitHub only
+# dispatches a `workflow_dispatch` workflow that exists on the DEFAULT BRANCH.
+# This repo's default is `main`, this file lives on the working branch by
+# standing instruction, and a dispatch of it returns 404 - confirmed by the
+# probe workflow dispatching and reading the error, not assumed from the docs.
+# So it also triggers on a PUSH THAT TOUCHES ONE SENTINEL FILE. It stays
+# OPT-IN, which is the property that matters: nothing runs unless
+# production/d1-probe/FETCH-VIGNETTE is deliberately changed. Ordinary work on
+# this branch never wakes it, and it never rides a build.
+#
+# THE SENTINEL SITS IN production/d1-probe/ WITH THE OTHER TWO AND NOT IN
+# production/assets/vignette/, WHICH IS THIS JOB'S OUTPUT DIRECTORY. A trigger
+# living inside an output directory is the shape where a run's own output
+# re-fires the workflow that produced it. Same reasoning, same words, as the
+# Blender sentinel in ledger-setup-msvc.yml.
+#
+# WHEN THIS FILE REACHES `main`, DELETE THE PUSH TRIGGER AND THE SENTINEL.
+# The dispatch entry below is already correct and starts working the moment the
+# file is on the default branch.
+#
+# NOTHING IS PURCHASED AND NO ACCOUNT IS USED. ambientCG is CC0 and on the
+# licence allowlist (ledger-v2/research/license-allowlist.md, line 5: "CC0
+# libraries (Poly Haven, ambientCG, Sketchfab CC0 filter)"). The fetcher itself
+# refuses any asset whose catalogue entry does not resolve, writes
+# ATTRIBUTION.json in the SAME RUN that writes the files, and the verdict step
+# below fails the run if a file lands that the manifest does not name.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'production/d1-probe/FETCH-VIGNETTE'
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-vignette:
+    runs-on: [self-hosted, ledger-pc]
+    # A CEILING ON A HANG, NOT A TARGET. The whole job is four small python
+    # runs and two zip downloads: the spec's resolution policy caps at 4K and
+    # refuses 8K, and the held 2K pack measures 201 MB over 17 surfaces, so
+    # two 4K zips is single-figure minutes on any working connection. The cap
+    # is here to end a stalled socket, and it sits above every step cap below.
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        timeout-minutes: 6
+        uses: actions/checkout@v4
+        with:
+          # The commit step below brings its own credential, exactly as the
+          # probe job does. Nothing else here pushes.
+          persist-credentials: false
+
+      - name: tool PATH bootstrap (self-hosted parity)
+        timeout-minutes: 1
+        shell: cmd
+        run: |
+          call tools\runner\bootstrap-paths.cmd
+          exit /b %ERRORLEVEL%
+
+      # Git-bash on this PC knows `python` and `py`, not `python3`, and the
+      # first self-hosted run of the Unity build died on exactly that. The
+      # logic is the Unity job's, moved into a script so this file is not a
+      # second copy of it; its own selftest covers both outcomes.
+      - name: python3 shim (self-hosted parity)
+        timeout-minutes: 3
+        shell: bash
+        run: bash tools/runner/python3-shim.sh
+
+      # ONE RUN ANSWERS EVERY QUESTION IT CAN, because the round trip costs the
+      # same carrying one answer or four. --plan needs no network and proves
+      # the spec still resolves; --probe asks ambientCG for every asset type
+      # and writes the answer to a committed file, which is what closes the two
+      # BOM lines (A4 tarmac patch, C4 pebbledash) that are absent from the
+      # MATERIAL list and unasked in every other type; --fetch takes the plan.
+      # Each is continue-on-error so that one host hiccup cannot hide the
+      # others' findings, and the verdict step reads all three outcomes.
+      - name: Plan against the committed catalogue (no network)
+        id: plan
+        timeout-minutes: 5
+        continue-on-error: true
+        shell: bash
+        run: python3 tools/props/fetch_vignette.py --plan 2>&1 | tee -a fetch-run.log
+
+      - name: Probe ambientCG for every asset type
+        id: probe
+        timeout-minutes: 15
+        continue-on-error: true
+        shell: bash
+        run: python3 tools/props/fetch_vignette.py --probe 2>&1 | tee -a fetch-run.log
+
+      - name: Fetch the surfaces the plan resolved
+        id: fetch
+        timeout-minutes: 20
+        continue-on-error: true
+        shell: bash
+        run: python3 tools/props/fetch_vignette.py --fetch 2>&1 | tee -a fetch-run.log
+
+      # THE SWEEP WHOSE JOB IS NOTICING OTHER PEOPLE'S FILES, run in the same
+      # job that brings the files in rather than left to the next commit.
+      - name: Attribution still holds
+        id: attribution
+        timeout-minutes: 5
+        continue-on-error: true
+        shell: bash
+        run: python3 tools/attribution-check.py 2>&1 | tee -a fetch-run.log
+
+      # THE EVIDENCE CHANNEL. Every number in the verdict is measured from the
+      # files on disk by fetch_vignette.py --verdict, which is selftested in
+      # the container; this step only hands it the step outcomes and the sha.
+      # A run that measured nothing writes the words NOTHING MEASURED and
+      # exits non-zero, and STAGES NOTHING but the verdict, so an older
+      # manifest can never be committed under this run's name.
+      - name: Commit what arrived, by name
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: "*"
+          PLAN_OUTCOME: ${{ steps.plan.outcome }}
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+          FETCH_OUTCOME: ${{ steps.fetch.outcome }}
+          ATTRIB_OUTCOME: ${{ steps.attribution.outcome }}
+        run: |
+          set -u
+          SHORT="$(git rev-parse HEAD | cut -c1-7)"
+          STEPS="plan=${PLAN_OUTCOME:-none},probe=${PROBE_OUTCOME:-none},fetch=${FETCH_OUTCOME:-none},attribution=${ATTRIB_OUTCOME:-none}"
+          python3 tools/props/fetch_vignette.py --verdict --sha "$SHORT" --steps "$STEPS" || true
+          git config user.name "LEDGER vignette fetch"
+          git config user.email "fetch@ledger.local"
+          # STAGED BY NAME, and the names come from the manifest the fetch
+          # wrote, so a file that arrived without attribution is never
+          # committed: the bytes and the obligation travel together or not at
+          # all. `git add <directory>` is what commits a stale checkout's
+          # files as this run's evidence, so it is not used here.
+          staged=0
+          while read -r f; do
+            [ -n "$f" ] || continue
+            if [ -e "$f" ]; then git add -- "$f" && staged=$((staged + 1)); fi
+          done < <(python3 tools/props/fetch_vignette.py --staged-files --sha "$SHORT")
+          # The probe's answer file, by name and only if this run wrote it.
+          if [ -n "$(find tools/props/ambientcg-types.json -newer fetch-run.log 2>/dev/null)" ] \
+             || [ "${PROBE_OUTCOME:-none}" = "success" ]; then
+            [ -f tools/props/ambientcg-types.json ] && git add -- tools/props/ambientcg-types.json && staged=$((staged + 1))
+          fi
+          echo "staged=$staged path(s) by name (verdict, manifest, attributed files, probe answer)"
+          if git diff --cached --quiet; then
+            echo "nothing arrived that was not already committed"
+            exit 0
+          fi
+          git commit -m "vignette surfaces from $SHORT ($STEPS)"
+          BR="${GITHUB_REF_NAME}"
+          for i in 1 2 3; do
+            git pull --rebase --no-edit origin "$BR" || git rebase --abort || true
+            if git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${BR}"; then
+              echo "vignette fetch result pushed to $BR"; exit 0
+            fi
+            sleep $((i * 5))
+          done
+          echo "could not push the fetch result; it is committed locally on the agent"
+
+      # THE VERDICT, NAMED STEP BY STEP, and it is the last thing so that the
+      # evidence is committed whatever this says. A red here means the fetch
+      # banked nothing on this commit, which is a finding rather than a broken
+      # runner, and the committed verdict file says which of the four steps
+      # failed and what was on disk when it did.
+      - name: The verdict, named step by step
+        if: always()
+        shell: bash
+        run: |
+          bad=0
+          [ "${{ steps.plan.outcome }}"        = "success" ] || { echo "PLAN FAILED - the spec no longer resolves against the committed catalogue"; bad=1; }
+          [ "${{ steps.probe.outcome }}"       = "success" ] || { echo "PROBE FAILED - ambientCG did not answer; the open BOM lines stay open"; bad=1; }
+          [ "${{ steps.fetch.outcome }}"       = "success" ] || { echo "FETCH FAILED - see production/assets/vignette/fetch-verdict.txt for what was on disk"; bad=1; }
+          [ "${{ steps.attribution.outcome }}" = "success" ] || { echo "ATTRIBUTION CHECK FAILED"; bad=1; }
+          [ "$bad" -eq 0 ] && echo "plan, probe, fetch and attribution all green"
+          exit $bad

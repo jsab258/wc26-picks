@@ -32,6 +32,32 @@ namespace Ledger.Game
                 return parsed;
             }
         }
+
+        /// THE D1b STREET VIGNETTE, WHICH IS ITS OWN RUN AND NOT A DAY OF
+        /// THIS ONE.
+        ///
+        /// Parsed the same way and for the same reason as `-simdays`. A
+        /// separate process rather than a corner of the city: the vignette is
+        /// a small scene shot under two named conditions with the camera
+        /// exactly where a JSON file puts it, and standing it up inside the
+        /// eleven-day sim would put five hundred renderers into
+        /// `SceneAudit`'s count, the game's own weather over its two
+        /// conditions, and a second author on every RenderSettings the sim
+        /// already owns. It is also what the Unreal half has to be, since
+        /// nothing in that engine is going to run this game's simulation.
+        static bool? _vignette;
+        public static bool Vignette
+        {
+            get
+            {
+                if (_vignette.HasValue) return _vignette.Value;
+                bool found = false;
+                foreach (var a in Environment.GetCommandLineArgs())
+                    if (a == "-vignette") found = true;
+                _vignette = found;
+                return found;
+            }
+        }
     }
 
     public class SimDirector : MonoBehaviour

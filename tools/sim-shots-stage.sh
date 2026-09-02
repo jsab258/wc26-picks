@@ -204,7 +204,12 @@ files=("$dir/verdict.txt" "$dir/runs/$sha7.txt")
 # commit, and `frames.tsv` would then carry five rows describing pictures that
 # are not on disk — the exact provenance fault `framesStaged` was written for.
 # `nullglob` is on above, so a run that took no ref frames contributes nothing.
-if [ "$stills" = 1 ]; then files+=("$dir"/review_*.jpg "$dir"/hunt_*.jpg "$dir"/district_*.jpg "$dir"/ref_*.jpg); fi
+# `vign_*` IS THE D1b STREET VIGNETTE SET, added here in the same commit
+# as the commit script's glob rather than three files away from it,
+# because that gap is what this file already carries two paragraphs
+# about: one idea, two implementations, and the copy nobody opens is
+# the one missing the line.
+if [ "$stills" = 1 ]; then files+=("$dir"/review_*.jpg "$dir"/hunt_*.jpg "$dir"/district_*.jpg "$dir"/ref_*.jpg "$dir"/vign_*.jpg); fi
 if [ "$frames" = 1 ]; then files+=("$dir/frames.tsv"); fi
 # The clip contact sheet is taken once, before day one, so a run can produce it
 # and no street stills at all — which is why it gets its own flag rather than

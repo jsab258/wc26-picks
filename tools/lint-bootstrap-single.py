@@ -41,7 +41,13 @@ INLINE_TELLS = (
 
 # Workflows that run on the self-hosted agent need it. Named rather than
 # guessed, so adding a workflow is a deliberate decision here.
-NEEDS = ("ledger-build-windows.yml", "ledger-probe-unreal.yml", "ledger-setup-msvc.yml")
+NEEDS = ("ledger-build-windows.yml", "ledger-probe-unreal.yml",
+         "ledger-setup-msvc.yml",
+         # The fourth job on `ledger-pc`, 2 Sep: the D1b vignette CC0
+         # surface fetch. Named here in the same change that adds the
+         # workflow, because a self-hosted workflow this list does not
+         # know about is one the lint cannot hold to the shared script.
+         "ledger-vignette-fetch.yml")
 
 
 def scan(wf_dir=WF, needs=NEEDS, repo=REPO):

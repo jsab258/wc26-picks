@@ -11,6 +11,14 @@ agent; violating it is a gate failure.
   (offices, lawyers), the Parade (nightlife), Fairview (residential hills), Ironside
   (industrial), Gullwing (faded resort waterfront).
 - Streets minted: Quay Street, Weighhouse Lane, Tannery Row.
+- Street districts, minted 2026-09-02 by the director on delegated authority,
+  struck on sight if Jafar disagrees: Quay Street is in the Hook, Weighhouse
+  Lane in Copper Row, Tannery Row in Ironside.
+- Graffiti tags, minted 2026-09-02 (Jafar delegated the naming to the studio
+  on 2 September): TANNER (Ironside), SNIDE (Copper Row), GULL (Gullwing),
+  QUAY FIRM (the Hook), PARADE RATS (the Parade). Wall names, not any of the
+  three rival organisations; reasoning in
+  game-design/canon-proposal-graffiti-crews.md.
 
 ## Era
 - Late 1980s to early 1990s. Working window 1988 to 1992.
@@ -56,7 +64,9 @@ agent; violating it is a gate failure.
   voices, logos, lyrics, car models. The license allowlist is law.
 - Minted: Mickey's (the pub), the Tivoli (cinema), Meridian Harbour Board, Meridian
   Ferry. The brand bible still owes: the football club, the local paper, the pirate
-  radio station, the regional TV channel.
+  radio station, the regional TV channel, the telephone operator (the kiosk's
+  mark and lettering) and the postal cypher (the pillar box); the last two were
+  found owed by the vignette bill of materials on 2026-09-02.
 
 ## OPEN
 1. Engine. Unity holds the codebase; the UE5 probe is authorized (D1). No document

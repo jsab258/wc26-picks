@@ -4,7 +4,22 @@
     python3 tools/props/fetch_vignette.py --plan       # no network, runs anywhere
     python3 tools/props/fetch_vignette.py --probe      # needs the host: ask, do not download
     python3 tools/props/fetch_vignette.py --fetch      # needs the host: take the plan
+    python3 tools/props/fetch_vignette.py --verdict    # what landed, as a committed file
+    python3 tools/props/fetch_vignette.py --staged-files
     python3 tools/props/fetch_vignette.py --selftest
+
+THE MACHINE THAT RUNS THE NETWORK MODES IS Jafar's PC, THROUGH
+.github/workflows/ledger-vignette-fetch.yml, and no click of his is needed:
+a self-hosted runner labelled `ledger-pc` has been up continuously and three
+workflows already reach it. Touching production/d1-probe/FETCH-VIGNETTE runs
+this file there.
+
+WHY --verdict AND --staged-files LIVE HERE RATHER THAN IN THAT WORKFLOW.
+Measurement arithmetic and formatting belong where the tests run: a formatter
+written into a YAML `run:` block ships UNRUN, and an unrun formatter printing a
+plausible string is the silent-instrument failure this project has a standing
+rule about. So the workflow supplies only the step outcomes and the commit sha,
+and everything that counts, measures or formats is here, under --selftest.
 
 WHY THE MODES SPLIT WHERE THEY DO. Measured 2026-09-01 rather than assumed:
 ambientcg.com, api.polyhaven.com and api.sketchfab.com all answer CONNECT 403
@@ -31,9 +46,11 @@ content in one run.
 import argparse
 import io
 import json
+import os
 import pathlib
 import struct
 import sys
+import time
 import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -41,6 +58,7 @@ SPEC = ROOT / "production" / "specs" / "vignette-fetch-01.json"
 CATALOGUE = ROOT / "tools" / "citypack" / "catalogue.json"
 PROBE_OUT = ROOT / "tools" / "props" / "ambientcg-types.json"
 DEST = ROOT / "production" / "assets" / "vignette" / "surfaces"
+VERDICT = ROOT / "production" / "assets" / "vignette" / "fetch-verdict.txt"
 
 API = "https://ambientcg.com/api/v2/full_json"
 
@@ -243,6 +261,13 @@ def fetch():
                         "the same run that wrote the files so the two cannot "
                         "drift apart. THIRD-PARTY.md carries the human copy "
                         "under the token 'vignette-surfaces'.",
+                # THE RUN THAT WROTE IT, NAMED, and every surface carries the
+                # same stamp. Without it a checkout's older manifest reads as
+                # this run's answer, which is the provenance fault the whole
+                # evidence channel exists to prevent: the manifest is a
+                # TRACKED file, so it is restored by the checkout whether or
+                # not this run downloaded anything.
+                "run": run_stamp(),
                 "surfaces": {}}
     if manifest_path.exists():
         try:
@@ -293,6 +318,10 @@ def fetch():
             "assetId": a["id"], "source": "ambientCG", "licence": CC0_TEXT,
             "url": f"https://ambientcg.com/view?id={a['id']}",
             "resolution": res, "bomLine": t["bom_id"],
+            # Per surface, not only per file: a manifest merged across runs
+            # otherwise cannot say which entries THIS run banked, and
+            # "N surfaces attributed" would count files nobody fetched today.
+            "fetchedOnRun": run_stamp()["sha"],
             "files": files,
             "measured": {k: (f"{v[0]}x{v[1]}x{v[2]}ch" if v else "unreadable")
                          for k, v in dims.items()},
@@ -314,6 +343,144 @@ def fetch():
         print("NOTHING WAS WRITTEN, this run failed whatever is on disk.")
         return 1
     return 1 if failed else 0
+
+
+def run_stamp():
+    """Who wrote this, on which commit. GITHUB_SHA is set by Actions itself,
+    needs no git on PATH and cannot be empty in a real run; 'local' is the
+    honest answer anywhere else and is never mistaken for a commit."""
+    sha = (os.environ.get("GITHUB_SHA") or "")[:7] or "local"
+    return {"sha": sha, "at": int(time.time()),
+            "by": "tools/props/fetch_vignette.py --fetch"}
+
+
+def _manifest(dest=DEST):
+    p = pathlib.Path(dest) / "ATTRIBUTION.json"
+    if not p.exists():
+        return None
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except ValueError:
+        return {}
+
+
+def _on_disk(dest=DEST):
+    """Every image file actually sitting in the destination. The denominator
+    for everything the manifest claims."""
+    d = pathlib.Path(dest)
+    if not d.exists():
+        return []
+    return sorted(p for p in d.iterdir()
+                  if p.is_file() and p.suffix.lower() in (".jpg", ".jpeg", ".png"))
+
+
+def verdict(sha="local", steps="", dest=DEST, out=VERDICT):
+    """The committed evidence file: what landed, measured from the bytes.
+
+    LINE 1 NAMES THE COMMIT, values carry no spaces, whole-run numbers sit on
+    the done line and per-surface numbers on the surface lines, because a grep
+    across two lines merges two moments silently.
+
+    IT RE-MEASURES rather than believing the manifest: every file is opened and
+    its dimensions read from its own header, and a file on disk that the
+    manifest does not name is reported as UNATTRIBUTED, which is the one
+    failure this directory can have that nothing else would notice.
+    """
+    out = pathlib.Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    man = _manifest(dest)
+    disk = _on_disk(dest)
+    stamp = (man or {}).get("run", {}) if isinstance(man, dict) else {}
+    manifest_sha = stamp.get("sha", "none")
+    fresh = (manifest_sha == sha and sha != "none")
+
+    L = [f"# vignette surface fetch - {sha} @{int(time.time())}",
+         "# Line 1 names the commit this was measured on. No spaces in any value.",
+         "# Every number here is measured from the files on disk, not copied "
+         "from the manifest.",
+         ""]
+    L.append(f"steps {steps or 'none-reported'}")
+    L.append(f"manifestRun={manifest_sha} thisRun={sha} "
+             f"manifestIsThisRun={'yes' if fresh else 'no'}")
+
+    named, rows, total_bytes = set(), [], 0
+    surfaces = (man or {}).get("surfaces", {}) if isinstance(man, dict) else {}
+    this_run = 0
+    for logical, s in sorted(surfaces.items()):
+        files = s.get("files", {})
+        got = []
+        for kind, fname in sorted(files.items()):
+            named.add(fname)
+            p = pathlib.Path(dest) / fname
+            if not p.exists():
+                got.append(f"{kind}/MISSING-FROM-DISK")
+                continue
+            blob = p.read_bytes()
+            total_bytes += len(blob)
+            dims = image_dims(blob)
+            got.append(f"{kind}/{dims[0]}x{dims[1]}x{dims[2]}ch"
+                       if dims else f"{kind}/UNREADABLE-HEADER")
+        if s.get("fetchedOnRun") == sha:
+            this_run += 1
+        rows.append(f"surface {logical} id={s.get('assetId', 'NONE')} "
+                    f"licence={(s.get('licence') or 'NONE').replace(' ', '-')} "
+                    f"res={s.get('resolution', 'NONE')} bom={s.get('bomLine', 'NONE')} "
+                    f"run={s.get('fetchedOnRun', 'unstamped')} "
+                    f"files={len(files)} measured={','.join(got) or 'none'}")
+    L.extend(rows)
+
+    unattributed = [p.name for p in disk if p.name not in named]
+    L.append(f"filesOnDisk={len(disk)} filesNamedByManifest={len(named)} "
+             f"unattributed={len(unattributed)}")
+    if unattributed:
+        L.append("UNATTRIBUTED " + ",".join(sorted(unattributed)[:20])
+                 + (f" (+{len(unattributed) - 20}-more-not-shown)"
+                    if len(unattributed) > 20 else ""))
+
+    if man is None:
+        L.append("NOTHING MEASURED - no ATTRIBUTION.json exists under "
+                 f"{pathlib.Path(dest).name}, so this run banked nothing and "
+                 "no older file is being read as its answer.")
+        L.append("done fetchVerdict=NOTHING-MEASURED surfaces=0 filesOnDisk="
+                 f"{len(disk)} bytes=0 surfacesThisRun=0")
+        out.write_text("\n".join(L) + "\n", encoding="utf-8")
+        print("\n".join(L))
+        return 1
+    if not fresh:
+        L.append("STALE - the manifest on disk was written by run "
+                 f"{manifest_sha}, not by {sha}. Nothing here was measured on "
+                 "this commit; do not read it as this run's answer.")
+    L.append(f"done fetchVerdict="
+             f"{'BANKED' if (fresh and this_run and not unattributed) else 'NOT-BANKED'} "
+             f"surfaces={len(surfaces)} surfacesThisRun={this_run} "
+             f"filesOnDisk={len(disk)} filesNamedByManifest={len(named)} "
+             f"unattributed={len(unattributed)} bytes={total_bytes}")
+    out.write_text("\n".join(L) + "\n", encoding="utf-8")
+    print("\n".join(L))
+    return 0 if (fresh and this_run and not unattributed) else 1
+
+
+def staged_files(sha="local", dest=DEST, out=VERDICT):
+    """The paths the workflow may `git add`, one per line, BY NAME.
+
+    Derived from the manifest, so a file that arrived without attribution is
+    never staged: the obligation and the bytes travel together or not at all.
+    A stale manifest stages nothing except the verdict, which is what says the
+    run measured nothing.
+    """
+    rel = pathlib.Path(out).relative_to(ROOT).as_posix()
+    lines = [rel]
+    man = _manifest(dest)
+    if isinstance(man, dict) and man.get("run", {}).get("sha") == sha:
+        d = pathlib.Path(dest)
+        lines.append((d / "ATTRIBUTION.json").relative_to(ROOT).as_posix())
+        for s in man.get("surfaces", {}).values():
+            for fname in s.get("files", {}).values():
+                if (d / fname).exists():
+                    lines.append((d / fname).relative_to(ROOT).as_posix())
+    for line in lines:
+        print(line)
+    return 0
 
 
 def selftest():
@@ -354,6 +521,56 @@ def selftest():
     if got != (2048, 1024, 3):
         print("  FAIL: dims must come from the file's own header"); bad = 1
 
+    # THE VERDICT, BOTH OUTCOMES, ON A SYNTHETIC DIRECTORY. The accepting
+    # fixture is a real 2x1 PNG named by a manifest stamped with the run;
+    # the rejecting fixtures are a directory with no manifest at all (which
+    # must print the words NOTHING MEASURED rather than a clean zero) and a
+    # file on disk that no manifest names, which is the one failure this
+    # directory can have that nothing else in the project would see.
+    import tempfile
+    png = (b"\x89PNG\r\n\x1a\x0a" + b"\x00" * 8 + struct.pack(">II", 2, 1)
+           + bytes([8, 2]))
+    with tempfile.TemporaryDirectory() as d:
+        dd = pathlib.Path(d) / "surfaces"
+        dd.mkdir()
+        out = pathlib.Path(d) / "fetch-verdict.txt"
+        rc = verdict("aaaaaaa", "fetch=skipped", dd, out)
+        text = out.read_text(encoding="utf-8")
+        print(f"\nREJECT: an empty destination -> {rc}")
+        if rc == 0 or "NOTHING MEASURED" not in text:
+            print("  FAIL: a run that measured nothing must say so and fail"); bad = 1
+        if "filesOnDisk=0" not in text:
+            print("  FAIL: the zero must ship its denominator"); bad = 1
+
+        (dd / "road_asphalt_Color.png").write_bytes(png)
+        (dd / "ATTRIBUTION.json").write_text(json.dumps({
+            "run": {"sha": "aaaaaaa"},
+            "surfaces": {"road_asphalt": {
+                "assetId": "Asphalt012", "licence": CC0_TEXT,
+                "resolution": "4K-JPG", "bomLine": "A2_road_asphalt_maps_upgrade",
+                "fetchedOnRun": "aaaaaaa",
+                "files": {"Color": "road_asphalt_Color.png"}}}}), encoding="utf-8")
+        rc = verdict("aaaaaaa", "fetch=0", dd, out)
+        text = out.read_text(encoding="utf-8")
+        print(f"\nACCEPT: one attributed, measured file -> {rc}")
+        if rc != 0 or "fetchVerdict=BANKED" not in text:
+            print("  FAIL: an attributed file measured on this run must pass"); bad = 1
+        if "measured=Color/2x1x3ch" not in text:
+            print("  FAIL: dims must be re-measured from the file's own header"); bad = 1
+        if " " in text.split("surface road_asphalt ")[1].split("licence=")[1].split()[0]:
+            print("  FAIL: no value may contain a space"); bad = 1
+
+        rc = verdict("bbbbbbb", "fetch=0", dd, out)
+        print(f"\nREJECT: the same directory read on a different commit -> {rc}")
+        if rc == 0 or "STALE" not in out.read_text(encoding="utf-8"):
+            print("  FAIL: a manifest from another run must not pass as this one"); bad = 1
+
+        (dd / "stowaway_Color.png").write_bytes(png)
+        rc = verdict("aaaaaaa", "fetch=0", dd, out)
+        print(f"\nREJECT: a file on disk that no manifest names -> {rc}")
+        if rc == 0 or "unattributed=1" not in out.read_text(encoding="utf-8"):
+            print("  FAIL: an unattributed file must fail the verdict"); bad = 1
+
     print("\nselftest " + ("FAILED" if bad else "ok"))
     return bad
 
@@ -365,10 +582,23 @@ def main():
     ap.add_argument("--probe", action="store_true",
                     help="ask ambientCG for every type and the open questions")
     ap.add_argument("--fetch", action="store_true", help="take the plan")
+    ap.add_argument("--verdict", action="store_true",
+                    help="write the committed evidence file from what is on disk")
+    ap.add_argument("--staged-files", action="store_true",
+                    help="print, one per line, the paths the fetch attributed")
+    ap.add_argument("--sha", default=(os.environ.get("GITHUB_SHA") or "")[:7] or "local",
+                    help="the commit this run is measuring, 7 chars")
+    ap.add_argument("--steps", default="",
+                    help="step outcomes as key=value pairs, no spaces, "
+                         "for example plan=0,probe=0,fetch=1,attribution=0")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
         return selftest()
+    if a.staged_files:
+        return staged_files(a.sha)
+    if a.verdict:
+        return verdict(a.sha, a.steps)
     if a.probe:
         return probe()
     if a.fetch:

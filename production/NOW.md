@@ -44,80 +44,52 @@ while nothing was watching. Read before assuming it needs anything:
   has not run and the `vignette-fetch-01` request is still pending Jafar's
   one click. Nothing to chase.
 
-## The budget stop is CLEARED, 2026-09-02 04:40Z
+## Where this is, 2026-09-02
 
-Jafar reported 17 percent. The night cost 9 points (8 to 17) and bought the
-constitution cut, the licence fix, the PC channel and a director review. At
-about 36 hours into 168 the week is 21 percent elapsed against 17 percent
-spent, so the pace is slightly under, not over. Work may resume.
+THE STREET VIGNETTE IS BUILT AND HAS NEVER BEEN RENDERED. That sentence is
+the whole state. `production/specs/vignette-scene.json` is the shared source,
+the Unity emitter places 546 pieces from 24 BOM lines, and the placement
+instrument reports `datumMissing=0/845`. Neither engine has drawn it.
 
-Queue 026 stands regardless: it is about what a stop COSTS while it holds,
-not about whether this one was right.
+The push that lands this batch DISPATCHES THREE JOBS on the one self-hosted
+runner: the UE probe (run 16, the first ever `-LedgerShot`), the vignette
+surface fetch, and a hand-dispatched Unity build. They run SERIAL, roughly 60
+to 80 minutes for all three, and the later two show "Queued". THAT IS A WAIT
+AND NOT A HANG; a job is hung only past its own timeout-minutes (115, 40,
+110). Watch by ancestry, and pull afterwards because the branch moves three
+times.
 
-## What landed after the batch, unattended
+Read `datumMissing` and `floatMax` BEFORE opening any still, then open all
+four. A green number is not a picture and a picture is not a measurement.
 
-A CC0 content fetch (`13c40d93`, Kenney kits) landed on top of the batch
-while nothing was watching. Read before assuming it needs anything:
+## The D1 question that is Jafar's, not the studio's
 
-- IT REGENERATED `ledger/Assets/Props/ATTRIBUTION.json`, AND THE DIRECTOR'S
-  D3 CORRECTION SURVIVED. That is the design being confirmed by accident
-  within the hour: D3 fixed the GENERATOR STRING as well as the committed
-  file, precisely so a regeneration could not quietly restore the false
-  "sources for every model in this directory" note. A hand edit alone would
-  have been gone by 00:30.
-- The stricter attribution sweep PASSES over the new content: 3848 walked
-  (was 3828), 2715 asset files (was 2703), 0 unclassified, exit 0. The new
-  kinds classified without a change, which is what the two-declared-sets
-  shape was for.
-- `pc-results` has NOT moved (still `e6f9f6f3`, 14 August), so the watcher
-  has not run and the `vignette-fetch-01` request is still pending Jafar's
-  one click. Nothing to chase.
+The director's read: a grey debug frame out of Unreal is likely within one to
+three runs if the 5.8 signatures hold. A TEXTURED frame of the shared scene
+through the UE generator, which is what a judged pair actually needs, is
+unlikely inside the timebox. What dominates is blind C++ on a 20-minute loop
+with no compiler in this container; what could blow it up is runtime
+materials in a content-less project, with the character import behind it.
 
-## If you are a watchdog firing while the stop below holds
+It recommends PRE-REGISTERING the close now, before any run, so the bar is
+not set after the result is known: if by 2026-09-12 12:00Z the pipeline has
+not committed one textured UE still of the shared scene, measurement (a)
+reads NOT TOLERABLE and D1 closes Unity on its own clause, with (b) recorded
+UNMEASURED. That is deliberately distinct from "cannot be measured", which
+was written for an external blocker.
 
-END IMMEDIATELY. Do not re-read the queue and do not re-reason about it. The
-stop is budget and only Jafar can clear it, by posting a usage number. It was
-established at 00:21 on 2 September, the brief was written and pushed, and
-three later firings re-derived the same answer at cost. That cost is queue
-item 026.
+JAFAR HAS NOT ANSWERED THIS. Under either reading the work is identical until
+he does, so it blocks nothing.
 
-The only thing that can change this is a number from Jafar in the
-conversation. If there is one, the stop is over; read `production/budget.md`
-and carry on.
+## Budget
+
+17 percent at 04:40Z against a week 24 percent elapsed, anchored Monday 14:00
+CEST. The mid-week reset on 1 September was an ANOMALY and must not be
+expected again; `production/budget.md` says so.
 
 ## In flight
 
-- Nothing running. Three builders and one director completed and their work
-  landed in one reviewed commit under the ruling
-  `game-design/decision-2026-09-02-constitution-cut-attribution-pc-channel.md`.
-- ON JAFAR'S PC, WAITING FOR ONE CLICK: `START THE STUDIO MACHINE.bat` at the
-  top of the project. A `fetch-the-vignette-surfaces` request is queued for
-  it. Clicking it fetches two CC0 surfaces, attributes them in the same run,
-  and prints whether the watcher will start itself at sign-in. It also
-  answers the dormancy question, which no amount of reading can: an idle
-  watcher and a dead one are indistinguishable until a request exists.
-
-## Waiting on Jafar
-
-1. A usage number. This is the blocker.
-2. One click on the bat above. Not blocking; the request waits.
-
-## What the director ruled tonight, so nobody re-opens it
-
-- The CLAUDE.md cut is SAFER than the file it replaced, and NOT YET SAFE. It
-  landed under a condition: queue 020 gives the pointers and the casebooks an
-  instrument. Until that exists the cut is trusted, not tested.
-- Step 4 is FOLDED. The 26 procedural lines go to the D1b shared scene
-  generator, which must exist anyway for the engine comparison. Step 4 is the
-  seven 2D image lines, now queue 025. The "runnable tonight" claim was
-  WITHDRAWN: `prompts.json` has no entry for any of the seven.
-- `director_cadence` keeps measuring the TREE. Measuring the staged set would
-  let a 459-line batch land as five 92-line commits. One exemption, 018(f): a
-  commit whose staged set touches no work prefix passes, with the tree total
-  printed beside the exemption, guarded by a new pre-commit hook.
-- The agent log grows a `stop` event, ONE instrument for its three consumers,
-  research first (queue 024). Step one is printing a payload nobody has read.
-- Do NOT dispatch `make-the-pictures`. There is nothing to make yet.
+- Nothing running.
 
 ## Standing hazards a fresh session will otherwise walk into
 

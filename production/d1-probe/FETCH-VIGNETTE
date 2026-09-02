@@ -1,0 +1,25 @@
+# The sentinel that runs .github/workflows/ledger-vignette-fetch.yml.
+#
+# Touching this file and pushing runs the D1b vignette's CC0 surface fetch on
+# Jafar's PC, on the self-hosted runner labelled `ledger-pc` that three other
+# workflows already use. It needs no click from him and no account: ambientCG
+# is CC0 and nothing here is purchased.
+#
+# It exists because a workflow_dispatch workflow must live on the default
+# branch to be dispatchable, and this one lives on the working branch by
+# standing instruction. Delete this file and the push trigger together when
+# the workflow reaches main.
+#
+# It sits HERE, beside DISPATCH, SETUP-MSVC and SETUP-BLENDER, and not in
+# production/assets/vignette/, because that directory is the job's OUTPUT and
+# a trigger inside an output directory is how a run re-fires itself.
+#
+# One line per run, appended, so the file is also the dispatch log.
+run 1 - 2026-09-02 - not yet dispatched. The first run answers four things in
+one round trip: does the committed spec still resolve (--plan), what does
+ambientCG hold in the eight asset types the committed catalogue never asked
+about (--probe, which is what closes A4 tarmac patch and C4 pebbledash), do
+the two resolved surfaces land attributed (--fetch: Asphalt012 at 4K-JPG and
+CorrugatedSteel002 at 4K-JPG), and does the attribution sweep still pass with
+them on disk. The verdict is committed to
+production/assets/vignette/fetch-verdict.txt with the commit on line 1.

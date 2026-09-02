@@ -67,3 +67,7 @@ GameCheck/obj/
 # committed second copy is two copies of one thing, and data drifts the same
 # way code does.
 Assets/StreamingAssets/Voice/
+# The D1b street vignette scene, staged from production/specs by
+# tools/stage-vignette-scene.py. ONE source in git, copied to where
+# Unity carries it; a second committed copy would be a second street.
+Assets/StreamingAssets/Vignette/

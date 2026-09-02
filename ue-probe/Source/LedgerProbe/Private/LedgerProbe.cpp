@@ -11,6 +11,7 @@
 // is why the sim's verdict is a file rather than a log tail.
 #include "LedgerProbe.h"
 #include "Perception.h"
+#include "FrameStats.h"
 
 #include "Misc/Paths.h"
 #include "Misc/FileHelper.h"
@@ -22,6 +23,23 @@
 #include "Containers/Ticker.h"
 #include "UnrealClient.h"
 #include "HAL/FileManager.h"
+#include "HAL/PlatformTime.h"
+
+// THE STILL'S DEPENDENCIES, AND EVERY ONE OF THEM IS A COST ON THE CYCLE
+// THIS PROBE EXISTS TO MEASURE. Engine, World and PlayerController are the
+// world and the view; CameraActor is the placed camera of step 3;
+// DrawDebugHelpers is the only way to put known colour into a frame in a
+// project that deliberately has no Content directory; the two ImageWrapper
+// headers decode the PNG this run is about to commit, because a file-exists
+// check is not a measurement.
+#include "Engine/Engine.h"
+#include "Engine/World.h"
+#include "GameFramework/PlayerController.h"
+#include "Camera/CameraActor.h"
+#include "DrawDebugHelpers.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
+#include "Modules/ModuleManager.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -123,82 +141,452 @@ namespace
 		FFileHelper::SaveStringToFile(FString::Join(Out, TEXT("\n")) + TEXT("\n"), *Path);
 	}
 
-	// TASK 007 STEP 2: ONE STILL, OFFSCREEN. THE PICTURE IS NOT THE POINT.
+	// TASK 007 STEPS 2 AND 3: ONE STILL, OFFSCREEN, MEASURED IN PIXELS.
 	//
-	// The spec is explicit that content is irrelevant at this stage: the
-	// default map is an engine map and the frame will be nearly empty. What
-	// is being proved is that a capture happens, a file appears, and the
-	// file can be committed with provenance. A grey box photographed
-	// correctly beats a good-looking screenshot nothing can trace.
+	// THE DELIVERABLE IS THE CHANNEL, NOT A PRETTY FRAME. A grey box
+	// photographed correctly, with provenance and a number, beats a
+	// good-looking screenshot nothing can trace.
 	//
-	// THIS CANNOT RUN AT MODULE STARTUP AND THAT IS THE WHOLE DESIGN.
-	// RequestScreenshot is ASYNCHRONOUS: it flags the next rendered frame.
-	// The golden test can write its file and quit immediately because it
-	// touches nothing but arithmetic; a screenshot needs the engine to
-	// actually render, so this ticks, requests, waits, checks and only then
-	// asks to exit.
+	// IT IS -RenderOffScreen AND NOT -nullrhi, WHICH ARE OPPOSITE THINGS.
+	// nullrhi means no rendering at all, which is correct for the golden
+	// test above and useless here; RenderOffScreen renders with no window.
+	// Getting that backwards looks like success and produces nothing, or
+	// produces a black frame that a file-exists check calls a pass. The two
+	// are separate invocations on purpose, each with its own switch, so the
+	// golden path that already works cannot be disturbed by the half that
+	// is still being proved.
 	//
-	// IT IS ALSO -RenderOffScreen AND NOT -nullrhi, WHICH ARE OPPOSITE
-	// THINGS. nullrhi means no rendering at all, which is correct for the
-	// golden test and useless here. The workflow passes the right one for
-	// each invocation and they are separate runs on purpose.
+	// A FILE-EXISTS CHECK IS NOT A MEASUREMENT, so this decodes the PNG it
+	// is about to commit and prints statistics over its pixels. A blank or
+	// uniform frame reports shotStatus=BLANK and the step that runs it
+	// exits non-zero. What each number is a statistic OF is written beside
+	// the emit and repeated as a comment line in the verdict itself.
 	//
-	// The whole thing is behind its own switch so it cannot disturb the
-	// golden path, which works and is the more important of the two.
-	FTSTicker::FDelegateHandle GShotTicker;
-	int32   GShotFrames   = 0;
-	bool    GShotAsked    = false;
-	FString GShotPath;
+	// THIS CANNOT RUN AT MODULE STARTUP AND THAT IS THE WHOLE DESIGN. The
+	// golden test writes a file and quits because it touches nothing but
+	// arithmetic. A screenshot needs a world, a view and rendered frames,
+	// so this is a small state machine on the core ticker: wait for a
+	// world, place a camera and draw something with known colour into it,
+	// let the renderer settle, ask, wait, measure, exit. Every phase has a
+	// wall-clock ceiling and every ceiling that bites is named in the
+	// verdict rather than reported as a generic failure.
+	enum class EShotPhase : uint8
+	{
+		WaitWorld,
+		Settle,
+		WaitFileA,
+		WaitFileB,
+		Finished
+	};
 
-	void WriteShotVerdict(const TCHAR* Status, int32 Frames, int64 Bytes)
+	FTSTicker::FDelegateHandle GShotTicker;
+	EShotPhase GShotPhase   = EShotPhase::WaitWorld;
+	int32      GShotTicks   = 0;      // cumulative ticker calls since startup
+	double     GShotStart   = 0.0;    // seconds, when the ticker was armed
+	double     GPhaseStart  = 0.0;    // seconds, when the current phase began
+	FString    GShotAsked;            // absolute path handed to the engine
+	FString    GShotCamLine = TEXT("shotCamPlaced=NOT-REACHED");
+	FString    GShotAttempt = TEXT("NONE");
+	FString    GShotNote    = TEXT("none");
+	int64      GSizeAskedPath = -1;   // last polled size of the requested path
+	int64      GSizeFoundPath = -1;   // last polled size of whatever was found
+
+	// Ceilings, in seconds, on a hang. Not targets, and each one prints the
+	// phase it killed so a slow world and a world that never came cannot
+	// read alike.
+	const double kWorldCeiling  = 45.0;
+	const double kSettleSeconds = 2.0;
+	const double kFileCeiling   = 25.0;
+
+	// A FILE THAT EXISTS IS NOT A FILE THAT IS FINISHED. The engine writes
+	// the PNG on the game thread between two of these ticks, so a poll can
+	// land on a half-written file and the decode would then report
+	// UNDECODABLE for a screenshot that was perfectly fine a millisecond
+	// later. Two consecutive polls agreeing on a non-zero size is the cheap
+	// version of waiting for the writer, and it costs one frame.
+	bool SizeSettled(const FString& Path, int64& Tracker)
+	{
+		const int64 Size = IFileManager::Get().FileSize(*Path);
+		if (Size <= 0) { Tracker = -1; return false; }
+		const bool bSame = (Size == Tracker);
+		Tracker = Size;
+		return bSame;
+	}
+
+	FString AbsProject(const TCHAR* Leaf)
+	{
+		return FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectDir(), Leaf));
+	}
+
+	FString NoSpaces(const FString& In) { return In.Replace(TEXT(" "), TEXT("~")); }
+
+	FString ShotSha()
 	{
 		FString Sha;
 		if (!FParse::Value(FCommandLine::Get(), TEXT("LedgerCommit="), Sha) || Sha.IsEmpty())
 		{
 			Sha = TEXT("SHA-UNKNOWN");
 		}
-		const FString Path = FPaths::Combine(FPaths::ProjectDir(), TEXT("ue-shot-verdict.txt"));
-		const FString Body = FString::Printf(
-			TEXT("# UE probe shot %s @%lld\n")
-			TEXT("# Line 1 names the commit this was measured on.\n\n")
-			TEXT("shotStatus=%s shotFramesWaited=%d shotBytes=%lld shotPath=%s\n")
-			TEXT("shotReached=end\n"),
-			*Sha.Replace(TEXT(" "), TEXT("~")),
-			(long long)FDateTime::UtcNow().ToUnixTimestamp(),
-			Status, Frames, (long long)Bytes,
-			GShotPath.IsEmpty() ? TEXT("NONE")
-			                    : *FPaths::GetCleanFilename(GShotPath));
-		FFileHelper::SaveStringToFile(Body, *Path);
+		return NoSpaces(Sha);
+	}
+
+	// THE GAME WORLD, ASKED FOR RATHER THAN ASSUMED. GWorld would do today
+	// and is a guess about tomorrow; a world context of type Game is the
+	// thing actually being looked for and the loop says so.
+	UWorld* GameWorld()
+	{
+		if (!GEngine) { return nullptr; }
+		for (const FWorldContext& Ctx : GEngine->GetWorldContexts())
+		{
+			if (Ctx.WorldType == EWorldType::Game && Ctx.World() != nullptr)
+			{
+				return Ctx.World();
+			}
+		}
+		return nullptr;
+	}
+
+	// THE VERDICT. Same four properties as the golden one: line 1 names the
+	// commit, no value carries a space, whole-run numbers sit on one line,
+	// and a run that measured nothing says the words.
+	void WriteShotVerdict(const FString& DoneLine, const FString& Art)
+	{
+		TArray<FString> Out;
+		Out.Add(FString::Printf(TEXT("# UE probe shot %s @%lld"),
+		                        *ShotSha(), (long long)FDateTime::UtcNow().ToUnixTimestamp()));
+		Out.Add(TEXT("# Line 1 names the commit this was measured on, as the Unity verdict does."));
+		Out.Add(TEXT("# shotMeanLuma: mean over EVERY pixel of the committed file, 0 to 1,"));
+		Out.Add(TEXT("#   luma=(0.299R+0.587G+0.114B)/255, the same weights the Unity sim uses."));
+		Out.Add(TEXT("# shotMinLuma/shotMaxLuma: extremes over the same pixel set."));
+		Out.Add(TEXT("# shotNonBlackPct: percent of shotPixels with any channel above zero."));
+		Out.Add(TEXT("# shotDistinctBuckets: distinct 5-bit-per-channel colour buckets, of 32768."));
+		Out.Add(TEXT("# shotStatus=WROTE needs a decoded file with more than one bucket and"));
+		Out.Add(TEXT("#   at least one non-black pixel. Anything else is BLANK, UNDECODABLE or"));
+		Out.Add(TEXT("#   NO-FILE, and the step that ran this exits non-zero for all three."));
+		Out.Add(TEXT(""));
+		Out.Add(GShotCamLine);
+		Out.Add(DoneLine);
+		if (!Art.IsEmpty())
+		{
+			Out.Add(TEXT("# ascii-luma of the committed frame, 48x27 cells, top row first."));
+			Out.Add(Art);
+		}
+		Out.Add(TEXT("shotReached=end"));
+		const FString Body = FString::Join(Out, TEXT("\n")) + TEXT("\n");
+
+		// WRITTEN WHERE BOTH KINDS OF RUN CAN BE FOUND. A packaged build's
+		// ProjectDir is the staged tree; the step looks in both and says
+		// which answered, exactly as the golden result is collected.
+		FFileHelper::SaveStringToFile(Body, *AbsProject(TEXT("ue-shot-verdict.txt")));
+		const FString BesideExe = FPaths::Combine(
+			FPaths::GetPath(FPlatformProcess::ExecutablePath()), TEXT("ue-shot-verdict.txt"));
+		FFileHelper::SaveStringToFile(Body, *BesideExe);
+	}
+
+	void FinishShot(const FString& DoneLine, const FString& Art)
+	{
+		GShotPhase = EShotPhase::Finished;
+		WriteShotVerdict(DoneLine, Art);
+		FPlatformMisc::RequestExit(false);
+	}
+
+	// DECODE THE FILE THAT IS ABOUT TO BE COMMITTED, not the buffer the
+	// engine had in memory. OnScreenshotCaptured would hand over the pixels
+	// directly and would also SUPPRESS the engine's own file write, which
+	// would leave a measurement with no artifact beside it. Reading the
+	// artifact back is rule 4 and it makes the two the same thing.
+	bool DecodeBgra(const FString& PngPath, TArray64<uint8>& OutBgra, int32& OutW, int32& OutH)
+	{
+		TArray<uint8> Compressed;
+		if (!FFileHelper::LoadFileToArray(Compressed, *PngPath) || Compressed.Num() == 0)
+		{
+			// EVERY REFUSAL NAMES ITSELF. A note left at its default would
+			// make "the file would not open" and "the decoder said no" the
+			// same sentence in the verdict, and they have different fixes.
+			GShotNote = TEXT("file-would-not-load-or-was-empty");
+			return false;
+		}
+		IImageWrapperModule* Mod =
+			FModuleManager::Get().LoadModulePtr<IImageWrapperModule>(FName("ImageWrapper"));
+		if (Mod == nullptr) { GShotNote = TEXT("imagewrapper-module-missing"); return false; }
+		TSharedPtr<IImageWrapper> Wrapper = Mod->CreateImageWrapper(EImageFormat::PNG);
+		if (!Wrapper.IsValid()) { GShotNote = TEXT("no-png-wrapper"); return false; }
+		if (!Wrapper->SetCompressed(Compressed.GetData(), (int64)Compressed.Num()))
+		{
+			GShotNote = TEXT("setcompressed-refused-the-bytes");
+			return false;
+		}
+		OutW = Wrapper->GetWidth();
+		OutH = Wrapper->GetHeight();
+		if (OutW <= 0 || OutH <= 0) { GShotNote = TEXT("decoded-size-was-zero"); return false; }
+		if (!Wrapper->GetRaw(ERGBFormat::BGRA, 8, OutBgra))
+		{
+			GShotNote = TEXT("getraw-refused");
+			return false;
+		}
+		return OutBgra.Num() >= (int64)OutW * (int64)OutH * 4;
+	}
+
+	// MEASURE, THEN JUDGE, AND THE MATHS IS NOT WRITTEN HERE.
+	//
+	// Every number and every character of the done line comes from
+	// FrameStats.h, which has no Unreal type in it and is compiled and RUN
+	// by ue-probe/tests/frame-stats-test.cpp with g++ before any dispatch.
+	// This layer supplies pixels and live state and nothing else, which is
+	// the standing rule for a project whose top layer does not compile
+	// locally: a formatter that ships unrun and prints a plausible string is
+	// the silent-instrument failure, and the blank guard is a formatter with
+	// a verdict attached.
+	//
+	// The series is printed whatever the verdict says, because the next
+	// bound anybody sets on frame content has to come from real runs.
+	void MeasureAndFinish(const FString& PngPath, double WaitedSeconds)
+	{
+		const int64 Bytes = IFileManager::Get().FileSize(*PngPath);
+		const std::string Attempt(TCHAR_TO_UTF8(*GShotAttempt));
+		const std::string File(TCHAR_TO_UTF8(*NoSpaces(FPaths::GetCleanFilename(PngPath))));
+		TArray64<uint8> Bgra;
+		int32 W = 0, H = 0;
+		if (!DecodeBgra(PngPath, Bgra, W, H))
+		{
+			// A FILE THAT WILL NOT DECODE IS NOT A FRAME, and it is a
+			// different fact from no file at all, so it gets its own status
+			// rather than being folded into either neighbour.
+			FinishShot(FString::Printf(
+				TEXT("shotStatus=UNDECODABLE shotAttempt=%s shotFile=%s shotBytes=%lld ")
+				TEXT("shotPixels=0 shotSecondsWaited=%.2f shotTicks=%d shotNote=%s"),
+				*GShotAttempt, *NoSpaces(FPaths::GetCleanFilename(PngPath)),
+				(long long)Bytes, WaitedSeconds, GShotTicks, *GShotNote),
+				FString());
+			return;
+		}
+
+		const LedgerFrame::FrameStats Stats =
+			LedgerFrame::Measure((const unsigned char*)Bgra.GetData(), W, H);
+		const std::string Done = LedgerFrame::DoneLine(
+			Stats, Attempt, File, (long long)Bytes, WaitedSeconds, GShotTicks,
+			std::string(TCHAR_TO_UTF8(*GShotNote)));
+		const std::string Art = LedgerFrame::AsciiLuma((const unsigned char*)Bgra.GetData(), W, H);
+
+		// ONE NAME FOR THE FILE THE STEP COLLECTS, whatever produced it.
+		// HighResShot picks its own path under Saved/Screenshots and
+		// RequestScreenshot writes where it was told; the step should not
+		// have to know which won, so the winner is copied to the fixed name
+		// and the verdict says where it came from.
+		const FString Fixed = AbsProject(TEXT("ue-shot.png"));
+		if (PngPath != Fixed)
+		{
+			IFileManager::Get().Copy(*Fixed, *PngPath, true, true);
+		}
+		FinishShot(FString(UTF8_TO_TCHAR(Done.c_str())), FString(UTF8_TO_TCHAR(Art.c_str())));
+	}
+
+	// THE NEWEST PNG UNDER A DIRECTORY, NAMED. HighResShot chooses its own
+	// filename, so the file has to be found rather than assumed, and an
+	// unordered pick would let an older screenshot from a previous run pass
+	// as this one. The project's Saved tree is cleared by the workflow
+	// before the run, and this takes the newest regardless.
+	FString NewestPngUnder(const FString& Dir, int32& OutCount)
+	{
+		TArray<FString> Found;
+		IFileManager::Get().FindFilesRecursive(Found, *Dir, TEXT("*.png"), true, false, false);
+		OutCount = Found.Num();
+		FString Best;
+		FDateTime BestTime = FDateTime::MinValue();
+		for (const FString& F : Found)
+		{
+			const FDateTime T = IFileManager::Get().GetTimeStamp(*F);
+			if (Best.IsEmpty() || T > BestTime) { Best = F; BestTime = T; }
+		}
+		return Best;
+	}
+
+	// SOMETHING TO PHOTOGRAPH, BUILT FROM CODE AND NO ASSETS. The probe
+	// project has no Content directory by design, so the frame's contents
+	// cannot come from a mesh. Two independent paths put known colour into
+	// the frame: debug geometry, which travels through the scene renderer,
+	// and on-screen debug messages, which travel through the viewport
+	// canvas. If one of them turns out not to reach an offscreen frame the
+	// other still does, and one round trip learns which.
+	void PlaceCameraAndDrawContent(UWorld* World)
+	{
+		if (World == nullptr)
+		{
+			GShotCamLine = TEXT("shotCamPlaced=NO-WORLD shotCamReason=no-game-world-context-appeared");
+			return;
+		}
+		APlayerController* PC = World->GetFirstPlayerController();
+		if (PC == nullptr)
+		{
+			GShotCamLine = TEXT("shotCamPlaced=NO-PC shotCamReason=world-without-a-player-controller");
+		}
+		else
+		{
+			// TASK 007 STEP 3: A PLACED CAMERA, AND THE PLACEMENT IS READ
+			// BACK. Asking for a transform and printing the transform you
+			// asked for is not evidence that anything moved. The view point
+			// is read from the controller AFTER the switch and both are
+			// printed with the distance between them.
+			const FVector  Want(0.0, 0.0, 180.0);
+			const FRotator WantRot(-10.0, 0.0, 0.0);
+			ACameraActor* Cam = World->SpawnActor<ACameraActor>(
+				ACameraActor::StaticClass(), Want, WantRot);
+			if (Cam != nullptr)
+			{
+				PC->SetViewTarget(Cam);
+			}
+			FVector  GotLoc = FVector::ZeroVector;
+			FRotator GotRot = FRotator::ZeroRotator;
+			PC->GetPlayerViewPoint(GotLoc, GotRot);
+			GShotCamLine = FString::Printf(
+				TEXT("shotCamPlaced=%s shotCamAskedXYZ=%.1f/%.1f/%.1f shotCamReadXYZ=%.1f/%.1f/%.1f ")
+				TEXT("shotCamDeltaCm=%.2f shotCamAskedPitchYaw=%.1f/%.1f shotCamReadPitchYaw=%.1f/%.1f ")
+				TEXT("shotWorld=%s"),
+				Cam != nullptr ? TEXT("yes") : TEXT("SPAWN-FAILED"),
+				Want.X, Want.Y, Want.Z, GotLoc.X, GotLoc.Y, GotLoc.Z,
+				FVector::Dist(Want, GotLoc), WantRot.Pitch, WantRot.Yaw,
+				GotRot.Pitch, GotRot.Yaw, *NoSpaces(World->GetMapName()));
+		}
+
+		// A CROSS, A BOX AND A GRID IN FRONT OF THE VIEW, in colours nothing
+		// else in an empty map produces. Persistent, so they survive every
+		// frame between here and the capture.
+		const FVector Eye(0.0, 0.0, 180.0);
+		const FVector Centre = Eye + FVector(600.0, 0.0, -40.0);
+		DrawDebugBox(World, Centre, FVector(120.0, 120.0, 120.0), FColor(255, 80, 40), true, -1.0f, 0, 12.0f);
+		DrawDebugLine(World, Centre + FVector(0, -400, -160), Centre + FVector(0, 400, -160),
+		              FColor(60, 220, 255), true, -1.0f, 0, 14.0f);
+		DrawDebugLine(World, Centre + FVector(0, 0, -300), Centre + FVector(0, 0, 300),
+		              FColor(255, 240, 60), true, -1.0f, 0, 14.0f);
+		for (int32 I = -4; I <= 4; ++I)
+		{
+			DrawDebugLine(World, Eye + FVector(200, I * 120.0, -160), Eye + FVector(1600, I * 120.0, -160),
+			              FColor(90, 200, 90), true, -1.0f, 0, 6.0f);
+			DrawDebugLine(World, Eye + FVector(200 + (I + 4) * 175.0, -480, -160),
+			              Eye + FVector(200 + (I + 4) * 175.0, 480, -160),
+			              FColor(90, 200, 90), true, -1.0f, 0, 6.0f);
+		}
+
+		// The canvas path. Twenty lines rather than one so that a frame
+		// carrying only this still has pixels to count.
+		if (GEngine != nullptr)
+		{
+			GEngine->bEnableOnScreenDebugMessages = true;
+			for (int32 I = 0; I < 20; ++I)
+			{
+				GEngine->AddOnScreenDebugMessage(
+					(uint64)(1000 + I), 300.0f, FColor(255, 255, 0),
+					FString::Printf(TEXT("LEDGER D1 UE PROBE SHOT %s LINE %02d"), *ShotSha(), I));
+			}
+		}
 	}
 
 	bool ShotTick(float)
 	{
-		++GShotFrames;
-		// A few frames to let the renderer settle before asking. The number
-		// is small and arbitrary and is printed, so if it turns out to be
-		// too few the verdict says how few rather than leaving a guess.
-		if (!GShotAsked && GShotFrames >= 10)
+		++GShotTicks;
+		const double Now = FPlatformTime::Seconds();
+		if (GShotStart == 0.0) { GShotStart = Now; GPhaseStart = Now; }
+
+		switch (GShotPhase)
 		{
-			GShotAsked = true;
-			GShotPath = FPaths::Combine(FPaths::ProjectDir(), TEXT("ue-shot.png"));
-			IFileManager::Get().Delete(*GShotPath, false, true, true);
-			FScreenshotRequest::RequestScreenshot(GShotPath, false, false);
+		case EShotPhase::WaitWorld:
+		{
+			UWorld* World = GameWorld();
+			const bool bTimedOut = (Now - GPhaseStart) > kWorldCeiling;
+			if (World == nullptr && !bTimedOut) { return true; }
+			// A WORLD THAT NEVER CAME IS NOT A REASON TO SKIP THE CAPTURE.
+			// The question this run exists to answer is whether a still can
+			// be taken and committed at all; a black frame with a named
+			// reason is a finding, a run that stopped early is not.
+			if (World == nullptr) { GShotNote = TEXT("world-ceiling-bit-at-45s"); }
+			PlaceCameraAndDrawContent(World);
+			GShotPhase = EShotPhase::Settle;
+			GPhaseStart = Now;
 			return true;
 		}
-		if (GShotAsked && GShotFrames >= 90)
+		case EShotPhase::Settle:
 		{
-			// EIGHTY FRAMES IS A CEILING ON A HANG, NOT A TARGET, and the
-			// two outcomes are named differently so a slow capture and a
-			// capture that never happened cannot read alike.
-			const int64 Bytes = IFileManager::Get().FileSize(*GShotPath);
-			WriteShotVerdict(Bytes > 0 ? TEXT("WROTE") : TEXT("NO-FILE"), GShotFrames, Bytes);
-			FPlatformMisc::RequestExit(false);
-			// Returning false unregisters this ticker. Calling RemoveTicker
-			// from inside the callback as well would be removing it twice,
-			// and the tidier-looking version is the one that can go wrong.
+			if ((Now - GPhaseStart) < kSettleSeconds || GShotTicks < 10) { return true; }
+			GShotAsked = AbsProject(TEXT("ue-shot.png"));
+			IFileManager::Get().Delete(*GShotAsked, false, true, true);
+			// ATTEMPT A: FScreenshotRequest, the first of the two candidates
+			// the spec named. bShowUI is false: the viewport read includes
+			// the scene and the debug canvas, which is everything drawn
+			// above, and the Slate path is the one with more moving parts.
+			// AN ABSOLUTE PATH ON PURPOSE: a relative one is resolved
+			// against the engine's screenshot directory, which would put the
+			// file somewhere the step is not looking and read as no file.
+			FScreenshotRequest::RequestScreenshot(GShotAsked, false, false);
+			GShotAttempt = TEXT("FScreenshotRequest::RequestScreenshot");
+			GShotPhase = EShotPhase::WaitFileA;
+			GPhaseStart = Now;
+			return true;
+		}
+		case EShotPhase::WaitFileA:
+		{
+			if (SizeSettled(GShotAsked, GSizeAskedPath))
+			{
+				MeasureAndFinish(GShotAsked, Now - GShotStart);
+				return false;
+			}
+			if ((Now - GPhaseStart) < kFileCeiling) { return true; }
+			// ATTEMPT B: the other candidate. Both are documented, neither
+			// had ever been run here, and the spec says the first build to
+			// try must print which one it used and whether a file appeared.
+			// Running both in one dispatch answers that in one round trip
+			// instead of two.
+			GShotNote = TEXT("requestScreenshot-wrote-nothing-in-25s");
+			UWorld* ExecWorld = GameWorld();
+			if (GEngine != nullptr && ExecWorld != nullptr)
+			{
+				GEngine->Exec(ExecWorld, TEXT("HighResShot 960x540"));
+				GShotAttempt = TEXT("HighResShot");
+			}
+			else
+			{
+				// A SECOND CANDIDATE THAT COULD NOT BE TRIED IS NOT A
+				// CANDIDATE THAT FAILED, and the two must not read alike.
+				GShotAttempt = TEXT("HighResShot-NOT-TRIED-no-world");
+			}
+			GShotPhase = EShotPhase::WaitFileB;
+			GPhaseStart = Now;
+			return true;
+		}
+		case EShotPhase::WaitFileB:
+		{
+			// THE FIRST CANDIDATE IS STILL CHECKED HERE. A slow write that
+			// landed just after its ceiling bit would otherwise be reported
+			// as no file at all while the file sat on disk, which is the
+			// instrument lying about the thing it is watching.
+			if (SizeSettled(GShotAsked, GSizeAskedPath))
+			{
+				GShotAttempt = TEXT("FScreenshotRequest::RequestScreenshot-late");
+				MeasureAndFinish(GShotAsked, Now - GShotStart);
+				return false;
+			}
+			int32 Count = 0;
+			const FString Newest = NewestPngUnder(
+				FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir()), Count);
+			if (!Newest.IsEmpty() && SizeSettled(Newest, GSizeFoundPath))
+			{
+				MeasureAndFinish(Newest, Now - GShotStart);
+				return false;
+			}
+			if ((Now - GPhaseStart) < kFileCeiling) { return true; }
+			// NOTHING MEASURED, IN WORDS, WITH THE DENOMINATOR OF THE SEARCH:
+			// two named places were looked in and this is how many PNGs the
+			// recursive one held.
+			FinishShot(FString::Printf(
+				TEXT("shotStatus=NO-FILE shotAttempt=%s shotPlacesSearched=2 shotPngsUnderSaved=%d ")
+				TEXT("shotPixels=0 shotSecondsWaited=%.2f shotTicks=%d ")
+				TEXT("shotNote=nothing-measured-neither-candidate-wrote-a-file"),
+				*GShotAttempt, Count, Now - GShotStart, GShotTicks),
+				FString());
 			return false;
 		}
-		return true;
+		default:
+			return false;
+		}
 	}
 
 	void StartShot()

@@ -130,3 +130,26 @@ show the shared copy behaves for both. Nothing else in the probe changed.
 Run 14 already answered what it was dispatched for: the UE verdict lands,
 names its commit, and tools/verdict-read.py opens it with every refusal
 intact.
+run 16 - 2026-09-02 - TASK 007 STEPS 2 AND 3: THE FRAME. Step 1 proved a
+traceable verdict lands; this is the still, and it is the piece the whole D1
+comparison rests on, because an instrumented engine measured against an
+uninstrumented one is worthless whichever way it lands. The capture is a
+SEPARATE INVOCATION under -RenderOffScreen, never -nullrhi, which are opposite
+things: nullrhi renders nothing and is correct for the golden test. It is a
+SEPARATE STEP as well, because the build step measured 22040 characters
+against a dispatch ceiling of 23184 and GitHub enforces that at dispatch, not
+at commit. Two capture candidates ride this one run rather than two:
+FScreenshotRequest first, HighResShot if the first writes nothing in 25s, and
+the verdict names which one produced the file. A FILE-EXISTS CHECK IS NOT A
+MEASUREMENT, so the binary decodes the PNG it is about to commit and prints
+meanLuma over every pixel, min and max, non-black pixels over their
+denominator, and distinct 5-bit colour buckets of 32768; one bucket or no
+non-black pixel is BLANK and the step exits non-zero with the evidence still
+committed. The maths and the done line live in FrameStats.h, which has no
+Unreal type in it and is compiled and RUN by g++ here before dispatch: 25
+checks, accepting case first, including the uniform grey frame that a
+non-black check alone would pass. The frame's content is code-drawn debug
+geometry and on-screen messages, two independent paths, because the probe has
+no Content directory by design. UNRUN UNTIL THIS RUN: whether a packaged game
+renders offscreen on that machine at all, whether either capture candidate
+writes a file, and whether /Engine/Maps/Entry gives a world with a view.

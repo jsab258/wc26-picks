@@ -1,0 +1,469 @@
+{
+  "schema": 1,
+  "name": "vignette-street",
+  "written": "2026-09-02",
+  "scope": "The D1b street vignette and nothing else, per game-design/decision-D1b-rescope.md.",
+  "law": "THIS FILE IS THE SCENE. Every object in either engine arrives via that engine's generator reading THIS file. A hand-placed object, a hand-edited binary scene or a hand-edited uasset disqualifies the still as D1b evidence, so a dimension that is not here may not be invented in an emitter.",
+  "bill_of_materials": "production/specs/vignette-bill-of-materials.json. Every emitted piece carries the id of the BOM line that authorises it; the 26 lines with make_by=PROC are the ones this file drives.",
+  "period": {
+    "years": "1988 to 1992",
+    "note": "Late analog Britain. Landlines, cash, paper. Nothing on this street may imply a mobile phone, the internet, a wheeled refuse bin, or blister tactile paving, whose introduction date is unverified and which the BOM excludes for that reason."
+  },
+
+  "frame": {
+    "units": "metres",
+    "x": "along the street. 0 at the south end, +x north. cam_A looks up +x.",
+    "y": "up. y=0 is the carriageway CROWN at the centreline, so the channel is below zero and the footway above it. Every other level in this file is derived from the section by the generator, never written twice.",
+    "z": "across the street. z=0 is the crown. +z is the EAST side, which carries the shop frontage. -z is the WEST side, which cam_B stands on.",
+    "yaw_deg": "compass-style about +y, measured from +x. 0 faces +x, 90 faces +z. Each engine converts to its own convention in its emitter and nowhere else.",
+    "pitch_deg": "positive is DOWN, matching the RefTour convention already in SimDirector.",
+    "handedness_note": "This frame is engine-neutral on purpose. Unity is Y-up left-handed metres and Unreal is Z-up left-handed centimetres, so both emitters convert on read. Writing the scene in either engine's native frame would make the other emitter the one that carries the error."
+  },
+
+  "dimension_provenance": {
+    "what": "Where each class of number in this file comes from, because a plausible number with no provenance is the thing rule 2 exists to stop.",
+    "derived": "Computed in this file's notes from a stated physical fact: the sodium colour, the sun elevation, the aerial element length, the brick course, the two camera pitches, every level in the street section. Read the note beside the number.",
+    "measured": "Copied from a measurement already printed in this repository, with the source named: the 0.40 m gully grate and the 5 to 6 m lighting column both come from production/specs/vignette-bill-of-materials.json.",
+    "trade_standard": "British building and highway trade sizes recalled and NOT verified against BS 7263, BS 5489 or the Design Manual for Roads and Bridges from this container, which has no access to them. Every one is flagged trade_standard in its note. They are the class of number most likely to be wrong, and the instrument that settles them is an eye check on the committed still by someone who has stood on a British pavement, which is a named next step and not a claim made here.",
+    "judgement": "Composition choices with no right answer: street length, how many bays, where the kiosk stands. Flagged judgement in the note. Changing one changes the picture and no gate."
+  },
+
+  "street": {
+    "length_m": 42.0,
+    "length_note": "judgement. Long enough that cam_A has a kerb line running to a vanishing point through the fog, short enough that the whole vignette is one dispatch. The blocks occupy 3.0 to 39.0, so the road runs past them at both ends and the frame has no visible edge of the world.",
+
+    "carriageway": {
+      "half_width_m": 3.0,
+      "crossfall": 0.025,
+      "surface": "asphalt",
+      "note": "trade_standard. Two 3.0 m lanes is the common British two-way residential carriageway; 6.0 m overall is a narrow shopping parade rather than a distributor road. The crossfall is 1 in 40, the value British road practice uses for a straight carriageway. DERIVED CONSEQUENCE: the crown stands 3.0 x 0.025 = 0.075 m above the channel, and that 75 mm is the whole reason A0 exists. A flat carriageway puts the wet-condition water everywhere instead of at the kerb."
+    },
+
+    "channel": {
+      "width_m": 0.255,
+      "surface": "kerb",
+      "note": "trade_standard. The channel course beside the kerb, 255 mm wide, laid at the same crossfall as the carriageway and in the kerb's own concrete rather than asphalt. It is the strip the gutter water runs in and it reads as a different material in every British street photograph."
+    },
+
+    "kerb": {
+      "upstand_m": 0.125,
+      "width_m": 0.125,
+      "depth_m": 0.255,
+      "block_length_m": 0.915,
+      "surface": "kerb",
+      "note": "trade_standard. 125 mm face is the standard British kerb upstand; the block is 125 x 255 in section and 915 mm long, which is why a British kerb line has a joint every 915 mm and an American one does not. The face is emitted SQUARE, not half-battered: the batter is a chamfer of about 12 mm over the top 50 mm of the face and it is the named next rung, deliberately absent here rather than approximated, because a field in this file that the emitter ignores would be a lie about what the still shows."
+    },
+
+    "dropped_kerb": {
+      "bom": "B2_dropped_kerb",
+      "side": "west",
+      "centre_x_m": 22.5,
+      "crossover_width_m": 3.0,
+      "taper_blocks": 1,
+      "flush_upstand_m": 0.006,
+      "note": "trade_standard for the 6 mm flush upstand, which is the maximum a dropped crossing is allowed to leave. The condition B2 requires is met by the YARD ENTRANCE between the two west blocks, which sits at this x: the gap in the terrace and the drop in the kerb are the same event, and neither is placed independently of the other. taper_blocks is how many 915 mm kerbs are used to climb back to full upstand on each side."
+    },
+
+    "gully": {
+      "bom": "B3_gully_recess",
+      "side": "east",
+      "centre_x_m": 12.0,
+      "grate_size_m": 0.40,
+      "recess_depth_m": 0.050,
+      "dish_depth_m": 0.030,
+      "note": "MEASURED. 0.40 m is the measured footprint of drainage_grate_01 quoted in the bill of materials (0.40 x 0.40 x 0.01 m), so the recess is cut to the grate rather than the grate scaled to a recess. recess_depth is how far the kerb top drops over that 0.40 m; dish_depth is how far the channel sinks under the grate. The grate itself is BOM line A7, route HAVE, and is NOT emitted by this file: the recess exists so that when the prop is dropped in it is not a sticker on an unbroken kerb line."
+    },
+
+    "footway": {
+      "width_m": 2.0,
+      "crossfall": 0.025,
+      "surface": "sidewalk",
+      "note": "trade_standard. 2.0 m is the normal British footway width; the crossfall falls TOWARD the road at 1 in 40 so surface water reaches the channel. DERIVED CONSEQUENCE: the back of the footway stands 2.0 x 0.025 = 0.050 m above its kerb edge, and the kerb edge stands 0.125 m above the channel, so the building threshold is 0.100 m above the crown of the road. The pavement being at a different level from the road is the entire second half of A0 and it is 100 mm, not a metre."
+    }
+  },
+
+  "blocks": [
+    {
+      "id": "east_parade",
+      "bom": "C1_terrace_carcass",
+      "side": "east",
+      "start_x_m": 3.0,
+      "bays": 6,
+      "bay_width_m": 6.0,
+      "depth_m": 8.0,
+      "storey_heights_m": [3.40, 2.80],
+      "wall_surface": "brick_red",
+      "ground_floor": "shopfront",
+      "roof": {
+        "kind": "pitched",
+        "pitch_deg": 35.0,
+        "eaves_overhang_m": 0.30,
+        "surface": "roof",
+        "note": "trade_standard. 35 degrees is the common British slated terrace pitch and sits clear of the roughly 25 to 30 degree minimum a slate covering needs to stay watertight. DERIVED: the ridge runs along the street and stands depth/2 x tan(35) = 4.0 x 0.7002 = 2.80 m above the eaves."
+      },
+      "note": "judgement on 6 bays at 6.0 m. A British shop unit is roughly 4.5 to 6 m of frontage, so 6.0 m is a generous single unit rather than a double. The two storey heights are trade_standard: a Victorian or Edwardian shop ground floor is tall (3.4 m to the underside of the first floor) and the flat above is not (2.8 m). DERIVED: eaves at 0.100 + 3.40 + 2.80 = 6.30 m above the road crown."
+    },
+    {
+      "id": "west_south",
+      "bom": "C1_terrace_carcass",
+      "side": "west",
+      "start_x_m": 3.0,
+      "bays": 3,
+      "bay_width_m": 6.0,
+      "depth_m": 8.0,
+      "storey_heights_m": [3.40, 2.80],
+      "wall_surface": "brick_grey",
+      "ground_floor": "plain",
+      "roof": {
+        "kind": "parapet",
+        "parapet_height_m": 0.90,
+        "parapet_thickness_m": 0.215,
+        "coping_width_m": 0.30,
+        "coping_thickness_m": 0.075,
+        "surface": "concrete",
+        "note": "trade_standard. A flat-topped frontage with a coped parapet, which is what a run of soot-blackened commercial terrace looks like when it is not slated. parapet_thickness_m is 0.215, DERIVED: it is the wall carrying on upward and a British brick is 215 mm long, so a one-brick parapet is 215 mm and not a round number. This is BOM line D7."
+      },
+      "note": "Soot brick per C3: this is the north-facing side of the street and it is the one that has had a hundred years of weather on it. Ground floor is plain wall with a side door, not a shopfront, because cam_B stands here and never photographs it."
+    },
+    {
+      "id": "west_north",
+      "bom": "C1_terrace_carcass",
+      "side": "west",
+      "start_x_m": 24.0,
+      "bays": 3,
+      "bay_width_m": 6.0,
+      "depth_m": 8.0,
+      "storey_heights_m": [3.40, 2.80],
+      "wall_surface": "brick_grey",
+      "ground_floor": "plain",
+      "roof": {
+        "kind": "parapet",
+        "parapet_height_m": 0.90,
+        "parapet_thickness_m": 0.215,
+        "coping_width_m": 0.30,
+        "coping_thickness_m": 0.075,
+        "surface": "concrete"
+      },
+      "note": "The 3.0 m between west_south's end at x=21.0 and this block's start at x=24.0 is the YARD ENTRANCE, and it is a gap in the data rather than a modelled object. It is what makes the dropped kerb above legitimate, and a dark slot in a terrace run is one of the cheapest night-frame reads there is."
+    }
+  ],
+
+  "shopfront": {
+    "bom": "C5_shopfront_assembly",
+    "stallriser_height_m": 0.60,
+    "stallriser_projection_m": 0.15,
+    "pilaster_width_m": 0.35,
+    "pilaster_projection_m": 0.10,
+    "transom_height_m": 2.40,
+    "transom_thickness_m": 0.08,
+    "fascia_bottom_m": 2.85,
+    "fascia_projection_m": 0.12,
+    "glazing_recess_m": 0.12,
+    "interior_card_depth_m": 1.20,
+    "shop_door": {
+      "bom": "C8_door_shop",
+      "width_m": 0.900,
+      "height_m": 2.040,
+      "glazed_from_m": 1.000
+    },
+    "side_door": {
+      "bom": "C9_door_side",
+      "width_m": 0.838,
+      "height_m": 1.981,
+      "letterplate_width_m": 0.250,
+      "letterplate_height_m": 0.040,
+      "letterplate_at_m": 1.000
+    },
+    "note": "trade_standard throughout. The four parts C5 names are stallriser, pilasters, fascia band and transom, and the fascia band's TOP is the underside of the first floor at 3.40 m, so fascia_bottom 2.85 gives a 0.55 m band. The side door leaf is 1981 x 838 mm, which is the standard British external door and is imperial (6 ft 6 in by 2 ft 9 in) because the country was in 1990. The shop door is wider. glazing_recess and the projections are what stop the frontage reading as one plane, which the M17.10 decomposition names as the cheap win. THE INTERIOR CARD is emitted as geometry only, in the held interior material: the lit back-wall artwork is BOM line C11, route GENERATE make_by 2D, and belongs to the decal generator rather than to this emitter."
+  },
+
+  "facade": {
+    "bom": "D8_upper_windows",
+    "windows_per_bay": 2,
+    "window_width_m": 0.850,
+    "window_height_m": 1.500,
+    "reveal_depth_m": 0.1025,
+    "sill_projection_m": 0.050,
+    "sill_thickness_m": 0.075,
+    "sill_extra_width_m": 0.100,
+    "lintel_thickness_m": 0.150,
+    "head_below_ceiling_m": 0.400,
+    "brick_course_m": 0.075,
+    "note": "DERIVED reveal. A British brick is 215 x 102.5 x 65 mm, so a half-brick reveal is 102.5 mm exactly, and that is the number: a window flush with the wall reads as a decal, and the depth that fixes it is one brick on its side. brick_course_m is also arithmetic: 65 mm brick plus a 10 mm bed joint is 75 mm per course, which is the module every sill and lintel height on a real terrace is a whole number of. The window opening itself is trade_standard for a sash. C13_sills_lintels is the sill and lintel emitted here; they are one object with the window, not a separate pass."
+  },
+
+  "roofline": {
+    "chimney": {
+      "bom": "D2_chimney_stack",
+      "width_m": 0.900,
+      "depth_m": 0.450,
+      "height_above_ridge_m": 1.000,
+      "surface": "brick_red",
+      "at": "party_walls",
+      "note": "trade_standard. A stack sits on the party wall between two houses and serves both, which is why a terrace roofline is a rhythm of stacks at the bay spacing and not a random scatter. 0.90 x 0.45 in plan is a two-flue stack. The POTS are BOM line D3, route HAVE (roll_top_chimney and weathertop_chimney, measured 0.67 and 0.95 m across), and are not emitted here."
+    },
+    "aerial": {
+      "bom": "D4_tv_aerial",
+      "on_stacks": [1, 3],
+      "mast_height_m": 1.500,
+      "mast_diameter_m": 0.038,
+      "boom_length_m": 1.200,
+      "boom_diameter_m": 0.020,
+      "elements": 10,
+      "element_length_m": 0.270,
+      "element_diameter_m": 0.012,
+      "note": "DERIVED element length. British television in 1990 is UHF Bands IV and V, 470 to 860 MHz. A half-wave dipole at the 550 MHz middle of that band is c/(2f) = 299792458/(2 x 550e6) = 0.2725 m, so the elements of a domestic yagi are about 0.27 m and the whole comb is barely a metre across. That is why a period British roofline is a forest of small combs rather than the large dishes that replaced them. on_stacks names WHICH party-wall stacks carry one, so the count is a data choice and the BOM's count of 2 is met exactly."
+    },
+    "gutter": {
+      "bom": "D6_gutter_run",
+      "diameter_m": 0.112,
+      "fascia_depth_m": 0.200,
+      "fascia_thickness_m": 0.025,
+      "surface": "metal",
+      "note": "trade_standard. 112 mm half-round is the standard British domestic gutter. Emitted as a run along the eaves with its fascia board, because the eaves shadow line is what stops a roof reading as a lid."
+    },
+    "downpipe": {
+      "bom": "D5_downpipe",
+      "diameter_m": 0.068,
+      "standoff_m": 0.060,
+      "shoe_height_m": 0.150,
+      "shoe_projection_m": 0.120,
+      "hopper_width_m": 0.250,
+      "hopper_height_m": 0.200,
+      "hopper_depth_m": 0.200,
+      "surface": "metal",
+      "at": "bay_boundaries",
+      "note": "trade_standard. 68 mm round is the standard British downpipe. art-direction calls the drainpipe the British answer to the American fire escape, and it is also the anchor the held Leaking005 stain decal wants: the pipe has to exist before the stain under it means anything. One per bay boundary, which is where a real one goes because it drains one roof slope into one gully."
+    }
+  },
+
+  "lighting": {
+    "column": {
+      "bom": "E1_lighting_column",
+      "mounting_height_m": 5.0,
+      "spacing_per_mounting_height": 4.0,
+      "first_offset_m": 8.0,
+      "setback_from_kerb_m": 0.60,
+      "base_diameter_m": 0.200,
+      "base_height_m": 0.300,
+      "shaft_diameter_m": 0.114,
+      "outreach_m": 0.500,
+      "surface": "metal",
+      "note": "MEASURED constraint, DERIVED spacing. The bill of materials records that the held lamp_post_01 measures 3.00 m, which is amenity height, and that a British residential lighting column of the period is roughly 5 to 6 m; 5.0 is the bottom of that measured bracket and the lantern height decides the whole night image. THE SPACING IS A RATIO, not a metre value: 4.0 x mounting height, so raising the column raises the spacing with it and the night frame stays lit the same way instead of turning into a row of pools. At 5.0 m that is 20 m, and over a 42 m street with alternating sides it puts FOUR lanterns in the scene, which is exactly the count BOM line H4 asks for. Change mounting_height and the count follows; that is the point."
+    },
+    "lantern": {
+      "bom": "E2_sodium_lantern_head",
+      "length_m": 0.550,
+      "width_m": 0.300,
+      "height_m": 0.200,
+      "wavelength_nm": 589,
+      "cie_1931_xy": [0.5467, 0.4526],
+      "linear_srgb": [1.0000, 0.7055, 0.0000],
+      "gamma_srgb": [1.0000, 0.8573, 0.0000],
+      "cri": 0,
+      "range_m": 18.0,
+      "intensity": 3.2,
+      "note": "DERIVED colour, and the derivation was run rather than recalled. art-direction R-B3 sources low pressure sodium as monochromatic at 589 nm with colour rendering index 0. Interpolating the CIE 1931 2-degree colour matching functions between 585 and 590 nm gives x=0.5467 y=0.4526 at 589 nm; through the sRGB D65 matrix that is linear (2.3766, 0.7055, -0.1351), which is outside the sRGB gamut on both ends, so it is clipped and normalised to a peak of 1 to give the linear triple above, and gamma-encoded to (1.000, 0.857, 0.000) or 255,219,0 in 8-bit. An emitter uses whichever of the two triples matches its colour space, and it must say which. range and intensity are NOT derived and are the first values of a series that has never been printed: they are the numbers the night frame will be tuned from once one exists, and rule 2 forbids calling them anything better than that."
+    },
+    "window_practicals": {
+      "bom": "H5_window_practicals",
+      "lit_bays": [0, 2, 5],
+      "shop_intensity": 1.6,
+      "shop_range_m": 7.0,
+      "flat_intensity": 0.8,
+      "flat_range_m": 5.0,
+      "note": "WHICH bays are lit is a data choice, so it is here rather than in either emitter. Three of six, because a parade at night with every unit lit is a shopping centre and a parade with none is a set. The intensities are in the same never-printed class as the lantern's."
+    },
+    "sun": {
+      "bom": "H3_sun_moon",
+      "latitude_deg": 54.0,
+      "day_elevation_deg": 36.0,
+      "day_azimuth_deg": 205.0,
+      "note": "DERIVED. art-direction R-B1 places Meridian at 54 N and caps noon sun elevation at 59 degrees, which is the same statement: 90 - 54 + 23.44 = 59.4 is the midsummer noon maximum at that latitude. The equinox noon elevation at 54 N is 90 - 54 = 36.0 degrees exactly, and that is the value here, so the day condition is an ordinary spring or autumn British noon rather than a midsummer one. Azimuth 205 is judgement: just west of due south, so the light rakes ACROSS the street rather than down it and both cameras get a modelled facade instead of a flat one."
+    }
+  },
+
+  "furniture": [
+    {
+      "bom": "E3_telephone_kiosk",
+      "side": "east",
+      "x_m": 16.5,
+      "setback_from_kerb_m": 0.55,
+      "yaw_deg": 180,
+      "plan_m": 0.914,
+      "height_m": 2.515,
+      "plinth_height_m": 0.150,
+      "post_width_m": 0.100,
+      "cornice_height_m": 0.150,
+      "cornice_overhang_m": 0.038,
+      "cap_plan_m": 0.700,
+      "cap_height_m": 0.200,
+      "door_leaf_width_m": 0.700,
+      "note": "trade_standard silhouette: the British kiosk of this period is 3 ft square in plan and 8 ft 3 in tall, which is 0.914 and 2.515 m, and the proportion is the whole recognition. NO LETTERING AND NO CROWN ARE EMITTED, and that is canon rather than laziness: the bill of materials records that the crown and the operator lettering are real marks, that canon requires every brand fictional, and that nobody has yet written the Meridian operator into the brand bible. An unlettered kiosk is correct-and-incomplete; a lettered one would be a canon violation. That brand is a named next step."
+    },
+    {
+      "bom": "E4_pillar_box",
+      "side": "east",
+      "x_m": 27.0,
+      "setback_from_kerb_m": 0.60,
+      "yaw_deg": 180,
+      "body_diameter_m": 0.597,
+      "body_height_m": 1.372,
+      "cap_diameter_m": 0.660,
+      "cap_height_m": 0.100,
+      "dome_height_m": 0.140,
+      "aperture_width_m": 0.320,
+      "aperture_height_m": 0.045,
+      "aperture_at_m": 1.150,
+      "note": "trade_standard. The standard British cylindrical pillar box body is about 1.37 m tall and 0.60 m across. Same brand rule as the kiosk: NO CYPHER AND NO LETTERING is emitted. art-direction R-B4 counts the red boxes as the entire high-chroma accent budget of a British street, so between them the kiosk and this box carry the colour of the frame, and the wet night is where that matters."
+    },
+    {
+      "bom": "E8_guard_railing",
+      "side": "east",
+      "x_m": 10.0,
+      "panels": 3,
+      "panel_length_m": 2.000,
+      "height_m": 1.000,
+      "post_diameter_m": 0.050,
+      "rail_diameter_m": 0.040,
+      "infill_per_panel": 5,
+      "infill_diameter_m": 0.025,
+      "setback_from_kerb_m": 0.25,
+      "note": "trade_standard. 1.0 m is the normal British pedestrian guard rail height at a kerb. Three panels of 2.0 m starting at x=10.0, which puts them beside the gully at x=12.0. The held trunk_protection_railing is a TREE PIT GUARD and is a different object; the BOM says so explicitly and this is the line it says it about."
+    },
+    {
+      "bom": "E13_household_dustbin",
+      "side": "east",
+      "x_m": 21.4,
+      "count": 2,
+      "spacing_m": 0.600,
+      "setback_from_kerb_m": 1.60,
+      "body_diameter_m": 0.460,
+      "body_height_m": 0.610,
+      "lid_diameter_m": 0.500,
+      "lid_height_m": 0.050,
+      "surface": "metal",
+      "note": "trade_standard, and imperial on purpose: the galvanised British dustbin of this period is about 18 in across and 24 in tall, which is 0.46 by 0.61 m. art-direction asks for these specifically and the BOM records that none of the four held bins is one, because all four are public street bins. Set back 1.60 m from the kerb, which is against the wall by the side door, because that is where a household bin waits."
+    }
+  ],
+
+  "scatter": {
+    "seed": 19900214,
+    "seed_note": "judgement, and it is a DATE rather than a number so that the same scatter can be recognised: 14 February 1990, inside the 1988 to 1992 working window. Both emitters run the same generator from this seed, so litter that moves between the Unity still and the Unreal still is an emitter bug and is visible as one.",
+    "litter": {
+      "bom": "G8_litter",
+      "count": 34,
+      "gutter_share": 0.65,
+      "min_size_m": 0.080,
+      "max_size_m": 0.240,
+      "thickness_m": 0.002,
+      "note": "judgement on the count. A clean gutter in 1990 Britain is the tell that a street was built rather than lived in. gutter_share is how much of it collects at the channel, which is where the camber puts it and where it would actually be; the rest sits against the wall feet."
+    },
+    "gum": {
+      "bom": "G9_chewing_gum",
+      "count": 60,
+      "min_size_m": 0.020,
+      "max_size_m": 0.050,
+      "note": "judgement on the count. Trodden gum on the footway only, never on the carriageway. visual-bar-sources.md says of this line: gap, do not source, one line of generator."
+    }
+  },
+
+  "surface_tiling": {
+    "what": "Metres of world per one repeat of a surface texture. Without it a 42 m road wears ONE stretched copy of a 2K asphalt photograph and no amount of engine decides the comparison.",
+    "default_m": 3.0,
+    "per_surface_m": {
+      "asphalt": 3.0,
+      "sidewalk": 3.0,
+      "kerb": 1.5,
+      "brick_red": 3.5,
+      "brick_grey": 3.5,
+      "concrete": 3.0,
+      "roof": 2.0,
+      "metal": 1.0,
+      "wood": 1.5,
+      "glass": 3.0,
+      "window": 1.0,
+      "interior": 3.0,
+      "plaster": 1.0
+    },
+    "note": "trade_standard is the wrong word for these and so is derived: they are COPIED from the convention already running in ledger/Assets/Scripts/Game/WorldBuilder.cs, which tiles ground at 3 m and walls at 3.5 m. Copied rather than re-guessed so the vignette does not become a second opinion about the same question. THE RIGHT VALUE IS A MEASUREMENT NOBODY HAS TAKEN: each ambientCG set covers a stated physical area and none of those areas has been read into this repository. That is the named next step, and until it is taken every number here is a placeholder that looks like a decision. Aspect correction is NOT here: it belongs to the texture, and Ledger.Core.TextureFit.Isotropic does it from the bound texture's own pixel dimensions in both engines."
+  },
+
+  "cameras": [
+    {
+      "id": "cam_A",
+      "bom": "cameras_proposed.cam_A",
+      "side": "east",
+      "x_m": 4.0,
+      "z_m": 4.000,
+      "eye_height_m": 1.60,
+      "yaw_deg": 0.0,
+      "pitch_deg": 4.0,
+      "fov_vertical_deg": 60.0,
+      "sees": ["A", "B", "E", "G", "H"],
+      "note": "The bill of materials' cam_A: eye height about 1.6 m on the pavement, looking along the street, kerb line running to the vanishing point. It stands on the east footway 0.875 m back from the kerb, so the kerb line, the channel, the gully at x=12 and the guard rail are all in the near frame and the road runs away under the lanterns. DERIVED PITCH: eye_height is measured from the FOOTWAY under the camera, not from y=0, so the emitter must read the ground it is standing on rather than assume a level. At a 60 degree vertical field a pitch of p degrees down puts the horizon at frame row 0.5 - tan(p)/(2 tan 30), so 4.0 degrees puts it at 0.439, just above the middle, which is where every British street reference in game-design/reference/ puts it. The same arithmetic set the RefTour pitch and is quoted here rather than re-derived."
+    },
+    {
+      "id": "cam_B",
+      "bom": "cameras_proposed.cam_B",
+      "side": "west",
+      "x_m": 21.0,
+      "z_m": -4.000,
+      "eye_height_m": 1.60,
+      "yaw_deg": 90.0,
+      "pitch_deg": -3.0,
+      "fov_vertical_deg": 60.0,
+      "sees": ["A", "C", "D", "G", "H"],
+      "note": "The bill of materials' cam_B: from the far kerb, square to the frontage, roofline in frame. It stands on the WEST footway looking due east across the street at the east parade, at x=21.0 which is the middle of that block. DERIVED PITCH, and the negative sign means UP: the east eaves edge sits at 6.30 m with its 0.30 m overhang at z=4.825, so from an eye at 1.672 m and z=-4.0 the eaves is at atan((6.30-1.672)/8.825) = 27.7 degrees of elevation, which at a 60 degree vertical field is 0.908 of the half-frame and only just inside the top edge. Pitching up 3.0 degrees brings it to tan(24.7)/tan(30) = 0.796, clear of the edge, and still leaves the stallriser and the kerb in the bottom of the frame. This camera and only this camera sees the roofline, which is why D2, D4, D6 and D7 exist."
+    }
+  ],
+
+  "conditions": [
+    {
+      "id": "overcast_day",
+      "sun": "on",
+      "hdri": "Sky/polyhaven/belfast_open_field_2k",
+      "hdri_bom": "H1_sky_overcast_day",
+      "wetness": 0.60,
+      "fog_density": 0.0120,
+      "lanterns": "off",
+      "window_practicals": "off",
+      "note": "art-direction R-B2 makes overcast the DEFAULT British frame rather than a side case: 1403 sunshine hours against about 4400 daylight hours is under a third of daylight with the sun out. Wet but not raining, which is what D1b asks for. The fog density is the first value of a series that has never been printed for this scene and is named as such."
+    },
+    {
+      "id": "wet_night",
+      "sun": "off",
+      "hdri": "Sky/polyhaven/kloppenheim_04_2k",
+      "hdri_bom": "H2_sky_night",
+      "wetness": 0.90,
+      "fog_density": 0.0220,
+      "lanterns": "on",
+      "window_practicals": "on",
+      "note": "The other half of the D1b evidence. Practical lights at night are mandatory scene content per the re-scope ruling, and they are the sodium lanterns plus the lit windows, which is why lighting.lantern and lighting.window_practicals both exist. Wetness is higher than the day because the reflections of the lanterns in the road are the single thing the two engines are most likely to differ on."
+    }
+  ],
+
+  "shots": [
+    { "id": "vign_camA_day",   "camera": "cam_A", "condition": "overcast_day" },
+    { "id": "vign_camA_night", "camera": "cam_A", "condition": "wet_night" },
+    { "id": "vign_camB_day",   "camera": "cam_B", "condition": "overcast_day" },
+    { "id": "vign_camB_night", "camera": "cam_B", "condition": "wet_night" }
+  ],
+
+  "shots_note": "FOUR MATCHED FRAMES, and they are two cameras by two conditions rather than four camera positions. That is not a shortcut: the re-scope ruling defines decisively better as the Unreal frame being preferred in at least three of the four pairs, and production/specs/vignette-bill-of-materials.md states in as many words that two cameras by two conditions IS the four pairs the ruling judges on. Four camera positions by two conditions would be eight pairs and would silently change the bar the engine decision is made against. Both engines shoot these four ids and no others, and the paired judging is by id.",
+
+  "not_emitted_from_this_file": [
+    {
+      "bom": "E15_belisha_beacon",
+      "why": "Its own IF-IN-FRAME condition is a pedestrian crossing, and this scene has no crossing. The dropped kerb here is a yard entrance, which is a different thing. Emitting a beacon without a crossing would be a beacon standing next to nothing."
+    },
+    {
+      "bom": "E16_parking_meter",
+      "why": "Its condition is a metered frontage, and this frontage is not one. BOM line A5 makes DOUBLE YELLOW LINES mandatory the length of this kerb, and double yellows mean no waiting at any time: a parking meter on the same stretch is a contradiction on the road surface. Excluded on the scene's own evidence rather than on cost."
+    },
+    {
+      "bom": "E17_bus_shelter",
+      "why": "Its condition is a stop in frame. A 42 m vignette 10 m wide between building lines has no room for a stop without the shelter becoming the subject."
+    }
+  ]
+}

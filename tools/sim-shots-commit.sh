@@ -39,7 +39,13 @@ mkdir -p game-design/sim-shots
 # scripts: one idea, two implementations, and the copy nobody opens is the one
 # missing the line. `refPlaced=5/5` with no `ref_*.jpg` in the repository would
 # have been the identical symptom, and it costs a round trip to see.
-shots=(sim-run/sim-out/review_*.jpg sim-run/sim-out/hunt_*.jpg sim-run/sim-out/district_*.jpg sim-run/sim-out/ref_*.jpg)
+# AND `vign_*` FROM A DIFFERENT DIRECTORY, WHICH IS THE NEW PART. The
+# D1b street vignette is its own short run of the same player in
+# vign-run/, so its four matched frames are not under sim-run/ and a
+# glob that only walks sim-run/ cannot see them. That is the same
+# one-idea-two-implementations shape the paragraph above records,
+# with a directory in place of a prefix.
+shots=(sim-run/sim-out/review_*.jpg sim-run/sim-out/hunt_*.jpg sim-run/sim-out/district_*.jpg sim-run/sim-out/ref_*.jpg vign-run/sim-out/vign_*.jpg)
 if [ ${#shots[@]} -eq 0 ]; then
   # NOT `exit 0`, AND THE DIFFERENCE IS THE WHOLE POINT OF THE STEP.
   # Bailing here left the PREVIOUS run's verdict.txt sitting in the
@@ -182,6 +188,26 @@ if [ -f sim-run/player.log ]; then
     # line about the instrument itself and must never be the quiet kind.
     grep -E "FAILING GATES|SimDirector: ALL GATES|SimDirector: done\.|SimDirector: sky |SimDirector: glyphs |SimDirector: dayMark |SimDirector: stallQuit |SimDirector: stall breadcrumb |alley eyes=|Traffic: wheels |brandished a cosh|SimDirector: windowGlow|\[series\]|\[panel\]|SceneAudit: " \
       sim-run/player.log || echo "(no SimDirector lines matched)"
+
+    # THE D1b VIGNETTE, FROM ITS OWN LOG, AND IT SAYS SO WHEN THERE IS NONE.
+    #
+    # Every `StreetVignette: ` line: the piece count against the plan, the
+    # bill-of-materials roll call, the placement metric in both halves broken
+    # down per edge and per region, and one line per matched frame carrying
+    # its camera, its condition and its median frame time. The re-scope ruling
+    # requires the frame time quoted beside every still it judges, so these
+    # lines and the four `vign_*.jpg` are one piece of evidence.
+    #
+    # A MISSING LOG PRINTS WORDS. The vignette step is continue-on-error, so
+    # "the vignette found nothing wrong" and "the vignette never ran" would
+    # otherwise be the same silence.
+    if [ -f vign-run/player.log ]; then
+      grep -E "StreetVignette: " vign-run/player.log \
+        || echo "vignette=[the run produced no StreetVignette lines at all]"
+      [ -f vign-run/vign-exit.txt ] && cat vign-run/vign-exit.txt
+    else
+      echo "vignette=NO-RUN nothing measured (no vign-run/player.log on this commit)"
+    fi
     # A filter that drops a line in silence is what made that cost a
     # round trip. This says it in the verdict, on the run it happens.
     grep -q "SimDirector: ALL GATES" sim-run/player.log \
