@@ -20,6 +20,7 @@ than any single row.
 | 2026-09-01 | ~31 of 168 | 38% | not read | Reported by Jafar. 42 points left for 5 and a bit days. |
 | 2026-09-01 | new week, hours in | 8% | not read | THE WEEKLY LIMIT RESET. Reported by Jafar. This is a different week from the two rows above, and the delta between this row and the one before it is meaningless. |
 | 2026-09-02 | 41 of 168 | 17% | not read | Reported by Jafar at 04:40Z, AFTER the heavy night. The 8 percent row plus that night cost 9 points. This row is what makes the night measured rather than unknown. |
+| 2026-09-02 | ~18 into a 136h period | 32% | not read | Reported at 14:40Z. 4x over pace against the 80% ceiling. Set the pace rule below. |
 
 Ceiling for LEDGER: 80% of the weekly limit. The other 20% is his.
 
@@ -133,6 +134,58 @@ as measured.
 
 That buys roughly two short working sessions, not one long one, and no more
 than three dispatched builds.
+
+## THE PACE RULE, set 2026-09-02 from a measured burn rate
+
+Reading: 32 percent, reported by Jafar at about 14:40Z on 2 September.
+
+THE ARITHMETIC, and the period is NOT a calendar week. The one-time reset on
+the Tuesday evening restarted the counter; the next reset is the normal one,
+Monday 14:00 CEST. So the period runs from that evening to Monday, about 136
+hours, not 168. The exact reset moment is unknown (Jafar reported 8 percent
+at 21:20Z saying it had reset "earlier"), so this is bracketed rather than
+given false precision:
+
+    reset 18:00Z  period 138h  elapsed 20.7h (15.0%)  burn 1.55 pts/h
+    reset 21:00Z  period 135h  elapsed 17.7h (13.1%)  burn 1.81 pts/h
+
+Against the 80 percent ceiling, sustainable is 0.41 points per hour, so the
+run rate is 3.8x to 4.4x over. At that rate the ceiling arrives in about 29
+hours with 117 hours of period left.
+
+**THE ALLOWANCE FROM HERE IS ABOUT 10 POINTS A DAY.** 48 points remaining
+over 4.9 days. Today ran at roughly 40.
+
+## What 10 points a day actually buys, and how to spend it
+
+Measured from today: a builder or director spawn costs roughly 1.5 to 2
+points. So the allowance is about five spawns a day INCLUDING the resident's
+own turns, which are not free and were heavy today.
+
+The working rule, three parts:
+
+1. **Two or three builder spawns a day, plus a director ONLY when a
+   mandatory trigger fires.** Not four small ones.
+2. **Brief with the facts inline, not with a reading list.** Five builders in
+   a row spent their whole step budget reading before writing a line and
+   each needed a hand restart. That is a briefing fault worth about a third
+   of every builder's cost (queue 031).
+3. **Batch related work into one spawn.** Every agent re-reads context from
+   scratch, so eight spawns doing one thing each cost far more than three
+   doing three things each.
+
+## WHY TODAY IS NOT THE STEADY RATE, said so nobody plans on either number
+
+Today was front-loaded with one-offs: the CLAUDE.md cut, the licence sweep,
+the decision-register reconciliation, and four separate review cycles. That
+is governance debt being paid down, not the running cost of building a game,
+and it should not recur. Equally, "it was one-offs" is the comfortable
+reading and it has been wrong before, so the test is the next reading rather
+than this paragraph.
+
+Spending down and pausing until Monday is a LEGITIMATE CHOICE rather than a
+failure, and it is Jafar's to make. What is not legitimate is drifting into
+the ceiling without either of us noticing.
 
 ## Stop conditions, mechanical
 

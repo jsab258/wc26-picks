@@ -61,26 +61,20 @@ budget stop below. It is one spawn, not two. What it must work through:
   decided outside the repo and must be written down, or something is
   misfiled. Ask Jafar rather than reconstructing them.
 
-## Budget: STOPPED, and what clears it
+## Budget: RUNNING, at a measured pace rule
 
-17 percent at 04:40Z, reported by Jafar. The week starts MONDAY 14:00 CEST
-and the ceiling is 80 percent. The mid-week reset on 1 September was an
-ANOMALY and must not be expected again.
+32 percent at 14:40Z on 2 September. The period is NOT a calendar week: the
+one-time Tuesday reset restarted the counter and the next reset is the
+normal Monday 14:00 CEST, so about 136 hours, of which roughly 14 percent
+had elapsed against 32 percent spent. That is 4x over pace.
 
-THE DAY IS UNMEASURED, WHICH IS NOT THE SAME AS FINE. Since that reading:
-six builder and director spawns, and a SESSION LIMIT HIT at about 09:20Z
-that killed two agents mid-work. A session limit is direct evidence of heavy
-use, and nothing in this container can read the usage page. The rule for an
-unmeasured day is to prefer stopping.
+THE ALLOWANCE IS ABOUT 10 POINTS A DAY, roughly five spawns including the
+resident's own turns. The rule and its arithmetic are in
+`production/budget.md`. Three parts: two or three builder spawns a day and a
+director only on a mandatory trigger; brief with facts inline rather than a
+reading list; batch related work into one spawn rather than several.
 
-SO: no builder, director or verifier spawns until Jafar reports a number.
-ONE number in the chat clears this entirely.
-
-WHAT IS STILL ALLOWED, because the scarce thing is Claude usage and not
-wall clock: reading landed results, running `ledger/verify.py`, committing
-and pushing finished work. A stop that leaves the tree dirty across a reset
-saves nothing in the currency that is actually short. This was nearly got
-wrong once today, which is why it is written down.
+Work is RUNNING, not stopped. The stop that ran this morning is over.
 
 ## In flight
 
