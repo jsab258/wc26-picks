@@ -2,7 +2,7 @@ line: infrastructure (governance)
 spec: this file
 acceptance: a brief template that front-loads writing; the measured turn-to-first-write across the next five builders, printed as a series before any bound is set
 max_sessions: 1
-status: READY 2026-09-02. Found by the resident, whose fault it is.
+status: STEP 1 DONE 2026-09-02. The template is written at ledger-v2/studio-v2/brief-template.md. What remains is the MEASUREMENT: turn-to-first-write across the next five builders, printed as a series before any bound is set from it. Found by the resident, whose fault it is.
 
 FIVE BUILDERS IN A ROW HIT THEIR TURN LIMIT BEFORE WRITING A LINE, and each
 needed a mid-flight message to finish. Counted from this session's task
