@@ -53,14 +53,22 @@ inference the player can be WRONG about is the only kind worth building.
 
 ## Open, and named rather than guessed
 
-1. **D11 IS NOT IN THIS REPOSITORY.** The judgment-legibility clause above
-   cites it. Searched: `ledger-v2/respec/decision-register/` holds D4 to D9
-   and no D10 or D11 file; a repository-wide grep for `D11` outside
-   `legacy/` returns nothing. D10 is referenced by name in `ledger/verify.py`
-   (template sync retired) but has no record file either. So this record
-   cites a decision that cannot be read here, which is a pointer to nothing
-   until D11 lands. FOR JAFAR: D11's text, or confirmation it was decided
-   outside the repo and should be written down.
+1. **D11 WAS MISSING AND IS NOW BACKFILLED** at
+   `ledger-v2/respec/decision-register/D11-player-progression.md`. The
+   planning session issued it and the paste was never delivered, so the
+   number was live in citations before any file carried it. The
+   judgment-legibility clause above now resolves.
+
+   THE FIRST VERSION OF THIS NOTE ALSO CLAIMED D10 DID NOT EXIST, AND THAT
+   WAS FALSE. `D10-framework-freeze.md` has been in the register since
+   commit `0ff1ee17`. The claim came from running
+   `ls ledger-v2/respec/decision-register/ | tail -6`, reading D4 to D9, and
+   reporting that as the whole register. A cap that bit and did not announce
+   itself, which is the exact instrument fault this project has a standing
+   rule about, committed while writing a record about missing decisions.
+   Verified at origin HEAD `8ea4dd6c` with
+   `git ls-tree -r --name-only <sha> | grep decision-register`, which lists
+   eleven files.
 
 2. **No pending v1 decision was found to close.** The ask was to close any
    related pending v1 decision with a pointer here. Searched:

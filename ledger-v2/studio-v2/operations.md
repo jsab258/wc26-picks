@@ -123,6 +123,28 @@ Two failures, opposite directions, same day.
 
 <!-- moved verbatim from CLAUDE.md lines 758-764 on 2026-09-01, task 013 -->
 
+## A NEGATIVE CLAIM ABOUT THE REPO NEEDS A FETCH, A HEAD AND A COMMAND (L35, ruled 2026-09-02)
+
+"X does not exist anywhere in this repository" is a claim about a whole
+tree, and a local checkout is not that tree: it can be behind origin, and a
+listing can be capped. Before writing one:
+
+1. `git fetch origin <branch>`.
+2. Search from HEAD OF THE WORKING BRANCH, not the working directory:
+   `git ls-tree -r --name-only <sha>` or `git grep <pattern> <sha>`.
+3. QUOTE THE COMMAND AND THE COMMIT HASH INSIDE THE CLAIM. A negative
+   without its search is an opinion with a confident voice.
+
+Never pipe a listing through `head` or `tail` and then describe the result
+as the set. That is what produced this rule: `ls decision-register/ |
+tail -6` returned six files, and "the register holds D4 to D9" went into a
+decision record and a commit message. D10 had been there since `0ff1ee17`
+and is cited from three documents.
+
+The existing rule that every zero ships its denominator is the same rule
+from the other end. This one names the case where the denominator is the
+whole repository and the instrument is git.
+
 ## 11. Scope: do the asked thing
 
 Asked whether a macOS build was *possible*, I built the CI job. Jafar:

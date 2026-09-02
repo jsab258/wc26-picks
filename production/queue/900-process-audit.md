@@ -31,12 +31,27 @@ Checks, each with its denominator:
    because comparing a paragraph inside a 15,000 word file against another
    file by eye, once a week, is exactly the check this project has watched
    decay before.
-8. Status dashboard currency: STATUS.md carries the timestamp it was
+8. DANGLING CITATIONS: every decision number cited in any document
+   resolves to a file in ledger-v2/respec/decision-register/. Collect every
+   `D<n>` mention across the tree, map it to the register's files, and print
+   BOTH counts plus every citation that resolves to nothing. Added
+   2026-09-02 after D12 shipped citing a D11 that did not exist and denying
+   a D10 that did. A dangling citation reads as authority: the number looks
+   like a decision was made, and nobody checks.
+
+9. CITATIONS CARRY NUMBER PLUS SLUG. A cross-reference is written
+   `D10-framework-freeze`, never a bare `D10`. Renumbering a register entry
+   then breaks the citation loudly instead of silently re-pointing it at
+   whatever now holds that number, which is the failure mode a bare number
+   cannot distinguish from being correct. Audit samples the week's new
+   documents for bare numbers.
+
+10. Status dashboard currency: STATUS.md carries the timestamp it was
    generated at, on line 3. It must be less than a day old at audit time,
    and the check reports the age it found rather than a yes or no. A page
    older than that is not a small untidiness: it is a page a reader will
    still read as current, which is worse than no page.
-9. The dashboard writes nothing else: run
+11. The dashboard writes nothing else: run
    `python3 tools/dashboard/build-dashboard.py --selftest`. Its AST walk
    asserts that every filesystem write in the generator is either
    write_artifact (which refuses any name but the two artifacts) or the

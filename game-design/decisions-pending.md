@@ -124,7 +124,19 @@ cause was elsewhere.
 
 ## THE FIRST ONE, ADDED 2026-08-04 EVENING
 
-### What does the player get BETTER at?
+#### ANSWERED, and superseded by D11-player-progression: What does the player get BETTER at?
+
+CLOSED 2026-09-02 by `ledger-v2/respec/decision-register/D11-player-progression.md`,
+which Jafar backfilled from the planning session. The answer is option A as
+this card framed it, with the shape made explicit: the player character has
+no improvable stats or skills, and progression is external and threefold,
+being believed (per person, never a global number), the player's own
+knowledge of the town (stored nowhere), and crew, relationships and access
+improving while the player does not.
+
+The card below is kept because its three options and their costs are the
+reasoning that made A choosable, and this card recommended B. The decision
+went the other way, which is worth leaving visible.
 
 **In plain terms.** Right now the player never improves at anything. Their
 one capability number only ever goes DOWN, when they get hurt. Your crew get
