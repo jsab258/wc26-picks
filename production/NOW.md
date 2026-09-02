@@ -31,17 +31,35 @@ the scene is NOT YET an admissible (b) scene under D1b; shopfronts are flat
 untextured panels; the plates carry the wrong district (queue 028); nothing
 of Unreal renders at all yet (queue 027).
 
-## The D1 question: ANSWERED, and one still open
+## Two decisions Jafar made on 2 September, and the work they owe
 
-Jafar retired the timebox on 2 September ("forget the deadline, it's not
-relevant... rather spend more time to get UE working"). D1 is bounded by
-`production/budget.md` and by the attempt budget on queue 027, NEVER by a
-date. Ruling: `game-design/decision-2026-09-02-d1-timebox-retired.md`.
+**THE ENGINE TIE-BREAK NOW GOES TO UNREAL**, reversing the standing rule.
+With the deadline already retired, this is the second half of one direction:
+he wants the visual ceiling and is willing to pay the loop for it. What
+would reopen it is NOT a tie, but the Unreal loop proving so slow the
+ceiling is never reached in practice, which is queue 032's measurement.
 
-STILL OPEN and on the dashboard: if the two engines look about the same,
-which wins. The existing rule says Unity and nobody has checked that with
-him. It matters more now, because removing the deadline makes "they look
-close" the likeliest outcome rather than "Unreal ran out of time".
+**D12, INFORMATION SURFACES** is recorded at
+`ledger-v2/respec/decision-register/D12-information-surfaces.md`. The
+player's own memory is fully surfaced in an in-game Ledger; NPC minds are
+NEVER ground truth, only the player character's evidence-bounded model with
+confidence levels; divergence between model and truth is intended design
+space; learning what people know runs through diegetic verbs that are
+themselves perceivable acts.
+
+A DIRECTOR SPAWN IS OWED ON BOTH AND HAS NOT HAPPENED, held only by the
+budget stop below. It is one spawn, not two. What it must work through:
+
+- What "ties go to Unreal" changes in the D1 record and the decision rule,
+  and how a tilt toward one engine coexists with judging the pairs blind.
+  Those can both hold and a later reader will assume they cannot.
+- What D12 reorders. If the information layer is the moat rather than a UI,
+  the queue's current order was set before that was written down.
+- D11 IS MISSING. D12's judgment-legibility clause cites it; the decision
+  register holds D4 to D9, and a repo-wide grep outside legacy/ finds no D11
+  and no D10 record, though verify.py cites D10 by name. Either they were
+  decided outside the repo and must be written down, or something is
+  misfiled. Ask Jafar rather than reconstructing them.
 
 ## Budget: STOPPED, and what clears it
 
