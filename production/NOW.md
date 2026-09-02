@@ -102,20 +102,29 @@ this tree either (no fetch-verdict.txt, no surfaces/); queue 044 carries it.
 
 ## In flight
 
-- Imagegen run 2, fired by the push that landed the ruling. Watch by
-  ancestry for a commit titled `Meridian pictures from <sha>`. Read, in this
-  order: the verdict's line 1 (the sha must be the landing commit's), the
-  `steps` line (`stopper=none shaFrom=checkout` is the fix confirmed;
-  `stopper=<name>` is the next finding, named), the `done imagegenVerdict=`
-  line, then the log's `stage-candidate=` lines (a $'\r' confirms the
-  second fault and its strip), `runnerAccount=` and `weightsDirectory=`.
-  Then open the four PNGs, and open the verdict file for CRLF. No commit at
-  all after the run concludes is `staged=0` again, and the %q lines say why.
-- NEXT ACTION, tomorrow: slot 1 is the 027 Phase A close-out (040, A2,
-  041), one engine-specialist, one Unity dispatch at the end; slot 2 is 037.
-  Queue 044 rides the next imagegen touch after run 2 is read. The report
-  to Jafar after run 2 carries one of the four signs, or the verdict's
-  stopper if red.
+- Nothing running. RUN 2 LANDED AND ITS RESULT IS HALF GOOD.
+
+  WHAT WORKED: the stopper fix. `stopper=none shaFrom=checkout`, all four
+  work steps ran, generation used the GPU for real, and `made.json` records
+  four images made at 19:50 to 19:52. Run 1's blocker is gone.
+
+  WHAT IS BROKEN, and it blocks the free lane: the verdict says
+  `imagegenVerdict=BANKED wroteThisRun=4` and `git show --name-only
+  c685aa93 | grep -c png` returns 0. NOT ONE PICTURE IS IN THE COMMIT. The
+  four PNGs in this checkout are from 26 August (`cb332751`). The verdict
+  measured the runner's output DIRECTORY rather than the commit, so its
+  headline word is false in the only sense a reader acts on. Queue 045.
+
+  Second fault on the same line: `remade=0` while `made.json` says all four
+  were made this run and all four already existed. Either four were remade
+  uncounted, or `--limit`'s skip-what-exists promise failed and GPU time was
+  spent reproducing what was there. The numbers cannot tell those apart.
+  `manifest.json` says `status: INCOMPLETE` while the verdict says BANKED.
+  And `attribution=failure` is undiagnosed.
+
+- NEXT ACTION: queue 045, one engine-specialist. Until it lands, a green
+  imagegen verdict does NOT mean pictures exist, and no bulk night run
+  should be dispatched on the strength of one.
 
 ## Standing hazards a fresh session will otherwise walk into
 
