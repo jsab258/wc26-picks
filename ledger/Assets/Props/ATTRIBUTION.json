@@ -188,7 +188,19 @@
     "chimney-medium.fbx",
     "chimney-small.fbx",
     "colormap.png",
-    "detail-tank.fbx"
+    "detail-tank-large.fbx",
+    "detail-tank.fbx",
+    "shipping-container-a.fbx",
+    "shipping-container-b.fbx",
+    "shipping-container-c.fbx",
+    "solar-panel-flat.fbx",
+    "solar-panel-landscape-group.fbx",
+    "solar-panel-landscape.fbx",
+    "solar-panel-portrait-group.fbx",
+    "solar-panel-portrait.fbx",
+    "water-tower.fbx",
+    "windmill-low.fbx",
+    "windmill.fbx"
    ]
   }
  }
