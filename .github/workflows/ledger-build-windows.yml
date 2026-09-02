@@ -520,6 +520,16 @@ jobs:
       # builds one street and renders four frames.
       - name: Run the D1b street vignette (four matched frames)
         shell: pwsh
+        # `if: always()` because THIS STEP WAS SKIPPED ON ITS FIRST EVER RUN,
+        # 2026-09-02, and produced `vignette=NO-RUN` on a commit that had
+        # built the scene correctly. `continue-on-error` stops this step
+        # failing the job; it does NOT make the step run after an EARLIER
+        # step failed, and the 11-day simulation above is not
+        # continue-on-error. The vignette is an independent measurement of a
+        # different scene and must not be coupled to the sim's health: they
+        # answer different questions and one being red is not a reason to
+        # learn nothing about the other.
+        if: always()
         continue-on-error: true
         timeout-minutes: 6
         run: |
