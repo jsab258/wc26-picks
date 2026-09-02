@@ -25,6 +25,25 @@ committing finished work are free and are allowed.
 Midnight passing does not change this. The daily allocation is a discipline
 laid over a WEEKLY limit and a UTC rollover hands nothing back.
 
+## What landed after the batch, unattended
+
+A CC0 content fetch (`13c40d93`, Kenney kits) landed on top of the batch
+while nothing was watching. Read before assuming it needs anything:
+
+- IT REGENERATED `ledger/Assets/Props/ATTRIBUTION.json`, AND THE DIRECTOR'S
+  D3 CORRECTION SURVIVED. That is the design being confirmed by accident
+  within the hour: D3 fixed the GENERATOR STRING as well as the committed
+  file, precisely so a regeneration could not quietly restore the false
+  "sources for every model in this directory" note. A hand edit alone would
+  have been gone by 00:30.
+- The stricter attribution sweep PASSES over the new content: 3848 walked
+  (was 3828), 2715 asset files (was 2703), 0 unclassified, exit 0. The new
+  kinds classified without a change, which is what the two-declared-sets
+  shape was for.
+- `pc-results` has NOT moved (still `e6f9f6f3`, 14 August), so the watcher
+  has not run and the `vignette-fetch-01` request is still pending Jafar's
+  one click. Nothing to chase.
+
 ## In flight
 
 - Nothing running. Three builders and one director completed and their work
