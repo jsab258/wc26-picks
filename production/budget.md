@@ -19,9 +19,23 @@ than any single row.
 | 2026-09-01 | 28 of 168 | 34% | 41% | 2.5x over pace. The day the studio split was not used. |
 | 2026-09-01 | ~31 of 168 | 38% | not read | Reported by Jafar. 42 points left for 5 and a bit days. |
 | 2026-09-01 | new week, hours in | 8% | not read | THE WEEKLY LIMIT RESET. Reported by Jafar. This is a different week from the two rows above, and the delta between this row and the one before it is meaningless. |
-| 2026-09-02 | ~36 of 168 | 17% | not read | Reported by Jafar at 04:40Z, AFTER the heavy night. The 8 percent row plus that night cost 9 points. This row is what makes the night measured rather than unknown. |
+| 2026-09-02 | 41 of 168 | 17% | not read | Reported by Jafar at 04:40Z, AFTER the heavy night. The 8 percent row plus that night cost 9 points. This row is what makes the night measured rather than unknown. |
 
 Ceiling for LEDGER: 80% of the weekly limit. The other 20% is his.
+
+## WHEN THE WEEK STARTS, told by Jafar 2026-09-02 and not known before
+
+MONDAY 14:00 CEST, which is 12:00 UTC. Every "hours into week" figure in the
+rows above before this line was the resident GUESSING from a reset it had
+seen reported, and the 2 September row first said "~36 of 168" for no reason
+better than that. Jafar corrected it. 41 is the measured figure from the real
+anchor.
+
+It matters beyond tidiness: the pace test divides spend by elapsed week, so a
+wrong anchor moves the only number that says whether a day is heavy. This is
+the same fault the reset section below records, made smaller and quieter: a
+quantity carried as if measured when nobody had measured it.
+
 
 ## WHAT HAS HAPPENED SINCE THE NEWEST READING, 2026-09-02 00:25Z
 
