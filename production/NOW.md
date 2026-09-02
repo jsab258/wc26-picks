@@ -9,28 +9,27 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
-## Where this is, 2026-09-02: the rotation fix is in the tree, the second render is the proof
+## Where this is, 2026-09-02: THE STREET RENDERS, and it is a street
 
-THE STREET VIGNETTE RENDERED ONCE, SIDEWAYS. Run 8f19add (landed 10:22Z)
-drew all four stills with every piece turned 90 degrees: the engine-side
-placement probe read datumMissing=521/845 against the plan-side 0/845
-(game-design/sim-shots/runs/8f19add.txt line 97), which is the two-halves
-instrument catching the emitter fault the 05:43 ruling had dictated a fix
-for and the 06:26 batch committed without. The fix is in the tree under
-game-design/decision-2026-09-02-rotation-fix-lands.md: yaw 0 is the
-identity, lying pipes are rolled cylinders, the sun sits at Unity yaw 65
-and not 205, and the pipe-count guard was watched red then green.
+Run 152198e landed all four frames and all three gate numbers came good:
+`datumMissing=0/845` (521/845 before the rotation fix), the shapes line
+`cylRolled=9 cylPitched=32 cylUpright=105` equal to the CoreTests print, and
+`unityYaw=65.0 appliedYaw=65.0` so the sun rotation reached the light. The
+Unity half of D1b is real for the first time: shared JSON in, four matched
+frames out, nothing hand-placed.
 
-THE NEXT UNITY DISPATCH IS THE PROOF. Read, in this order and before any
-still: placement datumMissing=0/845; the shapes line equal to the CoreTests
-print (cylRolled=9 cylPitched=32 cylUpright=105); sun elevation=36.0
-bearing=205.0 unityYaw=65.0 appliedYaw=65.0. Then open all four stills:
-cam_B square to the parade with the roofline in frame, cam_A up the kerb
-line into the fog with the parade on the LEFT (Unity is left-handed, so
-facing +x puts +z on the left); day shadows toward bearing 25, which is
-away and a little left in cam_A and mostly right in cam_B. A datumMissing
-above zero or a float the crossfall does not explain is an emitter finding,
-never a plan finding, and the run is not evidence about the plan.
+ALL FOUR STILLS WERE OPENED, which is where the next finding came from.
+cam_A day: parade on the left, shadows away and a little left, consistent
+with bearing 25, which is the only thing that could settle the sun
+conversion. cam_B day: square to the parade, roofline in frame, wet road
+reflecting. cam_A night is the best frame the project has made. cam_B night
+FLOODS, and that is queue 035: same rig, two angles, one of them wrong,
+which makes it the rig and not the camera.
+
+WHAT IS STILL MISSING, so nobody reads this as done: no character body, so
+the scene is NOT YET an admissible (b) scene under D1b; shopfronts are flat
+untextured panels; the plates carry the wrong district (queue 028); nothing
+of Unreal renders at all yet (queue 027).
 
 ## The D1 question: ANSWERED, and one still open
 
