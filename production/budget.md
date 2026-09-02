@@ -21,6 +21,7 @@ than any single row.
 | 2026-09-01 | new week, hours in | 8% | not read | THE WEEKLY LIMIT RESET. Reported by Jafar. This is a different week from the two rows above, and the delta between this row and the one before it is meaningless. |
 | 2026-09-02 | 41 of 168 | 17% | not read | Reported by Jafar at 04:40Z, AFTER the heavy night. The 8 percent row plus that night cost 9 points. This row is what makes the night measured rather than unknown. |
 | 2026-09-02 | ~18 into a 136h period | 32% | not read | Reported at 14:40Z. 4x over pace against the 80% ceiling. Set the pace rule below. |
+| 2026-09-02 | ~21 into a 136h period | 38% | not read | Reported at ~17:00Z. Jafar notes he also did OTHER work in the same window, so this delta is NOT all LEDGER and must not be read as a LEDGER burn rate. 42 points to the ceiling. |
 
 Ceiling for LEDGER: 80% of the weekly limit. The other 20% is his.
 
