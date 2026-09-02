@@ -135,6 +135,34 @@ as measured.
 That buys roughly two short working sessions, not one long one, and no more
 than three dispatched builds.
 
+## THE DAILY ALLOWANCE IS RETIRED, ruled by Jafar 2026-09-02
+
+His words: "let's start now. I don't care if we get to 80% before monday, we
+just stop when our budget is used up".
+
+SO THERE IS NO DAILY RATION. Run until the ceiling, then stop. The pace
+arithmetic below is kept because it is the measurement that produced the
+question, and because the burn rate is still the thing to report, but the
+10-points-a-day allowance it derived is NO LONGER A CONSTRAINT and must not
+be re-imposed by a session that reads the arithmetic without this heading.
+
+WHAT STILL BINDS, and it is not weakened by this:
+
+- The 80 percent ceiling. The other 20 percent is his and is not ours to
+  spend. Reaching it means STOP, whatever day it is.
+- A reading describes the moment it was taken. Substantial work since the
+  newest one still means the day is UNMEASURED, and an unmeasured day is
+  still a reason to ask rather than to assume.
+- The efficiency rules keep their whole value and gain some: facts inline
+  rather than reading lists, related work batched into one spawn. Those were
+  never rationing, they were waste reduction, and waste is worth the same
+  whether or not there is a daily cap.
+
+WHAT CHANGES IN PRACTICE: work does not stop at an arbitrary hour, and the
+free lane (local generation on his PC, which costs NOTHING against this
+ceiling) is scheduled ahead of Claude-priced work wherever it can be, per
+queue 039.
+
 ## THE PACE RULE, set 2026-09-02 from a measured burn rate
 
 Reading: 32 percent, reported by Jafar at about 14:40Z on 2 September.

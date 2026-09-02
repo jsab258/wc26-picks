@@ -76,14 +76,14 @@ resident's own turns. The rule and its arithmetic are in
 director only on a mandatory trigger; brief with facts inline rather than a
 reading list; batch related work into one spawn rather than several.
 
-NOTHING FURTHER SPAWNS ON WEDNESDAY 2 SEPTEMBER. The day already ran at
-roughly 40 points against an allowance of 10, and the week plan
-(`production/week-plan-2026-09-02.md`) allots today's remainder 0 to 2 for
-resident wrap-up only. Work RESUMES Thursday, after a usage number, with
-027 Phase A in the first builder slot and 037 in the second.
+WORK IS RUNNING AND THE DAILY ALLOWANCE IS RETIRED. Jafar, 2026-09-02: "I
+don't care if we get to 80% before monday, we just stop when our budget is
+used up". So there is no daily ration; run to the ceiling and stop there.
+The 80 percent ceiling still binds and the other 20 percent is his.
 
-A watchdog firing before then should read this line and END. The plan is
-the instruction; this file is not a second opinion about it.
+IN FLIGHT RIGHT NOW: queue 039 (the free-lane dispatch route, an imagegen
+workflow on the ledger-pc runner) and 027 Phase A (the flat piece list both
+engines read). Both engine-specialist, both briefed facts-inline.
 
 ## In flight
 
