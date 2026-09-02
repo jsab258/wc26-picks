@@ -1,6 +1,6 @@
 {
   "_what": "The resume record: what is on disk and which recipe made it. Delete this file to have everything made again, or delete one PNG to have just that one made again.",
-  "written": "2026-09-02T19:55:25",
+  "written": "2026-09-02T22:38:29",
   "items": {
     "fascia_mickeys": {
       "recipe": "a126ef834d32ef6f",
@@ -89,7 +89,223 @@
       "file": "probe_wall_cfg2.png",
       "when": "2026-08-26T09:06 (the file's commit, cb332751)",
       "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+    },
+    "sign_ferry": {
+      "recipe": "e439d0dce07b3985",
+      "seed": 8050,
+      "file": "sign_ferry.png",
+      "when": "2026-09-02T21:58:13",
+      "from": "made by this run"
+    },
+    "sign_harbour_master": {
+      "recipe": "9eece93eb74a0eba",
+      "seed": 8051,
+      "file": "sign_harbour_master.png",
+      "when": "2026-09-02T21:59:09",
+      "from": "made by this run"
+    },
+    "sign_weighbridge": {
+      "recipe": "f9b3d5e7794cc30f",
+      "seed": 8052,
+      "file": "sign_weighbridge.png",
+      "when": "2026-09-02T22:00:05",
+      "from": "made by this run"
+    },
+    "sign_telephone": {
+      "recipe": "1e08a5086430a8ae",
+      "seed": 8053,
+      "file": "sign_telephone.png",
+      "when": "2026-09-02T22:01:01",
+      "from": "made by this run"
+    },
+    "sign_gentlemen": {
+      "recipe": "413d51a146597b54",
+      "seed": 8054,
+      "file": "sign_gentlemen.png",
+      "when": "2026-09-02T22:01:57",
+      "from": "made by this run"
+    },
+    "sign_left_luggage": {
+      "recipe": "b2bbc1114501b92e",
+      "seed": 8055,
+      "file": "sign_left_luggage.png",
+      "when": "2026-09-02T22:02:53",
+      "from": "made by this run"
+    },
+    "sign_no_waiting": {
+      "recipe": "87edd2dccc86a18a",
+      "seed": 8056,
+      "file": "sign_no_waiting.png",
+      "when": "2026-09-02T22:03:49",
+      "from": "made by this run"
+    },
+    "sign_private_mooring": {
+      "recipe": "2def5524ac4a0aae",
+      "seed": 8057,
+      "file": "sign_private_mooring.png",
+      "when": "2026-09-02T22:04:45",
+      "from": "made by this run"
+    },
+    "sign_way_out": {
+      "recipe": "3a9a32d74972473d",
+      "seed": 8058,
+      "file": "sign_way_out.png",
+      "when": "2026-09-02T22:05:41",
+      "from": "made by this run"
+    },
+    "sign_taxis": {
+      "recipe": "694f1b3a0e898a9b",
+      "seed": 8059,
+      "file": "sign_taxis.png",
+      "when": "2026-09-02T22:06:37",
+      "from": "made by this run"
+    },
+    "sign_fish_quay": {
+      "recipe": "408afa263ed881e1",
+      "seed": 8060,
+      "file": "sign_fish_quay.png",
+      "when": "2026-09-02T22:07:33",
+      "from": "made by this run"
+    },
+    "sign_chandlery": {
+      "recipe": "e2283762087ebad1",
+      "seed": 8061,
+      "file": "sign_chandlery.png",
+      "when": "2026-09-02T22:08:29",
+      "from": "made by this run"
+    },
+    "notice_tide_table": {
+      "recipe": "9ffa79036bf5ec4f",
+      "seed": 8080,
+      "file": "notice_tide_table.png",
+      "when": "2026-09-02T22:10:12",
+      "from": "made by this run"
+    },
+    "notice_council": {
+      "recipe": "4b7cde09ea14ac09",
+      "seed": 8081,
+      "file": "notice_council.png",
+      "when": "2026-09-02T22:11:55",
+      "from": "made by this run"
+    },
+    "notice_planning": {
+      "recipe": "1977e57c48e921c3",
+      "seed": 8082,
+      "file": "notice_planning.png",
+      "when": "2026-09-02T22:13:37",
+      "from": "made by this run"
+    },
+    "notice_wanted": {
+      "recipe": "74c3a3cb8eaf67e8",
+      "seed": 8083,
+      "file": "notice_wanted.png",
+      "when": "2026-09-02T22:15:18",
+      "from": "made by this run"
+    },
+    "notice_sailings": {
+      "recipe": "195f495c9b7f6d75",
+      "seed": 8084,
+      "file": "notice_sailings.png",
+      "when": "2026-09-02T22:16:59",
+      "from": "made by this run"
+    },
+    "notice_jumble": {
+      "recipe": "66791cfb6c13a11b",
+      "seed": 8085,
+      "file": "notice_jumble.png",
+      "when": "2026-09-02T22:18:42",
+      "from": "made by this run"
+    },
+    "poster_bingo": {
+      "recipe": "f0472a242a4014c4",
+      "seed": 8086,
+      "file": "poster_bingo.png",
+      "when": "2026-09-02T22:20:24",
+      "from": "made by this run"
+    },
+    "poster_cinema": {
+      "recipe": "8a3f12156df524e5",
+      "seed": 8087,
+      "file": "poster_cinema.png",
+      "when": "2026-09-02T22:22:05",
+      "from": "made by this run"
+    },
+    "poster_coach": {
+      "recipe": "006134c78611ae5b",
+      "seed": 8088,
+      "file": "poster_coach.png",
+      "when": "2026-09-02T22:23:46",
+      "from": "made by this run"
+    },
+    "poster_darts": {
+      "recipe": "0152429590c14483",
+      "seed": 8089,
+      "file": "poster_darts.png",
+      "when": "2026-09-02T22:25:28",
+      "from": "made by this run"
+    },
+    "poster_election": {
+      "recipe": "0d73dadf1884962a",
+      "seed": 8090,
+      "file": "poster_election.png",
+      "when": "2026-09-02T22:27:11",
+      "from": "made by this run"
+    },
+    "poster_fete": {
+      "recipe": "d1a147839af23602",
+      "seed": 8091,
+      "file": "poster_fete.png",
+      "when": "2026-09-02T22:28:54",
+      "from": "made by this run"
+    },
+    "notice_missing_cat": {
+      "recipe": "31de6b0fcecdb1e5",
+      "seed": 8092,
+      "file": "notice_missing_cat.png",
+      "when": "2026-09-02T22:30:37",
+      "from": "made by this run"
+    },
+    "notice_fly_posted": {
+      "recipe": "74d2370748e0d201",
+      "seed": 8093,
+      "file": "notice_fly_posted.png",
+      "when": "2026-09-02T22:32:18",
+      "from": "made by this run"
+    },
+    "notice_opening_hours": {
+      "recipe": "e20f28b16079d82b",
+      "seed": 8094,
+      "file": "notice_opening_hours.png",
+      "when": "2026-09-02T22:33:59",
+      "from": "made by this run"
+    },
+    "poster_safety": {
+      "recipe": "28057ae4cef63af0",
+      "seed": 8095,
+      "file": "poster_safety.png",
+      "when": "2026-09-02T22:35:40",
+      "from": "made by this run"
+    },
+    "interior_shop_shelves": {
+      "recipe": "2e0c91b502fe226b",
+      "seed": 8096,
+      "file": "interior_shop_shelves.png",
+      "when": "2026-09-02T22:36:36",
+      "from": "made by this run"
+    },
+    "interior_bar_back": {
+      "recipe": "2e56bdd81107706b",
+      "seed": 8097,
+      "file": "interior_bar_back.png",
+      "when": "2026-09-02T22:37:33",
+      "from": "made by this run"
+    },
+    "interior_stair_landing": {
+      "recipe": "3fceef8c3a1d013d",
+      "seed": 8098,
+      "file": "interior_stair_landing.png",
+      "when": "2026-09-02T22:38:29",
+      "from": "made by this run"
     }
-  },
-  "_repaired": "2026-09-02: 10 item(s) recovered by hand from cb332751's manifest, which run 2 overwrote. Without them the night's run rechecks 10 finished PNGs, finds nothing on record, and regenerates them byte-identically for about 15 minutes of GPU - which is what run 2 did to the other four. Evidence that the recipes are still current: the four rows that appear in BOTH cb332751's manifest and run 2's carry identical recipe hashes, so recipe_of and these prompts have not moved. A recipe that HAS moved since simply does not match and the item is made again, which is the correct outcome."
+  }
 }

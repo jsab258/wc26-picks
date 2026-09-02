@@ -1,6 +1,6 @@
 LEDGER - image generation, machine report
 ============================================================
-written   2026-09-02 19:55:26 local
+written   2026-09-02 22:38:29 local
 host      JAFAR-DESKTOP
 os        Microsoft Windows 11 Pro  (26200)
 cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
@@ -46,34 +46,34 @@ PLAN CHOSEN FROM THE ABOVE
 
 RUN
 ------------------------------------------------------------
-  Generating into C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ledger\Assets\StreamingAssets\Decals\generated
-    45 item(s) selected of 45 in the batch
-    --limit 4: at most 4 picture(s) will be GENERATED this run. Items already on disk are skipped and do not count against it.
-    --fail-on-blank: the first blank or unreadable PNG stops the run and the exit code is 6.
-    [1/45] fascia_mickeys  nothing on record says which prompt made the PNG already here, so it is NOT skipped - making it again
-    [1/45] fascia_mickeys  1024x512  seed 8026  cfg 1.0  about 90s
+        ok  102s  1072 KB  varied: spread 244/255, 240 levels over 23040 of 573440 px
+    [39/45] notice_missing_cat  640x896  seed 8092  cfg 1.0  about 100s
         negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  91s  1060 KB  varied: spread 252/255, 253 levels over 21115 of 524288 px
-        first image took 91s, so the batch projects to about 68 min for 45 images
-    [2/45] fascia_ritas_pawn  nothing on record says which prompt made the PNG already here, so it is NOT skipped - making it again
-    [2/45] fascia_ritas_pawn  1024x512  seed 8027  cfg 1.0  about 90s
+        ok  102s  976 KB  varied: spread 245/255, 242 levels over 23040 of 573440 px
+    [40/45] notice_fly_posted  640x896  seed 8093  cfg 1.0  about 100s
         negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  89s  1021 KB  varied: spread 255/255, 253 levels over 21115 of 524288 px
-    [3/45] fascia_fish_market  nothing on record says which prompt made the PNG already here, so it is NOT skipped - making it again
-    [3/45] fascia_fish_market  1024x512  seed 8028  cfg 1.0  about 90s
+        ok  101s  1174 KB  varied: spread 249/255, 248 levels over 23040 of 573440 px
+    [41/45] notice_opening_hours  640x896  seed 8094  cfg 1.0  about 100s
         negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  89s  991 KB  varied: spread 249/255, 249 levels over 21115 of 524288 px
-    [4/45] fascia_steam_laundry  nothing on record says which prompt made the PNG already here, so it is NOT skipped - making it again
-    [4/45] fascia_steam_laundry  1024x512  seed 8029  cfg 1.0  about 90s
+        ok  100s  1009 KB  varied: spread 236/255, 232 levels over 23040 of 573440 px
+    [42/45] poster_safety  640x896  seed 8095  cfg 1.0  about 100s
         negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  89s  929 KB  varied: spread 254/255, 254 levels over 21115 of 524288 px
-    [5/45] sign_marquee  nothing on record says which prompt made the PNG already here, so it is NOT skipped - making it again
-    STOPPING: --limit 4 reached after generating 4 picture(s); 41 of 45 selected item(s) are left and are listed in the manifest under not_attempted. Re-run to continue: nothing already made will be made again.
+        ok  101s  1068 KB  varied: spread 241/255, 242 levels over 23040 of 573440 px
+    [43/45] interior_shop_shelves  768x512  seed 8096  cfg 1.0  about 68s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  56s  732 KB  varied: spread 250/255, 249 levels over 24576 of 393216 px
+    [44/45] interior_bar_back  768x512  seed 8097  cfg 1.0  about 68s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  56s  765 KB  varied: spread 250/255, 249 levels over 24576 of 393216 px
+    [45/45] interior_stair_landing  512x768  seed 8098  cfg 1.0  about 68s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  56s  813 KB  varied: spread 252/255, 241 levels over 24576 of 393216 px
   
-  INCOMPLETE: 4 written, 0 skipped, 0 failed, 4 attempted of 45 in the batch
-    blank check: 0 blank, 0 undecodable, of 4 PNGs decoded (blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled)
-    already made: 0 skipped, 0 remade because what was on disk was blank or unreadable, of 5 PNGs found already on disk
-    not attempted: sign_marquee, sign_open_all_nite, sign_baths, notice_dock_regulations, poster_gig_bill, notice_ferry_times, wall_soot_brick, wall_salt_render, probe_wall_cfg1, probe_wall_cfg2, sign_ferry, sign_harbour_master, sign_weighbridge, sign_telephone, sign_gentlemen, sign_left_luggage, sign_no_waiting, sign_private_mooring, sign_way_out, sign_taxis, sign_fish_quay, sign_chandlery, notice_tide_table, notice_council, notice_planning, notice_wanted, notice_sailings, notice_jumble, poster_bingo, poster_cinema, poster_coach, poster_darts, poster_election, poster_fete, notice_missing_cat, notice_fly_posted, notice_opening_hours, poster_safety, interior_shop_shelves, interior_bar_back, interior_stair_landing
+  DONE: 31 written, 14 skipped, 0 failed, 31 attempted of 45 in the batch
+    blank check: 0 blank, 0 undecodable, of 31 PNGs decoded (blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled)
+    already made: 14 skipped, 0 remade because what was on disk was blank or unreadable, of 14 PNGs found already on disk
+    Those files were left exactly as they were - anything you picked out by hand is safe.
+    To make one again: delete its .png and double-click again. To make them all again: run with --redo.
     images and manifest: C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ledger\Assets\StreamingAssets\Decals\generated
     every image is review=pending until a human has looked at it
 

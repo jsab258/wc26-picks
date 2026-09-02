@@ -1,13 +1,42 @@
-# LEDGER imagegen - 11bc1c1 @1788371727
+# LEDGER imagegen - 5a28fa5 @1788381514
 # Line 1 names the commit this was measured on. No value has a space.
 # Every blankness number here was re-measured from the PNG itself, not copied from the manifest.
 
-steps selftest=success,probe=success,generate=success,attribution=failure,shaFrom=checkout,stopper=none
-manifestRun=11bc1c1 thisRun=11bc1c1 manifestIsThisRun=yes manifestState=read batchStatus=INCOMPLETE outDir=generated
+steps selftest=success,probe=success,generate=success,attribution=success,shaFrom=checkout,stopper=none
+manifestRun=5a28fa5 thisRun=5a28fa5 manifestIsThisRun=yes manifestState=read batchStatus=DONE outDir=generated
 bound blank-when-spread<=2/255-AND-stdev<=1.0,-or-alpha-0-everywhere-sampled
-image fascia_mickeys status=OK madeThisRun=yes file=fascia_mickeys.png size=1024x512 seconds=91.1 remeasured=varied/spread252/stdev79.074/levels253/21115of524288px/1085064B
-image fascia_ritas_pawn status=OK madeThisRun=yes file=fascia_ritas_pawn.png size=1024x512 seconds=88.9 remeasured=varied/spread255/stdev76.593/levels253/21115of524288px/1045849B
-image fascia_fish_market status=OK madeThisRun=yes file=fascia_fish_market.png size=1024x512 seconds=89.0 remeasured=varied/spread249/stdev81.189/levels249/21115of524288px/1014300B
-image fascia_steam_laundry status=OK madeThisRun=yes file=fascia_steam_laundry.png size=1024x512 seconds=88.9 remeasured=varied/spread254/stdev74.446/levels254/21115of524288px/950806B
-disk pngsInOutDir=14 namedByThisManifest=4 blankFilesOnDisk=0 missingFromDisk=0
-done imagegenVerdict=BANKED why=none wroteThisRun=4 failed=0 skipped=0 selected=45 inSpec=45 limit=4 blankThisRun=0 undecodableThisRun=0 checkedThisRun=4 remade=0 rechecked=5 remeasured=4 remeasuredBlank=0 remeasuredUnreadable=0 missingFromDisk=0 bytes=4096019
+image sign_ferry status=OK madeThisRun=yes file=sign_ferry.png size=768x512 seconds=55.4 inCommit=new-in-this-commit remeasured=varied/spread246/stdev88.981/levels245/24576of393216px/725202B
+image sign_harbour_master status=OK madeThisRun=yes file=sign_harbour_master.png size=768x512 seconds=55.6 inCommit=new-in-this-commit remeasured=varied/spread243/stdev68.967/levels242/24576of393216px/817112B
+image sign_weighbridge status=OK madeThisRun=yes file=sign_weighbridge.png size=768x512 seconds=55.6 inCommit=new-in-this-commit remeasured=varied/spread245/stdev70.703/levels244/24576of393216px/697491B
+image sign_telephone status=OK madeThisRun=yes file=sign_telephone.png size=768x512 seconds=55.7 inCommit=new-in-this-commit remeasured=varied/spread250/stdev81.885/levels247/24576of393216px/743559B
+image sign_gentlemen status=OK madeThisRun=yes file=sign_gentlemen.png size=768x512 seconds=55.7 inCommit=new-in-this-commit remeasured=varied/spread246/stdev78.504/levels245/24576of393216px/689133B
+image sign_left_luggage status=OK madeThisRun=yes file=sign_left_luggage.png size=768x512 seconds=55.6 inCommit=new-in-this-commit remeasured=varied/spread236/stdev90.579/levels237/24576of393216px/678110B
+image sign_no_waiting status=OK madeThisRun=yes file=sign_no_waiting.png size=768x512 seconds=55.6 inCommit=new-in-this-commit remeasured=varied/spread246/stdev72.547/levels247/24576of393216px/675562B
+image sign_private_mooring status=OK madeThisRun=yes file=sign_private_mooring.png size=768x512 seconds=55.6 inCommit=new-in-this-commit remeasured=varied/spread246/stdev84.923/levels242/24576of393216px/770960B
+image sign_way_out status=OK madeThisRun=yes file=sign_way_out.png size=768x512 seconds=55.5 inCommit=new-in-this-commit remeasured=varied/spread248/stdev85.274/levels246/24576of393216px/674346B
+image sign_taxis status=OK madeThisRun=yes file=sign_taxis.png size=768x512 seconds=55.7 inCommit=new-in-this-commit remeasured=varied/spread251/stdev74.0/levels250/24576of393216px/642860B
+image sign_fish_quay status=OK madeThisRun=yes file=sign_fish_quay.png size=768x512 seconds=55.6 inCommit=new-in-this-commit remeasured=varied/spread250/stdev79.518/levels248/24576of393216px/765583B
+image sign_chandlery status=OK madeThisRun=yes file=sign_chandlery.png size=768x512 seconds=55.7 inCommit=new-in-this-commit remeasured=varied/spread254/stdev82.603/levels255/24576of393216px/769704B
+image notice_tide_table status=OK madeThisRun=yes file=notice_tide_table.png size=640x896 seconds=102.6 inCommit=new-in-this-commit remeasured=varied/spread247/stdev72.583/levels247/23040of573440px/1124094B
+image notice_council status=OK madeThisRun=yes file=notice_council.png size=640x896 seconds=102.5 inCommit=new-in-this-commit remeasured=varied/spread247/stdev72.005/levels247/23040of573440px/1162638B
+image notice_planning status=OK madeThisRun=yes file=notice_planning.png size=640x896 seconds=100.7 inCommit=new-in-this-commit remeasured=varied/spread253/stdev66.642/levels243/23040of573440px/1007929B
+image notice_wanted status=OK madeThisRun=yes file=notice_wanted.png size=640x896 seconds=100.7 inCommit=new-in-this-commit remeasured=varied/spread250/stdev77.014/levels249/23040of573440px/1027963B
+image notice_sailings status=OK madeThisRun=yes file=notice_sailings.png size=640x896 seconds=100.8 inCommit=new-in-this-commit remeasured=varied/spread245/stdev64.657/levels244/23040of573440px/1099519B
+image notice_jumble status=OK madeThisRun=yes file=notice_jumble.png size=640x896 seconds=102.4 inCommit=new-in-this-commit remeasured=varied/spread241/stdev79.608/levels242/23040of573440px/977790B
+image poster_bingo status=OK madeThisRun=yes file=poster_bingo.png size=640x896 seconds=101.1 inCommit=new-in-this-commit remeasured=varied/spread247/stdev67.577/levels248/23040of573440px/1136916B
+image poster_cinema status=OK madeThisRun=yes file=poster_cinema.png size=640x896 seconds=100.6 inCommit=new-in-this-commit remeasured=varied/spread249/stdev76.664/levels249/23040of573440px/1132259B
+image poster_coach status=OK madeThisRun=yes file=poster_coach.png size=640x896 seconds=100.6 inCommit=new-in-this-commit remeasured=varied/spread247/stdev76.405/levels247/23040of573440px/1100649B
+image poster_darts status=OK madeThisRun=yes file=poster_darts.png size=640x896 seconds=100.9 inCommit=new-in-this-commit remeasured=varied/spread242/stdev74.949/levels243/23040of573440px/1130984B
+image poster_election status=OK madeThisRun=yes file=poster_election.png size=640x896 seconds=103.0 inCommit=new-in-this-commit remeasured=varied/spread250/stdev74.329/levels251/23040of573440px/1068109B
+image poster_fete status=OK madeThisRun=yes file=poster_fete.png size=640x896 seconds=102.4 inCommit=new-in-this-commit remeasured=varied/spread244/stdev65.163/levels240/23040of573440px/1097782B
+image notice_missing_cat status=OK madeThisRun=yes file=notice_missing_cat.png size=640x896 seconds=102.4 inCommit=new-in-this-commit remeasured=varied/spread245/stdev69.928/levels242/23040of573440px/999342B
+image notice_fly_posted status=OK madeThisRun=yes file=notice_fly_posted.png size=640x896 seconds=100.6 inCommit=new-in-this-commit remeasured=varied/spread249/stdev78.137/levels248/23040of573440px/1202012B
+image notice_opening_hours status=OK madeThisRun=yes file=notice_opening_hours.png size=640x896 seconds=100.5 inCommit=new-in-this-commit remeasured=varied/spread236/stdev65.376/levels232/23040of573440px/1033194B
+image poster_safety status=OK madeThisRun=yes file=poster_safety.png size=640x896 seconds=100.5 inCommit=new-in-this-commit remeasured=varied/spread241/stdev72.076/levels242/23040of573440px/1093450B
+image interior_shop_shelves status=OK madeThisRun=yes file=interior_shop_shelves.png size=768x512 seconds=55.7 inCommit=new-in-this-commit remeasured=varied/spread250/stdev55.661/levels249/24576of393216px/749555B
+image interior_bar_back status=OK madeThisRun=yes file=interior_bar_back.png size=768x512 seconds=56.0 inCommit=new-in-this-commit remeasured=varied/spread250/stdev64.84/levels249/24576of393216px/783342B
+image interior_stair_landing status=OK madeThisRun=yes file=interior_stair_landing.png size=512x768 seconds=55.7 inCommit=new-in-this-commit remeasured=varied/spread252/stdev64.037/levels241/24576of393216px/832807B
+disk pngsInOutDir=45 namedByThisManifest=45 blankFilesOnDisk=0 missingFromDisk=0
+done imagegenVerdict=BANKED why=none wroteThisRun=31 failed=0 skipped=14 selected=45 inSpec=45 limit=None blankThisRun=0 undecodableThisRun=0 checkedThisRun=31 remade=0 remadeBlank=0 remadeUnrecorded=0 remadeRecipeChanged=0 rechecked=14 remeasured=45 remeasuredBlank=0 remeasuredUnreadable=0 missingFromDisk=0 bytes=44127964
+commit picsThisRun=31 newInThisCommit=31 alreadyInRepoIdentical=0 notInThisCommit=0 stagedList=read/35paths headList=read/19paths repoRoot=given
+# authority: imagegenVerdict answers 'did THIS commit bank pictures'. batchStatus answers 'is the 45-item batch finished'. INCOMPLETE beside BANKED is normal and means there is more to do.
