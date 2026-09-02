@@ -11,6 +11,38 @@ Each entry has options and a recommendation so they can be answered in batch.
 Newest first. Every entry says what it means in plain terms, what the options
 cost, and what the studio recommends, so it can be answered in one line.
 
+### How does Meridian's map get drawn? (added 2026-09-02, from your question)
+
+**In plain terms.** You asked whether we copy a real city's layout from
+OpenStreetMap. Nothing has decided that. It is in the research and in the
+licence law as a permitted method, and it is in no decision, no canon line and
+no roadmap row. So it is genuinely open, and it is worth answering before the
+town phase starts rather than during it.
+
+**What is actually on the books.** The licence allowlist, which is law, item 6:
+"Geodata: OSM/Overture as skeleton only, geometry self-generated, OSM
+attribution shipped, layouts fictionalized." So a straight copy is the one
+thing already ruled out. Tracing a real road graph and then altering it is
+permitted, with attribution shipped and a derived-database question the
+feasibility research says needs legal advice before ship. Canon fixes only that
+Meridian is fictional, one map, seven named districts, three streets minted. No
+method anywhere.
+
+| | what it means | what it costs |
+|---|---|---|
+| A | **Traced skeleton.** Take a real British port town's roads and building footprints, then move, rename and redraw until it is Meridian. | Geometry almost free, and the irregularity of a real old port is hard to invent. Carries OSM attribution for ever and a share-alike question a lawyer has to answer before ship. |
+| B | **Drawn by hand from canon**, with real towns as reference to look at and nothing imported. Every street placed for play: sightlines, routes, where you can be seen, where gossip travels. | Slower per square metre. No licence tail. The map becomes an instrument of the social sim instead of a backdrop. |
+| C | **Rules-based generation.** Write a town-plan grammar (quay, high street, terraces, industrial edge) and generate the network. | Fast to iterate at any size. Generated street networks read as generic unless hand-corrected, which spends the saving. |
+
+**The studio's read is B**, and it is provisional until a director confirms it:
+the footprint is deliberately small and dense, and in a game whose moat is who
+saw you and who talked, the street plan is a gameplay instrument, not scenery.
+A becomes the right answer if the town ever needs to be much bigger than seven
+districts. A is useful either way as reference to look at, which carries no
+licence obligation at all.
+
+---
+
 #### ANSWERED 2026-09-02: TIES GO TO UNREAL, reversing the standing rule
 
 **In plain terms.** You removed the deadline so Unreal gets the time it
