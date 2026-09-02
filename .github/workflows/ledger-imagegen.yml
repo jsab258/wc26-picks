@@ -1,0 +1,367 @@
+name: LEDGER imagegen batch
+
+# THE FREE LANE. Local compute on Jafar's PC costs NOTHING against the weekly
+# Claude ceiling and runs while nobody is working, and until this file existed
+# there was no way to spend it without a person double-clicking a .bat.
+# tools/imagegen/prompts.json holds 45 written prompts, 14 PNGs exist under
+# ledger/Assets/StreamingAssets/Decals/generated, so 31 have never been
+# generated and the only thing between them and the project was a dispatch.
+#
+# IT RUNS ON THE CHANNEL THAT ALREADY EXISTS AND NEEDS NO CLICK FROM HIM.
+# The self-hosted runner labelled `ledger-pc` has been up on his PC
+# continuously; four workflows already target it (ledger-build-windows.yml,
+# ledger-probe-unreal.yml, ledger-setup-msvc.yml, ledger-vignette-fetch.yml).
+# This is the fifth, and it was modelled on the fourth line by line rather
+# than invented. ledger-vignette-fetch.yml, as it stood on 2026-09-02:
+#   trigger, sentinel and the reason for it   lines 23-41 and 49-53
+#   permissions: contents: write              lines 55-56
+#   runs-on / timeout as a hang ceiling       lines 59-66
+#   checkout with persist-credentials: false  lines 69-75
+#   the shared PATH bootstrap call            lines 77-82
+#   the shared python3 shim script            lines 88-91
+#   one dispatch answering everything it can  lines 93-120
+#   the attribution sweep in the same job     lines 124-129
+#   commit BY NAME, verdict, rebase-retry     lines 137-186
+#   the verdict named step by step, last      lines 193-203
+#
+# HOW THIS IS TRIGGERED, and why it is not workflow_dispatch alone. GitHub
+# only dispatches a `workflow_dispatch` workflow that EXISTS ON THE DEFAULT
+# BRANCH. This repo's default is `main`, this file lives on the working branch
+# by standing instruction, and a dispatch of it returns 404. So it also
+# triggers on a PUSH THAT TOUCHES ONE SENTINEL FILE, production/d1-probe/RUN-IMAGEGEN,
+# which sits with the other four sentinels and NOT in this job's output
+# directory, because a trigger living inside an output directory is the shape
+# where a run's own output re-fires the workflow that produced it. It stays
+# OPT-IN: ordinary work on this branch never wakes it and it never rides a
+# build. WHEN THIS FILE REACHES `main`, DELETE THE PUSH TRIGGER AND THE
+# SENTINEL; the dispatch entry below is already correct and starts working the
+# moment the file is on the default branch.
+#
+# WHAT THIS RUN'S OWN COMMIT TRIGGERS, checked rather than assumed. It commits
+# PNGs under ledger/**, a verdict under ledger/**, and a machine report under
+# game-design/**. Both paths are in ledger-core-tests.yml's push filter (that
+# file, lines 4 to 7), so every run of this workflow starts one core-tests run
+# on ubuntu-latest. That job is cloud-hosted and cheap, it does not touch this
+# runner, and it does not contend for the single Unity licence seat, which is
+# `workflow_dispatch:` only. Nothing else in .github/workflows lists those
+# paths.
+#
+# IT DOES CONTEND FOR THE MACHINE, WHICH IS THE ONE COST WORTH SAYING OUT LOUD.
+# `ledger-pc` is one PC. A batch running here is a Unity build waiting, so the
+# batch is BOUNDED rather than open-ended: BATCH_LIMIT below caps how many
+# pictures a run may generate and BATCH_MAX_MINUTES caps the loop. The night
+# run that empties the queue is a deliberate dispatch with a bigger limit, not
+# the default.
+#
+# --no-send IS DELIBERATE AND IS NOT AN OVERSIGHT. imagegen.py carries its own
+# publisher which commits and pushes from the clone it is generating into.
+# Under a workflow that is a SECOND AUTHOR ON ONE BRANCH, which is an
+# arrangement this project has already ended once. So the generator is told to
+# generate and nothing else, and the commit step below is the only writer,
+# exactly as the vignette fetch does it.
+#
+# THE BLANK GUARD IS THE POINT, NOT A NICETY. leejet/stable-diffusion.cpp#1031
+# is open and unfixed: Z-Image on the Vulkan backend can write a BLANK PNG and
+# EXIT ZERO. A file-exists check passes it and a manifest describes it as art.
+# So ONE classifier (imagegen.py blank_verdict, its bound read off a printed
+# series) is applied at two moments to two inputs: the generator runs with
+# --fail-on-blank, which measures each PNG as it is written and stops at the
+# first blank or unreadable one with exit 6; and the verdict RE-MEASURES every
+# PNG the manifest names, from the file's own pixels at commit time, so a
+# manifest that says OK about a blank, missing or replaced file cannot go
+# green. Independent in moment and input, not in classifier: a wrong bound
+# passes both, which is why the PNGs are opened before anything is called
+# banked (CLAUDE.md rule 4).
+# Both counts ship their denominator. A night that yields blank PNGs plus a
+# manifest calling them art is worse than a night with no run at all.
+#
+# A RUN THAT GENERATED NOTHING SAYS `NO RUN` AND FAILS. The manifest carries
+# the commit it was generated on, and a verdict refuses a manifest stamped
+# with any other run: "the job carried the commit" and "the job made a
+# picture" are different facts, and nothing older is ever committed under this
+# run's name.
+#
+# NOTHING IS PURCHASED AND NO ACCOUNT IS USED. The model is Z-Image-Turbo,
+# Apache-2.0, and the runtime is stable-diffusion.cpp, MIT; both are on the
+# licence allowlist and neither needs a login. The weights land OUTSIDE the
+# repository in %USERPROFILE%\ledger-imagegen, which is where the one-click
+# .bat puts them, so a run under the same account reuses what is already
+# downloaded instead of fetching 7 to 10 GB again.
+#
+# THIS FILE HAS NEVER RUN. Nothing in the container it was written in can
+# reach ledger-pc, a GPU or a Windows shell. Everything it hands to Python is
+# covered by `imagegen.py --selftest` (123 checks, both outcomes); this file's
+# own control flow is not, which is why the first dispatch is deliberately
+# four pictures and why the selftest runs here as a step before anything else.
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "how many pictures this run may GENERATE (blank means 4)"
+        required: false
+      only:
+        description: "comma-separated ids from prompts.json (blank means the next ones in order)"
+        required: false
+      max_minutes:
+        description: "wall-clock cap on the generating loop, minutes (blank means 60)"
+        required: false
+  push:
+    paths:
+      - 'production/d1-probe/RUN-IMAGEGEN'
+
+permissions:
+  contents: write
+
+# SCOPED TO THIS JOB ONLY, so a queued picture batch can never delay a cheap
+# check, and two batches can never fight over one GPU.
+concurrency:
+  group: ledger-imagegen
+  cancel-in-progress: false
+
+jobs:
+  imagegen:
+    runs-on: [self-hosted, ledger-pc]
+    # A CEILING ON A HANG, NOT A TARGET, and it sits above every step cap
+    # below. What dominates a FIRST run on an account whose workspace is empty
+    # is the one-time 7 to 10 GB weight download, not the pictures: four
+    # 768x512 items estimate 68s each, 4.5 minutes for the batch, measured on
+    # an RX 6700 / Vulkan / Z-Image-Turbo Q4_K / 8 steps on 25 Aug. What could
+    # blow it up is a download that stalls rather than fails, which is exactly
+    # what this cap is here to end.
+    timeout-minutes: 130
+
+    env:
+      # ONE PLACE EACH NUMBER LIVES. The dispatch inputs above carry no
+      # defaults of their own on purpose: a default written twice is a default
+      # that disagrees with itself the first time one copy is edited. On a
+      # sentinel push `inputs` is empty and these fallbacks are what run.
+      BATCH_LIMIT: ${{ github.event.inputs.limit || '4' }}
+      BATCH_ONLY: ${{ github.event.inputs.only || '' }}
+      BATCH_MAX_MINUTES: ${{ github.event.inputs.max_minutes || '60' }}
+
+    steps:
+      - name: Checkout
+        timeout-minutes: 6
+        uses: actions/checkout@v4
+        with:
+          # The commit step below brings its own credential, exactly as the
+          # vignette fetch does. Nothing else here pushes.
+          persist-credentials: false
+
+      - name: tool PATH bootstrap (self-hosted parity)
+        timeout-minutes: 1
+        shell: cmd
+        run: |
+          call tools\runner\bootstrap-paths.cmd
+          exit /b %ERRORLEVEL%
+
+      # Git-bash on this PC knows `python` and `py`, not `python3`. One idea,
+      # one implementation, with its own selftest covering both outcomes.
+      - name: python3 shim (self-hosted parity)
+        timeout-minutes: 3
+        shell: bash
+        run: bash tools/runner/python3-shim.sh
+
+      # THE WORKSPACE IS THE ONE-CLICK .BAT'S WORKSPACE, ON PURPOSE: whatever
+      # "1 MAKE THE PICTURES.bat" already downloaded is reused rather than
+      # fetched again. WHETHER THAT IS TRUE ON THIS RUNNER IS A MEASUREMENT,
+      # NOT AN ASSUMPTION - the runner service may run under a different
+      # account from the one Jafar clicks with, and then %USERPROFILE% is a
+      # different folder and the first run pays the download. So the account,
+      # the path and what is already in it are PRINTED, and the answer is in
+      # the first run's log rather than in anybody's head.
+      - name: Where the weights live, and whether they are already here
+        timeout-minutes: 2
+        shell: cmd
+        run: |
+          set "WS=%USERPROFILE%\ledger-imagegen"
+          if not exist "%WS%" mkdir "%WS%"
+          >>"%GITHUB_ENV%" echo IMAGEGEN_WS=%WS%
+          >>"%GITHUB_ENV%" echo IMAGEGEN_MACHINE=%WS%\machine.json
+          echo runnerAccount=%USERNAME%
+          echo workspace=%WS%
+          if exist "%WS%\models" (
+            echo weightsDirectory=present
+            dir /-c "%WS%\models"
+          ) else (
+            echo weightsDirectory=absent - this run downloads about 7 GB once, and that is what will dominate its length
+          )
+
+      # THE COMMIT THIS RUN IS MEASURING, READ FROM THE CHECKOUT AND NOT FROM
+      # THE EVENT. A dispatch takes a BRANCH, and the runner checks out
+      # whatever it points at when the job starts, which is not always the sha
+      # that triggered it. Everything downstream stamps and reads this one.
+      - name: The commit this run is measuring
+        timeout-minutes: 1
+        shell: bash
+        run: |
+          SHORT="$(git rev-parse HEAD | cut -c1-7)"
+          echo "IMAGEGEN_SHA=$SHORT" >> "$GITHUB_ENV"
+          echo "measuring $SHORT ($(git log -1 --format=%s | cut -c1-70))"
+
+      # THE TOOL'S OWN TESTS, ON THE MACHINE THAT RUNS IT, BEFORE IT RUNS IT.
+      # 2 seconds and 123 checks, no GPU and no network. It is
+      # continue-on-error like every step here so that one red cannot hide the
+      # others' findings, and the verdict step names it.
+      - name: imagegen selftest
+        id: selftest
+        timeout-minutes: 5
+        continue-on-error: true
+        shell: bash
+        run: python3 tools/imagegen/imagegen.py --selftest 2>&1 | tee -a imagegen-run.log
+
+      # WHAT IS THIS PC? The same probe, with the same arguments, as
+      # "1 MAKE THE PICTURES.bat" step 1. EXIT 10 MEANS NO DISPLAY ADAPTER
+      # FOUND, which is a finding and not a broken step, so this cannot fail
+      # the job: the DECISION belongs to imagegen.py's gate, which is the
+      # layer with tests, and which stops the run with exit 5 before
+      # downloading a byte if there is nothing to generate on.
+      - name: Look at this PC
+        id: probe
+        timeout-minutes: 5
+        continue-on-error: true
+        shell: cmd
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File "tools\imagegen\probe-machine.ps1" -Out "%IMAGEGEN_MACHINE%" -Drive "%SystemDrive%"
+          echo probeExit=%ERRORLEVEL% (10 means no display adapter found)
+          exit /b 0
+
+      # THE BATCH. Every flag here is deliberate and each one is in
+      # imagegen.py's argparse with its reason:
+      #   --no-send        the generator must not be a second author (line 3064)
+      #   --fail-on-blank  stop at the first blank or unreadable PNG, exit 6
+      #   --limit          bound what this run GENERATES, not where it starts
+      #   --only           optional, ids by name; a typo REFUSES the run
+      #   --run-sha        stamp the manifest with the commit it was made on
+      #   --max-minutes    the loop's wall-clock cap (line 3069)
+      #   --repo           GITHUB_WORKSPACE, so the pictures land in the game
+      #   --workspace      outside the repo, where the weights already are
+      - name: Generate the batch
+        id: generate
+        timeout-minutes: 110
+        continue-on-error: true
+        shell: bash
+        run: |
+          # A TIMESTAMP TO MEASURE "WRITTEN BY THIS RUN" AGAINST. The commit
+          # step stages the machine report only if it is newer than this
+          # marker, so a report left behind by an earlier run can never be
+          # committed as this one's answer.
+          touch .imagegen-started
+          ARGS=(all
+                --machine "$IMAGEGEN_MACHINE"
+                --workspace "$IMAGEGEN_WS"
+                --repo "$GITHUB_WORKSPACE"
+                --no-send
+                --fail-on-blank
+                --run-sha "$IMAGEGEN_SHA"
+                --max-minutes "$BATCH_MAX_MINUTES")
+          if [ -n "$BATCH_LIMIT" ]; then ARGS+=(--limit "$BATCH_LIMIT"); fi
+          if [ -n "$BATCH_ONLY" ]; then ARGS+=(--only "$BATCH_ONLY"); fi
+          echo "imagegen.py ${ARGS[*]}"
+          python3 tools/imagegen/imagegen.py "${ARGS[@]}" 2>&1 | tee -a imagegen-run.log
+
+      # THE SWEEP WHOSE JOB IS NOTICING OTHER PEOPLE'S FILES, run in the same
+      # job that writes the files rather than left to the next commit.
+      - name: Attribution still holds
+        id: attribution
+        timeout-minutes: 5
+        continue-on-error: true
+        shell: bash
+        run: python3 tools/attribution-check.py 2>&1 | tee -a imagegen-run.log
+
+      # THE EVIDENCE CHANNEL. Every number in the verdict is measured from the
+      # PNGs on disk by imagegen.py --verdict, which is selftested in the
+      # container; this step hands it only the step outcomes and the sha. The
+      # verdict's exit code is CAPTURED here and read by the last step, so the
+      # evidence is committed before the run reports itself red.
+      - name: Commit what arrived, by name
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: "*"
+          SELFTEST_OUTCOME: ${{ steps.selftest.outcome }}
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+          GENERATE_OUTCOME: ${{ steps.generate.outcome }}
+          ATTRIB_OUTCOME: ${{ steps.attribution.outcome }}
+        run: |
+          set -u
+          SHORT="${IMAGEGEN_SHA:-$(git rev-parse HEAD | cut -c1-7)}"
+          STEPS="selftest=${SELFTEST_OUTCOME:-none},probe=${PROBE_OUTCOME:-none},generate=${GENERATE_OUTCOME:-none},attribution=${ATTRIB_OUTCOME:-none}"
+          # `|| vrc=$?` RATHER THAN `$?` ON THE NEXT LINE: Actions runs bash
+          # with -e, so a red verdict would end this step before its own exit
+          # code was captured and the last step would read a missing file
+          # instead of the answer.
+          vrc=0
+          python3 tools/imagegen/imagegen.py --verdict --repo "$GITHUB_WORKSPACE" \
+            --run-sha "$SHORT" --steps "$STEPS" || vrc=$?
+          echo "$vrc" > .imagegen-verdict-rc
+          echo "verdict exit code $vrc (0 means this commit banked pictures with no blank)"
+          git config user.name "LEDGER imagegen"
+          git config user.email "imagegen@ledger.local"
+          # STAGED BY NAME, and the names come from the manifest THIS RUN
+          # wrote: a run whose manifest belongs to an older commit stages
+          # nothing but its own verdict, so a failed run can never commit the
+          # checkout's older pictures as its own evidence. `git add
+          # <directory>` is what does that, so it is not used here. A
+          # `.BLANK.png` is never staged: it stays on the runner as evidence,
+          # and its four numbers are already in the verdict.
+          staged=0
+          while read -r f; do
+            [ -n "$f" ] || continue
+            if [ -e "$f" ]; then git add -- "$f" && staged=$((staged + 1)); fi
+          done < <(python3 tools/imagegen/imagegen.py --staged-files \
+                     --repo "$GITHUB_WORKSPACE" --run-sha "$SHORT")
+          # The machine report, by name, and only if THIS run wrote it. It is
+          # the file that says what the PC is and why a stopped run stopped,
+          # so it matters most exactly when the batch failed.
+          REPORT=game-design/agent-reports/machine-report.txt
+          if [ -n "$(find "$REPORT" -newer .imagegen-started 2>/dev/null)" ]; then
+            git add -- "$REPORT" && staged=$((staged + 1))
+          else
+            echo "machine report NOT staged: nothing wrote it after this run started"
+          fi
+          echo "staged=$staged path(s) by name (verdict, manifest, resume record, progress, pictures, report)"
+          if git diff --cached --quiet; then
+            echo "nothing arrived that was not already committed"
+            exit 0
+          fi
+          git commit -m "Meridian pictures from $SHORT ($STEPS)"
+          BR="${GITHUB_REF_NAME}"
+          for i in 1 2 3; do
+            git pull --rebase --no-edit origin "$BR" || git rebase --abort || true
+            if git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${BR}"; then
+              echo "imagegen result pushed to $BR"; exit 0
+            fi
+            sleep $((i * 5))
+          done
+          echo "could not push the batch; it is committed locally on the agent"
+
+      # THE VERDICT, NAMED STEP BY STEP, and it is the last thing so that the
+      # evidence is committed whatever this says. A red here means this commit
+      # banked no picture, or banked a blank one, which is a finding rather
+      # than a broken runner. The committed verdict file says which.
+      - name: The verdict, named step by step
+        if: always()
+        shell: bash
+        run: |
+          bad=0
+          [ "${{ steps.selftest.outcome }}"    = "success" ] || { echo "SELFTEST FAILED - imagegen.py does not pass its own checks on this machine; nothing below is trustworthy"; bad=1; }
+          [ "${{ steps.attribution.outcome }}" = "success" ] || { echo "ATTRIBUTION CHECK FAILED"; bad=1; }
+          case "${{ steps.generate.outcome }}" in
+            success) ;;
+            *) echo "GENERATE FAILED - the exit code says which: 2 disk, 3 setup, 4 nothing came out, 5 stopped before downloading (no GPU found), 6 a BLANK or unreadable PNG. The machine report in the commit above says what was found."; bad=1 ;;
+          esac
+          # THE PROBE IS NOT A GATE. Exit 10 means no display adapter was
+          # found, and imagegen.py's gate is what decides what that is worth.
+          [ "${{ steps.probe.outcome }}" = "success" ] || echo "note: the probe step reported non-success; imagegen.py's own gate is what acted on it"
+          echo "--- the committed verdict ---"
+          cat ledger/Assets/StreamingAssets/Decals/generated/imagegen-verdict.txt 2>/dev/null \
+            || echo "NO VERDICT FILE - the run did not reach the verdict step's own writer"
+          rc="$(cat .imagegen-verdict-rc 2>/dev/null || echo 1)"
+          [ "$rc" = "0" ] || { echo "VERDICT RED - this commit banked no picture, or banked a blank one. The done line above says which and how many, with its denominator."; bad=1; }
+          [ "$bad" -eq 0 ] && echo "selftest, generate, attribution and the verdict are all green"
+          exit $bad

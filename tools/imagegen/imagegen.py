@@ -1685,7 +1685,8 @@ def write_progress(outdir, manifest, rows, started, remaining_estimate):
 
 
 def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
-              publisher=None):
+              publisher=None, only=None, limit=None, run_sha="local",
+              fail_on_blank=False):
     """Generate the batch. Writes each PNG, rewrites the manifest and the resume
     record as it goes, and hands each finished picture to the publisher, so a
     run killed halfway has already delivered - and can be resumed - rather than
@@ -1720,17 +1721,55 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
     style = spec["style"]
     d = spec["defaults"]
     items = spec["items"]
+
+    # THE SELECTION, AND IT IS TWO DIFFERENT QUESTIONS FROM THE CPU CAP.
+    # `only` names ids and answers WHICH; `limit` bounds how many pictures this
+    # run will GENERATE and answers HOW MANY. They exist for the unattended
+    # lane: the first dispatch of a new route proves it on a handful, because a
+    # night that produces 31 unproven pictures and a manifest describing them
+    # is worse than a night that produces four and a verdict anybody can read.
+    #
+    # `limit` COUNTS GENERATIONS, NOT POSITIONS IN THE LIST. An item already on
+    # disk that passes the skip check cost nothing and does not spend the
+    # budget, so `--limit 4` on a batch whose first fourteen are already made
+    # generates the next four rather than stopping inside the finished part.
+    # That is the whole difference between a flag that proves a route and a
+    # flag that quietly proves nothing.
+    unknown = []
+    if only:
+        want = list(dict.fromkeys(only))
+        known = {i["id"] for i in items}
+        unknown = [o for o in want if o not in known]
+        selected = [i for i in items if i["id"] in set(want)]
+    else:
+        selected = list(items)
+    caps_note = []
+    if only:
+        caps_note.append(f"--only: {len(selected)} of {len(items)} item(s) "
+                         "selected by name")
     capped = None
     if pl["item_limit"]:
-        capped = f"CAP: {pl['item_limit']} of {len(items)} items attempted (CPU mode)"
-        items_run = items[:pl["item_limit"]]
+        capped = (f"CAP: {pl['item_limit']} of {len(selected)} selected item(s) "
+                  "attempted (CPU mode)")
+        items_run = selected[:pl["item_limit"]]
     else:
-        items_run = items
+        items_run = selected
+    if limit is not None:
+        caps_note.append(f"--limit: at most {limit} picture(s) GENERATED this "
+                         "run; items already on disk that pass the skip check "
+                         "do not count against it")
 
     manifest = {
         "batch": spec["batch_name"],
         "written": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "status": "RUNNING",
+        # WHICH COMMIT THIS RUN IS. Without it, a manifest from last week and a
+        # manifest from tonight are the same file to every reader downstream,
+        # and "the job carried the commit" reads as "the job made a picture".
+        # `imagegen_verdict` refuses a manifest whose sha is not the run's.
+        "run": {"sha": run_sha, "started": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                "what": "the commit this batch was generated on; 'local' means "
+                        "it was run by hand rather than by CI"},
         "generator": {
             "tool": "stable-diffusion.cpp", "tool_licence": "MIT",
             "tool_release": SDCPP_TAG, "backend": pl["backend"],
@@ -1747,7 +1786,7 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
                    "in-world Meridian businesses. NOTHING SHIPS UNREVIEWED: every "
                    "image below is review=pending until a human has looked for "
                    "anything resembling a real mark or a real face."),
-        "caps": [c for c in [capped,
+        "caps": [c for c in [capped, *caps_note,
                              f"resolution scaled x{pl['size_scale']}" if pl["size_scale"] != 1 else None,
                              f"wall-clock cap {max_minutes} min"] if c],
         # THE CHECK THAT DOES NOT TRUST THE EXIT CODE, and its denominators.
@@ -1785,10 +1824,22 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
                               "one; it only ACTS when cfg != 1.0, because sd-cli "
                               "evaluates the unconditional branch only then",
                       "carried": 0, "active": 0, "inert_at_cfg1": 0},
+        # THREE DENOMINATORS, BECAUSE THEY ARE THREE DIFFERENT SETS.
+        # `items_in_spec` is everything written in prompts.json,
+        # `items_selected` is what this run was asked for, and `limit` bounds
+        # what it may generate out of that. A count of failures against the
+        # wrong one of these is a clean result with a number attached.
         "items_in_spec": len(items),
+        "items_selected": len(items_run),
+        "selection": {"only": list(only) if only else None, "limit": limit,
+                      "selected": len(items_run), "of": len(items),
+                      "what": "only = the ids asked for by name; limit = how "
+                              "many pictures this run may GENERATE, which "
+                              "skipped items do not count against"},
         "items_attempted": 0, "items_written": 0, "items_failed": 0,
         "items_skipped": 0,
-        "not_attempted": [i["id"] for i in items[len(items_run):]],
+        "not_attempted": [i["id"] for i in items
+                          if i["id"] not in {x["id"] for x in items_run}],
         "images": [],
     }
     mpath = outdir / "manifest.json"
@@ -1801,6 +1852,17 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
     # outcomes are exercised in the selftest: the live prompts.json is the
     # accepting case, a synthetic broken spec is the rejecting one.
     problems = validate_spec(spec)
+    # AN `--only` THAT NAMES NOTHING MUST NOT READ AS A RUN WITH NOTHING TO DO.
+    # A typo in a dispatch input is the likeliest way this route fails, and the
+    # failure it would otherwise wear is "0 generated, everything fine".
+    if unknown:
+        problems.append(
+            f"--only named {len(unknown)} id(s) that are in no prompt: "
+            + ",".join(sorted(unknown))
+            + f" (of {len(only)} asked for, against {len(items)} in the spec)")
+    if only and not items_run:
+        problems.append("--only selected 0 of "
+                        f"{len(items)} items, so there is nothing to generate")
     if problems:
         manifest["status"] = "REFUSED"
         manifest["problems"] = problems
@@ -1836,6 +1898,25 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
         return out, todo
 
     for n, item in enumerate(items_run, 1):
+        # THE UNATTENDED LANE'S STOP, and it is ONE test covering both bad
+        # outcomes: a blank PNG and a PNG that could not be read at all. #1031
+        # is a known mode, not a surprise; reproducing it thirty more times
+        # overnight teaches nothing and costs the night. It is checked here,
+        # before the next item starts, rather than inside the failure branch,
+        # because an UNDECODABLE image is not routed through that branch and
+        # would otherwise be the half this stop never saw.
+        if fail_on_blank and (manifest["blank_check"]["blank"]
+                              or manifest["blank_check"]["undecodable"]):
+            bcs = manifest["blank_check"]
+            log(f"  STOPPING (--fail-on-blank): {bcs['blank']} blank and "
+                f"{bcs['undecodable']} undecodable of {bcs['checked']} PNG(s) "
+                f"this run decoded, after {n-1} of {len(items_run)} item(s). "
+                "Nothing else is generated, and the run exits 6.")
+            manifest["caps"].append(
+                f"--fail-on-blank stopped the run after {n-1} of "
+                f"{len(items_run)} item(s): {bcs['blank']} blank, "
+                f"{bcs['undecodable']} undecodable of {bcs['checked']} decoded")
+            break
         if (time.time() - t_start) / 60.0 > max_minutes:
             log(f"  STOPPING: wall-clock cap of {max_minutes} min reached after "
                 f"{n-1} of {len(items_run)} images. The rest are listed in the "
@@ -1849,9 +1930,14 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
         steps = d["steps"]
         neg_active, neg_why = negative_state(cfg, negative)
         bad = check_forbidden(prompt + " " + negative, forbidden)
+        # TWO KEYS, TWO FACTS. `seen_on_run` says this run LOOKED at the item;
+        # `made_on_run` is set below only when this run actually generated the
+        # picture. Folding them into one is how a run that skipped fourteen
+        # finished PNGs would read as a run that made fourteen.
         rec = {"id": item["id"], "kind": item["kind"], "binds_to": item["binds_to"],
                "prompt": prompt, "negative": negative,
                "negative_active": neg_active, "negative_note": neg_why,
+               "seen_on_run": run_sha,
                "review": "pending"}
         if item.get("probe"):
             rec["probe"] = True
@@ -1933,6 +2019,22 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
                     publisher.note(png)
                 save()
                 continue
+        # THE SMALL-BATCH STOP, and it sits HERE rather than at the top of the
+        # loop on purpose: everything above this line is free (an item already
+        # on disk is rechecked and skipped), and the budget being spent is
+        # GENERATION. The remaining ids land in not_attempted, which is derived
+        # from what was tried, so the manifest says exactly what is left.
+        if limit is not None and manifest["items_attempted"] >= limit:
+            log(f"  STOPPING: --limit {limit} reached after generating "
+                f"{manifest['items_attempted']} picture(s); "
+                f"{len(items_run) - n + 1} of {len(items_run)} selected item(s) "
+                "are left and are listed in the manifest under not_attempted. "
+                "Re-run to continue: nothing already made will be made again.")
+            manifest["caps"].append(
+                f"--limit {limit} reached: {manifest['items_attempted']} "
+                f"generated, {len(items_run) - n + 1} of {len(items_run)} "
+                "selected item(s) left")
+            break
         cmd = [str(exe),
                "--diffusion-model", str(ws / "models" / pl["quant_file"]),
                "--vae", str(ws / "models" / VAE["file"]),
@@ -2053,7 +2155,7 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
             continue
         consecutive_fail = 0
         rec.update(status="OK", bytes=png.stat().st_size, sha256=sha256(png),
-                   file=png.name)
+                   file=png.name, made_on_run=run_sha)
         manifest["items_written"] += 1
         made[item["id"]] = {"recipe": recipe, "seed": seed, "file": png.name,
                             "when": time.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -2120,6 +2222,262 @@ def write_attribution(outdir, manifest):
         "review": "every image is review=pending in manifest.json until a human "
                   "has looked at it for real marks and real faces",
     }, indent=2) + "\n", encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# THE COMMITTED EVIDENCE FILE, AND WHY THE ARITHMETIC IS HERE
+#
+# The unattended lane runs this file on Jafar's PC through
+# .github/workflows/ledger-imagegen.yml, and nobody watches it. The only thing
+# that comes back is what CI commits, so the run needs one file that says what
+# it generated, measured from the bytes, with the commit on line 1.
+#
+# It lives in this module rather than in that workflow's YAML because a
+# formatter written into a `run:` block ships UNRUN, and an unrun formatter
+# printing a plausible string is the silent-instrument failure this project has
+# a standing rule about. The workflow supplies only the step outcomes and the
+# sha; everything that counts, measures or formats is here, under --selftest.
+#
+# IT RE-MEASURES RATHER THAN BELIEVING THE MANIFEST. Every PNG the manifest
+# names is opened and its luminance read AGAIN here. That is not distrust of
+# the code above: it is the shape of leejet/stable-diffusion.cpp#1031, where
+# the thing that lies is an exit code and the only witness is the file. One
+# number believed on somebody else's word is how a night of blank PNGs ships
+# with a manifest calling it art.
+# ---------------------------------------------------------------------------
+VERDICT_NAME = "imagegen-verdict.txt"
+# A CAP THAT ANNOUNCES ITSELF. Forty per-picture lines is more than any batch
+# this run can generate under the limit the unattended lane uses, and if it
+# ever bites the next line says by how much.
+VERDICT_SAMPLE_CAP = 40
+
+
+def output_dir(repo=None, ws=None, out=None):
+    """WHERE THE PICTURES GO. ONE IMPLEMENTATION, because --verdict and
+    --staged-files have to name the same directory the batch wrote to, and two
+    copies of this expression is how a verdict ends up measuring an empty
+    folder and reporting a clean nothing."""
+    if out:
+        return pathlib.Path(out)
+    if repo:
+        return pathlib.Path(repo) / "ledger/Assets/StreamingAssets/Decals/generated"
+    return (pathlib.Path(ws) if ws else pathlib.Path.cwd() / "ledger-imagegen") / "generated"
+
+
+def _read_manifest(outdir):
+    """(manifest|None, state). UNREADABLE IS NOT ABSENT and neither is fine, so
+    they are two states rather than one falsy answer."""
+    mp = pathlib.Path(outdir) / "manifest.json"
+    if not mp.exists():
+        return None, "absent"
+    try:
+        return json.loads(mp.read_text(encoding="utf-8")), "read"
+    except Exception as e:                                    # noqa: BLE001
+        return None, f"unreadable:{type(e).__name__}"
+
+
+def _nospace(v):
+    """Every reader of a key=value line splits on whitespace and truncates
+    silently, so a value never carries a space."""
+    return str(v).replace(" ", "-") or "none"
+
+
+def imagegen_verdict(outdir, sha="local", steps="", out=None, repo=None):
+    """Write the evidence file and return 0 only if this run banked pictures.
+
+    LINE 1 NAMES THE COMMIT. Whole-run numbers are on the done line and
+    per-picture numbers on the picture lines, because a grep across two lines
+    merges two moments silently.
+
+    A RUN THAT GENERATED NOTHING SAYS `NO RUN`, and so does a run whose
+    manifest was written on a different commit: "the job carried the commit"
+    and "the job made a picture" are different facts, and the second one is the
+    only one worth a night.
+    """
+    outdir = pathlib.Path(outdir)
+    out = pathlib.Path(out) if out else outdir / VERDICT_NAME
+    man, state = _read_manifest(outdir)
+    on_disk = sorted(q for q in outdir.glob("*.png")) if outdir.exists() else []
+    manifest_run = ((man or {}).get("run") or {}).get("sha", "none")
+    fresh = (manifest_run == sha and sha != "none")
+
+    L = [f"# LEDGER imagegen - {sha} @{int(time.time())}",
+         "# Line 1 names the commit this was measured on. No value has a space.",
+         "# Every blankness number here was re-measured from the PNG itself, "
+         "not copied from the manifest.",
+         ""]
+    L.append(f"steps {_nospace(steps) or 'none-reported'}")
+    L.append(f"manifestRun={_nospace(manifest_run)} thisRun={_nospace(sha)} "
+             f"manifestIsThisRun={'yes' if fresh else 'no'} "
+             f"manifestState={_nospace(state)} "
+             f"batchStatus={_nospace((man or {}).get('status', 'NONE'))} "
+             f"outDir={_nospace(outdir.name)}")
+    L.append(f"bound blank-when-spread<={BLANK_MAX_SPREAD}/255-AND-"
+             f"stdev<={BLANK_MAX_STDEV},-or-alpha-0-everywhere-sampled")
+
+    images = (man or {}).get("images", []) or []
+    bc = (man or {}).get("blank_check", {}) or {}
+    wrote = sum(1 for r in images if r.get("made_on_run") == sha)
+    failed = sum(1 for r in images if r.get("status") == "FAILED")
+    skipped = sum(1 for r in images if r.get("status") == "SKIPPED")
+    rows, remeasured, remeasured_blank, remeasured_unreadable = [], 0, 0, 0
+    missing, total_bytes = [], 0
+    for r in images:
+        mine = (r.get("made_on_run") == sha)
+        fname = r.get("file")
+        measured = "not-a-file"
+        if fname and r.get("status") in ("OK", "SKIPPED"):
+            q = outdir / fname
+            if not q.exists():
+                missing.append(fname)
+                measured = "MISSING-FROM-DISK"
+            else:
+                st = png_stats(q)
+                v, _why = blank_verdict(st)
+                remeasured += 1
+                total_bytes += q.stat().st_size
+                if v == "blank":
+                    remeasured_blank += 1
+                elif v == "unknown":
+                    remeasured_unreadable += 1
+                measured = (f"{v}/spread{st.get('spread')}/stdev{st.get('stdev')}"
+                            f"/levels{st.get('distinct')}"
+                            f"/{st.get('sampled')}of{st.get('pixels')}px"
+                            f"/{q.stat().st_size}B")
+        elif r.get("status") == "FAILED":
+            measured = "no-picture/" + _nospace((r.get("why") or "no-reason")[:60])
+        if mine or r.get("status") == "FAILED":
+            rows.append(f"image {_nospace(r.get('id', 'NONE'))} "
+                        f"status={_nospace(r.get('status', 'NONE'))} "
+                        f"madeThisRun={'yes' if mine else 'no'} "
+                        f"file={_nospace(fname or 'none')} "
+                        f"size={r.get('width', '?')}x{r.get('height', '?')} "
+                        f"seconds={r.get('seconds', '?')} "
+                        f"remeasured={measured}")
+    shown = rows[:VERDICT_SAMPLE_CAP]
+    L.extend(shown)
+    if len(rows) > len(shown):
+        L.append(f"(+{len(rows) - len(shown)}-more-not-shown)")
+    if not rows:
+        L.append("# no picture line above: this run neither generated nor "
+                 "failed a single item")
+
+    blanks_on_disk = [q.name for q in on_disk if q.name.endswith(".BLANK.png")]
+    L.append(f"disk pngsInOutDir={len(on_disk)} "
+             f"namedByThisManifest={sum(1 for r in images if r.get('file'))} "
+             f"blankFilesOnDisk={len(blanks_on_disk)} "
+             f"missingFromDisk={len(missing)}")
+    if blanks_on_disk:
+        L.append("BLANKFILES " + ",".join(sorted(blanks_on_disk)[:20])
+                 + (f"-(+{len(blanks_on_disk) - 20}-more-not-shown)"
+                    if len(blanks_on_disk) > 20 else "")
+                 + " # kept on the runner as evidence and NEVER staged")
+    if missing:
+        L.append("MISSING " + ",".join(sorted(missing)[:20])
+                 + (f"-(+{len(missing) - 20}-more-not-shown)"
+                    if len(missing) > 20 else ""))
+
+    # THE VERDICT WORD, AND ITS ORDER IS A DECISION. A run that generated
+    # nothing BECAUSE everything came out blank is a blank run, not an idle
+    # one, so BLANKS is tested before NO-RUN. Otherwise the loudest finding of
+    # the night would hide behind the quietest word for it.
+    if man is None:
+        word, why = "NO-RUN", f"manifest-{state}-under-{outdir.name}"
+    elif not fresh:
+        word, why = "NO-RUN", f"manifest-written-by-run-{_nospace(manifest_run)}-not-{_nospace(sha)}"
+    elif (bc.get("blank") or bc.get("undecodable")
+          or remeasured_blank or remeasured_unreadable):
+        word, why = "BLANKS", "leejet-stable-diffusion.cpp#1031-shape"
+    elif wrote == 0:
+        word = "NO-RUN"
+        why = ("nothing-generated-" + ("all-selected-items-were-already-on-disk"
+                                       if skipped else "nothing-was-attempted"))
+    else:
+        word, why = "BANKED", "none"
+    if word == "NO-RUN":
+        L.append(f"NO RUN - this commit ({sha}) generated no picture: "
+                 f"{why.replace('-', ' ')}. Nothing older is being read as this "
+                 "run's answer.")
+    sel = (man or {}).get("selection", {}) or {}
+    L.append(f"done imagegenVerdict={word} why={why} "
+             f"wroteThisRun={wrote} failed={failed} skipped={skipped} "
+             f"selected={(man or {}).get('items_selected', 0)} "
+             f"inSpec={(man or {}).get('items_in_spec', 0)} "
+             f"limit={_nospace(sel.get('limit'))} "
+             f"blankThisRun={bc.get('blank', 0)} "
+             f"undecodableThisRun={bc.get('undecodable', 0)} "
+             f"checkedThisRun={bc.get('checked', 0)} "
+             f"remade={bc.get('remade', 0)} rechecked={bc.get('rechecked', 0)} "
+             f"remeasured={remeasured} remeasuredBlank={remeasured_blank} "
+             f"remeasuredUnreadable={remeasured_unreadable} "
+             f"missingFromDisk={len(missing)} bytes={total_bytes}")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(L) + "\n", encoding="utf-8")
+    print("\n".join(L))
+    return 0 if word == "BANKED" else 1
+
+
+def staged_file_list(outdir, sha="local", repo=None, out=None):
+    """The paths the workflow may `git add`, BY NAME.
+
+    Derived from the manifest, and only from a manifest this run wrote, so a
+    failed run can never commit its stale checkout's files as its own evidence.
+    A stale or missing manifest stages ONLY the verdict, which is the file that
+    says the run measured nothing.
+
+    A `.BLANK.png` IS NEVER STAGED. It is kept on the runner because it is the
+    evidence, and it is not committed because a uniform image is fully
+    described by the four numbers already in the verdict, and because a
+    directory of blank PNGs is exactly what a later reader mistakes for art.
+    """
+    outdir = pathlib.Path(outdir)
+    out = pathlib.Path(out) if out else outdir / VERDICT_NAME
+    root = pathlib.Path(repo).resolve() if repo else None
+
+    def rel(q):
+        q = pathlib.Path(q).resolve()
+        if root is None:
+            return None
+        try:
+            return q.relative_to(root).as_posix()
+        except ValueError:
+            return None
+
+    lines, outside = [], 0
+    man, _state = _read_manifest(outdir)
+    fresh = ((man or {}).get("run", {}).get("sha") == sha and sha != "none")
+    wanted = [out]
+    if fresh:
+        for name in ("manifest.json", "made.json", "PROGRESS.txt", "ATTRIBUTION.json"):
+            wanted.append(outdir / name)
+        for r in man.get("images", []):
+            f = r.get("file")
+            if (r.get("status") in ("OK", "SKIPPED") and f
+                    and not f.endswith(".BLANK.png") and (outdir / f).exists()):
+                wanted.append(outdir / f)
+    for q in wanted:
+        if not pathlib.Path(q).exists():
+            continue
+        r = rel(q)
+        if r is None:
+            outside += 1
+            continue
+        lines.append(r)
+    return list(dict.fromkeys(lines)), outside
+
+
+def staged_files(outdir, sha="local", repo=None, out=None):
+    """Print what staged_file_list decided, one path per line. THE DECIDING AND
+    THE PRINTING ARE SEPARATE so the deciding can be tested: a list function
+    returns something a check can count, and a printer returns 0 whatever it
+    printed."""
+    lines, outside = staged_file_list(outdir, sha, repo, out)
+    for line in lines:
+        print(line)
+    if outside:
+        print(f"{outside} path(s) are outside the repository and cannot be "
+              "staged; --repo names the repository root", file=sys.stderr)
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -2946,6 +3304,260 @@ def selftest():
     finally:
         subprocess.run = real
 
+    # 13. THE UNATTENDED LANE. --only, --limit, --fail-on-blank and the verdict
+    #     file exist for one route: .github/workflows/ledger-imagegen.yml runs
+    #     this batch on Jafar's PC with nobody watching, and the only thing
+    #     that comes back is what CI commits. Every check below is about a
+    #     night not being wasted, so every one of them has an accepting case
+    #     first and a rejecting case that can actually fire.
+    ids = [i["id"] for i in spec["items"]]
+
+    class _Seen(_Fake):
+        """A generator that records which items it was asked to make."""
+
+        def __init__(self, rc, paint="varied"):
+            _Fake.__init__(self, rc, paint)
+            self.seen = []
+
+        def __call__(self, cmd, **kw):
+            self.seen.append(pathlib.Path(cmd[cmd.index("--output") + 1]).stem)
+            return _Fake.__call__(self, cmd, **kw)
+
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            td = pathlib.Path(td)
+            out = td / "lane"
+            fake = _Seen(0)
+            subprocess.run = fake
+            m = run_batch(pathlib.Path("stub"), td, gpu, spec, out, 60,
+                          lambda s="": None, only=[ids[1], ids[3]],
+                          run_sha="aaaaaaa")
+            check("--only ACCEPTING: exactly the two named items are generated, "
+                  "and the denominators say selected-of-spec rather than one "
+                  "number twice",
+                  sorted(fake.seen) == sorted([ids[1], ids[3]])
+                  and m["items_written"] == 2 and m["items_selected"] == 2
+                  and m["items_in_spec"] == len(ids)
+                  and len(m["not_attempted"]) == len(ids) - 2
+                  and any("--only" in c for c in m["caps"]),
+                  f"seen={fake.seen} selected={m.get('items_selected')} "
+                  f"caps={m['caps']}")
+            check("--only: the manifest records THIS RUN'S commit, per picture "
+                  "and for the batch - without it a manifest from last week "
+                  "and one from tonight are the same file",
+                  m["run"]["sha"] == "aaaaaaa"
+                  and all(r["made_on_run"] == "aaaaaaa" for r in m["images"])
+                  and all(r["seen_on_run"] == "aaaaaaa" for r in m["images"]),
+                  m["run"])
+
+            # REJECTING CASE: an id that is in no prompt. This is a typo in a
+            # dispatch input, and the failure it would otherwise wear is "0
+            # generated, everything fine".
+            fake2 = _Seen(0)
+            subprocess.run = fake2
+            bad = run_batch(pathlib.Path("stub"), td, gpu, spec, td / "lane2",
+                            60, lambda s="": None, only=["no_such_item_999"],
+                            run_sha="aaaaaaa")
+            check("--only REJECTING: an id that exists in no prompt REFUSES the "
+                  "run, names the id, and generates nothing",
+                  bad["status"] == "REFUSED" and fake2.seen == []
+                  and any("no_such_item_999" in p for p in bad.get("problems", [])),
+                  f"status={bad['status']} seen={fake2.seen} "
+                  f"problems={bad.get('problems')}")
+
+            # --limit, on a fresh directory: it bounds GENERATION.
+            lim = td / "lim"
+            fake3 = _Seen(0)
+            subprocess.run = fake3
+            l1 = run_batch(pathlib.Path("stub"), td, gpu, spec, lim, 60,
+                           lambda s="": None, limit=2, run_sha="aaaaaaa")
+            check("--limit ACCEPTING: exactly 2 pictures are generated, the "
+                  "rest are named in not_attempted, and the cap is announced",
+                  fake3.seen == ids[:2] and l1["items_written"] == 2
+                  and len(l1["not_attempted"]) == len(ids) - 2
+                  and any("--limit" in c for c in l1["caps"]),
+                  f"seen={fake3.seen} written={l1['items_written']} "
+                  f"caps={l1['caps']}")
+            # THE SEMANTIC THE FLAG IS FOR, and the one a positional cap gets
+            # wrong: the second run must generate the NEXT two rather than
+            # spending its budget on the two already on disk. A `--limit 4`
+            # against a batch whose first fourteen are made must make four
+            # pictures, not none.
+            fake4 = _Seen(0)
+            subprocess.run = fake4
+            l2 = run_batch(pathlib.Path("stub"), td, gpu, spec, lim, 60,
+                           lambda s="": None, limit=2, run_sha="bbbbbbb")
+            check("--limit: a skipped item does NOT spend the budget - the "
+                  "second run makes the NEXT two, not none",
+                  fake4.seen == ids[2:4] and l2["items_written"] == 2
+                  and l2["items_skipped"] == 2,
+                  f"seen={fake4.seen} skipped={l2['items_skipped']}")
+
+            # --fail-on-blank, ACCEPTING CASE FIRST: it must not stop a run
+            # that is going fine. A guard that cannot tell a good night from a
+            # bad one is a ratchet.
+            fake5 = _Seen(0)
+            subprocess.run = fake5
+            g = run_batch(pathlib.Path("stub"), td, gpu, spec, td / "good", 60,
+                          lambda s="": None, fail_on_blank=True,
+                          run_sha="aaaaaaa")
+            check("--fail-on-blank ACCEPTING: a clean batch runs to the end "
+                  "with the guard armed",
+                  g["items_written"] == len(ids) and g["status"] == "DONE"
+                  and g["blank_check"]["blank"] == 0,
+                  f"written={g['items_written']} status={g['status']}")
+            # REJECTING: exit 0 and a blank file, which is #1031 exactly. One
+            # blank stops it - two would already have been stopped by the
+            # first-two-failures rule, so the flag has to be provably tighter
+            # than the behaviour that was there before it.
+            fake6 = _Seen(0, "blank")
+            subprocess.run = fake6
+            bl = run_batch(pathlib.Path("stub"), td, gpu, spec, td / "blank", 60,
+                           lambda s="": None, fail_on_blank=True,
+                           run_sha="aaaaaaa")
+            check("--fail-on-blank REJECTING: the FIRST blank stops the run, "
+                  "and the count ships its denominator",
+                  len(fake6.seen) == 1 and bl["blank_check"]["blank"] == 1
+                  and bl["blank_check"]["checked"] == 1
+                  and bl["items_written"] == 0
+                  and len(bl["not_attempted"]) == len(ids) - 1
+                  and any("--fail-on-blank" in c for c in bl["caps"]),
+                  f"seen={fake6.seen} blank_check={bl['blank_check']}")
+            # AND THE HALF THE FAILURE BRANCH CANNOT SEE. An undecodable PNG is
+            # counted as written, so a stop wired into the failure path would
+            # never fire on it and the night would run to the end on files
+            # nothing could read.
+            fake7 = _Seen(0, "stub")
+            subprocess.run = fake7
+            un = run_batch(pathlib.Path("stub"), td, gpu, spec, td / "unread",
+                           60, lambda s="": None, fail_on_blank=True,
+                           run_sha="aaaaaaa")
+            check("--fail-on-blank REJECTING: an UNDECODABLE PNG stops the run "
+                  "too, and it is counted apart from blank",
+                  len(fake7.seen) == 1 and un["blank_check"]["undecodable"] == 1
+                  and un["blank_check"]["blank"] == 0
+                  and un["blank_check"]["checked"] == 1,
+                  f"seen={fake7.seen} blank_check={un['blank_check']}")
+
+            # ------------------------------------------------------------
+            # THE VERDICT FILE CI COMMITS. Accepting case first, on the
+            # directory the --only run above actually wrote.
+            vpath = out / VERDICT_NAME
+            rc = imagegen_verdict(out, "aaaaaaa", "generate=success extra=one")
+            text = vpath.read_text(encoding="utf-8")
+            done = [x for x in text.splitlines() if x.startswith("done ")][0]
+            check("verdict ACCEPTING: a run that generated two pictures is "
+                  "BANKED, line 1 names the commit, and the counts are on the "
+                  "done line",
+                  rc == 0 and text.splitlines()[0].startswith("# LEDGER imagegen - aaaaaaa")
+                  and "imagegenVerdict=BANKED" in done and "wroteThisRun=2" in done
+                  and "remeasured=2" in done and "remeasuredBlank=0" in done,
+                  done)
+            check("verdict: NO VALUE CARRIES A SPACE, including the step "
+                  "outcomes CI hands in - every reader splits on whitespace "
+                  "and truncates silently",
+                  "steps generate=success-extra=one" in text
+                  and all(len(x.split("=", 1)[1].split()) <= 1
+                          for line in text.splitlines()
+                          if not line.startswith("#")
+                          for x in line.split() if "=" in x),
+                  [x for x in text.splitlines() if x.startswith("steps ")])
+            check("verdict: per-picture numbers sit on the picture lines and "
+                  "whole-run numbers on the done line, never both under one key",
+                  sum(1 for x in text.splitlines() if x.startswith("image ")) == 2
+                  and "wroteThisRun" not in text.split("done ")[0].split("image ")[-1],
+                  [x for x in text.splitlines() if x.startswith("image ")][:1])
+
+            # REJECTING 1: a directory nothing ran in. It must say NO RUN in
+            # words, not print a clean zero.
+            empty = td / "nothing"
+            empty.mkdir()
+            rc = imagegen_verdict(empty, "aaaaaaa", "generate=failure")
+            etext = (empty / VERDICT_NAME).read_text(encoding="utf-8")
+            check("verdict REJECTING: a run that generated nothing says NO RUN "
+                  "and fails, with the zero's denominators beside it",
+                  rc == 1 and "NO RUN" in etext
+                  and "imagegenVerdict=NO-RUN" in etext
+                  and "wroteThisRun=0" in etext and "pngsInOutDir=0" in etext,
+                  etext.splitlines()[-1])
+            # REJECTING 2: the same finished directory read on ANOTHER commit.
+            # This is the fault the whole run stamp exists for: last night's
+            # pictures committed under tonight's sha as tonight's work.
+            rc = imagegen_verdict(out, "ccccccc", "generate=success")
+            stale = vpath.read_text(encoding="utf-8")
+            check("verdict REJECTING: a manifest written by another commit is "
+                  "NO RUN, and names the run that did write it",
+                  rc == 1 and "imagegenVerdict=NO-RUN" in stale
+                  and "aaaaaaa" in stale.split("done ")[1]
+                  and "manifestIsThisRun=no" in stale,
+                  [x for x in stale.splitlines() if x.startswith("done ")])
+            # REJECTING 3, AND IT IS THE ONE THAT PAYS: the manifest says OK
+            # and the file on disk is blank. Everything upstream can be right
+            # and the pictures still be empty, because the thing that lies in
+            # #1031 is an exit code. A verdict that believed the manifest would
+            # be green here.
+            _write_png(out / (ids[1] + ".png"), 64, 48, lambda x, y: (0, 0, 0))
+            rc = imagegen_verdict(out, "aaaaaaa", "generate=success")
+            lied = vpath.read_text(encoding="utf-8")
+            check("verdict REJECTING: a manifest that says OK about a file that "
+                  "is BLANK ON DISK fails - the verdict re-measures rather than "
+                  "believing the run that wrote it",
+                  rc == 1 and "imagegenVerdict=BLANKS" in lied
+                  and "remeasuredBlank=1" in lied and "remeasured=2" in lied,
+                  [x for x in lied.splitlines() if x.startswith("done ")])
+
+            # WHAT CI MAY COMMIT. The list is derived from the manifest, so a
+            # picture with no record cannot ride along, and a blank one cannot
+            # be committed as art.
+            (out / (ids[0] + ".BLANK.png")).write_bytes(
+                (out / (ids[1] + ".png")).read_bytes())
+            staged, outside = staged_file_list(out, "aaaaaaa", repo=td)
+            check("staged files ACCEPTING: the verdict, the manifest, the resume "
+                  "record, PROGRESS and both pictures, all by name and all "
+                  "relative to the repository",
+                  outside == 0 and len(staged) == 6
+                  and all((td / x).exists() for x in staged)
+                  and sum(1 for x in staged if x.endswith(".png")) == 2
+                  and any(x.endswith(VERDICT_NAME) for x in staged),
+                  staged)
+            check("staged files REJECTING: a .BLANK.png on disk is NEVER staged "
+                  "- it is evidence, and a directory of blank PNGs is what a "
+                  "later reader mistakes for art",
+                  not any(".BLANK.png" in x for x in staged),
+                  [x for x in staged if "BLANK" in x])
+            stale_staged, _ = staged_file_list(out, "ccccccc", repo=td)
+            check("staged files REJECTING: a run whose manifest is not its own "
+                  "stages ONLY its verdict - a failed run must not commit the "
+                  "checkout's older files as its own evidence",
+                  len(stale_staged) == 1 and stale_staged[0].endswith(VERDICT_NAME),
+                  stale_staged)
+    finally:
+        subprocess.run = real
+
+    # 13b. AND THE FLAGS ARE WIRED, which is the fault this file has already
+    #      paid for once: `Publisher` was defined, documented and never
+    #      constructed. A flag parsed and not passed is the same failure with a
+    #      smaller blast radius, and a text check catches it in the container
+    #      rather than on the night it mattered.
+    src = pathlib.Path(__file__).read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    passed = set()
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Call)
+                and getattr(node.func, "id", "") == "run_batch"
+                and any(isinstance(k.value, ast.Attribute)
+                        and getattr(k.value.value, "id", "") == "a"
+                        for k in node.keywords)):
+            passed |= {k.arg for k in node.keywords}
+    check("WIRED: main passes only, limit, run_sha and fail_on_blank through to "
+          "the batch - a flag that is parsed and never used is the Publisher "
+          "fault in miniature",
+          {"only", "limit", "run_sha", "fail_on_blank"} <= passed, sorted(passed))
+    check("WIRED: --verdict and --staged-files reach their functions, and the "
+          "exit code the unattended lane reads is in main",
+          "imagegen_verdict(od" in src and "staged_files(od" in src
+          and "return 6" in src, "")
+
     # ------------------------------------------------------------------
     # THE SENDER. It had NO coverage and NO call site: `Publisher` was
     # defined, given a plain sentence for every failure path, and never once
@@ -3094,12 +3706,62 @@ def main():
                          "disk. Without this, an item whose PNG exists and "
                          "passes the blank check is skipped and said so; "
                          "deleting one PNG redoes just that one.")
+    # THE UNATTENDED LANE'S FOUR FLAGS. They exist because the batch now runs
+    # on Jafar's PC from CI (.github/workflows/ledger-imagegen.yml) with nobody
+    # watching, and everything below is about a night not being wasted.
+    ap.add_argument("--only",
+                    help="comma-separated item ids from prompts.json, and "
+                         "ONLY those are generated. An id that is in no prompt "
+                         "REFUSES the run rather than quietly selecting "
+                         "nothing, because a typo in a dispatch input would "
+                         "otherwise wear the words '0 generated, all fine'.")
+    ap.add_argument("--limit", type=int,
+                    help="stop after this many pictures have been GENERATED. "
+                         "Items already on disk that pass the skip check cost "
+                         "nothing and do not count against it, so --limit 4 on "
+                         "a batch whose first fourteen are made generates the "
+                         "next four. This is the flag that proves a new route "
+                         "on a handful instead of betting a night on 31.")
+    ap.add_argument("--fail-on-blank", action="store_true",
+                    help="stop at the first blank or undecodable PNG and exit "
+                         "6. #1031 is a KNOWN mode, so reproducing it thirty "
+                         "more times overnight teaches nothing and costs the "
+                         "night. The one-click .bat does NOT pass this: a "
+                         "blank among ten good pictures is a finding for the "
+                         "report, not a reason to tell him the run broke.")
+    ap.add_argument("--run-sha",
+                    default=(os.environ.get("GITHUB_SHA") or "")[:7] or "local",
+                    help="the commit this batch is being generated on. It is "
+                         "stamped into the manifest so a verdict can refuse a "
+                         "manifest some earlier run left behind.")
+    ap.add_argument("--verdict", action="store_true",
+                    help="write the committed evidence file from what is on "
+                         "disk, re-measuring every PNG. Non-zero when the run "
+                         "banked nothing or produced a blank.")
+    ap.add_argument("--staged-files", action="store_true",
+                    help="print, one per line, the paths CI may git add")
+    ap.add_argument("--steps", default="",
+                    help="step outcomes as key=value pairs with no spaces, "
+                         "recorded verbatim in the verdict")
     a = ap.parse_args()
 
     if a.series:
         return png_series(a.series)
     if a.selftest:
         return selftest()
+
+    # THE TWO READ-ONLY MODES, ANSWERED BEFORE ANYTHING LOOKS AT THE MACHINE.
+    # CI calls them after the batch, on a runner where the probe has already
+    # been and gone; they must not need a GPU, a weight file or a machine.json
+    # to say what is on disk.
+    if a.verdict or a.staged_files:
+        repo0 = pathlib.Path(a.repo) if (a.repo and a.repo.strip()) else None
+        ws0 = (pathlib.Path(a.workspace) if a.workspace
+               else pathlib.Path.cwd() / "ledger-imagegen")
+        od = output_dir(repo0, ws0, a.out)
+        if a.staged_files:
+            return staged_files(od, a.run_sha, repo0)
+        return imagegen_verdict(od, a.run_sha, a.steps, repo=repo0)
 
     machine = {}
     if a.machine and pathlib.Path(a.machine).exists():
@@ -3138,9 +3800,7 @@ def main():
     ws.mkdir(parents=True, exist_ok=True)
     reports.append(ws / "machine-report.txt")
 
-    outdir = (pathlib.Path(a.out) if a.out else
-              (repo / "ledger/Assets/StreamingAssets/Decals/generated" if repo
-               else ws / "generated"))
+    outdir = output_dir(repo, ws, a.out)
 
     # THE SENDER, CONSTRUCTED HERE AND PREFLIGHTED BEFORE ANY GENERATING.
     # It used to be constructed nowhere, which is why eleven days of runs
@@ -3271,14 +3931,26 @@ def main():
 
     outdir.mkdir(parents=True, exist_ok=True)
     spec = json.loads((pathlib.Path(__file__).parent / "prompts.json").read_text())
+    only = [x.strip() for x in a.only.split(",") if x.strip()] if a.only else None
     log("")
-    log(f"Generating {len(spec['items'])} images into {outdir}")
+    log(f"Generating into {outdir}")
+    log(f"  {len(only) if only else len(spec['items'])} item(s) selected of "
+        f"{len(spec['items'])} in the batch"
+        + (f", by name: {','.join(only)}" if only else ""))
+    if a.limit is not None:
+        log(f"  --limit {a.limit}: at most {a.limit} picture(s) will be "
+            "GENERATED this run. Items already on disk are skipped and do not "
+            "count against it.")
+    if a.fail_on_blank:
+        log("  --fail-on-blank: the first blank or unreadable PNG stops the "
+            "run and the exit code is 6.")
     for c in ([f"CPU mode: only {pl['item_limit']} items"] if pl["item_limit"] else []):
         log(f"  CAP: {c}")
     if a.redo:
         log("  --redo: everything is made again, including items already on disk.")
     man = run_batch(exe, ws, pl, spec, outdir, a.max_minutes, log, redo=a.redo,
-                    publisher=pub)
+                    publisher=pub, only=only, limit=a.limit,
+                    run_sha=a.run_sha, fail_on_blank=a.fail_on_blank)
     man["downloads"] = fetched
     (outdir / "manifest.json").write_text(json.dumps(man, indent=2) + "\n",
                                           encoding="utf-8")
@@ -3332,6 +4004,17 @@ def main():
     # Exit 4 means the setup worked and nothing came out of the generator; a
     # run that skipped twelve good PNGs produced nothing and is entirely fine,
     # and the .bat prints a different paragraph for each.
+    # AND THE UNATTENDED LANE'S EXIT CODE, LAST, so every file above is
+    # already written and sent before the run reports itself red. 6 is
+    # unreachable from either .bat: neither passes --fail-on-blank, and a
+    # blank there stays a line in the report rather than a broken window.
+    if a.fail_on_blank and (man["blank_check"]["blank"]
+                            or man["blank_check"]["undecodable"]):
+        log(f"  --fail-on-blank: {man['blank_check']['blank']} blank and "
+            f"{man['blank_check']['undecodable']} undecodable of "
+            f"{man['blank_check']['checked']} PNG(s) decoded this run. "
+            "Exiting 6.")
+        return 6
     return 0 if (man["items_written"] or man["items_skipped"]) else 4
 
 

@@ -1,0 +1,44 @@
+# The sentinel that runs .github/workflows/ledger-imagegen.yml.
+#
+# Touching this file and pushing generates Meridian signage on Jafar's PC, on
+# the self-hosted runner labelled `ledger-pc` that four other workflows already
+# use. It needs no click from him and no account: the model is Apache-2.0 and
+# nothing here is purchased. The point of the lane is that this compute is
+# FREE against the weekly Claude ceiling and runs while nobody is working.
+#
+# It exists because a workflow_dispatch workflow must live on the default
+# branch to be dispatchable, and this one lives on the working branch by
+# standing instruction. Delete this file and the push trigger together when
+# the workflow reaches main; the dispatch entry there is already correct and
+# takes limit / only / max_minutes as inputs.
+#
+# It sits HERE, beside DISPATCH, SETUP-MSVC, SETUP-BLENDER and FETCH-VIGNETTE,
+# and NOT in ledger/Assets/StreamingAssets/Decals/generated, because that
+# directory is the job's OUTPUT and a trigger inside an output directory is how
+# a run re-fires itself.
+#
+# WHAT A SENTINEL PUSH GENERATES, and how to change it. The push path cannot
+# carry dispatch inputs, so the batch is whatever the workflow's BATCH_LIMIT,
+# BATCH_ONLY and BATCH_MAX_MINUTES fall back to: 4 pictures, chosen by
+# prompts.json order, 60 minutes of loop. `--limit` bounds what a run
+# GENERATES rather than where it starts, so items already on disk are skipped
+# for free and each dispatch takes the next four. To run a different batch,
+# edit those three fallbacks in the workflow in the same commit that touches
+# this file.
+#
+# WHAT THE FIRST RUN IS FOR. Proving the route, not filling the queue. 31 of
+# the 45 written prompts have never been generated, and a night that produces
+# 31 blank PNGs plus a manifest describing them as art is worse than a night
+# with no run at all (leejet/stable-diffusion.cpp#1031: Z-Image on Vulkan can
+# write a blank PNG and exit zero). So the first dispatch makes four, the run
+# stops at the first blank, and the verdict re-measures every PNG from its own
+# pixels before anything is called banked.
+#
+# One line per run, appended, so this file is also the dispatch log.
+#
+# run 1 - UNRUN as this file is written. Expected: sign_ferry,
+# sign_harbour_master, sign_weighbridge and sign_telephone, the first four
+# items of tools/imagegen/prompts.json with no PNG on disk, 768x512 each, an
+# estimated 68 seconds each on the card measured 25 Aug. The verdict lands at
+# ledger/Assets/StreamingAssets/Decals/generated/imagegen-verdict.txt with the
+# commit on line 1.

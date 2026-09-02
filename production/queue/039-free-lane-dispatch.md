@@ -2,7 +2,7 @@ line: infrastructure (content pipeline)
 spec: this file
 acceptance: a workflow_dispatch job on the ledger-pc runner that runs the image batch and commits its outputs by name with attribution from the same run; a NO RUN line when it generates nothing; the same route proven for meshgen
 max_sessions: 1
-status: READY 2026-09-02. engine-specialist, small. HIGHEST LEVERAGE ITEM IN THE QUEUE per point spent.
+status: HALF LANDED 2026-09-02 (game-design/decision-2026-09-02-free-lane-and-piece-list-batch.md, Ruling 2): the imagegen workflow and its sentinel are in the tree and the batch push is run 1 (four signs, zero Claude points). The meshgen half WAITS for run 1's committed verdict: a route is proven by a landed BANKED verdict and not by a parse, and proving a second tool on an unproven route is two unknowns in one run.
 
 ## The finding, and it is a planning fault rather than a technical one
 

@@ -2,7 +2,7 @@ line: production (D1 comparison, the critical path)
 spec: game-design/decision-2026-09-02-vignette-batch-canon-crews-d1-timebox.md, Ruling 10
 acceptance: phase by phase below; each phase is ONE dispatch and its DISPATCH line names what that run will prove
 max_sessions: 3
-status: READY 2026-09-02. engine-specialist. THE CRITICAL PATH on merit, not on a clock: the timebox was retired 2026-09-02 (game-design/decision-2026-09-02-d1-timebox-retired.md); this item stays first because it is the only queued work that moves the Phase 0 exit gate. Since the tie-break reversal (2026-09-02, same ruling as 037), landing its four admissible pairs through a converging loop is winning unless Unity is decisively better: (a) is the decisive measurement, and 032's round-trip printer rides this item's first UE dispatch.
+status: READY 2026-09-02. engine-specialist. THE CRITICAL PATH on merit, not on a clock: the timebox was retired 2026-09-02 (game-design/decision-2026-09-02-d1-timebox-retired.md); this item stays first because it is the only queued work that moves the Phase 0 exit gate. Since the tie-break reversal (2026-09-02, same ruling as 037), landing its four admissible pairs through a converging loop is winning unless Unity is decisively better: (a) is the decisive measurement, and 032's round-trip printer rides this item's first UE dispatch. Phase A LANDED 2026-09-02 (game-design/decision-2026-09-02-free-lane-and-piece-list-batch.md): 546 pieces, sixteen fields, drift plus round-trip plus cross-engine guard. Phase A2 below, queue 040 and queue 041 are ONE engine-specialist session, the Phase A close-out, before Phase B.
 
 ## Phase A: a flat piece list, so the two engines cannot disagree on layout
 
@@ -17,6 +17,19 @@ difference in a judged pair a RENDERER difference rather than two emitters
 disagreeing about where a kerb goes. It stays admissible under the shared
 JSON rule by construction: every object still arrives from the shared JSON
 through a generator, and the generator is the tested one.
+
+## Phase A2: the probes, same generator, second file
+
+`production/specs/vignette-feet.json`, written by the same
+`--write-vignette-pieces` run: one line per probe from `plan.Feet` (845
+today: name, bom, edge, region, x, z) plus the datum the plan expects there
+from `GroundAt` (level and edge), so the UE placement instrument compares a
+raycast to a number in the file and never re-derives `Foot5` or the
+crossfall in C++. Same guard shape as the piece list: byte-identical
+regeneration, parse back, count equal to the plan's `feet=` print and to
+the landed run's `probes=845` denominator (runs/152198e.txt line 98). Ruled
+2026-09-02 (free-lane-and-piece-list ruling, Ruling 6). Queue 033 changes
+this file and the drift guard is what shows it.
 
 ## Phase B: untextured frames
 

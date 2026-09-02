@@ -81,15 +81,31 @@ don't care if we get to 80% before monday, we just stop when our budget is
 used up". So there is no daily ration; run to the ceiling and stop there.
 The 80 percent ceiling still binds and the other 20 percent is his.
 
-IN FLIGHT RIGHT NOW: queue 039 (the free-lane dispatch route, an imagegen
-workflow on the ledger-pc runner) and 027 Phase A (the flat piece list both
-engines read). Both engine-specialist, both briefed facts-inline.
+IN FLIGHT RIGHT NOW: imagegen run 1. Queue 039's workflow and 027 Phase A
+(the flat piece list, 546 pieces, three guards) were reviewed together and
+landed under game-design/decision-2026-09-02-free-lane-and-piece-list-batch.md.
+Landing the batch pushed production/d1-probe/RUN-IMAGEGEN, and that push
+IS the first imagegen dispatch: four signs on ledger-pc, zero Claude
+points, 4.5 minutes if the weights are already on the runner's account and
+a 7 to 10 GB download first if they are not.
 
 ## In flight
 
-- Nothing running. The rotation fix is reviewed and landing.
-- NEXT ACTION: dispatch `ledger-build-windows.yml` by hand on the branch,
-  then read the three lines above in that order before opening any still.
+- Imagegen run 1, fired by the batch push. Watch by ancestry for a commit
+  titled `Meridian pictures from <sha>`. Read, in this order, before
+  opening anything: ledger/Assets/StreamingAssets/Decals/generated/
+  imagegen-verdict.txt line 1 (the sha must be the batch's), the
+  `done imagegenVerdict=` line (BANKED, BLANKS or NO-RUN with its why),
+  then the run log's `runnerAccount=` and `weightsDirectory=` lines. Then
+  open the four PNGs. A red is a finding with its cause in the verdict,
+  never a broken runner. Run 1's own commit moves the cadence reference
+  (queue 042 item 2 says why); expected, not a fault.
+- NEXT ACTION, tomorrow: slot 1 is the 027 Phase A close-out (queue 040
+  window practicals in Core, Phase A2 the feet file, queue 041 the
+  acknowledgement key), one engine-specialist, one Unity dispatch at the
+  end; the night frame will show THREE lit bays, not six, and that is the
+  JSON applied. Slot 2 is 037. The report to Jafar after run 1 carries
+  one of the four signs as its picture, or the verdict's why if red.
 
 ## Standing hazards a fresh session will otherwise walk into
 

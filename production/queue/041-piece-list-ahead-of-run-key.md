@@ -1,0 +1,5 @@
+line: infrastructure (instruments, the cross-engine guard)
+spec: game-design/decision-2026-09-02-free-lane-and-piece-list-batch.md, Ruling 5
+acceptance: `--write-vignette-pieces --ahead-of-run <sha>` writes a top-level ahead_of_unity_run block (run, pieces_then) and the drift guard feeds the committed block back into Write so regeneration stays byte-stable; the cross-engine check passes on the key ONLY while the named run is the newest landed run carrying a piece line, printing `AHEAD-OF-RUN <sha> file=N run=M acknowledged`; a newer landed run makes the key stale: green only if that run's count equals the file's, and then the check demands the key's removal; red otherwise; both outcomes watched on a planted layout change, accepting first; never hand-edited
+max_sessions: 1
+status: READY 2026-09-02. engine-specialist. Rides the 027 Phase A close-out session. REQUIRED before the first change to counts.pieces (Phase D's body; 028 if its plates are geometry). Without it a layout change cannot be committed: CoreTests red, verify red (verify.py line 104), no footer, and the Unity run that would clear it needs the commit.
