@@ -88,9 +88,13 @@ conclusion failure.
 WHAT HAPPENED: the four work steps (selftest, probe, generate, attribution)
 were SKIPPED, not run. A step before them failed without
 `continue-on-error`, so Actions skipped the rest; `Commit` and `The verdict`
-still ran because both carry `if: always()`. WHICH earlier step failed is
-NOT YET PINNED: read the HEAD of the run log, not the tail, which is what
-the resident read.
+still ran because both carry `if: always()`. WHICH earlier step failed is NOT
+CONFIRMED, but it is narrowed: the commit step's env dump carries
+IMAGEGEN_WS and IMAGEGEN_MACHINE but NOT IMAGEGEN_SHA, which is written by
+`The commit this run is measuring` (workflow line 194), the last step before
+the four that skipped. That is a LEAD resting on an absence, which is weak
+evidence; queue 043 says to confirm it against the HEAD of the log before
+changing a line, and to record a refutation as the more interesting result.
 
 THE SUMMARY LIED AND THE VERDICT DID NOT. The summary printed "SELFTEST
 FAILED", "ATTRIBUTION CHECK FAILED" and "GENERATE FAILED" because it tests

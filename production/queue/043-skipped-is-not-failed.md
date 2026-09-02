@@ -42,6 +42,32 @@ run none not b8b805f. Nothing older is being read as this run's answer.`,
 existing PNGs sat right there and NONE was carried forward as this run's
 work. That is exactly what it was built to refuse.
 
+## THE FAILING STEP, narrowed from evidence already in hand
+
+Not read from the head of the log, but inferred from the log's own env
+dumps, and the reasoning is checkable:
+
+The `Commit what arrived, by name` step dumps its environment, and that dump
+carries `BATCH_LIMIT`, `BATCH_ONLY`, `BATCH_MAX_MINUTES`, `IMAGEGEN_WS`,
+`IMAGEGEN_MACHINE`, `GH_TOKEN`, the three `GIT_CONFIG_*` and the four
+`*_OUTCOME` variables. **It does NOT carry `IMAGEGEN_SHA`.**
+
+`IMAGEGEN_SHA` is written by the step `The commit this run is measuring`
+(workflow line 194), which runs
+`SHORT="$(git rev-parse HEAD | cut -c1-7)"` and echoes it into
+`$GITHUB_ENV` under `shell: bash` with the runner's default `-e -o
+pipefail`. `IMAGEGEN_WS` and `IMAGEGEN_MACHINE` ARE present, and they are
+written by an earlier step, so the job got that far.
+
+So the prime suspect is line 194, and it is the LAST step before the four
+that were skipped, which is exactly the position a skip cascade starts from.
+
+TREAT THIS AS A LEAD, NOT A FINDING. It rests on an absence in an env dump,
+and an absence is the weakest evidence there is: a variable can be missing
+from a dump for reasons other than its writer failing. Read the HEAD of run
+33654488608's log and confirm or refute it before changing a line. If it is
+refuted, the refutation is more interesting than the lead and belongs here.
+
 ## The fix
 
 1. The summary distinguishes three states, not two: `success`, `failure`
