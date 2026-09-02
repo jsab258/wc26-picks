@@ -22,6 +22,33 @@ than any single row.
 
 Ceiling for LEDGER: 80% of the weekly limit. The other 20% is his.
 
+## WHAT HAS HAPPENED SINCE THE NEWEST READING, 2026-09-02 00:25Z
+
+The 8 percent row was reported by Jafar during the evening of 1 September.
+Counted from `.claude/agent-log.tsv`, not estimated: **20 agent spawns landed
+after 20:00Z on 1 September**, of which **3 are `studio-director`**, which
+carries its own weekly limit and counts double against the full one. Five of
+those agents reported subagent totals in the region of 150,000 to 200,000
+tokens each.
+
+So the 8 percent describes a moment that is now well behind a heavy night,
+and nothing in this container can read the real number. By condition 4's own
+words this makes the day UNMEASURED rather than young, and the standing
+instruction for an unmeasured day is to prefer stopping.
+
+THE UTC DAY ROLLED OVER AT 00:00Z AND THAT RESTORES NOTHING. The daily
+allocation is a discipline device laid over a WEEKLY limit; midnight does not
+hand any capacity back. Reading the rollover as a fresh day would be a delta
+computed across a boundary, which is the exact fault the reset section above
+records. The day that matters here is the working night, and it has been a
+long one.
+
+ACTION TAKEN: the director spawned at 00:02:48Z is in flight and its cost is
+already committed, so it finishes. When it rules, the resident applies the
+ruling, lands the three-builder batch in one commit, pushes, updates NOW.md,
+and STOPS. No further spawns of any tier until Jafar reports a number.
+
+
 ## THE WEEK RESET ON 2026-09-01 AND THAT VOIDS THE ARITHMETIC BELOW
 
 The reset is recorded rather than the old rows deleted, because the series is

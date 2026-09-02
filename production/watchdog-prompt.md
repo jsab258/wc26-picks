@@ -66,7 +66,8 @@ ALWAYS: push only to claude/game-dev-ai-automation-2h67ix. Never open a pull req
 
 ## One known inaccuracy elsewhere, named rather than fixed silently
 
-CLAUDE.md's AUTO MODE section still says the watchdog "IS DISABLED RIGHT NOW,
-26 Aug". That was true when written and is false as of today. The correction
-belongs in CLAUDE.md, which is a director-trigger file, so it is recorded here
-and queued rather than edited in passing.
+The paragraph saying the watchdog "IS DISABLED RIGHT NOW, 26 Aug" left
+CLAUDE.md on 2026-09-01 (task 013) and now sits, verbatim, in
+ledger-v2/studio-v2/runner.md, where the carry header directly above it
+carries the correction, applied under the director ruling of 2 September.
+Queue item 011 closed with that ruling.

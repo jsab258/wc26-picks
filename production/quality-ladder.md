@@ -39,3 +39,50 @@ Everything visual. The bar is the Meridian Test and the engine is undecided,
 so a rung written today would be written against a renderer that may not be
 the one that ships. That is a reason to wait, and it is recorded here so
 that waiting is a decision rather than an oversight.
+
+---
+
+## The standing order in Jafar's words, carried from CLAUDE.md (2026-09-01, task 013)
+
+CLAUDE.md was cut to standing rules plus pointers on 2026-09-01. The standing
+order stays there as a law; the passage that gives it its force, in Jafar's
+own words and with the examples that show what the order is against, moved
+here because this file is the mechanism's home.
+
+ONE EDIT WAS UNAVOIDABLE AND IS FLAGGED RATHER THAN MADE SILENTLY. Trigger
+point 2 in the text below names `queue.md`. That was game-design/queue.md,
+which the v2 respec superseded on 31 August, and it is the exact orphaning
+recorded as lesson L23 in ledger-v2/studio-v2/learning.md: a live enforcement
+clause pointing at a retired home, with nothing announcing it. THE LADDER'S
+HOME IS THIS FILE. The close step that asks the question is in
+production/queue/README.md under "Before an item moves to done/". The text is
+left as written so the decay is visible rather than papered over.
+
+### The standing order in Jafar's words, and its two trigger points
+
+<!-- moved verbatim from CLAUDE.md lines 1569-1592 on 2026-09-01, task 013 -->
+
+**And the standing order underneath both, 16 Aug, his words: "use creativity
+and skill and available resources to get the best possible result in all
+aspects of the game."** Not "make it work" — the best result AVAILABLE. The
+first version of anything in this project has repeatedly been the first thing
+that worked, declared done because it ran: 1K textures picked when 2K was one
+field away, headless lamp posts shipped for weeks beside a fetched kit that
+had heads, roughness maps left unfetched by a comment saying nothing samples
+them — written by the same hand that could have made something sample them.
+
+He asked how this gets ENFORCED, and the honest answer is that a rule with no
+trigger point decays — this file is a list of proofs. So it has two:
+
+1. **It lives here**, in the file read at every session start, which is the
+   only thing the ephemeral container cannot lose.
+2. **It is asked at close.** `queue.md` keeps a QUALITY LADDER — each visible
+   aspect of the game, its current rung, and the known next rung from
+   available resources. Before an item is closed, the question is "is this
+   the best available result, or the first working one?" — and the next rung
+   either gets taken now or goes onto the ladder with a name. An aspect whose
+   next rung is blank is a research task, not a finished aspect.
+
+The ladder turns "best possible" from a mood into a delta. The trap it
+exists for: a pipeline that CAN ingest better assets is not the same as
+better assets ingested — built is not running (rule 6), applied to quality.

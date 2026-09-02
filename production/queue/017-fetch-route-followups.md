@@ -23,3 +23,15 @@ Three findings from proving the fetch route, none blocking, all small.
    `AsphaltDamageSet001` is on disk here, came from ambientCG, and is not in
    that file. The note must say which type it covers, because "complete" is
    true of materials and reads as true of the library.
+
+## AMENDED 2026-09-02 by director ruling (Ruling 3): item 1 gains its twin
+
+`THIRD-PARTY.md` line 253 names `ledger/Assets/Sky/polyhaven/`. That path does
+not exist; the four `.hdr` files are under
+`ledger/Assets/Resources/Sky/polyhaven/`, which the WATCHED row already says.
+
+Same fault as item 1's Decals path, in the same file, thirty lines apart, and
+found only because the director listed what sits under every watched row
+rather than checking the one it was asked about. Fix both in one touch of the
+licence document, and while in there ask the question that found it: does any
+other row name a path that is not on disk?

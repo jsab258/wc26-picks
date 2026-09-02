@@ -19,7 +19,7 @@ one. **If you add assets, add a row. The build fails otherwise.**
 | **What** | Reference recordings for all 19 cast voices |
 | **Source** | **CVSTR VCTK Corpus** (Centre for Speech Technology Research, University of Edinburgh) |
 | **Licence** | Creative Commons Attribution 4.0 International (CC BY 4.0) |
-| **Where in the repo** | `game-design/picked-clips/` (the references), `voice-candidates/` (the listening pass), `ledger/Assets/StreamingAssets/Audio/Voice/` (the synthesised bark bank, 5 Aug) |
+| **Where in the repo** | `game-design/picked-clips/` (the references), `voice-candidates/` (the listening pass), `ledger/Assets/StreamingAssets/Audio/Voice/` (the synthesised bark bank, 5 Aug), `game-design/voice-live/` (lines spoken by the live model), `game-design/voice-conds/` (the precomputed conditioning, 1 Sep) |
 | **Speakers used** | p227 p228 p231 p238 p241 p244 p245 p249 p256 p263 p265 p266 p272 p273 p276 p282 p287 p288 p292 |
 
 **Required attribution text, to appear in the shipped credits:**
@@ -50,6 +50,24 @@ appeared rather than at ship time. The paragraph above had the reasoning right
 in advance and the DIRECTORY LIST was what went stale — a doc can be correct
 about the principle and wrong about the facts, and only one of those is caught
 by reading it.
+
+**AND THE DIRECTORY LIST WENT STALE AGAIN, WHICH IS WHY THE ROW ABOVE NOW NAMES
+FIVE PLACES.** On 1 September the sweep found `game-design/voice-conds/`: 23
+`.npz` and 23 `.bin`, one pair per picked clip, and neither the suffix set nor
+this list knew about them. What they are was established by opening them rather
+than by reading their names. `ada.bin` begins with the magic `LDGRVOICE1`
+written by `tools/voice-live/precompute-voices.py`; that script reads
+`game-design/picked-clips` and calls `prepare_conditionals` on the clip;
+`voice-conds/manifest.json` names the exact source per voice (`ada` from
+`ada.p276.mp3`); and `ada.npz` holds `gen.prompt_feat` at (1,410,80) float32,
+which is a mel-spectrogram of the reference RECORDING and not a statistic about
+it.
+
+So each pair is a transformed representation of a VCTK recording, and the
+paragraph two up settles it without needing a new argument: computing a tensor
+from somebody's recording launders the obligation no better than synthesising
+from it does. The credit text above covers them, unchanged, because it was
+written to.
 
 ## Character models and animation — Adobe Mixamo
 
@@ -176,6 +194,25 @@ directory.
 | **What** | bollards, bins, a builder's skip, benches, pallets, barrels, crates, chimney pots, awnings, drain covers, fingerposts, a lamp post, traffic cones, poster boards |
 
 Attribution not required; recorded anyway under this file's standing rule.
+
+## Vehicles, OpenGameArt, CC0
+
+| | |
+|---|---|
+| **Source** | **OpenGameArt** (opengameart.org), the packs `free-low-poly-vehicles-pack` and `lowpoly-public-transport`, fetched by `tools/props/fetch_visual.py` |
+| **Licence** | CC0 1.0 Universal. The fetcher re-reads each pack page at fetch time and REFUSES to bank anything whose HTML does not carry `creativecommons.org/publicdomain/zero`, so a relicensed page stops the fetch instead of quietly shipping. |
+| **Where** | `ledger/Assets/Props/oga-vehicles/<pack>/`, 59 model files: 22 `.fbx` in the vehicles pack, and 12 `.fbx` plus 12 `.obj`, 12 `.mtl` and one `.png` in the public-transport pack |
+| **What** | cars, taxis, vans, a limousine, police variants, a firetruck, an ambulance, buses, a school bus, a train, bicycles, traffic lights, cones and signs |
+
+**THIS ROW WAS MISSING UNTIL 1 SEPTEMBER AND THE CHECK WENT GREEN WITHOUT IT.**
+`oga-vehicles` sits inside `ledger/Assets/Props/`, which is watched under the
+Kenney token, so 59 files nobody at Kenney made were counted on the Kenney row
+and `attribution-check.py` reported them as attributed. The comment beside the
+Base Mesh row in that file had predicted this exact shape ("base-mesh sits
+INSIDE Props but is not Kenney, so it carries its own row") and nobody swept
+for a second instance. The models are CC0 and were always CC0, so nothing
+unlicensed shipped; what was wrong was the record, and for a licence the
+record is the part that has to be right.
 
 ## Grime and decal textures — ambientCG, CC0
 

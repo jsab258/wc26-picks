@@ -218,7 +218,9 @@ def run(argv=None) -> int:
 def write_attribution() -> None:
     """One entry per kit directory that exists. CC0, but the project's
     rule is that every third-party file is named regardless of licence —
-    tools/attribution-check.py enforces the pair of files agreeing."""
+    tools/attribution-check.py checks the root THIRD-PARTY.md by token and
+    does not read this file; the pair agreeing is a discipline, not a gate
+    (ruled 2 Sep 2026)."""
     entries = {}
     for slug in KITS:
         d = PROPS / slug
@@ -235,8 +237,11 @@ def write_attribution() -> None:
         return
     PROPS.mkdir(parents=True, exist_ok=True)
     (PROPS / "ATTRIBUTION.json").write_text(json.dumps(
-        {"note": "Sources for every model in this directory. THIRD-PARTY.md "
-                 "is the human-readable copy and both must agree.",
+        {"note": "Sources for every Kenney kit under this directory. Other "
+                 "sources here (base-mesh, oga-vehicles) carry their own "
+                 "THIRD-PARTY.md, written by tools/props/fetch_visual.py, and "
+                 "the root THIRD-PARTY.md is the human copy checked by "
+                 "tools/attribution-check.py.",
          "kits": entries}, indent=1))
     lines = ["# Third-party models", "",
              "All models below are CC0 1.0 from Kenney (https://kenney.nl).",

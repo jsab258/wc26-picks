@@ -42,3 +42,125 @@ learns.
 2. Routing law as in organization.md; violations are audit findings.
 3. Bulk content only in batches with fixed specs; cache and reuse prompts; never regenerate what a verifier can repair.
 4. Roadmap and canon stay small enough to be cheap to read every session (row caps, 600-word canon).
+
+---
+
+## Carried from CLAUDE.md (2026-09-01, task 013)
+
+CLAUDE.md was cut to standing rules plus pointers because a 16,000-word file
+read at the start of every session is a file nobody holds in their head. The
+passages below are the operations half of it, moved intact: estimates,
+promising to report back, not blocking yourself, the document rules, scope,
+and the reporting shape. Original wording kept, per CLAUDE.md's own rule that
+its older text is corrected opportunistically rather than rewritten wholesale.
+
+Two pointers in the moved text are stale and are called out here rather than
+edited into it, because the edit would hide what decayed. Under the Documents
+rules, `roadmap.md` was the tiebreak under v1; the v2 plan is
+ledger-v2/respec/roadmap-v2.md. The queue named there is game-design/queue.md,
+which marked itself superseded on 2026-08-31; the live queue is
+production/queue/ with production/NOW.md for what is already moving.
+
+<!-- moved verbatim from CLAUDE.md lines 706-718 on 2026-09-01, task 013 -->
+
+## 7. Estimates: name what dominates, or do not give a number
+
+Wrong every time today. The causes were always the same two things:
+
+- I benchmarked against a **broken** run (it was fast *because* it was
+  cheating), and
+- I did not check what was actually blocking — a run sat "pending" behind one
+  of *my own* pushes three separate times.
+
+**The rule.** Before giving an ETA, check the thing is actually running and
+what is ahead of it in the queue. State what dominates the estimate (here: a
+~28-minute CI round trip) and what could blow it up. If you do not know, say
+so — that is a better answer than a number you will retract.
+
+<!-- moved verbatim from CLAUDE.md lines 720-727 on 2026-09-01, task 013 -->
+
+## 8. "I will come back to you" requires arming something
+
+Said twice, and both times Jafar had to ask anyway. Ending a turn does not
+schedule a wake-up.
+
+**The rule.** If you say you will report back, start a background watcher in
+the same turn that will fire on the condition (or a timeout). No watcher, no
+promise.
+
+<!-- moved verbatim from CLAUDE.md lines 729-737 on 2026-09-01, task 013 -->
+
+## 9. Do not block yourself
+
+Pushing a commit triggered a full 40-minute corpus fetch, three times, each one
+queued in front of the run Jafar was waiting on. Once, the run that would have
+*fixed* the problem was queued behind a run of the problem.
+
+**The rule.** Know what your pushes trigger. Expensive jobs are opt-in
+(`workflow_dispatch`), concurrency groups are scoped to the expensive job only,
+and cheap checks never queue behind a stream.
+
+<!-- moved verbatim from CLAUDE.md lines 739-756 on 2026-09-01, task 013 -->
+
+## 10. Documents
+
+Two failures, opposite directions, same day.
+
+- The roadmap reached 1,525 lines of which ~85% was chronology, and I "audited"
+  it by stamping a status banner on the top — certifying the mess.
+- Then I over-corrected and split the plan into a second file, so you had to
+  open two documents to find out what happens next.
+
+**The rules.**
+- Every doc in `game-design/` declares **LIVE / SPEC / LOG** in its first lines.
+  `tools/docs-check.py` enforces it, plus: a LOG carries its date and says NOT
+  CURRENT, a LIVE carries a verified date, a LIVE plan stays under 400 lines,
+  and no LIVE doc contains a diary heading.
+- **`roadmap.md` is the tiebreak and contains the plan itself.** Not a pointer
+  to the plan. History goes to `roadmap-history.md`.
+- A milestone entry is not a title. It states what is in it, why it sits there,
+  **what done looks like as something measurable**, dependencies, and risk.
+
+<!-- moved verbatim from CLAUDE.md lines 758-764 on 2026-09-01, task 013 -->
+
+## 11. Scope: do the asked thing
+
+Asked whether a macOS build was *possible*, I built the CI job. Jafar:
+*"never asked for a mac build, only if it's possible."*
+
+**The rule.** A question is a question. Answer it, and offer the work
+separately.
+
+<!-- moved verbatim from CLAUDE.md lines 1512-1543 on 2026-09-01, task 013 -->
+
+### Reporting — RETIRED 22 Aug by Jafar ("drop the updates")
+
+No scheduled reports of any kind. Message him only when something needs
+him, when he asks, or when a deliverable he waits on is ready. The style
+lessons below survive for THOSE messages — they were learned expensively
+and apply to any message he reads.
+
+The retired schedule, for history: six times a day at 07:00, 10:00, 13:00,
+16:00, 19:00 and 22:00 CEST.
+
+**It opens with a header line so it can be FOUND**, then five to seven short
+plain sentences:
+
+    **LEDGER — 16:00** *(update 4 of 6)*
+
+Then: what got done; where we are on the roadmap (read `roadmap.md`'s screen
+table — do not recite from memory, and fix it if it is wrong before quoting it);
+what is next; what decision is needed from Jafar, or "nothing needed from you".
+Lead with anything visibly broken. **No code block, no template, no shas, no
+metric names, no file paths.**
+
+**The header exists because Jafar twice asked where an update was that had
+already been sent.** Both times it was there and both times it read as more
+conversation — I had followed the rule that it goes last with nothing after it,
+which is right, and lost the signal anyway because nothing marked it. A report
+he cannot find when scanning back is a report that did not happen, and the fix
+is one line rather than more words.
+
+He has said twice that updates were too long and too technical, and once that a
+report was buried mid-message and he never saw it. Say *"the player is upside
+down"*, not the name of the metric that measured it.

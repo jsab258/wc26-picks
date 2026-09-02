@@ -1020,6 +1020,46 @@ def docs_shape():
     return True, "docs %s" % m.group(0)
 
 
+CLAUDE_MD_WORDS = 2000
+
+
+def claude_md_size(path=None):
+    """CLAUDE.md is read at the start of EVERY session, so its length is a
+    standing cost paid by every future turn rather than a style question.
+
+    IT REACHED 16,291 WORDS BEFORE ANYBODY MEASURED IT. Jafar found it on
+    2026-09-01: the project already caps a roadmap milestone row at 80 words,
+    on the reasoning that a document nobody can hold in their head is a
+    document nobody reads, and the one file where that reasoning matters most
+    was the one place the cap had never been applied. Task 013 cut it to
+    standing rules plus pointers and moved every displaced passage, intact,
+    into the framework doc that covers its subject.
+
+    WHY A GATE AND NOT A NOTE. The cut is worth nothing if the file grows
+    back, and it grows back one reasonable paragraph at a time, each of them
+    defensible on its own. Nothing about that is visible in a diff. A number
+    in the footer makes it visible in the commit feed instead.
+
+    THE BOUND IS JAFAR'S 2000 AND IS NOT A MEASURED ONE. There is no landed
+    series for this number yet, so per rule 2 nothing here invents a tighter
+    one: the count is PRINTED on every run, green or red, and a series read
+    off the commit feed is what may argue for moving it later.
+
+    Rule 3b: the count is the denominator. A pass says how many words were
+    counted, so "the file is fine" and "the check never found the file" can
+    never read alike."""
+    p = pathlib.Path(path) if path else (ROOT.parent / "CLAUDE.md")
+    if not p.exists():
+        return False, "CLAUDE.md NOT FOUND at %s" % p
+    words = len(p.read_text(encoding="utf-8").split())
+    if words > CLAUDE_MD_WORDS:
+        return False, ("CLAUDE.MD HAS GROWN BACK: %d words against the %d "
+                       "bound. Move the passage to a casebook "
+                       "(ledger-v2/studio-v2/casebook-*.md) and leave a "
+                       "pointer." % (words, CLAUDE_MD_WORDS))
+    return True, "CLAUDE.md %d/%d words" % (words, CLAUDE_MD_WORDS)
+
+
 def template_sync():
     """RETIRED 2026-08-31 by decision D10 (ledger-v2/respec/decision-register/
     D10-framework-freeze.md). The game-studio repo is FROZEN as legacy
@@ -5402,6 +5442,40 @@ def _strings_selftest():
         "capsay: the shared cap announces its bite and its empty case",
         _cap(["a", "b", "c"]))
 
+    # ------------------------------------------------- CLAUDE.md word count
+    # THE LIVE FILE IS THE ACCEPTING CASE, and the assertion is that it
+    # PASSES rather than what it counts. A fixture pinned to today's word
+    # count would go red the day somebody legitimately rewrites a rule, which
+    # is this file's own recorded fault: an accepting fixture that fails when
+    # the repository moves is a guard people switch off. The synthetic pair
+    # below owns both outcomes, so the bound itself is still tested.
+    ok, s = claude_md_size()
+    say(ok and ("/%d words" % CLAUDE_MD_WORDS) in s,
+        "CLAUDE.md: the live file passes and the footer carries the count",
+        s)
+
+    with tempfile.TemporaryDirectory() as td:
+        under = pathlib.Path(td) / "under.md"
+        under.write_text("word " * (CLAUDE_MD_WORDS - 1), encoding="utf-8")
+        ok, s = claude_md_size(under)
+        say(ok and s == "CLAUDE.md %d/%d words" % (CLAUDE_MD_WORDS - 1,
+                                                   CLAUDE_MD_WORDS),
+            "CLAUDE.md ACCEPTING: a file one word under the bound is green "
+            "and prints its count", s)
+
+        over = pathlib.Path(td) / "over.md"
+        over.write_text("word " * (CLAUDE_MD_WORDS + 1), encoding="utf-8")
+        ok, s = claude_md_size(over)
+        say(not ok and "HAS GROWN BACK" in s
+            and str(CLAUDE_MD_WORDS + 1) in s and "casebook" in s,
+            "CLAUDE.md REJECTING: one word over is red, names both numbers "
+            "and says where the passage goes instead", s)
+
+        gone = pathlib.Path(td) / "gone.md"
+        ok, s = claude_md_size(gone)
+        say(not ok and "NOT FOUND" in s,
+            "CLAUDE.md: an absent file is RED, never a silent pass", s)
+
     globals()["ROOT"] = real_root
     return passed, failed, lines
 
@@ -5579,7 +5653,7 @@ def main():
     parts, all_ok = [], True
     for fn in (director_cadence, footer_strings,
                lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
-               card_writing, shipped_cards, convo_probe, queue_depth, docs_shape,
+               card_writing, shipped_cards, convo_probe, queue_depth, docs_shape, claude_md_size,
                template_sync,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, raw_avenues, bat_editor, bootstrap_single, blender_hash_parse, filename_as_type, namespace_as_value, workflow_size,

@@ -78,23 +78,48 @@ brick at arm's length; frames 3 and 5 are eye-level shots and that is where
 smearing shows), 2K for everything above the first storey. That is a
 measurement to take, not a preference: bump one surface, read the still.
 
-### 1.3 `.glb` is invisible to the attribution sweep
+### 1.3 `.glb` is invisible to the attribution sweep FIXED 1 SEP, and the finding was bigger than one suffix
 
-`ASSET_SUFFIXES` in `tools/attribution-check.py` lists `.fbx .png .jpg .jpeg
-.tga .psd .wav .mp3 .ogg .ttf .otf .bundle .obj .blend .hdr .exr .webp` — and
-**not `.glb`, not `.gltf`, not `.mtl`** [VERIFIED-HERE]. The repo tracks **37
-`.glb` files** under `ledger/Assets/Props/base-mesh` and
-`Props/oga-vehicles/lowpoly-public-transport`, plus 12 `.mtl` [MEASURED].
+The original finding, kept because the correction below is only readable
+against it: `ASSET_SUFFIXES` in `tools/attribution-check.py` lists `.fbx .png
+.jpg .jpeg .tga .psd .wav .mp3 .ogg .ttf .otf .bundle .obj .blend .hdr .exr
+.webp` and **not `.glb`, not `.gltf`, not `.mtl`** [VERIFIED-HERE]. The check
+passed only because the affected directories also held attributed files, so
+`Props` reported "197 asset file(s) attributed" while 49 files in the same
+tree were not counted at all, and the final sweep, "no asset files live
+outside a directory this file knows about", could not see a stray `.glb`
+anywhere in the repository. Third instance of the same fault (`.hdr`/`.exr` on
+24 Aug, `.webp` the same day).
 
-The check passes today only because those directories also hold attributed
-files, so `Props` reports "197 asset file(s) attributed" while 49 files in the
-same tree are not counted at all — and the final sweep, *"no asset files live
-outside a directory this file knows about"*, **cannot see a stray `.glb`
-anywhere in the repository**. This is the third instance of the same fault
-(`.hdr`/`.exr` on 24 Aug, `.webp` the same day), and the comment beside the
-list says so in advance. Fix it in the same change as the next model fetch:
-add `.glb`, `.gltf`, `.bin`, `.mtl`, `.dae`, `.usdz`, `.svg`, `.tif`, `.tiff`,
-`.hdr` is already there.
+**ONE MEASUREMENT IN THAT PARAGRAPH WAS WRONG AND IS CORRECTED HERE.** It said
+the 37 `.glb` sit under `ledger/Assets/Props/base-mesh` **and**
+`Props/oga-vehicles/lowpoly-public-transport`. Measured 1 Sep: all 37 are in
+`base-mesh`, and `lowpoly-public-transport` holds no `.glb` at all. What it
+holds is 12 `.obj` with 12 `.mtl` and 12 `.fbx`, which is a different pack in
+a different format, and the count happened to come out right anyway.
+
+**WHAT LANDED, AND IT IS NOT THE SUFFIX LIST.** Queue item 016 fixed the list
+(`.glb .gltf .mtl .bin .npz .flac` added) but the list was the symptom. The
+tool now declares a second set, `NOT_ASSET_SUFFIXES`, and the union of the two
+must cover every file walked; anything in neither is UNCLASSIFIED, printed by
+name with its denominator, and fails. Removing `.glb` again reproduces the
+original bug and the tool now says so twice on the live tree, once as
+`base-mesh: no asset file among 38 walked` and once as `37 unclassified of
+3830 walked`. So the recommendation this section used to end with, pad the
+list with `.dae .usdz .svg .tif .tiff` against future fetches, is DECLINED on
+purpose: a list padded with formats nobody has fetched is a bound chosen first
+and defended afterwards, and the residue check means the day one lands it
+names itself on the first run. `.flac` is the one exception and it has
+evidence rather than a guess behind it: `tools/voice-live/speak.py` and
+`tools/voice-cast-check.py` already scan for it.
+
+**AND THE SWEEP FOUND TWO THINGS THE ORIGINAL PASS DID NOT LOOK FOR.**
+`game-design/voice-conds` (23 `.bin` + 23 `.npz`, VCTK-derived conditioning)
+was on no watched row and had no visible suffix, so it was invisible twice
+over. And `ledger/Assets/Props/oga-vehicles` (59 files from OpenGameArt) sits
+inside the `Props` row, so its files were being counted under the **Kenney**
+token and reported as attributed. Both now carry their own rows, and
+THIRD-PARTY.md carries an OpenGameArt section it did not have.
 
 ### 1.4 Poly Haven is used for skies only
 

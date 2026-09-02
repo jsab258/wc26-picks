@@ -2,6 +2,7 @@ line: infrastructure (instruments)
 spec: this file
 acceptance: .glb in ASSET_SUFFIXES; the 37 base-mesh files produce a line rather than silence; the stray-file sweep sees .glb anywhere in the repo; a fixture proves an unattributed .glb is REFUSED
 max_sessions: 1
+done: 2026-09-02 by director ruling game-design/decision-2026-09-02-constitution-cut-attribution-pc-channel.md. Acceptance met by reading: .glb in the set, the base-mesh row prints a line either way, the stray sweep sees .glb anywhere (fixture 10), and the two-declared-sets shape outlives the list. Found the OGA misattribution on the way past.
 
 `tools/attribution-check.py` line 106 lists the suffixes it sweeps for.
 `.glb` is not among them. So the 37 meshes under

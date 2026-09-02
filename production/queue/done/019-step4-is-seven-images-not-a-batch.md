@@ -2,6 +2,7 @@ line: production (asset pipeline)
 spec: production/specs/vignette-bill-of-materials.json
 acceptance: a director ruling naming step 4's true scope; step 4a's 7 image lines either dispatched to the PC channel or refused with a stated reason; the 26 PROC lines placed on their merits rather than costed as overnight work
 max_sessions: 1
+done: 2026-09-02 by director ruling game-design/decision-2026-09-02-constitution-cut-attribution-pc-channel.md. Ruled FOLD (Ruling 5): the 26 PROC lines belong to the D1b shared scene generator, which must exist anyway. Step 4 is the seven 2D lines, now queue 025. The runnable-tonight claim is withdrawn.
 status: READY 2026-09-01. Blocked on a DECISION, not on work: the resident must not re-cost a ruled step alone.
 
 Written 2026-09-01 by the resident, from the landed BOM. It needs a

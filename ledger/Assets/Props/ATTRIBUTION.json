@@ -1,5 +1,5 @@
 {
- "note": "Sources for every model in this directory. THIRD-PARTY.md is the human-readable copy and both must agree.",
+ "note": "Sources for every Kenney kit under this directory. Other sources here (base-mesh, oga-vehicles) carry their own THIRD-PARTY.md, written by tools/props/fetch_visual.py, and the root THIRD-PARTY.md is the human copy checked by tools/attribution-check.py.",
  "kits": {
   "car-kit": {
    "source": "Kenney (kenney.nl)",

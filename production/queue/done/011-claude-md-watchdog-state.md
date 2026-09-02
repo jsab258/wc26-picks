@@ -2,6 +2,7 @@ line: infrastructure (governance)
 spec: this file
 acceptance: CLAUDE.md's AUTO MODE section describes the watchdog's real state; production/watchdog-prompt.md and CLAUDE.md agree; a director row covers the change because CLAUDE.md is a director-trigger file
 max_sessions: 1
+done: 2026-09-02 by director ruling game-design/decision-2026-09-02-constitution-cut-attribution-pc-channel.md. Closed by D1 and D2: the stale watchdog sentence's host moved out of CLAUDE.md into runner.md, and the correction now sits beside it with watchdog-prompt.md named as the dated authority.
 
 CLAUDE.md's AUTO MODE section says the watchdog "IS DISABLED RIGHT NOW, 26
 Aug". True when written, false since 2026-09-01 16:00Z when it was re-enabled

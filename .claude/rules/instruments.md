@@ -41,3 +41,11 @@ you the wrong world.
 - **Before concluding from two numbers, read the code that produces them**
   and ask whether either can move while the other stands still — two
   numbers derived from one variable are one number twice.
+
+**Where these came from.** Every bullet above is the compressed form of an
+incident that cost a day. The incidents themselves are
+`ledger-v2/studio-v2/casebook-measurement.md`, which carries CLAUDE.md rules 2
+and 3b in full: thresholds set without a series, a peak read as a description,
+a median that cannot see a minority, a lifetime count frozen by a sparse
+sampler, two maxima divided, and the denominators that turned clean results
+into false claims. Open it before you set a bound or choose an aggregator.

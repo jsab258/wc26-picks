@@ -32,3 +32,11 @@ globs: [".github/workflows/**", "**/ci/**", "tools/*dispatch*", "tools/*landed*"
 - **Any cap in a log-extraction step must announce when it bites** — a
   `| head -N` that outgrew its input once read as "three of five systems
   failed" when nothing was broken.
+
+**Where these came from.** The incidents are
+`ledger-v2/studio-v2/casebook-build-and-evidence.md`, which carries CLAUDE.md
+rule 12 and the project mechanics in full: the compile errors a
+reference-independent check cannot see and the five lints written for them,
+the licence-seat failure that looks exactly like a compile error, the build
+that committed stills it could not have rendered, the container rollback, and
+the verdict-format rules. Read it before diagnosing a build from its colour.

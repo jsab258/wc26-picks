@@ -305,10 +305,193 @@ TABLE = {
                          "--voice", "rocco",
                          "--text",
                          "Seen the van again. Thursday, same as last Thursday."]],
+
+    # ---- PRODUCTION WORK, ADDED 1 SEP -----------------------------------
+    #
+    # Everything above is voice-era. The jobs below are what the studio
+    # actually grinds now, and they are here for the reason the channel was
+    # built: the prop batch on 1 Sep cost a message, a wait and a
+    # double-click, and every one of those is a click the standing
+    # constraint says should not exist.
+    #
+    # EVERY FLAG BELOW WAS READ OFF THE TOOL'S OWN argparse, NOT OFF A .bat
+    # OR A README. `short-lines` once sent `--short` to a script that knew
+    # only `--selftest`; argparse exited 2 before a line of it ran, the job
+    # died in zero seconds on Jafar's machine and the watcher recorded it as
+    # finished. The selftest at the bottom re-checks every one of them.
+    #
+    # `--no-send` ON BOTH GENERATORS, AND IT IS THE LOAD-BEARING CHOICE.
+    # meshgen and imagegen each carry their own publisher, and each pushes to
+    # whatever branch the clone happens to be on, which here is MINE. That is
+    # a second author on one branch, which is exactly the arrangement this
+    # watcher was rewritten to end: four days of divergences, rebases and
+    # stranded commits all came from it. So the generators write files and
+    # push nothing, and their output travels the way every other answer from
+    # this machine travels, through `publish` onto `pc-results`, which has
+    # one writer and a disposable history. The paths they write are named in
+    # `publish` below.
+    #
+    # THE PROP BATCH, exactly what "1 MAKE THE PROPS.bat" runs: two probes
+    # into the mesh workspace, then the pipeline. The probes are separate
+    # steps rather than something meshgen shells out to, because that is how
+    # the .bat does it and a second implementation of the same three commands
+    # is how two files drift until one is wrong. meshgen refuses with exit 5
+    # if this PC cannot do the batch, having made nothing, and writes the
+    # reason into production/mesh-reports.
+    "make-the-props": [["PS", "tools/imagegen/probe-machine.ps1",
+                        "-Out", "{MESH_WS}/machine.json", "-Drive", "{DRIVE}"],
+                       ["PS", "tools/meshgen/probe-tools.ps1",
+                        "-Out", "{MESH_WS}/tools.json"],
+                       ["PY", "tools/meshgen/meshgen.py", "run",
+                        "--machine", "{MESH_WS}/machine.json",
+                        "--tools", "{MESH_WS}/tools.json",
+                        "--repo", "{REPO}", "--workspace", "{MESH_WS}",
+                        "--max-minutes", "480", "--no-send"]],
+    # AND THE LOOK-ONLY HALF, which is "2 JUST LOOK AT THIS PC (one minute)"
+    # and costs a minute and makes nothing. Worth a job of its own because
+    # "the batch cannot run here" is a fact about the machine that is useful
+    # before anybody commits a night to it.
+    "look-at-the-pc": [["PS", "tools/imagegen/probe-machine.ps1",
+                        "-Out", "{MESH_WS}/machine.json", "-Drive", "{DRIVE}"],
+                       ["PS", "tools/meshgen/probe-tools.ps1",
+                        "-Out", "{MESH_WS}/tools.json"],
+                       ["PY", "tools/meshgen/meshgen.py", "probe",
+                        "--machine", "{MESH_WS}/machine.json",
+                        "--tools", "{MESH_WS}/tools.json",
+                        "--repo", "{REPO}", "--workspace", "{MESH_WS}",
+                        "--no-send"]],
+    # THE PICTURE BATCH, exactly what "1 MAKE THE PICTURES.bat" runs: the
+    # hardware probe into the image workspace, then the generator. The .bat
+    # reads exit code 10 from the probe as "no graphics card" and stops
+    # there; imagegen makes the same decision from the same machine.json and
+    # its gate is the tested one, so the stop happens either way.
+    "make-the-pictures": [["PS", "tools/imagegen/probe-machine.ps1",
+                           "-Out", "{IMAGE_WS}/machine.json",
+                           "-Drive", "{DRIVE}"],
+                          ["PY", "tools/imagegen/imagegen.py", "all",
+                           "--machine", "{IMAGE_WS}/machine.json",
+                           "--workspace", "{IMAGE_WS}", "--repo", "{REPO}",
+                           "--max-minutes", "480", "--no-send"]],
+    # THE SLOW PATH, AND IT IS A DIFFERENT ENTRY ONLY IN ONE FLAG.
+    # "2 MAKE THE PICTURES (no graphics card).bat" sets LEDGER_FORCE_CPU and
+    # calls the other .bat, which turns that into `--force-cpu` and nothing
+    # else. So this is the same two steps with one flag added rather than a
+    # second pipeline, which is what that .bat's own comment asks for: one
+    # copy of the download, the licence checks, the blank check and the skip.
+    # 202 seconds per picture, measured 25 Aug, and the CPU batch cap inside
+    # imagegen is what stops that becoming an afternoon.
+    "make-the-pictures-no-gpu": [["PS", "tools/imagegen/probe-machine.ps1",
+                                  "-Out", "{IMAGE_WS}/machine.json",
+                                  "-Drive", "{DRIVE}"],
+                                 ["PY", "tools/imagegen/imagegen.py", "all",
+                                  "--machine", "{IMAGE_WS}/machine.json",
+                                  "--workspace", "{IMAGE_WS}",
+                                  "--repo", "{REPO}",
+                                  "--max-minutes", "480", "--force-cpu",
+                                  "--no-send"]],
+    # THE VIGNETTE SURFACE FETCH. CONTINGENT: as of 1 Sep the script it names
+    # is not committed, so `missing_steps` refuses this job by name rather
+    # than letting python's "can't open file" arrive looking like the fetch
+    # failing. The entry is here so that landing the script is the only thing
+    # left to do, and the refusal says exactly that while it is not.
+    #
+    # It runs HERE and not in the container because ambientcg.com,
+    # api.polyhaven.com and api.sketchfab.com all answer CONNECT 403 at this
+    # egress proxy, measured 1 Sep. `--fetch` takes the plan; `--plan` needs
+    # no network and is therefore not worth a job.
+    "fetch-the-vignette-surfaces": [["PY", "tools/props/fetch_vignette.py",
+                                     "--fetch"]],
 }
 
 # Where the Windows environment's python lives, relative to the repository.
 WIN_PY = pathlib.Path("tools") / "voice-live" / "env-export" / "Scripts" / "python.exe"
+
+# SCRATCH FOLDERS, OUTSIDE THE REPOSITORY AND NOT THE SAME ONE. The prop
+# pipeline and the picture pipeline each keep a workspace holding a probe
+# answer, and the two probes write files with the same NAME that mean
+# different things: `machine.json` from the hardware probe sits beside
+# `tools.json` in one and beside a 6.7 GB runtime in the other. These are
+# the exact two paths the .bat files already use, so a job run from here and
+# a job Jafar double-clicks land in one history rather than two, and the
+# "already made, skipping" half of both tools keeps working across the pair.
+MESH_WS = pathlib.Path.home() / "ledger-meshgen"
+IMAGE_WS = pathlib.Path.home() / "ledger-imagegen"
+
+# HOW LONG A JOB MAY TAKE, PER JOB, because one hour was the only answer and
+# it is the wrong one for production work. `run_job` capped every step at
+# 3600s while the batches it now carries are handed `--max-minutes 480`; a
+# night's meshes would have been killed at step one, on the hour, and the
+# window would have said TIMED OUT with no way to tell that from a hang. The
+# tool's own cap is the real bound and this sits ABOVE it as a backstop.
+JOB_TIMEOUT = {
+    "make-the-props": 9 * 3600,
+    "make-the-pictures": 9 * 3600,
+    "make-the-pictures-no-gpu": 9 * 3600,
+    "fetch-the-vignette-surfaces": 2 * 3600,
+}
+DEFAULT_TIMEOUT = 3600
+
+
+def tokens(root):
+    """What a step's {NAME} placeholders stand for, resolved at call time.
+
+    A FIXED SET, LIKE THE TABLE ITSELF. Nothing from the request file reaches
+    this, so a placeholder can only ever be one of these four and a request
+    still cannot invent a path.
+    """
+    return {
+        "{REPO}": str(root),
+        "{MESH_WS}": str(MESH_WS),
+        "{IMAGE_WS}": str(IMAGE_WS),
+        # The .bat files pass %SystemDrive% and the probe defaults to "C:".
+        # Reading the environment keeps a machine whose Windows is not on C:
+        # measured rather than assumed; the fallback is the probe's own.
+        "{DRIVE}": os.environ.get("SystemDrive", "C:"),
+    }
+
+
+def expand(arg, sub):
+    """One argument with its placeholders filled in."""
+    for k, v in sub.items():
+        arg = arg.replace(k, v)
+    return arg
+
+
+def command_for(step, root):
+    """The exact argv a step runs as. One place, so the checks read what runs.
+
+    TWO KINDS OF STEP AND ONE SHAPE. `PY` is a python script, `PS` is a
+    PowerShell one, and in BOTH the second element is the repository-relative
+    script path. That is deliberate: it lets one existence check, one
+    tracked-in-git check and one step name cover both kinds rather than
+    growing a second copy of each per kind.
+    """
+    sub = tokens(root)
+    args = [expand(a, sub) for a in step]
+    if step[0] == "PY":
+        return [interpreter(root)] + args[1:]
+    if step[0] == "PS":
+        return ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                "-File", args[1]] + args[2:]
+    return args
+
+
+def job_timeout(job):
+    return JOB_TIMEOUT.get(job, DEFAULT_TIMEOUT)
+
+
+def missing_steps(job, root):
+    """Which of a job's scripts are not in this checkout. Empty means runnable.
+
+    THE TABLE CAN NAME A FILE THAT HAS NOT LANDED YET, and an entry added here
+    ahead of its tool arrives on the other machine as a step whose script is
+    absent. Python's own "can't open file" then reads on the far end as the
+    JOB failing rather than as the job never having been deliverable, which
+    sends the next hour at the tool instead of at the branch. Refusing by name
+    costs one line and says which file.
+    """
+    return [step[1] for step in TABLE.get(job, [])
+            if not (root / step[1]).exists()]
 
 
 def casting_files(root):
@@ -363,7 +546,7 @@ def interpreter(root):
     return str(win) if win.exists() else sys.executable
 
 
-def read_request(text):
+def read_request(text, root=ROOT):
     """The request, or None with a reason. Never throws on bad input."""
     try:
         d = json.loads(text)
@@ -392,6 +575,16 @@ def read_request(text):
                       f"it can run: {', '.join(sorted(TABLE))}")
     if not rid:
         return None, "the request has no id, so it could never stop repeating"
+    # IN THE TABLE IS NOT THE SAME FACT AS ON THIS DISK. A job can be added
+    # here before the tool it names is committed, and the branch this machine
+    # resets to is the only way that file ever arrives. Say which file, and
+    # say that it is the branch's fault rather than the tool's.
+    gone = missing_steps(job, root)
+    if gone:
+        return None, (f"'{job}' is in the table but cannot run in this "
+                      f"checkout: {len(gone)} of {len(TABLE[job])} step(s) "
+                      f"name a file that is not here ({', '.join(gone)}). "
+                      f"That file has not landed on the branch yet.")
     return {"job": job, "id": rid}, None
 
 
@@ -408,21 +601,29 @@ def already_done(state_text, rid):
         return False
 
 
-def run_job(job, root, say, timeout=3600, beat=print):
+def run_job(job, root, say, timeout=None, beat=print):
     """Run the steps, saying out loud that they are alive.
 
     A JOB THAT TAKES TWENTY MINUTES AND A JOB THAT HUNG LOOKED IDENTICAL, from
     the window and from the branch alike, and half an hour went into telling
     them apart by guesswork. The step announces itself with a clock so the
     difference is visible from the first minute.
+
+    THE CAP IS PER JOB NOW. It was a flat hour for everything, which was the
+    right size for a voice line and would have killed an overnight prop batch
+    on the hour with TIMED OUT, a message indistinguishable from a hang.
     """
-    py = interpreter(root)
+    timeout = timeout if timeout is not None else job_timeout(job)
     ok = True
     for n, step in enumerate(TABLE[job], 1):
-        cmd = [py if a == "PY" else a for a in step]
-        say(f"  $ {' '.join(cmd[1:])}")
+        cmd = command_for(step, root)
+        # THE INTERPRETER PATH IS NOISE AND THE SHELL NAME IS NOT. A python
+        # step drops argv[0] because it is a long absolute path nobody reads;
+        # a PowerShell step keeps it, because "powershell" is the one word
+        # that says which of the two kinds this was.
+        say("  $ " + " ".join(cmd[1:] if step[0] == "PY" else cmd))
         beat(f"  step {n} of {len(TABLE[job])}: {pathlib.PurePath(step[1]).name} "
-             f"— started, output comes when it finishes")
+             f"started, up to {timeout // 60} min, output comes when it finishes")
         started = time.time()
         try:
             # NO PROGRESS BARS. `audition-rocco` ran correctly, produced
@@ -516,15 +717,72 @@ def resync(root, say):
     if rc != 0:
         say(f"  cannot reach GitHub: {out[:150]}")
         return False
+    # THE SHA, READ ONCE, NOT THE NAME. `deliver_before_discard` below may
+    # fetch a SECOND ref, and FETCH_HEAD means whichever ref was fetched
+    # last. Resolving it here is the whole reason the reset can still be
+    # trusted to land on the branch.
+    rc, branch_sha = git("rev-parse", "FETCH_HEAD", cwd=root)
+    if rc != 0:
+        say(f"  could not read the branch: {branch_sha[:150]}")
+        return False
+    branch_sha = branch_sha.strip()
     # ANY HALF-FINISHED OPERATION, ENDED. These fail harmlessly when there is
     # nothing to end, and one of them left this machine unable to do anything
     # for an afternoon.
     for op in ("rebase", "merge", "cherry-pick", "am"):
         git(op, "--abort", cwd=root)
-    rc, out = git("reset", "--hard", "FETCH_HEAD", cwd=root)
+    if not deliver_before_discard(root, say, branch_sha):
+        return False
+    rc, out = git("reset", "--hard", branch_sha, cwd=root)
     if rc != 0:
         say(f"  could not match the branch: {out[:200]}")
         return False
+    return True
+
+
+def deliver_before_discard(root, say, branch_sha):
+    """Send what this machine is holding, before the reset destroys it.
+
+    LOOK BEFORE YOU DESTROY, AND AN OVERNIGHT BATCH IS NOT A VOICE LINE. The
+    sync is a hard reset, so a commit this machine made and could not push is
+    thrown away by the next pass. That was survivable while every answer was
+    seconds of audio it could simply render again. The batches this watcher
+    now carries are hours, and both generators run with `--no-send`, so this
+    branch is the only route their output has.
+
+    So: if the checkout holds a commit the branch does not, and the results
+    branch does not hold it either, push it there and only then allow the
+    discard. Returning False stops the pass rather than discarding, which is
+    the safe direction: the loop comes back a minute later and tries again,
+    and nothing is lost while it waits.
+
+    A QUIET MACHINE PAYS ONE `rev-parse` AND NO NETWORK. The ancestry test is
+    first on purpose, and it is the answer on every pass where this machine
+    has done nothing.
+    """
+    rc, head = git("rev-parse", "HEAD", cwd=root)
+    if rc != 0:
+        return True                        # nothing committed here at all
+    head = head.strip()
+    if head == branch_sha:
+        return True
+    rc, _ = git("merge-base", "--is-ancestor", head, branch_sha, cwd=root)
+    if rc == 0:
+        return True                        # the branch already contains it
+    # ALREADY DELIVERED IS THE COMMON ANSWER. A pass that ended normally
+    # leaves HEAD at exactly what `publish` sent, so this costs one fetch
+    # and no push on every pass after a job.
+    git("fetch", "-q", "origin", RESULTS, cwd=root)
+    rc, there = git("rev-parse", "FETCH_HEAD", cwd=root)
+    if rc == 0 and there.strip() == head:
+        return True
+    rc, out = git("push", "--force", "origin", f"HEAD:{RESULTS}", cwd=root)
+    if rc != 0:
+        say(f"  HOLDING {head[:7]}: it is on neither {BRANCH} nor {RESULTS} "
+            f"and the push failed ({out[:150]}). Not discarding it. Trying "
+            f"again next pass.")
+        return False
+    say(f"  carried {head[:7]} to {RESULTS} before matching the branch")
     return True
 
 
@@ -537,9 +795,16 @@ def publish(root, say, message):
     push carries the newest result, on top of whatever the main branch was at
     the time, so it is always readable as "this ran against that".
 
-    The commit is made on a detached head so the local branch is left exactly
-    matching the main one — the next pass starts from a clean discard rather
-    than from something this function invented.
+    The commit lands on the local branch, which after `resync` is the main
+    branch's name at the main branch's sha, so this clone ends one commit
+    AHEAD of origin. Nothing detaches: this docstring used to say the commit
+    was made on a detached head, and no line here ever did that. The next
+    pass's `deliver_before_discard` sees the commit already on `pc-results`
+    and the hard reset puts the local branch back on origin's sha, which is
+    what keeps the clone clean between jobs. Detaching would be the wrong
+    fix anyway: both generators' `preflight` refuse to send from a clone
+    that is not on a branch, and a .bat-launched run with sending on would
+    go quiet on that reason after a detaching publish.
     """
     produced = [RESULT.relative_to(ROOT).as_posix(),
                 "game-design/voice-live/speed-report.txt",
@@ -563,7 +828,44 @@ def publish(root, say, message):
                 # a path is not the wildcard the comment below forbids: that
                 # incident was `git add -A` from the repository ROOT, which
                 # swept up an untracked Python environment.
-                "ledger/Assets/StreamingAssets/Audio/Voice"]
+                "ledger/Assets/StreamingAssets/Audio/Voice",
+                # ---- WHAT THE PRODUCTION JOBS WRITE ----------------------
+                #
+                # NAMED, LIKE EVERYTHING ELSE HERE. Both generators run with
+                # `--no-send`, so this is the ONLY route their output has and
+                # a path left off this list is a night that produced nothing
+                # anybody can read. Each one is a path the tool itself hands
+                # to its own publisher, read out of meshgen.py and imagegen.py
+                # rather than guessed from the folder layout.
+                #
+                # THE MESHES ARE DELIBERATELY NOT HERE. meshgen writes .glb
+                # into content/props and sends only the manifest, the
+                # attribution and the report; "3 LOOK AT THE PROPS.bat" says
+                # in as many words that the meshes live on that PC and not in
+                # git. Naming the directory would put megabytes of geometry
+                # through a force-pushed branch to no purpose, and it would
+                # make the next hard reset delete them from his disk.
+                "content/props/manifest.json",
+                "content/props/ATTRIBUTION.json",
+                "production/mesh-reports/mesh-machine-report.txt",
+                # The pictures ARE here, because they are the deliverable and
+                # imagegen's own publisher pushes each PNG. 16 MB for the
+                # twelve that have landed so far, measured rather than
+                # guessed, which a force-pushed single-writer branch carries
+                # without complaint.
+                "ledger/Assets/StreamingAssets/Decals/generated",
+                "game-design/agent-reports/machine-report.txt",
+                # The vignette fetch writes its CC0 maps here. The path is
+                # DEST in tools/props/fetch_vignette.py; the directory does
+                # not exist until that job has run, and `publish` only stages
+                # what is on disk, so naming it early costs nothing.
+                "production/assets/vignette",
+                # WHETHER THAT MACHINE STARTS ITSELF AT SIGN-IN, written by
+                # "START THE STUDIO MACHINE.bat" from the far end. The bat
+                # checks its own effect and writes the answer down; without
+                # this line the answer would only ever exist in a window
+                # nobody here can read, which is rule 12 exactly.
+                "game-design/pc-jobs/machine-start.txt"]
     # AND THE CASTING, WHICH INSTALLED ON THAT MACHINE AND STAYED THERE.
     #
     # `cast-and-prepare` ran, wrote four reference clips into `picked-clips`
@@ -657,7 +959,7 @@ def one_pass(root, say):
         text = (root / REQUEST.relative_to(ROOT)).read_text(encoding="utf-8")
     except OSError:
         return "no-request"
-    req, why = read_request(text)
+    req, why = read_request(text, root)
     if req is None:
         if why == IDLE:
             return "idle"
@@ -887,6 +1189,33 @@ def selftest():
           "and it publishes again after the branch moved, which is what a "
           "rejected push and a stranded commit used to be", " ".join(out6)[:70])
 
+    # 7. DELIVER BEFORE DISCARDING, BOTH WAYS. The accepting case is above,
+    #    inside test 2, where a diverged machine's commit is carried to the
+    #    results branch and only then discarded. This is the other half: when
+    #    the carry CANNOT happen, the sync must refuse rather than throw the
+    #    work away. A guard watched only on the side that succeeds is the
+    #    ratchet this project has shipped four times.
+    watcher, mine = repos()
+    (watcher / "seed.txt").write_text("a night of meshes\n", encoding="utf-8")
+    git("commit", "-qam", "the batch nobody wants to lose", cwd=watcher)
+    _, held = git("rev-parse", "HEAD", cwd=watcher)
+    i_push(mine, "and the branch moved on\n")
+    # Fetch still works, push cannot: the state a flaky uplink actually
+    # produces, rather than a repository with no remote at all.
+    git("remote", "set-url", "--push", "origin",
+        str(watcher.parent / "no-such-remote.git"), cwd=watcher)
+    said = []
+    ok7 = resync(watcher, said.append)
+    check(not ok7 and at(watcher) == held.strip()
+          and (watcher / "seed.txt").read_text(encoding="utf-8")
+          == "a night of meshes\n",
+          "a sync that cannot carry this machine's commit REFUSES rather "
+          "than discarding it, and the work is still on disk afterwards",
+          " ".join(said)[:90])
+    check(any("HOLDING" in line for line in said),
+          "and it says HOLDING with the sha, so a stuck watcher is one line "
+          "to read rather than a silence", " ".join(said)[:90])
+
     check(interpreter(ROOT) == sys.executable,
           "and with no Windows environment present it falls back to this "
           "interpreter rather than a path that does not exist")
@@ -905,23 +1234,136 @@ def selftest():
     # The live table is the accepting case and it is the best one available —
     # every job in it is one somebody expects to work, so a hit on today's
     # table is a false positive by definition.
-    bad = []
+    #
+    # POWERSHELL STEPS GET THE SAME TREATMENT. `-Out` binds to
+    # `param([string]$Out ...)` and binds case-insensitively, so the check is
+    # the same shape one layer over: does the script declare the parameter.
+    bad, flags_checked, unreadable = [], 0, []
     for job, steps in TABLE.items():
         for step in steps:
-            if len(step) < 2 or step[0] != "PY":
+            if len(step) < 2 or step[0] not in ("PY", "PS"):
                 continue
             script = ROOT / step[1]
             if not script.exists():
-                bad.append(f"{job}: no {step[1]}")
+                # NOT FOLDED INTO THE DENOMINATOR. A file that is not here
+                # was not examined, and a count that includes what it never
+                # opened is the 560-against-29 fault this project has already
+                # paid for once. It is named instead.
+                unreadable.append(f"{job}: {step[1]}")
                 continue
             body = script.read_text(encoding="utf-8", errors="replace")
             for tok in step[2:]:
-                if not tok.startswith("--"):
-                    continue
-                if f'"{tok}"' not in body and f"'{tok}'" not in body:
-                    bad.append(f"{job}: {step[1]} does not take {tok}")
-    check(not bad, "every flag a job passes is one that script accepts",
-          "; ".join(bad[:3]))
+                if step[0] == "PY" and tok.startswith("--"):
+                    flags_checked += 1
+                    if f'"{tok}"' not in body and f"'{tok}'" not in body:
+                        bad.append(f"{job}: {step[1]} does not take {tok}")
+                elif (step[0] == "PS" and tok.startswith("-")
+                      and not tok.startswith("--")):
+                    flags_checked += 1
+                    if f"${tok[1:]}".lower() not in body.lower():
+                        bad.append(f"{job}: {step[1]} has no parameter {tok}")
+    # THE CAP SAYS WHEN IT BITES. The old line printed the first three
+    # problems and gave no sign there were more, which is the `head -3` that
+    # once read as "three of five systems failed".
+    shown = "; ".join(bad[:3]) + (f" (+{len(bad) - 3} more)" if len(bad) > 3
+                                  else "")
+    check(not bad,
+          f"every flag a job passes is one that script accepts "
+          f"({flags_checked} flag(s) read across {len(TABLE)} job(s); "
+          f"{len(unreadable)} step script(s) not on this disk and therefore "
+          f"not read"
+          + (": " + ", ".join(unreadable) if unreadable else "") + ")",
+          shown)
+
+    # EVERY PLACEHOLDER IN THE TABLE IS ONE THE SUBSTITUTION KNOWS. An
+    # unresolved `{MESH_WS}` would travel to the far end as a literal folder
+    # name and the run would write its answers into a directory called
+    # "{MESH_WS}", which nothing looks in and no error mentions.
+    left = [f"{job}: {arg}" for job, steps in TABLE.items() for step in steps
+            for arg in command_for(step, ROOT)
+            if "{" in arg and "}" in arg]
+    placeholders = sum(1 for steps in TABLE.values() for step in steps
+                       for arg in step if "{" in arg and "}" in arg)
+    check(not left,
+          f"every {{PLACEHOLDER}} in the table resolves ({placeholders} "
+          f"placeholder(s) across {len(TABLE)} job(s), {len(tokens(ROOT))} "
+          f"name(s) defined)", "; ".join(left[:3]))
+
+    # A PY STEP RUNS UNDER AN INTERPRETER AND A PS STEP UNDER POWERSHELL, and
+    # the accepting case is asserted before the shape of either is trusted.
+    py_cmd = command_for(["PY", "tools/pc-watcher.py", "--selftest"], ROOT)
+    ps_cmd = command_for(["PS", "tools/meshgen/probe-tools.ps1", "-Out",
+                          "{MESH_WS}/tools.json"], ROOT)
+    check(py_cmd[0] == interpreter(ROOT) and py_cmd[1:] ==
+          ["tools/pc-watcher.py", "--selftest"]
+          and ps_cmd[:5] == ["powershell", "-NoProfile", "-ExecutionPolicy",
+                             "Bypass", "-File"]
+          and ps_cmd[5] == "tools/meshgen/probe-tools.ps1"
+          and ps_cmd[6:] == ["-Out", str(MESH_WS) + "/tools.json"],
+          "a python step runs under the interpreter and a PowerShell step "
+          "under powershell, with the script path second in both",
+          " ".join(ps_cmd))
+
+    # NO ORPHAN TIMEOUT. A key here that names no job is a cap nobody gets,
+    # and it reads exactly like a cap that is in force.
+    orphans = sorted(set(JOB_TIMEOUT) - set(TABLE))
+    check(not orphans,
+          f"every per-job timeout names a job that exists "
+          f"({len(JOB_TIMEOUT)} of {len(TABLE)} job(s) have one; the rest "
+          f"get {DEFAULT_TIMEOUT // 60} min)", ", ".join(orphans))
+    check(job_timeout("make-the-props") > DEFAULT_TIMEOUT
+          and job_timeout("time-a-line") == DEFAULT_TIMEOUT,
+          "and an overnight batch is allowed longer than the flat hour that "
+          "would have killed it on the hour",
+          f"props {job_timeout('make-the-props')}s, "
+          f"voice {job_timeout('time-a-line')}s")
+
+    # ---- A JOB WHOSE SCRIPT IS NOT IN THE CHECKOUT IS REFUSED BY NAME ----
+    #
+    # ACCEPTING CASE FIRST, and it is the live table rather than a fixture:
+    # every job whose steps are all on this disk must be accepted.
+    here_now = [j for j in sorted(TABLE) if not missing_steps(j, ROOT)]
+    refused_wrongly = [j for j in here_now
+                       if read_request(json.dumps({"job": j, "id": "x"}),
+                                       ROOT)[0] is None]
+    check(not refused_wrongly and here_now,
+          f"a job whose scripts are all in this checkout is accepted "
+          f"({len(here_now)} of {len(TABLE)} job(s) are)",
+          ", ".join(refused_wrongly))
+    # And the rejecting case, against a tree that holds none of them.
+    import tempfile as _tf
+    nowhere = pathlib.Path(_tf.mkdtemp())
+    import atexit as _ax3, shutil as _sh3
+    _ax3.register(_sh3.rmtree, nowhere, True)
+    got, why = read_request(json.dumps({"job": "make-the-props", "id": "x"}),
+                            nowhere)
+    check(got is None and why and "has not landed on the branch" in why
+          and "meshgen.py" in why,
+          "and one naming a file that has not landed is refused, saying WHICH "
+          "file and that the branch is what is missing it", why or "ACCEPTED")
+
+    # WHAT CAN ACTUALLY REACH THE OTHER MACHINE. This is a reading, not a
+    # gate. The sync there is a hard reset to the branch, so a step script
+    # that is UNTRACKED exists here and not there: existence answers "can
+    # this container run it", git answers "will it arrive", and only the
+    # second one describes Jafar's machine.
+    all_scripts = sorted({step[1] for steps in TABLE.values() for step in steps})
+    rc_ls, listed = git("ls-files", "--", *all_scripts)
+    if rc_ls != 0:
+        print(f"  note  DELIVERABILITY NOT MEASURED: git ls-files exited "
+              f"{rc_ls} over {len(all_scripts)} script(s)")
+    else:
+        tracked = set(listed.split())
+        absent = [f for f in all_scripts if f not in tracked]
+        waiting = sorted({job for job, steps in TABLE.items()
+                          for step in steps if step[1] in absent})
+        print(f"  note  {len(absent)} of {len(all_scripts)} step script(s) are "
+              f"not tracked in git, so {len(waiting)} of {len(TABLE)} job(s) "
+              f"cannot reach the other machine yet"
+              + (": " + ", ".join(
+                  f"{j} needs {st[1]}" for j in waiting
+                  for st in TABLE[j] if st[1] in absent)
+                 if waiting else " (every job in the table is deliverable)"))
 
     # ---- THE CASTING TRAVELS, AND ONLY THE CASTING.
     files = casting_files(ROOT)

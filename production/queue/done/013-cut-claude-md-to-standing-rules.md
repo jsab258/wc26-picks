@@ -2,6 +2,7 @@ line: infrastructure (governance)
 spec: this file
 acceptance: CLAUDE.md under 2000 words of standing rules plus pointers, with the goal block intact at the top; nothing deleted outright, every displaced passage moved into the framework doc that already covers it; tools/goal-block-check.py still green; a director row, because CLAUDE.md is a director-trigger file
 max_sessions: 3
+done: 2026-09-02 by director ruling game-design/decision-2026-09-02-constitution-cut-attribution-pc-channel.md. Acceptance met: 16,291 words to 1,990 with the goal block intact and checked verbatim, nothing deleted, every destination verified to carry its passage (23 markers across 8 files), and a director row. Six dictated edits applied at landing.
 
 CLAUDE.md is roughly 15,000 words. The roadmap's row law caps a milestone row
 at 80 words on the reasoning that a document nobody can hold in their head is
