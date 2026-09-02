@@ -11,37 +11,40 @@ Each entry has options and a recommendation so they can be answered in batch.
 Newest first. Every entry says what it means in plain terms, what the options
 cost, and what the studio recommends, so it can be answered in one line.
 
-### Do we agree NOW what happens if Unreal cannot show us a picture in time? (added 2026-09-02, URGENT: decide before 12 September)
+### ANSWERED 2026-09-02: the engine deadline is REMOVED, and Unreal gets more time, not less
 
-**In plain terms.** We are choosing between two game engines, Unity and
-Unreal, and the deadline to choose is 14 September. The test is: build one
-street corner, render it in both, look at the two pictures side by side, pick
-the better looking one.
+Jafar's ruling, verbatim: "yes but forget the deadline, it's not relevant.
+doesn't make sense to set a hard deadline when we can work continuously, we
+are limited by 5h and weekly usage limits in claude. rather spend more time
+to get UE working, that's what will help us achieve our main goal"
 
-**The problem.** The Unreal half may not produce a comparable picture in
-time. Nobody can compile Unreal code here, so it is written blind and each
-attempt takes about twenty minutes to find out if it even builds. A rough
-grey picture is likely. A proper textured one, which is what a fair
-comparison needs, probably is not.
+THIS IS BIGGER THAN THE QUESTION ASKED. The question was how to close D1 if
+Unreal ran out of time. The answer removes the clock the question depended
+on, and with it the premise underneath: a calendar deadline was never the
+real constraint. The real constraint is Claude usage, which is measured in
+hours and weeks of budget rather than dates, and the project runs
+continuously.
 
-**Why this is a question and not just bad news.** If we wait to see the
-result and THEN decide what counts as good enough, we will be moving the
-goalposts after the fact, which is how a decision gets made by whatever
-happened rather than by what we wanted. Agreeing the rule now costs nothing
-and protects the answer.
+What follows, and the director works it through rather than the resident:
+the 2026-09-14 timebox in decision-D1b-rescope.md and roadmap-v2.md is
+retired; measurement (a), agent-loop friction, can no longer be failed by a
+date; and the standing preference tips toward INVESTING in the Unreal path
+rather than defaulting to Unity, because the visual ceiling is what serves
+the Meridian Test and Jafar has said so plainly.
 
-| | what it means | what it costs |
-|---|---|---|
-| A | **Agree the rule now (RECOMMENDED).** If there is no proper Unreal picture by 12 September, we go with Unity, on the grounds that an engine we cannot iterate on fast enough is not usable here, and we record honestly that we never got to compare the visuals. | Nothing. The work between now and then is identical either way. |
-| B | **Extend the deadline** past 14 September to give Unreal a fair shot. | Two weeks of the only hard deadline this project has, spent on a question that may not be answerable with the tools available. |
-| C | **Decide later, when we see what happens.** | Free today, and it is the option where the goalposts move. |
-
-**The studio recommends A.** It does not favour either engine; it just fixes
-the rule before we know the result.
-
-
+Kept here rather than deleted so the reasoning survives: the recommendation
+was to pre-register a close so the goalposts could not move after the
+result. He removed the goalposts instead, which answers the worry properly.
 
 ### How close should strangers stand? (added 2026-08-04, late)
+
+**In plain terms.** When crowds gather on the street, people end up standing
+45 cm apart, which is touching distance, and 36 of them can pile into a
+two-metre circle. Nothing in the game models personal space. Whether that
+reads as a busy street or as a riot is a judgement off a picture, not a
+number the studio should pick. STILL LIVE: the code is in `NpcWalker.cs` and
+running. Best answered once the street vignette has produced a still, which
+is why it has waited.
 
 **The street packs people to exactly one body width and stops, and that is the
 separation rule doing precisely what it says.** `NpcWalker.StepApart` pushes two
@@ -79,6 +82,12 @@ cause was elsewhere.
 ## THE FIRST ONE, ADDED 2026-08-04 EVENING
 
 ### What does the player get BETTER at?
+
+**In plain terms.** Right now the player never improves at anything. Their
+one capability number only ever goes DOWN, when they get hurt. Your crew get
+better; you do not. This decides what a playthrough is FOR, so it is a
+question about what the game is rather than a thing to build. STILL LIVE and
+untouched by the v2 respec.
 
 **The design scorecard's largest relative gap, and it is a design question
 rather than a wiring one.** Character competence scores 10 against a target of
