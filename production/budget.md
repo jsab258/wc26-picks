@@ -19,6 +19,7 @@ than any single row.
 | 2026-09-01 | 28 of 168 | 34% | 41% | 2.5x over pace. The day the studio split was not used. |
 | 2026-09-01 | ~31 of 168 | 38% | not read | Reported by Jafar. 42 points left for 5 and a bit days. |
 | 2026-09-01 | new week, hours in | 8% | not read | THE WEEKLY LIMIT RESET. Reported by Jafar. This is a different week from the two rows above, and the delta between this row and the one before it is meaningless. |
+| 2026-09-02 | ~36 of 168 | 17% | not read | Reported by Jafar at 04:40Z, AFTER the heavy night. The 8 percent row plus that night cost 9 points. This row is what makes the night measured rather than unknown. |
 
 Ceiling for LEDGER: 80% of the weekly limit. The other 20% is his.
 
@@ -49,7 +50,15 @@ earned its cost by producing the stop and the brief; the rest re-established
 a known answer. A governor that spends budget to report that the budget is
 unknown is queue item 026.
 
-ACTION TAKEN: the director spawned at 00:02:48Z is in flight and its cost is
+CLEARED 2026-09-02 04:40Z. Jafar reported 17 percent. The night is now
+MEASURED rather than unknown: 8 to 17 is 9 points, and at roughly 36 hours
+into 168 the week is 21 percent elapsed against 17 percent spent, so the
+pace is slightly UNDER rather than over. The stop that ran from 00:25 to
+04:40 was correct on the evidence available at the time and is not
+retroactively wrong for having been cautious; what it lacked was a number,
+which is the one thing this container can never produce for itself.
+
+ACTION TAKEN AT THE TIME: the director spawned at 00:02:48Z was in flight and its cost is
 already committed, so it finishes. When it rules, the resident applies the
 ruling, lands the three-builder batch in one commit, pushes, updates NOW.md,
 and STOPS. No further spawns of any tier until Jafar reports a number.

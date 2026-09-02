@@ -44,6 +44,35 @@ while nothing was watching. Read before assuming it needs anything:
   has not run and the `vignette-fetch-01` request is still pending Jafar's
   one click. Nothing to chase.
 
+## The budget stop is CLEARED, 2026-09-02 04:40Z
+
+Jafar reported 17 percent. The night cost 9 points (8 to 17) and bought the
+constitution cut, the licence fix, the PC channel and a director review. At
+about 36 hours into 168 the week is 21 percent elapsed against 17 percent
+spent, so the pace is slightly under, not over. Work may resume.
+
+Queue 026 stands regardless: it is about what a stop COSTS while it holds,
+not about whether this one was right.
+
+## What landed after the batch, unattended
+
+A CC0 content fetch (`13c40d93`, Kenney kits) landed on top of the batch
+while nothing was watching. Read before assuming it needs anything:
+
+- IT REGENERATED `ledger/Assets/Props/ATTRIBUTION.json`, AND THE DIRECTOR'S
+  D3 CORRECTION SURVIVED. That is the design being confirmed by accident
+  within the hour: D3 fixed the GENERATOR STRING as well as the committed
+  file, precisely so a regeneration could not quietly restore the false
+  "sources for every model in this directory" note. A hand edit alone would
+  have been gone by 00:30.
+- The stricter attribution sweep PASSES over the new content: 3848 walked
+  (was 3828), 2715 asset files (was 2703), 0 unclassified, exit 0. The new
+  kinds classified without a change, which is what the two-declared-sets
+  shape was for.
+- `pc-results` has NOT moved (still `e6f9f6f3`, 14 August), so the watcher
+  has not run and the `vignette-fetch-01` request is still pending Jafar's
+  one click. Nothing to chase.
+
 ## If you are a watchdog firing while the stop below holds
 
 END IMMEDIATELY. Do not re-read the queue and do not re-reason about it. The
