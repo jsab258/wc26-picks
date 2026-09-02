@@ -76,7 +76,14 @@ resident's own turns. The rule and its arithmetic are in
 director only on a mandatory trigger; brief with facts inline rather than a
 reading list; batch related work into one spawn rather than several.
 
-Work is RUNNING, not stopped. The stop that ran this morning is over.
+NOTHING FURTHER SPAWNS ON WEDNESDAY 2 SEPTEMBER. The day already ran at
+roughly 40 points against an allowance of 10, and the week plan
+(`production/week-plan-2026-09-02.md`) allots today's remainder 0 to 2 for
+resident wrap-up only. Work RESUMES Thursday, after a usage number, with
+027 Phase A in the first builder slot and 037 in the second.
+
+A watchdog firing before then should read this line and END. The plan is
+the instruction; this file is not a second opinion about it.
 
 ## In flight
 
