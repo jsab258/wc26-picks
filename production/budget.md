@@ -43,6 +43,12 @@ computed across a boundary, which is the exact fault the reset section above
 records. The day that matters here is the working night, and it has been a
 long one.
 
+MEASURED SINCE: the watchdog fired at 00:21, 01:20, 02:20 and 03:20 and the
+stop held at every one, on facts that had not changed. The first firing
+earned its cost by producing the stop and the brief; the rest re-established
+a known answer. A governor that spends budget to report that the budget is
+unknown is queue item 026.
+
 ACTION TAKEN: the director spawned at 00:02:48Z is in flight and its cost is
 already committed, so it finishes. When it rules, the resident applies the
 ruling, lands the three-builder batch in one commit, pushes, updates NOW.md,

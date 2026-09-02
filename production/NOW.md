@@ -44,6 +44,18 @@ while nothing was watching. Read before assuming it needs anything:
   has not run and the `vignette-fetch-01` request is still pending Jafar's
   one click. Nothing to chase.
 
+## If you are a watchdog firing while the stop below holds
+
+END IMMEDIATELY. Do not re-read the queue and do not re-reason about it. The
+stop is budget and only Jafar can clear it, by posting a usage number. It was
+established at 00:21 on 2 September, the brief was written and pushed, and
+three later firings re-derived the same answer at cost. That cost is queue
+item 026.
+
+The only thing that can change this is a number from Jafar in the
+conversation. If there is one, the stop is over; read `production/budget.md`
+and carry on.
+
 ## In flight
 
 - Nothing running. Three builders and one director completed and their work
