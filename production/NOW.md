@@ -43,13 +43,26 @@ which wins. The existing rule says Unity and nobody has checked that with
 him. It matters more now, because removing the deadline makes "they look
 close" the likeliest outcome rather than "Unreal ran out of time".
 
-## Budget
+## Budget: STOPPED, and what clears it
 
 17 percent at 04:40Z, reported by Jafar. The week starts MONDAY 14:00 CEST
-and the ceiling is 80 percent. A session limit was hit at about 09:20Z and
-killed two agents mid-work, so the day has cost more than the last reading
-shows. The mid-week reset on 1 September was an ANOMALY and must not be
-expected again.
+and the ceiling is 80 percent. The mid-week reset on 1 September was an
+ANOMALY and must not be expected again.
+
+THE DAY IS UNMEASURED, WHICH IS NOT THE SAME AS FINE. Since that reading:
+six builder and director spawns, and a SESSION LIMIT HIT at about 09:20Z
+that killed two agents mid-work. A session limit is direct evidence of heavy
+use, and nothing in this container can read the usage page. The rule for an
+unmeasured day is to prefer stopping.
+
+SO: no builder, director or verifier spawns until Jafar reports a number.
+ONE number in the chat clears this entirely.
+
+WHAT IS STILL ALLOWED, because the scarce thing is Claude usage and not
+wall clock: reading landed results, running `ledger/verify.py`, committing
+and pushing finished work. A stop that leaves the tree dirty across a reset
+saves nothing in the currency that is actually short. This was nearly got
+wrong once today, which is why it is written down.
 
 ## In flight
 
