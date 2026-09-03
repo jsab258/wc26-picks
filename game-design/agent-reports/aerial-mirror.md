@@ -1,6 +1,6 @@
 # Rooftop aerials took the same mid-grey mirror — fixed (systems-builder, 25 Aug 2026)
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT once the next Windows build
+> **STATUS: LOG, 2026-08-25. NOT CURRENT once the next Windows build
 > lands.** Nothing below is measured off a frame that contains the change:
 > the Game layer does not compile in this container, so every claim here is
 > either a value read out of source, a count read out of the last landed

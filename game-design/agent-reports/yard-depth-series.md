@@ -1,4 +1,4 @@
-> **STATUS — SPEC, 2026-08-25.** The instrument and the PREDICTION it will be
+> **STATUS: SPEC, 2026-08-25.** The instrument and the PREDICTION it will be
 > read against, written before any build carried it. The prediction section
 > becomes a LOG the moment a series lands; until then nothing here is a
 > reading.

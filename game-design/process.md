@@ -1,6 +1,6 @@
 # Collaboration Process & Decision Log
 
-> **STATUS — LIVE, verified 2026-08-04.** how we work and the decision log.
+> **STATUS: LIVE, verified 2026-08-04.** how we work and the decision log.
 > Kept current. If it is wrong, that is a bug in this file.
 
 ## Roles

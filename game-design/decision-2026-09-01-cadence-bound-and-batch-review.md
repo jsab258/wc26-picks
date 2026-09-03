@@ -1,6 +1,6 @@
 # DIRECTOR RULING: the cadence bound is MEASURED at 100, the two-builder batch lands, one overturn confirmed (1 Sep 2026, late)
 
-> **STATUS — LOG, 2026-09-01. NOT CURRENT once the dictated edits in Ruling 1 are in ledger/verify.py and queue item 018 exists; from then the constants and their comments in ledger/verify.py are the reading copy and this file is their history.**
+> **STATUS: LOG, 2026-09-01. NOT CURRENT once the dictated edits in Ruling 1 are in ledger/verify.py and queue item 018 exists; from then the constants and their comments in ledger/verify.py are the reading copy and this file is their history.**
 
 The banner carries the only em-dash in this document, because
 `tools/docs-check.py` hard-codes that character in the regex it accepts.

@@ -1,6 +1,6 @@
 # Live speech at conversational latency — analysis and experiment plan
 
-> **STATUS — SPEC**, written 2026-08-12. No code changes yet; this is the
+> **STATUS: SPEC**, written 2026-08-12. No code changes yet; this is the
 > thinking Jafar asked for before anything gets built. The measurements it
 > rests on are in `voice-live/speed-report.txt` and `shape-report.txt`, all
 > taken 11–12 August on the machine that will run the game.

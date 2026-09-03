@@ -1,6 +1,6 @@
 # DIRECTOR RULING — ValuePanel first firing (b7d232b), the three-item batch, and the §3b exemplar (25 Aug 2026)
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT after the completed-panel landing
+> **STATUS: LOG, 2026-08-25. NOT CURRENT after the completed-panel landing
 > (weather-carried, refs re-aimed) is read.**
 > Triggers: builder-batch review before commit; a landing that changes a
 > conclusion; CLAUDE.md. Verified this session, not quoted: `frames.tsv`

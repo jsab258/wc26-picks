@@ -1,6 +1,6 @@
 # DIRECTOR RULING — instrument-repair batch: series ordering, gate-detail ceiling, lint-red semantics, fixture unpin (26 Aug 2026)
 
-> **STATUS — LOG, 2026-08-26. NOT CURRENT after the ordered `confabs`
+> **STATUS: LOG, 2026-08-26. NOT CURRENT after the ordered `confabs`
 > re-read lands and after the fixture-pin sweep reports its count.**
 > Trigger: builder-batch review before commit (mandatory). Verified this
 > session, not quoted: `run_corpus()` reads the FULL history with no `-N`

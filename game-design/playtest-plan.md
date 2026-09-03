@@ -1,6 +1,6 @@
 # The playtest plan — Jafar's Windows machine, live voices on
 
-> **STATUS — LIVE**, verified 2026-08-22. Retargeted by Jafar's own words
+> **STATUS: LIVE**, verified 2026-08-22. Retargeted by Jafar's own words
 > ("I'll try to run it on my windows machine after visual stuff is done.
 > live voices/speech should be working too"). The Mac-Air framing below
 > this section is HISTORICAL — kept because it is the argument for work

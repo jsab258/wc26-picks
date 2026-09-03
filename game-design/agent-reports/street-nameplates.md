@@ -1,6 +1,6 @@
 # Street nameplates, and the unified lettering helper
 
-> **STATUS — LOG, 2026-08-25.** Builder report (systems-builder) on rulings C
+> **STATUS: LOG, 2026-08-25.** Builder report (systems-builder) on rulings C
 > and D of `decision-dressing-batch.md`. Landed in `1ea2c48a` (swept into that
 > commit alongside another agent's `ValuePanel` work; the tree was clean at
 > the time of writing). NOT CURRENT once the first build carrying it lands and

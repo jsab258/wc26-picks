@@ -27,6 +27,36 @@ Irreversible items wait for Jafar and never guess.
 
 ## WAITING
 
+### Create the Telegram bot, so Monday is not blocked on it
+added 2026-09-03. CLASS: DECISION. DUE BEFORE MONDAY 14:00 CEST.
+
+The bot is the first thing built after the reset and it is the only item whose
+blocker is you rather than the studio. Nothing here can create it: the studio
+cannot use your accounts, and every external host is blocked from the build
+machine anyway.
+
+WHAT IT NEEDS FROM YOU, about five minutes in Telegram:
+- Message @BotFather, send `/newbot`, name it, and it hands back a token.
+- Message your new bot once, so it has a chat to talk to, and get the chat id.
+- Put both through the existing PC channel into `tools/runner/config.local`,
+  which is uncommitted by design. Neither is ever committed or printed.
+
+- A. Do it before Monday. The bot lands first after the reset, as ruled.
+- B. Do it later and the bot slips; the console still works, but pushes,
+  decision buttons and voice notes all wait on it.
+- C. Change your mind about Telegram and say what instead.
+
+RECOMMENDATION A. It is five minutes of yours against the first item of the
+week for the studio.
+DEFAULT B if unruled: the studio builds the glance first and the bot when the
+token arrives, because a bot with no token is not a thing that can be tested.
+DEADLINE 2026-09-07.
+EVIDENCE: `production/queue/067-telegram-bot-on-the-pc.md` carries the full
+specification, including that the bot is the send path and calls the register
+check itself, so nothing unchecked ever leaves.
+
+---
+
 ### How close should strangers stand?
 CLASS: DECISION
 added 2026-08-04, still open, and it now has the picture it was waiting for

@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-26. NOT CURRENT after the next change to
+> **STATUS: LOG, 2026-08-26. NOT CURRENT after the next change to
 > `ledger/verify.py` or `tools/`.** Tier-2 audit, read-only. Findings, never
 > fixes. Written up by the resident from the auditor's output — the auditor
 > has no Write tool and the brief wrongly asked it to write the file.

@@ -1,6 +1,6 @@
 # Overhead cables read white against the sky — CONFIRMED, and fixed (systems-builder, 25 Aug 2026)
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT once the next Windows build
+> **STATUS: LOG, 2026-08-25. NOT CURRENT once the next Windows build
 > lands** — every pixel number below is measured off run `71316fa`'s
 > committed stills, and the whole point of the change is that they should
 > read differently next time. The emit that would prove it is named in

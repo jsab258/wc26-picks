@@ -27,6 +27,62 @@ than any single row.
 
 Ceiling for LEDGER: 80% of the weekly limit. The other 20% is his.
 
+## TWO METERS, RULED 2026-09-03, AND THE HIGHER ONE GOVERNS
+
+Every reading from Jafar records BOTH: the total meter and the Fable meter,
+each against its own 80 percent ceiling. Whichever is higher decides. A studio
+comfortable on the total and at 79 percent on Fable is not comfortable; it is
+one director spawn from a stop, and until today this file could not have said
+so because it recorded one number.
+
+BACKFILL RULE, and it is the point of the rule: a row where Fable was NOT READ
+says `not read`. It never says `equal to the total`, never carries the total's
+figure across, and never reads as zero. Every row above this line except the
+first says `not read` in the Fable column, and that is a true statement about
+what was measured rather than a gap to be tidied. The 2026-09-01 row is the
+only one carrying a real Fable figure: 41 percent against a total of 34, which
+is the whole argument for this rule. The higher meter was the Fable one, by
+seven points, on the only day both were read.
+
+Directors run on Fable. Builders and the resident do not. So the Fable meter
+moves on reviews and rulings, which are exactly the things this studio was
+told to do more of, and the total meter hides that.
+
+## ESTIMATES CARRY THEIR CALIBRATION AND ITS DATE, ruled 2026-09-03
+
+No estimate is printed bare. Every one names the measurement it rests on and
+when that measurement was taken, so a reader can see when it went stale.
+
+The live calibration, and it is weak in three named ways: a spawn costs
+roughly 1.5 to 2 points, derived 2026-09-02 from spawn counts in
+`.claude/agent-log.tsv` against Jafar's readings.
+
+(1) It is a flat average over two populations whose turn counts differ by
+3.75x. On 2026-09-03 the transcripts on the build machine read a fable median
+of 12 turns and an opus median of 45, peak 138. Series committed at
+`production/spawn-cost-series-2026-09-03.txt`, and that file, not this
+paragraph, is the source: `fable spawns=160 turnsMedian=12`,
+`opus spawns=144 turnsMedian=45 turnsPeak=138`.
+
+(2) Its denominator counted spawns that never produced a turn. Of 454
+transcripts, 170 carry a session-limit notice and 148 of those 170 produced NO
+turn at all; 149 transcripts in total hold no turn. So per LIVE spawn the
+figure is HIGHER than 1.5 to 2 points, not lower. The 148 and the 149 are two
+different facts and neither is a typo for the other: 148 is dead-and-noticed,
+149 is dead in total.
+
+(3) Its denominator is 240 logged rows against 454 transcripts on the machine,
+a gap of 214 that nobody has explained.
+
+Turns are not points. The conversion is UNMEASURED, and no per-tier points
+figure is written into this file until two paired readings exist: both meters
+from Jafar, with the turns log between them. Ruled 2026-09-03,
+game-design/decision-2026-09-03-batch-review-register-banner-spawnlog-uvsweep.md;
+queue 024 carries the measurement and queue 076 carries the tokens-per-point
+rate that would replace the whole guess.
+
+Readings govern, estimates forecast, an unmeasured day stops. Unchanged.
+
 Told by Jafar 2026-09-02, retiring the D1 deadline: "we are limited by 5h
 and weekly usage limits in claude". Dates are not a planning unit here. Any
 bound on a piece of work is written in dispatches, sessions or points of

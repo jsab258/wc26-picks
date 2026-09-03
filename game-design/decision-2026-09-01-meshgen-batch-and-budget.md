@@ -1,6 +1,6 @@
 # DIRECTOR RULING: the meshgen batch, the dead builder, and the budget docs (1 Sep 2026)
 
-> **STATUS — LOG, 2026-09-01. NOT CURRENT once the three fixes land.**
+> **STATUS: LOG, 2026-09-01. NOT CURRENT once the three fixes land.**
 > A director ruling on the meshgen batch and on the budget documents.
 > Its live consequences are the fixes in tools/meshgen/ and the two
 > corrections already applied to production/budget.md.

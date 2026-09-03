@@ -1,6 +1,6 @@
 # The visual bar's reference frames
 
-> **STATUS — SPEC.** Five GTA V (PS3-era) street frames, supplied by Jafar.
+> **STATUS: SPEC.** Five GTA V (PS3-era) street frames, supplied by Jafar.
 > Frames 1-3 on 21 Aug 2026 (decomposed in `visual-bar-spec.md` §2), frames
 > 4-5 re-supplied with the set on 24 Aug. **These ARE the bar** — M17.10's
 > done-test is our noon/dusk/night stills beside these, called met by Jafar.

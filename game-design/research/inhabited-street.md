@@ -1,6 +1,6 @@
 # The inhabited street — people, vehicles, and what is behind the windows
 
-> **STATUS — SPEC, 2026-08-25.**
+> **STATUS: SPEC, 2026-08-25.**
 
 Companion to `visual-bar-spec.md`, which covers environment only (light,
 surfaces, density, content). This covers the three things that make a street

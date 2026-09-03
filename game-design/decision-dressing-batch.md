@@ -1,6 +1,6 @@
 # Decision — the dressing batch, signage, and the US diamond (director, 25 Aug 2026)
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT after the batch commit and the
+> **STATUS: LOG, 2026-08-25. NOT CURRENT after the batch commit and the
 > audit-fix commit both land.** Director ruling on the 1,792-line builder
 > batch (KitDressing, lamp forms, StreetDressing, spec corrections, the
 > animation direction guard, the unpinned fixture, the works-lamp fix).

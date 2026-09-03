@@ -1,6 +1,6 @@
 line: production (the Unreal emitter, Phase C)
 spec: game-design/decision-2026-09-03-texture-staging-and-the-still-gate-ratchet.md, ruling E
-acceptance: materialConnections=14/14 with materialStatus=MADE on a LANDED run, not on a local claim
+acceptance: materialConnections=14/14 with materialStatus=MADE on a LANDED run, or 14/14 with materialStatus=WIRED-BY-PROPERTY-WRITE plus the four frames read by a verifier and showing tiling; never a local claim
 max_sessions: 1
 status: READY 2026-09-03, AND IT IS NOW PROVEN TO BE THE ONLY THING BETWEEN THIS PROJECT AND A TEXTURED UNREAL STREET. Run 20 staged the textures perfectly (stagedTexFiles=102/102 texRootFiles=51 mapsFound=36/48 surfacesResolved=12/16 piecesTextured=563/593) and the four frames are STILL FLAT GREY. A texture sampler with no UV input reads one constant, so 563 correctly textured objects render as flat colour. materialConnections held at 12/14 across runs 19 and 20, which fires the ruling's stop rule: NO FURTHER UNREAL DISPATCH UNTIL THIS IS FIXED. engine-specialist.
 
@@ -47,3 +47,15 @@ THE WORD WAS CARRYING THIS ALL ALONG. `materialStatus` read PARTIAL rather
 than MADE only because the 3 September ruling insisted MADE must mean
 wired == asked. Under the old definition run 20 would have reported MADE, and
 the search would have gone looking for a phantom somewhere in the renderer.
+
+## STEP 1 LANDED 2026-09-03, STEP 2 BEFORE DISPATCH
+
+Step 1: the nine-candidate sweep, `materialUvHeadVia`,
+`materialUvHeadTriedAtWorst`, `materialUvHeadReadback`, selftest 11 to 30
+cases. Ruled: the count may include a head made by the last-resort property
+write; the status word may not. Step 2, a precondition to run 21:
+`material_status` takes the count of heads made by property write, and 14 of
+14 with that count above zero prints
+`materialStatus=WIRED-BY-PROPERTY-WRITE` with `materialScriptReturn=2`; two
+selftest cases, accepting first. Ruling:
+game-design/decision-2026-09-03-batch-review-register-banner-spawnlog-uvsweep.md.

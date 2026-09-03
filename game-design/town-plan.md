@@ -1,6 +1,6 @@
 # The town plan — a real town, drawn cheaply
 
-> **STATUS — SPEC**, approved by Jafar 2026-08-16 ("go"). The plan of
+> **STATUS: SPEC**, approved by Jafar 2026-08-16 ("go"). The plan of
 > record for making LEDGER's city read as a real British port town.
 > The benchmark conversation: GTA5 and KCD2 feel real because their
 > space is organised by HUMAN logic; ours was organised by geometry

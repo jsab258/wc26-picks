@@ -1,6 +1,6 @@
 # The street spec — dimensions derived, not desired
 
-> **STATUS — SPEC**, drafted 2026-08-16, unbuilt. The prerequisite for
+> **STATUS: SPEC**, drafted 2026-08-16, unbuilt. The prerequisite for
 > the topology re-plan: this document is written BEFORE any road moves,
 > because the current map was built the other way round and the cost is
 > measured (queue.md: ~110 parcel ceiling citywide). Validation gates at

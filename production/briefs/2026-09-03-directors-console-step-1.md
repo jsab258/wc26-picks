@@ -1,5 +1,7 @@
 # Director's Console, step 1 report
 
+PRODUCER-REGISTER-EXEMPT: written before Jafar ruled the Producer's register on 2026-09-03. This is a director's step 1 survey report, not a Producer message, and it is kept as it was written. The exemption is frozen in the PRE_REGISTER list in tools/producer-check.py; a marker on a file that list does not name is a gate failure.
+
 STATUS: LOG, 2026-09-03. Read-only survey. Nothing was built, no builder or
 director was spawned, and nothing changes until Jafar approves.
 

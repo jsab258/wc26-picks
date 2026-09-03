@@ -1,6 +1,6 @@
 # Voice casting
 
-> **STATUS — LIVE, verified 2026-08-04.** who sounds like what, the 19 cast voices,
+> **STATUS: LIVE, verified 2026-08-04.** who sounds like what, the 19 cast voices,
 > and what actually generates the audio.
 > Kept current. If it is wrong, that is a bug in this file.
 

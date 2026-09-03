@@ -1,6 +1,6 @@
 # The three leftovers: a run that measured nothing, reported as a finding
 
-> **STATUS — LOG, 2026-08-26. NOT CURRENT** after the next change to
+> **STATUS: LOG, 2026-08-26. NOT CURRENT** after the next change to
 > `ledger/verify.py`, `tools/lint-filetype.py` or `tools/lint-unreached.py`,
 > or once the items left for other owners in section 8 are taken. Every
 > number below describes the tree at `c03ead22` plus these three files.

@@ -1,6 +1,6 @@
 # The picture batch — what Meridian needs, and what batch 1 proved
 
-> **STATUS — SPEC.** Written 2026-08-26, the day batch 1's fourteen pictures
+> **STATUS: SPEC.** Written 2026-08-26, the day batch 1's fourteen pictures
 > first reached the repository and were opened. Every rule below is a reading
 > of a specific file in `ledger/Assets/StreamingAssets/Decals/generated/`, not
 > a preference. Supersedes nothing; the bar is `visual-bar-spec.md` and the

@@ -1,6 +1,6 @@
 # Decision — batch commit, noon inversion, stale CLAUDE.md, yard_fence, brief shape, ref stills
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT after the items below land.** It
+> **STATUS: LOG, 2026-08-25. NOT CURRENT after the items below land.** It
 > records the ruling, not the state. Banner reformatted by the resident for
 > `docs-check`; not one word of the ruling changed, so the stamp still
 > attests what it attested.

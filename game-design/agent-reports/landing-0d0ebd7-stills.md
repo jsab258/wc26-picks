@@ -1,6 +1,6 @@
 # Stills read — landing 0d0ebd7
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** after the next landing
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** after the next landing
 
 Every finding below is either a direct measurement of the committed JPEGs
 (read-only, PIL) or is labelled a HYPOTHESIS with the quantity that would

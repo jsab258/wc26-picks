@@ -1,6 +1,6 @@
 # The Open City — Day 8 and Beyond (spec DRAFT, awaiting player approval)
 
-> **STATUS — SPEC.** The design for the open city from day 8. Stable reference:
+> **STATUS: SPEC.** The design for the open city from day 8. Stable reference:
 > build state lives in `roadmap.md`, not here. A spec that disagrees
 > with the roadmap is out of date about what got built, not about what
 > was intended.

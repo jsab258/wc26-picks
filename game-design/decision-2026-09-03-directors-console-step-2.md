@@ -1,6 +1,6 @@
 # Ruling: Director's Console step 2, the governance batch
 
-> **STATUS — LOG, 2026-09-03.** Director ruling, reference commit adf24305.
+> **STATUS: LOG, 2026-09-03.** Director ruling, reference commit adf24305.
 > NOT CURRENT once its five fixes are applied and the batch is committed;
 > from then the committed files and `production/decision-queue.md` are the
 > reading copies and this is their history.

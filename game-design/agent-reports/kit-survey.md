@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** once wired.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** once wired.
 > Survey and measurement only; nothing in this report is wired. The next
 > dispatch executes it. Supersede or delete when the placements land.
 

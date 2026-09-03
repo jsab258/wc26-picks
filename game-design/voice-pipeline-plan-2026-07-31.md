@@ -1,6 +1,6 @@
 # The voice pipeline: what went wrong today, and the plan
 
-> **STATUS — SPEC.** The design for the voice pipeline's invariants and plan. Stable reference:
+> **STATUS: SPEC.** The design for the voice pipeline's invariants and plan. Stable reference:
 > build state lives in `roadmap.md`, not here. A spec that disagrees
 > with the roadmap is out of date about what got built, not about what
 > was intended.

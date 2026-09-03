@@ -1,6 +1,6 @@
 # DIRECTOR RULING: the widened director_cadence, the prop viewer, and the four scope questions (1 Sep 2026)
 
-> **STATUS — LOG, 2026-09-01. NOT CURRENT once queue item 015 lands and the bound has been set from the printed series; from then the constants in ledger/verify.py, production/queue/015 and CLAUDE.md are the reading copies and this file is their history.**
+> **STATUS: LOG, 2026-09-01. NOT CURRENT once queue item 015 lands and the bound has been set from the printed series; from then the constants in ledger/verify.py, production/queue/015 and CLAUDE.md are the reading copies and this file is their history.**
 
 The banner above carries the only em-dash in this document, because
 `tools/docs-check.py` (lines 55, 65 and 90) hard-codes that character in

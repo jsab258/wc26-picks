@@ -1,6 +1,6 @@
 # Game feel — the full spec, benchmarked against KCD2 / GTA5
 
-> **STATUS — SPEC.** The design for game feel, benchmarked against KCD2/GTA5. Stable reference:
+> **STATUS: SPEC.** The design for game feel, benchmarked against KCD2/GTA5. Stable reference:
 > build state lives in `roadmap.md`, not here. A spec that disagrees
 > with the roadmap is out of date about what got built, not about what
 > was intended.

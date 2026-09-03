@@ -1,6 +1,6 @@
 # M15 — The world speaks for itself
 
-> **STATUS — SPEC.** The design for M15 — the world speaks for itself. Stable reference:
+> **STATUS: SPEC.** The design for M15 — the world speaks for itself. Stable reference:
 > build state lives in `roadmap.md`, not here. A spec that disagrees
 > with the roadmap is out of date about what got built, not about what
 > was intended.

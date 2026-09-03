@@ -1,6 +1,6 @@
 # Tier-1 Cast, Batch 2 — APPROVED as drafted (player, 2026-07-26)
 
-> **STATUS — SPEC.** The design for Tier-1 cast, batch 2. Stable reference:
+> **STATUS: SPEC.** The design for Tier-1 cast, batch 2. Stable reference:
 > build state lives in `roadmap.md`, not here. A spec that disagrees
 > with the roadmap is out of date about what got built, not about what
 > was intended.

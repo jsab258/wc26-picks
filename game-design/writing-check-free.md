@@ -1,6 +1,6 @@
 # The writing check that costs nothing
 
-> **STATUS — LOG, 2026-08-05. NOT CURRENT** once the writing it records is
+> **STATUS: LOG, 2026-08-05. NOT CURRENT** once the writing it records is
 > acted on. The live plan is `roadmap.md`.
 
 Jafar, 5 August: *"why do you need api spend to write? you can do that on your

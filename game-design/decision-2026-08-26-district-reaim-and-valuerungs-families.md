@@ -1,6 +1,6 @@
 # DIRECTOR RULING — district re-aim batch, `valueRungs` family pooling, day5_noon perpendicular (26 Aug 2026)
 
-> **STATUS — LOG, 2026-08-26. NOT CURRENT after the build carrying the
+> **STATUS: LOG, 2026-08-26. NOT CURRENT after the build carrying the
 > re-aim lands and its Identity A/B and four alarms are read.**
 > Triggers: builder-batch review before commit; a verifier-grade finding
 > (B) needing a director call. Verified this session, not quoted: the

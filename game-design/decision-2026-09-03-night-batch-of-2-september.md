@@ -1,6 +1,6 @@
 # DIRECTOR RULING: the night batch of 2 September lands, with four one-line corrections applied first; the Unreal diff was read and three faults are named; 056 does not close; dispatch order confirmed with an abort clock (3 Sep 2026, 00:25Z to 01:2xZ)
 
-> **STATUS — LOG, 2026-09-03. NOT CURRENT once the corrections C1 to C4 are applied and the queue is refilled; from then `production/NOW.md`, `production/queue/`, `ledger/ReachCheck/allow.json` and `production/budget.md` are the reading copies and this file is their history.**
+> **STATUS: LOG, 2026-09-03. NOT CURRENT once the corrections C1 to C4 are applied and the queue is refilled; from then `production/NOW.md`, `production/queue/`, `ledger/ReachCheck/allow.json` and `production/budget.md` are the reading copies and this file is their history.**
 
 This document carries exactly one em-dash, in the banner, because
 `tools/docs-check.py` line 55 accepts no other form.

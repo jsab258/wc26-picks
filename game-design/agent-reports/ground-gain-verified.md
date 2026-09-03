@@ -1,6 +1,6 @@
 # The first `groundGainBy` landing, verified — the rows are not ground
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** once the normal filter lands.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** once the normal filter lands.
 > Tier-2 verification of the `3a4e335` landing. Written to disk by the
 > coordinator; the auditor is read-only by construction. This is the first
 > use of the verifier-first rule: the position below is ESTABLISHED, and the

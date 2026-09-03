@@ -1,6 +1,6 @@
 # Streets and cars — M12 spec (player decision, 2026-07-26)
 
-> **STATUS — SPEC.** The design for M12 streets and cars. Stable reference:
+> **STATUS: SPEC.** The design for M12 streets and cars. Stable reference:
 > build state lives in `roadmap.md`, not here. A spec that disagrees
 > with the roadmap is out of date about what got built, not about what
 > was intended.

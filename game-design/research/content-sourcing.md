@@ -1,6 +1,6 @@
 # Content sourcing — what we can fetch, and what we must generate
 
-> **STATUS — SPEC, 2026-08-25.** Research pass for M17.10 (the GTA V bar on a
+> **STATUS: SPEC, 2026-08-25.** Research pass for M17.10 (the GTA V bar on a
 > British port town, late-analog 80s/90s). It is the COMPANION to
 > `visual-bar-sources.md`, not a replacement: that file is the verified fetch
 > table for the packs we already decided on, this one answers the two questions

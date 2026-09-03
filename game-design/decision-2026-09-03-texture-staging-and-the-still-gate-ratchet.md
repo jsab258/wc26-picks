@@ -1,6 +1,6 @@
 # DIRECTOR RULING: the still gate was reading its own explanation and both ends are fixed; the sweep names the instrument that could not have caught it; MADE now needs a wired UV chain; run 20 dispatches before the step is split (3 Sep 2026, 08:35Z)
 
-> **STATUS — LOG, 2026-09-03. NOT CURRENT once this batch is committed and Unreal run 20 has landed a verdict; from then the committed `production/d1-probe/` evidence, queue 062 to 064 and `production/NOW.md` are the reading copies and this file is their history.**
+> **STATUS: LOG, 2026-09-03. NOT CURRENT once this batch is committed and Unreal run 20 has landed a verdict; from then the committed `production/d1-probe/` evidence, queue 062 to 064 and `production/NOW.md` are the reading copies and this file is their history.**
 
 This document carries exactly one em-dash, in the banner, because
 `tools/docs-check.py` line 55 accepts no other form.

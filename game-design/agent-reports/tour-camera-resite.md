@@ -1,6 +1,6 @@
 # Tour cameras re-sited: `district_gullwing` and `district_downtown`
 
-> **STATUS — LOG, 2026-08-24. NOT CURRENT** once the next Windows build lands
+> **STATUS: LOG, 2026-08-24. NOT CURRENT** once the next Windows build lands
 > and replaces these predictions with readings. Builder report
 > (engine-specialist) for decision 1 item (b) in
 > `decisions-2026-08-24-shadow-gap-and-template-sync.md`. Nothing here is

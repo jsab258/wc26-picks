@@ -1,6 +1,6 @@
 # QA matrix — the human test plan (P9)
 
-> **STATUS — LIVE, verified 2026-08-04.** the human test plan, layered on the automated harness.
+> **STATUS: LIVE, verified 2026-08-04.** the human test plan, layered on the automated harness.
 > Kept current. If it is wrong, that is a bug in this file.
 
 Layered ON the automated harness, not beside it: every row here is something

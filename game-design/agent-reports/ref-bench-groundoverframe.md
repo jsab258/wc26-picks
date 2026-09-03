@@ -1,6 +1,6 @@
 # ref-bench: a ceiling, a synthetic rejecting fixture, and `groundOverFrame`
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** after the next landing.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** after the next landing.
 Instrument-builder account. Every number below was produced in this session by
 running the tool; nothing is quoted from the brief or from memory. File touched:
 `tools/ref-bench.py` only (2089 lines, was 1668).

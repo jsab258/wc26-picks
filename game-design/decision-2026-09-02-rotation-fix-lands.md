@@ -1,6 +1,6 @@
 # DIRECTOR RULING: the rotation fix lands with one guard added, appliedYaw stays, Foot5 goes to the queue, and a ruling nobody applied is recorded as the process hole it is (2 Sep 2026)
 
-> **STATUS — LOG, 2026-09-02. NOT CURRENT once the fix is committed with L1 to L5 below applied and the second Unity render has landed; from then the code, `game-design/sim-shots/verdict.txt`, the queue and `production/NOW.md` are the reading copies and this file is their history.**
+> **STATUS: LOG, 2026-09-02. NOT CURRENT once the fix is committed with L1 to L5 below applied and the second Unity render has landed; from then the code, `game-design/sim-shots/verdict.txt`, the queue and `production/NOW.md` are the reading copies and this file is their history.**
 
 This document carries exactly one em-dash, in the banner, because
 `tools/docs-check.py` line 55 accepts no other form (read this session).

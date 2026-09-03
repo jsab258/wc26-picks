@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-26. NOT CURRENT after the next change to
+> **STATUS: LOG, 2026-08-26. NOT CURRENT after the next change to
 > `tools/gates.py` or `tools/gate-detail.py`.** An audit of the project's
 > series printer and its gate-detail ratchet, and what they were fixed to
 > say. Counts are from the run files on disk at `c03ead22` (355, then 356

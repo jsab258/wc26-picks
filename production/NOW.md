@@ -1,6 +1,6 @@
 # NOW: what is in flight (read this FIRST, before the queue)
 
-STATUS: LIVE. Verified 2026-09-02 00:40Z.
+STATUS: LIVE. Verified 2026-09-03 after the batch ruling.
 
 A session that resets loses everything not written down. The queue says what
 to do NEXT; this file says what is ALREADY MOVING, which is the thing a fresh
@@ -119,45 +119,54 @@ decal looks right AT SIZE, ON A SURFACE, IN THE RAIN.
 
 ## In flight
 
-- **NOTHING IS RUNNING. THE STOP RULE IS IN FORCE.** `materialConnections`
-  held at 12/14 across Unreal runs 19 and 20, and the 3 September ruling says
-  that means stop dispatching and fix queue 062. NO FURTHER UNREAL DISPATCH
-  until the UV chain is wired. A third run would render the same grey street
-  and cost the same GPU minutes to say so.
+- **LANDED 2026-09-03, one commit, ruled in
+  `game-design/decision-2026-09-03-batch-review-register-banner-spawnlog-uvsweep.md`:**
+  the register gate (walks the outbox and the briefs on every verify; no real
+  message is in the tree yet, so its live reading is
+  `filesChecked=0/nothing-measured`), the banner law (135 documents migrated,
+  the retired form refused), the spawn log's tier and turn fields (hook
+  REGISTERED, first row NOT YET READ: read it before quoting it), and the UV
+  head sweep (nine candidate pin names in one run, not yet dispatched). Open
+  holes are queue 073, 074, 075 and the steps added to 024 and 062.
 
-- **PHASE C IS ONE WIRE FROM DONE, and run 20 proved which wire.** Staging
-  landed 51 files in both directories the binary looks in
-  (`stagedTexFiles=102/102 texRootFiles=51`), `mapsFound=36/48`,
-  `surfacesResolved=12/16`, `piecesTextured=563/593`. Every number read what
-  it was predicted to read. The frames are still FLAT GREY because the two
-  refused connections are TexCoord into both component masks, the head of the
-  UV chain all three samplers hang off, and a sampler with no coordinates
-  reads one constant. 563 correctly textured objects rendering as flat colour.
+- **THE UNREAL STOP RULE IS STILL IN FORCE and is the reason 062 is running.**
+  `materialConnections` held at 12/14 across runs 19 and 20, which fired the
+  ruling's bound: no further Unreal dispatch until the wire is fixed. When 062
+  lands, the fraction is the reading and not the status word. If it does not
+  move, that is the answer and gets reported as one rather than retried.
+  062 landed the sweep; that does NOT discharge the rule. Run 21 is authorised
+  once 062 step 2 (the third status word) has landed and Jafar lifts "wait";
+  if 21 prints 12/14 again, that is the answer and D1's hand-edit clause is
+  invoked.
 
-- **THE D1 MEASUREMENT HAS PASSED and that is the bigger news.** An agent
-  generated the Unreal base material head-less, no human opened the editor, no
-  uasset was hand-made: `editorBuildExit=0 materialPythonPlugin=found/1
-  materialScriptReturn=2 materialBase=loaded`. Jafar's amended rule makes
-  agent-loop friction the decisive measurement, and it is passing.
+- **THE DIRECTOR'S CONSOLE EXISTS AS FAR AS STEP 2.** `production/decision-queue.md`
+  is the single home for anything awaiting Jafar and for lighter rulings; the
+  legacy `game-design/decisions-pending.md` is RETIRED and carries a pointer.
+  The Producer is the only role permitted to address him (CLAUDE.md, and
+  `.claude/agents/producer.md` carries the register). Constitution law 12 sets
+  evidence beside the sentence for agents and behind it for Jafar, with the
+  link REQUIRED rather than optional.
 
-- **A GATE THAT COULD NOT FAIL WAS FOUND AND FIXED.** The still gate grepped
-  its own evidence file for `shotStatus=`, and the file's header comment
-  contained that phrase while explaining the key. It read WROTE out of its own
-  explanation whatever the frame was. Both ends fixed, and the repo swept: one
-  `key=`-shaped comment survives and no reader can reach it. THE OBVIOUS TOOL
-  FOR THIS SWEEP IS BLIND TO IT: `verdict-dupkeys.py` skips a key whose values
-  all agree, and a header quoting the passing value agrees with a passing run.
-  Queue 064 is the real instrument; the dupkeys work sits behind it in 029.
+- **THE REGISTER CHECK IS REAL AND IT REFUSED THE RESIDENT FOUR TIMES.** The
+  first live Producer message failed on missing options, a missing deadline and
+  twice on length before it passed. Pointing at the card instead of restating
+  its options is exactly the vagueness a word cap alone teaches, which is why
+  the link and the options are floors rather than suggestions.
 
-- **BUDGET: UNMEASURED AND WAITING ON JAFAR.** 52 percent at 04:50Z, then a
-  builder, two directors, three Unreal runs and a morning of resident turns.
-  Asked for a fresh number; not yet given. Condition 4 holds, so prefer
-  stopping over opening a new batch.
+- **BUDGET: TWO METERS NOW, AND THE HIGHER GOVERNS.** Total was 60 percent at
+  10:25Z; Fable was not read. On the only day both were read, 1 September,
+  Fable was 41 against a total of 34. Directors run on Fable, builders do not,
+  so the meter that moves on reviews is the one this file used to be blind to.
+  A row where Fable was not read says `not read`, never zero and never the
+  total carried across.
 
-- NOT DISPATCHED AND DELIBERATELY SO: `production/d1-probe/DISPATCH` is a push
-  trigger. Do not touch it in a commit unless a run is wanted. Run 18 banked
-  nothing because a resident push moved the branch sixteen seconds before its
-  commit step; run 20's evidence landed because the branch was left alone.
+- NOT DISPATCHED AND DELIBERATELY: `production/d1-probe/DISPATCH` is a push
+  trigger. Do not touch it in a commit unless an Unreal run is wanted, and the
+  stop rule says one is not wanted until 062 lands.
+
+- **DO NOT COMMIT WHILE A BUILDER IS WRITING**, however loudly a stop hook
+  asks. That is CLAUDE.md's rule and it exists because the resident once ran a
+  checkout over a builder's uncommitted work and cost a whole session.
 
 ## THE DASHBOARD IS NOW A HOSTED LIVE PAGE, and it needs writing to
 

@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-25 17:0x UTC. NOT CURRENT** once the findings below
+> **STATUS: LOG, 2026-08-25 17:0x UTC. NOT CURRENT** once the findings below
 > are acted on. Measurement audit of an unrun instrument, read-only; no file
 > in this report was edited by its author.
 
@@ -437,7 +437,7 @@ compile `Core/KitDressing.cs` standalone and replay the call sites.
 
 # FIXES — 2026-08-25 ~20:00 UTC, instrument-builder
 
-> **STATUS — LOG. This section supersedes the STATUS banner at the top of the
+> **STATUS: LOG. This section supersedes the STATUS banner at the top of the
 > file for findings C2–C5 and C8–C11.** C1 is PARTLY OPEN and its remaining
 > half is owned by another file. Nothing here is committed; the director rules
 > and the resident commits.

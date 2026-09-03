@@ -1,6 +1,6 @@
 # Decisions: the shadow-gap verdict, and keeping the template repo current
 
-> **STATUS — LOG, 2026-08-24. NOT CURRENT** once superseded; a decision
+> **STATUS: LOG, 2026-08-24. NOT CURRENT** once superseded; a decision
 > record is history the moment it is written, and reads as such.
 
 Two director decisions, recorded in `templates/decision.md`'s shape. Written

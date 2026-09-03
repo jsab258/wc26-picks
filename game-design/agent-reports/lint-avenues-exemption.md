@@ -1,6 +1,6 @@
 # lint-avenues: the exemption removed, and two holes underneath it
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** once the queued
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** once the queued
 > `streetmap-nameof-scaled-vs-raw` ruling lands: the nine deferred sites and
 > every count quoted for them describe the code at `b7d232ba` and are expected
 > to change. The instrument itself is LIVE.

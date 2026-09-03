@@ -1,6 +1,6 @@
 # Visual bar — asset sources, verified
 
-> **STATUS — SPEC.** Research landed 2026-08-21 (agent run, ~90 min, methods
+> **STATUS: SPEC.** Research landed 2026-08-21 (agent run, ~90 min, methods
 > below). Source table for M17.10 fetches. `visual-bar-spec.md` holds the
 > plan this feeds; fetches ride the `props-fetch`/`citypack-fetch` workflow
 > shape with attribution rows in THIRD-PARTY.md.

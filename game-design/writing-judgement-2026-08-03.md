@@ -1,6 +1,6 @@
 # The conversation, judged as writing
 
-> **STATUS — LOG, 2026-08-03. NOT CURRENT** once M19 acts on it. The live plan
+> **STATUS: LOG, 2026-08-03. NOT CURRENT** once M19 acts on it. The live plan
 > is `roadmap.md`.
 
 M19 exists because the conversation system had been wired, tested and reachable

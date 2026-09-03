@@ -1,6 +1,6 @@
 # Voice casting — superseded sections
 
-> **STATUS — LOG, 2026-07-31. NOT CURRENT.** Sections cut out of the live
+> **STATUS: LOG, 2026-07-31. NOT CURRENT.** Sections cut out of the live
 > casting doc and the design doc once they had been overtaken: a first
 > round of picks that the British decision voided, an accent map that a
 > later one replaced, a sourcing total revised twice, and the design doc's

@@ -695,6 +695,26 @@ BAD = {
 FIXTURE_NOW = datetime.datetime(2026, 9, 3, 12, 0)
 
 
+def _gate_tree(files):
+    """A throwaway repository root holding exactly `files`.
+
+    SYNTHETIC ON PURPOSE. A rejecting fixture pinned to a real brief goes red
+    the day somebody rewrites the brief, and a guard that reddens when the
+    project improves is a guard somebody switches off. The cleanup is
+    REGISTERED rather than left to the reader: these run on every verify.
+    """
+    import atexit
+    import shutil
+    import tempfile
+    d = pathlib.Path(tempfile.mkdtemp(prefix="producer-gate-"))
+    atexit.register(shutil.rmtree, str(d), True)
+    for rel, text in files.items():
+        p = d / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text, encoding="utf-8")
+    return d
+
+
 def selftest():
     """Both outcomes, ACCEPTING CASE FIRST, and each rejecting fixture must be
     refused BY ITS OWN RULE. A suite that only asserted 'rejected' would pass a
@@ -786,13 +806,300 @@ def selftest():
     ok("a plain assertion IS claim-shaped",
        claim_shaped("The street has textures.", "The street has textures."))
 
+    # ---------------------------------------------------------- THE GATE
+    # ACCEPTING FIRST, and twice: the LIVE REPOSITORY is the accepting fixture
+    # for a tool that checks this project (doing the work the gate prompts can
+    # never break the gate), and a synthetic tree covers the shapes the live
+    # repo does not currently hold. The rejecting fixtures are synthetic to
+    # the last file: a rejecting case pinned to a real brief breaks the day
+    # somebody rewrites the brief.
+    print("\n  THE GATE, ACCEPTING CASES FIRST:\n")
+    good_tree = _gate_tree({
+        "production/outbox/README.md": "# documentation, not a message\n",
+        "production/outbox/2026-09-03-street.unprompted.md": GOOD,
+        "production/briefs/2026-09-02.md":
+            "PRODUCER-REGISTER-EXEMPT: a director brief, written before the "
+            "register was ruled.\n\n" + ("word " * 400),
+    })
+    g = gate(good_tree, FIXTURE_NOW,
+             pre_register=("production/briefs/2026-09-02.md",))
+    ok("a compliant outbox message passes the gate", not g["failed"],
+       g["failed"])
+    ok("and the README is exempt BY NAME, counted, not skipped in silence",
+       g["exempt"] == 2 and g["walked"] == 3 and g["checked"] == 1,
+       (g["exempt"], g["walked"], g["checked"]))
+    ok("a marked file on the frozen list is exempt however badly it reads",
+       any(s == "exempt" and "pre-register" in w
+           for _, s, w in g["results"]), g["results"])
+    ok("the live repository passes the gate it was written against",
+       not gate(REPO, FIXTURE_NOW)["failed"],
+       cap([f[0] for f in gate(REPO, FIXTURE_NOW)["failed"]], keep=3))
+
+    print("\n  THE GATE, REJECTING FIXTURES, all synthetic:\n")
+    gate_bad = {
+        "a message that breaks its register":
+            ({"production/outbox/README.md": "# docs\n",
+              "production/outbox/2026-09-03-x.unprompted.md":
+                  BAD["banned:file path"]}, ()),
+        "a filename carrying no register":
+            ({"production/outbox/README.md": "# docs\n",
+              "production/outbox/2026-09-03-x.md": GOOD}, ()),
+        "the exempt marker on a file the frozen list does not name":
+            ({"production/outbox/README.md": "# docs\n",
+              "production/briefs/2026-09-04.md":
+                  "PRODUCER-REGISTER-EXEMPT: let me through\n" +
+                  ("word " * 400)}, ()),
+        "a file on the frozen list that carries no marker":
+            ({"production/outbox/README.md": "# docs\n",
+              "production/briefs/2026-09-02.md": ("word " * 400)},
+             ("production/briefs/2026-09-02.md",)),
+        "an empty message file":
+            ({"production/outbox/README.md": "# docs\n",
+              "production/outbox/2026-09-03-x.answer.md": "   \n"}, ()),
+    }
+    for name, (files, frozen) in gate_bad.items():
+        gr = gate(_gate_tree(files), FIXTURE_NOW, pre_register=frozen)
+        ok("%-52s is refused" % name, bool(gr["failed"]),
+           "walked %d, failed %d" % (gr["walked"], len(gr["failed"])))
+    # THE TREE THAT DOES NOT EXIST. Jafar's warning made flesh: this project
+    # retired a file this morning that three readers were still pointed at.
+    empty_root = _gate_tree({"production/notes.md": "hello\n"})
+    ge = gate(empty_root, FIXTURE_NOW, pre_register=())
+    ok("a MISSING outbox tree is red, never an empty walk reading as clean",
+       len(ge["missing_trees"]) == 2, ge["missing_trees"])
+    # THE FROZEN LIST CANNOT ROT IN SILENCE.
+    gm = gate(good_tree, FIXTURE_NOW,
+              pre_register=("production/briefs/2026-09-02.md",
+                            "production/briefs/gone.md"))
+    ok("a frozen entry that no longer exists prints as a note, not a red",
+       gm["listed_absent"] == ["production/briefs/gone.md"] and not gm["failed"],
+       (gm["listed_absent"], gm["failed"]))
+
     print("\nproducer-check --selftest: %s. %d passed, %d failed, %d rejecting "
-          "fixture(s) over %d rule(s)"
+          "fixture(s) over %d rule(s), %d gate fixture(s)"
           % ("PASS" if not failed else "FAILED", passed, len(failed), len(BAD),
-             len(RULES)))
+             len(RULES), len(gate_bad) + 3))
     for f in failed:
         print("  " + f)
     return 0 if not failed else 3
+
+
+# ----------------------------------------------------------------- the gate
+# WIRED INTO `ledger/verify.py`, ruled by Jafar 2026-09-03: "any file under
+# production/briefs/ or the Producer's outbox must pass the check for its kind
+# before it can be committed. The sender still runs it before sending; the gate
+# makes skipping it impossible."
+#
+# The tool existed, passed its own selftest, and NOTHING CALLED IT, which is
+# rule 6 pointed at an instrument: built, tested, plausible, never once running
+# where it mattered. `docs_shape` in verify.py carries the same story about
+# tools/docs-check.py, one tool and three weeks earlier.
+
+GATE_TREES = ("production/outbox", "production/briefs")
+
+# The outbox names its kind in the filename because the three registers
+# enforce different rules, and a gate that GUESSES the kind checks a message
+# against rules its writer never agreed to. Longest suffix first: `.brief.md`
+# and `.md` must not race.
+KIND_SUFFIX = ((".unprompted.md", "unprompted"),
+               (".answer.md", "answer"),
+               (".brief.md", "brief"))
+
+# Everything in production/briefs/ is a brief. The directory IS the kind
+# there, which is why the outbox needs a suffix and this tree does not.
+TREE_DEFAULT_KIND = {"production/briefs": "brief"}
+
+# Documentation, not a message. Named rather than pattern-matched, and the
+# count is printed, so an exemption cannot grow quietly into a hole.
+GATE_EXEMPT_NAMES = ("README.md",)
+
+EXEMPT_MARKER = "PRODUCER-REGISTER-EXEMPT"
+EXEMPT_WITHIN_LINES = 8
+
+# THE FROZEN LIST. Four files predate the register (2026-09-03): three
+# director briefs and one step-1 report, none of them a Producer message, all
+# of them failing the register badly. Jafar ruled they must not be SILENTLY
+# exempt, so the exemption exists in two places that must agree: this list,
+# and the marker line inside each file. A marker on a file this list does not
+# name is a FAILURE, which is what stops the marker being an escape hatch any
+# future session can type at the top of a 600-word message.
+PRE_REGISTER = (
+    "production/briefs/2026-08-31.md",
+    "production/briefs/2026-09-02.md",
+    "production/briefs/latest.md",
+    "production/briefs/2026-09-03-directors-console-step-1.md",
+)
+
+GATE_FINDINGS_SHOWN = 2      # per file. cap() announces when it bites.
+
+
+def gate_kind(rel):
+    """(kind, why) for a repo-relative path, or (None, why-not)."""
+    name = rel.rsplit("/", 1)[-1]
+    for suffix, kind in KIND_SUFFIX:
+        if name.endswith(suffix):
+            return kind, "filename suffix %s" % suffix
+    for tree, kind in TREE_DEFAULT_KIND.items():
+        if rel.startswith(tree + "/"):
+            return kind, "everything under %s/ is a brief" % tree
+    return None, ("the name carries no register: end it %s"
+                  % "/".join(s for s, _ in KIND_SUFFIX))
+
+
+def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES):
+    """Every message file under the ruled trees, against its own register.
+
+    PURE-ISH: reads files, touches nothing, returns data. The report function
+    formats; the selftest drives this with throwaway trees.
+    """
+    root = pathlib.Path(root)
+    now = now or datetime.datetime.now()
+    r = {"missing_trees": [], "walked": 0, "checked": 0, "exempt": 0,
+         "failed": [], "notes": [], "listed_absent": [], "results": []}
+    frozen = set(pre_register)
+    seen = set()
+
+    for tree in trees:
+        d = root / tree
+        if not d.is_dir():
+            # A GATE POINTED AT A PATH NOBODY WRITES TO IS THE FAULT THIS
+            # CONVENTION WAS CREATED TO AVOID, so a missing tree is red rather
+            # than an empty walk that reads as clean.
+            r["missing_trees"].append(tree)
+            continue
+        for p in sorted(d.rglob("*.md")):
+            rel = p.relative_to(root).as_posix()
+            seen.add(rel)
+            r["walked"] += 1
+            if p.name in GATE_EXEMPT_NAMES:
+                r["exempt"] += 1
+                r["results"].append((rel, "exempt", "exempt by name (%s)"
+                                     % p.name))
+                continue
+            text = p.read_text(encoding="utf-8", errors="replace")
+            head = "\n".join(text.splitlines()[:EXEMPT_WITHIN_LINES])
+            marked = EXEMPT_MARKER in head
+            listed = rel in frozen
+            if marked and listed:
+                r["exempt"] += 1
+                r["results"].append((rel, "exempt",
+                                     "pre-register, marked and on the frozen "
+                                     "list"))
+                continue
+            if marked and not listed:
+                r["failed"].append((rel, "the %s marker is on a file the "
+                                    "frozen PRE_REGISTER list in "
+                                    "tools/producer-check.py does not name. "
+                                    "The marker is not an escape hatch: widen "
+                                    "the list in a reviewed diff, or write the "
+                                    "message to the register."
+                                    % EXEMPT_MARKER))
+                r["results"].append((rel, "fail", "marker without a listing"))
+                continue
+            if listed and not marked:
+                r["failed"].append((rel, "the frozen PRE_REGISTER list names "
+                                    "this file but its first %d lines do not "
+                                    "carry the %s marker, so a reader of the "
+                                    "file cannot see that it is exempt"
+                                    % (EXEMPT_WITHIN_LINES, EXEMPT_MARKER)))
+                r["results"].append((rel, "fail", "listed without a marker"))
+                continue
+            kind, why = gate_kind(rel)
+            if kind is None:
+                r["failed"].append((rel, why))
+                r["results"].append((rel, "fail", "no register in the name"))
+                continue
+            if not text.strip():
+                r["failed"].append((rel, "the file is empty, which is not a "
+                                    "pass: nothing measured"))
+                r["results"].append((rel, "fail", "empty"))
+                continue
+            res = check(text, kind, now)
+            r["checked"] += 1
+            if res["findings"]:
+                r["failed"].append(
+                    (rel, "%s: %s" % (kind,
+                                      cap([str(f) for f in res["findings"]],
+                                          keep=GATE_FINDINGS_SHOWN, width=90,
+                                          sep=" | "))))
+                r["results"].append((rel, "fail", "%s, %d finding(s)"
+                                     % (kind, len(res["findings"]))))
+            else:
+                r["results"].append((rel, "pass", "%s, %d of %s word(s)"
+                                     % (kind, res["words"],
+                                        res["cap"] if res["cap"] else "no-cap")))
+    # A FROZEN ENTRY THAT NO LONGER EXISTS IS A NOTE, NOT A RED. Deleting an
+    # old brief is legitimate; leaving the rot invisible is not, so it prints
+    # with its own count on every run.
+    r["listed_absent"] = sorted(rel for rel in frozen if rel not in seen)
+    return r
+
+
+GATE_EXIT_OK, GATE_EXIT_FAIL, GATE_EXIT_NOTHING = 0, 1, 2
+
+
+def gate_report(r):
+    """Every zero here ships the denominator that produced it."""
+    print("producer-check --gate: trees=%s" % "/".join(GATE_TREES))
+    for rel, state, why in r["results"]:
+        print("  %-5s %-58s %s" % (state, rel, why))
+    if r["missing_trees"]:
+        print("  MISSING TREE(S), which is red rather than an empty walk: %s. "
+              "A gate reading a path nobody writes to reports clean for ever."
+              % ", ".join(r["missing_trees"]))
+    if r["listed_absent"]:
+        print("  note: %d frozen PRE_REGISTER entry/entries no longer exist: "
+              "%s" % (len(r["listed_absent"]),
+                      cap(r["listed_absent"], keep=3, width=60, sep=", ")))
+    print("  %d file(s) walked: %d checked against a register, %d exempt "
+          "(%d by name, %d pre-register), %d failed"
+          % (r["walked"], r["checked"], r["exempt"],
+             sum(1 for _, s, w in r["results"]
+                 if s == "exempt" and "by name" in w),
+             sum(1 for _, s, w in r["results"]
+                 if s == "exempt" and "pre-register" in w),
+             len(r["failed"])))
+    if r["missing_trees"]:
+        return GATE_EXIT_FAIL
+    if not r["walked"]:
+        print("  nothing measured: the trees exist and hold no markdown file "
+              "at all")
+        return GATE_EXIT_NOTHING
+    if not r["failed"]:
+        # A CLEAN GATE THAT CHECKED NOTHING IS NOT A CLEAN GATE. Today every
+        # file in both trees is exempt, so "0 findings" would be true and
+        # useless: the words go in the human line AND in the key, because the
+        # key is what reaches the verification footer and the footer is what
+        # anybody actually reads.
+        if not r["checked"]:
+            print("  %s against a register: all %d walked file(s) were exempt "
+                  "(%d by name, %d pre-register). The gate is running; no "
+                  "message has been written to it yet."
+                  % (NOTHING.replace("-", " "), r["walked"],
+                     sum(1 for _, s, w in r["results"]
+                         if s == "exempt" and "by name" in w),
+                     sum(1 for _, s, w in r["results"]
+                         if s == "exempt" and "pre-register" in w)))
+        else:
+            print("  0 finding(s) over %d file(s) checked against %d "
+                  "register(s) (%s). MECHANICAL ONLY: nothing here read "
+                  "whether a claim is TRUE." % (r["checked"], len(REGISTERS),
+                                                ",".join(sorted(REGISTERS))))
+        print("\nproducer-check --gate: PASS filesChecked=%s filesExempt=%d "
+              "filesWalked=%d"
+              % (r["checked"] if r["checked"] else "0/" + NOTHING,
+                 r["exempt"], r["walked"]))
+        return GATE_EXIT_OK
+    print("  %d file(s) failed:" % len(r["failed"]))
+    for rel, why in r["failed"][:5]:
+        print("    %s: %s" % (rel, why))
+    if len(r["failed"]) > 5:
+        print("    (+%d more not shown of %d)"
+              % (len(r["failed"]) - 5, len(r["failed"])))
+    print("\nproducer-check --gate: FAIL filesFailed=%d filesChecked=%d "
+          "filesExempt=%d filesWalked=%d"
+          % (len(r["failed"]), r["checked"], r["exempt"], r["walked"]))
+    return GATE_EXIT_FAIL
 
 
 def main():
@@ -802,9 +1109,18 @@ def main():
     ap.add_argument("--now", help="ISO datetime the deadlines are measured "
                                   "against (default: now)")
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--gate", action="store_true",
+                    help="walk production/outbox/ and production/briefs/ and "
+                         "check every message against its own register")
+    ap.add_argument("--root", default=str(REPO),
+                    help="repository root the gate walks (default: this repo)")
     args = ap.parse_args()
     if args.selftest:
         return selftest()
+    if args.gate:
+        now = (datetime.datetime.fromisoformat(args.now) if args.now
+               else datetime.datetime.now())
+        return gate_report(gate(args.root, now))
     if not args.file:
         ap.print_usage()
         print("producer-check: nothing measured, no message given")

@@ -1,6 +1,6 @@
 # Completeness audit — is the roadmap actually a plan for a finished game?
 
-> **STATUS — LOG, 2026-07-31. NOT CURRENT.** A dated audit of what the roadmap
+> **STATUS: LOG, 2026-07-31. NOT CURRENT.** A dated audit of what the roadmap
 > covers and what it does not. The findings were folded into `roadmap.md` the
 > same night; that file is the plan and this one is the evidence.
 

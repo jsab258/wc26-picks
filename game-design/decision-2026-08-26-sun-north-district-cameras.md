@@ -1,6 +1,6 @@
 # DIRECTOR RULING — sun-in-the-north finding, panel-repair batch, district cameras (26 Aug 2026)
 
-> **STATUS — LOG, 2026-08-26. NOT CURRENT after the build carrying this
+> **STATUS: LOG, 2026-08-26. NOT CURRENT after the build carrying this
 > batch lands and its ref-camera prediction is read.**
 > Triggers: builder-batch review before commit; a landing that changes a
 > conclusion (the noon sun is in the NORTH, so five of seven district

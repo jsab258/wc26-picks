@@ -1,6 +1,6 @@
 # The testing system — research, plan, build
 
-> **STATUS — SPEC.** The design for how LEDGER is tested. Stable reference:
+> **STATUS: SPEC.** The design for how LEDGER is tested. Stable reference:
 > build state lives in `roadmap.md`, not here. A spec that disagrees with the
 > roadmap is out of date about what got built, not about what was intended.
 

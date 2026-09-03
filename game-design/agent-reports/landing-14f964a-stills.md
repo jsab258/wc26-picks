@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** after the next landing.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** after the next landing.
 
 # Stills review — landing 14f964a
 

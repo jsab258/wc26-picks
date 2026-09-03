@@ -89,9 +89,24 @@ THE SPLIT: you WRITE the message to a file. THE SENDER runs the check and
 sends only on a pass. Today the sender is the resident; when the Telegram bot
 lands it becomes the send path and calls the check itself.
 
+WHERE YOU WRITE IT, created 2026-09-03 with Jafar's ruling that the check is
+a gate. `production/outbox/`, one file per message, and THE NAME CARRIES THE
+REGISTER because the gate must not guess which rules apply:
+
+    production/outbox/<YYYY-MM-DD>-<slug>.unprompted.md
+    production/outbox/<YYYY-MM-DD>-<slug>.answer.md
+    production/outbox/<YYYY-MM-DD>-<slug>.brief.md
+
+The morning brief may also go to `production/briefs/`, where everything is
+checked as a brief and no suffix is needed. A file in the outbox whose name
+carries none of the three registers is REFUSED rather than guessed at. The
+convention in full, including the four pre-register documents and why their
+exemption is frozen in two places, is `production/outbox/README.md`.
+
     python3 tools/producer-check.py <file>
     python3 tools/producer-check.py --kind brief <file>
     python3 tools/producer-check.py --kind answer <file>
+    python3 tools/producer-check.py --gate        # what verify.py runs
 
 It exits 0 when the message may be sent, 1 when it may not, 2 when there was
 no message to read, and it names every rule it did not enforce for this
@@ -99,13 +114,17 @@ register rather than skipping it in silence. A RULE IT COULD NOT ENFORCE IS
 NOT A RULE THAT PASSED, and the sender reads that list rather than the exit
 code alone.
 
-WHERE THE ENFORCEMENT POINT GOES, and why it is not a hook today. This repo
-runs SessionStart, PreToolUse and SubagentStart hooks out of
-`.claude/settings.json`; there is no Stop or SubagentStop hook registered. A
-SubagentStop hook would fire for every agent in the studio, and only a
-fraction of what any of them writes is a Producer message: a check that fires
-on the wrong population produces false alarms, and false alarms teach people
-to overrule the tool, which is worse than not having one. The real send path
-is the Telegram bot on the PC, which does not exist yet. So the check runs
-here by hand now, and the bot calls it on the send path the day it lands: no
-message goes out that the check has not exited 0 on.
+WHERE THE ENFORCEMENT POINT WENT, ruled 2026-09-03 and wired the same day.
+It is a COMMIT GATE, not a hook. `python3 ledger/verify.py` runs
+`producer-check --gate`, which walks `production/outbox/` and
+`production/briefs/` and checks every file against the register its name
+declares; red deletes the verification footer, so a message that breaks the
+register cannot reach a commit even if nobody remembered to check it.
+
+A hook was considered and refused: a SubagentStop hook fires for every agent
+in the studio and only a fraction of what any of them writes is a Producer
+message, so it would fire on the wrong population, and false alarms teach
+people to overrule the tool. The gate fires on a directory the Producer alone
+writes to, which is the right population. The real send path is still the
+Telegram bot on the PC, which does not exist yet; it calls the same check on
+send the day it lands.

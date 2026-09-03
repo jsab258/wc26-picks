@@ -1,6 +1,6 @@
 # PERCEPTION, WEAPONS AND VIOLENCE — spec v5, APPROVED, BUILDING
 
-> **STATUS — SPEC.** The design for M16 — perception, weapons and violence. Stable reference:
+> **STATUS: SPEC.** The design for M16 — perception, weapons and violence. Stable reference:
 > build state lives in `roadmap.md`, not here. A spec that disagrees
 > with the roadmap is out of date about what got built, not about what
 > was intended.

@@ -1,6 +1,6 @@
 # The work stack
 
-> **STATUS — LIVE**, verified 2026-08-21. What gets picked up next, in order.
+> **STATUS: LIVE**, verified 2026-08-21. What gets picked up next, in order.
 > The plan is `roadmap.md` and it wins; this is the next few hours of it.
 
 ## Why this file exists, and how to use it

@@ -1,6 +1,6 @@
 # DIRECTOR RULING: run 1's stopper is named from a positive record and the fix lands; the stop rule is sharpened; a second silent fault gets its instrument; the landing push is run 2 (2 Sep 2026, 17:20Z)
 
-> **STATUS — LOG, 2026-09-02. NOT CURRENT once the batch is committed with W1 to W4, S1, Q1, Q2 and N1 applied and imagegen run 2 has landed a verdict; from then the workflow, the committed verdict, queue 043 and 044 and production/NOW.md are the reading copies and this file is their history.**
+> **STATUS: LOG, 2026-09-02. NOT CURRENT once the batch is committed with W1 to W4, S1, Q1, Q2 and N1 applied and imagegen run 2 has landed a verdict; from then the workflow, the committed verdict, queue 043 and 044 and production/NOW.md are the reading copies and this file is their history.**
 
 This document carries exactly one em-dash, in the banner, because
 `tools/docs-check.py` line 55 accepts no other form (read this session).

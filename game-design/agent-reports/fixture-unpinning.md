@@ -1,6 +1,6 @@
 # Unpinning two rejecting fixtures from live project assets
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** after the work below is committed.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** after the work below is committed.
 Agent: instrument-builder. Base commit `80a91049`. **Not committed** — the
 director reviews and commits.
 

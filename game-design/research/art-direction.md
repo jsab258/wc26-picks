@@ -1,6 +1,6 @@
 # Art direction as rules — what artists know, encoded so we can check it
 
-> **STATUS — SPEC, 2026-08-25.** Research for M17.10 / `visual-bar-spec.md` §4.
+> **STATUS: SPEC, 2026-08-25.** Research for M17.10 / `visual-bar-spec.md` §4.
 > Not a plan and not a landing report. Every principle here is stated as
 > something a build can CHECK or a pipeline can BUILD; anything that could not
 > be reduced to that is in §8 (Rejected) rather than dressed up as advice.

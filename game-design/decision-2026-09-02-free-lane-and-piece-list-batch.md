@@ -1,6 +1,6 @@
 # DIRECTOR RULING: the free lane and the piece list land in one commit, the batch push is imagegen run 1, the window practicals are fixed in Core before Phase B, and a ruling now names the paths it reviewed (2 Sep 2026, evening)
 
-> **STATUS — LOG, 2026-09-02. NOT CURRENT once the batch is committed with L1 to L6 applied and imagegen run 1 has landed a verdict; from then the code, the committed verdict, the queue and production/NOW.md are the reading copies and this file is their history.**
+> **STATUS: LOG, 2026-09-02. NOT CURRENT once the batch is committed with L1 to L6 applied and imagegen run 1 has landed a verdict; from then the code, the committed verdict, the queue and production/NOW.md are the reading copies and this file is their history.**
 
 This document carries exactly one em-dash, in the banner, because
 `tools/docs-check.py` line 55 accepts no other form (read this session).

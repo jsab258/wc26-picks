@@ -1,6 +1,6 @@
 # Harbour water — what a British port needs in the frame, and what it may cost
 
-> **STATUS — SPEC, 2026-08-25.** Research for M17.10 / `visual-bar-spec.md`.
+> **STATUS: SPEC, 2026-08-25.** Research for M17.10 / `visual-bar-spec.md`.
 > Not a plan and not a landing report. Nobody had looked at water at all: the
 > three existing research streams (art direction, content sourcing, procedural
 > density) do not contain the word. Every claim here is tagged **[read]** (from

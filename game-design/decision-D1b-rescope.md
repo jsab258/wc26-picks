@@ -1,6 +1,6 @@
 # DIRECTOR RULING: D1 measurement (b) is RE-SCOPED, not dropped (1 Sep 2026)
 
-> **STATUS — LOG, 2026-09-01. NOT CURRENT once D1 closes.** A director
+> **STATUS: LOG, 2026-09-01. NOT CURRENT once D1 closes.** A director
 > ruling: it records what was
 > decided and why, and stops being current when D1 itself closes. The
 > live consequence is the AMENDED line in

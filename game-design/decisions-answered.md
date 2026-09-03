@@ -1,6 +1,6 @@
 # Decisions answered
 
-> **STATUS — LOG, 2026-07-31. NOT CURRENT.** Every player decision this
+> **STATUS: LOG, 2026-07-31. NOT CURRENT.** Every player decision this
 > project has asked for and had answered, with the options as they were put
 > and the reasoning kept whole. **Do not read it as an open queue** — for
 > what is actually waiting, `decisions-pending.md`, which is now the live

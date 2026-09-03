@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** once landed.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** once landed.
 
 # The verdict channel saying true things about itself
 

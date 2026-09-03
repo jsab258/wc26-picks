@@ -1,6 +1,6 @@
 # LEDGER — How to Play (prototype build)
 
-> **STATUS — LIVE, verified 2026-08-04.** player-facing instructions for the prototype build.
+> **STATUS: LIVE, verified 2026-08-04.** player-facing instructions for the prototype build.
 > Kept current. If it is wrong, that is a bug in this file.
 
 You inherited your uncle Mickey's pub on Hook Street — and the half-dead

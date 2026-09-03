@@ -1,6 +1,6 @@
 # Canon proposal: graffiti crew tag names
 
-> **STATUS — SPEC**, proposed 2026-09-02, pending Jafar's approval before
+> **STATUS: SPEC**, proposed 2026-09-02, pending Jafar's approval before
 > copying into canon.md. Unblocks `G7_graffiti_tags`
 > (`production/queue/025-step-4a-seven-images.md`), which needs three to
 > five short tag names before the deterministic generator can run.

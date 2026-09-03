@@ -1,6 +1,6 @@
 # DIRECTOR RULING: ties go to Unreal and that moves D1's weight from (b) to (a); the blind look and the preference coexist by ORDER; D12 and D11 do not displace 027, they expose that the queue had no moat item (2 Sep 2026, evening)
 
-> **STATUS — LOG, 2026-09-02. NOT CURRENT once the dictated edits T1 to T8, M1 to M4, Q1 to Q5 and B1 are applied; from then the D1 register, the queue, production/NOW.md and the next brief are the reading copies and this file is their history.**
+> **STATUS: LOG, 2026-09-02. NOT CURRENT once the dictated edits T1 to T8, M1 to M4, Q1 to Q5 and B1 are applied; from then the D1 register, the queue, production/NOW.md and the next brief are the reading copies and this file is their history.**
 
 This document carries exactly one em-dash, in the banner, because
 `tools/docs-check.py` line 55 accepts no other form.

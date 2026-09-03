@@ -1,6 +1,6 @@
 # `director_cadence` now requires the RULING, not the spawn (instrument-builder, 25 Aug 2026)
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT once the rule is copied into
+> **STATUS: LOG, 2026-08-25. NOT CURRENT once the rule is copied into
 > CLAUDE.md and this gate has a landed series.** Built against the live hole:
 > a `studio-director` spawned at 17:01:24Z was killed by a session limit
 > before it ruled, its row cleared the gate, and `over threshold, REVIEWED`

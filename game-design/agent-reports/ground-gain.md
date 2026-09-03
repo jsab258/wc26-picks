@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** once landed.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** once landed.
 
 # groundGainBy — rendered over source, per ground material
 

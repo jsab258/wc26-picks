@@ -1,4 +1,4 @@
-> **STATUS — SPEC, 2026-08-25.**
+> **STATUS: SPEC, 2026-08-25.**
 
 # Can we afford the visual plan?
 

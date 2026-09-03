@@ -1,6 +1,6 @@
 # Act I — The Inheritance (7-day structure — APPROVED 2026-07-26)
 
-> **STATUS — SPEC.** The design for Act I — The Inheritance. Stable reference:
+> **STATUS: SPEC.** The design for Act I — The Inheritance. Stable reference:
 > build state lives in `roadmap.md`, not here. A spec that disagrees
 > with the roadmap is out of date about what got built, not about what
 > was intended.

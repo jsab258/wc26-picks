@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-26. NOT CURRENT** after the next change to
+> **STATUS: LOG, 2026-08-26. NOT CURRENT** after the next change to
 > `tools/prop-dimensions.py`, `tools/prop-reach.py`, `ledger/verify.py`, or
 > after any of the readings below is re-measured. Tier-3 builder report; the
 > tree was NOT committed by this agent.

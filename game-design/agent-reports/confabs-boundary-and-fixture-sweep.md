@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-26. NOT CURRENT** after the next change to
+> **STATUS: LOG, 2026-08-26. NOT CURRENT** after the next change to
 > `tools/prop-dimensions.py`, `tools/prop-reach.py` or `ledger/verify.py`, or
 > after CLAUDE.md's `confabs` paragraph is corrected. Tier-2 audit, read-only.
 > Written up by the resident from the auditor's final message — the auditor has

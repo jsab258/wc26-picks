@@ -1,6 +1,6 @@
 # Image generator — independent licence and feasibility check
 
-> **STATUS — SPEC, 2026-08-25.** Second-opinion verification of the claims the
+> **STATUS: SPEC, 2026-08-25.** Second-opinion verification of the claims the
 > one-click image generator (`tools/imagegen/`) rests on, done from primary
 > sources before Jafar spends an hour on a 7–10 GB download. Every claim was
 > re-derived here rather than relayed. Nothing in `tools/imagegen/` was edited.

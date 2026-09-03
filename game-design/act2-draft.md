@@ -1,6 +1,6 @@
 # Act II — The Squeeze (APPROVED 2026-07-26: 1a Facts+one mechanical effect, 2a highest-loyalty evening, 3a flat $600 truce, 4a Table resolves the act)
 
-> **STATUS — SPEC.** The design for Act II — The Squeeze. Stable reference:
+> **STATUS: SPEC.** The design for Act II — The Squeeze. Stable reference:
 > build state lives in `roadmap.md`, not here. A spec that disagrees
 > with the roadmap is out of date about what got built, not about what
 > was intended.

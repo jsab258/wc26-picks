@@ -1,6 +1,6 @@
 # The playtest runbook — getting LEDGER onto the MacBook and keeping it there
 
-> **STATUS — LIVE**, verified 2026-08-15. Everything needed to run the
+> **STATUS: LIVE**, verified 2026-08-15. Everything needed to run the
 > Wednesday 19 Aug playtest on the MacBook Air, written to be followed
 > at a kitchen table, not at a desk. The final build link lands here
 > Tuesday; every other step is already true.

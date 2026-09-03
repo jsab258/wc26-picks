@@ -1,6 +1,6 @@
 # DIRECTOR RULING: the preparation sequence that unlocks unattended local production (1 Sep 2026)
 
-> **STATUS — LOG, 2026-09-01. NOT CURRENT once the vignette bill of
+> **STATUS: LOG, 2026-09-01. NOT CURRENT once the vignette bill of
 > materials lands and the CC0 fetch route has one proven end-to-end run;
 > from then the BOM file and `production/week-plan.md` are the reading
 > copies and this file is their history.**

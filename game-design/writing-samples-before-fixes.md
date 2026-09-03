@@ -1,6 +1,6 @@
 # What the characters said BEFORE the two fixes
 
-> **STATUS — LOG, 2026-08-03. NOT CURRENT.** This is the BEFORE state, kept
+> **STATUS: LOG, 2026-08-03. NOT CURRENT.** This is the BEFORE state, kept
 > deliberately. The live plan is `roadmap.md`.
 
 **Why this file was renamed rather than replaced.** It is the evidence the 78

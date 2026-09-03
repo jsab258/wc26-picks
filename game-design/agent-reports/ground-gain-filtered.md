@@ -1,6 +1,6 @@
 # `groundGainBy` — the geometry filter, and the ungraded twin
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** once landed.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** once landed.
 
 Built by instrument-builder against the director's ruling at
 `game-design/decision-ground-albedo.md` §C (landing 3a4e335). One dispatch,

@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** once the next build lands.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** once the next build lands.
 > Engine-specialist report on the dark feedback channel. **No code was
 > changed** — see §6 for why, and §8 for what I recommend instead.
 > Supersede or delete once a run produces a done line.

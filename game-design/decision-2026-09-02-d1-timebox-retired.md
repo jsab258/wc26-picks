@@ -1,6 +1,6 @@
 # DIRECTOR RULING: the D1 timebox is retired; measurement (a) fails by non-convergence, never by a date; the tilt toward Unreal is an allocation, not a reading (2 Sep 2026)
 
-> **STATUS — LOG, 2026-09-02. NOT CURRENT once the dictated edits R1a to R1n are applied, queue item 031 exists and the dashboard's read_d1 reads the retired shape; from then the D1 register, production/d1-probe/plan.md, measurements.md, the queue, production/budget.md and NOW.md are the reading copies and this file is their history.**
+> **STATUS: LOG, 2026-09-02. NOT CURRENT once the dictated edits R1a to R1n are applied, queue item 031 exists and the dashboard's read_d1 reads the retired shape; from then the D1 register, production/d1-probe/plan.md, measurements.md, the queue, production/budget.md and NOW.md are the reading copies and this file is their history.**
 
 This document carries exactly one em-dash, in the banner above, because
 `tools/docs-check.py` line 55 hard-codes that character in the regex it

@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-26. NOT CURRENT after the first build that lands `skyGain*`.**
+> **STATUS: LOG, 2026-08-26. NOT CURRENT after the first build that lands `skyGain*`.**
 > The instrument is built, wired and locally selftested. **NO RUN HAS CARRIED IT YET.**
 > Every number here is either LANDED (read off `c03ead2`'s verdict or computed by the
 > shipped `Core` on this tree) or a PREDICTION. Nothing is a reading from the new key.

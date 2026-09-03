@@ -1,6 +1,6 @@
 # DIRECTOR RULING: the constitution cut lands, the attribution sweep lands, the PC channel lands, and four folded questions (2 Sep 2026)
 
-> **STATUS — LOG, 2026-09-02. NOT CURRENT once the batch is committed with the dictated edits applied and queue items 020 to 024 exist; from then CLAUDE.md, the casebooks, ledger/verify.py and the queue files are the reading copies and this file is their history.**
+> **STATUS: LOG, 2026-09-02. NOT CURRENT once the batch is committed with the dictated edits applied and queue items 020 to 024 exist; from then CLAUDE.md, the casebooks, ledger/verify.py and the queue files are the reading copies and this file is their history.**
 
 The banner carries the only em-dash in this document, because
 `tools/docs-check.py` hard-codes that character in the regex it accepts.

@@ -1,6 +1,6 @@
 # Pending Player Decisions
 
-> **STATUS — LOG, 2026-09-03.** NOT CURRENT: RETIRED, ruled by Jafar (the
+> **STATUS: LOG, 2026-09-03.** NOT CURRENT: RETIRED, ruled by Jafar (the
 > Director's Console). The live
 > home for anything awaiting him is `production/decision-queue.md`. Its one
 > remaining live card, stranger spacing, was migrated there with options, a

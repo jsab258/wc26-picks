@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** once landed
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** once landed
 > Written from local arithmetic and the landed `36b90c9` stills. Nothing in
 > here has been through a Windows build. Supersede or delete once
 > `skylineKinds` / `skylineFootGap` / `skylineByEdge` land in a verdict.

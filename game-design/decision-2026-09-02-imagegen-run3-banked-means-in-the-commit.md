@@ -1,6 +1,6 @@
 # DIRECTOR RULING: BANKED means in the commit, the resume record reads what was recorded, and the landing push is the night run (2 Sep 2026, 19:44Z)
 
-> **STATUS — LOG, 2026-09-02. NOT CURRENT once the batch is committed with W1, Q1, Q2 and N1 applied and imagegen run 3 has landed a verdict; from then the workflow, the committed verdict, queue 044 and 045 and production/NOW.md are the reading copies and this file is their history.**
+> **STATUS: LOG, 2026-09-02. NOT CURRENT once the batch is committed with W1, Q1, Q2 and N1 applied and imagegen run 3 has landed a verdict; from then the workflow, the committed verdict, queue 044 and 045 and production/NOW.md are the reading copies and this file is their history.**
 
 This document carries exactly one em-dash, in the banner, because
 `tools/docs-check.py` line 55 accepts no other form (read this session).

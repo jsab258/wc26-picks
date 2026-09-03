@@ -1,6 +1,6 @@
 # Act III — The Ledger Comes Due
 
-> **STATUS — SPEC.** The design for Act III — The Ledger Comes Due. Stable reference:
+> **STATUS: SPEC.** The design for Act III — The Ledger Comes Due. Stable reference:
 > build state lives in `roadmap.md`, not here. A spec that disagrees
 > with the roadmap is out of date about what got built, not about what
 > was intended.

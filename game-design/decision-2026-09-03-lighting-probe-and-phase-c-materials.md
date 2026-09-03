@@ -1,6 +1,6 @@
 # DIRECTOR RULING: the lighting probe and Phase C materials land, with one hand-applied line first; the control-probe design is upheld; the claimed commandlet fallback does not exist and the claim is withdrawn, not the code (3 Sep 2026, 06:0xZ)
 
-> **STATUS — LOG, 2026-09-03. NOT CURRENT once the batch is committed and run 18 is dispatched; from then `production/NOW.md`, `production/queue/` and `production/d1-probe/DISPATCH` are the reading copies and this file is their history.**
+> **STATUS: LOG, 2026-09-03. NOT CURRENT once the batch is committed and run 18 is dispatched; from then `production/NOW.md`, `production/queue/` and `production/d1-probe/DISPATCH` are the reading copies and this file is their history.**
 
 This document carries exactly one em-dash, in the banner, because
 `tools/docs-check.py` line 55 accepts no other form.

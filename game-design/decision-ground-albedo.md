@@ -1,6 +1,6 @@
 # Decision — ground albedo before decals (director, 25 Aug 2026)
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT after the next dry landing is read.**
+> **STATUS: LOG, 2026-08-25. NOT CURRENT after the next dry landing is read.**
 > Directed decision off the artifact-reader's dry-tour report
 > (`agent-reports/dry-tour-stills-read.md`, verdict 6137608). Written here and
 > not appended to `decisions-pending.md` because that file is, in its own

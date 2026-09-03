@@ -1,6 +1,6 @@
 # Empire v1 Roster (as built, 2026-07-26)
 
-> **STATUS — SPEC.** The design for the Empire v1 roster. Stable reference:
+> **STATUS: SPEC.** The design for the Empire v1 roster. Stable reference:
 > build state lives in `roadmap.md`, not here. A spec that disagrees
 > with the roadmap is out of date about what got built, not about what
 > was intended.

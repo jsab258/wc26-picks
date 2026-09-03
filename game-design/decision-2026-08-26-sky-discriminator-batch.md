@@ -1,6 +1,6 @@
 # DIRECTOR RULING — sky-gain discriminator batch, fixture pins 5–7, shadowed assets, lint promotion (26 Aug 2026)
 
-> **STATUS — LOG, 2026-08-26. NOT CURRENT after the sky-gain build lands or the shadow re-key ships — whichever is first re-opens its half.**
+> **STATUS: LOG, 2026-08-26. NOT CURRENT after the sky-gain build lands or the shadow re-key ships — whichever is first re-opens its half.**
 
 Reviewed against the tree, not the report: verify footer read from
 `ledger/.verify-footer` (green, and it carries this batch's own numbers —

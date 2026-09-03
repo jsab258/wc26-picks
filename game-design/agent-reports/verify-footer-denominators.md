@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-26. NOT CURRENT after the next change to
+> **STATUS: LOG, 2026-08-26. NOT CURRENT after the next change to
 > `ledger/verify.py`, `tools/shape-check.py` or `tools/capsay.py`.** Builder
 > report. Work landed in the tree, NOT committed — the director reviews and
 > the resident commits.

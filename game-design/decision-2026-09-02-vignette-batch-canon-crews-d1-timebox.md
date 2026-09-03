@@ -1,6 +1,6 @@
 # DIRECTOR RULING: the vignette batch lands with two in-batch fixes, four pairs bind, five crew names enter canon, and the D1 close is pre-registered (2 Sep 2026)
 
-> **STATUS — LOG, 2026-09-02. NOT CURRENT once the batch is committed with the dictated edits and the two in-batch fixes applied, canon.md carries the crew and street lines, and queue items 027 to 030 exist; from then the code, canon.md, the queue and production/NOW.md are the reading copies and this file is their history.**
+> **STATUS: LOG, 2026-09-02. NOT CURRENT once the batch is committed with the dictated edits and the two in-batch fixes applied, canon.md carries the crew and street lines, and queue items 027 to 030 exist; from then the code, canon.md, the queue and production/NOW.md are the reading copies and this file is their history.**
 
 This document carries exactly two em-dashes: the banner above and the STATUS
 line E4 dictates for another file, because `tools/docs-check.py` line 55

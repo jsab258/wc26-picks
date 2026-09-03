@@ -1,6 +1,6 @@
 # What the playbook repo is owed — the 25 Aug sync payload
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** once synced and re-stamped.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** once synced and re-stamped.
 > Approved by Jafar 25 Aug ("recommendations are fine, go with them") on
 > the recommendation: ONE batched pass AFTER the current build lands, not
 > a trickle, because the lessons were still arriving and a mid-flight sync

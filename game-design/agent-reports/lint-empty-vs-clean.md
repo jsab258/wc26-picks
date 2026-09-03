@@ -1,6 +1,6 @@
 # lint-nested and lint-shadow: a clean result that was unfalsifiable
 
-> **STATUS — LOG, 2026-08-26. NOT CURRENT** once `tools/lint-nested.py` or
+> **STATUS: LOG, 2026-08-26. NOT CURRENT** once `tools/lint-nested.py` or
 > `tools/lint-shadow.py` changes again, or once the three items left for
 > `ledger/verify.py`'s owner in section 7 are taken. Every count below
 > describes the tree at `ce37232e`.

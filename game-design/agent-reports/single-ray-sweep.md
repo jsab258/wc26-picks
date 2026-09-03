@@ -1,6 +1,6 @@
 # Single-ray probes — the sweep, and two refutations
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** once the probes are pinned.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** once the probes are pinned.
 > Read-only sweep by measurement-auditor. Written to disk by the
 > coordinator: the auditor has no write tool by construction and correctly
 > refused to write via Bash, since that changes state. Briefing error mine.

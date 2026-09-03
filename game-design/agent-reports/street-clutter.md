@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** once the call site lands.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** once the call site lands.
 > Builder report. The code is on disk and uncommitted; the one line that
 > makes it run is NOT applied — see "The call site the director owes it".
 > Supersede or delete when the placement lands and a verdict shows it.

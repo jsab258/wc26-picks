@@ -1,6 +1,6 @@
 # LEDGER — roadmap history
 
-> **STATUS — LOG, 2026-07-31. NOT CURRENT.** Every dated build state, milestone
+> **STATUS: LOG, 2026-07-31. NOT CURRENT.** Every dated build state, milestone
 > approval and post-mortem from 2026-07-24 to 2026-07-31, kept whole because
 > the reasoning in them is worth having and several are the record of a
 > decision. **Do not read it as the present state** — for that, `roadmap.md`,
@@ -14,7 +14,7 @@
 > the top of it: *"its a fucking mess... is that what a roadmap doc should look
 > like to you?"* No.
 
-> **STATUS — LIVE, verified 2026-07-31.** the plan and the build state. If this and another doc disagree, this wins.
+> **STATUS: LIVE, verified 2026-07-31.** the plan and the build state. If this and another doc disagree, this wins.
 > Kept current. If it is wrong, that is a bug in this file.
 
 The founding doc's milestone list (§11) and our built reality have drifted — mostly

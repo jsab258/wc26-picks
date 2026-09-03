@@ -1,6 +1,6 @@
 # lint-static's denominator — the exemplar of rule 3b was the fault
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** once `tools/lint-static.py`
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** once `tools/lint-static.py`
 > changes again or the follow-ups in section 7 are taken.
 Agent: instrument-builder. Tree `f26ed5fd` + the CLAUDE.md correction.
 Files touched: `tools/lint-static.py` ONLY. **Not committed** — the resident

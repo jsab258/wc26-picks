@@ -1,6 +1,6 @@
 # The plan — pointer
 
-> **STATUS — LIVE**, verified 2026-08-31. This file wins on any question of
+> **STATUS: LIVE**, verified 2026-08-31. This file wins on any question of
 > what happens next, and what it says is: **the plan is
 > `ledger-v2/respec/roadmap-v2.md`**, part of the v2 respec package that
 > superseded the old roadmap on 31 Aug. World facts: `canon.md` at the repo

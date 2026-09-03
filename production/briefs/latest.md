@@ -1,5 +1,7 @@
 # LEDGER brief, 2026-09-02 (written at a budget stop, not on a schedule)
 
+PRODUCER-REGISTER-EXEMPT: written before Jafar ruled the Producer's register on 2026-09-03. This is a director brief, not a Producer message, and it is kept as it was written. The exemption is frozen in the PRE_REGISTER list in tools/producer-check.py; a marker on a file that list does not name is a gate failure.
+
 ## Landed
 
 1. **CLAUDE.md, 16,291 words to 1,990.** Your finding. The file read at the

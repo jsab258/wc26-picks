@@ -1,6 +1,6 @@
 # The Agency Model — what this game gives the player, and how deep
 
-> **STATUS — SPEC.** The design for what the game gives the player, and how deep. Stable reference:
+> **STATUS: SPEC.** The design for what the game gives the player, and how deep. Stable reference:
 > build state lives in `roadmap.md`, not here. A spec that disagrees
 > with the roadmap is out of date about what got built, not about what
 > was intended.

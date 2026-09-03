@@ -1,6 +1,6 @@
 # Local image generation — the one-click build
 
-> **STATUS — LOG, 2026-08-25.** A build account, true on the day it was
+> **STATUS: LOG, 2026-08-25.** A build account, true on the day it was
 > written and **NOT CURRENT** thereafter: nothing below has been run on
 > Windows or on a GPU. The first real run is the measurement, and it will
 > date this file. Deliverables: `tools/imagegen/`.

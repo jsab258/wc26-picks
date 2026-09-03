@@ -1,6 +1,6 @@
 # GroundGrade, tourBlockerShare, ironside re-site — builder account
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** after the next landing.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** after the next landing.
 Builder report (systems-builder). Nothing committed; the tree is left
 dirty for director review. Every claim below was checked against the
 source or against a landed file in this session.

@@ -1,6 +1,6 @@
-# THE ANIMATION CLIP DEBT — measured, and counting down only.
+# THE ANIMATION CLIP DEBT: measured, and counting down only.
 #
-# STATUS — LIVE, verified 2026-08-21.
+# STATUS: LIVE, verified 2026-08-21.
 #
 # `tools/clip-motion.py` reads every clip FBX we ship and reports the two
 # faults a file can prove on its own: two slots holding the SAME BYTES, and a

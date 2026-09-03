@@ -1,6 +1,6 @@
 # Builder report — ref-bench low-content annotation, and `template_sync`
 
-> **STATUS — LOG, 2026-08-24. NOT CURRENT** once superseded. An agent report
+> **STATUS: LOG, 2026-08-24. NOT CURRENT** once superseded. An agent report
 > is history the moment it is written. Not committed by the builder; the
 > director reviews and commits.
 

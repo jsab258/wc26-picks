@@ -1,6 +1,6 @@
 # The cheap CI channel was dark for seven days, and its colour never changed
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** once the changes below land.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** once the changes below land.
 >
 Instrument-builder account. Every number here was read this session by running
 the command beside it; nothing is recalled. Where a figure in my brief turned

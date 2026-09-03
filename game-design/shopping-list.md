@@ -1,6 +1,6 @@
 # Shopping list — characters and animation
 
-> **STATUS — LIVE, verified 2026-08-04.** what still needs buying, and what no longer does.
+> **STATUS: LIVE, verified 2026-08-04.** what still needs buying, and what no longer does.
 > Kept current. If it is wrong, that is a bug in this file.
 
 **For Jafar. Written 2026-07-28.**

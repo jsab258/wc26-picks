@@ -1,6 +1,6 @@
 # Procedural density and surface history — how a team with no artists gets a hand-made street
 
-> **STATUS — SPEC, 2026-08-25.**
+> **STATUS: SPEC, 2026-08-25.**
 > Research for M17.10 R2/R3 (`visual-bar-spec.md` §4). The question this
 > answers is NOT "how did Rockstar do it" but **"what produces urban density
 > and surface history when the only labour available is code, rules and CC0

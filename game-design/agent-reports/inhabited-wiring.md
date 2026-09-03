@@ -1,6 +1,6 @@
 # The inhabited street — wiring the garment split and the female walk
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT**
+> **STATUS: LOG, 2026-08-25. NOT CURRENT**
 
 Part 4 items 1 and 2 of `visual-bar-spec.md`, from
 `research/inhabited-street.md` §1.4(a) and §1.4(c). Both were named as

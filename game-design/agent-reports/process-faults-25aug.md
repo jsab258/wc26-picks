@@ -1,6 +1,6 @@
 # Three process faults found by running four agents at once
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT** once the fixes below land.
+> **STATUS: LOG, 2026-08-25. NOT CURRENT** once the fixes below land.
 >
 Coordinator account. Written against Jafar's gate for overnight autonomy
 (*"we need to get the process right, no waste of tokens and max output,

@@ -1,4 +1,4 @@
-> **STATUS — LOG, 2026-08-26. NOT CURRENT after the next change to
+> **STATUS: LOG, 2026-08-26. NOT CURRENT after the next change to
 > `ledger/verify.py`'s `runs_map_to_commits`.** What the commit footer's
 > run-placement fraction was measuring, what it measures now, and the
 > selftest both ways. Counts are from the tree at `b63e271f` (356 run files,

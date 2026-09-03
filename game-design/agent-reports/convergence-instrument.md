@@ -1,6 +1,6 @@
 # R1 — the convergence instrument, as built
 
-> **STATUS — LOG, 2026-08-25. NOT CURRENT once the first landing is read** —
+> **STATUS: LOG, 2026-08-25. NOT CURRENT once the first landing is read** —
 > every panel value quoted below is ILLUSTRATIVE and the pitch is a judgement
 > that `valueHorizon`'s landed series retires. Builder report
 > (instrument-builder). Executes
@@ -506,7 +506,7 @@ That is what the round trip is for.
 
 # REPAIR PASS — weather per sample, and the three blind cameras (2026-08-26)
 
-> **STATUS — LOG, 2026-08-26. NOT CURRENT once the next verdict lands.**
+> **STATUS: LOG, 2026-08-26. NOT CURRENT once the next verdict lands.**
 > Builder report (instrument-builder). Executes
 > `decision-2026-08-25-valuepanel-landing-and-batch.md` §A items 1 and 2, capped
 > at one dispatch cycle. **Nothing committed, no build dispatched.** The
@@ -715,7 +715,7 @@ from landed runs; nothing here needs a hand edit.
 
 # R3 — the district reflection, 2026-08-26
 
-> **STATUS — LOG, 2026-08-26. NOT CURRENT once the next Windows build lands.**
+> **STATUS: LOG, 2026-08-26. NOT CURRENT once the next Windows build lands.**
 > Builder report (instrument-builder). Executes the director's conditional
 > ruling now that `c5a75c9` confirmed the reference prediction. **Nothing is
 > committed. No build dispatched.** The resident reviews and commits.

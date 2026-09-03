@@ -1,6 +1,6 @@
 # Production plan — voice, characters, art direction, feel, budget
 
-> **STATUS — SPEC.** The design for voice, characters, art direction, feel, budget. Stable reference:
+> **STATUS: SPEC.** The design for voice, characters, art direction, feel, budget. Stable reference:
 > build state lives in `roadmap.md`, not here. A spec that disagrees
 > with the roadmap is out of date about what got built, not about what
 > was intended.
