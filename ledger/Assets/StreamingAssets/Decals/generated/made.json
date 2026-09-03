@@ -1,70 +1,76 @@
 {
   "_what": "The resume record: what is on disk and which recipe made it. Delete this file to have everything made again, or delete one PNG to have just that one made again.",
-  "written": "2026-09-02T22:38:29",
+  "written": "2026-09-03T05:31:47",
   "items": {
     "fascia_mickeys": {
-      "recipe": "a126ef834d32ef6f",
+      "recipe": "3fed5879d9e3a061",
       "seed": 8026,
       "file": "fascia_mickeys.png",
-      "when": "2026-09-02T19:50:56",
+      "when": "2026-09-03T04:37:24",
       "from": "made by this run"
     },
     "fascia_ritas_pawn": {
-      "recipe": "907a5c16677c8c65",
+      "recipe": "708a6c204aeda915",
       "seed": 8027,
       "file": "fascia_ritas_pawn.png",
-      "when": "2026-09-02T19:52:25",
+      "when": "2026-09-03T04:38:55",
       "from": "made by this run"
     },
     "fascia_fish_market": {
-      "recipe": "7eca77a63780ae12",
+      "recipe": "9461408e4fec4368",
       "seed": 8028,
       "file": "fascia_fish_market.png",
-      "when": "2026-09-02T19:53:55",
+      "when": "2026-09-03T04:40:27",
       "from": "made by this run"
     },
     "fascia_steam_laundry": {
-      "recipe": "e403197bcc3ca654",
+      "recipe": "f28a2d074c4e834e",
       "seed": 8029,
       "file": "fascia_steam_laundry.png",
-      "when": "2026-09-02T19:55:25",
+      "when": "2026-09-03T04:41:58",
       "from": "made by this run"
     },
     "sign_marquee": {
-      "recipe": "ce9d8294398b41ce",
+      "recipe": "e67b204fa9b36c44",
+      "seed": 8030,
       "file": "sign_marquee.png",
-      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
-      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+      "when": "2026-09-03T04:42:54",
+      "from": "made by this run"
     },
     "sign_open_all_nite": {
-      "recipe": "fdc51924dfdf0403",
+      "recipe": "bf863c5ef1999641",
+      "seed": 8031,
       "file": "sign_open_all_nite.png",
-      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
-      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+      "when": "2026-09-03T04:43:51",
+      "from": "made by this run"
     },
     "sign_baths": {
-      "recipe": "db3b196a3c3d571f",
+      "recipe": "99906db35d86f265",
+      "seed": 8032,
       "file": "sign_baths.png",
-      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
-      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+      "when": "2026-09-03T04:44:47",
+      "from": "made by this run"
     },
     "notice_dock_regulations": {
-      "recipe": "c51b50950c7cd883",
+      "recipe": "79374bd7f475af59",
+      "seed": 8033,
       "file": "notice_dock_regulations.png",
-      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
-      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+      "when": "2026-09-03T04:46:33",
+      "from": "made by this run"
     },
     "poster_gig_bill": {
-      "recipe": "f66cd74f487c264e",
+      "recipe": "dd5863dcfde644d0",
+      "seed": 8034,
       "file": "poster_gig_bill.png",
-      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
-      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+      "when": "2026-09-03T04:48:16",
+      "from": "made by this run"
     },
     "notice_ferry_times": {
-      "recipe": "c243283a1a02a739",
+      "recipe": "098040b768b55129",
+      "seed": 8035,
       "file": "notice_ferry_times.png",
-      "when": "2026-08-26T09:06 (the file's commit, cb332751)",
-      "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
+      "when": "2026-09-03T04:49:59",
+      "from": "made by this run"
     },
     "wall_soot_brick": {
       "recipe": "f52bd09ab72757a1",
@@ -91,220 +97,220 @@
       "from": "recovered from the manifest cb332751 committed on 26 Aug, where this item is status=SKIPPED - and a SKIPPED row is only written when the recipe on record matched the file, so the hash recorded there is the hash of what made this PNG"
     },
     "sign_ferry": {
-      "recipe": "e439d0dce07b3985",
+      "recipe": "73a42657974455ec",
       "seed": 8050,
       "file": "sign_ferry.png",
-      "when": "2026-09-02T21:58:13",
+      "when": "2026-09-03T04:50:59",
       "from": "made by this run"
     },
     "sign_harbour_master": {
-      "recipe": "9eece93eb74a0eba",
+      "recipe": "85ba9f36a8a571b1",
       "seed": 8051,
       "file": "sign_harbour_master.png",
-      "when": "2026-09-02T21:59:09",
+      "when": "2026-09-03T04:51:56",
       "from": "made by this run"
     },
     "sign_weighbridge": {
-      "recipe": "f9b3d5e7794cc30f",
+      "recipe": "e1561b8ad5d6e9cb",
       "seed": 8052,
       "file": "sign_weighbridge.png",
-      "when": "2026-09-02T22:00:05",
+      "when": "2026-09-03T04:52:53",
       "from": "made by this run"
     },
     "sign_telephone": {
-      "recipe": "1e08a5086430a8ae",
+      "recipe": "3baaf362045a5bcc",
       "seed": 8053,
       "file": "sign_telephone.png",
-      "when": "2026-09-02T22:01:01",
+      "when": "2026-09-03T04:53:49",
       "from": "made by this run"
     },
     "sign_gentlemen": {
-      "recipe": "413d51a146597b54",
+      "recipe": "fc4290dde3a0f2e0",
       "seed": 8054,
       "file": "sign_gentlemen.png",
-      "when": "2026-09-02T22:01:57",
+      "when": "2026-09-03T04:54:46",
       "from": "made by this run"
     },
     "sign_left_luggage": {
-      "recipe": "b2bbc1114501b92e",
+      "recipe": "d7ad9310529608c1",
       "seed": 8055,
       "file": "sign_left_luggage.png",
-      "when": "2026-09-02T22:02:53",
+      "when": "2026-09-03T04:55:43",
       "from": "made by this run"
     },
     "sign_no_waiting": {
-      "recipe": "87edd2dccc86a18a",
+      "recipe": "79b246ce69f4b042",
       "seed": 8056,
       "file": "sign_no_waiting.png",
-      "when": "2026-09-02T22:03:49",
+      "when": "2026-09-03T04:56:40",
       "from": "made by this run"
     },
     "sign_private_mooring": {
-      "recipe": "2def5524ac4a0aae",
+      "recipe": "4b211108be126b43",
       "seed": 8057,
       "file": "sign_private_mooring.png",
-      "when": "2026-09-02T22:04:45",
+      "when": "2026-09-03T04:57:37",
       "from": "made by this run"
     },
     "sign_way_out": {
-      "recipe": "3a9a32d74972473d",
+      "recipe": "7c156770d3bba35b",
       "seed": 8058,
       "file": "sign_way_out.png",
-      "when": "2026-09-02T22:05:41",
+      "when": "2026-09-03T04:58:34",
       "from": "made by this run"
     },
     "sign_taxis": {
-      "recipe": "694f1b3a0e898a9b",
+      "recipe": "58b110eb0d2869cf",
       "seed": 8059,
       "file": "sign_taxis.png",
-      "when": "2026-09-02T22:06:37",
+      "when": "2026-09-03T04:59:30",
       "from": "made by this run"
     },
     "sign_fish_quay": {
-      "recipe": "408afa263ed881e1",
+      "recipe": "cd9df29458813fd5",
       "seed": 8060,
       "file": "sign_fish_quay.png",
-      "when": "2026-09-02T22:07:33",
+      "when": "2026-09-03T05:00:27",
       "from": "made by this run"
     },
     "sign_chandlery": {
-      "recipe": "e2283762087ebad1",
+      "recipe": "54b501d1be873076",
       "seed": 8061,
       "file": "sign_chandlery.png",
-      "when": "2026-09-02T22:08:29",
+      "when": "2026-09-03T05:01:25",
       "from": "made by this run"
     },
     "notice_tide_table": {
-      "recipe": "9ffa79036bf5ec4f",
+      "recipe": "96cc983fab134755",
       "seed": 8080,
       "file": "notice_tide_table.png",
-      "when": "2026-09-02T22:10:12",
+      "when": "2026-09-03T05:03:08",
       "from": "made by this run"
     },
     "notice_council": {
-      "recipe": "4b7cde09ea14ac09",
+      "recipe": "5b7a9d83baed11f6",
       "seed": 8081,
       "file": "notice_council.png",
-      "when": "2026-09-02T22:11:55",
+      "when": "2026-09-03T05:04:52",
       "from": "made by this run"
     },
     "notice_planning": {
-      "recipe": "1977e57c48e921c3",
+      "recipe": "50c5457bd9a56f8c",
       "seed": 8082,
       "file": "notice_planning.png",
-      "when": "2026-09-02T22:13:37",
+      "when": "2026-09-03T05:06:35",
       "from": "made by this run"
     },
     "notice_wanted": {
-      "recipe": "74c3a3cb8eaf67e8",
+      "recipe": "4823f686052ffcc2",
       "seed": 8083,
       "file": "notice_wanted.png",
-      "when": "2026-09-02T22:15:18",
+      "when": "2026-09-03T05:08:18",
       "from": "made by this run"
     },
     "notice_sailings": {
-      "recipe": "195f495c9b7f6d75",
+      "recipe": "d7a42f59f5b267c6",
       "seed": 8084,
       "file": "notice_sailings.png",
-      "when": "2026-09-02T22:16:59",
+      "when": "2026-09-03T05:10:01",
       "from": "made by this run"
     },
     "notice_jumble": {
-      "recipe": "66791cfb6c13a11b",
+      "recipe": "96e5fd47fde5f92e",
       "seed": 8085,
       "file": "notice_jumble.png",
-      "when": "2026-09-02T22:18:42",
+      "when": "2026-09-03T05:11:44",
       "from": "made by this run"
     },
     "poster_bingo": {
-      "recipe": "f0472a242a4014c4",
+      "recipe": "c31252adc264df1e",
       "seed": 8086,
       "file": "poster_bingo.png",
-      "when": "2026-09-02T22:20:24",
+      "when": "2026-09-03T05:13:27",
       "from": "made by this run"
     },
     "poster_cinema": {
-      "recipe": "8a3f12156df524e5",
+      "recipe": "43aee40bca3da108",
       "seed": 8087,
       "file": "poster_cinema.png",
-      "when": "2026-09-02T22:22:05",
+      "when": "2026-09-03T05:15:10",
       "from": "made by this run"
     },
     "poster_coach": {
-      "recipe": "006134c78611ae5b",
+      "recipe": "fe6d0916730bd783",
       "seed": 8088,
       "file": "poster_coach.png",
-      "when": "2026-09-02T22:23:46",
+      "when": "2026-09-03T05:16:53",
       "from": "made by this run"
     },
     "poster_darts": {
-      "recipe": "0152429590c14483",
+      "recipe": "fe1acd29094355fc",
       "seed": 8089,
       "file": "poster_darts.png",
-      "when": "2026-09-02T22:25:28",
+      "when": "2026-09-03T05:18:36",
       "from": "made by this run"
     },
     "poster_election": {
-      "recipe": "0d73dadf1884962a",
+      "recipe": "fb07e72fc39983d2",
       "seed": 8090,
       "file": "poster_election.png",
-      "when": "2026-09-02T22:27:11",
+      "when": "2026-09-03T05:20:19",
       "from": "made by this run"
     },
     "poster_fete": {
-      "recipe": "d1a147839af23602",
+      "recipe": "bed5a9935d75bc46",
       "seed": 8091,
       "file": "poster_fete.png",
-      "when": "2026-09-02T22:28:54",
+      "when": "2026-09-03T05:22:01",
       "from": "made by this run"
     },
     "notice_missing_cat": {
-      "recipe": "31de6b0fcecdb1e5",
+      "recipe": "b2b943ead34e4012",
       "seed": 8092,
       "file": "notice_missing_cat.png",
-      "when": "2026-09-02T22:30:37",
+      "when": "2026-09-03T05:23:45",
       "from": "made by this run"
     },
     "notice_fly_posted": {
-      "recipe": "74d2370748e0d201",
+      "recipe": "101359547e81f32f",
       "seed": 8093,
       "file": "notice_fly_posted.png",
-      "when": "2026-09-02T22:32:18",
+      "when": "2026-09-03T05:25:28",
       "from": "made by this run"
     },
     "notice_opening_hours": {
-      "recipe": "e20f28b16079d82b",
+      "recipe": "b9740a7439b47326",
       "seed": 8094,
       "file": "notice_opening_hours.png",
-      "when": "2026-09-02T22:33:59",
+      "when": "2026-09-03T05:27:11",
       "from": "made by this run"
     },
     "poster_safety": {
-      "recipe": "28057ae4cef63af0",
+      "recipe": "b64d60d8fb7adbf2",
       "seed": 8095,
       "file": "poster_safety.png",
-      "when": "2026-09-02T22:35:40",
+      "when": "2026-09-03T05:28:54",
       "from": "made by this run"
     },
     "interior_shop_shelves": {
-      "recipe": "2e0c91b502fe226b",
+      "recipe": "87689ce2d8641968",
       "seed": 8096,
       "file": "interior_shop_shelves.png",
-      "when": "2026-09-02T22:36:36",
+      "when": "2026-09-03T05:29:52",
       "from": "made by this run"
     },
     "interior_bar_back": {
-      "recipe": "2e56bdd81107706b",
+      "recipe": "a840b33262dc87fc",
       "seed": 8097,
       "file": "interior_bar_back.png",
-      "when": "2026-09-02T22:37:33",
+      "when": "2026-09-03T05:30:49",
       "from": "made by this run"
     },
     "interior_stair_landing": {
-      "recipe": "3fceef8c3a1d013d",
+      "recipe": "9d20680209ff98b7",
       "seed": 8098,
       "file": "interior_stair_landing.png",
-      "when": "2026-09-02T22:38:29",
+      "when": "2026-09-03T05:31:47",
       "from": "made by this run"
     }
   }

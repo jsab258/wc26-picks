@@ -2,55 +2,55 @@ LEDGER imagegen - progress
 ==========================================================
 batch     meridian-signage-01
 status    DONE
-updated   2026-09-02 22:38:29 local
-elapsed   41 min
-done      31 written, 14 already there, 0 failed, of 45 in the batch
+updated   2026-09-03 05:31:47 local
+elapsed   56 min
+done      41 written, 4 already there, 0 failed, of 45 in the batch
 still to do  0
 
-  [already] fascia_mickeys             left exactly as it was
-  [already] fascia_ritas_pawn          left exactly as it was
-  [already] fascia_fish_market         left exactly as it was
-  [already] fascia_steam_laundry       left exactly as it was
-  [already] sign_marquee               left exactly as it was
-  [already] sign_open_all_nite         left exactly as it was
-  [already] sign_baths                 left exactly as it was
-  [already] notice_dock_regulations    left exactly as it was
-  [already] poster_gig_bill            left exactly as it was
-  [already] notice_ferry_times         left exactly as it was
+  [made]    fascia_mickeys             1024x512  92s
+  [made]    fascia_ritas_pawn          1024x512  91s
+  [made]    fascia_fish_market         1024x512  91s
+  [made]    fascia_steam_laundry       1024x512  90s
+  [made]    sign_marquee               768x512  56s
+  [made]    sign_open_all_nite         768x512  56s
+  [made]    sign_baths                 768x512  56s
+  [made]    notice_dock_regulations    640x896  104s
+  [made]    poster_gig_bill            640x896  102s
+  [made]    notice_ferry_times         640x896  102s
   [already] wall_soot_brick            left exactly as it was
   [already] wall_salt_render           left exactly as it was
   [already] probe_wall_cfg1            left exactly as it was
   [already] probe_wall_cfg2            left exactly as it was
-  [made]    sign_ferry                 768x512  55s
-  [made]    sign_harbour_master        768x512  56s
+  [made]    sign_ferry                 768x512  57s
+  [made]    sign_harbour_master        768x512  57s
   [made]    sign_weighbridge           768x512  56s
   [made]    sign_telephone             768x512  56s
   [made]    sign_gentlemen             768x512  56s
-  [made]    sign_left_luggage          768x512  56s
+  [made]    sign_left_luggage          768x512  57s
   [made]    sign_no_waiting            768x512  56s
-  [made]    sign_private_mooring       768x512  56s
+  [made]    sign_private_mooring       768x512  57s
   [made]    sign_way_out               768x512  56s
   [made]    sign_taxis                 768x512  56s
-  [made]    sign_fish_quay             768x512  56s
-  [made]    sign_chandlery             768x512  56s
-  [made]    notice_tide_table          640x896  103s
+  [made]    sign_fish_quay             768x512  57s
+  [made]    sign_chandlery             768x512  57s
+  [made]    notice_tide_table          640x896  102s
   [made]    notice_council             640x896  102s
-  [made]    notice_planning            640x896  101s
-  [made]    notice_wanted              640x896  101s
-  [made]    notice_sailings            640x896  101s
+  [made]    notice_planning            640x896  102s
+  [made]    notice_wanted              640x896  102s
+  [made]    notice_sailings            640x896  102s
   [made]    notice_jumble              640x896  102s
-  [made]    poster_bingo               640x896  101s
-  [made]    poster_cinema              640x896  101s
-  [made]    poster_coach               640x896  101s
-  [made]    poster_darts               640x896  101s
-  [made]    poster_election            640x896  103s
+  [made]    poster_bingo               640x896  102s
+  [made]    poster_cinema              640x896  102s
+  [made]    poster_coach               640x896  102s
+  [made]    poster_darts               640x896  102s
+  [made]    poster_election            640x896  102s
   [made]    poster_fete                640x896  102s
   [made]    notice_missing_cat         640x896  102s
-  [made]    notice_fly_posted          640x896  101s
-  [made]    notice_opening_hours       640x896  100s
-  [made]    poster_safety              640x896  100s
-  [made]    interior_shop_shelves      768x512  56s
-  [made]    interior_bar_back          768x512  56s
-  [made]    interior_stair_landing     512x768  56s
+  [made]    notice_fly_posted          640x896  102s
+  [made]    notice_opening_hours       640x896  102s
+  [made]    poster_safety              640x896  102s
+  [made]    interior_shop_shelves      768x512  57s
+  [made]    interior_bar_back          768x512  57s
+  [made]    interior_stair_landing     512x768  57s
 
 Every image is review=pending until a human has looked at it.

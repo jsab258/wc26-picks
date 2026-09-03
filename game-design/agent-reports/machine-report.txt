@@ -1,11 +1,11 @@
 LEDGER - image generation, machine report
 ============================================================
-written   2026-09-02 22:38:29 local
+written   2026-09-03 05:31:47 local
 host      JAFAR-DESKTOP
 os        Microsoft Windows 11 Pro  (26200)
 cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
 ram       31.9 GB
-free disk 88.4 GB on C:
+free disk 87.1 GB on C:
 python    C:\Users\Jafar\miniconda3\python.exe
 probe     ok  (probe version 2)
 
@@ -46,32 +46,32 @@ PLAN CHOSEN FROM THE ABOVE
 
 RUN
 ------------------------------------------------------------
-        ok  102s  1072 KB  varied: spread 244/255, 240 levels over 23040 of 573440 px
-    [39/45] notice_missing_cat  640x896  seed 8092  cfg 1.0  about 100s
         negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  102s  976 KB  varied: spread 245/255, 242 levels over 23040 of 573440 px
-    [40/45] notice_fly_posted  640x896  seed 8093  cfg 1.0  about 100s
-        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  101s  1174 KB  varied: spread 249/255, 248 levels over 23040 of 573440 px
+        ok  102s  1157 KB  varied: spread 255/255, 256 levels over 23040 of 573440 px
+    [41/45] notice_opening_hours  the prompt or settings changed since the PNG already here was made, so it is NOT skipped - making it again
     [41/45] notice_opening_hours  640x896  seed 8094  cfg 1.0  about 100s
         negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  100s  1009 KB  varied: spread 236/255, 232 levels over 23040 of 573440 px
+        ok  102s  1083 KB  varied: spread 246/255, 246 levels over 23040 of 573440 px
+    [42/45] poster_safety  the prompt or settings changed since the PNG already here was made, so it is NOT skipped - making it again
     [42/45] poster_safety  640x896  seed 8095  cfg 1.0  about 100s
         negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  101s  1068 KB  varied: spread 241/255, 242 levels over 23040 of 573440 px
+        ok  102s  920 KB  varied: spread 254/255, 253 levels over 23040 of 573440 px
+    [43/45] interior_shop_shelves  the prompt or settings changed since the PNG already here was made, so it is NOT skipped - making it again
     [43/45] interior_shop_shelves  768x512  seed 8096  cfg 1.0  about 68s
         negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  56s  732 KB  varied: spread 250/255, 249 levels over 24576 of 393216 px
+        ok  57s  661 KB  varied: spread 255/255, 255 levels over 24576 of 393216 px
+    [44/45] interior_bar_back  the prompt or settings changed since the PNG already here was made, so it is NOT skipped - making it again
     [44/45] interior_bar_back  768x512  seed 8097  cfg 1.0  about 68s
         negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  56s  765 KB  varied: spread 250/255, 249 levels over 24576 of 393216 px
+        ok  57s  554 KB  varied: spread 255/255, 256 levels over 24576 of 393216 px
+    [45/45] interior_stair_landing  the prompt or settings changed since the PNG already here was made, so it is NOT skipped - making it again
     [45/45] interior_stair_landing  512x768  seed 8098  cfg 1.0  about 68s
         negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  56s  813 KB  varied: spread 252/255, 241 levels over 24576 of 393216 px
+        ok  57s  698 KB  varied: spread 255/255, 246 levels over 24576 of 393216 px
   
-  DONE: 31 written, 14 skipped, 0 failed, 31 attempted of 45 in the batch
-    blank check: 0 blank, 0 undecodable, of 31 PNGs decoded (blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled)
-    already made: 14 skipped, 0 remade because what was on disk was blank or unreadable, of 14 PNGs found already on disk
+  DONE: 41 written, 4 skipped, 0 failed, 41 attempted of 45 in the batch
+    blank check: 0 blank, 0 undecodable, of 41 PNGs decoded (blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled)
+    already made: 4 skipped, 41 remade because what was on disk was blank or unreadable, of 45 PNGs found already on disk
     Those files were left exactly as they were - anything you picked out by hand is safe.
     To make one again: delete its .png and double-click again. To make them all again: run with --redo.
     images and manifest: C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ledger\Assets\StreamingAssets\Decals\generated
