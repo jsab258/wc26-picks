@@ -22,6 +22,7 @@ than any single row.
 | 2026-09-02 | 41 of 168 | 17% | not read | Reported by Jafar at 04:40Z, AFTER the heavy night. The 8 percent row plus that night cost 9 points. This row is what makes the night measured rather than unknown. |
 | 2026-09-02 | ~18 into a 136h period | 32% | not read | Reported at 14:40Z. 4x over pace against the 80% ceiling. Set the pace rule below. |
 | 2026-09-02 | ~21 into a 136h period | 38% | not read | Reported at ~17:00Z. Jafar notes he also did OTHER work in the same window, so this delta is NOT all LEDGER and must not be read as a LEDGER burn rate. 42 points to the ceiling. |
+| 2026-09-03 | ~33 into a 136h period | 52% | not read | Reported at 04:50Z, after the overnight run. THE FIRST CLEAN LEDGER BURN RATE: Jafar was asleep for the whole window, so all 14 points are ours. 28 points to the ceiling, 103.5 hours to the Monday reset. |
 
 Ceiling for LEDGER: 80% of the weekly limit. The other 20% is his.
 
@@ -293,6 +294,46 @@ WHAT IT CHANGES, and it is a rule rather than an observation:
 - A THIRD DIRECTOR WAS SPAWNED ON A DIFFERENT MODEL after the reset, because
   the limit was reported against the one the agent had been using. That is a
   workaround with a named reason, not a preference.
+
+## THE FIRST CLEAN BURN RATE, 2026-09-03 04:50Z
+
+Every reading before this one was contaminated. Jafar uses the same account
+for work and for LEDGER, so 34, 38 and 32 all mixed the two and the file says
+so beside each row. THIS ONE DOES NOT: he reported 38 percent at 17:00Z, went
+to bed, and reported 52 percent on waking. He was asleep for the window. The
+14 points are the studio's, and this is the only row in the table that can
+honestly be divided by hours.
+
+    38 to 52          14 points over 11.5 hours       1.21 points/hour
+    28 left to 80     103.5 hours to Monday 12:00Z    0.27 points/hour sustainable
+    the night ran at 4.5x sustainable
+    AT THE NIGHT RATE THE CEILING ARRIVES IN 23 HOURS, which is tonight.
+
+WHAT 14 POINTS BOUGHT, so the rate has something to be judged against: four
+builder sessions (props and decals into the frame, the dashboard's own
+staleness, the framing fix, the Unreal emitter through Phase B), one verifier
+opening 45 images, three director attempts of which ONE produced a ruling, and
+the resident's own turns across roughly eleven hours.
+
+THE WASTE IS NAMED RATHER THAN AVERAGED IN. Two of the three directors died
+before writing anything: one to a container restart at about 21:40Z, one to
+the session rate limit at 21:47Z. Their cost was paid and nothing came back.
+On the measured 1.5 to 2 points a spawn that is roughly 3 to 4 points of the
+14, so about a quarter of the night went on reviews that never happened. That
+is not a reason to skip the review; it is a reason to land smaller batches so
+a dead review costs less.
+
+WHAT THE FREE LANE PROVED, and it is the whole lever. The night's two most
+visible outputs, the Unreal street and 41 regenerated plates, cost ZERO points
+because they ran on Jafar's GPU. The 14 points went on Claude-side work:
+writing the code, reviewing it, and coordinating. So the ratio to improve is
+not "work less" but "spend fewer Claude points per unit of GPU work
+dispatched", which is queue 039's rule with a number behind it at last.
+
+THE ARITHMETIC IS NOT AN INSTRUCTION. 28 points buys roughly two more nights
+like the last one, and there are four days to Monday. Two nights and a stop
+is a legitimate choice; so is a quarter-rate week. It is Jafar's call and the
+numbers above are what he needs to make it, not an argument for either.
 
 ## Stop conditions, mechanical
 
