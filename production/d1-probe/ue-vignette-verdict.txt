@@ -1,0 +1,55 @@
+# UE vignette shot c1311ea @1788396371
+# Line 1 names the commit this was measured on, as the Unity verdict does.
+# THE STREET IS BUILT FROM production/specs/vignette-pieces.json AND NOTHING ELSE.
+#   Nothing here is authored: every position, size and rotation came out of that
+#   file, which Ledger.Core wrote from the shared scene json. Untextured on
+#   purpose: materials, the props and the HDRI are Phase C and Phase D.
+# frameMedianMs: MEDIAN of 24 engine frame deltas after 8 discarded warm-up
+#   frames, in milliseconds. NOT the Unity host's number even though both are a
+#   median of 24 after 8: Unity times one Camera.Render plus GL.Flush and this
+#   times a whole engine frame. frameStat on each line names which one it is.
+# shotMeanLuma: mean over EVERY pixel of the committed file, 0 to 1,
+#   luma=(0.299R+0.587G+0.114B)/255, the same weights the Unity sim uses.
+# shotNonBlackPct: percent of shotPixels with any channel above zero.
+# shotDistinctBuckets: distinct 5-bit-per-channel colour buckets, of 32768.
+# status=WROTE needs a decoded file with more than one bucket and at least one
+#   non-black pixel. BLANK, UNDECODABLE and NO-FILE are the three ways it fails
+#   and the step exits non-zero for all three with the evidence still committed.
+
+sceneStatus=WHOLE piecesEmitted=593/593 asBox=427 asCyl=146 asPlane=20 propStandIns=23/23 decalQuads=20/20 skipped=0 lanternsPlaced=4/4 windowsLit=3/3 flatsLit=0/0 nothing-to-light multiRotationInFile=0 aheadOfUnityRun=152198e aheadPiecesThen=546 lampColourSpace=gamma-sRGB>linear windowColourSpace=gamma-sRGB>linear sceneNote=none sun=yes fill=3/3 fog=yes skyModel=none-black/phase-C-owns-the-hdri lampGain=1.00 fogGain=1.00 ambientModel=trilight-3-directional/not-a-captured-sky lightUnits=unitless/not-candelas decalLiftCm=1.0 decalModel=quad/phase-C-owns-the-decal
+shotCamPlaced=yes shotCamAskedXYZcm=2100.0/-400.0/167.2 shotCamReadXYZcm=2100.0/-400.0/167.2 shotCamDeltaCm=0.00 shotCamAskedPitchYaw=3.0/90.0 shotCamReadPitchYaw=3.0/90.0 shotWorld=Entry
+shot vign_camA_day camera=cam_A condition=overcast_day status=WROTE eye=1.672/on=east_footway frameMedianMs=3.73/of=24warm8 frameStat=median-of-engine-frame-deltas px=1280x720 fovV=60.0/fovH=91.5 file=ue-vign_camA_day.png bytes=1126276 note=none shotW=1280 shotH=720 shotPixels=921600 shotMeanLuma=0.5030 shotMinLuma=0.0106 shotMaxLuma=0.9965 shotNonBlackPixels=921600 shotNonBlackPct=100.00 shotDistinctBuckets=109/32768 shotBlank=no
+shot vign_camA_night camera=cam_A condition=wet_night status=WROTE eye=1.672/on=east_footway frameMedianMs=4.31/of=24warm8 frameStat=median-of-engine-frame-deltas px=1280x720 fovV=60.0/fovH=91.5 file=ue-vign_camA_night.png bytes=661036 note=none shotW=1280 shotH=720 shotPixels=921600 shotMeanLuma=0.0796 shotMinLuma=0.0000 shotMaxLuma=0.7494 shotNonBlackPixels=724311 shotNonBlackPct=78.59 shotDistinctBuckets=102/32768 shotBlank=no
+shot vign_camB_day camera=cam_B condition=overcast_day status=WROTE eye=1.672/on=west_footway frameMedianMs=3.68/of=24warm8 frameStat=median-of-engine-frame-deltas px=1280x720 fovV=60.0/fovH=91.5 file=ue-vign_camB_day.png bytes=895036 note=none shotW=1280 shotH=720 shotPixels=921600 shotMeanLuma=0.5696 shotMinLuma=0.2527 shotMaxLuma=0.9804 shotNonBlackPixels=921600 shotNonBlackPct=100.00 shotDistinctBuckets=89/32768 shotBlank=no
+shot vign_camB_night camera=cam_B condition=wet_night status=WROTE eye=1.672/on=west_footway frameMedianMs=4.65/of=24warm8 frameStat=median-of-engine-frame-deltas px=1280x720 fovV=60.0/fovH=91.5 file=ue-vign_camB_night.png bytes=638567 note=none shotW=1280 shotH=720 shotPixels=921600 shotMeanLuma=0.0351 shotMinLuma=0.0090 shotMaxLuma=0.0993 shotNonBlackPixels=921600 shotNonBlackPct=100.00 shotDistinctBuckets=19/32768 shotBlank=no
+captureStatus=ALL shotsWrote=4/4 shotsBlank=0/4 shotsNoFile=0/4 captureSeconds=3.00 captureTicks=573
+# ascii-luma of the FIRST frame that decoded, 48x27 cells, top row first.
+# :::::=%@@@@@@@@@@@@@@@*@@+::::...:::.::::::::-..
+# :::::--*@@@@@@@@@@@@@@*@@=::::..:::.:::::::::-. 
+# ::::::--=#@@@@@@@@@@@@*@@=:::..:::.::::::::::-. 
+# ::::::----+%@@@@@@@@@@*@@=:::.:-:.:::::::::::-. 
+# :::::------#@@@@@@@@@@*@%=-:::-::::::::::::::-. 
+# :::::------#@*%@@@@@@@*@%=-::-:::::::::::::::-. 
+# :::::------=*==#@@@@@@*@#=-::::-:::::::::::::-  
+# :::::------=====*%@@@%+**==-:---:::::::::::::-  
+# ::::::-----=====++%@@%=====-:---:::::::::::::-  
+# :::::::----=====++%@@%=====-:---:::::::::::::-  
+# :::::::----======+%@@%=====-:---:::::::::::::-  
+# ::::::-----======+%@@%=====-----::::::::::::::  
+# ::::::-----====+++#@@@+=*=-:----::::::::::::-: .
+# :::::::----=-==++=*%%%=++=-:----::::::::::::-:  
+# ::::::--=+**######%%%#==+#-:----::::::::::::-: .
+# ::-=+*****#%%%%%%%%%%*+#*#-:----::::::::::::-: .
+# ******#%%%%%%%%%%%%%%*=+++=:----::::::::::::-. .
+# +*#%%%%%%%%%%%%%%%%%%*+####*----::::::::::::-. .
+# %%%%%%%%%%%%%%%%%%%%%==%%%%%+::-::::::::::::-. .
+# %%%%%%%%%%%%%%%%%%%%%==#%%%%#-::::::::::::::-...
+# %%%%%%%%%%%%%%%%%%%%%==#%%%%%=-:::::::::::::-...
+# %%%%%%%%%%%%%%%%%%%%%##%%%%%%#-:::::::::::::-...
+# %%%%%%%%%%%%%%%%#%%%%%%%%%%%%%+:::::::::::::- ..
+# %%%%%%%%%%%%%%%*%%%%%%%%%%%%%%%-::::::::::::- ..
+# %%%%%%%%%%%%%%*%%%%%%%%%%%%%%%%#::::::::::::- ::
+# %%%%%%%%%%%%%##%%%%%%%%%%%%%%%%%=:::::::::::- ::
+# %%%%%%%%%%%%%*%%%%%%%%%%%%%%%%%%#-:::.::::::: ::
+shotReached=end
+stagedVignExit=0 stagedVignSeconds=7.02 stagedSpecBytes=168237 stagedVerdictCandidates=3 stagedVerdictFound=yes stagedPngCopied=4 stagedPngBytes=3320915 stagedVignExitIsNotTheVerdict=true
