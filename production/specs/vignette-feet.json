@@ -7,7 +7,6 @@
 "quantisation_decimals":6,
 "frame":{"units":"metres","x":"along-the-street","y":"up/0-at-the-road-crown","z":"across-the-street/+z-is-east","foot_y_m":"where-the-PLAN-puts-the-underside-of-the-piece-at-this-probe","datum_y_m":"where-the-PLAN-says-the-GROUND-is-under-x_m,z_m","datum_found":"false-means-the-plan-itself-has-no-ground-there/not-an-engine-miss","gap":"engine-raycast-y-minus-foot_y_m/positive-is-floating/negative-is-sunk","ray":"start-3m-above-foot_y_m-and-end-2m-below/so-floating-and-sunk-both-register"},
 "counts":{"feet":910,"footed_pieces":182,"pieces":593,"datum_missing":0,"datum_examined":910},
-"ahead_of_unity_run":{"run":"152198e","feet_then":845,"what":"This file is AHEAD of the newest landed Unity run named here, whose placement line reported feet_then probes. Same rule as the piece list's key: it is spent the moment any newer run lands and CoreTests then demands its removal."},
 "feet":[
 {"name":"east_parade_bay0","bom":"C1_terrace_carcass","edge":"east_plot","region":"x06_12","x_m":6,"z_m":9.125,"foot_y_m":0.1,"datum_found":true,"datum_y_m":0.1,"datum_edge":"east_plot"},
 {"name":"east_parade_bay0","bom":"C1_terrace_carcass","edge":"east_plot","region":"x06_12","x_m":3,"z_m":5.125,"foot_y_m":0.1,"datum_found":true,"datum_y_m":0.1,"datum_edge":"east_footway"},

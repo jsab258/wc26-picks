@@ -88,6 +88,15 @@
 # container by touching that name; the file now lives in RUNNER_TEMP and the
 # copy run 2 left on the runner is deleted at the start of the step.
 
+run 4 - 2026-09-03 - THE FRAMING REGENERATION. Run 3 banked 31 pictures and
+a QA pass then opened all 45 and found 41 of them are photographs of signs
+standing in a street rather than plates that can go on a wall. One cause: the
+sign, fascia, notice and poster families carried "photograph, straight-on flat
+elevation" plus "deserted empty street". They now carry the orthographic
+prefix the four wall plates already proved. 41 recipes moved, 4 did not.
+EXPECT skipped=4 and remadeRecipeChanged=41; anything else means the recipe
+arithmetic was wrong and the rest of this run's evidence is read in that light.
+
 # ---------------------------------------------------------------------------
 # THE SETTINGS. Uncommented lines only. Last-wins.
 limit: all
