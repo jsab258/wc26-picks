@@ -54,3 +54,28 @@ A row added to `production/budget.md` under the calibration section, carrying
 the figure, the window it came from, the source of the token totals, and the
 date. Or, if the totals do not exist, a stated negative with the search that
 proved it and the count of what was examined.
+
+## THE FIRST PAIRED OBSERVATION, 2026-09-03, and it sharpens this task
+
+The SubagentStop hook was registered hours before this file was written, and
+its first row is the argument for the whole item:
+
+    when                  agent     tier   turns  alines
+    2026-09-03T16:31:19Z  producer  fable  3      9
+
+Three turns. That spawn ran for over eight minutes, read four files and
+consumed roughly eighty-five thousand tokens. A three-turn spawn and a
+thirty-turn spawn can therefore cost the same, or the wrong way round, because
+a turn is a message boundary and not a quantity of work: one turn that reads
+a large file costs more than ten that grep a line each.
+
+SO THE PER-TIER TURN MEDIANS ARE NOT A COST MODEL, and this task is not an
+improvement on them, it is the replacement. The medians answer "how many times
+did an agent speak"; nothing in this project has ever measured what a spawn
+actually spent. Do not let a fable/opus turn ratio become a fable/opus points
+ratio by being divided by something.
+
+One thing the row DOES give that the transcripts could not: the `agent` column.
+The tier came from the transcript, the agent TYPE is a hook field only, so
+per-role cost (producer against studio-director, both fable) is answerable from
+the log and was not answerable this morning.

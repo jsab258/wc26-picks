@@ -34,9 +34,10 @@ FOOTER="${VERIFY_FOOTER:-tools/.verify-footer}"
 # pattern grows silently (one `.claude/*` and the hooks themselves stop being
 # checked), a named list has to be edited by a person and shows up in a diff.
 #
-# `.claude/agent-log.tsv` is appended by the SubagentStart hook on EVERY agent
-# spawn, so in a session that delegates it is newer than the footer almost
-# always. It is machine-written, never reviewed, and cannot change what verify
+# `.claude/agent-log.tsv` is appended by the SubagentStart hook and
+# `.claude/agent-turns.tsv` by the SubagentStop hook, on EVERY agent spawn, so
+# in a session that delegates both are newer than the footer almost always.
+# They are machine-written, never reviewed, and cannot change what verify
 # concludes — so on its own it was blocking commits whose code was fully
 # verified. That is the ratchet of rule 5: a guard that cannot tell a
 # regression from an improvement, here in its noisiest form.
@@ -45,7 +46,11 @@ FOOTER="${VERIFY_FOOTER:-tools/.verify-footer}"
 # excluded paths were actually newer than the footer, because a filter that
 # does not say when it bit is indistinguishable from a finding (rule 3b's
 # truncation sibling: `(+N more not shown)`).
-FRESHNESS_EXCLUDE=".claude/agent-log.tsv"
+# agent-turns.tsv added 2026-09-03, the hour the SubagentStop hook was
+# registered: it is the same file in the same position and it re-created
+# this exact ratchet on its first row. Both are on DIRECTOR_EVIDENCE in
+# ledger/verify.py; this is the second list and it has to be kept in step.
+FRESHNESS_EXCLUDE=".claude/agent-log.tsv .claude/agent-turns.tsv"
 
 INPUT=$(cat)
 if command -v jq >/dev/null 2>&1; then
