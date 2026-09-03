@@ -1,6 +1,6 @@
 line: production (the reporting channel Jafar reads)
 spec: this file
-acceptance: an open decision on the dashboard carries enough to answer it there: the plain-terms framing, the options with what each costs, and the studio's recommendation, rendered from decisions-pending.md rather than retyped; a card whose source has no options renders the heading and says which part is missing rather than looking complete; any truncation announces itself through tools/capsay.py, which is the one implementation of that idea in this repo
+acceptance: an open decision on the dashboard carries enough to answer it there: the plain-terms framing, the options with what each costs, and the studio's recommendation, rendered from production/decision-queue.md rather than retyped; a card whose source has no options renders the heading and says which part is missing rather than looking complete; any truncation announces itself through tools/capsay.py, which is the one implementation of that idea in this repo
 max_sessions: 1
 status: READY 2026-09-02. instrument-builder, small. Found when Jafar read the inbox and had to ask the chat "any more details about this decision?"
 
@@ -9,7 +9,7 @@ status: READY 2026-09-02. instrument-builder, small. Found when Jafar read the i
 The Decision inbox renders the `###` heading of each waiting card and nothing
 else. The heading is the QUESTION. Everything that makes it answerable, the
 plain-terms framing, the options table, what each costs and what the studio
-recommends, is written in `game-design/decisions-pending.md` and never
+recommends, is written in `production/decision-queue.md` and never
 reaches the page.
 
 So the one panel on the dashboard that exists to get a decision OUT of Jafar

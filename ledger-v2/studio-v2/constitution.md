@@ -11,3 +11,4 @@
 9. Taste is calibrated, not assumed (D7). No agent self-certifies quality on a taste dimension.
 10. Time budgets accompany taste gates. Any milestone whose exit is judgment gets an attempt or time budget at kickoff.
 11. Formatting law: no em-dashes, no italic text, anywhere.
+12. Evidence layers by audience (2026-09-03). Every claim still carries its instrument; what changes is where the instrument sits. On AGENT-FACING surfaces evidence sits BESIDE the sentence, inline, unchanged. On JAFAR-FACING surfaces (Producer messages, the brief, the console glance) evidence sits BEHIND the sentence, one tap away, never inline, and the link is REQUIRED rather than optional: a claim with no artifact behind it may not be sent. A word cap without a required link teaches vagueness instead of layering.

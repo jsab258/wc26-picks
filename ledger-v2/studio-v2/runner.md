@@ -23,7 +23,7 @@ Reporting never depends on the health of what it reports on, and the default nee
 3. Exit-path delivery (runs on success, failure, or kill switch): write the brief, copy it to production/briefs/latest.md, fire a Windows toast if the machine is awake.
 4. Morning surfacing: the SessionStart hook prints the latest brief when Jafar opens Claude Code, unprompted.
 5. Scheduling: the scaffold registers Windows Task Scheduler entries (via schtasks) for the nightly runner start at a configured time, so nights need no manual trigger. run-night.bat stays as the manual option; the STOP file stays as the kill switch. Claude Code writes and registers these; Windows executes them.
-Optional escalations, off by default, each set up once if ever wanted: email delivery (one SMTP call in the exit path, credentials in the uncommitted tools/runner/config.local) and off-machine dead-man alerting for the PC-died-overnight case (a single ping to healthchecks.io or a self-hosted n8n webhook; the service alerts on silence by 07:00).
+Escalation is TELEGRAM, ruled by Jafar 2026-09-03 (the Director's Console). No email and no n8n: both are struck from this document rather than left as options, because an option nobody chose is a decision nobody made. The bot runs on the PC and carries Blocking pushes, the morning brief, gallery images and decision cards; everything below Blocking is pulled rather than pushed. Off-machine dead-man alerting for the PC-died-overnight case stays wanted and is now the bot's silence rather than a third-party ping.
 Worst case by design is never a missing brief; it is a fallback brief, or a machine you can see is off.
 
 ---

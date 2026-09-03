@@ -166,24 +166,23 @@ blind attempt.
 ## The studio split
 
 The main session is the DIRECTOR (tier 1): it decides, reviews builder diffs,
-commits, dispatches builds and talks to Jafar. It does not implement. Tier 2
+commits, dispatches builds and writes the record. It does not implement and
+does not address Jafar: it talks to files and to the Producer. Tier 2
 (Opus, read-only) are the verifiers in `.claude/agents/`. Tier 3 (Opus) are
 the builders: all implementation happens there, with the finding in the brief
 and a standing instruction not to commit.
 
 Escalation is mechanical, never judged: a director is spawned for
 builder-batch review before commit, queue reorder or refill, a landing that
-changes a conclusion, a verifier-versus-builder disagreement, a close-out,
-and anything touching premise, roadmap or this file. Pending questions fold
-into one spawn; a killed director is resumed, never restarted. The resident
-hand-applies only dictated text or a genuine one-line fix, and never commits
-a builder's work-in-progress because a stop hook asks: the tree goes clean in
-one reviewed commit per batch. `director_cadence` in
-`ledger/verify.py` blocks a commit of builder work no director ruling covers,
-and a ruling means a decision record under `game-design/` carrying a
-`<!--RULING spawn=...-->` stamp naming a real spawn row newer than the
-reference commit. A spawn alone is attendance, not a review, and a resident
-never stamps the director's ruling.
+changes a conclusion, a verifier-builder disagreement, a close-out, and
+anything touching premise, roadmap or this file. Questions fold into one
+spawn; a killed director is resumed, never restarted. The resident hand-applies only dictated
+text or a one-line fix, and never commits a builder's work-in-progress because
+a stop hook asks: the tree goes clean in one reviewed commit per batch. `director_cadence` blocks a commit of
+builder work no ruling covers; a ruling is a decision record under
+`game-design/` carrying a `<!--RULING spawn=...-->` stamp naming a real spawn
+row newer than the reference commit. A spawn alone is attendance, not a
+review, and a resident never stamps the director's ruling.
 
 Reasoning, incidents and the two residual holes:
 `ledger-v2/studio-v2/organization.md`.
@@ -193,21 +192,22 @@ Reasoning, incidents and the two residual holes:
 Jafar: "it has to be EXCEPTIONALLY GOOD from a game feel and UI/UX point of
 view. we don't ship low quality / AI slop here."
 
-And the framing every plan is judged against: unmistakably deeper than KCD2.
-The moat is social memory 93, consequence persistence 95, information 90,
-against a best-in-class of 60, 85 and 65. Everything else is in service of it.
+The framing every plan is judged against: unmistakably deeper than KCD2. The
+moat is social memory 93, consequence persistence 95, information 90, against
+a best-in-class of 60, 85 and 65. Everything else serves it.
 
-And the standing order underneath it, 16 Aug, his words: "use creativity and
-skill and available resources to get the best possible result in all aspects
-of the game." Not "make it work", the best result AVAILABLE. It is asked at
-close, through `production/quality-ladder.md`: is this the best available
-result or the first working one? A blank next rung is a research task, not a
-finished aspect.
+The standing order underneath it, 16 Aug: "use creativity and skill and
+available resources to get the best possible result in all aspects of the
+game." Not "make it work", the best AVAILABLE. Asked at close through
+`production/quality-ladder.md`: best available, or first working? A blank next
+rung is a research task, not a finished aspect.
 
-Reporting to Jafar is high level and judgment, never a status dump, and
-nothing on a clock. Every report carries a picture, which
-`tools/report-frame.py` finds and withholds when the last build measured
-nothing. Shape and incidents: `ledger-v2/studio-v2/operations.md`.
+Reporting to Jafar is THE PRODUCER'S ALONE, ruled 2026-09-03:
+`.claude/agents/producer.md` carries the register, the cap and the required
+link. Resident owns the record, Producer the channel. Judgment, never a status
+dump, nothing on a clock, and every report carries a picture that
+`tools/report-frame.py` withholds when the last build measured nothing.
+Incidents: `ledger-v2/studio-v2/operations.md`.
 
 ## Where the rest of this file went, 2026-09-01
 

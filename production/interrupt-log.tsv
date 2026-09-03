@@ -1,0 +1,21 @@
+# THE DURABLE RECORD OF EVERY ROUTED INTERRUPT. Append-only, one row per
+# interrupt, tab separated. Read by tools/blocking-count.py, which prints
+# Blocking pushes per week. Classes and routing: production/interrupt-classes.md
+#
+# NO SPACES IN ANY VALUE. Every reader of this file splits on whitespace at
+# some point; use / and .. and - for structure. A subject is a slug.
+#
+# date        ISO, the day the interrupt was ROUTED (not the day it arose)
+# class       BLOCKING | DECISION | REVIEW | FYI
+# channel     push | brief | weekly | console
+# subject     slug, no spaces
+# dispute     none | producer-said-blocking | resident-said-blocking
+#             the last two record a Producer-versus-resident disagreement
+#             about the class, which Jafar ruled a health metric
+# link        a GitHub or console URL, or - when there is none yet
+#
+# THIS FILE HAS NO ROWS AS IT IS WRITTEN, 2026-09-03. That is why the counter
+# prints the words nothing measured rather than 0: nobody has routed an
+# interrupt through it yet, and a 0 here would claim a quiet week that was
+# never observed.
+date	class	channel	subject	dispute	link

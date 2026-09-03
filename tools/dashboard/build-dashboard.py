@@ -423,7 +423,8 @@ SOURCES = {
     "usage": "production/budget.md",
     "throughput": "production/throughput.md",
     "tokens": "production/token-ledger.md",
-    "decisions": "game-design/decisions-pending.md",
+    "decisions": "production/decision-queue.md",
+    "register": "ledger-v2/respec/decision-register",
     "learning": "ledger-v2/studio-v2/learning.md",
     "brief": "production/briefs/latest.md",
     "verdict_sim": "game-design/sim-shots/verdict.txt",
@@ -923,25 +924,130 @@ def read_judge(repo):
         checked, "%d source(s) scanned, %d hit(s)" % (len(checked), len(hits)))
 
 
+# THE QUEUE'S OWN SECTIONS. WAITING is the needs-you section and nothing else
+# is: a card under RULED has been decided and counting it as waiting would put
+# a settled question back on Jafar's glance. Named here rather than matched
+# loosely, so a new section heading in that file shows up as an unread section
+# below rather than as a silent re-bucketing.
+QUEUE_WAITING = "WAITING"
+QUEUE_RULED = "RULED"
+CLASS_LINE = re.compile(r"^\s*CLASS:\s*([A-Za-z]+)", re.M)
+INTERRUPT_CLASSES = ("BLOCKING", "DECISION", "REVIEW", "FYI")
+
+
+def queue_sections(text):
+    """PURE. {section-name: [card-heading, ...]} for a decision-queue file, one
+    entry per '### ' heading, plus each card's own body so the CLASS field can
+    be read off it. Sections are '## ' headings; a card before any of them is
+    kept under the empty name and reported rather than dropped."""
+    out, name, card = {}, "", None
+    for line in (text or "").splitlines():
+        if line.startswith("## "):
+            name = plain(line[3:]).upper()
+            out.setdefault(name, [])
+            card = None
+            continue
+        if line.startswith("### "):
+            card = {"title": plain(line[4:]), "body": []}
+            out.setdefault(name, []).append(card)
+            continue
+        if card is not None:
+            card["body"].append(line)
+    return out
+
+
+def card_class(card):
+    """The routing class of one card, or None. Missing is NOT FYI and not any
+    other default: production/interrupt-classes.md says a card with no CLASS
+    line is unclassified, because a default route is how a Blocking item lands
+    on a page nobody opened."""
+    m = CLASS_LINE.search("\n".join(card["body"]))
+    if not m:
+        return None
+    got = m.group(1).upper()
+    return got if got in INTERRUPT_CLASSES else "UNKNOWN:" + got
+
+
 def read_decisions(repo):
-    """The decision inbox: one entry per '### ' heading in the pending file."""
+    """The decision inbox: WAITING for needs-you, the register for decided.
+
+    TWO SOURCES, TWO DIFFERENT QUESTIONS, and they are kept apart on purpose.
+    WAITING answers "what is on Jafar right now". The register answers "what
+    has been settled", and it lives in two places by the queue file's own rule:
+    a D-record under the register directory when a ruling touches architecture
+    or identity, a lighter RULED entry in the queue file otherwise. Both halves
+    are counted and BOTH denominators are printed, because a decided count that
+    quietly read one half would fall the day a ruling went to the other.
+
+    The CLASS field is read off each waiting card so routing is data rather
+    than judgement. A card with no CLASS is counted as unclassified and NAMED;
+    it is never folded into FYI, which is the one class that is never pushed.
+    """
     text = read(src(repo, "decisions"))
+    reg = src(repo, "register")
+    dfiles = sorted(p.name for p in reg.glob("D*.md")) if reg.is_dir() else []
     if text is None:
         return {"count": Reading.unavailable(
             "open decisions", "%s does not exist" % SOURCES["decisions"],
-            [SOURCES["decisions"]]), "items": [], "verified": None}
-    items = [plain(l[4:]) for l in text.splitlines() if l.startswith("### ")]
+            [SOURCES["decisions"]]), "items": [], "verified": None,
+            "decided": Reading.unavailable(
+                "decided", "%s does not exist, so the RULED half of the "
+                "register could not be read; the register directory holds %d "
+                "D-record file(s)" % (SOURCES["decisions"], len(dfiles)),
+                [SOURCES["decisions"], SOURCES["register"]]),
+            "classes": {}, "unclassified": []}
+
+    sections = queue_sections(text)
+    waiting = sections.get(QUEUE_WAITING, [])
+    ruled = [c for name, cards in sections.items() if name.startswith(QUEUE_RULED)
+             for c in cards]
+    other = [name for name in sections
+             if name and name != QUEUE_WAITING and not name.startswith(QUEUE_RULED)]
+    items = [c["title"] for c in waiting]
+
+    classes, unclassified = {}, []
+    for c in waiting:
+        k = card_class(c)
+        if k is None:
+            unclassified.append(c["title"])
+        else:
+            classes[k] = classes.get(k, 0) + 1
+    class_part = ("; every waiting card carries a CLASS (%s)"
+                  % ",".join("%s=%d" % (k, v) for k, v in sorted(classes.items()))
+                  if classes and not unclassified else
+                  "; %d waiting card(s) carry no CLASS line and are "
+                  "UNCLASSIFIED, never routed as FYI by default: %s"
+                  % (len(unclassified), cap(unclassified, keep=2, sep=", "))
+                  if unclassified else
+                  "; no waiting card to take a CLASS from")
+
     v = re.search(r"verified (\d{4}-\d{2}-\d{2})", text)
-    return {"count": Reading.measured(
+    count = Reading.measured(
         "open decisions", len(items),
-        "'### ' headings in %s, which is one per card%s" % (
-            SOURCES["decisions"],
-            "; the file states it was verified " + v.group(1) if v else
-            "; the file states no verified date"),
-        [SOURCES["decisions"]], "%d heading line(s) read in 1 file, of which "
-        "%d are cards" % (len([l for l in text.splitlines()
-                                if l.startswith("#")]), len(items))),
-        "items": items, "verified": v.group(1) if v else None}
+        "'### ' cards under '## %s' in %s, which is one per card%s%s%s" % (
+            QUEUE_WAITING, SOURCES["decisions"], class_part,
+            "; the file states it was verified " + v.group(1) if v else "",
+            "; %d section(s) in the file are neither WAITING nor RULED and "
+            "were not counted: %s" % (len(other), cap(other, keep=3, sep=", "))
+            if other else ""),
+        [SOURCES["decisions"]],
+        "%d '### ' card(s) in the whole file across %d section(s), of which "
+        "%d sit under %s" % (sum(len(c) for c in sections.values()),
+                             len(sections), len(items), QUEUE_WAITING))
+    decided = Reading.measured(
+        "decided", len(ruled) + len(dfiles),
+        "the register in BOTH its halves: %d lighter RULED entr(y/ies) in %s "
+        "plus %d D-record file(s) in %s. A ruling goes to one half or the "
+        "other by the queue file's own rule, so a count of either alone would "
+        "understate it" % (len(ruled), SOURCES["decisions"], len(dfiles),
+                           SOURCES["register"]),
+        [SOURCES["decisions"], SOURCES["register"]],
+        "%d RULED card(s) read plus %d file(s) matching D*.md%s"
+        % (len(ruled), len(dfiles),
+           "" if reg.is_dir() else " (the register directory does not exist)"))
+    return {"count": count, "items": items, "verified": v.group(1) if v else None,
+            "decided": decided, "classes": classes,
+            "unclassified": unclassified}
 
 
 def read_extras(repo):
@@ -1295,6 +1401,7 @@ def build_model(repo, now, checkout=None):
 
 def all_readings(model):
     out = [model["phases"]["current"], model["decisions"]["count"],
+           model["decisions"]["decided"],
            model["throughput"], model["judge"], model["checkout"]]
     out += model["queue"]["cards"]
     out += [model["budget"][k] for k in ("monthly", "oneoff", "spend", "usage")]
@@ -1442,6 +1549,9 @@ def render_html(model):
         items = "".join("<li>%s</li>" % esc(i) for i in dec["items"])
         a('<div class="banner"><b>Decision inbox: %s waiting on Jafar</b><ol>%s</ol>'
           '<div class="why">%s</div></div>' % (esc(n.value), items, esc(n.note)))
+    d = dec["decided"]
+    a('<p class="why">Decided (the register, both halves): %s. %s</p>'
+      % (esc(d.text), esc(d.note)))
 
     # 3. phase pill strip
     a("<h2>Phases</h2>")
@@ -1567,6 +1677,9 @@ def render_status(model):
             a("1. %s" % i)
         a("")
         a("(%s)" % n.note)
+    a("")
+    a("- %s: %s. %s" % (dec["decided"].label, dec["decided"].text,
+                        dec["decided"].note))
     a("")
     a("## Phases")
     a("")
@@ -2570,6 +2683,36 @@ def selftest(repo=None):                                         # noqa: C901
        live["throughput"].available, live["throughput"].note)
     ok("open decisions derives", live["decisions"]["count"].available,
        live["decisions"]["count"].note)
+    ok("open decisions counts the WAITING section of the decision queue, not "
+       "the retired file", "decision-queue.md" in live["decisions"]["count"].note
+       and "WAITING" in live["decisions"]["count"].note,
+       live["decisions"]["count"].note)
+    ok("decided reads BOTH halves of the register and says so",
+       live["decisions"]["decided"].available
+       and "D-record file(s)" in live["decisions"]["decided"].note
+       and "RULED" in live["decisions"]["decided"].note,
+       live["decisions"]["decided"].note)
+    ok("every waiting card on the live queue carries a routing CLASS",
+       not live["decisions"]["unclassified"],
+       live["decisions"]["unclassified"])
+
+    # SYNTHETIC QUEUE TEXT, existing nowhere, so writing a real card can never
+    # break these.
+    fake = ("# q\n\n## WAITING\n\n### synthetic card one\nCLASS: BLOCKING\n"
+            "body\n\n### synthetic card two\nbody with no class line\n\n"
+            "## RULED THIS WEEK\n\n### synthetic ruled card\nRULED.\n\n"
+            "## RETIRED\n\n### synthetic retired card\n")
+    sec = queue_sections(fake)
+    ok("a RULED card is NOT counted as waiting",
+       len(sec["WAITING"]) == 2 and len(sec["RULED THIS WEEK"]) == 1,
+       {k: len(v) for k, v in sec.items()})
+    ok("a card with no CLASS line is unclassified, never defaulted to FYI",
+       card_class(sec["WAITING"][0]) == "BLOCKING"
+       and card_class(sec["WAITING"][1]) is None,
+       [card_class(c) for c in sec["WAITING"]])
+    ok("a CLASS outside the four is reported as UNKNOWN, never folded",
+       card_class({"body": ["CLASS: MARINATING"]}) == "UNKNOWN:MARINATING",
+       card_class({"body": ["CLASS: MARINATING"]}))
     ok("judge agreement reads NOT APPLICABLE on this repo, not 0",
        not live["judge"].available and NOTHING in live["judge"].text,
        live["judge"].text)

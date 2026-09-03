@@ -1,6 +1,15 @@
 # Pending Player Decisions
 
-> **STATUS — LIVE, verified 2026-08-04.** the queue of things only Jafar can answer.
+> **STATUS — LOG, 2026-09-03.** NOT CURRENT: RETIRED, ruled by Jafar (the
+> Director's Console). The live
+> home for anything awaiting him is `production/decision-queue.md`. Its one
+> remaining live card, stranger spacing, was migrated there with options, a
+> recommendation, a default and a deadline. NOTHING NEW IS ADDED HERE.
+> The answered cards below stay as history; the ones that became decisions
+> are D11, D12 and D13 in `ledger-v2/respec/decision-register/`, and the
+> engine tie-break and deadline rulings are the 2 September decision records.
+
+
 > Kept current. If it is wrong, that is a bug in this file.
 
 Standing queue for anything the autonomous build loop cannot decide alone.

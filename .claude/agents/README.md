@@ -5,6 +5,9 @@ minted when their department first has work (waste rule: nothing built ahead
 of need). Current files:
 
 - v2 roles: planner, integrator, dialogue-writer (Phase 0 pilot needs these)
+- producer (tier 1, minted 2026-09-03): the ONLY role that addresses Jafar.
+  Its register is ruled and `tools/producer-check.py` enforces the
+  mechanical half; routing classes are `production/interrupt-classes.md`.
 - v1 roles kept and still valid where their function survives: the tier 2
   verifiers (measurement-auditor, claim-auditor, artifact-reader,
   guard-tester, reach-auditor) map to Verification; the tier 3 builders

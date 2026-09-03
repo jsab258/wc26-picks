@@ -200,7 +200,8 @@ Three rules, and they are not style preferences.
    the live document whenever something lands.
 
 2. **ANYTHING NEEDING HIM GOES IN THE DECISION INBOX FIRST**, which is a
-   `### ` heading in `game-design/decisions-pending.md` and surfaces on the
+   `### ` heading under WAITING in `production/decision-queue.md` (retired
+   2026-09-03: it was `game-design/decisions-pending.md`) and surfaces on the
    dashboard automatically. Written in PLAIN TERMS: what it means, the
    options with what each costs, and a recommendation, so it can be answered
    in one line. A decision mentioned only in chat prose does not exist; he
