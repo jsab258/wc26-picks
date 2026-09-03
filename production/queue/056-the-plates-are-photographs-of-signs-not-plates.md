@@ -2,7 +2,7 @@ line: production (the visual bar, and the asset pipeline that feeds it)
 spec: this file, plus the artifact-reader QA report over all 45 images
 acceptance: (1) every prompt in tools/imagegen/prompts.json carries an explicit framing clause and the generator REFUSES a prompt that lacks one, with a selftest fixture in both directions; (2) a regenerated set in which the artwork fills the frame edge to edge, square on, with no surrounding scene, measured rather than eyeballed: a printed per-image usableFraction with its method named, over a denominator of all 45; (3) the crop rectangles the queue 046 builder wrote by hand are DELETED as dead code, or the record says which images still need one and why
 max_sessions: 2
-status: READY 2026-09-02, blocked on the QA report landing. engine-specialist. Found by Jafar: "are they built and cropped and shaped in a way that they can be used in UE? QA should be standard procedure."
+status: PARTLY LANDED 2026-09-03, commit 991aabf9, and OPEN by the 3 September ruling. Acceptance (1) is met: 41 of 45 recipes moved onto the orthographic prefix and imagegen run 4 regenerated them, skipped=4 remadeRecipeChanged=41 exactly as predicted. Acceptance (2), a usableFraction per image, and (3), the crop rectangles, are NOT met and become queue 057. Was: READY 2026-09-02, blocked on the QA report landing.
 
 ## The finding
 

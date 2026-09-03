@@ -2,7 +2,7 @@ line: production (D1 comparison, the visual bar)
 spec: this file
 acceptance: the street scene places the held props by name from the shared JSON, and the generated decals are applied to the surfaces the bill of materials assigns them to; a printed count of propsPlaced=N/M and decalsApplied=N/M on the sim verdict; a still in which the difference is visible
 max_sessions: 1
-status: READY 2026-09-02. systems-builder. Found by Jafar asking what the images are FOR.
+status: LANDED 2026-09-02, commit c1311ea7. 23 props of the BOM's 37 and 20 decals reach the frame; Unity build 558 read propsPlaced=23/23 decalsApplied=20/20 datumMissing=0/910. Was: READY 2026-09-02.
 
 ## The finding, and it is the project's own rule
 

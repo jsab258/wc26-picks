@@ -2,7 +2,7 @@ line: production (the reporting channel Jafar reads)
 spec: this file
 acceptance: (1) the registered scheduled task brings the checkout current and rebuilds, with `git pull --ff-only` and GIT_EDITOR=true set in the same edit per tools/lint-bat-editor.py, so Jafar clicks NOTHING and the page he opens is built from current files; (2) a fast-forward that is refused, a fetch that fails and a missing network each leave the working tree untouched and are rendered on the page as a checkout-age Reading, MEASURED as "N commit(s) behind origin/<branch>" or UNAVAILABLE with the reason, NEVER as a bare 0; (3) build-dashboard.py --selftest gains an accepting fixture (checkout level with origin) and a rejecting one (checkout deliberately behind), both run
 max_sessions: 1
-status: READY 2026-09-02. engine-specialist. Jafar, 2 Sep, on being told to run a .bat: "not running a bat to update a dashboard. your job is to keep it up to date all the time, that's the whole point."
+status: LANDED 2026-09-02, commit c1311ea7. Fast-forward-only pull before each scheduled rebuild, a checkout-age Reading that is MEASURED or UNAVAILABLE and never a bare zero, and a gate that holds entirely while a build runs on that PC. Was: READY 2026-09-02.
 
 ## The finding
 
