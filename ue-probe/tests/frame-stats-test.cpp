@@ -221,6 +221,175 @@ int main()
 		Check(Pairs >= 9 && Bad == 0, "every key on the per-sample line carries a value");
 	}
 
+
+	// ---- QUEUE 059 (b): CLIPPING, ACCEPTING CASE FIRST -----------------
+	//
+	// The accepting case for an exposure instrument is not a blown frame. It
+	// is a frame with a KNOWN amount of clipping in it, counted exactly, so
+	// that a run reading 13.4% blown is believed and a run reading 0.00% is
+	// known to have looked. Rule 5b: the case it should pass, first.
+	{
+		const int W = 8, H = 4;              // 32 pixels, half of them white
+		std::vector<unsigned char> Px = Flat(W, H, 128, 128, 128);
+		for (int Y = 0; Y < H; ++Y)
+		{
+			for (int X = 4; X < W; ++X)
+			{
+				const size_t I = ((size_t)Y * W + X) * 4;
+				Px[I] = 255; Px[I + 1] = 255; Px[I + 2] = 255;
+			}
+		}
+		const ExposureStats E = MeasureExposure(Px.data(), W, H);
+		Check(E.Measured && E.Pixels == 32, "exposure measured 32 pixels and says so");
+		Check(E.ClipHiAll == 16, "sixteen pixels at 255 on all three channels are counted");
+		Check(E.ClipHiAny == 16, "and the any-channel count agrees when the clip is white");
+		Check(E.ClipLoAll == 0, "nothing is at the bottom of the range in this frame");
+		Check(E.Bands[7] == 16 && E.Bands[4] == 16,
+		      "the eight luma bands put the white half at the top and the grey half mid");
+		long long BandSum = 0;
+		for (int I = 0; I < 8; ++I) { BandSum += E.Bands[I]; }
+		Check(BandSum == E.Pixels, "the bands account for every pixel, which is their denominator");
+		const std::string L = ExposureLine(E);
+		std::printf("    %s\n", L.c_str());
+		Check(L.find("shotClipHiAll=16/32") != std::string::npos,
+		      "the clip count ships with its denominator and never as a mean");
+		Check(L.find("shotClipHiAllPct=50.00") != std::string::npos,
+		      "and the percentage beside it");
+		Check(L.find("shotLumaBandStat=") != std::string::npos,
+		      "the line is not truncated: its last key is present");
+		Check(ValuesHaveNoSpaces(L), "every exposure value is space-free and carries one equals");
+	}
+	// ONE CHANNEL AT THE TOP IS STILL CLIPPING, and the two counts are what
+	// separate a blown white ground from a saturated sodium lamp.
+	{
+		const int W = 4, H = 2;
+		std::vector<unsigned char> Px = Flat(W, H, 50, 100, 255);
+		const ExposureStats E = MeasureExposure(Px.data(), W, H);
+		Check(E.ClipHiAny == 8 && E.ClipHiAll == 0,
+		      "a red channel at 255 counts as any-clip and not as white-clip");
+	}
+	// THE CRUSHED END, AND THE COMPLEMENT CLAIM IN ITS OWN RULE STRING
+	// CHECKED RATHER THAN ASSERTED: shotClipLoAll is shotPixels minus
+	// shotNonBlackPixels, which is what the printed rule says it is.
+	{
+		const int W = 6, H = 3;
+		std::vector<unsigned char> Px = Flat(W, H, 0, 0, 0);
+		for (size_t I = 0; I < 4; ++I) { Px[I * 4 + 1] = 9; }
+		const ExposureStats E = MeasureExposure(Px.data(), W, H);
+		const FrameStats S = Measure(Px.data(), W, H);
+		Check(E.ClipLoAll == S.Pixels - S.NonBlack,
+		      "the low-clip count equals pixels minus non-black, as its rule string claims");
+		Check(E.Bands[0] == 18, "and a near-black frame puts every pixel in the darkest band");
+	}
+	// AND NOTHING MEASURED SAYS THE WORDS. Eight zeros with denominators
+	// would read as a frame that was examined and found clean.
+	{
+		const std::string L = ExposureLine(MeasureExposure(nullptr, 0, 0));
+		Check(L.find("shotClipStatus=NOTHING-MEASURED") != std::string::npos
+		      && L.find("shotClipHiAny=") == std::string::npos,
+		      "an undecoded frame prints nothing-measured and no clean-looking zeros");
+	}
+
+	// ---- QUEUE 059 (a): PER-LIGHT CONTRIBUTION, ACCEPTING CASE FIRST ----
+	//
+	// The accepting case is a pair that DIFFERS by a known amount in a known
+	// place: right half brighter by 51 code values, which is a luma rise of
+	// 0.2 exactly. If this instrument cannot see that, no reading it takes of
+	// a real lantern means anything.
+	{
+		const int W = 8, H = 4;
+		std::vector<unsigned char> Off = Flat(W, H, 10, 10, 10);
+		std::vector<unsigned char> On  = Off;
+		for (int Y = 0; Y < H; ++Y)
+		{
+			for (int X = 4; X < W; ++X)
+			{
+				const size_t I = ((size_t)Y * W + X) * 4;
+				On[I] = 61; On[I + 1] = 61; On[I + 2] = 61;
+			}
+		}
+		const LightDelta D = MeasureLightDelta(On.data(), Off.data(), W, H);
+		Check(D.Comparable && D.Pixels == 32, "the pair is comparable and 32 pixels wide");
+		Check(Near(D.MaxRise, 51.0 / 255.0), "the largest single-pixel rise is the one planted");
+		Check(Near(D.MeanDeltaFull, 0.5 * 51.0 / 255.0),
+		      "half the frame rising by 0.2 is a whole-frame mean delta of 0.1");
+		Check(D.RoseAtLeast[0] == 16 && D.RoseAtLeast[5] == 16,
+		      "all sixteen lit pixels clear every code edge up to 32");
+		Check(D.PixelsDarkerWithLightOn == 0,
+		      "and no pixel got darker with the light on, so no auto-exposure is suspected");
+		Check(D.PeakCol == 4 && D.PeakRow == 0,
+		      "the peak region is named as a grid cell and it is in the half that changed");
+		Check(Near(D.PeakMeanOn - D.PeakMeanOff, D.PeakMeanDelta),
+		      "the peak's two halves are that region's own means, captured where it peaks");
+		const std::string L = LightDeltaLine("lantern_02", "lantern", 2, 4, "vign_camB_night",
+		                                     "cam_B", "wet_night", "MEASURED", D, "");
+		std::printf("    %s\n", L.c_str());
+		Check(L.find("peakRegion=c4r0/of8x4") != std::string::npos
+		      && L.find("peakRegionPx=x4..5/y0..1") != std::string::npos,
+		      "the sample region is named in the line, in cells and in pixels");
+		Check(L.find("deltaPixelsOf=32") != std::string::npos,
+		      "the histogram ships its denominator");
+		Check(L.find("lightDeltaNote=none") != std::string::npos,
+		      "the line is not truncated: its last key is present");
+		// The two leading tokens are the line's kind and the light's id, as
+		// on the shot line; everything after them is key=value.
+		const size_t Cut = L.find("kind=");
+		Check(Cut != std::string::npos && ValuesHaveNoSpaces(L.substr(Cut)),
+		      "every light value is space-free and carries one equals");
+	}
+	// THE CONTROL: TWO FRAMES OF THE SAME SCENE WITH NOTHING TOGGLED. This is
+	// the run's own noise floor and the reason no epsilon had to be invented.
+	// A zero here must still print its denominator.
+	{
+		const int W = 8, H = 4;
+		std::vector<unsigned char> A = Flat(W, H, 30, 40, 50);
+		const LightDelta D = MeasureLightDelta(A.data(), A.data(), W, H);
+		Check(Near(D.MeanDeltaFull, 0.0) && D.RoseAtLeast[0] == 0,
+		      "an untouched pair reads zero rise, which is what a control must read");
+		const std::string L = LightDeltaLine("control_no_toggle", "control", 0, 0,
+		                                     "vign_camB_night", "cam_B", "wet_night",
+		                                     "MEASURED", D, "");
+		Check(L.find("deltaPixelsRoseAtLeast=0/0/0/0/0/0") != std::string::npos
+		      && L.find("deltaPixelsOf=32") != std::string::npos,
+		      "the control's zeros ship the count of what was examined");
+	}
+	// A LIGHT THAT MAKES PIXELS DARKER IS THE AUTO-EXPOSURE TELL, and it is
+	// counted rather than clamped away.
+	{
+		const int W = 4, H = 4;
+		std::vector<unsigned char> Off = Flat(W, H, 90, 90, 90);
+		std::vector<unsigned char> On  = Flat(W, H, 80, 80, 80);
+		const LightDelta D = MeasureLightDelta(On.data(), Off.data(), W, H);
+		Check(D.PixelsDarkerWithLightOn == 16 && D.MaxRise == 0.0,
+		      "every pixel darker with the light on is counted, and no rise is invented");
+	}
+	// AND A PAIR THAT IS NOT A PAIR SAYS SO. A missing half is not a light
+	// that contributed nothing.
+	{
+		const LightDelta D = MeasureLightDelta(nullptr, nullptr, 0, 0);
+		const std::string L = LightDeltaLine("lantern_01", "lantern", 1, 4, "vign_camA_night",
+		                                     "cam_A", "wet_night", "NO-FILE", D,
+		                                     "probe-frame-never-arrived");
+		Check(!D.Comparable && L.find("lightDelta=NOTHING-MEASURED") != std::string::npos
+		      && L.find("lightStatus=NO-FILE") != std::string::npos,
+		      "an absent probe frame prints nothing measured and keeps its own reason");
+	}
+	// THE RUN SUMMARY. A pass that probed nothing may not read as a pass, and
+	// the budget must be visible from the line when it bites.
+	{
+		const std::string L = LightProbeDoneLine(0, 7, 0, 0, 0, 0, 0, 0, 2, 90.0, 0.0, 32, 0);
+		Check(L.find("lightProbeStatus=NOTHING-MEASURED") != std::string::npos,
+		      "a light pass that probed nothing says nothing measured");
+		const std::string M = LightProbeDoneLine(5, 7, 4, 1, 1, 0, 0, 2, 2, 90.0, 61.5, 32, 2);
+		std::printf("    %s\n", M.c_str());
+		Check(M.find("lightProbeStatus=PARTIAL-BUDGET-BIT") != std::string::npos
+		      && M.find("lightsSkippedBudget=1") != std::string::npos,
+		      "and a budget that bit announces itself with the count it cost");
+		Check(M.find("lightsReachedFrame=4/5") != std::string::npos,
+		      "reached-frame is over the number probed, not over the number of lights");
+		Check(ValuesHaveNoSpaces(M), "every light-pass value is space-free");
+	}
+
 	std::printf("frame-stats-test: %d check(s), %d failure(s)\n", Checks, Failures);
 	return Failures == 0 ? 0 : 2;
 }

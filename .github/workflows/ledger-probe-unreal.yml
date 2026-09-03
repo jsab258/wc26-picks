@@ -282,6 +282,37 @@ jobs:
           #
           # Failure here is informative and must not eat the build numbers
           # already collected, so it writes what it knows and carries on.
+          # PHASE C, THE ONE BINARY ASSET, MADE BY A SCRIPT AND NEVER BY HAND,
+          # which is D1 measurement (a). Why and what: the docstring of
+          # tools/ue/make_base_material.py; the ordering and the editor-module
+          # build are explained in ue-probe/Config/DefaultGame.ini beside the
+          # cook directory. Failing here cannot stop the cook.
+          $edCmd = Join-Path $ue "Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
+          $matPy = Join-Path $PWD "tools\ue\make_base_material.py"
+          $matOut = Join-Path $PWD "ue-probe\ue-material.txt"
+          Remove-Item $matOut -Force -ErrorAction SilentlyContinue
+          if (-not (Test-Path $edCmd) -or -not (Test-Path $matPy)) {
+            $L += "materialStatus=NO-TOOL materialEditorFound=$(Test-Path $edCmd) materialScriptFound=$(Test-Path $matPy)"
+          } else {
+            $t3 = Get-Date
+            $pe = Start-Process -FilePath $buildBat -ArgumentList @("LedgerProbeEditor","Win64","Development","-Project=`"$proj`"","-WaitMutex","-NoHotReload") -Wait -PassThru -NoNewWindow -RedirectStandardOutput "build-editor.log" -RedirectStandardError "build-editor.err"
+            $L += "editorBuildExit=$($pe.ExitCode) editorBuildMinutes=$([math]::Round(((Get-Date)-$t3).TotalMinutes,2))"
+            $pyp = @(Get-ChildItem (Join-Path $ue "Engine\Plugins") -Filter "PythonScriptPlugin.uplugin" -Recurse -ErrorAction SilentlyContinue)
+            $L += "materialPythonPlugin=$(if ($pyp.Count) { 'found' } else { 'NOT-FOUND' })/$($pyp.Count)"
+            $t4 = Get-Date
+            $pm = Start-Process -FilePath $edCmd -ArgumentList @("`"$proj`"","-run=pythonscript","-script=`"$matPy`"","-EnablePlugins=PythonScriptPlugin","-unattended","-nopause","-nosplash","-stdout") -Wait -PassThru -NoNewWindow -RedirectStandardOutput "material.log" -RedirectStandardError "material.err"
+            $L += "materialScriptExit=$($pm.ExitCode) materialScriptMinutes=$([math]::Round(((Get-Date)-$t4).TotalMinutes,2))"
+            if (Test-Path $matOut) { $L += (Get-Content $matOut -Raw).Trim() } else {
+              $L += "materialStatus=NO-LINE materialNote=the-script-wrote-no-ue-material.txt"
+              $me = @(Get-Content "material.log" -ErrorAction SilentlyContinue | Select-String "Error:|Fatal|Traceback|Python")
+              $L += "materialLogInteresting=$($me.Count)"
+              $L += ($me | Select-Object -First 12 | ForEach-Object { $_.ToString() })
+              if ($me.Count -gt 12) { $L += "(+$($me.Count - 12) more matching line(s) not shown)" }
+            }
+            $ua = Join-Path $PWD "ue-probe\Content\Ledger\M_LedgerSurface.uasset"
+            $L += "materialUassetBytes=$(if (Test-Path $ua) { (Get-Item $ua).Length } else { 0 }) materialUasset=ue-probe/Content/Ledger/M_LedgerSurface.uasset"
+          }
+
           $uat = Join-Path $ue "Engine\Build\BatchFiles\RunUAT.bat"
           $archive = Join-Path $PWD "ue-probe\Packaged"
           $packagedExe = $null
@@ -965,6 +996,15 @@ jobs:
           # tracked copies before running, so these paths either hold pictures
           # this run rendered or hold nothing.
           git add -A -- 'production/d1-probe/ue-vign_*.png' 2>/dev/null || true
+          # THE BASE MATERIAL, BY NAME. It is a BUILD PRODUCT made by
+          # tools/ue/make_base_material.py in the step above, never by hand,
+          # and it is committed so the next cook has something to carry into
+          # the packaged game. Plain add rather than -A on purpose: a run
+          # whose editor never started must not stage the DELETION of the
+          # asset the last good run made. What this run did is on the build
+          # verdict's materialStatus line either way.
+          [ -f ue-probe/Content/Ledger/M_LedgerSurface.uasset ] && \
+            git add -- ue-probe/Content/Ledger/M_LedgerSurface.uasset
           git diff --cached --quiet && { echo "probe result unchanged; nothing to commit"; exit 0; }
           git commit -m "UE machine probe from $(git rev-parse --short HEAD)"
           BR="${GITHUB_REF_NAME}"

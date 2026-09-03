@@ -48,6 +48,7 @@
 #include "VignetteShot.h"
 #include "VignetteSpec.h"
 #include "FrameStats.h"
+#include "SurfaceBind.h"
 
 #include "CoreMinimal.h"
 #include "Misc/Paths.h"
@@ -77,6 +78,10 @@
 #include "GameFramework/PlayerController.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
+#include "Engine/Texture2D.h"
+#include "Materials/MaterialInterface.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "HAL/IConsoleManager.h"
 #include "IImageWrapper.h"
 #include "IImageWrapperModule.h"
 
@@ -138,6 +143,41 @@ namespace
 	// cameras see, and it is printed so nobody has to find it in code.
 	const float kDecalLiftCm = 1.0f;
 
+	// ---- queue 059: what it takes to ask whether a light reached a pixel --
+	//
+	// THE PROBE GRID. The peak sample region is a cell of this grid and the
+	// verdict prints the cell and its pixel rectangle, so a reader knows
+	// WHERE the contribution landed without opening the frame. Eight by four
+	// over 1280x720 is a 160x180 cell, which is about the size a lantern's
+	// pool of light covers at this camera distance. It is a reporting
+	// resolution, not a bound.
+	const int32 kProbeGridCols = 8;
+	const int32 kProbeGridRows = 4;
+	// A CEILING ON THE PASS, NOT A TARGET, AND IT ANNOUNCES WHEN IT BITES.
+	// Every probe frame is a screenshot round trip and the file ceiling above
+	// is 25 seconds, so a machine that stops writing files could otherwise
+	// spend fourteen of them here. When this bites, the lights it cost are
+	// counted on the light-pass line and the status reads PARTIAL-BUDGET-BIT.
+	const double kLightProbeBudgetSeconds = 240.0;
+	// ONE SCRATCH NAME FOR EVERY PROBE FRAME, deleted when the run ends.
+	const TCHAR* kProbePngLeaf = TEXT("ue-lightprobe.png");
+
+	// ---- phase C: the pack's maps and the one asset a script had to make --
+	//
+	// THE BASE MATERIAL IS A BUILD PRODUCT, NOT A HAND-MADE ASSET. Unreal
+	// compiles materials in the editor and a packaged game can only INSTANCE
+	// one, so Phase C needs exactly one binary asset;
+	// tools/ue/make_base_material.py makes it in the cook step and the cook
+	// carries it in through +DirectoriesToAlwaysCook=(Path="/Game/Ledger").
+	// If it is not there this run says so on the materials line and the
+	// street still renders untextured: a missing material is a finding, not
+	// a black frame.
+	const TCHAR* kBaseMaterialPath = TEXT("/Game/Ledger/M_LedgerSurface.M_LedgerSurface");
+	// HOW MANY METRES ONE TILE OF A PACK TEXTURE COVERS. A convention, named
+	// and printed, not a measured bound: the pack ships no scale and this is
+	// the first value of a series nothing has printed yet.
+	const double kMetresPerTile = 2.0;
+
 	enum class EPhase : uint8
 	{
 		WaitWorld, Build, ApplyShot, Warm, Timed, Ask, WaitFile, Done
@@ -178,6 +218,39 @@ namespace
 	TArray<APointLight*> GLanterns;
 	TArray<APointLight*> GWindows;
 	TMap<FString, AStaticMeshActor*> GByName;
+	// THE NAMES OF THE LIGHTS, IN THE ORDER THEY WERE SPAWNED. A per-light
+	// reading whose subject is called "light 3" is not attributable to
+	// anything in the file, so the piece name the lantern hangs under and the
+	// lit_bays name the practical sits in are kept beside the pointers.
+	std::vector<std::string> GLanternNames;
+	std::vector<std::string> GWindowNames;
+
+	// ---- the light pass ---------------------------------------------------
+	bool    GProbing        = false;
+	int32   GProbeSeq       = -1;     // -1 is the control, then 0..N-1
+	bool    GProbeVisWas    = true;   // CAPTURED, never assumed, before a toggle
+	double  GProbeStarted   = 0.0;    // when the first probe of the run began
+	double  GProbeSpent     = 0.0;    // cumulative seconds inside the pass
+	TArray64<uint8> GRefBgra;         // the reference frame, kept to diff against
+	int32   GRefW = 0, GRefH = 0;
+	std::string GRefShotId;
+	std::vector<std::string> GLightLines;
+	int GProbed = 0, GEligible = 0, GReached = 0, GSkippedOff = 0;
+	int GSkippedBudget = 0, GProbeNoFile = 0, GRestoreMismatch = 0;
+	int GShotsProbed = 0, GControls = 0;
+	FString GToneLine = TEXT("tonemapRead=NOT-REACHED");
+
+	// ---- the material pass -------------------------------------------------
+	FString GTexRoot;
+	int32   GTexRootFiles = 0;
+	UMaterialInterface* GBaseMaterial = nullptr;
+	std::vector<LedgerSurface::Bound> GBinds;
+	int32 GTexturesImported = 0, GMidsCreated = 0;
+	std::string GMaterialsLine =
+		"materialsStatus=NOT-REACHED materialsNote=the-material-pass-never-ran";
+	// DECLARED HERE, DEFINED BELOW. BuildScene calls it and is written above
+	// it, and the pack import needs DecodeBgra's neighbours to be in scope.
+	void BindSurfaces();
 
 	FString NoSp(const FString& In) { return In.Replace(TEXT(" "), TEXT("~")); }
 
@@ -458,7 +531,11 @@ namespace
 				World, FVector(P.X * 100.0, P.Z * 100.0, (P.Y - 0.05) * 100.0),
 				Lamp, (float)GSpec.Lantern.RangeM,
 				(float)GSpec.Lantern.Intensity * kLampGainUnitless, true);
-			if (L != nullptr) { GLanterns.Add(L); }
+			if (L != nullptr)
+			{
+				GLanterns.Add(L);
+				GLanternNames.push_back(NoSpaces(P.Name));
+			}
 		}
 
 		// H5: THE WINDOW PRACTICALS, AT THE NAMES THE FILE LISTS AND NOWHERE
@@ -476,7 +553,12 @@ namespace
 			APointLight* L = SpawnPointLight(World, At, Warm,
 				(float)GSpec.Windows.ShopRangeM,
 				(float)GSpec.Windows.ShopIntensity * kLampGainUnitless, false);
-			if (L != nullptr) { GWindows.Add(L); } else { ++WindowsUnplaced; }
+			if (L != nullptr)
+			{
+				GWindows.Add(L);
+				GWindowNames.push_back(NoSpaces(GSpec.Windows.LitNames[I]));
+			}
+			else { ++WindowsUnplaced; }
 		}
 		if (WindowsUnplaced > 0)
 		{
@@ -519,6 +601,9 @@ namespace
 			GFog ? "yes" : "SPAWN-FAILED",
 			kLampGainUnitless, kFogDensityGain, kDecalLiftCm);
 		GSceneLine += Buf;
+		// PHASE C, AFTER EVERY PIECE IS SPAWNED AND NAMED. It reads GByName,
+		// so it cannot run before the pieces are in it.
+		BindSurfaces();
 	}
 
 	const Camera* FindCamera(const std::string& Id)
@@ -568,6 +653,18 @@ namespace
 		}
 	}
 
+	// A CVAR THIS ENGINE VERSION DOES NOT CARRY PRINTS THE WORD `absent`.
+	// A missing cvar read as 0 is the same string a disabled feature prints,
+	// and the two are different facts.
+	FString CVarIntOrAbsent(const TCHAR* Name)
+	{
+		if (IConsoleVariable* V = IConsoleManager::Get().FindConsoleVariable(Name))
+		{
+			return FString::Printf(TEXT("%d"), V->GetInt());
+		}
+		return TEXT("absent");
+	}
+
 	// PLACE THE CAMERA AND READ THE PLACEMENT BACK. Asking for a transform
 	// and printing the transform you asked for is not evidence that anything
 	// moved.
@@ -614,6 +711,34 @@ namespace
 				CC->SetFieldOfView((float)HorizontalFovDeg(C.FovVerticalDeg, kShotW, kShotH));
 				CC->SetAspectRatio((float)kShotW / (float)kShotH);
 				CC->SetConstraintAspectRatio(true);
+				// WHAT THE TONE MAPPER IS SET TO, READ BACK RATHER THAN
+				// ASSUMED, because a clipped ground plane is a question about
+				// exposure and this probe overrides nothing. The camera's own
+				// post-process values are printed WITH their override flags,
+				// since a value that is not overridden is not the value in
+				// force; the cvars beside them are what actually decides, and
+				// a cvar this engine version does not have prints `absent`
+				// rather than a zero that would read as "off".
+				const FPostProcessSettings& PP = CC->PostProcessSettings;
+				GToneLine = FString::Printf(
+					TEXT("tonemapRead=camera-postprocess-and-cvars ")
+					TEXT("ppAutoExposureMethod=%d ppAutoExposureBias=%.3f ")
+					TEXT("ppAutoExposureMinBrightness=%.4f ppAutoExposureMaxBrightness=%.4f ")
+					TEXT("ppOverridesMethod/Bias/Min/Max=%d/%d/%d/%d ")
+					TEXT("cvarDefaultAutoExposure=%s cvarDefaultAutoExposureMethod=%s ")
+					TEXT("cvarEyeAdaptationMethodOverride=%s cvarExtendDefaultLuminanceRange=%s ")
+					TEXT("tonemapStat=last-camera-placement/one-per-run ")
+					TEXT("ppNote=this-probe-overrides-nothing/cvars-are-what-is-in-force"),
+					(int32)PP.AutoExposureMethod, PP.AutoExposureBias,
+					PP.AutoExposureMinBrightness, PP.AutoExposureMaxBrightness,
+					PP.bOverride_AutoExposureMethod ? 1 : 0,
+					PP.bOverride_AutoExposureBias ? 1 : 0,
+					PP.bOverride_AutoExposureMinBrightness ? 1 : 0,
+					PP.bOverride_AutoExposureMaxBrightness ? 1 : 0,
+					*CVarIntOrAbsent(TEXT("r.DefaultFeature.AutoExposure")),
+					*CVarIntOrAbsent(TEXT("r.DefaultFeature.AutoExposure.Method")),
+					*CVarIntOrAbsent(TEXT("r.EyeAdaptation.MethodOverride")),
+					*CVarIntOrAbsent(TEXT("r.DefaultFeature.AutoExposure.ExtendDefaultLuminanceRange")));
 			}
 		}
 		FVector GotLoc = FVector::ZeroVector;
@@ -656,9 +781,33 @@ namespace
 		Out.Add(TEXT("# status=WROTE needs a decoded file with more than one bucket and at least one"));
 		Out.Add(TEXT("#   non-black pixel. BLANK, UNDECODABLE and NO-FILE are the three ways it fails"));
 		Out.Add(TEXT("#   and the step exits non-zero for all three with the evidence still committed."));
+		Out.Add(TEXT("# QUEUE 059, THE TWO MEASUREMENTS RUN 17 DID NOT HAVE. lanternsPlaced=4/4 was"));
+		Out.Add(TEXT("#   true and answered `were four lights created`, while both night frames were"));
+		Out.Add(TEXT("#   black; shotMeanLuma=0.5030 was true over a day frame whose ground plane was"));
+		Out.Add(TEXT("#   entirely clipped. Neither number could see it. These can:"));
+		Out.Add(TEXT("# shotClipHiAny/shotClipHiAll/shotClipLoAll: COUNTS of pixels at the top and"));
+		Out.Add(TEXT("#   bottom of the 8-bit range over shotPixels, never a mean. shotLumaBands is"));
+		Out.Add(TEXT("#   eight equal luma bands, band 0 darkest: a printed series, not a bound."));
+		Out.Add(TEXT("# light lines: one per probed light, the SAME camera, condition and frame"));
+		Out.Add(TEXT("#   counts as its shot with that one light switched off. deltaMeanFull is the"));
+		Out.Add(TEXT("#   whole frame, deltaMeanPeak is the named grid cell in peakRegion, and both"));
+		Out.Add(TEXT("#   halves of every difference are printed beside it (meanOn.. and meanOff..)."));
+		Out.Add(TEXT("# THE CONTROL LINE TOGGLES NOTHING and is this run's own noise floor. A"));
+		Out.Add(TEXT("#   lantern whose histogram does not clear the control's did not light the"));
+		Out.Add(TEXT("#   frame. No threshold is set here: read the series, set the bound after."));
+		Out.Add(TEXT("# NO BOUND IN THIS RUN. lampGain and fogGain are unchanged first values and"));
+		Out.Add(TEXT("#   the picture is not to be fixed before it is measured."));
+		Out.Add(TEXT("# PHASE C, MATERIALS. One surface line per surface the shared file asked for,"));
+		Out.Add(TEXT("#   with what each map LOADED AS rather than what its filename claims, and the"));
+		Out.Add(TEXT("#   candidates tried for every map that is not there. The base material is a"));
+		Out.Add(TEXT("#   BUILD PRODUCT made by tools/ue/make_base_material.py in the cook step: no"));
+		Out.Add(TEXT("#   human opens the editor, which is D1 measurement (a) in one line."));
+		Out.Add(TEXT("#   materialBase=MISSING means the cook did not carry the asset and every"));
+		Out.Add(TEXT("#   surface below is untextured however many maps decoded."));
 		Out.Add(TEXT(""));
 		Out.Add(FString(UTF8_TO_TCHAR(GSceneLine.c_str())));
 		Out.Add(GCamLine);
+		Out.Add(GToneLine);
 		if (GShotLines.empty())
 		{
 			Out.Add(TEXT("NOTHING MEASURED - no shot reached the measuring step on this commit."));
@@ -670,6 +819,31 @@ namespace
 				Out.Add(FString(UTF8_TO_TCHAR(GShotLines[I].c_str())));
 			}
 		}
+		for (size_t I = 0; I < GBinds.size(); ++I)
+		{
+			Out.Add(FString(UTF8_TO_TCHAR(LedgerSurface::SurfaceLine(GBinds[I]).c_str())));
+		}
+		if (GBinds.empty())
+		{
+			Out.Add(TEXT("# no surface line: the material pass did not reach a surface."));
+		}
+		Out.Add(FString(UTF8_TO_TCHAR(GMaterialsLine.c_str())));
+		if (GLightLines.empty())
+		{
+			Out.Add(TEXT("# no light was probed on this commit; the pass line below says why."));
+		}
+		else
+		{
+			for (size_t I = 0; I < GLightLines.size(); ++I)
+			{
+				Out.Add(FString(UTF8_TO_TCHAR(GLightLines[I].c_str())));
+			}
+		}
+		Out.Add(FString(UTF8_TO_TCHAR(LedgerFrame::LightProbeDoneLine(
+			GProbed, GEligible, GReached, GSkippedOff, GSkippedBudget, GProbeNoFile,
+			GRestoreMismatch, GShotsProbed, (int)GSpec.Shots.size(),
+			kLightProbeBudgetSeconds, GProbeSpent,
+			kWarmFrames + kTimedFrames, GControls).c_str())));
 		Out.Add(FString(UTF8_TO_TCHAR(DoneLine.c_str())));
 		if (!GArt.empty())
 		{
@@ -687,6 +861,9 @@ namespace
 	{
 		GPhase = EPhase::Done;
 		WriteVerdict(DoneLine);
+		// THE PROBE'S SCRATCH FRAME IS NOT EVIDENCE AND DOES NOT SURVIVE THE
+		// RUN. Scoped to exactly the one file this pass wrote.
+		IFileManager::Get().Delete(*AbsProject(kProbePngLeaf), false, true, true);
 		FPlatformMisc::RequestExit(false);
 	}
 
@@ -749,6 +926,52 @@ namespace
 		return Best;
 	}
 
+	// ---- queue 059 (a): the lights this pass can ask about ---------------
+	//
+	// ONE ORDER, ONE PLACE. The lanterns first and the practicals after, and
+	// every accessor below reads that one order, so a light's index on its
+	// verdict line and the light this code toggled cannot drift apart.
+	int32 ProbeTargetCount()
+	{
+		return GLanterns.Num() + GWindows.Num();
+	}
+
+	APointLight* ProbeLight(int32 I)
+	{
+		if (I < 0) { return nullptr; }
+		if (I < GLanterns.Num()) { return GLanterns[I]; }
+		const int32 J = I - GLanterns.Num();
+		return (J < GWindows.Num()) ? GWindows[J] : nullptr;
+	}
+
+	std::string ProbeId(int32 I)
+	{
+		if (I >= 0 && I < GLanterns.Num())
+		{
+			return (size_t)I < GLanternNames.size() ? GLanternNames[(size_t)I]
+			                                        : std::string("lantern-unnamed");
+		}
+		const int32 J = I - GLanterns.Num();
+		if (J >= 0 && (size_t)J < GWindowNames.size()) { return GWindowNames[(size_t)J]; }
+		return std::string("light-unnamed");
+	}
+
+	const char* ProbeKind(int32 I)
+	{
+		return (I < GLanterns.Num()) ? "lantern" : "practical";
+	}
+
+	// A SHOT IS PROBED IF ITS CONDITION HAS ANY OF THESE LIGHTS ON. Probing a
+	// condition that turned the lanterns off would measure a difference of
+	// zero and print it beside the word lantern, which is exactly the false
+	// reading this item exists to stop.
+	bool ShouldProbeShot(const Shot& S)
+	{
+		const Condition* C = FindCondition(S.ConditionId);
+		if (C == nullptr) { return false; }
+		return (C->LanternsOn && GLanterns.Num() > 0) || (C->WindowsOn && GWindows.Num() > 0);
+	}
+
 	// MEASURE THE FILE THAT IS ABOUT TO BE COMMITTED, not the buffer the
 	// engine had in memory, and let the maths and the string come from the
 	// tested header.
@@ -796,16 +1019,455 @@ namespace
 		// through PixelLine, which carries only what is true of THIS frame.
 		Line += " ";
 		Line += LedgerFrame::PixelLine(St);
+		// AND WHAT THE TONE MAPPER DID TO THIS FRAME, as counts with their
+		// denominator at both ends. shotMeanLuma=0.5030 sat over a day frame
+		// whose whole ground plane was clipped, because a mean cannot see
+		// clipping; these keys can, and the eight luma bands are the series a
+		// bound gets read off later rather than invented now.
+		Line += " ";
+		Line += LedgerFrame::ExposureLine(
+			LedgerFrame::MeasureExposure((const unsigned char*)Bgra.GetData(), W, H));
 		GShotLines.push_back(Line);
 		if (GArt.empty())
 		{
 			GArt = LedgerFrame::AsciiLuma((const unsigned char*)Bgra.GetData(), W, H);
+		}
+		// THE REFERENCE HALF OF EVERY DIFFERENCE THIS SHOT IS ABOUT TO TAKE.
+		// Kept only when the shot is going to be probed, and dropped
+		// otherwise, so no later probe can diff against another shot's frame.
+		if (ShouldProbeShot(S))
+		{
+			GRefBgra = MoveTemp(Bgra);
+			GRefW = W; GRefH = H;
+			GRefShotId = S.Id;
+		}
+		else
+		{
+			GRefBgra.Empty();
+			GRefW = 0; GRefH = 0;
+			GRefShotId.clear();
 		}
 	}
 
 	FString ShotPngPath(const Shot& S)
 	{
 		return AbsProject(*FString::Printf(TEXT("ue-%s.png"), UTF8_TO_TCHAR(S.Id.c_str())));
+	}
+
+	// ONE SCRATCH PATH, OVERWRITTEN BY EVERY PROBE AND DELETED AT THE END.
+	// A probe frame is half of a difference and the difference is the
+	// finding, so fourteen of them are not evidence worth committing; the
+	// step stages by name and would not collect them in any case.
+	FString ProbePngPath()
+	{
+		return AbsProject(kProbePngLeaf);
+	}
+
+	void EmitLightLine(const Shot& S, int32 Seq, const char* Status,
+	                   const LedgerFrame::LightDelta& D, const std::string& Note)
+	{
+		const std::string Id = (Seq < 0) ? std::string("control_no_toggle") : ProbeId(Seq);
+		const char* Kind = (Seq < 0) ? "control" : ProbeKind(Seq);
+		GLightLines.push_back(LedgerFrame::LightDeltaLine(
+			Id, Kind, Seq + 1, ProbeTargetCount(), S.Id, S.CameraId, S.ConditionId,
+			Status, D, Note));
+	}
+
+	// ADVANCE TO THE NEXT THING TO PHOTOGRAPH, OR END THE PASS.
+	//
+	// Sequence -1 is the CONTROL: the same camera, the same condition, the
+	// same frame counts and NOTHING TOGGLED. Its delta against the reference
+	// is this run's own noise floor, which is why no epsilon had to be
+	// invented for "did this light reach a pixel".
+	//
+	// A LIGHT ALREADY OFF IN THIS CONDITION IS NOT PHOTOGRAPHED. Toggling it
+	// would measure a difference of zero and print it beside the word
+	// lantern, which is the false reading this whole item exists to stop.
+	bool BeginNextProbe(const Shot& S)
+	{
+		while (true)
+		{
+			++GProbeSeq;
+			if (GProbeSeq == -1)
+			{
+				++GControls;
+				GProbeStarted = FPlatformTime::Seconds();
+				return true;
+			}
+			if (GProbeSeq >= ProbeTargetCount()) { return false; }
+			APointLight* L = ProbeLight(GProbeSeq);
+			ULightComponent* LC = (L != nullptr) ? L->GetLightComponent() : nullptr;
+			if (LC == nullptr)
+			{
+				EmitLightLine(S, GProbeSeq, "NO-LIGHT-COMPONENT", LedgerFrame::LightDelta(),
+				              "the-spawned-actor-carried-no-light-component");
+				continue;
+			}
+			// READ BACK WHAT THE CONDITION LEFT, never assume it.
+			const bool bOn = LC->IsVisible();
+			if (!bOn)
+			{
+				++GSkippedOff;
+				EmitLightLine(S, GProbeSeq, "SKIPPED-ALREADY-OFF", LedgerFrame::LightDelta(),
+				              "off-in-this-condition/nothing-to-difference");
+				continue;
+			}
+			++GEligible;
+			if (GProbeSpent >= kLightProbeBudgetSeconds)
+			{
+				// THE CAP ANNOUNCES WHEN IT BITES, and the loop keeps
+				// counting the rest so the denominator stays true.
+				++GSkippedBudget;
+				continue;
+			}
+			GProbeVisWas = bOn;
+			LC->SetVisibility(false);
+			GProbeStarted = FPlatformTime::Seconds();
+			return true;
+		}
+	}
+
+	// PUT BACK WHAT WAS CAPTURED, THEN READ IT BACK. A probe that restores a
+	// value it guessed at leaves the run's evidence frames lit by the
+	// probe's idea of the scene, and a restore nobody read back is a claim.
+	void RestoreProbeLight()
+	{
+		if (GProbeSeq < 0) { return; }
+		APointLight* L = ProbeLight(GProbeSeq);
+		ULightComponent* LC = (L != nullptr) ? L->GetLightComponent() : nullptr;
+		if (LC == nullptr) { return; }
+		LC->SetVisibility(GProbeVisWas);
+		if (LC->IsVisible() != GProbeVisWas) { ++GRestoreMismatch; }
+	}
+
+	// THE DIFFERENCE, TAKEN IN THE TESTED HEADER. On is the reference frame,
+	// which had this light lit; Off is the frame just taken with it dark.
+	void MeasureProbe(const Shot& S, const FString& Path, bool bHaveFile)
+	{
+		GProbeSpent += FPlatformTime::Seconds() - GProbeStarted;
+		LedgerFrame::LightDelta NoPair;
+		if (!bHaveFile)
+		{
+			++GProbeNoFile;
+			EmitLightLine(S, GProbeSeq, "NO-FILE", NoPair, std::string(TCHAR_TO_UTF8(*GNote)));
+			return;
+		}
+		TArray64<uint8> Bgra;
+		int32 W = 0, H = 0;
+		std::string Note("none");
+		if (!DecodeBgra(Path, Bgra, W, H, Note))
+		{
+			++GProbeNoFile;
+			EmitLightLine(S, GProbeSeq, "UNDECODABLE", NoPair, Note);
+			return;
+		}
+		if (GRefBgra.Num() == 0 || W != GRefW || H != GRefH)
+		{
+			EmitLightLine(S, GProbeSeq, "NOT-COMPARABLE", NoPair,
+			              "probe-and-reference-differ-in-size-or-the-reference-is-gone");
+			return;
+		}
+		const LedgerFrame::LightDelta D = LedgerFrame::MeasureLightDelta(
+			(const unsigned char*)GRefBgra.GetData(), (const unsigned char*)Bgra.GetData(),
+			W, H, kProbeGridCols, kProbeGridRows);
+		if (GProbeSeq >= 0)
+		{
+			++GProbed;
+			// REACHED THE FRAME means at least one pixel rose by at least one
+			// eight-bit code value. It is the first edge of the printed
+			// histogram and not a tuned bound; the control line beside it is
+			// what says whether that edge means anything in this run.
+			if (D.RoseAtLeast[0] > 0) { ++GReached; }
+		}
+		EmitLightLine(S, GProbeSeq, "MEASURED", D, "none");
+	}
+
+	bool StartLightProbe(const Shot& S)
+	{
+		if (!ShouldProbeShot(S)) { return false; }
+		if (GRefBgra.Num() == 0 || GRefShotId != S.Id)
+		{
+			EmitLightLine(S, -1, "NO-REFERENCE", LedgerFrame::LightDelta(),
+			              "the-reference-frame-did-not-decode/nothing-to-difference-against");
+			return false;
+		}
+		GProbing = true;
+		GProbeSeq = -2;
+		++GShotsProbed;
+		if (!BeginNextProbe(S)) { GProbing = false; return false; }
+		return true;
+	}
+
+	// WHAT HAPPENS WHEN A FRAME LANDS, IN ONE PLACE. The reference path and
+	// the probe path differ only in what they measure, and a second copy of
+	// this would drift the moment either changed.
+	void AfterFrame(bool bHaveFile)
+	{
+		const Shot& S = GSpec.Shots[GShotIndex];
+		if (GProbing)
+		{
+			MeasureProbe(S, GAskedPath, bHaveFile);
+			RestoreProbeLight();
+			if (BeginNextProbe(S))
+			{
+				// THE SAME FRAME COUNTS AS THE REFERENCE, which is why the
+				// series is cleared: Timed stops when it holds 24 samples,
+				// and a series left full from the reference would send the
+				// probe to the camera after no settling at all.
+				GFrameMs.clear();
+				GPhase = EPhase::Warm;
+				return;
+			}
+			GProbing = false;
+			GRefBgra.Empty();
+			GRefW = 0; GRefH = 0; GRefShotId.clear();
+			++GShotIndex;
+			GPhase = EPhase::ApplyShot;
+			return;
+		}
+		MeasureShot(S, GAskedPath, bHaveFile);
+		if (bHaveFile && StartLightProbe(S))
+		{
+			GFrameMs.clear();
+			GPhase = EPhase::Warm;
+			return;
+		}
+		++GShotIndex;
+		GPhase = EPhase::ApplyShot;
+	}
+
+	// ---- PHASE C: THE PACK'S MAPS, IMPORTED AT RUNTIME -------------------
+	//
+	// MEASURE THE ASSET BEFORE PLACING IT, AND SAY WHAT IT LOADED AS. A file
+	// is not what its extension claims: the decoder is asked what the bytes
+	// are and the answer is printed beside the size it came back at, because
+	// an import assumption that goes unread is this project's most expensive
+	// recurring fault.
+	//
+	// THE FILENAME RULE IS THE UNITY HOST'S, read out of SurfaceBind.h,
+	// which is the tested layer. Nothing here decides which file a surface
+	// wants; this code only asks the disk and the decoder, and hands the
+	// answers back to be counted and formatted where the tests run.
+	const TCHAR* ImageFormatName(EImageFormat F)
+	{
+		switch (F)
+		{
+		case EImageFormat::PNG:  return TEXT("PNG");
+		case EImageFormat::JPEG: return TEXT("JPEG");
+		case EImageFormat::BMP:  return TEXT("BMP");
+		case EImageFormat::EXR:  return TEXT("EXR");
+		default:                 return TEXT("UNRECOGNISED");
+		}
+	}
+
+	// THE TEXTURE ROOT IS LOOKED FOR IN NAMED PLACES AND THE ONE THAT
+	// ANSWERED IS PRINTED, exactly as the spec file is. A packaged build runs
+	// from Packaged/Windows and the checkout sits four directories above it;
+	// a staged copy beside the exe is tried first so the step can choose to
+	// carry the pack rather than reach for it.
+	FString FindTexRoot(int32& OutFiles)
+	{
+		const FString ExeDir = FPaths::GetPath(FPlatformProcess::ExecutablePath());
+		TArray<FString> Cands;
+		Cands.Add(AbsProject(TEXT("CityPackTextures")));
+		Cands.Add(FPaths::ConvertRelativePathToFull(FPaths::Combine(ExeDir, TEXT("CityPackTextures"))));
+		Cands.Add(AbsProject(TEXT("../ledger/Assets/StreamingAssets/CityPack/textures")));
+		Cands.Add(FPaths::ConvertRelativePathToFull(FPaths::Combine(
+			ExeDir, TEXT("../../../../ledger/Assets/StreamingAssets/CityPack/textures"))));
+		for (int32 I = 0; I < Cands.Num(); ++I)
+		{
+			if (!IFileManager::Get().DirectoryExists(*Cands[I])) { continue; }
+			TArray<FString> Found;
+			IFileManager::Get().FindFiles(Found, *(Cands[I] / TEXT("*.*")), true, false);
+			if (Found.Num() == 0) { continue; }
+			OutFiles = Found.Num();
+			return Cands[I];
+		}
+		OutFiles = 0;
+		return FString();
+	}
+
+	UTexture2D* ImportTexture(const FString& FullPath, bool bSrgb,
+	                          int32& OutW, int32& OutH, FString& OutLoadedAs)
+	{
+		OutW = 0; OutH = 0;
+		OutLoadedAs = TEXT("not-read");
+		TArray<uint8> Bytes;
+		if (!FFileHelper::LoadFileToArray(Bytes, *FullPath) || Bytes.Num() == 0)
+		{
+			OutLoadedAs = TEXT("file-would-not-load-or-was-empty");
+			return nullptr;
+		}
+		IImageWrapperModule* Mod =
+			FModuleManager::Get().LoadModulePtr<IImageWrapperModule>(FName("ImageWrapper"));
+		if (Mod == nullptr) { OutLoadedAs = TEXT("imagewrapper-module-missing"); return nullptr; }
+		// WHAT THE BYTES ARE, ASKED RATHER THAN INFERRED FROM THE SUFFIX.
+		const EImageFormat Fmt = Mod->DetectImageFormat(Bytes.GetData(), (int64)Bytes.Num());
+		TSharedPtr<IImageWrapper> Wrapper = Mod->CreateImageWrapper(Fmt);
+		if (!Wrapper.IsValid())
+		{
+			OutLoadedAs = FString::Printf(TEXT("no-wrapper-for-%s"), ImageFormatName(Fmt));
+			return nullptr;
+		}
+		if (!Wrapper->SetCompressed(Bytes.GetData(), (int64)Bytes.Num()))
+		{
+			OutLoadedAs = FString::Printf(TEXT("%s-setcompressed-refused"), ImageFormatName(Fmt));
+			return nullptr;
+		}
+		const int32 W = Wrapper->GetWidth();
+		const int32 H = Wrapper->GetHeight();
+		TArray64<uint8> Raw;
+		if (W <= 0 || H <= 0 || !Wrapper->GetRaw(ERGBFormat::BGRA, 8, Raw))
+		{
+			OutLoadedAs = FString::Printf(TEXT("%s-getraw-refused"), ImageFormatName(Fmt));
+			return nullptr;
+		}
+		UTexture2D* Tex = UTexture2D::CreateTransient(W, H, PF_B8G8R8A8);
+		if (Tex == nullptr)
+		{
+			OutLoadedAs = FString::Printf(TEXT("%s-createtransient-returned-null"), ImageFormatName(Fmt));
+			return nullptr;
+		}
+		// COLOUR SPACE IS SET BY WHAT THE MAP IS FOR, not by what the file
+		// is: a normal or a roughness map read as sRGB is wrong by a gamma
+		// curve, and the verdict prints which each one was treated as.
+		Tex->SRGB = bSrgb;
+		// KEPT ALIVE EXPLICITLY. A transient texture whose only reference is
+		// a dynamic material instance is exactly the shape of object this
+		// engine collects between two ticks.
+		Tex->AddToRoot();
+		void* Dest = Tex->GetPlatformData()->Mips[0].BulkData.Lock(LOCK_READ_WRITE);
+		FMemory::Memcpy(Dest, Raw.GetData(), (SIZE_T)Raw.Num());
+		Tex->GetPlatformData()->Mips[0].BulkData.Unlock();
+		Tex->UpdateResource();
+		OutW = W; OutH = H;
+		OutLoadedAs = FString::Printf(TEXT("%s-BGRA8/srgb=%s"),
+		                              ImageFormatName(Fmt), bSrgb ? TEXT("yes") : TEXT("no"));
+		return Tex;
+	}
+
+	// BIND EVERY SURFACE THE SHARED FILE ASKED FOR, and count what did not
+	// answer. A Phase C that renders and cannot say what it failed to load is
+	// worth less than one that loads less and says so.
+	void BindSurfaces()
+	{
+		GBaseMaterial = LoadObject<UMaterialInterface>(nullptr, kBaseMaterialPath);
+		GTexRoot = FindTexRoot(GTexRootFiles);
+		const std::vector<LedgerSurface::Ask> Asked = LedgerSurface::SurfacesAsked(GSpec.Pieces);
+		// One imported texture per map per surface, kept beside its bind so
+		// no file is decoded twice for the 150 pieces that share a surface.
+		TArray<UTexture2D*> Maps;
+		Maps.SetNumZeroed((int32)Asked.size() * LedgerSurface::MapCount());
+		for (size_t I = 0; I < Asked.size(); ++I)
+		{
+			LedgerSurface::Bound B;
+			B.Surface = Asked[I].Surface;
+			B.Pieces  = Asked[I].Pieces;
+			if (GTexRoot.IsEmpty())
+			{
+				B.Status = "ABSENT";
+				B.Reason = "no-texture-root-found-in-any-named-candidate";
+				GBinds.push_back(B);
+				continue;
+			}
+			// A MAP THAT WOULD NOT DECODE IS RECORDED WITHOUT DISQUALIFYING
+			// THE SURFACE. A broken roughness map is not a reason to leave
+			// the road untextured; only a missing or broken ALBEDO is, and
+			// the difference is which of these two strings ends up where.
+			std::string DecodeFail;
+			for (int32 M = 0; M < LedgerSurface::MapCount(); ++M)
+			{
+				const std::vector<std::string> Cands = LedgerSurface::Candidates(B.Surface, M);
+				for (size_t C = 0; C < Cands.size() && !B.MapFound[M]; ++C)
+				{
+					const FString Full = GTexRoot / FString(UTF8_TO_TCHAR(Cands[C].c_str()));
+					if (IFileManager::Get().FileSize(*Full) <= 0) { continue; }
+					int32 W = 0, H = 0;
+					FString LoadedAs;
+					// ONLY THE ALBEDO IS sRGB. The normal and roughness maps
+					// are data, not colour.
+					UTexture2D* Tex = ImportTexture(Full, M == 0, W, H, LoadedAs);
+					B.MapFile[M] = Cands[C];
+					B.MapLoadedAs[M] = TCHAR_TO_UTF8(*LoadedAs);
+					B.MapW[M] = W; B.MapH[M] = H;
+					if (Tex != nullptr)
+					{
+						B.MapFound[M] = true;
+						Maps[(int32)I * LedgerSurface::MapCount() + M] = Tex;
+						++GTexturesImported;
+					}
+					else
+					{
+						// A FILE THAT IS THERE AND WILL NOT DECODE IS A
+						// DIFFERENT FACT from a file that is not there, and
+						// the decoder's own words are the reason.
+						if (!DecodeFail.empty()) { DecodeFail += "/"; }
+						DecodeFail += std::string(LedgerSurface::MapName(M)) + "-"
+						            + std::string(TCHAR_TO_UTF8(*LoadedAs));
+					}
+				}
+			}
+			if (!B.MapFound[0])
+			{
+				// THE ALBEDO IS WHAT DECIDES. Not there and there-but-broken
+				// are two findings with two next actions, and the decoder's
+				// own words are what separates them.
+				B.Status = DecodeFail.empty() ? "ABSENT" : "UNDECODABLE";
+				B.Reason = DecodeFail.empty() ? "no-candidate-file-under-texRoot" : DecodeFail;
+			}
+			else if (GBaseMaterial == nullptr)
+			{
+				B.Status = "NO-BASE-MATERIAL";
+				B.Reason = "the-maps-decoded-but-there-is-nothing-to-instance";
+			}
+			else
+			{
+				B.Status = "RESOLVED";
+				// A SURFACE CAN BE RESOLVED AND STILL HAVE LOST A MAP, and
+				// the reason says which one rather than reading as clean.
+				B.Reason = DecodeFail.empty() ? "none" : ("albedo-ok/lost-" + DecodeFail);
+			}
+			GBinds.push_back(B);
+		}
+
+		// ONE INSTANCE PER PIECE, because the tiling is the piece's own size
+		// and two pieces of one surface are rarely one size.
+		for (size_t P = 0; P < GSpec.Pieces.size(); ++P)
+		{
+			const Piece& Pc = GSpec.Pieces[P];
+			int32 Idx = -1;
+			for (size_t I = 0; I < GBinds.size(); ++I)
+			{
+				if (GBinds[I].Surface == Pc.Surface) { Idx = (int32)I; break; }
+			}
+			if (Idx < 0 || GBinds[(size_t)Idx].Status != "RESOLVED") { continue; }
+			AStaticMeshActor** Found = GByName.Find(FString(UTF8_TO_TCHAR(Pc.Name.c_str())));
+			if (Found == nullptr || *Found == nullptr) { continue; }
+			UStaticMeshComponent* Comp = (*Found)->GetStaticMeshComponent();
+			if (Comp == nullptr) { continue; }
+			UMaterialInstanceDynamic* Mid = UMaterialInstanceDynamic::Create(GBaseMaterial, *Found);
+			if (Mid == nullptr) { continue; }
+			for (int32 M = 0; M < LedgerSurface::MapCount(); ++M)
+			{
+				UTexture2D* Tex = Maps[Idx * LedgerSurface::MapCount() + M];
+				if (Tex == nullptr) { continue; }
+				Mid->SetTextureParameterValue(
+					FName(UTF8_TO_TCHAR(LedgerSurface::MapParam(M))), Tex);
+			}
+			const LedgerSurface::Tiling T = LedgerSurface::TilingFor(Pc, kMetresPerTile);
+			Mid->SetScalarParameterValue(FName(TEXT("TilingU")), (float)T.U);
+			Mid->SetScalarParameterValue(FName(TEXT("TilingV")), (float)T.V);
+			Comp->SetMaterial(0, Mid);
+			++GMidsCreated;
+			++GBinds[(size_t)Idx].PiecesAssigned;
+			GBinds[(size_t)Idx].TileU = T.U;
+			GBinds[(size_t)Idx].TileV = T.V;
+		}
+
+		GMaterialsLine = LedgerSurface::MaterialsDoneLine(
+			GBinds, TCHAR_TO_UTF8(kBaseMaterialPath), GBaseMaterial != nullptr,
+			TCHAR_TO_UTF8(*GTexRoot), GTexRootFiles, (int)GSpec.Pieces.size(),
+			GTexturesImported, GMidsCreated, kMetresPerTile);
 	}
 
 	bool Tick(float)
@@ -899,7 +1561,7 @@ namespace
 		case EPhase::Ask:
 		{
 			const Shot& S = GSpec.Shots[GShotIndex];
-			GAskedPath = ShotPngPath(S);
+			GAskedPath = GProbing ? ProbePngPath() : ShotPngPath(S);
 			IFileManager::Get().Delete(*GAskedPath, false, true, true);
 			GSizeTracker = -1;
 			if (!GUseHighRes)
@@ -927,9 +1589,7 @@ namespace
 			{
 				if (SizeSettled(GAskedPath, GSizeTracker))
 				{
-					MeasureShot(GSpec.Shots[GShotIndex], GAskedPath, true);
-					++GShotIndex;
-					GPhase = EPhase::ApplyShot;
+					AfterFrame(true);
 					GPhaseStart = Now; GPhaseTicks = 0;
 					return true;
 				}
@@ -947,9 +1607,7 @@ namespace
 					// candidate won.
 					IFileManager::Get().Copy(*GAskedPath, *Newest, true, true);
 					IFileManager::Get().Delete(*Newest, false, true, true);
-					MeasureShot(GSpec.Shots[GShotIndex], GAskedPath, true);
-					++GShotIndex;
-					GPhase = EPhase::ApplyShot;
+					AfterFrame(true);
 					GPhaseStart = Now; GPhaseTicks = 0;
 					return true;
 				}
@@ -971,9 +1629,7 @@ namespace
 			}
 			GNote = GUseHighRes ? TEXT("neither-candidate-wrote-a-file-in-25s")
 			                    : TEXT("requestScreenshot-wrote-nothing-in-25s");
-			MeasureShot(GSpec.Shots[GShotIndex], GAskedPath, false);
-			++GShotIndex;
-			GPhase = EPhase::ApplyShot;
+			AfterFrame(false);
 			GPhaseStart = Now; GPhaseTicks = 0;
 			return true;
 		}

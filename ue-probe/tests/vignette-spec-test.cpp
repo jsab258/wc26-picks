@@ -19,6 +19,7 @@
 // is read correctly and that every string this run will print is the string
 // it was meant to print.
 #include "../Source/LedgerProbe/Public/VignetteSpec.h"
+#include "../Source/LedgerProbe/Public/SurfaceBind.h"
 
 #include <clocale>
 #include <cstdio>
@@ -50,6 +51,24 @@ static std::string Slurp(const char* Path, bool& Ok)
 	SS << In.rdbuf();
 	Ok = true;
 	return SS.str();
+}
+
+static bool NoSpacePastPrefix(const std::string& Line, const char* From)
+{
+	const size_t At = Line.find(From);
+	if (At == std::string::npos) { return false; }
+	std::istringstream In(Line.substr(At));
+	std::string Tok;
+	int Tokens = 0, Equals = 0;
+	while (In >> Tok)
+	{
+		++Tokens;
+		int E = 0;
+		for (size_t I = 0; I < Tok.size(); ++I) { if (Tok[I] == '=') { ++E; } }
+		if (E != 1) { return false; }
+		Equals += E;
+	}
+	return Tokens > 0 && Tokens == Equals;
 }
 
 int main(int argc, char** argv)
@@ -379,6 +398,186 @@ int main(int argc, char** argv)
 		      && std::fabs(Loc.Pieces[FracAt].Y - Frac) < 1e-12,
 		      "a fractional coordinate reads back as a fraction under the C numeric locale",
 		      "it came back changed, which is what a comma-decimal locale does to every coordinate");
+	}
+
+	// ---- PHASE C: WHICH SURFACE ASKS FOR WHICH FILE --------------------
+	//
+	// ACCEPTING CASE FIRST, AND THE ACCEPTING FIXTURE IS THE LIVE STREET.
+	// The sixteen surface names are not written down here: they are counted
+	// out of the committed piece list, so a surface added to the street
+	// enlarges this test's denominator instead of slipping past it.
+	{
+		const std::vector<LedgerSurface::Ask> Asked = LedgerSurface::SurfacesAsked(S.Pieces);
+		int Sum = 0;
+		std::string Names;
+		for (size_t I = 0; I < Asked.size(); ++I)
+		{
+			Sum += Asked[I].Pieces;
+			if (I > 0) { Names += " "; }
+			Names += Asked[I].Surface + "=" + std::to_string(Asked[I].Pieces);
+		}
+		std::printf("    surfaces asked by the street: %d over %d piece(s)\n      %s\n",
+		            (int)Asked.size(), Sum, Names.c_str());
+		Check(Sum == (int)S.Pieces.size(),
+		      "every piece in the file is under exactly one surface name");
+		Check(Asked.size() >= 10,
+		      "the street asks for a real spread of surfaces and not one or two");
+		bool bSorted = true, bNamed = true;
+		for (size_t I = 0; I < Asked.size(); ++I)
+		{
+			if (Asked[I].Surface.empty()) { bNamed = false; }
+			if (I > 0 && !(Asked[I - 1].Surface < Asked[I].Surface)) { bSorted = false; }
+		}
+		Check(bSorted, "the surfaces come back in one stable order, so two runs read alike");
+		Check(bNamed, "no surface comes back nameless");
+
+		// THE FILENAME RULE IS THE UNITY HOST'S, IN ITS ORDER.
+		const std::vector<std::string> C = LedgerSurface::Candidates("asphalt", 0);
+		Check(C.size() == 3 && C[0] == "asphalt.png" && C[1] == "asphalt.jpg"
+		      && C[2] == "asphalt.jpeg",
+		      "the albedo candidates are png then jpg then jpeg, as AssetLibrary tries them");
+		const std::vector<std::string> N = LedgerSurface::Candidates("asphalt", 1);
+		const std::vector<std::string> R = LedgerSurface::Candidates("asphalt", 2);
+		Check(N[1] == "asphalt_n.jpg" && R[1] == "asphalt_r.jpg",
+		      "the normal and roughness suffixes are _n and _r, as the pack names them");
+	}
+	// TILING, WHICH IS THE DIFFERENCE BETWEEN A ROAD AND ONE STRETCHED TILE.
+	{
+		LedgerVignette::Piece Road;
+		Road.SX = 42.0; Road.SY = 0.3; Road.SZ = 2.745858;
+		const LedgerSurface::Tiling T = LedgerSurface::TilingFor(Road, 2.0);
+		std::printf("    tiling: road 42.00x0.30x2.75 at 2.00 m/tile -> %.2f x %.2f\n", T.U, T.V);
+		Check(std::fabs(T.U - 21.0) < 1e-9,
+		      "a 42 metre carriageway repeats 21 times along its length at 2 m a tile");
+		Check(std::fabs(T.V - 2.745858 / 2.0) < 1e-9,
+		      "and across its width, which is its second largest dimension and not its 0.3 thickness");
+		LedgerVignette::Piece Small;
+		Small.SX = 0.4; Small.SY = 0.1; Small.SZ = 0.2;
+		const LedgerSurface::Tiling TS = LedgerSurface::TilingFor(Small, 2.0);
+		Check(TS.U >= 1.0 && TS.V >= 1.0,
+		      "a piece smaller than one tile shows one whole tile rather than a crop of one");
+	}
+	// THE TWO LINES, BOTH OUTCOMES WATCHED, ACCEPTING FIRST.
+	{
+		LedgerSurface::Bound B;
+		B.Surface = "asphalt"; B.Pieces = 2; B.PiecesAssigned = 2; B.Status = "RESOLVED";
+		B.MapFound[0] = true; B.MapFile[0] = "asphalt.jpg";
+		B.MapW[0] = 2048; B.MapH[0] = 2048; B.MapLoadedAs[0] = "JPEG-BGRA8";
+		B.MapFound[1] = true; B.MapFile[1] = "asphalt_n.jpg";
+		B.MapW[1] = 2048; B.MapH[1] = 2048; B.MapLoadedAs[1] = "JPEG-BGRA8";
+		B.TileU = 21.0; B.TileV = 1.37; B.Reason = "none";
+		const std::string L = LedgerSurface::SurfaceLine(B);
+		std::printf("    %s\n", L.c_str());
+		Check(L.find("albedoLoadedAs=2048x2048/JPEG-BGRA8") != std::string::npos,
+		      "a resolved surface says what the decoder returned, not what the filename claims");
+		Check(L.find("roughnessFile=ABSENT") != std::string::npos
+		      && L.find("roughnessTried=asphalt_r.png/asphalt_r.jpg/asphalt_r.jpeg")
+		         != std::string::npos,
+		      "and a map it did not find names every candidate it tried");
+		Check(L.find("piecesAssigned=2/2") != std::string::npos,
+		      "the assigned count ships with the piece count that is its denominator");
+
+		LedgerSurface::Bound A;
+		A.Surface = "card"; A.Pieces = 10; A.Status = "ABSENT";
+		A.Reason = "no-file-in-citypack-textures/the-unity-host-generates-this-one-procedurally";
+		const std::string AL = LedgerSurface::SurfaceLine(A);
+		std::printf("    %s\n", AL.c_str());
+		Check(AL.find("surfaceStatus=ABSENT") != std::string::npos
+		      && AL.find("albedoTried=card.png/card.jpg/card.jpeg") != std::string::npos
+		      && AL.find("procedurally") != std::string::npos,
+		      "an absent surface is named with what was tried and why it is missing");
+		// NO SPACE INSIDE ANY VALUE, on both lines, mechanically.
+		Check(NoSpacePastPrefix(L, "surfaceStatus=") && NoSpacePastPrefix(AL, "surfaceStatus="),
+		      "every surface value is space-free and carries exactly one equals");
+	}
+	{
+		std::vector<LedgerSurface::Bound> All;
+		LedgerSurface::Bound A;
+		A.Surface = "asphalt"; A.Pieces = 2; A.PiecesAssigned = 2; A.MapFound[0] = true;
+		A.MapFound[1] = true; A.MapFound[2] = true;
+		LedgerSurface::Bound B;
+		B.Surface = "concrete"; B.Pieces = 150; B.PiecesAssigned = 150; B.MapFound[0] = true;
+		LedgerSurface::Bound C;
+		C.Surface = "card"; C.Pieces = 10;
+		All.push_back(A); All.push_back(B); All.push_back(C);
+		const std::string D = LedgerSurface::MaterialsDoneLine(
+			All, "/Game/Ledger/M_LedgerSurface", true, "C:/pack/textures", 51, 593, 4, 152, 2.0);
+		std::printf("    %s\n", D.c_str());
+		Check(D.find("surfacesResolved=2/3") != std::string::npos,
+		      "the resolved count ships over what the street asked for");
+		Check(D.find("surfacesAbsent=card") != std::string::npos,
+		      "and the absent ones are NAMED on the run's own line, not only per surface");
+		Check(D.find("mapsFound=4/9") != std::string::npos,
+		      "the map count ships over three maps per surface asked");
+		Check(D.find("piecesTextured=152/593") != std::string::npos,
+		      "the textured pieces ship over every piece in the file");
+		Check(D.find("materialsStatus=PARTIAL") != std::string::npos,
+		      "two of three resolved is PARTIAL and says so");
+		Check(NoSpacePastPrefix(D, "materialsStatus="),
+		      "every value on the materials line is space-free");
+		// A BASE MATERIAL THAT NEVER LOADED DOMINATES, because sixteen
+		// resolved textures bound to nothing is not a partial success.
+		const std::string NoBase = LedgerSurface::MaterialsDoneLine(
+			All, "/Game/Ledger/M_LedgerSurface", false, "C:/pack/textures", 51, 593, 4, 0, 2.0);
+		Check(NoBase.find("materialsStatus=NO-BASE-MATERIAL") != std::string::npos
+		      && NoBase.find("materialBase=MISSING") != std::string::npos,
+		      "a missing base material is its own status and outranks the texture count");
+		// AND A PASS WITH NOTHING TO DO SAYS THE WORDS.
+		const std::vector<LedgerSurface::Bound> None;
+		const std::string Empty = LedgerSurface::MaterialsDoneLine(
+			None, "/Game/Ledger/M_LedgerSurface", true, "", 0, 0, 0, 0, 2.0);
+		Check(Empty.find("materialsStatus=NOTHING-ASKED") != std::string::npos
+		      && Empty.find("texRoot=NOT-FOUND") != std::string::npos,
+		      "a pass with no surfaces says nothing-asked and a root it never found says so");
+	}
+	// ---- THE PACK ON DISK, WHICH IS THE HALF THAT ANSWERS D1's QUESTION --
+	//
+	// This is the accepting fixture for the RESOLUTION rule: the same
+	// filenames the Unreal run will try, tried here against the same
+	// committed pack. It is skipped rather than failed where the pack is not
+	// checked out, and a skip PRINTS ITS DENOMINATOR so that "nothing found"
+	// and "nothing looked at" cannot read alike.
+	{
+		std::string Root(SpecPath);
+		const size_t Cut = Root.find("production/specs/");
+		if (Cut == std::string::npos) { Root.clear(); }
+		else { Root = Root.substr(0, Cut) + "ledger/Assets/StreamingAssets/CityPack/textures/"; }
+		const std::vector<LedgerSurface::Ask> Asked = LedgerSurface::SurfacesAsked(S.Pieces);
+		int Resolved = 0, Absent = 0, Examined = 0;
+		std::string AbsentNames;
+		for (size_t I = 0; I < Asked.size() && !Root.empty(); ++I)
+		{
+			++Examined;
+			bool bFound = false;
+			const std::vector<std::string> C = LedgerSurface::Candidates(Asked[I].Surface, 0);
+			for (size_t J = 0; J < C.size() && !bFound; ++J)
+			{
+				std::ifstream F((Root + C[J]).c_str(), std::ios::binary);
+				if (F.good()) { bFound = true; }
+			}
+			if (bFound) { ++Resolved; }
+			else
+			{
+				++Absent;
+				if (!AbsentNames.empty()) { AbsentNames += "/"; }
+				AbsentNames += Asked[I].Surface;
+			}
+		}
+		if (Examined == 0)
+		{
+			std::printf("    pack: nothing measured, no CityPack textures directory under %s\n",
+			            SpecPath);
+		}
+		else
+		{
+			std::printf("    pack: albedoResolved=%d/%d albedoAbsent=%s root=%s\n",
+			            Resolved, Examined, AbsentNames.empty() ? "none" : AbsentNames.c_str(),
+			            Root.c_str());
+			Check(Resolved + Absent == Examined,
+			      "every surface examined against the pack is either resolved or named absent");
+			Check(Resolved > 0,
+			      "the committed pack answers at least one surface, so the rule is exercised");
+		}
 	}
 
 	std::printf("%s: %d of %d check(s) failed\n",
