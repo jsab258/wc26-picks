@@ -119,44 +119,45 @@ decal looks right AT SIZE, ON A SURFACE, IN THE RAIN.
 
 ## In flight
 
-- **THE STREET RENDERS IN UNREAL.** Run 17, commit cb4767ee, four frames at
-  1280x720 from 593/593 pieces out of the shared list, nothing hand-placed.
-  `captureStatus=ALL shotsWrote=4/4`, frame medians 3.68 to 4.65 ms. This is
-  the first Unreal picture of the street in the project's history.
+- **NOTHING IS RUNNING. THE STOP RULE IS IN FORCE.** `materialConnections`
+  held at 12/14 across Unreal runs 19 and 20, and the 3 September ruling says
+  that means stop dispatching and fix queue 062. NO FURTHER UNREAL DISPATCH
+  until the UV chain is wired. A third run would render the same grey street
+  and cost the same GPU minutes to say so.
 
-- **AND THE NIGHT FRAMES ARE ALMOST BLACK.** `lanternsPlaced=4/4` is true and
-  answers the wrong question: nothing measures whether a placed light reaches
-  a pixel. `camB_night` is 19 distinct colour buckets of 32768. Day frames
-  clip the road to white while `shotMeanLuma` reads a healthy 0.50, because a
-  mean cannot see clipping. QUEUE 059, and it is D1 admissibility rather than
-  polish: a night pair where one engine's lamps work and the other's do not
-  is a judgement about wiring, not renderers.
+- **PHASE C IS ONE WIRE FROM DONE, and run 20 proved which wire.** Staging
+  landed 51 files in both directories the binary looks in
+  (`stagedTexFiles=102/102 texRootFiles=51`), `mapsFound=36/48`,
+  `surfacesResolved=12/16`, `piecesTextured=563/593`. Every number read what
+  it was predicted to read. The frames are still FLAT GREY because the two
+  refused connections are TexCoord into both component masks, the head of the
+  UV chain all three samplers hang off, and a sampler with no coordinates
+  reads one constant. 563 correctly textured objects rendering as flat colour.
 
-- **UNITY BUILD 558 LANDED** (commit 28a2d6e1) with `propsPlaced=23/23
-  decalsApplied=20/20 datumMissing=0/910`. The interior pictures reached the
-  frame; 17/20 would have meant they did not. Its own practicals line still
-  reads `windowsLit=3/6 windowsAsked=3`: the SAME rule-3b denominator fault
-  the director fixed on the Unreal side, still live on the Unity side. Not
-  yet queued.
+- **THE D1 MEASUREMENT HAS PASSED and that is the bigger news.** An agent
+  generated the Unreal base material head-less, no human opened the editor, no
+  uasset was hand-made: `editorBuildExit=0 materialPythonPlugin=found/1
+  materialScriptReturn=2 materialBase=loaded`. Jafar's amended rule makes
+  agent-loop friction the decisive measurement, and it is passing.
 
-- **IMAGEGEN RUN 4 IS RUNNING**, started by the push of 991aabf9 at 02:34Z,
-  about 53 minutes. The framing regeneration: 41 of 45 recipes moved onto the
-  orthographic prefix after a QA pass opened all 45 and found 41 were
-  photographs of signs standing in a street. EXPECT `skipped=4` and
-  `remadeRecipeChanged=41`. If skipped is not 4, the recipe arithmetic in
-  queue 056 was wrong and the rest of that run's evidence reads in that light.
+- **A GATE THAT COULD NOT FAIL WAS FOUND AND FIXED.** The still gate grepped
+  its own evidence file for `shotStatus=`, and the file's header comment
+  contained that phrase while explaining the key. It read WROTE out of its own
+  explanation whatever the frame was. Both ends fixed, and the repo swept: one
+  `key=`-shaped comment survives and no reader can reach it. THE OBVIOUS TOOL
+  FOR THIS SWEEP IS BLIND TO IT: `verdict-dupkeys.py` skips a key whose values
+  all agree, and a header quoting the passing value agrees with a passing run.
+  Queue 064 is the real instrument; the dupkeys work sits behind it in 029.
 
-- **DO NOT TOUCH `production/d1-probe/DISPATCH` IN A PUSH** unless a run 18 is
-  actually wanted. It is a push trigger and would start a second Unreal run on
-  the one PC. Run 17's outcome is recorded in commit b2e818c6 and here.
+- **BUDGET: UNMEASURED AND WAITING ON JAFAR.** 52 percent at 04:50Z, then a
+  builder, two directors, three Unreal runs and a morning of resident turns.
+  Asked for a fresh number; not yet given. Condition 4 holds, so prefer
+  stopping over opening a new batch.
 
-- **THE TWO ENGINES ARE NOT A JUDGEABLE PAIR YET.** Unreal Phase B is
-  deliberately untextured; Unity is textured, materialled and wet. Comparing
-  them now measures Phase C's absence, not either renderer. D1b needs the same
-  scene on both sides.
-
-- NOT FILED, ordered by the 3 Sep ruling: queue 050 to 055, 057, 058. Queue
-  056 stays OPEN by that ruling's own words.
+- NOT DISPATCHED AND DELIBERATELY SO: `production/d1-probe/DISPATCH` is a push
+  trigger. Do not touch it in a commit unless a run is wanted. Run 18 banked
+  nothing because a resident push moved the branch sixteen seconds before its
+  commit step; run 20's evidence landed because the branch was left alone.
 
 ## THE DASHBOARD IS NOW A HOSTED LIVE PAGE, and it needs writing to
 
