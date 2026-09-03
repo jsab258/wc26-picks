@@ -1,4 +1,4 @@
-# UE probe shot c1311ea @1788396363
+# UE probe shot 7f85ded @1788421764
 # Line 1 names the commit this was measured on, as the Unity verdict does.
 # shotMeanLuma: mean over EVERY pixel of the committed file, 0 to 1,
 #   luma=(0.299R+0.587G+0.114B)/255, the same weights the Unity sim uses.
@@ -10,7 +10,7 @@
 #   NO-FILE, and the step that ran this exits non-zero for all three.
 
 shotCamPlaced=yes shotCamAskedXYZ=0.0/0.0/180.0 shotCamReadXYZ=54.7/79.0/208.0 shotCamDeltaCm=100.07 shotCamAskedPitchYaw=-10.0/0.0 shotCamReadPitchYaw=0.0/0.0 shotWorld=Entry
-shotStatus=WROTE shotAttempt=FScreenshotRequest::RequestScreenshot shotFile=ue-shot.png shotBytes=23361 shotW=960 shotH=540 shotPixels=518400 shotMeanLuma=0.0614 shotMinLuma=0.0000 shotMaxLuma=0.8150 shotNonBlackPixels=79232 shotNonBlackPct=15.28 shotDistinctBuckets=5/32768 shotSecondsWaited=2.05 shotTicks=986 shotNote=none
+shotStatus=WROTE shotAttempt=FScreenshotRequest::RequestScreenshot shotFile=ue-shot.png shotBytes=23361 shotW=960 shotH=540 shotPixels=518400 shotMeanLuma=0.0614 shotMinLuma=0.0000 shotMaxLuma=0.8150 shotNonBlackPixels=79232 shotNonBlackPct=15.28 shotDistinctBuckets=5/32768 shotSecondsWaited=2.10 shotTicks=1002 shotNote=none
 # ascii-luma of the committed frame, 48x27 cells, top row first.
 #                        ::                       
 #                        ::                       
@@ -40,4 +40,4 @@ shotStatus=WROTE shotAttempt=FScreenshotRequest::RequestScreenshot shotFile=ue-s
 # :          ::          ..          ::          :
 # :::::::::::-:::::::::::--:::::::::::-:::::::::::
 shotReached=end
-stagedShotExit=0 stagedShotSeconds=7.02 stagedVerdictCandidates=3 stagedVerdictFound=yes stagedPngCandidates=3 stagedPngBytes=23361 stagedShotExitIsNotTheVerdict=true
+stagedShotExit=0 stagedShotSeconds=6.02 stagedVerdictCandidates=3 stagedVerdictFound=yes stagedPngCandidates=3 stagedPngBytes=23361 stagedShotExitIsNotTheVerdict=true
