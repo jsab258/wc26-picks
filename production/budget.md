@@ -23,6 +23,7 @@ than any single row.
 | 2026-09-02 | ~18 into a 136h period | 32% | not read | Reported at 14:40Z. 4x over pace against the 80% ceiling. Set the pace rule below. |
 | 2026-09-02 | ~21 into a 136h period | 38% | not read | Reported at ~17:00Z. Jafar notes he also did OTHER work in the same window, so this delta is NOT all LEDGER and must not be read as a LEDGER burn rate. 42 points to the ceiling. |
 | 2026-09-03 | ~33 into a 136h period | 52% | not read | Reported at 04:50Z, after the overnight run. THE FIRST CLEAN LEDGER BURN RATE: Jafar was asleep for the whole window, so all 14 points are ours. 28 points to the ceiling, 103.5 hours to the Monday reset. |
+| 2026-09-03 | ~39 into a 136h period | 60% | not read | Reported at 10:25Z. NOT A CLEAN RATE: Jafar says he also did other work on Claude in this window, so the 8-point delta is NOT all LEDGER and must not be divided by hours. 20 points to the ceiling, 97.6 hours to the Monday reset. He said WAIT. |
 
 Ceiling for LEDGER: 80% of the weekly limit. The other 20% is his.
 
@@ -335,6 +336,27 @@ like the last one, and there are four days to Monday. Two nights and a stop
 is a legitimate choice; so is a quarter-rate week. It is Jafar's call and the
 numbers above are what he needs to make it, not an argument for either.
 
+## 60 PERCENT AT 10:25Z, AND JAFAR SAID WAIT
+
+20 points left to the ceiling and 97.6 hours to the Monday reset, which is
+0.20 points an hour sustainable. THE 8-POINT DELTA FROM 52 IS NOT A LEDGER
+BURN RATE and the row says so: he did other work on Claude in the same window,
+exactly as with the 32-to-38 row on 2 September. Dividing it by 5.6 hours
+gives 1.43, and that number is meaningless because its numerator is two
+different things added together. The only clean rate this project has ever had
+is the overnight one, 1.21 points an hour, because he was asleep for it.
+
+WHAT THE MORNING BOUGHT, for the record, since some of those 8 points are ours:
+Phase C reduced to one unconnected pin with every other number in the chain
+proven, the D1 agent-loop measurement passing (an agent generated the Unreal
+material head-less, no editor opened), a gate that could not fail found and
+fixed, and the discovery that the obvious tool for sweeping that fault is
+structurally blind to it.
+
+HIS INSTRUCTION IS "wait for now". Nothing is dispatched, nothing is spawned,
+and the Unreal stop rule from the 3 September ruling is independently in force
+because materialConnections held at 12/14 across two runs. Two reasons to hold,
+either of which would be enough.
 ## Stop conditions, mechanical
 
 1. Total reported use at or above 80 percent: STOP. Write the brief, push,
