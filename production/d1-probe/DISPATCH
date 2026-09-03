@@ -196,3 +196,19 @@ of this work and did NOT touch this file, so no run started. The resident told
 Jafar the run was dispatched, then explained its slowness with a cold editor
 build that was never happening. Verify a job's EFFECTS, not the story that
 fits its absence.
+
+run 19 - 2026-09-03 - RUN 18 SUCCEEDED AND BANKED NOTHING, and the cause was a
+push from the resident. Every step of run 18 reported success in 4m46s,
+including a 35-second "Commit the probe result", and no commit exists on any
+ref. The timing names it: the resident pushed bf28696f at 07:23:38 and run
+18's commit step started at 07:23:54, sixteen seconds later, so the runner had
+checked out 1558df4c, done its work, and then tried to push onto a branch that
+had moved. Its evidence is on the PC and unreachable, which is the exact
+failure the free lane was built to end.
+THE RULE THIS BREAKS is the sibling of rule 9: know what your pushes trigger,
+AND do not move the branch a running job intends to push to. Nothing is pushed
+to this branch until run 19 lands.
+Same payload as 18: Phase C materials through a script, the queue 059 light
+contribution probe with a control probe per night shot, and clipping counts at
+both ends. Read materialScriptExit and materialStatus first; they answer the
+engine question.
