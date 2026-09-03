@@ -212,3 +212,20 @@ Same payload as 18: Phase C materials through a script, the queue 059 light
 contribution probe with a control probe per night shot, and clipping counts at
 both ends. Read materialScriptExit and materialStatus first; they answer the
 engine question.
+
+run 20 - 2026-09-03 - THE TEXTURES ARE STAGED WHERE THE BINARY LOOKS. Run 19
+proved an agent can generate the base material head-less with no human opening
+the editor, and printed texRoot=NOT-FOUND mapsFound=0/48 piecesTextured=0/593
+while 51 texture files sat in the repo. The search wanted CityPackTextures
+beside the project and beside the exe; nothing ever put it there. This run
+stages it the way the piece list is staged, file by file.
+READ IN THIS ORDER: stagedTexFiles and stagedTexNote, then texRoot,
+texRootFiles and texRootTried, then mapsFound (expect 36/48, because four
+surfaces have no file in the pack), surfacesResolved (expect 12/16) and
+piecesTextured of 593. materialStatus is expected to read PARTIAL, not MADE:
+the UV chain head is unwired and that is queue 062. Watch materialConnections
+rather than the word; if 12/14 does not move between two runs, stop.
+NOTE the earlier run 18 and 19 entries name materialScriptExit, a key this
+batch renamed to materialEditorCmdExit because the 1 came from the editor
+process shutting down and never from the script. Those entries are left as
+written; they are the record of what was believed at the time.

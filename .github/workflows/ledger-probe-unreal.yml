@@ -298,12 +298,12 @@ jobs:
             $pe = Start-Process -FilePath $buildBat -ArgumentList @("LedgerProbeEditor","Win64","Development","-Project=`"$proj`"","-WaitMutex","-NoHotReload") -Wait -PassThru -NoNewWindow -RedirectStandardOutput "build-editor.log" -RedirectStandardError "build-editor.err"
             $L += "editorBuildExit=$($pe.ExitCode) editorBuildMinutes=$([math]::Round(((Get-Date)-$t3).TotalMinutes,2))"
             $pyp = @(Get-ChildItem (Join-Path $ue "Engine\Plugins") -Filter "PythonScriptPlugin.uplugin" -Recurse -ErrorAction SilentlyContinue)
-            $L += "materialPythonPlugin=$(if ($pyp.Count) { 'found' } else { 'NOT-FOUND' })/$($pyp.Count)"
+            $L += "materialPythonPlugin=$(if ($pyp.Count) {'found'} else {'NOT-FOUND'})/$($pyp.Count)"
             $t4 = Get-Date
             $pm = Start-Process -FilePath $edCmd -ArgumentList @("`"$proj`"","-run=pythonscript","-script=`"$matPy`"","-EnablePlugins=PythonScriptPlugin","-unattended","-nopause","-nosplash","-stdout") -Wait -PassThru -NoNewWindow -RedirectStandardOutput "material.log" -RedirectStandardError "material.err"
-            $L += "materialScriptExit=$($pm.ExitCode) materialScriptMinutes=$([math]::Round(((Get-Date)-$t4).TotalMinutes,2))"
+            $L += "materialEditorCmdExit=$($pm.ExitCode) materialScriptMinutes=$([math]::Round(((Get-Date)-$t4).TotalMinutes,2))"
             if (Test-Path $matOut) { $L += (Get-Content $matOut -Raw).Trim() } else {
-              $L += "materialStatus=NO-LINE materialNote=the-script-wrote-no-ue-material.txt"
+              $L += "materialStatus=NO-LINE materialScriptReturn=NOTHING-MEASURED materialNote=no-ue-material.txt"
               $me = @(Get-Content "material.log" -ErrorAction SilentlyContinue | Select-String "Error:|Fatal|Traceback|Python")
               $L += "materialLogInteresting=$($me.Count)"
               $L += ($me | Select-Object -First 12 | ForEach-Object { $_.ToString() })
@@ -703,8 +703,15 @@ jobs:
           # PNG and counted its pixels. WROTE is the only pass, and the three
           # ways to be not-WROTE are named separately because they have
           # different next actions.
+          # MEASURED LINES ONLY. This gate takes the FIRST match for the key,
+          # and the header used to spell the key out with WROTE beside it in
+          # its explanation: the gate read the explanation, above the measured
+          # line, and could not have failed whatever the frame was. Both
+          # halves are fixed, the comment and the reader, because either one
+          # alone leaves the gate one careless sentence from unfalsifiable.
           $status = "NONE"
-          $m = Select-String -Path $out -Pattern "shotStatus=(\S+)" | Select-Object -First 1
+          $m = Get-Content $out | Where-Object { $_ -notmatch '^\s*#' } |
+               Select-String -Pattern "shotStatus=(\S+)" | Select-Object -First 1
           if ($m) { $status = $m.Matches[0].Groups[1].Value }
           Write-Host (Get-Content $out -Raw)
           if ($status -eq "WROTE") { Write-Host "still ok: $status"; exit 0 }
@@ -796,6 +803,50 @@ jobs:
             }
           }
 
+          # PHASE C: THE TEXTURE PACK, STAGED THE SAME WAY AND BY NAME.
+          #
+          # Run 19 found no texture root, no maps of the forty-eight it asks
+          # for and textured none of the 593 pieces, with the whole pack
+          # sitting in the checkout: the binary's first two candidates are a
+          # directory called CityPackTextures beside the staged project and
+          # beside the exe, and NOTHING HAS EVER CREATED EITHER OF THEM.
+          # The search was not widened to
+          # guess at a repository layout from a packaged binary: the input is
+          # copied to where the binary looks, which is what already works for
+          # the piece list three lines above.
+          #
+          # STAGED FILES ARE COUNTED PER DESTINATION AND THE COUNT SHIPS ITS
+          # DENOMINATOR, so `0` cannot read the same as `nobody looked`. The
+          # binary prints which directory answered and how many files it saw,
+          # and those two numbers are what this step is checked against.
+          $texSrc = "ledger/Assets/StreamingAssets/CityPack/textures"
+          $texAsked = 0
+          $texStaged = 0
+          $texDests = 0
+          $texNote = "pack-directory-not-in-this-checkout"
+          if (Test-Path $texSrc) {
+            $texNote = "staged"
+            $texFiles = @(Get-ChildItem $texSrc -File -ErrorAction SilentlyContinue)
+            $texAsked = $texFiles.Count
+            foreach ($d in @($proj, $binDir)) {
+              if (-not $d -or -not (Test-Path $d)) { continue }
+              $dest = Join-Path $d "CityPackTextures"
+              # CLEARED BEFORE THE RUN, like the verdicts and the frames above:
+              # this workspace persists between runs, and a texture left by an
+              # older run would be found and counted as one this commit staged.
+              Remove-Item (Join-Path $dest "*") -Force -Recurse -ErrorAction SilentlyContinue
+              New-Item -ItemType Directory -Force -Path $dest | Out-Null
+              foreach ($f in $texFiles) {
+                Copy-Item $f.FullName (Join-Path $dest $f.Name) -Force -ErrorAction SilentlyContinue
+              }
+              $landed = @(Get-ChildItem $dest -File -ErrorAction SilentlyContinue).Count
+              $texStaged += $landed
+              $texDests++
+            }
+            if ($texDests -eq 0) { $texNote = "nothing-staged-neither-destination-directory-exists" }
+            elseif ($texAsked -eq 0) { $texNote = "nothing-staged-the-pack-directory-is-empty" }
+          }
+
           # NAMED CANDIDATES, CLEARED BEFORE THE RUN. Looking in both places
           # is fine; looking in both without clearing them first is how a
           # previous run's file is collected and reported as this one's.
@@ -861,7 +912,12 @@ jobs:
           # not the verdict here for the same reason it is not one above:
           # asking the engine to quit from a ticker exits non-zero by design.
           Add-Content $out ("stagedVignExit=$($p.ExitCode) stagedVignSeconds=$sec " +
-            "stagedSpecBytes=$specBytes stagedVerdictCandidates=$($vCands.Count) " +
+            "stagedSpecBytes=$specBytes stagedTexFiles=$texStaged/$($texAsked * $texDests) " +
+            "stagedTexPerDest=$texAsked stagedTexDests=$texDests/2 " +
+            "stagedTexFrom=$($texSrc -replace ' ','~') " +
+            "stagedTexAs=CityPackTextures/beside-the-project-and-beside-the-exe " +
+            "stagedTexNote=$texNote " +
+            "stagedVerdictCandidates=$($vCands.Count) " +
             "stagedVerdictFound=$(if ($vf) { 'yes' } else { 'no' }) " +
             "stagedPngCopied=$copied stagedPngBytes=$pngBytes " +
             "stagedVignExitIsNotTheVerdict=true")
@@ -898,8 +954,12 @@ jobs:
           # named separately because they have different next actions: NONE
           # with a WHOLE scene is a capture fault, PARTIAL is a per-shot
           # fault, and a NOTHING-EMITTED scene line is the street.
+          # MEASURED LINES ONLY, for the reason the still's gate above carries:
+          # a first-match reader and a header that explains its keys in
+          # key=value form is a gate that reads the explanation.
           $status = "NONE"
-          $m = Select-String -Path $out -Pattern "captureStatus=(\S+)" | Select-Object -First 1
+          $m = Get-Content $out | Where-Object { $_ -notmatch '^\s*#' } |
+               Select-String -Pattern "captureStatus=(\S+)" | Select-Object -First 1
           if ($m) { $status = $m.Matches[0].Groups[1].Value }
           Write-Host (Get-Content $out -Raw)
           if ($status -eq "ALL") { Write-Host "vignette ok: $status"; exit 0 }

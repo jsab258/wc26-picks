@@ -186,7 +186,7 @@ namespace
 	Spec        GSpec;
 	std::string GSpecErr = "not-read";
 	FString     GSpecPath;
-	FString     GSpecTried;
+	std::vector<std::string> GSpecTried;
 
 	FTSTicker::FDelegateHandle GTicker;
 	EPhase  GPhase       = EPhase::WaitWorld;
@@ -243,6 +243,9 @@ namespace
 	// ---- the material pass -------------------------------------------------
 	FString GTexRoot;
 	int32   GTexRootFiles = 0;
+	// WHERE THE SEARCH LOOKED, kept because `texRoot=NOT-FOUND` on its own
+	// cannot say whether the pack or the search is in the wrong place.
+	std::vector<std::string> GTexRootTried;
 	UMaterialInterface* GBaseMaterial = nullptr;
 	std::vector<LedgerSurface::Bound> GBinds;
 	int32 GTexturesImported = 0, GMidsCreated = 0;
@@ -289,7 +292,13 @@ namespace
 	// STAGED project, not the source tree, so one hard-coded location works
 	// in exactly one of the two ways this binary gets run. Searching is
 	// fine; searching silently is not.
-	FString FindSpec(FString& OutTried)
+	//
+	// UNTIL RUN 19 THIS LIST WENT NOWHERE. It was filled, assigned to a
+	// global and never printed, so a piece list that could not be found named
+	// nothing at all; the search that does print its candidates is the golden
+	// table's, in LedgerProbe.cpp. It is emitted below now, through the same
+	// tested formatter the texture root uses.
+	FString FindSpec(std::vector<std::string>& OutTried)
 	{
 		TArray<FString> Candidates;
 		Candidates.Add(FPaths::Combine(FPaths::ProjectDir(), TEXT("vignette-pieces.json")));
@@ -299,7 +308,8 @@ namespace
 			FPaths::GetPath(FPlatformProcess::ExecutablePath()), TEXT("vignette-pieces.json")));
 		for (const FString& C : Candidates)
 		{
-			OutTried += TEXT(" ") + NoSp(FPaths::ConvertRelativePathToFull(C));
+			const FString Full = FPaths::ConvertRelativePathToFull(C);
+			OutTried.push_back(std::string(TCHAR_TO_UTF8(*Full)));
 			if (FPaths::FileExists(C)) { return C; }
 		}
 		return FString();
@@ -778,13 +788,14 @@ namespace
 		Out.Add(TEXT("#   luma=(0.299R+0.587G+0.114B)/255, the same weights the Unity sim uses."));
 		Out.Add(TEXT("# shotNonBlackPct: percent of shotPixels with any channel above zero."));
 		Out.Add(TEXT("# shotDistinctBuckets: distinct 5-bit-per-channel colour buckets, of 32768."));
-		Out.Add(TEXT("# status=WROTE needs a decoded file with more than one bucket and at least one"));
-		Out.Add(TEXT("#   non-black pixel. BLANK, UNDECODABLE and NO-FILE are the three ways it fails"));
-		Out.Add(TEXT("#   and the step exits non-zero for all three with the evidence still committed."));
-		Out.Add(TEXT("# QUEUE 059, THE TWO MEASUREMENTS RUN 17 DID NOT HAVE. lanternsPlaced=4/4 was"));
-		Out.Add(TEXT("#   true and answered `were four lights created`, while both night frames were"));
-		Out.Add(TEXT("#   black; shotMeanLuma=0.5030 was true over a day frame whose ground plane was"));
-		Out.Add(TEXT("#   entirely clipped. Neither number could see it. These can:"));
+		Out.Add(TEXT("# a shot status of WROTE needs a decoded file with more than one bucket and"));
+		Out.Add(TEXT("#   at least one non-black pixel. BLANK, UNDECODABLE and NO-FILE are the three"));
+		Out.Add(TEXT("#   ways it fails, and the step exits non-zero for all three with the evidence"));
+		Out.Add(TEXT("#   still committed."));
+		Out.Add(TEXT("# QUEUE 059, THE TWO MEASUREMENTS RUN 17 DID NOT HAVE. Its lantern count read"));
+		Out.Add(TEXT("#   four of four and answered `were four lights created`, while both night"));
+		Out.Add(TEXT("#   frames were black; its mean luma read 0.5030 over a day frame whose ground"));
+		Out.Add(TEXT("#   plane was entirely clipped. Neither number could see it. These can:"));
 		Out.Add(TEXT("# shotClipHiAny/shotClipHiAll/shotClipLoAll: COUNTS of pixels at the top and"));
 		Out.Add(TEXT("#   bottom of the 8-bit range over shotPixels, never a mean. shotLumaBands is"));
 		Out.Add(TEXT("#   eight equal luma bands, band 0 darkest: a printed series, not a bound."));
@@ -802,8 +813,14 @@ namespace
 		Out.Add(TEXT("#   candidates tried for every map that is not there. The base material is a"));
 		Out.Add(TEXT("#   BUILD PRODUCT made by tools/ue/make_base_material.py in the cook step: no"));
 		Out.Add(TEXT("#   human opens the editor, which is D1 measurement (a) in one line."));
-		Out.Add(TEXT("#   materialBase=MISSING means the cook did not carry the asset and every"));
-		Out.Add(TEXT("#   surface below is untextured however many maps decoded."));
+		Out.Add(TEXT("#   materialBase reads MISSING when the cook did not carry the asset, and"));
+		Out.Add(TEXT("#   every surface below is then untextured however many maps decoded."));
+		Out.Add(TEXT("# NO COMMENT IN THIS HEADER WRITES A KEY WITH AN EQUALS AND A VALUE."));
+		Out.Add(TEXT("#   Run 19 spelled this key out with MISSING beside it up here and"));
+		Out.Add(TEXT("#   measured it as loaded down there, which tools/verdict-dupkeys.py"));
+		Out.Add(TEXT("#   reads as one key with two values in one run. Every reader here"));
+		Out.Add(TEXT("#   greps, and one of them takes the FIRST match. Keys are named in"));
+		Out.Add(TEXT("#   prose above and measured below, never both."));
 		Out.Add(TEXT(""));
 		Out.Add(FString(UTF8_TO_TCHAR(GSceneLine.c_str())));
 		Out.Add(GCamLine);
@@ -1265,7 +1282,20 @@ namespace
 	// from Packaged/Windows and the checkout sits four directories above it;
 	// a staged copy beside the exe is tried first so the step can choose to
 	// carry the pack rather than reach for it.
-	FString FindTexRoot(int32& OutFiles)
+	//
+	// THE FIRST TWO CANDIDATES ARE THE CONTRACT. The workflow copies the
+	// pack to `CityPackTextures` beside the staged project and beside the
+	// binary, by name, exactly as it copies the piece list, and this search
+	// is not widened to guess at a repository layout from a packaged binary.
+	// Run 19 found nothing in all four because nothing had ever created the
+	// first two and a packaged exe is not four directories under a checkout.
+	//
+	// EVERY CANDIDATE IS RECORDED WHETHER OR NOT IT ANSWERED. `NOT-FOUND`
+	// with no list beside it cost run 19 a round trip: the question is which
+	// of the pack and the search is in the wrong place, and only the list
+	// answers it. The joining and the cap are in SurfaceBind.h, where g++
+	// runs them before a dispatch.
+	FString FindTexRoot(int32& OutFiles, std::vector<std::string>& OutTried)
 	{
 		const FString ExeDir = FPaths::GetPath(FPlatformProcess::ExecutablePath());
 		TArray<FString> Cands;
@@ -1274,8 +1304,15 @@ namespace
 		Cands.Add(AbsProject(TEXT("../ledger/Assets/StreamingAssets/CityPack/textures")));
 		Cands.Add(FPaths::ConvertRelativePathToFull(FPaths::Combine(
 			ExeDir, TEXT("../../../../ledger/Assets/StreamingAssets/CityPack/textures"))));
+		// RECORDED AS IT IS ASKED, and the search still stops at the first
+		// answer: a list of every candidate whether or not it was reached
+		// would be named wrongly, since `tried` and `would have tried next`
+		// are different facts. On a run that finds the pack the list ends
+		// with the directory that answered.
+		OutFiles = 0;
 		for (int32 I = 0; I < Cands.Num(); ++I)
 		{
+			OutTried.push_back(std::string(TCHAR_TO_UTF8(*Cands[I])));
 			if (!IFileManager::Get().DirectoryExists(*Cands[I])) { continue; }
 			TArray<FString> Found;
 			IFileManager::Get().FindFiles(Found, *(Cands[I] / TEXT("*.*")), true, false);
@@ -1283,7 +1320,6 @@ namespace
 			OutFiles = Found.Num();
 			return Cands[I];
 		}
-		OutFiles = 0;
 		return FString();
 	}
 
@@ -1352,7 +1388,7 @@ namespace
 	void BindSurfaces()
 	{
 		GBaseMaterial = LoadObject<UMaterialInterface>(nullptr, kBaseMaterialPath);
-		GTexRoot = FindTexRoot(GTexRootFiles);
+		GTexRoot = FindTexRoot(GTexRootFiles, GTexRootTried);
 		const std::vector<LedgerSurface::Ask> Asked = LedgerSurface::SurfacesAsked(GSpec.Pieces);
 		// One imported texture per map per surface, kept beside its bind so
 		// no file is decoded twice for the 150 pieces that share a surface.
@@ -1466,7 +1502,8 @@ namespace
 
 		GMaterialsLine = LedgerSurface::MaterialsDoneLine(
 			GBinds, TCHAR_TO_UTF8(kBaseMaterialPath), GBaseMaterial != nullptr,
-			TCHAR_TO_UTF8(*GTexRoot), GTexRootFiles, (int)GSpec.Pieces.size(),
+			TCHAR_TO_UTF8(*GTexRoot), GTexRootFiles, GTexRootTried,
+			(int)GSpec.Pieces.size(),
 			GTexturesImported, GMidsCreated, kMetresPerTile);
 	}
 
@@ -1649,13 +1686,13 @@ namespace LedgerVignetteShot
 		// green. The g++ test asserts the same thing on the same file.
 		std::setlocale(LC_NUMERIC, "C");
 
-		FString Tried;
-		GSpecPath = FindSpec(Tried);
-		GSpecTried = Tried;
+		GSpecPath = FindSpec(GSpecTried);
 		if (GSpecPath.IsEmpty())
 		{
+			// AND IT SAYS WHERE IT LOOKED, on the line a reader already has.
 			GSceneLine = "sceneStatus=NOTHING-EMITTED piecesEmitted=0/0"
-			             " sceneNote=piece-list-not-found-beside-the-binary-or-the-project";
+			             " sceneNote=piece-list-not-found-beside-the-binary-or-the-project"
+			             " specTried=" + LedgerSurface::PathListValue(GSpecTried, 8);
 			GPhase = EPhase::Done;
 			WriteVerdict("captureStatus=NOTHING-MEASURED shotsWrote=0/0 shotsBlank=0/0"
 			             " shotsNoFile=0/0 captureSeconds=0.00 captureTicks=0");
@@ -1666,7 +1703,8 @@ namespace LedgerVignetteShot
 		if (!FFileHelper::LoadFileToString(Contents, *GSpecPath))
 		{
 			GSceneLine = "sceneStatus=NOTHING-EMITTED piecesEmitted=0/0"
-			             " sceneNote=piece-list-found-but-would-not-open";
+			             " sceneNote=piece-list-found-but-would-not-open specFrom="
+			           + std::string(TCHAR_TO_UTF8(*NoSp(GSpecPath)));
 			GPhase = EPhase::Done;
 			WriteVerdict("captureStatus=NOTHING-MEASURED shotsWrote=0/0 shotsBlank=0/0"
 			             " shotsNoFile=0/0 captureSeconds=0.00 captureTicks=0");
@@ -1679,7 +1717,8 @@ namespace LedgerVignetteShot
 			// A FILE THAT WILL NOT PARSE IS A DIFFERENT FACT FROM A FILE THAT
 			// IS NOT THERE, and the reason is what says which.
 			GSceneLine = "sceneStatus=NOTHING-EMITTED piecesEmitted=0/0 sceneNote="
-			           + std::string(TCHAR_TO_UTF8(*NoSp(FString(UTF8_TO_TCHAR(GSpecErr.c_str())))));
+			           + std::string(TCHAR_TO_UTF8(*NoSp(FString(UTF8_TO_TCHAR(GSpecErr.c_str())))))
+			           + " specFrom=" + std::string(TCHAR_TO_UTF8(*NoSp(GSpecPath)));
 			GPhase = EPhase::Done;
 			WriteVerdict("captureStatus=NOTHING-MEASURED shotsWrote=0/0 shotsBlank=0/0"
 			             " shotsNoFile=0/0 captureSeconds=0.00 captureTicks=0");

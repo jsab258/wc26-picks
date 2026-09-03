@@ -500,8 +500,12 @@ int main(int argc, char** argv)
 		LedgerSurface::Bound C;
 		C.Surface = "card"; C.Pieces = 10;
 		All.push_back(A); All.push_back(B); All.push_back(C);
+		std::vector<std::string> Tried;
+		Tried.push_back("C:/staged/LedgerProbe/CityPackTextures");
+		Tried.push_back("C:/staged/LedgerProbe/Binaries/Win64/CityPackTextures");
 		const std::string D = LedgerSurface::MaterialsDoneLine(
-			All, "/Game/Ledger/M_LedgerSurface", true, "C:/pack/textures", 51, 593, 4, 152, 2.0);
+			All, "/Game/Ledger/M_LedgerSurface", true, "C:/pack/textures", 51, Tried,
+			593, 4, 152, 2.0);
 		std::printf("    %s\n", D.c_str());
 		Check(D.find("surfacesResolved=2/3") != std::string::npos,
 		      "the resolved count ships over what the street asked for");
@@ -518,17 +522,46 @@ int main(int argc, char** argv)
 		// A BASE MATERIAL THAT NEVER LOADED DOMINATES, because sixteen
 		// resolved textures bound to nothing is not a partial success.
 		const std::string NoBase = LedgerSurface::MaterialsDoneLine(
-			All, "/Game/Ledger/M_LedgerSurface", false, "C:/pack/textures", 51, 593, 4, 0, 2.0);
+			All, "/Game/Ledger/M_LedgerSurface", false, "C:/pack/textures", 51, Tried,
+			593, 4, 0, 2.0);
 		Check(NoBase.find("materialsStatus=NO-BASE-MATERIAL") != std::string::npos
 		      && NoBase.find("materialBase=MISSING") != std::string::npos,
 		      "a missing base material is its own status and outranks the texture count");
 		// AND A PASS WITH NOTHING TO DO SAYS THE WORDS.
 		const std::vector<LedgerSurface::Bound> None;
 		const std::string Empty = LedgerSurface::MaterialsDoneLine(
-			None, "/Game/Ledger/M_LedgerSurface", true, "", 0, 0, 0, 0, 2.0);
+			None, "/Game/Ledger/M_LedgerSurface", true, "", 0, Tried, 0, 0, 0, 2.0);
 		Check(Empty.find("materialsStatus=NOTHING-ASKED") != std::string::npos
 		      && Empty.find("texRoot=NOT-FOUND") != std::string::npos,
 		      "a pass with no surfaces says nothing-asked and a root it never found says so");
+		// AND IT NAMES WHERE IT LOOKED. This is the half run 19 did not have:
+		// `texRoot=NOT-FOUND` alone cannot tell a pack in the wrong place
+		// from a search in the wrong place.
+		Check(Empty.find("texRootTried=C:/staged/LedgerProbe/CityPackTextures,"
+		                 "C:/staged/LedgerProbe/Binaries/Win64/CityPackTextures")
+		      != std::string::npos,
+		      "a texture root that was not found NAMES every directory it asked about");
+		Check(NoSpacePastPrefix(Empty, "materialsStatus="),
+		      "and the candidate list is still one space-free value with one equals");
+	}
+	// THE SEARCH-PATH FORMATTER ON ITS OWN, both ways round the cap, because
+	// a cap that is never exercised is a claim rather than a measurement.
+	{
+		std::vector<std::string> P;
+		Check(LedgerSurface::PathListValue(P, 8) == "nothing-tried",
+		      "a search that asked about no directory at all says the words, not empty");
+		P.push_back("D:/a/one two/CityPackTextures");
+		Check(LedgerSurface::PathListValue(P, 8) == "D:/a/one~two/CityPackTextures",
+		      "a path with a space in it cannot split a key=value reader's line");
+		P.push_back("D:/b/CityPackTextures");
+		Check(LedgerSurface::PathListValue(P, 8)
+		      == "D:/a/one~two/CityPackTextures,D:/b/CityPackTextures",
+		      "two candidates join on a comma, because a slash is inside every path");
+		Check(LedgerSurface::PathListValue(P, 8).find("more-not-shown") == std::string::npos,
+		      "and a cap that did not bite says nothing at all");
+		Check(LedgerSurface::PathListValue(P, 1)
+		      == "D:/a/one~two/CityPackTextures,+1-more-not-shown",
+		      "a cap that BITES announces itself and prints how many it withheld");
 	}
 	// ---- THE PACK ON DISK, WHICH IS THE HALF THAT ANSWERS D1's QUESTION --
 	//

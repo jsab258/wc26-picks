@@ -82,6 +82,40 @@ namespace LedgerSurface
 		return Out;
 	}
 
+	// A SEARCH THAT FAILED MUST SAY WHERE IT LOOKED. `texRoot=NOT-FOUND` with
+	// nothing beside it cost run 19 a whole round trip: the four directories
+	// the binary checked were known only to the binary, so the answer to "is
+	// the pack in the wrong place or is the search in the wrong place" was
+	// not in the evidence at all.
+	//
+	// THE SEPARATOR IS A COMMA AND NOT A SLASH. Every candidate here is
+	// itself a path full of slashes, so a slash-joined list of paths cannot
+	// be split back into the paths it was made from. No spaces, because every
+	// reader of this file splits on whitespace.
+	//
+	// THE CAP ANNOUNCES WHEN IT BITES and is silent when it does not, which
+	// is this project's rule: a cap nobody is told about is indistinguishable
+	// from a finding.
+	inline std::string PathListValue(const std::vector<std::string>& Paths, size_t Cap)
+	{
+		if (Paths.empty()) { return "nothing-tried"; }
+		std::string Out;
+		size_t Shown = 0;
+		for (size_t I = 0; I < Paths.size() && Shown < Cap; ++I, ++Shown)
+		{
+			if (Shown > 0) { Out += ","; }
+			Out += LedgerVignette::NoSpaces(Paths[I]);
+		}
+		if (Paths.size() > Shown)
+		{
+			char Tail[64];
+			std::snprintf(Tail, sizeof(Tail), ",+%d-more-not-shown",
+			              (int)(Paths.size() - Shown));
+			Out += Tail;
+		}
+		return Out;
+	}
+
 	inline std::string CandidateList(const std::string& Surface, int MapIndex)
 	{
 		const std::vector<std::string> C = Candidates(Surface, MapIndex);
@@ -240,11 +274,16 @@ namespace LedgerSurface
 	// A PASS THAT BOUND NOTHING SAYS THE WORDS. `surfacesResolved=0/16` with
 	// a base material that never loaded and `0/16` with sixteen missing files
 	// are different findings, and materialBase is what separates them.
+	// TexRootTried is the candidate directories the engine side actually
+	// asked the file system about, in the order it asked. The top layer
+	// supplies membership and order; the joining, the cap and the words are
+	// here, where they are run by g++ before any dispatch.
 	inline std::string MaterialsDoneLine(const std::vector<Bound>& All,
 	                                     const std::string& BaseMaterialPath,
 	                                     bool bBaseLoaded,
 	                                     const std::string& TexRoot,
 	                                     int TexRootFiles,
+	                                     const std::vector<std::string>& TexRootTried,
 	                                     int PiecesInFile,
 	                                     int TexturesImported,
 	                                     int MidsCreated,
@@ -271,7 +310,7 @@ namespace LedgerSurface
 		if (Absent.empty()) { Absent = "none"; }
 		const int Asked = (int)All.size();
 		char Buf[1100];
-		std::snprintf(Buf, sizeof(Buf),
+		const int Needed = std::snprintf(Buf, sizeof(Buf),
 			"materialsStatus=%s materialBase=%s materialBasePath=%s "
 			"surfacesAsked=%d surfacesResolved=%d/%d surfacesAbsent=%s "
 			"mapsFound=%d/%d texturesImported=%d midsCreated=%d "
@@ -290,6 +329,22 @@ namespace LedgerSurface
 			Assigned, PiecesInFile, PiecesUnderResolved, PiecesInFile,
 			TexRoot.empty() ? "NOT-FOUND" : LedgerVignette::NoSpaces(TexRoot).c_str(),
 			TexRootFiles, MetresPerTile);
-		return std::string(Buf);
+		std::string Line(Buf);
+		// SNPRINTF TRUNCATES SILENTLY, and a cut line reads as a short one:
+		// the keys past the cut simply are not there, which is exactly what a
+		// feature that never ran looks like. The buffer is a cap, so it
+		// announces itself when it bites and stays quiet when it does not.
+		if (Needed < 0 || (size_t)Needed >= sizeof(Buf))
+		{
+			Line += " materialsLineCut=yes/at-1100-chars";
+		}
+		// THE SEARCH PATH GOES ON THE SAME WHOLE-RUN LINE AS ITS RESULT.
+		// texRoot says what answered; texRootTried says what was asked, so
+		// NOT-FOUND names the directories rather than leaving a reader to
+		// read them out of the source of a binary they cannot run. Appended
+		// as a string rather than formatted into the buffer above, because
+		// four absolute Windows paths are what would push that buffer over.
+		Line += " texRootTried=" + PathListValue(TexRootTried, 8);
+		return Line;
 	}
 }

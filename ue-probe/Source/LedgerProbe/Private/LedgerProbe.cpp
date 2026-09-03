@@ -261,9 +261,15 @@ namespace
 		Out.Add(TEXT("# shotMinLuma/shotMaxLuma: extremes over the same pixel set."));
 		Out.Add(TEXT("# shotNonBlackPct: percent of shotPixels with any channel above zero."));
 		Out.Add(TEXT("# shotDistinctBuckets: distinct 5-bit-per-channel colour buckets, of 32768."));
-		Out.Add(TEXT("# shotStatus=WROTE needs a decoded file with more than one bucket and"));
-		Out.Add(TEXT("#   at least one non-black pixel. Anything else is BLANK, UNDECODABLE or"));
-		Out.Add(TEXT("#   NO-FILE, and the step that ran this exits non-zero for all three."));
+		Out.Add(TEXT("# A shot status of WROTE needs a decoded file with more than one bucket"));
+		Out.Add(TEXT("#   and at least one non-black pixel. Anything else is BLANK, UNDECODABLE"));
+		Out.Add(TEXT("#   or NO-FILE, and the step that ran this exits non-zero for all three."));
+		Out.Add(TEXT("# NO COMMENT IN THIS HEADER WRITES A KEY WITH AN EQUALS AND A VALUE."));
+		Out.Add(TEXT("#   This explanation used to spell the key out in full with WROTE beside"));
+		Out.Add(TEXT("#   it, and the step that gates on this file takes the FIRST match for"));
+		Out.Add(TEXT("#   that key: the gate read WROTE out of the explanation, above the"));
+		Out.Add(TEXT("#   measured line, and could not have failed whatever the frame was."));
+		Out.Add(TEXT("#   Keys are named in prose here and measured below, never both."));
 		Out.Add(TEXT(""));
 		Out.Add(GShotCamLine);
 		Out.Add(DoneLine);
