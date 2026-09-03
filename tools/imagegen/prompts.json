@@ -131,14 +131,55 @@
       "`by_kind` overrides the whole prefix and/or suffix for one kind. A wall",
       "texture is not a photograph of a street and must not be asked for as one:",
       "the word `photograph` is exactly what produced a coping, a corner and a",
-      "pavement in a frame that was supposed to be nothing but brick."
+      "pavement in a frame that was supposed to be nothing but brick.",
+      "",
+      "2 SEP, AND THE SAME SENTENCE AGAIN AT FORTY-FIVE TIMES THE SIZE. A",
+      "verifier opened all 45 images: 41 of 45 are SCENE PHOTOGRAPHS, an object",
+      "standing in a street with pavement, sky and buildings around it, and 4 of",
+      "45 are plates. The four plates are the four `wall` items, which are the",
+      "only ones that were NOT asked for as a `photograph ... deserted empty",
+      "street`. Four of four. So the wall prefix below is not a wall-only idea,",
+      "it is the framing clause, and the DEFAULT is now that clause: sign,",
+      "fascia, notice and poster inherit it, and a kind added tomorrow inherits",
+      "it too rather than being born asking for a street.",
+      "",
+      "ONE WORD DIFFERS FROM THE PROVEN STRING and it is named here so nobody",
+      "has to diff for it: `the surface filling the frame edge to edge` reads",
+      "`the artwork filling the frame edge to edge` for the signage families,",
+      "because a sign plate is not a surface sample. Everything else is copied",
+      "character for character from the wall prefix that worked.",
+      "",
+      "`framing_required` IS THE PART THAT CANNOT BE FORGOTTEN. imagegen.py's",
+      "build_prompt refuses to return a prompt whose PREFIX does not contain",
+      "it, by id, before the 6.7 GB download - so a new item written",
+      "with no framing clause is a printed line rather than another photograph",
+      "of a sign in a street. It is deliberately the substring the wall prefix,",
+      "the signage prefix and the interior prefix all share; changing it here",
+      "without changing all three prefixes stops the whole batch. It is read",
+      "in the PREFIX only, and no suffix repeats it: the first version of that",
+      "guard was checked against the whole composed prompt, the old 1 Sep",
+      "prefix was planted back to see it go red, and it stayed GREEN because a",
+      "suffix carried the same words. A guard that cannot tell the regression",
+      "from the fix is a ratchet, so the words live in exactly one slot.",
+      "",
+      "AND THE INTERIOR KIND IS NOT A SHOPFRONT. All three interiors came back",
+      "as exteriors photographed from the street, one of them with a garbled",
+      "fascia reading PORIE SHUOP, because they inherited the street suffix.",
+      "They are cards that sit BEHIND a window, so the frame is the room seen",
+      "from inside it: a shopfront applied there would put a second window, a",
+      "pavement and a sky inside the building."
     ],
-    "prefix": "photograph, straight-on flat elevation, evenly lit,",
-    "suffix": "British port town, late 1980s, overcast North Sea daylight, damp salt-weathered paintwork, soot and grime, deserted empty street, sharp legible lettering, period-correct signwriting",
+    "framing_required": "filling the frame edge to edge",
+    "prefix": "flat orthographic texture sheet, square-on to the surface, uniform even lighting, the artwork filling the frame edge to edge,",
+    "suffix": "British port town, late 1980s, damp salt-weathered paintwork, soot and grime, sharp legible lettering, period-correct signwriting, uniform lighting across the whole frame, one single flat surface",
     "by_kind": {
       "wall": {
         "prefix": "flat orthographic texture sheet, square-on to the surface, uniform even lighting, the surface filling the frame edge to edge,",
         "suffix": "British port town, late 1980s, damp salt-weathered masonry, soot and grime, uniform weathering across the whole frame, seamless tileable material sample, single continuous surface"
+      },
+      "interior": {
+        "prefix": "flat orthographic interior elevation seen from inside the room, square-on to the back wall, uniform even lighting, the interior filling the frame edge to edge,",
+        "suffix": "British port town, late 1980s, night, warm light from a lamp inside the room, worn period fittings, soot and grime, uniform lighting across the whole frame, one continuous interior wall"
       }
     }
   },
@@ -176,16 +217,27 @@
       "Writing `no people` in the negative asks for `no people` to be pushed",
       "away, which is not the same as pushing `people` away. imagegen.py's",
       "validator refuses a negative containing `no `/`without`, and its",
-      "rejecting case is exactly that."
+      "rejecting case is exactly that.",
+      "",
+      "2 SEP: the four signage kinds now carry the SCENE half of the wall list",
+      "(kerb, pavement, road, ground, sky, roofline, building corner, street",
+      "furniture) because they had the same fault and only the wall was armed",
+      "against it. What is deliberately NOT copied across is the wall list's",
+      "anti-lettering half - `sign, signboard, lettering, letters, words` - for",
+      "the obvious reason, and `border` is left out of the four signage lists",
+      "because a fine printed border is the artwork on a telephone panel, a WAY",
+      "OUT plate and a tide table. These lists are still INERT at cfg 1.0. The",
+      "clause that will actually move the pixels is the framing prefix in",
+      "`style`, and it is the one that has four images of evidence."
     ],
     "default": "watermark, signature, artist signature, modern sans-serif typeface, helvetica, arial, modern digital typography, oversaturated, hdr, colour cast, colourful, people, person, crowd, pedestrians, face, hands, cars, vehicles, traffic, bicycle, mobile phone, computer screen, plastic modern fittings, real company logo, real brand, trade mark, celebrity, recognisable face",
     "by_kind": {
       "wall": "sign, signboard, signage, shop sign, painted sign, ghost sign, lettering, letters, words, numbers, poster, notice, window, door, doorway, kerb, pavement, road, ground, sky, roofline, gutter, drainpipe, coping stone, building corner, street furniture, perspective, vanishing point, three-quarter view, tilted camera, wide angle, depth of field, blurred edges, vignette, picture frame, border",
-      "notice": "photographic street scene, background buildings, perspective, tilted camera, depth of field",
-      "poster": "photographic street scene, perspective, tilted camera, depth of field",
-      "fascia": "perspective, three-quarter view, tilted camera, extreme wide angle",
-      "sign": "perspective, three-quarter view, tilted camera, extreme wide angle",
-      "interior": "photographic street scene, exterior, building facade, window frame, curtains, pavement, sky, perspective, tilted camera, wide angle, depth of field, blurred edges, vignette, picture frame, border"
+      "notice": "photographic street scene, kerb, pavement, road, ground, sky, roofline, gutter, drainpipe, building corner, shopfront, background buildings, street furniture, lamp post, perspective, vanishing point, three-quarter view, tilted camera, wide angle, depth of field, blurred edges, vignette, picture frame",
+      "poster": "photographic street scene, kerb, pavement, road, ground, sky, roofline, gutter, drainpipe, building corner, shopfront, background buildings, street furniture, lamp post, perspective, vanishing point, three-quarter view, tilted camera, wide angle, depth of field, blurred edges, vignette, picture frame",
+      "fascia": "photographic street scene, kerb, pavement, road, ground, sky, roofline, gutter, drainpipe, building corner, shop window, stallriser, background buildings, street furniture, perspective, vanishing point, three-quarter view, tilted camera, wide angle, extreme wide angle, depth of field, blurred edges, vignette, picture frame",
+      "sign": "photographic street scene, kerb, pavement, road, ground, sky, roofline, gutter, drainpipe, building corner, shopfront, background buildings, street furniture, post, pole, bracket, perspective, vanishing point, three-quarter view, tilted camera, wide angle, extreme wide angle, depth of field, blurred edges, vignette, picture frame",
+      "interior": "photographic street scene, exterior, building facade, shopfront, fascia, shop sign, signboard, window frame, curtains, kerb, pavement, road, sky, roofline, street, perspective, tilted camera, wide angle, depth of field, blurred edges, vignette, picture frame, border"
     }
   },
   "defaults": {
@@ -202,7 +254,7 @@
       "width": 1024,
       "height": 512,
       "seed": 8026,
-      "prompt": "a hand-painted British pub fascia signboard reading 'MICKEY'S' in gold shaded serif capitals on a deep maroon painted timber board, gilt edging chipped and flaking, brass lamp brackets above, tiled stallriser below"
+      "prompt": "a hand-painted British pub fascia signboard reading 'MICKEY'S' in gold shaded serif capitals on a deep maroon painted timber board, gilt edging chipped and flaking, brass lamp brackets fixed to the top edge of the board"
     },
     {
       "id": "fascia_ritas_pawn",
@@ -211,7 +263,7 @@
       "width": 1024,
       "height": 512,
       "seed": 8027,
-      "prompt": "a British pawnbroker shopfront fascia reading 'RITA'S' in cream signwritten capitals on a dark green board, with the three-ball pawnbroker symbol on a bracket, small line beneath reading 'GOLD BOUGHT', security grille over the window"
+      "prompt": "a British pawnbroker shopfront fascia reading 'RITA'S' in cream signwritten capitals on a dark green board, with the three-ball pawnbroker symbol on a bracket, a narrow band of smaller signwriting beneath read as an even painted block of texture"
     },
     {
       "id": "fascia_fish_market",
@@ -220,7 +272,18 @@
       "width": 1024,
       "height": 512,
       "seed": 8028,
-      "prompt": "a British wet fish shop fascia reading 'HOOK STREET FISH MARKET' in white sans capitals on blue glazed tile, hand-lettered price card in the window, white enamel and marble slab below, wet pavement"
+      "prompt": "a British wet fish shop fascia board reading 'FISH MARKET' in white sans capitals on blue glazed tile, those two words filling the width of the board, a narrow band of smaller signwriting beneath read as an even block of texture, glazed tile surround, salt bloom and soot in the grout",
+      "_note": [
+        "THE TITLE LOST TWO WORDS ON PURPOSE, 2 Sep, and it is a content change",
+        "a reviewer can reverse in one line. It asked for HOOK STREET FISH",
+        "MARKET and the image reads HOOK STREATS: four words at fascia cap",
+        "height is past what this model spells, and R1 in sign_ferry says a",
+        "two-word title came back flawless. So the board reads FISH MARKET and",
+        "the street name is carried by the world, not by the paint.",
+        "CONSEQUENCE OUTSIDE THIS FILE: production/specs/vignette-scene.json",
+        "crops this image to the fascia band and its note quotes the HOOK",
+        "STREATS lettering. That note goes stale the moment this regenerates."
+      ]
     },
     {
       "id": "fascia_steam_laundry",
@@ -246,7 +309,7 @@
       "width": 768,
       "height": 512,
       "seed": 8030,
-      "prompt": "a nightclub neon sign face reading 'MARQUEE' in hot pink neon tube capitals on a black steel panel, tubes glowing, one letter dimmer than the rest, damp brickwork behind"
+      "prompt": "a nightclub neon sign face reading 'MARQUEE' in hot pink neon tube capitals on a black steel panel, tubes glowing, one letter dimmer than the rest, the panel filling the frame edge to edge"
     },
     {
       "id": "sign_open_all_nite",
@@ -255,7 +318,7 @@
       "width": 768,
       "height": 512,
       "seed": 8031,
-      "prompt": "an all-night cafe window sign reading 'OPEN ALL NITE' in warm amber neon script on a plain dark panel, greasy glass, condensation, a rolled blind above"
+      "prompt": "an all-night cafe window sign reading 'OPEN ALL NITE' in warm amber neon script on a plain dark panel, greasy glass, condensation on the inside of the pane"
     },
     {
       "id": "sign_baths",
@@ -264,7 +327,7 @@
       "width": 768,
       "height": 512,
       "seed": 8032,
-      "prompt": "a municipal public baths sign reading 'BATHS' in pale green neon capitals mounted on a Victorian faience frontage, verdigris ironwork, chipped glazed tilework"
+      "prompt": "a municipal public baths sign reading 'BATHS' in pale green neon capitals on a Victorian faience panel, verdigris ironwork, chipped glazed tilework"
     },
     {
       "id": "notice_dock_regulations",
@@ -522,7 +585,7 @@
       "width": 768,
       "height": 512,
       "seed": 8050,
-      "prompt": "a British ferry terminal sign, white enamel on a black steel plate, tall condensed capitals reading 'MERIDIAN FERRY', a single smaller line beneath reading 'FOOT PASSENGERS', salt-pitted, gull-marked, bolted at four corners",
+      "prompt": "a British ferry terminal sign, white enamel on a black steel plate, tall condensed capitals reading 'MERIDIAN FERRY', a narrow painted band beneath read as an even block of smaller lettering, salt-pitted, gull-marked, bolted at four corners",
       "_note": [
         "BATCH 2, written 26 Aug from `imagegen-batch-2.md`. Every one of these",
         "obeys R1 — BIG TYPE ONLY: a bold title a player can read, and everything",
@@ -543,7 +606,14 @@
       "width": 768,
       "height": 512,
       "seed": 8051,
-      "prompt": "a British harbour office door plate, cast brass letters reading 'HARBOUR MASTER' on a dark green painted board, verdigris in the letter cuts, a smaller brass plate beneath bearing an even block of engraved office hours read as texture"
+      "prompt": "a British harbour office door plate, cast brass letters reading 'HARBOUR MASTER' on a dark green painted board, those two words the only lettering on the plate and filling its width, verdigris in the letter cuts, screw heads at the four corners",
+      "_note": [
+        "CAME BACK HARBOOR MASTER, 2 Sep, one of the eight secondary-text",
+        "failures. Two words is inside what this model spells, so what is",
+        "removed here is the COMPETITION: a second brass plate of engraved",
+        "office hours under the title asked for two lettered objects on one",
+        "768x512 plate and neither got the pixels. One title, nothing else."
+      ]
     },
     {
       "id": "sign_weighbridge",
@@ -579,7 +649,7 @@
       "width": 768,
       "height": 512,
       "seed": 8055,
-      "prompt": "a British enamel station sign, cream capitals reading 'LEFT LUGGAGE' on a dark blue plate, a smaller line beneath reading 'AND PARCELS', enamel chipped along the lower edge, screw heads painted over",
+      "prompt": "a British enamel station sign, cream capitals reading 'LEFT LUGGAGE' on a dark blue plate, a narrow band of smaller lettering beneath read as an even block of texture, enamel chipped along the lower edge, screw heads painted over",
       "_note": [
         "The prompt said 'a British railway sign' and the content check refused it: `british rail` is a forbidden token and it matches inside 'British railway'. A substring false positive, and the wording moved rather than the check — a trade-mark guard that errs toward refusing is erring the right way, and the replacement phrase is better anyway."
       ]
@@ -591,7 +661,7 @@
       "width": 768,
       "height": 512,
       "seed": 8056,
-      "prompt": "a British street sign plate, black capitals reading 'NO WAITING' on white with a red border, mounted on a grey pole bracket, faded and slightly bent, road grime along the bottom edge"
+      "prompt": "a British street sign plate, black capitals reading 'NO WAITING' on white with a red border, faded and slightly bent, road grime along the bottom edge"
     },
     {
       "id": "sign_private_mooring",
@@ -600,7 +670,7 @@
       "width": 768,
       "height": 512,
       "seed": 8057,
-      "prompt": "a hand-painted quayside board reading 'PRIVATE MOORING' in white signwriter's capitals on tarred black timber, a smaller line beneath reading 'NO LANDING', weathered, the paint thinned to grey at the edges"
+      "prompt": "a hand-painted quayside board reading 'PRIVATE MOORING' in white signwriter's capitals on tarred black timber, a narrow band of smaller lettering beneath read as an even block of texture, weathered, the paint thinned to grey at the edges"
     },
     {
       "id": "sign_way_out",
@@ -618,7 +688,7 @@
       "width": 768,
       "height": 512,
       "seed": 8059,
-      "prompt": "a British taxi rank sign, black capitals reading 'TAXIS' on a white enamel plate, a smaller line beneath reading 'CARS WAIT HERE', mounted on a cast iron post collar, rust staining downward from the fixings"
+      "prompt": "a British taxi rank sign, black capitals reading 'TAXIS' on a white enamel plate, a narrow band of smaller lettering beneath read as an even block of texture, rust staining downward from the fixings"
     },
     {
       "id": "sign_fish_quay",
@@ -627,7 +697,7 @@
       "width": 768,
       "height": 512,
       "seed": 8060,
-      "prompt": "a fish market gate sign, black capitals reading 'FISH QUAY' on cream paint over rendered brick, a smaller line beneath reading 'MARKET DAILY', salt bloom low down, paint blistered and peeling"
+      "prompt": "a fish market gate sign, black capitals reading 'FISH QUAY' on cream paint over rendered brick, a narrow band of smaller lettering beneath read as an even block of texture, salt bloom low down, paint blistered and peeling"
     },
     {
       "id": "sign_chandlery",
@@ -654,7 +724,15 @@
       "width": 640,
       "height": 896,
       "seed": 8081,
-      "prompt": "a British borough council notice, heavy black capitals reading 'BOROUGH OF MERIDIAN' across the top, a second line reading 'PUBLIC NOTICE', beneath them a dense paragraph of small print read as an even grey block, a printed crest above the heading, pinned at four corners, foxed and slightly buckled"
+      "prompt": "a British borough council notice, heavy black capitals reading 'BOROUGH OF MERIDIAN' across the top as the only large lettering, a ruled line under the heading, beneath it a dense paragraph of small print read as an even grey block, a printed crest above the heading, pinned at four corners, foxed and slightly buckled",
+      "_note": [
+        "CAME BACK BORHOUGH, 2 Sep. Three words at the top of a 640x896 board",
+        "is not the problem: MERIDIAN HARBOUR BOARD on notice_dock_regulations",
+        "came back perfect at the same size. The competition is: a crest, a",
+        "header band AND a second reading line all wanted to be read. The",
+        "second line is now inside the grey block, which is where R1 puts",
+        "everything that is not the title."
+      ]
     },
     {
       "id": "notice_planning",
@@ -789,7 +867,7 @@
       "width": 768,
       "height": 512,
       "seed": 8096,
-      "prompt": "the back wall of a small British corner shop at night, plain timber shelves stacked with unlabelled tins and cardboard boxes, a counter edge across the foot of the frame, a single fluorescent strip light overhead, warm interior glow falling on the shelves"
+      "prompt": "the back wall of a small British corner shop seen from inside the shop at night, the camera indoors facing the shelves, plain timber shelves stacked with unlettered tins and cardboard boxes filling the frame edge to edge, a counter edge across the foot of the frame, a single fluorescent strip light overhead, warm interior glow falling on the shelves"
     },
     {
       "id": "interior_bar_back",
@@ -798,7 +876,7 @@
       "width": 768,
       "height": 512,
       "seed": 8097,
-      "prompt": "the back bar of a small British pub at night, rows of plain unlabelled bottles on glass shelves, an etched mirror panel behind them, brass pump handles along the counter, warm tungsten light, cigarette haze"
+      "prompt": "the back bar of a small British pub seen from inside the bar at night, the camera indoors facing the bottle shelves, rows of plain unlettered bottles on glass shelves filling the frame edge to edge, an etched mirror panel behind them, brass pump handles along the counter edge at the foot of the frame, warm tungsten light, cigarette haze"
     },
     {
       "id": "interior_stair_landing",
@@ -807,7 +885,7 @@
       "width": 512,
       "height": 768,
       "seed": 8098,
-      "prompt": "a narrow stair landing inside a British flat at night, painted banister and newel post, patterned carpet runner on the treads, woodchip wallpaper, a bare bulb on a flex casting a dim yellow light up the wall"
+      "prompt": "a narrow stair landing seen from inside a British flat at night, the camera indoors on the landing itself, painted banister and newel post, patterned carpet runner on the treads, woodchip wallpaper filling the frame edge to edge, a bare bulb on a flex casting a dim yellow light up the wall"
     }
   ]
 }

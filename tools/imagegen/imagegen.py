@@ -38,9 +38,12 @@ now made inside the click:
     this, a re-run overwrote twelve files including the two he had picked out
     by hand, so "run it again" meant "first go and copy your good ones aside".
 
-TESTING. Everything that can be tested without a GPU is: `--selftest` runs 83
+TESTING. Everything that can be tested without a GPU is: `--selftest` runs 143
 checks - plan() across seven synthetic machines AND the MULTI-ADAPTER machine
-in three orders, the prompt builder refusing to drop the content rules, the run
+in three orders, the prompt builder refusing to drop the content rules, the
+prompt builder refusing a prompt with NO FRAMING CLAUSE (accepting case is the
+live prompts.json, all 45 of them; rejecting case is a synthetic item carrying
+the 1 Sep prefix that produced 41 photographs of signs in a street), the run
 loop with the generator faked, the blank-image check both ways on synthesised
 PNGs, the per-image Vulkan VAE rule both ways, the download candidate list both
 ways (a 404 falls through, a 401/403 STOPS), the GPU gate both ways THROUGH
@@ -567,11 +570,55 @@ def build_prompt(item, rules_clause, style):
     evaluates the unconditional branch, so a negative prompt is inert and
     moving this clause into it would delete the only anti-brand instruction the
     model receives. `scan_exclusions` exempts it BY NAME and prints that it did.
+
+    AND THE SECOND REFUSAL, 2 Sep: A PROMPT WITH NO FRAMING CLAUSE. A verifier
+    opened all 45 images of the first library and 41 of 45 were photographs of
+    an object standing in a street - pavement, sky, buildings, depth of field -
+    because that is what "photograph, straight-on flat elevation" plus
+    "deserted empty street" asks for. The 4 that came out as usable plates were
+    the 4 that carried "flat orthographic texture sheet, square-on to the
+    surface, the surface filling the frame edge to edge". Four of four, one
+    line of prompt, forty-five images.
+
+    So the framing clause is now DATA (`style.framing_required`) and this
+    function will not return a prompt that does not contain it, BY ID, before
+    the 6.7 GB download rather than after the night of GPU time. It is the same
+    shape as the rules clause above and for the same reason: a rule nobody can
+    forget beats a rule in a document, and the document said "square on" in
+    three places while 41 images stood in a street.
+
+    Fail closed on a MISSING `framing_required` too. A prompts.json with the
+    key deleted is exactly the file that generated the 41, and defaulting to
+    "no framing needed" would make the guard disappear on the only input that
+    needs it.
     """
     if not rules_clause or "no trade marks" not in rules_clause:
         raise ValueError("content rules missing or altered: every prompt must "
                          "carry the no-trade-marks / no-real-person clause")
+    who = item.get("id") or "(an item with no id)"
+    framing = (style or {}).get("framing_required", "")
+    if not framing:
+        raise ValueError(
+            f"{who}: prompts.json has no `style.framing_required`, so nothing "
+            "can check that this prompt asks for a flat plate rather than a "
+            "photograph of one. That key is what 41 of the first 45 images "
+            "were missing. Restore it before generating anything.")
     prefix, suffix = resolve_style(item, style)
+    # THE CLAUSE IS CHECKED IN THE PREFIX, NOT ANYWHERE IN THE COMPOSED TEXT,
+    # and that is a repair rather than a preference. Written the loose way
+    # first, the guard was PLANTED with the old 1 Sep prefix and stayed GREEN,
+    # because the new suffix happened to repeat the same words: a guard that
+    # cannot tell the regression from the fix. The framing slot is the prefix,
+    # so the prefix is what is read, and the suffixes no longer repeat it.
+    if framing not in prefix:
+        raise ValueError(
+            f"{who}: NO FRAMING CLAUSE. Its framing slot is "
+            f"{prefix.strip()!r}, which does not contain {framing!r}, so this "
+            "prompt asks for a picture of the thing rather than for the thing "
+            "itself and would come back with a pavement and a sky round it "
+            "like 41 of the first 45. Put the clause in `style.prefix`, or in "
+            f"`style.by_kind.{item.get('kind') or '?'}.prefix` if this kind "
+            "frames differently (see the `wall` and `interior` entries).")
     parts = [prefix.strip(), item["prompt"].strip(), suffix.strip(),
              rules_clause.strip()]
     return ", ".join(p.rstrip(",") for p in parts if p)
@@ -2884,7 +2931,17 @@ def selftest():
     # 2. Every shipped prompt carries the rules and names no real mark.
     hits = 0
     for it in spec["items"]:
-        pr = build_prompt(it, rules, spec["style"])
+        # A REFUSAL MUST READ AS A RED CHECK, NOT AS A TRACEBACK. build_prompt
+        # now refuses two ways (no rules clause, no framing clause) and the
+        # planted regression - the 1 Sep prefix put back - killed the whole
+        # selftest here with a stack trace, so the 143 checks below it were
+        # never run and the summary line never printed. Caught, named, and the
+        # run carries on to the rest.
+        try:
+            pr = build_prompt(it, rules, spec["style"])
+        except ValueError as e:                                  # noqa: BLE001
+            check(f"prompt {it['id']} BUILDS AT ALL", False, str(e)[:200])
+            break
         hits += len(check_forbidden(pr, spec["content_rules"]["forbidden_tokens"]))
         if "no trade marks" not in pr or "no real person" not in pr:
             check(f"prompt {it['id']} carries the rules", False, pr[:120])
@@ -2904,6 +2961,78 @@ def selftest():
     check("rejecting case: the forbidden-mark scan fires on a real brand",
           check_forbidden("a pub sign reading GUINNESS",
                           spec["content_rules"]["forbidden_tokens"]) != [])
+
+    # 4b. THE FRAMING CLAUSE. ACCEPTING CASE FIRST, and the accepting fixture is
+    #     the live prompts.json, because a guard on the project's own file is
+    #     only honest if doing the work it asks for cannot break it.
+    #
+    #     WHY IT EXISTS: 41 of the first 45 images came back as photographs of a
+    #     sign standing in a street, and the 4 that came back as usable plates
+    #     were the 4 whose prefix said "flat orthographic ... filling the frame
+    #     edge to edge". One line of prompt, four of four. The rejecting fixture
+    #     below is the OLD shipped prefix and suffix, word for word, so what is
+    #     being refused is the exact text that produced the 41.
+    framing = (spec["style"] or {}).get("framing_required", "")
+    check("accepting case: the live prompts.json declares a framing clause",
+          bool(framing), sorted(spec["style"].keys()))
+    built, refused = [], []
+    for it in spec["items"]:
+        try:
+            built.append(build_prompt(it, rules, spec["style"]))
+        except ValueError as e:                                  # noqa: BLE001
+            refused.append(f"{it['id']}: {e}")
+    check(f"accepting case: all {len(spec['items'])} live prompts BUILD and "
+          f"every one carries the framing clause",
+          len(built) == len(spec["items"]) and bool(framing)
+          and all(framing in b for b in built),
+          f"built {len(built)} of {len(spec['items'])}, "
+          f"carrying {sum(1 for b in built if framing and framing in b)}; "
+          f"first refusal: {(refused or ['none'])[0][:160]}")
+    live_problems = validate_spec(spec)
+    check(f"accepting case: the live prompts.json validates clean "
+          f"({len(spec['items'])} items examined, 0 problems)",
+          live_problems == [], live_problems[:3])
+    # THE REJECTING FIXTURE IS SYNTHETIC: an id that exists nowhere in the
+    # project, so doing the work this guard prompts can never turn it green by
+    # accident.
+    old_style = {"framing_required": framing,
+                 "prefix": "photograph, straight-on flat elevation, evenly lit,",
+                 "suffix": "British port town, late 1980s, overcast North Sea "
+                           "daylight, deserted empty street"}
+    unframed = {"id": "sign_written_by_a_later_session", "kind": "sign",
+                "prompt": "a British quayside sign reading 'NOWHERE'",
+                "width": 768, "height": 512}
+    try:
+        build_prompt(unframed, rules, old_style)
+        check("rejecting case: a prompt with NO framing clause is refused",
+              False, "it built the prompt instead of refusing it")
+    except ValueError as e:                                      # noqa: BLE001
+        check("rejecting case: a prompt with NO framing clause is refused, and "
+              "the refusal NAMES THE ID",
+              unframed["id"] in str(e) and "NO FRAMING CLAUSE" in str(e),
+              str(e)[:200])
+    # And the same refusal has to reach the pre-download validator, or it is a
+    # guard nothing calls: run_batch validates the whole spec before it fetches
+    # 6.7 GB, and that is the moment this has to fire.
+    probs = validate_spec({"schema": SPEC_SCHEMA,
+                           "content_rules": spec["content_rules"],
+                           "style": old_style, "defaults": spec["defaults"],
+                           "items": [unframed]})
+    check("rejecting case: validate_spec stops the batch BEFORE the download "
+          "and names the item (1 item examined, 1 problem)",
+          len(probs) == 1 and unframed["id"] in probs[0]
+          and "NO FRAMING CLAUSE" in probs[0], probs)
+    # FAIL CLOSED ON A MISSING KEY. A prompts.json with `framing_required`
+    # deleted is precisely the file that made the 41, so an absent key must
+    # refuse rather than wave everything through.
+    no_key = {k: v for k, v in spec["style"].items() if k != "framing_required"}
+    try:
+        build_prompt(spec["items"][0], rules, no_key)
+        check("rejecting case: a prompts.json with NO framing_required key at "
+              "all is refused", False, "it built the prompt")
+    except ValueError as e:                                      # noqa: BLE001
+        check("rejecting case: a prompts.json with NO framing_required key at "
+              "all is refused", "framing_required" in str(e), str(e)[:200])
     # 5. Report formatting survives a probe that failed - the case most likely
     #    to be hit first and the one that must not throw.
     txt = format_report({"probe": "FAILED: powershell not found", "gpus": []}, plan({}))

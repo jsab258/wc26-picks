@@ -7,7 +7,8 @@ STATUS: LIVE. Verified 2026-09-01.
     python3 tools/dashboard/build-dashboard.py --print     # STATUS.md to stdout, write nothing
     python3 tools/dashboard/build-dashboard.py --emit-json       # + the live document
     python3 tools/dashboard/build-dashboard.py --emit-live-page  # + the live page
-    open-dashboard.bat                                     # Windows: rebuild, then open
+    python3 tools/dashboard/build-dashboard.py --checkout refresh # pull --ff-only FIRST, then build
+    open-dashboard.bat                                     # Windows: update, rebuild, then open
 
 A read-only lens over repo state. Deterministic, no model calls. A bare run
 writes exactly two files: `dashboard.html` and `STATUS.md` at the repo root.
@@ -144,8 +145,44 @@ Three points, per the spec:
    every iteration. NOT RUN HERE: this container has no PowerShell, so its
    first Windows night is that line's accepting case.
 3. `open-dashboard.bat /register` creates a Windows scheduled task that
-   rebuilds every 15 minutes. NOT RUN HERE: no Windows, no `schtasks`.
+   updates and rebuilds every 15 minutes. NOT RUN HERE: no Windows, no
+   `schtasks`.
 
 The page prints its own age at the top and turns that line red past 20
 minutes, so a regenerator that has stopped shows up on the page it stopped
 regenerating instead of leaving a stale page looking current.
+
+## How old the CHECKOUT is, added 2026-09-02, which is a different fact
+
+The page said how old THE PAGE was and could not say how old THE FILES it read
+were. A decision card was pushed, the resident said it was on the dashboard,
+and Jafar's copy had never seen the commit. Worse, a registered refresh
+repaints that staleness every quarter hour, so the page looks more alive the
+further behind it falls.
+
+`--checkout refresh` fetches, runs `git pull --ff-only`, and only then builds,
+so the page is rendered from the files the pull brought in. The launcher passes
+it on every run. Never a bare `git pull`: --ff-only moves the branch pointer or
+refuses, can never make a merge commit and never opens an editor, which is the
+26 August incident that put the old "no git here" rule in the launcher's
+header. The rule kept from it is NEVER MERGE UNATTENDED. A refused
+fast-forward is reported and never resolved.
+
+- MEASURED reads `level with origin/<branch> (0 commit(s) behind)` or
+  `N commit(s) behind origin/<branch>`, with the exact command and the two
+  commit ids in the derivation. Level is a measurement.
+- UNAVAILABLE carries the reason and no number at all: no git, a detached
+  HEAD, a failed fetch (git's own words, including the no-network case), a
+  refresh held because a build is running, or a rebuild that was not asked to
+  check. "I could not find out" must never print as zero.
+- Two gates stop a pull moving files under a running CI job, because
+  `ledger-pc` is Jafar's PC AND the self-hosted runner. A checkout inside the
+  runner's `_work` tree gets no git at all, not even a fetch; a build running
+  on the PC holds the pull but still allows the fetch, so the number stays
+  measured while the tree stays still. The evidence that the two clones are in
+  fact different directories is quoted in `runner_work_tree()`.
+- Both fixtures run in the selftest, accepting case first: a real clone level
+  with a real origin, then one deliberately put a commit behind, plus a
+  diverged clone whose fast-forward is refused and a fetch that cannot reach
+  its origin. NOT RUN HERE: the Windows-only `Runner.Worker.exe` probe, which
+  returns could-not-tell off Windows.

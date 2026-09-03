@@ -35,20 +35,43 @@ namespace Ledger.Core
     /// two different streets and both stills would look fine.
     public static class StreetVignette
     {
-        /// One primitive. The emitter turns each of these into exactly one
+        /// One object. The emitter turns each of these into exactly one
         /// object, so the piece count in the plan and the object count in the
         /// scene are the same number and a gate can say so.
         ///
-        /// TWO SHAPES ONLY, box and cylinder. Every engine has both as a
-        /// built-in, so neither emitter needs a mesh asset to stand the scene
-        /// up, and neither can differ from the other by importing a different
-        /// one.
+        /// FOUR SHAPES, AND THE FIRST TWO ARE STILL THE SCENE. `box` and
+        /// `cyl` are built into every engine, so neither emitter needs an
+        /// asset to stand the street up and neither can differ from the other
+        /// by importing a different primitive. `mesh` and `decal` are the two
+        /// that carry HELD BYTES: a base-mesh prop by name and a picture by
+        /// path, both of which arrive through this same list so the Unreal
+        /// emitter gets them for the price of reading the file it already
+        /// reads. Until 2 Sep this list was primitives only and every frame
+        /// shipped without a single one of the 37 held props or 14 generated
+        /// pictures in it; queue item 046 is that finding.
         public struct Piece
         {
             public string Bom;       // the bill-of-materials line that authorises this
             public string Name;      // unique instance name; the still and the log share it
-            public string Shape;     // "box" or "cyl"
-            public string Surface;   // AssetLibrary logical surface name
+            public string Shape;     // "box", "cyl", "mesh" or "decal"
+            /// For a box or a cylinder: the AssetLibrary logical surface
+            /// name. FOR A DECAL IT IS THE BLEND, `card` or `multiply`, and
+            /// that overload is deliberate and is stated here rather than
+            /// discovered: a decal has no library surface, and what decides
+            /// its material is which of the two ways it is drawn (an opaque
+            /// picture, or a multiply that can only ever dirty what is under
+            /// it). For a mesh it is the surface its renderers are repainted
+            /// to, because the base-mesh props ship untextured and white.
+            public string Surface;
+            /// WHAT TO LOAD, and null for a primitive. For a `mesh` it is the
+            /// base-mesh stem (`awning_02`), which the emitter turns into its
+            /// own engine's prop key. For a `decal` it is the image path under
+            /// StreamingAssets/Decals (`generated/fascia_mickeys`,
+            /// `ambientcg/Moss001`) with an optional `#u0,v0,u1,v1` crop
+            /// rectangle after it: see `SplitAsset`, which is the one parser
+            /// for it and is tested, so the Unreal reader has an
+            /// implementation to match rather than a sentence to interpret.
+            public string Asset;
             public double X, Y, Z;   // CENTRE, metres, in the JSON's frame
             public double SX, SY, SZ;// full size, metres, before rotation
             public double PitchDeg;  // about +x, positive tips the +z end DOWN
@@ -107,6 +130,17 @@ namespace Ledger.Core
         public struct Shot
         {
             public string Id, CameraId, ConditionId;
+        }
+
+        /// ONE SHOP INTERIOR CARD AND THE BAY IT STANDS IN. Recorded by the
+        /// shopfront emitter as it builds one, because the bay index is
+        /// known there and nowhere else without parsing it back out of a
+        /// name. A practical is placed at the card, so the card list is the
+        /// only correct denominator for how many windows COULD be lit.
+        public struct WindowCard
+        {
+            public string Name;
+            public int Bay;
         }
 
         /// The street's cross section, computed once from the JSON widths and
@@ -174,6 +208,20 @@ namespace Ledger.Core
             public string Side;
         }
 
+        /// WHERE THE TOP OF A CHIMNEY STACK IS, recorded by the roofline
+        /// emitter as it builds one. A chimney pot stands on it, and the only
+        /// other way for the pot placer to know that level is to re-derive
+        /// the eaves, the roof rise and the stack height, which is the second
+        /// copy this file's section comment forbids: two answers to "how high
+        /// is the stack" is how a pot comes to hover a hand's width over it
+        /// in one engine and not the other.
+        public struct StackTop
+        {
+            public string BlockId, Side;
+            public int Index;
+            public double X, Z, TopY;
+        }
+
         public sealed class Plan
         {
             public string Error;
@@ -189,6 +237,15 @@ namespace Ledger.Core
             /// bill of materials exists to make visible.
             public readonly Dictionary<string, int> PerBom = new Dictionary<string, int>();
             internal readonly List<Plot> Plots = new List<Plot>();
+            internal readonly List<StackTop> Stacks = new List<StackTop>();
+            /// HOW HARD A MULTIPLY DECAL DARKENS WHAT IS UNDER IT, on the
+            /// ground and on a wall. Two numbers rather than one because the
+            /// town's decal layer measured them apart and they ride here
+            /// rather than in either emitter for the same reason the tiling
+            /// table does: two engines with two strengths are two streets.
+            /// No initialiser on purpose: both come from the scene file and a
+            /// missing key throws, like every other number in this class.
+            public double DecalStrengthGround, DecalStrengthWall;
             /// The lantern colour, carried through from the JSON so the
             /// emitter never picks an amber by eye. Gamma-encoded sRGB, which
             /// is what a Unity `Color` literal means in a gamma project; the
@@ -196,6 +253,29 @@ namespace Ledger.Core
             /// project is linear.
             public double LampR, LampG, LampB, LampRangeM, LampIntensity;
             public double SunElevationDeg, SunAzimuthDeg;
+            /// H5, THE WINDOW PRACTICALS, AND WHICH WINDOWS THEY ARE.
+            ///
+            /// The Host used to carry these five numbers as literals and to
+            /// pick its windows by asking whether a piece name contained
+            /// `_interior`, which by 2 September also matched three C11
+            /// decal cards and would have lit nine things while the verdict
+            /// said six. So the SELECTION is done here, once, in the layer
+            /// the tests run, and both engines light the names in
+            /// `WindowLitNames` and nothing else.
+            ///
+            /// `WindowCards` is every shop interior card the parade emitted
+            /// with the bay it belongs to, which is the DENOMINATOR of
+            /// `windowsLit=N/M`. `WindowFlatNames` is the flat half and it
+            /// is empty today: D8_upper_windows carries no interior card, so
+            /// the flat intensity and range light nothing and the run says
+            /// so in words rather than dropping the pair.
+            public double WindowShopIntensity, WindowShopRangeM;
+            public double WindowFlatIntensity, WindowFlatRangeM;
+            public double WindowR, WindowG, WindowB;
+            public readonly List<int> WindowLitBays = new List<int>();
+            public readonly List<WindowCard> WindowCards = new List<WindowCard>();
+            public readonly List<string> WindowLitNames = new List<string>();
+            public readonly List<string> WindowFlatNames = new List<string>();
             /// Metres of world per texture repeat, per logical surface, with
             /// the fallback for a surface the table does not name. Here
             /// rather than in either emitter for the same reason every other
@@ -320,7 +400,15 @@ namespace Ledger.Core
         /// WHOLE-PLAN COUNTS, one line per plan, never per piece. The three
         /// cylinder columns partition the cylinders exactly (roll is
         /// classified first, so a piece carrying both is counted as rolled
-        /// and only once), and `box + cyl + unknown` is `pieces`.
+        /// and only once), and `box + cyl + mesh + decal + unknown` is
+        /// `pieces`.
+        ///
+        /// `mesh` AND `decal` ARE COUNTED BY NAME rather than swept into
+        /// `unknown`. They used not to exist, so every held prop and every
+        /// picture would have landed in the unknown column, where a number
+        /// that is supposed to read zero would have read 43 and meant
+        /// nothing. `unknown` keeps its own job: a shape no emitter
+        /// recognises, which is a bug and reads as one.
         ///
         /// FORMATTED HERE, not in the emitter, because this layer is the one
         /// CoreTests can run: a formatter written in the Unity layer ships
@@ -328,10 +416,13 @@ namespace Ledger.Core
         /// silent-instrument failure this project keeps paying for.
         public static string ShapeReport(List<Piece> pieces)
         {
-            int box = 0, cyl = 0, unknown = 0, rolled = 0, pitched = 0, upright = 0;
+            int box = 0, cyl = 0, mesh = 0, decal = 0, unknown = 0;
+            int rolled = 0, pitched = 0, upright = 0;
             foreach (var p in pieces)
             {
                 if (p.Shape == "box") { box++; continue; }
+                if (p.Shape == "mesh") { mesh++; continue; }
+                if (p.Shape == "decal") { decal++; continue; }
                 if (p.Shape != "cyl") { unknown++; continue; }
                 cyl++;
                 if (Math.Abs(p.RollDeg) > 1e-9) rolled++;
@@ -339,9 +430,46 @@ namespace Ledger.Core
                 else upright++;
             }
             return string.Format(CultureInfo.InvariantCulture,
-                "shapes pieces={0} box={1} cyl={2} unknown={3} "
-                + "cylRolled={4} cylPitched={5} cylUpright={6}",
-                pieces.Count, box, cyl, unknown, rolled, pitched, upright);
+                "shapes pieces={0} box={1} cyl={2} mesh={3} decal={4} unknown={5} "
+                + "cylRolled={6} cylPitched={7} cylUpright={8}",
+                pieces.Count, box, cyl, mesh, decal, unknown, rolled, pitched, upright);
+        }
+
+        /// SPLIT A DECAL'S ASSET STRING INTO THE IMAGE AND ITS CROP.
+        ///
+        /// `generated/fascia_mickeys#0.039,0.277,0.977,0.717` is the image
+        /// path and the rectangle of it to use, u then v, v measured from the
+        /// BOTTOM. No fragment means the whole image, which is 0,0,1,1.
+        ///
+        /// WHY A CROP EXISTS AT ALL: the generated pictures are photographs
+        /// of a thing IN a street, not flat artwork, so fascia_fish_market is
+        /// a whole shopfront with a pavement and a sky in it. Pasting all of
+        /// it on a fascia band puts a photograph of a street on a street.
+        ///
+        /// WHY IT RIDES IN THE STRING rather than four more fields on every
+        /// piece: twenty pieces in this scene have a crop and five hundred
+        /// and fifty do not, and four columns of `0,0,1,1` on every line of a
+        /// committed file is noise in the one diff this project reads a
+        /// layout change out of. Parsed here, where the tests run, so the
+        /// Unreal reader has a tested implementation to match.
+        ///
+        /// FAILS CLOSED, like every other reader in this family: a fragment
+        /// that is not four numbers returns false and the caller is expected
+        /// to refuse rather than to guess a rectangle.
+        public static bool SplitAsset(string asset, out string id,
+                                      out double u0, out double v0, out double u1, out double v1)
+        {
+            id = asset; u0 = 0; v0 = 0; u1 = 1; v1 = 1;
+            if (string.IsNullOrEmpty(asset)) return false;
+            int hash = asset.IndexOf('#');
+            if (hash < 0) return true;
+            id = asset.Substring(0, hash);
+            var parts = asset.Substring(hash + 1).Split(',');
+            if (parts.Length != 4) return false;
+            return double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out u0)
+                && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out v0)
+                && double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out u1)
+                && double.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out v1);
         }
 
         /// READ THE SHARED SCENE AND LAY IT OUT.
@@ -412,9 +540,19 @@ namespace Ledger.Core
 
                 Ground(plan, root);
                 Kerbs(plan);
+                Paint(plan, root);
                 foreach (var b in blocks) Block(plan, root, MiniJson.AsObject(b));
                 Columns(plan, root);
                 Furniture(plan, root);
+                // ORDER MATTERS AGAIN, TWICE. The held props stand on the
+                // stacks the blocks recorded while building them, so they
+                // come after the blocks; and the decals are anchored to
+                // pieces BY NAME, including prop pieces, so they come after
+                // the props. A decal naming a piece that does not exist yet
+                // is an error rather than a guess, which is what makes the
+                // anchoring worth having.
+                HeldProps(plan, root);
+                Decals(plan, root);
                 Scatter(plan, root);
                 Optics(plan, root);
             }
@@ -703,6 +841,12 @@ namespace Ledger.Core
                 Edge = pedge, Region = reg
             };
             plan.Add(card); plan.Foot5(card, baseY);
+            // WHICH BAY THIS CARD IS, RECORDED WHERE IT IS KNOWN. `Optics`
+            // turns the JSON's lit_bays into names once it has read them;
+            // doing it here would need the lighting block before the blocks
+            // and doing it in an emitter would need the bay parsed back out
+            // of the name.
+            plan.WindowCards.Add(new WindowCard { Name = card.Name, Bay = bay });
 
             Door(plan, "C8_door_shop", id + "_shopdoor" + bay, doorShopX, sdw, sdh, sdg,
                  frontZ, sgn, baseY, edge, reg, wallSurface, fb);
@@ -853,6 +997,13 @@ namespace Ledger.Core
                     Surface = Str(ch, "surface"), X = sx, Y = (eavesY + chTop) * 0.5, Z = ridgeZ,
                     SX = Num(ch, "width_m"), SY = chTop - eavesY, SZ = Num(ch, "depth_m"),
                     Edge = side + "_plot", Region = RegionOf(sx)
+                });
+                // THE TOP OF THIS STACK, WRITTEN DOWN WHERE IT IS KNOWN, so a
+                // chimney pot has a level to stand on that nothing else has
+                // to work out a second time.
+                plan.Stacks.Add(new StackTop
+                {
+                    BlockId = id, Side = side, Index = i, X = sx, Z = ridgeZ, TopY = chTop
                 });
                 if (onStacks.Contains(i)) Aerial(plan, ae, id + "_aerial" + i, sx, ridgeZ, chTop, side);
             }
@@ -1217,6 +1368,278 @@ namespace Ledger.Core
             }
         }
 
+        // ---- A5: the paint on the road ----------------------------------
+
+        /// DOUBLE YELLOW LINES, THE LENGTH OF BOTH KERBS. art-direction R-B4
+        /// names them among the highest value per polygon Britishness markers
+        /// there is, and the bill of materials makes them MANDATORY.
+        ///
+        /// EMITTED PAINT AND NOT A DECAL, which is a route change on A5 and
+        /// is recorded in the scene file beside the numbers: A5 is make_by 2D
+        /// there, and no yellow-line image exists in this repository. The six
+        /// held RoadLines sets are worn WHITE paint. Two boxes a side is
+        /// cheaper than an image nobody has made, and the colour is copied
+        /// from the town's own yellow rather than chosen again here.
+        static void Paint(Plan plan, Dictionary<string, object> root)
+        {
+            var s = plan.Sec;
+            var dy = Obj(Obj(root, "paint"), "double_yellow");
+            string bom = Str(dy, "bom"), surface = Str(dy, "surface");
+            double w = Num(dy, "band_width_m"), gap = Num(dy, "band_gap_m");
+            double th = Num(dy, "thickness_m"), from = Num(dy, "from_kerb_face_m");
+            // THE BANDS FOLLOW THE CAMBER. A level strip on a 1 in 40 fall
+            // stands 2.5 mm proud at one edge and 2.5 mm inside the tarmac at
+            // the other, and 12 mm of paint has no room for that. The pitch
+            // is the carriageway's own fall, taken the same way `Slab` takes
+            // it so the two cannot disagree.
+            double pitch = Math.Atan(s.CrossFall) * 180.0 / Math.PI;
+            foreach (int sgn in new[] { 1, -1 })
+            {
+                string side = sgn > 0 ? "east" : "west";
+                for (int band = 0; band < 2; band++)
+                {
+                    double az = s.HalfWidthM - from - w * 0.5 - band * (w + gap);
+                    plan.Add(new Piece
+                    {
+                        Bom = bom, Name = "yellow_" + side + "_" + band, Shape = "box",
+                        Surface = surface, X = s.LengthM * 0.5,
+                        Y = -az * s.CrossFall + th * 0.5, Z = sgn * az,
+                        SX = s.LengthM, SY = th, SZ = w, PitchDeg = sgn * pitch,
+                        Edge = side + "_carriageway", Region = "all"
+                    });
+                }
+            }
+        }
+
+        // ---- the held props, placed BY NAME from the base-mesh set -------
+
+        /// THE MESHES THIS STREET WANTS, AND ONLY THOSE.
+        ///
+        /// 37 props sit under `ledger/Assets/Props/base-mesh` and this places
+        /// 16 of them. WHICH is the bill of materials' decision and not the
+        /// directory listing's: the scene file's `not_placed` block names all
+        /// 21 that stay in inventory with the line and the reason, because
+        /// placing everything that exists to make a count go up is the exact
+        /// opposite of what a bill of materials is for.
+        ///
+        /// NOTHING IS EVER SCALED HERE. `dims_m` in the scene file is the
+        /// prop's own measured bounding box, used for the footprint probe and
+        /// to work out where its CENTRE goes; each emitter then stands the
+        /// loaded mesh's own bounds centre on that point. A prop that is the
+        /// wrong size is a prop to replace, which is what the bill of
+        /// materials says about the 3.00 m lamp post and the 0.10 m manhole.
+        static void HeldProps(Plan plan, Dictionary<string, object> root)
+        {
+            var s = plan.Sec;
+            var held = Obj(root, "held_props");
+            var list = MiniJson.GetList(held, "items");
+            if (list == null) throw new KeyNotFoundException("held_props.items");
+            var seen = new Dictionary<string, int>();
+            foreach (var f in list)
+            {
+                var o = MiniJson.AsObject(f);
+                string asset = Str(o, "asset"), bom = Str(o, "bom"), kind = Str(o, "place");
+                string surface = Str(o, "surface");
+                var dims = MiniJson.GetList(o, "dims_m");
+                if (dims == null || dims.Count != 3)
+                    throw new KeyNotFoundException(asset + ".dims_m wants three numbers");
+                double sx = ToD(dims[0]), sy = ToD(dims[1]), sz = ToD(dims[2]);
+                double yaw = Num(o, "yaw_deg");
+                if (kind == "stack") { Pots(plan, o, asset, bom, surface, sx, sy, sz, yaw, seen); continue; }
+
+                string side = Str(o, "side");
+                double sgn = side == "east" ? 1 : -1;
+                double cx = Num(o, "x_m"), cy, cz, footY;
+                string edge;
+                if (kind == "wall")
+                {
+                    // The near face touches the building line, so the centre
+                    // stands half the prop's own measured depth off it.
+                    cz = sgn * (s.BuildingLineZ - sz * 0.5);
+                    double baseY = s.FootwayBackY;
+                    // ONE NAME FOR ONE NUMBER. The awning hangs with its top
+                    // at the underside of the fascia band, and the fascia
+                    // bottom is already in the shopfront block; writing
+                    // 2.85 minus half a measured height here would be a
+                    // second copy that goes stale silently the day the
+                    // shopfront changes.
+                    cy = MiniJson.GetString(o, "wall_y") == "top_at_fascia_bottom"
+                        ? baseY + Num(Obj(root, "shopfront"), "fascia_bottom_m") - sy * 0.5
+                        : baseY + Num(o, "wall_centre_m");
+                    edge = side + "_footway";
+                    footY = cy - sy * 0.5;
+                }
+                else
+                {
+                    cz = sgn * (s.HalfWidthM + Num(o, "z_from_kerb_face_m"));
+                    if (!plan.GroundAt(cx, cz, out double gy, out edge))
+                        throw new InvalidOperationException(
+                            asset + " at x=" + cx.ToString(CultureInfo.InvariantCulture)
+                            + " has no ground under it");
+                    cy = gy + sy * 0.5;
+                    footY = gy;
+                }
+
+                seen.TryGetValue(asset, out int n);
+                seen[asset] = n + 1;
+                var p = new Piece
+                {
+                    Bom = bom, Name = "prop_" + asset + "_" + n, Shape = "mesh", Asset = asset,
+                    Surface = surface, X = cx, Y = cy, Z = cz, SX = sx, SY = sy, SZ = sz,
+                    YawDeg = yaw, Edge = edge, Region = RegionOf(cx)
+                };
+                plan.Add(p);
+                // A `set_in` prop is NOT foot-probed, and it is the one
+                // exception this file allows. The gully grate straddles the
+                // step between carriageway, channel and kerb recess by
+                // design, so a probe over its corners reads a 40 mm gap that
+                // is the step and not a fault, and a metric that cries wolf
+                // is a metric that gets switched off.
+                if (kind == "ground") plan.Foot5(p, footY);
+            }
+        }
+
+        /// D3, one pot per party-wall stack, standing on the level the
+        /// roofline emitter recorded when it built the stack. Throws when the
+        /// stacks it was promised are not there, because a pot placer that
+        /// silently places nothing is the shape of the whole finding this
+        /// code exists for.
+        static void Pots(Plan plan, Dictionary<string, object> o, string asset, string bom,
+                         string surface, double sx, double sy, double sz, double yaw,
+                         Dictionary<string, int> seen)
+        {
+            string block = Str(o, "stack_block");
+            int first = (int)Num(o, "stack_first"), count = (int)Num(o, "stack_count");
+            int placed = 0;
+            foreach (var st in plan.Stacks)
+            {
+                if (st.BlockId != block || st.Index < first || st.Index >= first + count) continue;
+                seen.TryGetValue(asset, out int n);
+                seen[asset] = n + 1;
+                plan.Add(new Piece
+                {
+                    Bom = bom, Name = "prop_" + asset + "_" + n, Shape = "mesh", Asset = asset,
+                    Surface = surface, X = st.X, Y = st.TopY + sy * 0.5, Z = st.Z,
+                    SX = sx, SY = sy, SZ = sz, YawDeg = yaw,
+                    Edge = st.Side + "_plot", Region = RegionOf(st.X)
+                });
+                placed++;
+            }
+            if (placed != count)
+                throw new InvalidOperationException(
+                    asset + " asked for " + count + " stacks on " + block
+                    + " and the roofline recorded " + placed);
+        }
+
+        // ---- the pictures, and the surface each one goes on ---------------
+
+        /// APPLY THE BILL OF MATERIALS' DECAL ASSIGNMENTS.
+        ///
+        /// EVERY DECAL IS ANCHORED TO A PIECE THIS SAME PLAN ALREADY MADE,
+        /// by name, and takes that piece's street-facing face as its plane.
+        /// Hand-written world coordinates would go stale the day a bay width
+        /// changed and nothing would say so; a decal that names
+        /// `east_parade_fascia1` is either on the fascia or the plan has no
+        /// such piece and this refuses to build. The one exception is
+        /// `on: ground`, which takes its level AND ITS FALL from the
+        /// section's own ground query, so a road decal lies on the camber
+        /// instead of hovering over it.
+        static void Decals(Plan plan, Dictionary<string, object> root)
+        {
+            var block = Obj(root, "decals");
+            plan.DecalStrengthGround = Num(block, "strength_ground");
+            plan.DecalStrengthWall = Num(block, "strength_wall");
+            double standoff = Num(block, "standoff_m");
+            var list = MiniJson.GetList(block, "items");
+            if (list == null) throw new KeyNotFoundException("decals.items");
+            var byName = new Dictionary<string, Piece>();
+            foreach (var p in plan.Pieces) byName[p.Name] = p;
+
+            int n = 0;
+            foreach (var d in list)
+            {
+                var o = MiniJson.AsObject(d);
+                string bom = Str(o, "bom"), id = Str(o, "id"), blend = Str(o, "blend");
+                string on = Str(o, "on");
+                double w = Num(o, "width_m"), h = Num(o, "height_m");
+                if (blend != "card" && blend != "multiply")
+                    throw new InvalidOperationException(id + " has blend " + blend
+                        + ", which is neither card nor multiply");
+                // The crop rides in the asset string; see `SplitAsset`.
+                // Through the piece list's own number formatter, so the four
+                // numbers inside this string and the six-decimal coordinates
+                // beside it round the same way and the file stays
+                // byte-deterministic.
+                string asset = id;
+                var uv = MiniJson.GetList(o, "uv");
+                if (uv != null)
+                {
+                    if (uv.Count != 4) throw new KeyNotFoundException(id + ".uv wants four numbers");
+                    asset = id + "#" + StreetVignettePieces.Number(ToD(uv[0]))
+                          + "," + StreetVignettePieces.Number(ToD(uv[1]))
+                          + "," + StreetVignettePieces.Number(ToD(uv[2]))
+                          + "," + StreetVignettePieces.Number(ToD(uv[3]));
+                }
+
+                double cx, cy, cz, pitch = 0, yaw = 0;
+                string edge;
+                if (on == "ground")
+                {
+                    cx = Num(o, "x_m"); cz = Num(o, "z_m");
+                    if (!plan.GroundAt(cx, cz, out double gy, out edge))
+                        throw new InvalidOperationException(id + " is over no ground at all");
+                    cy = gy + standoff;
+                    // THE FALL, MEASURED RATHER THAN ASSUMED. Two samples a
+                    // quarter of a metre apart across the street through the
+                    // same query the datum probe uses, so a decal on the
+                    // footway (which falls the other way) needs no second
+                    // rule and neither does the dish at the gully.
+                    plan.GroundAt(cx, cz + 0.25, out double yUp, out _);
+                    plan.GroundAt(cx, cz - 0.25, out double yDn, out _);
+                    pitch = 90.0 - Math.Atan2(yUp - yDn, 0.5) * 180.0 / Math.PI;
+                }
+                else
+                {
+                    if (!byName.TryGetValue(on, out var a))
+                        throw new InvalidOperationException(
+                            id + " is anchored to " + on + ", and no piece is called that");
+                    if (Str(o, "face") != "street")
+                        throw new InvalidOperationException(
+                            id + " asks for face " + Str(o, "face")
+                            + " on a piece, and street is the only face a piece anchor has");
+                    double sgn = a.Edge != null && a.Edge.StartsWith("west") ? -1 : 1;
+                    cx = a.X + Num(o, "dx_m");
+                    cy = a.Y + Num(o, "dy_m");
+                    cz = a.Z - sgn * (a.SZ * 0.5 + standoff);
+                    // A decal's own normal is -z before rotation, which is
+                    // the convention the town's decal quad already carries.
+                    // So an east-side face needs no turn and a west-side one
+                    // needs half a turn.
+                    yaw = sgn > 0 ? 0 : 180;
+                    edge = a.Edge;
+                }
+                plan.Add(new Piece
+                {
+                    Bom = bom, Name = "decal_" + n.ToString("00", CultureInfo.InvariantCulture)
+                                    + "_" + Leaf(id),
+                    Shape = "decal", Asset = asset, Surface = blend,
+                    X = cx, Y = cy, Z = cz, SX = w, SY = h, SZ = 0,
+                    PitchDeg = pitch, YawDeg = yaw, Edge = edge, Region = RegionOf(cx)
+                });
+                n++;
+            }
+        }
+
+        /// The last segment of a decal id, for the piece name. Names carry no
+        /// spaces and no slashes: every reader of a `key=value` line in this
+        /// project splits on whitespace, and a slash already means something
+        /// else in these values.
+        static string Leaf(string id)
+        {
+            int slash = id.LastIndexOf('/');
+            return slash < 0 ? id : id.Substring(slash + 1);
+        }
+
         // ---- G8 and G9: what a street that has been lived in has on it ----
 
         static void Scatter(Plan plan, Dictionary<string, object> root)
@@ -1317,6 +1740,39 @@ namespace Ledger.Core
             plan.LampR = ToD(rgb[0]); plan.LampG = ToD(rgb[1]); plan.LampB = ToD(rgb[2]);
             plan.LampRangeM = Num(lan, "range_m");
             plan.LampIntensity = Num(lan, "intensity");
+            // H5: THE WINDOW PRACTICALS, INCLUDING WHICH WINDOWS.
+            //
+            // Every value is required. A missing key throws here as it does
+            // everywhere else in this reader, because a default is how two
+            // engines come to light two different streets from one file.
+            var wp = Obj(Obj(root, "lighting"), "window_practicals");
+            plan.WindowShopIntensity = Num(wp, "shop_intensity");
+            plan.WindowShopRangeM = Num(wp, "shop_range_m");
+            plan.WindowFlatIntensity = Num(wp, "flat_intensity");
+            plan.WindowFlatRangeM = Num(wp, "flat_range_m");
+            if (Str(wp, "colour_space") != "gamma_srgb")
+                throw new KeyNotFoundException(
+                    "window_practicals colour_space must be gamma_srgb, this reader has no converter");
+            var wrgb = MiniJson.GetList(wp, "gamma_srgb");
+            if (wrgb == null || wrgb.Count != 3)
+                throw new KeyNotFoundException("window_practicals gamma_srgb must be three numbers");
+            plan.WindowR = ToD(wrgb[0]); plan.WindowG = ToD(wrgb[1]); plan.WindowB = ToD(wrgb[2]);
+            var bays = MiniJson.GetList(wp, "lit_bays");
+            if (bays == null) throw new KeyNotFoundException("window_practicals lit_bays");
+            foreach (var b in bays) plan.WindowLitBays.Add((int)ToD(b));
+            // THE SELECTION, RESOLVED TO NAMES ONCE. A bay index that names
+            // no card is NOT silently dropped: it would read as a lit window
+            // that never lit, and the count would be right by accident.
+            foreach (var c in plan.WindowCards)
+                if (plan.WindowLitBays.Contains(c.Bay)) plan.WindowLitNames.Add(c.Name);
+            foreach (var b in plan.WindowLitBays)
+            {
+                bool any = false;
+                foreach (var c in plan.WindowCards) if (c.Bay == b) any = true;
+                if (!any) throw new KeyNotFoundException(
+                    "window_practicals lit_bays names bay " + b + ", which no shop interior card stands in");
+            }
+
             var sun = Obj(Obj(root, "lighting"), "sun");
             plan.SunElevationDeg = Num(sun, "day_elevation_deg");
             plan.SunAzimuthDeg = Num(sun, "day_azimuth_deg");

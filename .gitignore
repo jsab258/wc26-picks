@@ -61,6 +61,9 @@ tools/voice-live/speak-out/
 # The game graphs — about 2 GB, and they ship with the build rather than git.
 tools/voice-live/game-out/
 ledger/.onnx-cache/
+# The g++ binaries verify.py builds for the two Unreal-side headers that
+# have no Unreal type in them. Build products of a check, never sources.
+ledger/.ue-test/
 
 # The watcher remembers the last job id it ran, per machine.
 .pc-watcher-state.json

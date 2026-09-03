@@ -803,6 +803,62 @@ def backend_compiles():
     return True, "speech backend + bench compile"
 
 
+def ue_probe_tests():
+    """The two Unreal-side headers that have no Unreal type in them, RUN.
+
+    THE RULE THIS EXISTS FOR, ruled standing on 25 August after the third
+    instance: measurement arithmetic and formatting live where the tests run.
+    The Unreal probe cannot be compiled in this container at all, so anything
+    written there ships UNRUN and the first thing that finds out whether it
+    works is a 25-minute round trip on the PC. `FrameStats.h` and
+    `VignetteSpec.h` are therefore written with no engine type anywhere in
+    them: the pixel maths, the scene JSON reader, the median, the fov
+    conversion, the colour conversion and every printed string are here, and
+    these two test binaries compile and run them with g++.
+
+    THE ACCEPTING FIXTURE FOR THE SCENE READER IS THE LIVE FILE, which is
+    this project's rule for a tool that checks the project itself: it parses
+    the committed `production/specs/vignette-pieces.json`, so doing the work
+    the tool prompts can never break the tool. The rejecting fixtures are
+    planted, because a repository with a broken street in it is not a
+    repository anybody wants.
+
+    A SKIP SAYS SO AND NAMES WHAT IS MISSING. Without g++ nothing here can
+    run, and "the UE instruments pass" must not read the same as "nothing was
+    compiled"."""
+    import shutil
+    if shutil.which("g++") is None:
+        return True, "ue-probe instruments SKIPPED (no g++ in this container)"
+    probe = ROOT.parent / "ue-probe"
+    total, ran = 0, 0
+    for src, args in (("tests/frame-stats-test.cpp", []),
+                      ("tests/vignette-spec-test.cpp",
+                       [str(ROOT.parent / "production" / "specs" / "vignette-pieces.json")])):
+        path = probe / src
+        if not path.exists():
+            return False, f"UE PROBE TEST MISSING: {src}"
+        binp = ROOT / ".ue-test" / (path.stem)
+        binp.parent.mkdir(parents=True, exist_ok=True)
+        code, out = run(["g++", "-std=c++11", "-O1", "-Wall", "-o", str(binp), str(path)])
+        if code != 0:
+            errs = [l for l in out.splitlines() if "error" in l]
+            return False, ("UE PROBE TEST WILL NOT COMPILE (" + src + "): "
+                           + _cap(errs, keep=2))
+        code, out = run([str(binp)] + args)
+        if code != 0:
+            bad = [l.strip() for l in out.splitlines() if "FAILED" in l or "FAIL:" in l]
+            return False, ("UE PROBE TEST RED (" + src + "): " + _cap(bad, keep=3))
+        ran += 1
+        for line in out.splitlines():
+            m = re.search(r"(\d+) check\(s\), \d+ failure", line)
+            if m:
+                total += int(m.group(1))
+            m = re.search(r"PASS: \d+ of (\d+) check\(s\) failed", line)
+            if m:
+                total += int(m.group(1))
+    return True, f"ue-probe instruments ok ({total} checks over {ran} of 2 binaries)"
+
+
 def voice_assets():
     """The vocabulary and the voices can reach the build.
 
@@ -5661,6 +5717,7 @@ def main():
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, raw_avenues, bat_editor, bootstrap_single, blender_hash_parse, filename_as_type, namespace_as_value, workflow_size,
                powershell_steps, sheet_read, prop_dimensions, prop_reach,
+               ue_probe_tests,
                propview, meshgen_suite, ref_bench,
                decal_ink,
                frame_drift, verdict_keys, verdict_format, verdict_dupkeys,

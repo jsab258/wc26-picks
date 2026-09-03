@@ -57,13 +57,13 @@ jobs:
     # fault. Cold linking a Game target against an installed engine is the
     # one step here that can plausibly run long, which is precisely why the
     # measurement must be allowed to finish.
-    # RAISED FROM 95 TO 115 WHEN THE CAPTURE STEP WAS ADDED, for the same
-    # reason it was raised to 95: the job ceiling must sit above the SUM of
-    # the step ceilings, or a legitimate slow run is killed by the clock and
-    # the evidence file reads as a build fault. The step caps now total 92
-    # (6+1+10+60+15) and the commit step has none, so 95 would have left the
-    # channel itself inside the margin.
-    timeout-minutes: 115
+    # RAISED TO 135 WHEN THE VIGNETTE RENDER STEP WAS ADDED, for the same
+    # reason it went to 95 and then 115: the job ceiling must sit above the
+    # SUM of the step ceilings, or a legitimate slow run is killed by the
+    # clock and the evidence file reads as a build fault. The step caps now
+    # total 112 (6+1+10+60+15+20) and the commit step has none, so the old
+    # 115 left three minutes for the only channel anyone can read.
+    timeout-minutes: 135
 
     steps:
       # THE COMPLETE BOOTSTRAP FROM THE UNITY JOB, VERBATIM.
@@ -680,6 +680,201 @@ jobs:
           Write-Host "STILL NOT USABLE: shotStatus=$status (the evidence is committed either way)"
           exit 1
 
+      # PHASE B: THE STREET ITSELF, FOUR FRAMES, FROM THE SHARED JSON.
+      #
+      # THIS IS THE FIRST TIME UNREAL RENDERS MERIDIAN. Everything before it
+      # photographed debug geometry in an empty map to prove the capture path;
+      # this builds the 593-piece street out of
+      # production/specs/vignette-pieces.json, lights it two ways and takes the
+      # four named shots at 1280x720, which are the same four the Unity host
+      # takes and the same resolution.
+      #
+      # ITS OWN STEP AND ITS OWN SWITCH, for the two reasons this workflow has
+      # already paid for. The build step measured 20331 characters against a
+      # dispatch ceiling of 23184 and GitHub enforces that at DISPATCH, so
+      # growing it takes the only readable channel out of CI with an error
+      # nobody sees. And a module loads in every host that loads it, which is
+      # what killed run 12's cook, so the capture is gated on -LedgerVignette
+      # exactly as the golden test is gated on -LedgerGoldenTest.
+      #
+      # IT RUNS AFTER THE DEBUG SHOT ON PURPOSE. If both fail, the capture
+      # path is the suspect; if only this one fails, the street is. Two
+      # invocations in one job cost one cook and answer two questions.
+      #
+      # -RenderOffScreen, NOT -nullrhi. They are opposite things: nullrhi
+      # renders nothing at all and is right for the golden run only.
+      - name: Render the street vignette and measure its four frames
+        id: vignette
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 20
+        shell: pwsh
+        env:
+          SHOT_EXE: ${{ steps.build.outputs.exe }}
+          SHOT_PROJ: ${{ steps.build.outputs.projectDir }}
+          SHOT_SHA: ${{ steps.build.outputs.sha }}
+        run: |
+          $ErrorActionPreference = "Continue"
+          $out = "production/d1-probe/ue-vignette-verdict.txt"
+          $log = "production/d1-probe/ue-build.txt"
+          New-Item -ItemType Directory -Force -Path "production/d1-probe" | Out-Null
+          $sha = $env:SHOT_SHA
+          if (-not $sha) {
+            $sha = $env:GITHUB_SHA
+            if ($sha) { $sha = $sha.Substring(0, [Math]::Min(7, $sha.Length)) } else { $sha = "SHA-UNKNOWN" }
+          }
+          $epoch = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+          # THE TRACKED COPIES GO FIRST, ALL OF THEM. They are tracked files,
+          # so the checkout restored the PREVIOUS run's pictures and verdict;
+          # a run that renders nothing would otherwise leave last night's
+          # street in the repository beside a verdict saying nothing was
+          # measured, and a reader would attribute the picture to this commit.
+          Remove-Item $out -Force -ErrorAction SilentlyContinue
+          Get-ChildItem "production/d1-probe" -Filter "ue-vign_*.png" -ErrorAction SilentlyContinue |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+
+          $exe = $env:SHOT_EXE
+          $proj = $env:SHOT_PROJ
+          if ((-not $exe) -or (-not (Test-Path $exe))) {
+            @("# UE vignette shot $sha @$epoch",
+              "# Line 1 names the commit this was measured on, as the Unity verdict does.",
+              "",
+              "sceneStatus=NOTHING-EMITTED piecesEmitted=0/0 sceneNote=build-step-published-no-binary",
+              "captureStatus=NOTHING-MEASURED shotsWrote=0/0 shotsBlank=0/0 shotsNoFile=0/0",
+              "NOTHING MEASURED - no frame was attempted on this commit and no older one is carried forward.",
+              "shotReached=end") | Set-Content $out -Encoding utf8
+            Write-Host (Get-Content $out -Raw)
+            exit 1
+          }
+          $binDir = Split-Path $exe -Parent
+
+          # THE SHARED JSON IS STAGED WHERE THE BINARY CAN FIND IT, and to
+          # BOTH places for the same reason the golden table goes to four: a
+          # packaged build's ProjectDir is the STAGED project, not this
+          # checkout, and one hard-coded location works in exactly one of the
+          # two ways this binary gets run. The binary searches and NAMES the
+          # path that answered.
+          $spec = "production/specs/vignette-pieces.json"
+          $specBytes = 0
+          if (Test-Path $spec) {
+            $specBytes = (Get-Item $spec).Length
+            foreach ($d in @($proj, $binDir, "ue-probe")) {
+              if ($d -and (Test-Path $d)) {
+                Copy-Item $spec (Join-Path $d "vignette-pieces.json") -Force -ErrorAction SilentlyContinue
+              }
+            }
+          }
+
+          # NAMED CANDIDATES, CLEARED BEFORE THE RUN. Looking in both places
+          # is fine; looking in both without clearing them first is how a
+          # previous run's file is collected and reported as this one's.
+          $vCands = @((Join-Path $proj "ue-vignette-verdict.txt"),
+                      (Join-Path $binDir "ue-vignette-verdict.txt"),
+                      (Join-Path $PWD "ue-probe\ue-vignette-verdict.txt"))
+          foreach ($c in $vCands) { Remove-Item $c -Force -ErrorAction SilentlyContinue }
+          foreach ($d in @($proj, $binDir, (Join-Path $PWD "ue-probe"))) {
+            if ($d -and (Test-Path $d)) {
+              Get-ChildItem $d -Filter "ue-vign_*.png" -ErrorAction SilentlyContinue |
+                Remove-Item -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+          # 1280x720 IS THE UNITY HOST'S ShotWidth AND ShotHeight, character
+          # for character. A pair judged at two resolutions is not a pair.
+          # The verdict prints the size each frame actually came back as,
+          # which is the half that would catch the request being ignored.
+          $shotArgs = @("-LedgerVignette", "-LedgerCommit=$sha", "-RenderOffScreen",
+                        "-ResX=1280", "-ResY=720", "-windowed",
+                        "-unattended", "-nosplash", "-nopause", "-stdout", "-FullStdOutLogOutput")
+          $t0 = Get-Date
+          $p = Start-Process -FilePath $exe -ArgumentList $shotArgs -Wait -PassThru -NoNewWindow `
+               -RedirectStandardOutput "vign-run.log" -RedirectStandardError "vign-run.err"
+          $sec = [math]::Round(((Get-Date) - $t0).TotalSeconds, 2)
+
+          $vf = $vCands | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if ($vf) {
+            # THE GAME'S OWN FILE IS THE BASE, header and all: line 1 already
+            # names the commit the binary was handed, and every pixel number
+            # in it was measured by code compiled and RUN by g++ in
+            # ue-probe/tests before any of this was dispatched.
+            Copy-Item $vf $out -Force
+          } else {
+            @("# UE vignette shot $sha @$epoch",
+              "# Line 1 names the commit this was measured on, as the Unity verdict does.",
+              "",
+              "sceneStatus=NOTHING-EMITTED piecesEmitted=0/0 sceneNote=the-run-wrote-no-verdict-file",
+              "captureStatus=NOTHING-MEASURED shotsWrote=0/0 shotsBlank=0/0 shotsNoFile=0/0",
+              "NOTHING MEASURED - the binary ran and left no vignette verdict; nothing is carried forward.",
+              "shotReached=end") | Set-Content $out -Encoding utf8
+          }
+
+          # THE FRAMES, COLLECTED BY NAME PREFIX FROM WHICHEVER PLACE THE
+          # BINARY WROTE THEM. Copied into the repository under the same
+          # names the verdict's shot lines carry, so a reader holding the
+          # verdict can open the picture it describes.
+          $copied = 0
+          $pngBytes = 0
+          foreach ($d in @($proj, $binDir, (Join-Path $PWD "ue-probe"))) {
+            if (-not $d -or -not (Test-Path $d)) { continue }
+            foreach ($f in (Get-ChildItem $d -Filter "ue-vign_*.png" -ErrorAction SilentlyContinue)) {
+              $dest = Join-Path "production/d1-probe" $f.Name
+              if (-not (Test-Path $dest)) {
+                Copy-Item $f.FullName $dest -Force
+                $copied++
+                $pngBytes += $f.Length
+              }
+            }
+          }
+
+          # THE STEP'S OWN LINE, KEYS THE GAME CANNOT KNOW. The exit code is
+          # not the verdict here for the same reason it is not one above:
+          # asking the engine to quit from a ticker exits non-zero by design.
+          Add-Content $out ("stagedVignExit=$($p.ExitCode) stagedVignSeconds=$sec " +
+            "stagedSpecBytes=$specBytes stagedVerdictCandidates=$($vCands.Count) " +
+            "stagedVerdictFound=$(if ($vf) { 'yes' } else { 'no' }) " +
+            "stagedPngCopied=$copied stagedPngBytes=$pngBytes " +
+            "stagedVignExitIsNotTheVerdict=true")
+
+          # THE TRANSCRIPT GOES IN THE LOG FILE, NOT THE VERDICT, so the
+          # verdict stays a file of keys. Error lines come from the WHOLE log
+          # rather than a tail, because run 10 put the sentence that mattered
+          # above a 40-line window, and BOTH caps announce themselves: a cap
+          # nobody is told about is indistinguishable from a finding.
+          $D = @("", "--- PHASE B, THE STREET IN UNREAL ---",
+                 "vignCmd=$exe $($shotArgs -join ' ')",
+                 "vignExit=$($p.ExitCode) vignSeconds=$sec vignSpecBytes=$specBytes vignPngCopied=$copied")
+          $ueLog = @((Join-Path $proj "Saved\Logs\LedgerProbe.log"),
+                     (Join-Path $PWD "ue-probe\Saved\Logs\LedgerProbe.log")) |
+                   Where-Object { Test-Path $_ } |
+                   Sort-Object { (Get-Item $_).LastWriteTime } -Descending | Select-Object -First 1
+          if ($ueLog) {
+            $all = @(Get-Content $ueLog)
+            $errs = @($all | Select-String -Pattern "Error:|Fatal|Warning: Failed|Assertion failed|Screenshot|screenshot|HighResShot|LogRHI|RenderOffScreen|BasicShapes|LoadObject")
+            $D += "vignLogLines=$($all.Count) vignInterestingLines=$($errs.Count) vignLogFrom=$($ueLog -replace ' ','~')"
+            $D += ($errs | Select-Object -First 40 | ForEach-Object { $_.ToString() })
+            if ($errs.Count -gt 40) { $D += "(+$($errs.Count - 40) more matching line(s) not shown)" }
+            $D += "--- last 30 lines of the vignette run's log, as context ---"
+            $D += ($all | Select-Object -Last 30)
+          } else {
+            $D += "vignLogLines=0 (no LedgerProbe.log in either named location after the vignette run)"
+          }
+          if ((Test-Path "vign-run.err") -and (Get-Item "vign-run.err").Length -gt 0) {
+            $D += "--- vignette stderr, last 20 lines ---"; $D += (Get-Content "vign-run.err" -Tail 20)
+          }
+          if (Test-Path $log) { Add-Content $log ($D -join "`n") } else { $D | Set-Content $log -Encoding utf8 }
+
+          # THE GUARD. ALL is the only pass, and the ways to be not-ALL are
+          # named separately because they have different next actions: NONE
+          # with a WHOLE scene is a capture fault, PARTIAL is a per-shot
+          # fault, and a NOTHING-EMITTED scene line is the street.
+          $status = "NONE"
+          $m = Select-String -Path $out -Pattern "captureStatus=(\S+)" | Select-Object -First 1
+          if ($m) { $status = $m.Matches[0].Groups[1].Value }
+          Write-Host (Get-Content $out -Raw)
+          if ($status -eq "ALL") { Write-Host "vignette ok: $status"; exit 0 }
+          Write-Host "VIGNETTE NOT USABLE: captureStatus=$status (the evidence is committed either way)"
+          exit 1
+
       # THE EVIDENCE CHANNEL, and the two rules the Unity workflow paid for.
       # A run that measured nothing must SAY so rather than committing a
       # stale checkout's file as its own, and every output is staged BY NAME.
@@ -753,6 +948,23 @@ jobs:
           # path either holds a picture this run rendered or holds nothing,
           # and a plain `git add` would quietly leave a stale one behind.
           git add -A -- production/d1-probe/ue-shot.png 2>/dev/null || true
+          # PHASE B, THE SAME TWO RULES. The vignette verdict is a TRACKED
+          # file, so a run that never reached the capture would commit last
+          # night's four frames and last night's numbers under this run's
+          # message. Seven characters, compared as a PREFIX, because seven is
+          # what the binary was handed and an eight-character needle would
+          # condemn every fresh verdict while looking like a working guard.
+          VIGNVERDICT=production/d1-probe/ue-vignette-verdict.txt
+          if [ ! -f "$VIGNVERDICT" ] || ! head -1 "$VIGNVERDICT" | grep -q "$SHORT"; then
+            printf '# UE vignette shot %s @%s\n# Line 1 names the commit this was measured on, as the Unity verdict does.\n\nsceneStatus=NOTHING-EMITTED piecesEmitted=0/0 sceneNote=no-vignette-verdict-carrying-this-commit\ncaptureStatus=NOTHING-MEASURED shotsWrote=0/0 shotsBlank=0/0 shotsNoFile=0/0\nNOTHING MEASURED - no frame of the street was taken on this commit; do not read an older file as this run.\nshotReached=end\n' \
+              "$SHORT" "$(date -u +%s)" > "$VIGNVERDICT"
+          fi
+          [ -f "$VIGNVERDICT" ] && git add -- "$VIGNVERDICT"
+          # The four frames, by NAME PREFIX and never by directory, with -A so
+          # that their ABSENCE is staged too. The capture step deletes the
+          # tracked copies before running, so these paths either hold pictures
+          # this run rendered or hold nothing.
+          git add -A -- 'production/d1-probe/ue-vign_*.png' 2>/dev/null || true
           git diff --cached --quiet && { echo "probe result unchanged; nothing to commit"; exit 0; }
           git commit -m "UE machine probe from $(git rev-parse --short HEAD)"
           BR="${GITHUB_REF_NAME}"

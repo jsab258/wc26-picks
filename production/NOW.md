@@ -119,42 +119,157 @@ decal looks right AT SIZE, ON A SURFACE, IN THE RAIN.
 
 ## In flight
 
-- **RUN 3 IS THE NIGHT RUN, and it starts on the push that lands this file.**
-  The sentinel `production/d1-probe/RUN-IMAGEGEN` carries `limit: all` and
-  `max_minutes: 240`; the push trigger fires imagegen plus one cheap
-  core-tests run on ubuntu-latest and nothing else. Landed under the ruling
-  `game-design/decision-2026-09-02-imagegen-run3-banked-means-in-the-commit.md`.
+- **RUN 3 LANDED AND THE BATCH IS COMPLETE.** Commit `f789e129`, proven to
+  contain the landing commit `5a28fa56` by
+  `git merge-base --is-ancestor`, never by branch movement.
+  `imagegenVerdict=BANKED wroteThisRun=31 failed=0 blankThisRun=0
+  checkedThisRun=31 newInThisCommit=31 alreadyInRepoIdentical=0
+  notInThisCommit=0`, and `skipped=14 remadeUnrecorded=0`, which is the
+  hand-recovered `made.json` PROVEN correct rather than trusted.
+  `batchStatus=DONE`: 45 of 45 prompts now exist. 41 minutes of GPU, nothing
+  spent against the Claude ceiling. `attribution=success` this time, so run
+  2's undiagnosed attribution failure is gone; it was never diagnosed and is
+  now unreproducible, which is worth knowing rather than closing.
 
-- **RULE 9 HOLD, in force from the landing push until the night lands.**
-  `ledger-pc` is one PC and a batch running is a Unity build waiting.
-  DISPATCH NOTHING at `ledger-pc` until a commit whose subject reads
-  `Meridian pictures from <sha>` CONTAINS the landing commit. That means the
-  Windows build, the Unreal probe, the MSVC setup and the vignette fetch all
-  wait. Check ancestry, never branch movement: capture the landing sha, then
-  `git merge-base --is-ancestor <landing-sha> <pictures-commit>`.
+- **THE RULE 9 HOLD ON ledger-pc IS LIFTED.** A pictures commit contains the
+  landing commit, which was the stated condition. Dispatch is allowed again.
 
-- **READING ORDER when the night lands, and the order is the point.** Open
-  the pictures before any number (rule 4). Then read, in this order:
-  1. `imagegenVerdict=` and `wroteThisRun=` on the verdict's done line.
-  2. `pathsWithAChange=` and `alreadyInHead=`. These are what run 2 could not
-     say. BANKED with `pathsWithAChange=0` means the night added nothing to
-     git no matter how many pictures the GPU made, and NOTHING-NEW exits 1
-     deliberately so that case cannot read green.
-  3. `skipped=` against `remadeUnrecorded=`. `skipped=14 remadeUnrecorded=0`
-     is the hand-recovered `made.json` proven correct; a non-zero
-     `remadeUnrecorded` means recovered rows did not match and GPU time was
-     spent making what already existed.
-  4. `blank` counts with their denominators, then `attribution=`, which read
-     `failure` on run 2 and is still undiagnosed.
+- **THE PICTURES ARE PUBLISHED FOR JAFAR** at
+  `https://claude.ai/code/artifact/7d900640-3d3d-43f8-9aa8-519d8e284af4`,
+  all 45 with the run docket and the honest note that generated body text is
+  texture and not writing.
 
-- **WHAT RUN 2 SETTLED, so nobody re-litigates it.** The stopper is gone
-  (`stopper=none shaFrom=checkout`), all four work steps ran, and generation
-  used the GPU for real. What run 2 could NOT say was whether anything
-  reached the repository, which is the single thing run 3's verdict is now
-  built to answer. Queue 045 is LANDED.
+- **THE THREE C11 INTERIOR CARDS NOW EXIST, which changes a number the queue
+  046 builder predicted.** It reported "expect `decalsApplied=17/20` on the
+  first landing" because `interior_shop_shelves`, `interior_bar_back` and
+  `interior_stair_landing` were not on disk in the checkout it worked in.
+  All three are in `f789e129` (checked with `git cat-file -e` against that
+  commit, three of three present), which landed while it was working. So the
+  expected first reading is `decalsApplied=20/20`, and 17/20 would now be a
+  fault rather than the predicted state. Pull before reading the number.
 
-- NEXT ACTION after the night: queue 046, the assets are not in the frame.
-  Ordered ahead of generating more pictures.
+- **SIX FINDINGS NAMED BY THE QUEUE 046 BUILDER AND NOT YET FILED**, held
+  here so they cannot be lost between now and the director's queue call.
+  Numbers 050 to 055 are RESERVED for them and nothing else may take those
+  numbers:
+  050 the town's `propsPlaced` on the sim done line counts up with no
+  denominator; 051 a street name plate for a canon street (E10 is MANDATORY,
+  has no prompt, and canon mints Quay Street, Weighhouse Lane and Tannery
+  Row, so it would render blank); 052 wall overlays belong in the surface
+  path, not the decal path (C14 is a 1024 tiling surface and stamping it
+  reads as a patch of different masonry); 053 the chimney pot is wider than
+  its stack, oversailing 0.112 m each side; 054 double yellows should break
+  at the crossover and currently run the full 42 m; 055 G3 imperfection
+  scatter, held until there is a frame to look at.
+  Queue refill is a director trigger, which is why these are here and not in
+  `production/queue/`.
+
+- **THREE BUILDERS RAN TONIGHT AND NONE HAS LANDED.** Queue 046 (props and
+  decals into the frame), queue 047 (the dashboard updates itself), and the
+  UE emitter Phase A close-out plus Phase B. The tree is dirty with all
+  three. A director reviews the batch before any commit; stage BY NAME
+  against the ruling's `paths=` list.
+
+- **WHAT JAFAR ASKED FOR IN THE MORNING, in his words: "the street rendered
+  in UE".** Unreal compiles our code and passes the 1221-row golden test on
+  his machine; it has NEVER rendered the street. Phase B is the first
+  Unreal picture. The chain that has to complete: builder finishes, director
+  rules, one commit, then touch `production/d1-probe/DISPATCH` and push,
+  which is what starts the probe. If it hits a sixth engine wall, the wall
+  gets named in DISPATCH like the previous five and that is the honest
+  deliverable instead.
+
+## THE DASHBOARD IS NOW A HOSTED LIVE PAGE, and it needs writing to
+
+Published 2026-09-02 after Jafar refused to double-click anything to see
+current state, in his words: "not running a bat to update a dashboard. your
+job is to keep it up to date all the time, that's the whole point."
+
+    https://claude.ai/code/artifact/2c3da7c0-8b8e-4626-8e73-2498acbe6ed8
+
+It holds NO numbers of its own. It subscribes to the artifact document store
+at `status/current` and repaints when the document is written. So:
+
+    python3 tools/dashboard/build-dashboard.py --emit-json
+    then write tools/dashboard/live-dashboard.json to status/current
+
+WRITE IT AFTER EVERY LANDING. The page reports the age of its numbers and
+turns red when the feed stops, which is honest, but a red feed is still a
+reader learning nothing. The writer is the resident and nothing automates it
+yet: queue 048. Republishing the PAGE is not needed and should not be done
+casually; the page changes only when the generator's renderer changes.
+
+The wake subscription on it did NOT register in this session (the artifact
+service refuses them here), so nothing tells this session when it is
+republished. Do not claim to be watching it.
+
+## THE IMAGE QA, 45 of 45 OPENED, and the answer is a number
+
+Jafar, 2 Sep: "did you view and QA the images and fix/redo if necessary? are
+they built and cropped and shaped in a way that they can be used in UE? QA
+should be standard procedure." The resident had opened THREE of forty-five
+and published the rest. A verifier then opened all 45, plus 18 zoomed crops,
+and confirmed the files are byte-identical to the blobs at HEAD, so the
+judgements apply to what the engine will load.
+
+    41 of 45 are SCENE PHOTOGRAPHS, 4 of 45 are plates
+     1 of 45 usable as is, and it is probe_wall_cfg1, measurement only
+    29 of 45 croppable
+    15 of 45 need regenerating
+     0 of 45 carry a real brand, real person or recognisable face
+    12 of 45 carry people or vehicles the negative prompt already bans
+     1 more, sign_telephone, is close to GPO kiosk trade dress: a WATCH ITEM
+       for a decision record, not a proven breach, and not a builder's call
+
+THE CAUSE IS ONE LINE OF PROMPT, not 45 problems. Sign, fascia, notice and
+poster families carry "photograph, straight-on flat elevation, evenly lit"
+plus "deserted empty street", which asks for an object standing in a street
+and gets one. The four that came out as plates used a prefix ALREADY IN THAT
+FILE: "flat orthographic texture sheet, square-on to the surface, the surface
+filling the frame edge to edge", with a negative list naming kerb, pavement,
+road, sky and roofline. Four of four. Queue 056 moves the rest onto it and
+makes the generator REFUSE a prompt with no framing clause.
+
+TWO MORE SHARED CAUSES. All three interiors came back as exterior shopfronts
+when they are meant to be cards seen from inside a window. Prominent
+SECONDARY text resolves as broken near-words in eight images, against the R1
+big-type-only rule already written in that file: HOOK STREATS, HARBOOR
+MASTER, BORHOUGH, PORIE SHUOP.
+
+A CLAIM THE RESIDENT PUBLISHED AND HAD TO WITHDRAW: the gallery page said
+headlines come out clean and correctly spelled, written after opening three
+images. It is corrected on the live page. And the verifier withdrew one of
+its own: it read two signs as perspective-distorted, measured the edge slopes
+at 0.27 and 0.07 degrees, and refuted itself. Faces are square-on across the
+batch to within half a degree; what reads as perspective is a baked 3D lip on
+the surrounding frame.
+
+## THE NIGHT'S DISPATCH ORDER, and why it is this way round
+
+`ledger-pc` is ONE machine, so two dispatches contend and the order is a
+decision rather than a detail. It is:
+
+1. **UE probe first**, because it is the risky one. Unreal has never
+   rendered the street and the last five probe runs each hit a different
+   engine wall. Running it first buys hours to name a wall and re-dispatch.
+   Running it last means a 04:00 failure with no time left.
+2. **Unity build second.** It is the known-good path, it produces the first
+   still of the street WITH the props and decals in it, and it is what
+   clears the cross-engine guard by landing a run whose piece count matches
+   the file.
+
+WHAT BLOCKS BOTH RIGHT NOW: `ledger/verify.py` is red, so nothing commits and
+therefore nothing pushes and therefore nothing dispatches. Two red items:
+- the cross-engine guard (file against the last landed Unity run), cleared by
+  the queue 041 ahead-of-run key, which is in the UE builder's brief;
+- the piece list drift (committed 627, generated 628), caused by the three
+  interior pictures landing mid-flight, with the queue 046 builder naming the
+  cause before regenerating.
+Then a director reviews the three-builder batch, one commit, push, dispatch.
+
+DO NOT SHORTCUT THE RED. The cross-engine guard exists so a judged
+Unreal-versus-Unity pair cannot compare two different streets, which is the
+one way this whole comparison could produce a confident wrong answer.
 
 ## Standing hazards a fresh session will otherwise walk into
 

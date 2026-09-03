@@ -39,6 +39,11 @@ namespace Ledger.Game
         public const string Glass    = "glass";
         public const string Window   = "window"; // emissive-capable; lit at night via MPB
         public const string Interior = "interior"; // the lit room behind shop glass
+        /// Road paint. The one deliberate exception to the palette sweep's
+        /// pull toward blue-grey, and it is not a taste call: art-direction
+        /// R-B4 counts double yellow lines among the highest value per
+        /// polygon Britishness markers there is.
+        public const string PaintYellow = "paint_yellow";
 
         static bool _initialized;
         static string _packRoot;
@@ -1598,6 +1603,15 @@ namespace Ledger.Game
                 // changes nothing at night, where the emission carries it.
                 case AssetLibrary.Interior: s = Make(new Color(0.18f,0.13f,0.08f), 0.10f, 0f, new Vector2(2,1),"noise");
                                             s.Emission = new Color(0.02f,0.02f,0.02f); break;
+                // ROAD PAINT, AND THE COLOUR IS COPIED RATHER THAN CHOSEN
+                // AGAIN. (0.78, 0.66, 0.18) is what `Furniture.BuildYellowLines`
+                // has been painting the town's kerbs since M17.10: worn
+                // municipal yellow, not hazard yellow. A second opinion about
+                // it would put two yellows in one project. Flat and nearly
+                // matt, because paint on tarmac is.
+                case AssetLibrary.PaintYellow:
+                                            s = Make(new Color(0.78f,0.66f,0.18f), 0.05f, 0f, new Vector2(1,1),"flat");
+                                            s.ProceduralOnly = true; break;
                 default:                    s = Make(new Color(0.5f,0.5f,0.5f), 0.1f, 0f, new Vector2(2,2), "noise"); break;
             }
             return s;

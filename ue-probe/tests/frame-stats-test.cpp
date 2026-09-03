@@ -174,6 +174,53 @@ int main()
 		      "and a dump with no pixels says nothing measured");
 	}
 
+	// ---- PixelLine, the per-sample half (Phase B) ----------------------
+	//
+	// Four shots in one run means four sample lines, and the whole-run keys
+	// on DoneLine would be printed four times as if each were that shot's.
+	// This line must carry the pixel statistics and NOT those keys.
+	{
+		unsigned char Px[16];
+		for (int I = 0; I < 4; ++I)
+		{
+			Px[I * 4 + 0] = (unsigned char)(I * 60);
+			Px[I * 4 + 1] = (unsigned char)(I * 40);
+			Px[I * 4 + 2] = (unsigned char)(I * 20);
+			Px[I * 4 + 3] = 255;
+		}
+		const LedgerFrame::FrameStats S = LedgerFrame::Measure(Px, 2, 2);
+		const std::string L = LedgerFrame::PixelLine(S);
+		std::printf("    %s\n", L.c_str());
+		Check(L.find("shotSecondsWaited") == std::string::npos
+		      && L.find("shotTicks") == std::string::npos,
+		      "the per-sample line carries no whole-run key that would be a lie on four lines");
+		Check(L.find("shotDistinctBuckets=") != std::string::npos
+		      && L.find("/32768") != std::string::npos,
+		      "and it carries the bucket count with its denominator");
+		Check(L.find("shotBlank=no") != std::string::npos,
+		      "a frame with four different colours is not blank");
+		const LedgerFrame::FrameStats Flat = LedgerFrame::Measure(Px, 0, 0);
+		const std::string FL = LedgerFrame::PixelLine(Flat);
+		Check(FL.find("shotBlank=NOTHING-MEASURED") != std::string::npos,
+		      "and a frame with no pixels says nothing measured rather than blank");
+		// NO SPACE INSIDE ANY VALUE, which is the fault that truncates every
+		// reader in this project silently.
+		int Pairs = 0, Bad = 0;
+		std::string Tok;
+		for (size_t I = 0; I <= L.size(); ++I)
+		{
+			if (I == L.size() || L[I] == ' ')
+			{
+				const size_t Eq = Tok.find('=');
+				if (Eq != std::string::npos) { ++Pairs; if (Eq + 1 >= Tok.size()) ++Bad; }
+				Tok.clear();
+			}
+			else { Tok += L[I]; }
+		}
+		std::printf("    pixel line: keyValuePairs=%d emptyValues=%d/%d\n", Pairs, Bad, Pairs);
+		Check(Pairs >= 9 && Bad == 0, "every key on the per-sample line carries a value");
+	}
+
 	std::printf("frame-stats-test: %d check(s), %d failure(s)\n", Checks, Failures);
 	return Failures == 0 ? 0 : 2;
 }

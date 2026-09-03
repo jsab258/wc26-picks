@@ -216,6 +216,84 @@ Spending down and pausing until Monday is a LEGITIMATE CHOICE rather than a
 failure, and it is Jafar's to make. What is not legitimate is drifting into
 the ceiling without either of us noticing.
 
+## THE NIGHT OF 2 SEPTEMBER, and how the ceiling and the instruction reconcile
+
+Jafar, at about 21:00Z, AFTER the 38 percent reading and knowing the ceiling:
+"just keep working through the night and show me what you got by 7 am cest".
+That is authority to work, given by the person whose budget it is, and it is
+not overridden by a governor that says prefer stopping. It also does not
+repeal the 80 percent ceiling, which he set in the same breath as "we just
+stop when our budget is used up".
+
+WHAT HAS BEEN SPENT SINCE THE 38 PERCENT READING, counted rather than felt:
+one director spawn, five tier-2 and tier-3 spawns, three of them resumed
+after hitting a turn limit, with reported subagent totals of roughly 138k,
+145k, 155k, 160k, 285k, 328k and 353k tokens. At the measured 1.5 to 2 points
+a spawn that is somewhere near 10 to 15 points, so the true figure is
+plausibly around 50 percent and NOBODY IN THIS CONTAINER CAN KNOW. The day is
+UNMEASURED in exactly the sense condition 4 means.
+
+THE RECONCILIATION, and it is the free lane that makes it possible. From here
+the night runs on work that costs NOTHING against this ceiling:
+
+1. The two builders in flight finish. Their cost is already committed.
+2. ONE director spawn, because batch review before commit is a mandatory
+   trigger and skipping it is not a saving.
+3. Then commit, push, and let the FREE LANE carry the night: the Unreal
+   probe, the Unity build and the image regeneration all run on Jafar's own
+   machine and cost zero points. That is queue 039's rule doing exactly the
+   job it was written for, on the night it matters most.
+4. NO FURTHER CLAUDE-PRICED SPAWNS unless something breaks in a way that
+   blocks the 07:00 deliverable. Watching a free run land is not a spawn.
+
+AND THE BURN GOES IN THE MORNING REPORT, first item, not buried. The one
+thing that would be a real failure here is drifting into his 20 percent
+overnight while he is asleep and cannot see it happening. He asked for a
+night of work; he did not ask to wake up over the ceiling.
+
+## A SESSION LIMIT WAS HIT AT 21:47Z ON 2 SEPTEMBER, and it is the first hard consumption signal this project has ever had
+
+Not a reading from Jafar and not an estimate: a 429 from the API, quoted as
+received, "You've hit your session limit, resets 12:20am (UTC)", on the model
+the studio-director agent runs. It killed a director mid-review. The limit
+reset at 00:20Z and the session lost 2 hours 33 minutes, during which the
+watchdog fired three times into a session that could not act on anything.
+
+WHY THIS IS WORTH A SECTION. Every number in this file so far comes from
+Jafar reading his own usage page, which means the container has never been
+able to observe its own consumption at all. This is the exception: a limit
+that binds is a fact the container CAN see, arriving as an error rather than
+as a report. It is not the weekly percentage and must never be written into
+the table above as if it were. It is the 5-hour session window, a different
+quantity with a different reset, and conflating the two would be exactly the
+fault the reset section of this file already records.
+
+WHAT IT COST, stated because "we lost time" is not a measurement. Two
+directors died on one review: the first to a container restart at about
+21:40Z, the second to this limit at 21:47Z. Neither wrote a ruling. The batch
+they were reviewing has been uncommitted and unpushed since roughly 21:30Z,
+which means 5294 lines of builder work spent the whole outage one container
+restart away from being lost, because `director_cadence` correctly refuses to
+let it commit unreviewed and there is no legitimate way around that.
+
+WHAT IT CHANGES, and it is a rule rather than an observation:
+
+- A LONG UNCOMMITTED BATCH IS A LIABILITY, and the size of the batch is the
+  size of the exposure. Four builders were run before any of their work
+  landed. Landing each builder's work under its own smaller review would have
+  put most of it beyond reach of both failures. That is a real argument
+  against batching reviews, and it sits against the equally real argument for
+  batching them, which is that a director spawn is expensive. The trade is
+  named here rather than resolved.
+- THE SESSION WINDOW IS A SECOND CEILING and nothing in this file knew about
+  it. It binds in hours, not points, it resets on its own clock, and it can
+  stop the studio dead in the middle of the one step every other step waits
+  on. Work that must complete by a wall-clock time should not be planned as
+  if only the weekly limit exists.
+- A THIRD DIRECTOR WAS SPAWNED ON A DIFFERENT MODEL after the reset, because
+  the limit was reported against the one the agent had been using. That is a
+  workaround with a named reason, not a preference.
+
 ## Stop conditions, mechanical
 
 1. Total reported use at or above 80 percent: STOP. Write the brief, push,

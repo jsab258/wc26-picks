@@ -1,46 +1,64 @@
 line: production (the reporting channel Jafar reads)
 spec: this file
-acceptance: open-dashboard.bat performs a FETCH-ONLY (never pull, never merge) before rebuilding, with GIT_EDITOR=true set in the same edit per tools/lint-bat-editor.py; the page carries a checkout-age reading rendered by the same Reading machinery as every other number, MEASURED as "N commit(s) behind origin/<branch>, newest N/A" or UNAVAILABLE with the reason (no network, no git, fetch failed) and NEVER as a bare 0; a rejecting fixture (a checkout deliberately behind) and an accepting fixture (a checkout level with origin) both run in build-dashboard.py --selftest
+acceptance: (1) the registered scheduled task brings the checkout current and rebuilds, with `git pull --ff-only` and GIT_EDITOR=true set in the same edit per tools/lint-bat-editor.py, so Jafar clicks NOTHING and the page he opens is built from current files; (2) a fast-forward that is refused, a fetch that fails and a missing network each leave the working tree untouched and are rendered on the page as a checkout-age Reading, MEASURED as "N commit(s) behind origin/<branch>" or UNAVAILABLE with the reason, NEVER as a bare 0; (3) build-dashboard.py --selftest gains an accepting fixture (checkout level with origin) and a rejecting one (checkout deliberately behind), both run
 max_sessions: 1
-status: READY 2026-09-02. engine-specialist or systems-builder. Found 2026-09-02 when Jafar could not see a card that had been pushed.
+status: READY 2026-09-02. engine-specialist. Jafar, 2 Sep, on being told to run a .bat: "not running a bat to update a dashboard. your job is to keep it up to date all the time, that's the whole point."
 
 ## The finding
 
 The dashboard says how old THE PAGE is. It cannot say how old THE CHECKOUT
 is, and those are different facts. Measured today:
 
-    open-dashboard.bat   rebuilds, runs no git at all, by an explicit choice
-                         in its own header comment
-    UPDATE FROM CLAUDE.bat   fetches and pulls, and never rebuilds the page
+    open-dashboard.bat        rebuilds the page, runs no git at all, by an
+                              explicit choice in its own header comment
+    UPDATE FROM CLAUDE.bat    fetches and pulls, and never rebuilds the page
 
-So a page regenerated thirty seconds ago from a checkout six hours behind
-reads as current and is not. If the fifteen-minute scheduled task is
-registered, it repaints that same staleness every quarter of an hour, which
-makes the page look MORE alive the further behind it falls.
+Neither does the other, so the reader is the integration step. A page
+regenerated thirty seconds ago from a six-hour-old pull reads as current. If
+the fifteen-minute scheduled refresh is registered it repaints that staleness
+every quarter hour, so the page looks MORE alive the further behind it falls.
 
 Today's instance: a decision card was written, committed and pushed, and the
-resident told Jafar it was on the dashboard. It was on the dashboard this
-container generates. His copy had never seen the commit, and nothing on his
-screen could have told him which of the two was true.
+resident told Jafar it was on the dashboard. It was on the dashboard the
+build container generates. His copy had never seen the commit, and nothing on
+his screen could have told him which of the two was true.
 
-## Why the "no git" rule does not forbid the fix
+## Why the "no git" rule does not forbid the fix, and what replaces it
 
-The header's reasoning is sound and is about PULL: a pull every fifteen
-minutes makes merge commits behind the build agent's back, which is a way to
-lose work. FETCH is not that. It writes only remote-tracking refs, creates no
-merge, touches no working file, and cannot lose anything. The rule to keep is
-"never merge unattended", not "never speak to the remote".
+The header's reasoning is sound and it is about ONE COMMAND. A bare `git pull`
+every fifteen minutes can make a merge commit behind the build agent's back,
+and on 26 August one opened vim in Jafar's window and blocked every pull after
+it. That is a real incident and the rule earned its place.
+
+`git pull --ff-only` is not that command. It advances the branch pointer or it
+refuses; it can never create a merge commit, never opens an editor, and on a
+refusal changes nothing at all. The rule worth keeping is NEVER MERGE
+UNATTENDED. "Never speak to the remote" was the blunt version of it, and the
+cost of the blunt version is that the reader does the integration by hand,
+which is what Jafar has just refused.
+
+Keep GIT_EDITOR=true and GIT_MERGE_AUTOEDIT=no set in the same edit anyway:
+belt and braces cost nothing and tools/lint-bat-editor.py asks for it.
+
+## The one thing to verify before writing the pull, not after
+
+`ledger-pc` is Jafar's PC and it is also the self-hosted runner. Establish
+WHERE the runner checks out (its own `_work` tree, or the same clone the
+dashboard reads) and quote the evidence. If a scheduled pull could change
+files under a running job, gate it: no pull while a job is running, and the
+page says "held: a build is running" as a Reading rather than going quiet.
+Do not assume the two directories are separate because they usually are.
 
 ## The shape of the number, because this project has paid for the other shape
 
-Checkout age is a Reading like every other number on that page. Behind by
-zero commits is MEASURED and means level with origin. Fetch failed is
-UNAVAILABLE with the reason, and must not render as zero: "I could not find
-out" printing as "fine" is the exact fault the dashboard exists to refuse,
-and it would be arriving inside the dashboard's own honesty machinery.
+Checkout age is a Reading like every other number on that page. Zero commits
+behind is MEASURED and means level with origin. A failed fetch is UNAVAILABLE
+with its reason and must not render as zero: "I could not find out" printing
+as "fine" is the exact fault the dashboard exists to refuse, and it would be
+arriving inside the dashboard's own honesty machinery.
 
 ## Not in scope
 
-Do not make the bat pull. Do not make the scheduled task pull. The reader
-decides when to take new files; this item only makes the page tell them
-whether there are any.
+Do not make it merge. A refused fast-forward is reported, never resolved
+unattended. The reader decides what to do about it; this item only makes the
+machine stop needing the reader to remember.

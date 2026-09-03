@@ -985,11 +985,291 @@ def read_extras(repo):
     return out
 
 
+# --------------------------------------------------------- the checkout's age
+# WHY THIS IS ON THE PAGE, 2 Sep. The page said how old THE PAGE was and could
+# not say how old THE CHECKOUT was, and those are different facts. A decision
+# card was written, committed and pushed, the resident said it was on the
+# dashboard, and Jafar's copy had never seen the commit: nothing on his screen
+# could have told him which of the two was true. Told to run a .bat, he said:
+# "not running a bat to update a dashboard. your job is to keep it up to date
+# all the time, that's the whole point."
+#
+# WHAT MAY TOUCH THE TREE AND WHAT MAY NOT. `git pull --ff-only` advances the
+# branch pointer or refuses; it cannot make a merge commit and cannot open an
+# editor, which is the 26 Aug incident behind open-dashboard.bat's old "no git
+# here" rule. The rule worth keeping from that incident is NEVER MERGE
+# UNATTENDED, and this keeps it: a refused fast-forward is REPORTED, never
+# resolved, and changes nothing at all.
+#
+# AND ZERO IS A MEASUREMENT, NOT A SHRUG. Level with origin is measured. A
+# fetch that failed is UNAVAILABLE with its reason, because "I could not find
+# out" printing as "fine" is the exact fault this page exists to refuse, and
+# it would be arriving inside the honesty machinery itself.
+
+CHECKOUT_LABEL = "checkout age"
+
+#: Why a rebuild did not check. The launcher supplies MEMBERSHIP (which key);
+#: every sentence lives here, in the layer the selftest runs, because a string
+#: written in the .bat ships unrun on a machine that has no cmd.
+CHECKOUT_SKIPPED = {
+    "skip-not-asked":
+        "this rebuild did not check. It ran without `--checkout refresh`, so "
+        "nothing here spoke to the remote and how far behind this clone is "
+        "was not measured. The registered task checks every %d minutes"
+        % REBUILD_MINUTES,
+    "skip-no-working-copy":
+        "the launcher could not stage a working copy of itself, so it rebuilt "
+        "in place and did not pull. A pull can rewrite a running .bat while "
+        "cmd.exe is still reading it by byte offset, which is a real failure "
+        "on this machine, so no-copy means no-pull",
+}
+
+#: Passed to every git child. GIT_EDITOR and GIT_MERGE_AUTOEDIT are the 26 Aug
+#: guards that tools/lint-bat-editor.py asks of any .bat running git, set here
+#: as well because the child is what git reads. GIT_TERMINAL_PROMPT and
+#: GIT_ASKPASS are the UNATTENDED ones: a credential prompt inside a scheduled
+#: task with no window waits for ever, and a refresh that hangs is a page that
+#: silently stops being rebuilt. Both make an unauthenticated fetch FAIL, which
+#: this page can print, rather than wait, which it cannot.
+GIT_GUARD_ENV = {"GIT_EDITOR": "true", "GIT_MERGE_AUTOEDIT": "no",
+                 "GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": "echo"}
+
+#: A path component that means the CI runner owns this tree. See
+#: runner_work_tree() for the evidence and why it is a check and not a comment.
+RUNNER_WORK_MARKERS = ("_work", "actions-runner")
+
+#: The self-hosted runner keeps Runner.Listener.exe up for ever and spawns ONE
+#: Runner.Worker.exe per job, so the worker is the process that means a job is
+#: running right now.
+RUNNER_WORKER_PROCESS = "Runner.Worker.exe"
+
+
+def runner_work_tree(repo_path):
+    """The CI runner's own checkout, or None. PURE, takes a path.
+
+    THE EVIDENCE, QUOTED RATHER THAN ASSUMED. ledger-pc is Jafar's PC and it is
+    also the self-hosted GitHub Actions runner, so the two clones could in
+    principle be one clone. On the evidence they are not: the runner is
+    installed at C:/actions-runner-ledger (tools/runner/1 SET UP THE BUILD
+    RUNNER.bat sets RUNNERDIR to exactly that, and tools/runner/README.md names
+    it), and every path a real job has printed sits under its own _work tree,
+    for instance C:/actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/
+    in the committed UE verdict. The dashboard's clone is
+    %USERPROFILE%/wc26-picks, which "UPDATE FROM CLAUDE.bat" sets REPO to and
+    open-dashboard.bat falls back to.
+
+    This function is what stops that evidence being an ASSUMPTION. If the page
+    is ever generated from inside a work tree, no git runs at all: not even a
+    fetch, because a fetch takes the same index and ref locks a running job's
+    git commands take.
+    """
+    parts = [p.lower() for p in pathlib.Path(repo_path).parts]
+    for p in parts:
+        for m in RUNNER_WORK_MARKERS:
+            if p == m or p.startswith(m):
+                return p
+    return None
+
+
+def checkout_plan(repo_path, build_running):
+    """PURE. (may_fetch, may_pull, hold): what this refresh may do, and why not.
+
+    build_running is True, False, or None for could-not-tell. None is treated
+    as not-running ON PURPOSE and the reason is structural rather than
+    optimistic: the only way a pull here can move files under a job is if the
+    two trees are the same tree, and the first clause settles that from the
+    path without needing the process check at all. The process check is the
+    belt on top of those braces, and it is Windows-only.
+    """
+    work = runner_work_tree(repo_path)
+    if work:
+        return False, False, (
+            "held: this checkout is inside the CI runner's own work tree (a "
+            "path component named '%s'), and a job's files must never move "
+            "under it. No git ran, so the age was not measured" % work)
+    if build_running:
+        return True, False, ("held: a build is running on this PC (%s), so "
+                             "nothing was pulled" % RUNNER_WORKER_PROCESS)
+    return True, True, None
+
+
+def build_running():
+    """True, False, or None for could-not-tell. IMPURE: asks the OS.
+
+    Windows only. Anywhere else this returns None and the page says the check
+    did not run, rather than saying nothing is running, which is a different
+    claim and one this cannot make.
+    """
+    if not sys.platform.startswith("win"):
+        return None
+    rc, out = _run(["tasklist", "/FI",
+                    "IMAGENAME eq %s" % RUNNER_WORKER_PROCESS, "/NH"], None, 30)
+    if rc != 0:
+        return None
+    return RUNNER_WORKER_PROCESS.lower() in (out or "").lower()
+
+
+def _run(argv, cwd, timeout):
+    """THE ONLY DOOR TO A SUBPROCESS in this program other than the live-page
+    harness, and the write guard's AST walk is what keeps that true.
+
+    Returns (rc, text) and never raises: a missing binary, a timeout and a
+    refusal are all READINGS here, not crashes. rc 127 means the program is not
+    on PATH and 124 means it did not finish, both distinct from any rc git
+    itself returns.
+    """
+    import os
+    import subprocess
+    env = dict(os.environ)
+    env.update(GIT_GUARD_ENV)
+    try:
+        r = subprocess.run(argv, capture_output=True, text=True,
+                           timeout=timeout, cwd=cwd, env=env)
+    except FileNotFoundError:
+        return 127, "%s is not on PATH" % argv[0]
+    except subprocess.TimeoutExpired:
+        return 124, "%s did not finish inside %ds" % (" ".join(argv[:2]), timeout)
+    except OSError as e:
+        return 126, str(e)
+    # ON SUCCESS, STDOUT ONLY. git writes advice and warnings to stderr even
+    # when it worked, and this text is PARSED: a "warning: ..." line glued onto
+    # a commit count is a number that reads as something else entirely. On a
+    # failure both streams come back, because that is where the reason is.
+    if r.returncode == 0:
+        return 0, (r.stdout or "").strip()
+    return r.returncode, ((r.stdout or "") + (r.stderr or "")).strip()
+
+
+def _git(repo, args, timeout=120):
+    """git, run in `repo`, with the guard env and no editor anywhere."""
+    return _run(["git", "-C", str(repo)] + list(args), None, timeout)
+
+
+def probe_checkout(repo, now, running=None):
+    """Bring this checkout current, then say how current it is. Returns FACTS.
+
+    THE ORDER IS THE POINT: pull first, then let build_model() read the tree, so
+    the page is rendered from the files the pull brought in. Rendering first and
+    pulling after would print a "level with origin" beside yesterday's content,
+    which is a worse lie than the one this replaces.
+
+    No sentence is built here. checkout_reading() turns these facts into the
+    Reading, so the whole of the wording and the arithmetic can be driven by the
+    selftest with no network and no remote.
+    """
+    f = {"repo": str(repo), "branch": None, "hold": None, "gitWhy": None,
+         "fetchWhy": None, "behindBefore": None, "behind": None,
+         "pulled": 0, "ffRefused": None, "before": None, "after": None,
+         "at": now.strftime("%H:%M"), "buildRunning": running}
+    rc, out = _git(repo, ["rev-parse", "--abbrev-ref", "HEAD"])
+    if rc != 0:
+        f["gitWhy"] = out
+        return f
+    f["branch"] = out.strip().splitlines()[-1] if out.strip() else ""
+    if f["branch"] in ("", "HEAD"):
+        f["gitWhy"] = ("this clone is not on a branch (detached HEAD), so "
+                       "there is no origin branch to count against")
+        f["branch"] = None
+        return f
+    rc, before = _git(repo, ["rev-parse", "HEAD"])
+    f["before"] = f["after"] = before.strip()[:12] if rc == 0 else None
+
+    may_fetch, may_pull, f["hold"] = checkout_plan(repo, running)
+    if not may_fetch:
+        return f
+
+    branch = f["branch"]
+    rc, out = _git(repo, ["fetch", "--quiet", "origin", branch])
+    if rc != 0:
+        f["fetchWhy"] = out or "git fetch exited %d and said nothing" % rc
+        return f
+    rc, out = _git(repo, ["rev-list", "--count", "HEAD..origin/%s" % branch])
+    if rc != 0 or not out.strip().isdigit():
+        f["fetchWhy"] = ("the fetch succeeded but the count did not: %s"
+                         % (out or "git rev-list exited %d silently" % rc))
+        return f
+    f["behind"] = f["behindBefore"] = int(out.strip())
+
+    if f["behind"] and may_pull:
+        rc, out = _git(repo, ["pull", "--ff-only", "origin", branch])
+        f["ffRefused"] = rc != 0
+        if rc != 0:
+            f["fastForwardWhy"] = out
+        rc, out = _git(repo, ["rev-list", "--count", "HEAD..origin/%s" % branch])
+        if rc == 0 and out.strip().isdigit():
+            f["behind"] = int(out.strip())
+        else:
+            # THE COUNT AFTER THE PULL IS THE ONLY ONE THAT DESCRIBES THE TREE
+            # THE PAGE IS ABOUT TO READ. Without it, keeping the count from
+            # before would print a number for a tree that has since moved.
+            f["behind"] = None
+            f["fetchWhy"] = ("the pull ran but the count after it did not: %s"
+                             % (out or "git rev-list exited %d silently" % rc))
+            return f
+        f["pulled"] = max(0, f["behindBefore"] - f["behind"])
+        rc, after = _git(repo, ["rev-parse", "HEAD"])
+        f["after"] = after.strip()[:12] if rc == 0 else f["after"]
+    return f
+
+
+def checkout_reading(f, sources=(".git",)):
+    """PURE: the facts from probe_checkout() as the Reading the page prints.
+
+    Every branch that could not find out returns Reading.unavailable, so the
+    one thing this can never render is a bare 0 standing for "unknown".
+    """
+    sources = list(sources)
+    if f.get("gitWhy"):
+        return Reading.unavailable(CHECKOUT_LABEL, f["gitWhy"], sources)
+    if f.get("hold") and f.get("behind") is None:
+        return Reading.unavailable(CHECKOUT_LABEL, f["hold"], sources)
+    if f.get("fetchWhy"):
+        return Reading.unavailable(
+            CHECKOUT_LABEL,
+            "the fetch failed, and this reading will not guess from a stale "
+            "ref: %s" % clip(plain(f["fetchWhy"]), 160), sources)
+    if f.get("behind") is None:
+        return Reading.unavailable(
+            CHECKOUT_LABEL, "nothing was measured and no reason was recorded, "
+            "which is a fault in this instrument rather than in the checkout",
+            sources)
+
+    branch, n = f["branch"], f["behind"]
+    value = ("level with origin/%s (0 commit(s) behind)" % branch if n == 0
+             else "%d commit(s) behind origin/%s" % (n, branch))
+    if f.get("ffRefused"):
+        how = ("`git pull --ff-only origin %s` at %s was REFUSED and changed "
+               "nothing (%s). A fast-forward is refused when this clone holds "
+               "commits origin does not; it is reported here, never resolved "
+               "unattended" % (branch, f["at"],
+                               clip(plain(f.get("fastForwardWhy") or ""), 120)))
+    elif f.get("pulled"):
+        how = ("`git pull --ff-only origin %s` at %s advanced this clone by %d "
+               "commit(s), from %s to %s" % (branch, f["at"], f["pulled"],
+                                             f.get("before"), f.get("after")))
+    elif f.get("hold"):
+        how = ("`git fetch origin %s` at %s, then `git rev-list --count "
+               "HEAD..origin/%s`; %s" % (branch, f["at"], branch, f["hold"]))
+    else:
+        how = ("`git fetch origin %s` at %s, then `git rev-list --count "
+               "HEAD..origin/%s`; there was nothing to pull"
+               % (branch, f["at"], branch))
+    den = ("1 clone on branch %s, counted against origin/%s after the fetch at "
+           "%s" % (branch, branch, f["at"]))
+    return Reading.measured(CHECKOUT_LABEL, value, how, sources, den)
+
+
 # -------------------------------------------------------------------- model
 
-def build_model(repo, now):
+def build_model(repo, now, checkout=None):
     """One model, read once, rendered twice. The HTML and STATUS.md cannot
-    disagree with each other because neither reads a source of its own."""
+    disagree with each other because neither reads a source of its own.
+
+    `checkout` arrives already measured because measuring it CHANGES THE FILES
+    every reader below is about to read: main() refreshes first and builds
+    second. A rebuild that was not asked to check says so, and says it in
+    CHECKOUT_SKIPPED's words rather than in a zero.
+    """
     today = now.date()
     phases = read_phases(repo)
     decisions = read_decisions(repo)
@@ -997,6 +1277,8 @@ def build_model(repo, now):
         "generated": now,
         "today": today,
         "repo": repo,
+        "checkout": checkout or Reading.unavailable(
+            CHECKOUT_LABEL, CHECKOUT_SKIPPED["skip-not-asked"], [".git"]),
         "phases": phases,
         "decisions": decisions,
         "queue": read_queue(repo, today),
@@ -1013,7 +1295,7 @@ def build_model(repo, now):
 
 def all_readings(model):
     out = [model["phases"]["current"], model["decisions"]["count"],
-           model["throughput"], model["judge"]]
+           model["throughput"], model["judge"], model["checkout"]]
     out += model["queue"]["cards"]
     out += [model["budget"][k] for k in ("monthly", "oneoff", "spend", "usage")]
     out += model["extras"]
@@ -1140,6 +1422,12 @@ def render_html(model):
       'this file was written)</noscript></p>' % (
           esc(model["phases"]["current"].note),
           esc(g.strftime("%Y-%m-%d %H:%M")), esc(g.isoformat())))
+    # THE PAGE'S AGE AND THE CHECKOUT'S AGE, ONE UNDER THE OTHER. They are
+    # different facts and the whole finding behind this line is that a page
+    # regenerated thirty seconds ago from a six-hour-old pull reads as current.
+    co = model["checkout"]
+    a('<p class="sub">Files this page read: <b>%s</b>. <span class="why">%s'
+      "</span></p>" % (esc(co.text), esc(co.note)))
 
     # 2. decision inbox
     n = dec["count"]
@@ -1262,6 +1550,9 @@ def render_status(model):
     a("")
     a("Current phase: %s" % model["phases"]["current"].text)
     a("(%s)" % model["phases"]["current"].note)
+    a("")
+    a("Files this page read: %s" % model["checkout"].text)
+    a("(%s)" % model["checkout"].note)
     a("")
     n = dec["count"]
     a("## Decision inbox")
@@ -2081,8 +2372,14 @@ def generate(model, out_dir, live_dir=None, live_page=False, emit_json=False):
 # below counts what a whole generation actually created on disk.
 WRITE_NAMES = {"write_text", "write_bytes", "mkdir", "makedirs", "unlink",
                "rmdir", "remove", "rename", "touch", "symlink_to", "rmtree",
-               "mkdtemp", "mkstemp", "system", "chmod", "open"}
-WRITE_ALLOWED_IN = {"write_artifact", "selftest"}
+               "mkdtemp", "mkstemp", "system", "chmod", "open",
+               # THE SECOND DOOR, ADDED 2 SEP WITH THE CHECKOUT REFRESH. A
+               # `git pull --ff-only` changes the working tree without going
+               # anywhere near write_artifact, so the same guard is put on the
+               # only two functions allowed to start a process at all: any new
+               # subprocess anywhere else in this file trips this walk.
+               "run", "check_output", "check_call", "Popen"}
+WRITE_ALLOWED_IN = {"write_artifact", "selftest", "_run", "run_live_harness"}
 
 SHIPPED = ("tools/dashboard/build-dashboard.py", "open-dashboard.bat",
            "tools/dashboard/README.md")
@@ -2743,6 +3040,188 @@ def selftest(repo=None):                                         # noqa: C901
     ok("and the local page still carries no [data-theme] rules, because it was "
        "not restyled", "[data-theme=" not in page)
 
+    # THE CHECKOUT'S AGE. Two fixtures the queue item asks for by name, plus
+    # the two failures that must never render as a zero. Every one of them is a
+    # REAL clone against a REAL origin made here in a temp directory: the thing
+    # under test is what git actually does with --ff-only, and a fake would be
+    # testing my idea of it. No network: the origin is a directory.
+    print("\nG. the checkout's age, ACCEPTING CASE FIRST (a clone level with "
+          "its origin)")
+    rcv, gver = _run(["git", "--version"], None, 30)
+    if rcv != 0:
+        unrun.append("every checkout-age fixture: %s, so no clone could be "
+                     "made here and neither case ran" % gver)
+    else:
+        def gitc(where, *args):
+            """git in `where`, with an identity, so a commit cannot stop to ask
+            for one on a machine that has no global config."""
+            return _run(["git", "-C", str(where),
+                         "-c", "user.name=dashboard-selftest",
+                         "-c", "user.email=selftest@local",
+                         "-c", "commit.gpgsign=false"] + list(args), None, 60)
+
+        def commit_in(where, name, body):
+            (where / name).write_text(body, encoding="utf-8")
+            gitc(where, "add", name)
+            return gitc(where, "commit", "-q", "-m", "add " + name)
+
+        def clone_fixture(tag):
+            """(root, origin, clone), the clone level with the origin."""
+            root = pathlib.Path(tempfile.mkdtemp(prefix="dash-git-%s-" % tag))
+            origin = root / "origin"
+            origin.mkdir()
+            _run(["git", "-c", "init.defaultBranch=main", "init", "-q",
+                  str(origin)], None, 60)
+            commit_in(origin, "one.txt", "first\n")
+            _run(["git", "clone", "-q", str(origin), str(root / "clone")],
+                 None, 90)
+            return root, origin, root / "clone"
+
+        stamp = datetime.datetime(2026, 9, 2, 9, 0, 0)
+        root, origin, clone = clone_fixture("level")
+        level = probe_checkout(clone, stamp, running=False)
+        rlevel = checkout_reading(level)
+        ok("ACCEPTING: a clone level with its origin MEASURES as level, and 0 "
+           "behind is a measurement rather than a shrug (%s)" % rlevel.text,
+           rlevel.available and "level with origin/" in str(rlevel.value)
+           and "0 commit(s) behind" in str(rlevel.value)
+           and bool(rlevel.denominator),
+           "%s | %s" % (rlevel.text, rlevel.note))
+        ok("and it moved nothing: HEAD before and after are the same commit",
+           level["before"] == level["after"] and level["pulled"] == 0,
+           "%s -> %s" % (level["before"], level["after"]))
+
+        # REJECTING, in the sense that matters here: a checkout that IS behind
+        # must not read as current. It must see the gap AND close it, because
+        # closing it with no click is the whole deliverable.
+        commit_in(origin, "two.txt", "second\n")
+        behind = probe_checkout(clone, stamp, running=False)
+        rbehind = checkout_reading(behind)
+        ok("REJECTING: a clone deliberately put 1 commit behind SEES the gap "
+           "(behind before the pull: %s)" % behind["behindBefore"],
+           behind["behindBefore"] == 1, behind)
+        ok("and the fast-forward closes it, which is the deliverable: the "
+           "files the page then reads are the ones origin has",
+           behind["pulled"] == 1 and behind["behind"] == 0
+           and (clone / "two.txt").exists()
+           and rbehind.available and "level with origin/" in str(rbehind.value),
+           "%s | %s" % (rbehind.text, rbehind.note))
+        ok("and the derivation names the exact command that moved the tree",
+           "git pull --ff-only origin main" in rbehind.note
+           and "advanced this clone by 1 commit(s)" in rbehind.note,
+           rbehind.note)
+
+        # A REFUSED FAST-FORWARD IS REPORTED, NEVER RESOLVED. This is the
+        # branch the 26 Aug incident is about: the clone holds a commit origin
+        # does not, so a bare `git pull` would MERGE here. --ff-only refuses.
+        r2, o2, c2 = clone_fixture("diverged")
+        commit_in(o2, "theirs.txt", "theirs\n")
+        commit_in(c2, "mine.txt", "mine\n")
+        head_before = _git(c2, ["rev-parse", "HEAD"])[1].strip()
+        div = probe_checkout(c2, stamp, running=False)
+        rdiv = checkout_reading(div)
+        head_after = _git(c2, ["rev-parse", "HEAD"])[1].strip()
+        ok("a refused fast-forward is still a MEASUREMENT of how far behind "
+           "this clone is (%s)" % rdiv.text,
+           rdiv.available and "1 commit(s) behind origin/main" == str(rdiv.value),
+           "%s | %s" % (rdiv.text, rdiv.note))
+        ok("and it says REFUSED, and says it is never resolved unattended",
+           div["ffRefused"] is True and "REFUSED" in rdiv.note
+           and "never resolved" in rdiv.note, rdiv.note)
+        ok("and it changed NOTHING: same HEAD, no merge left half-finished, "
+           "no local file lost",
+           head_before == head_after and not (c2 / ".git" / "MERGE_HEAD").exists()
+           and (c2 / "mine.txt").exists() and not (c2 / "theirs.txt").exists(),
+           "%s -> %s" % (head_before[:12], head_after[:12]))
+
+        # A FETCH THAT CANNOT REACH ITS ORIGIN. No network on the machine, a
+        # remote that has moved, a credential prompt refused by
+        # GIT_TERMINAL_PROMPT: they all arrive here, and the one thing none of
+        # them may print is 0.
+        _git(clone, ["remote", "set-url", "origin", str(root / "gone")])
+        gone_head = _git(clone, ["rev-parse", "HEAD"])[1].strip()
+        gone = probe_checkout(clone, stamp, running=False)
+        rgone = checkout_reading(gone)
+        ok("a fetch that fails is UNAVAILABLE with git's own reason, and "
+           "carries no number at all",
+           not rgone.available and rgone.value is None
+           and "the fetch failed" in (rgone.reason or "")
+           and "0" not in rgone.text, "%s | %s" % (rgone.text, rgone.reason))
+        ok("and a failed fetch moves nothing either",
+           gone_head == _git(clone, ["rev-parse", "HEAD"])[1].strip())
+
+        # THE TWO GATES, PURE, BOTH DIRECTIONS. ledger-pc is Jafar's PC and
+        # also the self-hosted runner, so the question "could this pull move
+        # files under a running job" is answered by code and not by a comment.
+        may_f, may_p, hold = checkout_plan(
+            "C:/actions-runner-ledger/_work/wc26-picks/wc26-picks", False)
+        ok("a checkout inside the runner's _work tree gets NO git at all, not "
+           "even a fetch", not may_f and not may_p and "held:" in (hold or ""),
+           hold)
+        may_f, may_p, hold = checkout_plan("/home/jafar/wc26-picks", True)
+        ok("a build running on this PC holds the PULL but still allows the "
+           "FETCH, so the number stays measured while the tree stays still",
+           may_f and not may_p
+           and (hold or "").startswith("held: a build is running"), hold)
+        may_f, may_p, hold = checkout_plan("/home/jafar/wc26-picks", None)
+        ok("and an ordinary clone with no job running may do both",
+           may_f and may_p and hold is None, hold)
+        ok("the repo this selftest is running in is NOT a runner work tree, "
+           "which is why the live page is allowed to refresh itself",
+           runner_work_tree(repo) is None, runner_work_tree(repo))
+        held = checkout_reading({"hold": "held: a build is running on this PC",
+                                 "behind": None, "branch": "main"})
+        ok("a held refresh renders as a Reading with its reason, not as "
+           "silence and not as zero",
+           not held.available and "a build is running" in (held.reason or "")
+           and "0" not in held.text, held.text + " | " + str(held.reason))
+
+    unrun.append("the live %s probe: this container is %s, not Windows, so "
+                 "build_running() returned None here and only the PURE gate "
+                 "above was exercised" % (RUNNER_WORKER_PROCESS, sys.platform))
+
+    # THE LAUNCHER AND THIS PROGRAM MUST AGREE, and nothing on this machine can
+    # run the launcher: no Windows, no cmd. What CAN be checked here is that
+    # every string the .bat hands over is one this program accepts, because a
+    # flag renamed on one side of that line fails on his PC and nowhere else.
+    bat = read(repo / "open-dashboard.bat") or ""
+    # EVERY MODE WORD THE LAUNCHER CAN HAND OVER, against the ones this
+    # program accepts. A flag renamed on one side of that line fails on his PC
+    # and nowhere else, so the agreement is checked here where it can run.
+    accepts = ["refresh"] + sorted(CHECKOUT_SKIPPED)
+    found = re.findall(r'set\s+"CHECKOUT=([^"]+)"', bat)
+    # A cmd variable passed straight through (%~4) is not a word to check, it
+    # is the OUTER invocation's word arriving; it is counted here rather than
+    # dropped, so the denominator says how much of the file this check saw.
+    handed = [h for h in found if not h.startswith("%")]
+    passed_through = len(found) - len(handed)
+    ok("the launcher passes --checkout, and all %d literal mode word(s) it "
+       "can hand over are ones this program accepts (%s; %d pass-through(s) "
+       "of an outer word, which is one of these)"
+       % (len(handed), ", ".join(handed) or "none found", passed_through),
+       "--checkout" in bat and handed
+       and all(h in accepts for h in handed),
+       "%s against %s" % (handed, accepts))
+    ok("and one of them is the refresh, so the scheduled task actually asks "
+       "for the pull", "refresh" in handed, handed)
+    ok("and it names the skip this program knows for a launcher that could "
+       "not stage a working copy",
+       "skip-no-working-copy" in handed, handed)
+    ok("and sets both 26 Aug editor guards, which is what "
+       "tools/lint-bat-editor.py asks of any .bat that reaches git",
+       "GIT_EDITOR=true" in bat and "GIT_MERGE_AUTOEDIT=no" in bat)
+    # COMMENTS ARE NOT COMMANDS, and this file's header discusses the bare
+    # pull it must never run. Strip REM lines before looking, or the check
+    # fails on the sentence explaining why it exists.
+    bat_cmds = "\n".join(l for l in bat.splitlines()
+                         if not l.strip().upper().startswith("REM"))
+    ok("and never RUNS a bare `git pull`, which is the command that made the "
+       "merge nobody was watching (%d command line(s) read, %d comment line(s) "
+       "skipped)" % (len(bat_cmds.splitlines()),
+                     len(bat.splitlines()) - len(bat_cmds.splitlines())),
+       not re.search(r"git\s+pull(?!\s+--ff-only)", bat_cmds),
+       [l for l in bat_cmds.splitlines() if "git pull" in l])
+
     print("\ndashboard selftest: %d passed, %d failed, %d check(s) not run "
           "here" % (passed, len(failed), len(unrun)))
     for f in failed:
@@ -2772,6 +3251,13 @@ def main(argv=None):
     ap.add_argument("--repo", default=None, help="repository root to read")
     ap.add_argument("--out-dir", default=None,
                     help="where the two artifacts go (default: the repo root)")
+    ap.add_argument("--checkout", default="skip-not-asked",
+                    choices=["refresh"] + sorted(CHECKOUT_SKIPPED),
+                    help="refresh: fetch and `git pull --ff-only` FIRST, then "
+                         "build from the files that brought in, and print how "
+                         "far behind origin this clone is. The skip-* values "
+                         "are the launcher naming WHY it did not ask; the "
+                         "sentence for each lives here, not in the .bat")
     ap.add_argument("--now", default=None,
                     help="ISO timestamp to treat as now (tests and reruns)")
     ap.add_argument("--emit-json", action="store_true",
@@ -2807,7 +3293,22 @@ def main(argv=None):
         return 3
     now = (datetime.datetime.fromisoformat(args.now) if args.now
            else datetime.datetime.now())
-    model = build_model(repo, now)
+    # BEFORE build_model, NOT AFTER: the pull changes the files every reader
+    # below is about to read. A refused fast-forward, a failed fetch and a held
+    # refresh all land here as a Reading and none of them stops the rebuild:
+    # the page must still be written, carrying the reason.
+    if args.checkout == "refresh":
+        checkout = checkout_reading(probe_checkout(repo, now, build_running()))
+    else:
+        checkout = Reading.unavailable(
+            CHECKOUT_LABEL, CHECKOUT_SKIPPED[args.checkout], [".git"])
+    # QUIET ONLY FOR THE DEFAULT SKIP, which the page states anyway. A
+    # refresh, and a launcher that had to skip for a reason of its own, both
+    # say so in the window that ran them.
+    if args.checkout != "skip-not-asked":
+        print("dashboard: %s %s (%s)"
+              % (CHECKOUT_LABEL, checkout.text, checkout.note))
+    model = build_model(repo, now, checkout)
     if args.show:
         print(render_status(model))
         return 0

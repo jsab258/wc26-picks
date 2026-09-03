@@ -56,8 +56,24 @@ namespace Ledger.Game
         Light _sun;
         readonly List<Light> _lanterns = new List<Light>();
         readonly List<Light> _windows = new List<Light>();
+        /// THE FLAT PRACTICALS, KEPT APART FROM THE SHOP ONES. Two BOM
+        /// entries, two ranges, two intensities, and one of them lights
+        /// nothing today; folding them into one list would make the empty
+        /// half invisible in the count and in the condition switch.
+        readonly List<Light> _flats = new List<Light>();
+        /// WHAT WAS ASKED FOR, CAPTURED BEFORE ANY LOOKUP. A denominator
+        /// counted from successes can never report a failure.
+        int _windowsAsked, _windowCards, _flatsAsked;
         bool _sunLogged;
         int _errors;
+        /// THE TWO COUNTS QUEUE ITEM 046 EXISTS FOR. Whole-run tally, in
+        /// Core, because the arithmetic and the string have to live where
+        /// the tests run: this layer does not compile in the review
+        /// container, and an unrun formatter printing a plausible
+        /// `propsPlaced=23/23` is the silent-instrument failure. Everything
+        /// this file gives it is live state: did the prefab load, was the
+        /// picture on disk, how tall did the mesh turn out.
+        readonly StreetVignetteAssets _assets = new StreetVignetteAssets();
 
         void Start() { StartCoroutine(Run()); }
 
@@ -98,6 +114,15 @@ namespace Ledger.Game
             // "looked fine" cannot see it.
             var root = new GameObject("StreetVignette");
             int made = 0;
+            // THE DENOMINATOR COMES OFF THE PLAN, BEFORE ANY LOADING, so a
+            // run that dies halfway still prints what it was ASKED for. A
+            // denominator counted from successes is a denominator that can
+            // never report a failure.
+            foreach (var p in plan.Pieces)
+            {
+                if (p.Shape == "mesh") _assets.Ask(true, p.Asset);
+                else if (p.Shape == "decal") _assets.Ask(false, p.Asset);
+            }
             foreach (var p in plan.Pieces)
                 if (Emit(root.transform, plan, p)) made++;
             Log(string.Format(CultureInfo.InvariantCulture,
@@ -107,10 +132,26 @@ namespace Ledger.Game
             // and the same string is printed by the tested layer, so the
             // verdict never carries a string nothing ever ran.
             Log(StreetVignette.ShapeReport(plan.Pieces));
+            // DID THE HELD BYTES REACH THE FRAME. 37 props and 14 pictures
+            // sat in this repository while every shipped still was
+            // primitives, and nothing said so because nothing counted.
+            Log(_assets.Report());
 
             Lights(root.transform, plan);
             Log(string.Format(CultureInfo.InvariantCulture,
-                "practicals lanterns={0} windows={1}", _lanterns.Count, _windows.Count));
+                // WHAT EACH NUMBER IS A COUNT OF, and every zero with its
+                // denominator. `windowsLit` is lights actually placed over
+                // the shop interior cards the parade emitted, which is the
+                // only honest denominator: it is what COULD be lit. `flatsLit`
+                // says the words rather than printing a bare zero, because
+                // no flat has an interior card to stand a light at and
+                // `flatsLit=0` alone cannot tell that from a failure.
+                "practicals lanterns={0} windowsLit={1}/{2} windowsAsked={3} {4}",
+                _lanterns.Count, _windows.Count, _windowCards, _windowsAsked,
+                _flatsAsked == 0
+                    ? "flatsLit=0/0 nothing-to-light"
+                    : string.Format(CultureInfo.InvariantCulture,
+                                    "flatsLit={0}/{1}", _flats.Count, _flatsAsked)));
 
             // Colliders exist by construction on a Unity primitive, but the
             // physics world is only rebuilt at the end of the frame, so the
@@ -132,6 +173,13 @@ namespace Ledger.Game
 
         bool Emit(Transform parent, StreetVignette.Plan plan, StreetVignette.Piece p)
         {
+            // FOUR SHAPES, AND THE LAST TWO CARRY THE HELD BYTES. They are
+            // routed FIRST and by name: the primitive line below falls back
+            // to a cube for anything it does not recognise, so a mesh or a
+            // decal reaching it would stand up as a grey box, count as
+            // emitted, and pass every gate in this file.
+            if (p.Shape == "mesh") return EmitProp(parent, p);
+            if (p.Shape == "decal") return EmitDecal(parent, plan, p);
             GameObject go;
             try
             {
@@ -189,6 +237,181 @@ namespace Ledger.Game
                 ? Lantern(plan)
                 : AssetLibrary.Material(p.Surface ?? AssetLibrary.Concrete);
             if (!p.Emissive) Tile(r, plan, p);
+            return true;
+        }
+
+        /// A HELD PROP, LOADED BY NAME AND NEVER SCALED.
+        ///
+        /// THROUGH `AssetLibrary.TryInstantiateProp`, WHICH IS THE ONE
+        /// INSTRUMENTED DOOR. A private `Resources.Load` here would make
+        /// every prop in the vignette invisible to `kitAlbedo` and would skip
+        /// the arrival-albedo note; `Furniture.PlaceAt` carries the incident
+        /// (a factory-white swing bin that survived a build in which every
+        /// other bin went metal). Same key scheme, same door.
+        ///
+        /// THE PIVOT IS NOT ASSUMED, IT IS READ. Measured off the shipped
+        /// .glb files: awning_02's origin is at its top-back because it hangs
+        /// off a wall, poster and framed_poster are centred, drainage_grate_01
+        /// sits 15 mm below its origin, and the rest stand on theirs. So the
+        /// plan says where the prop's BOUNDING BOX CENTRE goes and this puts
+        /// the loaded bounds centre there, which is right for all four cases
+        /// and needs no per-prop offset table to go stale. `renderer.bounds`
+        /// is the axis-aligned box of the already-rotated mesh, and the AABB
+        /// of a rotated box is centred on that box's own centre, so the
+        /// correction is exact at any yaw and not just at multiples of 90.
+        bool EmitProp(Transform parent, StreetVignette.Piece p)
+        {
+            var rot = Quaternion.Euler((float)p.PitchDeg, -(float)p.YawDeg, (float)p.RollDeg);
+            var want = new Vector3((float)p.X, (float)p.Y, (float)p.Z);
+            string key = "base_mesh_" + p.Asset;
+            var go = AssetLibrary.TryInstantiateProp(key, want, rot);
+            if (go == null)
+            {
+                // NOT AN ERROR, AND NOT SILENT EITHER. The prop pipeline
+                // writes its prefabs at BUILD time, so a container with no
+                // Unity has none of them; that reads differently from a
+                // placement that never ran, and the reason is what says so.
+                _assets.Absent(true, p.Asset, "no-prefab/Props/Prop_" + key);
+                return false;
+            }
+            go.name = p.Name;
+            go.transform.SetParent(parent, true);
+            var bounds = MeshBounds(go);
+            if (bounds.HasValue)
+            {
+                go.transform.position += want - bounds.Value.center;
+                // THE PRINTER, NOT A BOUND (rule 2). The scene file's dims
+                // were measured off the .glb by a script and the importer is
+                // a second opinion about the same bytes; a prop placed from
+                // dimensions that are not its own stands in the wrong place
+                // with every count green. Core keeps the worst of the series
+                // and no run has ever printed one, so there is no threshold
+                // here to fail against yet.
+                _assets.NoteHeight(p.Name, p.SY, bounds.Value.size.y);
+            }
+            // MATERIAL REPLACEMENT AND NOT A PROPERTY BLOCK. These props
+            // import through glTFast, whose shader has no `_Color` for an
+            // MPB to set, and they ship untextured at albedo 1.0: white
+            // furniture in a wet grey street. `TintFurniture` is the one
+            // implementation of the swap and it counts what the renderers
+            // took, so the vignette's props land in the same instrument the
+            // town's do.
+            WorldBuilder.TintFurniture(go, AssetLibrary.Material(
+                p.Surface ?? AssetLibrary.Concrete), key);
+            _assets.Landed(true);
+            return true;
+        }
+
+        /// The combined bounds of everything under a prop, or nothing at all
+        /// when it has no renderer. Null rather than `default`, because a
+        /// zero-size box centred on the origin would move the prop to the
+        /// road crown and look like a placement bug.
+        static Bounds? MeshBounds(GameObject go)
+        {
+            Bounds b = default; bool any = false;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!any) { b = r.bounds; any = true; }
+                else b.Encapsulate(r.bounds);
+            }
+            return any ? b : (Bounds?)null;
+        }
+
+        /// A PICTURE ON A SURFACE, WHICH IS THE OTHER HALF OF 046.
+        ///
+        /// TWO BLENDS AND THE SCENE FILE SAYS WHICH. `card` is an opaque
+        /// picture (a signboard, a bill, a lit interior). `multiply` is grime
+        /// that can only ever darken what is under it, and it goes through
+        /// the town's own `DecalLayer` loader and shader rather than a second
+        /// copy of the colour-plus-opacity join.
+        ///
+        /// A MISSING IMAGE IS COUNTED, NOT THROWN. Three of the twenty
+        /// pictures this street asks for are the C11 interior cards, which
+        /// the image generator has not made yet: the plan asks, the run says
+        /// which were absent by name, and the day the PNG lands the night
+        /// frame gets it with no code change.
+        bool EmitDecal(Transform parent, StreetVignette.Plan plan, StreetVignette.Piece p)
+        {
+            if (!StreetVignette.SplitAsset(p.Asset, out string id,
+                                           out double u0, out double v0, out double u1, out double v1))
+            {
+                _assets.Absent(false, p.Asset, "crop-unparseable");
+                return false;
+            }
+            bool multiply = p.Surface == "multiply";
+            var root = Path.Combine(Application.streamingAssetsPath, "Decals");
+            Texture2D tex = null;
+            if (multiply) tex = DecalLayer.LoadSet(Path.Combine(root, id.Replace('/', Path.DirectorySeparatorChar)));
+            else
+            {
+                var file = Path.Combine(root, id.Replace('/', Path.DirectorySeparatorChar) + ".png");
+                if (File.Exists(file))
+                {
+                    tex = new Texture2D(2, 2, TextureFormat.RGBA32, true);
+                    if (!tex.LoadImage(File.ReadAllBytes(file))) { Object.Destroy(tex); tex = null; }
+                    else tex.wrapMode = TextureWrapMode.Clamp;
+                }
+            }
+            if (tex == null)
+            {
+                _assets.Absent(false, id, multiply ? "no-set-dir" : "no-png-on-disk");
+                return false;
+            }
+
+            var go = new GameObject(p.Name);
+            go.transform.SetParent(parent, false);
+            go.transform.position = new Vector3((float)p.X, (float)p.Y, (float)p.Z);
+            // THE SAME ROTATION LINE EVERY OTHER PIECE GETS, and it has to
+            // be: a decal's plane is the piece's frame, its normal is -z
+            // before rotation (the winding of `DecalLayer.Quad`), and the
+            // piece list states that convention so the Unreal reader can
+            // match it. The camera's own conversion is a different one and
+            // stays where it is.
+            go.transform.rotation = Quaternion.Euler((float)p.PitchDeg,
+                                                     -(float)p.YawDeg,
+                                                     (float)p.RollDeg);
+            go.transform.localScale = new Vector3((float)p.SX, (float)p.SY, 1f);
+            go.AddComponent<MeshFilter>().sharedMesh = DecalLayer.Quad();
+            var mr = go.AddComponent<MeshRenderer>();
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = !multiply;
+            Material mat;
+            if (multiply)
+            {
+                var sh = Shader.Find("Hidden/LedgerDecal");
+                if (sh == null)
+                {
+                    _assets.Absent(false, id, "shader-missing/Hidden-LedgerDecal");
+                    Object.Destroy(go);
+                    return false;
+                }
+                mat = new Material(sh) { mainTexture = tex };
+                // Ground or wall, and the two strengths come from the scene
+                // file where the town's measured series put them.
+                bool onGround = p.Edge != null
+                    && (p.Edge.EndsWith("_carriageway") || p.Edge.EndsWith("_channel"));
+                mat.SetFloat("_Strength", (float)(onGround
+                    ? plan.DecalStrengthGround : plan.DecalStrengthWall));
+            }
+            else
+            {
+                // An opaque picture. Standard, low smoothness, so a painted
+                // signboard takes the street's light like the fascia behind
+                // it instead of glowing.
+                var sh = Shader.Find("Standard");
+                mat = new Material(sh != null ? sh : Shader.Find("Sprites/Default"))
+                { mainTexture = tex };
+                mat.SetFloat("_Glossiness", 0.08f);
+            }
+            mat.name = "mat_decal_" + p.Name;
+            // THE CROP, AND IT IS WHY THE PICTURES ARE USABLE AT ALL. The
+            // generated images are photographs of a thing IN a street, so
+            // fascia_fish_market is a whole shopfront with a pavement and a
+            // sky in it; the rect is the part of it that is the sign.
+            mat.mainTextureScale = new Vector2((float)(u1 - u0), (float)(v1 - v0));
+            mat.mainTextureOffset = new Vector2((float)u0, (float)v0);
+            mr.sharedMaterial = mat;
+            _assets.Landed(false);
             return true;
         }
 
@@ -256,20 +479,65 @@ namespace Ledger.Game
             // makes a wet pavement worth having. Placed at the interior cards
             // the shopfront emitter already put behind the glass, so a lit
             // window always has something behind it to be lit.
-            foreach (var p in plan.Pieces)
+            //
+            // WHICH WINDOWS IS A DATA CHOICE AND IT IS NO LONGER MADE HERE
+            // (queue 040). This loop used to light every piece whose name
+            // CONTAINED `_interior` at a colour, a range and an intensity
+            // written in this file, which is two faults in one line. The
+            // numbers were a second opinion no Unreal emitter could read, and
+            // the name test was a rule about strings: by 2 September it also
+            // matched the three C11 interior decal cards, so it would have
+            // lit nine objects while `windowsLit` said six. The plan now
+            // names the pieces, and this loop looks each one up. A name in
+            // the plan that no piece answers to is COUNTED and named rather
+            // than skipped, because a practical that never lit is exactly
+            // what the count exists to find.
+            var byName = new Dictionary<string, StreetVignette.Piece>();
+            foreach (var p in plan.Pieces) byName[p.Name] = p;
+            _windowsAsked = plan.WindowLitNames.Count;
+            _windowCards = plan.WindowCards.Count;
+            var missed = new List<string>();
+            foreach (var name in plan.WindowLitNames)
             {
-                if (!p.Name.Contains("_interior")) continue;
+                if (!byName.TryGetValue(name, out var p)) { missed.Add(name); continue; }
                 var go = new GameObject("light_" + p.Name);
                 go.transform.SetParent(parent, false);
                 go.transform.position = new Vector3((float)p.X, (float)p.Y + 0.4f, (float)p.Z);
                 var l = go.AddComponent<Light>();
                 l.type = LightType.Point;
-                l.color = new Color(1f, 0.86f, 0.62f, 1f);
-                l.range = 7f;
-                l.intensity = 1.6f;
+                l.color = new Color((float)plan.WindowR, (float)plan.WindowG, (float)plan.WindowB, 1f);
+                l.range = (float)plan.WindowShopRangeM;
+                l.intensity = (float)plan.WindowShopIntensity;
                 l.shadows = LightShadows.None;
                 _windows.Add(l);
             }
+            if (missed.Count > 0)
+            {
+                _errors++;
+                Log("practicals unplaced=" + missed.Count + "/" + plan.WindowLitNames.Count
+                    + " first=" + missed[0]);
+            }
+            // THE FLAT HALF, WHICH LIGHTS NOTHING TODAY. D8_upper_windows
+            // carries no interior card, so there is no object to hang a
+            // practical on and the plan's list is empty. It is placed and
+            // counted through the same loop rather than being skipped,
+            // because a pair of numbers that vanishes when its list is empty
+            // reads as a pair nobody asked for.
+            foreach (var name in plan.WindowFlatNames)
+            {
+                if (!byName.TryGetValue(name, out var p)) continue;
+                var go = new GameObject("light_" + p.Name);
+                go.transform.SetParent(parent, false);
+                go.transform.position = new Vector3((float)p.X, (float)p.Y + 0.4f, (float)p.Z);
+                var l = go.AddComponent<Light>();
+                l.type = LightType.Point;
+                l.color = new Color((float)plan.WindowR, (float)plan.WindowG, (float)plan.WindowB, 1f);
+                l.range = (float)plan.WindowFlatRangeM;
+                l.intensity = (float)plan.WindowFlatIntensity;
+                l.shadows = LightShadows.None;
+                _flats.Add(l);
+            }
+            _flatsAsked = plan.WindowFlatNames.Count;
         }
 
         // ---- the placement instrument, both halves ----------------------
@@ -328,6 +596,15 @@ namespace Ledger.Game
             "E1_lighting_column", "E2_sodium_lantern_head", "E3_telephone_kiosk",
             "E4_pillar_box", "E8_guard_railing", "E13_household_dustbin",
             "G8_litter", "G9_chewing_gum",
+            // The lines that carry held bytes, added 2 Sep with queue item
+            // 046. Kept in step with `CoreTests.StreetVignetteAuthorised` by
+            // the test that asserts against it, which fails first.
+            "A5_double_yellow_lines", "A7_gully_grate", "A8_manhole",
+            "C6_fascia_lettering", "C11_lit_interior_card",
+            "D3_chimney_pots", "E5_bollards", "E6_public_bins",
+            "E11_cones_barrier", "E12_a_board_posters", "E14_dock_clutter",
+            "E18_shop_awnings", "G1_leak_stains", "G2_asphalt_damage",
+            "G4_moss_damp", "G5_stickers", "G6_fly_posters",
         };
 
         // ---- the two conditions and the four matched frames -------------
@@ -394,6 +671,7 @@ namespace Ledger.Game
             _sun.color = new Color(0.95f, 0.96f, 1f, 1f);
             foreach (var l in _lanterns) l.enabled = c.LanternsOn;
             foreach (var l in _windows) l.enabled = c.WindowsOn;
+            foreach (var l in _flats) l.enabled = c.WindowsOn;
 
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
             var sky = c.SunOn ? new Color(0.42f, 0.46f, 0.52f) : new Color(0.05f, 0.05f, 0.07f);

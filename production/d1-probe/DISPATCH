@@ -153,3 +153,31 @@ geometry and on-screen messages, two independent paths, because the probe has
 no Content directory by design. UNRUN UNTIL THIS RUN: whether a packaged game
 renders offscreen on that machine at all, whether either capture candidate
 writes a file, and whether /Engine/Maps/Entry gives a world with a view.
+run 17 - 2026-09-02 - PHASE B: THE STREET ITSELF, AND IT IS THE FIRST TIME
+UNREAL RENDERS MERIDIAN. Every run before this photographed debug geometry in
+an empty map to prove the capture path; this builds the 593-piece street out
+of production/specs/vignette-pieces.json and takes the four named shots at
+1280x720, the same four and the same size the Unity host takes. Nothing is
+authored: every position, size and rotation comes out of that file, which
+Ledger.Core wrote from the shared scene json, so a difference between a Unity
+frame and one of these is a RENDERER difference by construction. The reader,
+the median, the fov conversion, the gamma-to-linear conversion and every
+printed string live in VignetteSpec.h, which has no Unreal type in it and is
+compiled and RUN by g++ here before dispatch: 48 checks against the real
+committed file, accepting case first, plus 30 for the pixel maths.
+FOUR THINGS ARE UNRUN UNTIL THIS RUN AND EACH HAS A NAMED KEY. Whether the
+engine's basic shapes reach a packaged build (DefaultGame.ini now asks for
+/Engine/BasicShapes to be cooked; the emitter names the missing mesh if not).
+Whether 593 spawned actors and 7 lights render offscreen at all. Whether
+either capture candidate writes a file, which run 16 was dispatched to answer
+and has not landed: candidate A is tried once and the run adopts B for all
+four shots if it fails, so one dispatch answers it rather than four ceilings.
+And whether the untextured frames are legible: the sky is black by design
+here, materials and the HDRI are Phase C, and the verdict prints meanLuma per
+shot so the first exposure series exists. The debug-geometry step stays in
+front of it on purpose: if both fail the capture path is the suspect, if only
+the vignette fails the street is.
+The frame time is a MEDIAN of 24 engine frame deltas after 8 discarded, the
+same counts the Unity host uses, and it is NOT the Unity number: Unity times
+one Camera.Render and this times a whole engine frame. frameStat on every
+shot line says which.

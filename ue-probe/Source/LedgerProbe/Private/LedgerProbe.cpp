@@ -12,6 +12,7 @@
 #include "LedgerProbe.h"
 #include "Perception.h"
 #include "FrameStats.h"
+#include "VignetteShot.h"
 
 #include "Misc/Paths.h"
 #include "Misc/FileHelper.h"
@@ -710,6 +711,19 @@ public:
 		// TWO INVOCATIONS, TWO SWITCHES, AND NEITHER IS THE DEFAULT. A
 		// module with no switch does nothing at all, which is what the cook
 		// commandlet needs from it.
+		// PHASE B, AND IT IS ITS OWN SWITCH FOR THE SAME REASON THE OTHER
+		// TWO ARE. -LedgerShot photographs debug geometry in an empty map,
+		// which is the capture path's own accepting case, and it stays
+		// because it is the fastest way to separate "the capture path is
+		// broken" from "the street would not build". -LedgerVignette builds
+		// the shared street from the shared JSON and photographs it four
+		// times. Neither is the default: a module handed no switch does
+		// nothing at all, which is what the cook commandlet needs from it.
+		if (FParse::Param(FCommandLine::Get(), TEXT("LedgerVignette")))
+		{
+			LedgerVignetteShot::Start();
+			return;
+		}
 		if (FParse::Param(FCommandLine::Get(), TEXT("LedgerShot")))
 		{
 			StartShot();

@@ -2880,6 +2880,17 @@ namespace Ledger.Game
         /// zero, and non-zero names the day a placer stopped saying who it
         /// was painting.
         public static void TintFurniture(GameObject go, Color c, string key = null)
+            => TintFurniture(go, AssetLibrary.Opaque(c), key);
+
+        /// THE SAME SWAP, GIVEN THE MATERIAL RATHER THAN A COLOUR. The street
+        /// vignette paints its held props with the SURFACE the rest of that
+        /// scene wears (the pack's metal, wood and concrete), not with a flat
+        /// tint, so a bin standing beside a railing is made of the same metal
+        /// the railing is. One implementation of "replace every renderer's
+        /// materials and count what took": the colour version above is this
+        /// one with `Opaque` in front of it, because two copies of this loop
+        /// is the exact shape of this file's worst bugs.
+        public static void TintFurniture(GameObject go, Material paint, string key = null)
         {
             if (go == null) return;
             FurnitureTinted++;
@@ -2902,7 +2913,7 @@ namespace Ledger.Game
             // anyway — hoisting it makes the thing the note describes and the
             // thing the renderers wear provably one object rather than two
             // that ought to agree.
-            var paint = AssetLibrary.Opaque(c);
+            if (paint == null) return;
             int swapped = 0;
             foreach (var rr in go.GetComponentsInChildren<Renderer>(true))
             {

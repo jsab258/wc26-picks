@@ -107,6 +107,25 @@ namespace Ledger.Core
 
         static string Ki(string key, int v) => Q(key) + ":" + v.ToString(CultureInfo.InvariantCulture);
 
+        /// A JSON array body, in the list's own order. The order IS the
+        /// contract for `lit_names`: it is the order the parade emitted the
+        /// cards in, so two engines walking the array light the same windows
+        /// in the same sequence and a diff of this file reads as a list of
+        /// windows rather than a reshuffle.
+        static string IntList(List<int> v)
+        {
+            var parts = new List<string>(v.Count);
+            foreach (var i in v) parts.Add(i.ToString(CultureInfo.InvariantCulture));
+            return string.Join(",", parts.ToArray());
+        }
+
+        static string StrList(List<string> v)
+        {
+            var parts = new List<string>(v.Count);
+            foreach (var t in v) parts.Add(Q(t));
+            return string.Join(",", parts.ToArray());
+        }
+
         /// ONE PIECE AS ONE LINE. Public because it is the unit the guard
         /// reports a difference in, and because a reader written against
         /// this file wants the field list in one place rather than inferred
@@ -126,6 +145,14 @@ namespace Ledger.Core
             sb.Append(Ks("name", p.Name)).Append(',');
             sb.Append(Ks("shape", p.Shape)).Append(',');
             sb.Append(Ks("surface", p.Surface)).Append(',');
+            // WHAT TO LOAD, AND NULL FOR A PRIMITIVE. Five hundred and fifty
+            // of these lines carry `"asset":null` and forty-three carry a
+            // held prop's stem or a picture's path with its crop; the field
+            // is written on every line anyway, because a reader that has to
+            // ask whether a key is present before it can parse a line is a
+            // reader with two code paths, and the Unreal one is not written
+            // yet. `null` is JSON, not a string.
+            sb.Append(Ks("asset", p.Asset)).Append(',');
             sb.Append(Kn("x_m", p.X)).Append(',');
             sb.Append(Kn("y_m", p.Y)).Append(',');
             sb.Append(Kn("z_m", p.Z)).Append(',');
@@ -175,6 +202,16 @@ namespace Ledger.Core
             return n;
         }
 
+        /// How many pieces carry one shape. Whole-list count, and the
+        /// caller names the shape so `mesh` and `decal` cannot be counted by
+        /// two different rules in two places.
+        public static int ShapeCount(List<StreetVignette.Piece> pieces, string shape)
+        {
+            int n = 0;
+            foreach (var p in pieces) if (p.Shape == shape) n++;
+            return n;
+        }
+
         /// How many pieces are marked emissive. Whole-list count.
         public static int EmissiveCount(List<StreetVignette.Piece> pieces)
         {
@@ -197,7 +234,8 @@ namespace Ledger.Core
 
         /// THE WHOLE FILE, AS TEXT. No I/O: the caller decides where bytes go,
         /// which is what lets the drift guard compare without a temp file.
-        public static string Write(StreetVignette.Plan plan)
+        public static string Write(StreetVignette.Plan plan,
+                                  string aheadRun = null, int aheadPiecesThen = 0)
         {
             if (plan == null) throw new ArgumentNullException("plan");
             if (plan.Error != null)
@@ -238,6 +276,8 @@ namespace Ledger.Core
             sb.Append(Ks("size", "full-size-before-rotation/not-half-extents")).Append(',');
             sb.Append(Ks("centre", "x_m/y_m/z_m-is-the-CENTRE-of-the-piece")).Append(',');
             sb.Append(Ks("cylinder_axis", "local-+y-in-both-engines/height-is-sy_m/diameter-is-sx_m-and-sz_m")).Append(',');
+            sb.Append(Ks("mesh_placement", "load-asset/never-scale-it/put-its-own-bounds-centre-on-x_m,y_m,z_m")).Append(',');
+            sb.Append(Ks("decal_placement", "a-quad/sx_m-by-sy_m/normal-is--z-before-rotation/sz_m-is-0")).Append(',');
             sb.Append(Ks("unity_piece_rotation", "Euler(pitch,-yaw,roll)")).Append(',');
             sb.Append(Ks("unity_camera_rotation", "Euler(pitch,90-yaw,0)"));
             sb.Append("},\n");
@@ -247,11 +287,49 @@ namespace Ledger.Core
             counts.Add(Ki("unique_names", UniqueNameCount(plan.Pieces)));
             counts.Add(Ki("emissive", EmissiveCount(plan.Pieces)));
             counts.Add(Ki("multi_rotation", MultiRotationCount(plan.Pieces)));
+            // THE TWO COUNTS QUEUE ITEM 046 EXISTS FOR, in the file as
+            // well as on the verdict line. `props` and `decals` here are
+            // what the plan ASKED FOR, which is the M of the run's
+            // propsPlaced=N/M: this file cannot know what the engine
+            // managed to load, and the two numbers must not be confused.
+            counts.Add(Ki("props_asked", ShapeCount(plan.Pieces, "mesh")));
+            counts.Add(Ki("decals_asked", ShapeCount(plan.Pieces, "decal")));
             counts.Add(Ki("bom_lines", plan.PerBom.Count));
             counts.Add(Ki("cameras", plan.Cameras.Count));
             counts.Add(Ki("conditions", plan.Conditions.Count));
             counts.Add(Ki("shots", plan.Shots.Count));
             sb.Append(Q("counts")).Append(":{").Append(string.Join(",", counts.ToArray())).Append("},\n");
+
+            // THE ACKNOWLEDGED GAP BETWEEN THIS FILE AND THE NEWEST UNITY
+            // RUN, WRITTEN ONLY WHEN ASKED FOR.
+            //
+            // The cross-engine check compares this file's count to the count
+            // a Unity player actually stood up on the build machine. That
+            // comparison is the thing that makes a judged pair admissible,
+            // so it may not be loosened; but a layout change necessarily
+            // lands BEFORE the Unity run that would confirm it, and without
+            // a way to say so the change cannot be committed at all: the
+            // check is red, verify writes no footer, and the run that would
+            // clear it needs the commit.
+            //
+            // So the gap is DECLARED, with the run it is a gap against and
+            // what that run counted. It is not a waiver: the check still
+            // fails the moment a newer run lands, whatever that run says,
+            // because a stale acknowledgement is an unread one.
+            if (aheadRun != null)
+            {
+                sb.Append(Q("ahead_of_unity_run")).Append(":{");
+                sb.Append(Ks("run", aheadRun)).Append(',');
+                sb.Append(Ki("pieces_then", aheadPiecesThen)).Append(',');
+                sb.Append(Ks("what",
+                    "This file is AHEAD of the newest landed Unity run named here, which counted "
+                    + "pieces_then objects. A judged pair made against that run's stills is "
+                    + "inadmissible until a Unity run agrees with this file. The key is spent the "
+                    + "moment any newer run lands and CoreTests then demands its removal.")).Append(',');
+                sb.Append(Ks("remove_with",
+                    "dotnet run -c Release --project ledger/CoreTests -- --write-vignette-pieces"));
+                sb.Append("},\n");
+            }
 
             // THE SHAPE TALLY AS THE VERDICT PRINTS IT, character for
             // character, through the same formatter the Unity host uses. It
@@ -283,6 +361,51 @@ namespace Ledger.Core
             sb.Append(Ks("placement", "one-point-light-0.05m-below-the-centre-of-each-emissive-piece"));
             sb.Append("},\n");
 
+            // H5: THE WINDOW PRACTICALS, AND THE NAMES THEY LIGHT.
+            //
+            // The names, not the bay indices, are the contract. A reader
+            // that had to turn lit_bays into objects would be re-deriving
+            // the parade's bay numbering in a second language, and the Unity
+            // Host's old rule (any piece name containing `_interior`) already
+            // proves how that goes: by 2 September it also matched three C11
+            // decal cards, so it would have lit nine things while printing
+            // six. lit_bays rides beside the names as the DATA CHOICE that
+            // produced them, so a reviewer can see the decision and the
+            // consequence on one line.
+            //
+            // THE FLAT HALF IS PRINTED WITH AN EMPTY LIST RATHER THAN
+            // OMITTED. D8_upper_windows carries no interior card, so those
+            // two numbers light nothing today; a key that vanished when its
+            // count went to zero would read as a key that was never there.
+            sb.Append(Q("window_practicals")).Append(":{");
+            sb.Append(Ks("colour_space", "gamma-sRGB")).Append(',');
+            sb.Append(Kn("r", plan.WindowR)).Append(',');
+            sb.Append(Kn("g", plan.WindowG)).Append(',');
+            sb.Append(Kn("b", plan.WindowB)).Append(',');
+            sb.Append(Kn("shop_intensity", plan.WindowShopIntensity)).Append(',');
+            sb.Append(Kn("shop_range_m", plan.WindowShopRangeM)).Append(',');
+            sb.Append(Kn("flat_intensity", plan.WindowFlatIntensity)).Append(',');
+            sb.Append(Kn("flat_range_m", plan.WindowFlatRangeM)).Append(',');
+            sb.Append(Ki("shop_cards", plan.WindowCards.Count)).Append(',');
+            sb.Append(Ki("flat_cards", plan.WindowFlatNames.Count)).Append(',');
+            sb.Append(Q("lit_bays")).Append(":[").Append(IntList(plan.WindowLitBays)).Append("],");
+            sb.Append(Q("lit_names")).Append(":[").Append(StrList(plan.WindowLitNames)).Append("],");
+            sb.Append(Q("flat_lit_names")).Append(":[").Append(StrList(plan.WindowFlatNames)).Append("],");
+            sb.Append(Ks("placement",
+                "one-point-light-0.4m-above-the-centre-of-each-lit_names-piece/shadows-off"));
+            sb.Append("},\n");
+
+            // THE TWO MULTIPLY STRENGTHS, so the Unreal side dirties its
+            // street by the same amount rather than picking a number. Copied
+            // into the scene file from the town's decal layer, which measured
+            // them; the note travels with them there.
+            sb.Append(Q("decals")).Append(":{");
+            sb.Append(Kn("strength_ground", plan.DecalStrengthGround)).Append(',');
+            sb.Append(Kn("strength_wall", plan.DecalStrengthWall)).Append(',');
+            sb.Append(Ks("blend", "card=opaque-picture/multiply=darkens-what-is-under-it")).Append(',');
+            sb.Append(Ks("crop", "in-the-asset-string-after-a-#/u0,v0,u1,v1/v-from-the-bottom"));
+            sb.Append("},\n");
+
             sb.Append(Q("sun")).Append(":{");
             sb.Append(Kn("elevation_deg", plan.SunElevationDeg)).Append(',');
             sb.Append(Kn("azimuth_deg", plan.SunAzimuthDeg));
@@ -305,6 +428,7 @@ namespace Ledger.Core
             for (int i = 0; i < plan.Cameras.Count; i++)
             {
                 var c = plan.Cameras[i];
+                bool camFound = plan.GroundAt(c.X, c.Z, out double camGroundY, out string camEdge);
                 sb.Append('{');
                 sb.Append(Ks("id", c.Id)).Append(',');
                 sb.Append(Kn("x_m", c.X)).Append(',');
@@ -315,6 +439,23 @@ namespace Ledger.Core
                 // ground for the level and add this. Named in the key so the
                 // Unreal side cannot read it as a world y.
                 sb.Append(Kn("eye_height_above_ground_m", c.EyeHeightM)).Append(',');
+                // AND THE GROUND IT IS MEASURED FROM, RESOLVED HERE.
+                //
+                // The key above is a height above the pavement, and the
+                // footway falls 1 in 40, so an emitter that read it as a
+                // world y would stand the two cameras at different heights on
+                // the two sides of the street and the matched pair would not
+                // be matched at all. The Unity host asks `plan.GroundAt`; an
+                // Unreal emitter would have to re-implement the crossfall,
+                // the channel, the kerb top and the footway fall in C++ to
+                // ask the same question, and would then be comparing its own
+                // second opinion about the street to its own geometry. So the
+                // answer is written down: eye y is ground_y_m plus
+                // eye_height_above_ground_m, in both engines, with no
+                // arithmetic about the street in either.
+                sb.Append(Kb("ground_found", camFound)).Append(',');
+                sb.Append(Kn("ground_y_m", camGroundY)).Append(',');
+                sb.Append(Ks("ground_edge", camEdge)).Append(',');
                 sb.Append(Kn("yaw_deg", c.YawDeg)).Append(',');
                 sb.Append(Kn("pitch_deg", c.PitchDeg)).Append(',');
                 sb.Append(Kn("fov_vertical_deg", c.FovDeg));
@@ -410,6 +551,7 @@ namespace Ledger.Core
                     {
                         Bom = S(o, "bom"), Name = S(o, "name"),
                         Shape = S(o, "shape"), Surface = S(o, "surface"),
+                        Asset = S(o, "asset"),
                         X = D(o, "x_m"), Y = D(o, "y_m"), Z = D(o, "z_m"),
                         SX = D(o, "sx_m"), SY = D(o, "sy_m"), SZ = D(o, "sz_m"),
                         PitchDeg = D(o, "pitch_deg"), YawDeg = D(o, "yaw_deg"),
@@ -425,6 +567,312 @@ namespace Ledger.Core
                 }
             }
             return outPieces;
+        }
+
+        // ================ PHASE A2: THE PROBES, SECOND FILE ==============
+
+        /// THE SCHEMA OF THE PROBE LIST. Its own, bumped on its own, because
+        /// a reader of the feet is not a reader of the pieces and tying them
+        /// together would make every layout change look like a schema change.
+        public const string FeetSchema = "ledger.vignette-feet/1";
+
+        public const string FeetRelativePath = "production/specs/vignette-feet.json";
+
+        /// ONE PROBE, AS THE FILE CARRIES IT.
+        ///
+        /// TWO HALVES, AND THE SECOND IS THE ONE THAT GETS LEFT OUT.
+        /// `FootY` is where the plan says the underside of the piece sits.
+        /// `DatumFound` and `DatumY` are the plan's separate answer to
+        /// whether there is any ground under (x,z) at all and at what level.
+        /// Eight blocks once hung over open sea at a foot gap of exactly
+        /// 0.00 because only the first question was ever asked, so both
+        /// travel and neither is optional.
+        ///
+        /// WHY THIS FILE EXISTS AT ALL. Without it the Unreal placement
+        /// instrument would have to re-implement `Foot5` (five probes per
+        /// footprint, half-extents swapped at yaw 90) and `GroundAt` (the
+        /// crossfall, the channel, the gully dish, the kerb top, the footway
+        /// fall, the plots) in C++, in a layer this container cannot compile,
+        /// and would then be comparing its own second opinion about the
+        /// street to its own geometry. It would pass while both were wrong.
+        public struct FootRow
+        {
+            public string Name, Bom, Edge, Region, DatumEdge;
+            public double X, Z, FootY, DatumY;
+            public bool DatumFound;
+        }
+
+        /// ONE PROBE AS ONE LINE, in the same shape as `PieceLine`.
+        public static string FootLine(StreetVignette.Foot f, bool datumFound,
+                                      double datumY, string datumEdge)
+        {
+            var sb = new StringBuilder(224);
+            sb.Append('{');
+            sb.Append(Ks("name", f.Name)).Append(',');
+            sb.Append(Ks("bom", f.Bom)).Append(',');
+            // THE PIECE'S EDGE AND THE DATUM'S EDGE ARE DIFFERENT FACTS and
+            // both are written. A bin whose piece is filed under
+            // `east_footway` can have a corner probe land on `east_kerb`,
+            // and a breakdown that folded the two would hide exactly the
+            // half-on-half-off case the five probes exist to find.
+            sb.Append(Ks("edge", f.Edge)).Append(',');
+            sb.Append(Ks("region", f.Region)).Append(',');
+            sb.Append(Kn("x_m", f.X)).Append(',');
+            sb.Append(Kn("z_m", f.Z)).Append(',');
+            sb.Append(Kn("foot_y_m", f.FootY)).Append(',');
+            sb.Append(Kb("datum_found", datumFound)).Append(',');
+            sb.Append(Kn("datum_y_m", datumY)).Append(',');
+            sb.Append(Ks("datum_edge", datumEdge));
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        /// HOW MANY PROBES FIND NO GROUND UNDER THEM IN THE PLAN ITSELF.
+        /// The analytic half, computed here so that a red number in a run
+        /// can be attributed: a probe the PLAN says is over nothing is a
+        /// layout fault, and a probe the plan says is over ground and the
+        /// engine says is not is an emitter fault. Whole-list count; the
+        /// caller prints it with `plan.Feet.Count` as its denominator.
+        public static int DatumMissingCount(StreetVignette.Plan plan)
+        {
+            int n = 0;
+            foreach (var f in plan.Feet)
+                if (!plan.GroundAt(f.X, f.Z, out double _, out string __)) n++;
+            return n;
+        }
+
+        /// THE WHOLE PROBE FILE, AS TEXT. No I/O, same as `Write`.
+        public static string WriteFeet(StreetVignette.Plan plan,
+                                       string aheadRun = null, int aheadFeetThen = 0)
+        {
+            if (plan == null) throw new ArgumentNullException("plan");
+            if (plan.Error != null)
+                throw new InvalidOperationException(
+                    "refusing to write a probe list from a plan that failed to read: " + plan.Error);
+
+            var sb = new StringBuilder(160 * 1024);
+            sb.Append("{\n");
+            sb.Append(Ks("schema", FeetSchema)).Append(",\n");
+            sb.Append(Ks("source", "production/specs/vignette-scene.json")).Append(",\n");
+            sb.Append(Ks("generator", "Ledger.Core.StreetVignettePieces.WriteFeet, via ledger/CoreTests")).Append(",\n");
+            sb.Append(Ks("what",
+                "The placement instrument's probe points for the D1b street vignette, five per footed "
+                + "piece, with the level the plan expects under each one. Generated by the same run "
+                + "that writes vignette-pieces.json, never hand-edited. An emitter raycasts its own "
+                + "geometry at x_m,z_m and compares what it hits to foot_y_m; it never re-derives "
+                + "Foot5 or the crossfall, because an instrument that computes its own datum is "
+                + "measuring itself.")).Append(",\n");
+            sb.Append(Ks("regenerate",
+                "dotnet run -c Release --project ledger/CoreTests -- --write-vignette-pieces")).Append(",\n");
+            sb.Append(Ki("quantisation_decimals", Decimals)).Append(",\n");
+            sb.Append(Q("frame")).Append(":{");
+            sb.Append(Ks("units", "metres")).Append(',');
+            sb.Append(Ks("x", "along-the-street")).Append(',');
+            sb.Append(Ks("y", "up/0-at-the-road-crown")).Append(',');
+            sb.Append(Ks("z", "across-the-street/+z-is-east")).Append(',');
+            sb.Append(Ks("foot_y_m", "where-the-PLAN-puts-the-underside-of-the-piece-at-this-probe")).Append(',');
+            sb.Append(Ks("datum_y_m", "where-the-PLAN-says-the-GROUND-is-under-x_m,z_m")).Append(',');
+            sb.Append(Ks("datum_found", "false-means-the-plan-itself-has-no-ground-there/not-an-engine-miss")).Append(',');
+            sb.Append(Ks("gap", "engine-raycast-y-minus-foot_y_m/positive-is-floating/negative-is-sunk")).Append(',');
+            sb.Append(Ks("ray", "start-3m-above-foot_y_m-and-end-2m-below/so-floating-and-sunk-both-register"));
+            sb.Append("},\n");
+
+            int missing = DatumMissingCount(plan);
+            sb.Append(Q("counts")).Append(":{");
+            sb.Append(Ki("feet", plan.Feet.Count)).Append(',');
+            sb.Append(Ki("footed_pieces", FootedPieceCount(plan))).Append(',');
+            sb.Append(Ki("pieces", plan.Pieces.Count)).Append(',');
+            // ZERO WITH ITS DENOMINATOR, IN THE FILE AS WELL AS IN A RUN.
+            sb.Append(Ki("datum_missing", missing)).Append(',');
+            sb.Append(Ki("datum_examined", plan.Feet.Count));
+            sb.Append("},\n");
+
+            if (aheadRun != null)
+            {
+                sb.Append(Q("ahead_of_unity_run")).Append(":{");
+                sb.Append(Ks("run", aheadRun)).Append(',');
+                sb.Append(Ki("feet_then", aheadFeetThen)).Append(',');
+                sb.Append(Ks("what",
+                    "This file is AHEAD of the newest landed Unity run named here, whose placement "
+                    + "line reported feet_then probes. Same rule as the piece list's key: it is spent "
+                    + "the moment any newer run lands and CoreTests then demands its removal."));
+                sb.Append("},\n");
+            }
+
+            sb.Append(Q("feet")).Append(":[\n");
+            for (int i = 0; i < plan.Feet.Count; i++)
+            {
+                var f = plan.Feet[i];
+                bool found = plan.GroundAt(f.X, f.Z, out double gy, out string gedge);
+                sb.Append(FootLine(f, found, gy, gedge));
+                sb.Append(i + 1 < plan.Feet.Count ? ",\n" : "\n");
+            }
+            sb.Append("]\n");
+            sb.Append("}\n");
+            return sb.ToString();
+        }
+
+        /// HOW MANY DISTINCT PIECES REACHED THE PROBE. Not the same number as
+        /// `pieces`: only a piece that is supposed to be standing on
+        /// something gets a `Foot5`, so this over `pieces` is the share of
+        /// the scene the placement instrument can see at all.
+        public static int FootedPieceCount(StreetVignette.Plan plan)
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var f in plan.Feet) seen.Add(f.Name ?? "");
+            return seen.Count;
+        }
+
+        /// READ THE PROBE FILE BACK. The other half of the guard, and the
+        /// reference implementation for the Unreal reader, exactly as
+        /// `Parse` is for the pieces. Fail-closed on a missing key.
+        public static List<FootRow> ParseFeet(string text, out string error)
+        {
+            error = null;
+            Dictionary<string, object> root;
+            try { root = MiniJson.AsObject(MiniJson.Deserialize(text)); }
+            catch (Exception e) { error = "probe list unreadable: " + e.Message; return null; }
+            if (root == null) { error = "probe list is not an object"; return null; }
+            string schema = MiniJson.GetString(root, "schema");
+            if (schema != FeetSchema)
+            {
+                error = "probe list schema is " + (schema ?? "(absent)") + ", expected " + FeetSchema;
+                return null;
+            }
+            var arr = MiniJson.GetList(root, "feet");
+            if (arr == null) { error = "probe list has no feet array"; return null; }
+            var outFeet = new List<FootRow>(arr.Count);
+            for (int i = 0; i < arr.Count; i++)
+            {
+                var o = MiniJson.AsObject(arr[i]);
+                if (o == null) { error = "probe " + i + " is not an object"; return null; }
+                try
+                {
+                    outFeet.Add(new FootRow
+                    {
+                        Name = S(o, "name"), Bom = S(o, "bom"),
+                        Edge = S(o, "edge"), Region = S(o, "region"),
+                        X = D(o, "x_m"), Z = D(o, "z_m"), FootY = D(o, "foot_y_m"),
+                        DatumFound = B(o, "datum_found"),
+                        DatumY = D(o, "datum_y_m"), DatumEdge = S(o, "datum_edge"),
+                    });
+                }
+                catch (Exception e)
+                {
+                    error = "probe " + i + " (" + (MiniJson.GetString(o, "name") ?? "unnamed") + "): " + e.Message;
+                    return null;
+                }
+            }
+            return outFeet;
+        }
+
+        // ============ QUEUE 041: THE AHEAD-OF-RUN KEY, JUDGED ============
+
+        /// THE TWO ANSWERS THE CROSS-ENGINE QUESTION HAS, kept apart because
+        /// they fail for different reasons and want different actions.
+        /// `CountOk` is "may a judged pair be made from this file and the
+        /// landed stills". `KeyOk` is "is the acknowledgement still the
+        /// truth". A spent key with a caught-up run leaves the first true
+        /// and the second false, and the fix is to regenerate without the
+        /// flag rather than to land anything.
+        public struct AheadOfRunVerdict
+        {
+            public bool CountOk, KeyOk;
+            public string CountLine, KeyLine;
+        }
+
+        /// JUDGE THE FILE, THE KEY AND THE NEWEST LANDED RUN. Pure: every
+        /// input is a value, so CoreTests can plant a layout change, a stale
+        /// key and a caught-up run without a Unity run existing for any of
+        /// them. No spaces inside any value on either line.
+        public static AheadOfRunVerdict JudgeAheadOfRun(
+            int fileCount, bool haveKey, string keyRun, int keyCountThen,
+            bool haveRun, string newestRun, int newestCount)
+        {
+            var v = new AheadOfRunVerdict { CountOk = false, KeyOk = true };
+            if (!haveRun)
+            {
+                // NOTHING MEASURED, IN WORDS. No landed run carries the line,
+                // so the file's count has nothing to be checked against and
+                // that is not the same as agreement.
+                v.CountLine = "CROSS-ENGINE nothing-measured file=" + fileCount
+                            + " landedRunsWithTheLine=0";
+                v.KeyLine = haveKey
+                    ? "AHEAD-OF-RUN-KEY unjudgeable run=" + Safe(keyRun) + " no-landed-run-to-compare"
+                    : "AHEAD-OF-RUN-KEY absent nothing-to-judge";
+                v.KeyOk = !haveKey;
+                return v;
+            }
+            if (!haveKey)
+            {
+                v.CountOk = (newestCount == fileCount);
+                v.CountLine = "CROSS-ENGINE " + (v.CountOk ? "agreed" : "DISAGREED")
+                            + " file=" + fileCount + " run=" + Safe(newestRun) + " counted=" + newestCount;
+                v.KeyLine = "AHEAD-OF-RUN-KEY absent nothing-to-judge";
+                return v;
+            }
+            if (!string.Equals(keyRun, newestRun, StringComparison.Ordinal))
+            {
+                // THE KEY IS SPENT. A newer run has landed, so whatever the
+                // key acknowledged is no longer the state of the world. The
+                // count is judged against the new run on its own merits and
+                // the key must go whichever way that lands, because an
+                // acknowledgement nobody re-read is a waiver.
+                v.CountOk = (newestCount == fileCount);
+                v.CountLine = "CROSS-ENGINE " + (v.CountOk ? "agreed" : "DISAGREED")
+                            + " file=" + fileCount + " run=" + Safe(newestRun) + " counted=" + newestCount
+                            + " keyIgnoredBecauseItNames=" + Safe(keyRun);
+                v.KeyOk = false;
+                v.KeyLine = "AHEAD-OF-RUN-KEY stale names=" + Safe(keyRun)
+                          + " newestLanded=" + Safe(newestRun)
+                          + " remove-it-by-regenerating-without---ahead-of-run";
+                return v;
+            }
+            if (newestCount == fileCount)
+            {
+                // The named run IS the newest and it agrees, so there is no
+                // gap left to acknowledge and the key is describing a state
+                // that has ended.
+                v.CountOk = true;
+                v.CountLine = "CROSS-ENGINE agreed file=" + fileCount
+                            + " run=" + Safe(newestRun) + " counted=" + newestCount;
+                v.KeyOk = false;
+                v.KeyLine = "AHEAD-OF-RUN-KEY spent run=" + Safe(keyRun)
+                          + " caught-up-at=" + newestCount
+                          + " remove-it-by-regenerating-without---ahead-of-run";
+                return v;
+            }
+            if (keyCountThen != newestCount)
+            {
+                // The key names the newest run and MISDESCRIBES it. That is
+                // worse than a stale key: it is a written claim about a
+                // landed measurement that the measurement does not support.
+                v.CountOk = false;
+                v.CountLine = "CROSS-ENGINE DISAGREED file=" + fileCount
+                            + " run=" + Safe(newestRun) + " counted=" + newestCount
+                            + " keyClaimed=" + keyCountThen;
+                v.KeyOk = false;
+                v.KeyLine = "AHEAD-OF-RUN-KEY misdescribes run=" + Safe(keyRun)
+                          + " claimed=" + keyCountThen + " actual=" + newestCount;
+                return v;
+            }
+            v.CountOk = true;
+            v.CountLine = "AHEAD-OF-RUN " + Safe(newestRun) + " file=" + fileCount
+                        + " run=" + newestCount + " acknowledged";
+            v.KeyLine = "AHEAD-OF-RUN-KEY current names=" + Safe(keyRun)
+                      + " which-is-the-newest-landed-run";
+            return v;
+        }
+
+        /// No spaces and no empty string in a printed value, because every
+        /// reader in this project splits on whitespace and an empty value
+        /// silently shifts the next key into its place.
+        static string Safe(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return "none";
+            var sb = new StringBuilder(s.Length);
+            foreach (var c in s) sb.Append(char.IsWhiteSpace(c) ? '~' : c);
+            return sb.ToString();
         }
 
         static string S(Dictionary<string, object> o, string k)

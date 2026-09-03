@@ -120,6 +120,32 @@ namespace LedgerFrame
 		return std::string(Buf);
 	}
 
+	// THE SAME PIXEL NUMBERS, FOR A LINE THAT DESCRIBES ONE SAMPLE.
+	//
+	// DoneLine above carries whole-run keys, `shotSecondsWaited` and
+	// `shotTicks`, which are true of a RUN and not of a frame. Phase B takes
+	// four frames in one run, so putting DoneLine on each of them would
+	// print the run's elapsed time four times as if it were each shot's, and
+	// the project's rule is that whole-run numbers sit on the done line and
+	// per-sample numbers on the sample line. This is the per-sample half:
+	// everything here is a statistic of THIS image and nothing else.
+	//
+	// Every number keeps the name it has on the done line, because a reader
+	// comparing a Phase B frame to run 16's single frame should not have to
+	// learn two vocabularies for one measurement.
+	inline std::string PixelLine(const FrameStats& S)
+	{
+		char Buf[512];
+		std::snprintf(Buf, sizeof(Buf),
+			"shotW=%d shotH=%d shotPixels=%lld shotMeanLuma=%.4f shotMinLuma=%.4f "
+			"shotMaxLuma=%.4f shotNonBlackPixels=%lld shotNonBlackPct=%.2f "
+			"shotDistinctBuckets=%d/32768 shotBlank=%s",
+			S.Width, S.Height, S.Pixels, S.MeanLuma, S.MinLuma, S.MaxLuma,
+			S.NonBlack, S.NonBlackPct, S.DistinctBuckets,
+			S.Pixels == 0 ? "NOTHING-MEASURED" : (S.Blank ? "yes" : "no"));
+		return std::string(Buf);
+	}
+
 	// THE PICTURE IN WORDS, for a channel that cannot open a PNG. The same
 	// ascii-luma dump the Unity sim writes beside its stills: a reader with
 	// nothing but the verdict file can still tell a lit frame from an empty

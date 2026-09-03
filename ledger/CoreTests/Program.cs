@@ -36,7 +36,26 @@ namespace Ledger.CoreTests
         {
             if (args != null && Array.IndexOf(args, "--write-vignette-pieces") >= 0)
             {
-                int wrote = WriteVignettePieces();
+                // `--ahead-of-run <sha>` DECLARES that this regeneration puts
+                // the two spec files ahead of the newest landed Unity run.
+                // Queue 041: without it a layout change cannot be committed
+                // at all, because the cross-engine check is red, verify
+                // writes no footer, and the Unity run that would clear it
+                // needs the commit. Absent, no key is written and the check
+                // is the strict count comparison it has always been.
+                string ahead = null;
+                int at = Array.IndexOf(args, "--ahead-of-run");
+                if (at >= 0)
+                {
+                    if (at + 1 >= args.Length || args[at + 1].StartsWith("-", StringComparison.Ordinal))
+                    {
+                        Console.WriteLine("FAILED: --ahead-of-run needs the short sha of a landed"
+                                          + " Unity run, for example --ahead-of-run 152198e");
+                        return 1;
+                    }
+                    ahead = args[at + 1];
+                }
+                int wrote = WriteVignettePieces(ahead);
                 if (wrote != 0) return wrote;
             }
             try
@@ -158,6 +177,7 @@ namespace Ledger.CoreTests
                 TestStreetVignette();
                 TestStreetVignettePlacement();
                 TestStreetVignettePieces();
+                TestStreetVignetteFeet();
                 TestInteraction();
                 TestDirector();
                 await TestDirectorAsync();
@@ -19426,7 +19446,44 @@ namespace Ledger.CoreTests
             // 0.914 x 0.025 / 2 = 0.0114, plus a millimetre for the rounding
             // in the printed value. Anything above it is something else and
             // wants looking at.
-            double widestFootprintM = 0.914, cornerBound = widestFootprintM * 0.025 / 2 + 0.001;
+            //
+            // THE WIDEST FOOTPRINT IS NOW READ OFF THE PLAN, not written down
+            // here. It used to be the kiosk's 0.914 m as a literal, and the
+            // day held props landed the widest FOOTED thing in the scene
+            // became the skip at 2.00 m across the street, whose upslope
+            // corner lifts 0.025 by the same arithmetic. Raising a literal to
+            // 0.026 would have been a ratchet: the bound would have loosened
+            // for every other object at the same time. Derived, it tracks the
+            // one piece that sets it and tightens again the day that piece
+            // goes. THE MODEL IS UNCHANGED; only who is widest changed.
+            //
+            // Across-street extent, because the crossfall runs across the
+            // street: `GroundAt`'s level depends on |z| and not on x. SX and
+            // SZ swap at yaw 90, which is exactly what `Foot5` does to the
+            // probes it lays, so this reads the extent the same way.
+            //
+            // A PIECE ON A PLOT IS NOT IN THIS MAXIMUM, and leaving it in was
+            // wrong for a whole minute: the terrace carcass is 8.0 m deep and
+            // footed, and it took the bound to 0.101 m, which would have
+            // passed a prop hanging four inches in the air. A plot is FLAT
+            // (`Ground` lays it at one level), so a carcass corner has no
+            // crossfall under it to lift and contributes nothing. Only the
+            // pieces standing on the cambered carriageway, channel, kerb and
+            // footway can.
+            var footedNames = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var f in plan.Feet) footedNames.Add(f.Name);
+            double widestFootprintM = 0; string widestAt = "none";
+            foreach (var p in plan.Pieces)
+            {
+                if (!footedNames.Contains(p.Name)) continue;
+                if (p.Edge != null && p.Edge.EndsWith("_plot")) continue;
+                bool turned = Math.Abs(((p.YawDeg % 180) + 180) % 180 - 90) < 1e-6;
+                double across = turned ? p.SX : p.SZ;
+                if (across > widestFootprintM) { widestFootprintM = across; widestAt = p.Name; }
+            }
+            double cornerBound = widestFootprintM * 0.025 / 2 + 0.001;
+            Console.WriteLine($"    widest footed footprint across the street {widestFootprintM:0.000} m " +
+                              $"at {widestAt}");
             double worst = 0; string worstAt = "none";
             foreach (var f in plan.Feet)
             {
@@ -19438,6 +19495,71 @@ namespace Ledger.CoreTests
             Check(worst <= cornerBound,
                   "no footprint sits further off the ground than the crossfall under it explains",
                   worst.ToString("0.0000") + " at " + worstAt);
+
+            // ---- THE HELD BYTES: 046, and what it was raised for ----
+            //
+            // Measured on 2 Sep: 37 props under Assets/Props/base-mesh, 14
+            // generated pictures under StreamingAssets/Decals/generated, and
+            // a grep for either in the vignette files returning zero. Every
+            // frame shipped was primitives. These assertions are what stops
+            // that being true again quietly.
+            int meshes = StreetVignettePieces.ShapeCount(plan.Pieces, "mesh");
+            int decals = StreetVignettePieces.ShapeCount(plan.Pieces, "decal");
+            var assets = new HashSet<string>(StringComparer.Ordinal);
+            var images = new HashSet<string>(StringComparer.Ordinal);
+            int noAsset = 0, badCrop = 0; string firstBad = "none";
+            foreach (var p in plan.Pieces)
+            {
+                if (p.Shape != "mesh" && p.Shape != "decal") continue;
+                if (string.IsNullOrEmpty(p.Asset)) { noAsset++; continue; }
+                bool ok = StreetVignette.SplitAsset(p.Asset, out string id,
+                                                    out double u0, out double v0,
+                                                    out double u1, out double v1);
+                if (!ok || u1 <= u0 || v1 <= v0)
+                { badCrop++; if (firstBad == "none") firstBad = p.Name + "(" + p.Asset + ")"; }
+                if (p.Shape == "mesh") assets.Add(id); else images.Add(id);
+            }
+            Console.WriteLine($"    held bytes: meshPieces={meshes} propAssets={assets.Count} " +
+                              $"decalPieces={decals} decalImages={images.Count} " +
+                              $"noAsset={noAsset} badCrop={badCrop}/{meshes + decals} first={firstBad}");
+            // THE TRAP THIS ITEM NAMES, ASSERTED AS A CEILING AND NOT A
+            // FLOOR. 37 props are held and the bill of materials wants 16 of
+            // them on this street; placing all 37 to make a number go up is
+            // the failure, so the guard is that the scene stays inside what
+            // the bill of materials asked for, in both directions.
+            Check(meshes > 0 && decals > 0,
+                  "the plan carries held meshes AND applied pictures, not primitives only",
+                  meshes + " meshes, " + decals + " decals");
+            Check(assets.Count == 16,
+                  "sixteen of the thirty-seven held props are named by this street, per the bill of materials",
+                  assets.Count.ToString());
+            Check(noAsset == 0, "every mesh and decal piece says what to load", noAsset.ToString());
+            Check(badCrop == 0,
+                  "every crop rectangle parses and is the right way up, so no decal samples an empty region",
+                  badCrop + " of " + (meshes + decals) + ", first " + firstBad);
+            // A DECAL ANCHORED TO A PIECE THAT DOES NOT EXIST MUST BE AN
+            // ERROR, and this is the accepting case's other half: plant a
+            // decal on a name nothing is called and the reader has to refuse.
+            var scene = File.ReadAllText(path);
+            var moved = StreetVignette.Read(
+                scene.Replace("\"on\": \"east_parade_fascia0\"", "\"on\": \"east_parade_fascia9\""));
+            Check(moved.Error != null && moved.Error.Contains("east_parade_fascia9"),
+                  "a decal anchored to a piece that does not exist is refused BY NAME",
+                  moved.Error ?? "(no error raised)");
+            // AND THE COUNTS ARE A STATEMENT ABOUT WHAT WAS ASKED FOR, which
+            // is the M in propsPlaced=N/M. The N is the engine's and cannot
+            // be known here; the emitter's own report carries it.
+            var asked = new StreetVignetteAssets();
+            foreach (var p in plan.Pieces)
+            {
+                if (p.Shape == "mesh") asked.Ask(true, p.Asset);
+                else if (p.Shape == "decal") asked.Ask(false, p.Asset);
+            }
+            Console.WriteLine("    " + asked.Report());
+            Check(asked.Report().Contains("propsPlaced=0/" + meshes)
+                  && asked.Report().Contains("decalsApplied=0/" + decals),
+                  "the asset line prints both counts with the denominators the plan asked for",
+                  asked.Report());
 
             // AND IT REFUSES A SCENE THAT IS MISSING A DIMENSION rather than
             // defaulting one, because a default is how two engines quietly
@@ -19464,6 +19586,18 @@ namespace Ledger.CoreTests
             "E1_lighting_column", "E2_sodium_lantern_head", "E3_telephone_kiosk",
             "E4_pillar_box", "E8_guard_railing", "E13_household_dustbin",
             "G8_litter", "G9_chewing_gum",
+            // THE LINES THAT CARRY HELD BYTES, added 2 Sep with queue item
+            // 046. A5 is emitted paint (no yellow-line image exists); the
+            // rest are the base-mesh props and the pictures the bill of
+            // materials assigns to a surface in this scene. A line here that
+            // stops emitting fails this test, which is the whole point of
+            // writing the list out rather than deriving it from the plan.
+            "A5_double_yellow_lines", "A7_gully_grate", "A8_manhole",
+            "C6_fascia_lettering", "C11_lit_interior_card",
+            "D3_chimney_pots", "E5_bollards", "E6_public_bins",
+            "E11_cones_barrier", "E12_a_board_posters", "E14_dock_clutter",
+            "E18_shop_awnings", "G1_leak_stains", "G2_asphalt_damage",
+            "G4_moss_damp", "G5_stickers", "G6_fly_posters",
         };
 
         /// THE PLACEMENT INSTRUMENT, ON THE CASE IT MUST PASS FIRST AND THEN
@@ -19691,6 +19825,44 @@ namespace Ledger.CoreTests
                 : Path.Combine(Path.GetDirectoryName(scene), "vignette-pieces.json");
         }
 
+        /// WHERE THE COMMITTED PROBE LIST LIVES. Same derivation as the
+        /// piece list's, from the scene file's own directory, for the same
+        /// reason: the writer needs a path for a file that may not exist yet.
+        static string VignetteFeetPath()
+        {
+            var scene = Root("production/specs/vignette-scene.json");
+            return scene == null
+                ? null
+                : Path.Combine(Path.GetDirectoryName(scene), "vignette-feet.json");
+        }
+
+        /// HOW MANY PROBES A LANDED RUN ACTUALLY CAST, read off the whole-run
+        /// placement line. The denominator of that run's `datumMissing`, and
+        /// the number the committed probe list has to equal or the Unreal
+        /// instrument and the Unity stills are of two different streets.
+        ///
+        /// It reads the WHOLE-RUN line and not a per-edge one, which is why
+        /// it anchors on `placement pieces=`: the per-edge rows carry a
+        /// `probes=` of their own and a search for the bare token would take
+        /// whichever came first.
+        static bool TryReadProbes(string verdictText, out int probes)
+        {
+            probes = 0;
+            if (verdictText == null) return false;
+            const string marker = "StreetVignette: placement pieces=";
+            int at = verdictText.IndexOf(marker, StringComparison.Ordinal);
+            if (at < 0) return false;
+            const string key = " probes=";
+            int k = verdictText.IndexOf(key, at, StringComparison.Ordinal);
+            if (k < 0) return false;
+            int i = k + key.Length, end = i;
+            while (end < verdictText.Length && char.IsDigit(verdictText[end])) end++;
+            if (end == i) return false;
+            return int.TryParse(verdictText.Substring(i, end - i),
+                                System.Globalization.NumberStyles.Integer,
+                                System.Globalization.CultureInfo.InvariantCulture, out probes);
+        }
+
         /// Walk up to a DIRECTORY rather than a file. `Root` cannot find the
         /// landed run verdicts, because the useful thing there is the folder
         /// and its newest member is not known in advance.
@@ -19711,7 +19883,7 @@ namespace Ledger.CoreTests
         /// repairs the thing it guards is not a guard, and a test that wrote
         /// this file on the way past would go green for ever whatever the
         /// layout did.
-        static int WriteVignettePieces()
+        static int WriteVignettePieces(string aheadRun)
         {
             var scene = Root("production/specs/vignette-scene.json");
             if (scene == null)
@@ -19726,16 +19898,71 @@ namespace Ledger.CoreTests
                 Console.WriteLine("FAILED: the shared scene json did not read: " + plan.Error);
                 return 1;
             }
+            // WHAT THE NAMED RUN ACTUALLY COUNTED, READ OFF THE RUN, never
+            // typed in beside the sha. A key whose numbers were supplied by
+            // the person declaring the gap is a claim about a measurement
+            // with no measurement behind it, and the guard would then be
+            // checking one number against a copy of itself.
+            int piecesThen = 0, feetThen = 0;
+            if (aheadRun != null)
+            {
+                var runsDir0 = RootDir("game-design/sim-shots/runs");
+                string runPath = runsDir0 == null
+                    ? null : Path.Combine(runsDir0, aheadRun + ".txt");
+                if (runPath == null || !File.Exists(runPath))
+                {
+                    Console.WriteLine("FAILED: --ahead-of-run names " + aheadRun
+                                      + " and there is no landed verdict at"
+                                      + " game-design/sim-shots/runs/" + aheadRun + ".txt");
+                    return 1;
+                }
+                string runText = File.ReadAllText(runPath);
+                if (!TryReadEmittedPieces(runText, out piecesThen, out int _))
+                {
+                    Console.WriteLine("FAILED: run " + aheadRun
+                                      + " carries no StreetVignette emitted-pieces line to be ahead of");
+                    return 1;
+                }
+                if (!TryReadProbes(runText, out feetThen))
+                {
+                    Console.WriteLine("FAILED: run " + aheadRun
+                                      + " carries no StreetVignette placement probes= line to be ahead of");
+                    return 1;
+                }
+            }
+
             var path = VignettePiecesPath();
             string before = File.Exists(path) ? File.ReadAllText(path) : null;
-            string text = StreetVignettePieces.Write(plan);
+            string text = StreetVignettePieces.Write(plan, aheadRun, piecesThen);
             File.WriteAllText(path, text);
             string moved = Difference(before, text);
             Console.WriteLine("wrote " + StreetVignettePieces.RelativePath
                               + " pieces=" + plan.Pieces.Count
                               + " bytes=" + text.Length
-                              + " changed=" + (moved == null ? "no" : "yes"));
+                              + " changed=" + (moved == null ? "no" : "yes")
+                              + " aheadOfRun=" + (aheadRun == null ? "none" : aheadRun)
+                              + " piecesThen=" + (aheadRun == null ? "n/a" : piecesThen.ToString()));
             if (moved != null) Console.WriteLine("  " + moved);
+
+            // PHASE A2: THE SECOND FILE, FROM THE SAME RUN AND THE SAME PLAN.
+            // One command, two files, because two commands is two chances for
+            // one of them to be a regeneration behind the other and for the
+            // Unreal placement instrument to compare today's raycast to
+            // yesterday's datum.
+            var fpath = VignetteFeetPath();
+            string fbefore = File.Exists(fpath) ? File.ReadAllText(fpath) : null;
+            string ftext = StreetVignettePieces.WriteFeet(plan, aheadRun, feetThen);
+            File.WriteAllText(fpath, ftext);
+            string fmoved = Difference(fbefore, ftext);
+            Console.WriteLine("wrote " + StreetVignettePieces.FeetRelativePath
+                              + " feet=" + plan.Feet.Count
+                              + " footedPieces=" + StreetVignettePieces.FootedPieceCount(plan)
+                              + " datumMissing=" + StreetVignettePieces.DatumMissingCount(plan)
+                              + "/" + plan.Feet.Count
+                              + " bytes=" + ftext.Length
+                              + " changed=" + (fmoved == null ? "no" : "yes")
+                              + " feetThen=" + (aheadRun == null ? "n/a" : feetThen.ToString()));
+            if (fmoved != null) Console.WriteLine("  " + fmoved);
             return 0;
         }
 
@@ -19806,7 +20033,19 @@ namespace Ledger.CoreTests
                   (path ?? "(no path)") + " absent; run: dotnet run -c Release --project ledger/CoreTests"
                   + " -- --write-vignette-pieces");
             string committed = File.ReadAllText(path);
-            string generated = StreetVignettePieces.Write(plan);
+            // THE COMMITTED DECLARATION IS FED BACK IN BEFORE THE BYTES ARE
+            // COMPARED (queue 041). The ahead-of-run key is part of the
+            // file, so regenerating without it would report drift on a file
+            // nobody touched, and a drift guard that cries wolf is a drift
+            // guard nobody reads. The key's CONTENT is judged separately
+            // below, against the landed runs, so feeding it back here
+            // launders nothing.
+            var committedRoot = MiniJson.AsObject(MiniJson.Deserialize(committed));
+            var committedKey = MiniJson.GetObject(committedRoot, "ahead_of_unity_run");
+            string generated = StreetVignettePieces.Write(
+                plan,
+                committedKey == null ? null : MiniJson.GetString(committedKey, "run"),
+                committedKey == null ? 0 : MiniJson.GetInt(committedKey, "pieces_then"));
 
             // ---- QUESTION ONE: DRIFT ------------------------------------
             string diff = Difference(committed, generated);
@@ -19934,14 +20173,68 @@ namespace Ledger.CoreTests
                   "the number of pieces carrying two rotations at once is what the engines were reasoned about with",
                   multi + " now, " + MULTI_ROTATION_EXPECTED + " when the composition order was last argued");
 
+            // ---- H5: THE WINDOW PRACTICALS, IN THE FILE AND BACK --------
+            //
+            // THREE OF SIX, ASSERTED ON BOTH SIDES OF THE ROUND TRIP,
+            // because the two can disagree in a way no count catches: the
+            // plan resolves lit_bays to names, the file writes those names,
+            // and a writer that emitted the BAY INDICES instead would parse
+            // back to three of something and light nothing at all.
+            var wp = MiniJson.GetObject(root, "window_practicals");
+            Check(wp != null, "the piece list carries a window_practicals block beside the lantern");
+            var litNames = MiniJson.GetList(wp, "lit_names");
+            var litBays = MiniJson.GetList(wp, "lit_bays");
+            Console.WriteLine("    practicals: litInPlan=" + plan.WindowLitNames.Count
+                              + "/" + plan.WindowCards.Count
+                              + " litInFile=" + (litNames == null ? -1 : litNames.Count)
+                              + "/" + MiniJson.GetInt(wp, "shop_cards")
+                              + " bays=" + (litBays == null ? -1 : litBays.Count)
+                              + " flatLit=" + plan.WindowFlatNames.Count
+                              + " colourSpace=" + (wp["colour_space"] as string));
+            Check(plan.WindowCards.Count == WINDOW_CARDS_EXPECTED,
+                  "the parade still has the interior cards the practicals were chosen against",
+                  plan.WindowCards.Count + " now, " + WINDOW_CARDS_EXPECTED + " when they were chosen");
+            Check(plan.WindowLitNames.Count == WINDOW_LIT_EXPECTED,
+                  "the plan lights three of the six shop interiors, from the JSON and not from a constant",
+                  plan.WindowLitNames.Count + " of " + plan.WindowCards.Count);
+            Check(litNames != null && litNames.Count == plan.WindowLitNames.Count,
+                  "the same three ride in the committed file after the round trip",
+                  (litNames == null ? "absent" : litNames.Count.ToString())
+                  + " of " + plan.WindowLitNames.Count);
+            int litMatched = 0;
+            if (litNames != null)
+                for (int i = 0; i < litNames.Count && i < plan.WindowLitNames.Count; i++)
+                    if ((litNames[i] as string) == plan.WindowLitNames[i]) litMatched++;
+            Check(litMatched == plan.WindowLitNames.Count,
+                  "and they are the same names in the same order, not three of something else",
+                  litMatched + " of " + plan.WindowLitNames.Count + " matched");
+            Check((wp["colour_space"] as string) == "gamma-sRGB"
+                  && Math.Abs(Convert.ToDouble(wp["g"]) - plan.WindowG) < 1e-6
+                  && Math.Abs(Convert.ToDouble(wp["shop_intensity"]) - plan.WindowShopIntensity) < 1e-6,
+                  "the practical colour and intensity ride in the file with the colour space named");
+            // THE FLAT HALF, WHICH LIGHTS NOTHING TODAY AND SAYS SO. A pair
+            // of numbers that quietly vanished when its list went empty
+            // would read as a pair that was never asked for.
+            Check(MiniJson.GetInt(wp, "flat_cards") == 0
+                  && Math.Abs(Convert.ToDouble(wp["flat_range_m"]) - plan.WindowFlatRangeM) < 1e-6,
+                  "the flat practicals ride in the file with an empty list rather than being dropped",
+                  MiniJson.GetInt(wp, "flat_cards") + " flat card(s)");
+
             // ---- QUESTION THREE: THE CROSS-ENGINE COUNT -----------------
             //
             // NOT ONE NUMBER TWICE. Every count above comes from Core in this
             // process. This one comes from a Unity player, on the build
-            // machine, that stood 546 GameObjects up and counted them; CI
+            // machine, that stood the objects up and counted them; CI
             // committed the line. It is the only number in this test that can
             // move while the others stand still, and it is the one that says
             // the file and the stills are of the same street.
+            //
+            // QUEUE 041 ADDS THE ONE LEGAL WAY TO BE AHEAD OF IT and it is
+            // not a waiver: a declared gap names the run it is a gap against
+            // and dies the moment a newer run lands. The decision itself is
+            // `StreetVignettePieces.JudgeAheadOfRun`, which is pure and is
+            // exercised below on planted cases, accepting first, so both
+            // outcomes are watched without waiting for a Unity dispatch.
             var runsDir = RootDir("game-design/sim-shots/runs");
             Check(runsDir != null, "the landed sim verdicts are on disk",
                   "game-design/sim-shots/runs not found from " + AppContext.BaseDirectory);
@@ -19965,12 +20258,242 @@ namespace Ledger.CoreTests
                   "at least one landed Unity run reports what it actually stood up",
                   "nothing measured: none of " + runFiles.Length + " landed verdicts carries"
                   + " a StreetVignette emitted-pieces line");
-            Check(newestEmitted == headerPieces && newestPlanned == headerPieces,
-                  "the piece list Unreal reads has as many objects as the Unity run the stills came from",
-                  "file " + headerPieces + " against run " + newestSha + " emitted " + newestEmitted
-                  + "/" + newestPlanned + "; a judged pair is inadmissible until a Unity run agrees."
-                  + " Either revert the layout change or land a Unity run and re-read this number.");
+            Check(newestEmitted == newestPlanned,
+                  "the newest landed Unity run stood up everything it planned to",
+                  newestEmitted + " of " + newestPlanned + " in run " + newestSha);
+
+            var keyObj = MiniJson.GetObject(root, "ahead_of_unity_run");
+            var judged = StreetVignettePieces.JudgeAheadOfRun(
+                headerPieces,
+                keyObj != null, keyObj == null ? null : MiniJson.GetString(keyObj, "run"),
+                keyObj == null ? 0 : MiniJson.GetInt(keyObj, "pieces_then"),
+                withLine > 0, newestSha, newestEmitted);
+            Console.WriteLine("    " + judged.CountLine);
+            Console.WriteLine("    " + judged.KeyLine);
+            Check(judged.CountOk,
+                  "the piece list Unreal reads has as many objects as the Unity run the stills came from,"
+                  + " or declares in the file that it is ahead of it",
+                  judged.CountLine + " | either land a Unity run, or regenerate with:"
+                  + " dotnet run -c Release --project ledger/CoreTests --"
+                  + " --write-vignette-pieces --ahead-of-run " + newestSha);
+            Check(judged.KeyOk,
+                  "the ahead-of-run declaration, if there is one, still describes the newest landed run",
+                  judged.KeyLine);
+
+            // THE JUDGE ITSELF, ON PLANTED CASES, ACCEPTING FIRST. None of
+            // these needs a Unity run to exist, which is the point: the
+            // stale-key path would otherwise be first exercised by the run
+            // that makes it matter.
+            var acc = StreetVignettePieces.JudgeAheadOfRun(593, true, "152198e", 546, true, "152198e", 546);
+            Check(acc.CountOk && acc.KeyOk,
+                  "a current declaration against the newest landed run is accepted", acc.CountLine);
+            Check(acc.CountLine == "AHEAD-OF-RUN 152198e file=593 run=546 acknowledged",
+                  "and it prints the line the ruling asked for, character for character", acc.CountLine);
+            var noKey = StreetVignettePieces.JudgeAheadOfRun(546, false, null, 0, true, "152198e", 546);
+            Check(noKey.CountOk && noKey.KeyOk,
+                  "a file that simply agrees with the newest run needs no declaration", noKey.CountLine);
+            var plainRed = StreetVignettePieces.JudgeAheadOfRun(593, false, null, 0, true, "152198e", 546);
+            Check(!plainRed.CountOk,
+                  "an undeclared gap between the file and the newest run is refused", plainRed.CountLine);
+            var stale = StreetVignettePieces.JudgeAheadOfRun(593, true, "152198e", 546, true, "abc1234", 593);
+            Check(stale.CountOk && !stale.KeyOk,
+                  "a newer run that caught up leaves the count green and demands the key's removal",
+                  stale.CountLine + " / " + stale.KeyLine);
+            var staleRed = StreetVignettePieces.JudgeAheadOfRun(600, true, "152198e", 546, true, "abc1234", 593);
+            Check(!staleRed.CountOk && !staleRed.KeyOk,
+                  "a newer run that still disagrees is red on both, and the old key does not cover it",
+                  staleRed.CountLine + " / " + staleRed.KeyLine);
+            var spent = StreetVignettePieces.JudgeAheadOfRun(546, true, "152198e", 546, true, "152198e", 546);
+            Check(spent.CountOk && !spent.KeyOk,
+                  "a declaration on a file that is not actually ahead of anything is spent",
+                  spent.KeyLine);
+            var lying = StreetVignettePieces.JudgeAheadOfRun(593, true, "152198e", 500, true, "152198e", 546);
+            Check(!lying.CountOk && !lying.KeyOk,
+                  "a declaration that misdescribes the run it names is refused rather than believed",
+                  lying.KeyLine);
+            var noRun = StreetVignettePieces.JudgeAheadOfRun(593, true, "152198e", 546, false, "none", 0);
+            Check(!noRun.CountOk,
+                  "with no landed run carrying the line the judge says nothing measured rather than agreed",
+                  noRun.CountLine);
         }
+
+        /// PHASE A2: THE PROBE LIST, AND THE GUARD THAT SAYS IT STILL
+        /// DESCRIBES THIS STREET.
+        ///
+        /// SAME THREE QUESTIONS AS THE PIECE LIST, for the same three
+        /// reasons: drift says the layout moved and the file did not, the
+        /// round trip says a FIELD was lost between the plan and the file,
+        /// and the cross-engine count says the file and the landed stills are
+        /// of two different streets. The field this one is most likely to
+        /// lose is the datum half: a probe list carrying only `foot_y_m`
+        /// writes the same 845 lines, passes a count check, and lets the
+        /// Unreal instrument report a foot gap of 0.00 for a block hanging
+        /// over open sea.
+        static void TestStreetVignetteFeet()
+        {
+            Console.WriteLine("StreetVignetteFeet:");
+            var scenePath = Root("production/specs/vignette-scene.json");
+            Check(scenePath != null, "the shared scene json is on disk for the probe list",
+                  "not found from " + AppContext.BaseDirectory);
+            var plan = StreetVignette.Read(File.ReadAllText(scenePath));
+            Check(plan.Error == null, "the plan the probe list is written from reads clean", plan.Error);
+
+            var path = VignetteFeetPath();
+            Check(File.Exists(path),
+                  "the probe list is committed, not generated at read time",
+                  (path ?? "(no path)") + " absent; run: dotnet run -c Release --project ledger/CoreTests"
+                  + " -- --write-vignette-pieces");
+            string committed = File.ReadAllText(path);
+
+            // ---- QUESTION ONE: DRIFT ------------------------------------
+            //
+            // THE COMMITTED KEY IS FED BACK IN, exactly as the piece list's
+            // is. The declaration is part of the file's bytes, so a
+            // regeneration that did not carry it would report drift on a file
+            // nobody touched and would teach the next reader to ignore this
+            // check.
+            var keyObj = MiniJson.GetObject(MiniJson.AsObject(MiniJson.Deserialize(committed)),
+                                            "ahead_of_unity_run");
+            string keyRun = keyObj == null ? null : MiniJson.GetString(keyObj, "run");
+            int keyFeetThen = keyObj == null ? 0 : MiniJson.GetInt(keyObj, "feet_then");
+            string generated = StreetVignettePieces.WriteFeet(plan, keyRun, keyFeetThen);
+            string diff = Difference(committed, generated);
+            Console.WriteLine("    drift: committedChars=" + committed.Length
+                              + " generatedChars=" + generated.Length
+                              + " diff=" + (diff == null ? "none" : "see-next-line"));
+            if (diff != null) Console.WriteLine("      " + diff);
+            Check(diff == null,
+                  "regenerating the probe list from the live tree changes nothing",
+                  (diff ?? "") + " | regenerate with: dotnet run -c Release --project ledger/CoreTests"
+                  + " -- --write-vignette-pieces");
+
+            // ---- QUESTION TWO: THE ROUND TRIP ---------------------------
+            var back = StreetVignettePieces.ParseFeet(committed, out string perr);
+            Check(perr == null && back != null, "the committed probe list parses back into probes",
+                  perr ?? "(null list, no error)");
+            Console.WriteLine("    parsed back: feet=" + back.Count + " of plan " + plan.Feet.Count);
+            Check(back.Count == plan.Feet.Count,
+                  "the committed file carries every probe the plan laid out",
+                  back.Count + " of " + plan.Feet.Count);
+
+            // THE DATUM HALF, COUNTED ON BOTH SIDES AND NOT INFERRED. This is
+            // the half a writer can silently drop, and a file whose every
+            // `datum_found` came back false would still parse, still count
+            // 845, and would make every Unreal probe report a missing datum.
+            int foundPlan = 0, foundFile = 0, edgeMismatch = 0, nameMismatch = 0;
+            double worstFootY = 0, worstDatumY = 0, worstXZ = 0;
+            string worstAt = "none";
+            for (int i = 0; i < plan.Feet.Count && i < back.Count; i++)
+            {
+                var a = plan.Feet[i];
+                var b = back[i];
+                bool afound = plan.GroundAt(a.X, a.Z, out double ay, out string aedge);
+                if (afound) foundPlan++;
+                if (b.DatumFound) foundFile++;
+                if (b.DatumFound != afound || (afound && b.DatumEdge != aedge)) edgeMismatch++;
+                if (a.Name != b.Name || a.Bom != b.Bom || a.Edge != b.Edge || a.Region != b.Region)
+                {
+                    nameMismatch++;
+                    if (worstAt == "none") worstAt = (a.Name ?? "?") + "/" + (b.Name ?? "?");
+                }
+                worstFootY = Math.Max(worstFootY, Math.Abs(a.FootY - b.FootY));
+                if (afound) worstDatumY = Math.Max(worstDatumY, Math.Abs(ay - b.DatumY));
+                worstXZ = Math.Max(worstXZ, Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Z - b.Z)));
+            }
+            Console.WriteLine($"    datum: foundInPlan={foundPlan}/{plan.Feet.Count}"
+                              + $" foundInFile={foundFile}/{back.Count}"
+                              + $" edgeOrFoundMismatch={edgeMismatch} nameMismatch={nameMismatch}");
+            Check(foundPlan > 0,
+                  "the plan finds ground under at least one probe, so the datum half has something to lose",
+                  foundPlan + " of " + plan.Feet.Count);
+            Check(foundFile == foundPlan && edgeMismatch == 0,
+                  "every probe's datum, and the edge it landed on, survives the round trip",
+                  foundFile + " found in the file against " + foundPlan + " in the plan, "
+                  + edgeMismatch + " edge or found-ness mismatch(es)");
+            Check(nameMismatch == 0,
+                  "every non-numeric field survives the round trip on every probe",
+                  nameMismatch + " of " + plan.Feet.Count + " differ, first " + worstAt);
+
+            const double quantBound = 5.1e-7;
+            Console.WriteLine($"    quantisation: worstXZ={worstXZ:0.#########}"
+                              + $" worstFootY={worstFootY:0.#########}"
+                              + $" worstDatumY={worstDatumY:0.#########} bound={quantBound:0.#########}");
+            Check(worstXZ <= quantBound && worstFootY <= quantBound && worstDatumY <= quantBound,
+                  "no probe moves further through the file than six decimals of rounding explains",
+                  $"xz {worstXZ:0.#########}, footY {worstFootY:0.#########}, datumY {worstDatumY:0.#########}");
+
+            var froot = MiniJson.AsObject(MiniJson.Deserialize(committed));
+            var counts = MiniJson.GetObject(froot, "counts");
+            Check(counts != null, "the probe list carries a counts header");
+            int headerFeet = MiniJson.GetInt(counts, "feet");
+            Check(headerFeet == back.Count,
+                  "the header's probe count is the number of probes under it",
+                  headerFeet + " claimed, " + back.Count + " present");
+            // A ZERO WITH ITS DENOMINATOR, CHECKED AGAINST THE ARRAY. The
+            // file says how many probes the PLAN itself finds no ground
+            // under; a run's `datumMissing` above that number is the
+            // emitter's fault and below it is impossible.
+            Check(MiniJson.GetInt(counts, "datum_examined") == back.Count,
+                  "the datum_missing denominator counts the probes that are actually in the file",
+                  MiniJson.GetInt(counts, "datum_examined") + " against " + back.Count);
+            Check(MiniJson.GetInt(counts, "datum_missing") == back.Count - foundFile,
+                  "and the datum_missing numerator is the probes the file itself reports no ground under",
+                  MiniJson.GetInt(counts, "datum_missing") + " against " + (back.Count - foundFile));
+
+            // ---- QUESTION THREE: THE CROSS-ENGINE COUNT -----------------
+            //
+            // The landed run's `probes=` is the same kind of number the piece
+            // list checks against `emitted pieces=`: measured by a Unity
+            // player on the build machine, not recomputed here. Same
+            // declaration rule, judged by the same pure function.
+            var runsDir = RootDir("game-design/sim-shots/runs");
+            Check(runsDir != null, "the landed sim verdicts are on disk",
+                  "game-design/sim-shots/runs not found from " + AppContext.BaseDirectory);
+            var runFiles = Directory.GetFiles(runsDir, "*.txt");
+            int withLine = 0, newestProbes = 0;
+            long newestEpoch = -1; string newestSha = "none";
+            foreach (var f in runFiles)
+            {
+                string text = File.ReadAllText(f);
+                if (!TryReadProbes(text, out int pr)) continue;
+                withLine++;
+                if (!TryReadRunStamp(text, out string sha, out long ep)) continue;
+                if (ep <= newestEpoch) continue;
+                newestEpoch = ep; newestSha = sha; newestProbes = pr;
+            }
+            Console.WriteLine($"    unity runs: scanned={runFiles.Length} withPlacementLine={withLine}"
+                              + (withLine == 0
+                                 ? " newest=nothing-measured"
+                                 : $" newest={newestSha}@{newestEpoch} probes={newestProbes}"));
+            Check(withLine > 0,
+                  "at least one landed Unity run reports how many probes it cast",
+                  "nothing measured: none of " + runFiles.Length + " landed verdicts carries"
+                  + " a StreetVignette placement line");
+            var judged = StreetVignettePieces.JudgeAheadOfRun(
+                headerFeet, keyObj != null, keyRun, keyFeetThen,
+                withLine > 0, newestSha, newestProbes);
+            Console.WriteLine("    " + judged.CountLine);
+            Console.WriteLine("    " + judged.KeyLine);
+            Check(judged.CountOk,
+                  "the probe list Unreal reads has as many probes as the Unity run the stills came from,"
+                  + " or declares in the file that it is ahead of it",
+                  judged.CountLine + " | either land a Unity run, or regenerate with:"
+                  + " dotnet run -c Release --project ledger/CoreTests --"
+                  + " --write-vignette-pieces --ahead-of-run " + newestSha);
+            Check(judged.KeyOk,
+                  "the probe list's ahead-of-run declaration still describes the newest landed run",
+                  judged.KeyLine);
+        }
+
+        /// HOW MANY SHOP INTERIOR CARDS THE PARADE EMITS, and how many of them
+        /// the scene file asks to be lit. Named constants because they are
+        /// claims about the scene the night frame was reasoned about with,
+        /// not tuning values: three of six is a stated art decision (a parade
+        /// with every unit lit is a shopping centre, with none it is a set),
+        /// and the day either number moves the night frame changes and
+        /// somebody should have to say so. Read off the live tree 2 Sep 2026.
+        const int WINDOW_CARDS_EXPECTED = 6;
+        const int WINDOW_LIT_EXPECTED = 3;
 
         /// PIECES CARRYING TWO NON-ZERO ROTATIONS, read off the live tree
         /// rather than assumed. Kept as a named constant because it is a

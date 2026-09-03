@@ -272,6 +272,9 @@
       "shop_range_m": 7.0,
       "flat_intensity": 0.8,
       "flat_range_m": 5.0,
+      "colour_space": "gamma_srgb",
+      "gamma_srgb": [1.0000, 0.8600, 0.6200],
+      "colour_note": "NOT derived, unlike the lantern above. This is the value StreetVignetteHost had hard-coded in its interior-light constructor on 2 September 2026, Color(1, 0.86, 0.62), moved into the shared file unchanged so both engines light a shop window the same warm tungsten and neither picks one by eye. Gamma-encoded sRGB, which is what a Unity Color literal means in a gamma project; an emitter in a linear project converts and says which it used. It is in the same never-printed class as the lantern range and intensity: rule 2 forbids calling it anything better than the first value of a series until a night frame exists to tune it from.",
       "note": "WHICH bays are lit is a data choice, so it is here rather than in either emitter. Three of six, because a parade at night with every unit lit is a shopping centre and a parade with none is a set. The intensities are in the same never-printed class as the lantern's."
     },
     "sun": {
@@ -344,6 +347,333 @@
       "note": "trade_standard, and imperial on purpose: the galvanised British dustbin of this period is about 18 in across and 24 in tall, which is 0.46 by 0.61 m. art-direction asks for these specifically and the BOM records that none of the four held bins is one, because all four are public street bins. Set back 1.60 m from the kerb, which is against the wall by the side door, because that is where a household bin waits."
     }
   ],
+
+  "paint": {
+    "double_yellow": {
+      "bom": "A5_double_yellow_lines",
+      "surface": "paint_yellow",
+      "band_width_m": 0.1,
+      "band_gap_m": 0.1,
+      "thickness_m": 0.012,
+      "from_kerb_face_m": 0.25,
+      "gamma_srgb": [0.78, 0.66, 0.18],
+      "note": "trade_standard on the bands: a British double yellow is two 100 mm bands 100 mm apart, which is the dims field of BOM line A5 itself. COPIED, NOT RE-GUESSED, on the two numbers that are neither trade nor derived: the colour (0.78, 0.66, 0.18 gamma sRGB, worn municipal yellow rather than hazard yellow) and the 12 mm paint thickness both come from ledger/Assets/Scripts/Game/Furniture.cs BuildYellowLines, which has been painting the town's kerbs since M17.10. A second opinion about the same colour would put two yellows in one project. A5 is make_by 2D in the bill of materials and NO yellow-line image exists in this repository (the six held RoadLines sets are worn WHITE paint, and the local generator has never been asked for a yellow), so it ships as emitted paint at the colour above rather than as a decal; that is a route change on the same line and it is recorded here rather than left to be discovered. The bands run the whole 42 m on both sides: real double yellows break at a crossover, and that break is a named next step rather than a thing this file pretends to have."
+    }
+  },
+
+  "held_props": {
+    "what": "The meshes under ledger/Assets/Props/base-mesh that THIS street wants, placed by name. Every one is named by a line of production/specs/vignette-bill-of-materials.json; the bill of materials decides WHICH, and the directory listing decides nothing. 16 of the 37 held props are placed here in 23 instances, and the 21 that are not are listed in not_placed below with the reason, because a fetched prop that no line names is the failure this project keeps finding.",
+    "dims_source": "MEASURED, per prop, from the shipped .glb's own POSITION accessors walked through its node transforms (the same axis-aligned box glTFast hands Unity). dims_m is [along-x, up-y, across-z] in the glTF frame, which is the frame the piece list uses. These are NOT the numbers in content/props/manifest.json's measured block: that block describes the CLEANED LOD0 outputs, which are not in this repository, and it quotes Blender's z-up dims for the sources. Where the two agree they agree to a millimetre; where the pivot is concerned they do not agree at all, which is why the emitter aligns the loaded bounding box rather than trusting an origin.",
+    "pivot_note": "THE SOURCE PIVOTS ARE NOT ALL AT THE BASE, measured: awning_02's origin is at its top-back (min y -1.318) because it hangs off a wall, poster and framed_poster are centred (min y -0.50 and -0.40), drainage_grate_01 hangs 15 mm below its origin, and the rest stand on it. So a placement here names where the prop's BOUNDING BOX CENTRE goes, exactly like every other piece in the list, and each emitter puts the loaded mesh's own bounds centre there. Nothing is ever scaled: the dims policy forbids inventing a size, and a prop that is the wrong size is a prop to replace, not to stretch.",
+    "place_kinds": {
+      "ground": "stands on whatever ground is under it. y comes from the section's own ground query at the prop's centre, plus half its measured height, and the footprint is probed for a datum like any other footed piece.",
+      "set_in": "sits IN the ground rather than on it (the gully grate in its dish). Same y, and deliberately NOT foot-probed: a grate straddles the step between carriageway, channel and kerb recess by design, so a foot probe over it reports a 40 mm gap that is the step and not a fault.",
+      "wall": "hangs on a frontage. The near face touches the building line, so the centre stands half its measured depth out from it, and y is either a centre height above the block base or the rule named in wall_y.",
+      "stack": "stands on the top of a named chimney stack, which the roofline emitter records as it builds it so that no second opinion about the ridge height can exist."
+    },
+    "yaw_rule": "A wall prop faces the street: yaw 180 on the east frontage (the street is at -z from it) and yaw 0 on the west. Written per prop rather than derived, because the rule is about which way a MESH was modelled and that is a fact about the file, not about the street.",
+    "items": [
+      {
+        "bom": "A7_gully_grate", "asset": "drainage_grate_01",
+        "dims_m": [0.3999, 0.0150, 0.3999], "surface": "metal",
+        "side": "east", "x_m": 12.0, "place": "set_in", "z_from_kerb_face_m": -0.2,
+        "yaw_deg": 0,
+        "note": "MANDATORY. The x and the 0.40 footprint are not chosen here: street.gully already carries them, and its own note records that 0.40 m is the MEASURED footprint of this exact mesh. The grate sits at the channel, half over the carriageway and half over the dish B3 emits, which is where a real gully grate sits."
+      },
+      {
+        "bom": "D3_chimney_pots", "asset": "roll_top_chimney",
+        "dims_m": [0.6738, 1.0011, 0.6738], "surface": "concrete",
+        "place": "stack", "stack_block": "east_parade", "stack_first": 1, "stack_count": 5,
+        "yaw_deg": 0,
+        "note": "MANDATORY, one pot per party-wall stack, which is five on the east parade. MEASURED CONFLICT, recorded rather than hidden: the pot is 0.674 m across and roofline.chimney.depth_m is 0.45, so the pot oversails the stack by 0.112 m on each side. Rescaling the mesh is forbidden by the dims policy and 0.45 m is the trade dimension for a stack serving two flues, so both numbers stand and the first cam_B frame is what decides whether this reads as a pot or as a lid. weathertop_chimney is EXCLUDED for the same measurement taken further: at 0.95 m across it oversails a 0.45 m stack by 0.25 m each side, more than half the stack again."
+      },
+      {
+        "bom": "E5_bollards", "asset": "decorative_bollard_02",
+        "dims_m": [0.2010, 1.0083, 0.2010], "surface": "metal",
+        "side": "west", "x_m": 20.7, "place": "ground", "z_from_kerb_face_m": 0.5,
+        "yaw_deg": 0,
+        "note": "DRESSING. A bollard belongs where a vehicle can overrun a footway, so the pair stands at the two corners of the yard entrance the dropped kerb serves, not scattered along the parade. ONE DESIGN, REPEATED, which is what a council does; the other three held bollards stay inventory. This one because 1.008 m is the only held height in the British street bollard bracket (the others measure 0.79, 0.44 and 1.00, and the 1.00 is a plain square timber post)."
+      },
+      {
+        "bom": "E5_bollards", "asset": "decorative_bollard_02",
+        "dims_m": [0.2010, 1.0083, 0.2010], "surface": "metal",
+        "side": "west", "x_m": 24.3, "place": "ground", "z_from_kerb_face_m": 0.5,
+        "yaw_deg": 0,
+        "note": "The other corner of the yard entrance. west_south ends at x=21.0 and west_north starts at x=24.0, so 20.7 and 24.3 stand 0.3 m clear of each building corner."
+      },
+      {
+        "bom": "E6_public_bins", "asset": "swing_bin",
+        "dims_m": [0.3300, 0.7123, 0.3200], "surface": "metal",
+        "side": "east", "x_m": 8.0, "place": "ground", "z_from_kerb_face_m": 0.65,
+        "yaw_deg": 0,
+        "note": "DRESSING. Two public bins over 42 m of parade, one in each camera's near frame: this one is 4 m up the street from cam_A. Two and not four, because a British parade carries about one bin per shop group and the other two held bins are the same object at other sizes."
+      },
+      {
+        "bom": "E6_public_bins", "asset": "outdoor_bin",
+        "dims_m": [0.5996, 0.7636, 0.5996], "surface": "metal",
+        "side": "east", "x_m": 30.0, "place": "ground", "z_from_kerb_face_m": 0.75,
+        "yaw_deg": 0,
+        "note": "The far one, at the vanishing end of cam_A's kerb line. The flagship of the base-mesh set: Furniture.cs probes the whole prop pipeline with this key, so a run where this one is missing is a run where the pipeline is missing."
+      },
+      {
+        "bom": "E11_cones_barrier", "asset": "crowd_control_barrier",
+        "dims_m": [2.2907, 1.1359, 0.3953], "surface": "metal",
+        "side": "west", "x_m": 22.5, "place": "ground", "z_from_kerb_face_m": 1.85,
+        "yaw_deg": 0,
+        "note": "DRESSING, and it is the one placement that tells a small story: the yard is shut. Set across the mouth of the yard entrance at the back of the footway, which is where a barrier stands, and it is what makes the skip in the road and the clutter on the pavement one event rather than three unrelated props."
+      },
+      {
+        "bom": "E11_cones_barrier", "asset": "traffic_cone_01",
+        "dims_m": [0.4009, 0.4500, 0.3472], "surface": "metal",
+        "side": "west", "x_m": 21.3, "place": "ground", "z_from_kerb_face_m": 0.35,
+        "yaw_deg": 0,
+        "note": "At the kerb by the skip. 0.45 m is a short cone and that is the measurement, not a choice."
+      },
+      {
+        "bom": "E11_cones_barrier", "asset": "traffic_cone_02",
+        "dims_m": [0.3002, 0.4500, 0.3002], "surface": "metal",
+        "side": "west", "x_m": 23.7, "place": "ground", "z_from_kerb_face_m": 0.35,
+        "yaw_deg": 0,
+        "note": "The other end of the skip. Both cone models are held and both are on the same line, so the pair uses one each rather than one twice."
+      },
+      {
+        "bom": "E12_a_board_posters", "asset": "pavement_sign",
+        "dims_m": [0.6811, 0.9038, 0.3569], "surface": "wood",
+        "side": "east", "x_m": 15.2, "place": "ground", "z_from_kerb_face_m": 1.1,
+        "yaw_deg": 90,
+        "note": "DRESSING. An A-board outside the fish market, turned so its two faces look up and down the pavement at the people who read them. What it CARRIES is BOM line G6 and is a decal, not this mesh; see the decals block."
+      },
+      {
+        "bom": "E12_a_board_posters", "asset": "poster",
+        "dims_m": [0.6541, 1.0031, 0.0237], "surface": "wood",
+        "side": "west", "x_m": 11.4, "place": "wall", "wall_block": "west_south",
+        "wall_centre_m": 1.55, "yaw_deg": 0,
+        "note": "DRESSING. The flyposting goes on the BLANK side of the street, which is the west: its ground floor is plain soot brick with a side door and no shopfront, and that is exactly the wall a bill gets pasted to. x=11.4 sits in the 0.95 m of blank wall between the side door at 10.5 and the first ground-floor window at 12.3, measured off this file's own bay layout."
+      },
+      {
+        "bom": "E12_a_board_posters", "asset": "framed_poster",
+        "dims_m": [0.5057, 0.8005, 0.0134], "surface": "metal",
+        "side": "west", "x_m": 26.4, "place": "wall", "wall_block": "west_north",
+        "wall_centre_m": 1.45, "yaw_deg": 0,
+        "note": "DRESSING. The glazed case, further up the same blank wall, in the gap between west_north's side door at 25.5 and its first window at 27.3. A case gets a timetable and a wall gets a gig bill, which is why the two carriers carry different G6 images."
+      },
+      {
+        "bom": "E14_dock_clutter", "asset": "skip",
+        "dims_m": [2.0000, 0.9999, 3.3083], "surface": "metal",
+        "side": "west", "x_m": 22.5, "place": "ground", "z_from_kerb_face_m": -1.15,
+        "yaw_deg": 90,
+        "note": "DRESSING, and the cheapest density on the list. Parked in the carriageway against the west kerb at the yard entrance, long axis along the street (yaw 90 turns the measured 3.31 m length up the road), 0.15 m off the kerb face. A builder's skip on the road outside a yard being cleared is a British street in one object, and it is the widest thing standing on the camber: 2.00 m across at 1 in 40 lifts its upslope corner 25 mm, which is arithmetic and not a placement fault."
+      },
+      {
+        "bom": "E14_dock_clutter", "asset": "pallet",
+        "dims_m": [1.2000, 0.1800, 1.2000], "surface": "wood",
+        "side": "west", "x_m": 21.8, "place": "ground", "z_from_kerb_face_m": 1.2,
+        "yaw_deg": 0,
+        "note": "On the pavement at the yard mouth, in front of the barrier."
+      },
+      {
+        "bom": "E14_dock_clutter", "asset": "wooden_crate_01",
+        "dims_m": [0.8804, 1.0447, 0.9244], "surface": "wood",
+        "side": "west", "x_m": 22.4, "place": "ground", "z_from_kerb_face_m": 1.3,
+        "yaw_deg": 0,
+        "note": "One of two crates. The same model twice rather than two models once: a yard clears out its own crates, and they match."
+      },
+      {
+        "bom": "E14_dock_clutter", "asset": "wooden_crate_01",
+        "dims_m": [0.8804, 1.0447, 0.9244], "surface": "wood",
+        "side": "west", "x_m": 23.1, "place": "ground", "z_from_kerb_face_m": 1.25,
+        "yaw_deg": 20,
+        "note": "The second crate, turned 20 degrees off the wall so the pair does not read as a shelf."
+      },
+      {
+        "bom": "E14_dock_clutter", "asset": "oil_barrel",
+        "dims_m": [0.5970, 0.8602, 0.5970], "surface": "metal",
+        "side": "west", "x_m": 23.7, "place": "ground", "z_from_kerb_face_m": 1.5,
+        "yaw_deg": 0,
+        "note": "A barrel at the end of the row. Five clutter items from four of the eight held models; large_pallet, small_pallet, wooden_crate_02 and wood_barrel stay inventory because the yard mouth holds what fits in it."
+      },
+      {
+        "bom": "E18_shop_awnings", "asset": "awning_02",
+        "dims_m": [3.0000, 1.3233, 1.7351], "surface": "wood",
+        "side": "east", "x_m": 12.0, "place": "wall", "wall_block": "east_parade",
+        "wall_y": "top_at_fascia_bottom", "yaw_deg": 180,
+        "note": "DRESSING. Over the fish market, hung with its top at the underside of the fascia band, which is where a retractable awning is fixed. awning_02 AND NOT awning_01: the bill of materials says so in as many words, and the reason is measured (20 triangles and one LOD rung against 644 and three). It projects 1.735 m of its 2.0 m footway, which is what an awning does."
+      },
+      {
+        "bom": "E18_shop_awnings", "asset": "awning_02",
+        "dims_m": [3.0000, 1.3233, 1.7351], "surface": "wood",
+        "side": "east", "x_m": 24.0, "place": "wall", "wall_block": "east_parade",
+        "wall_y": "top_at_fascia_bottom", "yaw_deg": 180,
+        "note": "The second one, four bays up, so cam_B has one in frame and cam_A sees both in perspective. Two of six units, not six: a parade where every unit has its awning out is a parade nobody has looked at."
+      }
+    ],
+    "not_placed": [
+      { "asset": "awning_01", "bom": "E18_shop_awnings", "why": "The bill of materials names awning_02 explicitly and gives the measurement: 20 triangles and one LOD rung against awning_02's 644 and three." },
+      { "asset": "weathertop_chimney", "bom": "D3_chimney_pots", "why": "MEASURED: 0.95 m across a stack whose trade depth is 0.45 m. A quarter of a metre of oversail each side is not a pot on a stack." },
+      { "asset": "drain_cover_01", "bom": "A8_manhole", "why": "The bill of materials' own measured finding: 0.10 m across is an inspection cover, not a manhole, and it says to use the ManholeCover011 DECAL on the road plane and not to rescale the mesh. The decal is in the decals block; the mesh has no role this street can give it without inventing one." },
+      { "asset": "park_bench", "bom": "E7_benches", "why": "IF-IN-FRAME, and the condition fails: a bench belongs on a wide pavement or a quay, and this footway is 2.0 m." },
+      { "asset": "garden_bench_01", "bom": "E7_benches", "why": "Same condition, same 2.0 m footway." },
+      { "asset": "ornate_bench", "bom": "E7_benches", "why": "Same condition, same 2.0 m footway." },
+      { "asset": "curved_stone_bench", "bom": "E7_benches", "why": "Same condition, same 2.0 m footway." },
+      { "asset": "trunk_protection_railing", "bom": "E9_tree_pit_railing", "why": "IF-IN-FRAME on a street tree, and no tree is on the bill of materials. Its own line says either both are in the scene or neither is." },
+      { "asset": "finger_post_sign_01", "bom": "E19_finger_post_sign", "why": "IF-IN-FRAME at a junction or a quayside, and this is mid-parade. Also 0.50 m tall and 32 triangles: a blade for a post, not a post." },
+      { "asset": "finger_post_sign_02", "bom": "E19_finger_post_sign", "why": "Same condition: a finger post mid-parade is wrong." },
+      { "asset": "finger_post_sign_03", "bom": "E19_finger_post_sign", "why": "Same condition." },
+      { "asset": "lamp_post_01", "bom": "none", "why": "The one held prop no line of the bill of materials names, and its own coverage block says why: 3.00 m is amenity height, not street lighting height. It appears in E1 as a MEASUREMENT that set the 5.0 m mounting height this scene emits, and it is deliberately not an asset here." },
+      { "asset": "mesh_bin", "bom": "E6_public_bins", "why": "Two public bins is what 42 m of parade carries. The other two held bins are the same object at other sizes." },
+      { "asset": "cigarette_bin", "bom": "E6_public_bins", "why": "Same: two bins placed, four held." },
+      { "asset": "decorative_bollard_01", "bom": "E5_bollards", "why": "0.79 m, and one bollard design repeats along a real street. decorative_bollard_02 is the one in the British height bracket." },
+      { "asset": "rounded_concrete_bollard", "bom": "E5_bollards", "why": "0.44 m is a car-park stub, not a footway bollard." },
+      { "asset": "wooden_square_bollard", "bom": "E5_bollards", "why": "1.00 m and the right height, but a plain 46-triangle timber post; one design repeats and the other is the one chosen." },
+      { "asset": "wooden_crate_02", "bom": "E14_dock_clutter", "why": "Within 12 mm of wooden_crate_01 on every axis. Placing both would be two names for one crate." },
+      { "asset": "large_pallet", "bom": "E14_dock_clutter", "why": "2.00 x 1.10 m does not fit the 3.0 m yard mouth beside the crates without becoming the subject." },
+      { "asset": "small_pallet", "bom": "E14_dock_clutter", "why": "One pallet is placed; a second adds a name to the count and nothing to the frame." },
+      { "asset": "wood_barrel", "bom": "E14_dock_clutter", "why": "One barrel is placed. Five clutter items is the density the yard mouth holds." }
+    ]
+  },
+
+  "decals": {
+    "what": "The pictures this street applies, and the surface each one goes on. WHICH pictures is the bill of materials' decision, not the directory listing's: 14 images sit under StreamingAssets/Decals/generated and 14 ambientCG sets under Decals/ambientcg, and this block names the ones a bill-of-materials line assigns to a surface that exists in this scene.",
+    "standoff_m": 0.01,
+    "standoff_note": "How far proud of the surface a decal sits, so it wins the depth test rather than fighting it. 10 mm, and it is a clearance rather than a dimension: DecalLayer.cs has been placing the town's road decals 5 mm proud of the tarmac for 78 landed runs with decalsBuried=0, and 10 mm is that with room for the camber under a 3 m quad. The one number it has to stay under is the 15 mm the shopfront's own projections differ by, which it does.",
+    "strength_ground": 0.8,
+    "strength_wall": 0.7,
+    "strength_note": "How hard a multiply decal darkens what is under it, on the ground and on a wall. COPIED, NOT RE-GUESSED: both are the numbers ledger/Assets/Scripts/Game/DecalLayer.cs has been laying the town's grime at, and its own comment carries the measured ink series they were set from (tools/decal-ink.py prints it off the shipped files in five seconds). A second opinion about how dark a stain is would make the two streets disagree about their own dirt. They ride in this file rather than in either emitter for the same reason the tiling table does.",
+    "anchor_note": "Every decal names a PIECE this same file already causes to exist, and takes that piece's street-facing face as its plane. That is deliberate: a decal at hand-written world coordinates goes stale the day a bay width changes and nothing says so, while a decal anchored to east_parade_fascia1 is either on the fascia or the plan has no such piece and the reader refuses to build. dx_m and dy_m are offsets from the anchor piece's centre. The one exception is on=ground, which takes its level and its slope from the section's own ground query so a road decal lies on the camber instead of hovering over it.",
+    "blend_kinds": {
+      "card": "an opaque picture on a quad: a signboard, a bill, a lit interior. Loaded from one PNG under StreamingAssets/Decals/<id>.png.",
+      "multiply": "a grime decal that darkens what is under it, loaded as an ambientCG SET directory (Color plus Opacity combined) through the same DecalLayer loader the town uses, and drawn with the same Hidden/LedgerDecal shader. White is the identity, so this blend can only ever dirty a surface."
+    },
+    "uv_note": "uv is [u0, v0, u1, v1] with v measured from the BOTTOM of the image, and it exists because the generated pictures are PHOTOGRAPHS OF A THING IN A STREET rather than flat artwork: fascia_fish_market is a whole shopfront with a pavement and a sky in it, and pasting all of it on a fascia band would put a photograph of a street on a street. Every rect below was read off the image by eye at full size, which is the only way to take it, and the four fascias needed four different rects because their framing is not the same. An image with no uv is used whole.",
+    "items": [
+      {
+        "bom": "C6_fascia_lettering", "id": "generated/fascia_mickeys", "blend": "card",
+        "on": "east_parade_fascia0", "face": "street", "dx_m": 0.0, "dy_m": 0.0,
+        "width_m": 2.35, "height_m": 0.55, "uv": [0.0391, 0.2773, 0.9766, 0.7168],
+        "note": "MANDATORY. The crop is the maroon signboard and its frame, 960 x 225 px, so the sign arrives at its own 4.27:1 and 2.35 m of the 6.0 m band rather than stretched across all of it: a painted board mounted on a fascia is what this image is a photograph of. review=pending in the generated manifest, and putting it in a frame is how that review happens."
+      },
+      {
+        "bom": "C6_fascia_lettering", "id": "generated/fascia_fish_market", "blend": "card",
+        "on": "east_parade_fascia1", "face": "street", "dx_m": 0.0, "dy_m": 0.0,
+        "width_m": 5.3, "height_m": 0.55, "uv": [0.1025, 0.6836, 0.8936, 0.8477],
+        "note": "MANDATORY. This image is a whole shopfront; the crop is the blue fascia band alone, 810 x 84 px, which is 9.64:1 and fills 5.30 m of the bay at the band's own 0.55 m height. NOTE FOR THE REVIEW: the lettering reads HOOK STREATS FISH MARKET, which is a generator misspelling of a canon street name and not a real mark."
+      },
+      {
+        "bom": "C6_fascia_lettering", "id": "generated/fascia_ritas_pawn", "blend": "card",
+        "on": "east_parade_fascia2", "face": "street", "dx_m": 0.0, "dy_m": 0.0,
+        "width_m": 4.69, "height_m": 0.55, "uv": [0.1172, 0.625, 0.8838, 0.8047],
+        "note": "MANDATORY. Crop is the green band, 785 x 92 px, 8.53:1."
+      },
+      {
+        "bom": "C6_fascia_lettering", "id": "generated/fascia_steam_laundry", "blend": "card",
+        "on": "east_parade_fascia4", "face": "street", "dx_m": 0.0, "dy_m": 0.0,
+        "width_m": 5.34, "height_m": 0.55, "uv": [0.0879, 0.6641, 0.9131, 0.834],
+        "note": "MANDATORY. Crop is the cream band, 845 x 87 px, 9.71:1. Bays 3 and 5 carry no fascia lettering on purpose: four signs are held and a parade with two unlettered units reads as a parade with two vacant ones, which is 1990 Britain."
+      },
+      {
+        "bom": "C11_lit_interior_card", "id": "generated/interior_shop_shelves", "blend": "card",
+        "on": "east_parade_interior0", "face": "street", "dx_m": 0.0, "dy_m": 0.0,
+        "width_m": 3.9, "height_m": 2.0, "uv": [0.195, 0.229, 0.781, 0.678],
+        "note": "MANDATORY. THE IMAGE LANDED IN f789e129 AND THE FIRST LOOK AT IT CHANGED THIS ENTRY, which is the whole reason a picture gets opened before it is shipped: it is not a back-wall card, it is a whole corner shop photographed FROM THE STREET, with a garbled fascia reading PORIE SHUOP, a pavement and a sky. Applied whole it would have hung a photograph of a street inside a shop window, sky and all, in the night frame that is half the D1b evidence. The crop is the shelved interior seen through the glass, 450 x 230 px, and the card is sized to that 1.96:1 rather than to a round number. WAS: ASKED FOR AND NOT ON DISK. The three interior cards are in the image generator's own spec (tools/imagegen/prompts.json names interior_shop_shelves, interior_bar_back and interior_stair_landing) and the batch that makes them has not landed. Asked for here deliberately: the run then prints which images were missing by name instead of a silent zero, and the day the PNG lands the night frame gets it with no code change. No uv, because a crop cannot be read off an image nobody has seen."
+      },
+      {
+        "bom": "C11_lit_interior_card", "id": "generated/interior_bar_back", "blend": "card",
+        "on": "east_parade_interior2", "face": "street", "dx_m": 0.0, "dy_m": 0.0,
+        "width_m": 4.95, "height_m": 1.6, "uv": [0.169, 0.375, 0.833, 0.697],
+        "note": "The second lit bay. Same finding as the shelves and the same remedy: the image is a whole pub frontage from the street (garbled fascia DERNB SOLIN), and the crop is the lit back bar seen through the glass, 510 x 165 px, 3.09:1, which is the shape of a back bar and fills the bay. lighting.window_practicals lights bays 0, 2 and 5, and these three cards are behind exactly those, because a lit window with nothing behind it is a glowing rectangle."
+      },
+      {
+        "bom": "C11_lit_interior_card", "id": "generated/interior_stair_landing", "blend": "card",
+        "on": "east_parade_interior5", "face": "street", "dx_m": 0.0, "dy_m": 0.0,
+        "width_m": 0.79, "height_m": 2.3, "uv": [0.254, 0.049, 0.693, 0.902],
+        "note": "The third lit bay, and the crop is doing more work here than on the other two. The image is a lit stair behind a street door with a whole wet street down the right half of it, and the usable region is 225 x 655 px, 0.34:1: a tall narrow panel. So this one reads as a LIT DOORWAY at the back of the shop rather than as a back wall, which is what a 0.79 m panel on a 5.3 m card can honestly be. A stair behind a shop window is odd; a photograph of a street behind one is wrong, and this is the better of the two until C11 gets an image made for the job. The generated sign in it is mirror-writing and garbled, which is inside the crop and is a named review point."
+      },
+      {
+        "bom": "G6_fly_posters", "id": "generated/poster_gig_bill", "blend": "card",
+        "on": "prop_poster_0", "face": "street", "dx_m": 0.0, "dy_m": 0.0,
+        "width_m": 0.6, "height_m": 0.82, "uv": [0.172, 0.118, 0.852, 0.782],
+        "note": "DRESSING, and it is what E12's carrier is FOR: the bill of materials says the carrier is held and what it carries is G6. Crop is the paper bill inside the frame, 435 x 595 px, which drops the generator's garbled yellow header band at the top of the picture."
+      },
+      {
+        "bom": "G6_fly_posters", "id": "generated/notice_ferry_times", "blend": "card",
+        "on": "prop_framed_poster_0", "face": "street", "dx_m": 0.0, "dy_m": 0.0,
+        "width_m": 0.48, "height_m": 0.7, "uv": [0.156, 0.146, 0.836, 0.855],
+        "note": "DRESSING. Crop is the white sheet inside the board's own black frame, 435 x 635 px, because the carrier mesh already provides a frame and two frames is a picture of a noticeboard hung on a noticeboard."
+      },
+      {
+        "bom": "G6_fly_posters", "id": "generated/notice_dock_regulations", "blend": "card",
+        "on": "west_south_bay2", "face": "street", "dx_m": 1.2, "dy_m": -1.4,
+        "width_m": 0.9, "height_m": 1.286, "uv": [0.0625, 0.0569, 0.9375, 0.9498],
+        "note": "DRESSING. The harbour board notice goes straight on the blank west wall, no carrier: crop is the enamel board, 560 x 800 px. x sits in the 0.95 m of wall between west_south bay 2's two ground-floor windows at 18.3 and 20.1, measured off this file's own layout."
+      },
+      {
+        "bom": "A8_manhole", "id": "ambientcg/ManholeCover011", "blend": "multiply",
+        "on": "ground", "x_m": 17.0, "z_m": 1.6, "width_m": 0.6, "height_m": 0.6,
+        "note": "MANDATORY, and it is the route the bill of materials chose after measuring the mesh: A8's own note says use the decal on the road plane. 0.60 m is the top of the 0.45 to 0.60 m bracket that same note gives for a road manhole. In the near wheel track, where a cover is."
+      },
+      {
+        "bom": "A8_manhole", "id": "ambientcg/ManholeCover011", "blend": "multiply",
+        "on": "ground", "x_m": 33.0, "z_m": -1.5, "width_m": 0.6, "height_m": 0.6,
+        "note": "The second of the two A8 asks for, on the other side of the crown so the pair does not read as a repeat."
+      },
+      {
+        "bom": "G2_asphalt_damage", "id": "ambientcg/AsphaltDamageSet001", "blend": "multiply",
+        "on": "ground", "x_m": 9.0, "z_m": 2.2, "width_m": 2.5, "height_m": 2.5,
+        "note": "MANDATORY. Scars and patching in the gutter half of the carriageway, which is where a British road is worst and where both cameras see it."
+      },
+      {
+        "bom": "G2_asphalt_damage", "id": "ambientcg/AsphaltDamageSet001", "blend": "multiply",
+        "on": "ground", "x_m": 27.0, "z_m": -2.0, "width_m": 2.0, "height_m": 2.0,
+        "note": "The second patch, west side, by the skip."
+      },
+      {
+        "bom": "G1_leak_stains", "id": "ambientcg/Leaking005", "blend": "multiply",
+        "on": "east_parade_bay0", "face": "street", "dx_m": 2.6, "dy_m": 1.65,
+        "width_m": 1.0, "height_m": 2.7,
+        "note": "MANDATORY, and the bill of materials says why: surface history is the first-ranked item of the kept M17.10 decomposition and this is its cheapest instance. Under the hopper, on the first-floor wall, 0.4 m to the side of the downpipe D5 puts on the bay boundary at x=9. The pipe has to exist before the stain under it means anything, and it does."
+      },
+      {
+        "bom": "G1_leak_stains", "id": "ambientcg/Leaking005", "blend": "multiply",
+        "on": "east_parade_bay2", "face": "street", "dx_m": 2.6, "dy_m": 1.65,
+        "width_m": 1.0, "height_m": 2.7,
+        "note": "Under the hopper at x=21."
+      },
+      {
+        "bom": "G1_leak_stains", "id": "ambientcg/Leaking005", "blend": "multiply",
+        "on": "east_parade_bay4", "face": "street", "dx_m": 2.6, "dy_m": 1.65,
+        "width_m": 1.0, "height_m": 2.7,
+        "note": "Under the hopper at x=33. Three of the five hoppers, because a terrace where every pipe leaks is a terrace nobody has looked at."
+      },
+      {
+        "bom": "G4_moss_damp", "id": "ambientcg/Moss001", "blend": "multiply",
+        "on": "west_south_bay0", "face": "street", "dx_m": -0.6, "dy_m": -2.75,
+        "width_m": 0.9, "height_m": 0.7,
+        "note": "DRESSING. Damp growth at the foot of the north-facing soot wall, in the gap between the side door at 4.5 and the first window at 6.3. On the west and not the east because the east's ground floor is a shopfront whose stallriser and pilasters stand 0.10 to 0.15 m proud of the wall plane, so a decal on that plane would be inside them."
+      },
+      {
+        "bom": "G4_moss_damp", "id": "ambientcg/Moss001", "blend": "multiply",
+        "on": "west_north_bay2", "face": "street", "dx_m": -0.6, "dy_m": -2.75,
+        "width_m": 0.9, "height_m": 0.7,
+        "note": "The far end of the same wall."
+      },
+      {
+        "bom": "G5_stickers", "id": "ambientcg/Sticker001", "blend": "multiply",
+        "on": "pillarbox_body", "face": "street", "dx_m": 0.0, "dy_m": 0.15,
+        "width_m": 0.15, "height_m": 0.15,
+        "note": "DRESSING. G5 says posts and boxes, and the pillar box is the box. SIZED BY THE CURVE, not by taste: the body is 0.597 m across, so a flat quad 0.15 m wide sits 9.5 mm inside the cylinder at its edges against a 10 mm standoff, and anything much wider would cut into the box it is stuck to."
+      }
+    ],
+    "named_by_the_bom_and_not_applied_here": [
+      { "bom": "C14_wall_grime_overlays", "why": "MEASURED, by opening them: wall_soot_brick.png and wall_salt_render.png are full-frame 1024x1024 TILING SURFACES, not stamps. Stamping a square metre of different masonry on a brick wall reads as a patch, and the right route for them is the surface path (AssetLibrary), which is a different mechanism and a separate item. wall_soot_brick also carries a garbled painted mark on one brick, which is exactly what its review=pending flag is for." },
+      { "bom": "A6_worn_road_paint", "why": "The six held RoadLines sets are stamps, and what A6 asks for is a centre line and a stop line, which are RUNS along a path. A run is emitted paint like A5, not a decal, and this street's centre line is a named next step rather than a thing to fake with a 2 m square of worn white." },
+      { "bom": "G3_imperfection_masks", "why": "Held and applicable, and deliberately not scattered here: the five sets are the town's random grime pool, and a hand-placed list is what this vignette uses so both engines stamp the same wall. Adding them is a scatter rule, which is the same shape as G8 litter and belongs in one change with a look at the frame first." },
+      { "bom": "E10_street_name_plate", "why": "MANDATORY and BLOCKED ON AN IMAGE THAT DOES NOT EXIST. canon mints Quay Street, Weighhouse Lane and Tannery Row, and no street name plate is in the generated directory or in tools/imagegen/prompts.json. The plate geometry is PROC and cheap; a blank white plate on a wall is a placeholder that looks like a bug, so nothing is emitted and the prompt is the named next step." },
+      { "bom": "A9_puddle_mask", "why": "GENERATE 2D, and no image exists. It is also a shader input rather than a stamp: the wet condition reads it as a mask, which is H6's path." },
+      { "bom": "B4_gutter_water", "why": "GENERATE 2D, no image on disk." },
+      { "bom": "C12_net_curtain", "why": "GENERATE 2D, no image on disk." },
+      { "bom": "G7_graffiti_tags", "why": "GENERATE 2D, twenty asked for and none generated yet." }
+    ]
+  },
 
   "scatter": {
     "seed": 19900214,

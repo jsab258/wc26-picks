@@ -11,7 +11,7 @@ Each entry has options and a recommendation so they can be answered in batch.
 Newest first. Every entry says what it means in plain terms, what the options
 cost, and what the studio recommends, so it can be answered in one line.
 
-### How does Meridian's map get drawn? (added 2026-09-02, from your question)
+#### ANSWERED 2026-09-02, recorded as D13-street-layout-method: How does Meridian's map get drawn?
 
 **In plain terms.** You asked whether we copy a real city's layout from
 OpenStreetMap. Nothing has decided that. It is in the research and in the
@@ -33,6 +33,16 @@ method anywhere.
 | A | **Traced skeleton.** Take a real British port town's roads and building footprints, then move, rename and redraw until it is Meridian. | Geometry almost free, and the irregularity of a real old port is hard to invent. Carries OSM attribution for ever and a share-alike question a lawyer has to answer before ship. |
 | B | **Drawn by hand from canon**, with real towns as reference to look at and nothing imported. Every street placed for play: sightlines, routes, where you can be seen, where gossip travels. | Slower per square metre. No licence tail. The map becomes an instrument of the social sim instead of a backdrop. |
 | C | **Rules-based generation.** Write a town-plan grammar (quay, high street, terraces, industrial edge) and generate the network. | Fast to iterate at any size. Generated street networks read as generic unless hand-corrected, which spends the saving. |
+
+JAFAR ANSWERED: option B, drawn by hand from canon, authored as data in the
+world source of truth, real British port towns studied as reference and
+nothing imported. Recorded with all five riders at
+`ledger-v2/respec/decision-register/D13-street-layout-method.md`, which is the
+authority from here: a town form bible before any drawing, testable gameplay
+requirements in the layout spec, a reads-as-real gate combining mechanical
+morphology comparison with the D7 screenshot judge, scope bounded to the Phase
+A town with option A re-opening by default at Phase B kickoff, and no licence
+obligation because nothing is imported. This card is closed.
 
 **The studio's read is B**, and it is provisional until a director confirms it:
 the footprint is deliberately small and dense, and in a game whose moat is who

@@ -450,7 +450,16 @@ namespace Ledger.Game
         /// no opacity map at all falls back to inverse luminance — which is
         /// right for exactly one thing and disastrous for another, so the
         /// fallback carries its own warning.
-        static Texture2D LoadSet(string dir)
+        /// PUBLIC BECAUSE THE VIGNETTE LOADS THE SAME SETS. The D1b street
+        /// applies ManholeCover011, AsphaltDamageSet001, Leaking005 and
+        /// Moss001 by name from its shared JSON, and every one of them needs
+        /// the three cases below: the colour-plus-opacity join, the
+        /// mask-shipped-twice retint, and the inverse-luma fallback that is
+        /// right for Moss001 and was disastrous for RoadLines001. A second
+        /// copy of this function in `StreetVignetteHost` is the exact shape
+        /// of this project's worst bugs, and the copy nobody looks at is the
+        /// one missing the retint.
+        public static Texture2D LoadSet(string dir)
         {
             if (!Directory.Exists(dir)) return null;
             string colour = null, opacity = null, any = null;
@@ -549,6 +558,13 @@ namespace Ledger.Game
             tex.wrapMode = TextureWrapMode.Clamp;
             return tex;
         }
+
+        /// THE ONE DECAL QUAD, and public for the same reason `LoadSet` is:
+        /// its winding decides which way a decal faces, and the vignette's
+        /// piece list states that convention in as many words (normal -z
+        /// before rotation). Two quads with two windings is two conventions,
+        /// and the second one is invisible until a decal renders backwards.
+        public static Mesh Quad() { EnsureQuad(); return _quad; }
 
         static void EnsureQuad()
         {
