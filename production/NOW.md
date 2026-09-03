@@ -119,65 +119,44 @@ decal looks right AT SIZE, ON A SURFACE, IN THE RAIN.
 
 ## In flight
 
-- **RUN 3 LANDED AND THE BATCH IS COMPLETE.** Commit `f789e129`, proven to
-  contain the landing commit `5a28fa56` by
-  `git merge-base --is-ancestor`, never by branch movement.
-  `imagegenVerdict=BANKED wroteThisRun=31 failed=0 blankThisRun=0
-  checkedThisRun=31 newInThisCommit=31 alreadyInRepoIdentical=0
-  notInThisCommit=0`, and `skipped=14 remadeUnrecorded=0`, which is the
-  hand-recovered `made.json` PROVEN correct rather than trusted.
-  `batchStatus=DONE`: 45 of 45 prompts now exist. 41 minutes of GPU, nothing
-  spent against the Claude ceiling. `attribution=success` this time, so run
-  2's undiagnosed attribution failure is gone; it was never diagnosed and is
-  now unreproducible, which is worth knowing rather than closing.
+- **THE STREET RENDERS IN UNREAL.** Run 17, commit cb4767ee, four frames at
+  1280x720 from 593/593 pieces out of the shared list, nothing hand-placed.
+  `captureStatus=ALL shotsWrote=4/4`, frame medians 3.68 to 4.65 ms. This is
+  the first Unreal picture of the street in the project's history.
 
-- **THE RULE 9 HOLD ON ledger-pc IS LIFTED.** A pictures commit contains the
-  landing commit, which was the stated condition. Dispatch is allowed again.
+- **AND THE NIGHT FRAMES ARE ALMOST BLACK.** `lanternsPlaced=4/4` is true and
+  answers the wrong question: nothing measures whether a placed light reaches
+  a pixel. `camB_night` is 19 distinct colour buckets of 32768. Day frames
+  clip the road to white while `shotMeanLuma` reads a healthy 0.50, because a
+  mean cannot see clipping. QUEUE 059, and it is D1 admissibility rather than
+  polish: a night pair where one engine's lamps work and the other's do not
+  is a judgement about wiring, not renderers.
 
-- **THE PICTURES ARE PUBLISHED FOR JAFAR** at
-  `https://claude.ai/code/artifact/7d900640-3d3d-43f8-9aa8-519d8e284af4`,
-  all 45 with the run docket and the honest note that generated body text is
-  texture and not writing.
+- **UNITY BUILD 558 LANDED** (commit 28a2d6e1) with `propsPlaced=23/23
+  decalsApplied=20/20 datumMissing=0/910`. The interior pictures reached the
+  frame; 17/20 would have meant they did not. Its own practicals line still
+  reads `windowsLit=3/6 windowsAsked=3`: the SAME rule-3b denominator fault
+  the director fixed on the Unreal side, still live on the Unity side. Not
+  yet queued.
 
-- **THE THREE C11 INTERIOR CARDS NOW EXIST, which changes a number the queue
-  046 builder predicted.** It reported "expect `decalsApplied=17/20` on the
-  first landing" because `interior_shop_shelves`, `interior_bar_back` and
-  `interior_stair_landing` were not on disk in the checkout it worked in.
-  All three are in `f789e129` (checked with `git cat-file -e` against that
-  commit, three of three present), which landed while it was working. So the
-  expected first reading is `decalsApplied=20/20`, and 17/20 would now be a
-  fault rather than the predicted state. Pull before reading the number.
+- **IMAGEGEN RUN 4 IS RUNNING**, started by the push of 991aabf9 at 02:34Z,
+  about 53 minutes. The framing regeneration: 41 of 45 recipes moved onto the
+  orthographic prefix after a QA pass opened all 45 and found 41 were
+  photographs of signs standing in a street. EXPECT `skipped=4` and
+  `remadeRecipeChanged=41`. If skipped is not 4, the recipe arithmetic in
+  queue 056 was wrong and the rest of that run's evidence reads in that light.
 
-- **SIX FINDINGS NAMED BY THE QUEUE 046 BUILDER AND NOT YET FILED**, held
-  here so they cannot be lost between now and the director's queue call.
-  Numbers 050 to 055 are RESERVED for them and nothing else may take those
-  numbers:
-  050 the town's `propsPlaced` on the sim done line counts up with no
-  denominator; 051 a street name plate for a canon street (E10 is MANDATORY,
-  has no prompt, and canon mints Quay Street, Weighhouse Lane and Tannery
-  Row, so it would render blank); 052 wall overlays belong in the surface
-  path, not the decal path (C14 is a 1024 tiling surface and stamping it
-  reads as a patch of different masonry); 053 the chimney pot is wider than
-  its stack, oversailing 0.112 m each side; 054 double yellows should break
-  at the crossover and currently run the full 42 m; 055 G3 imperfection
-  scatter, held until there is a frame to look at.
-  Queue refill is a director trigger, which is why these are here and not in
-  `production/queue/`.
+- **DO NOT TOUCH `production/d1-probe/DISPATCH` IN A PUSH** unless a run 18 is
+  actually wanted. It is a push trigger and would start a second Unreal run on
+  the one PC. Run 17's outcome is recorded in commit b2e818c6 and here.
 
-- **THREE BUILDERS RAN TONIGHT AND NONE HAS LANDED.** Queue 046 (props and
-  decals into the frame), queue 047 (the dashboard updates itself), and the
-  UE emitter Phase A close-out plus Phase B. The tree is dirty with all
-  three. A director reviews the batch before any commit; stage BY NAME
-  against the ruling's `paths=` list.
+- **THE TWO ENGINES ARE NOT A JUDGEABLE PAIR YET.** Unreal Phase B is
+  deliberately untextured; Unity is textured, materialled and wet. Comparing
+  them now measures Phase C's absence, not either renderer. D1b needs the same
+  scene on both sides.
 
-- **WHAT JAFAR ASKED FOR IN THE MORNING, in his words: "the street rendered
-  in UE".** Unreal compiles our code and passes the 1221-row golden test on
-  his machine; it has NEVER rendered the street. Phase B is the first
-  Unreal picture. The chain that has to complete: builder finishes, director
-  rules, one commit, then touch `production/d1-probe/DISPATCH` and push,
-  which is what starts the probe. If it hits a sixth engine wall, the wall
-  gets named in DISPATCH like the previous five and that is the honest
-  deliverable instead.
+- NOT FILED, ordered by the 3 Sep ruling: queue 050 to 055, 057, 058. Queue
+  056 stays OPEN by that ruling's own words.
 
 ## THE DASHBOARD IS NOW A HOSTED LIVE PAGE, and it needs writing to
 
