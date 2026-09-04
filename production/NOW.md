@@ -119,6 +119,33 @@ decal looks right AT SIZE, ON A SURFACE, IN THE RAIN.
 
 ## In flight
 
+- **MONDAY'S ORDER, queued 2026-09-04, START NOTHING BEFORE THE RESET.**
+  Jafar ruled: spend nothing until Monday 14:00 CEST. The order below is
+  PROPOSED and is confirmed by a fresh reading of BOTH meters on the day, not
+  by this list. If the reading is not comfortable, the order shortens from the
+  bottom; it does not start anyway.
+
+  1. **Queue 062 step 2**, the third material status word. Small, and a
+     precondition to the next dispatch.
+  2. **Unreal run 21.** These two are first because they are the only items
+     that end in something Jafar can LOOK AT: four frames that are not flat
+     grey. If 21 prints `materialConnections=12/14` again, that is the answer
+     and it gets reported, not retried, and D1's hand-edit clause is invoked.
+  3. **Queue 067, the Telegram bot.** Unblocked: the bot exists and
+     `tools/runner/config.local` is on the PC, gitignored. It was going to be
+     first after the reset and moved back one place because 062 and 21 end in
+     a picture and this does not. NOTHING TOUCHES THAT FILE BEFORE MONDAY, and
+     nothing ever prints it.
+  4. **Queue 080**, the send check that leaves no trace it ran.
+  5. **Queue 079**, the queue gate reading `game-design/queue.md`, retired on
+     31 August.
+  6. **Queue 078**, the inventory of every list that means machine-written.
+  7. **Queue 081**, the two small producer-check tidies.
+
+  Items 4 to 7 are all small and all found by grep at zero cost this week,
+  which is the argument for doing that kind of looking whenever the meter is
+  tight.
+
 - **NEAR-STOP: 3 POINTS TO THE CEILING, read 2026-09-04 at about 00:30Z.**
   Total 77 percent, Fable 76, ceiling 80, about 84 hours to the Monday
   14:00 CEST reset. The higher meter governs and this time it is the TOTAL,

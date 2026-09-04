@@ -27,36 +27,6 @@ Irreversible items wait for Jafar and never guess.
 
 ## WAITING
 
-### Create the Telegram bot, so Monday is not blocked on it
-added 2026-09-03. CLASS: DECISION. DUE BEFORE MONDAY 14:00 CEST.
-
-The bot is the first thing built after the reset and it is the only item whose
-blocker is you rather than the studio. Nothing here can create it: the studio
-cannot use your accounts, and every external host is blocked from the build
-machine anyway.
-
-WHAT IT NEEDS FROM YOU, about five minutes in Telegram:
-- Message @BotFather, send `/newbot`, name it, and it hands back a token.
-- Message your new bot once, so it has a chat to talk to, and get the chat id.
-- Put both through the existing PC channel into `tools/runner/config.local`,
-  which is uncommitted by design. Neither is ever committed or printed.
-
-- A. Do it before Monday. The bot lands first after the reset, as ruled.
-- B. Do it later and the bot slips; the console still works, but pushes,
-  decision buttons and voice notes all wait on it.
-- C. Change your mind about Telegram and say what instead.
-
-RECOMMENDATION A. It is five minutes of yours against the first item of the
-week for the studio.
-DEFAULT B if unruled: the studio builds the glance first and the bot when the
-token arrives, because a bot with no token is not a thing that can be tested.
-DEADLINE 2026-09-07.
-EVIDENCE: `production/queue/067-telegram-bot-on-the-pc.md` carries the full
-specification, including that the bot is the send path and calls the register
-check itself, so nothing unchecked ever leaves.
-
----
-
 ### How close should strangers stand?
 CLASS: DECISION
 added 2026-08-04, still open, and it now has the picture it was waiting for
@@ -80,6 +50,26 @@ honest reason this has waited a month.
 ---
 
 ## RULED THIS WEEK
+
+### 2026-09-04: the Telegram bot exists. RULED A, and it is done.
+
+Jafar created the bot and put the token and chat id into
+`tools/runner/config.local` on the PC, gitignored. The card asked for five
+minutes; it got them before the deadline it named.
+
+WHAT THIS UNBLOCKS: queue 067 goes from BLOCKED to READY and takes third place
+in Monday's order, behind 062 step 2 and Unreal run 21. It was going to be
+first after the reset; it moved back one place because the two Unreal items
+end in something Jafar can look at and the bot does not.
+
+THE STANDING RULE THAT COMES WITH IT, and it binds every agent: the file is
+never printed, echoed, committed, quoted into a log or included in an error
+message. A tool that cannot read it says `config.local unreadable` and quotes
+nothing. `.gitignore` line 98 already covers the path, checked rather than
+assumed, but a gitignore stops a commit and does not stop a print, and a print
+is how this class of file actually leaks.
+
+DO NOTHING WITH IT BEFORE MONDAY 14:00 CEST. Ruled by Jafar 2026-09-04.
 
 ### 2026-09-03: the next builder goes on the Unreal wire, not the Ledger
 CLASS: DECISION

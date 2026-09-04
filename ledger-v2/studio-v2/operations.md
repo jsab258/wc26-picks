@@ -217,3 +217,46 @@ findings. Everything still gets written down in the repo, in full, with its
 incident; that discipline is the project and it does not move. What changed
 is WHERE it is written: the casebooks, the queue and the decision records,
 not a message to Jafar.
+
+## TWO LESSONS RULED BY JAFAR, 2026-09-04, both paid for the same day
+
+### L1. A SESSION-LIMIT NOTICE CARRIES ITS OWN RESET TIME. PARSE IT.
+
+Never ask Jafar which limit was hit. The notice says so itself. The live
+example, quoted from a real transcript by `tools/spawn-cost.py`, is
+`You've hit your session limit, resets 11:20pm (UTC)`. A reset a few hours out
+is the 5-hour session limit; a reset days out is the weekly one. The
+distinction is not cosmetic: the session limit resets many times a week and
+says nothing about the weekly meter, while a weekly reset is a REGIME CHANGE
+that voids every rate in `production/budget.md`, exactly as the 1 September
+reset did.
+
+WHAT IT COST TO LEARN. On 3 September Jafar reported "I hit my usage limit but
+it has reset now" with no percentage. A whole exchange went on establishing
+which limit it was, and the answer was sitting inside a notice the tooling had
+already read and thrown away: 170 of 454 transcripts carry that notice and
+`spawn-cost.py` prints one as an example while discarding its timestamp.
+
+THE RULE. Anything that reads a session-limit notice extracts the reset time
+and records it beside the event. A limit event without its reset time is an
+incomplete reading, and the budget table says so rather than guessing.
+
+### L2. QUEUE NUMBERS COME FROM AN ALLOCATOR, NEVER FROM A LISTING
+
+Two collisions on 3 and 4 September. Both had the same shape: two roles each
+ran `ls production/queue/`, each saw the same highest number, and each took the
+next one. The resident took 073 while a director was writing 073; a director
+proposed 078 and 079 while the resident had already filed 078 and 079
+overnight.
+
+THE FAULT IS NOT CARELESSNESS, IT IS THE METHOD. A directory listing is a
+reading of a moment, and two agents working in parallel read the same moment.
+Any number of careful readers will collide, so care is not the fix.
+
+THE RULE. One allocator, or a lock. The number is claimed before the file is
+written, and a claim that loses a race is told so rather than discovering it at
+review. Until such a tool exists, the resident allocates and every agent brief
+that will file a queue item carries its number, given in the brief rather than
+chosen by the agent. The two collisions above cost a rename and an amended
+ruling; the second one also made a ruling cite two numbers that meant
+different things in the same document.
