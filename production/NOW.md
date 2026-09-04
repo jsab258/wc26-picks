@@ -154,22 +154,42 @@ decal looks right AT SIZE, ON A SURFACE, IN THE RAIN.
      that end in something Jafar can LOOK AT: four frames that are not flat
      grey. If 21 prints `materialConnections=12/14` again, that is the answer
      and it gets reported, not retried, and D1's hand-edit clause is invoked.
-  3. **Queue 067, the Telegram bot.** Unblocked: the bot exists and
-     `tools/runner/config.local` is on the PC, gitignored. It was going to be
-     first after the reset and moved back one place because 062 and 21 end in
-     a picture and this does not. NOTHING TOUCHES THAT FILE BEFORE MONDAY, and
-     nothing ever prints it.
-  4. **Queue 080**, the send check that leaves no trace it ran.
-  5. **Queue 079**, the queue gate reading `game-design/queue.md`, retired on
+  3. **Queue 080**, the send check that leaves no trace it ran.
+  4. **Queue 079**, the queue gate reading `game-design/queue.md`, retired on
      31 August.
-  6. **Queue 078**, the inventory of every list that means machine-written.
-  7. **Queue 081**, the two small producer-check tidies.
+  5. **Queue 078**, the inventory of every list that means machine-written.
+  6. **Queue 081**, the two small producer-check tidies.
+
+  QUEUE 067, THE TELEGRAM BOT, LEFT THIS LIST ON 2026-09-04: Jafar moved it
+  BEFORE the reset so that Monday is a full game day rather than a setup day.
+  See the bullet above.
 
   Items 4 to 7 are all small and all found by grep at zero cost this week,
   which is the argument for doing that kind of looking whenever the meter is
   tight.
 
-- **NEAR-STOP: 3 POINTS TO THE CEILING, read 2026-09-04 at about 00:30Z.**
+- **THE CEILING IS CROSSED, DELIBERATELY, ON ONE ITEM. Read 2026-09-04 at
+  about 08:30Z: total 82, Fable 83, ceiling 80.** Jafar chose to spend past the
+  line on the Telegram bot alone, so that Monday is a full game day. THIS IS
+  HIM SPENDING HIS OWN 20 PERCENT AND IT IS HIS TO SPEND. No session may read
+  it as the ceiling having gone soft, and the 80 line binds again the moment
+  067 is done or its cap is hit.
+
+  HIS CAP, and it is mechanical: one builder, one director review, STOP at 6
+  points spent or at the first failed accepting run on the PC, whichever comes
+  first. NO FIX LOOPS BEFORE THE RESET: a broken bot waits for Monday. At least
+  8 points stay untouched for Monday morning. Checked rather than accepted: the
+  governing meter is Fable at 83, so 17 remain to 100, 6 spent lands at 89 and
+  leaves 11, clearing the floor of 8.
+
+  SCOPE CUT BY THE RESIDENT, because 067's six acceptance clauses do not fit in
+  6 points. Building: the launcher, the config read, a two-way message, an
+  unprompted push, and the budget-reading ask with numeric quick-replies for
+  both meters. NOT building, and these stay Monday's: gallery images, decision
+  buttons that write rulings, voice memos with local transcription. 067's
+  acceptance is therefore NOT fully met by this run and the item stays open.
+
+- **SUPERSEDED, kept for the series: NEAR-STOP AT 3 POINTS, read at 00:30Z.**
   Total 77 percent, Fable 76, ceiling 80, about 84 hours to the Monday
   14:00 CEST reset. The higher meter governs and this time it is the TOTAL,
   which is the reverse of 1 September, so no session may infer one meter from
