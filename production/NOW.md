@@ -130,17 +130,16 @@ decal looks right AT SIZE, ON A SURFACE, IN THE RAIN.
   instruction, and prefer zero-cost work: two of today's findings (queue 078
   and 079) were found by grep and cost nothing.
 
-- **HAZARD WITH A DATE ON IT: the tree goes red at 2026-09-05T09:01Z by
-  itself.** The first real Producer message is committed and carries
-  `DEADLINE 2026-09-06.`; `producer-check.py` measures that against
-  WALL-CLOCK now and refuses anything under 24 hours, so the message that
-  passes today fails on Friday morning and `verify.py` deletes the footer
-  with nobody having touched anything. Proven against the real function:
-  `2026-09-05T09:00 hours=24.0 PASS`, `09:01 FAIL`. The selftest cannot see
-  it because every case is frozen at `FIXTURE_NOW`. Queue 077, and it is the
-  most time-critical item on the board because it blocks every commit, not
-  just its own. If a session finds the tree red for this reason, THAT IS THE
-  KNOWN CAUSE and the fix is 077, not an edit to the message.
+- **THE DATED HAZARD IS DISCHARGED, 2026-09-04.** It said the tree would go
+  red at 2026-09-05T09:01Z by itself, because `producer-check.py` measured the
+  committed message's deadline against the wall clock. Queue 077 landed and
+  the gate now pins each file's clock to the ISO date in its own name. Proven
+  at the exact instant rather than inferred: `--gate --now 2026-09-05T09:01`
+  reads `PASS filesChecked=1 filesExempt=5 filesWalked=6 filesDatePinned=1/1`,
+  the same verdict it gives today and in 2027. Ruled in
+  `game-design/decision-2026-09-04-ruling-077-deadline-clock-pin.md`. The
+  residue is queue 080: a date is a day, not an instant, and nothing in the
+  tree proves the pre-send check ever ran.
 
 - **LANDED 2026-09-03, one commit, ruled in
   `game-design/decision-2026-09-03-batch-review-register-banner-spawnlog-uvsweep.md`:**

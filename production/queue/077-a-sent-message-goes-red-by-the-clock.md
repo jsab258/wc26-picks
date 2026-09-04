@@ -2,7 +2,7 @@ line: infrastructure (the Producer register)
 spec: found by the Producer 2026-09-03 while writing the first real message; confirmed by the resident against the code before filing
 acceptance: production/outbox/2026-09-03-batch-landed-and-the-wait.unprompted.md passes the gate at a simulated now of 2026-09-08, with a rejecting case proving a message still AWAITING an answer is still refused for a short deadline
 max_sessions: 1
-status: READY 2026-09-03. URGENT: the live tree goes red at 2026-09-05T09:01Z with nobody touching it. instrument-builder.
+status: LANDED 2026-09-04, ruled in game-design/decision-2026-09-04-ruling-077-deadline-clock-pin.md. The gate pins each file's clock to the ISO date in its own name; the pre-send check keeps the wall clock. Proven at the exact instant: --gate --now 2026-09-05T09:01 reads PASS filesDatePinned=1/1. Residue is queue 080.
 
 ## The fault, proven rather than argued
 
