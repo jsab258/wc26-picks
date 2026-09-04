@@ -119,6 +119,29 @@ decal looks right AT SIZE, ON A SURFACE, IN THE RAIN.
 
 ## In flight
 
+- **THE HOURLY WATCHDOG IS OFF UNTIL MONDAY, AND HERE IS HOW TO PUT IT BACK.**
+  Silenced 2026-09-04 on Jafar's instruction. It is `trig_01EA7ybQTcsiFyrTryptqVUi`,
+  cron `20 * * * *`, and it is NOT a free reader: `persist_session` is true and
+  its payload is a `type: user` message, so every firing delivers a user turn
+  into this session and costs a cache read of the whole conversation plus
+  output. About 76 firings sat between that instruction and the Monday reset,
+  against 3 points of headroom.
+
+  RE-ENABLING IS ARMED, not remembered: `trig_011GMwPxL5vvqrpb8Nxyzedw` is a
+  one-shot at 2026-09-08T12:00:00Z that fires into this session and re-enables
+  the watchdog first, before anything else. IF THAT ONE-SHOT FAILS, the
+  watchdog stays off silently and nothing will say so, which is why this note
+  exists: call `update_trigger` on `trig_01EA7ybQTcsiFyrTryptqVUi` with
+  `enabled` true and NO prompt field, read it back to confirm, and delete this
+  bullet.
+
+  A note on the warning that came back when the one-shot was created: it said
+  fired sessions run without connector tools, which would matter because
+  re-enabling IS a connector call. It does not apply to a `persist_session`
+  trigger. The evidence is the watchdog itself, which carries the same empty
+  `mcp_connections` and has been firing into this session since 1 August while
+  the session plainly has those tools.
+
 - **MONDAY'S ORDER, queued 2026-09-04, START NOTHING BEFORE THE RESET.**
   Jafar ruled: spend nothing until Monday 14:00 CEST. The order below is
   PROPOSED and is confirmed by a fresh reading of BOTH meters on the day, not
