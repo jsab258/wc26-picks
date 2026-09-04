@@ -25,6 +25,7 @@ than any single row.
 | 2026-09-03 | ~33 into a 136h period | 52% | not read | Reported at 04:50Z, after the overnight run. THE FIRST CLEAN LEDGER BURN RATE: Jafar was asleep for the whole window, so all 14 points are ours. 28 points to the ceiling, 103.5 hours to the Monday reset. |
 | 2026-09-03 | ~39 into a 136h period | 60% | not read | Reported at 10:25Z. NOT A CLEAN RATE: Jafar says he also did other work on Claude in this window, so the 8-point delta is NOT all LEDGER and must not be divided by hours. 20 points to the ceiling, 97.6 hours to the Monday reset. He said WAIT. |
 | 2026-09-03 | ~49 into a 136h period | LIMIT HIT, no percentage | not read | Reported by Jafar at about 20:20Z: "I hit my usage limit while you were working, but it has reset now." THIS IS NOT A READING and must never be counted as one: it carries no percentage on either meter. WHICH limit is unresolved and the answer changes everything. The 5-hour session limit resets many times a week and says nothing about the weekly meter; the WEEKLY limit resets Monday 14:00 CEST, which is four days away, so a weekly reset today would be a regime change and the arithmetic below would be void. Asked, not assumed. What the row DOES establish, whichever it was: the account hit a wall today, which is evidence in the direction of MORE spent, never less. |
+| 2026-09-04 | ~53 into a 136h period | 77% | 76% | Reported at about 00:30Z, and it resolves the row above: the limit he hit was the 5-HOUR SESSION limit, not the weekly one, so the weekly meter did NOT reset and the arithmetic in this file still stands. THE SECOND ROW IN THIS TABLE'S HISTORY WITH BOTH METERS READ, and the total is the higher one this time (77 against 76), which is the reverse of 1 September and is why the rule says read both. 3 POINTS TO THE CEILING, about 84 hours to the Monday reset. This is a near-stop: one builder spawn is a material fraction of what is left. |
 
 Ceiling for LEDGER: 80% of the weekly limit. The other 20% is his.
 
@@ -40,10 +41,16 @@ BACKFILL RULE, and it is the point of the rule: a row where Fable was NOT READ
 says `not read`. It never says `equal to the total`, never carries the total's
 figure across, and never reads as zero. Every row above this line except the
 first says `not read` in the Fable column, and that is a true statement about
-what was measured rather than a gap to be tidied. The 2026-09-01 row is the
-only one carrying a real Fable figure: 41 percent against a total of 34, which
-is the whole argument for this rule. The higher meter was the Fable one, by
-seven points, on the only day both were read.
+what was measured rather than a gap to be tidied.
+
+TWO ROWS NOW CARRY BOTH METERS, AND THEY DISAGREE ABOUT WHICH ONE IS HIGHER,
+which is a better argument for this rule than either row alone. 2026-09-01:
+Fable 41 against a total of 34, Fable higher by seven. 2026-09-04: total 77
+against Fable 76, the TOTAL higher by one. So there is no standing rule of
+thumb that one meter leads, and a session that reads one number and infers the
+other is guessing. Read both. The rule as written on 2026-09-03 rested on a
+single row and said the higher meter was the Fable one; that sentence was true
+of its evidence and is now superseded by the second row rather than wrong.
 
 Directors run on Fable. Builders and the resident do not. So the Fable meter
 moves on reviews and rulings, which are exactly the things this studio was

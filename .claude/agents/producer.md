@@ -97,6 +97,15 @@ REGISTER because the gate must not guess which rules apply:
     production/outbox/<YYYY-MM-DD>-<slug>.answer.md
     production/outbox/<YYYY-MM-DD>-<slug>.brief.md
 
+THE DATE IN THE NAME IS THE CLOCK. `producer-check --gate` measures every
+deadline in a file from midnight of the date in its own name, so a file is
+dated the day it is sent and never earlier, and a name without a date fails
+the gate the moment it states a deadline. The pre-send
+`producer-check <file>` still measures from the wall clock, and a deadline
+must clear the 24-hour floor on both. An ISO-date deadline is read as 09:00
+on that day; a relative form (`tomorrow`, `2 days`) is read as its literal
+hours against no clock at all.
+
 The morning brief may also go to `production/briefs/`, where everything is
 checked as a brief and no suffix is needed. A file in the outbox whose name
 carries none of the three registers is REFUSED rather than guessed at. The

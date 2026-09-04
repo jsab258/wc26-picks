@@ -62,6 +62,14 @@ check (the link floor became unconditional after it was sent), record that
 sentence in NOW.md and do not file it. If the text is gone, NOW.md says
 "nothing measured" for the register on real prose.
 
+CORRECTION 2026-09-04. `filesChecked=1` was an accepting reading at one
+instant only: the gate measured deadlines from the wall clock and this
+message would have gone red at 2026-09-05T09:01Z with nothing in the tree
+changing. The concern in this section is answered by the reading at
+three instants in one run, not by this one. Ruled in
+`game-design/decision-2026-09-04-ruling-077-deadline-clock-pin.md`,
+section 4.
+
 The ban list's false-positive rate on ordinary English is unmeasured: `job`,
 `commit\w*`, `branch\w*`, `gate`, `PR` are all whole-word bans and all occur
 in normal sentences. That is a series to read off the first ten real

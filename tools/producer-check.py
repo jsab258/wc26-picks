@@ -312,6 +312,13 @@ def count_words(text):
     return [w for w in stripped.split() if re.search(r"\w", w)]
 
 
+# NO INSTANT TO MEASURE FROM. Passed as `now` by the gate for a file whose
+# name carries no date. It is a sentinel and not a datetime on purpose: a
+# missing instant must reach the deadline rule as "unreadable" and come out as
+# a finding, never as a quietly substituted wall clock.
+UNPINNED = object()
+
+
 def deadline_hours(line, now):
     """Hours from `now` to the deadline this line states, or None when no
     deadline form parses. None is reported as unparseable, never as fine."""
@@ -361,7 +368,13 @@ def check(text, kind="unprompted", now=None):
     dict, touches no file. The selftest drives it with synthetic fixtures and
     the report function only formats what comes out of here.
     """
-    now = now or datetime.datetime.now()
+    # `now` may be a datetime, None (meaning the wall clock, which is what the
+    # SINGLE-FILE check wants) or UNPINNED (no instant at all, which is what
+    # the GATE passes for a file whose name carries no date). Written as an
+    # identity test rather than `now or ...` so the sentinel cannot be
+    # swallowed by a truthiness change later.
+    if now is None:
+        now = datetime.datetime.now()
     word_cap, enforced = REGISTERS[kind]
     # A DECISION CARRIES ITS FLOOR INTO ANY REGISTER. The answer register has
     # no cap and no required shape, but the moment a message carries a NEEDS
@@ -485,6 +498,20 @@ def check(text, kind="unprompted", now=None):
                 found.append(Finding("deadline", "item %d states no deadline"
                                      % i))
                 continue
+            if now is UNPINNED:
+                # A DEADLINE NOBODY CAN MEASURE IS NOT A DEADLINE THAT PASSED.
+                # The gate pins its clock to the date in the filename; a name
+                # with no date leaves it nothing to measure from, and the
+                # honest outcome is a finding naming the fix rather than a
+                # silent skip. This is what stops "drop the date from the
+                # filename" becoming the way round the floor.
+                found.append(Finding("deadline", "item %d states a deadline "
+                                     "and this file's name carries no date to "
+                                     "measure it from, so the %d-hour floor "
+                                     "could not be read at all. Name the file "
+                                     "<YYYY-MM-DD>-<slug>.<kind>.md"
+                                     % (i, MIN_DEADLINE_HOURS)))
+                continue
             hrs = deadline_hours(item["deadline"], now)
             if hrs is None:
                 found.append(Finding("deadline", "item %d states a deadline "
@@ -507,6 +534,11 @@ def check(text, kind="unprompted", now=None):
                                     else "the section is empty")))
 
     return {
+        # WHICH CLOCK PRODUCED THE DEADLINE READING, carried out of the pure
+        # function so the report never has to guess which of the two callers
+        # it is serving.
+        "now": "unpinned/no-date-in-filename" if now is UNPINNED
+               else now.isoformat(timespec="minutes"),
         "kind": kind, "cap": word_cap, "words": len(words),
         "sentences": len(sents), "claims": len(claims),
         "unlinked_claims": len(unlinked_claims),
@@ -585,6 +617,14 @@ def report(r):
     if r["banned_checked"]:
         print("  ban list: %d pattern(s) run over the message with URLs "
               "removed" % r["banned_checked"])
+    if "deadline" in r["enforced"]:
+        # TWO CALLERS, TWO CLOCKS, so neither may leave its instant implicit.
+        # This path is the SINGLE-FILE check and its clock is the wall clock:
+        # the question before sending is "is this deadline far enough away to
+        # send", which is a question about now. The gate's clock is the date in
+        # the file's own name, and it says so on its own line.
+        print("  deadlines measured from %s, the wall clock unless --now was "
+              "given: before sending, the question is about now" % r["now"])
     for n in r["notes"]:
         print("  note: %s" % n)
     if r["not_enforced"]:
@@ -814,6 +854,16 @@ def selftest():
     # the last file: a rejecting case pinned to a real brief breaks the day
     # somebody rewrites the brief.
     print("\n  THE GATE, ACCEPTING CASES FIRST:\n")
+    # EVERY GATE RUN THIS SUITE MAKES, COUNTED. The summary line used to add a
+    # hand-maintained +3 to the fixture count, which is a denominator that
+    # drifts the first time somebody adds a case.
+    gate_runs = []
+
+    def gate_run(*a, **kw):
+        g = gate(*a, **kw)
+        gate_runs.append(g)
+        return g
+
     good_tree = _gate_tree({
         "production/outbox/README.md": "# documentation, not a message\n",
         "production/outbox/2026-09-03-street.unprompted.md": GOOD,
@@ -821,8 +871,8 @@ def selftest():
             "PRODUCER-REGISTER-EXEMPT: a director brief, written before the "
             "register was ruled.\n\n" + ("word " * 400),
     })
-    g = gate(good_tree, FIXTURE_NOW,
-             pre_register=("production/briefs/2026-09-02.md",))
+    g = gate_run(good_tree, FIXTURE_NOW,
+                 pre_register=("production/briefs/2026-09-02.md",))
     ok("a compliant outbox message passes the gate", not g["failed"],
        g["failed"])
     ok("and the README is exempt BY NAME, counted, not skipped in silence",
@@ -832,8 +882,65 @@ def selftest():
        any(s == "exempt" and "pre-register" in w
            for _, s, w in g["results"]), g["results"])
     ok("the live repository passes the gate it was written against",
-       not gate(REPO, FIXTURE_NOW)["failed"],
-       cap([f[0] for f in gate(REPO, FIXTURE_NOW)["failed"]], keep=3))
+       not gate_run(REPO, FIXTURE_NOW)["failed"],
+       cap([f[0] for f in gate_run(REPO, FIXTURE_NOW)["failed"]], keep=3))
+
+    # THE CASE QUEUE ITEM 077 WAS FILED FOR, and it is an ACCEPTING one. The
+    # live message dated 2026-09-03 carries DEADLINE 2026-09-06; at a simulated
+    # now of 2026-09-08 that deadline has been served. A served deadline is a
+    # historical fact, not a quality fault. Before the fix this case failed,
+    # and because ledger/verify.py runs this gate it would have deleted the
+    # verification footer and blocked every commit from 2026-09-05T09:01 with
+    # nobody having touched the tree.
+    served = datetime.datetime(2026, 9, 8, 12, 0)
+    g_served = gate_run(REPO, served)
+    ok("the live repo passes with its own deadline SERVED (simulated now %s, "
+       "%d file(s) actually checked, %d of them date-pinned)"
+       % (served.date().isoformat(), g_served["checked"],
+          g_served["date_pinned"]),
+       not g_served["failed"] and g_served["checked"] >= 1,
+       cap(["%s: %s" % f for f in g_served["failed"]], keep=2, width=90)
+       if g_served["failed"] else "checked=%d" % g_served["checked"])
+
+    # THE LADDER: one tree, one vantage, three instants, all in this run.
+    # Differences between rungs are the only reading a ladder yields, and the
+    # ruled property here is that there are none. A rung taken in a later run
+    # would be a different photograph, so all three are taken together.
+    rungs = [datetime.datetime(2026, 9, 3, 12, 0),
+             datetime.datetime(2026, 9, 8, 12, 0),
+             datetime.datetime(2027, 1, 1, 12, 0)]
+    verdicts = [tuple(sorted(f[0] for f in gate_run(REPO, t)["failed"]))
+                for t in rungs]
+    ok("the gate's verdict does not move with the run's clock (%d rung(s): %s)"
+       % (len(rungs), "/".join(t.date().isoformat() for t in rungs)),
+       len(set(verdicts)) == 1,
+       "/".join(str(len(v)) + "-failed" for v in verdicts))
+
+    ok("a file's clock is midnight of the ISO date in its own name",
+       gate_clock("production/outbox/2026-09-03-x.unprompted.md")[0]
+       == datetime.datetime(2026, 9, 3, 0, 0),
+       gate_clock("production/outbox/2026-09-03-x.unprompted.md")[0])
+
+    # THE WALL-CLOCK REGRESSION DETECTOR, and the reason its dates are built
+    # from today rather than written down: the DIFFERENCE is the fixture, not
+    # the date. Named two days ago, deadline today, so the pinned reading is
+    # always 57.0 hours (a pass) and the wall-clock reading is always 9.0 hours
+    # or less (a refusal). It is armed on every day it ever runs.
+    wall = datetime.datetime.now()
+    named_day = (wall.date() - datetime.timedelta(days=2)).isoformat()
+    pinned_tree = _gate_tree({
+        "production/outbox/README.md": "# docs\n",
+        "production/outbox/%s-served.unprompted.md" % named_day:
+            GOOD.replace("DEADLINE 2026-09-07.",
+                         "DEADLINE %s." % wall.date().isoformat()),
+    })
+    gp = gate_run(pinned_tree, wall)
+    ok("a deadline 57h after its file's own date passes at the REAL wall "
+       "clock, where the same deadline is under 9h (%d of %d checked file(s) "
+       "date-pinned)" % (gp["date_pinned"], gp["checked"]),
+       not gp["failed"] and gp["date_pinned"] == 1 and gp["checked"] == 1,
+       "%s checked=%d" % (cap(["%s: %s" % f for f in gp["failed"]], keep=1,
+                              width=90), gp["checked"]))
 
     print("\n  THE GATE, REJECTING FIXTURES, all synthetic:\n")
     gate_bad = {
@@ -856,29 +963,92 @@ def selftest():
         "an empty message file":
             ({"production/outbox/README.md": "# docs\n",
               "production/outbox/2026-09-03-x.answer.md": "   \n"}, ()),
+        # THE FAILURE MODE THE FIX MUST NOT HAVE. Pinning the clock to the
+        # filename date could have disabled the deadline rule instead of
+        # repairing it, and a suite where both the served deadline and the
+        # short one pass would not be able to tell the difference. This file's
+        # deadline falls on the same day as its name, which is 9.0 hours from
+        # the midnight pin, and it is refused at any run clock.
+        "a same-day deadline, which the filename pin must NOT excuse":
+            ({"production/outbox/README.md": "# docs\n",
+              "production/outbox/2026-09-03-x.unprompted.md":
+                  GOOD.replace("DEADLINE 2026-09-07.",
+                               "DEADLINE 2026-09-03.")}, ()),
+        # AND THE OTHER WAY ROUND THE FLOOR: no date in the name, so no instant
+        # to measure from. It is a finding rather than a skip, or dropping the
+        # date prefix would be the new escape hatch.
+        "a deadline in a file whose name carries no date to pin to":
+            ({"production/outbox/README.md": "# docs\n",
+              "production/outbox/street.unprompted.md": GOOD}, ()),
+    }
+    # WHICH RULE REFUSED IT, for the fixtures where the reason is the point. A
+    # clock fixture refused for a shape fault would pass this loop while
+    # proving nothing about the clock, which is the shape of a validator that
+    # rejects everything.
+    gate_bad_reason = {
+        "a same-day deadline, which the filename pin must NOT excuse":
+            "deadline: item 1 gives 9.0 hour(s)",
+        "a deadline in a file whose name carries no date to pin to":
+            "carries no date to measure it from",
     }
     for name, (files, frozen) in gate_bad.items():
-        gr = gate(_gate_tree(files), FIXTURE_NOW, pre_register=frozen)
-        ok("%-52s is refused" % name, bool(gr["failed"]),
-           "walked %d, failed %d" % (gr["walked"], len(gr["failed"])))
+        gr = gate_run(_gate_tree(files), FIXTURE_NOW, pre_register=frozen)
+        want = gate_bad_reason.get(name)
+        why = " ".join(w for _, w in gr["failed"])
+        ok("%-52s is refused%s" % (name, (", by its own rule" if want else "")),
+           bool(gr["failed"]) and (want is None or want in why),
+           "walked %d, failed %d: %s" % (gr["walked"], len(gr["failed"]),
+                                         cap([why], keep=1, width=90)))
     # THE TREE THAT DOES NOT EXIST. Jafar's warning made flesh: this project
     # retired a file this morning that three readers were still pointed at.
     empty_root = _gate_tree({"production/notes.md": "hello\n"})
-    ge = gate(empty_root, FIXTURE_NOW, pre_register=())
+    ge = gate_run(empty_root, FIXTURE_NOW, pre_register=())
     ok("a MISSING outbox tree is red, never an empty walk reading as clean",
        len(ge["missing_trees"]) == 2, ge["missing_trees"])
     # THE FROZEN LIST CANNOT ROT IN SILENCE.
-    gm = gate(good_tree, FIXTURE_NOW,
-              pre_register=("production/briefs/2026-09-02.md",
-                            "production/briefs/gone.md"))
+    gm = gate_run(good_tree, FIXTURE_NOW,
+                  pre_register=("production/briefs/2026-09-02.md",
+                                "production/briefs/gone.md"))
     ok("a frozen entry that no longer exists prints as a note, not a red",
        gm["listed_absent"] == ["production/briefs/gone.md"] and not gm["failed"],
        (gm["listed_absent"], gm["failed"]))
 
+    # ------------------------------------------- THE OTHER CLOCK, REJECTING
+    # The gate is pinned; the SINGLE-FILE check is not, and must not be. Its
+    # question is "is this deadline far enough away to SEND", which is a
+    # question about now, and these two cases are what prove the fix repaired
+    # the rule rather than disabling it.
+    print("\n  THE SINGLE-FILE CHECK KEEPS THE WALL CLOCK, REJECTING:\n")
+    wall_now = datetime.datetime.now()
+    four_hours = GOOD.replace("DEADLINE 2026-09-07.", "DEADLINE in 4 hours.")
+    r4 = check(four_hours, "unprompted", None)      # None means the wall clock
+    ok("a four-hour deadline is refused by the single-file check at the real "
+       "wall clock (%s), and the finding names the rule" % r4["now"],
+       any(f.rule == "deadline" for f in r4["findings"]),
+       cap([str(f) for f in r4["findings"]], keep=2, width=90))
+    today_iso = wall_now.date().isoformat()
+    dated_today = GOOD.replace("DEADLINE 2026-09-07.", "DEADLINE %s."
+                               % today_iso)
+    rt = check(dated_today, "unprompted", None)
+    ok("a message dated today with a deadline of today (%s) is refused too: "
+       "09:00 today is at most 9.0 hours from any instant inside it" % today_iso,
+       any(f.rule == "deadline" for f in rt["findings"]),
+       cap([str(f) for f in rt["findings"]], keep=2, width=90))
+    # AND THE SAME MESSAGE, UNPINNED, is refused for a different reason: the
+    # deadline could not be read at all. Distinct from "too soon", so the two
+    # outcomes cannot be confused in a finding list.
+    ru = check(GOOD, "unprompted", UNPINNED)
+    ok("an UNPINNED check refuses a deadline it cannot measure, rather than "
+       "passing it",
+       any(f.rule == "deadline" and "no date" in str(f.what)
+           for f in ru["findings"]),
+       cap([str(f) for f in ru["findings"]], keep=2, width=90))
+
     print("\nproducer-check --selftest: %s. %d passed, %d failed, %d rejecting "
-          "fixture(s) over %d rule(s), %d gate fixture(s)"
+          "fixture(s) over %d rule(s), %d rejecting gate fixture(s) in %d "
+          "measured gate run(s)"
           % ("PASS" if not failed else "FAILED", passed, len(failed), len(BAD),
-             len(RULES), len(gate_bad) + 3))
+             len(RULES), len(gate_bad), len(gate_runs)))
     for f in failed:
         print("  " + f)
     return 0 if not failed else 3
@@ -933,6 +1103,59 @@ PRE_REGISTER = (
 GATE_FINDINGS_SHOWN = 2      # per file. cap() announces when it bites.
 
 
+# THE GATE'S CLOCK IS NOT THE WALL CLOCK, ruled 2026-09-03 in
+# production/queue/077-a-sent-message-goes-red-by-the-clock.md. The gate used
+# to re-measure every deadline against the moving wall clock, so the live
+# message dated 2026-09-03 carrying DEADLINE 2026-09-06 was 64 hours away when
+# written and read -51 hours five days later. The gate runs inside
+# ledger/verify.py, so a served deadline would have deleted the footer and
+# blocked every commit until somebody edited a message that was correct when it
+# was written, with nobody having touched the tree.
+#
+# TWO CALLERS, TWO CLOCKS, on purpose:
+#   - the SINGLE-FILE check keeps the wall clock. "Is this deadline far enough
+#     away to send" is a question about now, and that is where the floor bites.
+#   - the GATE pins each file to the ISO date its own filename carries. "Was
+#     this message correct when it was written" has one answer for ever, which
+#     makes the gate idempotent over time by construction rather than by
+#     anybody remembering to re-date a file.
+#
+# MIDNIGHT of that date, not 09:00 and not noon: it is the most permissive
+# instant inside the day the file claims, so the gate can never retroactively
+# refuse a message the send check accepted at some hour of that same day. The
+# floor itself is untouched at MIN_DEADLINE_HOURS: a file dated D whose
+# deadline is D 09:00 still reads 9.0 hours and is still refused.
+#
+# PRODUCTION/BRIEFS GETS THE SAME RULE, not a special case. Three of the four
+# briefs already carry an ISO date at the front of the name, so they pin like
+# any message; latest.md carries none and comes out UNPINNED. UNPINNED is not
+# a pass and not the wall clock: a deadline that cannot be measured is a
+# finding naming the fix (put the date in the name). That is what stops a
+# dateless brief becoming the next landmine in either direction, and all four
+# of these files are exempt from the register anyway, so today nothing rides
+# on it.
+FILENAME_DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})(?!\d)")
+
+
+def gate_clock(rel):
+    """(instant, why) the deadline rule measures this file from.
+
+    The ISO date at the front of the filename, at midnight. UNPINNED when the
+    name carries none, because the gate refuses to guess an instant: a
+    wall-clock fallback here is exactly the landmine this function exists to
+    remove."""
+    name = rel.rsplit("/", 1)[-1]
+    m = FILENAME_DATE_RE.match(name)
+    if not m:
+        return UNPINNED, "the name carries no date to pin a deadline to"
+    try:
+        d = datetime.date.fromisoformat(m.group(1))
+    except ValueError:
+        return UNPINNED, "the date in the name is not a real date: %s" % m.group(1)
+    return (datetime.datetime.combine(d, datetime.time(0, 0)),
+            "pinned to the date in its own name")
+
+
 def gate_kind(rel):
     """(kind, why) for a repo-relative path, or (None, why-not)."""
     name = rel.rsplit("/", 1)[-1]
@@ -951,11 +1174,22 @@ def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES):
 
     PURE-ISH: reads files, touches nothing, returns data. The report function
     formats; the selftest drives this with throwaway trees.
+
+    `now` IS THE RUN'S WALL CLOCK AND IT MEASURES NO DEADLINE. It is recorded
+    and printed as provenance only; each file's deadlines are measured from
+    gate_clock(rel), the date in that file's own name. That is the whole fix
+    of queue item 077, and the property it buys is that this function returns
+    the same verdict for the same tree on every day for ever.
     """
     root = pathlib.Path(root)
-    now = now or datetime.datetime.now()
+    wall_now = (now if now is not None and now is not UNPINNED
+                else datetime.datetime.now())
     r = {"missing_trees": [], "walked": 0, "checked": 0, "exempt": 0,
-         "failed": [], "notes": [], "listed_absent": [], "results": []}
+         "failed": [], "notes": [], "listed_absent": [], "results": [],
+         # OF THE FILES CHECKED, how many had an instant to measure from.
+         # Cumulative over the walk, printed beside its denominator.
+         "date_pinned": 0, "unpinned": 0,
+         "wall_now": wall_now.isoformat(timespec="minutes")}
     frozen = set(pre_register)
     seen = set()
 
@@ -1014,7 +1248,17 @@ def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES):
                                     "pass: nothing measured"))
                 r["results"].append((rel, "fail", "empty"))
                 continue
-            res = check(text, kind, now)
+            # EACH FILE AT ITS OWN INSTANT, never at the run's. See the
+            # gate_clock comment: the wall clock made a sent message go red by
+            # sitting still.
+            file_now, clock_why = gate_clock(rel)
+            if file_now is UNPINNED:
+                r["unpinned"] += 1
+            else:
+                r["date_pinned"] += 1
+            as_of = ("asOf=" + file_now.isoformat(timespec="minutes")
+                     if file_now is not UNPINNED else "asOf=unpinned")
+            res = check(text, kind, file_now)
             r["checked"] += 1
             if res["findings"]:
                 r["failed"].append(
@@ -1022,12 +1266,13 @@ def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES):
                                       cap([str(f) for f in res["findings"]],
                                           keep=GATE_FINDINGS_SHOWN, width=90,
                                           sep=" | "))))
-                r["results"].append((rel, "fail", "%s, %d finding(s)"
-                                     % (kind, len(res["findings"]))))
+                r["results"].append((rel, "fail", "%s, %d finding(s), %s"
+                                     % (kind, len(res["findings"]), as_of)))
             else:
-                r["results"].append((rel, "pass", "%s, %d of %s word(s)"
+                r["results"].append((rel, "pass", "%s, %d of %s word(s), %s"
                                      % (kind, res["words"],
-                                        res["cap"] if res["cap"] else "no-cap")))
+                                        res["cap"] if res["cap"] else "no-cap",
+                                        as_of)))
     # A FROZEN ENTRY THAT NO LONGER EXISTS IS A NOTE, NOT A RED. Deleting an
     # old brief is legitimate; leaving the rot invisible is not, so it prints
     # with its own count on every run.
@@ -1051,6 +1296,20 @@ def gate_report(r):
         print("  note: %d frozen PRE_REGISTER entry/entries no longer exist: "
               "%s" % (len(r["listed_absent"]),
                       cap(r["listed_absent"], keep=3, width=60, sep=", ")))
+    # WHICH CLOCK READ THE DEADLINES, with its denominator, because "0 failed"
+    # from a gate measuring the wrong instant is the fault this line exists to
+    # make visible. Cumulative over the walk.
+    if r["checked"]:
+        print("  deadline clock: %d of %d checked file(s) pinned to the ISO "
+              "date in their own name, %d unpinned (no date in the name, and a "
+              "deadline in one of those is a finding, not a pass). The run's "
+              "wall clock was %s and measured NO deadline: this gate returns "
+              "the same verdict on every day."
+              % (r["date_pinned"], r["checked"], r["unpinned"], r["wall_now"]))
+    else:
+        print("  deadline clock: %s, no file reached a register (wall clock "
+              "%s, which measures no deadline here)"
+              % (NOTHING.replace("-", " "), r["wall_now"]))
     print("  %d file(s) walked: %d checked against a register, %d exempt "
           "(%d by name, %d pre-register), %d failed"
           % (r["walked"], r["checked"], r["exempt"],
@@ -1086,9 +1345,9 @@ def gate_report(r):
                   "whether a claim is TRUE." % (r["checked"], len(REGISTERS),
                                                 ",".join(sorted(REGISTERS))))
         print("\nproducer-check --gate: PASS filesChecked=%s filesExempt=%d "
-              "filesWalked=%d"
+              "filesWalked=%d filesDatePinned=%d/%d"
               % (r["checked"] if r["checked"] else "0/" + NOTHING,
-                 r["exempt"], r["walked"]))
+                 r["exempt"], r["walked"], r["date_pinned"], r["checked"]))
         return GATE_EXIT_OK
     print("  %d file(s) failed:" % len(r["failed"]))
     for rel, why in r["failed"][:5]:
@@ -1097,8 +1356,9 @@ def gate_report(r):
         print("    (+%d more not shown of %d)"
               % (len(r["failed"]) - 5, len(r["failed"])))
     print("\nproducer-check --gate: FAIL filesFailed=%d filesChecked=%d "
-          "filesExempt=%d filesWalked=%d"
-          % (len(r["failed"]), r["checked"], r["exempt"], r["walked"]))
+          "filesExempt=%d filesWalked=%d filesDatePinned=%d/%d"
+          % (len(r["failed"]), r["checked"], r["exempt"], r["walked"],
+             r["date_pinned"], r["checked"]))
     return GATE_EXIT_FAIL
 
 

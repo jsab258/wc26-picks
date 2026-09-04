@@ -119,6 +119,17 @@ decal looks right AT SIZE, ON A SURFACE, IN THE RAIN.
 
 ## In flight
 
+- **NEAR-STOP: 3 POINTS TO THE CEILING, read 2026-09-04 at about 00:30Z.**
+  Total 77 percent, Fable 76, ceiling 80, about 84 hours to the Monday
+  14:00 CEST reset. The higher meter governs and this time it is the TOTAL,
+  which is the reverse of 1 September, so no session may infer one meter from
+  the other. The limit Jafar hit on the evening of 3 September was the 5-hour
+  SESSION limit; the weekly meter did not reset and the arithmetic in
+  `production/budget.md` still stands. One builder spawn is a material
+  fraction of what is left. Spend nothing without a fresh reading or a direct
+  instruction, and prefer zero-cost work: two of today's findings (queue 078
+  and 079) were found by grep and cost nothing.
+
 - **HAZARD WITH A DATE ON IT: the tree goes red at 2026-09-05T09:01Z by
   itself.** The first real Producer message is committed and carries
   `DEADLINE 2026-09-06.`; `producer-check.py` measures that against
@@ -133,9 +144,12 @@ decal looks right AT SIZE, ON A SURFACE, IN THE RAIN.
 
 - **LANDED 2026-09-03, one commit, ruled in
   `game-design/decision-2026-09-03-batch-review-register-banner-spawnlog-uvsweep.md`:**
-  the register gate (walks the outbox and the briefs on every verify; no real
-  message is in the tree yet, so its live reading is
-  `filesChecked=0/nothing-measured`), the banner law (135 documents migrated,
+  the register gate (walks the outbox and the briefs on every verify; its
+  accepting artifact is now the served message read at THREE clocks in one run,
+  `--gate`, `--now 2026-09-08T12:00` and `--now 2027-06-01T12:00`, all PASS at
+  `filesDatePinned=1/1`; the single reading of 3 September was accepting at one
+  instant only, ruling of 4 September section 4), the banner law (135 documents
+  migrated,
   the retired form refused), the spawn log's tier and turn fields (hook
   REGISTERED, first row NOT YET READ: read it before quoting it), and the UV
   head sweep (nine candidate pin names in one run, not yet dispatched). Open
