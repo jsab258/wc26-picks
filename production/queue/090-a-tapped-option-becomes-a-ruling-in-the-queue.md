@@ -2,7 +2,7 @@ line: infrastructure (the Producer loop, rulings)
 spec: production/NOW.md, "JAFAR'S STANDING ORDER, 2026-09-05", item 1, rulings clause
 acceptance: a WAITING card in production/decision-queue.md arrives on his phone with one button per option, and one tap moves that card to RULED THIS WEEK carrying the date, the option letter and RULED BY JAFAR, with the WAITING count printed before and after and falling by exactly one; a tap on a card that is not in WAITING, and a second tap on an already ruled card, are both refused with the reason recorded and the file BYTE-UNCHANGED; a callback from any chat that is not the configured one is refused and counted; a card carrying fewer than two options is not sent at all and says which card and why; the sender prints cardsSent=N/M waiting and the words "nothing measured" when nothing is waiting; the fold's call site is named and is the 088 reader at the dispatch boundary
 max_sessions: 1
-status: READY 2026-09-05. THIRD of item 1. instrument-builder, finished on the PC.
+status: WAITS 2026-09-05 behind the first real tap (queue 093). Built and selftested (cards 41/0, bot 73/0, inbox 54/0, inbox-read 25/0); the fold's caller is tools/inbox-read.py:348; production/rulings/ does not exist and is created by the first delivered record. Ruling section 4.
 
 ## The card format is already ruled, so nothing here invents one
 

@@ -1014,14 +1014,204 @@ def queue_depth():
     at commit time, and the failure it names is the one that actually happened:
     nothing left that can be started without waiting on CI."""
     code, out = run(["python3", str(ROOT.parent / "tools" / "queue-check.py")])
-    m = re.search(r"(\d+) item\(s\), (\d+) ready", out)
+    m = QUEUE_DONE_RE.search(out)
     if not m:
-        return False, "queue-check did not report"
+        return False, ("queue-check did not report: no done line at all: " +
+                       _cap([l.strip() for l in out.splitlines() if l.strip()],
+                            width=120, tail="it printed nothing"))
+    ready, walked, blocked, done = (int(m.group(1)), int(m.group(2)),
+                                    int(m.group(3)), int(m.group(5)))
     if code != 0:
         bad = [l.strip() for l in out.splitlines() if l.strip().startswith("only ")
-               or l.strip().startswith("no `")]
-        return False, "QUEUE TOO THIN: " + _cap(bad, width=100, tail="see queue-check")
-    return True, "%s queue items ready" % m.group(2)
+               or l.strip().startswith("no standing")]
+        return False, ("QUEUE TOO THIN: %d of %d ready: " % (ready, walked)
+                       + _cap(bad, width=100, tail="see queue-check"))
+    return True, ("%d queue items ready (%d blocked, %d done, %d walked under "
+                  "%s/; %s NOT read)"
+                  % (ready, blocked, done, walked, QUEUE_DIR_REL,
+                     QUEUE_RETIRED_REL))
+
+
+# THE QUEUE'S NUMBERS COME OFF ONE COUNTER, and the counter is
+# `tools/queue-check.py`. Repointed 2026-09-05 (queue 079, ruled that day,
+# section 7(d)): it read `game-design/queue.md`, retired 31 August, so this
+# footer printed "22 queue items ready" across four separate commits that added
+# sixteen files, then one, then two, then more. A READING THAT CANNOT MOVE IS
+# NOT A MEASUREMENT, and that one sat in the channel every session reads.
+# `tools/morning-brief.py` imports the same counter, so the brief Jafar reads
+# and this line cannot disagree.
+QUEUE_DIR_REL = "production/queue"
+QUEUE_RETIRED_REL = "game-design/queue.md"
+QUEUE_DONE_RE = re.compile(r"queueReady=(\d+)/(\d+) queueBlocked=(\d+)/(\d+) "
+                           r"queueDone=(\d+)")
+
+
+# ---------------------------------------------------------- tool selftests
+# FIVE TOOLS SHIPPED A SELFTEST AND NOTHING RAN ANY OF THEM. Found 2026-09-05:
+# the inbound and outbound halves of the Telegram loop, the inbox reader, the
+# bot's config parser and the systems inventory all carry both-outcome suites
+# that were run once, by hand, by the builder who wrote them. That is rule 6
+# pointed at an instrument: built, tested, plausible, never running where it
+# matters. A selftest nobody runs decays into a selftest nobody can trust, and
+# the first person to notice is whoever is debugging something else at 3am.
+#
+# ONE HELPER, FIVE ROWS. The count line has one parser here; a sixth tool is a
+# row in the table, never a sixth copy of this function.
+TOOL_SELFTESTS = (
+    ("inbox", "tools/runner/inbox.py"),
+    ("inbox-read", "tools/inbox-read.py"),
+    ("bot config", "tools/runner/telegram-bot.py"),
+    ("outbox", "tools/runner/outbox.py"),
+)
+# `N passed, M failed` is the shape all four print. A tool that stops printing
+# it goes RED here rather than silently passing, which is the whole point: a
+# regex that stops matching and reports green is how a footer becomes a noun.
+TOOL_COUNT_RE = re.compile(r"(\d+) passed, (\d+) failed")
+
+
+def _tool_selftest(label, rel, code, out):
+    """(ok, text) from one tool's selftest output. PURE: the string fixtures
+    drive this half, so the arithmetic and the wording are tested where the
+    tests run rather than only on a live machine."""
+    m = TOOL_COUNT_RE.search(out)
+    if not m:
+        return False, ("%s SELFTEST DID NOT REPORT: no `N passed, M failed` "
+                       "line in its output, which is nothing measured and not "
+                       "a pass: %s" % (label.upper(),
+                                        _cap([l.strip() for l in out.splitlines()
+                                              if l.strip()], width=110,
+                                             tail="it printed nothing at all")))
+    passed, failed = int(m.group(1)), int(m.group(2))
+    if failed or code != 0:
+        return False, ("%s SELFTEST RED: %d of %d case(s) failed (exit %d), %s"
+                       % (label.upper(), failed, passed + failed, code, rel))
+    if not passed:
+        return False, ("%s selftest: %s, 0 case(s) ran in %s"
+                       % (label.upper(), NOTHING_MEASURED.replace("-", " "),
+                          rel))
+    return True, "%s selftest ok (%d checks, 0 failed)" % (label, passed)
+
+
+def _tool_selftest_run(i):
+    label, rel = TOOL_SELFTESTS[i]
+    code, out = run(["python3", str(ROOT.parent / rel), "--selftest"])
+    return _tool_selftest(label, rel, code, out)
+
+
+def inbox_selftest():
+    """The inbound half of the Telegram loop, checked at commit time."""
+    return _tool_selftest_run(0)
+
+
+def inbox_read_selftest():
+    """The reader that is the only thing that ever opens the inbox branch."""
+    return _tool_selftest_run(1)
+
+
+def bot_config_selftest():
+    """The bot's config parser, which never opens the real config.local."""
+    return _tool_selftest_run(2)
+
+
+def outbox_selftest():
+    """The sender: the half that reaches Jafar's phone."""
+    return _tool_selftest_run(3)
+
+
+# THE SYSTEMS INVENTORY (queue 098). Its own exit codes are distinct and this
+# keeps them distinct rather than flattening them: 3 means the names could not
+# be read out of the queue file at all, which is a different failure from a bad
+# entry and must not read as one. Two other items render this JSON, so a stale
+# or refused inventory would otherwise reach a page as if it were data.
+SYSTEMS_INVENTORY_REL = "tools/systems-inventory-check.py"
+SYSTEMS_INVENTORY_RE = re.compile(r"entries=(\d+) namesFromOrder=(\d+) "
+                                  r"covered=(\d+)/(\d+)")
+SYSTEMS_EXIT = {0: "accepted", 1: "REFUSED", 2: NOTHING_MEASURED,
+                3: "COULD NOT RUN"}
+
+
+def systems_inventory():
+    code, out = run(["python3", str(ROOT.parent / SYSTEMS_INVENTORY_REL)])
+    return _systems_inventory(code, out)
+
+
+def _systems_inventory(code, out):
+    """(ok, text). PURE, for the same reason as `_tool_selftest`."""
+    m = SYSTEMS_INVENTORY_RE.search(out)
+    if not m:
+        return False, ("SYSTEMS INVENTORY DID NOT REPORT (exit %d, %s): no "
+                       "entries/covered line, which is nothing measured: %s"
+                       % (code, SYSTEMS_EXIT.get(code, "unknown exit"),
+                          _cap([l.strip() for l in out.splitlines()
+                                if l.strip()], width=110,
+                               tail="it printed nothing at all")))
+    if code != 0:
+        bad = [l.strip() for l in out.splitlines()
+               if l.strip().startswith(("refused", "problem", "MISSING",
+                                        "uncovered"))]
+        return False, ("SYSTEMS INVENTORY %s (exit %d): covered=%s/%s of %s "
+                       "entry/entries: %s"
+                       % (SYSTEMS_EXIT.get(code, "unknown exit"), code,
+                          m.group(3), m.group(4), m.group(1),
+                          _cap(bad, width=100, tail="see the tool")))
+    return True, ("systems inventory ok (%s entry/entries, covered %s/%s of "
+                  "the names in the order)"
+                  % (m.group(1), m.group(3), m.group(4)))
+
+
+# ------------------------------------------------------- the inbox is tracked
+# A MESSAGE FILE GIT DOES NOT TRACK IS A MESSAGE THAT REACHES NOBODY. The
+# inbound route lands Jafar's messages as dated files under production/inbox/
+# and the session reads them from the tree; an untracked one is on one disk
+# only, and the next `git checkout -B` or fresh clone deletes it with no notice
+# anywhere. This refuses the commit while one is sitting there, which is the
+# only moment anybody is looking.
+INBOX_REL = "production/inbox"
+INBOX_EXEMPT = ("README.md",)
+
+
+def _inbox_reading(names, tracked):
+    """(ok, text) from two lists of repo-relative paths: what is on disk and
+    what git tracks. PURE, so both outcomes are fixtures rather than a state
+    somebody has to plant by hand on a live tree."""
+    msgs = [n for n in names if n.rsplit("/", 1)[-1] not in INBOX_EXEMPT]
+    exempt = len(names) - len(msgs)
+    if not msgs:
+        return True, ("inbox: %s, 0 message file(s) under %s/ (%d exempt by "
+                      "name: %s)" % (NOTHING_MEASURED.replace("-", " "),
+                                     INBOX_REL, exempt,
+                                     ", ".join(INBOX_EXEMPT)))
+    untracked = sorted(n for n in msgs if n not in set(tracked))
+    if untracked:
+        return False, ("INBOX UNTRACKED: inboxUntracked=%d/%d, and a message git "
+                       "does not track is on one disk only and the next fresh "
+                       "checkout deletes it: %s"
+                       % (len(untracked), len(msgs),
+                          _cap(untracked, keep=3, width=90)))
+    return True, ("inbox tracked (inboxUntracked=0/%d message file(s), %d "
+                  "exempt by name)" % (len(msgs), exempt))
+
+
+def inbox_tracked():
+    d = ROOT.parent / INBOX_REL
+    if not d.is_dir():
+        # A GATE POINTED AT A PATH NOBODY WRITES TO REPORTS CLEAN FOR EVER.
+        return False, ("INBOX MISSING: no %s/ in this tree, which is red "
+                       "rather than an empty walk reading as clean" % INBOX_REL)
+    names = sorted(p.relative_to(ROOT.parent).as_posix()
+                   for p in d.rglob("*") if p.is_file())
+    # `_git` returns (code, stdout). A GIT THAT COULD NOT LOOK IS NOT AN EMPTY
+    # TRACKED LIST: taking the empty string would report every message as
+    # untracked, which is the loud direction, and reporting it as clean would
+    # be the quiet one. Both are wrong, so it says which happened.
+    code, out = _git(ROOT.parent, "ls-files", INBOX_REL)
+    if code != 0:
+        return False, ("INBOX: git could not list %s/ (exit %d), so %s about "
+                       "tracking over %d file(s) on disk"
+                       % (INBOX_REL, code, NOTHING_MEASURED.replace("-", " "),
+                          len(names)))
+    tracked = [l.strip() for l in out.splitlines() if l.strip()]
+    return _inbox_reading(names, tracked)
 
 
 def game_compiles():
@@ -5586,6 +5776,99 @@ def _strings_selftest():
             "CLAUDE.md: an absent file is RED, never a silent pass", s)
 
     globals()["ROOT"] = real_root
+
+    # ------------------------------------------------ THE 2026-09-05 FOLD
+    # Five tool selftests, the systems inventory, the inbox and the repointed
+    # queue counter, both outcomes each, ACCEPTING CASE FIRST. The arithmetic
+    # and the wording live here because this is where the tests run: a
+    # formatter that only ever executes on a live tree is an unrun formatter
+    # printing a plausible string.
+    ok, s_q = with_out(queue_depth,
+                       "queue-check: 95 item(s), 85 ready to start now, 4 "
+                       "blocked, 11 done, standing track present\n"
+                       "queue-check: PASS queueReady=85/95 queueBlocked=4/95 "
+                       "queueDone=11 queueLanded=6/95 queueUnstatused=6/95 "
+                       "queueExempt=1 queueFloor=3 "
+                       "retiredNotRead=game-design/queue.md\n")
+    say(ok and "85 queue items ready" in s_q and "4 blocked" in s_q
+        and "11 done" in s_q and "95 walked" in s_q
+        and "game-design/queue.md NOT read" in s_q,
+        "queue_depth reads ready, blocked and done off ONE counter and names "
+        "the retired file as not read", s_q)
+    # AND IT MOVES. Same function, one contributor toggled (one more item in
+    # the counter's output), both rungs read in this run: the fault queue 079
+    # names is a number that stays 22 while the directory grows.
+    ok2, s_q2 = with_out(queue_depth,
+                         "queue-check: 96 item(s), 86 ready to start now, 4 "
+                         "blocked, 11 done, standing track present\n"
+                         "queue-check: PASS queueReady=86/96 queueBlocked=4/96 "
+                         "queueDone=11 queueFloor=3\n")
+    say(ok2 and "86 queue items ready" in s_q2 and s_q2 != s_q,
+        "and the footer line CHANGES when the counter counts one more item "
+        "(85 then 86)", (s_q, s_q2))
+    ok3, s_q3 = with_out(queue_depth, "queue-check: 2 item(s), 2 ready\n"
+                                      "queue-check: THIN queueReady=2/2 "
+                                      "queueBlocked=0/2 queueDone=0\n"
+                                      "  only 2 item(s) can be started now\n",
+                         code=1)
+    say(not ok3 and "QUEUE TOO THIN" in s_q3 and "2 of 2" in s_q3,
+        "a thin queue is red and prints both halves of the fraction", s_q3)
+    ok4, s_q4 = with_out(queue_depth, "queue-check: it all went wrong\n")
+    say(not ok4 and "no done line" in s_q4,
+        "a counter that prints no done line is red, never a silent pass", s_q4)
+
+    say(_tool_selftest("inbox", "x.py", 0,
+                       "inbox --selftest: PASS, 42 passed, 0 failed, 42 "
+                       "case(s) run.")
+        == (True, "inbox selftest ok (42 checks, 0 failed)"),
+        "a passing tool selftest reads as ok with its own count",
+        _tool_selftest("inbox", "x.py", 0, "42 passed, 0 failed"))
+    r_fail = _tool_selftest("outbox", "x.py", 3, "40 passed, 3 failed")
+    say(not r_fail[0] and "3 of 43" in r_fail[1],
+        "a failing tool selftest is red and prints failed over total", r_fail)
+    r_none = _tool_selftest("bot config", "x.py", 0, "everything is fine")
+    say(not r_none[0] and "DID NOT REPORT" in r_none[1],
+        "a tool that stops printing its count line is RED, not green", r_none)
+    r_zero = _tool_selftest("inbox-read", "x.py", 0, "0 passed, 0 failed")
+    say(not r_zero[0] and "nothing measured" in r_zero[1],
+        "a selftest that ran no case at all says nothing measured", r_zero)
+
+    r_si = _systems_inventory(0, "systems-inventory: entries=27 "
+                                 "namesFromOrder=27 covered=27/27")
+    say(r_si[0] and "covered 27/27" in r_si[1],
+        "the systems inventory reads as ok with entries and coverage", r_si)
+    r_si1 = _systems_inventory(1, "systems-inventory: entries=27 "
+                                  "namesFromOrder=27 covered=26/27\n"
+                                  "uncovered: 1/27 names have no entry")
+    say(not r_si1[0] and "REFUSED" in r_si1[1] and "26/27" in r_si1[1],
+        "a refused inventory is red and keeps exit 1 distinct", r_si1)
+    r_si3 = _systems_inventory(3, "systems-inventory: entries=0 "
+                                  "namesFromOrder=0 covered=0/0")
+    say(not r_si3[0] and "COULD NOT RUN" in r_si3[1],
+        "and exit 3, the names unreadable, does not read as a bad entry",
+        r_si3)
+
+    # THE INBOX GATE, ACCEPTING CASES FIRST, and the middle one is the case
+    # rule 5b demands: a run in which the thing it asserts CAN happen.
+    r_empty = _inbox_reading(["production/inbox/README.md"],
+                             ["production/inbox/README.md"])
+    say(r_empty[0] and "nothing measured" in r_empty[1],
+        "an inbox holding no message says nothing measured, never 0 clean",
+        r_empty)
+    r_ok = _inbox_reading(["production/inbox/README.md",
+                           "production/inbox/2026-09-05T10-00-00Z.json"],
+                          ["production/inbox/README.md",
+                           "production/inbox/2026-09-05T10-00-00Z.json"])
+    say(r_ok[0] and "inboxUntracked=0/1" in r_ok[1],
+        "a tracked message passes and prints its denominator", r_ok)
+    r_bad = _inbox_reading(["production/inbox/README.md",
+                            "production/inbox/2026-09-05T10-00-00Z.json",
+                            "production/inbox/2026-09-05T11-00-00Z.json"],
+                           ["production/inbox/README.md",
+                            "production/inbox/2026-09-05T10-00-00Z.json"])
+    say(not r_bad[0] and "inboxUntracked=1/2" in r_bad[1],
+        "an untracked message is red and names how many of how many", r_bad)
+
     return passed, failed, lines
 
 
@@ -5763,6 +6046,7 @@ def main():
     for fn in (director_cadence, footer_strings,
                lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape, producer_register, claude_md_size,
+               inbox_selftest, inbox_read_selftest, bot_config_selftest, outbox_selftest, systems_inventory, inbox_tracked,
                template_sync,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, raw_avenues, bat_editor, bootstrap_single, blender_hash_parse, filename_as_type, namespace_as_value, workflow_size,

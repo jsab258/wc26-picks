@@ -276,9 +276,12 @@ NUMBER = r"[-+]?\d+(?:\.\d+)?"
 # one missing a line — so there is one now.
 #
 # STILL THREE COPIES ACROSS tools/: this one, and two in `verdict-read.py`
-# (`main` and `spaced_values`). A shared `tools/verdictfmt.py` is the right
-# home; that file is not this agent's to touch, so the duplication is REPORTED
-# rather than half-removed.
+# (`main` and `spaced_values`). A shared formatter module under tools would
+# be the right home; that file is not this agent's to touch, so the
+# duplication is REPORTED rather than half-removed. THE PATH IS NOT
+# WRITTEN OUT HERE ON PURPOSE: verify.py's tool walk is a regex over raw
+# text and cannot tell a call from a proposal, so a path in a comment
+# becomes a hard dependency and goes red as absent. Queue 109.
 VALUE = r"(?:\[[^\]]*\]|\([^)]*\)|[^\s\[\(])+"
 
 

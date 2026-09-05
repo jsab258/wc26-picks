@@ -2,7 +2,7 @@ line: infrastructure (the Producer loop, outbound)
 spec: production/NOW.md, "JAFAR'S STANDING ORDER, 2026-09-05", item 1, outbound clause
 acceptance: a Producer message file committed in the container reaches his phone without a human, and a receipt naming the file, the commit sha and the send instant lands in the repo, with outboundLatencySec printed from commit to send; a message that fails `python3 tools/producer-check.py --kind <kind>` is NOT sent and the refusal names the failing clause; a file already sent is not sent twice, proven by two passes reporting sent=1; the sender prints outboxFiles=N sent=M refused=K unsent=J and the words "nothing measured" when the outbox holds no unsent file; the receipt carries the message id the platform returned, so a receipt with no id is refused; and a refused message travels back to the tree as a record on 088's branch with the failing clause, printed as refused=K on the container side
 max_sessions: 1
-status: READY 2026-09-05. SECOND of item 1. instrument-builder, finished on the PC.
+status: WAITS 2026-09-05 behind the first real send. Built and selftested 43/0; production/outbound/ holds no receipt, so the acceptance's real message and outboundLatencySec are not yet measured. The first candidates are tonight's Producer report and tomorrow's 04:00 brief.
 
 ## What exists and what is missing
 

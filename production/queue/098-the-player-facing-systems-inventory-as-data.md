@@ -2,7 +2,7 @@ line: production (the plan)
 spec: production/NOW.md, "JAFAR'S STANDING ORDER, 2026-09-05", item 4, first part
 acceptance: one machine-readable inventory file where every entry carries all six ruled fields with values from the fixed sets, and its validator prints entries=N namesFromOrder=27 covered=27/27 naming any name with no entry; an entry whose status is exists or partial and whose evidence path does not resolve in this checkout is REFUSED, as is an entry whose area, status, class or phase is not in the fixed set, both proven with planted entries; an empty or unreadable inventory makes the validator print the words "nothing measured" rather than passing; and the validator is called by `python3 ledger/verify.py` so the file cannot rot silently
 max_sessions: 1
-status: READY 2026-09-05. Item 4 part one, and 099 and 100 both wait on it. instrument-builder or systems-builder.
+status: LANDED 2026-09-05. 27 entries, exists=13 partial=11 absent=3, 61 evidence references resolving, validator called by ledger/verify.py, selftest 9/9 rungs. The seventh field, evidence, is KEPT by game-design/decision-2026-09-05-ruling-build-batch-and-roadmap-fold.md section 5.
 
 ## The names, carried here so nobody re-derives them
 

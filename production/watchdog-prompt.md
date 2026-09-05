@@ -66,15 +66,15 @@ ALWAYS: push only to claude/game-dev-ai-automation-2h67ix. Never open a pull req
 
 ## The daily trigger's prompt, and the one line queue 088 needs in it
 
-STATUS: NOT YET SET IN THE TRIGGER SYSTEM as of 2026-09-05. This section is a
-REQUEST, not a recording, and it is marked as one because a recorded copy that
-does not match what is set is worse than no copy at all, which is the contract
-above.
+Was a REQUEST until 2026-09-05T11:38:02Z, when the trigger was set; the LIVE
+line below is the reading copy.
+
 
 Trigger: `trig_013itgDeay6t41BHEmaYFbAj`, 04:00 UTC daily (`production/NOW.md`
 item 1d). It is the only live trigger; the hourly watchdog above is disabled.
 
-STATUS: LIVE, set 2026-09-05T11:38:02Z by the resident, applying section 9.1 of
+STATUS: LIVE, reset 2026-09-05T16:20:45Z, now naming `tools/morning-brief.py`. Rule 13 at the top and
+the cut-from-console-never-the-game rule at the bottom. First set 11:38:02Z per section 9.1 of
 `game-design/decision-2026-09-05-ruling-088-inbound-transport-batch.md`. The
 088 reader line and the self-check line are both in. The prompt AS SET follows,
 whole, so a session can compare what it is reading against this file rather
@@ -87,17 +87,19 @@ own staleness; only the session reading both can.
 
     DAILY WAKE. This replaces the hourly watchdog, which stays OFF by Jafar's order of 2026-09-04 item 1d. You fire once a day at 04:00 UTC, which is 06:00 CEST, chosen so the brief is on his phone before 07:00 CEST.
 
+    A TURN ENDS AT THE CEILING, A LIMIT, OR A BLOCKED DEPENDENCY, AND NOTHING ELSE. Ruled by Jafar 2026-09-05 and carried as rule 13 in CLAUDE.md. A landed batch is NOT a reason to stop: take the next item in his order. Questions go to the Telegram inbox and work continues meanwhile; do not stop to ask. On a limit, parse the reset time out of the notice, arm a one-shot trigger for it whose instruction is to resume the current item and continue his order, and continue when it fires. Reviews are gates, not pauses.
+
     FIRST, READ THE INBOX: `python3 tools/inbox-read.py`. Anything Jafar sent the bot is a dated file on the `pc-inbox` branch and this is the only thing that ever looks at it. Answer him through the Producer before planning the day, and stage the delivered files by name in the day's first commit.
 
     THEN DO THREE THINGS, in this order.
 
     1. BUDGET FIRST. Read `production/budget.md`. It is the authority and this prompt is not. If a stop condition holds, say so in the brief and do not start work. An unknown budget is not permission. The ceiling is 80 percent on BOTH meters and the higher one governs.
 
-    2. PLAN THE DAY against Jafar's standing order in `production/NOW.md`, which carries his numbered list of 2026-09-04 and REPLACES every earlier ordering. Do not re-plan from the queue's filed order; his list wins. Read `production/NOW.md` before the queue, every time.
+    2. PLAN THE DAY against Jafar's standing order in `production/NOW.md`, which carries his numbered list and REPLACES every earlier ordering. Do not re-plan from the queue's filed order; his list wins. Read `production/NOW.md` before the queue, every time. NO PLANNING OR DECOMPOSITION PASSES ARE AUTHORISED: the order is already queue files, and turning it into more files is the failure of 2026-09-05. Build.
 
-    3. PRODUCE THE BRIEF. Per his item 1c it is GENERATED FROM REPO STATE BY A TOOL, not written by hand in a session. If that tool does not exist yet, building it is the day's work and the brief is written by hand ONCE more, saying in its own text that it was hand-written and why. The Producer writes it in the register; the sender runs `tools/producer-check.py` and only a pass may go out; the bot pushes it.
+    3. PRODUCE THE BRIEF: run `python3 tools/morning-brief.py`. It generates the brief from repo state, self-checks it against the register, and refuses rather than writing a brief with a hole. Stage `production/briefs/<today>.md` by name. The bot pushes it; only a `producer-check` pass may go out.
 
-    STANDING, and it binds every day: every brief reports the STUDIO VERSUS GAME split of points. Nothing reaches Jafar outside Telegram (his item 2); if something can only be answered in the terminal, that is a gap to FILE, not a reason to page him there. After his item 4 lands, the studio stops building studio this week and any new process item goes to the queue and waits.
+    STANDING, and it binds every day: every brief reports the STUDIO VERSUS GAME split, in sessions and not points until the rate is measured. Nothing reaches Jafar outside Telegram (his item 2); if something can only be answered in the terminal, that is a gap to FILE, not a reason to page him there. If the budget forces a cut, CUT FROM THE CONSOLE ITEMS, NEVER FROM THE GAME.
 
     IF A SESSION OR WEEKLY LIMIT IS HIT: the notice carries its own reset time. Parse it, write it where the bot reads it, and ARM A ONE-SHOT TRIGGER for that reset whose instruction is to resume the current item and continue his order. Do this by hand until item 1b is built. No reset should ever need Jafar to restart the studio.
 

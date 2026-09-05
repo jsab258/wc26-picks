@@ -145,6 +145,12 @@ blocked feedback channel is the highest-leverage bug on the board, not an
 inconvenience to route around. The channel that works here is a file committed
 by CI, under `game-design/sim-shots/`.
 
+**13. A turn ends at the ceiling, a limit, or a blocked dependency, and
+nothing else.** A landed batch is not a reason to stop: take the next item in
+the order. Questions go to the Telegram inbox; work continues meanwhile. On a
+limit, parse the reset from the notice, arm the resume trigger, continue when
+it fires. Jafar, 2026-09-05.
+
 ## Before you commit
 
 Run `python3 ledger/verify.py`. Green writes `ledger/.verify-footer`, red
@@ -175,14 +181,14 @@ and a standing instruction not to commit.
 Escalation is mechanical, never judged: a director is spawned for
 builder-batch review before commit, queue reorder or refill, a landing that
 changes a conclusion, a verifier-builder disagreement, a close-out, and
-anything touching premise, roadmap or this file. Questions fold into one
-spawn; a killed director is resumed, never restarted. The resident hand-applies only dictated
-text or a one-line fix, and never commits a builder's work-in-progress because
-a stop hook asks: the tree goes clean in one reviewed commit per batch. `director_cadence` blocks a commit of
-builder work no ruling covers; a ruling is a decision record under
-`game-design/` carrying a `<!--RULING spawn=...-->` stamp naming a real spawn
-row newer than the reference commit. A spawn alone is attendance, not a
-review, and a resident never stamps the director's ruling.
+anything touching premise, roadmap or this file. Reviews are gates, not
+pauses. Questions fold into one
+spawn; a killed director is resumed, never restarted. The resident hand-applies
+only dictated text or a one-line fix, and never commits a builder's
+work-in-progress because a stop hook asks. `director_cadence` blocks a commit of
+builder work no ruling covers; a ruling is a record under `game-design/` with a
+`<!--RULING spawn=...-->` stamp naming a spawn row newer than the reference
+commit. A spawn alone is attendance, and a resident never stamps the ruling.
 
 Reasoning, incidents and the two residual holes:
 `ledger-v2/studio-v2/organization.md`.
@@ -205,27 +211,21 @@ rung is a research task, not a finished aspect.
 Reporting to Jafar is THE PRODUCER'S ALONE, ruled 2026-09-03:
 `.claude/agents/producer.md` carries the register, the cap and the required
 link. Resident owns the record, Producer the channel. Judgment, never a status
-dump, nothing on a clock, and every report carries a picture that
-`tools/report-frame.py` withholds when the last build measured nothing.
+dump, and every report carries a picture `tools/report-frame.py` withholds when
+the last build measured nothing.
 Incidents: `ledger-v2/studio-v2/operations.md`.
 
 ## Where the rest of this file went, 2026-09-01
 
-Task `production/queue/013-cut-claude-md-to-standing-rules.md`. Nothing was
-deleted. Every passage moved intact.
+Task `production/queue/013`. Nothing deleted; every passage moved intact.
 
-- `ledger-v2/studio-v2/casebook-claims.md`: rules 1, 3, 4, 5, 5b, 6 in full,
-  with the incidents that paid for them.
-- `ledger-v2/studio-v2/casebook-measurement.md`: rules 2 and 3b in full.
-- `ledger-v2/studio-v2/casebook-build-and-evidence.md`: rule 12, the compile
-  blind spots, the verdict format, the stills, the container rollback.
-- `.claude/rules/instruments.md`, `.claude/rules/ci.md`: the terse versions.
-- `ledger-v2/studio-v2/operations.md`: rules 7 to 11 and reporting.
-- `ledger-v2/studio-v2/organization.md`: the studio split in full.
-- `ledger-v2/studio-v2/runner.md`: the auto-mode manual, watchers, dispatch.
-- `production/quality-ladder.md`: the standing order in Jafar's words.
-- `legacy/claude-md-superseded-2026-09-01.md`: the GTA V bar, retired by D8.
+Under `ledger-v2/studio-v2/`: `casebook-claims.md` has rules 1, 3, 4, 5, 5b, 6
+with their incidents; `casebook-measurement.md` has 2 and 3b;
+`casebook-build-and-evidence.md` has 12; `operations.md` has 7 to 11 and
+reporting; `organization.md` the split; `runner.md` dispatch. Also
+`.claude/rules/instruments.md` and `ci.md`, `production/quality-ladder.md`, and
+`legacy/claude-md-superseded-2026-09-01.md` for the GTA V bar retired by D8.
 
-`ledger/verify.py` prints this file's word count into the verification footer
-so it cannot quietly grow back; `tools/goal-block-check.py` proves the goal
-block still matches `ledger-v2/respec/vision-pillars-v2.md`.
+`ledger/verify.py` prints this file's word count so it cannot quietly grow
+back; `tools/goal-block-check.py` proves the goal block still matches
+`ledger-v2/respec/vision-pillars-v2.md`.

@@ -12,7 +12,9 @@ REM
 REM  WHAT IT DOES
 REM    1. Brings this checkout current: git pull --ff-only. Never a
 REM       bare pull, so it can never make a merge commit.
-REM    2. Rebuilds dashboard.html and STATUS.md from the repository.
+REM    2. Rebuilds dashboard.html and STATUS.md from the repository,
+REM       glance.html, which is the five-thing page for a phone, and
+REM       map.html, which is every system as a tile beside it.
 REM    3. Opens dashboard.html in whatever browser you normally use.
 REM    The page refreshes itself every 5 minutes, says how old IT is at
 REM    the top, and now says how old the FILES it read are, because a
@@ -136,6 +138,42 @@ if not "%RC%"=="0" (
   echo   The page was NOT rebuilt. Anything on screen from an older run
   echo   is that old; do not read it as current.
   goto :theend
+)
+
+REM --- and the glance, the page he opens on a phone --------------------
+REM  Five things on one screen: production/queue/096. It is built from
+REM  the same line that just brought this checkout current, rather than
+REM  from a second scheduled task, because a second task is a second
+REM  thing to notice has stopped.
+REM
+REM  A FAILED GLANCE NEVER STOPS THE DASHBOARD. Two pages, two fates:
+REM  the one that failed says so, and the file on disk stays as old as
+REM  its own timestamp rather than being passed off as current.
+%PY% "%REPO%\tools\glance.py" --root "%REPO%"
+set "GRC=%errorlevel%"
+if not "%GRC%"=="0" (
+  echo.
+  echo   NOTE: glance.html was NOT rebuilt ^(exit %GRC%^). The reason is
+  echo         printed above. Any glance.html already on disk is as old
+  echo         as its own timestamp; do not read it as current.
+)
+
+REM --- and the map, the whole shape of the game beside the glance ----
+REM  Every player-facing system as a tile, grouped by area and coloured
+REM  by status: production/queue/099. The glance is today, the map is
+REM  the whole, so they are two pages and this line builds the second
+REM  one from the same checkout the line above just brought current.
+REM
+REM  A REFUSED INVENTORY IS NOT A FAILED BUILD. map.py writes the page
+REM  either way and exits non-zero when it could not draw the map, so
+REM  the file on disk says "REFUSED" or "nothing measured" with the
+REM  reason rather than showing yesterday's tiles as if they were true.
+%PY% "%REPO%\tools\map.py" --root "%REPO%"
+set "MRC=%errorlevel%"
+if not "%MRC%"=="0" (
+  echo.
+  echo   NOTE: map.html says the map could NOT be drawn ^(exit %MRC%^).
+  echo         The reason is printed above and is on the page itself.
 )
 
 if /I "%MODE%"=="/refresh" (

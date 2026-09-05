@@ -2,7 +2,7 @@ line: production (the console)
 spec: production/NOW.md, "JAFAR'S STANDING ORDER, 2026-09-05", item 4, second part
 acceptance: one page rendered from the inventory file where tiles=N equals entries=N in the data, printed side by side, grouped into the five areas with a per-area count, coloured by the three status values, one screen, with the same phone-first instrument queue 096 uses (viewport declared, no declared width above 360 CSS pixels, zero external references, weight against a stated cap) and each tile opening its status, blocker and decisions without a network request; a data file carrying an area or status outside the fixed set makes the renderer REFUSE and name the entry rather than colouring it grey; an empty data file renders a page that says the words "nothing measured" rather than an empty grid; and the page is OPENED and read before any number from it is quoted
 max_sessions: 1
-status: READY 2026-09-05. Item 4 part two. instrument-builder.
+status: LANDED 2026-09-05. Selftest 76/0, tiles=27 beside entries=27; opened as a file, not yet on a phone, which is 097's proof.
 
 ## What it is, in his words
 

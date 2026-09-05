@@ -66,6 +66,19 @@ answer. Two separate faults produced that pair:
      a function OF THE STATUS, so no run can print a failure beside MADE
      again.
 
+  3. AND THE SAME WORD MUST NOT BE OVERCLAIMED A SECOND WAY. When no pin
+     name is accepted, the head of the UV chain is written straight into the
+     input property as a last resort. That reads back connected, so it is a
+     connection and materialConnections counts it; what a struct written by
+     value does to the compiled SHADER is unproven from here. So 14 of 14
+     carrying any such head prints materialStatus=WIRED-BY-PROPERTY-WRITE
+     with materialScriptReturn=2 and the count that decided it beside it as
+     materialUvHeadByPropertyWrite, and the four frames judge whether the
+     material is correct or merely plausible. The word and the return were ruled
+     2026-09-03; the printed count was added under
+     game-design/decision-2026-09-05-ruling-062-step-2-third-status-word.md.
+     MADE is unchanged and still means every head taken by a named pin.
+
 THE STATUS AND THE RETURN CODE ARE COMPUTED BY PURE FUNCTIONS AT THE TOP OF
 THIS FILE and exercised by --selftest, which runs in the container that
 writes them. Everything that needs Unreal supplies numbers; nothing that
@@ -168,23 +181,86 @@ NORMAL_DEFAULTS = [
 # for. --selftest exercises all three of these before any dispatch.
 
 STATUS_MADE = "MADE"
+STATUS_BY_PROPERTY_WRITE = "WIRED-BY-PROPERTY-WRITE"
 STATUS_PARTIAL = "PARTIAL"
 STATUS_NOT_SAVED = "NOT-SAVED"
 
+# THE SUFFIX THAT MEANS A HEAD EXISTS ONLY BECAUSE THE LAST RESORT TOOK.
+# property_write_via writes it and property_write_heads reads it, both here,
+# so the producer and the counter cannot drift apart: a spelling changed in
+# main() would otherwise make the count read zero in silence and print MADE
+# over a head no named pin ever accepted, which is the overclaim this whole
+# rule exists to stop.
+PROP_WRITE_TOOK = "property-write-took"
 
-def material_status(saved, params_made, params_asked, wired, asked):
+
+def property_write_via(candidates_total, wrote):
+    """The via token for a head that no candidate pin name would take.
+
+    wrote is what _write_input_property answered: True the write took AND
+    read back connected, None the input property is not exposed at all, False
+    the write was refused or could not be confirmed. Only the first is a
+    connection, so only the first ends in the token above.
+    """
+    return "none-of-%d-candidates..then.property-write-%s" % (
+        candidates_total,
+        "took" if wrote is True else
+        ("unavailable" if wrote is None else "refused"))
+
+
+def property_write_heads(results):
+    """How many UV heads exist only because the last-resort property write
+    took, out of how many heads were recorded.
+
+    results is the uv_head record list, one (ok, via, tried, readback) per
+    head connection in the order main() makes them. A head counts only when
+    it landed AND its via ends in PROP_WRITE_TOOK: a property write that was
+    unavailable or refused made nothing, and a head a named pin accepted is
+    not this route.
+
+    Returns (count, recorded, field). field is the verdict value, N/M, or the
+    words nothing measured when no head was recorded at all, because a bare
+    zero here cannot tell "both heads went through a named pin" from "the
+    heads never ran" and the status word turns on exactly that difference.
+    """
+    count = len([r for r in results
+                 if r[0] and str(r[1]).endswith(PROP_WRITE_TOOK)])
+    recorded = len(results)
+    if not recorded:
+        return 0, 0, "nothing-measured"
+    return count, recorded, "%d/%d" % (count, recorded)
+
+
+def material_status(saved, params_made, params_asked, wired, asked,
+                    prop_write_heads):
     """One word for what this run of the script achieved.
 
-    MADE needs all three of: the asset saved to disk, every texture parameter
-    the C++ contract names, and every connection the script asked the editor
-    to make. The third clause is new. Run 19 wired 12 of 14 and still said
-    MADE, and the two that refused were TexCoord into the component masks:
-    the head of the UV chain that all three samplers hang off, so every
-    sampler in that material reads one texel. A material whose UV chain is
-    unconnected has not been made.
+    MADE needs all four of: the asset saved to disk, every texture parameter
+    the C++ contract names, every connection the script asked the editor to
+    make, and no head standing on the last-resort property write. The third
+    clause came from run 19, which wired 12 of 14 and still said MADE: the
+    two that refused were TexCoord into the component masks, the head of the
+    UV chain that all three samplers hang off, so every sampler in that
+    material reads one texel. A material whose UV chain is unconnected has
+    not been made.
+
+    WIRED-BY-PROPERTY-WRITE is 14 of 14 where at least one head was made by
+    writing the input struct rather than by a named pin, which is
+    prop_write_heads above zero, counted by property_write_heads. The graph
+    reads back connected, so the connection is real and the COUNT is right to
+    include it, but what a struct written by value does to the compiled
+    SHADER is unproven here and only the still can judge it. MADE overclaimed
+    once and was repaired by requiring the count; a second route into the same
+    word on unproven shader effect would be the same fault in the same word,
+    so the third state gets a word of its own and the same return code as
+    every other non-pass. Ruled 2026-09-03, game-design/decision-2026-09-03-
+    batch-review-register-banner-spawnlog-uvsweep.md.
 
     PARTIAL is a saved asset that fell short of one of those, which is worth
-    keeping and is not a pass. NOT-SAVED is nothing on disk at all.
+    keeping and is not a pass. NOT-SAVED is nothing on disk at all. The
+    property-write clause is LAST on purpose: a run still short of 14 of 14
+    stays PARTIAL rather than being renamed by the thing that rescued one
+    head of it.
     """
     if not saved:
         return STATUS_NOT_SAVED
@@ -192,6 +268,8 @@ def material_status(saved, params_made, params_asked, wired, asked):
         return STATUS_PARTIAL
     if asked <= 0 or wired < asked:
         return STATUS_PARTIAL
+    if prop_write_heads > 0:
+        return STATUS_BY_PROPERTY_WRITE
     return STATUS_MADE
 
 
@@ -199,7 +277,13 @@ def material_return(status):
     """The script's own return code, a FUNCTION of the status and never a
     second opinion about it. Two numbers derived from one variable are one
     number twice, and that is the point here: the pair that made run 19
-    unreadable cannot be printed again."""
+    unreadable cannot be printed again.
+
+    MADE is the only zero, so WIRED-BY-PROPERTY-WRITE returns 2 like every
+    other word that is not a pass. That is safe rather than costly: run 20's
+    ue-build.txt shows the workflow cooking and capturing after a return of 2,
+    so the four frames that are the only thing able to judge the third state
+    arrive either way."""
     return 0 if status == STATUS_MADE else 2
 
 
@@ -210,8 +294,9 @@ class Wiring(object):
     asked counts CONNECTIONS ASKED FOR and never candidate pin names: a head
     connection swept over nine candidate names is one connection, so the
     denominator stays 14 whatever the sweep costs. wired counts the ones the
-    editor accepted. materialStatus reads MADE only when the two are equal,
-    which is the 3 September rule and is not relaxed here.
+    editor accepted. materialStatus reads MADE only when the two are equal
+    AND no head stood on the last-resort property write, which is the
+    3 September rule and its amendment, and neither is relaxed here.
     """
 
     def __init__(self):
@@ -316,7 +401,7 @@ def uv_head_fields(results, candidates_total):
 
 def material_line(status, params_made, params_asked, wired, asked, existed,
                   colour_from, normal_from, defaults_bound, defaults_asked,
-                  saved, notes, uv_via, uv_tried, uv_readback):
+                  saved, notes, uv_via, uv_tried, uv_readback, uv_by_prop):
     """The one line the workflow copies into the build verdict.
 
     No spaces inside any value: every reader of these files splits on
@@ -324,8 +409,9 @@ def material_line(status, params_made, params_asked, wired, asked, existed,
     default textures, which run 19 reported as `none-of-2-candidates` with no
     total beside it.
 
-    The three UV head values are readings, not verdicts, and nothing branches
-    on them:
+    Three of the four UV head values are readings that nothing branches on.
+    The fourth is the one number the status word turns on, so it is printed
+    beside the word it decided rather than left to be inferred from the via:
       materialUvHeadVia          which pair of pin names the editor accepted,
                                  or none-of-N-candidates, for both masks or
                                  named per mask when the two differ.
@@ -337,12 +423,20 @@ def material_line(status, params_made, params_asked, wired, asked, existed,
                                  made, with the count the editor would not
                                  answer for carried beside it rather than
                                  folded into the no.
+      materialUvHeadByPropertyWrite
+                                 head connections that exist only because the
+                                 last-resort property write took, over the
+                                 head connections recorded. Above zero at
+                                 14 of 14 is what makes the status
+                                 WIRED-BY-PROPERTY-WRITE instead of MADE, and
+                                 0/2 is the reading that leaves MADE standing.
+                                 nothing-measured when no head ran at all.
     """
     return ("materialStatus=%s materialScriptReturn=%d materialPath=%s "
             "materialExistedBefore=%s materialParams=%s materialParamsMade=%d/%d "
             "materialScalars=%s materialConnections=%d/%d "
             "materialUvHeadVia=%s materialUvHeadTriedAtWorst=%s "
-            "materialUvHeadReadback=%s "
+            "materialUvHeadReadback=%s materialUvHeadByPropertyWrite=%s "
             "materialColourDefault=%s materialNormalDefault=%s "
             "materialDefaultsBound=%d/%d materialSaved=%s "
             "materialVerdictIs=materialScriptReturn/not-the-editor-process-exit "
@@ -351,7 +445,7 @@ def material_line(status, params_made, params_asked, wired, asked, existed,
                "yes" if existed else "no",
                "/".join(TEXTURE_PARAMS), params_made, params_asked,
                "/".join(SCALAR_PARAMS), wired, asked,
-               uv_via, uv_tried, uv_readback,
+               uv_via, uv_tried, uv_readback, uv_by_prop,
                str(colour_from).replace(" ", "~"),
                str(normal_from).replace(" ", "~"),
                defaults_bound, defaults_asked,
@@ -409,21 +503,31 @@ def selftest():
     # shipped without a run in which it fires is a claim. Both are here, and
     # the rejecting case is run 19's own numbers.
     cases = [
-        # (saved, made, asked_params, wired, asked, status, return)
-        (True, 3, 3, 14, 14, STATUS_MADE, 0),
-        (True, 3, 3, 12, 14, STATUS_PARTIAL, 2),   # run 19, exactly
-        (True, 2, 3, 14, 14, STATUS_PARTIAL, 2),
-        (True, 3, 3, 0, 0, STATUS_PARTIAL, 2),     # nothing asked is not a pass
-        (False, 3, 3, 14, 14, STATUS_NOT_SAVED, 2),
+        # (saved, made, asked_params, wired, asked, byPropWrite,
+        #  status, return)
+        (True, 3, 3, 14, 14, 0, STATUS_MADE, 0),
+        (True, 3, 3, 12, 14, 0, STATUS_PARTIAL, 2),   # run 19, exactly
+        (True, 2, 3, 14, 14, 0, STATUS_PARTIAL, 2),
+        (True, 3, 3, 0, 0, 0, STATUS_PARTIAL, 2),  # nothing asked, no pass
+        (False, 3, 3, 14, 14, 0, STATUS_NOT_SAVED, 2),
+        # THE THIRD STATE. Everything the acceptance asks for, with one of
+        # the two heads standing on the last-resort property write: the word
+        # changes and the return stays 2, because only the still can say
+        # whether that head reached the shader.
+        (True, 3, 3, 14, 14, 1, STATUS_BY_PROPERTY_WRITE, 2),
+        (True, 3, 3, 14, 14, 2, STATUS_BY_PROPERTY_WRITE, 2),
+        # AND THE ORDER OF THE CLAUSES. A property write that rescued one
+        # head of a material still short of 14 of 14 does not rename PARTIAL.
+        (True, 3, 3, 13, 14, 1, STATUS_PARTIAL, 2),
     ]
-    for saved, made, pasked, wired, casked, want, want_code in cases:
+    for saved, made, pasked, wired, casked, pw, want, want_code in cases:
         checks += 1
-        got = material_status(saved, made, pasked, wired, casked)
+        got = material_status(saved, made, pasked, wired, casked, pw)
         code = material_return(got)
         if got != want or code != want_code:
-            bad.append("status(saved=%s made=%d/%d wired=%d/%d) gave %s/%d "
-                       "and should give %s/%d"
-                       % (saved, made, pasked, wired, casked, got, code,
+            bad.append("status(saved=%s made=%d/%d wired=%d/%d "
+                       "byPropWrite=%d) gave %s/%d and should give %s/%d"
+                       % (saved, made, pasked, wired, casked, pw, got, code,
                           want, want_code))
     # ---- THE UV HEAD, WHICH IS THE THING THAT DID NOT WIRE --------------
     # None of this can open Unreal, and that is the point: what CAN be run
@@ -509,9 +613,12 @@ def selftest():
     # connection asked for, or 14 stops being the number runs 19 and 20
     # printed and the fraction stops being comparable across runs.
     good = Wiring()
+    good_heads = []
     for head in UV_HEAD_NAMES:
         swept = connect_by_candidates(accept_only(UV_PIN_CANDIDATES[0]),
                                       UV_PIN_CANDIDATES)
+        good_heads.append((swept[0], pin_token(swept[2], swept[3]),
+                           swept[1], True))
         good.record(swept[0], uv_head_note("texcoord-to-%s" % head, ncand))
     for _ in range(12):
         good.record(True, "a-note-for-a-connection-that-landed")
@@ -521,7 +628,8 @@ def selftest():
                    "wired=%d asked=%d notes=%s"
                    % (good.wired, good.asked, good.notes))
     checks += 1
-    if material_status(True, 3, 3, good.wired, good.asked) != STATUS_MADE:
+    if material_status(True, 3, 3, good.wired, good.asked,
+                       property_write_heads(good_heads)[0]) != STATUS_MADE:
         bad.append("14 of 14 wired with 3 of 3 parameters and a saved asset "
                    "does not read MADE, so the acceptance can never be met")
     # AND RUN 19 AND 20's OWN SHAPE, rebuilt through the same tally: two heads
@@ -534,7 +642,8 @@ def selftest():
         run19.record(True, None)
     checks += 1
     if (run19.wired, run19.asked) != (12, 14) or \
-            material_status(True, 3, 3, run19.wired, run19.asked) != STATUS_PARTIAL:
+            material_status(True, 3, 3, run19.wired, run19.asked,
+                            0) != STATUS_PARTIAL:
         bad.append("the run 19 shape no longer reproduces as 12/14 PARTIAL: "
                    "wired=%d asked=%d" % (run19.wired, run19.asked))
     checks += 1
@@ -543,6 +652,77 @@ def selftest():
         bad.append("the refusal notes no longer carry the token runs 19 and "
                    "20 printed as a prefix, so a grep for it would miss the "
                    "next failure: %s" % run19.notes)
+    # ---- THE THIRD STATUS WORD, ACCEPTING CASE FIRST --------------------
+    # Ruled 2026-09-03: the COUNT may include a head made by the last-resort
+    # property write, and the WORD may not say MADE, because what a struct
+    # written by value does to the compiled shader is unproven here. Both
+    # cases below are built from head RECORDS through property_write_heads
+    # rather than from a hand-written count, so the string main() writes and
+    # the counter that reads its suffix are exercised together.
+    checks += 1
+    took = property_write_via(ncand, True)
+    if not took.endswith(PROP_WRITE_TOOK) or \
+            property_write_via(ncand, None).endswith(PROP_WRITE_TOOK) or \
+            property_write_via(ncand, False).endswith(PROP_WRITE_TOOK) or \
+            " " in took or "=" in took:
+        bad.append("the via token for a head the property write TOOK is not "
+                   "told apart from unavailable and refused, so the count "
+                   "would read the wrong heads: %s / %s / %s"
+                   % (took, property_write_via(ncand, None),
+                      property_write_via(ncand, False)))
+    # ACCEPTING: maskU taken by the first pin name, maskV refused by all nine
+    # and rescued by the property write. 14 of 14, one head on the last
+    # resort, which is the shape this word exists to name.
+    prop = Wiring()
+    prop_heads = []
+    for n, head in enumerate(UV_HEAD_NAMES):
+        note = uv_head_note("texcoord-to-%s" % head, ncand)
+        if n == 0:
+            swept = connect_by_candidates(accept_only(UV_PIN_CANDIDATES[0]),
+                                          UV_PIN_CANDIDATES)
+            prop_heads.append((True, pin_token(swept[2], swept[3]),
+                               swept[1], True))
+        else:
+            swept = connect_by_candidates(accept_nothing, UV_PIN_CANDIDATES)
+            prop_heads.append((True, took, swept[1], True))
+        prop.record(True, note)
+    for _ in range(12):
+        prop.record(True, None)
+    checks += 1
+    by_prop = property_write_heads(prop_heads)
+    if by_prop != (1, 2, "1/2"):
+        bad.append("a head rescued by the property write is not counted as "
+                   "one of the two heads recorded: %s" % (by_prop,))
+    checks += 1
+    got = material_status(True, 3, 3, prop.wired, prop.asked, by_prop[0])
+    if (prop.wired, prop.asked) != (14, 14) or \
+            got != STATUS_BY_PROPERTY_WRITE or material_return(got) != 2:
+        bad.append("14 of 14 with %d of %d head(s) on the property write does "
+                   "not read %s/2: wired=%d asked=%d gave %s/%d"
+                   % (by_prop[0], by_prop[1], STATUS_BY_PROPERTY_WRITE,
+                      prop.wired, prop.asked, got, material_return(got)))
+    # REJECTING: THE SAME 14 OF 14 WITH NO HEAD ON THE PROPERTY WRITE STILL
+    # READS MADE. Without this case a change that renamed every passing run
+    # would have replaced one overclaim with another, and the route queue
+    # 062's acceptance was written for could never be reported.
+    checks += 1
+    none_prop = property_write_heads(good_heads)
+    got = material_status(True, 3, 3, good.wired, good.asked, none_prop[0])
+    if none_prop != (0, 2, "0/2") or got != STATUS_MADE or \
+            material_return(got) != 0:
+        bad.append("14 of 14 with both heads taken by a named pin no longer "
+                   "reads MADE/0: byPropertyWrite=%s gave %s/%d"
+                   % (none_prop, got, material_return(got)))
+    # AND THE ZERO'S DENOMINATOR, both ways round: none of two heads is not
+    # the same fact as no head recorded at all, and a write that was
+    # unavailable made nothing however many times it was tried.
+    checks += 1
+    unmade = [(False, property_write_via(ncand, None), ncand, None)] * 2
+    if property_write_heads(unmade) != (0, 2, "0/2") or \
+            property_write_heads([]) != (0, 0, "nothing-measured"):
+        bad.append("the property-write count ships a bare zero or counts a "
+                   "write that never took: %s / %s"
+                   % (property_write_heads(unmade), property_write_heads([])))
     # ---- and the three values the head ships, all four shapes ------------
     win = pin_token("", "")
     checks += 1
@@ -551,7 +731,7 @@ def selftest():
         bad.append("two heads made the same way do not read as one value: %s"
                    % (fields,))
     checks += 1
-    other = "none-of-%d-candidates..then.property-write-took" % ncand
+    other = took
     fields = uv_head_fields([(True, win, 1, True), (True, other, ncand, False)],
                             ncand)
     if fields != ("maskU.%s/maskV.%s" % (win, other),
@@ -579,9 +759,8 @@ def selftest():
                          "none-of-2-candidates", 1, 2, True,
                          [uv_head_note("texcoord-to-maskU", ncand),
                           uv_head_note("texcoord-to-maskV", ncand)],
-                         *uv_head_fields([(False, "none-of-%d-candidates..then."
-                                           "property-write-unavailable" % ncand,
-                                           ncand, None)] * 2, ncand))
+                         *(uv_head_fields(unmade, ncand)
+                           + (property_write_heads(unmade)[2],)))
     checks += 1
     if [t for t in line.split() if t.count("=") != 1]:
         bad.append("the material line has a token that is not one key=value: %s"
@@ -597,9 +776,11 @@ def selftest():
     checks += 1
     if "materialUvHeadVia=" not in line or \
             ("materialUvHeadTriedAtWorst=%d/%d" % (ncand, ncand)) not in line \
-            or "materialUvHeadReadback=0/2..unreadable2" not in line:
-        bad.append("the failing line does not carry what the UV head cost and "
-                   "what read back: %s" % line)
+            or "materialUvHeadReadback=0/2..unreadable2" not in line \
+            or "materialUvHeadByPropertyWrite=0/2" not in line:
+        bad.append("the failing line does not carry what the UV head cost, "
+                   "what read back, and how many heads the last resort made: "
+                   "%s" % line)
     # AND THE PASSING SHAPE, which is what the acceptance of this item looks
     # like on the wire. A formatter only ever run over its failure case is
     # half a formatter.
@@ -607,7 +788,8 @@ def selftest():
                               "/Engine/EngineResources/DefaultTexture",
                               "/Engine/EngineMaterials/DefaultNormal", 2, 2,
                               True, [],
-                              *uv_head_fields([(True, win, 1, True)] * 2, ncand))
+                              *(uv_head_fields(good_heads, ncand)
+                                + (property_write_heads(good_heads)[2],)))
     checks += 1
     if [t for t in good_line.split() if t.count("=") != 1]:
         bad.append("the passing line has a token that is not one key=value: %s"
@@ -618,11 +800,36 @@ def selftest():
             "materialConnections=14/14" not in good_line or \
             ("materialUvHeadVia=both.%s" % win) not in good_line or \
             "materialUvHeadReadback=2/2..unreadable0" not in good_line or \
+            "materialUvHeadByPropertyWrite=0/2" not in good_line or \
             "materialNote=none" not in good_line:
         bad.append("the passing line is not what the acceptance asks for: %s"
                    % good_line)
+    # AND THE THIRD STATE ON THE WIRE. It is the other half of this item's
+    # acceptance, so the formatter for it must not ship unrun either: this is
+    # the exact line a verifier will read beside the four frames.
+    prop_line = material_line(STATUS_BY_PROPERTY_WRITE, 3, 3, 14, 14, True,
+                              "/Engine/EngineResources/DefaultTexture",
+                              "/Engine/EngineMaterials/DefaultNormal", 2, 2,
+                              True, [],
+                              *(uv_head_fields(prop_heads, ncand)
+                                + (property_write_heads(prop_heads)[2],)))
+    checks += 1
+    if [t for t in prop_line.split() if t.count("=") != 1]:
+        bad.append("the property-write line has a token that is not one "
+                   "key=value: %s"
+                   % [t for t in prop_line.split() if t.count("=") != 1])
+    checks += 1
+    if "materialStatus=WIRED-BY-PROPERTY-WRITE" not in prop_line or \
+            "materialScriptReturn=2" not in prop_line or \
+            "materialConnections=14/14" not in prop_line or \
+            "materialUvHeadByPropertyWrite=1/2" not in prop_line or \
+            ("maskV.%s" % took) not in prop_line:
+        bad.append("the third state does not print the word, the return, the "
+                   "count it was decided from and which head stood on the "
+                   "last resort: %s" % prop_line)
     print("    %s" % line)
     print("    %s" % good_line)
+    print("    %s" % prop_line)
     print("make_base_material --selftest: %d check(s), %d failure(s), "
           "params=%s scalars=%s header=%s"
           % (checks, len(bad), "/".join(TEXTURE_PARAMS), "/".join(SCALAR_PARAMS),
@@ -754,10 +961,12 @@ def main():
             via = pin_token(out_name, in_name)
         else:
             wrote = _write_input_property(src, dst)
-            via = "none-of-%d-candidates..then.property-write-%s" % (
-                len(UV_PIN_CANDIDATES),
-                "took" if wrote is True else
-                ("unavailable" if wrote is None else "refused"))
+            # Written by property_write_via rather than here, because the
+            # suffix of this string is what property_write_heads counts and
+            # what the status word turns on, and a verdict-deciding string
+            # built in the half of the file the tests cannot reach ships
+            # unrun.
+            via = property_write_via(len(UV_PIN_CANDIDATES), wrote)
             ok = wrote is True
         uv_head.append((ok, via, tried, _reads_back(dst, src)))
         # The token runs 19 and 20 printed is kept as a PREFIX so a grep for
@@ -844,13 +1053,17 @@ def main():
     # and left out of the verdict rather than being quietly promoted into it.
     uv_via, uv_tried, uv_readback = uv_head_fields(uv_head,
                                                    len(UV_PIN_CANDIDATES))
+    # THE THIRD STATE'S ONE INPUT. Counted over the head records, not over
+    # the via string, and counted here so that the word and the number the
+    # word was decided from go out on the same line.
+    by_prop, _by_prop_of, by_prop_field = property_write_heads(uv_head)
     status = material_status(saved, len(made), len(TEXTURE_PARAMS),
-                             w.wired, w.asked)
+                             w.wired, w.asked, by_prop)
     _write(material_line(status, len(made), len(TEXTURE_PARAMS),
                          w.wired, w.asked,
                          existed, colour_from, normal_from,
                          defaults_bound, 2, saved, w.notes,
-                         uv_via, uv_tried, uv_readback))
+                         uv_via, uv_tried, uv_readback, by_prop_field))
     return material_return(status)
 
 

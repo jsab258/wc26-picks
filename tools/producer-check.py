@@ -82,9 +82,16 @@ SECTIONS = ["HEADLINE", "WHAT CHANGED", "NEEDS YOU", "NEXT VISIBLE THING",
 # The rules, by name, so a register can say which of them it enforces and the
 # report can print the ones it did not.
 RULES = ["wordcap", "shape", "options", "deadline", "nextvisible",
-         "banned", "linkfloor"]
+         "banned", "linkfloor", "split"]
+# THE SPLIT IS THE BRIEF'S ALONE. Jafar's standing order of 2026-09-05 says
+# EVERY BRIEF reports the studio versus game split; it says nothing about an
+# unprompted message or an answer, and a rule applied where it was not ruled is
+# a rule somebody switches off. Named in `not_enforced` in the other two
+# registers rather than silently absent.
+RULES_BRIEF_ONLY = ("split",)
 REGISTERS = {
-    "unprompted": (CAP_UNPROMPTED, RULES),
+    "unprompted": (CAP_UNPROMPTED,
+                   [r for r in RULES if r not in RULES_BRIEF_ONLY]),
     "brief": (CAP_BRIEF, RULES),
     # ANSWER: his question sets the length, so the cap and the shape are not
     # enforced and are NAMED as not enforced. The ban list and the link floor
@@ -345,6 +352,33 @@ TIME_FORMS = re.compile(
     r"friday|saturday|sunday|this evening|this week|next week)\b", re.I)
 
 
+# ------------------------------------------------------- the split sentence
+# REQUIRED IN EVERY BRIEF, ruled by Jafar 2026-09-05 ("every brief reports the
+# STUDIO VERSUS GAME split") and given its unit by the director ruling of the
+# same day, section 6: the split is COUNTED IN SESSIONS and says so, because
+# production/budget.md line 87 rules the turns-to-points conversion UNMEASURED
+# and queue 076 is the rate that would fix it. A split in a unit nobody has
+# measured is one number twice.
+#
+# WHY IT IS FIVE PARTS AND NOT ONE REGEX OVER A SENTENCE: a brief that names
+# the studio and the game but calls the count points is exactly the failure the
+# ruling refuses, and a single pattern that missed it would report the rule as
+# passing. Each part is named in the finding, so a writer is told which half is
+# missing rather than that "the split sentence" is wrong.
+#
+# `splitBasis=` IS A VERDICT KEY AND STAYS OUT OF THE MESSAGE. The ban list
+# already refuses it; this rule requires the words, and tools/morning-brief.py
+# prints the key on its own done line. Both halves ruled together, 2026-09-05.
+SPLIT_PARTS = (
+    ("the studio", re.compile(r"\bstudio\b", re.I)),
+    ("the game", re.compile(r"\bgames?\b", re.I)),
+    ("the unit, sessions", re.compile(r"\bsessions?\b", re.I)),
+    ("the words 'not points'", re.compile(r"\bnot\s+points\b", re.I)),
+    ("what makes it points later, 'measured'",
+     re.compile(r"\bmeasured\b", re.I)),
+)
+
+
 def split_sections(text):
     """{label: body-lines} plus the order the labels appeared in."""
     bodies, order, current = {}, [], None
@@ -533,6 +567,27 @@ def check(text, kind="unprompted", now=None):
                                  % (cap([body], keep=1, width=60) if body
                                     else "the section is empty")))
 
+    # 7. THE STUDIO VERSUS GAME SPLIT, in the BUDGET section, in words. Brief
+    # register only. Every zero here ships its denominator: the finding names
+    # how many of the five required parts were found and which are missing.
+    split_found, split_missing = 0, [name for name, _ in SPLIT_PARTS]
+    if "split" in enforced:
+        budget_body = " ".join(bodies.get("BUDGET", [])).strip()
+        split_missing = [name for name, rx in SPLIT_PARTS
+                         if not rx.search(budget_body)]
+        split_found = len(SPLIT_PARTS) - len(split_missing)
+        if split_missing:
+            found.append(Finding(
+                "split",
+                "the BUDGET section carries %d of %d required part(s) of the "
+                "studio-versus-game split: missing %s. Jafar's standing order "
+                "of 2026-09-05 requires the split in every brief, in words, "
+                "counted in sessions, saying it is sessions and not points "
+                "until the rate is measured"
+                % (split_found, len(SPLIT_PARTS),
+                   cap(split_missing, keep=5, sep=", ")),
+                "BUDGET" if budget_body else "the section is empty"))
+
     return {
         # WHICH CLOCK PRODUCED THE DEADLINE READING, carried out of the pure
         # function so the report never has to guess which of the two callers
@@ -545,6 +600,8 @@ def check(text, kind="unprompted", now=None):
         "unlinked_examples": [c[0] for c in unlinked_claims],
         "sections_found": [s for s in SECTIONS if s in bodies],
         "items": len(items), "urls": urls, "good_links": good_links,
+        "split_found": split_found, "split_of": len(SPLIT_PARTS),
+        "split_missing": split_missing,
         "banned_checked": banned_checked,
         "enforced": list(enforced),
         "not_enforced": [r for r in RULES if r not in enforced],
@@ -617,6 +674,12 @@ def report(r):
     if r["banned_checked"]:
         print("  ban list: %d pattern(s) run over the message with URLs "
               "removed" % r["banned_checked"])
+    if "split" in r["enforced"]:
+        print("  studio-versus-game split: %d of %d required part(s) found in "
+              "BUDGET (%s). Ruled 2026-09-05: in words, counted in sessions, "
+              "and not points until the rate is measured"
+              % (r["split_found"], r["split_of"],
+                 ", ".join(n for n, _ in SPLIT_PARTS)))
     if "deadline" in r["enforced"]:
         # TWO CALLERS, TWO CLOCKS, so neither may leave its instant implicit.
         # This path is the SINGLE-FILE check and its clock is the wall clock:
@@ -729,6 +792,42 @@ BAD = {
                                 "something good, soon, you will like it."),
 }
 
+# THE BRIEF FIXTURES. A brief is the same shape with a BUDGET section that
+# carries the studio-versus-game split IN WORDS: no digits, because the ban
+# list refuses bare counts in anything Jafar reads, and no `splitBasis=`,
+# because that is a verdict key and lives on the tool's done line.
+BRIEF_SPLIT = ("BUDGET: your newest reading was seven percent on the meter "
+               "that governs, taken today. Nine sessions went to the studio "
+               "and two to the game since the previous brief, counted in "
+               "sessions and not points until the rate is measured.")
+GOOD_BRIEF = GOOD.replace("BUDGET: £0 spent, well inside the month.",
+                          BRIEF_SPLIT)
+
+BAD_BRIEF = {
+    "a brief with no split sentence at all":
+        GOOD_BRIEF.replace(BRIEF_SPLIT, "BUDGET: comfortably inside the "
+                                        "month, with nothing bought."),
+    "a split that names no unit":
+        GOOD_BRIEF.replace("Nine sessions went to the studio and two to the "
+                           "game since the previous brief, counted in "
+                           "sessions and not points until the rate is "
+                           "measured.",
+                           "Most of the work went to the studio and a little "
+                           "to the game."),
+    "a split counted in points rather than sessions":
+        GOOD_BRIEF.replace("counted in sessions and not points until the rate "
+                           "is measured", "counted in points"),
+    "a split sitting outside the BUDGET section":
+        GOOD_BRIEF.replace(BRIEF_SPLIT, "BUDGET: comfortably inside the "
+                                        "month, with nothing bought.")
+                  .replace("NEXT VISIBLE THING: a walk through that street, "
+                           "tomorrow evening.",
+                           "NEXT VISIBLE THING: a walk through that street, "
+                           "tomorrow evening. Nine sessions went to the "
+                           "studio and two to the game, counted in sessions "
+                           "and not points until the rate is measured."),
+}
+
 # The date the fixtures are checked against. Fixed, because a deadline fixture
 # that reads the wall clock passes in September and fails in October, and a
 # test whose result depends on the day it runs is not a test.
@@ -795,7 +894,7 @@ def selftest():
        not ra["findings"], [str(f) for f in ra["findings"]])
     ok("and the answer register NAMES the rules it did not enforce",
        set(ra["not_enforced"]) == {"wordcap", "shape", "options", "deadline",
-                                   "nextvisible"}, ra["not_enforced"])
+                                   "nextvisible", "split"}, ra["not_enforced"])
 
     # ACCEPTING, third: a message with nothing needing him is not forced to
     # invent an item.
@@ -805,7 +904,35 @@ def selftest():
     ok("an empty NEEDS YOU is accepted rather than forcing an invented item",
        not re_["findings"], [str(f) for f in re_["findings"]])
 
+    # ACCEPTING, fourth: THE BRIEF REGISTER AND ITS SPLIT SENTENCE, which is
+    # the register Jafar's morning brief is written to and the one
+    # tools/morning-brief.py composes against. Accepting case FIRST: a brief
+    # carrying the split in words passes with no finding at all.
+    rb = check(GOOD_BRIEF, "brief", FIXTURE_NOW)
+    ok("a brief carrying the split sentence passes (%d of %d part(s) found, "
+       "%d word(s) of %d)" % (rb["split_found"], rb["split_of"], rb["words"],
+                              rb["cap"]),
+       not rb["findings"] and rb["split_found"] == rb["split_of"],
+       [str(f) for f in rb["findings"]])
+    ok("and `split` is enforced in the brief register and named as NOT "
+       "enforced in the unprompted one",
+       "split" in REGISTERS["brief"][1]
+       and "split" not in REGISTERS["unprompted"][1],
+       (REGISTERS["brief"][1], REGISTERS["unprompted"][1]))
+
     print("\n  REJECTING FIXTURES, one per rule, all synthetic:\n")
+    # THE SPLIT, REJECTING, four ways, because a guard that only knows
+    # "absent" cannot tell a brief that calls the count POINTS from one that
+    # says sessions, which is the exact failure the ruling of 2026-09-05
+    # refuses. Each fixture differs from GOOD_BRIEF in ONE part.
+    for want, text in BAD_BRIEF.items():
+        rr = check(text, "brief", FIXTURE_NOW)
+        rules = {f.rule for f in rr["findings"]}
+        ok("%-46s is refused by the split rule" % want,
+           "split" in rules and rules == {"split"},
+           "found %s; missing %s" % (sorted(rules) or "nothing",
+                                     rr["split_missing"]))
+
     for want, text in BAD.items():
         rr = check(text, "unprompted", FIXTURE_NOW)
         rules = {f.rule for f in rr["findings"]}

@@ -45,7 +45,9 @@ REPO = os.path.dirname(HERE)
 RUNNER = os.path.join(HERE, "runner")
 if RUNNER not in sys.path:
     sys.path.insert(0, RUNNER)
+import cards                                                   # noqa: E402
 import inbox                                                   # noqa: E402
+import outbox                                                  # noqa: E402
 
 #: The tracking ref this reads. Named rather than `FETCH_HEAD`, which is
 #: whichever ref was fetched last by anything in this checkout.
@@ -122,6 +124,64 @@ def added_at(repo, ref=TRACKING):
     return at
 
 
+def records_from_branch(repo, folder, pattern, ref=TRACKING):
+    """{repo-relative path: content} for one folder on the branch.
+
+    ONE WALKER FOR THE TWO RECORD KINDS the PC pushes, so a receipt and a
+    tapped ruling are read the same way and neither can quietly stop being
+    delivered. The pattern is the denominator: a README dropped in either
+    folder is outside every count printed below.
+    """
+    rc, out = git_run(["ls-tree", "-r", "--name-only", ref, "--", folder],
+                      repo)
+    if rc != 0:
+        return {}
+    found = {}
+    for path in sorted(p for p in out.split() if p.strip()):
+        if not pattern.match(os.path.basename(path)):
+            continue
+        rc, body = git_run(["show", "%s:%s" % (ref, path)], repo)
+        found[path] = body if rc == 0 else ""
+    return found
+
+
+def deliver(repo, records):
+    """Write records into this checkout, skipping the ones already here.
+    Returns the list actually written."""
+    written = []
+    for rel, body in records.items():
+        full = os.path.join(repo, *rel.split("/"))
+        if os.path.exists(full):
+            continue
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(body if body.endswith("\n") else body + "\n")
+        written.append(rel)
+    return written
+
+
+def outbound_from_branch(repo, ref=TRACKING):
+    """{repo-relative path: content} for the PC's outbound records.
+
+    THE OTHER DIRECTION ON THE SAME BRANCH, queue 089. A receipt says a
+    Producer message reached his phone and carries the id the platform
+    returned; a refusal says one did not and carries the clause it failed. The
+    second is the one the studio cannot learn any other way, which is why
+    `refused=K` is printed here rather than only in the window on his PC.
+    """
+    rc, out = git_run(["ls-tree", "-r", "--name-only", ref, "--",
+                       inbox.OUTBOUND_DIR], repo)
+    if rc != 0:
+        return {}
+    found = {}
+    for path in sorted(p for p in out.split() if p.strip()):
+        if not inbox.OUTBOUND_RE.match(os.path.basename(path)):
+            continue
+        rc, body = git_run(["show", "%s:%s" % (ref, path)], repo)
+        found[path] = body if rc == 0 else ""
+    return found
+
+
 def median(values):
     v = sorted(values)
     n = len(v)
@@ -148,7 +208,9 @@ def read_inbox(repo, do_fetch=True, remote="origin", branch=None):
     """Deliver and measure. Returns a dict; prints nothing."""
     branch = branch or inbox.INBOX_BRANCH
     res = {"fetch": "skipped", "detail": "", "seen": 0, "delivered": [],
-           "already": [], "samples": [], "branch": branch, "messages": []}
+           "already": [], "samples": [], "branch": branch, "messages": [],
+           "outbound": {}, "outboundDelivered": [], "rulings": {},
+           "rulingsDelivered": []}
     if do_fetch:
         res["fetch"], res["detail"] = fetch_branch(repo, remote, branch)
     files = branch_files(repo)
@@ -182,6 +244,18 @@ def read_inbox(repo, do_fetch=True, remote="origin", branch=None):
             item["latency"] = epoch - fields["sentEpoch"]
             res["samples"].append(item["latency"])
         res["messages"].append(item)
+    # THE OUTBOUND RECORDS, written into this checkout the same way, so the
+    # receipt for a sent Producer message is a file in the tree rather than a
+    # line in a log on a machine nobody can read.
+    res["outbound"] = outbound_from_branch(repo)
+    res["outboundDelivered"] = deliver(repo, res["outbound"])
+    # AND THE TAPPED RULINGS, queue 090, delivered the same way. Folding them
+    # into production/decision-queue.md is a separate step in `main`, because
+    # a reader that both reads and rewrites a tracked file inside the same
+    # call would make one exit code stand for two different facts.
+    res["rulings"] = records_from_branch(repo, inbox.RULING_DIR,
+                                         inbox.RULING_RE)
+    res["rulingsDelivered"] = deliver(repo, res["rulings"])
     return res
 
 
@@ -236,6 +310,20 @@ def report(res, say=print):
     if n:
         say("  the delivered file(s) are UNTRACKED in this checkout until "
             "somebody commits them; that is the record of what he said.")
+    # WHAT THE PC SENT, REFUSED OR COULD NOT SEND. The arithmetic and the
+    # strings live in `outbox.py`, where the tests run.
+    for line in outbox.outbound_lines(
+            outbox.outbound_summary(res.get("outbound") or {})):
+        say(line)
+    if res.get("outboundDelivered"):
+        say("  %d outbound record(s) written into this checkout, UNTRACKED "
+            "until somebody commits them." % len(res["outboundDelivered"]))
+    say("  rulings: onBranch=%d deliveredThisRun=%d/%d dir=%s"
+        % (len(res.get("rulings") or {}), len(res.get("rulingsDelivered") or []),
+           len(res.get("rulings") or {}), inbox.RULING_DIR))
+    if not (res.get("rulings") or {}):
+        say("  rulings: nothing measured, 0 tapped ruling(s) on the branch, "
+            "so nothing is known about what he tapped.")
 
 
 def main(argv):
@@ -251,6 +339,13 @@ def main(argv):
         print("inbox-read: git is not on PATH. NOTHING MEASURED.")
         return 2
     report(read_inbox(repo, do_fetch="--no-fetch" not in argv))
+    # THE FOLD'S CALL SITE, AND IT IS THIS ONE ON PURPOSE (queue 090). This
+    # program is what the studio runs at the top of a turn and at every spawn
+    # or dispatch boundary, so a tap he made an hour ago becomes a ruling in
+    # `production/decision-queue.md` at the next boundary rather than whenever
+    # somebody remembers to run a separate tool. Built is not running: the
+    # fold has a caller, and this is it.
+    cards.fold_from_disk(repo, say=print)
     return 0
 
 
@@ -337,7 +432,13 @@ def selftest():
           and "latencySamples=0/0" in done, done)
     check("reject/and-says-nothing-new-rather-than-nothing-measured",
           any("nothing new" in l for l in lines)
-          and not any("nothing measured" in l for l in lines), lines[-2:])
+          # SCOPED TO THE INBOUND HALF. This report carries two independent
+          # nothing-measured sentences now (queue 089 added the outbound
+          # one), and asserting on the bare words would have made the two
+          # halves indistinguishable to this test as well as to a reader.
+          and not any("nothing measured: no message" in l
+                      or "nothing measured: the" in l for l in lines),
+          lines[-2:])
 
     # AND AN UNREACHABLE REMOTE IS NOT AN EMPTY INBOX.
     lines = []
@@ -347,6 +448,37 @@ def selftest():
     check("reject/an-unreachable-remote-says-so-and-reads-the-last-copy",
           res["fetch"] == "unreachable" and "seen=1" in done
           and any("last copy fetched" in l for l in lines), done)
+
+    # THE OUTBOUND HALF ON THE SAME BRANCH, queue 089: a receipt and a
+    # refusal written on the PC, carried by the same transport, delivered
+    # here and counted. The accepting case is the receipt; the one that
+    # matters is the refusal, which the studio can learn no other way.
+    outbox._write(watcher, outbox.receipt_rel(
+        "production/outbox/2026-09-05-x.unprompted.md"),
+        outbox.render_receipt("production/outbox/2026-09-05-x.unprompted.md",
+                              "unprompted", sent + 90, 4711, 640, "abc1234",
+                              sent + 30, 60))
+    outbox._write(watcher, outbox.refusal_rel(
+        "production/outbox/2026-09-05-y.brief.md", "words 210 of 150"),
+        outbox.render_refusal("production/outbox/2026-09-05-y.brief.md",
+                              "brief", "words 210 of 150", sent + 95, False))
+    pushed = inbox.push_pending(watcher)
+    lines = []
+    res = read_inbox(reader, remote=far)
+    report(res, lines.append)
+    tally = [l for l in lines if l.startswith("outbound:")][0]
+    check("accept/a-receipt-and-a-refusal-cross-on-the-same-branch",
+          pushed["ok"] and len(res["outbound"]) == 2
+          and len(res["outboundDelivered"]) == 2, res["outboundDelivered"])
+    check("accept/and-the-container-prints-refused-K-with-its-denominator",
+          "records=2" in tally and "sent=1" in tally and "refused=1" in tally
+          and "unreadable=0" in tally, tally)
+    check("accept/and-the-failing-clause-arrives-with-it",
+          any("words 210 of 150" in l and "2026-09-05-y.brief.md" in l
+              for l in lines), [l for l in lines if "REFUSED" in l])
+    check("accept/and-the-receipt-carries-the-platforms-message-id",
+          any("messageId=4711" in l and "outboundLatencySec=60" in l
+              for l in lines), [l for l in lines if "outbound sent" in l])
 
     # AND A CAP THAT BITES SAYS SO.
     long_text = "y" * (TEXT_CAP + 40)
@@ -358,6 +490,53 @@ def selftest():
           median([1, 2, 30]) == 2 and max([1, 2, 30]) == 30)
     check("accept/median-of-nothing-is-nothing-measured",
           num(median([])) == "nothing-measured")
+
+    # ---- THE TAP, END TO END THROUGH THIS PROGRAM'S OWN CALL SITE ------
+    #
+    # The PC writes a ruling record, this reader delivers it, and the fold
+    # applies it to the decision queue in this checkout. `cards.py --selftest`
+    # covers the fold's arithmetic; what is proven HERE is that the reader
+    # carries the record and CALLS the fold.
+    queue_rel = os.path.join(reader, *cards.QUEUE_REL.split("/"))
+    os.makedirs(os.path.dirname(queue_rel), exist_ok=True)
+    with open(queue_rel, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(cards.FIXTURE)
+    cid = cards.card_id("How close should strangers stand?")
+    inbox.ruling_and_push(watcher, cid, "B", sent + 900, 5001, now=sent + 905)
+    res = read_inbox(reader, remote=far)
+    rec_rel = "%s/%s" % (inbox.RULING_DIR, inbox.ruling_name(sent + 900, 5001))
+    check("accept/the-tapped-ruling-is-delivered-into-the-checkout",
+          rec_rel in res["rulingsDelivered"]
+          and os.path.exists(os.path.join(reader, *rec_rel.split("/"))),
+          res["rulingsDelivered"])
+    lines = []
+    fold = cards.fold_from_disk(reader, say=lines.append)
+    after = open(queue_rel, encoding="utf-8").read()
+    check("accept/the-fold-rules-the-card-and-the-waiting-count-falls-by-one",
+          len(fold["applied"]) == 1 and fold["waitingBefore"] == 4
+          and fold["waitingAfter"] == 3
+          and "RULED 2026-09-05 BY JAFAR: B." in after, lines[-1:])
+    check("accept/and-the-done-line-counts-records-with-denominators",
+          any("applied=1/1" in l and "refused=0/1" in l for l in lines),
+          lines[-1:])
+    lines = []
+    same = cards.fold_from_disk(reader, say=lines.append)
+    check("reject/a-second-fold-of-the-same-record-changes-nothing",
+          open(queue_rel, encoding="utf-8").read() == after
+          and len(same["already"]) == 1 and not same["changed"], lines[-1:])
+    inbox.ruling_and_push(watcher, cid, "D", sent + 1800, 5002, now=sent + 1805)
+    read_inbox(reader, remote=far)
+    lines = []
+    bad_fold = cards.fold_from_disk(reader, say=lines.append)
+    # A SECOND RECORD FOR AN ALREADY RULED CARD, refused here on the card
+    # rather than on its option letter: the card left WAITING when the first
+    # record folded, and that check comes first. The option-letter refusal is
+    # covered against a WAITING card in `cards.py --selftest`.
+    check("reject/a-second-record-for-a-ruled-card-leaves-the-file-alone",
+          open(queue_rel, encoding="utf-8").read() == after
+          and len(bad_fold["refused"]) == 1
+          and any("REFUSED" in l and "rule it twice" in l for l in lines),
+          lines[-2:])
 
     print("\ninbox-read --selftest: %s, %d passed, %d failed, %d case(s) run. "
           "NOT COVERED: nothing here touches Telegram or GitHub; the branch "

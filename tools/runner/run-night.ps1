@@ -65,26 +65,46 @@ while ($true) {
     git push -u origin $night
 }
 
-# Brief delivery, the guaranteed path: a mechanical fallback with zero model
-# calls, per runner.md. The rich brief is a queue task; if that session died,
-# this still tells the morning what happened.
-$briefName = "night-" + (Get-Date -Format "yyyyMMdd") + ".md"
-$brief = Join-Path $repo ("production/briefs/" + $briefName)
-if (-not (Test-Path $brief)) {
-    $done    = (Get-ChildItem "production/queue/done"    -Filter "*.md" -File -ErrorAction SilentlyContinue | Measure-Object).Count
-    $blocked = (Get-ChildItem "production/queue/blocked" -Filter "*.md" -File -ErrorAction SilentlyContinue | Measure-Object).Count
-    $left    = (Get-ChildItem "production/queue"         -Filter "*.md" -File -ErrorAction SilentlyContinue |
-                Where-Object { $_.Name -ne "README.md" } | Measure-Object).Count
-    $gitlog  = git log --oneline ("origin/claude/game-dev-ai-automation-2h67ix.." + $night) 2>$null
-    @("# Fallback brief (mechanical; the rich-brief session did not run)",
-      ("night: " + $night),
-      ("done: " + $done + "  blocked: " + $blocked + "  still queued: " + $left),
-      "", "landed on the night branch:", $gitlog) | Set-Content $brief
+# BRIEF DELIVERY, AND THERE IS ONE WRITER OF A BRIEF IN THIS PROJECT:
+# tools/morning-brief.py. Ruled 2026-09-05, section 7(b) of
+# game-design/decision-2026-09-05-ruling-standing-order-refill-and-the-wake-half.md.
+#
+# THIS SCRIPT USED TO COMPOSE ITS OWN. Those four lines carried none of the
+# Producer register's shape (no sections, no evidence link, a bare count in
+# every line), and `producer-check --gate` walks production/briefs/ treating
+# every file there as a brief. It runs inside ledger/verify.py, so the first
+# night that committed a fallback would have reddened not just that file but
+# every commit after it, on a machine nobody was watching at 3am.
+#
+# NEVER FATAL, for the same reason the dashboard block above is not: a night
+# that stops because a brief refused to write would be the instrument breaking
+# the work it measures. It says so and ends, and the silence is never mute.
+$briefDay = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
+$briefRel = "production/briefs/" + $briefDay + ".md"
+if ($py) {
+    & $py "tools/morning-brief.py" --date $briefDay 2>&1 | Write-Host
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host ("The brief tool refused to write (exit {0}); nothing was staged and the morning has no brief. Its own output above names the source it could not read." -f $LASTEXITCODE)
+    } elseif (Test-Path $briefRel) {
+        # STAGE BY NAME, never `git add production/briefs`: a failed run would
+        # otherwise commit its stale checkout's files as its own evidence
+        # (.claude/rules/ci.md).
+        git add -- $briefRel
+        git diff --cached --quiet
+        if ($LASTEXITCODE -ne 0) { git commit -m ("Morning brief, " + $briefDay) 2>$null }
+        git push -u origin $night 2>$null
+    } else {
+        Write-Host ("The brief tool reported success and wrote no file at {0}; nothing staged. Success and a written file are different facts." -f $briefRel)
+    }
+} else {
+    Write-Host "No python found, so no brief was written this night. production/briefs/ carries nothing new and that is the honest state of it."
 }
-Copy-Item $brief (Join-Path $repo "production/briefs/latest.md") -Force
-git add production/briefs
-git commit -m "Night brief" 2>$null
-git push -u origin $night 2>$null
+# latest.md IS NOT WRITTEN HERE, and this is the one place that used to.
+# It is a moving name on producer-check's frozen PRE_REGISTER list (queue 074):
+# a copy carrying no exempt marker reddens the gate, and a copy carrying one
+# would be a false record, since a generated file does not predate the
+# register. tools/morning-brief.py refuses it under --latest for that reason
+# and prints latestWritten=0/1. The dated file above is the brief.
 # A toast if the machine is awake; silence is fine, the brief is the record.
 try { New-BurntToastNotification -Text "LEDGER night done" -ErrorAction Stop } catch {
-    msg * "LEDGER night runner finished. Brief: production/briefs/latest.md" 2>$null }
+    msg * ("LEDGER night runner finished. Brief: " + $briefRel) 2>$null }

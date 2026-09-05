@@ -27,6 +27,50 @@ Irreversible items wait for Jafar and never guess.
 
 ## WAITING
 
+### How close should strangers stand?
+CLASS: DECISION
+added 2026-08-04, still open, and it now has the picture it was waiting for
+
+Crowds pack to 45 cm apart, which is touching distance, and 36 people can
+stand inside a two-metre circle. That is the separation rule working exactly
+as written: it only stops bodies overlapping and nothing models personal
+space. Whether that reads as a busy street or as a riot is a judgement off a
+picture, not a number the studio should pick.
+
+- A. 0.7 m. Crowded market street, people almost touching.
+- B. 1.0 m. Normal British pavement distance between strangers.
+- C. 1.4 m. Reserved, wary, a town where people keep their distance.
+
+RECOMMENDATION B, because Meridian is a working port town and not a festival.
+DEFAULT B if unruled by 2026-09-07, the Monday reset.
+EVIDENCE: `game-design/sim-shots/vign_camA_night.jpg` is the street with people
+absent; the crowd still that would settle this does not exist yet, which is the
+honest reason this has waited a month.
+
+---
+## RULED THIS WEEK
+
+### RULED 2026-09-05 BY JAFAR: run 21 goes, item 6 of his standing order.
+
+His words, recorded in production/NOW.md item 6 of the 2026-09-05 standing
+order: "Then the game: 062 step 2, run 21. THE FIRST TEXTURED FRAMES COME TO
+HIM AS IMAGES." That lifts the "wait for now" of 2026-09-03 and is condition
+two of
+game-design/decision-2026-09-05-ruling-062-step-2-third-status-word.md
+section 5. Condition one, step 2 committed, is met by the commit carrying this
+entry. Dispatch follows in its own commit with the sha captured first. If 21
+prints materialConnections=12/14 that is the answer, reported and not retried.
+
+### RULED 2026-09-05 BY JAFAR: A. Run the wake test tonight.
+
+His words: "Card 1: A, run the wake test tonight." So the fifteen-minute
+night is authorised: twenty-four firings, priced to within four hundredths of
+a point, with the kill switch and the self-deleting trigger the card named.
+ONE THING THE CARD DID NOT ANTICIPATE AND THE RESIDENT MUST HONOUR: the same
+message ordered continuous building today, and the test night's own acceptance
+refuses a contaminated window. So the window opens only when the build run has
+stopped, and it needs his two readings at both ends. Queue 092 carries it.
+
 ### What may the studio spend to wake for your messages at night?
 CLASS: DECISION
 added 2026-09-05, from today's ruling on your standing order
@@ -78,6 +122,12 @@ ruling can.
 DEADLINE 2026-09-07, the Monday reset. Nothing is armed before you rule, and
 the night runs only when you can give both readings.
 
+### RULED 2026-09-05 BY JAFAR: A. Publish as designed.
+
+His words: "Card 2: A, publish as designed." The glance publishes with the
+budget bar, on a page anyone with the URL can read, which he has now ruled
+knowingly. Queue 097 is unblocked and does not wait for the default.
+
 ### The glance would be readable by anyone: publish it as designed?
 CLASS: DECISION
 added 2026-09-05, from today's ruling on your standing order
@@ -108,29 +158,7 @@ until then the deadline moves with it.
 exposure already exists and holding the page back would not undo it.
 DEADLINE 2026-09-07, the Monday reset.
 
-### How close should strangers stand?
-CLASS: DECISION
-added 2026-08-04, still open, and it now has the picture it was waiting for
 
-Crowds pack to 45 cm apart, which is touching distance, and 36 people can
-stand inside a two-metre circle. That is the separation rule working exactly
-as written: it only stops bodies overlapping and nothing models personal
-space. Whether that reads as a busy street or as a riot is a judgement off a
-picture, not a number the studio should pick.
-
-- A. 0.7 m. Crowded market street, people almost touching.
-- B. 1.0 m. Normal British pavement distance between strangers.
-- C. 1.4 m. Reserved, wary, a town where people keep their distance.
-
-RECOMMENDATION B, because Meridian is a working port town and not a festival.
-DEFAULT B if unruled by 2026-09-07, the Monday reset.
-EVIDENCE: `game-design/sim-shots/vign_camA_night.jpg` is the street with people
-absent; the crowd still that would settle this does not exist yet, which is the
-honest reason this has waited a month.
-
----
-
-## RULED THIS WEEK
 
 ### 2026-09-04: the Telegram bot exists. RULED A, and it is done.
 

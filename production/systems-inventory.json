@@ -1,0 +1,369 @@
+{
+  "schema": "systems-inventory/v1",
+  "source": "production/NOW.md JAFAR'S STANDING ORDER 2026-09-05 item 4; the 27 names pinned in production/queue/098-the-player-facing-systems-inventory-as-data.md",
+  "validator": "tools/systems-inventory-check.py",
+  "measuredAt": "2026-09-05, against this checkout",
+  "howToRead": [
+    "area is the layer the system mostly lives in: moat (social memory, consequence, information), world (simulation and environment), player-facing (interface and input), content (authored material), studio (tools and process).",
+    "status is evidenced, never guessed. exists and partial each carry an evidence list of paths that resolve in this checkout; path#token means the token was found inside that file, which is the nearest thing to a call site provable without a compiler. absent carries no evidence, and the validator prints the words nothing measured for those.",
+    "phase names a row in ledger-v2/respec/roadmap-v2.md and means the phase whose gate this system has to clear, not the phase it was first touched in.",
+    "blocker is a queue number (queue-NNN), a decision id, or the word none. D1 is the open engine probe: every system built in Unity waits on it before more is invested."
+  ],
+  "systems": [
+    {
+      "name": "the Ledger notebook",
+      "area": "moat",
+      "status": "exists",
+      "class": "moat-adjacent",
+      "phase": "2",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/DialogueUI.cs#BuildLedgerPanel",
+        "ledger/Assets/Scripts/Game/UiSmokeTest.cs#_ledgerPanel",
+        "ledger/Assets/Scripts/Game/DialogueUI.cs#Key(\"Ledger\")"
+      ],
+      "note": "Panel built in code, bound to the Ledger key, opened and closed by the panel smoke test. What it SHOWS is D12's question, not this field's."
+    },
+    {
+      "name": "HUD",
+      "area": "player-facing",
+      "status": "exists",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/DialogueUI.cs#_clockText",
+        "ledger/Assets/Scripts/Game/DialogueUI.cs#Toast("
+      ],
+      "note": "Clock, money and slot on one line plus the toast channel. The what-they-know HUD the roadmap names for wanted states is a separate thing and is not here."
+    },
+    {
+      "name": "menus",
+      "area": "player-facing",
+      "status": "exists",
+      "class": "taste-bound",
+      "phase": "6",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/MainMenu.cs#MenuButton",
+        "ledger/Assets/Scripts/Game/OptionsScreen.cs#MenuToggle",
+        "ledger/Assets/Scripts/Game/Bootstrap.cs#MainMenu"
+      ],
+      "note": "Front end built from code, no scenes and no prefabs; one options screen shared with the pause menu."
+    },
+    {
+      "name": "controls",
+      "area": "player-facing",
+      "status": "exists",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/PlayerController.cs#Input.GetAxisRaw",
+        "ledger/Assets/Scripts/Game/GameSettings.cs#Rebind",
+        "ledger/Assets/Scripts/Game/OptionsScreen.cs#Rebind"
+      ],
+      "note": "Keyboard and mouse, nine rebindable actions, no two sharing a key. Pad support is the separate gamepad entry."
+    },
+    {
+      "name": "camera",
+      "area": "player-facing",
+      "status": "exists",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Feel.cs#CameraRig",
+        "ledger/Assets/Scripts/Game/PlayerController.cs#MainCamera"
+      ],
+      "note": "One camera, third person, spring rig in Core and the wiring in the controller; the car takes the same camera over."
+    },
+    {
+      "name": "first hour and tutorial",
+      "area": "content",
+      "status": "partial",
+      "class": "taste-bound",
+      "phase": "3",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/GameController.cs#CheckOnboarding",
+        "ledger/Assets/Scripts/Game/ActOne.cs#ActOneState"
+      ],
+      "note": "First-morning onboarding is four diegetic toast lines fired on conditions, and Act I has its pressure points. There is no authored first hour judged as one."
+    },
+    {
+      "name": "save and load",
+      "area": "player-facing",
+      "status": "exists",
+      "class": "cheap-to-author",
+      "phase": "1",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/SaveCodec.cs",
+        "ledger/Assets/Scripts/Game/SaveSlots.cs#SlotPath",
+        "ledger/verify.py#save_chaos"
+      ],
+      "note": "Codec in Core, slots and quarantine in Game, and the SaveChaos harness runs inside verify so a broken round trip is red before commit."
+    },
+    {
+      "name": "new game",
+      "area": "player-facing",
+      "status": "exists",
+      "class": "cheap-to-author",
+      "phase": "6",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/MainMenu.cs#StartGame",
+        "ledger/Assets/Scripts/Game/SaveSlots.cs#DeleteAuto"
+      ],
+      "note": "New game and Continue are both on the front screen, and Continue names whether a save exists."
+    },
+    {
+      "name": "settings",
+      "area": "player-facing",
+      "status": "exists",
+      "class": "cheap-to-author",
+      "phase": "6",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/GameSettings.cs#Serialize",
+        "ledger/Assets/Scripts/Game/OptionsScreen.cs#GameSettings"
+      ],
+      "note": "Plain-text settings.json next to the save, defaults survive a round trip, a corrupt file costs nothing."
+    },
+    {
+      "name": "accessibility",
+      "area": "player-facing",
+      "status": "partial",
+      "class": "cheap-to-author",
+      "phase": "6",
+      "blocker": "none",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/GameSettings.cs#TextScalePercent",
+        "ledger/Assets/Scripts/Game/GameSettings.cs#ColourblindSafe",
+        "ledger/Assets/Scripts/Core/Captions.cs"
+      ],
+      "note": "Three affordances shipped: text scale 80 to 150, colourblind-safe hues, captions including sounds. No pad remapping, no reduced motion, no audio-description pass, and nothing measures the set."
+    },
+    {
+      "name": "subtitles",
+      "area": "player-facing",
+      "status": "exists",
+      "class": "cheap-to-author",
+      "phase": "2",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Captions.cs",
+        "ledger/Assets/Scripts/Game/CaptionBar.cs",
+        "ledger/Assets/Scripts/Game/Bootstrap.cs#CaptionBar"
+      ],
+      "note": "Caption model in Core, bar in Game, created at boot; setting is 0 off, 1 speech, 2 speech and sounds."
+    },
+    {
+      "name": "gamepad",
+      "area": "player-facing",
+      "status": "absent",
+      "class": "cheap-to-author",
+      "phase": "6",
+      "blocker": "D1",
+      "evidence": [],
+      "note": "Only mouse and keyboard axes are read, there is no InputManager.asset in ProjectSettings, and the single gamepad mention is a comment about menu focus. Nothing measures pad play."
+    },
+    {
+      "name": "pause",
+      "area": "player-facing",
+      "status": "exists",
+      "class": "cheap-to-author",
+      "phase": "6",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/DialogueUI.cs#_pausePanel",
+        "ledger/Assets/Scripts/Game/UiSmokeTest.cs#_pausePanel"
+      ],
+      "note": "Pause panel opens on the bound key and the smoke test asserts it opens, has words and gives the controls back."
+    },
+    {
+      "name": "map and minimap",
+      "area": "player-facing",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "3",
+      "blocker": "D12",
+      "evidence": [],
+      "note": "Zero hits for minimap or a map panel anywhere in the scripts. Core/StreetMap.cs is the street network as sim data for walkers and cars, not a surface the player sees."
+    },
+    {
+      "name": "inventory",
+      "area": "player-facing",
+      "status": "partial",
+      "class": "taste-bound",
+      "phase": "4",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Coat.cs",
+        "ledger/Assets/Scripts/Game/CoatHost.cs",
+        "ledger/Assets/Scripts/Game/DialogueUI.cs#Key(\"Coat\")"
+      ],
+      "note": "By design there is no grid and no bag: the Coat is the whole idea, and it is toggled by a key. The one screen Coat.cs says it should have does not exist, so this is partial and not exists."
+    },
+    {
+      "name": "economy and trading",
+      "area": "world",
+      "status": "partial",
+      "class": "moat-adjacent",
+      "phase": "3",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Economy.cs",
+        "ledger/Assets/Scripts/Game/PurseSetup.cs",
+        "ledger/Assets/Scripts/Game/GameController.cs#Wallet"
+      ],
+      "note": "Money, purses and dirty cash are wired across the Game layer. Trading is not: Core/Negotiation.cs is reached only from Core/Empire.cs and there are no prices, no trade surface and no shop."
+    },
+    {
+      "name": "combat",
+      "area": "world",
+      "status": "partial",
+      "class": "taste-bound",
+      "phase": "4",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Combat.cs#StaminaAfterMoving",
+        "ledger/Assets/Scripts/Game/PlayerController.cs#Combat.",
+        "ledger/Assets/Scripts/Game/ViolenceHost.cs"
+      ],
+      "note": "Violence, harm and standoffs are wired, but the ONLY call into Core/Combat from the Game layer is the stamina term the walk uses; the comment beside it says combat takes it over when it arrives. Phase 4's gate is combat called from live play."
+    },
+    {
+      "name": "music",
+      "area": "content",
+      "status": "partial",
+      "class": "taste-bound",
+      "phase": "3",
+      "blocker": "none",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/MusicModel.cs#MusicLayer",
+        "ledger/Assets/Scripts/Game/Audio.cs#_music"
+      ],
+      "note": "A music bus plays a synthesised day and night pair and the adaptive layer model exists in Core. Audio.cs says it plainly: no authored score yet, and a score is a composer's job."
+    },
+    {
+      "name": "SFX",
+      "area": "content",
+      "status": "exists",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/Audio.cs#PlayOneShot",
+        "ledger/Assets/Scripts/Game/RoomTone.cs",
+        "ledger/Assets/Scripts/Game/GameController.cs#Audio."
+      ],
+      "note": "Every sound is synthesised at runtime unless a pack is dropped under StreamingAssets/Audio, and twelve Game files play through the funnel. Spare and diegetic by choice, not by omission."
+    },
+    {
+      "name": "audio mix",
+      "area": "world",
+      "status": "exists",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Mixing.cs",
+        "ledger/Assets/Scripts/Game/Audio.cs#Mixing."
+      ],
+      "note": "Buses, a per-bus voice budget, protected lines and square-root crowd gain. It was written, tested and unreachable once; the call sites in Audio.cs are what make this exists rather than absent."
+    },
+    {
+      "name": "loading and streaming",
+      "area": "world",
+      "status": "partial",
+      "class": "cheap-to-author",
+      "phase": "5",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/AssetLibrary.cs#streamingAssetsPath",
+        "ledger/Assets/Scripts/Game/ScreenCurtain.cs"
+      ],
+      "note": "Assets load from a StreamingAssets pack when present and the curtain covers staged transitions. There is no loading screen and no streaming of world chunks: grep for loading in Bootstrap, AssetLibrary and ScreenCurtain returns nothing."
+    },
+    {
+      "name": "failure states and autosave policy",
+      "area": "world",
+      "status": "partial",
+      "class": "moat-adjacent",
+      "phase": "1",
+      "blocker": "queue-046",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/GameController.cs#SaveNow(",
+        "ledger/Assets/Scripts/Game/ScreenCurtain.cs",
+        "ledger/Assets/Scripts/Game/CoatHost.cs#Arrested"
+      ],
+      "note": "Autosave is policy and runs: the morning close saves quietly. The Fall is staged behind the curtain. Arrest is NOT a live failure state: CoatHost.Arrested has zero callers in the whole Game layer, named in Core/Homicide.cs as the cost of a lowercase bug."
+    },
+    {
+      "name": "time and calendar display",
+      "area": "player-facing",
+      "status": "exists",
+      "class": "cheap-to-author",
+      "phase": "1",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/GameTime.cs",
+        "ledger/Assets/Scripts/Game/DialogueUI.cs#_clockText"
+      ],
+      "note": "Day, hour, minute and slot are printed to the HUD every frame off the Core clock. Calendar events exist in the sim; a calendar the player can open does not."
+    },
+    {
+      "name": "graphics settings including the local-LLM toggle",
+      "area": "player-facing",
+      "status": "partial",
+      "class": "cheap-to-author",
+      "phase": "6",
+      "blocker": "D1",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/GameSettings.cs#RenderScalePercent",
+        "ledger/Assets/Scripts/Game/OptionsScreen.cs#ScaleStop",
+        "ledger/Assets/Scripts/Game/FilmGrade.cs#GrainAmount"
+      ],
+      "note": "Graphics half exists: two sliders on the options screen, preset and render scale 100/75/55. Grain is a live setting applied by FilmGrade with NO row on that screen. The local-LLM half is ABSENT, zero hits for any llm toggle in settings or options; the only live switch is an Anthropic API key panel on F2."
+    },
+    {
+      "name": "credits and attributions",
+      "area": "player-facing",
+      "status": "partial",
+      "class": "cheap-to-author",
+      "phase": "6",
+      "blocker": "none",
+      "evidence": [
+        "THIRD-PARTY.md",
+        "tools/attribution-check.py",
+        "ledger/verify.py#attribution-check"
+      ],
+      "note": "The attribution ledger exists and is checked on every commit by verify. The in-game credits screen does not exist: the only two mentions in the scripts are comments."
+    },
+    {
+      "name": "photo mode",
+      "area": "player-facing",
+      "status": "absent",
+      "class": "cheap-to-author",
+      "phase": "6",
+      "blocker": "none",
+      "evidence": [],
+      "note": "Zero hits for photo mode or a screenshot capture path in the scripts; the screenshot mentions are all about the studio's own stills. Nothing measured."
+    },
+    {
+      "name": "feedback path",
+      "area": "studio",
+      "status": "partial",
+      "class": "cheap-to-author",
+      "phase": "0",
+      "blocker": "queue-090",
+      "evidence": [
+        "tools/runner/inbox.py",
+        "production/inbox/README.md"
+      ],
+      "note": "The path that exists carries Jafar's messages from Telegram into the repo, and it has two named holes until queue 090. There is no in-game path by which a player reports anything."
+    }
+  ]
+}

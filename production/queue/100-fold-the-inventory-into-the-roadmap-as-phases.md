@@ -2,7 +2,7 @@ line: production (the plan)
 spec: production/NOW.md, "JAFAR'S STANDING ORDER, 2026-09-05", item 4, third part
 acceptance: every phase value used in the inventory names a row that exists in ledger-v2/respec/roadmap-v2.md, printed as phasesCovered=N/M with any orphan phase named; every inventory entry carries a phase, with any deliberately unassigned entry listed by name and counted rather than left blank; `python3 tools/docs-check.py` stays green with every roadmap row under the 80-word cap, measured after the edit; a planted entry with a phase that names no row FAILS the check, and a planted row pushed over 80 words fails docs-check, both shown; the diff is reviewed by a director before commit because it touches the roadmap
 max_sessions: 1
-status: READY 2026-09-05. Item 4 part three, and the LAST studio item of the week under the standing rule. planner or systems-builder, with a director review before it lands.
+status: LANDED 2026-09-05 by game-design/decision-2026-09-05-ruling-build-batch-and-roadmap-fold.md section 1. Applied with phase 1 and phase 4 gates repaired and four findings open; 0 of 27 systems moved phase. The acceptance's docs-check clause is unmeasurable by that tool, which walks game-design/ only; the row-law checker is queued.
 
 ## What the fold is, and what it is not
 

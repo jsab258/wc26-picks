@@ -2,7 +2,7 @@ line: infrastructure (the budget instrument)
 spec: production/NOW.md, "JAFAR'S STANDING ORDER, 2026-09-05", item 10. Overrides the button grid the bot shipped with on 2026-09-04.
 acceptance: a meter question is sent carrying NO preset keyboard, proven by asserting the sent parameters hold no keyboard array and that the previous keyboard is removed, and "77" is accepted and read back; every one of "76,5", "76.5", "77.0", "about half", "101", "-3" and the empty string is REFUSED with a message naming that a whole number from 0 to 100 is wanted, with no reading recorded and the readings counter unchanged, printed as refused=N/M answers seen; the selftest's keyboard fixture is inverted so that a returning preset grid FAILS it; and the reading is recorded with source=typed, with the retired value named so older rows stay readable
 max_sessions: 1
-status: READY 2026-09-05. Small. instrument-builder.
+status: LANDED 2026-09-05. Selftest 73/0 with the keyboard fixture inverted. The first live typed reading on the PC is the proof in use and has not been taken.
 
 ## His rule, and the reason it is not fussiness
 

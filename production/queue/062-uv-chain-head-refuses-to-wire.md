@@ -59,3 +59,18 @@ write; the status word may not. Step 2, a precondition to run 21:
 `materialStatus=WIRED-BY-PROPERTY-WRITE` with `materialScriptReturn=2`; two
 selftest cases, accepting first. Ruling:
 game-design/decision-2026-09-03-batch-review-register-banner-spawnlog-uvsweep.md.
+
+## STEP 2 LANDED 2026-09-05, RUN 21 AUTHORISED
+
+`material_status` takes the property-write head count; 14 of 14 with it above
+zero prints `materialStatus=WIRED-BY-PROPERTY-WRITE` and
+`materialScriptReturn=2`; 14 of 14 with `materialUvHeadByPropertyWrite=0/2`
+still prints `MADE`. Selftest 30 to 40 checks, both cases from head records.
+The deciding count is printed as `materialUvHeadByPropertyWrite`, adopted by
+the ruling. Ruling and the reading table for run 21:
+game-design/decision-2026-09-05-ruling-062-step-2-third-status-word.md,
+section 5. The rule fires again on `materialConnections=12/14`.
+
+NOTE, not before run 21: the `CREATE-FAILED` line in `main()` carries no
+`materialScriptReturn` and no UV keys. A verifier reading that word reads it
+as nothing measured. Fix when the file is next open.

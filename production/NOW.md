@@ -378,6 +378,12 @@ is happening, the console is done.
   once 062 step 2 (the third status word) has landed and Jafar lifts "wait";
   if 21 prints 12/14 again, that is the answer and D1's hand-edit clause is
   invoked.
+  Step 2 landed 2026-09-05 and run 21 is authorised on it (ruling
+  game-design/decision-2026-09-05-ruling-062-step-2-third-status-word.md,
+  section 5, which carries the reading table).
+  Dispatch of run 21 confirmed on the committed state by
+  game-design/decision-2026-09-05-ruling-build-batch-and-roadmap-fold.md
+  section 2, which also says what a third 12/14 means.
 
 - **THE DIRECTOR'S CONSOLE EXISTS AS FAR AS STEP 2.** `production/decision-queue.md`
   is the single home for anything awaiting Jafar and for lighter rulings; the

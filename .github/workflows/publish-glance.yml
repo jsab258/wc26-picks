@@ -1,0 +1,248 @@
+# PUBLISH THE GLANCE so it opens on Jafar's phone (production/queue/097).
+#
+# WHAT THIS RUN OWES. Not "did the job go green": the acceptance is that a
+# request to the published URL returns 200 and text/html and carries the page
+# THIS COMMIT built. The job therefore requests its own output at the end and
+# fails on a stale or foreign body even when every deploy step succeeded. A
+# green deploy and a served page are different facts.
+#
+# WHAT COULD NOT BE MEASURED FROM THE CONTAINER, and is measured HERE instead.
+# The agent proxy answers /repos/{o}/{r}/pages with 403 and refuses github.io
+# at CONNECT, so the builder could establish that Pages is ENABLED
+# (has_pages=true, from the repository API, which the proxy does allow) but not
+# WHICH SOURCE it builds from, and could not request the site at all. Step
+# "measure Pages before touching it" prints that, on a runner with no proxy.
+# Read those keys before reading this run's colour.
+#
+# WHY THIS IS SAFE TO PUT ON EVERY PUSH. One python run, one artifact upload,
+# one deploy: about a minute, no licence seat, no shared runner. Its
+# concurrency group is its own name, so it can never queue behind the Windows
+# build or imagegen, and nothing else in this repository uses a "pages" group
+# (grepped 2026-09-05: citypack-fetch, citypack-inventory and ledger-imagegen
+# are the only groups declared).
+name: publish-glance
+
+on:
+  push:
+    branches: [claude/game-dev-ai-automation-2h67ix]
+    # The glance reads five sources and nothing else (tools/glance.py names
+    # them at the top of the file). A commit that touches none of them cannot
+    # change the page, so it does not need a deploy. This filter IS the
+    # "rebuilds when the repository changes" promise, scoped to the changes
+    # that can move a pixel.
+    #
+    # THE MAP'S SOURCES ARE THE SECOND GROUP, and they were read out of the
+    # tools rather than assumed. tools/map.py names the inventory and the check
+    # at the top of the file; its resolve_blocker() opens
+    # ledger-v2/respec/decision-register/D<n>-*.md for the record's TITLE and
+    # production/queue{,/done}/<n>-*.md for the queue file's NAME, and both
+    # strings are rendered into the sheet behind a tile. Measured in the live
+    # inventory on 2026-09-05: of 27 entries, 19 carry a D<n> blocker and 2
+    # carry a queue-<n> one, so both directories move this page today rather
+    # than hypothetically. systems-inventory-check.py's order_names() reads the
+    # 27 pinned names out of production/queue/098-*.md, which is the coverage
+    # denominator the page prints, so the queue directory is an input twice
+    # over. Without these lines the map would publish once and then never
+    # rebuild, which is worse than never publishing.
+    #
+    # THE ONE HOLE, NAMED RATHER THAN PAPERED OVER. The inventory's 61 evidence
+    # references resolve against files anywhere in the tree (mostly
+    # ledger/Assets/**), and a commit that breaks one flips the check to
+    # REFUSED, which turns the map into a refusal page without touching any
+    # path below. ledger/Assets/** is NOT listed here: ledger/verify.py runs
+    # the same check before every commit, so that break is caught at the gate
+    # rather than discovered on his phone, and the next push touching any path
+    # below republishes. workflow_dispatch is the manual path meanwhile.
+    paths:
+      - 'production/outbox/**'
+      - 'production/decision-queue.md'
+      - 'production/budget.md'
+      - 'production/frames/**'
+      - 'game-design/sim-shots/**'
+      - 'tools/glance.py'
+      - 'tools/publish-glance.py'
+      - '.github/workflows/publish-glance.yml'
+      - 'production/systems-inventory.json'
+      - 'tools/systems-inventory-check.py'
+      - 'tools/map.py'
+      - 'ledger-v2/respec/decision-register/**'
+      - 'production/queue/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: publish-glance
+  # LAST-WINS IS THE CORRECT SEMANTIC HERE and the reason this is true rather
+  # than the deployment default of false. If three commits land in a minute,
+  # publishing the newest page is the whole point and publishing the older two
+  # first is wasted deploys against the Pages build rate limit.
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # tools/glance.py dates the latest image with
+          # "git log --name-only -60", so a depth-1 checkout would silently
+          # date every frame by file mtime instead. 200 covers the 60 it asks
+          # for with room to spare.
+          fetch-depth: 200
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: measure Pages before touching it
+        id: before
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -u
+          code=$(curl -sS -o /tmp/pages-before.json -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pages" || echo 000)
+          echo "pagesApiHttp=$code"
+          python3 - "$code" <<'PY'
+          import json, sys
+          code = sys.argv[1]
+          if code == "000":
+              print("pagesEnabledBefore=nothing-measured "
+                    "reason=request-did-not-complete (nothing measured)")
+              raise SystemExit(0)
+          if code == "404":
+              print("pagesEnabledBefore=false pagesBuildTypeBefore=none "
+                    "pagesSourceBefore=none pagesUrl=none")
+              raise SystemExit(0)
+          try:
+              d = json.load(open("/tmp/pages-before.json"))
+          except Exception as e:
+              print("pagesEnabledBefore=nothing-measured reason=unparseable-body "
+                    "(nothing measured) err=%s" % type(e).__name__)
+              raise SystemExit(0)
+          src = d.get("source") or {}
+          print("pagesEnabledBefore=true pagesBuildTypeBefore=%s "
+                "pagesSourceBranch=%s pagesSourcePath=%s pagesUrl=%s "
+                "pagesStatus=%s"
+                % (d.get("build_type") or "none",
+                   src.get("branch") or "none", src.get("path") or "none",
+                   d.get("html_url") or "none", d.get("status") or "none"))
+          PY
+
+      - name: set the Pages source to this workflow, and record any refusal
+        id: enable
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -u
+          # PUT updates an existing site, POST creates one. Both are recorded
+          # with their exact status and body: queue 097's second legitimate
+          # ending is "a recorded refusal naming the exact error", and a
+          # swallowed error is a quiet retry next week instead.
+          put=$(curl -sS -o /tmp/pages-put.json -w '%{http_code}' -X PUT \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/json" \
+            -d '{"build_type":"workflow"}' \
+            "https://api.github.com/repos/${{ github.repository }}/pages" || echo 000)
+          echo "pagesPutHttp=$put body=$(tr -d '\n' < /tmp/pages-put.json | cut -c1-300)"
+          if [ "$put" = "404" ]; then
+            post=$(curl -sS -o /tmp/pages-post.json -w '%{http_code}' -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Content-Type: application/json" \
+              -d '{"build_type":"workflow"}' \
+              "https://api.github.com/repos/${{ github.repository }}/pages" || echo 000)
+            echo "pagesPostHttp=$post body=$(tr -d '\n' < /tmp/pages-post.json | cut -c1-300)"
+            put="$post"
+          fi
+          echo "pagesEnableHttp=$put" >> "$GITHUB_OUTPUT"
+          case "$put" in
+            200|201|204) echo "pagesEnableResult=OK" ;;
+            000) echo "pagesEnableResult=NOTHING-MEASURED (nothing measured: the request did not complete)" ;;
+            *) echo "pagesEnableResult=REFUSED-http-$put" ;;
+          esac
+
+      - name: the generators' own selftests, accepting case first
+        run: |
+          python3 tools/glance.py --selftest
+          python3 tools/map.py --selftest
+
+      - name: the publisher's selftest, accepting case first
+        run: python3 tools/publish-glance.py --selftest
+
+      - name: build and scan the bytes about to be published
+        run: |
+          python3 tools/publish-glance.py --build \
+            --out-dir _site --commit "${{ github.sha }}"
+          # A SECOND READING OF THE SAME DIRECTORY, and named differently on
+          # purpose: the publisher prints siteFiles=N/4-expected from its own
+          # list, and this counts what is actually on disk. Two keys, because
+          # one key with two values on two lines is what a grep merges.
+          echo "artifactFiles=$(find _site -type f | wc -l) artifactBytes=$(du -sb _site | cut -f1)"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: REQUEST THE PUBLISHED PAGES AND READ WHAT CAME BACK
+        run: |
+          set -eu
+          base="${{ steps.deployment.outputs.page_url }}"
+          # The deploy action's page_url ends in a slash today; if it ever does
+          # not, joining it to a file name would silently request a sibling
+          # directory. Normalised here rather than assumed.
+          case "$base" in */) ;; *) base="$base/" ;; esac
+          echo "glanceUrl=$base mapUrl=${base}map.html"
+          # Retries are for the CDN, which makes "not published" and "published
+          # but stale" look identical. Every wait announces itself and the
+          # attempt series is printed, so a future bound can be set from
+          # evidence rather than from this budget.
+          python3 tools/publish-glance.py \
+            --check "$base" \
+            --expect-commit "${{ github.sha }}" \
+            --retries 8 --wait-sec 15
+          # THE SECOND PAGE IS REQUESTED TOO, on the same budget rather than a
+          # newly invented one. The glance links forward to map.html, so a map
+          # that deployed but does not serve is a tap into a 404: publishing it
+          # and never asking for it is exactly the gap this file exists to
+          # close. Both pages carry the same stamp, so the same commit check
+          # applies unchanged.
+          python3 tools/publish-glance.py \
+            --check "${base}map.html" \
+            --expect-commit "${{ github.sha }}" \
+            --retries 8 --wait-sec 15
+
+      - name: the verdict, and the refusal record if there was one
+        if: always()
+        run: |
+          {
+            echo "## publish-glance"
+            echo ""
+            echo "commit: ${{ github.sha }}"
+            echo "url: ${{ steps.deployment.outputs.page_url }}"
+            echo "map: ${{ steps.deployment.outputs.page_url }}map.html"
+            echo "pagesEnableHttp: ${{ steps.enable.outputs.pagesEnableHttp }}"
+            echo "job: ${{ job.status }}"
+            echo ""
+            if [ "${{ job.status }}" != "success" ]; then
+              echo "THIS RUN DID NOT PUBLISH A PAGE HE CAN READ."
+              echo "Jafar's instruction was to SAY SO rather than leave a file"
+              echo "he cannot read. The exact error is in the failing step above."
+              echo "Route: copy it into production/decision-queue.md as a card"
+              echo "with the one-line ask, per queue 097."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
