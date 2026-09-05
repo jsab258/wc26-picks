@@ -65,3 +65,11 @@ depends on nothing and is useful the moment it lands. Related: queue 074, the
 
 If the 079 half does not fit in this session, it returns to item 9 and NOW.md
 says the footer's ready count is not to be quoted until it lands.
+
+FOLDED IN BY THE RULING OF 2026-09-05 (088 batch), section 5 and 6:
+`ledger/verify.py` gains one checker each for `tools/runner/inbox.py --selftest`,
+`tools/inbox-read.py --selftest` and `tools/runner/telegram-bot.py --selftest`,
+parsing the count line each prints and red on any failure or no count line; and one
+gate that refuses a commit while `production/inbox/` holds an untracked message
+file, printing `inboxUntracked=N/M` and "nothing measured" on an empty folder. If
+it does not fit this session it returns to the queue under its own number.

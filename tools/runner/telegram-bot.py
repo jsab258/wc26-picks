@@ -14,6 +14,17 @@ quick-replies for BOTH meters. Gallery images, decision cards that write
 rulings, notes and voice memos are Monday's work and are deliberately absent
 rather than half-present.
 
+AND SINCE QUEUE 088, THE INBOUND HALF: every message he types that is not a
+command is written to `production/inbox/` and pushed to the `pc-inbox`
+branch, and the reply says whether the studio is awake and, if it is asleep,
+when it next wakes. The transport is `tools/runner/inbox.py` and every rule
+it obeys about not disturbing `tools/pc-watcher.py` is in that file's
+docstring. A push that fails keeps the message on this PC and retries; it is
+never dropped.
+A message that arrives while this bot is NOT running is the other case:
+`skip_backlog` counts it at the next start and does not file it, so it is
+lost to the inbox until the fold in queue 090's pass lands.
+
 NO DEPENDENCY. The Telegram bot API is HTTP with JSON, and urllib does it, so
 nothing new enters the licence allowlist for this.
 
@@ -46,6 +57,7 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import botconfig                                              # noqa: E402
+import inbox                                                  # noqa: E402
 
 API = "https://api.telegram.org/bot%s/%s"
 
@@ -222,17 +234,20 @@ HELP = ("LEDGER studio channel.\n"
         "/budget  the two meter readings, with buttons\n"
         "/ping    am I still alive\n"
         "/help    this\n\n"
-        "Working today: I answer anything you type, and I can send you "
-        "something you did not ask for.\n"
-        "Not built yet, and Monday's work: gallery pictures, decision cards "
-        "with buttons that write the ruling, typed notes and voice memos.\n"
+        "Working today: anything you type that is not one of those commands "
+        "is FILED for the studio, and I tell you whether the studio is awake "
+        "and, if not, when it next wakes. I can also send you something you "
+        "did not ask for.\n"
+        "Not built yet: gallery pictures, decision cards with buttons that "
+        "write the ruling, and voice memos.\n"
         "To stop me, close the black window on the PC.")
 
 OPENING = ("LEDGER studio channel is open.\n"
            "You did not ask for this message, which is the part a Blocking "
            "item needs.\n"
-           "Send me anything and I will answer, which proves the other "
-           "direction. /help lists what works today.")
+           "Send me anything and I will file it for the studio and answer "
+           "you, which proves the other direction. /help lists what works "
+           "today.")
 
 BUDGET_Q = ("Budget reading, please. Two numbers, and the studio needs both "
             "because the higher one governs.\n"
@@ -260,7 +275,7 @@ def log_budget(line):
 # The loop
 # --------------------------------------------------------------------------
 class Bot(object):
-    def __init__(self, creds):
+    def __init__(self, creds, repo=None):
         self.token = creds.token
         self.chat = str(creds.chat_id)
         self.creds = creds
@@ -274,6 +289,13 @@ class Bot(object):
         self.pending = None    # None, "total" or "fable"
         self.total = None
         self.started = time.time()
+        # THE INBOX HALF. `repo` is a parameter so the selftest can point the
+        # whole path at a throwaway repository instead of this one.
+        self.repo = repo or REPO
+        self.filed = 0         # messages written to production/inbox
+        self.pushed = 0        # of those, that reached the branch
+        self.push_fails = 0    # cumulative, whole run
+        self.last_flush = 0.0  # when the retry last ran, a wall clock
 
     # -- startup ----------------------------------------------------------
     def hello(self):
@@ -309,7 +331,63 @@ class Bot(object):
         self.reply(BUDGET_Q, BUDGET_KEYS)
         OUT.say("asked for the budget reading, meter 1 of 2")
 
-    def handle_text(self, text):
+    # -- the inbox ---------------------------------------------------------
+    def file_message(self, text, sent_epoch, update_id):
+        """Write it, push it, and return the lines that go under the echo.
+
+        WRAPPED, BECAUSE A BROKEN INBOX MUST NOT TAKE THE CHANNEL DOWN. If
+        anything in the git path throws, Jafar still gets an answer and the
+        window still says which line it came from. The message text is not
+        printed with the fault: same rule as the crash handler at the bottom
+        of this file.
+        """
+        try:
+            res = inbox.file_and_push(self.repo, text, sent_epoch, update_id,
+                                      OUT.say)
+        except Exception as e:                                # noqa: BLE001
+            self.push_fails += 1
+            OUT.say("inbox: FAILED to file the message (%s). The channel "
+                    "keeps running." % type(e).__name__)
+            return ("I could not file that on the PC (%s). It is NOT saved, "
+                    "so please send it again once the window on the PC stops "
+                    "showing that error." % type(e).__name__)
+        self.filed += 1
+        if res["ok"]:
+            self.pushed += 1
+        else:
+            self.push_fails += 1
+        self.last_flush = time.time()
+        return inbox.reply_text(res)
+
+    def flush_inbox(self, every=60):
+        """Retry anything held on disk, at most once a minute.
+
+        A MESSAGE HELD BY A NETWORK WOBBLE MUST NOT WAIT FOR THE NEXT ONE.
+        `pending_files` derives the backlog from the branch's own tree, so
+        this is correct after a crash, a restart or an uplink that came back
+        while nothing was being typed.
+        """
+        if time.time() - self.last_flush < every:
+            return
+        self.last_flush = time.time()
+        try:
+            waiting, _tip = inbox.pending_files(self.repo)
+            if not waiting:
+                return
+            res = inbox.push_pending(self.repo, OUT.say)
+        except Exception as e:                                # noqa: BLE001
+            OUT.say("inbox: the retry could not run (%s)" % type(e).__name__)
+            return
+        if res["ok"] and res["pushed"]:
+            self.pushed += len(res["pushed"])
+            self.reply("The %d message(s) I was holding on the PC are on the "
+                       "branch now. Nothing was lost."
+                       % len(res["pushed"]))
+        elif not res["ok"]:
+            OUT.say("inbox: still holding %d message(s): %s"
+                    % (len(res["pending"]), res["detail"]))
+
+    def handle_text(self, text, sent_epoch=None, update_id=None):
         cmd = text.strip().lower().split("@")[0]
         if cmd in ("/start", "/help"):
             self.pending = None
@@ -328,12 +406,16 @@ class Bot(object):
                 # is already open, so a plain hello would otherwise be met
                 # with a demand and no proof that the channel carried what he
                 # actually said. Both facts, one reply.
+                #
+                # AND IT IS FILED, because a message that is not a number is
+                # a message for the studio and the open budget question is
+                # not a reason to drop it. Filing first, nagging second.
                 return self.reply(echo_reply(
-                    text, "That reply is the proof the channel works both "
-                          "ways. I am still waiting for the %s meter, a "
-                          "number from 0 to 100: press a button, type it, or "
-                          "send /help to stop being asked."
-                          % self.pending.upper()))
+                    text, "%s\nI am still waiting for the %s meter, a number "
+                          "from 0 to 100: press a button, type it, or send "
+                          "/help to stop being asked."
+                          % (self.file_message(text, sent_epoch, update_id),
+                             self.pending.upper())))
             if self.pending == "total":
                 self.total = v
                 self.pending = "fable"
@@ -350,7 +432,9 @@ class Bot(object):
                               text_out + "\n(The PC could not write its own "
                                           "log file, so this reading only "
                                           "exists in this chat.)")
-        return self.reply(echo_reply(text))
+        return self.reply(echo_reply(
+            text, "%s\nCommands: /budget, /ping, /help."
+                  % self.file_message(text, sent_epoch, update_id)))
 
     def handle(self, update):
         self.seen += 1
@@ -378,7 +462,17 @@ class Bot(object):
         OUT.say("message %d from you: %s" % (self.mine, text[:80] + (
             " (+%d more character(s) not shown)" % (len(text) - 80)
             if len(text) > 80 else "")))
-        self.handle_text(text)
+        # TELEGRAM'S OWN CLOCK, WHICH IS ONE OF THE TWO ENDS OF
+        # `inboundLatencySec`. If the field were ever missing, the PC's clock
+        # stands in and the window says so, because a latency measured from
+        # the wrong end reads as a fast channel.
+        date = msg.get("date")
+        if not isinstance(date, int):
+            OUT.say("telegramDateMissing=1: using this PC's clock as the "
+                    "sent time, so the latency for this one is not a "
+                    "phone-to-repo measurement")
+            date = int(time.time())
+        self.handle_text(text, date, update["update_id"])
 
     # -- run --------------------------------------------------------------
     def poll_forever(self):
@@ -395,6 +489,11 @@ class Bot(object):
                     since_ok, backoff = 0, 5
                 for u in updates or []:
                     self.handle(u)
+                # AFTER THE MESSAGES, NOT INSTEAD OF THEM. This is a no-op
+                # unless something is held on disk, and it is rate-limited to
+                # once a minute, so a quiet bot costs one `rev-parse` and one
+                # directory listing per poll.
+                self.flush_inbox()
             except ApiError as e:
                 if e.kind != "network":
                     OUT.say("STOPPING: %s" % e)
@@ -411,12 +510,25 @@ class Bot(object):
                 return 0
 
     def done_line(self):
+        """The whole run's tally. Every count against the set it came from.
+
+        `inboxPending` is read from disk at this instant rather than
+        remembered, so it is the number of messages still on this PC when the
+        window closed, which is the number that matters to whoever reads it.
+        """
+        try:
+            waiting = len(inbox.pending_files(self.repo)[0])
+        except Exception:                                     # noqa: BLE001
+            waiting = -1
         return ("telegram-bot done: uptimeMin=%d updatesSeen=%d fromYou=%d/%d "
                 "ignoredOtherChats=%d/%d nonText=%d/%d budgetReadings=%d "
-                "networkErrors=%d"
+                "networkErrors=%d inboxFiled=%d inboxPushed=%d/%d "
+                "inboxPushFailures=%d inboxPending=%s"
                 % (int((time.time() - self.started) / 60), self.seen,
                    self.mine, self.seen, self.other, self.seen,
-                   self.nontext, self.mine, self.readings, self.net_errors))
+                   self.nontext, self.mine, self.readings, self.net_errors,
+                   self.filed, self.pushed, self.filed, self.push_fails,
+                   "unreadable" if waiting < 0 else waiting))
 
 
 # --------------------------------------------------------------------------
@@ -454,6 +566,20 @@ def run():
     if creds is None:
         return 1
     banner(creds, path)
+    # THE INBOX'S STATE BEFORE ANY MESSAGE ARRIVES, so the window says what
+    # this PC is holding rather than only what happens next. The zero ships
+    # its denominator: `of N on disk`.
+    try:
+        held, _tip = inbox.pending_files(REPO)
+        newest, basis = inbox.newest_work_commit(REPO)
+        state, age = inbox.studio_state(newest, time.time())
+        OUT.say("inbox   : branch=%s inboxPending=%d/%d %s"
+                % (inbox.INBOX_BRANCH, len(held),
+                   len(inbox.message_files(REPO)),
+                   inbox.studio_key(state, age, basis)))
+    except Exception as e:                                    # noqa: BLE001
+        OUT.say("inbox   : could not be read (%s). Messages will still be "
+                "answered; filing may fail and will say so." % type(e).__name__)
     bot = Bot(creds)
     try:
         name = bot.hello()
@@ -464,6 +590,7 @@ def run():
     except ApiError as e:
         OUT.say("CANNOT START: %s" % e)
         return 1
+    bot.flush_inbox(every=0)
     OUT.say("bot %s is listening. Send it something from your phone. Close "
             "this window to stop it." % name)
     code = bot.poll_forever()
@@ -537,6 +664,108 @@ def selftest():
 
     scrubbed = botconfig.redact("boom in bot123:SECRETVALUE", ["123:SECRETVALUE"])
     check("accept/console-scrubs", "SECRETVALUE" not in scrubbed, scrubbed)
+
+    # ---- THE INBOX WIRING, against a throwaway repository ---------------
+    #
+    # The transport itself is covered by `inbox.py --selftest`, which builds
+    # the repositories and proves the watcher's checkout is untouched. What
+    # is proven HERE is the wiring: which messages get filed, which do not,
+    # and what the reply carries. `reply` is captured rather than sent, so
+    # no case below touches the network.
+    home, far, watcher, _reader = inbox._repos()
+    creds = botconfig.Credentials(botconfig.FAKE_TOKEN, botconfig.FAKE_CHAT,
+                                  "selftest", "selftest", 2)
+    sent = 1788633012                                # 2026-09-05T18:30:12Z
+
+    class Captured(Bot):
+        def __init__(self):
+            Bot.__init__(self, creds, repo=watcher)
+            self.said = []
+
+        def reply(self, text, keyboard=None):
+            self.said.append(text)
+
+    def update(text, uid, chat=None):
+        return {"update_id": uid,
+                "message": {"date": sent, "text": text,
+                            "chat": {"id": chat or botconfig.FAKE_CHAT}}}
+
+    b = Captured()
+    b.pending = None
+    b.handle(update("Seen the van again.", 4127))
+    rel = "production/inbox/" + inbox.message_name(sent, 4127)
+    check("accept/inbox-a-typed-message-is-filed",
+          os.path.exists(os.path.join(watcher, *rel.split("/"))), rel)
+    check("accept/inbox-the-reply-carries-his-words-and-the-file",
+          b.said and "Seen the van again." in b.said[-1]
+          and rel in b.said[-1], b.said[-1][:90] if b.said else "SILENT")
+    check("accept/inbox-the-reply-says-awake-or-asleep",
+          any(w in b.said[-1] for w in ("AWAKE", "ASLEEP", "cannot tell")),
+          b.said[-1][-90:] if b.said else "SILENT")
+    check("accept/inbox-counted-as-filed-and-pushed",
+          b.filed == 1 and b.pushed == 1 and b.push_fails == 0,
+          "filed %d pushed %d" % (b.filed, b.pushed))
+    check("accept/inbox-the-done-line-carries-the-counters",
+          "inboxFiled=1" in b.done_line() and "inboxPushed=1/1" in b.done_line()
+          and "inboxPending=0" in b.done_line(), b.done_line())
+
+    # A MESSAGE THAT IS NOT A NUMBER WHILE THE BUDGET QUESTION IS OPEN IS
+    # STILL A MESSAGE. It was the first thing the open question would have
+    # swallowed on the first evening.
+    b.pending = "total"
+    b.handle(update("what is the studio doing", 4128))
+    check("accept/inbox-filed-even-with-the-budget-question-open",
+          os.path.exists(os.path.join(watcher, *(
+              "production/inbox/" + inbox.message_name(sent, 4128)).split("/")))
+          and "TOTAL meter" in b.said[-1], b.said[-1][:80])
+
+    # THE REJECTING CASES. A foreign chat writes NO file and raises the
+    # ignored counter, which is the existing behaviour this must not break.
+    before = len(inbox.message_files(watcher))
+    b2 = Captured()
+    b2.handle(update("from somebody else", 4129, chat="-100999"))
+    check("reject/inbox-another-chat-writes-no-file",
+          len(inbox.message_files(watcher)) == before and b2.other == 1
+          and b2.mine == 0 and not b2.said,
+          "%d file(s), other=%d" % (len(inbox.message_files(watcher)),
+                                    b2.other))
+    check("reject/inbox-and-that-run-filed-nothing",
+          b2.filed == 0 and "inboxFiled=0" in b2.done_line(), b2.done_line())
+
+    # A COMMAND IS NOT A MESSAGE FOR THE STUDIO.
+    b3 = Captured()
+    b3.handle(update("/ping", 4130))
+    b3.handle(update("/help", 4131))
+    check("reject/inbox-a-command-is-not-filed",
+          b3.filed == 0 and len(inbox.message_files(watcher)) == before,
+          "%d file(s)" % len(inbox.message_files(watcher)))
+
+    # AND A NUMBER ANSWERING THE BUDGET QUESTION IS NOT FILED EITHER.
+    b4 = Captured()
+    b4.pending, b4.total = "fable", 40.0
+    b4.handle(update("62", 4132))
+    check("reject/inbox-a-budget-answer-is-not-filed",
+          b4.filed == 0 and "fable at 62" in b4.said[-1],
+          b4.said[-1][:60] if b4.said else "SILENT")
+
+    # AND A HELD MESSAGE IS REPORTED, NOT DROPPED.
+    inbox._fixture_git(["remote", "set-url", "--push", "origin",
+                        os.path.join(home, "no-such-remote.git")], watcher)
+    b5 = Captured()
+    b5.handle(update("while the uplink is down", 4133))
+    check("reject/inbox-a-failed-push-holds-the-message-and-says-so",
+          b5.filed == 1 and b5.pushed == 0 and b5.push_fails == 1
+          and "NOT pushed" in b5.said[-1] and "none are dropped" in b5.said[-1],
+          b5.said[-1][:100] if b5.said else "SILENT")
+    check("reject/inbox-and-the-done-line-counts-what-is-waiting",
+          "inboxPushed=0/1" in b5.done_line()
+          and "inboxPending=1" in b5.done_line(), b5.done_line())
+    inbox._fixture_git(["remote", "set-url", "--push", "origin", far], watcher)
+    b5.flush_inbox(every=0)
+    check("accept/inbox-the-retry-clears-the-backlog-and-says-so",
+          inbox.pending_files(watcher)[0] == []
+          and "holding on the PC are on the branch now" in b5.said[-1],
+          b5.said[-1][:90])
 
     print("\ntelegram-bot selftest: %d passed, %d failed (%d case(s) run). "
           "THE NETWORK HALF IS NOT COVERED: every Telegram call in this file "

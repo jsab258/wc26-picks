@@ -27,6 +27,87 @@ Irreversible items wait for Jafar and never guess.
 
 ## WAITING
 
+### What may the studio spend to wake for your messages at night?
+CLASS: DECISION
+added 2026-09-05, from today's ruling on your standing order
+
+You asked that anything you send the bot reach the studio within a few
+minutes. The transport is built and lands today; the first message you send the bot is its test. The waking half does not.
+Nothing on your PC can reach into the studio to start it, a turn begins only
+when a trigger fires or you type, and the only trigger in place fires once a
+day. So a message sent while the studio is asleep waits for the next turn, up
+to 24 hours.
+
+A fourth route, a doorbell your PC could ring to wake the session (a webhook),
+[was tested and is shut](https://github.com/jsab258/wc26-picks/blob/claude/game-dev-ai-automation-2h67ix/production/queue/088-the-inbound-path-from-his-phone-to-this-session.md):
+it refused the exact request your PC would send, because its key is sealed to
+one service. Of the three routes left, only a fast recurring trigger closes
+your item as you wrote it, and it is not armed because what one firing costs
+has never been measured. Choosing a cadence without that number would be
+guessing with your meter.
+
+The test night, if you choose one: the studio wakes on a trigger with nothing
+to do but read the inbox and answer anything waiting, and you type both meter
+readings as whole numbers, once when the window opens and once when it closes.
+Anything else using the account inside that window, you or the studio,
+contaminates the number, and a contaminated number is refused rather than
+published. There is a kill switch: one command to the bot from your phone
+stops the firings at the next one, because the studio cannot read the meter
+and a night running hot cannot notice by itself. The trigger removes itself
+when the window ends.
+
+Whichever you choose, until one wake has been priced and you have set the
+cadence against that price, your item reads as
+[the ruling](https://github.com/jsab258/wc26-picks/blob/claude/game-dev-ai-automation-2h67ix/game-design/decision-2026-09-05-ruling-standing-order-refill-and-the-wake-half.md)
+amends it: anything you send lands as a dated note and reaches the studio
+within a minute of its next turn; the bot's reply says whether the studio is
+awake or asleep and, if asleep, when it next wakes.
+
+- A. Every fifteen minutes for one six-hour night: twenty-four firings, each
+  priced to within four hundredths of a point. The studio's guess for the
+  whole night is about one point, and that is a guess, not a measurement.
+- B. Every hour for one night first: six firings, each priced only to within
+  a sixth of a point. Cheaper, and too coarse to price a five-minute cadence.
+- C. Awake-only this week, no test. A message sent at night waits for the
+  morning.
+
+RECOMMENDATION A: it prices the cadence you actually asked for, at a cost
+small enough to spend once.
+DEFAULT C if unruled, because a default may not spend your meter; only your
+ruling can.
+DEADLINE 2026-09-07, the Monday reset. Nothing is armed before you rule, and
+the night runs only when you can give both readings.
+
+### The glance would be readable by anyone: publish it as designed?
+CLASS: DECISION
+added 2026-09-05, from today's ruling on your standing order
+
+You asked to be told if GitHub Pages were refused. It is not refused: the
+project on GitHub is public, so Pages is available and the glance can open on your
+phone. What needs your ruling is the consequence, not the refusal. A Pages
+site on a public project is readable by anyone who has the URL, and the glance
+carries your budget percentages on both meters, the needs-you count and the
+top item. Nothing new is exposed, because
+[the budget page](https://github.com/jsab258/wc26-picks/blob/claude/game-dev-ai-automation-2h67ix/production/budget.md)
+those percentages come from is already public in the same project. That is a
+reason this is not a new leak. It is not a reason it is fine, which is why
+this is your call and not a builder's, and why the work that publishes it
+[waits for your ruling](https://github.com/jsab258/wc26-picks/blob/claude/game-dev-ai-automation-2h67ix/production/queue/097-publish-the-glance-so-it-opens-on-his-phone.md).
+
+- A. Publish as designed, budget bar and all.
+- B. Publish without the budget bar. The needs-you count and the top item
+  still show; the meters do not.
+- C. Do not publish. The glance stays a file inside the project, and a glance
+  you cannot open from your phone is a file, not a glance.
+
+RECOMMENDATION A: the exposure already exists, and the glance is the one thing
+built to open on your phone.
+DEFAULT A if unruled. This is the one card whose default acts, because the The default acts only once this card has reached you, by the bot with a
+receipt or by your own word in the session, and 24 hours have passed since;
+until then the deadline moves with it.
+exposure already exists and holding the page back would not undo it.
+DEADLINE 2026-09-07, the Monday reset.
+
 ### How close should strangers stand?
 CLASS: DECISION
 added 2026-08-04, still open, and it now has the picture it was waiting for

@@ -125,6 +125,27 @@ trip. Core, CoreTests, the measurement tools, the docs and every Python tool run
 here in seconds. Dispatch the build and start the next non-CI item in the SAME
 turn. A build in flight is a reason to switch tasks, not to stop.
 
+**2b. READ THE INBOX AT EVERY DISPATCH BOUNDARY AND AT THE TOP OF EVERY TURN.**
+One command, one fetch, seconds:
+
+    python3 tools/inbox-read.py
+
+    The files it delivers are UNTRACKED until committed. Stage them BY NAME
+    in the next batch commit: `pc-inbox` is force-pushed and disposable, and
+    the work branch is the only durable record of what he said.
+
+That is the container half of the inbound path (queue 088). Anything Jafar
+typed into the bot on his phone is a dated file on the `pc-inbox` branch about
+a minute later, and this is the only thing that ever looks. It prints his
+words, `delivered=N/M`, and `inboundLatencySec` measured from Telegram's `date`
+field to the PC's commit instant; with nothing on the branch it prints the
+words "nothing measured" beside `delivered=0/0`, so an empty inbox never reads
+like a broken reader. The boundaries that matter are the same ones rule 2 is
+about: before a spawn, after a spawn returns, and before ending a turn. THE
+STUDIO CANNOT BE WOKEN BY A MESSAGE. While no turn is running his message
+waits for the daily trigger at 04:00 UTC, up to 24 hours; the bot tells him so
+in its reply, and closing that gap is queue 092.
+
 **`game-design/queue.md` is what you pick up.** This rule was already written,
 in these words, and I broke it four times in one afternoon — twenty, thirty-two,
 nineteen and twenty-eight minutes of nothing landing, each one right after a

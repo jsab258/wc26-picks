@@ -216,6 +216,13 @@ is happening, the console is done.
    register-compliant answer back, and he taps a button and the queue shows the
    ruling.
 
+   088's CONTAINER HALF IS IN. The transport has two named holes until queue
+   090's pass: a message sent while the PC bot is OFF is skipped at its next
+   start and never filed, and a fresh clone of the PC checkout rewrites
+   `pc-inbox` from its own disk. The daily trigger now calls the reader
+   (`trig_013itgDeay6t41BHEmaYFbAj`, set 2026-09-05T11:38:02Z, recorded whole
+   in `production/watchdog-prompt.md`).
+
    INBOUND CLAUSE AMENDED PENDING JAFAR'S RULING; the proposed sentence and the
    reason are in
    `game-design/decision-2026-09-05-ruling-standing-order-refill-and-the-wake-half.md`

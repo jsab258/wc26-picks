@@ -60,3 +60,11 @@ reason, because a refusal nobody can read is the same as a silent drop.
 Depends on queue 088 for the record's route back into the repo. Blocks queue
 093, whose second half is exactly this round trip. Related: queue 073, the
 needs-you count that must move when a card is ruled.
+
+FOLDED IN BY THE RULING OF 2026-09-05 (088 batch), sections 4 and 8:
+`Bot.skip_backlog` files the backlog's text messages from the configured chat with
+their own Telegram `date`, replies once with the count, applies none of them as
+budget answers, both outcomes in the selftest; and the AWAKE branch of
+`inbox.studio_sentence` names the next wake as the worst case, with line 630's
+assertion inverted. If it does not fit this session it returns to the queue under
+its own number.

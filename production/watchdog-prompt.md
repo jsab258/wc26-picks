@@ -64,6 +64,59 @@ NO SCHEDULED UPDATES. Message Jafar when something needs him, when he asks, or w
 
 ALWAYS: push only to claude/game-dev-ai-automation-2h67ix. Never open a pull request. Never make a purchase or use an account beyond what has been authorised. Voice sourcing: donated-voice corpora only, and no identifiable public figures.
 
+## The daily trigger's prompt, and the one line queue 088 needs in it
+
+STATUS: NOT YET SET IN THE TRIGGER SYSTEM as of 2026-09-05. This section is a
+REQUEST, not a recording, and it is marked as one because a recorded copy that
+does not match what is set is worse than no copy at all, which is the contract
+above.
+
+Trigger: `trig_013itgDeay6t41BHEmaYFbAj`, 04:00 UTC daily (`production/NOW.md`
+item 1d). It is the only live trigger; the hourly watchdog above is disabled.
+
+STATUS: LIVE, set 2026-09-05T11:38:02Z by the resident, applying section 9.1 of
+`game-design/decision-2026-09-05-ruling-088-inbound-transport-batch.md`. The
+088 reader line and the self-check line are both in. The prompt AS SET follows,
+whole, so a session can compare what it is reading against this file rather
+than assume they match.
+
+THIS IS A SECOND COPY AND SECOND COPIES DRIFT. That is why the last line of the
+prompt itself tells the daily session to compare and to write any difference
+into `production/NOW.md` before doing anything else. The file cannot detect its
+own staleness; only the session reading both can.
+
+    DAILY WAKE. This replaces the hourly watchdog, which stays OFF by Jafar's order of 2026-09-04 item 1d. You fire once a day at 04:00 UTC, which is 06:00 CEST, chosen so the brief is on his phone before 07:00 CEST.
+
+    FIRST, READ THE INBOX: `python3 tools/inbox-read.py`. Anything Jafar sent the bot is a dated file on the `pc-inbox` branch and this is the only thing that ever looks at it. Answer him through the Producer before planning the day, and stage the delivered files by name in the day's first commit.
+
+    THEN DO THREE THINGS, in this order.
+
+    1. BUDGET FIRST. Read `production/budget.md`. It is the authority and this prompt is not. If a stop condition holds, say so in the brief and do not start work. An unknown budget is not permission. The ceiling is 80 percent on BOTH meters and the higher one governs.
+
+    2. PLAN THE DAY against Jafar's standing order in `production/NOW.md`, which carries his numbered list of 2026-09-04 and REPLACES every earlier ordering. Do not re-plan from the queue's filed order; his list wins. Read `production/NOW.md` before the queue, every time.
+
+    3. PRODUCE THE BRIEF. Per his item 1c it is GENERATED FROM REPO STATE BY A TOOL, not written by hand in a session. If that tool does not exist yet, building it is the day's work and the brief is written by hand ONCE more, saying in its own text that it was hand-written and why. The Producer writes it in the register; the sender runs `tools/producer-check.py` and only a pass may go out; the bot pushes it.
+
+    STANDING, and it binds every day: every brief reports the STUDIO VERSUS GAME split of points. Nothing reaches Jafar outside Telegram (his item 2); if something can only be answered in the terminal, that is a gap to FILE, not a reason to page him there. After his item 4 lands, the studio stops building studio this week and any new process item goes to the queue and waits.
+
+    IF A SESSION OR WEEKLY LIMIT IS HIT: the notice carries its own reset time. Parse it, write it where the bot reads it, and ARM A ONE-SHOT TRIGGER for that reset whose instruction is to resume the current item and continue his order. Do this by hand until item 1b is built. No reset should ever need Jafar to restart the studio.
+
+    ALWAYS: push only to claude/game-dev-ai-automation-2h67ix, never open a pull request, never print or commit tools/runner/config.local. No em-dashes, no italics.
+
+    THIS PROMPT IS RECORDED in production/watchdog-prompt.md. If what you are reading differs from that section, write the difference into production/NOW.md before anything else.
+
+WHY THE READER LINE BELONGS HERE SPECIFICALLY. The 04:00 UTC firing is the only
+moment a message sent overnight can be read at all: nothing on Jafar's PC can
+call into the session, and the inbound webhook route was measured shut
+(`http_status=401`, `production/queue/088`). A message he sends at 22:00 waits
+for this trigger, and if this prompt did not call the reader it would wait for
+the next thing that did. That is the built-is-not-running fault sitting on the
+only wake the studio has.
+
+The reader's other live call site is `ledger-v2/studio-v2/runner.md` rule 2b,
+which covers every turn a session takes while awake.
+
+
 ## One known inaccuracy elsewhere, named rather than fixed silently
 
 The paragraph saying the watchdog "IS DISABLED RIGHT NOW, 26 Aug" left
