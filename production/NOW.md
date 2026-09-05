@@ -168,7 +168,116 @@ decal looks right AT SIZE, ON A SURFACE, IN THE RAIN.
   which is the argument for doing that kind of looking whenever the meter is
   tight.
 
-- **THE CEILING IS CROSSED, DELIBERATELY, ON ONE ITEM. Read 2026-09-04 at
+## JAFAR'S STANDING ORDER, 2026-09-05. THIS REPLACES EVERY EARLIER ORDERING.
+
+Readings taken at about 08:30Z after an EARLY RESET: total 7, Fable 8, ceiling
+80 on both, higher governs. No crossing this week. The early reset is a REGIME
+CHANGE and every rate computed before it is void, as on 1 September.
+
+TWO STANDING RULES OVER THE WHOLE LIST. After item 4 lands, THE STUDIO STOPS
+BUILDING STUDIO THIS WEEK and any new process item goes to the queue and waits.
+Every brief reports the STUDIO VERSUS GAME split of points.
+
+JUDGED SUNDAY: if Jafar can run the week from one Telegram thread and know what
+is happening, the console is done.
+
+1. **Close the Producer loop over Telegram.** Inbound: anything he sends the
+   bot lands as a dated file in an inbox and reaches the session through the PC
+   channel, never waiting more than a few minutes. Outbound: the Producer
+   answers in the register, the check runs on the SENDING side, the bot sends.
+   Rulings: every card arrives with option buttons and a tap writes the ruling
+   into `production/decision-queue.md`. Images: every verified visual lands as
+   an image with one caption line. Readings he taps reach the repo without him.
+   ACCEPTING CASE: he sends a question from his phone and gets a
+   register-compliant answer back, and he taps a button and the queue shows the
+   ruling.
+
+1b. **Limit visibility.** When a session or weekly limit is hit, the reset time
+   is PARSED FROM THE NOTICE and written to a file the bot reads; the bot says
+   "studio paused, back at HH:MM" and again when it resumes. A studio silent
+   more than two hours with no reset time on file is flagged as a Blocking
+   item. The runner SLEEPS until the parsed reset rather than spawning into a
+   closed session.
+
+1e. **Part of 1b, and it starts NOW by hand.** When a limit is hit, arm a
+   one-shot trigger for the parsed reset whose instruction is to resume the
+   current item and continue this order. From the first limit onward, by hand
+   until 1b is built. NO RESET SHOULD EVER NEED JAFAR TO RESTART THE STUDIO.
+
+1c. **The brief is GENERATED FROM REPO STATE BY A TOOL** and pushed by the bot
+   every morning. Not written by hand in a session.
+
+1d. **A recurring daily trigger** wakes the studio, plans the day and produces
+   the brief. THE HOURLY WATCHDOG STAYS OFF in favour of it. Live as
+   `trig_013itgDeay6t41BHEmaYFbAj`, 04:00 UTC daily, which is 06:00 CEST, so
+   the brief is on his phone before 07:00. The Monday one-shot that would have
+   re-enabled the watchdog was DELETED on 2026-09-05.
+
+2. **Nothing reaches him outside Telegram.** The session's own pop-up questions
+   become cards. If something can only be answered on the floor, THAT IS A GAP
+   TO FILE, not a reason to page him there.
+
+3. **The glance page, phone-first:** overall state as a colour and one dated
+   sentence; needs-you count and top item; next visible thing and when; the
+   latest image; the budget bar on both meters. Everything else one tap down.
+
+3b. **The glance publishes to GitHub Pages** so it opens on his phone. IF PAGES
+   IS REFUSED FOR ANY REASON, SAY SO rather than leaving a file he cannot read.
+
+4. **Player-facing systems inventory, as DATA not prose.** One entry per
+   system: name, area (moat, world, player-facing, content, studio), status
+   (exists, partial, absent), class (cheap to author, taste-bound,
+   moat-adjacent), phase, and what blocks it. At minimum: the Ledger notebook,
+   HUD, menus, controls, camera, first hour and tutorial, save and load, new
+   game, settings, accessibility, subtitles, gamepad, pause, map and minimap,
+   inventory, economy and trading, combat, music, SFX, audio mix, loading and
+   streaming, failure states and autosave policy, time and calendar display,
+   graphics settings including the local-LLM toggle, credits and attributions,
+   photo mode, feedback path. THEN RENDER IT AS THE MAP VIEW: every system a
+   tile, grouped by area, coloured by status, one screen, phone-first, tap a
+   tile for status, blocker and decisions. It sits BESIDE the glance, not
+   inside it: the glance is today, the map is the whole. Then fold the
+   inventory into roadmap-v2 as phases. Research on the taste-bound systems is
+   coming separately from the planning session.
+
+5. **A weekly planner role, cheapest tier,** whose only job is the larger plan:
+   read the roadmap, the map and the week's landed items, and report whether
+   the week MOVED THE PROJECT or MAINTAINED THE STUDIO. External evidence Jafar
+   cites: practitioners running long autonomous builds report agents that keep
+   working, get absorbed in small details and stop improving the project, and
+   the fix is a coordinator holding the plan while others do the work. Our
+   resident does both jobs. Flag it when several consecutive items are
+   self-maintenance.
+
+6. **Then the game:** 062 step 2, run 21. THE FIRST TEXTURED FRAMES COME TO HIM
+   AS IMAGES.
+
+7. **The pilot assembly line,** which Phase 0 requires and the queue does not
+   contain. Run ONE content type end to end, spec to author to verify to
+   integrate to record, and report THE COST PER VERIFIED PIECE IN POINTS with
+   the calibration it rests on. This is the number the whole plan rests on and
+   nobody has measured it. The studio chooses the content type and says why.
+
+8. **One supervised trial night this week:** a small queue, the runner
+   unattended, and a report in the morning on what it did and what broke. THE
+   NIGHT RHYTHM IS UNPROVEN until a night has actually run, and
+   `production/logs` is empty.
+
+9. **Then the hygiene queue in filed order.**
+
+10. **Meter readings: NO PRESET BUTTONS.** Ask for the exact number and take it
+   as typed, numeric keypad where the platform allows, REJECT anything that is
+   not an integer rather than rounding it. Presets are for rulings, never for
+   measurements. This overrides the button grid the bot shipped with on
+   2026-09-04.
+
+11. **A note, not a task.** A widely-shared 2026 build of an impressive Unreal
+   world by an autonomous agent used EXISTING assets including MetaHumans and
+   ASSEMBLED rather than authored them. Our bias for bought and free Epic
+   ecosystem parts over generated ones is confirmed; the studio's job is
+   assembly and logic. Relevant to D1 and D2, NO CHANGE to either.
+
+- **SUPERSEDED BY THE ORDER ABOVE: THE CEILING IS CROSSED, DELIBERATELY, ON ONE ITEM. Read 2026-09-04 at
   about 08:30Z: total 82, Fable 83, ceiling 80.** Jafar chose to spend past the
   line on the Telegram bot alone, so that Monday is a full game day. THIS IS
   HIM SPENDING HIS OWN 20 PERCENT AND IT IS HIS TO SPEND. No session may read
