@@ -74,3 +74,60 @@ section 5. The rule fires again on `materialConnections=12/14`.
 NOTE, not before run 21: the `CREATE-FAILED` line in `main()` carries no
 `materialScriptReturn` and no UV keys. A verifier reading that word reads it
 as nothing measured. Fix when the file is next open.
+
+## RUN 21 LANDED 2026-09-05: THE WIRE MOVED, AND THE STREET IS STILL NOT TEXTURED
+
+THE FRACTION FIRST, as the dispatch entry ordered. `materialConnections=14/14`,
+up from 12/14 which had held across runs 19 and 20. Taken by the FIRST
+candidate pair, `materialUvHeadVia=both.out.empty..in.empty`, with
+`materialUvHeadTriedAtWorst=1/9`. `materialUvHeadByPropertyWrite=0/2`, so
+`materialStatus=MADE` is the honest word and the third state did not fire.
+
+THE FRAMES CONFIRM IT INDEPENDENTLY OF THE COUNT, which is the point of having
+read them. The flat grey of runs 19 and 20 is gone: the ground and the signs
+carry a checkerboard that TILES CORRECTLY IN PERSPECTIVE, which is exactly what
+a working UV chain looks like and cannot be faked by a count.
+
+BUT THE CHECKER IS UNREAL'S OWN PLACEHOLDER, not Meridian's texture, and WHY
+IS NOW AN OPEN QUESTION RATHER THAN AN ANSWERED ONE.
+
+CORRECTION 2026-09-05, AND IT IS THE RESIDENT'S ERROR, CAUGHT BY THE PRODUCER
+BEFORE THE MESSAGE WENT OUT. This section first said the texture staging step
+did not run, citing `grep -c` for `stagedTex|piecesTextured` in
+`ue-build.txt` returning 0, and cited `shotDistinctBuckets=5/32768` as the
+pixels agreeing. BOTH WERE WRONG AND BOTH ARE THE SAME FAULT: reading the
+right key out of the wrong file.
+
+- THE STAGING RAN. `.github/workflows/ledger-probe-unreal.yml` writes those
+  keys onto `ue-vignette-verdict.txt`, NEVER onto `ue-build.txt`, so that grep
+  returns 0 in every run there has ever been. It measured nothing. This run's
+  vignette verdict reads `stagedTexFiles=102/102 texRootFiles=51
+  mapsFound=36/48 texturesImported=36 midsCreated=563 piecesTextured=563/593`
+  and `surfacesResolved=12/16`, which is run 20's staging repeated, not absent.
+- THE FIVE BUCKETS ARE A DIFFERENT PICTURE. `shotDistinctBuckets=5/32768` is
+  the PERCEPTION PROBE's debug screenshot, a black frame with a wireframe cube
+  and three coloured lines. THE STREET FRAMES READ 109, 100, 87 AND 19
+  BUCKETS. Attributing that number to these frames was reading a gate for one
+  artifact as though it described another.
+- `materialColourDefault=/Engine/EngineResources/DefaultTexture` is the
+  PARAMETER'S DESIGNED DEFAULT, printed identically on the passing selftest
+  fixture. It does not by itself say ours failed to bind.
+
+SO THE HONEST STATE: the wire moved, the frames changed, the textures were
+staged and 563 of 593 pieces were assigned, AND THE FRAMES STILL SHOW THE
+ENGINE CHECKER ON SURFACES THE VERDICT SAYS WERE ASSIGNED. That is an unnamed
+fault and the next thing to find. It is NOT the staging step, which is what
+this section wrongly claimed for an hour.
+
+TWO MORE THINGS THE RUN SAYS, neither fatal, both to carry forward:
+- `materialUvHeadReadback=0/2..unreadable2`. The connections counted 14/14 and
+  the readback could confirm NEITHER head. The frames are what closed that gap
+  this time; a count and a readback that disagree should not be left unwatched.
+- THE MATERIAL KEYS ARE IN `ue-build.txt` AND NOT IN `ue-verdict.txt`. The
+  verdict file is 275 bytes and carries only perception rows. Anything reading
+  the verdict for a material reading finds nothing measured.
+
+ACCEPTANCE: MET on its letter, `materialConnections=14/14` with
+`materialStatus=MADE` on a landed run. The stop rule that held since run 20 is
+DISCHARGED. What it was protecting against is not: the street is not textured,
+for a different and now-named reason.

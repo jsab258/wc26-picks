@@ -369,21 +369,23 @@ is happening, the console is done.
   head sweep (nine candidate pin names in one run, not yet dispatched). Open
   holes are queue 073, 074, 075 and the steps added to 024 and 062.
 
-- **THE UNREAL STOP RULE IS STILL IN FORCE and is the reason 062 is running.**
-  `materialConnections` held at 12/14 across runs 19 and 20, which fired the
-  ruling's bound: no further Unreal dispatch until the wire is fixed. When 062
-  lands, the fraction is the reading and not the status word. If it does not
-  move, that is the answer and gets reported as one rather than retried.
-  062 landed the sweep; that does NOT discharge the rule. Run 21 is authorised
-  once 062 step 2 (the third status word) has landed and Jafar lifts "wait";
-  if 21 prints 12/14 again, that is the answer and D1's hand-edit clause is
-  invoked.
-  Step 2 landed 2026-09-05 and run 21 is authorised on it (ruling
-  game-design/decision-2026-09-05-ruling-062-step-2-third-status-word.md,
-  section 5, which carries the reading table).
-  Dispatch of run 21 confirmed on the committed state by
-  game-design/decision-2026-09-05-ruling-build-batch-and-roadmap-fold.md
-  section 2, which also says what a third 12/14 means.
+- **THE UNREAL STOP RULE IS DISCHARGED, RUN 21 LANDED 2026-09-05.**
+  `materialConnections=14/14`, up from the 12/14 that held across runs 19 and
+  20, taken by the FIRST of nine candidate pin names
+  (`materialUvHeadTriedAtWorst=1/9`) with `materialUvHeadByPropertyWrite=0/2`,
+  so `materialStatus=MADE` is honest and the third status word did not fire.
+  THE FRAMES CONFIRM IT INDEPENDENTLY: the flat grey of the last two runs is
+  gone and a checkerboard tiles correctly in perspective, which a count cannot
+  fake.
+
+  THE STREET IS STILL NOT MERIDIAN AND THE CAUSE IS UNKNOWN. Staging RAN
+  (`stagedTexFiles=102/102 piecesTextured=563/593` in
+  `ue-vignette-verdict.txt`), so the frames show the engine checker on
+  surfaces the verdict says were assigned, which is an UNNAMED fault and the
+  next thing to find. The resident first blamed the staging step, having
+  grepped `ue-build.txt`, a file that has never carried those keys; the
+  correction and both refuted claims are in queue 062. Do not re-derive the
+  wrong answer from the old sentence.
 
 - **THE DIRECTOR'S CONSOLE EXISTS AS FAR AS STEP 2.** `production/decision-queue.md`
   is the single home for anything awaiting Jafar and for lighter rulings; the
