@@ -229,3 +229,40 @@ NOTE the earlier run 18 and 19 entries name materialScriptExit, a key this
 batch renamed to materialEditorCmdExit because the 1 came from the editor
 process shutting down and never from the script. Those entries are left as
 written; they are the record of what was believed at the time.
+
+RUN 21, dispatched 2026-09-05 from 076829fb.
+
+WHY THIS RUN EXISTS. Runs 19 and 20 both printed materialConnections=12/14
+and the stop rule fired: no further Unreal dispatch until the wire moved.
+Queue 062 step 1 landed a nine-candidate pin-name sweep for the UV chain
+head, ordered so it can never wire LESS than run 20 did. Step 2 landed the
+third status word. Jafar lifted the wait as item 6 of his standing order of
+2026-09-05. Both conditions of
+game-design/decision-2026-09-05-ruling-062-step-2-third-status-word.md
+section 5 are met, and dispatch is confirmed by
+game-design/decision-2026-09-05-ruling-build-batch-and-roadmap-fold.md
+section 2.
+
+READ IN THIS ORDER, and read the FRACTION before the WORD.
+1. materialConnections. 14/14 is the wire moving; 12/14 is the answer and
+   the stop rule fires again under ANY word and ANY via.
+2. materialUvHeadByPropertyWrite=N/M, the count that decides the word.
+3. materialStatus, which is now one of THREE, not two. MADE means every head
+   was taken by a named pin. WIRED-BY-PROPERTY-WRITE means at least one head
+   was made by the last-resort property write: the connection is real and
+   counted, but what a struct written by value does to the compiled shader is
+   UNPROVEN FROM HERE, so the four frames judge it and not the line.
+   PARTIAL means short of 14/14.
+4. materialUvHeadVia, which names WHICH of the nine candidates took, or
+   none-of-9-candidates followed by took, refused or unavailable.
+5. materialUvHeadTriedAtWorst and materialUvHeadReadback.
+
+THE FRAMES ARE THE POINT. 563 of 593 pieces were correctly textured in run
+20 and every frame was still FLAT GREY, because a texture sampler with no UV
+input reads one constant. If this run wires the head, the frames stop being
+grey. If it prints 14/14 and the frames are still grey, the count is right
+and the shader is not, which is exactly why the third word exists.
+
+IF IT PRINTS 12/14 AGAIN: that is THE ANSWER. Record it with the via field,
+report it, and do NOT dispatch run 22. A director is spawned before D1's
+hand-edit clause is invoked.
