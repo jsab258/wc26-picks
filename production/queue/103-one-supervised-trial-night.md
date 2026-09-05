@@ -77,3 +77,12 @@ denominator: 4 branches examined, 0 of them a night branch.
 That makes this item's first run its ACCEPTING CASE in the strong sense: there
 is no prior run to compare against and no log to read, so whatever it does is
 the first evidence the night rhythm exists at all.
+
+## DEPENDENCY ADDED 2026-09-05, ruling section 7(b)
+
+Depends on queue 095 beside 094. Reason: 095 makes its tool the ONE brief
+writer and removes the fallback brief `tools/runner/run-night.ps1` writes
+today. Until that lands, the first night to commit its fallback puts the tree
+in a state `producer-check --gate` refuses, because that text carries none of
+the brief register's shape. So a trial night before 095 would fail on the
+brief rather than on the night, and would teach nothing about the night.

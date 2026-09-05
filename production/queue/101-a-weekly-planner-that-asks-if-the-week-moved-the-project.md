@@ -58,6 +58,5 @@ studio's worst state as its second best.
 ## Depends on, and what it blocks
 
 Depends on queue 099 for the map it is meant to read, and reads roadmap-v2
-whether or not queue 100 has landed. Blocks nothing. It is a new process item,
-so under the standing rule it goes to the queue and waits if item 4 has already
-landed when its turn comes.
+whether or not queue 100 has landed. Blocks nothing. It is item 5 of the standing
+order and runs after item 4; ruled 2026-09-05.

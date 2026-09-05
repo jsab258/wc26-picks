@@ -2,7 +2,7 @@ line: infrastructure (the guards)
 spec: found 2026-09-03 while asking why "22 queue items ready" had not moved in a day
 acceptance: the queue-depth gate reads production/queue/ and its printed count changes when a file is added there; plus a rejecting case proving the FLOOR can still fire, planted by pointing the tool at a fixture tree with too few ready items
 max_sessions: 1
-status: READY 2026-09-03. instrument-builder. SCOPE CEILING: repoint the tool and prove both outcomes. Migration of any remaining content out of the retired file is a SEPARATE reported next step, not this task.
+status: READY 2026-09-03. instrument-builder. SCOPE CEILING: repoint the tool and prove both outcomes. Migration of any remaining content out of the retired file is a SEPARATE reported next step, not this task. Folded into queue 095's pass by the ruling of 2026-09-05, section 7(d); returns here only if it does not fit.
 
 ## The fault
 

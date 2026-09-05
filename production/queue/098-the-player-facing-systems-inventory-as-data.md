@@ -7,7 +7,7 @@ status: READY 2026-09-05. Item 4 part one, and 099 and 100 both wait on it. inst
 ## The names, carried here so nobody re-derives them
 
 Copied from item 4 of the standing order. Counted by splitting that sentence on
-its commas: TWENTY-SEVEN names. The brief that commissioned this task said 28,
+its commas: TWENTY-SEVEN names. The resident's brief to the planner said 28; Jafar never did,
 and the discrepancy is recorded rather than resolved by adding one: if a name
 is missing it is added by Jafar or a director, not by a builder making the
 count fit.

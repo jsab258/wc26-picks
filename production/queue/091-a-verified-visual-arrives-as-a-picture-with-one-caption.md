@@ -1,6 +1,6 @@
 line: infrastructure (the Producer loop, images)
 spec: production/NOW.md, "JAFAR'S STANDING ORDER, 2026-09-05", item 1, images clause
-acceptance: a frame chosen by `python3 tools/report-frame.py` arrives on his phone AS AN IMAGE with exactly one caption line naming what it shows and the commit it came from, proven by one real send on the PC and by the file arriving as a photo rather than a link; when report-frame withholds (the last build measured nothing) NO image is sent and the message carries the words "nothing measured"; a file that is missing or over the platform's photo limit is reported by name and not silently skipped; the sender prints imagesSent=N/M candidates and announces the caption cap when it bites
+acceptance: a frame chosen by `python3 tools/report-frame.py` arrives on his phone AS AN IMAGE with exactly one caption line naming what it shows and the commit it came from, proven by one real send on the PC and by the file arriving as a photo rather than a link; when report-frame withholds (the last build measured nothing) NO image is sent and the message carries the words "nothing measured"; a file that is missing or over the platform's photo limit is reported by name and not silently skipped; the sender prints imagesSent=N/M candidates and announces the caption cap when it bites; the receipt carries the photo descriptor the platform returned (its sizes), which is the artifact for arrived-as-a-photo
 max_sessions: 1
 status: READY 2026-09-05. FOURTH of item 1. instrument-builder, finished on the PC.
 

@@ -168,6 +168,30 @@ decal looks right AT SIZE, ON A SURFACE, IN THE RAIN.
   which is the argument for doing that kind of looking whenever the meter is
   tight.
 
+## IN FLIGHT: THE ORDER OF WORK, ruled 2026-09-05 section 8
+
+His list is the order; this is only about which files two builders cannot
+share.
+
+1. **088 alone, first, reviewed and committed on its own** so it lands early.
+   Everything in item 1 stacks on its branch, and Jafar can test the transport
+   tonight by sending the bot one message.
+2. In parallel after it lands: **089 with 091** (both are the sender on the PC,
+   one loop, one file), and **095 with 079's half** (a new tool,
+   `producer-check.py`, `run-night.ps1`, the footer's counter). One review for
+   the pair.
+3. **090 with 104** (both are the bot's input handling), then **094**, then
+   **093** when Jafar has two minutes and not before 088, 089 and 090 land.
+4. Then **096, 097, 098, 099, 100** with its own stamped ruling, then **101**.
+   After 100 lands the studio stops building studio; 101 still runs because it
+   is item 5 of his order rather than a new process item.
+5. Then the game: **062 step 2, run 21**, the first textured frames to him as
+   images through 091. Then **102**, whose content-type choice is a director
+   ruling. Then **103**, after 094 and 095.
+
+THE VERIFY FOOTER'S `22 queue items ready` READS THE RETIRED QUEUE (079) and is
+NOT TO BE QUOTED until 095 lands its counter.
+
 ## JAFAR'S STANDING ORDER, 2026-09-05. THIS REPLACES EVERY EARLIER ORDERING.
 
 Readings taken at about 08:30Z after an EARLY RESET: total 7, Fable 8, ceiling
@@ -191,6 +215,11 @@ is happening, the console is done.
    ACCEPTING CASE: he sends a question from his phone and gets a
    register-compliant answer back, and he taps a button and the queue shows the
    ruling.
+
+   INBOUND CLAUSE AMENDED PENDING JAFAR'S RULING; the proposed sentence and the
+   reason are in
+   `game-design/decision-2026-09-05-ruling-standing-order-refill-and-the-wake-half.md`
+   section 1.4; queue 092 prices the wake.
 
 1b. **Limit visibility.** When a session or weekly limit is hit, the reset time
    is PARSED FROM THE NOTICE and written to a file the bot reads; the bot says

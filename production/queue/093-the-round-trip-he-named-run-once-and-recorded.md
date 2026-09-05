@@ -1,6 +1,6 @@
 line: infrastructure (the Producer loop, the accepting case)
 spec: production/NOW.md, "JAFAR'S STANDING ORDER, 2026-09-05", item 1, ACCEPTING CASE clause
-acceptance: one supervised run of his exact accepting case, recorded in a dated evidence file where each of the four steps carries its instant AND a committed artifact path or sha read back out of git rather than off disk, printing stepsProven=N/4; a step whose artifact cannot be cited makes the recorder REFUSE to write that line rather than writing an uncited one, proven by planting a missing artifact; a run that did not happen prints the words "nothing measured" with stepsProven=0/4
+acceptance: one supervised run of his exact accepting case, recorded in a dated evidence file where each of the four steps carries its instant and `stepLatencySec` from the previous row's instant AND a committed artifact path or sha read back out of git rather than off disk, printing stepsProven=N/4; a step whose artifact cannot be cited makes the recorder REFUSE to write that line rather than writing an uncited one, proven by planting a missing artifact; a run that did not happen prints the words "nothing measured" with stepsProven=0/4; the run uses the wake route as it will stand on Sunday, and the file names which route that was
 max_sessions: 1
 status: READY 2026-09-05. LAST of item 1, and it is the week's judged test. instrument-builder or artifact-reader, with Jafar present for two minutes.
 

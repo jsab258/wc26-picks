@@ -1,8 +1,8 @@
 line: infrastructure (the budget instrument)
-spec: game-design/decision-2026-09-04-ruling-067-telegram-bot-first-pass.md, section 2
-acceptance: a reading Jafar gives the bot on his phone arrives in production/budget.md as a dated row carrying BOTH meters and a source field, without him typing anything into a terminal; proven by one real round trip on the PC, not by a selftest
+spec: production/NOW.md, "JAFAR'S STANDING ORDER, 2026-09-05", item 1, readings clause; and game-design/decision-2026-09-04-ruling-067-telegram-bot-first-pass.md, section 2
+acceptance: a reading Jafar gives the bot on his phone arrives in production/budget.md as a dated row carrying BOTH meters and a source field per queue 104, without him typing anything into a terminal; proven by one real round trip on the PC, not by a selftest
 max_sessions: 1
-status: READY 2026-09-04. FIRST after 062 step 2 and run 21 unless Jafar reorders. instrument-builder or engine-specialist.
+status: READY 2026-09-05. Carries item 1's readings clause. Depends on queue 088 for the route: the reading travels as a record on the inbox branch and a fold tool in the container writes the budget.md row, never the PC editing that file on the work branch. The `source` field is amended by queue 104 (typed only, the retired value named so older rows stay readable). After 088.
 
 ## The gap
 
