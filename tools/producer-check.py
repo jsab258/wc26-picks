@@ -132,9 +132,34 @@ REGISTERS = {
 #
 # THIS TUPLE MAY NEVER GAIN A MEMBER WHOSE FILENAME DATE IS ON OR AFTER
 # 2026-09-06, and it widens only in a reviewed diff. The selftest asserts the
-# first half on every run. No marker line goes inside these messages: they are
-# the record of what was written, and the gate's own per-file line
-# (pass-legacy-links) is the reader-visible half.
+# first half on every run.
+#
+# ONE LEADING `HISTORICAL,` LINE MAY SIT INSIDE THESE MESSAGES AND IS NOT
+# CHARGED TO THE WORD CAP. This REVERSES what stood here until 2026-09-06 ("no
+# marker line goes inside these messages"), and the ruling that reversed it is
+# Jafar's, 2026-09-06: "Make older queued updates clearly historical so the
+# initial backlog does not tell me that resolved problems are still current."
+# Nothing has ever been sent from this outbox, so the first burst delivers
+# every queued message at once and two of them describe problems that are now
+# fixed. TWO is the live reading, not a typed constant: the gate prints it as
+# historicalLinesUncounted=N/M on every run, and the outbox gained a message
+# while this very change was being written, which is why no count of the
+# OUTBOX appears in this comment. A reader who finds a marker line here must
+# NOT delete it as a register violation: it is there under that ruling.
+#
+# WHY THE EXCLUSION IS DEFENSIBLE, AND WHY IT IS PINNED TO THIS LIST. The cap
+# governs what the PRODUCER WROTE. A historical marker is an annotation the
+# studio added afterwards, on top of a body that is the record of what was
+# written and may not be trimmed: both bodies were written TO the cap, 118 and
+# 119 words of 120 measured 2026-09-06, so any honest marker breaks it. That
+# distinction is real and it is also exactly the kind of distinction that
+# becomes a loophole the moment it is not pinned, so it is pinned to this
+# frozen list and scoped three ways in historical_split(): the line must be
+# FIRST in the file, must begin with the exact token, and only ONE is excused.
+# It is excluded from the word count and from NOTHING ELSE: the ban list, the
+# link rules and the shape rules all still read it. And it is never silent, on
+# the file's own line and in the footer key historicalLinesUncounted=N/M, so
+# nobody can read "118 of 120" without the line that is not in it.
 LEGACY_LINK_RULES = (
     "production/outbox/2026-09-03-batch-landed-and-the-wait.unprompted.md",
     "production/outbox/2026-09-05-the-console-run.unprompted.md",
@@ -432,6 +457,36 @@ def count_words(text):
     return [w for w in stripped.split() if re.search(r"\w", w)]
 
 
+# THE HISTORICAL ANNOTATION, ruled by Jafar 2026-09-06. The token, the split
+# and the three scopes live here; LEGACY_LINK_RULES carries the ruling and the
+# reasoning for why an exclusion from a cap is pinned to a frozen list.
+HISTORICAL_PREFIX = "HISTORICAL,"
+
+
+def historical_split(text, legacy_links=False):
+    """(the one leading annotation line, the body the word cap governs).
+
+    (None, text) for everything else, which is every file in this project bar
+    the ones named on LEGACY_LINK_RULES.
+
+    THREE SCOPES, ALL DELIBERATE, because an unscoped exclusion from a cap is
+    simply a way round the cap:
+      - `legacy_links` is MEMBERSHIP OF THE FROZEN LIST, decided by the caller
+        BY NAME, never by anything inside the text and never by the date in a
+        filename (LEGACY_LINK_RULES says why the specimen may not choose);
+      - the line must be the FIRST line of the file and must begin with the
+        exact token, so a marker cannot be dropped in mid-message;
+      - exactly ONE line comes back, so a SECOND `HISTORICAL,` line stays in
+        the body and is counted like any other line.
+    """
+    if not legacy_links:
+        return None, text
+    head, _, rest = text.partition("\n")
+    if not head.startswith(HISTORICAL_PREFIX):
+        return None, text
+    return head, rest
+
+
 # NO INSTANT TO MEASURE FROM. Passed as `now` by the gate for a file whose
 # name carries no date. It is a sentinel and not a datetime on purpose: a
 # missing instant must reach the deadline rule as "unreadable" and come out as
@@ -540,7 +595,14 @@ def check(text, kind="unprompted", now=None, legacy_links=False):
     # all: it measures deadlines and nothing else.
     if legacy_links:
         enforced = [r for r in enforced if r not in LINK_BAND_RULES]
-    words = count_words(text)
+    # THE CAP GOVERNS THE BODY THE PRODUCER WROTE. On the frozen legacy list
+    # only, one leading HISTORICAL, line is an annotation the studio added
+    # afterwards and is not charged to the writer: see historical_split() and
+    # the ruling at LEGACY_LINK_RULES. EXCLUDED FROM THE WORD COUNT AND FROM
+    # NOTHING ELSE. Every other rule in this function reads `text`, so the
+    # annotation still faces the ban list, the link rules and the shape rules.
+    historical, capped_body = historical_split(text, legacy_links)
+    words = count_words(capped_body)
     scrubbed = scrub_links(text)
     found, notes = [], []
     urls = links_in(text)
@@ -760,6 +822,14 @@ def check(text, kind="unprompted", now=None, legacy_links=False):
         # named in LEGACY_LINK_RULES. Printed, never silent: a rule skipped in
         # silence is indistinguishable from a rule that passed.
         "legacy_links": legacy_links,
+        # THE ANNOTATION THE CAP DID NOT CHARGE FOR: per message, 0 or 1, with
+        # the words it would have cost. Printed by report() and counted by the
+        # gate, never silent, so "118 of 120" cannot be read without the line
+        # that is not in it. `historical_eligible` is the denominator of the
+        # per-message zero: this file COULD have carried one.
+        "historical_uncounted": 1 if historical else 0,
+        "historical_words": len(count_words(historical)) if historical else 0,
+        "historical_eligible": bool(legacy_links),
         "split_found": split_found, "split_of": len(SPLIT_PARTS),
         "split_missing": split_missing,
         "banned_checked": banned_checked,
@@ -820,6 +890,22 @@ def report(r):
     else:
         print("  words: %d of %d (URLs excluded from the count: the link floor "
               "requires them)" % (r["words"], r["cap"]))
+    # THE EXCLUSION IS NEVER SILENT. A message that passed with a line
+    # uncounted must read differently from one that passed with every line
+    # counted, and the zero ships its denominator: eligible-and-none.
+    if r["historical_eligible"]:
+        if r["historical_uncounted"]:
+            print("  historical annotation: 1 leading %s line of %d word(s) "
+                  "NOT charged to the cap above, ruled 2026-09-06. The cap "
+                  "governs what the Producer wrote; the marker was added "
+                  "afterwards by the studio. Excluded from the count and from "
+                  "nothing else: the ban list, the link rules and the shape "
+                  "rules all read it"
+                  % (HISTORICAL_PREFIX, r["historical_words"]))
+        else:
+            print("  historical annotation: 0 line(s) excluded of the 1 this "
+                  "file is eligible for; its first line does not begin %s, so "
+                  "every word above is counted" % HISTORICAL_PREFIX)
     print("  examined: %d sentence(s), %d claim-shaped, %d NEEDS YOU item(s), "
           "%d section(s) of %d found (%s)"
           % (r["sentences"], r["claims"], r["items"], len(r["sections_found"]),
@@ -1013,6 +1099,32 @@ BAD_BRIEF = {
                            "and not points until the rate is measured."),
 }
 
+# THE HISTORICAL ANNOTATION FIXTURES, ruled 2026-09-06. SYNTHETIC to the last
+# word: pinning a rejecting fixture to one of the two real annotated messages
+# would break the day somebody edits a message, which is the whole reason the
+# rejecting fixtures in this file are made up.
+#
+# AT_CAP is GOOD padded to EXACTLY the cap, COMPUTED rather than typed, so the
+# fixture cannot drift out of position the day GOOD changes. The suite asserts
+# the padding landed before it reads anything off these four readings: with the
+# body at exactly the cap, the only thing that can move a verdict between them
+# is the annotation line and its scoping.
+AT_CAP = GOOD.replace(
+    "Everything else waited on that.",
+    "Everything else waited on that. "
+    + "and " * (CAP_UNPROMPTED - len(count_words(GOOD))))
+HISTORICAL_LINE = ("HISTORICAL, written on 3 September and sent later: the "
+                   "street it asks about has since shown its textures.")
+HISTORICAL_SECOND = ("HISTORICAL, and a second marker line is message content, "
+                     "not an annotation.")
+HIST_ONE = HISTORICAL_LINE + "\n" + AT_CAP
+# NOT FIRST: the same annotation, one line down. It is message content there
+# and is counted, or "put it under the headline" is the way round the cap.
+HIST_NOT_FIRST = AT_CAP.partition("\n")[0] + "\n" + HISTORICAL_LINE + "\n" \
+    + AT_CAP.partition("\n")[2]
+# TWO: the first is the annotation, the second is a line of the message.
+HIST_TWO = HISTORICAL_LINE + "\n" + HISTORICAL_SECOND + "\n" + AT_CAP
+
 # The date the fixtures are checked against. Fixed, because a deadline fixture
 # that reads the wall clock passes in September and fails in October, and a
 # test whose result depends on the day it runs is not a test.
@@ -1101,6 +1213,65 @@ def selftest():
     ok("its claims are seen as claims (%d of %d sentences)"
        % (r["claims"], r["sentences"]), r["claims"] >= 2,
        (r["claims"], r["sentences"]))
+
+    # THE HISTORICAL ANNOTATION, ACCEPTING CASE FIRST, ruled by Jafar
+    # 2026-09-06. Four readings of ONE body that sits at exactly the cap, so
+    # the only variable across them is the annotation and its three scopes.
+    ok("the padded fixture sits at exactly the cap before any annotation "
+       "(%d of %d word(s))" % (len(count_words(AT_CAP)), CAP_UNPROMPTED),
+       len(count_words(AT_CAP)) == CAP_UNPROMPTED, len(count_words(AT_CAP)))
+    hist_words = len(count_words(HISTORICAL_LINE))
+    r_hist = check(HIST_ONE, "unprompted", FIXTURE_NOW, legacy_links=True)
+    ok("a LISTED file whose only over-cap content is one leading %s line "
+       "PASSES, and the count printed is the body's (%d of %d word(s), with "
+       "%d annotation word(s) uncounted and said so)"
+       % (HISTORICAL_PREFIX, r_hist["words"], CAP_UNPROMPTED,
+          r_hist["historical_words"]),
+       not r_hist["findings"] and r_hist["words"] == CAP_UNPROMPTED
+       and r_hist["historical_uncounted"] == 1
+       and r_hist["historical_words"] == hist_words,
+       [str(f) for f in r_hist["findings"]] or r_hist["words"])
+    # REJECTING, and each of the three differs from the accepting reading in
+    # ONE thing: the list, the position, the number of lines.
+    r_unlisted = check(HIST_ONE, "unprompted", FIXTURE_NOW)
+    ok("the SAME text UNLISTED is refused by wordcap and by nothing else "
+       "(%d of %d word(s), %d line(s) uncounted)"
+       % (r_unlisted["words"], CAP_UNPROMPTED,
+          r_unlisted["historical_uncounted"]),
+       {f.rule for f in r_unlisted["findings"]} == {"wordcap"}
+       and r_unlisted["words"] == CAP_UNPROMPTED + hist_words
+       and r_unlisted["historical_uncounted"] == 0,
+       [str(f) for f in r_unlisted["findings"]])
+    r_notfirst = check(HIST_NOT_FIRST, "unprompted", FIXTURE_NOW,
+                       legacy_links=True)
+    ok("a LISTED file whose %s line is NOT first counts it normally and is "
+       "refused (%d of %d word(s), %d line(s) uncounted)"
+       % (HISTORICAL_PREFIX, r_notfirst["words"], CAP_UNPROMPTED,
+          r_notfirst["historical_uncounted"]),
+       {f.rule for f in r_notfirst["findings"]} == {"wordcap"}
+       and r_notfirst["words"] == CAP_UNPROMPTED + hist_words
+       and r_notfirst["historical_uncounted"] == 0,
+       [str(f) for f in r_notfirst["findings"]])
+    second_words = len(count_words(HISTORICAL_SECOND))
+    r_two = check(HIST_TWO, "unprompted", FIXTURE_NOW, legacy_links=True)
+    ok("a LISTED file with TWO %s lines excuses the first and COUNTS the "
+       "second (%d of %d word(s), which is the body plus the %d word(s) of "
+       "the second line)"
+       % (HISTORICAL_PREFIX, r_two["words"], CAP_UNPROMPTED, second_words),
+       {f.rule for f in r_two["findings"]} == {"wordcap"}
+       and r_two["words"] == CAP_UNPROMPTED + second_words
+       and r_two["historical_uncounted"] == 1,
+       [str(f) for f in r_two["findings"]])
+    # AND THE FILE WITH NO ANNOTATION IS UNTOUCHED: same body, listed, no
+    # marker, counted in full and inside the cap.
+    r_plain = check(AT_CAP, "unprompted", FIXTURE_NOW, legacy_links=True)
+    ok("a LISTED file with no annotation at all is unaffected (%d of %d "
+       "word(s), %d line(s) uncounted)"
+       % (r_plain["words"], CAP_UNPROMPTED, r_plain["historical_uncounted"]),
+       not r_plain["findings"] and r_plain["words"] == CAP_UNPROMPTED
+       and r_plain["historical_uncounted"] == 0
+       and r_plain["historical_eligible"],
+       [str(f) for f in r_plain["findings"]])
 
     # ACCEPTING, second register: a long answer carrying a number passes,
     # because his question sets the length and asks for the number.
@@ -1233,12 +1404,43 @@ def selftest():
     # the link band by the legacy list, so the numerator and its denominator
     # are asserted together on this line.
     g_live = gate_run(REPO, FIXTURE_NOW)
+    # THE DENOMINATORS ARE TIED TO THE FROZEN LIST, NOT TYPED. This assertion
+    # read `checked == 4` until 2026-09-06 and by then the outbox held six
+    # message files, so it was red on a tree nobody had broken: a hand-typed
+    # count of a directory other sessions write to is a landmine, and this one
+    # went off inside ledger/verify.py. What it was standing in for is the
+    # property below: every name on the frozen list was either graded under the
+    # retired rules or is gone (and printed as gone), never silently graded
+    # under today's, and the walk examined at least those files.
     ok("the live repository passes the gate it was written against "
-       "(filesChecked=%d filesLegacyLinks=%d/%d)"
-       % (g_live["checked"], g_live["legacy_links"], g_live["checked"]),
-       not g_live["failed"] and g_live["legacy_links"] == 3
-       and g_live["checked"] == 4,
+       "(filesChecked=%d filesLegacyLinks=%d/%d legacyAbsent=%d of the %d "
+       "frozen name(s))"
+       % (g_live["checked"], g_live["legacy_links"], g_live["checked"],
+          len(g_live["legacy_absent"]), len(LEGACY_LINK_RULES)),
+       not g_live["failed"]
+       and g_live["legacy_links"] + len(g_live["legacy_absent"])
+       == len(LEGACY_LINK_RULES)
+       and g_live["checked"] >= g_live["legacy_links"],
        cap([f[0] for f in g_live["failed"]], keep=3))
+    # THE LIVE SERIES FOR THE ANNOTATION, AND THE ROT CHECK Jafar's ruling
+    # needs: the two annotated messages pass WITH a line uncounted, the third
+    # frozen name carries no annotation and is counted in full, and all three
+    # pass. A number that could only be read off one file would not show that.
+    live_hist = {rel: (state, why) for rel, state, why in g_live["results"]
+                 if rel in LEGACY_LINK_RULES}
+    ok("all %d frozen name(s) pass on the live tree, %d of them with one "
+       "annotation line uncounted and the rest counted in full "
+       "(historicalLinesUncounted=%d/%d)"
+       % (len(live_hist), g_live["historical_uncounted"],
+          g_live["historical_uncounted"], g_live["historical_listed"]),
+       len(live_hist) + len(g_live["legacy_absent"]) == len(LEGACY_LINK_RULES)
+       and all(st.startswith("pass") for st, _ in live_hist.values())
+       and g_live["historical_listed"] == len(LEGACY_LINK_RULES)
+       and sum(1 for _, why in live_hist.values()
+               if "historicalUncounted=" in why)
+       == g_live["historical_uncounted"],
+       cap(["%s %s" % (rel, st) for rel, (st, _) in sorted(live_hist.items())],
+           keep=3, width=80))
 
     # THE CASE QUEUE ITEM 077 WAS FILED FOR, and it is an ACCEPTING one. The
     # live message dated 2026-09-03 carries DEADLINE 2026-09-06; at a simulated
@@ -1325,6 +1527,36 @@ def selftest():
        and len(unlisted["failed"]) == 1 and unlisted["legacy_links"] == 0
        and "linkcap" in unlisted_why and "linkdest" in unlisted_why,
        cap([unlisted_why], keep=1, width=140))
+
+    # THE SECOND LADDER, THE SAME SHAPE ONE RULE ALONG: ONE TEXT, ONE NAME,
+    # ONE DATE, TWO RULEBOOKS, ONE RUN, and the rung is the annotation. The
+    # name carries the same 2026-09-05 date on both rungs, so the date cannot
+    # decide; only membership of the frozen list can. This is the difference
+    # between an exclusion pinned to three files and an exclusion any message
+    # can buy by typing a word at the top.
+    hist_name = "production/outbox/2026-09-05-historical.unprompted.md"
+    hist_tree = _gate_tree({"production/outbox/README.md": "# docs\n",
+                            hist_name: HIST_ONE})
+    h_listed = gate_run(hist_tree, FIXTURE_NOW, legacy_links=(hist_name,))
+    h_unlisted = gate_run(hist_tree, FIXTURE_NOW, legacy_links=())
+    h_why = " ".join(w for _, w in h_unlisted["failed"])
+    ok("the SAME text under the SAME name dated 2026-09-05 passes when the "
+       "name is LISTED (failed=%d historicalLinesUncounted=%d/%d) and is "
+       "refused by wordcap when it is not (failed=%d "
+       "historicalLinesUncounted=%d/%d)"
+       % (len(h_listed["failed"]), h_listed["historical_uncounted"],
+          h_listed["historical_listed"], len(h_unlisted["failed"]),
+          h_unlisted["historical_uncounted"], h_unlisted["historical_listed"]),
+       not h_listed["failed"] and h_listed["historical_uncounted"] == 1
+       and h_listed["historical_listed"] == 1
+       and len(h_unlisted["failed"]) == 1 and "wordcap" in h_why
+       and h_unlisted["historical_uncounted"] == 0,
+       cap([h_why], keep=1, width=120))
+    # AND THE UNCOUNTED LINE IS ON THE FILE'S OWN LINE, not only in the footer.
+    ok("the passing file's own line names the uncounted annotation",
+       any("historicalUncounted=1line/" in why
+           for _, st, why in h_listed["results"] if st.startswith("pass")),
+       cap([why for _, _, why in h_listed["results"]], keep=2, width=90))
 
     print("\n  THE GATE, REJECTING FIXTURES, all synthetic:\n")
     gate_bad = {
@@ -1601,6 +1833,11 @@ def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES,
          # destination list because their NAME is on LEGACY_LINK_RULES.
          # Cumulative over the walk, printed beside its denominator.
          "legacy_links": 0, "legacy_absent": [],
+         # OF THE FILES NAMED ON THE FROZEN LEGACY LIST, how many were checked
+         # with one leading HISTORICAL, line uncounted by the word cap.
+         # Cumulative over the walk, printed beside its denominator, which is
+         # the list itself because nothing else can carry the exclusion.
+         "historical_uncounted": 0, "historical_listed": len(legacy_links),
          # OF THE FILES CHECKED, how many had an instant to measure from.
          # Cumulative over the walk, printed beside its denominator.
          "date_pinned": 0, "unpinned": 0,
@@ -1679,20 +1916,28 @@ def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES,
                 r["legacy_links"] += 1
             res = check(text, kind, file_now, legacy_links=legacy)
             r["checked"] += 1
+            # THE UNCOUNTED LINE RIDES ON THE FILE'S OWN LINE, pass or fail,
+            # because a cap that let something through must say so where the
+            # file is named and not only in the footer.
+            r["historical_uncounted"] += res["historical_uncounted"]
+            hist = (", historicalUncounted=1line/%dwords"
+                    % res["historical_words"]) if res["historical_uncounted"] \
+                else ""
             if res["findings"]:
                 r["failed"].append(
                     (rel, "%s: %s" % (kind,
                                       cap([str(f) for f in res["findings"]],
                                           keep=GATE_FINDINGS_SHOWN, width=90,
                                           sep=" | "))))
-                r["results"].append((rel, "fail", "%s, %d finding(s), %s"
-                                     % (kind, len(res["findings"]), as_of)))
+                r["results"].append((rel, "fail", "%s, %d finding(s), %s%s"
+                                     % (kind, len(res["findings"]), as_of,
+                                        hist)))
             else:
                 r["results"].append(
                     (rel, "pass-legacy-links" if legacy else "pass",
-                     "%s, %d of %s word(s), %s%s"
+                     "%s, %d of %s word(s), %s%s%s"
                      % (kind, res["words"],
-                        res["cap"] if res["cap"] else "no-cap", as_of,
+                        res["cap"] if res["cap"] else "no-cap", as_of, hist,
                         ", the link band is not enforced on it: written "
                         "before it was ruled and named in LEGACY_LINK_RULES"
                         if legacy else "")))
@@ -1736,6 +1981,17 @@ def gate_report(r):
               "date in the name."
               % (r["legacy_links"], r["checked"], len(LEGACY_LINK_RULES),
                  r["checked"] - r["legacy_links"]))
+    if r["checked"]:
+        # WHAT THE CAP DID NOT READ, with the only denominator under which the
+        # exclusion can exist. Cumulative over the walk.
+        print("  historical annotations: %d of the %d file(s) named on the "
+              "frozen LEGACY_LINK_RULES list were checked with one leading %s "
+              "line uncounted by the word cap. Ruled 2026-09-06: the cap "
+              "governs what the Producer wrote and the marker is an annotation "
+              "the studio added afterwards. Only the FIRST line is excused and "
+              "only from the count; a second is counted like any other line."
+              % (r["historical_uncounted"], r["historical_listed"],
+                 HISTORICAL_PREFIX))
     # WHICH CLOCK READ THE DEADLINES, with its denominator, because "0 failed"
     # from a gate measuring the wrong instant is the fault this line exists to
     # make visible. Cumulative over the walk.
@@ -1785,11 +2041,12 @@ def gate_report(r):
                   "whether a claim is TRUE." % (r["checked"], len(REGISTERS),
                                                 ",".join(sorted(REGISTERS))))
         print("\nproducer-check --gate: PASS filesChecked=%s "
-              "filesLegacyLinks=%d/%d filesExempt=%d filesWalked=%d "
-              "filesDatePinned=%d/%d"
+              "filesLegacyLinks=%d/%d historicalLinesUncounted=%d/%d "
+              "filesExempt=%d filesWalked=%d filesDatePinned=%d/%d"
               % (r["checked"] if r["checked"] else "0/" + NOTHING,
-                 r["legacy_links"], r["checked"], r["exempt"], r["walked"],
-                 r["date_pinned"], r["checked"]))
+                 r["legacy_links"], r["checked"],
+                 r["historical_uncounted"], r["historical_listed"],
+                 r["exempt"], r["walked"], r["date_pinned"], r["checked"]))
         return GATE_EXIT_OK
     print("  %d file(s) failed:" % len(r["failed"]))
     for rel, why in r["failed"][:5]:
@@ -1798,9 +2055,10 @@ def gate_report(r):
         print("    (+%d more not shown of %d)"
               % (len(r["failed"]) - 5, len(r["failed"])))
     print("\nproducer-check --gate: FAIL filesFailed=%d filesChecked=%d "
-          "filesLegacyLinks=%d/%d filesExempt=%d filesWalked=%d "
-          "filesDatePinned=%d/%d"
+          "filesLegacyLinks=%d/%d historicalLinesUncounted=%d/%d "
+          "filesExempt=%d filesWalked=%d filesDatePinned=%d/%d"
           % (len(r["failed"]), r["checked"], r["legacy_links"], r["checked"],
+             r["historical_uncounted"], r["historical_listed"],
              r["exempt"], r["walked"], r["date_pinned"], r["checked"]))
     return GATE_EXIT_FAIL
 

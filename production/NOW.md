@@ -9,6 +9,45 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## THE CODEX PATCH IS NOT INTEGRATED AND MUST NOT BE COUNTED
+
+Ruled by Jafar 2026-09-06: "Keep any unavailable Codex patch explicitly
+unintegrated. Do not count its reported fixes as completed or let locating it
+block this delivery work."
+
+A handoff described a patch from base `de158c2c` to `54c676d` on a branch
+`codex/ledger-handoff-2026-09-06`. NONE OF IT IS HERE. There is no `.patch`
+file anywhere on this filesystem, no `codex/` branch, and `54c676d` is not a
+valid object in this repository. Its stated base matches what was HEAD at the
+time, which corroborates the description and is not the patch.
+
+So five reported fixes are UNINTEGRATED and none may be counted as done:
+narrowed director review, unknown-reporting game and studio splits, evidence
+uploaded before result banking, retained material and shader logs, and Core
+novel actions requiring exact authorization. THE LAST ONE IS NOT TOUCHED AT
+ALL, deliberately: it restricts functionality to close an authority hole, it
+would reject every model-proposed novel state change with the live caller
+supplying none, and it stays separate until its behaviour and its review are
+resolved.
+
+Where a fix here resembles one of those descriptions, it was written here from
+this repository's own evidence and is not that patch. The retained material log
+is the clear case: `production/d1-probe/ue-material-log.txt` exists because an
+engine-specialist added the step after run 23, and it is what explained
+`materialEditorCmdExit=1`.
+
+## THE STREET IS TEXTURED, run 25, and queue 123 is DONE
+
+Landed `87b20592`. The colour control quad renders its four bound colours where
+it read chroma max 6 of 255 on the two previous runs; the whole frame with the
+quad boxes excluded reads max chroma 133 over 873,860 pixels against a previous
+whole-frame maximum of 15.
+
+The third reading I set in advance is INVALID and not failed: it sampled a pane
+of glass one metre from the camera while the brick it named sat sixteen metres
+behind. Queue 137 inspects a named brick surface unobstructed. Nobody may
+report that specific check as passed until it does.
+
 ## 2026-09-06, ANSWERED BY LANDED RUN 23: THE MATERIAL NEVER COMPILED
 
 Run 23 landed as `de158c2c`, "UE machine probe from 245e368". Read

@@ -7,8 +7,12 @@ acceptance: a material change to the map produces a message in
   and a NON-material change produces none; both outcomes watched, the
   accepting case being a real change to a real page
 max_sessions: 1
-status: READY 2026-09-06. HALF OF HIS ITEM 3 IS UNDELIVERED and this is the
-  half. P1: he asked for it in the same breath as the map itself.
+status: BUILT 2026-09-06 AND UNPROVEN. The consumer is tools/map-notify.py
+  and the notify job in .github/workflows/publish-glance.yml, needs: publish.
+  Its acceptance, a real change to a real page, cannot be met while queue 139
+  holds: no page has been served, so no accepting case has run. WAITS on 139.
+  Nobody may report it as working before a publish run prints pageResult=OK
+  and this job prints mapNotifyResult with a real served digest.
 
 ## The finding, and it is CLAUDE.md rule 6
 
@@ -34,6 +38,9 @@ has ever asked a question of, so the day the map changes materially, nothing
 happens.
 
 ## What has to exist
+
+Exists as of 2026-09-06; the section above is the record of why it was
+built this way.
 
 A consumer that runs where the map is regenerated, reads `mapMaterialChange`
 from the done line, and on `yes` writes a message into `production/outbox/`

@@ -48,6 +48,32 @@ absent; the crowd still that would settle this does not exist yet, which is the
 honest reason this has waited a month.
 
 ---
+### The pages cannot be published until the studio's branch may deploy
+CLASS: DECISION
+added 2026-09-06, from queue 139
+
+Every publish run since 2026-09-05T17:19, eleven of eleven, has failed in
+seconds with zero steps executed:
+
+    Branch "claude/game-dev-ai-automation-2h67ix" is not allowed to
+    deploy to github-pages due to environment protection rules.
+
+So the glance, the map and the gallery have never been served from this
+branch, and every link the Producer's register allows points at a page
+that does not exist yet. The card ruled A on 2026-09-05 said Pages "is
+not refused"; that was true of the repository setting it measured and
+not of the environment rule that refuses the deploy. Only a repository
+admin can change it.
+
+- A. GitHub, Settings, Environments, github-pages, deployment branches:
+  add `claude/game-dev-ai-automation-2h67ix`.
+- B. Name a branch already allowed; the studio publishes from it.
+
+RECOMMENDATION A: one setting, nothing else moves.
+DEFAULT: the studio waits. There is no action it can take in your place.
+DEADLINE: none set. Nothing decays while it waits, and every day it waits
+the Producer's messages link to nothing.
+
 ## RULED THIS WEEK
 
 ### RULED 2026-09-06 BY JAFAR: A, keep both checkpoint repairs.
@@ -144,6 +170,9 @@ knowingly. Queue 097 is unblocked and does not wait for the default.
 CLASS: DECISION
 added 2026-09-05, from today's ruling on your standing order
 
+CORRECTED 2026-09-06: the repository setting is not refused; the environment
+rule is, on every deploy since. See the card above and queue 139.
+
 You asked to be told if GitHub Pages were refused. It is not refused: the
 project on GitHub is public, so Pages is available and the glance can open on your
 phone. What needs your ruling is the consequence, not the refusal. A Pages
@@ -164,10 +193,10 @@ this is your call and not a builder's, and why the work that publishes it
 
 RECOMMENDATION A: the exposure already exists, and the glance is the one thing
 built to open on your phone.
-DEFAULT A if unruled. This is the one card whose default acts, because the The default acts only once this card has reached you, by the bot with a
-receipt or by your own word in the session, and 24 hours have passed since;
-until then the deadline moves with it.
-exposure already exists and holding the page back would not undo it.
+DEFAULT A if unruled, because the exposure already exists and holding the page
+back would not undo it. The default acts only once this card has reached you,
+by the bot with a receipt or by your own word in the session, and 24 hours have
+passed since; until then the deadline moves with it.
 DEADLINE 2026-09-07, the Monday reset.
 
 

@@ -1,3 +1,5 @@
+HISTORICAL, written 3 September, delivered late: the Unreal run it asks about has since gone and the street it promised now shows its textures.
+
 HEADLINE: [Everything landed](https://github.com/jsab258/wc26-picks/commit/ab276fa4); a working spawn costs more than we estimated.
 
 WHAT CHANGED: The flat estimate averaged Fable with a heavier tier taking nearly four times the turns, and [a third of spawns produced nothing](https://github.com/jsab258/wc26-picks/commit/ab276fa4), nearly all after session-limit notices. Turns are not points yet.

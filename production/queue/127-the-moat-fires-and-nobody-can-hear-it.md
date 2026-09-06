@@ -7,15 +7,21 @@ acceptance: a landed change after which a player who is seen committing a
   who told the truth would not hear; measured over the same sweep, so the
   number that moves is lieHeard, today 0 of 90
 max_sessions: 2
-status: READY 2026-09-06. THE MOST IMPORTANT FINDING THE STUDIO HAS PRODUCED.
-  P0 on the moat. Not a bug in one file: three separate mechanisms each work
-  and the chain between them is inaudible.
+status: READY 2026-09-06. P0 on the moat. THE SUPPORTED FINDING, in Jafar's
+  own words and no stronger: "In the tested scenarios, caught lies did not
+  change the spoken responses, and recognition stayed below threshold.
+  Overheard gossip provides a separate working route to audible consequences."
+  Three mechanisms each work and the chain between two of them is inaudible;
+  the third route works.
 
 ## What was measured
 
 1,296 sessions, 648 per arm, over 108 of 108 distinct player paths and 6 of 6
-seeds. The whole answer space, not a sample, and proven to be the whole space
-by a two-pass script and its single-pass twin producing identical lines.
+seeds. THAT IS EXHAUSTIVE COVERAGE OF THE CHOSEN HARNESS COMBINATIONS, ruled
+by Jafar 2026-09-06, and it is NOT the whole space a player could walk. The
+harness offers three jobs, three hours, two approaches, two coats and three
+answers; a shipped game offers more, and the sweep says nothing about what is
+outside the grid it enumerated.
 
 ## The three numbers
 
@@ -28,9 +34,12 @@ by a two-pass script and its single-pass twin producing identical lines.
                          sessions
     on-topic             canned arm 3240/3240 lines, real arm 540/3240
 
-THE ARM WITHOUT PERCEPTION, MEMORY OR PROPAGATION IS ON TOPIC SIX TIMES MORE
-OFTEN THAN THE ARM WITH THEM. There is no beat anywhere in the space where the
-real arm says something pointed and the canned arm does not.
+The arm without perception, memory or propagation is on topic six times more
+often, and there is no beat in the grid where the real arm is pointed and the
+canned arm is not. STATE THAT AS FREQUENCY AND NOTHING MORE. Ruled by Jafar
+2026-09-06: a higher on-topic rate is NOT evidence that the canned arm is
+better, more enjoyable, or preferable. Nobody has played either arm, and the
+sweep cannot speak to enjoyment at all.
 
 ## Why that is not a tuning problem
 

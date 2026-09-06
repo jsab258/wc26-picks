@@ -82,3 +82,43 @@ reader-visible half. THE LIST NEVER WIDENS TO A FILE DATED ON OR AFTER
 The ruling is
 `game-design/decision-2026-09-06-ruling-register-link-band-and-gallery.md`,
 amendment A1.
+
+WHAT THE BACKLOG WILL ACTUALLY DO ON THE FIRST SEND, measured 2026-09-06 and
+NOT what anyone assumed.
+
+Jafar ruled that older queued messages must read as historical so the first
+burst does not tell him that solved problems are still current. The two
+pre-2026-09-06 messages now carry a leading `HISTORICAL,` line saying when they
+were written and what has changed since, and the gate excuses that one line
+from the word cap for files on the frozen legacy list.
+
+BUT THE SENDER WILL REFUSE THEM ANYWAY, and that is a different code path from
+the gate. `tools/runner/outbox.py:run_check` shells out to
+`producer-check.py --kind <kind> <file>`, the SINGLE-FILE path, which never
+learns that a file is on `LEGACY_LINK_RULES`. Measured on both:
+
+    2026-09-03-batch-landed-and-the-wait.unprompted.md   sender exit=1
+    2026-09-05-the-console-run.unprompted.md             sender exit=1
+
+The 2026-09-03 file reports four findings there and THREE OF THEM PREDATE the
+historical marker: the link band, the link floor, and a deadline now 10.2 hours
+in the PAST. The legacy grandfathering and the filename-pinned clock are both
+gate-only by design.
+
+SO THE FIRST BURST CARRIES ONLY THE MESSAGES WRITTEN ON 2026-09-06, AND
+THAT IS A DECISION, NOT AN ACCIDENT. Ruled by the director 2026-09-06
+(game-design/decision-2026-09-06-ruling-delivery-batch-map-availability-and-outbox.md,
+section 6): the two annotated messages are gate-only and are not sent.
+His ruling's intent, that the backlog must not tell him resolved
+problems are current, is met more simply by not delivering them; both
+bodies are superseded; the one decision they carry was ruled A by him on
+2026-09-06 (production/decision-queue.md, RULED THIS WEEK); and the
+answer message of 2026-09-06 tells him two older messages are held back,
+so he can ask for them. The annotations stay: anyone opening those files
+reads that they are historical and why. The bodies are never trimmed;
+they are the record.
+
+The sender's refusal of them is still worded as a register refusal, which
+is the wrong word for a decided hold. Queue 141 makes it a named outcome.
+Until it lands, two refused records for these files on the pc-inbox
+branch are expected and are not a fault.

@@ -1,14 +1,46 @@
 line: production (the Unreal emitter, Phase C)
-spec: this file. Supersedes queue 062 as the reason the street is untextured.
-acceptance: a LANDED Unreal run whose four frames show Meridian's own albedo
-  on the street, with midParamReadback and controlQuad printed beside them.
-  Never a local claim, and never a green key standing in for a frame.
+spec: this file. Supersedes queue 062 as the reason the street was untextured.
+acceptance: MET on landed run 25 (87b20592, "UE machine probe from 288ff51")
+  for the two readings that do not depend on a chosen sample window. The third
+  reading I set is INVALID, not failed; see below.
 max_sessions: 2
-status: ANSWERED 2026-09-06 by landed run 23 (de158c2c, "UE machine probe from
-  245e368"). CANDIDATE D. The base material never compiled, so nothing in the
-  scene was ever rendering M_LedgerSurface and every number this project has
-  recorded about BaseColorMap was about the wrong material. NOT YET FIXED: the
-  fix is in flight and the acceptance above is unchanged and unmet.
+status: DONE 2026-09-06 after five runs. THE STREET HAS ITS TEXTURES.
+
+## THE STREET IS TEXTURED, run 25, and what actually proves it
+
+Two readings carry it and neither depends on where I chose to point:
+
+1. THE COLOUR CONTROL QUAD. Bound to a 2x2 of pure red, green, blue and
+   yellow, built in code with no file and no decode. It read chroma max 6 of
+   255 on runs 23 and 24. On run 25 it reads chroma mean 158.7, max 195, over
+   11,880 pixels. That is the intended texture reaching pixels, which is the
+   claim and the whole claim.
+
+2. THE WHOLE FRAME, quad boxes excluded per the verdict's own instruction:
+   max chroma 133 over 873,860 pixels, with 100,691 of them (11.5 percent)
+   above chroma 15. Fifteen was the ENTIRE FRAME'S MAXIMUM on run 23.
+
+## THE THIRD READING IS INVALID, NOT FAILED, AND IT WAS MINE
+
+I recorded in advance that `east_parade_bay3`'s wall face at (820,300) to
+(960,420) must move R/B above 1. It reads 0.881, and chroma moved 4.6 to 22.1.
+
+THAT WINDOW NEVER MEASURED BRICK. A z-ordered coverage test at its centre
+returns `east_parade_glass0` at depth 1.0 metres, with bay3 sixteen metres
+behind it. The window is a pane of glass one metre from the camera.
+
+It only looked correct because when every surface renders the same grey, glass
+and brick are indistinguishable. THE FIX IS WHAT EXPOSED THE FLAW IN MY OWN
+BASELINE. That is the day's main lesson arriving one level up: a measurement
+taken while everything is broken can encode the breakage, and reads as a clean
+baseline until something works.
+
+MARKED INVALID BY JAFAR'S RULING 2026-09-06, and it must not be reported as
+either passed or failed. The specific brick check is OPEN: it needs an
+unobstructed view of a named brick piece before anyone claims it passed, and
+whole-frame colour cannot establish which material is on that surface. Queue
+137.
+
 
 ## RUN 24: THE FIX FAILED, AND THE INSTRUMENT WAS THE CAUSE
 
