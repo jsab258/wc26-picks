@@ -1,0 +1,58 @@
+{
+ "note": "Sources for every file in this directory, written by the same run that wrote the files so the two cannot drift apart. THIRD-PARTY.md carries the human copy under the token 'vignette-surfaces'.",
+ "run": {
+  "sha": "local",
+  "at": 1788717540,
+  "by": "tools/props/fetch_vignette.py --fetch"
+ },
+ "surfaces": {
+  "road_asphalt": {
+   "assetId": "Asphalt012",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=Asphalt012",
+   "resolution": "4K-JPG",
+   "bomLine": "A2_road_asphalt_maps_upgrade",
+   "fetchedOnRun": "local",
+   "files": {
+    "Color": "road_asphalt_Color.jpg",
+    "Displacement": "road_asphalt_Displacement.jpg",
+    "NormalGL": "road_asphalt_NormalGL.jpg",
+    "Roughness": "road_asphalt_Roughness.jpg"
+   },
+   "measured": {
+    "Color": "4096x4096x3ch",
+    "Displacement": "4096x4096x1ch",
+    "NormalGL": "4096x4096x3ch",
+    "Roughness": "4096x4096x1ch"
+   },
+   "missing": [
+    "AmbientOcclusion"
+   ]
+  },
+  "shutter_slat": {
+   "assetId": "CorrugatedSteel002",
+   "source": "ambientCG",
+   "licence": "CC0 1.0 Universal",
+   "url": "https://ambientcg.com/view?id=CorrugatedSteel002",
+   "resolution": "4K-JPG",
+   "bomLine": "C10_roller_shutter",
+   "fetchedOnRun": "local",
+   "files": {
+    "AmbientOcclusion": "shutter_slat_AmbientOcclusion.jpg",
+    "Color": "shutter_slat_Color.jpg",
+    "Displacement": "shutter_slat_Displacement.jpg",
+    "NormalGL": "shutter_slat_NormalGL.jpg",
+    "Roughness": "shutter_slat_Roughness.jpg"
+   },
+   "measured": {
+    "AmbientOcclusion": "4096x4096x1ch",
+    "Color": "4096x4096x3ch",
+    "Displacement": "4096x4096x1ch",
+    "NormalGL": "4096x4096x3ch",
+    "Roughness": "4096x4096x1ch"
+   },
+   "missing": []
+  }
+ }
+}

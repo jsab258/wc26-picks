@@ -1,4 +1,29 @@
 job: fetch-the-vignette-surfaces
 id: vignette-fetch-01
 
-RESULT: STARTED at 2026-09-06 17:58 UTC — still running here
+  $ tools/props/fetch_vignette.py --fetch
+  plan, 2008 ambientCG asset(s) in the committed catalogue, note 'complete', type=Material ONLY
+          an absence below is an absence from MATERIALS and from nothing else; --probe asks the other types
+  
+    A2_road_asphalt_maps_upgrade     Asphalt012 -> road_asphalt @ 4K-JPG  (publishes 6: 1K-JPG, 1K-PNG, 2K-JPG, 2K-PNG, 4K-JPG, 4K-PNG)
+    A4_pavement_tarmac_patch         NO ASSET NAMED  (ABSENT-FROM-MATERIALS)
+                                       next: ambientCG type=Decal, which no committed catalogue covers. AsphaltDamageSet001 proves that type exists and holds asphalt content. --probe answers it in one run.
+    C4_render_pebbledash             NO ASSET NAMED  (ABSENT-FROM-MATERIALS)
+                                       next: Two open questions, both cheap in the same run: ambientCG type=Decal and type=Substance, and Poly Haven's texture list, which no committed file in this repo covers at all.
+    C10_roller_shutter               CorrugatedSteel002 -> shutter_slat @ 4K-JPG  (publishes 8: 1K-JPG, 1K-PNG, 2K-JPG, 2K-PNG, 4K-JPG, 4K-PNG, 8K-JPG, 8K-PNG)
+    F4_parked_vehicle                NO ASSET NAMED  (NOT-CHECKABLE-FROM-HERE)
+                                       next: The Sketchfab CC0 catalogue, reachable from the PC and not from here.
+    F2_period_wardrobe               skipped, the BOM marks it BLOCKED
+  
+  5 target(s) asked, 2 resolved to a named asset at a published resolution, 3 not
+  2 download job(s) planned
+    resolving 1 link(s) from the list endpoint
+      1/1 resolved
+    road_asphalt   ok Asphalt012 117.0 MB -> Color 4096x4096, Displacement 4096x4096, NormalGL 4096x4096, Roughness 4096x4096  NOT IN ZIP: AmbientOcclusion
+    resolving 1 link(s) from the list endpoint
+      1/1 resolved
+    shutter_slat   ok CorrugatedSteel002 65.0 MB -> AmbientOcclusion 4096x4096, Color 4096x4096, Displacement 4096x4096, NormalGL 4096x4096, Roughness 4096x4096
+  
+  2 asset(s) asked, 9 file(s) written, 0 failure(s)
+
+RESULT: finished
