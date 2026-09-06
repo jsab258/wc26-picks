@@ -168,6 +168,35 @@ decal looks right AT SIZE, ON A SURFACE, IN THE RAIN.
   which is the argument for doing that kind of looking whenever the meter is
   tight.
 
+## 2026-09-06 04:10Z: THE FIRST DAILY WAKE RAN ITSELF, AND ITS BRIEF IS HELD
+
+The daily trigger fired for the first time and did its own order unaided: read
+the inbox, checked the budget, generated the brief from repo state. Nobody
+wrote a word of it.
+
+TODAY'S BRIEF IS GENERATED AND NOT SENT. It is kept VERBATIM at
+`production/briefs/2026-09-06.md` because the tool's real output is the
+evidence; the reasons live here rather than on top of it, since the register
+gate correctly refuses a brief with a preamble and the resident learned that
+by failing it.
+
+TWO FAULTS IN ITS BUDGET SECTION, both filed:
+- IT SAID TWELVE SESSIONS WENT TO THE GAME. ONE DID. The split counts WHICH
+  AGENT TYPE ran, not what it built, so nine console passes by
+  engine-specialists counted as game work on the most studio-heavy day this
+  project has had. That is the number Jafar's item 5 rests on and it pointed
+  the wrong way. QUEUE 111.
+- IT DID NOT SAY THE DAY IS UNMEASURED. Newest reading 2026-09-05 08:30Z with
+  27 sessions since, so the stop condition held and the brief printed only
+  "taken yesterday", which reads as reassurance. QUEUE 112.
+
+NO BUILDER WORK STARTED. An unknown budget is not permission.
+
+NOTHING HAS COME THROUGH THE BOT. `inbox-read` reports nothing measured, the
+`pc-inbox` branch does not exist, and `outbound: records=0`, so the report
+written on 2026-09-05 was never sent. That points at the bot not running with
+that day's code rather than at the transport, which is untested either way.
+
 ## IN FLIGHT: THE ORDER OF WORK, ruled 2026-09-05 section 8
 
 His list is the order; this is only about which files two builders cannot
