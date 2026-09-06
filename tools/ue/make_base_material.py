@@ -208,10 +208,21 @@ COLOUR_DEFAULTS = [
     "/Engine/EngineResources/WhiteSquareTexture",
     "/Engine/EngineMaterials/DefaultDiffuse",
 ]
-NORMAL_DEFAULTS = [
-    "/Engine/EngineMaterials/DefaultNormal",
-    "/Engine/EngineResources/DefaultTextureNormal",
-]
+# EMPTY BY MEASUREMENT, 2026-09-06, AND THE MEASUREMENT IS COMMITTED. The two
+# candidates that used to be here are
+# /Engine/EngineMaterials/DefaultNormal and
+# /Engine/EngineResources/DefaultTextureNormal. Runs 23 and 24 both asked a
+# real UE 5.8 install for them and both times the asset registry answered that
+# neither exists; run 24's editor log says so in the engine's own words and
+# that log is production/d1-probe/ue-material-log.txt in this repository. The
+# probe was not free: each miss is a LogEditorAssetSubsystem Error, the two of
+# them are the whole of the editor's "Failure - 2 error(s)" summary, and that
+# summary is materialEditorCmdExit=1, which four runs then had to explain.
+# A probe whose answer is known and whose cost is the only whole-process
+# health signal this step has is not a probe, so the generated default under
+# /Game/Ledger owns this sampler outright. Restoring a candidate here needs a
+# new measurement, not a memory.
+NORMAL_DEFAULTS = []
 # THE LIST RUN 23 USED FOR ROUGHNESS WITHOUT ANY KEY SAYING SO. main() passed
 # colour_default into the roughness sampler, so an sRGB COLOUR texture sat in
 # a slot declared LINEAR GRAYSCALE. Unreal derives a sampler type from the
@@ -221,7 +232,13 @@ NORMAL_DEFAULTS = [
 # the third was never printed at all. It is a list of its own now, it is
 # validated like the other two, and the count's denominator is the number of
 # texture parameters rather than a hand-typed 2.
-ROUGHNESS_DEFAULTS = list(COLOUR_DEFAULTS)
+# EMPTY FOR A DIFFERENT MEASURED REASON THAN THE NORMAL LIST. The colour
+# candidates DO resolve here: run 24 read
+# materialColourDefault=engine../Engine/EngineResources/DefaultTexture..asked.
+# COLOR..derives.COLOR. That texture is sRGB, so it derives COLOR, and this
+# sampler is declared LINEAR_COLOR, so the type check refuses it EVERY time by
+# construction. A candidate that cannot be accepted is a note, not a default.
+ROUGHNESS_DEFAULTS = []
 
 # ---- SAMPLER TYPES, WHICH ARE A COMPILE-TIME CONTRACT WITH THE TEXTURE ----
 #
@@ -271,27 +288,80 @@ GENERATED_DEFAULTS = [
 ]
 
 
-def derived_sampler_type(compression, srgb):
+# EVERY COMPRESSION LEAF THIS FILE KNOWS IS A REAL ONE, compact (no
+# underscores, upper case), so TC_DISTANCE_FIELD_FONT and TC_DistanceFieldFont
+# are one name here. It exists so that the engine's DEFAULT branch below can
+# only be taken for a leaf that is actually a compression setting: an
+# unrecognised spelling must derive NOTHING, because deriving a colour type
+# from a string this file failed to parse is precisely how run 24 declared a
+# normal map sampler LINEAR_COLOR. The editor side does not rely on this list
+# at all, it passes the live enum's own leaves; the list is the container's
+# fixture and the fallback when the enum cannot be enumerated.
+KNOWN_COMPRESSION_LEAVES = frozenset((
+    "DEFAULT", "NORMALMAP", "MASKS", "GRAYSCALE", "DISPLACEMENTMAP",
+    "VECTORDISPLACEMENTMAP", "HDR", "EDITORICON", "ALPHA",
+    "DISTANCEFIELDFONT", "HDRCOMPRESSED", "BC7", "HALFFLOAT",
+    "ENCODEDREFLECTIONCAPTURE", "SINGLEFLOAT", "HDRF32", "LQ",
+    "REFLECTIONCAPTUREENCODEDHDR",
+))
+
+
+def compression_leaf(spelling):
+    """The bare compression leaf inside ANY spelling the editor may answer
+    with, compact and upper case, or None when there is no leaf in it.
+
+    THIS IS THE FUNCTION RUN 24 GOT WRONG AND THE ONE NUMBER IT COST IS ON
+    THE RECORD. The old code did str(value).split(".")[-1], which is only
+    correct if the enum's string form ENDS at the leaf. Run 24 set
+    TC_NORMALMAP on the generated normal, the importer had already
+    auto-detected a normal map by itself (LogInterchangePipeline says so in
+    production/d1-probe/ue-material-log.txt), and the readback still derived
+    LINEAR_COLOR. The only route to that answer is a tail that is not a bare
+    leaf, "TC_NORMALMAP: 1" or "<TextureCompressionSettings.TC_NORMALMAP: 1>",
+    which matches no named branch and fell into the catch-all. All three
+    textures in that run took the catch-all and nothing could say so.
+    So the leaf is cut out of the spelling rather than assumed to be its tail:
+    angle brackets dropped, everything from the first colon dropped, the last
+    dot segment taken, TC_ dropped, and non-alphanumerics folded out. A value
+    that reduces to nothing or to digits alone is None, which never matches an
+    asked sampler type, so it is refused instead of guessed at.
+    """
+    if spelling is None:
+        return None
+    text = str(spelling).replace("<", " ").replace(">", " ").strip()
+    text = text.split(":")[0]
+    text = text.split(".")[-1].strip().upper()
+    if text.startswith("TC_"):
+        text = text[3:]
+    compact = "".join(c for c in text if c.isalnum())
+    if not compact or compact.isdigit():
+        return None
+    return compact
+
+
+def derived_sampler_type(compression, srgb, known_leaves=None):
     """The sampler type Unreal derives from a TEXTURE, which is the thing it
     compares the expression's declared type against.
 
     compression is whatever the editor answered for the texture's compression
-    settings, in any spelling: the Python enum repr
-    (TextureCompressionSettings.TC_NORMALMAP), the bare leaf (TC_NORMALMAP),
-    or an int, which cannot be interpreted and is treated as unknown.
+    settings, in any spelling compression_leaf can find a leaf in, or an int,
+    which cannot be interpreted and is treated as unknown.
     srgb is the texture's sRGB flag.
+    known_leaves is the set of leaves that ARE compression settings, compact,
+    and defaults to this file's own list. The editor side passes the live
+    enum's leaves so that this engine version decides, not this file.
 
-    The branch order is the engine's own, and the two cases that are decided
-    by the sRGB flag rather than by the compression are the two this project
-    has already been bitten by.
+    The branch order is the engine's own
+    (UMaterialExpressionTextureBase::GetSamplerTypeForTexture), and the two
+    cases decided by the sRGB flag rather than by the compression are the two
+    this project has already been bitten by. What changed on 2026-09-06 is the
+    LAST branch: the engine's default case is only reachable for a leaf known
+    to be a compression setting, so a spelling this file cannot read derives
+    nothing rather than a plausible colour type.
     """
-    if compression is None:
+    leaf = compression_leaf(compression)
+    if leaf is None:
         return None
-    leaf = str(compression).split(".")[-1].strip().upper()
-    if not leaf or leaf.isdigit():
-        return None
-    if leaf.startswith("TC_"):
-        leaf = leaf[3:]
     if leaf == "NORMALMAP":
         return SAMPLER_NORMAL
     if leaf == "GRAYSCALE":
@@ -302,6 +372,9 @@ def derived_sampler_type(compression, srgb):
         return SAMPLER_MASKS
     if leaf == "DISTANCEFIELDFONT":
         return SAMPLER_DISTANCE_FIELD_FONT
+    known = KNOWN_COMPRESSION_LEAVES if known_leaves is None else known_leaves
+    if leaf not in known:
+        return None
     return SAMPLER_COLOR if srgb else SAMPLER_LINEAR_COLOR
 
 
@@ -329,16 +402,84 @@ def defaults_field(vias):
     was declared with, because a texture of the wrong type is a compile error
     and not a default. Nothing recorded prints the words nothing measured, so
     a zero here cannot be read as "three samplers, none bound".
+
+    THREE WORDS AND NOT TWO, amendment A2 of the ruling of 2026-09-06. A
+    texture is present and derives a type that DISAGREES with the slot
+    (TYPE-MISMATCH, and the next action is the texture) and a texture that
+    derived NO TYPE AT ALL (TYPE-UNKNOWN, and the next action is the reading:
+    materialCompressionReadback on the same line says what it answered) are
+    different facts, and one label for both is how a reading this file could
+    not parse and a texture of the wrong type printed the same word. Neither
+    counts as bound: a type nobody derived is not a type that matched.
     """
     asked = len(TEXTURE_PARAMS)
     if not vias:
         return 0, asked, "nothing-measured"
-    bound = len([v for v in vias if v[1] != "none" and v[2] == v[3]])
+    bound = len([v for v in vias
+                 if v[1] != "none" and v[2] is not None and v[2] == v[3]])
     return bound, asked, "/".join(
         "%s.%s.%s" % (v[0], v[1],
                       "no-default" if v[1] == "none"
-                      else ("type-ok" if v[2] == v[3] else "TYPE-MISMATCH"))
+                      else ("TYPE-UNKNOWN" if v[2] is None
+                            else ("type-ok" if v[2] == v[3]
+                                  else "TYPE-MISMATCH")))
         for v in vias)
+
+
+def compression_word(leaf, via):
+    """One texture's compression leaf as it goes on the line, and the reason
+    it is three words rather than two.
+
+    A leaf that was read is printed as itself. A leaf of None used to print
+    UNRECOGNISED whatever produced it, which put two different situations
+    under one label: a value the engine ANSWERED that this file could find no
+    compression leaf in (UNRECOGNISED, and the next action is the spelling,
+    with the str and repr of it in the committed report file), and a property
+    that never answered at all or a texture that was never there (none, and
+    the next action is the texture, not the parser). Amendment A2 of the
+    ruling of 2026-09-06.
+    """
+    if leaf:
+        return str(leaf)
+    if via in ("nothing-measured", "readback-refused"):
+        return "none"
+    return "UNRECOGNISED"
+
+
+def compression_field(readings):
+    """What each sampler's texture ANSWERED for its compression settings, and
+    HOW that answer was read.
+
+    readings is one (param name, leaf, via, srgb) per texture parameter, with
+    leaf None when nothing recognisable came back. This key exists because run
+    24 could print that a texture derived LINEAR_COLOR and could not print
+    WHAT IT READ to derive that from, so a broken reading and a broken texture
+    were the same line. The via is the half that names which is which:
+      enum-identity  the value IS one of this engine's own enum members, which
+                     is the only reading that depends on nothing this file
+                     guessed about spelling.
+      enum-int       matched by integer value, the names differing.
+      string-parse   read out of the value's text, which is the route that
+                     failed on run 24 and is now the LAST one tried.
+      unrecognised   nothing in the value is a compression leaf of this
+                     engine. Refused, never guessed at.
+      readback-refused / nothing-measured  the property or the run never
+                     answered at all, which is not a texture of the wrong
+                     type.
+
+    AND THE LEAF SAYS WHICH OF THOSE TWO IT IS, amendment A2 of the ruling of
+    2026-09-06: see compression_word.
+    """
+    if not readings:
+        return ("materialCompressionReadback=nothing-measured "
+                "materialCompressionStat=per-texture-parameter/the-compression-leaf-read-back-and-the-route-that-read-it")
+    return ("materialCompressionReadback=%s "
+            "materialCompressionStat=per-texture-parameter/the-compression-leaf-read-back-and-the-route-that-read-it"
+            % "/".join(
+                "%s.%s.via.%s.srgb.%s"
+                % (r[0], compression_word(r[1], r[2]), r[2],
+                   "yes" if r[3] else "no")
+                for r in readings))
 
 
 def generated_field(sources, attempted):
@@ -422,7 +563,14 @@ STATUS_BY_PROPERTY_WRITE = "WIRED-BY-PROPERTY-WRITE"
 STATUS_PARTIAL = "PARTIAL"
 STATUS_NOT_SAVED = "NOT-SAVED"
 # THE TWO WORDS RUN 23 SHOULD HAVE PRINTED AND COULD NOT.
-# NOT-COMPILED is a material the editor reported a compile diagnostic for.
+# NOT-COMPILED is a material the editor reported a compile diagnostic for OR
+# one with no shader map readable for it at read time, BESIDE A TWIN
+# RECOMPILED THE SAME WAY IN THE SAME PROCESS THAT HAD ONE. Those are two
+# different findings and are told apart by materialCompile on the same line
+# (ERRORS against NO-SHADER). It stays one status word because the next
+# action after either is the same: this material does not render and the
+# material step is where to look. What it must never be is COMPILE-UNPROVEN,
+# which says nobody could tell.
 # COMPILE-UNPROVEN is the state this script was in for its whole life: it
 # asked for a recompile, caught the exception that never came, saved the
 # asset and said MADE, with nothing anywhere in the run able to say whether a
@@ -451,6 +599,63 @@ STATUS_COMPILE_UNPROVEN = "COMPILE-UNPROVEN"
 COMPILE_OK = "OK"
 COMPILE_ERRORS = "ERRORS"
 COMPILE_UNPROVEN = "UNPROVEN"
+# THE FOURTH WORD, ADDED AFTER RUN 24, WHICH READ
+# materialCompileInstructions=pixel.0..vertex.0 and folded it into UNPROVEN.
+# "This material has no shader" and "we could not tell whether it has one" are
+# different facts with different next actions, and one word for both throws
+# away the strongest reading this step has ever taken.
+# NO-SHADER IS ONLY REACHABLE WITH AN ACCEPTING CASE FOR THE CHANNEL, AND THE
+# ACCEPTING CASE HAS TO BE THE SAME SENTENCE. A zero from an instrument never
+# known to print anything else is not a measurement of absence, it is an
+# instrument with no denominator. But an ENGINE material answering 187 proves
+# only that get_statistics returns a number WHEN A SHADER MAP IS ALREADY
+# PRESENT: that material's map comes out of the derived-data cache and was not
+# compiled in this process. Ours is recompiled 0.67 seconds before the read
+# with no engine tick in between, so if this commandlet compiles material
+# shaders asynchronously, our map is not there at read time whether the graph
+# is good or not, and pixel.0 beside an engine control of 187 would print
+# NO-SHADER over a graph the cook then compiles perfectly well.
+# SO THE GATING CONTROL IS A TWIN: a second material THIS SCRIPT makes, wires
+# trivially, recompiles by the same call and reads through the same call in
+# the same process, outside the compile markers, never saved and deleted
+# after. Twin above zero beside our zero means the channel answers for a
+# material compiled here and ours genuinely has no shader. Twin zero or absent
+# means the channel cannot answer here, the word is UNPROVEN, and the fault is
+# in the channel, which is a different day's work from a fault in the
+# material. Amendment A1, ruling of 2026-09-06 on run 24's landing.
+COMPILE_NO_SHADER = "NO-SHADER"
+
+# THE TWIN. A build product of this run that lives for three calls and is
+# never saved, so no cook can see it and no .uasset can carry it.
+CONTROL_TWIN = "M_LedgerControlTwin"
+CONTROL_TWIN_PATH = PACKAGE + "/" + CONTROL_TWIN
+
+# The one wire the twin gets, most ordinary spelling first. A constant vector
+# into base colour is the smallest graph that is unambiguously a material, and
+# the class name is swept rather than asserted for the same reason the UV head
+# is: this container has no unreal module to ask.
+TWIN_EXPRESSION_CLASSES = [
+    "MaterialExpressionConstant3Vector",
+    "MaterialExpressionConstant4Vector",
+    "MaterialExpressionVectorParameter",
+    "MaterialExpressionConstant",
+]
+
+# The ENGINE materials the non-gating channel reading is tried against, in
+# order. ALL of them are asked and the first NON-ZERO is kept, because a first
+# candidate answering zero used to end the search and print a dead channel
+# over a live one. BasicShapeMaterial leads because the 593 street pieces are
+# engine basic shapes and it is the material actually beside ours in the cook,
+# so a reading from it is also evidence about the frames. This reading GATES
+# NOTHING: it says whether get_statistics returns a number for anything in
+# this editor, which is worth knowing and is not the same question as whether
+# it can answer for a material compiled moments ago.
+CONTROL_MATERIALS = [
+    "/Engine/BasicShapes/BasicShapeMaterial",
+    "/Engine/EngineMaterials/WorldGridMaterial",
+    "/Engine/EngineMaterials/DefaultMaterial",
+    "/Engine/EngineDebugMaterials/WireframeMaterial",
+]
 
 # The two lines this script logs around the recompile so the log slice it
 # reads back is the material's own compile and not the whole editor session.
@@ -533,7 +738,8 @@ def compile_scan(lines):
     return len(matched), len(lines), matched
 
 
-def compile_verdict(errors, examined, instructions, found_begin, found_end):
+def compile_verdict(errors, examined, instructions, found_begin, found_end,
+                    control_instructions=None):
     """One word for whether the material compiled.
 
     errors is the diagnostic count, or None when no log was read.
@@ -549,18 +755,37 @@ def compile_verdict(errors, examined, instructions, found_begin, found_end):
     pass: a slice carrying neither marker has not been shown to be this
     material's compile.
 
+    control_instructions is the SAME statistics call made against the TWIN,
+    a material this script made, wired, recompiled and read in this same
+    process, or None when no twin could be made or read. It is the accepting
+    case for the positive channel and it decides only one thing: whether a
+    zero of our own is allowed to mean NO-SHADER. It is a twin and not an
+    engine material because an engine material answers out of the derived-data
+    cache: a number from one proves the call works when a shader map is
+    already there, which is a different sentence from the one our zero needs.
+
     Any diagnostic at all is ERRORS, markers or no markers, because a log
     that failed to slice can still carry a real one and that is exactly when
-    it must be heard. After that EVERY channel has to have spoken: a log
-    read, zero errors in it, a non-zero number of lines they were counted
-    over, both markers seen, and a non-zero instruction count. Anything else
-    is UNPROVEN. That is the rule this file was missing, stated as a
-    function so a future edit to it shows up in a diff rather than in a
-    frame.
+    it must be heard. Then a zero instruction count beside a control ABOVE
+    zero is NO-SHADER: the channel demonstrably answers for a material
+    compiled in this process, and it answered that this material has no
+    compiled shader. A zero with a silent or zero control is UNPROVEN,
+    because an instrument that has never printed anything but zero has not
+    been shown to be able to, and a twin that could not be made at all is
+    the same silence: UNPROVEN, never NO-SHADER. After that EVERY
+    channel has to have spoken: a log read, zero errors in it, a non-zero
+    number of lines they were counted over, both markers seen, and a non-zero
+    instruction count. Anything else is UNPROVEN. That is the rule this file
+    was missing, stated as a function so a future edit to it shows up in a
+    diff rather than in a frame.
     """
     if errors is not None and errors > 0:
         return COMPILE_ERRORS
-    if instructions is None or instructions <= 0:
+    if instructions is None:
+        return COMPILE_UNPROVEN
+    if instructions <= 0:
+        if control_instructions is not None and control_instructions > 0:
+            return COMPILE_NO_SHADER
         return COMPILE_UNPROVEN
     if errors is None:
         return COMPILE_UNPROVEN
@@ -572,7 +797,12 @@ def compile_verdict(errors, examined, instructions, found_begin, found_end):
 
 
 def compile_fields(verdict, errors, examined, instructions, vs_instructions,
-                   samplers, found_begin, found_end):
+                   samplers, found_begin, found_end,
+                   control_instructions=None, control_vs=None,
+                   control_from=None,
+                   channel_instructions=None, channel_vs=None,
+                   channel_from=None, channel_answered=None,
+                   channel_tried=None):
     """The compile evidence, as key=value tokens with no spaces in any value.
 
     verdict is the word compile_verdict already returned, passed in rather
@@ -580,7 +810,8 @@ def compile_fields(verdict, errors, examined, instructions, vs_instructions,
     SAME word, and a number computed twice from one set of inputs is a
     number that can drift.
 
-    materialCompile               OK, ERRORS or UNPROVEN, from compile_verdict
+    materialCompile               OK, ERRORS, NO-SHADER or UNPROVEN, from
+                                  compile_verdict
     materialCompileErrors         matched diagnostic lines over LOG LINES
                                   EXAMINED in the slice, which is the
                                   denominator that tells a clean compile from
@@ -596,6 +827,26 @@ def compile_fields(verdict, errors, examined, instructions, vs_instructions,
                                   is not a zero.
     materialCompileSamplers       texture samplers the compiled material uses.
                                   Three is what this graph asks for.
+    materialCompileControl        THE SAME CALL ON THE TWIN, a material this
+                                  script made, wired, recompiled and read in
+                                  this same process and then deleted, and the
+                                  reason a zero of ours can be read at all.
+                                  Above zero means the channel answers for a
+                                  material compiled here; zero or
+                                  not-available means it does not and our own
+                                  zero measures nothing. from. names the twin
+                                  or the step that refused to make it, because
+                                  a twin that could not be made is UNPROVEN
+                                  and never NO-SHADER.
+    materialCompileChannel        THE SAME CALL ON ENGINE MATERIALS, which
+                                  GATES NOTHING. All the candidates are asked,
+                                  the first NON-ZERO is kept, and answered.A/T
+                                  is how many returned a number over how many
+                                  were asked. Above zero says get_statistics
+                                  works in this editor for a material whose
+                                  shader map the derived-data cache already
+                                  holds, which is worth knowing and is not
+                                  evidence about ours.
     """
     if errors is None:
         errs = "nothing-measured"
@@ -603,15 +854,30 @@ def compile_fields(verdict, errors, examined, instructions, vs_instructions,
         errs = "%d/%d" % (errors, examined)
     def num(v):
         return "not-available" if v is None else str(int(v))
+    # THE CHANNEL'S DENOMINATOR, and it prints the words nothing measured
+    # rather than a bare fraction when the reading was never taken, because a
+    # zero with no denominator cannot tell a dead channel from an unasked one.
+    if channel_tried is None:
+        answered = "nothing-measured"
+    else:
+        answered = "%d/%d" % (int(channel_answered or 0), int(channel_tried))
     return ("materialCompile=%s materialCompileErrors=%s "
             "materialCompileMarkers=begin.%s/end.%s "
             "materialCompileInstructions=pixel.%s..vertex.%s "
             "materialCompileSamplers=%s "
+            "materialCompileControl=pixel.%s..vertex.%s..from.%s "
+            "materialCompileChannel=pixel.%s..vertex.%s..from.%s..answered.%s "
             "materialCompileErrorsStat=matched-lines/over-log-lines-examined-between-the-markers "
-            "materialCompileRule=OK-needs-a-log-read-AND-zero-errors-AND-lines-examined-above-zero-AND-both-markers-AND-a-nonzero-instruction-count/any-diagnostic-is-ERRORS-with-or-without-markers/anything-else-is-UNPROVEN"
+            "materialCompileControlIs=a-TWIN-material-this-script-made-and-recompiled-in-this-process-and-read-through-the-same-call/nonzero-is-the-accepting-case-that-lets-our-own-zero-mean-anything/materialCompileChannel-beside-it-is-engine-materials-out-of-the-derived-data-cache-and-gates-nothing/answered-is-engine-materials-that-returned-a-number-over-engine-materials-asked "
+            "materialCompileRule=OK-needs-a-log-read-AND-zero-errors-AND-lines-examined-above-zero-AND-both-markers-AND-a-nonzero-instruction-count/any-diagnostic-is-ERRORS-with-or-without-markers/a-zero-instruction-count-beside-a-nonzero-control-is-NO-SHADER/anything-else-is-UNPROVEN"
             % (verdict, errs,
                "yes" if found_begin else "NO", "yes" if found_end else "NO",
-               num(instructions), num(vs_instructions), num(samplers)))
+               num(instructions), num(vs_instructions), num(samplers),
+               num(control_instructions), num(control_vs),
+               str(control_from or "nothing-measured").replace(" ", "~"),
+               num(channel_instructions), num(channel_vs),
+               str(channel_from or "nothing-measured").replace(" ", "~"),
+               answered))
 
 
 def compile_log_text(asset_path, errors, examined, matched,
@@ -738,7 +1004,7 @@ def material_status(saved, params_made, params_asked, wired, asked,
     # recorded nothing, and nothing measured is not a pass.
     if defaults_asked <= 0 or defaults_bound < defaults_asked:
         return STATUS_PARTIAL
-    if compile_word == COMPILE_ERRORS:
+    if compile_word in (COMPILE_ERRORS, COMPILE_NO_SHADER):
         return STATUS_NOT_COMPILED
     if compile_word != COMPILE_OK:
         return STATUS_COMPILE_UNPROVEN
@@ -877,7 +1143,8 @@ def material_line(status, params_made, params_asked, wired, asked, existed,
                   colour_from, normal_from, roughness_from,
                   defaults_bound, defaults_asked, defaults_detail,
                   compile_block, generated_block,
-                  saved, notes, uv_via, uv_tried, uv_readback, uv_by_prop):
+                  saved, notes, uv_via, uv_tried, uv_readback, uv_by_prop,
+                  compression_block=None):
     """The one line the workflow copies into the build verdict.
 
     No spaces inside any value: every reader of these files splits on
@@ -925,6 +1192,13 @@ def material_line(status, params_made, params_asked, wired, asked, existed,
       materialDefaultsDetail     the same three, named, so a short count says
                                  WHICH sampler is short and whether it was
                                  missing or mismatched.
+      materialCompressionReadback
+                                 compression_field() in full: what each
+                                 texture ANSWERED and which route read it.
+                                 The derived type alone cannot tell a texture
+                                 of the wrong type from a reading of the
+                                 wrong type, and run 24 lost a round trip to
+                                 exactly that. Absent prints nothing-measured.
 
     THE COMPILE BLOCK is compile_fields() in full, passed in already
     formatted, because the run supplies the numbers and this file decides what
@@ -939,7 +1213,7 @@ def material_line(status, params_made, params_asked, wired, asked, existed,
             "materialRoughnessDefault=%s "
             "materialDefaultsBound=%d/%d materialDefaultsDetail=%s "
             "materialDefaultsStat=samplers-with-a-default-whose-derived-type-matches/over-texture-parameters "
-            "%s %s "
+            "%s %s %s "
             "materialSaved=%s "
             "materialVerdictIs=materialScriptReturn/not-the-editor-process-exit "
             "materialNote=%s"
@@ -952,6 +1226,7 @@ def material_line(status, params_made, params_asked, wired, asked, existed,
                str(normal_from).replace(" ", "~"),
                str(roughness_from).replace(" ", "~"),
                defaults_bound, defaults_asked, defaults_detail,
+               compression_block if compression_block else compression_field([]),
                compile_block, generated_block,
                "yes" if saved else "NO",
                "/".join(notes) if notes else "none"))
@@ -1063,7 +1338,8 @@ def selftest():
     checks += 1
     widened = []
     for dbound in (0, 1, 2, 3):
-        for comp in (COMPILE_OK, COMPILE_ERRORS, COMPILE_UNPROVEN):
+        for comp in (COMPILE_OK, COMPILE_ERRORS, COMPILE_UNPROVEN,
+                     COMPILE_NO_SHADER):
             got = material_status(True, 3, 3, 14, 14, 0, dbound, 3, comp)
             if got == STATUS_MADE and not (dbound == 3 and comp == COMPILE_OK):
                 widened.append((dbound, comp))
@@ -1356,15 +1632,31 @@ def selftest():
                       generated_field(["engine", "generated", "none"], 2)))
     # THE THREE COMPILE BLOCKS, BUILT THE WAY main() BUILDS ONE: the word is
     # computed once and handed to the formatter, so the selftest cannot pass
-    # over an arrangement the run does not have.
-    def block(errors, examined, px_, vx_, samplers_, begin, end):
+    # over an arrangement the run does not have. The control the word is
+    # decided by is the TWIN and the engine reading is passed separately,
+    # exactly as main() passes them, so a run cannot quietly gate on the
+    # engine number.
+    def block(errors, examined, px_, vx_, samplers_, begin, end,
+              ctl=None, ctl_vx=None, ctl_from=None,
+              chan=None, chan_vx=None, chan_from=None,
+              chan_answered=None, chan_asked=None):
         return compile_fields(
-            compile_verdict(errors, examined, px_, begin, end),
-            errors, examined, px_, vx_, samplers_, begin, end)
+            compile_verdict(errors, examined, px_, begin, end, ctl),
+            errors, examined, px_, vx_, samplers_, begin, end,
+            ctl, ctl_vx, ctl_from,
+            chan, chan_vx, chan_from, chan_answered, chan_asked)
 
+    # A RUN THAT ASKED NOTHING: no log, no statistics, no twin and no engine
+    # reading, which is the shape that must print the words nothing measured
+    # rather than a bare zero.
     unproven_block = block(None, 0, None, None, None, False, False)
     errors_block = block(2, 1200, 0, 0, 3, True, True)
-    ok_block = block(0, 1200, 187, 42, 3, True, True)
+    # THE PASSING SHAPE CARRIES BOTH CONTROLS, because the acceptance of this
+    # amendment is that a reader can tell the twin from the engine reading on
+    # the line itself.
+    ok_block = block(0, 1200, 187, 42, 3, True, True,
+                     41, 12, CONTROL_TWIN_PATH,
+                     187, 42, CONTROL_MATERIALS[0], 1, len(CONTROL_MATERIALS))
 
     line = material_line(STATUS_PARTIAL, 3, 3, 12, 14, False,
                          default_via("engine",
@@ -1465,6 +1757,75 @@ def selftest():
             "ERRORS-with-or-without-markers" not in rule[0]:
         bad.append("the rule token does not name the condition OK now needs, "
                    "or that ERRORS does not need the markers: %s" % rule)
+    # ---- THE TWIN AND THE ENGINE READING, WHICH ARE TWO KEYS AND NOT ONE --
+    # Amendment A1 of the ruling of 2026-09-06. The gating control is a
+    # material this script MAKES and recompiles in this process; the engine
+    # materials are a second, non-gating reading beside it. The passing line
+    # has to carry both, and the words have to be told apart on the wire.
+    want_twin = ("materialCompileControl=pixel.41..vertex.12..from.%s"
+                 % CONTROL_TWIN_PATH)
+    want_chan = ("materialCompileChannel=pixel.187..vertex.42..from.%s..answered.1/%d"
+                 % (CONTROL_MATERIALS[0], len(CONTROL_MATERIALS)))
+    checks += 1
+    if want_twin not in good_line or want_chan not in good_line:
+        bad.append("the passing line does not carry the twin and the engine "
+                   "reading as two separate keys: %s" % good_line)
+    # AND THE TEXT KEY SAYS WHICH IS WHICH, because a reader who has only the
+    # line has to be able to tell that the gating control was a twin.
+    checks += 1
+    control_is = [t for t in good_line.split()
+                  if t.startswith("materialCompileControlIs=")]
+    if len(control_is) != 1 or "TWIN" not in control_is[0] or \
+            "gates-nothing" not in control_is[0] or \
+            "over-engine-materials-asked" not in control_is[0]:
+        bad.append("the control's text key does not name the twin, or does "
+                   "not say that the engine reading gates nothing and what "
+                   "its denominator counts: %s" % control_is)
+    # THE CHANNEL FORMATTER, ACCEPTING SHAPE FIRST and then the two absences
+    # it has to tell apart: asked and silent, against never asked at all.
+    chan_dead = block(0, 1200, 0, 0, 3, True, True,
+                      None, None, "twin-create-threw",
+                      None, None,
+                      "none-of-%d-engine-materials-answered"
+                      % len(CONTROL_MATERIALS), 0, len(CONTROL_MATERIALS))
+    checks += 1
+    if ("materialCompileChannel=pixel.not-available..vertex.not-available..from.none-of-%d-engine-materials-answered..answered.0/%d"
+            % (len(CONTROL_MATERIALS), len(CONTROL_MATERIALS))) not in chan_dead:
+        bad.append("a channel that was asked and answered nothing does not "
+                   "print not-available with its denominator: %s" % chan_dead)
+    checks += 1
+    if "materialCompileChannel=pixel.not-available..vertex.not-available..from.nothing-measured..answered.nothing-measured" \
+            not in unproven_block:
+        bad.append("a channel that was never asked prints a bare zero "
+                   "denominator instead of the words nothing measured: %s"
+                   % unproven_block)
+    # AND THE REFUSED TWIN NAMES THE STEP THAT REFUSED IT, so a NO-SHADER
+    # that did not happen is diagnosable from the line.
+    checks += 1
+    if "materialCompileControl=pixel.not-available..vertex.not-available..from.twin-create-threw" \
+            not in chan_dead:
+        bad.append("a twin that could not be made does not name the step "
+                   "that refused it: %s" % chan_dead)
+    # THE ONE THAT MATTERS, AND IT IS THE WHOLE OF AMENDMENT A1: a live
+    # ENGINE reading must NOT let our zero mean NO-SHADER, and a live TWIN
+    # must, with the engine reading silent. The verdict function never sees
+    # the engine number, and this is the check that says so out loud.
+    checks += 1
+    if "materialCompile=UNPROVEN" not in block(
+            0, 1200, 0, 0, 3, True, True,
+            None, None, "twin-statistics-refused",
+            187, 42, CONTROL_MATERIALS[0], 1, len(CONTROL_MATERIALS)):
+        bad.append("a zero instruction count beside a live ENGINE reading and "
+                   "no twin is not UNPROVEN, which is run 24's mistake with a "
+                   "new key on it")
+    checks += 1
+    if "materialCompile=NO-SHADER" not in block(
+            0, 1200, 0, 0, 3, True, True,
+            41, 12, CONTROL_TWIN_PATH,
+            None, None, "none-of-4-engine-materials-answered", 0, 4):
+        bad.append("a zero instruction count beside a twin that answered "
+                   "above zero is not NO-SHADER when the engine reading is "
+                   "silent, so the non-gating key is gating something")
     # AND THE THIRD STATE ON THE WIRE. It is the other half of this item's
     # acceptance, so the formatter for it must not ship unrun either: this is
     # the exact line a verifier will read beside the four frames.
@@ -1521,6 +1882,28 @@ def selftest():
         # assigned on a guess.
         (None, True, None),
         ("7", False, None),
+        # THE FOUR SPELLINGS RUN 24 COULD HAVE BEEN HANDED, and the reason
+        # this file lost a round trip. It set TC_NORMALMAP, the importer had
+        # already auto-detected a normal map, and the readback still derived
+        # LINEAR_COLOR, which only happens when the tail of the value is not
+        # a bare leaf. Every one of these is the same texture.
+        ("<TextureCompressionSettings.TC_NORMALMAP: 1>", False, SAMPLER_NORMAL),
+        ("TextureCompressionSettings.TC_NORMALMAP: 1", False, SAMPLER_NORMAL),
+        ("TC_NORMALMAP: 1", False, SAMPLER_NORMAL),
+        ("TC_Normalmap", False, SAMPLER_NORMAL),
+        # And the same shapes for the leaf that legitimately takes the
+        # engine's default branch, so the fix cannot be read as "normal maps
+        # only".
+        ("<TextureCompressionSettings.TC_DEFAULT: 0>", True, SAMPLER_COLOR),
+        ("TC_DEFAULT: 0", False, SAMPLER_LINEAR_COLOR),
+        ("TC_DISTANCE_FIELD_FONT", True, SAMPLER_DISTANCE_FIELD_FONT),
+        # A LEAF THAT IS NOT A COMPRESSION SETTING AT ALL DERIVES NOTHING.
+        # This is the branch run 24 fell into: the catch-all used to answer a
+        # plausible colour type for any string whatsoever, so a reading this
+        # file could not parse and a texture of the wrong type printed the
+        # same value.
+        ("TC_NOT_A_REAL_LEAF", False, None),
+        ("SomeOtherEnum.EV_WHATEVER", True, None),
     ]
     for compression, srgb, want in sampler_cases:
         checks += 1
@@ -1528,6 +1911,117 @@ def selftest():
         if got != want:
             bad.append("derived_sampler_type(%s, srgb=%s) gave %s and should "
                        "give %s" % (compression, srgb, got, want))
+    # THE LEAF CUT OUT OF EACH SPELLING, NAMED, so a failure here says which
+    # half of the derivation broke rather than only that a type is wrong.
+    for spelling, want_leaf in (
+            ("<TextureCompressionSettings.TC_NORMALMAP: 1>", "NORMALMAP"),
+            ("TextureCompressionSettings.TC_NORMALMAP", "NORMALMAP"),
+            ("TC_NORMALMAP", "NORMALMAP"),
+            ("TC_DISTANCE_FIELD_FONT", "DISTANCEFIELDFONT"),
+            ("TC_VectorDisplacementmap", "VECTORDISPLACEMENTMAP"),
+            (None, None),
+            ("", None),
+            ("3", None),
+            # A VALUE WITH NO MEMBER IN IT CUTS TO THE TYPE NAME, and that is
+            # correct: this function cuts, it does not validate. The refusal
+            # is the known-leaves gate in derived_sampler_type, asserted
+            # directly below, because a leaf that is not a compression setting
+            # must never reach the engine's default branch.
+            ("<TextureCompressionSettings: 3>", "TEXTURECOMPRESSIONSETTINGS")):
+        checks += 1
+        got_leaf = compression_leaf(spelling)
+        if got_leaf != want_leaf:
+            bad.append("compression_leaf(%s) gave %s and should give %s"
+                       % (spelling, got_leaf, want_leaf))
+    # AND THE LIVE ENUM DECIDES, NOT THIS FILE. A leaf this file has never
+    # heard of is still the engine's default case when the engine says it is
+    # a compression setting, which is what the editor side passes in.
+    checks += 1
+    if derived_sampler_type("<TextureCompressionSettings: 3>", False) is not None \
+            or derived_sampler_type("<TextureCompressionSettings: 3>",
+                                    True) is not None:
+        bad.append("a value carrying no enum member is deriving a sampler "
+                   "type from its own type name")
+    checks += 1
+    if derived_sampler_type("TC_FUTURE_FORMAT", False) is not None or \
+            derived_sampler_type("TC_FUTURE_FORMAT", False,
+                                 set(["FUTUREFORMAT"])) != SAMPLER_LINEAR_COLOR:
+        bad.append("an unknown leaf is not refused by default, or a leaf the "
+                   "live enum vouches for is not taking the engine's default "
+                   "branch")
+    # THE READBACK KEY, WHICH DID NOT EXIST BEFORE RUN 25 AND IS THE HALF
+    # THAT WOULD HAVE NAMED RUN 24'S FAULT IN ONE RUN.
+    ok_compression = compression_field(
+        [("BaseColorMap", "DEFAULT", "enum-identity", True),
+         ("NormalMap", "NORMALMAP", "enum-identity", False),
+         ("RoughnessMap", "DEFAULT", "enum-int", False)])
+    run24_compression = compression_field(
+        [("NormalMap", None, "unrecognised", False)])
+    checks += 1
+    if "materialCompressionReadback=BaseColorMap.DEFAULT.via.enum-identity.srgb.yes/NormalMap.NORMALMAP.via.enum-identity.srgb.no/RoughnessMap.DEFAULT.via.enum-int.srgb.no" not in ok_compression or \
+            "materialCompressionReadback=NormalMap.UNRECOGNISED.via.unrecognised.srgb.no" not in run24_compression or \
+            "materialCompressionReadback=nothing-measured" not in compression_field([]):
+        bad.append("the compression readback key does not carry the leaf, the "
+                   "route and the sRGB flag, or a run that read nothing does "
+                   "not say nothing-measured: %s / %s / %s"
+                   % (ok_compression, run24_compression, compression_field([])))
+    checks += 1
+    if [t for t in (ok_compression + " " + run24_compression
+                    + " " + compression_field([])).split()
+            if t.count("=") != 1]:
+        bad.append("a compression readback token is not one key=value: %s"
+                   % ok_compression)
+    # ---- AMENDMENT A2: TWO SITUATIONS, TWO WORDS -------------------------
+    # A value the engine answered that has no compression leaf in it, and a
+    # property that never answered at all, used to print the same label. They
+    # have different next actions: the first is a spelling this file cannot
+    # parse (and the report file carries its str and repr), the second is a
+    # texture that is not there.
+    for leaf, via, want in (("NORMALMAP", "enum-identity", "NORMALMAP"),
+                            ("DEFAULT", "string-parse", "DEFAULT"),
+                            (None, "unrecognised", "UNRECOGNISED"),
+                            (None, "srgb-refused", "UNRECOGNISED"),
+                            (None, "readback-refused", "none"),
+                            (None, "nothing-measured", "none")):
+        checks += 1
+        got = compression_word(leaf, via)
+        if got != want:
+            bad.append("compression_word(%s, %s) gave %s and should give %s"
+                       % (leaf, via, got, want))
+    checks += 1
+    silent_compression = compression_field(
+        [("NormalMap", None, "nothing-measured", False),
+         ("RoughnessMap", None, "readback-refused", False)])
+    if "NormalMap.none.via.nothing-measured" not in silent_compression or \
+            "RoughnessMap.none.via.readback-refused" not in silent_compression \
+            or "UNRECOGNISED" in silent_compression:
+        bad.append("a texture that never answered is being called "
+                   "UNRECOGNISED, which sends the next reader to the parser "
+                   "over a texture that was not there: %s"
+                   % silent_compression)
+    # AND THE SAME SPLIT ON THE DEFAULTS LINE. A texture that is present and
+    # derives a type the slot disagrees with is TYPE-MISMATCH; a texture that
+    # derived NO type at all is TYPE-UNKNOWN. Neither is bound.
+    unknown_vias = [
+        (TEXTURE_PARAMS[0], "engine", SAMPLER_COLOR, SAMPLER_COLOR),
+        (TEXTURE_PARAMS[1], "generated", None, SAMPLER_NORMAL),
+        (TEXTURE_PARAMS[2], "engine", SAMPLER_COLOR, SAMPLER_LINEAR_COLOR),
+    ]
+    u_bound, u_asked, u_detail = defaults_field(unknown_vias)
+    checks += 1
+    if (u_bound, u_asked) != (1, 3) or \
+            "NormalMap.generated.TYPE-UNKNOWN" not in u_detail or \
+            "RoughnessMap.engine.TYPE-MISMATCH" not in u_detail:
+        bad.append("a sampler whose texture derived nothing and a sampler "
+                   "whose texture derived the wrong type are still one label, "
+                   "or one of them counted as bound: %d/%d %s"
+                   % (u_bound, u_asked, u_detail))
+    # AND A DERIVED TYPE OF NONE NEVER COUNTS AS A MATCH, whatever was asked
+    # for, because a type nobody derived is not a type that agreed.
+    checks += 1
+    if defaults_field([(TEXTURE_PARAMS[0], "generated", None, None)])[0] != 0:
+        bad.append("two unknowns are being read as an agreement, so a "
+                   "sampler nothing could be derived for counts as bound")
     # AND THE ONE THAT MATTERS: the engine colour default in the roughness
     # slot is a MISMATCH, which is the second compile error nothing named.
     checks += 1
@@ -1652,34 +2146,66 @@ def selftest():
     # Each row is (errors, LOG LINES EXAMINED, pixel instructions, begin
     # marker seen, end marker seen, the word). ACCEPTING CASE FIRST: a
     # located slice that was read, is clean, and has a shader behind it.
+    # Each row is (errors, lines examined, pixel instructions, begin, end,
+    # CONTROL pixel instructions, the word). The control column was added
+    # after run 24 and it is the only thing that separates a material with no
+    # shader from an instrument that cannot say.
     compile_cases = [
-        (0, 187, 42, True, True, COMPILE_OK),
+        (0, 187, 42, True, True, None, COMPILE_OK),
         # A ZERO WITH NO DENOMINATOR IS NOT A CLEAN COMPILE. An empty slice
         # makes compile_scan return (0, 0, []), which read OK until today
         # and printed materialCompileErrors=0/0 beside the word.
-        (0, 0, 42, True, True, COMPILE_UNPROVEN),
+        (0, 0, 42, True, True, None, COMPILE_UNPROVEN),
         # AND NEITHER IS A PASS OVER A SLICE NOBODY LOCATED: log_slice falls
         # back to the whole log when the begin marker is missing.
-        (0, 40, 42, False, True, COMPILE_UNPROVEN),
-        (0, 40, 42, True, False, COMPILE_UNPROVEN),
+        (0, 40, 42, False, True, None, COMPILE_UNPROVEN),
+        (0, 40, 42, True, False, None, COMPILE_UNPROVEN),
         # ERRORS STAYS REACHABLE WITHOUT THE MARKERS, because a log that
         # failed to slice can still carry a real diagnostic and that is
         # exactly the run you want to hear about.
-        (3, 40, 42, False, False, COMPILE_ERRORS),
-        (0, 1200, 0, True, True, COMPILE_UNPROVEN),     # clean log, no shader
-        (0, 1200, None, True, True, COMPILE_UNPROVEN),  # statistics refused
-        (None, 0, 187, True, True, COMPILE_UNPROVEN),   # no log read
-        (None, 0, None, False, False, COMPILE_UNPROVEN),  # run 23, exactly
-        (3, 1200, 187, True, True, COMPILE_ERRORS),
-        (1, 1200, None, True, True, COMPILE_ERRORS),
+        (3, 40, 42, False, False, None, COMPILE_ERRORS),
+        # RUN 24 EXACTLY, AND IT IS TWO DIFFERENT WORDS DEPENDING ON ONE
+        # NUMBER NOBODY MEASURED. A clean log and pixel.0 with no control is
+        # UNPROVEN, because an instrument that has only ever printed zero has
+        # not been shown to print anything else. The same zero beside a
+        # control of 187 is NO-SHADER: the channel answers, and it answered
+        # that this material has no compiled shader.
+        (0, 1200, 0, True, True, None, COMPILE_UNPROVEN),
+        (0, 1200, 0, True, True, 0, COMPILE_UNPROVEN),
+        (0, 1200, 0, True, True, 187, COMPILE_NO_SHADER),
+        (0, 0, 0, False, False, 187, COMPILE_NO_SHADER),
+        # AND A DIAGNOSTIC STILL OUTRANKS IT, because a named error is worth
+        # more than a count: it says WHY.
+        (2, 1200, 0, True, True, 187, COMPILE_ERRORS),
+        # A shader that exists is never NO-SHADER whatever the control says.
+        (0, 1200, 187, True, True, 187, COMPILE_OK),
+        (0, 1200, 187, True, True, 0, COMPILE_OK),
+        # THE STATISTICS REFUSING TO ANSWER IS NOT A ZERO and is never
+        # NO-SHADER, control or no control.
+        (0, 1200, None, True, True, None, COMPILE_UNPROVEN),
+        (0, 1200, None, True, True, 187, COMPILE_UNPROVEN),
+        (None, 0, 187, True, True, None, COMPILE_UNPROVEN),   # no log read
+        (None, 0, None, False, False, None, COMPILE_UNPROVEN),  # run 23
+        (3, 1200, 187, True, True, None, COMPILE_ERRORS),
+        (1, 1200, None, True, True, None, COMPILE_ERRORS),
     ]
-    for errs3, exam3, instr, mark_b, mark_e, want in compile_cases:
+    for errs3, exam3, instr, mark_b, mark_e, ctl3, want in compile_cases:
         checks += 1
-        got = compile_verdict(errs3, exam3, instr, mark_b, mark_e)
+        got = compile_verdict(errs3, exam3, instr, mark_b, mark_e, ctl3)
         if got != want:
             bad.append("compile_verdict(errors=%s examined=%s instructions=%s "
-                       "markers=begin.%s/end.%s) gave %s and should give %s"
-                       % (errs3, exam3, instr, mark_b, mark_e, got, want))
+                       "markers=begin.%s/end.%s control=%s) gave %s and "
+                       "should give %s"
+                       % (errs3, exam3, instr, mark_b, mark_e, ctl3, got, want))
+    # AND THE WORD REACHES THE STATUS: a proven-absent shader is NOT-COMPILED
+    # and never COMPILE-UNPROVEN, which is the whole point of the fourth word.
+    checks += 1
+    if material_status(True, 3, 3, 14, 14, 0, 3, 3,
+                       COMPILE_NO_SHADER) != STATUS_NOT_COMPILED or \
+            material_return(STATUS_NOT_COMPILED) != 2:
+        bad.append("a material the editor answered zero instructions for, "
+                   "through a channel with an accepting case, is not reported "
+                   "as NOT-COMPILED with a return of 2")
     # THE COMMITTED DIAGNOSTICS FILE, INCLUDING ITS CAP BITING.
     checks += 1
     text = compile_log_text(ASSET_PATH, 3, 3, matched, keep=2)
@@ -1783,9 +2309,26 @@ def _write_input_property(src, dst):
     return _reads_back(dst, src) is True
 
 
-def _first_that_loads(unreal, paths):
+def _first_that_loads(unreal, paths, report=None):
+    """The first candidate path that is IN THE ASSET REGISTRY and loads.
+
+    THE REGISTRY CHECK IS NOT AN OPTIMISATION. EditorAssetLibrary.load_asset
+    on a path that does not exist logs LogEditorAssetSubsystem: Error, and two
+    of those are the entire content of the "Failure - 2 error(s)" summary that
+    has been materialEditorCmdExit=1 since run 20. does_asset_exist asks the
+    registry and says nothing when the answer is no, so a candidate list can
+    be probed without spending the only whole-process health signal this step
+    has. Every candidate looked at is reported, so a zero says where it looked.
+    """
+    if not paths:
+        return None, "no-engine-candidate-by-decision"
     for p in paths:
         try:
+            if not unreal.EditorAssetLibrary.does_asset_exist(p):
+                if report is not None:
+                    report.append("# candidate %s is not in this engine's "
+                                  "asset registry, so it was never loaded" % p)
+                continue
             a = unreal.EditorAssetLibrary.load_asset(p)
             if a is not None:
                 return a, p
@@ -1794,40 +2337,141 @@ def _first_that_loads(unreal, paths):
     return None, "none-of-%d-candidates" % len(paths)
 
 
-def _texture_type(unreal, tex):
-    """The sampler type a loaded texture derives, read off the texture.
+def _live_compression_leaves(unreal):
+    """Every compression leaf THIS ENGINE has, compact leaf name to enum
+    member, read off the live enum rather than out of this file's memory.
 
-    Reads the two properties the engine's own rule reads and hands them to
-    derived_sampler_type, which is the half of this that --selftest runs.
-    A texture that will not answer for either property derives nothing, and
-    nothing never matches an asked type, so an unreadable texture is refused
-    rather than assigned on the strength of its path.
+    An empty dict means the enum could not be enumerated at all, and the
+    caller falls back to the parse and to KNOWN_COMPRESSION_LEAVES.
+    """
+    out = {}
+    try:
+        enum = unreal.TextureCompressionSettings
+    except Exception:
+        return out
+    for attr in sorted(dir(enum)):
+        if not attr.startswith("TC_"):
+            continue
+        leaf = compression_leaf(attr)
+        if leaf is None:
+            continue
+        try:
+            out[leaf] = getattr(enum, attr)
+        except Exception:
+            continue
+    return out
+
+
+def _compression_reading(unreal, tex):
+    """What a texture answers for its compression settings, and how it was
+    read. Returns (leaf, via, str spelling, repr spelling).
+
+    THIS IS THE FIX FOR RUN 24 AND THE ORDER IS THE FIX. The old code read
+    this property and IMMEDIATELY split its string on ".", which is a guess
+    about how this engine version spells an enum, and the guess was wrong: a
+    texture the importer had itself auto-detected as a normal map, and that
+    this script then set TC_NORMALMAP on, came back deriving LINEAR_COLOR.
+    So the value is compared against the LIVE enum members first, by identity
+    and then by integer value, and only after both of those fail is any string
+    parsed. Identity cannot be wrong about spelling because it never reads the
+    spelling. Both spellings go into the committed evidence either way, so the
+    next reader knows what this engine actually answers instead of inferring
+    it from a derived type.
     """
     if tex is None:
-        return None
+        return None, "nothing-measured", "none", "none"
     try:
-        compression = tex.get_editor_property("compression_settings")
+        raw = tex.get_editor_property("compression_settings")
     except Exception:
-        return None
+        return None, "readback-refused", "none", "none"
+    try:
+        as_str = str(raw)
+    except Exception:
+        as_str = "unprintable"
+    try:
+        as_repr = repr(raw)
+    except Exception:
+        as_repr = "unprintable"
+    members = _live_compression_leaves(unreal)
+    for leaf in sorted(members):
+        try:
+            if members[leaf] == raw:
+                return leaf, "enum-identity", as_str, as_repr
+        except Exception:
+            continue
+    try:
+        as_int = int(raw)
+    except Exception:
+        as_int = None
+    if as_int is not None:
+        for leaf in sorted(members):
+            try:
+                if int(members[leaf]) == as_int:
+                    return leaf, "enum-int", as_str, as_repr
+            except Exception:
+                continue
+    parsed = compression_leaf(raw)
+    if parsed is not None and (not members or parsed in members):
+        return parsed, "string-parse", as_str, as_repr
+    return None, "unrecognised", as_str, as_repr
+
+
+def _texture_reading(unreal, tex, report=None, label=""):
+    """Everything this script knows about one texture's type, in one call.
+
+    Returns (derived sampler type, leaf, via, srgb). The type comes from
+    derived_sampler_type, which is the half of this --selftest runs, fed the
+    leaf that the LIVE enum resolved and the live enum's own leaf set, so a
+    compression setting this file has never heard of is still the engine's
+    default case rather than a refusal. A texture that will not answer derives
+    nothing, and nothing never matches an asked type, so it is refused rather
+    than assigned on the strength of its path.
+    """
+    if tex is None:
+        return None, None, "nothing-measured", False
+    leaf, via, as_str, as_repr = _compression_reading(unreal, tex)
     try:
         srgb = bool(tex.get_editor_property("srgb"))
     except Exception:
-        return None
-    return derived_sampler_type(compression, srgb)
+        if report is not None:
+            report.append("# %s would not answer for srgb" % (label or "texture"))
+        return None, leaf, "srgb-refused", False
+    if report is not None:
+        report.append("# compression_settings readback for %s: leaf=%s via=%s "
+                      "srgb=%s str=%s repr=%s"
+                      % (label or "texture", leaf, via, srgb, as_str, as_repr))
+    known = _live_compression_leaves(unreal)
+    return (derived_sampler_type(leaf, srgb,
+                                 set(known) if known else None),
+            leaf, via, srgb)
 
 
 def _sampler_enum(unreal, name):
-    """This file's sampler-type spelling, as the editor's enum value."""
+    """This file's sampler-type spelling, as the editor's enum value.
+
+    Both spellings are tried in both directions: DISTANCEFIELDFONT is
+    SAMPLERTYPE_DISTANCE_FIELD_FONT in the Python enum, and a name this
+    function cannot resolve leaves the expression on its default type, which
+    is a compile error waiting for the first texture that needs it.
+    """
     st = unreal.MaterialSamplerType
+    compact = name.replace("_", "")
     for attr in ("SAMPLERTYPE_" + name,
-                 "SAMPLERTYPE_" + name.replace("_", "")):
+                 "SAMPLERTYPE_" + compact,
+                 "SAMPLERTYPE_" + name.upper(),
+                 "SAMPLERTYPE_" + compact.upper()):
         got = getattr(st, attr, None)
         if got is not None:
             return got
+    for attr in sorted(dir(st)):
+        if not attr.startswith("SAMPLERTYPE_"):
+            continue
+        if attr[len("SAMPLERTYPE_"):].replace("_", "").upper() == compact.upper():
+            return getattr(st, attr, None)
     return None
 
 
-def _generate_default_texture(unreal, spec, notes):
+def _generate_default_texture(unreal, spec, notes, report=None):
     """Make one default texture as an asset THIS SCRIPT OWNS.
 
     The engine cannot be asked for a texture's texels from Python, so the
@@ -1838,9 +2482,17 @@ def _generate_default_texture(unreal, spec, notes):
     kept its own settings must not be reported as a default of the type the
     sampler asked for, which is the whole fault this fallback exists to end.
 
-    Returns (texture, path, derived type). The texture is None when any step
-    refused, and every refusal appends a named note rather than being caught
-    and forgotten.
+    Returns (texture, path, derived type, reading), where reading is the
+    (leaf, via, srgb) the texture answered with. The texture is None when any
+    step refused, and every refusal appends a named note rather than being
+    caught and forgotten.
+
+    RUN 24 IMPORTED BOTH OF THESE AND STILL FAILED, and the readback below is
+    why that was diagnosable at all. The importer had ALREADY auto-detected
+    the normal map by itself, this script set TC_NORMALMAP on top of it, and
+    the type still came back LINEAR_COLOR. The texture was never the problem;
+    the reading was. The reading now goes out with the leaf and the route that
+    read it, so the two can never be confused again.
     """
     name, rgb, srgb, compression, want = spec
     path = PACKAGE + "/" + name
@@ -1862,7 +2514,7 @@ def _generate_default_texture(unreal, spec, notes):
             f.write(tga_bytes(GENERATED_SIZE, GENERATED_SIZE, rgb))
     except Exception:
         notes.append("%s-tga-write-refused" % name)
-        return None, "tga-write-refused", None
+        return None, "tga-write-refused", None, (None, "nothing-measured", srgb)
     try:
         task = unreal.AssetImportTask()
         task.set_editor_property("filename", src)
@@ -1874,7 +2526,7 @@ def _generate_default_texture(unreal, spec, notes):
         unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks([task])
     except Exception:
         notes.append("%s-import-refused" % name)
-        return None, "import-refused", None
+        return None, "import-refused", None, (None, "nothing-measured", srgb)
     tex = None
     try:
         tex = unreal.EditorAssetLibrary.load_asset(path)
@@ -1882,7 +2534,7 @@ def _generate_default_texture(unreal, spec, notes):
         tex = None
     if tex is None:
         notes.append("%s-imported-nothing" % name)
-        return None, "imported-nothing", None
+        return None, "imported-nothing", None, (None, "nothing-measured", srgb)
     # THE SETTINGS ARE WHAT MAKES THIS A DEFAULT AND NOT JUST A PICTURE. The
     # sRGB flag goes first: some compression settings drive it, and the last
     # write is the one the readback below has to agree with.
@@ -1908,38 +2560,46 @@ def _generate_default_texture(unreal, spec, notes):
         unreal.EditorAssetLibrary.save_asset(path)
     except Exception:
         notes.append("%s-save-refused" % name)
-    got = _texture_type(unreal, tex)
+    got, leaf, via, read_srgb = _texture_reading(unreal, tex, report, name)
     if got != want:
-        notes.append("%s-derives-%s-not-%s" % (name, got, want))
-    return tex, path, got
+        notes.append("%s-derives-%s-not-%s-leaf-%s-via-%s"
+                     % (name, got, want, leaf, via))
+    return tex, path, got, (leaf, via, read_srgb)
 
 
-def _resolve_default(unreal, index, candidates, notes, made_counter):
+def _resolve_default(unreal, index, candidates, notes, made_counter,
+                     report=None):
     """One sampler's default texture, engine path first and generated second.
 
-    The candidate list is tried EXACTLY as it was before, so nothing this
-    change does can lose a default a previous run had. What is new is that a
-    candidate which loads is then CHECKED: the type it derives has to be the
-    type the sampler is declared with, and an engine texture of the wrong
-    type is refused and falls through, because assigning it is a compile
-    error and a compile error is what this whole batch is about.
+    A candidate which loads is CHECKED: the type it derives has to be the type
+    the sampler is declared with, and an engine texture of the wrong type is
+    refused and falls through, because assigning it is a compile error and a
+    compile error is what this whole batch is about.
 
-    Returns (texture, source, path, derived type, asked type).
+    AN EMPTY CANDIDATE LIST IS A DECISION AND SAYS SO. Two of the three lists
+    are empty as of 2026-09-06 and the reason is beside each one: the normal
+    candidates do not exist in UE 5.8 and cost an error line each, and the
+    roughness ones resolve to an sRGB texture that this sampler can never
+    accept. The generated default owns those two slots.
+
+    Returns (texture, source, path, derived type, asked type, reading), where
+    reading is the (leaf, via, srgb) the chosen texture answered with.
     """
     asked = MAP_SAMPLER_TYPES[index]
-    tex, path = _first_that_loads(unreal, candidates)
+    tex, path = _first_that_loads(unreal, candidates, report)
     if tex is not None:
-        got = _texture_type(unreal, tex)
+        got, leaf, via, srgb = _texture_reading(
+            unreal, tex, report, TEXTURE_PARAMS[index])
         if got == asked:
-            return tex, "engine", path, got, asked
+            return tex, "engine", path, got, asked, (leaf, via, srgb)
         notes.append("%s-engine-default-derives-%s-not-%s"
                      % (TEXTURE_PARAMS[index], got, asked))
     made_counter.append(index)
-    tex, gen_path, got = _generate_default_texture(
-        unreal, GENERATED_DEFAULTS[index], notes)
+    tex, gen_path, got, reading = _generate_default_texture(
+        unreal, GENERATED_DEFAULTS[index], notes, report)
     if tex is None:
-        return None, "none", gen_path, None, asked
-    return tex, "generated", gen_path, got, asked
+        return None, "none", gen_path, None, asked, reading
+    return tex, "generated", gen_path, got, asked, reading
 
 
 def _read_editor_log(unreal, report):
@@ -1983,18 +2643,21 @@ def _read_editor_log(unreal, report):
     return lines
 
 
-def _material_statistics(unreal, mel, mat, report):
-    """The editor's own shader statistics for this material.
+def _material_statistics(unreal, mel, mat, report, label="this material"):
+    """The editor's own shader statistics for one material.
 
     Returns (pixel instructions, vertex instructions, samplers), each None
     when the API would not answer. None is the honest value: a zero would
     read as a material with no shader, which is a completely different fact
-    and is the one this run exists to detect.
+    and is the one this run exists to detect. A zero it DID answer is
+    returned as a zero and judged by compile_verdict against the control.
 
     Whatever the statistics object turns out to be is written into report by
     NAME, capped and announced, so that a property spelling this file guessed
     wrong is diagnosable from the committed evidence instead of costing
-    another round trip.
+    another round trip. Run 24 is the reason: the guess was right, the log
+    proved it was right, and that is now this project's positive evidence
+    that the channel exists at all.
     """
     getter = getattr(mel, "get_statistics", None)
     if getter is None:
@@ -2005,11 +2668,11 @@ def _material_statistics(unreal, mel, mat, report):
     try:
         stats = getter(mat)
     except Exception as e:
-        report.append("# get_statistics raised: %s" % str(e)[:200])
+        report.append("# get_statistics raised for %s: %s" % (label, str(e)[:200]))
         return None, None, None
     fields = [n for n in dir(stats) if not n.startswith("_")]
-    report.append("# get_statistics answered a %s exposing %d name(s): %s"
-                  % (type(stats).__name__, len(fields),
+    report.append("# get_statistics for %s answered a %s exposing %d name(s): %s"
+                  % (label, type(stats).__name__, len(fields),
                      "/".join(fields[:24])
                      + ("(+%d more not shown)" % (len(fields) - 24)
                         if len(fields) > 24 else "")))
@@ -2024,10 +2687,227 @@ def _material_statistics(unreal, mel, mat, report):
             if isinstance(got, int):
                 return got
         return None
-    return (read("num_pixel_shader_instructions", "num_pixel_instructions"),
-            read("num_vertex_shader_instructions", "num_vertex_instructions"),
-            read("num_samplers", "num_texture_samples",
-                 "num_pixel_texture_samples"))
+    got = (read("num_pixel_shader_instructions", "num_pixel_instructions"),
+           read("num_vertex_shader_instructions", "num_vertex_instructions"),
+           read("num_samplers", "num_texture_samples",
+                "num_pixel_texture_samples"))
+    report.append("# statistics for %s: pixel=%s vertex=%s samplers=%s"
+                  % (label, got[0], got[1], got[2]))
+    return got
+
+
+def _statistics_twin(unreal, tools, mel, report):
+    """THE ACCEPTING CASE FOR THE STATISTICS CHANNEL, and it is a TWIN rather
+    than a stranger.
+
+    A material THIS SCRIPT creates, wires trivially, recompiles by the same
+    call and reads through the same call, in the same process, outside our own
+    compile markers so its diagnostics can never be counted as ours. NEVER
+    SAVED, so no cook and no .uasset can carry it, and deleted after the
+    reading either way.
+
+    WHY A TWIN AND NOT AN ENGINE MATERIAL. An engine material carries whatever
+    shader map the derived-data cache holds for it, so a number from one
+    proves get_statistics returns a number WHEN A MAP IS ALREADY PRESENT. Our
+    material is recompiled a fraction of a second before the read with no
+    engine tick in between; if this commandlet compiles material shaders
+    asynchronously, our map is not there at read time however good the graph
+    is, and pixel.0 beside a cached 187 would print NO-SHADER over a material
+    the cook then compiles perfectly well. The twin is the only control that
+    asks the same question our zero is an answer to.
+
+    EVERY STEP IS GUARDED AND FAILS CLOSED. A step that refuses names itself
+    in the returned from. value and the control is None, which makes the
+    verdict UNPROVEN: a twin that could not be made is never evidence that
+    ours has no shader.
+
+    Returns (pixel, vertex, the twin's path or the named step that refused).
+    """
+    path = CONTROL_TWIN_PATH
+
+    def finish(px_, vx_, from_):
+        """Delete the twin, whatever happened, and report what the delete did.
+
+        The delete is only ASKED FOR when the registry says the asset is
+        there, for the reason in _first_that_loads: a miss writes an error
+        into the editor's own Warning/Error summary and that summary is the
+        process exit code.
+        """
+        try:
+            there = bool(unreal.EditorAssetLibrary.does_asset_exist(path))
+        except Exception as e:
+            report.append("# the twin's existence check raised before the "
+                          "delete: %s" % str(e)[:160])
+            there = False
+        deleted = "not-asked"
+        if there:
+            try:
+                deleted = str(bool(unreal.EditorAssetLibrary.delete_asset(path)))
+            except Exception as e:
+                report.append("# deleting the twin raised: %s" % str(e)[:160])
+                deleted = "raised"
+        try:
+            still = str(bool(unreal.EditorAssetLibrary.does_asset_exist(path)))
+        except Exception:
+            still = "unknown"
+        report.append("# twin %s: never saved, in-registry-before-delete=%s, "
+                      "delete_asset returned %s, does_asset_exist afterwards "
+                      "is %s. It is never saved, so nothing on disk carries "
+                      "it whatever the delete did."
+                      % (path, there, deleted, still))
+        return px_, vx_, from_
+
+    # A LEFTOVER FIRST, the same pattern the material itself uses. Nothing
+    # should ever have left one behind, since the twin is never saved, so a
+    # leftover is itself worth a line in the report.
+    try:
+        if unreal.EditorAssetLibrary.does_asset_exist(path):
+            report.append("# a twin was already in the registry before this "
+                          "run made one, which should be impossible for an "
+                          "asset that is never saved: deleting it first")
+            unreal.EditorAssetLibrary.delete_asset(path)
+    except Exception as e:
+        report.append("# the leftover-twin check raised: %s" % str(e)[:160])
+
+    try:
+        twin = tools.create_asset(CONTROL_TWIN, PACKAGE, unreal.Material,
+                                  unreal.MaterialFactoryNew())
+    except Exception as e:
+        report.append("# creating the twin raised: %s" % str(e)[:160])
+        return finish(None, None, "twin-create-threw")
+    if twin is None:
+        report.append("# creating the twin returned nothing")
+        return finish(None, None, "twin-create-returned-nothing")
+
+    node = None
+    for name in TWIN_EXPRESSION_CLASSES:
+        cls = getattr(unreal, name, None)
+        if cls is None:
+            continue
+        try:
+            node = mel.create_material_expression(twin, cls, -300, 0)
+        except Exception as e:
+            report.append("# the twin's %s expression raised: %s"
+                          % (name, str(e)[:120]))
+            node = None
+            continue
+        if node is not None:
+            report.append("# the twin's one wire is a %s" % name)
+            break
+    if node is None:
+        report.append("# none of the %d expression classes made a node for "
+                      "the twin" % len(TWIN_EXPRESSION_CLASSES))
+        return finish(None, None, "twin-expression-refused")
+
+    try:
+        wired = bool(mel.connect_material_property(
+            node, "", unreal.MaterialProperty.MP_BASE_COLOR))
+    except Exception as e:
+        report.append("# wiring the twin raised: %s" % str(e)[:160])
+        wired = False
+    if not wired:
+        report.append("# the twin's one connection was refused, so it is not "
+                      "a material anything could be concluded from")
+        return finish(None, None, "twin-connect-refused")
+
+    try:
+        mel.recompile_material(twin)
+    except Exception as e:
+        report.append("# recompiling the twin raised: %s" % str(e)[:160])
+        return finish(None, None, "twin-recompile-threw")
+
+    px, vx, _samplers = _material_statistics(unreal, mel, twin, report,
+                                             "twin " + path)
+    if px is None:
+        return finish(None, None, "twin-statistics-refused")
+    return finish(px, vx, path)
+
+
+def _statistics_channel(unreal, mel, report):
+    """THE NON-GATING READING: the same statistics call on ENGINE materials,
+    which says whether the call returns a number for anything in this editor.
+
+    It is NOT the accepting case for our own zero, because these materials
+    answer out of the derived-data cache and were not compiled in this
+    process. That is what the twin above is for. This is still worth knowing:
+    with the twin at zero, a number here says the call works and the compile
+    is what did not happen, and a zero here says the channel is dead in this
+    process. Two different first suspects.
+
+    ALL the candidates are asked and the FIRST NON-ZERO is kept. The old code
+    returned on the first that answered AT ALL, including a zero, so one
+    candidate answering zero ended the search and a later one that would have
+    answered 187 was never asked: a dead-channel reading could print over a
+    live channel, with no count of how many were tried beside it.
+
+    Candidates are registry-checked before they are loaded, for the reason in
+    _first_that_loads: a LoadAsset miss writes an error into the editor's own
+    Warning/Error summary and that summary is the process exit code.
+
+    Returns (pixel, vertex, path or a named absence, answered, asked), where
+    ANSWERED is how many candidates returned a number, including a zero, and
+    ASKED is how many candidates the list has.
+    """
+    asked = 0
+    answered = 0
+    first_nonzero = None
+    first_answer = None
+    for path in CONTROL_MATERIALS:
+        asked += 1
+        try:
+            if not unreal.EditorAssetLibrary.does_asset_exist(path):
+                report.append("# statistics channel candidate %s is not in "
+                              "this engine's asset registry" % path)
+                continue
+            mat = unreal.EditorAssetLibrary.load_asset(path)
+        except Exception as e:
+            report.append("# statistics channel candidate %s would not load: "
+                          "%s" % (path, str(e)[:160]))
+            continue
+        if mat is None:
+            report.append("# statistics channel candidate %s loaded as "
+                          "nothing" % path)
+            continue
+        px, vx, _samplers = _material_statistics(
+            unreal, mel, mat, report, "engine material " + path)
+        if px is None:
+            continue
+        answered += 1
+        if first_answer is None:
+            first_answer = (px, vx, path)
+        if px > 0 and first_nonzero is None:
+            first_nonzero = (px, vx, path)
+    keep = first_nonzero or first_answer
+    report.append("# statistics channel: %d of %d engine material(s) returned "
+                  "a number, and the reading kept is %s"
+                  % (answered, asked,
+                     "none" if keep is None else "%s pixel=%s"
+                     % (keep[2], keep[0])))
+    if keep is None:
+        return (None, None, "none-of-%d-engine-materials-answered" % asked,
+                answered, asked)
+    return keep[0], keep[1], keep[2], answered, asked
+
+
+def _shader_api_names(unreal, report):
+    """Report-only: every name in the unreal module with Shader in it, capped
+    and announced.
+
+    Run 24 read pixel.0 in a commandlet whose entire python step took 0.67
+    seconds, which is also what an unfinished asynchronous shader compile
+    looks like, and nothing in this repository knows whether a flush is
+    reachable from Python at all. This costs nothing and answers that by name
+    on the next run rather than in an argument.
+    """
+    try:
+        names = sorted(n for n in dir(unreal) if "shader" in n.lower())
+    except Exception:
+        report.append("# the unreal module would not enumerate its names")
+        return
+    report.append("# unreal module names containing shader: %d found: %s"
+                  % (len(names), "/".join(names[:20])
+                     + ("(+%d more not shown)" % (len(names) - 20)
+                        if len(names) > 20 else "")))
 
 
 def main():
@@ -2062,16 +2942,23 @@ def main():
     # supposed to make the material compile: run 23 gave the normal sampler
     # nothing at all and the roughness sampler an sRGB colour texture, and
     # either of those alone stops a material compiling.
+    # THE REPORT IS OPENED HERE AND NOT AT THE COMPILE. It is the committed
+    # evidence file, and what each texture answered for its compression
+    # settings is the reading run 24 needed and did not keep.
+    report = ["# LEDGER material step, %s" % ASSET_PATH]
     made_generated = []
     resolved = []
     for I, cands in enumerate((COLOUR_DEFAULTS, NORMAL_DEFAULTS,
                                ROUGHNESS_DEFAULTS)):
         resolved.append(_resolve_default(unreal, I, cands, w.notes,
-                                         made_generated))
+                                         made_generated, report))
     default_vias = [(TEXTURE_PARAMS[I], r[1], r[3], r[4])
                     for I, r in enumerate(resolved)]
     default_fields = [default_via(r[1], r[2], r[3], r[4]) for r in resolved]
     defaults_bound, defaults_asked, defaults_detail = defaults_field(default_vias)
+    compression_block = compression_field(
+        [(TEXTURE_PARAMS[I], r[5][0], r[5][1], r[5][2])
+         for I, r in enumerate(resolved)])
 
     # ---- the UV chain: TexCoord masked, scaled per axis, appended ----------
     # Two scalars rather than one, because a 42 metre carriageway 2.7 metres
@@ -2193,7 +3080,7 @@ def main():
             ((mp.MP_BASE_COLOR, "RGB", "basecolor", -300),
              (mp.MP_NORMAL, "RGB", "normal", 0),
              (mp.MP_ROUGHNESS, "R", "roughness", 300))):
-        tex, _source, _path, got, asked = resolved[I]
+        tex, _source, _path, got, asked, _reading = resolved[I]
         sampler(TEXTURE_PARAMS[I], y,
                 _sampler_enum(unreal, got or asked), tex, prop, out_pin, label)
 
@@ -2206,7 +3093,6 @@ def main():
     # asked for the material's shader statistics afterwards. Zero errors over
     # a non-zero count of lines examined, between both markers, AND a
     # non-zero instruction count is the only set that reads OK.
-    report = ["# LEDGER material step, %s" % ASSET_PATH]
     try:
         unreal.log(COMPILE_MARK_BEGIN)
     except Exception:
@@ -2220,7 +3106,16 @@ def main():
         saved = bool(unreal.EditorAssetLibrary.save_asset(ASSET_PATH))
     except Exception:
         w.notes.append("save-threw")
-    px, vx, samplers = _material_statistics(unreal, mel, mat, report)
+    px, vx, samplers = _material_statistics(unreal, mel, mat, report,
+                                            ASSET_PATH)
+    # THE ENGINE READING, WHICH GATES NOTHING and is here only because it is
+    # worth knowing whether this call returns a number for anything at all in
+    # this editor. It is taken inside the markers, where it has always been:
+    # nothing it does is a material compile, and moving it would change what
+    # the diagnostic slice covers on the same run that changes the control.
+    chan_px, chan_vx, chan_from, chan_answered, chan_asked = \
+        _statistics_channel(unreal, mel, report)
+    _shader_api_names(unreal, report)
     # THE PARAMETER NAMES, READ BACK OUT OF THE FINISHED MATERIAL. This is
     # the C++ contract in SurfaceBind.h, and until now nothing anywhere
     # checked that the material ended up carrying it. Reported and not gated:
@@ -2251,6 +3146,15 @@ def main():
         unreal.log(COMPILE_MARK_END)
     except Exception:
         w.notes.append("compile-end-marker-not-logged")
+    # THE TWIN, AND IT IS DELIBERATELY OUTSIDE THE MARKERS. Everything it logs
+    # lands after the END marker, so its own compile can never be counted as
+    # this material's: log_slice stops at the end marker. If the end marker is
+    # MISSING the slice runs to the end of the log and can pick the twin's
+    # lines up, which is the safe direction and only ever reads as ERRORS or
+    # UNPROVEN, never as a pass, because OK needs both markers.
+    # Our material is already SAVED at this point, so the twin cannot be in
+    # that save; it is never saved itself and it is deleted below.
+    ctl_px, ctl_vx, ctl_from = _statistics_twin(unreal, tools, mel, report)
     lines = _read_editor_log(unreal, report)
     sliced, saw_begin, saw_end = log_slice(lines) if lines is not None \
         else ([], False, False)
@@ -2259,9 +3163,13 @@ def main():
     # and to the status below. It used to be computed in both places from
     # the same inputs, which is one number twice and drifts on the first
     # edit that touches one call and not the other.
-    compile_word = compile_verdict(errors, examined, px, saw_begin, saw_end)
+    compile_word = compile_verdict(errors, examined, px, saw_begin, saw_end,
+                                   ctl_px)
     compile_block = compile_fields(compile_word, errors, examined, px, vx,
-                                   samplers, saw_begin, saw_end)
+                                   samplers, saw_begin, saw_end,
+                                   ctl_px, ctl_vx, ctl_from,
+                                   chan_px, chan_vx, chan_from,
+                                   chan_answered, chan_asked)
     # THE DIAGNOSTICS FILE, WHICH IS THE CHANNEL THIS PROJECT TRUSTS. A log
     # tail in a step summary has failed here; a committed file has not.
     _write_beside("ue-material-log.txt",
@@ -2287,7 +3195,8 @@ def main():
                          generated_field([r[1] for r in resolved],
                                          len(made_generated)),
                          saved, w.notes,
-                         uv_via, uv_tried, uv_readback, by_prop_field))
+                         uv_via, uv_tried, uv_readback, by_prop_field,
+                         compression_block))
     return material_return(status)
 
 

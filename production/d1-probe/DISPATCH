@@ -451,3 +451,104 @@ and c.
 
 NOTHING IS PUSHED TO THIS BRANCH UNTIL A LANDED RUN CONTAINS THIS COMMIT.
 Runs 18 and 22 were both lost to exactly that, four days apart.
+
+run 25 - 2026-09-06 - THE INSTRUMENT MADE THE FAULT, AND RUN 24 IS HOW WE KNOW.
+
+Run 24 changed nothing on the street: east_parade_bay3 reads R/B 0.933 against
+run 23's 0.934, the colour quad chroma max 6 of 255. But it kept the editor log
+for the first time in the project's life, and the log settled three things.
+
+THE TEXTURE WAS NEVER WRONG. The log carries the importer's own words,
+LogInterchangePipeline: Display: Auto-detected normal map, so TC_NORMALMAP was
+applied twice, by the importer and then by the script, and never contradicted.
+What was wrong is the READBACK: derived_sampler_type cut the enum with
+str(compression).split(".")[-1], which assumes the printed form ends at the
+leaf. A spelling like <TextureCompressionSettings.TC_NORMALMAP: 1> splits on
+the DOT, so the final segment is TC_NORMALMAP: 1>, which matches no named
+branch and the catch-all answered LINEAR_COLOR. The resident first wrote that
+tail without the TC_ prefix; the split keeps it.
+
+ALL THREE TEXTURES TOOK THAT CATCH-ALL. Not one named branch has ever been
+observed to fire against a real engine string; colour and roughness were right
+for the wrong reason and hid the normal.
+
+AND THE MISREAD BECAME A REAL COMPILE ERROR, because main() declares each
+sampler as _sampler_enum(unreal, got or asked). So the normal sampler was
+declared LINEAR_COLOR while holding a normal-map texture. The instrument did
+not fail to see the fault. It caused it.
+
+THE FIX. The leaf is now cut out of ANY spelling, and the catch-all is GATED on
+the leaf being a real compression setting, so an unparseable spelling derives
+None and is refused rather than guessed. The editor resolves the value against
+the live enum BY IDENTITY first, then by integer value, and only then by string
+parse, and prints which route answered in materialCompressionReadback, with
+both str() and repr() of the raw value in the log. A via.string-parse on this
+run means identity failed and is itself the finding.
+
+THE ENGINE CANDIDATE PROBES FOR NORMAL AND ROUGHNESS ARE GONE, for measured
+reasons written beside the now-empty lists. The two normal paths do not exist
+in 5.8 and said so on two runs; roughness's candidates DO resolve but derive
+COLOR against a slot that must be linear, so they could never be accepted. A
+candidate that can never be accepted is a note, not a default. Colour keeps its
+probe because it succeeds. And load_asset is now gated on does_asset_exist,
+because load_asset on an absent path writes an Error into the summary that
+becomes the process exit code, while the registry can be asked silently.
+
+SO materialEditorCmdExit=1 IS EXPLAINED AND SHOULD NOW READ 0. The editor's own
+summary was "Failure - 2 error(s), 1 warning(s)" and both errors were our own
+candidate lookups. THAT PREDICTION IS THE CHECK ON THIS RULING: if the exit is
+still 1, those two errors were not the whole summary and the log tail says what
+else is in it.
+
+HOW TO READ THIS RUN, and the first rule is a correction to what the resident
+claimed after run 24.
+
+pixel.0 DOES NOT PROVE THE MATERIAL FAILED TO COMPILE, and the resident said it
+did. That channel has never printed a non-zero number for any material, so a
+zero from it cannot yet be told from a channel that does not work. The editor
+runs as a pythonscript commandlet with rhiname="Null", the whole Python step
+took 0.674 seconds, and samplers, pixel and vertex all read zero TOGETHER,
+which is equally the signature of no shader map being available at read time.
+Candidate D is proven by run 23's control quads. pixel.0 corroborates it.
+
+SO THE ACCEPTANCE IS A PAIR AND MUST BE READ AS ONE:
+
+  1. materialCompileControl=pixel.N with N above zero. The same statistics call
+     is now made against a material this script did not write, so the channel
+     gets an accepting case for the first time. WITHOUT THIS, the instruction
+     count is evidence in neither direction.
+  2. only then, materialCompileInstructions=pixel.N with N above zero.
+  3. the colour control quad shows visible red, green, blue and yellow cells,
+     against chroma max 6 of 255 today.
+  4. east_parade_bay3's wall face at (820,300) to (960,420) moves R/B above 1
+     and chroma well above 7, against R/B 0.933 and chroma max 7 over 16,800
+     pixels today, with brick_red.jpg at R/B 1.290 and chroma mean 31.9.
+  5. materialDefaultsBound=3/3, denominator three and not two.
+
+THE CONTROL IS ONLY NEEDED FOR A ZERO. A NON-ZERO instruction count stands on
+its own and the code treats it so: a shader that reports instructions exists.
+The resident first wrote that without the control the count is evidence in
+neither direction, which is wrong in the generous direction and was corrected
+by the director. What the control decides is what a ZERO means: with a
+non-zero control it is NO-SHADER, and with a zero or silent control it is
+UNPROVEN and THE FOUR FRAMES JUDGE, exactly as they did for run 23.
+
+AND THE CONTROL MUST BE A TWIN, not a stranger. Reading a cached engine
+material proves only that the call returns a number when a shader map is
+already present. Ours is read 0.67 seconds after its own recompile with no
+engine tick between, so if this commandlet compiles asynchronously, a zero
+from ours beside a healthy number from a cached engine material would print
+NO-SHADER over a graph the cook then compiles fine. The twin is a material
+this script makes, wires, recompiles and reads the same way in the same
+process. Ruling of 2026-09-06 on run 24, amendment A1.
+
+A new word exists for the case the control makes readable: materialCompile can
+now be NO-SHADER, which means an answered zero beside a working channel, and it
+maps to materialStatus=NOT-COMPILED. UNPROVEN keeps its old meaning of nobody
+could tell. Those are different facts with different next actions and they now
+have different words.
+
+STILL OPEN AND NOT THIS RUN'S JOB: materialConnections=14/14 sits beside
+materialUvHeadVia=both.out.empty..in.empty and materialUvHeadReadback=0/2..
+unreadable2. Two of those fourteen were made by a nameless pin pair and neither
+reads back. Queue 135.

@@ -10,6 +10,56 @@ status: ANSWERED 2026-09-06 by landed run 23 (de158c2c, "UE machine probe from
   recorded about BaseColorMap was about the wrong material. NOT YET FIXED: the
   fix is in flight and the acceptance above is unchanged and unmet.
 
+## RUN 24: THE FIX FAILED, AND THE INSTRUMENT WAS THE CAUSE
+
+Run 24 landed as `1ee090f8`. Nothing moved: `east_parade_bay3` reads R/B 0.933
+against run 23's 0.934, and the colour quad still reads chroma max 6 of 255.
+
+THE TEXTURE WAS NEVER WRONG. THE READING WAS, AND THE READING THEN MADE A REAL
+COMPILE ERROR. `derived_sampler_type` cut the compression enum with
+`str(compression).split(".")[-1]`, which assumes the printed form ENDS at the
+leaf. If UE 5.8 prints `<TextureCompressionSettings.TC_NORMALMAP: 1>`, the
+split is on the DOT, so the final segment is `TC_NORMALMAP: 1>`, which matches
+no named branch and the catch-all answered LINEAR_COLOR. (The resident first
+wrote that tail as `NORMALMAP: 1>`, dropping the TC_ prefix the split keeps.
+Corrected by the director; it changes nothing in the diagnosis and everything
+in whether the sentence describes the code.)
+
+The corroboration nobody had looked at: ALL THREE textures in run 24 took that
+catch-all. Colour derived COLOR, roughness LINEAR_COLOR, normal LINEAR_COLOR,
+and not one named branch of that function has ever been observed to fire
+against a real engine string. Two of the three were right for the wrong reason
+and hid the third.
+
+AND THE SECOND ORDER IS THE REAL DAMAGE. `main()` declares each sampler as
+`_sampler_enum(unreal, got or asked)`, where `got` is the DERIVED type. So the
+misreading did not merely mis-report: it declared the normal sampler
+LINEAR_COLOR while handing it a TC_Normalmap texture. The instrument did not
+fail to see the fault. It caused it.
+
+The importer's own words, from the committed log:
+`LogInterchangePipeline: Display: Auto-detected normal map`. TC_NORMALMAP was
+applied twice, by the importer and then by the script, and never contradicted.
+
+## A CORRECTION TO THIS FILE AND TO WHAT JAFAR WAS TOLD
+
+The resident wrote that `materialCompileInstructions=pixel.0..vertex.0` proves
+candidate D rather than inferring it. THAT IS OVERSTATED and the builder
+refused it.
+
+`pixel.0` has NO ACCEPTING CASE anywhere in this repository: that channel has
+never printed a non-zero number for any material, so a zero from it cannot yet
+be told from a channel that does not work. And there is a live alternative:
+the editor ran as a `-run=pythonscript` commandlet with `rhiname="Null"`, the
+whole Python step took 0.674 seconds, and `materialCompileSamplers`, `pixel`
+and `vertex` all read zero TOGETHER, which is the signature of "no shader map
+available at read time" and includes "the async compile had not finished".
+
+CANDIDATE D IS PROVEN BY RUN 23'S CONTROL QUADS: full readbacks beside a bound
+texture of chroma 255 rendering at max 6, and two quads differing only in
+tiling rendering an identical period. `pixel.0` CORROBORATES that. It does not
+carry it alone. The two were conflated and they are now separated.
+
 ## THE ANSWER, from the landed run, read before any gate
 
 Readbacks, all full, from `production/d1-probe/ue-vignette-verdict.txt`:
