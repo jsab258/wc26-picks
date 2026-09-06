@@ -1,0 +1,138 @@
+# UE material step evidence, sha 1e751f67ac69b9827f4605e8fb245472af8af75a
+# Section 1: what the script measured inside the editor.
+# LEDGER material step, /Game/Ledger/M_LedgerSurface
+# get_statistics answered a MaterialStatistics exposing 19 name(s): assign/cast/copy/export_text/get_editor_property/import_text/num_interpolator_scalars/num_pixel_shader_instructions/num_pixel_texture_samples/num_samplers/num_uv_scalars/num_vertex_shader_instructions/num_vertex_texture_samples/num_virtual_texture_samples/set_editor_properties/set_editor_property/static_struct/to_dict/to_tuple
+# texture parameter names in the finished material: 3 of 3 asked for, and the material answered 3 name(s): BaseColorMap/NormalMap/RoughnessMap
+# scalar parameter names in the finished material: 2 of 2 asked for, and the material answered 2 name(s): TilingU/TilingV
+# editor log directory ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Saved/Logs/ holds 1 .log file(s): LedgerProbe.log
+# read 1648 line(s) from ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Saved/Logs/LedgerProbe.log
+# LEDGER material compile diagnostics for /Game/Ledger/M_LedgerSurface: 0 matched line(s) of 8 log line(s) examined between the compile markers
+# no line in that slice says a material failed to compile
+
+# Section 2: the LAST 120 lines of the editor process stdout,
+# which is where a process exit code is explained. Cap announced.
+# material.log holds 161 line(s)
+(+41 earlier line(s) not shown)
+##PlatformValidate: TVOS INVALID 26.1.1
+##PlatformValidate: VisionOS INVALID <UNKNOWN>
+Unable to find required SDK version 'MainVersion' for platform LinuxArm64. Check your SDK.json files
+Unable to find required SDK version 'MainVersion' for platform VisionOS. Check your SDK.json files
+Trace written to file C:\Users\Jafar\AppData\Local\UnrealBuildTool\Trace.uba with size 321b
+LogAnalytics: Display: Provider StudioTelemetry.Provider.Log is disabled for this application
+LogAnalytics: Display: Provider StudioTelemetry.Provider.CSV is disabled for this application
+LogAnalytics: Display: Provider StudioTelemetry.Provider.Horde is disabled for this application
+LogAnalytics: Display: Provider StudioTelemetry.Provider.Log is disabled for this application
+LogAnalytics: Display: Provider StudioTelemetry.Provider.CSV is disabled for this application
+LogAnalytics: Display: Provider StudioTelemetry.Provider.Horde is disabled for this application
+LogAsyncCompilation: Display: MemorySharingInfo: UsedMemory=290MiB, MaxMemoryAvailable=34742MiB
+RenderDocPlugin: Display: RenderDoc plugin will not be loaded. Use '-AttachRenderDoc' on the cmd line or enable 'renderdoc.AutoAttach' in the plugin settings.
+LogStreaming: Display: AsyncLoading2 - Created: Async Loading Thread: false, Async Post Load: false, Multithreaded: false
+[2026.09.06-15.06.34:500][  0]LogHAL: Display: Platform has ~ 32 GB [34282192896 / 34359738368 / 32], which maps to Largest [LargestMinGB=32, LargerMinGB=12, DefaultMinGB=8, SmallerMinGB=6, SmallestMinGB=0)
+[2026.09.06-15.06.34:517][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
+[2026.09.06-15.06.34:518][  0]LogObj: Display: Attempting to load config data for Default__DownlinkBandwidthManagerConfig before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+[2026.09.06-15.06.34:851][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+[2026.09.06-15.06.37:167][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Null"
+[2026.09.06-15.06.37:168][  0]LogCsvProfiler: Display: Metadata set : rhiname="Null"
+[2026.09.06-15.06.37:168][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
+[2026.09.06-15.06.37:168][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
+[2026.09.06-15.06.37:168][  0]LogCsvProfiler: Display: Metadata set : gpu=""
+[2026.09.06-15.06.37:168][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
+[2026.09.06-15.06.37:176][  0]LogTextureFormatASTC: Display: ASTCEnc version 5.0.1 library loaded
+[2026.09.06-15.06.37:176][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatASTC
+[2026.09.06-15.06.37:176][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatDXT
+[2026.09.06-15.06.37:176][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatETC2
+[2026.09.06-15.06.37:176][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatIntelISPCTexComp
+[2026.09.06-15.06.37:176][  0]LogTextureFormatOodle: Display: Oodle Texture TFO init; latest sdk version = 2.9.16
+[2026.09.06-15.06.37:177][  0]LogTextureFormatOodle: Display: Oodle Texture loading DLL: oo2tex_win64_2.9.16.dll
+[2026.09.06-15.06.37:177][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatOodle
+[2026.09.06-15.06.37:177][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatUncompressed
+[2026.09.06-15.06.37:212][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'Android'
+[2026.09.06-15.06.37:230][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'IOS'
+[2026.09.06-15.06.37:248][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'Linux'
+[2026.09.06-15.06.37:266][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'Mac'
+[2026.09.06-15.06.37:268][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'TVOS'
+[2026.09.06-15.06.37:287][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'Windows'
+[2026.09.06-15.06.37:287][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsEditor'
+[2026.09.06-15.06.37:287][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsServer'
+[2026.09.06-15.06.37:288][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsClient'
+[2026.09.06-15.06.37:288][  0]LogTargetPlatformManager: Display: Building Assets For WindowsEditor
+[2026.09.06-15.06.37:292][  0]LogAudioDebug: Display: Lib vorbis DLL was dynamically loaded.
+[2026.09.06-15.06.37:611][  0]LogDerivedDataCache: Display: ../../../Engine/DerivedDataCache/Compressed.ddp: Opened pak cache for reading. (1679 MiB)
+[2026.09.06-15.06.37:613][  0]LogZenServiceInstance: Display: Launching zen utility 'C:/Program Files/Epic Games/UE_5.8/Engine/Binaries/Win64/zen.exe service status'.
+[2026.09.06-15.06.37:826][  0]LogZenServiceInstance: Display: Writing plugin version info to 'C:/Users/Jafar/AppData/Local/UnrealEngine/Common/Zen/Install/zen_plugin_versions.json'
+[2026.09.06-15.06.37:831][  0]LogZenServiceInstance: Display: Read zen version cache file from 'C:/Users/Jafar/AppData/Local/UnrealEngine/5.8/Saved/Zen/zen.version', version: '5.8.13-202605190912-windows-x64-release-094f62c2'
+[2026.09.06-15.06.37:832][  0]LogZenServiceInstance: Display: Read zen version cache file from 'C:/Users/Jafar/AppData/Local/UnrealEngine/Common/Zen/Install/zen.version', version: '5.8.13-202605190912-windows-x64-release-094f62c2'
+[2026.09.06-15.06.37:832][  0]LogZenServiceInstance: Display: Installed service at 'C:/Users/Jafar/AppData/Local/UnrealEngine/Common/Zen/Install/zenserver.exe' is up to date
+[2026.09.06-15.06.37:837][  0]LogZenServiceInstance: Display: Launching executable 'C:/Users/Jafar/AppData/Local/UnrealEngine/Common/Zen/Install/zenserver.exe', working dir 'C:/Users/Jafar/AppData/Local/UnrealEngine/Common/Zen/Install', data dir 'C:/Users/Jafar/AppData/Local/UnrealEngine/Common/Zen/Data', args '--port 8558 --data-dir C:\Users\Jafar\AppData\Local\UnrealEngine\Common\Zen\Data --http asio --gc-cache-duration-seconds 1209600 --gc-interval-seconds 21600 --gc-low-diskspace-threshold 2147483648 --cache-bucket-limit-overwrites --quiet --restrict-content-types --allow-external-oidctoken-exe=false --plugins-config "C:/Users/Jafar/AppData/Local/UnrealEngine/Common/Zen/Install/zen_plugins_v1.json" --security-config-path "C:/Users/Jafar/AppData/Local/UnrealEngine/Common/Zen/Install/security-config.json" --owner-pid 13500  --child-id Zen_13500_Startup'
+[2026.09.06-15.06.40:746][  0]LogZenServiceInstance: Display: Unreal Zen Storage Server HTTP service at http://[::1]:8558 status: OK!.
+[2026.09.06-15.06.40:748][  0]LogDerivedDataCache: Display: ZenLocal: Using ZenServer HTTP service at [::1] with namespace ue.ddc. Status: OK!.
+[2026.09.06-15.06.40:794][  0]LogDerivedDataCache: Display: C:/Users/Jafar/AppData/Local/UnrealEngine/Common/DerivedDataCache: Performance: Latency=0.04ms. RandomReadSpeed=23.84MBs, RandomWriteSpeed=162.16MBs. Assigned SpeedClass 'Local'
+[2026.09.06-15.06.40:799][  0]LogUbaHorde: Display: UBA/Horde Configuration [Uba.Provider.Horde]: Not Enabled
+[2026.09.06-15.06.40:799][  0]LogShaderCompilers: Display: No distributed shader compiler controller found
+[2026.09.06-15.06.40:799][  0]LogShaderCompilers: Display: Using 9 local workers for shader compilation
+[2026.09.06-15.06.40:807][  0]LogShaderCompilers: Display: Compiling shader autogen file: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM6/AutogenShaderHeaders.ush
+[2026.09.06-15.06.40:808][  0]LogShaderCompilers: Display: Failed to delete old shader autogen file: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM6/AutogenShaderHeaders.ush
+[2026.09.06-15.06.40:808][  0]LogShaderCompilers: Display: Shader autogen file written: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM6/AutogenShaderHeaders.ush
+[2026.09.06-15.06.46:668][  0]LogEditorDomain: Display: EditorDomain is Disabled
+[2026.09.06-15.06.46:934][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
+[2026.09.06-15.06.46:935][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
+[2026.09.06-15.06.46:979][  0]LogCsvProfiler: Display: Metadata set : deviceprofile="WindowsEditor"
+[2026.09.06-15.06.46:982][  0]LogStreaming: Display: FlushAsyncLoading(1): 1 QueuedPackages, 0 AsyncPackages
+[2026.09.06-15.06.47:056][  0]LogTextureEncodingSettings: Display: Texture Encode Speed: Final (cook).
+[2026.09.06-15.06.47:056][  0]LogTextureEncodingSettings: Display: Oodle Texture Encode Speed settings: Fast: RDO Off Lambda=0, Effort=Normal Final: RDO Off Lambda=0, Effort=Normal
+[2026.09.06-15.06.47:056][  0]LogTextureEncodingSettings: Display: Shared linear texture encoding: Disabled
+[2026.09.06-15.06.47:077][  0]LogMeshReduction: Display: Using QuadricMeshReduction for automatic static mesh reduction
+[2026.09.06-15.06.47:077][  0]LogMeshReduction: Display: Using SkeletalMeshReduction for automatic skeletal mesh reduction
+[2026.09.06-15.06.47:077][  0]LogMeshReduction: Display: Using ProxyLODMeshReduction for automatic mesh merging
+[2026.09.06-15.06.47:078][  0]LogMeshReduction: Display: No distributed automatic mesh merging module available
+[2026.09.06-15.06.47:554][  0]LogShaderCompilers: Display: Compiling shader autogen file: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM5/AutogenShaderHeaders.ush
+[2026.09.06-15.06.47:555][  0]LogShaderCompilers: Display: Failed to delete old shader autogen file: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM5/AutogenShaderHeaders.ush
+[2026.09.06-15.06.47:556][  0]LogShaderCompilers: Display: Shader autogen file written: ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/ShaderAutogen/PCD3D_SM5/AutogenShaderHeaders.ush
+[2026.09.06-15.06.47:556][  0]LogVirtualization: Display: VirtualizationSystem name found in ini file: None
+[2026.09.06-15.06.47:556][  0]LogVirtualization: Display: FNullVirtualizationSystem mounted, virtualization will be disabled
+[2026.09.06-15.06.47:645][  0]LogWorldPartition: Display: FWorldPartitionClassDescRegistry::Initialize started...
+[2026.09.06-15.06.47:647][  0]LogWorldPartition: Display: FWorldPartitionClassDescRegistry::Initialize took 2.833 ms
+[2026.09.06-15.06.48:098][  0]LogMetaSound: Display: MetaSound Page Target Initialized to 'Default'
+[2026.09.06-15.06.48:100][  0]LogAudio: Display: Registering Engine Module Parameter Interfaces...
+[2026.09.06-15.06.48:894][  0]LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
+[2026.09.06-15.06.48:895][  0]LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
+[2026.09.06-15.06.49:449][  0]LogAssetRegistry: Display: No AssetDiscovery cache present at ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/CachedAssetRegistryDiscovery.bin. AssetRegistry discovery of files will be uncached.
+[2026.09.06-15.06.49:451][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles (PreLoad): 0 .ref files found, 0 referenced binaries
+[2026.09.06-15.06.49:451][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles: 0 total binaries, 0 referenced (kept), 0 old-style pre-migration (kept), 0 orphans deleted, 0 orphans locked (kept)
+[2026.09.06-15.06.49:451][  0]LogAssetRegistry: Display: FindShardedCacheFiles: 0 via .ref, 0 via migration fallback, 0 total
+[2026.09.06-15.06.49:451][  0]LogAssetRegistry: Display: AssetDataGatherer spent 0.000s loading caches from ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Intermediate/CachedAssetRegistry.
+[2026.09.06-15.06.49:475][  0]LogCsvProfiler: Display: Metadata set : largeworldcoordinates="1"
+[2026.09.06-15.06.49:630][  0]LogPython: Display: No pip-enabled plugins with python dependencies found, skipping
+[2026.09.06-15.06.50:048][  0]LogCsvProfiler: Display: Metadata set : raytracing="0"
+[2026.09.06-15.06.50:272][  0]LogPython: Display: Running start-up script C:/Program Files/Epic Games/UE_5.8/Engine/Plugins/Animation/IKRig/Content/Python/init_unreal.py... started...
+[2026.09.06-15.06.50:322][  0]LogPython: Display: Running start-up script C:/Program Files/Epic Games/UE_5.8/Engine/Plugins/Animation/IKRig/Content/Python/init_unreal.py... took 50.137 ms
+[2026.09.06-15.06.50:322][  0]LogPython: Display: Running start-up script C:/Program Files/Epic Games/UE_5.8/Engine/Plugins/Animation/ControlRig/Content/Python/init_unreal.py... started...
+[2026.09.06-15.06.50:401][  0]LogPython: Display: Running start-up script C:/Program Files/Epic Games/UE_5.8/Engine/Plugins/Animation/ControlRig/Content/Python/init_unreal.py... took 78.390 ms (total: 128.528 ms)
+[2026.09.06-15.06.50:401][  0]LogPythonScriptCommandlet: Display: Running Python script: C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\tools\ue\make_base_material.py
+[2026.09.06-15.06.50:606][  0]LogObjectTools: Warning: Detected inconsistencies between reference gathering algorithms. Switching 'Editor.UseLegacyGetReferencersForDeletion' on for the remainder of this editor session.
+[2026.09.06-15.06.50:705][  0]LogEditorAssetSubsystem: Error: LoadAsset failed: The AssetData '/Engine/EngineMaterials/DefaultNormal.DefaultNormal' could not be found in the Asset Registry.
+[2026.09.06-15.06.50:705][  0]LogEditorAssetSubsystem: Error: LoadAsset failed: The AssetData '/Engine/EngineResources/DefaultTextureNormal.DefaultTextureNormal' could not be found in the Asset Registry.
+[2026.09.06-15.06.50:926][  0]LogInterchangeEngine: Display: Interchange start importing source [C:/actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Saved/LedgerGenerated/T_LedgerDefaultNormal.tga]
+[2026.09.06-15.06.50:935][  0]LogInterchangePipeline: Display: Auto-detected normal map
+[2026.09.06-15.06.50:937][  0]LogInterchangeEngine: Display: Interchange import completed [C:/actions-runner-le...aved/LedgerGenerated/T_LedgerDefaultNormal.tga]
+[2026.09.06-15.06.50:956][  0]LogInterchangeEngine: Display: Interchange start importing source [C:/actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Saved/LedgerGenerated/T_LedgerDefaultRough.tga]
+[2026.09.06-15.06.50:959][  0]LogInterchangeEngine: Display: Interchange import completed [C:/actions-runner-le...aved/LedgerGenerated/T_LedgerDefaultRough.tga]
+[2026.09.06-15.06.51:075][  0]LogPythonScriptCommandlet: Display: Python script executed successfully
+[2026.09.06-15.06.51:076][  0]LogInit: Display: 
+[2026.09.06-15.06.51:076][  0]LogInit: Display: Warning/Error Summary (Unique only)
+[2026.09.06-15.06.51:076][  0]LogInit: Display: -----------------------------------
+[2026.09.06-15.06.51:076][  0]LogInit: Display: LogEditorAssetSubsystem: Error: LoadAsset failed: The AssetData '/Engine/EngineMaterials/DefaultNormal.DefaultNormal' could not be found in the Asset Registry.
+[2026.09.06-15.06.51:076][  0]LogInit: Display: LogEditorAssetSubsystem: Error: LoadAsset failed: The AssetData '/Engine/EngineResources/DefaultTextureNormal.DefaultTextureNormal' could not be found in the Asset Registry.
+[2026.09.06-15.06.51:077][  0]LogInit: Display: LogObjectTools: Warning: Detected inconsistencies between reference gathering algorithms. Switching 'Editor.UseLegacyGetReferencersForDeletion' on for the remainder of this editor session.
+[2026.09.06-15.06.51:077][  0]LogInit: Display: 
+[2026.09.06-15.06.51:077][  0]LogInit: Display: Failure - 2 error(s), 1 warning(s)
+[2026.09.06-15.06.51:077][  0]LogInit: Display: 
+
+Execution of commandlet took:  0.80 seconds, PeakPhysMemoryMB=1597 MB, PeakVirtMemoryMB=1397 MB
+[2026.09.06-15.06.51:177][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles (PostWrite): 0 .ref files found, 0 referenced binaries
+[2026.09.06-15.06.51:177][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles: 0 total binaries, 0 referenced (kept), 0 old-style pre-migration (kept), 0 orphans deleted, 0 orphans locked (kept)
+[2026.09.06-15.06.51:352][  0]LogShaderCompilers: Display: Exiting ShaderCompilingThread
+[2026.09.06-15.06.51:396][  0]LogSourceControl: Display: Uncontrolled Changelist persistency file saved ../../../../../../actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Saved/SourceControl/UncontrolledChangelists.json
+
+# Section 3: the editor process stderr, first 60 lines.
+# material.err holds 0 line(s)
