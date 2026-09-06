@@ -304,6 +304,12 @@ namespace Ledger.Game
         /// Writes an adjudicated novel action into the simulation. Everything here
         /// is small by construction (magnitude is clamped at 0.15 twice over) and
         /// nothing here pays the player.
+        ///
+        /// Reached only when `verdict.Passed`, and a verdict passes only when the
+        /// requirement the model named could have refused it (Adjudicator.Binds,
+        /// queue 113). Before that, `check:none` arrived from model JSON, cleared
+        /// the vocabulary gate, refused nothing, and every case below ran on the
+        /// model's own say-so. Size was never the protection: the authority was.
         void ApplyNovel(Intent intent, Adjudication verdict)
         {
             if (verdict.CashSpent > 0)

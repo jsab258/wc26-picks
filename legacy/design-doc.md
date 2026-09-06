@@ -685,9 +685,11 @@ deterministic C# the buttons called. The model has moved from the skin to the
 The novel-action path is the interesting half. A player who says *"I'll tell Sera's
 dockers that Vane's been shorting them"* is not doing anything the buttons offer, but
 the game knows what the words touch: standing with two arms, a fact in the mill, a
-place and an hour. So the router names a **requirement** from a closed vocabulary —
-cash, dirty cash, standing, a hook on a person, crew, hour of day, heat — and the game
-evaluates it, applying one **effect** from a closed vocabulary with clamped magnitude.
+place and an hour. So the router names a **requirement** from a closed vocabulary, cash, dirty
+cash, standing, a hook on a person, crew, hour of day, heat, or none (which
+may carry only an effect that changes nothing; queue 113), and the game
+evaluates it, applying one **effect** from a closed vocabulary with clamped
+magnitude.
 Novel actions are therefore *small and real* rather than large and fake.
 
 It degrades cleanly. A lexical fast path handles unambiguous phrasings for free and

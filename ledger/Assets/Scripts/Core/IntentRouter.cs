@@ -30,6 +30,17 @@ namespace Ledger.Core
     /// preserved exactly; the model has moved from the skin to the interface,
     /// not to the referee's chair.
     ///
+    /// AND THE CLOSED SET IS THE WHOLE BOUNDARY ONLY ON THE MECHANICAL PATH,
+    /// which is what the paragraph above missed for six weeks. A verb id is a
+    /// member of a set the GAME built from live state, so membership is the
+    /// answer. A novel action's `check` is a member of a set of NAMES, and the
+    /// model chooses which one governs its own proposal: membership says the
+    /// field is well formed and nothing more, and "none" is a member that could
+    /// refuse nothing. The novel path's boundary is therefore in two halves, and
+    /// the second is Adjudicator.Binds, which will not let an effect that writes
+    /// to the simulation travel on a requirement nobody could fail. Found by an
+    /// outside audit, 2026-09-06; queue 113.
+    ///
     /// It degrades rather than dies: the lexical fast path resolves unambiguous
     /// phrasings for free and instantly, and is the complete fallback when there
     /// is no model available at all.
@@ -98,9 +109,16 @@ namespace Ledger.Core
 
     /// The closed vocabulary of things a novel action may be gated on. The game
     /// evaluates these; the router only names one. Anything else is rejected.
+    ///
+    /// MEMBERSHIP HERE IS NOT PERMISSION, and Known() is not a constraint. A name
+    /// in this set is well formed; whether the requirement it names can actually
+    /// refuse anything is a separate question, asked by Adjudicator.Binds and
+    /// nowhere else. Queue 113: "none" is in this set, passed the gate below, and
+    /// reached live state on the model's own say-so from 26 July (fc68f2d2, the
+    /// commit that built the router) until an outside audit read it on 6 September.
     public static class Checks
     {
-        public const string None = "none";              // costs nothing but nerve
+        public const string None = "none";              // no requirement at all, so it may only narrate
         public const string Cash = "cash";              // clean money, Amount dollars
         public const string DirtyCash = "dirty_cash";   // dirty money, Amount dollars
         public const string Standing = "standing";      // standing with an arm, Amount = percent
@@ -139,6 +157,15 @@ namespace Ledger.Core
         /// phrasing gets a nudge, never a windfall — the authored verbs are where
         /// the large moves live, and they have prices.
         public const double MaxMagnitude = 0.15;
+
+        /// Whether an effect WRITES TO THE SIMULATION. Everything in the
+        /// vocabulary except "nothing" does: IntentBridge.ApplyNovel carries a
+        /// case for each of them and moves standing, attention, suspicion or the
+        /// gossip mill. The Adjudicator asks this before it will let a
+        /// model-named check govern an outcome, so a new effect that alters
+        /// state must land in All above, and the canary in CoreTests
+        /// TestClosedVocabulariesAreHandled fails until it does.
+        public static bool AltersState(string s) => Known(s) && s != Nothing;
     }
 
     public class Intent
@@ -151,6 +178,10 @@ namespace Ledger.Core
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         // Novel
+        /// Defaults to the requirement that binds nothing, which is the
+        /// fail-closed default: the adjudicator will not carry a state-altering
+        /// effect on it, so an Intent built by hand and never given a check
+        /// cannot move the world by omission (queue 113).
         public string Check = Checks.None;
         public int CheckAmount;
         public string Effect = Effects.Nothing;
@@ -357,6 +388,14 @@ namespace Ledger.Core
                 sb.AppendLine($"  check must be one of: {string.Join(" | ", Checks.All)}");
                 sb.AppendLine($"  effect must be one of: {string.Join(" | ", Effects.All)}");
                 sb.AppendLine("  Novel actions are SMALL. Nothing here pays the player money.");
+                // A HINT, NOT THE BOUNDARY. The boundary is Adjudicator.Binds,
+                // which refuses a state-altering effect whose named requirement
+                // even a player with nothing would meet. Saying so here only
+                // spares the player a refusal they did not need to see: a model
+                // that reaches for "none" on a real change gets stopped either
+                // way, it just gets stopped less often if it knows the rule.
+                sb.AppendLine("  \"none\" is only for an attempt that changes nothing. Anything that moves the world");
+                sb.AppendLine("  must name a requirement with a real amount behind it, which the game then judges.");
                 sb.AppendLine();
             }
 

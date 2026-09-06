@@ -369,3 +369,32 @@ should check.
 This is rule 5b's sibling. 5b says a guard must be run against the case it
 should PASS. This says a guard's PASS must be legible as a pass rather than as
 an absence.
+
+## A BOUND THAT A REFUSAL'S DEFAULT SATISFIES, 2026-09-06
+
+Ruled from the P0 review, `game-design/decision-2026-09-06-ruling-113-the-model-does-not-adjudicate.md` section 4.
+
+Two assertions in `CoreTests` bounded a clamped magnitude. Both ran over the
+whole check vocabulary including `Checks.None`. While `None` passed, the clamp
+executed and the bound meant something.
+
+The moment `None` began REFUSING, those same assertions kept passing for a new
+and empty reason: A REFUSAL REPORTS MAGNITUDE 0, and zero satisfies any upper
+bound. Neither assertion carried a `Passed` guard, so neither could tell "the
+clamp held" from "there was nothing to clamp".
+
+THE SHAPE, and it generalises past this instance: a bound whose subject may be
+absent is satisfied by the absence. The assertion does not fail, it stops
+having a subject, and a green test that has stopped testing anything looks
+exactly like a green test.
+
+THE RULE. An assertion about a value produced by an operation must first assert
+THAT THE OPERATION HAPPENED. Guard the bound with the success it depends on, or
+assert on a denominator that goes to zero visibly. This is rule 5b seen from
+the other side: 5b says watch a guard on the case it should PASS; this says
+watch a guard on the case where its subject disappears.
+
+WHAT MAKES IT worth a paragraph: nobody changed those tests. A change
+ELSEWHERE, in the code they pointed at, quietly emptied them. So the sweep this
+prompts is not "find bad assertions" but "find assertions whose subject a
+future change could remove".

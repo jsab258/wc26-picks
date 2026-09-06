@@ -221,6 +221,52 @@ share.
 THE VERIFY FOOTER'S `22 queue items ready` READS THE RETIRED QUEUE (079) and is
 NOT TO BE QUOTED until 095 lands its counter.
 
+## 2026-09-06: AN OUTSIDE AUDIT FOUND THREE THINGS OUR GATES CERTIFIED GREEN
+
+A different model family audited this project. Jafar verified all three
+findings himself and ruled: TREAT THIS AS EVIDENCE ABOUT OUR PROCESS, NOT AS A
+SUGGESTION. Filed as queue 113 to 120. THE ORDER IS HIS, P0 FIRST, and it
+outranks the 2026-09-05 order below for everything not already in flight.
+
+P0, STOP THE LINE. Queue 113 and 114. `IntentRouter` takes `check`, `effect`
+and a magnitude from model JSON; `Checks.Known("none")` is true; and
+`Adjudicator.cs:62` is `case Checks.None: break;`, which falls through to Pass
+and CANNOT REFUSE ANYTHING. So the model both proposes an action and picks the
+check that would have constrained it, then DialogueUI applies the effect to
+real state. THE MODEL IS ADJUDICATING, INSIDE THE LAYER THIS PROJECT IS NAMED
+FOR. Re-verified in the code by the resident, not taken on report. Our own
+CoreTests case that proves checks CAN fail SKIPS `Checks.None`, so the suite
+certified the hole by trimming its denominator to the passing cases.
+
+P1: queue 115, canon says nothing is ever wiped and MemoryStore prunes at 600
+under a comment saying that is not forgetting; queue 116, the soak printed NOT
+GATED and ran on SEVEN agents while being cited for hundreds.
+
+P2: queue 117 groups the evidence that cannot disagree with us (a self-rating
+of 93 cited as a premise in D12, a judge calibrated on 48 passes and ZERO
+fails, the split of queue 111, the soak citation); queue 118, a verified piece
+whose tone gate is pending.
+
+AHEAD OF ANY REMAINING CONSOLE WORK: queue 119, the cheapest test of the
+differentiator. Three unbriefed people, one crime, real propagation against
+canned responses. Jafar: "If they cannot perceive a difference, that is the
+most important finding this project can produce." It is designed so it CANNOT
+come out well by construction, which is the opposite of the 117 group.
+
+QUEUE 120 produces our own cost per verified piece against the audit's, which
+puts the stated 300 to 500 resident town at 14 to 34 weeks of full budget for
+content alone. THE SCOPE DECISION IS A CARD FOR JAFAR, not a change the studio
+makes.
+
+ITEM 6 IS UNFINISHED, NOT SOLVED. The wire moved to 14/14 and the frames
+changed, and the street still renders the engine checker with 563 of 593 pieces
+assigned. THE CAUSE IS UNKNOWN. Keep it open and find it.
+
+BALANCE, ruled the same day: 63 of 106 queue files were infrastructure and 85
+of the last 100 commits touched no game path. Mandatory director review is CUT
+for documents and routine assets and KEPT for simulation changes and anything
+touching Core. CLAUDE.md carries it.
+
 ## JAFAR'S STANDING ORDER, 2026-09-05. THIS REPLACES EVERY EARLIER ORDERING.
 
 Readings taken at about 08:30Z after an EARLY RESET: total 7, Fable 8, ceiling

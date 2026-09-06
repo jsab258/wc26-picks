@@ -145,11 +145,10 @@ blocked feedback channel is the highest-leverage bug on the board, not an
 inconvenience to route around. The channel that works here is a file committed
 by CI, under `game-design/sim-shots/`.
 
-**13. A turn ends at the ceiling, a limit, or a blocked dependency, and
-nothing else.** A landed batch is not a reason to stop: take the next item in
-the order. Questions go to the Telegram inbox; work continues meanwhile. On a
-limit, parse the reset from the notice, arm the resume trigger, continue when
-it fires. Jafar, 2026-09-05.
+**13. A turn ends at the ceiling, a limit, or a blocked dependency.** A
+landed batch is not a reason to stop: take the next item. Questions go to the
+Telegram inbox; work continues. On a limit, parse the reset from the notice,
+arm the resume trigger, continue when it fires. Jafar, 2026-09-05.
 
 ## Before you commit
 
@@ -172,17 +171,17 @@ blind attempt.
 ## The studio split
 
 The main session is the DIRECTOR (tier 1): it decides, reviews builder diffs,
-commits, dispatches builds and writes the record. It does not implement and
-does not address Jafar: it talks to files and to the Producer. Tier 2
-(Opus, read-only) are the verifiers in `.claude/agents/`. Tier 3 (Opus) are
-the builders: all implementation happens there, with the finding in the brief
-and a standing instruction not to commit.
+commits, dispatches and writes the record. It does not implement and does not
+address Jafar: it talks to files and to the Producer. Tier 2
+(Opus, read-only) are the verifiers in `.claude/agents/`. Tier 3 (Opus) are the
+builders: all implementation happens there, the finding in the brief, and a
+standing instruction not to commit.
 
-Escalation is mechanical, never judged: a director is spawned for
-builder-batch review before commit, queue reorder or refill, a landing that
-changes a conclusion, a verifier-builder disagreement, a close-out, and
-anything touching premise, roadmap or this file. Reviews are gates, not
-pauses. Questions fold into one
+Escalation is mechanical, never judged, NARROWED by Jafar 2026-09-06 because
+the studio was building itself: a director is spawned for SIMULATION changes,
+Core, premise, roadmap, canon or this file, a landing that changes a
+conclusion, a verifier-builder disagreement, and a close-out. NOT documents or
+routine assets, which commit on the resident's read. Gates, not pauses. Questions fold into one
 spawn; a killed director is resumed, never restarted. The resident hand-applies
 only dictated text or a one-line fix, and never commits a builder's
 work-in-progress because a stop hook asks. `director_cadence` blocks a commit of
@@ -211,13 +210,13 @@ rung is a research task, not a finished aspect.
 Reporting to Jafar is THE PRODUCER'S ALONE, ruled 2026-09-03:
 `.claude/agents/producer.md` carries the register, the cap and the required
 link. Resident owns the record, Producer the channel. Judgment, never a status
-dump, and every report carries a picture `tools/report-frame.py` withholds when
-the last build measured nothing.
+dump, with a picture `tools/report-frame.py` withholds when the last build
+measured nothing.
 Incidents: `ledger-v2/studio-v2/operations.md`.
 
 ## Where the rest of this file went, 2026-09-01
 
-Task `production/queue/013`. Nothing deleted; every passage moved intact.
+Task `production/queue/013`; nothing deleted, every passage moved intact.
 
 Under `ledger-v2/studio-v2/`: `casebook-claims.md` has rules 1, 3, 4, 5, 5b, 6
 with their incidents; `casebook-measurement.md` has 2 and 3b;

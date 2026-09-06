@@ -41,6 +41,15 @@ namespace Ledger.Adversary
     ///   4. NO UNVALIDATED MODEL TEXT REACHES THE SCREEN. `ResponseValidator`
     ///      output must be inside its own length bound and free of the
     ///      character-break markers, whatever went in.
+    ///   5. NO EFFECT REACHES STATE ON A REQUIREMENT THAT CANNOT REFUSE IT
+    ///      (queue 113, added 2026-09-06 after an outside audit). The other four
+    ///      contracts end at `Validate`, and that is precisely where this one was
+    ///      lost: validation says the fields are WELL FORMED, and the model names
+    ///      the requirement that governs its own proposal. `check:none` was in
+    ///      the vocabulary, cleared the gate, and could refuse nothing. So the
+    ///      fuzz now carries on into `Adjudicator.Resolve` and counts what got
+    ///      through, against a player generous enough to meet every requirement
+    ///      there is, so a refusal is a refusal of authority and not of means.
     ///
     /// WHY FUZZ A THING THAT IS ALREADY DELIBERATELY JOYLESS. Precisely
     /// because it is: `Validate` is the one function in this project written as
@@ -168,7 +177,8 @@ namespace Ledger.Adversary
             foreach (var fam in ModelReplies(offered))
             {
                 int crashed = 0, routed = 0, invented = 0, badArg = 0, novel = 0, badGate = 0;
-                string firstCrash = null, firstInvented = null, firstGate = null;
+                int reachedState = 0;
+                string firstCrash = null, firstInvented = null, firstGate = null, firstReach = null;
                 for (int i = 0; i < rounds; i++)
                 {
                     string raw = fam.make(rng);
@@ -204,6 +214,20 @@ namespace Ledger.Adversary
                             firstGate ??= $"check='{got.Check}' effect='{got.Effect}' "
                                           + $"mag={got.Magnitude} from {Snip(raw)}";
                         }
+                        // CONTRACT 5. Membership in the vocabularies is where
+                        // the other contracts stop, and it says nothing about
+                        // whether the named requirement can refuse anything. So
+                        // adjudicate, and count only the ones that got a WRITE
+                        // out of it: an effect of "nothing" passing is a passed
+                        // attempt that moved no state, and counting it would
+                        // make the number stop meaning what its name says.
+                        var verdict = Adjudicator.Resolve(got, Generous);
+                        if (verdict.Passed && Effects.AltersState(verdict.Effect))
+                        {
+                            reachedState++;
+                            firstReach ??= $"check='{got.Check}' amount={got.CheckAmount} "
+                                           + $"effect='{verdict.Effect}' from {Snip(raw)}";
+                        }
                     }
                 }
                 Require(crashed == 0, $"model/{fam.name}: nothing crashes ({crashed}/{rounds} — {firstCrash})");
@@ -213,7 +237,22 @@ namespace Ledger.Adversary
                 Require(badGate == 0,
                         $"model/{fam.name}: a novel action's check and effect are in the closed sets "
                         + $"({badGate} — {firstGate})");
-                Console.WriteLine($"  model/{fam.name,-21} verb={routed,-5} novel={novel,-5} "
+                if (fam.novelReachesState == false)
+                    Require(novel == rounds && reachedState == 0,
+                            $"model/{fam.name}: NO EFFECT REACHES STATE ON A REQUIREMENT THAT CANNOT "
+                            + $"REFUSE ({reachedState}/{novel} adjudicated PASSED; first: {firstReach}"
+                            + $"; {novel}/{rounds} parsed as novel)");
+                if (fam.novelReachesState == true)
+                    Require(novel > 0 && reachedState == novel,
+                            $"CONTROL: model/{fam.name}: a requirement that BITES still carries its "
+                            + $"effect into state ({reachedState}/{novel} passed)");
+                // state=N/M is cumulative over the family: N of the M replies
+                // that validated as novel were adjudicated PASSED with an effect
+                // that writes to the simulation. Both halves are counted in the
+                // same loop, so the denominator is the set the numerator came
+                // from and not the round count.
+                Console.WriteLine($"  model/{fam.name,-25} verb={routed,-5} novel={novel,-5} "
+                                  + $"state={reachedState}/{novel,-5} "
                                   + $"crashed={crashed} invented={invented} badGate={badGate}");
             }
 
@@ -332,6 +371,13 @@ namespace Ledger.Adversary
             /// The verb every input in this family MUST route to. Null for the
             /// families whose whole job is to be refused.
             public string mustRoute;
+            /// Contract 5, for the two families that adjudicate. FALSE: no novel
+            /// intent here may reach state, because every one of them names a
+            /// requirement nobody can fail. TRUE: every one MUST, because they
+            /// name requirements that bite and the generous player meets them,
+            /// and without that control the counter beside them is a zero that
+            /// cannot move. Null: the family is not about adjudication.
+            public bool? novelReachesState;
         }
 
         /// THE VERB THE CATALOGUE DOES NOT CONTAIN. Every smuggling attempt
@@ -371,6 +417,30 @@ namespace Ledger.Adversary
             yield return new Family { name = "random junk", make = r => Junk(r, 1 + r.Next(300)) };
         }
 
+        /// A player who meets every requirement the vocabulary can name: money
+        /// clean and dirty, hands to put on it, standing at the top of its -1..1
+        /// range, nobody watching, late in the day, and something on whoever they
+        /// are talking to. Contract 5 asks whether the model can move the world
+        /// with no requirement behind it, so the player must not be the reason
+        /// anything is refused. Standing, Heat, Hour and the hook sit at the far end of their declared
+        /// ranges (AdjudicationInput); Clean, Dirty and Crew have no declared top,
+        /// so 10000, 10000 and 9 are simply larger than any amount a family here
+        /// names (cost is capped at MaxNovelCost, and crew is asked for 1).
+        static readonly AdjudicationInput Generous = new AdjudicationInput
+        {
+            Clean = 10000, Dirty = 10000, Crew = 9, Hour = 23,
+            Standing = 1.0, Heat = 0.0, HoldsHook = true,
+        };
+
+        /// Every effect that WRITES to the simulation, read out of the vocabulary
+        /// rather than listed here, so an effect added later is fuzzed the day it
+        /// lands instead of the day somebody remembers this file.
+        static string StateEffect(Random r)
+        {
+            var altering = Array.FindAll(Effects.All, Effects.AltersState);
+            return altering[r.Next(altering.Length)];
+        }
+
         static IEnumerable<Family> ModelReplies(HashSet<string> offered)
         {
             yield return new Family { name = "not json at all", make = r =>
@@ -400,6 +470,46 @@ namespace Ledger.Adversary
             yield return new Family { name = "novel, absurd magnitude", make = r =>
                 $"{{\"kind\":\"novel\",\"check\":\"cash\",\"effect\":\"nothing\","
                 + $"\"magnitude\":{new[] { "1e308", "-1e308", "9223372036854775807" }[r.Next(3)]}}}" };
+            // THE REQUIREMENT THAT CANNOT REFUSE (queue 113). Every reply here
+            // is well formed and every check is in the vocabulary; each names an
+            // amount at which nobody alive could fail it, and asks for a real
+            // change to the world on the back of it. This is the exact shape an
+            // outside audit found reaching live state: check:none carrying
+            // standing_up, with the model choosing both halves.
+            yield return new Family { name = "novel, cannot refuse", novelReachesState = false, make = r =>
+            {
+                var form = new[]
+                {
+                    (check: Checks.None, amount: 0),        // no requirement at all
+                    (check: Checks.None, amount: 500),      // and it ignores the amount
+                    (check: Checks.Cash, amount: 0),        // £0, which everybody has
+                    (check: Checks.DirtyCash, amount: 0),
+                    (check: Checks.Crew, amount: 0),        // nobody, which is no crew
+                    (check: Checks.Hour, amount: 0),        // after midnight, always true
+                    (check: Checks.Heat, amount: 100),      // the top of a 0..1 scale
+                    (check: Checks.Heat, amount: 900),
+                }[r.Next(8)];
+                return $"{{\"kind\":\"novel\",\"check\":\"{form.check}\",\"amount\":{form.amount},"
+                       + $"\"effect\":\"{StateEffect(r)}\",\"magnitude\":0.15,"
+                       + "\"why\":\"because I said so\"}";
+            } };
+            // THE CONTROL FOR IT, and the reason `state=0/400` above means
+            // anything. Same shape, on requirements that bite: these MUST reach
+            // state against the generous player, or the counter is a zero that
+            // could not have moved and the family above proves nothing.
+            yield return new Family { name = "novel, a real requirement", novelReachesState = true, make = r =>
+            {
+                var form = new[]
+                {
+                    (check: Checks.Cash, amount: 50), (check: Checks.DirtyCash, amount: 50),
+                    (check: Checks.Crew, amount: 1), (check: Checks.Hour, amount: 12),
+                    (check: Checks.Heat, amount: 50), (check: Checks.Standing, amount: 50),
+                    (check: Checks.Hook, amount: 0),
+                }[r.Next(7)];
+                return $"{{\"kind\":\"novel\",\"check\":\"{form.check}\",\"amount\":{form.amount},"
+                       + $"\"effect\":\"{StateEffect(r)}\",\"magnitude\":0.15,"
+                       + "\"why\":\"buying the room a round\"}";
+            } };
             yield return new Family { name = "deep nesting", make = r =>
                 new string('[', 400) + "1" + new string(']', 400) };
             yield return new Family { name = "injection in json", make = r =>

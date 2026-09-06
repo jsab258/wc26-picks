@@ -111,6 +111,7 @@ namespace Ledger.CoreTests
                 TestIntentLexical();
                 TestIntentValidation();
                 TestAdjudicator();
+                TestModelCannotChooseAnUnrefusableCheck();
                 TestEconomy();
                 TestPopulationDistricts();
                 TestPhones();
@@ -4081,36 +4082,55 @@ namespace Ledger.CoreTests
                 Clean = 10000, Dirty = 10000, Crew = 9, Hour = 23,
                 Standing = 1.0, Heat = 0.0, HoldsHook = true,
             };
+            // Every check has a case that can pass. "none" is the one that
+            // carries no requirement, so it can only pass an effect that touches
+            // nothing; everything else passes a real change on a generous state.
+            // 8 checks examined, 0 skipped.
             foreach (var check in Checks.All)
             {
                 var intent = new Intent
                 {
                     Kind = IntentKind.Novel, Check = check, CheckAmount = 1,
-                    Effect = Effects.StandingUp, Magnitude = 0.05,
+                    Effect = check == Checks.None ? Effects.Nothing : Effects.StandingUp,
+                    Magnitude = 0.05,
                 };
                 Check(Adjudicator.Resolve(intent, rich).Passed,
                     $"check '{check}' has a case that can pass", check);
             }
 
-            // And every check that takes an amount must be able to FAIL, or it
-            // is a requirement in name only.
+            // And every check must be able to FAIL a state-altering effect, or
+            // it is a requirement in name only.
+            //
+            // THE SKIP THAT CERTIFIED THE HOLE. This loop used to read
+            // `if (check == Checks.None) continue;   // costs nothing but nerve,
+            // by design`, so the suite's own proof that requirements can refuse
+            // was taken over a set trimmed to the members that pass, and the one
+            // member that could refuse NOTHING was the one it did not examine.
+            // An outside audit found check:none reaching live state on the
+            // model's own say-so six weeks later, 26 July to 6 September, both
+            // dates read from git log (queue 113). The denominator is
+            // now the whole vocabulary: 8 checks examined, 0 skipped.
             var broke = new AdjudicationInput
             {
                 Clean = 0, Dirty = 0, Crew = 0, Hour = 0,
                 Standing = -1.0, Heat = 1.0, HoldsHook = false,
             };
+            int refused = 0;
             foreach (var check in Checks.All)
             {
-                if (check == Checks.None) continue;   // costs nothing but nerve, by design
                 var intent = new Intent
                 {
                     Kind = IntentKind.Novel, Check = check, CheckAmount = 50,
                     Effect = Effects.StandingUp, Magnitude = 0.05,
                 };
                 var r = Adjudicator.Resolve(intent, broke);
+                if (!r.Passed && r.Reason.Length > 0) refused++;
                 Check(!r.Passed && r.Reason.Length > 0,
                     $"check '{check}' can refuse, and says why", check + ": " + r.Reason);
             }
+            Check(refused == Checks.All.Length,
+                "and that is the WHOLE vocabulary, not the part that passes",
+                $"{refused}/{Checks.All.Length} refused a state change they could not carry");
 
             // THE CANARY. Effects are applied in the game layer, which CoreTests
             // cannot reach — so this pins the vocabulary instead. If somebody
@@ -4156,15 +4176,21 @@ namespace Ledger.CoreTests
 
             // Magnitude is clamped whatever the model says, including when it
             // says something that is not a number.
+            //
+            // On a check that PASSES, deliberately. This loop used to run on
+            // `Checks.None`, which now refuses a state-altering effect, and a
+            // refusal reports Magnitude 0 and would have satisfied the bound
+            // without the clamp ever running. A clamp test has to reach the
+            // clamp: cash for £50 is a requirement `rich` meets.
             foreach (var mag in new[] { 99.0, -99.0, double.NaN, double.PositiveInfinity })
             {
                 var intent = new Intent
                 {
-                    Kind = IntentKind.Novel, Check = Checks.None,
+                    Kind = IntentKind.Novel, Check = Checks.Cash, CheckAmount = 50,
                     Effect = Effects.StandingUp, Magnitude = mag,
                 };
                 var r = Adjudicator.Resolve(intent, rich);
-                Check(r.Magnitude >= 0 && r.Magnitude <= Effects.MaxMagnitude,
+                Check(r.Passed && r.Magnitude >= 0 && r.Magnitude <= Effects.MaxMagnitude,
                     $"a magnitude of {mag} is clamped to something real", r.Magnitude.ToString("0.00"));
             }
         }
@@ -4234,9 +4260,15 @@ namespace Ledger.CoreTests
                 Kind = IntentKind.Novel, Check = Checks.Hour, CheckAmount = 22, Effect = Effects.Nothing,
             }, state).Passed, "an hour that has not arrived fails");
 
+            // The router clamps magnitude on the way in; this clamps it again on
+            // the way out, from a hand-built intent the router never saw. On a
+            // check that passes: `Checks.None` used to stand here, and it now
+            // refuses a state-altering effect, which would have reported
+            // Magnitude 0 and proved nothing. `state.HoldsHook` is true by this
+            // point in the battery.
             var wild = Adjudicator.Resolve(new Intent
             {
-                Kind = IntentKind.Novel, Check = Checks.None, Effect = Effects.StandingUp, Magnitude = 50,
+                Kind = IntentKind.Novel, Check = Checks.Hook, Effect = Effects.StandingUp, Magnitude = 50,
             }, state);
             Check(wild.Passed && wild.Magnitude <= Effects.MaxMagnitude, "the adjudicator clamps magnitude independently of the router");
 
@@ -4247,6 +4279,129 @@ namespace Ledger.CoreTests
             // not an accident, so it is asserted rather than assumed.
             Check(!Effects.All.Any(e => e.Contains("cash") || e.Contains("money") || e.Contains("pay")),
                 "no novel effect can mint money");
+        }
+
+        /// THE MODEL DOES NOT ADJUDICATE (queue 113; outside audit 2026-09-06,
+        /// verified by Jafar and re-verified in the code before this was written).
+        ///
+        /// IntentRouter.Validate takes `check`, `amount` and `effect` straight
+        /// from the model's JSON, so the model proposes the action AND names the
+        /// requirement that governs it. If it may name one that cannot refuse, it
+        /// is the referee. `check:none` was exactly that: Checks.Known("none") is
+        /// true, so it cleared the vocabulary gate, and the adjudicator's case for
+        /// it broke out of the switch into Pass, after which the game layer wrote
+        /// the effect into live state.
+        ///
+        /// The property pinned here is NOT "none is refused". It is "an effect
+        /// that alters state travels only on a requirement that could have
+        /// refused it", which is why the vacuous-amount forms are in this battery
+        /// as well: they are the same authority wearing a word that looks like a
+        /// constraint, and fixing only the one the audit named would have left
+        /// `cash` for £0 doing the identical job.
+        ///
+        /// Watched red before it was watched green: with the old Adjudicator in
+        /// place, the rejecting case below reports PASSED and this battery is the
+        /// first thing in the suite to fail.
+        static void TestModelCannotChooseAnUnrefusableCheck()
+        {
+            Console.WriteLine("Novel actions. The model may narrow a requirement, never remove it:");
+
+            var ctx = new IntentContext();
+            // Generous enough that every requirement in the vocabulary is met, so
+            // anything refused below is refused for being unrefusable, not for
+            // being unaffordable.
+            var rich = new AdjudicationInput
+            {
+                Clean = 10000, Dirty = 10000, Crew = 9, Hour = 23,
+                Standing = 1.0, Heat = 0.0, HoldsHook = true,
+            };
+
+            // Exactly the shape the router parses, so this is the model's own
+            // path end to end rather than a hand-built Intent standing in for it.
+            string Novel(string check, int amount, string effect) =>
+                "{\"kind\":\"novel\",\"check\":\"" + check + "\",\"amount\":" + amount
+                + ",\"effect\":\"" + effect + "\",\"magnitude\":0.15,"
+                + "\"why\":\"buying the room a round\"}";
+
+            // ACCEPTING CASE FIRST. A legitimate novel action, on a requirement
+            // that could have refused it, still lands and still costs.
+            var legit = IntentRouter.Validate(Novel(Checks.DirtyCash, 40, Effects.StandingUp), ctx);
+            var landed = Adjudicator.Resolve(legit, rich);
+            Check(landed.Passed && landed.CashSpent == 40 && landed.SpentDirty
+                  && landed.Effect == Effects.StandingUp && landed.Magnitude > 0,
+                "a novel action on a requirement that could refuse it still lands, and still costs",
+                $"{landed.Effect}/{landed.Magnitude:0.00}/£{landed.CashSpent}");
+
+            // And the one thing "none" is for survives: an attempt that changes
+            // nothing needs nothing behind it.
+            var narration = IntentRouter.Validate(Novel(Checks.None, 0, Effects.Nothing), ctx);
+            var told = Adjudicator.Resolve(narration, rich);
+            Check(told.Passed && told.Effect == Effects.Nothing && told.CashSpent == 0,
+                "and 'none' still passes the attempt that moves nothing, which is what it is for",
+                told.Effect);
+
+            // THE REJECTING CASE.
+            var crafted = IntentRouter.Validate(Novel(Checks.None, 0, Effects.StandingUp), ctx);
+            Check(crafted.Kind == IntentKind.Novel && crafted.Check == Checks.None
+                  && crafted.Effect == Effects.StandingUp,
+                "a crafted check:none with a state-altering effect still PARSES, so what refuses it "
+                + "is the adjudicator and not the parser", crafted.ToString());
+
+            var verdict = Adjudicator.Resolve(crafted, rich);
+            Check(!verdict.Passed && verdict.Reason.Length > 0,
+                "check:none cannot carry a change to state, however rich the player is",
+                verdict.Passed ? "PASSED, and the model is adjudicating again" : verdict.Reason);
+            Check(verdict.Effect == Effects.Nothing && verdict.Magnitude == 0 && verdict.CashSpent == 0,
+                "and the refusal hands the game layer no effect, no magnitude and no spend",
+                $"{verdict.Effect}/{verdict.Magnitude:0.00}/£{verdict.CashSpent}");
+
+            // THE TWINS. Every branch that reads an amount has a setting at which
+            // nobody can fail it. Read out of the switch in Adjudicator.Evaluate
+            // rather than guessed at: cash and dirty cash at £0, crew of nobody,
+            // an hour that has already happened, and a heat ceiling at the top of
+            // a 0..1 scale.
+            var vacuous = new (string check, int amount, string why)[]
+            {
+                (Checks.None, 0, "no requirement at all"),
+                (Checks.Cash, 0, "£0 clean, which everybody has"),
+                (Checks.DirtyCash, 0, "£0 dirty, which everybody has"),
+                (Checks.Crew, 0, "nobody, which is what having no crew is"),
+                (Checks.Hour, 0, "after midnight, which it always is"),
+                (Checks.Heat, 100, "under 100 per cent watched, which is the top of the scale"),
+            };
+            int stopped = 0;
+            foreach (var v in vacuous)
+            {
+                var r = Adjudicator.Resolve(
+                    IntentRouter.Validate(Novel(v.check, v.amount, Effects.SuspicionDown), ctx), rich);
+                if (!r.Passed) stopped++;
+                Check(!r.Passed,
+                    $"'{v.check}' at {v.amount} is a formality ({v.why}) and carries no state change",
+                    r.Passed ? "PASSED" : r.Reason);
+            }
+            Check(stopped == vacuous.Length,
+                "every unrefusable form of a requirement is stopped",
+                $"{stopped}/{vacuous.Length} stopped. The two checks not in this list are "
+                + "'standing', which at 0 still refuses anybody standing below neutral, and "
+                + "'hook', which takes no amount and refuses anybody holding nothing");
+
+            // And no other branch moved: the same requirements, named with an
+            // amount that bites, pass a state change on a state that meets them.
+            int carried = 0;
+            var binding = new (string check, int amount)[]
+            {
+                (Checks.Cash, 50), (Checks.DirtyCash, 50), (Checks.Crew, 1),
+                (Checks.Hour, 1), (Checks.Heat, 50), (Checks.Standing, 50), (Checks.Hook, 0),
+            };
+            foreach (var b in binding)
+            {
+                var r = Adjudicator.Resolve(
+                    IntentRouter.Validate(Novel(b.check, b.amount, Effects.SuspicionDown), ctx), rich);
+                if (r.Passed && r.Effect == Effects.SuspicionDown) carried++;
+            }
+            Check(carried == binding.Length,
+                "and a requirement that bites still carries the effect it always did",
+                $"{carried}/{binding.Length} landed on a state that meets them");
         }
 
         // ---------------------------------------------------------------
