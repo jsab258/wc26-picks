@@ -1,4 +1,4 @@
-job: export-and-hear-chunks
-id: chunks-7
+job: fetch-the-vignette-surfaces
+id: vignette-fetch-01
 
-RESULT: STARTED at 2026-08-12 22:46 UTC — still running here
+RESULT: STARTED at 2026-09-06 17:58 UTC — still running here

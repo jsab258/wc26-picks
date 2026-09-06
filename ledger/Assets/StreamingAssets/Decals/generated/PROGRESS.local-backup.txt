@@ -1,0 +1,25 @@
+LEDGER imagegen - progress
+==========================================================
+batch     meridian-signage-01
+status    DONE
+updated   2026-08-26 11:05:23 local
+elapsed   0 min
+done      0 written, 14 already there, 0 failed, of 14 in the batch
+still to do  0
+
+  [already] fascia_mickeys             left exactly as it was
+  [already] fascia_ritas_pawn          left exactly as it was
+  [already] fascia_fish_market         left exactly as it was
+  [already] fascia_steam_laundry       left exactly as it was
+  [already] sign_marquee               left exactly as it was
+  [already] sign_open_all_nite         left exactly as it was
+  [already] sign_baths                 left exactly as it was
+  [already] notice_dock_regulations    left exactly as it was
+  [already] poster_gig_bill            left exactly as it was
+  [already] notice_ferry_times         left exactly as it was
+  [already] wall_soot_brick            left exactly as it was
+  [already] wall_salt_render           left exactly as it was
+  [already] probe_wall_cfg1            left exactly as it was
+  [already] probe_wall_cfg2            left exactly as it was
+
+Every image is review=pending until a human has looked at it.
