@@ -266,3 +266,48 @@ and the shader is not, which is exactly why the third word exists.
 IF IT PRINTS 12/14 AGAIN: that is THE ANSWER. Record it with the via field,
 report it, and do NOT dispatch run 22. A director is spawned before D1's
 hand-edit clause is invoked.
+
+run 22 - 2026-09-06 - THE STREET IS STILL UNTEXTURED WITH THE UV HEAD WIRED,
+and this run exists to say which of four candidates is why. Run 21 met queue
+062's acceptance exactly (materialConnections=14/14 materialStatus=MADE
+materialScriptReturn=0), so the 12/14 clause above did NOT fire and 062's stop
+rule is lifted: the number it watched moved. The frames are still flat, so 062
+was necessary and was not the cause.
+
+What the frame already proves, and it names a piece rather than averaging:
+east_parade_bay3 is a brick_red bay the verdict certifies as assigned, filling
+308x226 px of camera A, and its wall face over 16,800 pixels renders R/B 0.934
+against brick_red.jpg's 1.290. Overcast light drains warmth out of a red brown
+albedo; it cannot invert the channel ordering. So a piece the verdict calls
+textured is rendering none of its albedo. Queue 123 carries the working.
+
+WHAT THIS RUN ANSWERS. Read the readback keys as a PAIR on the materials done
+line, never one alone: midParamReadback and midScalarReadback over
+midReadbackAsked, beside texResourceValid and compMaterialIsMid.
+
+  both short                       A, no MID override of any kind arrives
+  scalar full, texture short       B, texture overrides specifically
+  both full and the frames flat    C, the texture has no render resource
+
+And the fourth, which no key can answer and only a picture can. The colour
+sampler has a default texture and the NORMAL sampler has none
+(materialNormalDefault=none-of-2-candidates materialDefaultsBound=1/2). In
+Unreal a texture sample parameter with a null texture is a material COMPILE
+ERROR, and a failed material renders as the engine's default, which is also a
+grey checker. Under D every readback can read full, every MID can be correct,
+and the checker has nothing to do with BaseColorMap. That is why three control
+quads ship instead of one: quad colour carries four saturated colours built in
+code with no file and no decode, and quads tile1 and tile4 are one size at one
+distance differing ONLY in their tiling scalars. Two identical tile quads
+beside full readbacks is D and nothing else in this repository separates it.
+
+READ THE QUADS BEFORE THE KEYS, and read quadBoxPx to know where to sample.
+The quads occupy about 5 percent of camera A in the left half, so any
+whole-frame statistic from this run must exclude those boxes first; the
+verdict header says so too. The right half, where bay3 and the shopfront are,
+is untouched and stays comparable with runs 18 to 21.
+
+Nothing in this run has executed an engine. Every sentence above is read off a
+committed frame, a committed verdict and a committed asset, which is the whole
+reason the control quads are here: a diagnosis with no accepting case is a
+lead.
