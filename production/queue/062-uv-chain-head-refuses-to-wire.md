@@ -2,7 +2,17 @@ line: production (the Unreal emitter, Phase C)
 spec: game-design/decision-2026-09-03-texture-staging-and-the-still-gate-ratchet.md, ruling E
 acceptance: materialConnections=14/14 with materialStatus=MADE on a LANDED run, or 14/14 with materialStatus=WIRED-BY-PROPERTY-WRITE plus the four frames read by a verifier and showing tiling; never a local claim
 max_sessions: 1
-status: READY 2026-09-03, AND IT IS NOW PROVEN TO BE THE ONLY THING BETWEEN THIS PROJECT AND A TEXTURED UNREAL STREET. Run 20 staged the textures perfectly (stagedTexFiles=102/102 texRootFiles=51 mapsFound=36/48 surfacesResolved=12/16 piecesTextured=563/593) and the four frames are STILL FLAT GREY. A texture sampler with no UV input reads one constant, so 563 correctly textured objects render as flat colour. materialConnections held at 12/14 across runs 19 and 20, which fires the ruling's stop rule: NO FURTHER UNREAL DISPATCH UNTIL THIS IS FIXED. engine-specialist.
+status: DISCHARGED 2026-09-06 AND NOT SUFFICIENT. Its acceptance is MET on
+  landed run 21 (commit 372fd95): ue-build.txt line 12 reads
+  materialStatus=MADE materialScriptReturn=0 materialConnections=14/14
+  materialUvHeadVia=both.out.empty..in.empty. The UV head is wired and the
+  four frames are STILL untextured, so this item was necessary and was not
+  the cause. Wiring the UV head is what made the fault readable: before it,
+  every sampler read one texel and a bound texture could not be told from an
+  unbound one. The street's actual cause is queue 123, the colour sampler
+  rendering /Engine/EngineResources/DefaultTexture. The stop rule this item
+  carried (no further Unreal dispatch) is LIFTED, because the number it
+  watched did move: 12/14 to 14/14.
 
 ## The finding
 

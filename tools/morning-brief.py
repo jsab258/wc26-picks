@@ -30,7 +30,17 @@ tool's own provenance lines below the message:
     ledger/verify.py's GAME_AGENTS so the set has one definition;
   - git, for what landed since the previous brief;
   - tools/report-frame.py, for the picture, which it withholds when the last
-    build measured nothing.
+    build measured nothing;
+  - tools/gallery.py's find_pictures(), for how many pictures are newer than
+    the previous brief.
+
+THE PICTURES ARE OF THE STREET AND THE BRIEF SAYS STREET. Measured 2026-09-06:
+every walked directory holds frames of the one D1 street, and the newest of
+them (production/d1-probe/ue-vign_camA_day.png) was opened by a director and is
+a grey checker blockout. None of them holds Meridian yet. "Pictures of the
+town" is a claim the picture does not support, and a brief that oversells the
+frame is the one thing this generator must never do, because he opens the
+picture straight after reading it.
 
 THE MESSAGE CARRIES NO DIGITS, AND THAT IS THE REGISTER, NOT AN OVERSIGHT.
 Jafar ruled bare counts, file paths and verdict keys out of anything he reads
@@ -79,6 +89,12 @@ def _load(path, name):
 # ONE IMPLEMENTATION PER IDEA, three times over: the register, the queue
 # counter and the game-agent set all already exist and are imported, never
 # re-typed. A second copy is the site nobody looks at when the first is fixed.
+# SOFT, and named as such: the picture dates come from tools/gallery.py's
+# find_pictures(), which is the one implementation of "which frames are the
+# latest" in this repository. If it cannot be imported the brief still writes
+# and says "nothing measured" about pictures, the way git does. A hard refusal
+# here would let a missing sibling stop the morning.
+gal = _load(HERE / "gallery.py", "gallery")
 pc = _load(HERE / "producer-check.py", "producer_check")
 qc = _load(HERE / "queue-check.py", "queue_check")
 vf = _load(REPO / "ledger" / "verify.py", "ledger_verify")
@@ -97,13 +113,24 @@ BUDGET_REL = "production/budget.md"
 QUEUE_REL = qc.QUEUE_REL
 AGENT_LOG_REL = vf.DIRECTOR_LOG
 
-# WHERE A LINK MAY POINT. The register's link floor accepts github.com only
-# (there is no hosted console yet), so the brief's evidence links are blob URLs
-# on the work branch. Checked against the origin remote when git can read it;
-# a link to the wrong repository is evidence pointing nowhere.
-LINK_OWNER_REPO = "jsab258/wc26-picks"
-LINK_BRANCH = "claude/game-dev-ai-automation-2h67ix"
-LINK_BASE = "https://github.com/%s/blob/%s" % (LINK_OWNER_REPO, LINK_BRANCH)
+# WHERE A LINK MAY POINT, RULED BY JAFAR 2026-09-06: at most two links per
+# message, and only to the glance, the map or the gallery. Never to a
+# repository markdown file, and a picture reaches him as a Telegram image
+# rather than as a link. This brief used to carry three blob URLs on the work
+# branch, which is exactly what the ruling refuses.
+#
+# THE URLS COME FROM tools/producer-check.py's OWN LIST. A second copy here is
+# how the writer and the checker come to disagree about what the site is: the
+# checker would refuse a URL the writer believes in, every morning, with
+# nobody able to see which of the two was wrong.
+def site_url(path):
+    """One ruled destination, by its path, out of the register's list."""
+    for name, _label in pc.SITE_PAGES:
+        if name == path:
+            return pc.SITE_ORIGIN + name
+    raise KeyError("%r is not one of the ruled destinations: %s"
+                   % (path, "/".join(n or "(the glance)"
+                                     for n, _ in pc.SITE_PAGES)))
 
 # THE BUDGET STALENESS BOUND, and it is Jafar's, not this program's:
 # production/budget.md, stop condition 2, "with no reading newer than 48 hours,
@@ -315,6 +342,55 @@ def read_frame(root):
     return {"rel": rel, "why": ""}, True, "tools/report-frame.py"
 
 
+def read_pictures(root, since_day):
+    """How many pictures are newer than the previous brief, out of how many.
+
+    ONE IMPLEMENTATION OF "WHICH FRAMES ARE THE LATEST": tools/gallery.py dates
+    every picture by the commit that touched it (file times in a checkout are
+    all the moment of the clone), and this reads its find_pictures() rather
+    than a second walk. MEASURED-ABSENT, not required: a tree with no gallery
+    tool yields the words nothing measured instead of a refusal.
+    """
+    if gal is None:
+        return ({"n": None, "total": 0,
+                 "why": "the picture dater could not be imported"},
+                True, "tools/gallery.py(unavailable)")
+    try:
+        shots, reading = gal.find_pictures(root)
+    except Exception as e:                                       # noqa: BLE001
+        return ({"n": None, "total": 0, "why": type(e).__name__},
+                True, "tools/gallery.py(failed)")
+    cut = datetime.datetime.fromisoformat(
+        since_day + "T00:00:00").replace(
+            tzinfo=datetime.timezone.utc).timestamp()
+    # NEWER THAN THE LEFT EDGE OF THE SAME WINDOW read_landed uses, so the two
+    # counts in one brief describe one period. Two windows with one name is the
+    # fault this file's previous_brief_day() docstring already names.
+    fresh = [s for s in shots if s["when"] >= cut]
+    return ({"n": len(fresh), "total": len(shots), "why": "",
+             "dirs": reading["dirsWalked"], "dirsNamed": reading["dirsNamed"]},
+            True, "tools/gallery.py(find_pictures,since-%s)" % since_day)
+
+
+# WHAT THE HEADLINE MUST LEAD WITH, ruled by Jafar 2026-09-06: "lead with
+# where the project stands and what changed for the game, not with what was
+# engineered". Mechanical and narrow on purpose: it reads which words the first
+# line opens on. It cannot tell whether the sentence is any good, and the
+# selftest runs it on the shape he rejected as well as on the one it writes,
+# because a rule only checked against the text it was written for is a ratchet.
+ENGINEERING_WORDS = ("queue", "work list", "items are ready", "landed",
+                     "pipeline")
+GAME_WORDS = ("street", "town", "picture", "decision", "look")
+
+
+def leads_with_the_game(headline):
+    """(verdict, engineering words found, game words found)."""
+    low = headline.lower()
+    eng = [w for w in ENGINEERING_WORDS if w in low]
+    game = [w for w in GAME_WORDS if w in low]
+    return (not eng and bool(game)), eng, game
+
+
 def previous_brief_day(root, today):
     """The ISO date of the newest dated brief before today, or None.
 
@@ -353,49 +429,76 @@ def compose(root, today):
     split = source("split", read_split(root, since, today.isoformat()))
     landed = source("landed", read_landed(root, since))
     frame = source("frame", read_frame(root))
+    pics = source("pictures", read_pictures(root, since))
     facts.update({"queue": q, "cards": cards, "budget": budget,
                   "split": split, "landed": landed, "frame": frame,
+                  "pictures": pics,
                   "window_since": since, "window_until": today.isoformat(),
                   "prev_brief": prev})
     if facts["failed"]:
         return None, facts
 
-    queue_url = "%s/%s" % (LINK_BASE, QUEUE_REL)
-    cards_url = "%s/%s" % (LINK_BASE, DECISIONS_REL)
-    frame_url = "%s/%s" % (LINK_BASE, frame["rel"]) if frame["rel"] else None
+    # TWO LINKS, THE MAXIMUM HE RULED, and both to the site. The gallery sits
+    # under WHAT CHANGED because that is where the pictures are talked about,
+    # and the glance under NEEDS YOU because that is where the decision lives.
+    gallery_url = site_url("gallery.html")
+    glance_url = site_url("")
 
-    ready, blocked, done = q["ready"], q["blocked"], q["done"]
+    waiting = cards["waiting"]
     lines = []
-    lines.append("HEADLINE: %s queue %s ready to start this morning, and %s "
-                 "blocked." % (in_words(ready).capitalize(),
-                               plural(ready, "item is", "items are"),
-                               in_words(blocked)))
+
+    # THE HEADLINE IS WHERE THE GAME STANDS, ruled by Jafar 2026-09-06: "lead
+    # with where the project stands and what changed for the game, not with
+    # what was engineered". It used to open with the queue count, which is a
+    # fact about the studio's paperwork and tells him nothing about his game.
+    # So the first sentence carries the two things that are HIS: whether there
+    # is anything new to look at, and whether anything is waiting on him.
+    if pics["n"] is None:
+        stands = "Nothing measured about new pictures this morning"
+    elif pics["n"]:
+        stands = ("%s new %s of the street since the previous brief"
+                  % (in_words(pics["n"]).capitalize(),
+                     plural(pics["n"], "picture", "pictures")))
+    else:
+        stands = "No new picture of the street since the previous brief"
+    asks = ("%s %s waiting for you"
+            % (in_words(waiting), plural(waiting, "decision is",
+                                         "decisions are"))
+            if waiting else "nothing is waiting for you")
+    lines.append("HEADLINE: %s, and %s." % (stands, asks))
     lines.append("")
 
+    # WHAT CHANGED FOR THE GAME FIRST, then the studio behind it in one clause.
+    if pics["n"]:
+        changed = ("There are %s new %s of the street to look at, biggest and "
+                   "newest first." % (in_words(pics["n"]),
+                                      plural(pics["n"], "picture", "pictures")))
+    elif frame["rel"]:
+        changed = ("Nothing new to look at this morning, so the gallery still "
+                   "holds the last picture of the street.")
+    else:
+        changed = ("No picture of the street this morning, because %s."
+                   % frame["why"])
+    # THE STUDIO'S OWN WORK, ONE CLAUSE, and the work list is NOT in it: the
+    # queue counts are on the provenance lines and the done line below, which
+    # is where a machine reads them and where they belong. Ruled 2026-09-06.
     if landed["n"] is None:
-        changed = ("Nothing measured for what landed since the previous "
-                   "brief, because no history was readable here.")
+        studio = (" Behind it, nothing measured about what landed, because no "
+                  "history was readable here.")
     elif landed["n"] == 0:
-        changed = ("Nothing landed since the previous brief.")
+        studio = " Behind it, nothing landed."
     else:
-        changed = ("%s %s landed since the previous brief."
-                   % (in_words(landed["n"]).capitalize(),
-                      plural(landed["n"], "change has", "changes have")))
-    changed += (" %s finished %s now sit in the done pile."
-                % (in_words(done).capitalize(), plural(done, "item", "items")))
-    lines.append("WHAT CHANGED: " + changed)
-    if frame_url:
-        lines.append("[the newest picture the studio has](%s)" % frame_url)
-    else:
-        lines.append("There is no new picture this morning: %s."
-                     % frame["why"])
-    lines.append("[the work list](%s)" % queue_url)
+        studio = (" Behind them, %s %s landed."
+                  % (in_words(landed["n"]),
+                     plural(landed["n"], "change has", "changes have")))
+    lines.append("WHAT CHANGED: " + changed + studio)
+    lines.append("[the gallery](%s)" % gallery_url)
     lines.append("")
 
-    if cards["waiting"]:
+    if waiting:
         needs = ("%s %s waiting for you."
-                 % (in_words(cards["waiting"]).capitalize(),
-                    plural(cards["waiting"], "card is", "cards are")))
+                 % (in_words(waiting).capitalize(),
+                    plural(waiting, "card is", "cards are")))
         top = cards["top"]
         # THE CARD'S OWN HEADING, USED ONLY IF IT SURVIVES THE REGISTER. A
         # heading carrying a path or a bare count would fail the whole brief,
@@ -408,7 +511,8 @@ def compose(root, today):
         title_findings = [f for f in pc.check(top, "answer")["findings"]
                           if f.rule != "linkfloor"]
         if top and not title_findings and "?" in top:
-            needs += " The first one asks: %s" % top
+            needs = ("%s%s" % (top, "" if waiting == 1
+                               else " That is the first of them."))
             facts["card_title_used"] = 1
         else:
             facts["card_title_used"] = 0
@@ -416,12 +520,11 @@ def compose(root, today):
         needs = "Nothing needs you this morning."
         facts["card_title_used"] = 0
     lines.append("NEEDS YOU: " + needs)
-    lines.append("[the decision queue](%s)" % cards_url)
+    lines.append("[where it all stands](%s)" % glance_url)
     lines.append("")
 
     lines.append("NEXT VISIBLE THING: unknown until the day is planned "
-                 "against your order; this brief reports state and does not "
-                 "promise one.")
+                 "against your order.")
     lines.append("")
 
     if budget["reading"] is None or budget["stale"]:
@@ -477,6 +580,19 @@ def provenance(facts):
         "landed=%s git-log-since-%s"
         % (l["n"] if l["n"] is not None else "nothing-measured",
            facts["window_since"]),
+        # PER-WINDOW NUMERATOR WITH THE DENOMINATOR IT CAME FROM, on one line
+        # so a reader cannot pair the numerator with the wrong total.
+        "picturesSincePreviousBrief=%s/%d-in-the-repository %s"
+        % (facts["pictures"]["n"] if facts["pictures"]["n"] is not None
+           else "nothing-measured", facts["pictures"]["total"],
+           "tools/gallery.py"),
+        # WHAT THE SENDER ATTACHES. Jafar ruled 2026-09-06 that images are sent
+        # as Telegram images and never as links, so the message no longer
+        # carries the frame's URL and the path has to reach the sender
+        # somewhere. This line is that somewhere, and it is outside the message
+        # because the register bans paths in anything he reads.
+        "attachAsTelegramImage=%s tools/report-frame.py"
+        % (facts["frame"]["rel"] or "nothing-measured/withheld"),
     ]
     return out
 
@@ -537,6 +653,18 @@ def run_once(root, today, dry_run=False, write_latest=False, quiet=False):
                 (pathlib.Path(root) / rel).write_text(text, encoding="utf-8")
                 wrote_latest = 1
 
+    if dry_run:
+        # THE USAGE LINE SAYS "compose and print" AND IT DID NOT PRINT. Read
+        # back on 2026-09-06: --dry-run printed the provenance and the done
+        # line and never the message, so the one command for looking at the
+        # brief before writing it showed everything except the brief. CLAUDE.md
+        # rule 4: open the artifact you are shipping.
+        say("  the composed message, %d word(s) of %d, between the rules:"
+            % (res["words"], res["cap"]))
+        say("  " + "-" * 68)
+        for line in text.splitlines():
+            say("  | " + line)
+        say("  " + "-" * 68)
     say("morning-brief: %s" % ("composed (nothing written)" if dry_run
                                else "wrote %s" % p.relative_to(root)))
     say("  numbers and the file each was read from, one per line, because the "
@@ -654,6 +782,38 @@ def selftest():
        "split" in res["enforced"] and not [f for f in res["findings"]
                                            if f.rule == "split"],
        res["enforced"])
+    # THE LINK BAND, ruled 2026-09-06. The register enforces it above; this
+    # names the reading so a failure says which half broke, and prints the
+    # destinations rather than only their count.
+    urls = pc.links_in(text)
+    dests = [pc.site_page(u) for u in urls]
+    ok("it carries %d link(s) of the ruled %d..%d and every one is a ruled "
+       "destination (%s)" % (len(urls), pc.LINK_MIN, pc.LINK_MAX,
+                             "/".join(d or "OFF-SITE" for d in dests)
+                             or "nothing-measured"),
+       pc.LINK_MIN <= len(urls) <= pc.LINK_MAX and all(dests), urls)
+
+    # WHAT THE HEADLINE LEADS WITH, ruled 2026-09-06: "lead with where the
+    # project stands and what changed for the game, not with what was
+    # engineered". Mechanical and therefore narrow: the headline must not open
+    # on the work list, and must name something of his (the town, a picture, or
+    # a decision waiting). It cannot tell whether the sentence is any good.
+    headline = text.splitlines()[0]
+    lead_ok, engineered, game_words = leads_with_the_game(headline)
+    ok("the headline leads with the game, not the paperwork (%d engineering "
+       "word(s) of %d looked for, %d game word(s) of %d found)"
+       % (len(engineered), len(ENGINEERING_WORDS), len(game_words),
+          len(GAME_WORDS)),
+       lead_ok, (headline, engineered))
+    # AND THE OTHER OUTCOME, on the shape Jafar rejected on 2026-09-06. The
+    # string is quoted here rather than read from the old file, so repairing
+    # the file can never disarm the guard.
+    rejected_shape = ("HEADLINE: Eighty-three queue items are ready to start "
+                      "this morning, and eight blocked.")
+    bad_lead, bad_eng, _ = leads_with_the_game(rejected_shape)
+    ok("and the headline Jafar rejected is REFUSED by the same rule (%s)"
+       % "/".join(bad_eng), not bad_lead, rejected_shape)
+
     # NO DIGIT IN THE PROSE, and the URLs are scrubbed first because the link
     # floor REQUIRES them and a branch name carrying digits is not a count.
     # This is the same scrub the register itself runs before the ban list.
@@ -708,8 +868,13 @@ def selftest():
        and "twelve percent" not in ts, (code_s, ts))
     ok("and the stale tree still carries the split sentence in words",
        "sessions and not points until the rate is measured" in ts, ts)
+    # THE PROPERTY, NOT THE SENTENCE: the brief must say it could not look,
+    # and must NOT say nothing landed. Asserting both halves is what makes this
+    # survive a rewording without going quiet: the wording moved on 2026-09-06
+    # and the old assertion caught it, which is the guard working.
     ok("a tree with no history reports landed as nothing measured, not zero",
-       "Nothing measured for what landed" in ts, ts)
+       "nothing measured about what landed" in ts
+       and "nothing landed" not in ts, ts)
 
     # A SOURCE THAT CANNOT BE READ: refuse, name it, write nothing.
     broken = _tree(_fixture_files(today.isoformat()))

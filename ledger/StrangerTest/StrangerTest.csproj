@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Ledger.StrangerTest</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Assets/Scripts/Core/**/*.cs" />
+    <!-- Same cards and roster as the game and as SimHarness. The session must
+         not introduce a cast of its own: the point of queue 119 is to test the
+         build, and a stranger meeting characters written for the test would be
+         testing the test. -->
+    <Compile Include="../Assets/Scripts/Game/LenaSetup.cs" />
+    <Compile Include="../Assets/Scripts/Game/CastSetup.cs" />
+    <!-- The three jobs, as data. Its own header says it is engine-free so the
+         file the game loads is the file the tests compile; this is a third
+         consumer of that same claim. -->
+    <Compile Include="../Assets/Scripts/Game/OperationSetup.cs" />
+  </ItemGroup>
+</Project>

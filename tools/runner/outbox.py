@@ -52,6 +52,7 @@ import re
 import subprocess
 import sys
 import time
+import traceback
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
@@ -878,16 +879,204 @@ def _commit(tmp, rel, text, when=None):
     return rel
 
 
-def selftest():
-    import tempfile
-    ok, bad = [], []
+# --------------------------------------------------------------------------
+# The fixture, and the clock it is graded against
+# --------------------------------------------------------------------------
+# A FIXTURE MUST NOT BE GRADED AGAINST A CLOCK IT DOES NOT CONTROL. Found
+# 2026-09-06, by which time it was holding every commit in the repository.
+# producer-check's GOOD sample states an ABSOLUTE deadline (DEADLINE
+# 2026-09-07), and the SINGLE-FILE check this module shells out to measures
+# deadlines from the WALL CLOCK on purpose, because the question at send time
+# is "is this far enough away to SEND". The gate's filename pin does not reach
+# this path and must not: two callers, two clocks, ruled in producer-check.
+# So the sample decayed, and here is the series, every reading taken from the
+# tool itself: 57.0 hours measured from the 2026-09-05 its own filename
+# carries, 24.0 at 2026-09-06T09:00 exactly (the instant it crossed), 23.6 at
+# 09:24, 23.5 at 09:30 and 23.3 at 09:41, falling about 0.1 every six minutes
+# and never coming back. Below the floor the accepting case went red, the good
+# file was never sent, its receipt was never written, and the first comparison
+# against that receipt raised TypeError on None. The suite then died before its
+# count line, and the gate could only say OUTBOX SELFTEST DID NOT REPORT, which
+# is what it says of a crash and of a silence alike.
+#
+# THE FIX IS IN THE FIXTURE AND NEVER IN THE BOUND. The deadline below is a
+# DURATION, which producer-check reads as the same number of hours at every
+# instant for ever; the suite proves that at two clocks a decade apart and
+# prints both readings as one pair. MIN_DEADLINE_HOURS is untouched and still
+# bites: FIXTURE_DEADLINE_SHORT plants a deadline under it, sends it down the
+# same subprocess check, and the suite requires a refusal naming the floor.
+FIXTURE_DEADLINE_FAR = "DEADLINE in 3 days."      # 72.0 hours, over the floor
+FIXTURE_DEADLINE_SHORT = "DEADLINE in 4 hours."   # 4.0 hours, under the floor
+
+#: The two instants the fixture's deadline is read at, a decade apart, so that
+#: a reading which moves with the calendar shows up as a difference between
+#: them. Documentation here; the suite is what asserts it.
+FIXTURE_CLOCKS = (datetime.datetime(2026, 9, 6, 9, 0),
+                  datetime.datetime(2036, 9, 6, 9, 0))
+
+
+def fixture_message(pc, deadline=FIXTURE_DEADLINE_FAR):
+    """producer-check's GOOD sample, with a deadline no wall clock can move.
+
+    `pc` is the module `_load_producer_check()` returns, so THE LIVE SAMPLE
+    stays the accepting fixture and only its one decaying line is rewritten.
+    The line is found with producer-check's OWN deadline regex rather than by
+    quoting the date out of it: a sample that changes its deadline must make
+    this raise, never leave it silently replacing nothing.
+    """
+    lines = pc.GOOD.splitlines()
+    at = [i for i, line in enumerate(lines) if pc.DEAD_RE.match(line)]
+    if len(at) != 1:
+        raise ValueError("the GOOD sample carries %d DEADLINE line(s) and not "
+                         "1, so this fixture cannot say which line it is "
+                         "replacing" % len(at))
+    lines[at[0]] = deadline
+    return "\n".join(lines) + "\n"
+
+
+# --------------------------------------------------------------------------
+# The selftest harness: the count line prints on EVERY path
+# --------------------------------------------------------------------------
+#: EXIT CODES, DISTINCT PER OUTCOME, because a tool that dies and a tool that
+#: reports a failure need different next actions. ledger/verify.py prints the
+#: exit code beside the counts, so 4 arrives as a different sentence from 3,
+#: and both are different from the silence of a tool that printed no count
+#: line at all. 2 stays free for "nothing measured", as elsewhere in this tree.
+SELFTEST_OK = 0        # every case passed
+SELFTEST_FAILED = 3    # the suite finished and at least one case FAILED
+SELFTEST_CRASHED = 4   # the suite RAISED, so the cases after it never ran
+SELFTEST_MEANING = {SELFTEST_OK: "every-case-passed",
+                    SELFTEST_FAILED: "a-case-FAILED",
+                    SELFTEST_CRASHED: "the-suite-itself-RAISED"}
+
+
+def run_selftest(tool, cases, tail=""):
+    """Run `cases(ok, bad, state)` and PRINT THE COUNT LINE WHATEVER HAPPENS.
+
+    A suite that dies mid-run and a suite that runs and reports nothing are
+    different facts, and a gate reading only `N passed, M failed` cannot tell
+    them apart unless the dying one still prints that line. So the raise is
+    caught HERE, printed with its type and message as a failing case, counted,
+    and followed by the count line, by how many cases had actually run when it
+    raised (the count is a floor, not a total), and by a distinct exit code.
+
+    Shared by outbox.py and telegram-bot.py: one count line, one parser in
+    ledger/verify.py, and no second copy of this to fix later.
+
+    Returns (code, ok, bad, state).
+    """
+    ok, bad, state = [], [], {}
+    crash, ran = "", 0
+    try:
+        cases(ok, bad, state)
+    except Exception as exc:                                   # noqa: BLE001
+        crash = "%s: %s" % (type(exc).__name__, exc)
+        ran = len(ok) + len(bad)
+        # The traceback names the line that died, which is the whole reason
+        # this is caught rather than allowed to kill the count line. It goes
+        # to STDOUT, the stream the count line uses: ledger/verify.py merges
+        # the two, and interleaved streams put the death and its numbers in an
+        # order that changes between runs.
+        traceback.print_exc(file=sys.stdout)
+        name = "crash/the-suite-itself-raised-before-it-finished"
+        bad.append(name)
+        print("  %-46s FAIL : %s (after %d case(s))" % (name, crash, ran))
+    state["ranBeforeCrash"] = ran if crash else None
+    code = (SELFTEST_CRASHED if crash
+            else SELFTEST_FAILED if bad else SELFTEST_OK)
+    print("\n%s selftest: %d passed, %d failed (%d case(s) run). %s"
+          % (tool, len(ok), len(bad), len(ok) + len(bad), tail))
+    if crash:
+        print("THE SUITE ITSELF RAISED after %d case(s) had run, so the "
+              "count above is a floor and not a total: the cases after it "
+              "never ran. %s" % (ran, crash))
+    return code, ok, bad, state
+
+
+def _selftest_cases(ok, bad, state):
+    """Every case, appending to `ok` / `bad`. Run through `run_selftest`.
+
+    SPLIT FROM `selftest()` so a raise anywhere below still reaches the count
+    line: this half may die, the half that reports may not.
+    """
+    import contextlib                                   # noqa: PLC0415
+    import io as _io                                    # noqa: PLC0415
+    import tempfile                                     # noqa: PLC0415
 
     def check(name, cond, detail=""):
         (ok if cond else bad).append(name)
         print("  %-46s %s%s" % (name, "pass" if cond else "FAIL",
                                 (" : " + str(detail)) if not cond else ""))
 
+    # THE HARNESS ITSELF, BOTH OUTCOMES, ACCEPTING CASE FIRST. A suite that
+    # cannot report its own death is the silent-instrument failure: on
+    # 2026-09-06 this one raised at a None receipt and the gate could say only
+    # OUTBOX SELFTEST DID NOT REPORT, which is true of a crash and of a silence
+    # alike. Both rungs run through the REAL `run_selftest`, and its printing
+    # is CAPTURED rather than echoed: ledger/verify.py takes the first
+    # `N passed, M failed` in this tool's output, so a synthetic count line
+    # reaching the terminal would be read as the outbox's own result.
+    def _a_suite_that_finishes(o, _b, st):
+        o.append("accept/synthetic-case-that-passed")
+        st["fixture"] = "/nowhere/synthetic"
+
+    def _a_suite_that_raises(o, _b, _st):
+        o.append("accept/synthetic-case-that-ran-before-the-raise")
+        raise ValueError("planted, so the death has to print its count line")
+
+    _buf = _io.StringIO()
+    with contextlib.redirect_stdout(_buf):
+        fin_code, fin_ok, fin_bad, _fin_st = run_selftest(
+            "synthetic", _a_suite_that_finishes, "")
+        raise_code, _r_ok, raise_bad, raise_st = run_selftest(
+            "synthetic", _a_suite_that_raises, "")
+    printed = _buf.getvalue()
+    check("accept/a-suite-that-finishes-prints-its-count-and-exits-0",
+          fin_code == SELFTEST_OK and len(fin_ok) == 1 and not fin_bad
+          and "synthetic selftest: 1 passed, 0 failed (1 case(s) run)"
+          in printed,
+          "exit=%d printedChars=%d" % (fin_code, len(printed)))
+    check("reject/a-suite-that-raises-still-prints-its-count-and-exits-4",
+          raise_code == SELFTEST_CRASHED and len(raise_bad) == 1
+          and "synthetic selftest: 1 passed, 1 failed (2 case(s) run)"
+          in printed
+          and "THE SUITE ITSELF RAISED after 1 case(s)" in printed
+          and "ValueError: planted" in printed
+          and raise_st["ranBeforeCrash"] == 1,
+          "exit=%d ranBeforeCrash=%s" % (raise_code,
+                                         raise_st.get("ranBeforeCrash")))
+    print("      says: harnessFinishExit=%d harnessRaiseExit=%d "
+          "harnessRaiseRanBeforeCrash=%s harnessRaiseNamesTheType=%s "
+          "countLinePrintedOnBothPaths=%s"
+          % (fin_code, raise_code, raise_st.get("ranBeforeCrash"),
+             "yes" if "ValueError: planted" in printed else "NO",
+             "yes" if printed.count("case(s) run)") == 2 else "NO"))
+
     pc = _load_producer_check()
+    # THE ACCEPTING FIXTURE IS THE LIVE SAMPLE with its one decaying line
+    # rewritten as a duration. See fixture_message above for what decayed.
+    good_text = fixture_message(pc)
+
+    # THE FIXTURE'S OWN CLOCK, ACCEPTING CASE FIRST, and read before anything
+    # else depends on it. Two instants a decade apart: a duration deadline
+    # gives one answer for ever, and that is what stops this suite going red
+    # with nobody having touched the tree. The reading is emitted as a PAIR,
+    # value@clock..value@clock, so both moments travel on one line.
+    dl_lines = [l for l in good_text.splitlines() if pc.DEAD_RE.match(l)]
+    dl_hours = [pc.deadline_hours(dl_lines[0], c) for c in FIXTURE_CLOCKS] \
+        if len(dl_lines) == 1 else []
+    check("accept/the-fixtures-deadline-cannot-move-with-the-wall-clock",
+          len(dl_lines) == 1 and len(set(dl_hours)) == 1
+          and None not in dl_hours
+          and dl_hours[0] >= pc.MIN_DEADLINE_HOURS,
+          "%d deadline line(s) in the fixture, readings %s"
+          % (len(dl_lines), dl_hours))
+    print("      says: fixtureDeadlineHours=%s floorHours=%d clocksRead=%d"
+          % ("..".join("%.1f@%s" % (h, c.date().isoformat())
+                       for h, c in zip(dl_hours, FIXTURE_CLOCKS))
+             or "nothing-measured",
+             pc.MIN_DEADLINE_HOURS, len(dl_hours)))
+
     check("accept/the-three-suffixes-match-producer-check",
           tuple(KIND_SUFFIX) == tuple(pc.KIND_SUFFIX), pc.KIND_SUFFIX)
     check("accept/the-outbox-tree-matches-the-gates",
@@ -902,10 +1091,13 @@ def selftest():
           and ".brief.md" in why, why)
 
     tmp = tempfile.mkdtemp(prefix="ledger-outbox-")
+    # Recorded BEFORE any case runs: on a crash the directory to open is the
+    # first thing the reader needs, and `selftest()` prints it either way.
+    state["fixture"] = tmp
     repo = _fixture_repo(tmp)
     good_rel = "%s/2026-09-05-a-good-one.unprompted.md" % OUTBOX_DIR
     commit_at = 1788600000
-    _commit(repo, good_rel, pc.GOOD, when=commit_at)
+    _commit(repo, good_rel, good_text, when=commit_at)
     sent_at = commit_at + 42
 
     calls = []
@@ -917,7 +1109,7 @@ def selftest():
     r = sweep(repo, sender, now=sent_at)
     check("accept/a-good-message-is-checked-and-sent",
           r["sent"] == [good_rel] and len(calls) == 1
-          and pc.GOOD.strip()[:20] in calls[0],
+          and good_text.strip()[:20] in calls[0],
           "%s / %d call(s)" % (r["sent"], len(calls)))
     rec = _read(repo, receipt_rel(good_rel))
     good_id, mid = receipt_is_valid(rec or "")
@@ -951,8 +1143,27 @@ def selftest():
           "nothing measured" in nothing_line(r2), nothing_line(r2))
 
     # THE REJECTING CASES.
+    #
+    # THE FLOOR IS STILL LIVE AT THIS DOOR, and this rung is what proves it.
+    # Same fixture, one contributor toggled: the accepted message above states
+    # 72 hours and was sent, this one states 4 and must not be. Both rungs go
+    # through the same subprocess check in the same run, so the difference
+    # between them is MIN_DEADLINE_HOURS and nothing else. Without this rung a
+    # fixture whose deadline had stopped being READ AT ALL would still show the
+    # accepting case green, which is how a loosened bound hides.
+    short_rel = "%s/2026-09-05-deadline-too-close.unprompted.md" % OUTBOX_DIR
+    _commit(repo, short_rel, fixture_message(pc, FIXTURE_DEADLINE_SHORT),
+            when=commit_at)
+    r_dl = sweep(repo, sender, now=sent_at + 90, only=short_rel)
+    dl_clause = r_dl["refused"][0][1] if r_dl["refused"] else ""
+    check("reject/a-deadline-under-the-ruled-floor-is-not-sent",
+          r_dl["sent"] == [] and len(r_dl["refused"]) == 1
+          and len(calls) == 1 and "deadline" in dl_clause
+          and ("under the ruled %d" % pc.MIN_DEADLINE_HOURS) in dl_clause,
+          dl_clause or "NOTHING WAS REFUSED")
+
     over_rel = "%s/2026-09-05-far-too-long.unprompted.md" % OUTBOX_DIR
-    _commit(repo, over_rel, pc.GOOD + ("\nword " * 200) + "\n",
+    _commit(repo, over_rel, good_text + ("\nword " * 200) + "\n",
             when=commit_at)
     r3 = sweep(repo, sender, now=sent_at + 120, only=over_rel)
     check("reject/an-over-cap-message-is-not-sent",
@@ -975,7 +1186,7 @@ def selftest():
           r3b["records"])
 
     nokind_rel = "%s/2026-09-05-no-register.md" % OUTBOX_DIR
-    _commit(repo, nokind_rel, pc.GOOD, when=commit_at)
+    _commit(repo, nokind_rel, good_text, when=commit_at)
     r4 = sweep(repo, sender, now=sent_at + 240, only=nokind_rel)
     nk = r4["refused"][0][1] if r4["refused"] else ""
     check("reject/a-name-with-no-kind-is-refused-not-guessed",
@@ -983,7 +1194,7 @@ def selftest():
           and ".brief.md" in nk, nk)
 
     noid_rel = "%s/2026-09-05-no-id-back.unprompted.md" % OUTBOX_DIR
-    _commit(repo, noid_rel, pc.GOOD, when=commit_at)
+    _commit(repo, noid_rel, good_text, when=commit_at)
 
     def sender_noid(text):
         calls.append(text)
@@ -999,7 +1210,7 @@ def selftest():
           and "held=1" in done_line(r5b), done_line(r5b))
 
     bad_rel = "%s/2026-09-05-bad-receipt.unprompted.md" % OUTBOX_DIR
-    _commit(repo, bad_rel, pc.GOOD, when=commit_at)
+    _commit(repo, bad_rel, good_text, when=commit_at)
     _write(repo, receipt_rel(bad_rel), "receipt: sent\nfile: %s\n" % bad_rel)
     r6 = sweep(repo, sender, now=sent_at + 420, only=bad_rel)
     check("reject/a-receipt-with-no-id-is-refused",
@@ -1011,7 +1222,7 @@ def selftest():
         raise SendFailed("Could not reach Telegram at all (URLError)")
 
     down_rel = "%s/2026-09-05-uplink-down.unprompted.md" % OUTBOX_DIR
-    _commit(repo, down_rel, pc.GOOD, when=commit_at)
+    _commit(repo, down_rel, good_text, when=commit_at)
     r7 = sweep(repo, sender_down, now=sent_at + 480, only=down_rel)
     check("reject/a-dead-uplink-leaves-it-unsent-and-retryable",
           r7["sent"] == [] and len(r7["failed"]) == 1
@@ -1166,13 +1377,36 @@ def selftest():
     check("reject/no-records-at-all-says-nothing-measured",
           any("nothing measured" in l for l in empty), empty)
 
-    print("\noutbox selftest: %d passed, %d failed (%d case(s) run). "
-          "THE WIRE IS NOT COVERED: every send above went to a scripted "
-          "stand-in, so the Telegram half is unverifiable until it runs on "
-          "the PC." % (len(ok), len(bad), len(ok) + len(bad)))
-    print("fixture: %s (left on disk for reading)" % tmp)
-    return 3 if bad else 0
+
+def selftest():
+    """The whole suite, and it REPORTS ON EVERY PATH.
+
+    Exit 0 every case passed, 3 a case failed, 4 the suite itself raised. The
+    count line is printed by `run_selftest` before this function sees the
+    code, so a crash below still reaches ledger/verify.py as numbers plus a
+    distinct exit rather than as no line at all.
+    """
+    code, ok, bad, state = run_selftest(
+        "outbox", _selftest_cases,
+        "THE WIRE IS NOT COVERED: every send above went to a scripted "
+        "stand-in, so the Telegram half is unverifiable until it runs on "
+        "the PC.")
+    print("fixture: %s"
+          % (("%s (left on disk for reading)" % state["fixture"])
+             if state.get("fixture")
+             else "nothing measured, the suite ended before one was made"))
+    print("outbox selftest exit=%d meaning=%s casesRun=%d casesFailed=%d"
+          % (code, SELFTEST_MEANING[code], len(ok) + len(bad), len(bad)))
+    return code
 
 
 if __name__ == "__main__":
+    # A correct run that ends in a BrokenPipeError traceback costs twenty
+    # minutes before anybody notices it worked, and this file is read through
+    # `| head` more often than not.
+    try:
+        import signal
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    except (ImportError, AttributeError, ValueError):
+        pass
     sys.exit(selftest() if "--selftest" in sys.argv else selftest())

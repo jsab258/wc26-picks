@@ -9,6 +9,106 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-06, THE STREET'S CAUSE IS NAMED, and it is not queue 062
+
+Read `production/queue/123-the-sampler-reads-the-engine-default-texture.md`
+before touching anything Unreal. The one sentence:
+
+    the base material's colour sampler renders its own default texture,
+    /Engine/EngineResources/DefaultTexture, and not the texture the dynamic
+    material instance binds to BaseColorMap.
+
+QUEUE 062 IS DISCHARGED AND WAS NOT SUFFICIENT. Its acceptance is met on
+landed run 21 (commit 372fd95): `ue-build.txt` line 12 reads
+`materialStatus=MADE materialScriptReturn=0 materialConnections=14/14`. The UV
+head is wired and the four frames are still untextured. 062's stop rule (no
+further Unreal dispatch) is LIFTED: the number it watched did move, 12/14 to
+14/14. Wiring the head is what made this fault readable at all, because before
+run 21 every sampler read one texel and a bound texture could not be told from
+an unbound one.
+
+The eliminations, each read off a committed artifact and not off a memory:
+
+- The sampler IS connected to BaseColor, because the engine checker appears in
+  `production/d1-probe/ue-vign_camA_day.png`. An unconnected sampler could not
+  put it there.
+- The samplers receive VARYING UVs: the checker on the hanging sign has a
+  measured vertical period of 13 px over a 125 px face and the pillar strip 20
+  px over 104 px, both detrended by a plane fit first. WITHDRAWN THE SAME
+  HOUR, and queue 123 carries the correction: this does NOT prove the MID's
+  scalar overrides arrive. The three large surfaces that would decide it carry
+  no periodic signal at all after detrending (right wall sd 0.08, road sd 0.13,
+  pavement sd 0.15), and flat is what a densely tiled checker mips down to AND
+  what an untextured surface looks like. Whether any MID parameter of any kind
+  reaches the shader is OPEN, which is why the dispatch now reads the scalars
+  back as well as the textures.
+- Import and assignment are not the fault:
+  `production/d1-probe/ue-vignette-verdict.txt` lines 56 to 71 read
+  `piecesTextured=563/593`, `texturesImported=36`, every albedo
+  `2048x2048/JPEG-BGRA8/srgb=yes` under `albedoParam=BaseColorMap`. The 30
+  unassigned pieces are exactly the four ABSENT surfaces, 10 plus 6 plus 10
+  plus 4.
+- The names are in the asset: `M_LedgerSurface.uasset` carries BaseColorMap,
+  NormalMap, RoughnessMap, TilingU and TilingV in its name table.
+
+THE PROOF, and it names a piece rather than averaging a frame.
+`east_parade_bay3` is a brick_red piece, 6.00 x 6.20 x 8.00 m, occupying 308 x
+226 px of camera A. brick_red reads `surfaceStatus=RESOLVED pieces=41
+piecesAssigned=41/41`, so that piece HAS a material instance with
+`brick_red.jpg` bound to BaseColorMap. Its wall face over 16,800 pixels renders
+mean RGB (64.9, 66.7, 69.5), R/B 0.934, chroma mean 4.6 and max 7. The texture
+is mean RGB (141.4, 131.3, 109.6), R/B 1.290, chroma mean 31.9. THE RENDERED
+SURFACE IS COOLER THAN NEUTRAL WHERE THE TEXTURE IS WARM. Overcast light can
+drain warmth out of a red brown albedo; it cannot invert the channel ordering.
+
+The camera convention that rests on was established, not assumed: cam_A yaw 0
+points along +x, found by trying all four axis conventions and counting piece
+centres in frame, 474 of 593 for +x against 66, 5 and 0. A previous dispatch
+projected cam_A using cam_B's position and yaw, so its region attributions are
+wrong and are not to be reused.
+
+The two weaker whole-frame measurements, kept because they were what pointed
+here, both stated with what they do NOT reach:
+
+- Maximum chroma 15 over 230,400 pixels sampled of 921,600. This refutes four
+  of the twelve albedo files rendering anywhere in frame: brick_red mean chroma
+  31 over 41 pieces, wood 42 over 32, roof 69 over 2, sidewalk texel(0,0) 86
+  over 5. It does NOT refute the other five near-neutral ones, asphalt 2, kerb
+  0, plaster 7, concrete 7, metal 22, which could render at 15 unnoticed. And
+  how many of those 80 coloured pieces sit inside camera A's frustum has not
+  been counted, so this is strong evidence and not proof.
+- 6,714 of 14,400 eight-by-eight blocks below standard deviation 1.0. Nearly
+  half the frame dead flat. This one does not depend on which pieces are in
+  shot, which is why it is the load-bearing half.
+
+IN FLIGHT: an engine-specialist carrying queue 123's two halves in one CI
+round trip, the per-surface readback (`midParamReadback`, `texResourceValid`,
+`compMaterialIsMid`) and the control quad with four known colours built in
+code. The control quad is the accepting case this diagnosis has never had, and
+it is what separates "the override never lands" from "the override lands and
+the texture has no render resource". Nothing below this line has run an
+engine.
+
+THE REGISTER AND GALLERY BATCH IS RULED AND AMENDED. Verdict LAND WITH
+AMENDMENTS in
+`game-design/decision-2026-09-06-ruling-register-link-band-and-gallery.md`. The
+blocking amendment refused date-scoped rules: the gate was reading its rulebook
+off the specimen, since a filename date is typed by the writer. Replaced by
+`LEGACY_LINK_RULES`, three names frozen, never widening to a file dated on or
+after 2026-09-06. All four amendments are applied and every selftest is green.
+
+A RESIDENT ERROR ON THAT SAME GATE, recorded because the shape of it recurs.
+The resident filed queue 124 claiming a resumed director can never satisfy
+`director_cadence`. IT IS REFUTED, by the director and then by the resident
+against the code. `verify.py` 3444 to 3455: the state is unruled only when
+`ruling_fresh == 0`, so one stamp naming any fresh row clears it, and fixture
+a14 is the accepting case for a killed-and-resumed director already. The
+resident read `rulingRowsUnruled=1/2` and treated it as a failing bound; the
+same footer said `director cadence ok` and the actual red was
+`UNTRACKED/ABSENT TOOL(S)`. Rule 2: the same evidence is owed for WHICH number
+a gate reads as for the number itself, and an unbounded reading that moves
+looks exactly like a bound that is failing.
+
 ## Where this is, 2026-09-02: THE STREET RENDERS, and it is a street
 
 Run 152198e landed all four frames and all three gate numbers came good:
@@ -191,6 +291,16 @@ TWO FAULTS IN ITS BUDGET SECTION, both filed:
   "taken yesterday", which reads as reassurance. QUEUE 112.
 
 NO BUILDER WORK STARTED. An unknown budget is not permission.
+
+THE "PASSED THE REGISTER" CLAIM IS CORRECTED, 2026-09-06, amendment A5 of the
+ruling on the register's link band. Grepped repo-wide for the SENTENCE and not
+the site, per rule 1: six hits, three of them inside the ruling record itself
+that names the correction. The three real sites are
+`game-design/decision-2026-09-05-ruling-build-batch-and-roadmap-fold.md` lines
+271 and 432 and `production/queue/095`, and all three now carry the dated
+correction. NOW.md was named as a possible fourth and IS NOT ONE: it carries no
+such sentence, and what it does say about that message is the paragraph below,
+which was already right.
 
 NOTHING HAS COME THROUGH THE BOT. `inbox-read` reports nothing measured, the
 `pc-inbox` branch does not exist, and `outbound: records=0`, so the report

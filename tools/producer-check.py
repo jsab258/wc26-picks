@@ -21,8 +21,17 @@ whether the link behind it actually shows what the sentence says, or whether
 the recommendation is any good. Those need the director. The report says so at
 the bottom rather than implying the absence of a finding is approval.
 
+THE LINK BAND, ruled by Jafar 2026-09-06 after a message with ten repository
+links passed this check: ONE link at least (constitution law 12), TWO at most,
+and the only destinations are the glance, the map and the gallery. A picture
+goes to him as a Telegram image, never as a link. Rules ruled after a message
+was written do not apply to it, and the mechanism is a FROZEN LIST OF NAMES
+(see LEGACY_LINK_RULES), never the date in a filename: the date at the front of
+a name is typed by the writer, so a date switch lets the specimen choose its
+own rulebook. The three already-sent messages are named; today's is not.
+
 THE REGISTERS. UNPROMPTED and BRIEF get the shape, the cap, the ban list and
-the link floor. ANSWER gets the ban list and the link floor only, because
+the link floor. ANSWER gets the ban list and the link rules only, because
 Jafar's question sets the length and a question asking for a number is
 answered with the number. Every register PRINTS the rules it did not enforce,
 by name: a skipped check that prints nothing is indistinguishable from a
@@ -82,7 +91,7 @@ SECTIONS = ["HEADLINE", "WHAT CHANGED", "NEEDS YOU", "NEXT VISIBLE THING",
 # The rules, by name, so a register can say which of them it enforces and the
 # report can print the ones it did not.
 RULES = ["wordcap", "shape", "options", "deadline", "nextvisible",
-         "banned", "linkfloor", "split"]
+         "banned", "linkfloor", "linkcap", "linkdest", "split"]
 # THE SPLIT IS THE BRIEF'S ALONE. Jafar's standing order of 2026-09-05 says
 # EVERY BRIEF reports the studio versus game split; it says nothing about an
 # unprompted message or an answer, and a rule applied where it was not ruled is
@@ -97,8 +106,46 @@ REGISTERS = {
     # enforced and are NAMED as not enforced. The ban list and the link floor
     # still bind, minus counts: a question asking how many is answered with
     # how many.
-    "answer": (None, ["banned", "linkfloor"]),
+    # THE TWO LINK RULES BIND IN EVERY REGISTER. Jafar ruled them of "a
+    # message", not of a kind: "at most two links per message, and never to a
+    # repo markdown file". A cap that an answer could escape is a cap the next
+    # long answer escapes.
+    "answer": (None, ["banned", "linkfloor", "linkcap", "linkdest"]),
 }
+# THE THREE MESSAGES WRITTEN BEFORE THE LINK BAND WAS RULED, BY NAME.
+#
+# Jafar ruled the band on 2026-09-06. Three messages were already written and
+# sent under the register as it stood, whose destination rule was a host
+# allowlist. Grading them against a rule that did not exist would turn them red
+# in ledger/verify.py, delete the footer and block every commit until somebody
+# edited a message that was correct when it was sent, which is queue item 077's
+# failure one rule further on.
+#
+# WHY A NAME AND NOT A DATE, ruled 2026-09-06 after the first version of this
+# used the ISO date at the front of the filename as the switch. THE GATE WOULD
+# HAVE READ ITS RULEBOOK OFF THE SPECIMEN: that date is typed by the writer, so
+# a file named 2026-09-05-x.unprompted.md written next week would be graded with
+# no link cap and the retired host list. The defence offered for it ("changing a
+# filename takes a reviewed diff") does not hold, because outbox messages commit
+# on the resident's read under the narrowing of 2026-09-06. The same argument is
+# already written down at PRE_REGISTER below, for the same reason.
+#
+# THIS TUPLE MAY NEVER GAIN A MEMBER WHOSE FILENAME DATE IS ON OR AFTER
+# 2026-09-06, and it widens only in a reviewed diff. The selftest asserts the
+# first half on every run. No marker line goes inside these messages: they are
+# the record of what was written, and the gate's own per-file line
+# (pass-legacy-links) is the reader-visible half.
+LEGACY_LINK_RULES = (
+    "production/outbox/2026-09-03-batch-landed-and-the-wait.unprompted.md",
+    "production/outbox/2026-09-05-the-console-run.unprompted.md",
+    "production/briefs/2026-09-05.md",
+)
+
+# DOCUMENTATION, AND IT SELECTS NO RULE. The band was ruled on this date; the
+# only code that reads it is the selftest assertion that no name above is dated
+# on or after it. Nothing in check() or gate() branches on a date.
+LINK_BAND_RULED_ON = datetime.date(2026, 9, 6)
+
 # ENFORCED IN EVERY REGISTER WHEN A NEEDS YOU SECTION IS PRESENT, ruled
 # 2026-09-03. An answer has no cap and no required shape, but the moment it
 # carries a decision it carries Jafar's floor with it: two to four options, a
@@ -106,17 +153,45 @@ REGISTERS = {
 # this a decision buried in a long answer escapes the default and the floor,
 # which is the failure the decision queue exists to end.
 RULES_IF_NEEDS_YOU = ["options", "deadline"]
+# THE TWO RULES THE LINK BAND ADDED on 2026-09-06, named once so the legacy
+# switch and the report cannot come to disagree about which rules it covers.
+LINK_BAND_RULES = ("linkcap", "linkdest")
 # Counts are legitimate in an answer and only there. Named as its own set
 # rather than hidden inside the register tuple, so the exemption is greppable.
 COUNTS_ALLOWED_IN = {"answer"}
 
-# WHERE A LINK MAY POINT. The console has no hosted URL as this is written:
-# tools/dashboard/build-dashboard.py writes a local page and an opt-in live
-# page, and no host for it appears anywhere in this repo. So today the only
-# link that can satisfy the floor is a GitHub one, and the report SAYS that
-# rather than letting a pass read as "the console link was checked".
-GITHUB_HOSTS = ("github.com", "raw.githubusercontent.com")
-CONSOLE_HOSTS = ()          # add the console host the day it is hosted
+# WHERE A LINK MAY POINT, RULED BY JAFAR 2026-09-06, verbatim: "images are
+# sent as Telegram images, never as links; at most two links per message, and
+# never to a repo markdown file, only to the glance, map or gallery".
+#
+# SO THE ALLOWLIST IS THREE PAGES, NOT A HOST. It used to be a host list, and
+# that is exactly the hole: production/outbox/2026-09-05-the-console-run.
+# unprompted.md carried fifteen URLs, thirteen of them to github.com and eight
+# of those to repository markdown files, and this program printed SEND. That
+# pass is the measurement this rule was written from, taken 2026-09-06 before
+# the change: urls=15 goodLinks=13 findings=0.
+#
+# AN IMAGE IS NOT A LINK EITHER. A blob link to a .png is still a link to the
+# repository, so it fails `linkdest` like any other; the picture goes to him as
+# a Telegram image, which is the sender's job and not this program's.
+SITE_ORIGIN = "https://jsab258.github.io/wc26-picks/"
+# (path under the origin, what to call it in a finding). The empty path is the
+# glance itself. Adding a page here is the ONE place the allowlist grows.
+SITE_PAGES = (("", "the-glance"),
+              ("map.html", "the-map"),
+              ("gallery.html", "the-gallery"))
+# THE BAND, not a floor: one link at least (constitution law 12, evidence) and
+# two at most (Jafar, 2026-09-06). Both ends are his, neither is measured, and
+# both are cited rather than chosen.
+LINK_MIN, LINK_MAX = 1, 2
+
+# THE RETIRED DESTINATION LIST, kept because the link FLOOR is older than the
+# band and the three named messages satisfied the floor with the destinations
+# that existed when they were written. It governs ONLY the files named in
+# LEGACY_LINK_RULES and it can never widen. Without it, changing what "an
+# allowed link" MEANS would fail those three through the oldest rule in the
+# file rather than through the new one.
+LEGACY_LINK_HOSTS = ("github.com", "raw.githubusercontent.com")
 LINK_RE = re.compile(r"https?://[^\s<>()\[\]]+")
 MD_LINK_RE = re.compile(r"\[([^\]]*)\]\((https?://[^)\s]+)\)")
 
@@ -304,9 +379,47 @@ def links_in(text):
     return LINK_RE.findall(text)
 
 
-def link_ok(url):
-    host = re.sub(r"^https?://", "", url).split("/")[0].lower()
-    return host in GITHUB_HOSTS or host in CONSOLE_HOSTS
+def site_page(url):
+    """Which of the three published pages this URL IS, or None.
+
+    Whole-URL matching, not host matching. `https://github.com/...blob/....md`
+    and `https://jsab258.github.io/wc26-picks/map.html` differ only in the part
+    a host check throws away, and throwing it away is what let ten repository
+    links through on 2026-09-05."""
+    u = url.split("#", 1)[0].rstrip("/")
+    base = SITE_ORIGIN.rstrip("/")
+    if u != base and not u.startswith(base + "/"):
+        return None
+    rest = u[len(base):].lstrip("/")
+    for name, label in SITE_PAGES:
+        if rest == name.rstrip("/"):
+            return label
+    return None
+
+
+def link_ok(url, legacy_links=False):
+    """May this URL appear? `legacy_links` is MEMBERSHIP OF A NAMED LIST, never
+    a date: see LEGACY_LINK_RULES for why the specimen may not choose.
+
+    ONE FUNCTION, TWO GENERATIONS. The retired generation is a SUPERSET: the
+    ruling of 2026-09-06 REMOVED repository links, it did not remove the site,
+    so anything allowed today was allowed before and the tightening is
+    monotone. False is the default, which is what every caller with no entry on
+    the list must get."""
+    if site_page(url) is not None:
+        return True
+    if legacy_links:
+        host = re.sub(r"^https?://", "", url).split("/")[0].lower()
+        return host in LEGACY_LINK_HOSTS
+    return False
+
+
+def link_rule_generation(legacy_links):
+    """Which destination list applied, in words, for the report."""
+    site = "-or-".join(lbl for _, lbl in SITE_PAGES)
+    if legacy_links:
+        return "legacy-by-name/%s-or-%s" % (site, "-or-".join(LEGACY_LINK_HOSTS))
+    return "ruled-2026-09-06/%s-only" % site
 
 
 def count_words(text):
@@ -397,7 +510,7 @@ def split_sections(text):
     return bodies, order
 
 
-def check(text, kind="unprompted", now=None):
+def check(text, kind="unprompted", now=None, legacy_links=False):
     """Every reading this program takes, as data. PURE: takes text, returns a
     dict, touches no file. The selftest drives it with synthetic fixtures and
     the report function only formats what comes out of here.
@@ -421,11 +534,20 @@ def check(text, kind="unprompted", now=None):
     if needs_you_present:
         enforced = list(enforced) + [r for r in RULES_IF_NEEDS_YOU
                                      if r not in enforced]
+    # THE LINK BAND DOES NOT APPLY TO THE THREE MESSAGES WRITTEN BEFORE IT WAS
+    # RULED, and membership of that list is decided BY NAME by the caller (the
+    # gate) rather than by anything inside the text. `now` selects no rule at
+    # all: it measures deadlines and nothing else.
+    if legacy_links:
+        enforced = [r for r in enforced if r not in LINK_BAND_RULES]
     words = count_words(text)
     scrubbed = scrub_links(text)
     found, notes = [], []
     urls = links_in(text)
-    good_links = [u for u in urls if link_ok(u)]
+    # EVERY DESTINATION TEST IN THIS FUNCTION READS THE SAME INSTANT. A second
+    # call site using today's list while the first used the dated one would
+    # report a message as both compliant and not.
+    good_links = [u for u in urls if link_ok(u, legacy_links)]
 
     # 1. THE WORD CAP.
     if "wordcap" in enforced and len(words) > word_cap:
@@ -463,11 +585,12 @@ def check(text, kind="unprompted", now=None):
         # cannot see "the street looks right"), so hanging the evidence floor
         # off it inherited that blindness. The floor now asks only whether a
         # message that says anything carries a link.
-        if not good_links:
+        if len(good_links) < LINK_MIN:
             where = "; ".join(u for u in urls[:2]) or "no URL at all"
             found.append(Finding(
                 "linkfloor",
-                "no link to the console or to GitHub (%s). %d sentence(s) read "
+                "no link to the glance, the map or the gallery (%s). %d "
+                "sentence(s) read "
                 "as claim-shaped, and the floor does NOT depend on that count: "
                 "law 12 requires the evidence behind any message that speaks. "
                 "First claim, if any: %s" % (
@@ -483,7 +606,8 @@ def check(text, kind="unprompted", now=None):
     for s, sec, ln in sents:
         by_section.setdefault(sec, []).append(s)
     linked_sections = {sec for sec, ss in by_section.items()
-                       if any(link_ok(u) for t in ss for u in links_in(t))}
+                       if any(link_ok(u, legacy_links) for t in ss
+                              for u in links_in(t))}
     # links live on the LINE, not the sentence, so re-derive from lines
     linked_sections = set()
     cur = "(before any section)"
@@ -491,9 +615,33 @@ def check(text, kind="unprompted", now=None):
         head = section_label(line)
         if head:
             cur = head
-        if any(link_ok(u) for u in links_in(line)):
+        if any(link_ok(u, legacy_links) for u in links_in(line)):
             linked_sections.add(cur)
     unlinked_claims = [c for c in claims if c[1] not in linked_sections]
+
+    # 3b. THE LINK BAND AND THE DESTINATION, ruled 2026-09-06. The floor above
+    # counts SITE links; these two count every URL in the message, because "at
+    # most two links" is about what he has to read past, not about which of
+    # them are good ones.
+    if "linkcap" in enforced and len(urls) > LINK_MAX:
+        found.append(Finding(
+            "linkcap",
+            "%d link(s), %d over the ruled cap of %d per message. Ruled "
+            "2026-09-06: at most two links, everything else said in plain "
+            "words. Over the cap: %s"
+            % (len(urls), len(urls) - LINK_MAX, LINK_MAX,
+               cap(urls[LINK_MAX:], keep=FINDINGS_SHOWN, width=60, sep=" | "))))
+    if "linkdest" in enforced:
+        offsite = [u for u in urls if not link_ok(u, legacy_links)]
+        if offsite:
+            found.append(Finding(
+                "linkdest",
+                "%d of %d link(s) point somewhere other than the glance, the "
+                "map or the gallery. Ruled 2026-09-06: never to a repository "
+                "markdown file, and a picture goes to him as a Telegram image "
+                "rather than as a link. Offending: %s"
+                % (len(offsite), len(urls),
+                   cap(offsite, keep=FINDINGS_SHOWN, width=60, sep=" | "))))
 
     # 4. THE SHAPE.
     bodies, order = split_sections(text)
@@ -600,6 +748,18 @@ def check(text, kind="unprompted", now=None):
         "unlinked_examples": [c[0] for c in unlinked_claims],
         "sections_found": [s for s in SECTIONS if s in bodies],
         "items": len(items), "urls": urls, "good_links": good_links,
+        "link_min": LINK_MIN, "link_max": LINK_MAX,
+        "offsite_links": [u for u in urls if not link_ok(u, legacy_links)],
+        "link_generation": link_rule_generation(legacy_links),
+        # WHICH of the three pages this message actually links, named. A
+        # link accepted under the OLDER generation is not one of them, so it
+        # contributes no label and is counted in `good_links` only.
+        "site_labels": sorted({site_page(u) for u in good_links
+                               if site_page(u) is not None}),
+        # THE LINK BAND'S TWO RULES DID NOT APPLY TO THIS FILE, because it is
+        # named in LEGACY_LINK_RULES. Printed, never silent: a rule skipped in
+        # silence is indistinguishable from a rule that passed.
+        "legacy_links": legacy_links,
         "split_found": split_found, "split_of": len(SPLIT_PARTS),
         "split_missing": split_missing,
         "banned_checked": banned_checked,
@@ -664,10 +824,15 @@ def report(r):
           "%d section(s) of %d found (%s)"
           % (r["sentences"], r["claims"], r["items"], len(r["sections_found"]),
              len(SECTIONS), "/".join(r["sections_found"]) or NOTHING))
-    print("  links: %d URL(s), %d of them to GitHub or the console. The "
-          "console has no hosted URL yet, so a GitHub link is the only one "
-          "that can satisfy the floor today"
-          % (len(r["urls"]), len(r["good_links"])))
+    print("  links: %d URL(s) of the ruled %d..%d, %d to the site (%s), %d "
+          "elsewhere. The only three destinations allowed are %s under %s; a "
+          "picture is sent as a Telegram image and never as a link"
+          % (len(r["urls"]), r["link_min"], r["link_max"], len(r["good_links"]),
+             "/".join(l for l in r["site_labels"] if l) or NOTHING,
+             len(r["offsite_links"]),
+             "/".join(lbl for _, lbl in SITE_PAGES), SITE_ORIGIN))
+    print("  destination list applied: %s (the list is dated because the "
+          "floor is older than today's ruling)" % r["link_generation"])
     print("  claim-shaped means: not a question, the line does not begin with "
           "a section label or an option / recommendation / default / deadline "
           "marker, and the sentence carries a finite assertion verb")
@@ -692,7 +857,14 @@ def report(r):
         print("  note: %s" % n)
     if r["not_enforced"]:
         print("  NOT ENFORCED in this register, named rather than skipped in "
-              "silence: %s" % ", ".join(r["not_enforced"]))
+              "silence: %s%s"
+              % (", ".join(r["not_enforced"]),
+                 (" (%s: legacy link rules by name, this file is one of the "
+                  "%d on the frozen LEGACY_LINK_RULES list in "
+                  "tools/producer-check.py, written before the band was "
+                  "ruled)" % (" and ".join(LINK_BAND_RULES),
+                              len(LEGACY_LINK_RULES)))
+                 if r["legacy_links"] else ""))
 
     if r["claims"]:
         print("  advisory, not a rejection: %d of %d claim-shaped sentence(s) "
@@ -740,7 +912,7 @@ GOOD = """HEADLINE: the town has textures again, and the street is worth a look.
 
 WHAT CHANGED: the grey street now paints properly, and the first picture of it
 is up. Everything else waited on that.
-[the street](https://github.com/jsab258/wc26-picks/blob/main/game-design/x.jpg)
+[the gallery](https://jsab258.github.io/wc26-picks/gallery.html)
 
 NEEDS YOU: how close should strangers stand on a pavement?
 A. Almost touching, a crowded market.
@@ -749,7 +921,7 @@ C. Reserved, a town that keeps its distance.
 RECOMMENDATION B, a working port town rather than a festival.
 DEFAULT B if you say nothing.
 DEADLINE 2026-09-07.
-[the card](https://github.com/jsab258/wc26-picks/blob/main/production/q.md)
+[where things stand](https://jsab258.github.io/wc26-picks/)
 
 NEXT VISIBLE THING: a walk through that street, tomorrow evening.
 
@@ -784,6 +956,19 @@ BAD = {
         GOOD.replace("Everything else waited on that.",
                      "Everything else waited on that. " + ("and " * 130)),
     "linkfloor": re.sub(r"\[[^\]]*\]\([^)]*\)\n?", "", GOOD),
+    # ONE MORE LINK THAN THE CAP, and it is a legal destination: the cap is
+    # about how much he has to read past, not about where the links go, and a
+    # fixture that broke both rules would prove neither.
+    "linkcap": GOOD.replace(
+        "NEXT VISIBLE THING: a walk through that street, tomorrow evening.",
+        "NEXT VISIBLE THING: a walk through that street, tomorrow evening.\n"
+        "[the map](https://jsab258.github.io/wc26-picks/map.html)"),
+    # A REPOSITORY MARKDOWN LINK, which is exactly what Jafar rejected. The
+    # other site link stays, so the floor is satisfied and only the
+    # destination rule can fire.
+    "linkdest": GOOD.replace(
+        "[the gallery](https://jsab258.github.io/wc26-picks/gallery.html)",
+        "[the card](https://github.com/jsab258/wc26-picks/blob/main/q.md)"),
     "shape": GOOD.replace("BUDGET:", "MONEY:"),
     "options": GOOD.replace("B. Normal British pavement distance.\n", "")
                    .replace("C. Reserved, a town that keeps its distance.\n", ""),
@@ -873,6 +1058,40 @@ def selftest():
     r = check(GOOD, "unprompted", FIXTURE_NOW)
     ok("a real compliant message passes with no finding at all",
        not r["findings"], [str(f) for f in r["findings"]])
+    ok("and it carries %d link(s), inside the ruled band of %d..%d, both to "
+       "the site (%s)" % (len(r["urls"]), LINK_MIN, LINK_MAX,
+                          "/".join(r["site_labels"]) or NOTHING),
+       LINK_MIN <= len(r["urls"]) <= LINK_MAX
+       and len(r["good_links"]) == len(r["urls"]),
+       (r["urls"], r["good_links"]))
+    # THE LADDER: ONE MESSAGE, TWO RULEBOOKS, ONE RUN. The rung is membership
+    # of LEGACY_LINK_RULES and nothing else, and the ruled property is that
+    # this rung differs from the one above in nothing: the band only REMOVED
+    # destinations, so a message legal today was legal before it.
+    r_legacy = check(GOOD, "unprompted", FIXTURE_NOW, legacy_links=True)
+    ok("the same message passes under the retired destination list too (%s), "
+       "because the ruling of 2026-09-06 only REMOVED destinations"
+       % r_legacy["link_generation"],
+       not r_legacy["findings"], [str(f) for f in r_legacy["findings"]])
+    ok("and on that rung the band's two rules are named as NOT ENFORCED "
+       "rather than skipped in silence (%s)"
+       % ",".join(sorted(set(r_legacy["not_enforced"]) & set(LINK_BAND_RULES))),
+       set(LINK_BAND_RULES) <= set(r_legacy["not_enforced"])
+       and not (set(LINK_BAND_RULES) & set(r["not_enforced"])),
+       (r_legacy["not_enforced"], r["not_enforced"]))
+    # THE LIST ITSELF, ON EVERY RUN. A grandfathering list that could gain a
+    # member written after the rule would be the date switch again, wearing a
+    # tuple: the specimen would choose its rulebook by being added to it.
+    late = [rel for rel in LEGACY_LINK_RULES
+            if (FILENAME_DATE_RE.match(rel.rsplit("/", 1)[-1]) or [None])
+            and FILENAME_DATE_RE.match(rel.rsplit("/", 1)[-1])
+            and datetime.date.fromisoformat(
+                FILENAME_DATE_RE.match(rel.rsplit("/", 1)[-1]).group(1))
+            >= LINK_BAND_RULED_ON]
+    ok("every one of the %d frozen LEGACY_LINK_RULES name(s) is dated before "
+       "the band was ruled on %s" % (len(LEGACY_LINK_RULES),
+                                     LINK_BAND_RULED_ON.isoformat()),
+       not late and len(LEGACY_LINK_RULES) == 3, late)
     ok("and it is under the ruled cap (%d of %d words)"
        % (r["words"], CAP_UNPROMPTED), r["words"] <= CAP_UNPROMPTED, r["words"])
     ok("its five sections are all found, in order",
@@ -887,7 +1106,7 @@ def selftest():
     # because his question sets the length and asks for the number.
     answer = ("You asked how many objects carry textures. Nearly all of them: "
               "563 of 593. The rest are the wet ground. "
-              "https://github.com/jsab258/wc26-picks/blob/main/x.md " +
+              "https://jsab258.github.io/wc26-picks/gallery.html " +
               "The remaining ones are small and none of them is in shot. " * 12)
     ra = check(answer, "answer", FIXTURE_NOW)
     ok("a long ANSWER carrying a count passes (%d words, no cap)" % ra["words"],
@@ -945,7 +1164,8 @@ def selftest():
     # right, and the day one rule stops working the fixture still goes red.
     noisy = []
     for want, text in BAD.items():
-        rules = {f.rule for f in check(text, "unprompted", FIXTURE_NOW)["findings"]}
+        rules = {f.rule for f in
+                 check(text, "unprompted", FIXTURE_NOW)["findings"]}
         if len(rules) > 1:
             noisy.append("%s->%s" % (want, "/".join(sorted(rules))))
     ok("each rejecting fixture trips exactly one rule (%d of %d clean)"
@@ -1008,9 +1228,17 @@ def selftest():
     ok("a marked file on the frozen list is exempt however badly it reads",
        any(s == "exempt" and "pre-register" in w
            for _, s, w in g["results"]), g["results"])
-    ok("the live repository passes the gate it was written against",
-       not gate_run(REPO, FIXTURE_NOW)["failed"],
-       cap([f[0] for f in gate_run(REPO, FIXTURE_NOW)["failed"]], keep=3))
+    # THE LIVE REPOSITORY, WITH THE GRANDFATHERING READING NAMED. "0 failed"
+    # alone cannot tell a clean tree from one where every file was let through
+    # the link band by the legacy list, so the numerator and its denominator
+    # are asserted together on this line.
+    g_live = gate_run(REPO, FIXTURE_NOW)
+    ok("the live repository passes the gate it was written against "
+       "(filesChecked=%d filesLegacyLinks=%d/%d)"
+       % (g_live["checked"], g_live["legacy_links"], g_live["checked"]),
+       not g_live["failed"] and g_live["legacy_links"] == 3
+       and g_live["checked"] == 4,
+       cap([f[0] for f in g_live["failed"]], keep=3))
 
     # THE CASE QUEUE ITEM 077 WAS FILED FOR, and it is an ACCEPTING one. The
     # live message dated 2026-09-03 carries DEADLINE 2026-09-06; at a simulated
@@ -1069,6 +1297,35 @@ def selftest():
        "%s checked=%d" % (cap(["%s: %s" % f for f in gp["failed"]], keep=1,
                               width=90), gp["checked"]))
 
+    # THE LADDER: ONE MESSAGE TEXT, ONE FILENAME, ONE DATE, TWO RULEBOOKS, ONE
+    # RUN. Only membership of the frozen name list changes between the rungs,
+    # and BOTH rungs carry the same 2026-09-05 date in the name. That is the
+    # whole reading: the date cannot decide, so a message written next week
+    # under a 2026-09-05 name cannot buy itself the retired rules. The text is
+    # the shape Jafar rejected, ten repository links.
+    ten_links = GOOD
+    for i in range(10):
+        ten_links = ten_links.replace(
+            "Everything else waited on that.",
+            "Everything else waited on that. [q%d](https://github.com/jsab258/"
+            "wc26-picks/blob/main/production/q%d.md)" % (i, i), 1)
+    rung_name = "production/outbox/2026-09-05-links.unprompted.md"
+    rung_tree = _gate_tree({"production/outbox/README.md": "# docs\n",
+                            rung_name: ten_links})
+    listed = gate_run(rung_tree, FIXTURE_NOW, legacy_links=(rung_name,))
+    unlisted = gate_run(rung_tree, FIXTURE_NOW,
+                        legacy_links=LEGACY_LINK_RULES)
+    unlisted_why = " ".join(w for _, w in unlisted["failed"])
+    ok("the SAME text under the SAME name dated 2026-09-05 passes when the "
+       "name is LISTED (failed=%d, filesLegacyLinks=%d/%d) and is refused when "
+       "it is not (failed=%d), by linkcap and linkdest"
+       % (len(listed["failed"]), listed["legacy_links"], listed["checked"],
+          len(unlisted["failed"])),
+       not listed["failed"] and listed["legacy_links"] == 1
+       and len(unlisted["failed"]) == 1 and unlisted["legacy_links"] == 0
+       and "linkcap" in unlisted_why and "linkdest" in unlisted_why,
+       cap([unlisted_why], keep=1, width=140))
+
     print("\n  THE GATE, REJECTING FIXTURES, all synthetic:\n")
     gate_bad = {
         "a message that breaks its register":
@@ -1107,6 +1364,16 @@ def selftest():
         "a deadline in a file whose name carries no date to pin to":
             ({"production/outbox/README.md": "# docs\n",
               "production/outbox/street.unprompted.md": GOOD}, ()),
+        # THE SHAPE JAFAR REJECTED: a link to a repository markdown file, in
+        # a file the frozen legacy list does not name.
+        "a repository markdown link in a message no legacy list names":
+            ({"production/outbox/README.md": "# docs\n",
+              "production/outbox/2026-09-06-x.unprompted.md":
+                  BAD["linkdest"]}, ()),
+        "three links in a message no legacy list names":
+            ({"production/outbox/README.md": "# docs\n",
+              "production/outbox/2026-09-06-y.unprompted.md":
+                  BAD["linkcap"]}, ()),
     }
     # WHICH RULE REFUSED IT, for the fixtures where the reason is the point. A
     # clock fixture refused for a shape fault would pass this loop while
@@ -1117,6 +1384,10 @@ def selftest():
             "deadline: item 1 gives 9.0 hour(s)",
         "a deadline in a file whose name carries no date to pin to":
             "carries no date to measure it from",
+        "a repository markdown link in a message no legacy list names":
+            "linkdest: 1 of 2 link(s) point somewhere other than",
+        "three links in a message no legacy list names":
+            "linkcap: 3 link(s), 1 over the ruled cap of 2",
     }
     for name, (files, frozen) in gate_bad.items():
         gr = gate_run(_gate_tree(files), FIXTURE_NOW, pre_register=frozen)
@@ -1139,6 +1410,18 @@ def selftest():
     ok("a frozen entry that no longer exists prints as a note, not a red",
        gm["listed_absent"] == ["production/briefs/gone.md"] and not gm["failed"],
        (gm["listed_absent"], gm["failed"]))
+    # THE SAME ROT CHECK ON THE OTHER FROZEN LIST. Every name on the live
+    # LEGACY_LINK_RULES exists today, so without this the branch would never
+    # run and could be broken for months without a red.
+    gz = gate_run(good_tree, FIXTURE_NOW,
+                  pre_register=("production/briefs/2026-09-02.md",),
+                  legacy_links=("production/outbox/never-existed.md",))
+    ok("a LEGACY_LINK_RULES entry that no longer exists prints as a note, not "
+       "a red (legacyAbsent=%d of %d listed)"
+       % (len(gz["legacy_absent"]), 1),
+       gz["legacy_absent"] == ["production/outbox/never-existed.md"]
+       and not gz["failed"] and gz["legacy_links"] == 0,
+       (gz["legacy_absent"], gz["failed"]))
 
     # ------------------------------------------- THE OTHER CLOCK, REJECTING
     # The gate is pinned; the SINGLE-FILE check is not, and must not be. Its
@@ -1296,7 +1579,8 @@ def gate_kind(rel):
                   % "/".join(s for s, _ in KIND_SUFFIX))
 
 
-def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES):
+def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES,
+         legacy_links=LEGACY_LINK_RULES):
     """Every message file under the ruled trees, against its own register.
 
     PURE-ISH: reads files, touches nothing, returns data. The report function
@@ -1313,6 +1597,10 @@ def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES):
                 else datetime.datetime.now())
     r = {"missing_trees": [], "walked": 0, "checked": 0, "exempt": 0,
          "failed": [], "notes": [], "listed_absent": [], "results": [],
+         # OF THE FILES CHECKED, how many were graded under the retired
+         # destination list because their NAME is on LEGACY_LINK_RULES.
+         # Cumulative over the walk, printed beside its denominator.
+         "legacy_links": 0, "legacy_absent": [],
          # OF THE FILES CHECKED, how many had an instant to measure from.
          # Cumulative over the walk, printed beside its denominator.
          "date_pinned": 0, "unpinned": 0,
@@ -1385,7 +1673,11 @@ def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES):
                 r["date_pinned"] += 1
             as_of = ("asOf=" + file_now.isoformat(timespec="minutes")
                      if file_now is not UNPINNED else "asOf=unpinned")
-            res = check(text, kind, file_now)
+            # BY NAME, NEVER BY THE DATE IN THE NAME. See LEGACY_LINK_RULES.
+            legacy = rel in legacy_links
+            if legacy:
+                r["legacy_links"] += 1
+            res = check(text, kind, file_now, legacy_links=legacy)
             r["checked"] += 1
             if res["findings"]:
                 r["failed"].append(
@@ -1396,14 +1688,22 @@ def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES):
                 r["results"].append((rel, "fail", "%s, %d finding(s), %s"
                                      % (kind, len(res["findings"]), as_of)))
             else:
-                r["results"].append((rel, "pass", "%s, %d of %s word(s), %s"
-                                     % (kind, res["words"],
-                                        res["cap"] if res["cap"] else "no-cap",
-                                        as_of)))
+                r["results"].append(
+                    (rel, "pass-legacy-links" if legacy else "pass",
+                     "%s, %d of %s word(s), %s%s"
+                     % (kind, res["words"],
+                        res["cap"] if res["cap"] else "no-cap", as_of,
+                        ", the link band is not enforced on it: written "
+                        "before it was ruled and named in LEGACY_LINK_RULES"
+                        if legacy else "")))
     # A FROZEN ENTRY THAT NO LONGER EXISTS IS A NOTE, NOT A RED. Deleting an
     # old brief is legitimate; leaving the rot invisible is not, so it prints
     # with its own count on every run.
     r["listed_absent"] = sorted(rel for rel in frozen if rel not in seen)
+    # THE SAME ROT CHECK FOR THE OTHER FROZEN LIST. A grandfathering entry
+    # whose file is gone is legitimate history and an invisible one is not, so
+    # it prints with its own count on every run.
+    r["legacy_absent"] = sorted(rel for rel in legacy_links if rel not in seen)
     return r
 
 
@@ -1414,7 +1714,7 @@ def gate_report(r):
     """Every zero here ships the denominator that produced it."""
     print("producer-check --gate: trees=%s" % "/".join(GATE_TREES))
     for rel, state, why in r["results"]:
-        print("  %-5s %-58s %s" % (state, rel, why))
+        print("  %-17s %-58s %s" % (state, rel, why))
     if r["missing_trees"]:
         print("  MISSING TREE(S), which is red rather than an empty walk: %s. "
               "A gate reading a path nobody writes to reports clean for ever."
@@ -1423,6 +1723,19 @@ def gate_report(r):
         print("  note: %d frozen PRE_REGISTER entry/entries no longer exist: "
               "%s" % (len(r["listed_absent"]),
                       cap(r["listed_absent"], keep=3, width=60, sep=", ")))
+    if r["legacy_absent"]:
+        print("  note: %d frozen LEGACY_LINK_RULES entry/entries no longer "
+              "exist: %s" % (len(r["legacy_absent"]),
+                             cap(r["legacy_absent"], keep=3, width=60,
+                                 sep=", ")))
+    if r["checked"]:
+        print("  link band: %d of %d checked file(s) graded under the RETIRED "
+              "destination list because their name is one of the %d on "
+              "LEGACY_LINK_RULES; the other %d were graded under the band "
+              "Jafar ruled 2026-09-06. Membership is by name, never by the "
+              "date in the name."
+              % (r["legacy_links"], r["checked"], len(LEGACY_LINK_RULES),
+                 r["checked"] - r["legacy_links"]))
     # WHICH CLOCK READ THE DEADLINES, with its denominator, because "0 failed"
     # from a gate measuring the wrong instant is the fault this line exists to
     # make visible. Cumulative over the walk.
@@ -1471,10 +1784,12 @@ def gate_report(r):
                   "register(s) (%s). MECHANICAL ONLY: nothing here read "
                   "whether a claim is TRUE." % (r["checked"], len(REGISTERS),
                                                 ",".join(sorted(REGISTERS))))
-        print("\nproducer-check --gate: PASS filesChecked=%s filesExempt=%d "
-              "filesWalked=%d filesDatePinned=%d/%d"
+        print("\nproducer-check --gate: PASS filesChecked=%s "
+              "filesLegacyLinks=%d/%d filesExempt=%d filesWalked=%d "
+              "filesDatePinned=%d/%d"
               % (r["checked"] if r["checked"] else "0/" + NOTHING,
-                 r["exempt"], r["walked"], r["date_pinned"], r["checked"]))
+                 r["legacy_links"], r["checked"], r["exempt"], r["walked"],
+                 r["date_pinned"], r["checked"]))
         return GATE_EXIT_OK
     print("  %d file(s) failed:" % len(r["failed"]))
     for rel, why in r["failed"][:5]:
@@ -1483,9 +1798,10 @@ def gate_report(r):
         print("    (+%d more not shown of %d)"
               % (len(r["failed"]) - 5, len(r["failed"])))
     print("\nproducer-check --gate: FAIL filesFailed=%d filesChecked=%d "
-          "filesExempt=%d filesWalked=%d filesDatePinned=%d/%d"
-          % (len(r["failed"]), r["checked"], r["exempt"], r["walked"],
-             r["date_pinned"], r["checked"]))
+          "filesLegacyLinks=%d/%d filesExempt=%d filesWalked=%d "
+          "filesDatePinned=%d/%d"
+          % (len(r["failed"]), r["checked"], r["legacy_links"], r["checked"],
+             r["exempt"], r["walked"], r["date_pinned"], r["checked"]))
     return GATE_EXIT_FAIL
 
 

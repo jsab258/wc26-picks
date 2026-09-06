@@ -67,3 +67,18 @@ BOTH are required. A marker alone would be an escape hatch any session could
 type; a list alone would be invisible to anyone reading the file. A marker on
 a file the list does not name is a FAILURE, so widening the exemption means
 editing the tool, which is a reviewed diff rather than a line in a document.
+
+A SECOND FROZEN LIST, added 2026-09-06 and different in kind. Jafar ruled the
+register's link band that day: at most two links per message, never to a
+repository markdown file, only to the glance, map or gallery. Three files
+written before that ruling would now fail it, and grading them by the date
+typed into their own names would let anyone write a stale name onto a new
+message and skip the band. So they are named instead, in `LEGACY_LINK_RULES`
+in `tools/producer-check.py`: the two messages in this directory and
+`production/briefs/2026-09-05.md`. It carries no marker line, because these
+files are the record of what was written and the printed per-file line is the
+reader-visible half. THE LIST NEVER WIDENS TO A FILE DATED ON OR AFTER
+2026-09-06, and widening it at all means editing the tool in a reviewed diff.
+The ruling is
+`game-design/decision-2026-09-06-ruling-register-link-band-and-gallery.md`,
+amendment A1.

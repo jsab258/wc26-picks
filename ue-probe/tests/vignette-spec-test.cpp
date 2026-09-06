@@ -26,6 +26,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <vector>
 
 static int gChecks = 0;
 static int gFailed = 0;
@@ -51,6 +52,22 @@ static std::string Slurp(const char* Path, bool& Ok)
 	SS << In.rdbuf();
 	Ok = true;
 	return SS.str();
+}
+
+// EVERY KEY NAME ON ONE LINE. Used to prove two lines cannot collide, which
+// is the write-time half of the rule tools/verdict-dupkeys.py enforces at read
+// time: a key that means one thing per surface and another thing per run is
+// returned by whichever line a grep reaches first.
+static void KeysOf(const std::string& Line, std::vector<std::string>& Out)
+{
+	std::istringstream In(Line);
+	std::string Tok;
+	while (In >> Tok)
+	{
+		const size_t At = Tok.find('=');
+		if (At == std::string::npos || At == 0) { continue; }
+		Out.push_back(Tok.substr(0, At));
+	}
 }
 
 static bool NoSpacePastPrefix(const std::string& Line, const char* From)
@@ -543,6 +560,304 @@ int main(int argc, char** argv)
 		      "a texture root that was not found NAMES every directory it asked about");
 		Check(NoSpacePastPrefix(Empty, "materialsStatus="),
 		      "and the candidate list is still one space-free value with one equals");
+	}
+	// ---- THE MID READBACK, WHICH IS THE HALF NOBODY HAD -----------------
+	//
+	// WHAT THESE PROVE AND WHAT THEY CANNOT. Nothing here runs an engine, so
+	// none of this says a parameter arrives anywhere. It says that when the
+	// engine answers, the answer is counted, worded and printed correctly,
+	// and that the three outcomes a reader has to tell apart print three
+	// different strings: same, different, and never asked. The last one is
+	// the one that cost this project days elsewhere.
+	{
+		// THE ACCEPTING CASE FIRST. A surface whose instance answered with
+		// exactly what went into it.
+		LedgerSurface::Bound B;
+		B.Surface = "brick_red"; B.Pieces = 41; B.PiecesAssigned = 41;
+		B.Status = "RESOLVED"; B.Reason = "none";
+		B.MapFound[0] = true; B.MapFile[0] = "brick_red.jpg";
+		B.MapW[0] = 2048; B.MapH[0] = 1024;
+		B.TileU = 1.90; B.TileV = 1.00;
+		B.Read.bAsked = true;
+		B.Read.bTexSame = true; B.Read.bScalarSame = true;
+		B.Read.bResourceValid = true; B.Read.bCompIsMid = true;
+		B.Read.TexGot = "/Engine/Transient.Texture2D_7";
+		B.Read.CompGot = "/Game/Ledger/M_LedgerSurface";
+		B.Read.SetU = 1.90; B.Read.GotU = 1.90;
+		B.Read.SetV = 1.00; B.Read.GotV = 1.00;
+		const std::string L = LedgerSurface::SurfaceLine(B);
+		std::printf("    %s\n", L.c_str());
+		Check(L.find("midTexReadback=same-pointer") != std::string::npos,
+		      "an instance that answered with the pointer that went in says so");
+		Check(L.find("midTilingReadback=same-value") != std::string::npos,
+		      "and the scalar half is a SEPARATE word on the same line, not the same one twice");
+		Check(L.find("midTexResource=valid") != std::string::npos
+		      && L.find("midCompMaterial=is-the-instance-we-made") != std::string::npos,
+		      "the resource and the component's material are their own readings");
+		Check(L.find("midTilingSetGot=U.1.9000..1.9000/V.1.0000..1.0000") != std::string::npos,
+		      "both halves of every scalar comparison are printed, set and got");
+		Check(NoSpacePastPrefix(L, "midTexReadback="),
+		      "every readback value is one space-free token with one equals");
+		// THE REJECTING CASE, PLANTED, because a guard that cannot tell a
+		// regression from an improvement is a ratchet. This is candidate B as
+		// it would print: the scalars land and the texture does not, and what
+		// came back instead is NAMED rather than left as a no.
+		LedgerSurface::Bound Bad = B;
+		Bad.Read.bTexSame = false;
+		Bad.Read.TexGot = "/Engine/EngineResources/DefaultTexture.DefaultTexture";
+		Bad.Read.bResourceValid = false;
+		const std::string BL = LedgerSurface::SurfaceLine(Bad);
+		Check(BL.find("midTexReadback=OTHER/"
+		              "/Engine/EngineResources/DefaultTexture.DefaultTexture")
+		      != std::string::npos,
+		      "an instance that answered with something else NAMES what came back");
+		Check(BL.find("midTexResource=NULL") != std::string::npos
+		      && BL.find("midTilingReadback=same-value") != std::string::npos,
+		      "a failed texture readback does not drag the scalar reading down with it");
+		Check(NoSpacePastPrefix(BL, "midTexReadback="),
+		      "and an engine path name still leaves one equals per token");
+		// AND THE CASE THAT WAS NEVER ASKED. A `no` here would say the engine
+		// answered wrongly; nothing was ever set, and that is a different
+		// fact with a different next action.
+		LedgerSurface::Bound Never;
+		Never.Surface = "card"; Never.Pieces = 10; Never.Status = "ABSENT";
+		const std::string NL = LedgerSurface::SurfaceLine(Never);
+		Check(NL.find("midTexReadback=not-asked") != std::string::npos
+		      && NL.find("midTilingReadback=not-asked") != std::string::npos
+		      && NL.find("midTilingSetGot=not-asked") != std::string::npos,
+		      "a surface no instance was made for says not-asked and never prints a no");
+	}
+	// NO KEY MEANS TWO THINGS ON TWO LINES, ASSERTED RATHER THAN INTENDED.
+	// The per-surface readback and the run's readback totals are different
+	// moments, and a key carrying both would be returned by a grep from
+	// whichever line it reached first. This walks the two lines the run
+	// actually prints and fails on any key name they share.
+	{
+		LedgerSurface::Bound B;
+		B.Surface = "kerb"; B.Pieces = 95; B.PiecesAssigned = 95;
+		B.MapFound[0] = true; B.Status = "RESOLVED";
+		B.Read.bAsked = true; B.Read.bScalarSame = true;
+		B.Read.bResourceValid = true; B.Read.bCompIsMid = true;
+		std::vector<LedgerSurface::Bound> All;
+		All.push_back(B);
+		std::vector<std::string> Tried;
+		Tried.push_back("C:/staged/LedgerProbe/CityPackTextures");
+		const std::string Surf = LedgerSurface::SurfaceLine(B);
+		const std::string Done = LedgerSurface::MaterialsDoneLine(
+			All, "/Game/Ledger/M_LedgerSurface", true, "C:/pack", 51, Tried,
+			593, 3, 95, 2.0);
+		std::vector<std::string> SurfKeys, DoneKeys;
+		KeysOf(Surf, SurfKeys);
+		KeysOf(Done, DoneKeys);
+		std::string Shared;
+		for (size_t I = 0; I < SurfKeys.size(); ++I)
+		{
+			for (size_t J = 0; J < DoneKeys.size(); ++J)
+			{
+				if (SurfKeys[I] == DoneKeys[J])
+				{
+					if (!Shared.empty()) { Shared += "/"; }
+					Shared += SurfKeys[I];
+				}
+			}
+		}
+		std::printf("    keys: surface line %d, materials line %d, shared %s\n",
+		            (int)SurfKeys.size(), (int)DoneKeys.size(),
+		            Shared.empty() ? "none" : Shared.c_str());
+		Check(Shared.empty(),
+		      "the surface line and the materials line share no key name at all",
+		      Shared);
+		Check(SurfKeys.size() > 5 && DoneKeys.size() > 5,
+		      "and both lines were actually read, so an empty intersection is a "
+		      "finding rather than an empty examination");
+	}
+	// THE SCALAR COMPARISON ON ITS OWN, both ways, because the tolerance is
+	// the only judgement in the readback and an exact comparison would print
+	// a mismatch that belongs to the float conversion.
+	{
+		Check(LedgerSurface::ScalarMatches(21.0, 21.0),
+		      "a value that survived the trip intact matches");
+		Check(LedgerSurface::ScalarMatches(1.3719, 1.37190002),
+		      "and one the engine kept as a float still matches");
+		Check(!LedgerSurface::ScalarMatches(1.90, 1.00),
+		      "a tiling that came back as the material's own default does NOT match");
+		Check(!LedgerSurface::ScalarMatches(21.0, 0.0),
+		      "and a scalar that came back as nothing at all does not match either");
+	}
+	// THE RUN'S READBACK TOTALS, ON THE MATERIALS DONE LINE, over the
+	// denominator that counts what was actually set rather than what the
+	// street asked for.
+	{
+		std::vector<LedgerSurface::Bound> All;
+		LedgerSurface::Bound R1, R2, Absent;
+		R1.Surface = "asphalt"; R1.Pieces = 2; R1.PiecesAssigned = 2;
+		R1.MapFound[0] = true; R1.Status = "RESOLVED";
+		R1.Read.bAsked = true; R1.Read.bScalarSame = true;
+		R1.Read.bResourceValid = true; R1.Read.bCompIsMid = true;
+		R1.Read.bTexSame = false;    // candidate B, as it would land
+		R2 = R1; R2.Surface = "brick_red";
+		Absent.Surface = "card"; Absent.Pieces = 10; Absent.Status = "ABSENT";
+		All.push_back(R1); All.push_back(R2); All.push_back(Absent);
+		std::vector<std::string> Tried;
+		Tried.push_back("C:/staged/LedgerProbe/CityPackTextures");
+		const std::string D = LedgerSurface::MaterialsDoneLine(
+			All, "/Game/Ledger/M_LedgerSurface", true, "C:/pack/textures", 51, Tried,
+			593, 2, 43, 2.0);
+		std::printf("    %s\n", D.c_str());
+		Check(D.find("midReadbackAsked=2/3") != std::string::npos,
+		      "the readback denominator counts the surfaces a parameter was set on, "
+		      "over the surfaces the street asked for");
+		Check(D.find("midParamReadback=0/2") != std::string::npos
+		      && D.find("midScalarReadback=2/2") != std::string::npos,
+		      "the texture half and the scalar half are counted apart, which is "
+		      "what separates candidate A from candidate B");
+		Check(D.find("texResourceValid=2/2") != std::string::npos
+		      && D.find("compMaterialIsMid=2/2") != std::string::npos,
+		      "and the resource and component readings ship over the same denominator");
+		Check(D.find("midReadbackStat=") != std::string::npos
+		      && D.find("game-thread-copy-not-the-render-proxy") != std::string::npos,
+		      "the line says what the number is a statistic OF, and what it cannot see");
+		Check(NoSpacePastPrefix(D, "midReadbackAsked="),
+		      "every readback total is one space-free token with one equals");
+		// A RUN THAT SET NOTHING SAYS THE WORDS. `0/0` reads exactly like a
+		// pass that ran and found nothing wrong.
+		std::vector<LedgerSurface::Bound> NoneSet;
+		NoneSet.push_back(Absent);
+		const std::string N = LedgerSurface::MaterialsDoneLine(
+			NoneSet, "/Game/Ledger/M_LedgerSurface", true, "", 0, Tried, 593, 0, 0, 2.0);
+		Check(N.find("midParamReadback=nothing-measured") != std::string::npos
+		      && N.find("midScalarReadback=nothing-measured") != std::string::npos,
+		      "a pass that set no parameter prints the words rather than a clean zero");
+		Check(N.find("midReadbackAsked=0/1") != std::string::npos,
+		      "and the zero still ships the count of what was examined");
+	}
+	// ---- THE CONTROL QUADS, PLACED AGAINST THE COMMITTED CAMERA ---------
+	//
+	// THE ACCEPTING FIXTURE IS THE LIVE FILE, which is this project's rule
+	// for a tool that checks the project itself: the quads are placed from
+	// the camera the committed spec carries, so a camera moved in the file
+	// moves them here and this test says whether they are still in frame.
+	{
+		const LedgerVignette::Camera* CamA = 0;
+		for (size_t I = 0; I < S.Cameras.size(); ++I)
+		{
+			if (!S.Shots.empty() && S.Cameras[I].Id == S.Shots[0].CameraId)
+			{
+				CamA = &S.Cameras[I];
+			}
+		}
+		if (CamA == 0)
+		{
+			std::printf("    control quads: nothing measured, the spec names no camera "
+			            "for its first shot\n");
+		}
+		else
+		{
+			Check(LedgerSurface::ControlQuadCount() == 3,
+			      "three controls: one for the texture path and a PAIR for the scalar path");
+			int InFrame = 0, Ahead = 0;
+			for (int I = 0; I < LedgerSurface::ControlQuadCount(); ++I)
+			{
+				const LedgerSurface::QuadPlace P = LedgerSurface::ControlQuadPlace(*CamA, I);
+				const LedgerSurface::ScreenBox B =
+					LedgerSurface::ControlQuadBox(*CamA, P, 1280, 720);
+				std::printf("    quad %-6s at %.2f/%.2f/%.2f m  centre %.0f/%.0f px  "
+				            "box x%.0f..%.0f y%.0f..%.0f  dist %.2f m  inFrame %d/4\n",
+				            P.Id.c_str(), P.XM, P.YM, P.ZM, B.CxPx, B.CyPx,
+				            B.X0, B.X1, B.Y0, B.Y1, B.DistM, B.CornersInFrame);
+				if (B.CornersAhead == 4) { ++Ahead; }
+				if (B.CornersInFrame == 4) { ++InFrame; }
+			}
+			Check(Ahead == LedgerSurface::ControlQuadCount(),
+			      "every control stands in front of the camera, all four corners of it");
+			Check(InFrame == LedgerSurface::ControlQuadCount(),
+			      "and every corner of every control lands inside 1280x720, which is "
+			      "the whole point of placing them from the camera's own numbers");
+			// THE ROW IS TO THE LEFT, WHICH IS A DECISION ABOUT THE EVIDENCE
+			// FRAME AND IS ASSERTED SO IT CANNOT DRIFT SILENTLY: the right of
+			// cam_A's frame is the shopfront the street is read for.
+			const LedgerSurface::QuadPlace P0 = LedgerSurface::ControlQuadPlace(*CamA, 0);
+			const LedgerSurface::QuadPlace P2 = LedgerSurface::ControlQuadPlace(*CamA, 2);
+			const LedgerSurface::ScreenBox B0 =
+				LedgerSurface::ControlQuadBox(*CamA, P0, 1280, 720);
+			const LedgerSurface::ScreenBox B2 =
+				LedgerSurface::ControlQuadBox(*CamA, P2, 1280, 720);
+			Check(B0.CxPx < 640.0 && B2.CxPx < B0.CxPx,
+			      "the controls sit left of centre and in the order they are numbered");
+			Check(LedgerSurface::ControlQuadTiling(1) != LedgerSurface::ControlQuadTiling(2)
+			      && LedgerSurface::ControlQuadPlace(*CamA, 1).SizeM
+			         == LedgerSurface::ControlQuadPlace(*CamA, 2).SizeM,
+			      "the two tile quads differ in their tiling and in NOTHING else, "
+			      "which is what makes the pair readable in one still");
+			Check(LedgerSurface::ControlQuadBindsTexture(0)
+			      && !LedgerSurface::ControlQuadBindsTexture(1)
+			      && !LedgerSurface::ControlQuadBindsTexture(2),
+			      "exactly one control binds a texture, so the checker on the other "
+			      "two is the base material's own default and not an accident");
+			// THE ROTATION IS DERIVED FROM THE CAMERA, and a quad facing away
+			// is culled or lit from behind, which is the sign error the decal
+			// quads paid for once already.
+			Check(P0.EnginePitchDeg == 90.0 && P0.EngineYawDeg == CamA->YawDeg,
+			      "the plane is pitched a quarter turn so its normal faces the camera, "
+			      "and it carries the camera's yaw so it does at any yaw");
+			// AND THE FOUR COLOURS, WHICH ARE THE WHOLE READING.
+			int MinChroma = 255;
+			for (int I = 0; I < LedgerSurface::ControlColourCount(); ++I)
+			{
+				int R = 0, G = 0, B = 0;
+				LedgerSurface::ControlColour(I, R, G, B);
+				const int Hi = (R > G ? (R > B ? R : B) : (G > B ? G : B));
+				const int Lo = (R < G ? (R < B ? R : B) : (G < B ? G : B));
+				if (Hi - Lo < MinChroma) { MinChroma = Hi - Lo; }
+			}
+			Check(MinChroma == 255,
+			      "every control colour is at a corner of the cube, so none of them "
+			      "can be confused with a frame whose measured maximum chroma is 15");
+			// ONE QUAD'S LINE, BOTH WAYS ROUND THE TRANSFORM READBACK.
+			LedgerSurface::QuadResult R;
+			R.bSpawned = true; R.bMidMade = true; R.bTexMade = true;
+			R.bTexResource = true; R.bTexReadback = true; R.bCompIsMid = true;
+			R.bRead = true;
+			R.ReadXCm = P0.XCm; R.ReadYCm = P0.YCm; R.ReadZCm = P0.ZCm;
+			const std::string QL = LedgerSurface::ControlQuadLine(*CamA, P0, R, 1280, 720);
+			std::printf("    %s\n", QL.c_str());
+			Check(QL.find("controlQuad=colour") == 0,
+			      "the control line names itself first, as the surface lines do");
+			Check(QL.find("quadTexels=texel0.red.255.0.0/texel1.green.0.255.0/"
+			              "texel2.blue.0.0.255/texel3.yellow.255.255.0") != std::string::npos,
+			      "the line carries the four colours ASKED FOR, in the order the "
+			      "memcpy writes them, so the still can be read against it");
+			Check(QL.find("quadDeltaCm=0.00") != std::string::npos,
+			      "a quad that landed where it was asked to prints a zero delta");
+			Check(QL.find("quadCentrePx=") != std::string::npos
+			      && QL.find("quadBoxPx=x") != std::string::npos,
+			      "and it says WHERE ON SCREEN to look, in pixels, not in prose");
+			Check(NoSpacePastPrefix(QL, "quadStatus="),
+			      "every value on a control line is one space-free token with one equals");
+			LedgerSurface::QuadResult NoRead = R;
+			NoRead.bRead = false;
+			const std::string QN = LedgerSurface::ControlQuadLine(*CamA, P0, NoRead, 1280, 720);
+			Check(QN.find("quadReadXYZcm=not-read") != std::string::npos
+			      && QN.find("quadDeltaCm=not-read") != std::string::npos,
+			      "an actor that never answered for its transform says so rather than "
+			      "printing the request back as though it were a reading");
+			// THE PASS'S OWN DONE LINE, both ways round the empty case.
+			std::vector<LedgerSurface::QuadResult> Quads;
+			const std::string Empty = LedgerSurface::ControlQuadsDoneLine(Quads, true);
+			Check(Empty.find("controlQuadsStatus=NOT-REACHED") != std::string::npos
+			      && Empty.find("controlQuads=nothing-measured/3") != std::string::npos,
+			      "a control pass that spawned nothing says the words and still ships "
+			      "the count of what it was asked for");
+			Quads.push_back(R); Quads.push_back(R); Quads.push_back(R);
+			const std::string Done = LedgerSurface::ControlQuadsDoneLine(Quads, true);
+			std::printf("    %s\n", Done.c_str());
+			Check(Done.find("controlQuadsStatus=ALL") != std::string::npos
+			      && Done.find("controlQuads=3/3") != std::string::npos
+			      && Done.find("controlQuadMids=3/3") != std::string::npos,
+			      "a control pass that made all three prints all three with denominators");
+			Check(NoSpacePastPrefix(Done, "controlQuadsStatus="),
+			      "and the done line is space-free past its first key");
+		}
 	}
 	// THE SEARCH-PATH FORMATTER ON ITS OWN, both ways round the cap, because
 	// a cap that is never exercised is a claim rather than a measurement.

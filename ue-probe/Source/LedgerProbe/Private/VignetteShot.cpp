@@ -251,9 +251,24 @@ namespace
 	int32 GTexturesImported = 0, GMidsCreated = 0;
 	std::string GMaterialsLine =
 		"materialsStatus=NOT-REACHED materialsNote=the-material-pass-never-ran";
-	// DECLARED HERE, DEFINED BELOW. BuildScene calls it and is written above
-	// it, and the pack import needs DecodeBgra's neighbours to be in scope.
+
+	// ---- the control quads, which are this pass's accepting case ---------
+	// One extra plane per control in front of the camera the first shot
+	// uses. They carry no street data and are not pieces: they exist so that
+	// a frame can show what a WORKING material instance looks like beside
+	// the street that is not showing one.
+	std::vector<LedgerSurface::QuadResult> GQuads;
+	std::vector<std::string> GQuadLines;
+	std::string GQuadDone =
+		"controlQuadsStatus=NOT-REACHED controlQuads=nothing-measured"
+		" controlQuadsNote=the-control-pass-never-ran";
+	UTexture2D* GControlTex = nullptr;
+
+	// DECLARED HERE, DEFINED BELOW. BuildScene calls them and is written
+	// above them, and the pack import needs DecodeBgra's neighbours to be in
+	// scope.
 	void BindSurfaces();
+	void SpawnControlQuads(UWorld* World, UStaticMesh* Plane);
 
 	FString NoSp(const FString& In) { return In.Replace(TEXT(" "), TEXT("~")); }
 
@@ -614,6 +629,11 @@ namespace
 		// PHASE C, AFTER EVERY PIECE IS SPAWNED AND NAMED. It reads GByName,
 		// so it cannot run before the pieces are in it.
 		BindSurfaces();
+		// AND THE CONTROLS AFTER IT, because they instance the base material
+		// BindSurfaces loads. A control quad in front of the camera is not a
+		// piece and is not counted as one: the scene line's denominators come
+		// off the file and none of them moves.
+		SpawnControlQuads(World, Plane);
 	}
 
 	const Camera* FindCamera(const std::string& Id)
@@ -815,6 +835,23 @@ namespace
 		Out.Add(TEXT("#   human opens the editor, which is D1 measurement (a) in one line."));
 		Out.Add(TEXT("#   materialBase reads MISSING when the cook did not carry the asset, and"));
 		Out.Add(TEXT("#   every surface below is then untextured however many maps decoded."));
+		Out.Add(TEXT("# PHASE C, THE READBACK. Each surface line carries what the material"));
+		Out.Add(TEXT("#   instance answered when asked for the texture and the two tiling"));
+		Out.Add(TEXT("#   scalars straight back, and the materials line carries the run's"));
+		Out.Add(TEXT("#   totals over the surfaces a parameter was actually set on. It is the"));
+		Out.Add(TEXT("#   GAME thread's copy: a value that lands there and never reaches the"));
+		Out.Add(TEXT("#   render proxy still reads back as the same pointer."));
+		Out.Add(TEXT("# PHASE C, THE CONTROL QUADS. Three planes of one size at one distance"));
+		Out.Add(TEXT("#   in front of the first shot's camera, off the same base material,"));
+		Out.Add(TEXT("#   carrying no street data. The first binds a 2x2 texture built in code"));
+		Out.Add(TEXT("#   from four saturated colours, with no file and no decode; the other"));
+		Out.Add(TEXT("#   two bind no texture at all and differ only in their tiling scalars."));
+		Out.Add(TEXT("#   Four colours on the first means a texture override reaches the"));
+		Out.Add(TEXT("#   sampler. Two different cell counts on the other two means the scalar"));
+		Out.Add(TEXT("#   overrides reach the shader. THE FRAME IS WHAT ANSWERS, not a count:"));
+		Out.Add(TEXT("#   the quad lines say only where to look and what was asked for."));
+		Out.Add(TEXT("#   The controls occupy their printed boxes, so any whole-frame statistic"));
+		Out.Add(TEXT("#   taken from this run includes them and must exclude those boxes first."));
 		Out.Add(TEXT("# NO COMMENT IN THIS HEADER WRITES A KEY WITH AN EQUALS AND A VALUE."));
 		Out.Add(TEXT("#   Run 19 spelled this key out with MISSING beside it up here and"));
 		Out.Add(TEXT("#   measured it as loaded down there, which tools/verdict-dupkeys.py"));
@@ -845,6 +882,19 @@ namespace
 			Out.Add(TEXT("# no surface line: the material pass did not reach a surface."));
 		}
 		Out.Add(FString(UTF8_TO_TCHAR(GMaterialsLine.c_str())));
+		// THE CONTROLS, AFTER THE SURFACES THEY ARE THE CONTROL FOR. One line
+		// per quad with its own placement and where it should land on the
+		// frame, then the pass's own totals. A run that spawned none of them
+		// still prints the done line, which says so in words.
+		for (size_t I = 0; I < GQuadLines.size(); ++I)
+		{
+			Out.Add(FString(UTF8_TO_TCHAR(GQuadLines[I].c_str())));
+		}
+		if (GQuadLines.empty())
+		{
+			Out.Add(TEXT("# no control quad line: the control pass reached no quad."));
+		}
+		Out.Add(FString(UTF8_TO_TCHAR(GQuadDone.c_str())));
 		if (GLightLines.empty())
 		{
 			Out.Add(TEXT("# no light was probed on this commit; the pass line below says why."));
@@ -1498,6 +1548,64 @@ namespace
 			++GBinds[(size_t)Idx].PiecesAssigned;
 			GBinds[(size_t)Idx].TileU = T.U;
 			GBinds[(size_t)Idx].TileV = T.V;
+
+			// THE READBACK, ONCE PER SURFACE, ON THE FIRST INSTANCE MADE FOR
+			// IT. The engine is asked for the parameter straight back, in the
+			// same few statements that set it, so nothing in between can
+			// explain a difference. 563 pieces would print 563 identical
+			// answers to a question that is about the material.
+			//
+			// NOTHING HERE DECIDES ANYTHING. The comparison, the tolerance,
+			// the counts and every printed string are in SurfaceBind.h where
+			// g++ runs them before this file is compiled; this supplies the
+			// live state and nothing else.
+			//
+			// WHAT IT CANNOT SEE: this is the game thread's copy. A value
+			// that lands here and never reaches the render proxy still reads
+			// back same-pointer, which is what the control quads answer.
+			LedgerSurface::Readback& RB = GBinds[(size_t)Idx].Read;
+			if (!RB.bAsked)
+			{
+				RB.bAsked = true;
+				UTexture2D* Albedo = Maps[Idx * LedgerSurface::MapCount() + 0];
+				const FName AlbedoParam(UTF8_TO_TCHAR(LedgerSurface::MapParam(0)));
+				UTexture* Back = Mid->K2_GetTextureParameterValue(AlbedoParam);
+				RB.bTexSame = (Back != nullptr && Back == (UTexture*)Albedo);
+				if (Back == nullptr)
+				{
+					RB.TexGot = "null";
+				}
+				else
+				{
+					// THE ENGINE'S OWN PATH NAME. "Not the same pointer"
+					// cannot say whether the answer was the parent's default
+					// texture or something else, and those have different
+					// next actions.
+					const FString Path = Back->GetPathName();
+					RB.TexGot = std::string(TCHAR_TO_UTF8(*Path));
+				}
+				// AFTER UpdateResource, WHICH RAN IN ImportTexture. A texture
+				// with no render resource is bound to nothing however good
+				// the pointer is.
+				RB.bResourceValid = (Albedo != nullptr && Albedo->GetResource() != nullptr);
+				RB.SetU = T.U;
+				RB.SetV = T.V;
+				RB.GotU = (double)Mid->K2_GetScalarParameterValue(FName(TEXT("TilingU")));
+				RB.GotV = (double)Mid->K2_GetScalarParameterValue(FName(TEXT("TilingV")));
+				RB.bScalarSame = LedgerSurface::ScalarMatches(RB.SetU, RB.GotU)
+				              && LedgerSurface::ScalarMatches(RB.SetV, RB.GotV);
+				UMaterialInterface* CompMat = Comp->GetMaterial(0);
+				RB.bCompIsMid = (CompMat == (UMaterialInterface*)Mid);
+				if (CompMat == nullptr)
+				{
+					RB.CompGot = "null";
+				}
+				else
+				{
+					const FString CompPath = CompMat->GetPathName();
+					RB.CompGot = std::string(TCHAR_TO_UTF8(*CompPath));
+				}
+			}
 		}
 
 		GMaterialsLine = LedgerSurface::MaterialsDoneLine(
@@ -1505,6 +1613,158 @@ namespace
 			TCHAR_TO_UTF8(*GTexRoot), GTexRootFiles, GTexRootTried,
 			(int)GSpec.Pieces.size(),
 			GTexturesImported, GMidsCreated, kMetresPerTile);
+	}
+
+	// ---- THE CONTROL QUADS -------------------------------------------------
+	//
+	// A 2x2 TEXTURE BUILT IN CODE. No file, no decoder, no texture root: if
+	// this one renders its colours and the pack's textures do not, the fault
+	// is downstream of the decode; if neither renders, the fault is not in
+	// the pack at all. Every colour and the buffer order come out of
+	// SurfaceBind.h, so the verdict names the same four colours the memcpy
+	// wrote rather than a second copy of them typed here.
+	UTexture2D* MakeControlTexture()
+	{
+		UTexture2D* Tex = UTexture2D::CreateTransient(2, 2, PF_B8G8R8A8);
+		if (Tex == nullptr) { return nullptr; }
+		Tex->SRGB = true;
+		// NEAREST, BECAUSE A 2x2 BILINEAR TEXTURE IS A GRADIENT RATHER THAN
+		// FOUR COLOURS. The reading survives either filter, since a blend of
+		// four saturated corners is still nothing like a grey checker, but
+		// four flat quadrants can be sampled with one patch.
+		Tex->Filter = TF_Nearest;
+		// KEPT ALIVE EXPLICITLY, for the reason the imported textures are: a
+		// transient texture whose only reference is a material instance is
+		// the shape of object this engine collects between two ticks.
+		Tex->AddToRoot();
+		uint8 Px[16];
+		for (int32 I = 0; I < LedgerSurface::ControlColourCount(); ++I)
+		{
+			int R = 0, G = 0, B = 0;
+			LedgerSurface::ControlColour(I, R, G, B);
+			Px[I * 4 + 0] = (uint8)B;   // the platform data is BGRA
+			Px[I * 4 + 1] = (uint8)G;
+			Px[I * 4 + 2] = (uint8)R;
+			Px[I * 4 + 3] = 255;
+		}
+		void* Dest = Tex->GetPlatformData()->Mips[0].BulkData.Lock(LOCK_READ_WRITE);
+		FMemory::Memcpy(Dest, Px, sizeof(Px));
+		Tex->GetPlatformData()->Mips[0].BulkData.Unlock();
+		Tex->UpdateResource();
+		return Tex;
+	}
+
+	// THE CONTROLS STAND IN FRONT OF THE CAMERA THE FIRST SHOT USES, read out
+	// of the file rather than named here, so a spec whose first shot moves
+	// takes its controls with it. Which camera answered is printed on every
+	// quad line.
+	const Camera* ControlCamera()
+	{
+		if (GSpec.Cameras.empty()) { return nullptr; }
+		for (size_t I = 0; I < GSpec.Cameras.size() && !GSpec.Shots.empty(); ++I)
+		{
+			if (GSpec.Cameras[I].Id == GSpec.Shots[0].CameraId) { return &GSpec.Cameras[I]; }
+		}
+		return &GSpec.Cameras[0];
+	}
+
+	// THREE PLANES, ONE SIZE, ONE DISTANCE. The placement, the rotation, the
+	// projection and every printed string are in SurfaceBind.h; this asks the
+	// engine for actors and reads back what it got.
+	void SpawnControlQuads(UWorld* World, UStaticMesh* Plane)
+	{
+		const Camera* C = ControlCamera();
+		if (World == nullptr || Plane == nullptr || C == nullptr || GBaseMaterial == nullptr)
+		{
+			// NOTHING SPAWNED IS A FINDING AND IT NAMES WHICH OF THE FOUR
+			// THINGS WAS MISSING: no plane mesh in the build and no base
+			// material to instance are different next actions, and neither is
+			// "the control quads did not help".
+			GQuadDone = LedgerSurface::ControlQuadsDoneLine(GQuads, GBaseMaterial != nullptr);
+			GQuadDone += std::string(" controlQuadsMissing=world.")
+			           + (World == nullptr ? "NO" : "yes")
+			           + "/plane." + (Plane == nullptr ? "NO" : "yes")
+			           + "/camera." + (C == nullptr ? "NO" : "yes")
+			           + "/base." + (GBaseMaterial == nullptr ? "NO" : "yes");
+			return;
+		}
+		for (int32 I = 0; I < LedgerSurface::ControlQuadCount(); ++I)
+		{
+			const LedgerSurface::QuadPlace P = LedgerSurface::ControlQuadPlace(*C, I);
+			LedgerSurface::QuadResult R;
+			FActorSpawnParameters Params;
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			AStaticMeshActor* A = World->SpawnActor<AStaticMeshActor>(
+				AStaticMeshActor::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, Params);
+			if (A != nullptr)
+			{
+				R.bSpawned = true;
+				// MOBILITY BEFORE THE TRANSFORM, for the reason SpawnPiece
+				// sets it: a spawned StaticMeshActor is static mobility and
+				// cannot be moved, and a static actor with no built lighting
+				// renders unlit.
+				MakeMovable(A);
+				UStaticMeshComponent* Comp = A->GetStaticMeshComponent();
+				if (Comp != nullptr)
+				{
+					Comp->SetMobility(EComponentMobility::Movable);
+					Comp->SetStaticMesh(Plane);
+					Comp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+					// A CONTROL CASTS NO SHADOW. It is not part of the street
+					// and a shadow of it falling across the road would be a
+					// change to the frame the street is measured in.
+					Comp->SetCastShadow(false);
+				}
+				A->SetActorScale3D(FVector((float)P.SizeM, (float)P.SizeM, 1.0f));
+				A->SetActorLocationAndRotation(
+					FVector(P.XCm, P.YCm, P.ZCm),
+					FRotator((float)P.EnginePitchDeg, (float)P.EngineYawDeg,
+					         (float)P.EngineRollDeg));
+				// READ BACK, NEVER ASSUMED. A transform that was asked for is
+				// not a transform that took.
+				const FVector Got = A->GetActorLocation();
+				R.bRead = true;
+				R.ReadXCm = (double)Got.X;
+				R.ReadYCm = (double)Got.Y;
+				R.ReadZCm = (double)Got.Z;
+				UMaterialInstanceDynamic* Mid = UMaterialInstanceDynamic::Create(GBaseMaterial, A);
+				if (Mid != nullptr)
+				{
+					R.bMidMade = true;
+					if (P.bBindTexture)
+					{
+						if (GControlTex == nullptr) { GControlTex = MakeControlTexture(); }
+						if (GControlTex != nullptr)
+						{
+							R.bTexMade = true;
+							const FName Param(UTF8_TO_TCHAR(LedgerSurface::MapParam(0)));
+							Mid->SetTextureParameterValue(Param, GControlTex);
+							UTexture* Back = Mid->K2_GetTextureParameterValue(Param);
+							R.bTexReadback = (Back != nullptr && Back == (UTexture*)GControlTex);
+							R.bTexResource = (GControlTex->GetResource() != nullptr);
+						}
+					}
+					// THE SCALARS GO ON EVERY CONTROL, INCLUDING THE COLOUR
+					// ONE. tile1 and tile8 differ in nothing else, which is
+					// what makes the pair readable.
+					Mid->SetScalarParameterValue(FName(TEXT("TilingU")), (float)P.TileU);
+					Mid->SetScalarParameterValue(FName(TEXT("TilingV")), (float)P.TileV);
+					if (Comp != nullptr)
+					{
+						Comp->SetMaterial(0, Mid);
+						R.bCompIsMid = (Comp->GetMaterial(0) == (UMaterialInterface*)Mid);
+					}
+				}
+#if WITH_EDITOR
+				A->SetActorLabel(FString(TEXT("control_quad_"))
+				                 + FString(UTF8_TO_TCHAR(P.Id.c_str())));
+#endif
+			}
+			GQuads.push_back(R);
+			GQuadLines.push_back(
+				LedgerSurface::ControlQuadLine(*C, P, R, kShotW, kShotH));
+		}
+		GQuadDone = LedgerSurface::ControlQuadsDoneLine(GQuads, GBaseMaterial != nullptr);
 	}
 
 	bool Tick(float)

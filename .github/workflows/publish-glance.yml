@@ -67,6 +67,15 @@ on:
       - 'tools/map.py'
       - 'ledger-v2/respec/decision-register/**'
       - 'production/queue/**'
+    # THE GALLERY'S SOURCES ARE THE THIRD GROUP, read out of tools/gallery.py
+    # rather than assumed: its SOURCES tuple is production/d1-probe,
+    # production/frames and game-design/sim-shots. The last two are already
+    # above for the glance; d1-probe is NOT, and it holds the four newest
+    # pictures in the repository (measured 2026-09-06: 36 images found, the
+    # newest four all under production/d1-probe). Without this line a new
+    # Unreal frame would land and the gallery would keep showing yesterday's.
+      - 'production/d1-probe/**'
+      - 'tools/gallery.py'
   workflow_dispatch:
 
 permissions:
@@ -172,10 +181,32 @@ jobs:
             *) echo "pagesEnableResult=REFUSED-http-$put" ;;
           esac
 
+      # A RESIZER, AND THE MEASUREMENT OF WHETHER IT ARRIVED. Without Pillow
+      # every picture embeds at full size: the four Unreal frames are 0.6 to
+      # 1.1 MB each, so the gallery's byte budget would bite on the first one
+      # and the page would silently show only the small old jpgs. Not fatal on
+      # purpose (a package index hiccup must not take the glance off his
+      # phone); tools/gallery.py prints resizer=Pillow or resizer=none and
+      # exits 1 when it dropped a picture for want of one, so the cause is
+      # named in the log rather than inferred from a thin page.
+      - name: a resizer for the pictures, and whether it arrived
+        run: |
+          python3 -m pip install --disable-pip-version-check --quiet Pillow \
+            || echo "pillowInstall=FAILED"
+          python3 - <<'PY'
+          try:
+              import PIL
+              print("pillowPresent=yes version=%s" % PIL.__version__)
+          except ImportError:
+              print("pillowPresent=no (pictures embed unresized; "
+                    "tools/gallery.py will say so and exit 1)")
+          PY
+
       - name: the generators' own selftests, accepting case first
         run: |
           python3 tools/glance.py --selftest
           python3 tools/map.py --selftest
+          python3 tools/gallery.py --selftest
 
       - name: the publisher's selftest, accepting case first
         run: python3 tools/publish-glance.py --selftest
@@ -206,7 +237,7 @@ jobs:
           # not, joining it to a file name would silently request a sibling
           # directory. Normalised here rather than assumed.
           case "$base" in */) ;; *) base="$base/" ;; esac
-          echo "glanceUrl=$base mapUrl=${base}map.html"
+          echo "glanceUrl=$base mapUrl=${base}map.html galleryUrl=${base}gallery.html"
           # Retries are for the CDN, which makes "not published" and "published
           # but stale" look identical. Every wait announces itself and the
           # attempt series is printed, so a future bound can be set from
@@ -225,6 +256,14 @@ jobs:
             --check "${base}map.html" \
             --expect-commit "${{ github.sha }}" \
             --retries 8 --wait-sec 15
+          # AND THE THIRD PAGE, for the same reason as the second: the
+          # Producer's register allows Jafar a link to gallery.html, so a
+          # gallery that deployed but does not serve is a ruled link into a
+          # 404. Published and never requested is the gap this file closes.
+          python3 tools/publish-glance.py \
+            --check "${base}gallery.html" \
+            --expect-commit "${{ github.sha }}" \
+            --retries 8 --wait-sec 15
 
       - name: the verdict, and the refusal record if there was one
         if: always()
@@ -235,6 +274,7 @@ jobs:
             echo "commit: ${{ github.sha }}"
             echo "url: ${{ steps.deployment.outputs.page_url }}"
             echo "map: ${{ steps.deployment.outputs.page_url }}map.html"
+            echo "gallery: ${{ steps.deployment.outputs.page_url }}gallery.html"
             echo "pagesEnableHttp: ${{ steps.enable.outputs.pagesEnableHttp }}"
             echo "job: ${{ job.status }}"
             echo ""

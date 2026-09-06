@@ -1733,6 +1733,39 @@ def convo_probe(src=None):
                   "from ConvoProbe)" % (m.group(3), m.group(1), len(want)))
 
 
+def stranger_test():
+    """The two arms of queue 119 are the same game, beat for beat.
+
+    THE EXPERIMENT IS ONLY WORTH RUNNING IF THIS IS TRUE. Three unbriefed
+    people play one crime twice with one thing changed between the runs; if
+    the two arms ever differ in the number of beats, the wording of a
+    question or the options under it, the evening measures formatting and
+    the answer is worthless whichever way it comes out. Nobody can see that
+    by reading the session, because each run looks fine on its own and the
+    fault only exists BETWEEN them.
+
+    So the harness plays both arms itself, with four different answer
+    scripts, and compares the shapes. Accepting case first, and two planted
+    differences afterwards, because a comparison that cannot see a change is
+    a green that means nothing."""
+    code, out = run(["dotnet", "run", "-c", "Release", "--project", str(ROOT / "StrangerTest"),
+                     "--", "--selftest"])
+    m = re.search(r"stranger-test selftest: (\d+) passed, (\d+) failed "
+                  r"\((\d+) answer script\(s\) played through both arms, "
+                  r"(\d+) planted difference\(s\)\)", out)
+    if not m:
+        return False, "STRANGER TEST did not report (build failure?)"
+    if m.group(2) != "0":
+        fails = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+        return False, ("STRANGER TEST ARMS DIFFER: %s of %s check(s) failed — %s"
+                       % (m.group(2), int(m.group(1)) + int(m.group(2)),
+                          _cap(fails, width=120)))
+    # THE DENOMINATORS THE TOOL PRINTS. "0 failed" beside nothing played
+    # would read exactly like two arms that were never compared.
+    return True, ("stranger-test arms identical over %s script(s), %s planted "
+                  "difference(s) caught" % (m.group(3), m.group(4)))
+
+
 def shape_files():
     """Layer 2 of the testing system, for the half that lives in files.
 
@@ -5424,6 +5457,13 @@ def _strings_selftest():
     say(ok and "0 uncast of 7 tier-1 principal(s)" in s,
         "voice cast: the finding keeps its denominator beside it", s)
 
+    ok, s = with_out(stranger_test,
+                     "  PASS  careful/truth: both arms 23 beat(s), 6 question(s), identical\n"
+                     "stranger-test selftest: 6 passed, 0 failed (4 answer script(s) "
+                     "played through both arms, 2 planted difference(s))\n")
+    say(ok and "4 script(s)" in s and "2 planted difference(s) caught" in s,
+        "stranger test: both denominators reach the footer", s)
+
     ok, s = with_out(picker_selftest,
                      "  posture screen: 9 shipped clip(s) accepted across the axes, "
                      "5 known-bad clip(s) refused on 5 branch(es)\n"
@@ -5615,6 +5655,17 @@ def _strings_selftest():
     ok, s = with_out(shadow, "lint-shadow: 0 shadowed Core types")
     say(ok and NOTHING_MEASURED in s,
         "shadow: a tool that stopped printing its census says so", s)
+
+    ok, s = with_out(stranger_test,
+                     "  FAIL  loud/lie: beat 14 differs: real=show canned=pause\n"
+                     "stranger-test selftest: 5 passed, 1 failed (4 answer script(s) "
+                     "played through both arms, 2 planted difference(s))\n")
+    say(not ok and "ARMS DIFFER" in s and "beat 14 differs" in s,
+        "stranger test: a drifted arm names the beat that drifted", s)
+
+    ok, s = with_out(stranger_test, "it did not build\n")
+    say(not ok and s.startswith("STRANGER TEST did not report"),
+        "stranger test: a run that printed no verdict is not a pass", s)
 
     ok, s = with_out(voice_cast, "0 problem(s)\n")
     say(not ok and NOTHING_MEASURED in s,
@@ -6044,7 +6095,7 @@ def main():
 
     parts, all_ok = [], True
     for fn in (director_cadence, footer_strings,
-               lint, shape, shadow, tools_tracked, reach, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
+               lint, shape, shadow, tools_tracked, reach, stranger_test, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape, producer_register, claude_md_size,
                inbox_selftest, inbox_read_selftest, bot_config_selftest, outbox_selftest, systems_inventory, inbox_tracked,
                template_sync,

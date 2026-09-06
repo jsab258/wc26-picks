@@ -1173,8 +1173,15 @@ def run_send(text):
 # because the network is blocked from the container this was written in.
 # Accepting case first.
 # --------------------------------------------------------------------------
-def selftest():
-    ok, bad = [], []
+def _selftest_cases(ok, bad, state):
+    """Every case, appending to `ok` / `bad`. Run by `outbox.run_selftest`.
+
+    SPLIT FROM `selftest()` 2026-09-06 so a raise anywhere below still reaches
+    the count line ledger/verify.py reads. A suite that dies mid-run and a
+    suite that runs and reports nothing are different facts with different next
+    actions, and the gate can only tell them apart if the dying one still
+    prints its numbers and exits on its own code.
+    """
 
     def check(name, cond, detail=""):
         (ok if cond else bad).append(name)
@@ -1269,6 +1276,9 @@ def selftest():
     # and what the reply carries. `reply` is captured rather than sent, so
     # no case below touches the network.
     home, far, watcher, _reader = inbox._repos()
+    # Recorded before any case runs: on a crash the directory to open is the
+    # first thing the reader needs, and `selftest()` prints it either way.
+    state["fixture"] = home
     creds = botconfig.Credentials(botconfig.FAKE_TOKEN, botconfig.FAKE_CHAT,
                                   "selftest", "selftest", 2)
     sent = 1788633012                                # 2026-09-05T18:30:12Z
@@ -1541,28 +1551,47 @@ def selftest():
           and "run_check" not in inspect.getsource(Bot.reply)
           and "producer-check" not in inspect.getsource(send))
 
+    # THE MESSAGE BODY IS THE ONE THAT CANNOT DECAY, `outbox.fixture_message`.
+    # It was producer-check's GOOD sample, whose deadline is an absolute date;
+    # this door runs the SINGLE-FILE check, which measures deadlines from the
+    # wall clock by ruling, so the sample crossed the 24-hour floor at
+    # 2026-09-06T09:00 and read 23.6, 23.5 and 23.3 hours over the following
+    # seventeen minutes. The accepting case below went red, and then the two
+    # rejecting cases after it, with nobody having touched the tree. The
+    # floor is untouched and is still proven live, on this same subprocess
+    # check, by outbox.py's own case
+    # reject/a-deadline-under-the-ruled-floor-is-not-sent.
     pc_repo = outbox._fixture_repo(os.path.join(home, "sendfile"))
+    good_body = outbox.fixture_message(outbox._load_producer_check())
     good_rel = "%s/2026-09-05-good.unprompted.md" % outbox.OUTBOX_DIR
-    outbox._commit(pc_repo, good_rel, outbox._load_producer_check().GOOD)
+    outbox._commit(pc_repo, good_rel, good_body)
     posted = []
     rc, why = send_file_checked(pc_repo, good_rel,
                                 lambda t: posted.append(t) or
                                 {"message_id": 77}, say=lambda _s: None)
     check("accept/a-checked-producer-file-is-sent", rc == 0 and not why
-          and len(posted) == 1, "rc=%d %s" % (rc, why))
+          and len(posted) == 1, "rc=%d posted=%d %s" % (rc, len(posted), why))
+    # EACH REJECTING CASE COUNTS ITS OWN SENDS, before against after, and not
+    # the running total. The total was `len(posted) == 1`, which is the
+    # ACCEPTING case's side effect: when that case broke, these two reported
+    # failures of their own that were nothing of the kind, and one decayed
+    # fixture read as three faults in three different rules.
     long_rel = "%s/2026-09-05-too-long.unprompted.md" % outbox.OUTBOX_DIR
-    outbox._commit(pc_repo, long_rel,
-                   outbox._load_producer_check().GOOD + ("\nword " * 200))
+    outbox._commit(pc_repo, long_rel, good_body + ("\nword " * 200))
+    was = len(posted)
     rc, why = send_file_checked(pc_repo, long_rel,
                                 lambda t: posted.append(t) or
                                 {"message_id": 78}, say=lambda _s: None)
     check("reject/an-over-cap-file-is-refused-and-not-sent",
-          rc == 1 and len(posted) == 1 and "word" in why, "rc=%d %s" % (rc, why))
+          rc == 1 and len(posted) == was and "wordcap" in why,
+          "rc=%d posted=%d..%d %s" % (rc, was, len(posted), why))
+    was = len(posted)
     rc, why = send_file_checked(pc_repo, "production/outbox/no-kind.md",
                                 lambda t: posted.append(t), say=lambda _s: None)
     check("reject/a-file-with-no-register-in-its-name-is-refused",
-          rc == 2 and len(posted) == 1 and ".unprompted.md" in why
-          and ".answer.md" in why and ".brief.md" in why, why)
+          rc == 2 and len(posted) == was and ".unprompted.md" in why
+          and ".answer.md" in why and ".brief.md" in why,
+          "rc=%d posted=%d..%d %s" % (rc, was, len(posted), why))
     check("reject/and-the-bots-own-chrome-would-fail-that-check",
           not outbox.run_check(
               pc_repo, "unprompted",
@@ -1578,13 +1607,33 @@ def selftest():
           and "outboxPasses=1" in b6.done_line()
           and "outboxSent=0" in b6.done_line(), b6.done_line())
 
-    print("\ntelegram-bot selftest: %d passed, %d failed (%d case(s) run). "
-          "THE NETWORK HALF IS NOT COVERED: every Telegram call in this file "
-          "is unverifiable until it runs on the PC."
-          % (len(ok), len(bad), len(ok) + len(bad)))
+
+def selftest():
+    """The whole suite, and it REPORTS ON EVERY PATH.
+
+    Exit 0 every case passed, 3 a case failed (here or in the config reader),
+    4 the suite itself raised. `outbox.run_selftest` prints the count line
+    before this function sees the code, so a crash still reaches
+    ledger/verify.py as numbers plus a distinct exit rather than as no line.
+    The config reader runs either way: a crash in the cases above is no reason
+    to measure nothing here.
+    """
+    code, ok, bad, state = outbox.run_selftest(
+        "telegram-bot", _selftest_cases,
+        "THE NETWORK HALF IS NOT COVERED: every Telegram call in this file "
+        "is unverifiable until it runs on the PC.")
+    print("fixture: %s"
+          % (state["fixture"] if state.get("fixture")
+             else "nothing measured, the suite ended before one was made"))
     print("now the config reader:\n")
     rc = botconfig._selftest()
-    return 3 if (bad or rc) else 0
+    if rc and code == outbox.SELFTEST_OK:
+        code = outbox.SELFTEST_FAILED
+    print("telegram-bot selftest exit=%d meaning=%s casesRun=%d "
+          "casesFailed=%d configReaderExit=%d"
+          % (code, outbox.SELFTEST_MEANING[code], len(ok) + len(bad), len(bad),
+             rc))
+    return code
 
 
 def main(argv):
