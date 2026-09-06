@@ -55,13 +55,12 @@ conversation over four sources that were all correct.
 The moat is social memory, consequence persistence and information,
 unmistakably deeper than KCD2. Everything else is in service of it.
 
-The visual target is photoreal, wet, overcast, grimy Britain, and the bar is
-the Meridian Test above. GTA V on PS3 is RETIRED as a reference bar by
-decision D8 and may not be cited as a target in any new document.
+The visual target is photoreal, wet, overcast, grimy Britain; the bar is the
+Meridian Test above. GTA V on PS3 is RETIRED by D8 and may not be cited as a
+target in any new document.
 
 Nothing is purchased. Characters and animations come from Mixamo with Jafar's
-account and a token he supplies. When something is missing, fetch it rather
-than price it.
+account and a token he supplies. When something is missing, fetch it.
 
 World facts: `canon.md`. The incident: casebook-claims, section 0.
 
@@ -92,11 +91,10 @@ open the file and look. A document saying something is missing is an analysis,
 not evidence; its open lists decay like comments.
 
 **3b. A zero needs a denominator, or it cannot tell nothing from fine.** Every
-zero, every "none", every clean result ships the count of what was examined,
-and a never-ran case prints the words "nothing measured". Ask what the
-denominator COUNTED, not merely whether one is printed: one larger than the
-set examined turns a clean result into a false claim with a number attached.
-Any cap on what gets reported announces when it bites.
+zero, every "none", every clean result ships the count of what was examined; a
+never-ran case prints "nothing measured". Ask what the denominator COUNTED:
+one larger than the set examined turns a clean result into a false claim with
+a number on it. Any cap announces when it bites.
 
 **4. Open the artifact you are shipping.** Load the page, play the audio,
 read the file back. Read every still before reading any gate, and never let a
@@ -108,11 +106,10 @@ evidence of what or why, so print the quantity before acting on it.
 commands to exactly what the operation produced, and copy anything a human
 spent time on where the pipeline cannot reach it.
 
-**5b. A guard must be tested on the case it should PASS.** Two outcomes, and
-shipping it means having watched both, accepting case first. It also needs a
-run in which the thing it asserts CAN happen: plant the condition, never
-loosen the bound. A guard that cannot tell a regression from an improvement is
-a ratchet.
+**5b. A guard must be tested on the case it should PASS.** Two outcomes, both
+watched, accepting case first. It also needs a run where the thing it asserts
+CAN happen: plant the condition, never loosen the bound. A guard that cannot
+tell a regression from an improvement is a ratchet.
 
 **6. Built is not running.** A feature is done when something calls it and a
 gate proves the call happened, not when Core is tested. Grep for call sites
@@ -120,15 +117,14 @@ before saying it is finished.
 
 **7. Estimates: name what dominates, or do not give a number.** Check the
 thing is running and what is ahead of it, state what dominates and what could
-blow it up, and say so when you do not know.
+blow it up, and say when you do not know.
 
 **8. "I will come back to you" requires arming something.** Ending a turn does
-not schedule a wake-up. Arm the watcher in the same turn: no watcher, no
-promise.
+not schedule a wake-up. Arm it in the same turn: no watcher, no promise.
 
 **9. Do not block yourself.** Know what your pushes trigger. Expensive jobs
-are opt-in, concurrency groups scope to them only, and cheap checks never
-queue behind a stream.
+are opt-in, concurrency groups scope to them, cheap checks never queue behind
+a stream.
 
 **10. Documents.** Every doc in `game-design/` declares LIVE, SPEC or LOG in
 its first lines; `tools/docs-check.py` enforces that plus a 400-line cap on a
@@ -137,7 +133,7 @@ as something measurable, dependencies and risk. The plan is
 `ledger-v2/respec/roadmap-v2.md`; the live queue is `production/queue/`, with
 `production/NOW.md` for what is already moving.
 
-**11. Scope: do the asked thing.** A question is a question. Answer it, and
+**11. Scope: do the asked thing.** A question is a question: answer it, and
 offer the work separately.
 
 **12. If you cannot read the output, fix that before anything else.** A
@@ -145,17 +141,20 @@ blocked feedback channel is the highest-leverage bug on the board, not an
 inconvenience to route around. The channel that works here is a file committed
 by CI, under `game-design/sim-shots/`.
 
-**13. A turn ends at the ceiling, a limit, or a blocked dependency.** A
-landed batch is not a reason to stop: take the next item. Questions go to the
-Telegram inbox; work continues. On a limit, parse the reset from the notice,
-arm the resume trigger, continue when it fires. Jafar, 2026-09-05.
+**13. A turn ends at the ceiling, a limit, or a genuine blocker. EVERY OTHER
+ENDING ARMS THE RESUME.** While queue items and budget remain, arm a one-shot
+three minutes out to resume the next item before ending. Nobody types
+"continue" again. A landed batch is not a reason to stop. Questions go to the
+Telegram inbox and are ANSWERED IN THE SAME RUN; one sitting unanswered is a
+Blocking gap. On a limit, parse the reset from the notice and arm for it.
+Jafar, 2026-09-05 and 2026-09-06.
 
 ## Before you commit
 
 Run `python3 ledger/verify.py`. Green writes `ledger/.verify-footer`, red
-deletes it, so paste the footer FROM THE FILE and never from the scrollback.
-Write the message to a file, not into an unquoted heredoc: a backticked
-identifier has twice been executed by the shell.
+deletes it, so paste the footer FROM THE FILE, never from the scrollback.
+Write the message to a file, not an unquoted heredoc: a backticked identifier
+has twice been executed by the shell.
 
 Branch: `claude/game-dev-ai-automation-2h67ix`. Never open a pull request
 unless asked. Never make a purchase or use an account; every purchase is
@@ -164,9 +163,8 @@ Jafar's.
 Voice sourcing consent rule: only corpora whose contributors donated their
 voices to build speech technology, and no identifiable public figures, ever.
 
-HuggingFace and most external hosts are blocked from this container, so
-corpus work goes through CI. Make each run maximally informative rather than a
-blind attempt.
+HuggingFace and most external hosts are blocked here, so corpus work goes
+through CI. Make each run maximally informative, not a blind attempt.
 
 ## The studio split
 

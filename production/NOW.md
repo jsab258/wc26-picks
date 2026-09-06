@@ -221,6 +221,46 @@ share.
 THE VERIFY FOOTER'S `22 queue items ready` READS THE RETIRED QUEUE (079) and is
 NOT TO BE QUOTED until 095 lands its counter.
 
+## THE WEEKEND, RULED BY JAFAR 2026-09-06: GAME WORK ONLY
+
+TWO ITEMS, IN THIS ORDER, AND NOTHING ELSE:
+1. FIND THE CAUSE OF THE UNTEXTURED STREET and get Meridian's textures onto it.
+   The wire moved to 14/14 and the frames changed; staging ran
+   (`stagedTexFiles=102/102 piecesTextured=563/593`); the street still renders
+   the ENGINE CHECKER and the cause is UNKNOWN.
+2. QUEUE 119, the three unbriefed players.
+
+EVERYTHING ELSE WAITS FOR MONDAY unless it blocks those two: the remaining
+audit items (114 to 118, 120 to 122), all console work, all tooling. ANY NEW
+TOOLING OR PROCESS ITEM DISCOVERED THIS WEEKEND GOES TO THE QUEUE AND WAITS. It
+does not get built.
+
+SPEND DOWN TO ROUGHLY 75 OF 80 BY SUNDAY EVENING AND STOP THERE. Fable governs
+and read 33 on 2026-09-06 at about 04:20Z. FRAMES COME TO HIM AS IMAGES.
+
+THE ONE EXCEPTION, because he ordered it in the same message: the brief
+register and the gallery page, since the first brief was wrong and he wants
+today's rewritten in the new shape and SENT so he can judge it.
+
+## NOBODY TYPES "CONTINUE" AGAIN, ruled 2026-09-06
+
+A turn ends for the ceiling, a limit, or a genuine blocker. EVERY OTHER ENDING
+ARMS THE RESUME: a one-shot three minutes out to take the next item, armed
+BEFORE the turn ends, while queue items and budget remain. Rule 13 in
+CLAUDE.md and the daily trigger both carry it.
+
+CONVERSATION IS THE POINT OF THE CHANNEL. A message arriving in the inbox while
+a run is going is ANSWERED IN THAT SAME RUN, by the Producer, in the register,
+and the bot sends it. A QUESTION SITTING UNANSWERED IS A BLOCKING GAP, not a
+queue item.
+
+THE BRIEF'S SHAPE WAS WRONG AND IS RULED: images as Telegram images, never as
+links; at most two links and never to a repository markdown file, only the
+glance, map or gallery; everything else in plain words; and it LEADS WITH WHERE
+THE PROJECT STANDS AND WHAT CHANGED FOR THE GAME, not with what was engineered.
+Twenty seconds to read and feel informed. Fifteen links to markdown files is
+not a director update.
+
 ## 2026-09-06: AN OUTSIDE AUDIT FOUND THREE THINGS OUR GATES CERTIFIED GREEN
 
 A different model family audited this project. Jafar verified all three

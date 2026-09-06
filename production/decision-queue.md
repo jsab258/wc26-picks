@@ -50,6 +50,18 @@ honest reason this has waited a month.
 ---
 ## RULED THIS WEEK
 
+### RULED 2026-09-06 BY JAFAR: A, keep both checkpoint repairs.
+
+His word: "Ruling on the open card: A, keep both checkpoint repairs." So the
+roadmap keeps them. Phase 4's gate now needs a resolved blow from a caller
+outside Core, counted and printed, rather than being satisfied by
+`Combat.StaminaAfterMoving` in the walk loop, which is what made it green today
+before phase 1. Phase 1's gate now names arrest reachable from live play,
+rather than going green while `CoatHost.Arrested` has zero callers.
+
+Both rows now say the project is LESS far along than they said before, which is
+the point of them and why the option to strike was real.
+
 ### RULED 2026-09-05 BY JAFAR: run 21 goes, item 6 of his standing order.
 
 His words, recorded in production/NOW.md item 6 of the 2026-09-05 standing

@@ -73,7 +73,11 @@ line below is the reading copy.
 Trigger: `trig_013itgDeay6t41BHEmaYFbAj`, 04:00 UTC daily (`production/NOW.md`
 item 1d). It is the only live trigger; the hourly watchdog above is disabled.
 
-STATUS: LIVE, reset 2026-09-05T16:20:45Z, now naming `tools/morning-brief.py`. Rule 13 at the top and
+STATUS: LIVE, reset 2026-09-06T06:53:02Z. Carries Jafar's resume rule (nobody
+types "continue" again), the answer-in-the-same-run rule for inbox questions,
+and his ruled brief shape (images as images, at most two links, never to a
+repository markdown file, lead with the game). Previously reset 16:20:45Z on
+2026-09-05 naming `tools/morning-brief.py`. Rule 13 at the top and
 the cut-from-console-never-the-game rule at the bottom. First set 11:38:02Z per section 9.1 of
 `game-design/decision-2026-09-05-ruling-088-inbound-transport-batch.md`. The
 088 reader line and the self-check line are both in. The prompt AS SET follows,
