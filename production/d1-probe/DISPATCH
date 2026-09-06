@@ -311,3 +311,53 @@ Nothing in this run has executed an engine. Every sentence above is read off a
 committed frame, a committed verdict and a committed asset, which is the whole
 reason the control quads are here: a diagnosis with no accepting case is a
 lead.
+
+run 23 - 2026-09-06 - RUN 22 SUCCEEDED AND BANKED NOTHING, AND MY PUSH IS WHY.
+AGAIN. Identical payload to run 22, re-dispatched. Nothing goes to this branch
+until it lands.
+
+Run 22 (id 34025845882) reported success on every one of its ten steps,
+including "Commit the probe result" at 34 seconds, and no commit exists on any
+ref. The newest probe commit is still e010897d from run 21, and
+`git merge-base --is-ancestor c84e8faf e010897d` returns 1. Its four frames,
+its readback and its three control quads are on Jafar's PC where nothing here
+can reach them.
+
+The timing names the cause and it is not ambiguous:
+
+    09:52:01   c84e8faf committed, the dispatch
+    09:52:21   the runner checks out c84e8faf
+    09:55:12   I COMMIT bcc71b01 AND PUSH IT
+    09:56:56   the runner starts "Commit the probe result"
+    09:57:30   that step reports success
+    09:57:36   the run reports success
+
+The runner had checked out c84e8faf, done four and a half minutes of work, and
+then tried to push onto a branch that had moved under it three minutes
+earlier. bcc71b01 carried NOW.md and a queue item. Neither was urgent. Both
+could have waited eight minutes.
+
+THIS IS RUN 18 REPEATED, AND THE RULE WAS ALREADY WRITTEN DOWN, in run 19's own
+commit message, in this repository, by this studio: "Know what your pushes
+trigger, and equally: do not move the branch a running job intends to push
+to." CLAUDE.md rule 9 covers the first half and still says nothing about the
+second. Run 18 cost a run; run 22 cost another; the rule has now been paid for
+twice and lives only in a commit message nobody reads before pushing.
+
+The mistake underneath is worth naming separately, because it is not about git.
+I armed a check-in to watch for run 22 by ancestry, which was right, and then
+committed documentation while it was in flight, which was wrong. Watching a
+run and freezing the branch it will push to are the same discipline, and I did
+one half of it.
+
+WHAT RUN 23 ANSWERS is exactly what run 22 was to answer, unchanged: the
+readback pair midParamReadback with midScalarReadback over midReadbackAsked
+(both short is A, scalar full with texture short is B, both full with flat
+frames is C), and the three control quads for candidate D, where quads tile1
+and tile4 are one size at one distance differing only in their tiling scalars,
+so identical quads beside full readbacks mean the base material never compiled.
+Read the quads before the keys. Exclude quadBoxPx from any whole-frame
+statistic.
+
+NOTHING IS PUSHED TO THIS BRANCH UNTIL A LANDED RUN CONTAINS THIS COMMIT.
+Not a document, not a queue item, not a status file.
