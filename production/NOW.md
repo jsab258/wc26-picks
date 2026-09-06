@@ -81,13 +81,29 @@ here, both stated with what they do NOT reach:
   half the frame dead flat. This one does not depend on which pieces are in
   shot, which is why it is the load-bearing half.
 
-IN FLIGHT: an engine-specialist carrying queue 123's two halves in one CI
-round trip, the per-surface readback (`midParamReadback`, `texResourceValid`,
-`compMaterialIsMid`) and the control quad with four known colours built in
-code. The control quad is the accepting case this diagnosis has never had, and
-it is what separates "the override never lands" from "the override lands and
-the texture has no render resource". Nothing below this line has run an
-engine.
+LANDED AND DISPATCHED. The readback and THREE control quads are in
+`e569b24d`, and `c84e8faf` appended run 22 to `production/d1-probe/DISPATCH`,
+which is the push that runs the probe on Jafar's PC. Capture the sha before
+watching: RUN 22 IS `c84e8faf`, and it is watched BY ANCESTRY, is there a
+landed run whose commit CONTAINS it, never by branch movement or run name.
+
+What run 22 answers. On the materials done line, read as a pair and never one
+alone: `midParamReadback` and `midScalarReadback` over `midReadbackAsked`,
+beside `texResourceValid` and `compMaterialIsMid`. Both short is A, no MID
+override of any kind arrives. Scalar full with texture short is B. Both full
+with the frames still flat is C.
+
+Candidate D is answered by a picture and by nothing else. Quads `tile1` and
+`tile4` are one size at one distance differing ONLY in their tiling scalars;
+identical, beside full readbacks, means the base material never compiled and
+every number about `BaseColorMap` has been about the wrong material. Quad
+`colour` carries four saturated colours built in code, no file, no decode.
+READ THE QUADS BEFORE THE KEYS, and read `quadBoxPx` to know where to sample.
+The quads take about 5 percent of camera A in the left half, so any
+whole-frame statistic from run 22 must exclude those boxes first; the right
+half, where `east_parade_bay3` is, stays comparable with runs 18 to 21.
+
+Nothing below this line has run an engine.
 
 THE REGISTER AND GALLERY BATCH IS RULED AND AMENDED. Verdict LAND WITH
 AMENDMENTS in
