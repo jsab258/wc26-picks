@@ -546,6 +546,46 @@ jobs:
           $L | Set-Content $out -Encoding utf8
           Write-Host ($L -join "`n")
 
+      # THE MATERIAL STEP'S OWN OUTPUT, RETAINED. Its own step because the
+      # build step above is 17 characters under the 23184 dispatch ceiling and
+      # a step that cannot be dispatched takes the only readable channel out
+      # of CI. Why it exists: runs 21 and 23 both printed
+      # materialEditorCmdExit=1 beside materialScriptReturn=0 and nothing here
+      # could ever say why, because material.log was read only when the script
+      # wrote no verdict at all and material.err was never read on any path.
+      # Never fails the job: an unreadable log is a finding, not a build error.
+      - name: Retain the material compile evidence
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $out = "production/d1-probe/ue-material-log.txt"
+          $log = "production/d1-probe/ue-build.txt"
+          $S = @("# UE material step evidence, sha $env:GITHUB_SHA",
+                 "# Section 1: what the script measured inside the editor.")
+          $fromScript = Test-Path "ue-probe/ue-material-log.txt"
+          if ($fromScript) { $S += (Get-Content "ue-probe/ue-material-log.txt") }
+          else { $S += "NOTHING MEASURED - the script wrote no ue-material-log.txt" }
+          $S += @("", "# Section 2: the LAST 120 lines of the editor process stdout,",
+                  "# which is where a process exit code is explained. Cap announced.")
+          $ml = @(Get-Content "material.log" -ErrorAction SilentlyContinue)
+          $S += "# material.log holds $($ml.Count) line(s)"
+          if ($ml.Count -gt 120) { $S += "(+$($ml.Count - 120) earlier line(s) not shown)" }
+          $S += ($ml | Select-Object -Last 120)
+          $S += @("", "# Section 3: the editor process stderr, first 60 lines.")
+          $mr = @(Get-Content "material.err" -ErrorAction SilentlyContinue)
+          $S += "# material.err holds $($mr.Count) line(s)"
+          $S += ($mr | Select-Object -First 60)
+          if ($mr.Count -gt 60) { $S += "(+$($mr.Count - 60) more line(s) not shown)" }
+          $S | Set-Content -Path $out -Encoding utf8
+          $gen = @(Get-ChildItem "ue-probe/Content/Ledger" -Filter "T_LedgerDefault*.uasset" -ErrorAction SilentlyContinue)
+          $names = if ($gen.Count) { ($gen | ForEach-Object { $_.Name }) -join '/' } else { 'none' }
+          if (Test-Path $log) {
+            Add-Content -Path $log -Encoding utf8 -Value "materialLogFile=production/d1-probe/ue-material-log.txt materialLogFromScript=$fromScript materialLogStdoutLines=$($ml.Count) materialLogStderrLines=$($mr.Count) materialGeneratedAssets=$($gen.Count) materialGeneratedAssetNames=$names materialLogStat=line-counts-of-the-editor-process-own-output/not-of-the-slice-the-script-scanned"
+          }
+          Write-Host "material evidence: script=$fromScript stdout=$($ml.Count) stderr=$($mr.Count) generated=$($gen.Count)"
+
       # TASK 007 STEPS 2 AND 3: ONE STILL, OFFSCREEN, AND A NUMBER PROVING IT
       # IS NOT BLANK.
       #
@@ -969,9 +1009,14 @@ jobs:
       # THE EVIDENCE CHANNEL, and the two rules the Unity workflow paid for.
       # A run that measured nothing must SAY so rather than committing a
       # stale checkout's file as its own, and every output is staged BY NAME.
+      # NO continue-on-error ON THIS STEP, DELIBERATELY. It carries an
+      # exit 1 for the case where the probe result could not be pushed, and
+      # with continue-on-error the step would fail while the JOB stayed
+      # green: the exact colour that was read as a landing on runs 18 and
+      # 22. A commit or a push that did not happen is not a landed run, so
+      # it fails the job. Amendment A2, ruling of 2026-09-06.
       - name: Commit the probe result
         if: always()
-        continue-on-error: true
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -1065,6 +1110,18 @@ jobs:
           # verdict's materialStatus line either way.
           [ -f ue-probe/Content/Ledger/M_LedgerSurface.uasset ] && \
             git add -- ue-probe/Content/Ledger/M_LedgerSurface.uasset
+          # THE DEFAULT TEXTURES THE SCRIPT MAKES ITSELF, by name prefix and
+          # with the same plain add for the same reason. The material
+          # REFERENCES them, so a cook that carried the material without them
+          # would be a material with null samplers again, which is the fault
+          # this batch exists to end.
+          for T in ue-probe/Content/Ledger/T_LedgerDefault*.uasset; do
+            [ -f "$T" ] && git add -- "$T"
+          done
+          # AND THE COMPILE DIAGNOSTICS, which are the only evidence anybody
+          # here can read about why an editor process exited the way it did.
+          [ -f production/d1-probe/ue-material-log.txt ] && \
+            git add -- production/d1-probe/ue-material-log.txt
           git diff --cached --quiet && { echo "probe result unchanged; nothing to commit"; exit 0; }
           git commit -m "UE machine probe from $(git rev-parse --short HEAD)"
           BR="${GITHUB_REF_NAME}"
@@ -1076,3 +1133,14 @@ jobs:
             sleep $((i * 5))
           done
           echo "could not push the probe result; it is committed locally on the agent"
+          # AND THAT IS A FAILED JOB, NOT A GREEN ONE. Run 18 and run 22 both
+          # reported success here having banked nothing, because this step
+          # ended on the echo above and fell off the end with status 0. Both
+          # times a human read the colour, believed the run had landed, and
+          # spent the next hour reasoning about numbers that were never
+          # written. The CI rule this project already carries says to verify a
+          # job's EFFECTS and not its exit code; this is the other half of it,
+          # which is that a job must not report an effect it did not have.
+          # The "nothing to commit" case exits 0 earlier and is unaffected, so
+          # the accepting path still passes.
+          exit 1

@@ -1,0 +1,161 @@
+QUEUE 119 SWEEP: both arms over the whole single-pass answer space.
+Every line below is a count with its denominator. No line is a preference.
+
+COVERAGE
+  paths swept       108/108 distinct single-pass player paths (3 jobs x 3 hours x 2 approaches x 2 coats x 3 answers)
+  seeds             6 of 6 the evening could use (participant*100+run*7, participants 1..3, runs 1..2)
+  sessions played   1296 (648 per arm)
+  spoken lines      3240 per-arm-pairs compared, 5 a session
+  re-plan loop      not a separate world: proven by StudySelftest, not assumed
+
+WHERE THE TWO ARMS SAY DIFFERENT WORDS (same seed, so the RNG is held still)
+  differ            3024/3240 spoken lines (93.333 percent, pooled over all seeds)
+    beat 0:morning/lena         differ 648/648   real said   6 distinct sentence(s), canned said 6
+    beat 1:street/pair          differ 576/648   real said  42 distinct sentence(s), canned said 18
+    beat 2:street/pair          differ 504/648   real said  18 distinct sentence(s), canned said 6
+    beat 3:passing/ada          differ 522/522   real said   6 distinct sentence(s), canned said 6
+    beat 3:passing/rocco        differ 126/126   real said   6 distinct sentence(s), canned said 6
+    beat 4:evening/lena         differ 648/648   real said   6 distinct sentence(s), canned said 6
+
+WHAT THE REAL ARM'S LINES ARE ABOUT (denominator 3240 lines per arm)
+  real   pointed    540/3240 (a response to something the player did)
+  real   chatter    1944/3240 (the plain neighbourly band: weather, the pub, Mickey)
+  real   ambient    756/3240 (the street's own life, nothing to do with the player)
+  canned pointed    3240/3240 (fixed: it is always on topic, by construction)
+  canned chatter    0/3240
+  canned ambient    0/3240
+  both pointed      540/3240 (both on topic at the same moment)
+  canned on topic, real not  2700/3240
+  real on topic, canned not  0/3240
+
+WHAT THE LIVE GAME WOULD HAVE DONE AT THOSE BEATS
+  recognition beats 1944 (three a session: Lena twice, one passer-by)
+  below Comments    1944/1944 would be SILENT in the build (GossipDirector.TickStances returns before speaking);
+                    this session substitutes the plain band so the two arms cannot differ by a missing line.
+
+HOW MUCH OF WHAT IS SAID DEPENDS ON WHAT THE PLAYER CHOSE
+  change only the job       real 342/648 pair(s) of paths changed what the street says; canned 648/648
+  change only the hour      real 306/648 pair(s) of paths changed what the street says; canned 0/648
+  change only the approach  real 216/324 pair(s) of paths changed what the street says; canned 0/324
+  change only the coat      real 162/324 pair(s) of paths changed what the street says; canned 0/324
+  change only the answer    real 0/648 pair(s) of paths changed what the street says; canned 0/648
+  distinct sessions real 10 of 108 paths (mean over 6 seeds)
+  distinct sessions canned 3 of 108 paths (mean over 6 seeds)
+
+THE CAUSAL CHAIN, PER PATH, SEED 107 (real arm; canned has no chain to print)
+  customs/h23/quiet/coat/truth       saw=0 awake=2/4 filed=0@0.55 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h23/quiet/coat/lie         saw=0 awake=2/4 filed=0@0.55 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h23/quiet/coat/silent      saw=0 awake=2/4 filed=0@0.55 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h23/quiet/nocoat/truth     saw=2 awake=2/4 filed=2@0.90 claim=seen/Unknown moved=Sam->Ada@0.360/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  customs/h23/quiet/nocoat/lie       saw=2 awake=2/4 filed=2@0.90 claim=home/Unknown moved=Sam->Ada@0.360/hop1 contra=1 susp=0.176 pressure=0.324 stance=Watches lastLine=chatter
+  customs/h23/quiet/nocoat/silent    saw=2 awake=2/4 filed=2@0.90 claim=none/none moved=Sam->Ada@0.360/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  customs/h23/forced/coat/truth      saw=2 awake=2/4 filed=2@0.55 claim=seen/Unknown moved=Sam->Ada@0.220/hop1 contra=0 susp=0.037 pressure=0.159 stance=Notices lastLine=chatter
+  customs/h23/forced/coat/lie        saw=2 awake=2/4 filed=2@0.55 claim=home/Unknown moved=Sam->Ada@0.220/hop1 contra=1 susp=0.108 pressure=0.198 stance=Notices lastLine=chatter
+  customs/h23/forced/coat/silent     saw=2 awake=2/4 filed=2@0.55 claim=none/none moved=Sam->Ada@0.220/hop1 contra=0 susp=0.037 pressure=0.159 stance=Notices lastLine=chatter
+  customs/h23/forced/nocoat/truth    saw=3 awake=2/4 filed=2@0.90 claim=seen/Unknown moved=Sam->Ada@0.360/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  customs/h23/forced/nocoat/lie      saw=3 awake=2/4 filed=2@0.90 claim=home/Unknown moved=Sam->Ada@0.360/hop1 contra=1 susp=0.176 pressure=0.324 stance=Watches lastLine=chatter
+  customs/h23/forced/nocoat/silent   saw=3 awake=2/4 filed=2@0.90 claim=none/none moved=Sam->Ada@0.360/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  customs/h01/quiet/coat/truth       saw=0 awake=2/4 filed=0@0.55 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h01/quiet/coat/lie         saw=0 awake=2/4 filed=0@0.55 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h01/quiet/coat/silent      saw=0 awake=2/4 filed=0@0.55 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h01/quiet/nocoat/truth     saw=0 awake=2/4 filed=0@0.90 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h01/quiet/nocoat/lie       saw=0 awake=2/4 filed=0@0.90 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h01/quiet/nocoat/silent    saw=0 awake=2/4 filed=0@0.90 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h01/forced/coat/truth      saw=1 awake=2/4 filed=1@0.55 claim=seen/Unknown moved=Rocco->Sam@0.352/hop1 contra=0 susp=0.037 pressure=0.159 stance=Notices lastLine=chatter
+  customs/h01/forced/coat/lie        saw=1 awake=2/4 filed=1@0.55 claim=home/Unknown moved=Rocco->Sam@0.352/hop1 contra=1 susp=0.108 pressure=0.198 stance=Notices lastLine=chatter
+  customs/h01/forced/coat/silent     saw=1 awake=2/4 filed=1@0.55 claim=none/none moved=Rocco->Sam@0.352/hop1 contra=0 susp=0.037 pressure=0.159 stance=Notices lastLine=chatter
+  customs/h01/forced/nocoat/truth    saw=2 awake=2/4 filed=2@0.90 claim=seen/Unknown moved=Sam->Ada@0.360/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  customs/h01/forced/nocoat/lie      saw=2 awake=2/4 filed=2@0.90 claim=home/Unknown moved=Sam->Ada@0.360/hop1 contra=1 susp=0.176 pressure=0.324 stance=Watches lastLine=chatter
+  customs/h01/forced/nocoat/silent   saw=2 awake=2/4 filed=2@0.90 claim=none/none moved=Sam->Ada@0.360/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  customs/h03/quiet/coat/truth       saw=0 awake=2/4 filed=0@0.55 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h03/quiet/coat/lie         saw=0 awake=2/4 filed=0@0.55 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h03/quiet/coat/silent      saw=0 awake=2/4 filed=0@0.55 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h03/quiet/nocoat/truth     saw=0 awake=2/4 filed=0@0.90 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h03/quiet/nocoat/lie       saw=0 awake=2/4 filed=0@0.90 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h03/quiet/nocoat/silent    saw=0 awake=2/4 filed=0@0.90 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h03/forced/coat/truth      saw=0 awake=2/4 filed=0@0.55 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h03/forced/coat/lie        saw=0 awake=2/4 filed=0@0.55 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h03/forced/coat/silent     saw=0 awake=2/4 filed=0@0.55 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  customs/h03/forced/nocoat/truth    saw=1 awake=2/4 filed=1@0.90 claim=seen/Unknown moved=Rocco->Sam@0.576/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  customs/h03/forced/nocoat/lie      saw=1 awake=2/4 filed=1@0.90 claim=home/Unknown moved=Rocco->Sam@0.576/hop1 contra=1 susp=0.176 pressure=0.324 stance=Watches lastLine=chatter
+  customs/h03/forced/nocoat/silent   saw=1 awake=2/4 filed=1@0.90 claim=none/none moved=Rocco->Sam@0.576/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  safe/h23/quiet/coat/truth          saw=0 awake=2/4 filed=0@0.55 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h23/quiet/coat/lie            saw=0 awake=2/4 filed=0@0.55 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h23/quiet/coat/silent         saw=0 awake=2/4 filed=0@0.55 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h23/quiet/nocoat/truth        saw=0 awake=2/4 filed=0@0.90 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h23/quiet/nocoat/lie          saw=0 awake=2/4 filed=0@0.90 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h23/quiet/nocoat/silent       saw=0 awake=2/4 filed=0@0.90 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h23/forced/coat/truth         saw=1 awake=2/4 filed=1@0.55 claim=seen/Unknown moved=Rocco->Sam@0.352/hop1 contra=0 susp=0.037 pressure=0.159 stance=Notices lastLine=chatter
+  safe/h23/forced/coat/lie           saw=1 awake=2/4 filed=1@0.55 claim=home/Unknown moved=Rocco->Sam@0.352/hop1 contra=1 susp=0.108 pressure=0.198 stance=Notices lastLine=chatter
+  safe/h23/forced/coat/silent        saw=1 awake=2/4 filed=1@0.55 claim=none/none moved=Rocco->Sam@0.352/hop1 contra=0 susp=0.037 pressure=0.159 stance=Notices lastLine=chatter
+  safe/h23/forced/nocoat/truth       saw=3 awake=2/4 filed=2@0.90 claim=seen/Unknown moved=Sam->Ada@0.360/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  safe/h23/forced/nocoat/lie         saw=3 awake=2/4 filed=2@0.90 claim=home/Unknown moved=Sam->Ada@0.360/hop1 contra=1 susp=0.176 pressure=0.324 stance=Watches lastLine=chatter
+  safe/h23/forced/nocoat/silent      saw=3 awake=2/4 filed=2@0.90 claim=none/none moved=Sam->Ada@0.360/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  safe/h01/quiet/coat/truth          saw=0 awake=2/4 filed=0@0.55 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h01/quiet/coat/lie            saw=0 awake=2/4 filed=0@0.55 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h01/quiet/coat/silent         saw=0 awake=2/4 filed=0@0.55 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h01/quiet/nocoat/truth        saw=0 awake=2/4 filed=0@0.90 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h01/quiet/nocoat/lie          saw=0 awake=2/4 filed=0@0.90 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h01/quiet/nocoat/silent       saw=0 awake=2/4 filed=0@0.90 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h01/forced/coat/truth         saw=0 awake=2/4 filed=0@0.55 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h01/forced/coat/lie           saw=0 awake=2/4 filed=0@0.55 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h01/forced/coat/silent        saw=0 awake=2/4 filed=0@0.55 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h01/forced/nocoat/truth       saw=1 awake=2/4 filed=1@0.90 claim=seen/Unknown moved=Rocco->Sam@0.576/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  safe/h01/forced/nocoat/lie         saw=1 awake=2/4 filed=1@0.90 claim=home/Unknown moved=Rocco->Sam@0.576/hop1 contra=1 susp=0.176 pressure=0.324 stance=Watches lastLine=chatter
+  safe/h01/forced/nocoat/silent      saw=1 awake=2/4 filed=1@0.90 claim=none/none moved=Rocco->Sam@0.576/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  safe/h03/quiet/coat/truth          saw=0 awake=2/4 filed=0@0.55 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h03/quiet/coat/lie            saw=0 awake=2/4 filed=0@0.55 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h03/quiet/coat/silent         saw=0 awake=2/4 filed=0@0.55 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h03/quiet/nocoat/truth        saw=0 awake=2/4 filed=0@0.90 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h03/quiet/nocoat/lie          saw=0 awake=2/4 filed=0@0.90 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h03/quiet/nocoat/silent       saw=0 awake=2/4 filed=0@0.90 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h03/forced/coat/truth         saw=0 awake=2/4 filed=0@0.55 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h03/forced/coat/lie           saw=0 awake=2/4 filed=0@0.55 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h03/forced/coat/silent        saw=0 awake=2/4 filed=0@0.55 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  safe/h03/forced/nocoat/truth       saw=1 awake=2/4 filed=1@0.90 claim=seen/Unknown moved=Rocco->Sam@0.576/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  safe/h03/forced/nocoat/lie         saw=1 awake=2/4 filed=1@0.90 claim=home/Unknown moved=Rocco->Sam@0.576/hop1 contra=1 susp=0.176 pressure=0.324 stance=Watches lastLine=chatter
+  safe/h03/forced/nocoat/silent      saw=1 awake=2/4 filed=1@0.90 claim=none/none moved=Rocco->Sam@0.576/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  warehouse/h23/quiet/coat/truth     saw=0 awake=2/4 filed=0@0.55 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h23/quiet/coat/lie       saw=0 awake=2/4 filed=0@0.55 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h23/quiet/coat/silent    saw=0 awake=2/4 filed=0@0.55 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h23/quiet/nocoat/truth   saw=1 awake=2/4 filed=1@0.90 claim=seen/Unknown moved=Rocco->Sam@0.576/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  warehouse/h23/quiet/nocoat/lie     saw=1 awake=2/4 filed=1@0.90 claim=home/Unknown moved=Rocco->Sam@0.576/hop1 contra=1 susp=0.176 pressure=0.324 stance=Watches lastLine=chatter
+  warehouse/h23/quiet/nocoat/silent  saw=1 awake=2/4 filed=1@0.90 claim=none/none moved=Rocco->Sam@0.576/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  warehouse/h23/forced/coat/truth    saw=1 awake=2/4 filed=1@0.55 claim=seen/Unknown moved=Rocco->Sam@0.352/hop1 contra=0 susp=0.037 pressure=0.159 stance=Notices lastLine=chatter
+  warehouse/h23/forced/coat/lie      saw=1 awake=2/4 filed=1@0.55 claim=home/Unknown moved=Rocco->Sam@0.352/hop1 contra=1 susp=0.108 pressure=0.198 stance=Notices lastLine=chatter
+  warehouse/h23/forced/coat/silent   saw=1 awake=2/4 filed=1@0.55 claim=none/none moved=Rocco->Sam@0.352/hop1 contra=0 susp=0.037 pressure=0.159 stance=Notices lastLine=chatter
+  warehouse/h23/forced/nocoat/truth  saw=2 awake=2/4 filed=2@0.90 claim=seen/Unknown moved=Sam->Ada@0.360/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  warehouse/h23/forced/nocoat/lie    saw=2 awake=2/4 filed=2@0.90 claim=home/Unknown moved=Sam->Ada@0.360/hop1 contra=1 susp=0.176 pressure=0.324 stance=Watches lastLine=chatter
+  warehouse/h23/forced/nocoat/silent saw=2 awake=2/4 filed=2@0.90 claim=none/none moved=Sam->Ada@0.360/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  warehouse/h01/quiet/coat/truth     saw=0 awake=2/4 filed=0@0.55 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h01/quiet/coat/lie       saw=0 awake=2/4 filed=0@0.55 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h01/quiet/coat/silent    saw=0 awake=2/4 filed=0@0.55 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h01/quiet/nocoat/truth   saw=0 awake=2/4 filed=0@0.90 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h01/quiet/nocoat/lie     saw=0 awake=2/4 filed=0@0.90 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h01/quiet/nocoat/silent  saw=0 awake=2/4 filed=0@0.90 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h01/forced/coat/truth    saw=0 awake=2/4 filed=0@0.55 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h01/forced/coat/lie      saw=0 awake=2/4 filed=0@0.55 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h01/forced/coat/silent   saw=0 awake=2/4 filed=0@0.55 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h01/forced/nocoat/truth  saw=0 awake=2/4 filed=0@0.90 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h01/forced/nocoat/lie    saw=0 awake=2/4 filed=0@0.90 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h01/forced/nocoat/silent saw=0 awake=2/4 filed=0@0.90 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h03/quiet/coat/truth     saw=0 awake=2/4 filed=0@0.55 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h03/quiet/coat/lie       saw=0 awake=2/4 filed=0@0.55 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h03/quiet/coat/silent    saw=0 awake=2/4 filed=0@0.55 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h03/quiet/nocoat/truth   saw=0 awake=2/4 filed=0@0.90 claim=seen/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h03/quiet/nocoat/lie     saw=0 awake=2/4 filed=0@0.90 claim=home/Unknown moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h03/quiet/nocoat/silent  saw=0 awake=2/4 filed=0@0.90 claim=none/none moved=none@0.000/hop-1 contra=0 susp=0.000 pressure=0.000 stance=Indifferent lastLine=chatter
+  warehouse/h03/forced/coat/truth    saw=1 awake=2/4 filed=1@0.55 claim=seen/Unknown moved=Rocco->Sam@0.352/hop1 contra=0 susp=0.037 pressure=0.159 stance=Notices lastLine=chatter
+  warehouse/h03/forced/coat/lie      saw=1 awake=2/4 filed=1@0.55 claim=home/Unknown moved=Rocco->Sam@0.352/hop1 contra=1 susp=0.108 pressure=0.198 stance=Notices lastLine=chatter
+  warehouse/h03/forced/coat/silent   saw=1 awake=2/4 filed=1@0.55 claim=none/none moved=Rocco->Sam@0.352/hop1 contra=0 susp=0.037 pressure=0.159 stance=Notices lastLine=chatter
+  warehouse/h03/forced/nocoat/truth  saw=2 awake=2/4 filed=2@0.90 claim=seen/Unknown moved=Sam->Ada@0.360/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+  warehouse/h03/forced/nocoat/lie    saw=2 awake=2/4 filed=2@0.90 claim=home/Unknown moved=Sam->Ada@0.360/hop1 contra=1 susp=0.176 pressure=0.324 stance=Watches lastLine=chatter
+  warehouse/h03/forced/nocoat/silent saw=2 awake=2/4 filed=2@0.90 claim=none/none moved=Sam->Ada@0.360/hop1 contra=0 susp=0.060 pressure=0.260 stance=Watches lastLine=chatter
+
+INSTRUMENT SELF-CHECK
+  pressure mirror   1944/1944 sample(s) where this file's pressure lands in the band StreetVoice.Stance returned
+  roster loss       396/432 of the sightings Operations.Run produced could be given to a real person; the rest fell off a four-person street
+  lie caught, and heard  0/90 path-seed(s) where the contradiction fired AND the session's five spoken lines differ from the same path told truthfully
+  witness accounting 270/648 path-seed(s) filed at least one sighting; 270/648 had something to overhear; 90/648 caught the player in a lie
+
+strangerSweep paths=108/108 seeds=6 lines=3240 differ=3024/3240 realPointed=540/3240 realChatter=1944/3240 realAmbient=756/3240 cannedPointed=3240/3240 liveSilent=1944/1944 filedAtLeastOne=270/648 lieCaught=90/648 mirrorOk=1944/1944 rosterKept=396/432 lieHeard=0/90 atUtc=20260906-142553

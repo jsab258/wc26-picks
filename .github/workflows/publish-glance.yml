@@ -67,6 +67,19 @@ on:
       - 'tools/map.py'
       - 'ledger-v2/respec/decision-register/**'
       - 'production/queue/**'
+    # THE MAP'S TWO NEW SOURCES, 2026-09-06, when the map became the three
+    # questions Jafar asked for. Read out of tools/map.py rather than assumed:
+    # its NOW_FILE supplies the next-three (the ruling in production/NOW.md is
+    # the ONLY thing that chooses them, so a re-ruling that did not republish
+    # would leave yesterday's plan on his phone), and find_runnables() walks
+    # the .bat files in the repository ROOT, so a new double-click landing must
+    # rebuild the page or he learns about it from a transcript again, which is
+    # the exact complaint that produced this page.
+    # production/d1-probe/** carries the street's verdict, which the map now
+    # reads too. It is already in the list below for the gallery and is NOT
+    # repeated here: one entry, two readers.
+      - 'production/NOW.md'
+      - '*.bat'
     # THE GALLERY'S SOURCES ARE THE THIRD GROUP, read out of tools/gallery.py
     # rather than assumed: its SOURCES tuple is production/d1-probe,
     # production/frames and game-design/sim-shots. The last two are already

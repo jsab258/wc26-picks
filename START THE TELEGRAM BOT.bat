@@ -1,6 +1,25 @@
 @echo off
 setlocal
 title LEDGER - the Telegram bot
+REM ###################################################################
+REM  SUPERSEDED 2026-09-06 BY "START EVERYTHING.bat", WHICH IS THE ONE
+REM  TO CLICK. That one starts this bot AND the studio watcher in a
+REM  single window, restarts either one if it stops, and brings the
+REM  checkout up to date FIRST, which this file deliberately does not do.
+REM
+REM  WHY THAT LAST PART MATTERS HERE. This window runs no git on purpose,
+REM  so the bot it starts is whatever code was on disk at the time. The
+REM  outbox sweep, which is the thing that turns a written message into a
+REM  message on the phone, only landed in this project on 2026-09-06: a
+REM  bot started from an older checkout stays up for ever and sends
+REM  nothing.
+REM
+REM  THIS FILE STILL WORKS and is kept for starting the bot ON ITS OWN.
+REM  DO NOT RUN BOTH: two bots poll the same chat, and Telegram hands
+REM  each update to whichever asked first, so half your messages would go
+REM  to a window that is not writing them down.
+REM ###################################################################
+
 REM ===================================================================
 REM  ONE CLICK: starts the studio's Telegram bot on this PC and leaves
 REM  it running. While this window is open the bot is alive; closing

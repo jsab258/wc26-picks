@@ -361,3 +361,93 @@ statistic.
 
 NOTHING IS PUSHED TO THIS BRANCH UNTIL A LANDED RUN CONTAINS THIS COMMIT.
 Not a document, not a queue item, not a status file.
+
+run 24 - 2026-09-06 - THE MATERIAL NEVER COMPILED, AND THIS RUN IS THE FIX
+PLUS THE PROOF. Run 23 landed as de158c2c and its control quads answered
+candidate D. The readbacks were all full (midParamReadback=12/12
+midScalarReadback=12/12 texResourceValid=12/12 compMaterialIsMid=12/12) while
+the colour quad, bound to a 2x2 of pure red, green, blue and yellow at chroma
+255, rendered chroma mean 3.7 and max 6 over 11,880 pixels, and tile1 against
+tile4 showed an IDENTICAL 12 px checker period after a fourfold tiling change.
+An instance that is perfect while neither its textures nor its scalars reach
+the pixels means the shader is not ours: the engine default material was on
+screen, and it ignores instance parameters entirely.
+
+WHAT CHANGED, AND WHY IT SHOULD MAKE THE MATERIAL COMPILE. Two samplers were
+carrying a texture Unreal will not accept.
+  The NORMAL sampler had NO texture at all. Both NORMAL_DEFAULTS candidates
+  failed to resolve in 5.8 (materialNormalDefault=none-of-2-candidates), and a
+  texture sample expression with a null texture does not compile.
+  The ROUGHNESS sampler was handed the COLOUR default, an sRGB colour texture,
+  in a slot declared LINEAR GRAYSCALE. Unreal derives a sampler type from a
+  texture's own compression settings and refuses the mismatch, so that was a
+  second compile error, and no key in this repository named it:
+  materialDefaultsBound counted TWO defaults for THREE samplers and the third
+  was never printed.
+Both are now fail-closed. An engine path is tried first, exactly as before,
+and then VALIDATED: the type it derives has to be the type the sampler was
+declared with. When it is not, or when nothing resolves, the script WRITES ITS
+OWN default as a 4x4 uncompressed 32-bit TGA and imports it as an asset it
+owns under /Game/Ledger, so no engine version can move it again. The flat
+normal is (128,128,255) at TC_NORMALMAP. Roughness is declared LINEAR_COLOR
+now rather than LINEAR_GRAYSCALE, which is the type both its default and the
+pack texture the game actually binds to it derive.
+
+READ IN THIS ORDER, AND READ THE DEFAULTS BEFORE THE WORD.
+1. materialDefaultsBound. 3/3 is every sampler carrying a default of the right
+   type; the denominator is the number of TEXTURE PARAMETERS and not the
+   hand-typed 2 that forgot roughness. materialDefaultsDetail names which one
+   is short and whether it was missing or mismatched.
+2. materialCompile. OK, ERRORS or UNPROVEN. OK needs BOTH channels: zero
+   matched diagnostics in the editor's own log between two markers this script
+   writes around the recompile, AND a non-zero pixel shader instruction count
+   the editor answered for this material. Either channel silent is UNPROVEN
+   and never a pass. materialCompileErrors carries its denominator, the log
+   lines examined in that slice, and since amendment A1 of the ruling of
+   2026-09-06 that denominator is part of the rule: OK also needs those lines
+   examined to be above zero and materialCompileMarkers=begin.yes/end.yes, so
+   a zero over zero, or a slice neither marker located, reads UNPROVEN.
+   ERRORS does not need the markers. materialCompileRule= on the line names
+   the whole condition.
+3. materialStatus, which now has FIVE words. NOT-COMPILED is a reported
+   diagnostic. COMPILE-UNPROVEN is the state this script was in for its whole
+   life and the state run 23 would print today with its own inputs. MADE got
+   strictly harder and cannot be printed without 3/3 defaults and a compile
+   verdict of OK.
+4. production/d1-probe/ue-material-log.txt, which is new and is committed.
+   Section 1 is what the script measured inside the editor, including what the
+   statistics API actually offered. Section 2 is the last 120 lines of the
+   editor process stdout, which is where materialEditorCmdExit=1 is explained
+   and which no run has ever kept. Section 3 is stderr, which nothing has ever
+   read at all.
+
+WHAT COUNTS AS AN ACCEPTING RUN, written down before the run and taken from
+numbers already measured on run 23's own frame rather than invented here:
+  a. The intended material compiles: materialCompile=OK with
+     materialCompileErrors=0 over a printed denominator, and
+     materialDefaultsBound=3/3.
+  b. The colour control quad shows visible red, green, blue and yellow cells
+     inside the quadBoxPx the verdict prints. It reads chroma max 6 of a
+     source chroma of 255 today.
+  c. east_parade_bay3 visibly samples brick_red. Its wall face at (820,300) to
+     (960,420) on camera A's day frame, 16,800 pixels, renders R/B 0.934 with
+     chroma max 7 against brick_red.jpg's R/B 1.290 and chroma mean 31.9. An
+     accepting run moves R/B above 1 and chroma well above 7 in that window.
+  d. Every report and every frame is tied to the exact tested source sha, line
+     1 of each verdict as always.
+
+WHAT IS UNVERIFIABLE UNTIL CI AND SHOULD BE READ FIRST IF THE RUN IS ODD.
+Nothing below has executed an engine. Whether the TGA import task brings the
+texture in at all (materialGeneratedDefaults=N/M, and the names on
+materialGeneratedAssetNames), whether MaterialEditingLibrary.get_statistics
+exists in 5.8 and what it is called (section 1 of the log file lists every
+name the returned object exposed, so a wrong guess is diagnosable without
+another round trip), and whether unreal.log_flush plus the log directory give
+a readable slice (materialCompileMarkers=begin.yes/end.yes says both markers
+were seen). Any of those silent prints COMPILE-UNPROVEN and a return of 2,
+which does NOT stop the cook: run 20 cooked and captured after a return of 2,
+so the four frames arrive either way and they are the thing that judges b
+and c.
+
+NOTHING IS PUSHED TO THIS BRANCH UNTIL A LANDED RUN CONTAINS THIS COMMIT.
+Runs 18 and 22 were both lost to exactly that, four days apart.

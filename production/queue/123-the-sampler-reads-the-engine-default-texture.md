@@ -4,49 +4,88 @@ acceptance: a LANDED Unreal run whose four frames show Meridian's own albedo
   on the street, with midParamReadback and controlQuad printed beside them.
   Never a local claim, and never a green key standing in for a frame.
 max_sessions: 2
-status: READY 2026-09-06. P0 for the weekend. engine-specialist.
+status: ANSWERED 2026-09-06 by landed run 23 (de158c2c, "UE machine probe from
+  245e368"). CANDIDATE D. The base material never compiled, so nothing in the
+  scene was ever rendering M_LedgerSurface and every number this project has
+  recorded about BaseColorMap was about the wrong material. NOT YET FIXED: the
+  fix is in flight and the acceptance above is unchanged and unmet.
 
-## What is true, with the file each number came from
+## THE ANSWER, from the landed run, read before any gate
 
-1. `production/d1-probe/ue-build.txt` line 12, run 21 (commit 372fd95):
-   `materialStatus=MADE materialScriptReturn=0 materialConnections=14/14
-   materialUvHeadVia=both.out.empty..in.empty materialUvHeadTriedAtWorst=1/9
-   materialUvHeadByPropertyWrite=0/2
-   materialColourDefault=/Engine/EngineResources/DefaultTexture
-   materialDefaultsBound=1/2`.
-   Queue 062's acceptance criterion is MET. The UV head is wired.
+Readbacks, all full, from `production/d1-probe/ue-vignette-verdict.txt`:
 
-2. `production/d1-probe/ue-vignette-verdict.txt`. CITATION CORRECTED by the
-   builder that read it: lines 56 to 71 are the sixteen SURFACE lines, and
-   `surfacesResolved=12/16 texturesImported=36 midsCreated=563
-   piecesTextured=563/593` is on LINE 72. 12 of 16 surfaces RESOLVED, every
-   albedo decoded `2048x2048/JPEG-BGRA8/srgb=yes` under `albedoParam=BaseColorMap`.
-   Import, decode and assignment are not the fault. The 30 unassigned pieces
-   are exactly the four ABSENT surfaces: card 10, interior 6, multiply 10,
-   paint_yellow 4, which sum to 30 and to 593 minus 563.
+    midReadbackAsked=12/16 midParamReadback=12/12 midScalarReadback=12/12
+    texResourceValid=12/12 compMaterialIsMid=12/12
 
-3. `production/d1-probe/ue-vign_camA_day.png`, opened and looked at. The
-   hanging sign, the foreground bins and the pillar render a regular grey
-   CHECKERBOARD. That is `/Engine/EngineResources/DefaultTexture`, which
-   line 12 names as `materialColourDefault`.
+The instance holds the texture. It holds the scalars. The texture has a valid
+render resource. The component carries the instance we made. A, B and C are
+all refuted by that line: A wanted both readbacks short, B wanted the texture
+half short, C wanted an invalid resource.
 
-4. The same frame, measured: maximum chroma 15 over 230,400 pixels sampled at
-   stride 2 of 921,600. SAY WHAT THIS REFUTES AND WHAT IT DOES NOT. Of the 12
-   albedo files read in `ledger/Assets/StreamingAssets/CityPack/textures`,
-   five are close to neutral and could render at chroma 15 without anyone
-   noticing: asphalt mean chroma 2, kerb 0, plaster 7, concrete 7, metal 22 at
-   the extreme. Those five are NOT refuted by this number. Four are: brick_red
-   mean chroma 31 over 41 pieces, wood 42 over 32 pieces, roof 69 over 2, and
-   sidewalk whose texel(0,0) chroma is 86 over 5. A frame carrying 41 brick
-   pieces and 32 wood pieces cannot top out at 15.
-   The unproven half, stated rather than buried: how many of those 80 coloured
-   pieces are actually inside camera A's frustum has not been counted, and
-   until it is, this reading is strong evidence and not proof. The frame-flatness
-   in point 5 is the reading that does not depend on it.
+The control quads, measured off `production/d1-probe/ue-vign_camA_day.png` at
+the `quadBoxPx` the verdict itself prints, so the sampling window was chosen
+before the numbers were seen:
 
-5. The same frame, 8x8 block standard deviations: 6,714 of 14,400 blocks below
-   1.0. Nearly half the frame is dead flat. Denominator: 14,400 blocks, all
-   examined.
+    colour quad, bound to a 2x2 texture of pure red, green, blue and yellow
+        built in code with no file and no decode, chroma 255 at source:
+        renders chroma mean 3.7, max 6, over 11,880 pixels. Neutral grey.
+    tile1 (quadTiling=1.00x1.00) against tile4 (quadTiling=4.00x4.00), one
+        size, one distance, differing in nothing else:
+        IDENTICAL 12 px checker period, 9.0 cells vertically in both.
+        A fourfold tiling change moved nothing.
+
+AN INSTANCE THAT IS PERFECT WHILE NEITHER ITS TEXTURES NOR ITS SCALARS REACH
+THE PIXELS MEANS THE SHADER IS NOT OURS. The engine default material is what
+is on screen, and it ignores material instance parameters entirely, which is
+exactly why every readback can be full while nothing changes.
+
+## Why the earlier frames could not have told us this
+
+The default material is also a grey checker. So is this material's own colour
+sampler default. Every reading taken before the control quads existed was
+consistent with both, and the project spent two runs and most of a morning
+arguing about which sampler was misbehaving in a material that was never
+running. THE QUADS ARE WHAT SEPARATED THEM, and specifically the tile pair:
+nothing else in this repository could distinguish "the parameters do not
+arrive" from "the material does not exist as far as the renderer is
+concerned".
+
+## The mechanism, still a lead and not yet proven
+
+`tools/ue/make_base_material.py` line 161, written before any of this:
+"A texture parameter with no default can fail to compile."
+
+`production/d1-probe/ue-build.txt` reads
+`materialNormalDefault=none-of-2-candidates materialDefaultsBound=1/2`. Both
+NORMAL_DEFAULTS candidates, `/Engine/EngineMaterials/DefaultNormal` and
+`/Engine/EngineResources/DefaultTextureNormal`, failed to resolve in UE 5.8,
+so the normal sampler carries a NULL texture. Unexplained and plausibly the
+same event: `materialEditorCmdExit=1` printed beside
+`materialScriptReturn=0` and `materialStatus=MADE`.
+
+## THE BEFORE NUMBER THE FIX MUST MOVE, taken on run 23's own frame
+
+`east_parade_bay3` wall face, `production/d1-probe/ue-vign_camA_day.png` at
+(820,300) to (960,420), 16,800 pixels:
+
+    rendered       mean RGB (65.3, 67.1, 69.9)   R/B 0.934   chroma mean 4.6, max 7
+    brick_red.jpg  mean RGB (141.4, 131.3, 109.6) R/B 1.290   chroma mean 31.9
+
+Unchanged from run 21 to within a tenth of a level, which is itself
+confirmation: run 22's instrument work and run 23's control quads changed what
+we can SEE about the street and changed nothing about the street. An accepting
+run moves R/B above 1 and chroma well above 7 in that window. It is written
+down here BEFORE the fix so the bar cannot be chosen afterwards.
+
+## What MADE meant, and why it must get harder rather than easier
+
+`materialStatus=MADE` was printed over a material that never rendered a pixel.
+The generator requests recompilation, catches exceptions, and saves without
+establishing that the shader is valid, so the absence of an exception was read
+as success. The next version must print positive evidence: compilation errors
+with their denominator, and a readback that the material has a valid shader
+map. NO COMPILATION ERRORS PLUS EVIDENCE OF A VALID RENDERED RESULT, never the
+absence of a raised exception.
 
 ## THE PROOF, ADDED 2026-09-06 AFTER THE FIRST DRAFT, AND IT NAMES A PIECE
 
@@ -62,7 +101,12 @@ only a 4 px drainpipe.
 
 Its wall face, sampled over 16,800 pixels at (820,300) to (960,420):
 
-    rendered   mean RGB (64.9, 66.7, 69.5)   R/B 0.934   chroma mean 4.6, max 7
+    rendered   mean RGB (65.3, 67.1, 69.9)   R/B 0.934   chroma mean 4.6, max 7
+    (CORRECTED: the first draft of this passage read (64.9, 66.7, 69.5),
+     measured on run 21's frame before run 23 landed. Same R/B to three
+     decimals, so the bar never moved, but two figures for one quantity in
+     one file is how a stale number outlives the run it came from. The
+     builder reading this file caught it.)
     brick_red.jpg  mean RGB (141.4, 131.3, 109.6)   R/B 1.290   chroma mean 31.9
 
 THE RENDERED SURFACE IS COOLER THAN NEUTRAL WHERE THE TEXTURE IS WARM. A blue

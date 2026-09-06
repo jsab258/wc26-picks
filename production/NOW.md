@@ -9,6 +9,63 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-06, ANSWERED BY LANDED RUN 23: THE MATERIAL NEVER COMPILED
+
+Run 23 landed as `de158c2c`, "UE machine probe from 245e368". Read
+`production/queue/123` for the working. The one sentence:
+
+    nothing in the scene was ever rendering M_LedgerSurface, so every number
+    this project has recorded about BaseColorMap was about the wrong material.
+
+The evidence, and it is a pair that only makes sense together. Every instance
+readback is FULL: `midParamReadback=12/12 midScalarReadback=12/12
+texResourceValid=12/12 compMaterialIsMid=12/12`. And neither the textures nor
+the scalars reach the pixels: a control quad bound to a 2x2 of pure red, green,
+blue and yellow renders chroma max 6 of 255 over 11,880 pixels, and two quads
+of one size at one distance with tiling 1.00 against 4.00 render an IDENTICAL
+9.0-cell checker. A perfect instance whose parameters change nothing means the
+engine default material is on screen, and that material ignores instance
+parameters entirely.
+
+CANDIDATES A, B AND C ARE ALL REFUTED BY THE READBACK LINE. The tile pair is
+what separated D from the rest; nothing else in this repository could tell
+"the parameters do not arrive" from "the material does not exist as far as the
+renderer is concerned", because the engine default and our own colour default
+are both grey checkers.
+
+The mechanism is a lead, not proven: the normal sampler carries a NULL texture
+(`materialNormalDefault=none-of-2-candidates materialDefaultsBound=1/2`, both
+engine paths failing in UE 5.8), and the generator's own line 161 says "A
+texture parameter with no default can fail to compile".
+`materialEditorCmdExit=1` beside `materialScriptReturn=0` is still unexplained.
+
+NOT FIXED. A fix is in flight. `materialStatus=MADE` was printed over a
+material that never rendered a pixel, so that word must get HARDER to print,
+not easier: no compilation errors WITH positive evidence of a valid rendered
+result, never the absence of a raised exception.
+
+## AN UNPUSHABLE PROBE RESULT NOW FAILS THE JOB
+
+`.github/workflows/ledger-probe-unreal.yml`, the "Commit the probe result"
+step, ended on an echo and fell off the end with status 0. So runs 18 and 22
+both reported SUCCESS having banked nothing, and both times the colour was read
+as a landing. It now exits 1 on that path. The two accepting paths are
+untouched and still exit 0: "nothing to commit", and a push that worked.
+
+This is the other half of the CI rule this project already carries. "Verify a
+job's EFFECTS, not its exit code" tells the reader what to do; it says nothing
+about the job, and the job's duty is not to report an effect it did not have.
+
+It does NOT make the evidence survive. A failed push still leaves the frames on
+the PC. What it buys is that the loss is loud instead of silent, which is the
+difference between losing a run and losing a run plus the hour spent reasoning
+about numbers that were never written. As first written the step carried
+continue-on-error: true, so the exit 1 failed the step and the job stayed
+green; amendment A2 of the ruling of 2026-09-06 removed it, and the sentence
+above is true from that commit on.
+
+## SUPERSEDED, kept for the reasoning: the cause named before run 23
+
 ## 2026-09-06, THE STREET'S CAUSE IS NAMED, and it is not queue 062
 
 Read `production/queue/123-the-sampler-reads-the-engine-default-texture.md`
@@ -354,7 +411,10 @@ TWO ITEMS, IN THIS ORDER, AND NOTHING ELSE:
    The wire moved to 14/14 and the frames changed; staging ran
    (`stagedTexFiles=102/102 piecesTextured=563/593`); the street still renders
    the ENGINE CHECKER and the cause is UNKNOWN.
-2. QUEUE 119, the three unbriefed players.
+2. QUEUE 119, the three unbriefed players. SUPERSEDED THE SAME DAY by Jafar's
+   ruling to run the comparison in the studio: the sweep ran
+   (production/stranger-test/, queue 127, lieHeard=0/90) and the redesign is
+   queue 131, which waits for 129.
 
 EVERYTHING ELSE WAITS FOR MONDAY unless it blocks those two: the remaining
 audit items (114 to 118, 120 to 122), all console work, all tooling. ANY NEW

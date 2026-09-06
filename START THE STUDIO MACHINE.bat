@@ -13,6 +13,25 @@ set "GIT_MERGE_AUTOEDIT=no"
 title LEDGER - studio machine
 color 07
 
+REM ###################################################################
+REM  SUPERSEDED 2026-09-06 BY "START EVERYTHING.bat", WHICH IS THE ONE
+REM  TO CLICK. That one starts this watcher AND the Telegram bot in a
+REM  single window and restarts either one if it stops.
+REM
+REM  THIS FILE STILL WORKS and is kept for starting the watcher ON ITS
+REM  OWN. DO NOT RUN BOTH: two watchers in one checkout fight over one
+REM  git index, which is the failure that cost this project four days.
+REM
+REM  ONE MORE THING IT DOES THAT MATTERS. The sign-in entry it writes
+REM  below, "LEDGER studio machine.bat", is THE SAME FILE the supervisor
+REM  writes, deliberately, so there can only ever be one. Clicking this
+REM  file after the supervisor has been set up points that entry back at
+REM  this file, and then only the watcher starts at sign-in and the bot
+REM  does not, which means nothing reaches your phone. If you click this
+REM  one on purpose, click "START EVERYTHING.bat" afterwards to put the
+REM  sign-in entry back.
+REM ###################################################################
+
 REM ===================================================================
 REM  ONE CLICK, AND THEN NO CLICKS.
 REM

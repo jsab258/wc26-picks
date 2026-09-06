@@ -1,0 +1,91 @@
+QUEUE 119 PART TWO: what pressure does over crimes and over days.
+Player behaviour held constant: the customs shed, eleven at night, straight through the door,
+no coat, and a lie the next morning. That is the loudest single night the session offers.
+Lena's loyalty is 0.5, so the ladder's loyalty discount is exactly zero for her.
+
+A. ONE CRIME, the span the shipped session covers (night of day 2 to the evening of day 3).
+  no decay      Operations.Run: success=False partial=True witnesses=3 filed=2/2-awake
+  no decay, after tick 1         crimes=1 susp=0.176 strongest=0.504 pressure=0.324 (under 0.42) stance=Watches
+  no decay, after tick 2         crimes=1 susp=0.176 strongest=0.504 pressure=0.324 (under 0.42) stance=Watches
+  no decay, first talk about the player: 690.000 game minutes after the sighting, at the harness's 2-ticks-a-day cadence
+  with decay    Operations.Run: success=False partial=True witnesses=3 filed=2/2-awake
+  with decay, after tick 1       crimes=1 susp=0.163 strongest=0.466 pressure=0.299 (under 0.42) stance=Watches
+  with decay, after tick 2       crimes=1 susp=0.163 strongest=0.443 pressure=0.289 (under 0.42) stance=Watches
+  with decay, first talk about the player: 690.000 game minutes after the sighting, at the harness's 2-ticks-a-day cadence
+
+B. ONE CRIME, THEN TIME. No further crimes. Ten days, decay on, ticking twice a day.
+   RumorHalfLifeHours is 96, so this is the 'lie low' path and it is meant to go quiet.
+  day 3                          crimes=1 susp=0.163 strongest=0.443 pressure=0.289 (under 0.42) stance=Watches
+  day 4                          crimes=1 susp=0.163 strongest=0.372 pressure=0.257 (under 0.42) stance=Notices
+  day 5                          crimes=1 susp=0.163 strongest=0.313 pressure=0.230 (under 0.42) stance=Notices
+  day 6                          crimes=1 susp=0.163 strongest=0.263 pressure=0.208 (under 0.42) stance=Notices
+  day 7                          crimes=1 susp=0.163 strongest=0.221 pressure=0.189 (under 0.42) stance=Notices
+  day 8                          crimes=1 susp=0.163 strongest=0.186 pressure=0.173 (under 0.42) stance=Notices
+  day 9                          crimes=1 susp=0.163 strongest=0.156 pressure=0.160 (under 0.42) stance=Notices
+  day 10                         crimes=1 susp=0.163 strongest=0.132 pressure=0.149 (under 0.42) stance=Notices
+  day 11                         crimes=1 susp=0.163 strongest=0.111 pressure=0.139 (under 0.42) stance=Notices
+  day 12                         crimes=1 susp=0.163 strongest=0.093 pressure=0.131 (under 0.42) stance=Notices
+
+C. MANY CRIMES OVER DAYS. One a night, same behaviour, lying every morning.
+  NO decay (as the shipped session does: it never calls Age)
+  crime 1 (night of day 2)       crimes=1 susp=0.176 strongest=0.504 pressure=0.324 (under 0.42) stance=Watches
+  crime 2 (night of day 3)       crimes=2 susp=0.353 strongest=0.504 pressure=0.421 (AT-OR-OVER 0.42) stance=Comments
+  crime 3 (night of day 4)       crimes=3 susp=0.529 strongest=0.504 pressure=0.518 (AT-OR-OVER 0.42) stance=Comments
+  crime 4 (night of day 5)       crimes=4 susp=0.706 strongest=0.504 pressure=0.615 (AT-OR-OVER 0.42) stance=Avoids
+  crime 5 (night of day 6)       crimes=5 susp=0.882 strongest=0.504 pressure=0.712 (AT-OR-OVER 0.42) stance=Avoids
+  crime 6 (night of day 7)       crimes=6 susp=1.000 strongest=0.504 pressure=0.777 (AT-OR-OVER 0.42) stance=Refuses
+  crime 7 (night of day 8)       crimes=7 susp=1.000 strongest=0.504 pressure=0.777 (AT-OR-OVER 0.42) stance=Refuses
+  crime 8 (night of day 9)       crimes=8 susp=1.000 strongest=0.504 pressure=0.777 (AT-OR-OVER 0.42) stance=Refuses
+  crime 9 (night of day 10)      crimes=9 susp=1.000 strongest=0.504 pressure=0.777 (AT-OR-OVER 0.42) stance=Refuses
+  crime 10 (night of day 11)     crimes=10 susp=1.000 strongest=0.504 pressure=0.777 (AT-OR-OVER 0.42) stance=Refuses
+  no decay: crossed 0.42 on crime 2 of 10, which is the morning of day 4
+  WITH decay (as GameController ages the mill hourly)
+  crime 1 (night of day 2)       crimes=1 susp=0.163 strongest=0.443 pressure=0.289 (under 0.42) stance=Watches
+  crime 2 (night of day 3)       crimes=2 susp=0.326 strongest=0.443 pressure=0.378 (under 0.42) stance=Watches
+  crime 3 (night of day 4)       crimes=3 susp=0.489 strongest=0.443 pressure=0.468 (AT-OR-OVER 0.42) stance=Comments
+  crime 4 (night of day 5)       crimes=4 susp=0.652 strongest=0.443 pressure=0.558 (AT-OR-OVER 0.42) stance=Comments
+  crime 5 (night of day 6)       crimes=5 susp=0.815 strongest=0.443 pressure=0.647 (AT-OR-OVER 0.42) stance=Avoids
+  crime 6 (night of day 7)       crimes=6 susp=0.978 strongest=0.443 pressure=0.737 (AT-OR-OVER 0.42) stance=Refuses
+  crime 7 (night of day 8)       crimes=7 susp=1.000 strongest=0.443 pressure=0.749 (AT-OR-OVER 0.42) stance=Refuses
+  crime 8 (night of day 9)       crimes=8 susp=1.000 strongest=0.443 pressure=0.749 (AT-OR-OVER 0.42) stance=Refuses
+  crime 9 (night of day 10)      crimes=9 susp=1.000 strongest=0.443 pressure=0.749 (AT-OR-OVER 0.42) stance=Refuses
+  crime 10 (night of day 11)     crimes=10 susp=1.000 strongest=0.443 pressure=0.749 (AT-OR-OVER 0.42) stance=Refuses
+  with decay: crossed 0.42 on crime 3 of 10, which is the morning of day 5
+
+D. THE BUILD'S OWN CLOCK. MinutesPerRealSecond=2 and TickIntervalGameMinutes=6,
+   so thirty real minutes of play is 3600 game minutes (2.500 game days) and 600 gossip rounds.
+  WITH decay:
+  rounds ticked     600 of 600 in the window
+  talk about the player 5 event(s) in 600 round(s)
+  first at          6.000 game minutes after the sighting = 0.050 real minutes at MinutesPerRealSecond=2
+  last at           3180.000 game minutes = 26.500 real minutes; after that every listener already holds it and the re-tell guard blocks
+  contradictions    0/5 of the player-events collided with the lie the player told at nine
+  every event that carried the player's name, in order:
+    D2 23:06 Rocco->Lena conf=0.504 hop=1 exposure lenaSusp=0.060
+    D2 23:06 Sam->Ada conf=0.360 hop=1 exposure lenaSusp=0.060
+    D3 08:00 Sam->Ada conf=0.337 hop=1 exposure lenaSusp=0.060
+    D5 01:00 Sam->Ada conf=0.251 hop=1 exposure lenaSusp=0.060
+    D5 04:00 Sam->Ada conf=0.246 hop=1 exposure lenaSusp=0.060
+  end of the 30-real-minute window crimes=1 susp=0.060 strongest=0.327 pressure=0.180 (under 0.42) stance=Notices
+  NO decay:
+  rounds ticked     600 of 600 in the window
+  talk about the player 2 event(s) in 600 round(s)
+  first at          6.000 game minutes after the sighting = 0.050 real minutes at MinutesPerRealSecond=2
+  last at           6.000 game minutes = 0.050 real minutes; after that every listener already holds it and the re-tell guard blocks
+  contradictions    0/2 of the player-events collided with the lie the player told at nine
+  every event that carried the player's name, in order:
+    D2 23:06 Rocco->Lena conf=0.504 hop=1 exposure lenaSusp=0.060
+    D2 23:06 Sam->Ada conf=0.360 hop=1 exposure lenaSusp=0.060
+  end of the 30-real-minute window crimes=1 susp=0.060 strongest=0.504 pressure=0.260 (under 0.42) stance=Watches
+
+WHY D AND A DISAGREE: the re-tell guard against floating point, in isolation.
+  tie 0.50          guard opened 3/600 hourly Age step(s), on two numbers equal in exact arithmetic
+  tie 0.60          guard opened 2/600 hourly Age step(s), on two numbers equal in exact arithmetic
+  tie 0.70          guard opened 0/600 hourly Age step(s), on two numbers equal in exact arithmetic
+  tie 0.80          guard opened 3/600 hourly Age step(s), on two numbers equal in exact arithmetic
+  the gap is one bit: 2.22e-16 at these magnitudes, and the guard is a >= on doubles.
+
+INSTRUMENT SELF-CHECK
+  pressure mirror   36/36 row(s) where this file's pressure lands in the band StreetVoice.Stance returned
+
+strangerCurve crimesWalked=10 crossNoDecay=2/10 crossWithDecay=3/10 oneCrimePressureLie=0.324 commentsAt=0.42 firstTalkGameMinutes=6.000 playWindowGameMinutes=3600 lieCaughtAtLiveCadence=0/5 mirrorOk=36/36 atUtc=20260906-142554

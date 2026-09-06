@@ -41,13 +41,21 @@ namespace Ledger.StrangerTest
     /// said an hour ago), or propagation (nobody tells anybody anything). A
     /// careful player who was seen by nobody will hear the canned street talk
     /// about them and the real street say nothing, and that is left in.
-    static class Program
+    ///
+    /// THE OTHER HALF OF THIS CLASS IS `Sweep.cs`, added 2026-09-06 when Jafar
+    /// ruled that the evening waits for a visual build and the studio runs the
+    /// comparison itself. It plays this session over the whole answer space and
+    /// counts what is countable; it reports no preference, because a preference
+    /// is the one reading only a person can give. Everything it touches here is
+    /// a record: `Log.Said`, `Log.Trace` and the accessibility to reach `Play`.
+    /// The beat-identity selftest is the guard that the record changed nothing.
+    static partial class Program
     {
         // ---------------------------------------------------------------
         // the two arms
         // ---------------------------------------------------------------
 
-        enum Arm { Real, Canned }
+        internal enum Arm { Real, Canned }
 
         /// WHICH ARM EACH PARTICIPANT GETS FIRST. Order varies because
         /// whichever run comes second benefits from already knowing the
@@ -68,7 +76,7 @@ namespace Ledger.StrangerTest
         /// Everything the session can do to a person. Two implementations: the
         /// real console, and a scripted one that answers from a list and keeps
         /// the transcript, so both arms can be played headlessly and compared.
-        interface IUi
+        internal interface IUi
         {
             void Show(string block);
             int Ask(string question, string[] options);
@@ -116,7 +124,7 @@ namespace Ledger.StrangerTest
 
         /// The selftest's player. Answers from a fixed list and records every
         /// call, so the shape of a run is a value that can be compared.
-        class ScriptedUi : IUi
+        internal class ScriptedUi : IUi
         {
             readonly int[] _answers;
             int _next;
@@ -149,7 +157,7 @@ namespace Ledger.StrangerTest
         /// One person's social side. The same four objects the game gives a
         /// character: what they remember, what they know, how they feel about
         /// the player, and their place in the mill.
-        class Person
+        internal class Person
         {
             public string Name;
             public MemoryStore Memory;
@@ -171,13 +179,13 @@ namespace Ledger.StrangerTest
             return p;
         }
 
-        class World
+        internal class World
         {
             public GossipMill Mill;
             public Person Lena, Rocco, Ada, Sam;
         }
 
-        static World BuildWorld()
+        internal static World BuildWorld()
         {
             var w = new World();
             // Lena's dispositions are quoted from GossipDirector.cs, which
@@ -256,15 +264,70 @@ namespace Ledger.StrangerTest
         /// What the run wrote down for the operator. Never shown to the player
         /// and never a score: it is the transcript and the one line that lets
         /// a later session prove this ran at all.
-        class Log
+        internal class Log
         {
             public readonly List<string> Lines = new List<string>();
             public string Choices = "";
             public int Spoken;
             public void Add(string s) { Lines.Add(s); }
+
+            /// EVERY SPOKEN LINE WITH THE STATE THAT JUSTIFIED IT, and the
+            /// per-run causal record underneath it. Added for the queue 119
+            /// study (Sweep.cs), which had to answer "what did the real arm
+            /// know that the canned arm could not" and could not answer it
+            /// from `Spoken`, which is a count.
+            ///
+            /// NOTHING HERE CHANGES WHAT THE PLAYER SEES. The beat-identity
+            /// selftest is the guard on that claim: it compares the two arms'
+            /// beats and it still passes.
+            public readonly List<Said> Said = new List<Said>();
+            public readonly Trace Trace = new Trace();
         }
 
-        static void Play(IUi ui, Arm arm, int seed, Log log)
+        /// One spoken line, and the reason it was that line rather than another.
+        ///
+        /// `Kind` is taken from the `SpokenLine` StreetVoice actually produced
+        /// (`AboutPlayer`), never re-derived here, so it cannot drift from the
+        /// banks. `ambient` is the one thing the flag cannot say on its own:
+        /// `StreetVoice.Ambient` is the street's own life and its lines are not
+        /// about the player by construction.
+        internal class Said
+        {
+            public string Beat;         // which of the five moments
+            public string Speaker;
+            public string Text;
+            public string Kind;         // pointed | chatter | ambient
+            public double Suspicion, Loyalty, Strongest;
+            public StanceKind Stance;
+            public int Hops = -1;       // -1 when no rumour stands behind the line
+            /// WOULD THE LIVE GAME HAVE SAID ANYTHING AT ALL HERE.
+            ///
+            /// `GossipDirector.TickStances` does `if (stance < StanceKind.Comments)
+            /// continue;`, so below the Comments rung the street is SILENT in the
+            /// game. This session substitutes the plain neighbourly band instead,
+            /// deliberately, so the two arms never differ by a line being present
+            /// or absent. That substitution makes the harness more talkative than
+            /// the build, and a study that did not count it would report a line
+            /// the game would never speak.
+            public bool LiveWouldSpeak = true;
+        }
+
+        /// The causal chain of one run, as numbers rather than as the prose the
+        /// operator transcript already carries. Same events, same order; this
+        /// half is the one a sweep can count.
+        internal class Trace
+        {
+            public int Witnesses, Awake, Filed;
+            public double FiledConfidence;
+            public string ClaimValue = "none", Verdict = "none";
+            public int Tick1Events, Tick1Mine, Tick1Contra, Tick2Events, Tick2Contra;
+            public string Heard = "none";
+            public double HeardConfidence;
+            public int HeardHops = -1;
+            public double LenaSuspicion;
+        }
+
+        internal static void Play(IUi ui, Arm arm, int seed, Log log)
         {
             var w = BuildWorld();
             var targets = OperationSetup.Build();
@@ -393,6 +456,10 @@ namespace Ledger.StrangerTest
                         + awake.Count + " of 4 agent(s) were out at hour " + plan.Hour + "; "
                         + pool.Count + " actually filed, at confidence "
                         + (coated ? "0.55(coat)" : "0.90(nocoat)"));
+                log.Trace.Witnesses = outcome.Witnesses;
+                log.Trace.Awake = awake.Count;
+                log.Trace.Filed = pool.Count;
+                log.Trace.FiledConfidence = coated ? 0.55 : 0.9;
             }
             else
             {
@@ -451,9 +518,11 @@ namespace Ledger.StrangerTest
                 w.Mill.PlayerClaims("Lena", claim, morning);
                 log.Add("real: claim " + claim + " -> " + verdict
                         + ", Lena suspicion " + w.Lena.Suspicion.Value.ToString("0.00", CultureInfo.InvariantCulture));
+                log.Trace.ClaimValue = claim.Value;
+                log.Trace.Verdict = verdict.ToString();
             }
 
-            ui.Show(Speech("Lena", Passing(w, w.Lena, arm, canned, seed)));
+            ui.Show(Speech("Lena", Passing(w, w.Lena, arm, canned, seed, "morning/lena", log)));
             log.Spoken++;
             ui.Pause();
 
@@ -476,6 +545,15 @@ namespace Ledger.StrangerTest
                 log.Add("real: tick 1 produced " + events.Count + " event(s), " + mine.Count
                         + " about the player, " + contra + " collided with what the player had said; "
                         + (heard == null ? "nothing to overhear" : heard.FromId + "->" + heard.ToId));
+                log.Trace.Tick1Events = events.Count;
+                log.Trace.Tick1Mine = mine.Count;
+                log.Trace.Tick1Contra = contra;
+                if (heard != null)
+                {
+                    log.Trace.Heard = heard.FromId + "->" + heard.ToId;
+                    log.Trace.HeardConfidence = heard.Rumor.Confidence;
+                    log.Trace.HeardHops = heard.Rumor.Hops;
+                }
             }
 
             ui.Show(Rule + "\n" + Wrap(
@@ -500,6 +578,19 @@ namespace Ledger.StrangerTest
 
             ui.Show(string.Join("\n\n", pair.Select(l => Speech(l.SpeakerId, l.Text))));
             log.Spoken += pair.Count;
+            // AMBIENT IS THE ONE KIND THE FLAG CANNOT NAME. `AboutPlayer` is
+            // false both for the street's own life and for a neighbour's plain
+            // hello, and the study has to tell those apart, so the caller says
+            // which function it just called.
+            bool ambient = arm == Arm.Real && heard == null;
+            foreach (var l in pair)
+                log.Said.Add(new Said
+                {
+                    Beat = "street/pair", Speaker = l.SpeakerId, Text = l.Text,
+                    Kind = ambient ? "ambient" : l.AboutPlayer ? "pointed" : "chatter",
+                    Strongest = l.Source != null ? l.Source.Confidence : 0.0,
+                    Hops = l.Source != null ? l.Source.Hops : -1,
+                });
 
             // Somebody clocks you as you pass. StreetVoice.Recognition, from
             // the stance ladder. In REAL the stance is computed from what that
@@ -519,7 +610,7 @@ namespace Ledger.StrangerTest
             var spoke = new HashSet<string>(pair.Select(l => l.SpeakerId));
             var passer = new[] { w.Ada, w.Rocco, w.Sam }.First(p => !spoke.Contains(p.Name));
             ui.Show(Rule + "\n" + Wrap(Where(passer.Name)));
-            ui.Show(Speech(passer.Name, Passing(w, passer, arm, canned, seed + 1)));
+            ui.Show(Speech(passer.Name, Passing(w, passer, arm, canned, seed + 1, "passing/" + passer.Name.ToLowerInvariant(), log)));
             log.Spoken++;
             ui.Pause();
 
@@ -533,12 +624,15 @@ namespace Ledger.StrangerTest
                         + contra + " collided with what the player had claimed; Lena suspicion "
                         + w.Lena.Suspicion.Value.ToString("0.00", CultureInfo.InvariantCulture)
                         + " (" + w.Lena.Suspicion.Level + ")");
+                log.Trace.Tick2Events = events.Count;
+                log.Trace.Tick2Contra = contra;
             }
+            log.Trace.LenaSuspicion = w.Lena.Suspicion.Value;
 
             ui.Show(Rule + "\n" + Wrap(
                 "LATE AFTERNOON. The light is going. Lena is on the step of the pub " +
                 "with her coat on, which she does not usually have on at five."));
-            ui.Show(Speech("Lena", Passing(w, w.Lena, arm, canned, seed + 2)));
+            ui.Show(Speech("Lena", Passing(w, w.Lena, arm, canned, seed + 2, "evening/lena", log)));
             log.Spoken++;
 
             ui.Show("\n" + Rule + "\n" + Wrap(
@@ -557,21 +651,42 @@ namespace Ledger.StrangerTest
         /// nothing, so a person with no reason to say anything pointed still
         /// says the ordinary thing a neighbour says, and the two arms never
         /// differ by a line being present or absent.
-        static string Passing(World w, Person p, Arm arm, Rumor canned, int seed)
+        static string Passing(World w, Person p, Arm arm, Rumor canned, int seed, string beat, Log log)
         {
+            var said = new Said { Beat = beat, Speaker = p.Name, Loyalty = p.G.Loyalty };
+            SpokenLine line;
             if (arm == Arm.Canned)
-                return StreetVoice.Recognition(p.G, canned, StanceKind.Comments, seed).Text;
-
-            var about = p.G.Rumors
-                .Where(r => r.Content.Subject == "player")
-                .OrderByDescending(r => r.Confidence).FirstOrDefault();
-            double strongest = about != null ? about.Confidence : 0.0;
-            var stance = StreetVoice.Stance(p.Suspicion.Value, p.G.Loyalty, strongest,
-                leashed: false, wearingCoat: false);
-            var line = StreetVoice.Recognition(p.G, about, stance, seed);
-            return line != null
-                ? line.Text
-                : StreetVoice.Recognition(p.G, null, StanceKind.Comments, seed).Text;
+            {
+                said.Stance = StanceKind.Comments;
+                said.Strongest = canned != null ? canned.Confidence : 0.0;
+                said.Hops = canned != null ? canned.Hops : -1;
+                line = StreetVoice.Recognition(p.G, canned, StanceKind.Comments, seed);
+            }
+            else
+            {
+                var about = p.G.Rumors
+                    .Where(r => r.Content.Subject == "player")
+                    .OrderByDescending(r => r.Confidence).FirstOrDefault();
+                double strongest = about != null ? about.Confidence : 0.0;
+                var stance = StreetVoice.Stance(p.Suspicion.Value, p.G.Loyalty, strongest,
+                    leashed: false, wearingCoat: false);
+                said.Suspicion = p.Suspicion.Value;
+                said.Strongest = strongest;
+                said.Stance = stance;
+                said.Hops = about != null ? about.Hops : -1;
+                line = StreetVoice.Recognition(p.G, about, stance, seed);
+                // NULL IS THE LADDER DECLINING TO SPEAK, and it is the one
+                // thing this session does that the live game does not: below
+                // Comments, `GossipDirector.TickStances` stays silent and this
+                // falls through to the plain band so the two arms cannot differ
+                // by a line being missing. Recorded rather than smoothed over.
+                said.LiveWouldSpeak = line != null;
+                if (line == null) line = StreetVoice.Recognition(p.G, null, StanceKind.Comments, seed);
+            }
+            said.Text = line.Text;
+            said.Kind = line.AboutPlayer ? "pointed" : "chatter";
+            if (log != null) log.Said.Add(said);
+            return line.Text;
         }
 
         /// Where each of the three is when you come past them, from their own
@@ -707,7 +822,18 @@ namespace Ledger.StrangerTest
             // the same reason it is there.
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
-            if (Array.IndexOf(args, "--selftest") >= 0) return Selftest();
+            // THE STUDY'S MODES. `--sweep` and `--curve` are the queue 119
+            // comparison run by the studio instead of by three people, ruled by
+            // Jafar on 2026-09-06 because there is no playable build to put in
+            // front of anybody yet. Neither prints a preference; see Sweep.cs.
+            if (Array.IndexOf(args, "--selftest") >= 0)
+            {
+                int core = Selftest();
+                int study = StudySelftest();
+                return core != 0 || study != 0 ? 1 : 0;
+            }
+            if (Array.IndexOf(args, "--sweep") >= 0) return Sweep();
+            if (Array.IndexOf(args, "--curve") >= 0) return Curve();
 
             int participant = IntArg(args, "--participant", 0);
             int run = IntArg(args, "--run", 0);
@@ -731,6 +857,9 @@ namespace Ledger.StrangerTest
             {
                 Console.WriteLine("Give a participant (1, 2 or 3) and a run (1 or 2):");
                 Console.WriteLine("    dotnet run --project ledger/StrangerTest -- --participant 1 --run 1");
+                Console.WriteLine("Or run the studio's own comparison, which needs nobody:");
+                Console.WriteLine("    dotnet run --project ledger/StrangerTest -- --sweep");
+                Console.WriteLine("    dotnet run --project ledger/StrangerTest -- --curve");
                 return 2;
             }
 

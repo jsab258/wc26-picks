@@ -859,6 +859,40 @@ def ue_probe_tests():
     return True, f"ue-probe instruments ok ({total} checks over {ran} of 2 binaries)"
 
 
+def ue_material_selftest():
+    """The base material generator's own checks, RUN, in the container.
+
+    THE REASON THIS GATE EXISTS AT ALL. tools/ue/make_base_material.py decides
+    a word, materialStatus, that no frame and no other tool can second-guess,
+    and it printed MADE over a material the renderer never used on runs 21 and
+    23. Every rule it applies is a pure function at the top of that file with
+    a --selftest that runs with no engine anywhere near it, and until
+    2026-09-06 nothing ran that selftest before a dispatch. A guard nobody
+    runs is a comment.
+
+    A SKIP IS NOT A PASS: the tool missing names itself rather than reading as
+    green, for the same reason ue_probe_tests names a missing g++."""
+    tool = ROOT.parent / "tools" / "ue" / "make_base_material.py"
+    if not tool.exists():
+        return False, "UE MATERIAL TOOL MISSING: tools/ue/make_base_material.py"
+    code, out = run(["python3", str(tool), "--selftest"])
+    line = ""
+    for l in out.splitlines():
+        if l.startswith("make_base_material --selftest:"):
+            line = l.strip()
+    if code != 0 or not line:
+        bad = [l.strip() for l in out.splitlines() if l.strip().startswith("FAIL")]
+        return False, ("UE MATERIAL SELFTEST RED: "
+                       + _cap(bad, keep=3,
+                              tail="selftest did not pass") if bad else
+                       "UE MATERIAL SELFTEST RED: no summary line, exit "
+                       + str(code))
+    m = re.search(r"(\d+) check\(s\), (\d+) failure", line)
+    if not m or m.group(2) != "0":
+        return False, "UE MATERIAL SELFTEST RED: " + line
+    return True, f"ue material generator ok ({m.group(1)} checks)"
+
+
 def voice_assets():
     """The vocabulary and the voices can reach the build.
 
@@ -1062,6 +1096,7 @@ TOOL_SELFTESTS = (
     ("inbox-read", "tools/inbox-read.py"),
     ("bot config", "tools/runner/telegram-bot.py"),
     ("outbox", "tools/runner/outbox.py"),
+    ("supervise", "tools/supervise.py"),
 )
 # `N passed, M failed` is the shape all four print. A tool that stops printing
 # it goes RED here rather than silently passing, which is the whole point: a
@@ -1116,6 +1151,12 @@ def bot_config_selftest():
 def outbox_selftest():
     """The sender: the half that reaches Jafar's phone."""
     return _tool_selftest_run(3)
+
+
+def supervise_selftest():
+    """The supervisor's policy: what restarts, what it gives up on, and what
+    the one window on the PC says is running."""
+    return _tool_selftest_run(4)
 
 
 # THE SYSTEMS INVENTORY (queue 098). Its own exit codes are distinct and this
@@ -6097,12 +6138,13 @@ def main():
     for fn in (director_cadence, footer_strings,
                lint, shape, shadow, tools_tracked, reach, stranger_test, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape, producer_register, claude_md_size,
-               inbox_selftest, inbox_read_selftest, bot_config_selftest, outbox_selftest, systems_inventory, inbox_tracked,
+               inbox_selftest, inbox_read_selftest, bot_config_selftest, outbox_selftest, supervise_selftest, systems_inventory, inbox_tracked,
                template_sync,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, raw_avenues, bat_editor, bootstrap_single, blender_hash_parse, filename_as_type, namespace_as_value, workflow_size,
                powershell_steps, sheet_read, prop_dimensions, prop_reach,
                ue_probe_tests,
+               ue_material_selftest,
                propview, meshgen_suite, ref_bench,
                decal_ink,
                frame_drift, verdict_keys, verdict_format, verdict_dupkeys,

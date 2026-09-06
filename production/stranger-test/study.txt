@@ -1,0 +1,2 @@
+strangerSweep paths=108/108 seeds=6 lines=3240 differ=3024/3240 realPointed=540/3240 realChatter=1944/3240 realAmbient=756/3240 cannedPointed=3240/3240 liveSilent=1944/1944 filedAtLeastOne=270/648 lieCaught=90/648 mirrorOk=1944/1944 rosterKept=396/432 lieHeard=0/90 atUtc=20260906-142553
+strangerCurve crimesWalked=10 crossNoDecay=2/10 crossWithDecay=3/10 oneCrimePressureLie=0.324 commentsAt=0.42 firstTalkGameMinutes=6.000 playWindowGameMinutes=3600 lieCaughtAtLiveCadence=0/5 mirrorOk=36/36 atUtc=20260906-142554
