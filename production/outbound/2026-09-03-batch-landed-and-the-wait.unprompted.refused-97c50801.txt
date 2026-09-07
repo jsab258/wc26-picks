@@ -1,0 +1,8 @@
+refused: check
+file: production/outbox/2026-09-03-batch-landed-and-the-wait.unprompted.md
+kind: unprompted
+checked: 2026-09-06T10:19:24+00:00
+checkedEpoch: 1788689964
+hold: no
+clause: deadline item 1 gives -3.3 hour(s), under the ruled 24
+detail: producer-check: register=unprompted words: 118 of 120 (URLs excluded from the count: the link floor requires them) examined: 16 sentence(s), 2 claim-shaped, 1 NEEDS YOU item(s), 5 section(s) of 5 found (HEADLINE/WHAT CHANGED/NEEDS YOU/NEXT VISIBLE THING/BUDGET) links: 2 URL(s), 2 of them to GitHub or the console. The console has no hosted URL yet, so a GitHub link is the only one that can satisfy the floor today claim-shaped means: not a question, the line does not begin with a section label or an option / recommendation / default / deadline marker, and the sentence carries a finite assertion  (+640 more character(s) not shown)

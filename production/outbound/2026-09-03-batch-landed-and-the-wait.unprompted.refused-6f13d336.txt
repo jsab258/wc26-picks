@@ -1,0 +1,8 @@
+refused: check
+file: production/outbox/2026-09-03-batch-landed-and-the-wait.unprompted.md
+kind: unprompted
+checked: 2026-09-06T18:20:16+00:00
+checkedEpoch: 1788718816
+hold: no
+clause: deadline item 1 gives -11.3 hour(s), under the ruled 24; linkdest 2 of 2 link(s) point somewhere other than the glance, the map or the gallery. Ruled 2026-09-06: never to a rep...; linkfloor no link to the glance, the map or the gallery (https://github.com/jsab258/wc26-picks/commit/ab276fa4; https://...
+detail: producer-check: register=unprompted words: 118 of 120 (URLs excluded from the count: the link floor requires them) examined: 16 sentence(s), 2 claim-shaped, 1 NEEDS YOU item(s), 5 section(s) of 5 found (HEADLINE/WHAT CHANGED/NEEDS YOU/NEXT VISIBLE THING/BUDGET) links: 2 URL(s) of the ruled 1..2, 0 to the site (nothing-measured), 2 elsewhere. The only three destinations allowed are the-glance/the-map/the-gallery under https://jsab258.github.io/wc26-picks/; a picture is sent as a Telegram image and never as a link destination list applied: ruled-2026-09-06/the-glance-or-the-map-or-the-gallery-on (+1198 more character(s) not shown)

@@ -1,0 +1,13 @@
+receipt: sent
+file: production/outbox/2026-09-06-the-map-and-its-link.unprompted.md
+kind: unprompted
+fileCommit: 85b5222a2551a0959917f0ce23e1c22f42f01032
+fileCommitEpoch: 1788724345
+sent: 2026-09-06T19:54:33+00:00
+sentEpoch: 1788724473
+messageId: 18
+chars: 749
+outboundLatencySec: 128
+outboundLatencySecFrom: fileCommitInstant
+outboundLatencySecTo: sendInstant
+note: one sample of one message, not a rate.
