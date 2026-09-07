@@ -3,6 +3,22 @@
 # footer names that lint NOT CHECKED), so the first Windows run is this
 # script's accepting test, per rule 5b, and should be watched end to end.
 # Authority: ledger-v2/studio-v2/runner.md. Kill switch: production/STOP.
+#
+# CHECKOUT OWNERSHIP, AND THIS IS A HAZARD RATHER THAN A NOTE. Line 25 does
+# `git checkout -B $night` in the REPOSITORY ROOT, which tools/pc-watcher.py
+# hard-resets roughly once a minute while the supervisor is up. Running this
+# script and "START EVERYTHING.bat" at the same time puts two writers on one
+# git index, which is the fight that cost this project four days. So: this is
+# still a manual double-click, and it is a double-click for a machine with the
+# supervisor CLOSED.
+#
+# THE UNATTENDED PATH IS NOT THIS FILE ANY MORE. tools/runner/executor.py is
+# the supervised daemon that takes an instruction from Telegram, runs a
+# bounded session and answers; it works in a git worktree of its own beside
+# the project and refuses by path to run git in here. Do not re-point either
+# of them at the other's checkout. This script is left alone deliberately: its
+# job (walk production/queue/ all night, rebuild the dashboard, write the
+# brief) is a different job from answering one message.
 param(
     [int]$MaxIterations = 40,
     [int]$WallClockHours = 9,

@@ -1,0 +1,25 @@
+{
+ "what": "THE ONE SOURCE OF CURRENT PRIORITIES. tools/map.py reads this file and nothing else to fill the next-three on map.html. Nothing is scraped out of prose, here or anywhere: production/NOW.md is a log of what happened and a log cannot say what is next without a reader guessing which paragraph is an instruction. That guess is what put a task completed by run 25 and a task Jafar superseded the same day on his phone as the plan.",
+ "howItChanges": "A human or a ruling edits this file. There is no other writer. An item leaves the list by being deleted from it. Two guards sit under that: tools/map.py REFUSES to render an item whose queue file has moved to production/queue/done/ or whose status line says DONE, SUPERSEDED, DROPPED or ABANDONED, and it prints the refusal loudly instead of the task. Supersession that leaves the queue file READY (queue 119 is the live example) is caught by the structural half instead: an item that is not named here cannot appear here.",
+ "ruledBy": "Jafar",
+ "ruledOn": "2026-09-06",
+ "milestone": "one playable visual crime-and-consequence loop on the street that is now textured",
+ "milestoneFrom": "production/queue/138-one-playable-visual-crime-and-consequence-loop.md",
+ "next": [
+  {
+   "title": "Control a character in the street that already exists",
+   "why": "the Unreal probe only aims a screenshot camera, so today there is nobody to be",
+   "queue": "production/queue/138-one-playable-visual-crime-and-consequence-loop.md"
+  },
+  {
+   "title": "Commit one crime there and pass a real witness event into the simulation",
+   "why": "the crime loop and the witnesses run in text; nothing carries one from the street into them",
+   "queue": "production/queue/138-one-playable-visual-crime-and-consequence-loop.md"
+  },
+  {
+   "title": "Overhear the gossip it causes and see one consequence, in that same build",
+   "why": "the sweep measured overheard gossip as the one consequence route that speaks, so the loop is built on it",
+   "queue": "production/queue/138-one-playable-visual-crime-and-consequence-loop.md"
+  }
+ ]
+}

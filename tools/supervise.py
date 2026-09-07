@@ -10,7 +10,7 @@ of this project's launchers give: there is no Windows in the container this
 was written in, so a decision written in cmd.exe ships UNRUN. What is left in
 the .bat is find the project, find a python, and hand over.
 
-THE TWO DAEMONS, and the survey that says they are the only two:
+THE THREE DAEMONS, and the survey that says they are the only three:
 
   studio-watcher   tools/pc-watcher.py, an infinite loop with a sleep in it
                    (`while True: ... time.sleep(...)`), one pass a minute.
@@ -19,6 +19,21 @@ THE TWO DAEMONS, and the survey that says they are the only two:
                    (`poll_forever`). It is the ONLY process in this
                    repository that sends anything to Jafar's phone, and the
                    only one that reads what he types back.
+  claude-executor  tools/runner/executor.py, an infinite poll loop over
+                   `production/inbox/`. It is what turns a message from his
+                   phone into a real session and puts the answer back in the
+                   outbox for the bot to send. Added 2026-09-06: before it,
+                   both ends of that loop existed and nothing joined them,
+                   so an instruction sat in a folder for ever.
+
+WHY THE EXECUTOR IS THE ONE WITH A SECOND CHECKOUT. It runs coding sessions,
+and the watcher HARD-RESETS this one every pass. So the executor works in a
+git worktree of its own beside the project and runs no git at all in here:
+`executor.git_call` refuses the repository root by path rather than by
+comment. It reads production/inbox/ and production/STOP from this checkout
+and writes exactly two untracked files into it, the answer in
+production/outbox/ and its status beside this file's own. Do not re-point it
+at this directory.
 
 Everything else with a .bat at the top of the project does a thing and exits:
 "UPDATE FROM CLAUDE.bat" pulls and stops, "open-dashboard.bat" rebuilds a
@@ -271,6 +286,38 @@ def outbox_counts(repo):
             % (len(files), receipts, tail))
 
 
+def executor_sentence(repo):
+    """One line about the third daemon, ASKED OF IT rather than reimplemented.
+
+    `executor.status_sentence` owns the wording and the denominators, for the
+    same reason `outbox_counts` asks the outbox module for its own suffixes: a
+    second implementation over here would be a counter that cannot move, and
+    this window would report a working executor for ever.
+    """
+    try:
+        import executor as _executor
+        return _executor.status_sentence(repo)
+    except Exception as e:                                    # noqa: BLE001
+        return ("executor: could not be read (%s). Its own lines in this "
+                "window are the authority." % type(e).__name__)
+
+
+def executor_keys(repo):
+    """key=value pairs for the status file, from the executor's own file."""
+    try:
+        import executor as _executor
+        st = _executor.read_status(repo)
+    except Exception:                                         # noqa: BLE001
+        st = {}
+    if not st:
+        return ["executorState=nothing-measured", "executorHandled=none",
+                "executorPending=none"]
+    return ["executorState=%s" % st.get("executor", "unreadable"),
+            "executorHandled=%s" % st.get("handledTotal", "unreadable"),
+            "executorPending=%s" % st.get("pendingNow", "unreadable"),
+            "executorLimitResumeIn=%s" % st.get("limitResumeIn", "none")]
+
+
 # --------------------------------------------------------------------------
 # Start at sign-in. THE SAME FILE the studio machine writes, on purpose.
 # --------------------------------------------------------------------------
@@ -388,6 +435,7 @@ def status_block(children, repo, now):
         out.append(c.status_line(now))
     _w, _r, _x, sentence = outbox_counts(repo)
     out.append("  " + sentence)
+    out.append("  " + executor_sentence(repo))
     running = [c for c in children if c.state == "running"]
     gone = [c for c in children if c.state == "gaveup"]
     down = [c for c in children if c.state not in ("running", "gaveup")]
@@ -432,6 +480,7 @@ def write_status_file(repo, children, now, autostart, resync):
              "outboxRefusals=%s" % ("unreadable" if refusals is None
                                     else refusals),
              "written=%s" % time.strftime("%Y-%m-%dT%H:%M:%S")]
+    lines.extend(executor_keys(repo))
     for c in children:
         lines.append(c.key_values(now))
     try:
@@ -476,6 +525,16 @@ def make_children(repo):
                        "bot has nothing to log in with. Nothing about what is "
                        "in that file is read or printed here.")
 
+    # ORDER IS LOAD-BEARING for the selftest below, which reads the bot at
+    # index 1. A new daemon goes on the END.
+    #
+    # THE EXECUTOR HAS NO PRECONDITION, deliberately. The obvious one would be
+    # "the claude command is on PATH", and it would be wrong: a missing CLI
+    # would fail the precondition five times in half an hour, trip the give-up
+    # rule, and then never come back when it was installed. The daemon stays
+    # up instead and answers each instruction with a note saying the tool is
+    # not there, which is a fault Jafar can see on his phone rather than a
+    # stopped line in a window he is not looking at.
     return [
         Child("studio-watcher",
               "does the GPU and model work this PC is for",
@@ -485,6 +544,9 @@ def make_children(repo):
               [any_py, os.path.join(repo, "tools", "runner",
                                     "telegram-bot.py")],
               precondition=bot_ok),
+        Child("claude-executor",
+              "turns an instruction you send into a real session and answers",
+              [any_py, os.path.join(repo, "tools", "runner", "executor.py")]),
     ], voice
 
 
@@ -808,6 +870,44 @@ def selftest():
           (r4, x4) == (1, 1) and w4 == 1, (w4, r4, x4))
     check("accept/and-a-refusal-is-named-as-something-that-will-not-send",
           "will NOT send" in s4, s4)
+
+    # THE THIRD DAEMON. Named here rather than counted, because "three
+    # children" would still pass if the third one were a second bot.
+    kid3, _v3 = make_children(REPO)
+    names = [c.name for c in kid3]
+    check("accept/the-window-supervises-all-three-daemons-by-name",
+          names == ["studio-watcher", "telegram-bot", "claude-executor"],
+          names)
+    ex_child = kid3[2]
+    check("accept/the-executor-child-runs-the-executor-and-nothing-else",
+          ex_child.argv[-1].endswith(os.path.join("runner", "executor.py")),
+          ex_child.argv)
+    check("accept/and-it-has-no-precondition-so-a-missing-CLI-cannot-stop-it",
+          ex_child.precondition is None, ex_child.precondition)
+    ex_child.note_start(0)
+    check("accept/and-the-status-block-names-it-once-it-is-up",
+          "claude-executor" in status_block(kid3, REPO, 30),
+          status_block(kid3, REPO, 30))
+
+    # Its reading in this window, both ways, against the module that owns it.
+    import executor as _executor
+    exrepo = os.path.join(tmp, "exrepo")
+    os.makedirs(exrepo)
+    check("reject/an-executor-that-has-written-nothing-reads-as-nothing-"
+          "measured", "nothing measured" in executor_sentence(exrepo),
+          executor_sentence(exrepo))
+    check("reject/and-its-keys-say-so-rather-than-printing-a-zero",
+          "executorState=nothing-measured" in executor_keys(exrepo),
+          executor_keys(exrepo))
+    _executor.write_status(exrepo, {"executor": "idle", "handledTotal": 2,
+                                    "seenTotal": 3, "pendingNow": 1,
+                                    "cli": "found", "limitResumeIn": "none"})
+    check("accept/a-written-executor-status-reaches-this-window-with-both-"
+          "numbers", "2 of 3 instruction(s) handled" in
+          executor_sentence(exrepo), executor_sentence(exrepo))
+    check("accept/and-its-keys-are-one-word-each-like-every-other-key-here",
+          all("=" in t and " " not in t for t in executor_keys(exrepo)),
+          executor_keys(exrepo))
 
     # Autostart: written, read back, and the failure case named.
     good = os.path.join(tmp, "Startup")

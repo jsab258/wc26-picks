@@ -67,18 +67,38 @@ on:
       - 'tools/map.py'
       - 'ledger-v2/respec/decision-register/**'
       - 'production/queue/**'
-    # THE MAP'S TWO NEW SOURCES, 2026-09-06, when the map became the three
-    # questions Jafar asked for. Read out of tools/map.py rather than assumed:
-    # its NOW_FILE supplies the next-three (the ruling in production/NOW.md is
-    # the ONLY thing that chooses them, so a re-ruling that did not republish
-    # would leave yesterday's plan on his phone), and find_runnables() walks
-    # the .bat files in the repository ROOT, so a new double-click landing must
-    # rebuild the page or he learns about it from a transcript again, which is
-    # the exact complaint that produced this page.
-    # production/d1-probe/** carries the street's verdict, which the map now
-    # reads too. It is already in the list below for the gallery and is NOT
-    # repeated here: one entry, two readers.
-      - 'production/NOW.md'
+    # THE MAP'S OWN SOURCES, REREAD OUT OF tools/map.py ON 2026-09-07 when the
+    # page was rebuilt as a visual map. Each line below is a file the generator
+    # names at the top of itself, and a source that cannot trigger a republish
+    # is a source that goes stale on his phone.
+    #
+    # production/next-three.json REPLACES production/NOW.md HERE, and the swap
+    # is the whole point of that rebuild: the next-three used to be parsed out
+    # of NOW.md's headings, which is a log, and the day the page was rejected
+    # it was offering a task run 25 had completed and a task Jafar had
+    # superseded that morning. The heading parser is deleted. NOW.md is no
+    # longer read by any generator, so it is no longer a trigger; the one small
+    # priorities file is, and a re-ruling that did not republish would leave
+    # yesterday's plan on his phone.
+    #
+    # production/stranger-test/** is NEW: the sweep's committed fractions
+    # (lieHeard=0/90, realPointed=540/3240) are what stop the memory area
+    # reading as healthy and what earn the gossip area its word, so a new sweep
+    # must move this page. ue-probe/Source and Config are NEW for the same
+    # reason on the other side: the "not started" word under player control is
+    # counted in that source every run, and the day a pawn lands the page must
+    # say so without anybody remembering to push something else.
+    #
+    # find_runnables() still walks the .bat files in the repository ROOT, so a
+    # new double-click landing must rebuild the page or he learns about it from
+    # a transcript again, which is the complaint that produced this page.
+    # production/d1-probe/** carries the street's verdict AND the frame this
+    # page now embeds. It is already in the list below for the gallery and is
+    # NOT repeated here: one entry, two readers.
+      - 'production/next-three.json'
+      - 'production/stranger-test/**'
+      - 'ue-probe/Source/**'
+      - 'ue-probe/Config/**'
       - '*.bat'
     # THE GALLERY'S SOURCES ARE THE THIRD GROUP, read out of tools/gallery.py
     # rather than assumed: its SOURCES tuple is production/d1-probe,

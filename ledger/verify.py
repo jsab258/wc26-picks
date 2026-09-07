@@ -1097,6 +1097,13 @@ TOOL_SELFTESTS = (
     ("bot config", "tools/runner/telegram-bot.py"),
     ("outbox", "tools/runner/outbox.py"),
     ("supervise", "tools/supervise.py"),
+    # THE MIDDLE OF THE LOOP, added 2026-09-06. Both ends were already in this
+    # table and nothing joined them: the executor is what turns a message from
+    # his phone into a session and the answer back into the outbox. Its suite
+    # is the only place the wordings that reach his phone are held against the
+    # real register, so it runs at every commit or it decays like the five
+    # above did.
+    ("executor", "tools/runner/executor.py"),
 )
 # `N passed, M failed` is the shape all four print. A tool that stops printing
 # it goes RED here rather than silently passing, which is the whole point: a
@@ -1157,6 +1164,12 @@ def supervise_selftest():
     """The supervisor's policy: what restarts, what it gives up on, and what
     the one window on the PC says is running."""
     return _tool_selftest_run(4)
+
+
+def executor_selftest():
+    """The middle of the loop: which instruction runs, what happens when a
+    session limit stops one, and every wording that can reach his phone."""
+    return _tool_selftest_run(5)
 
 
 # THE SYSTEMS INVENTORY (queue 098). Its own exit codes are distinct and this
@@ -6138,7 +6151,7 @@ def main():
     for fn in (director_cadence, footer_strings,
                lint, shape, shadow, tools_tracked, reach, stranger_test, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape, producer_register, claude_md_size,
-               inbox_selftest, inbox_read_selftest, bot_config_selftest, outbox_selftest, supervise_selftest, systems_inventory, inbox_tracked,
+               inbox_selftest, inbox_read_selftest, bot_config_selftest, outbox_selftest, supervise_selftest, executor_selftest, systems_inventory, inbox_tracked,
                template_sync,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, raw_avenues, bat_editor, bootstrap_single, blender_hash_parse, filename_as_type, namespace_as_value, workflow_size,

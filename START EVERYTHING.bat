@@ -19,13 +19,16 @@ color 07
 REM ===================================================================
 REM  ONE WINDOW. THIS IS THE ONLY ONE YOU NEED.
 REM
-REM  Double-click this once. It starts both things that have to stay
-REM  running on this PC, keeps them running, and says at a glance which
-REM  are up:
+REM  Double-click this once. It starts the three things that have to
+REM  stay running on this PC, keeps them running, and says at a glance
+REM  which are up:
 REM
 REM    studio-watcher   the GPU and model work (props, pictures, voices)
 REM    telegram-bot     the ONLY thing that sends to your phone, and the
 REM                     only thing that reads what you type back
+REM    claude-executor  turns an instruction you send from your phone into
+REM                     a real working session, and puts the answer back
+REM                     where the bot will send it to you
 REM
 REM  IT REPLACES TWO WINDOWS. You no longer need
 REM  "START THE STUDIO MACHINE.bat" or "START THE TELEGRAM BOT.bat";
