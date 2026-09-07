@@ -1,0 +1,16 @@
+# LEDGER scheduled task install/verify - 45de6c2 @1788812606
+# Line 1 names the commit this was measured on.
+# Installs tools/runner/launch-supervisor.py (wraps tools/supervise.py,
+# unmodified) as a Windows scheduled task. Ruling 2026-09-07.
+
+runnerAccount=JAFAR-DESKTOP\Jafar
+[31;1mException: [0mC:\actions-runner-ledger\_work\wc26-picks\wc26-picks\tools\runner\install-scheduled-task.ps1:131[0m
+[31;1m[0m[36;1mLine |[0m
+[31;1m[0m[36;1m[36;1m 131 | [0m     [36;1mthrow ("MISSING $Launcher - the door every launch is meant to go [0m …[0m
+[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mMISSING C:\Users\Jafar\wc26-picks\tools\runner\launch-supervisor.py - the door every launch is meant to go[0m
+[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m[31;1m[36;1m     | [31;1mthrough is not on disk. Nothing was registered.[0m
+installerExitCode=1
+
+# The existing channel, read rather than duplicated (ruling point 4).
+pcInboxReachable=false pcInboxError=fatal: detected dubious ownership in repository at 'C:/actions-runner-ledger/_work/wc26-picks/wc26-picks' 'C:/actions-runner-ledger/_work/wc26-picks/wc26-picks'
