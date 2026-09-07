@@ -153,17 +153,41 @@ def one_line(text, cap=160):
         flat[:cap] + " (+%d more character(s) not shown)" % (len(flat) - cap))
 
 
+def why(out, err):
+    """What git said about a failure. stderr first, because that is where git
+    puts diagnostics, and stdout only when stderr is empty."""
+    return (err or out or "no output").strip()
+
+
 def git_call(args, repo, timeout=60, extra_env=None):
-    """One git command. Returns (rc, output). Never raises, never prompts.
+    """One git command. Returns (rc, stdout, stderr). Never raises, prompts.
+
+    THREE VALUES AND NOT TWO, AND THIS IS THE 7 SEPTEMBER INCIDENT ITSELF.
+    This returned stdout and stderr glued into one string for six days. On
+    Jafar's PC, `core.autocrlf` makes `hash-object` print "warning: in the
+    working copy of ..., LF will be replaced by CRLF the next time Git
+    touches it" on stderr while succeeding on stdout with rc 0. The caller
+    tested the result against `^[0-9a-f]{40}$`, the warning was glued to the
+    sha, the match failed, and a SUCCESSFUL command was reported as "could
+    not store". 254 of his messages sat on that disk and none of them ever
+    reached the studio.
+
+    So the split is the fix, and it is at this level rather than at the seven
+    value-parsing sites in this file (eight with outbox.py) deliberately: a
+    value parsed out of a diagnostic stream is a whole class of bug, and no
+    future caller here can reintroduce it. The count was written as "four"
+    when this was first fixed and corrected on review; it is stated here
+    only because a wrong number in a docstring about a wrong number would
+    be a poor joke to leave behind.
 
     THE WHITELIST IS THE GUARD, not a tidiness rule: see the module docstring
     for the FETCH_HEAD race it exists to make impossible. rc 126 is this
     file refusing; rc 127 is git missing; rc 124 is a timeout.
     """
     if not args or args[0] not in ALLOWED:
-        return 126, ("inbox.py refuses to run 'git %s': only %s are allowed "
-                     "in the watcher's checkout"
-                     % (args[0] if args else "", "/".join(ALLOWED)))
+        return 126, "", ("inbox.py refuses to run 'git %s': only %s are "
+                         "allowed in the watcher's checkout"
+                         % (args[0] if args else "", "/".join(ALLOWED)))
     env = dict(os.environ)
     env.update({
         # No editor, no credential prompt, no pager. This runs in a window
@@ -183,13 +207,13 @@ def git_call(args, repo, timeout=60, extra_env=None):
         p = subprocess.run(["git"] + list(args), cwd=repo, env=env,
                            capture_output=True, text=True, timeout=timeout)
     except FileNotFoundError:
-        return 127, "git is not on PATH on this PC"
+        return 127, "", "git is not on PATH on this PC"
     except subprocess.TimeoutExpired:
-        return 124, "git %s did not finish within %d second(s)" % (args[0],
-                                                                   timeout)
+        return 124, "", "git %s did not finish within %d second(s)" % (args[0],
+                                                                       timeout)
     except OSError as e:
-        return 125, "could not run git (%s)" % type(e).__name__
-    return p.returncode, (p.stdout + p.stderr).strip()
+        return 125, "", "could not run git (%s)" % type(e).__name__
+    return p.returncode, (p.stdout or "").strip(), (p.stderr or "").strip()
 
 
 # --------------------------------------------------------------------------
@@ -291,6 +315,29 @@ def tracked_files(repo):
     return message_files(repo) + outbound_files(repo) + ruling_files(repo)
 
 
+def messages_in(paths):
+    """Of a pushed or pending list, the ones that are HIS MESSAGES.
+
+    B1, RULED 2026-09-07. `pending_all` deliberately carries three kinds so
+    that one push moves them all, and four sentences then called that count
+    "message(s)". That was harmless while an outbound record was rare. It
+    stopped being harmless the moment every reply began writing a receipt:
+    one held message plus one reply plus one receipt made the next failure
+    say "3 message(s) are waiting" after he had sent two, and the first line
+    his phone shows after a restart would name his 254 plus every receipt on
+    that disk. A count of his messages and a count of everything this
+    transport carries are two numbers, and they get two names.
+    """
+    return [x for x in paths if x.startswith(INBOX_DIR + "/")]
+
+
+def rulings_in(paths):
+    """Of a pushed list, the tapped rulings. Paired with `messages_in`
+    because those two together are what is worth telling him about; a
+    receipt is the studio's own bookkeeping and he did not ask for it."""
+    return [x for x in paths if x.startswith(RULING_DIR + "/")]
+
+
 def ruling_name(tapped_epoch, update_id):
     """`2026-09-05T1830Z-5001.ruling.txt`, from Telegram's own clock."""
     t = datetime.datetime.fromtimestamp(int(tapped_epoch),
@@ -387,7 +434,7 @@ def newest_work_commit(repo):
                         "origin/" + WORK_BRANCH),
                        ("refs/heads/" + WORK_BRANCH,
                         "local/" + WORK_BRANCH + "/may-include-this-PCs-own")):
-        rc, out = git_call(["log", "-1", "--format=%ct", ref], repo)
+        rc, out, _ = git_call(["log", "-1", "--format=%ct", ref], repo)
         if rc == 0 and out.strip().isdigit():
             return int(out.strip()), basis
     return None, "no-work-branch-ref-in-this-checkout"
@@ -484,7 +531,8 @@ def tip_sha(repo):
     """The local parent pointer, or None. Verifies the OBJECT is here, not
     just the ref: a ref pointing at a pruned object would fail inside
     commit-tree with a message about a bad revision."""
-    rc, out = git_call(["rev-parse", "--verify", "--quiet", TIP_REF + "^{commit}"],
+    rc, out, _ = git_call(["rev-parse", "--verify", "--quiet",
+                           TIP_REF + "^{commit}"],
                        repo)
     sha = out.strip()
     if rc != 0 or not re.match(r"^[0-9a-f]{40}$", sha):
@@ -499,7 +547,7 @@ def tree_paths(repo, sha):
     set from what is on disk, so a folder missing here is a file the bot
     pushes again on every pass and reports as pending for ever.
     """
-    rc, out = git_call(["ls-tree", "-r", "--name-only", sha, "--", INBOX_DIR,
+    rc, out, _ = git_call(["ls-tree", "-r", "--name-only", sha, "--", INBOX_DIR,
                         OUTBOUND_DIR, RULING_DIR], repo)
     if rc != 0:
         return set()
@@ -538,6 +586,28 @@ def pending_all(repo):
     return [f for f in here if f not in there], sha
 
 
+#: WHAT JAFAR IS TOLD WHEN A PUSH FAILS, RULED BY HIM 2026-09-07: "failures
+#: read as one plain sentence: what failed, whether my message is safe, what
+#: happens next; internals go to the log." So each failure carries TWO
+#: strings. `detail` is git's own words and goes to `say`, which is the
+#: window on the PC. `plain` is this, and it is the only half his phone sees.
+#: There is no sha, no path, no rc and no truncated git text in any of them.
+PLAIN_PREPARE = "the PC could not prepare the upload"
+PLAIN_UPLOAD = "the upload to the studio failed"
+PLAIN_ARRIVE = "the upload finished but the studio did not receive it"
+
+
+def held(out, pending, plain, detail):
+    """One failure return, so `plain` can never be forgotten beside `detail`.
+
+    Every early return in `push_pending` comes through here, which is why
+    there is a helper for three lines: the phone half and the log half are
+    written in one place and cannot drift apart.
+    """
+    out.update(ok=False, pending=pending, plain=plain, detail=detail)
+    return out
+
+
 def push_pending(repo, say=None, timeout=120):
     """Put every unsent message on `pc-inbox`. Returns a result dict.
 
@@ -548,7 +618,7 @@ def push_pending(repo, say=None, timeout=120):
     """
     say = say or (lambda _s: None)
     out = {"ok": True, "pushed": [], "pending": [], "commit": None,
-           "replaced": False, "detail": ""}
+           "replaced": False, "detail": "", "plain": ""}
     pending, tip = pending_all(repo)
     if not pending:
         out["detail"] = "nothing to push"
@@ -566,36 +636,39 @@ def push_pending(repo, say=None, timeout=120):
         pass
     env = {"GIT_INDEX_FILE": index}
     if tip:
-        rc, msg = git_call(["read-tree", tip], repo, extra_env=env)
+        rc, _o, _e = git_call(["read-tree", tip], repo, extra_env=env)
     else:
         out["replaced"] = True
         pending = tracked_files(repo)
-        rc, msg = git_call(["read-tree", "--empty"], repo, extra_env=env)
+        rc, _o, _e = git_call(["read-tree", "--empty"], repo,
+                              extra_env=env)
     if rc != 0:
-        out.update(ok=False, pending=pending,
-                   detail="could not build the temporary index (%s)"
-                          % one_line(msg, 120))
-        return out
+        return held(out, pending, PLAIN_PREPARE,
+                    "could not build the temporary index (%s)"
+                    % one_line(why(_o, _e), 120))
     for rel in pending:
         full = os.path.join(repo, *rel.split("/"))
-        rc, blob = git_call(["hash-object", "-w", "--path", rel, "--", full],
-                            repo, extra_env=env)
+        rc, blob, warn = git_call(["hash-object", "-w", "--path", rel,
+                                   "--", full], repo, extra_env=env)
+        # STDOUT ONLY, AND THIS LINE IS THE WHOLE 7 SEPTEMBER BUG. `warn`
+        # carries git's autocrlf notice on Jafar's PC and is not a failure:
+        # it is reported only when `rc` or the sha itself says so.
         if rc != 0 or not re.match(r"^[0-9a-f]{40}$", blob.strip()):
-            out.update(ok=False, pending=pending,
-                       detail="could not store %s (%s)" % (rel, one_line(blob, 120)))
-            return out
-        rc, msg = git_call(["update-index", "--add", "--cacheinfo",
-                            "100644,%s,%s" % (blob.strip(), rel)], repo,
-                           extra_env=env)
+            return held(out, pending, PLAIN_PREPARE,
+                        "could not store %s (%s)"
+                        % (rel, one_line(why(blob, warn), 120)))
+        rc, _o, _e = git_call(["update-index", "--add", "--cacheinfo",
+                               "100644,%s,%s" % (blob.strip(), rel)], repo,
+                              extra_env=env)
         if rc != 0:
-            out.update(ok=False, pending=pending,
-                       detail="could not index %s (%s)" % (rel, one_line(msg, 120)))
-            return out
-    rc, tree = git_call(["write-tree"], repo, extra_env=env)
-    if rc != 0:
-        out.update(ok=False, pending=pending,
-                   detail="could not write the tree (%s)" % one_line(tree, 120))
-        return out
+            return held(out, pending, PLAIN_PREPARE,
+                        "could not index %s (%s)"
+                        % (rel, one_line(why(_o, _e), 120)))
+    rc, tree, terr = git_call(["write-tree"], repo, extra_env=env)
+    if rc != 0 or not re.match(r"^[0-9a-f]{40}$", tree.strip()):
+        return held(out, pending, PLAIN_PREPARE,
+                    "could not write the tree (%s)"
+                    % one_line(why(tree, terr), 120))
     names = ", ".join(os.path.basename(p) for p in pending[:3])
     if len(pending) > 3:
         names += " (+%d more not named)" % (len(pending) - 3)
@@ -606,36 +679,37 @@ def push_pending(repo, say=None, timeout=120):
             "record(s) (%s)" % (len(pending), msgs, outs, names)]
     if tip:
         args += ["-p", tip]
-    rc, commit = git_call(args, repo, extra_env=env)
+    rc, commit, cerr = git_call(args, repo, extra_env=env)
     if rc != 0 or not re.match(r"^[0-9a-f]{40}$", commit.strip()):
-        out.update(ok=False, pending=pending,
-                   detail="could not make the commit (%s)" % one_line(commit, 120))
-        return out
+        return held(out, pending, PLAIN_PREPARE,
+                    "could not make the commit (%s)"
+                    % one_line(why(commit, cerr), 120))
     commit = commit.strip()
     # FORCE, LIKE `pc-results`, AND FOR THE SAME REASON: one writer, so the
     # history is disposable and a force push can destroy nobody's work. It
     # is also what makes the rewrite case above land at all.
-    rc, msg = git_call(["push", "--force", "origin",
-                        "%s:refs/heads/%s" % (commit, INBOX_BRANCH)], repo,
-                       timeout=timeout)
+    rc, pout, perr = git_call(["push", "--force", "origin",
+                               "%s:refs/heads/%s" % (commit, INBOX_BRANCH)],
+                              repo, timeout=timeout)
     if rc != 0:
-        out.update(ok=False, pending=pending,
-                   detail="the push failed (%s)" % one_line(msg))
-        return out
+        return held(out, pending, PLAIN_UPLOAD,
+                    "the push failed (%s)" % one_line(why(pout, perr)))
     # THE EFFECT, NOT THE EXIT CODE (the CI rule, and pc-watcher's own scar:
     # `push` returns 0 for "everything up-to-date"). `ls-remote` asks the
     # remote what it now holds and, unlike a fetch, writes no FETCH_HEAD and
     # no local ref, so it cannot race the watcher.
-    rc, remote = git_call(["ls-remote", "origin",
-                           "refs/heads/" + INBOX_BRANCH], repo, timeout=timeout)
+    rc, remote, _rerr = git_call(["ls-remote", "origin",
+                                  "refs/heads/" + INBOX_BRANCH], repo,
+                                 timeout=timeout)
     seen = remote.split()[0] if rc == 0 and remote.strip() else ""
     if seen != commit:
-        out.update(ok=False, pending=pending,
-                   detail=("the push sent nothing: %s is not what %s holds "
-                           "(%s)" % (commit[:7], INBOX_BRANCH,
-                                     (seen[:7] or "no such branch"))))
-        return out
-    git_call(["update-ref", TIP_REF, commit], repo)
+        return held(out, pending, PLAIN_ARRIVE,
+                    "the push sent nothing: %s is not what %s holds (%s)"
+                    % (commit[:7], INBOX_BRANCH,
+                       (seen[:7] or "no such branch")))
+    git_call(["update-ref", TIP_REF, commit], repo)   # rc unused: the
+    # push already landed, and a local pointer that fails to move only
+    # costs the next push a rewrite, which `replaced` announces.
     try:
         os.remove(index)
     except OSError:
@@ -662,12 +736,23 @@ def file_and_push(repo, text, sent_epoch, update_id, say=None, now=None):
     newest, basis = newest_work_commit(repo)
     state, age = studio_state(newest, now)
     res.update(file=rel, state=state, age=age, basis=basis, now=now)
+    # THE WINDOW'S COUNTERS ARE ABOUT HIS MESSAGES, which is what the
+    # docstring on `pending_files` above has always said they are (B1). The
+    # whole-transport figure is printed beside them under its own name so
+    # nothing is hidden, rather than folded into a key that means messages.
+    pushed_m, pend_m = messages_in(res["pushed"]), messages_in(res["pending"])
+    pushed_r = len(res["pushed"]) - len(pushed_m)
+    pend_r = len(res["pending"]) - len(pend_m)
     if not res["ok"]:
         say("  inbox: NOT PUSHED, %s. inboxPending=%d, nothing dropped"
-            % (res["detail"], len(res["pending"])))
-    say("  inbox: file=%s inboxPushed=%d/%d inboxPending=%d %s"
-        % (rel, len(res["pushed"]), len(res["pushed"]) + len(res["pending"]),
-           len(res["pending"]), studio_key(state, age, basis)))
+            % (res["detail"], len(pend_m)))
+    # A SECOND PAIR FOR THE RECORDS, so making the message keys mean messages
+    # costs the window nothing (B1). One key, one meaning, twice.
+    say("  inbox: file=%s inboxPushed=%d/%d inboxPending=%d "
+        "recordsPushed=%d/%d recordsPending=%d %s"
+        % (rel, len(pushed_m), len(pushed_m) + len(pend_m), len(pend_m),
+           pushed_r, pushed_r + pend_r, pend_r,
+           studio_key(state, age, basis)))
     return res
 
 
@@ -705,12 +790,37 @@ def ruling_reply_text(res, heading=None):
                  "inbox; nothing else in the card is rewritten."
                  % (what, res["file"], INBOX_BRANCH))
     else:
-        first = ("%s Kept on the PC as %s but NOT pushed yet: %s. %d file(s) "
-                 "are waiting on disk and none are dropped; the next message "
-                 "or the next minute retries them."
-                 % (what, res["file"], res["detail"], len(res["pending"])))
+        first = "%s %s" % (what, plain_failure(res, "item"))
     return "%s\n%s" % (first, studio_sentence(res["state"], res["age"],
                                               res["now"]))
+
+
+def plain_failure(res, noun="message"):
+    """THE FAILURE, AS ONE SENTENCE, in the order he asked for it on
+    2026-09-07: what failed, whether his message is safe, what happens next.
+
+    It reads `plain` and never `detail`. If a future failure path forgets to
+    set one, this says so in words rather than falling back to git's text,
+    because a silent fallback is how the raw error reached his phone in the
+    first place.
+    """
+    what = res.get("plain") or "the upload did not go through"
+    pend = res.get("pending") or []
+    # HIS MESSAGES, NOT EVERYTHING THE TRANSPORT CARRIES (B1). The receipts
+    # waiting beside them are the studio's own bookkeeping, so they are named
+    # in their own clause rather than folded into a count of his messages.
+    # Nothing is hidden and nothing is conflated.
+    if noun == "message":
+        n = len(messages_in(pend))
+        others = len(pend) - n
+        clause = "" if others <= 0 else (" and %d record(s) of the PC's own"
+                                         % others)
+    else:
+        n, clause = len(pend), ""
+    return ("Saved on the PC, but it has not reached the studio yet because "
+            "%s. Nothing is lost: %d %s(s)%s are waiting and the PC keeps "
+            "retrying every minute. The reason is in the window on the PC."
+            % (what, n, noun, clause))
 
 
 def reply_text(res):
@@ -719,10 +829,7 @@ def reply_text(res):
         first = ("Filed as %s and pushed to the %s branch."
                  % (res["file"], INBOX_BRANCH))
     else:
-        first = ("Kept on the PC as %s but NOT pushed yet: %s. %d message(s) "
-                 "are waiting on disk and none are dropped; the next message "
-                 "or the next minute retries them."
-                 % (res["file"], res["detail"], len(res["pending"])))
+        first = plain_failure(res, "message")
     return "%s\n%s" % (first, studio_sentence(res["state"], res["age"],
                                               res["now"]))
 
@@ -843,12 +950,12 @@ def _selftest():
 
     # ---- the git guard, both outcomes ----------------------------------
     home, far, watcher, reader = _repos()
-    rc, out = git_call(["rev-parse", "HEAD"], watcher)
+    rc, out, _ = git_call(["rev-parse", "HEAD"], watcher)
     check("accept/an-allowed-subcommand-runs", rc == 0 and len(out) == 40, out)
-    rc, out = git_call(["fetch", "origin"], watcher)
+    rc, _o, out = git_call(["fetch", "origin"], watcher)
     check("reject/fetch-is-refused-before-it-runs",
           rc == 126 and "refuses" in out and "fetch" in out, out)
-    rc, out = git_call(["pull"], watcher)
+    rc, _o, out = git_call(["pull"], watcher)
     check("reject/pull-is-refused-too", rc == 126, out)
     check("accept/fetch-is-not-on-the-whitelist-at-all",
           "fetch" not in ALLOWED and "pull" not in ALLOWED,
@@ -918,9 +1025,29 @@ def _selftest():
           and res3["pending"] == ["production/inbox/"
                                   + message_name(epoch + 1200, 4129)],
           res3["detail"])
+    # HIS THREE REQUIREMENTS, CHECKED ONE BY ONE (ruled 2026-09-07): what
+    # failed, whether his message is safe, what happens next.
+    r3 = reply_text(res3)
     check("reject/and-says-how-many-are-waiting",
           "inboxPending" not in res3["detail"] and len(res3["pending"]) == 1
-          and "waiting on disk" in reply_text(res3), reply_text(res3)[:90])
+          and "1 message(s) are waiting" in r3, r3[:90])
+    check("reject/the-failure-says-what-failed",
+          res3["plain"] in (PLAIN_PREPARE, PLAIN_UPLOAD, PLAIN_ARRIVE)
+          and res3["plain"] in r3, res3["plain"])
+    check("reject/the-failure-says-the-message-is-safe",
+          "Saved on the PC" in r3 and "Nothing is lost" in r3, r3[:60])
+    check("reject/the-failure-says-what-happens-next",
+          "retrying every minute" in r3, r3[-120:])
+    # AND NOTHING OF GIT'S OWN REACHES HIS PHONE. This is the half that
+    # failed on his phone this morning: a sha and a truncated git warning.
+    check("reject/no-git-internals-reach-the-phone",
+          not any(w in r3 for w in ("fatal:", "error:", "warning:", "git ",
+                                    "not shown", "origin", "refs/",
+                                    "production/inbox/")),
+          r3[:120])
+    check("reject/but-the-log-half-still-carries-the-diagnosis",
+          len(res3["detail"]) > 0 and res3["detail"] != res3["plain"],
+          res3["detail"][:80])
     check("reject/and-still-says-awake-or-asleep",
           any(w in reply_text(res3) for w in ("AWAKE", "ASLEEP",
                                               "cannot tell")),
@@ -993,6 +1120,68 @@ def _selftest():
         fh.write("not a ruling\n")
     check("reject/a-readme-in-the-rulings-folder-is-not-a-record",
           len(ruling_files(watcher)) == 1, ruling_files(watcher))
+
+    # ---- B1: A RECEIPT BESIDE A MESSAGE MUST NOT BE COUNTED AS ONE ----
+    # The rejecting case above cannot see this: it runs before any receipt
+    # exists in this fixture, so "1 message(s)" is true there whatever the
+    # code counts. This plants the condition instead, which is the half a
+    # guard needs before it can tell a regression from an improvement.
+    outd = os.path.join(watcher, "production", "outbound")
+    os.makedirs(outd, exist_ok=True)
+    with open(os.path.join(outd, "2026-09-07T101010Z-reply-60677.receipt.txt"),
+              "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("receipt: sent\nfile: x\nkind: bot-message\n"
+                 "messageId: 60677\n")
+    _fixture_git(["remote", "set-url", "--push", "origin",
+                  os.path.join(home, "no-such-remote.git")], watcher)
+    resB1 = file_and_push(watcher, "One message, one receipt.", epoch + 1800,
+                          4130, now=epoch + 1805)
+    allp, msgp = resB1["pending"], messages_in(resB1["pending"])
+    check("accept/b1-the-transport-carries-the-receipt-too",
+          len(allp) > len(msgp) and len(msgp) >= 1,
+          "all=%d messages=%d" % (len(allp), len(msgp)))
+    rB1 = reply_text(resB1)
+    check("reject/b1-but-his-phone-is-told-only-his-own-count",
+          ("%d message(s)" % len(msgp)) in rB1
+          and ("%d message(s)" % len(allp)) not in rB1, rB1[:110])
+    check("accept/b1-and-the-other-records-are-named-in-their-own-clause",
+          ("%d record(s) of the PC's own" % (len(allp) - len(msgp))) in rB1,
+          rB1[:150])
+    _fixture_git(["remote", "set-url", "--push", "origin", far], watcher)
+    push_pending(watcher)
+
+    # ---- THE 7 SEPTEMBER BUG, ON THE CASE IT MUST NOW PASS -------------
+    # Jafar's PC runs git with `core.autocrlf` on, which is the Windows
+    # default. `hash-object` then succeeds on stdout and prints a warning on
+    # stderr, and this file used to glue the two together and test the result
+    # against a 40-character sha. It never matched, every push was reported
+    # as "could not store", and 254 of his messages stayed on that disk.
+    #
+    # THE ACCEPTING CASE FIRST, per the standing rule, and the rejecting half
+    # is the assertion under it: this proves the warning IS emitted here, so
+    # a git that stopped warning could not make the case pass vacuously.
+    _fixture_git(["remote", "set-url", "--push", "origin", far], watcher)
+    _fixture_git(["config", "core.autocrlf", "true"], watcher)
+    crlf_rel = write_message(watcher, "Sent from a Windows checkout.",
+                             epoch + 2400, 4131)
+    rc_h, sha_h, warn_h = git_call(
+        ["hash-object", "-w", "--path", crlf_rel, "--",
+         os.path.join(watcher, *crlf_rel.split("/"))], watcher)
+    check("accept/autocrlf-hash-object-succeeds-on-stdout",
+          rc_h == 0 and re.match(r"^[0-9a-f]{40}$", sha_h.strip()),
+          "rc=%d out=%r" % (rc_h, sha_h[:60]))
+    check("accept/and-the-warning-really-is-emitted-here",
+          "warning" in warn_h.lower() and "crlf" in warn_h.lower(),
+          warn_h[:90] or "NO WARNING: this case proves nothing on this git")
+    check("accept/and-the-two-streams-are-not-glued-together",
+          "warning" not in sha_h.lower(), sha_h[:60])
+    res_crlf = push_pending(watcher)
+    check("accept/autocrlf-a-message-still-reaches-the-branch",
+          res_crlf["ok"] and crlf_rel in res_crlf["pushed"],
+          res_crlf["detail"] or res_crlf["plain"])
+    check("accept/autocrlf-leaves-nothing-waiting-on-disk",
+          pending_all(watcher)[0] == [], pending_all(watcher)[0])
+    _fixture_git(["config", "--unset", "core.autocrlf"], watcher)
 
     print("\ninbox --selftest: %s, %d passed, %d failed, %d case(s) run. "
           "THE TELEGRAM HALF IS NOT COVERED: no case here touches the "

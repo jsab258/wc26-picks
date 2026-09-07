@@ -360,7 +360,11 @@ def commit_epoch(repo, rel):
     rather than borrowing the wall clock: a latency measured from the wrong
     end reads as a fast channel.
     """
-    rc, out = inbox.git_call(["log", "-1", "--format=%H %ct", "--", rel], repo)
+    # THREE VALUES SINCE 2026-09-07: `inbox.git_call` splits stderr off
+    # stdout, because a warning glued to a value is what held 254 of
+    # his messages on the PC. This parses stdout and nothing else.
+    rc, out, _ = inbox.git_call(["log", "-1", "--format=%H %ct", "--",
+                                 rel], repo)
     if rc != 0:
         return None, None, "git could not read the history of this file"
     bits = out.split()
@@ -763,6 +767,12 @@ def frames_nothing_line(res):
 # --------------------------------------------------------------------------
 # What the container reads back off the branch
 # --------------------------------------------------------------------------
+#: THE KINDS telegram-bot.py WRITES FOR ITS OWN CHAT TRAFFIC, as opposed to
+#: a Producer message the studio composed. Named here because this is where
+#: the classification happens; the bot passes them in `record_reply`.
+BOT_REPLY_KINDS = ("bot-message",)
+
+
 def outbound_summary(records):
     """{name: content} off the branch to a summary. The arithmetic lives here
     because here is where the tests run.
@@ -772,14 +782,23 @@ def outbound_summary(records):
     is a fact the studio has to learn without walking the PC's disk.
     """
     out = {"records": len(records), "sent": [], "refused": [], "photos": [],
-           "unreadable": []}
+           "replies": [], "unreadable": []}
     for name in sorted(records):
         fields, why = parse_record(records[name] or "")
         if fields is None:
             out["unreadable"].append((name, why))
             continue
         if fields.get("receipt") == "sent":
-            out["sent"].append(fields)
+            # A4, RULED 2026-09-07. `sent=` is what queue 089 defined as
+            # Producer messages that reached his phone. Every reply the bot
+            # makes now writes a receipt of the same shape, so folding them
+            # in would make one key mean two things and inflate the number
+            # the studio reads as "messages we sent him" by every hello and
+            # every read-back. Split by kind, counted apart, both printed.
+            if str(fields.get("kind", "")) in BOT_REPLY_KINDS:
+                out["replies"].append(fields)
+            else:
+                out["sent"].append(fields)
         elif fields.get("receipt") == "photo":
             out["photos"].append(fields)
         elif "refused" in fields:
@@ -811,9 +830,18 @@ def outbound_lines(summary):
                         f.get("hold", "?"), f.get("clause", "?")))
     for name, why in summary["unreadable"]:
         lines.append("  outbound UNREADABLE %s (%s)" % (name, why))
-    lines.append("outbound: records=%d sent=%d refused=%d photos=%d "
-                 "unreadable=%d"
-                 % (summary["records"], len(summary["sent"]),
+    # ONE TALLY LINE FOR THE REPLIES, NOT ONE LINE EACH (A4). There is a
+    # receipt per reply and this block prints every record on the branch for
+    # ever, so a line each would grow the report without bound. The newest
+    # id is carried because that is the one a round trip is proven with.
+    reps = summary.get("replies") or []
+    if reps:
+        newest = max(reps, key=lambda f: int(f.get("sentEpoch") or 0))
+        lines.append("  outbound replies=%d newestMessageId=%s"
+                     % (len(reps), newest.get("messageId", "?")))
+    lines.append("outbound: records=%d sent=%d replies=%d refused=%d "
+                 "photos=%d unreadable=%d"
+                 % (summary["records"], len(summary["sent"]), len(reps),
                     len(summary["refused"]), len(summary["photos"]),
                     len(summary["unreadable"])))
     if summary["records"] == 0:
@@ -1376,6 +1404,34 @@ def _selftest_cases(ok, bad, state):
     empty = outbound_lines(outbound_summary({}))
     check("reject/no-records-at-all-says-nothing-measured",
           any("nothing measured" in l for l in empty), empty)
+
+    # ---- A4: A BOT REPLY IS NOT A PRODUCER MESSAGE ----------------------
+    # Ruled 2026-09-07. `sent=` is what queue 089 defined as messages the
+    # studio composed and that reached his phone. Every bot reply now writes
+    # a receipt of the same shape, so without this split one key would mean
+    # two things and `sent=` would count every hello and every read-back.
+    sent_before = len(summary["sent"])
+    with_reply = dict(records)
+    with_reply["production/outbound/2026-09-07T101010Z-reply-60677.receipt.txt"] = (
+        "receipt: sent\nfile: production/outbound/x\n"
+        "kind: bot-message\nfileCommit: none\n"
+        "sent: 2026-09-07T10:10:10Z\nsentEpoch: 1788000610\n"
+        "messageId: 60677\nchars: 12\noutboundLatencySec: nothing-measured\n")
+    s2 = outbound_summary(with_reply)
+    l2 = outbound_lines(s2)
+    check("accept/a4-a-bot-reply-is-counted-as-a-reply",
+          len(s2["replies"]) == 1 and s2["replies"][0]["messageId"] == "60677",
+          s2["replies"])
+    check("reject/a4-and-is-NOT-counted-as-a-producer-message",
+          len(s2["sent"]) == sent_before, "sent=%d was %d"
+          % (len(s2["sent"]), sent_before))
+    check("accept/a4-the-done-line-carries-both-keys",
+          ("sent=%d" % sent_before) in l2[-1] and "replies=1" in l2[-1],
+          l2[-1])
+    check("accept/a4-the-replies-tally-is-one-line-with-the-newest-id",
+          sum(1 for l in l2 if "outbound replies" in l) == 1
+          and any("newestMessageId=60677" in l for l in l2),
+          [l for l in l2 if "outbound replies" in l])
 
 
 def selftest():

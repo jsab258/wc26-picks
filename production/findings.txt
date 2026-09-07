@@ -1,0 +1,71 @@
+LEDGER FINDINGS. One file, as Jafar ruled on 2026-09-07: "Findings go to a
+single text file." Newest first. Nothing here is a queue item and nothing here
+is a plan; these are things that were found true and are not being acted on
+yet, so that they are not lost and do not become new process.
+
+Plain text on purpose. tools/producer-check.py walks *.md and tools/docs-check.py
+governs game-design/, so a .txt here is outside both and cannot turn verify red.
+
+--------------------------------------------------------------------------
+2026-09-07  THE SAME GLUED-STREAM BUG IS LATENT IN TWO MORE TOOLS, BOTH OF
+            WHICH RUN ON JAFAR'S PC.
+--------------------------------------------------------------------------
+WHAT WAS FIXED TODAY was tools/runner/inbox.py, where git_call returned
+stdout and stderr concatenated into one string and the caller then tested the
+result against a 40-character sha. On a Windows checkout with core.autocrlf
+on, git hash-object succeeds on stdout and prints a warning on stderr, the
+two arrive glued, the match fails, and a successful command is reported as
+"could not store". That held 254 of his messages on the PC.
+
+THE SAME SHAPE IS STILL PRESENT IN:
+
+  tools/pc-watcher.py:527   def git(...) returns (p.stdout + p.stderr).strip()
+                            and six call sites parse a sha out of it:
+                            lines 724, 763, 776, 908, 916, 1110. Four of
+                            those read FETCH_HEAD, and pc-watcher HARD-RESETS
+                            the checkout to what it reads.
+  tools/runner/executor.py:636  its own git_call, same concatenation; line 723
+                            parses `rev-parse --short HEAD`.
+
+WHY IT IS LATENT AND NOT LIVE. rev-parse does not normally write to stderr,
+so no failure has been observed from these. That is not a defence: the fixed
+site did not normally write to stderr either, until the code ran on a checkout
+with autocrlf on. Every one of these is one git configuration away from the
+same silent stop. NOT FIXED TODAY because Jafar's standing rule for this batch
+is no process changes and nothing outside the ordered items until the round
+trip is proven.
+
+WHAT THE FIX LOOKS LIKE, so it does not have to be rediscovered: split the
+two streams at the helper rather than at the call sites, return three values,
+and let the value come from stdout while the diagnosis comes from stderr.
+inbox.py now carries a worked example and an accepting selftest case that
+plants a real autocrlf warning and proves the push still lands.
+
+--------------------------------------------------------------------------
+2026-09-07  A REPLY'S MESSAGE ID WAS NEVER WRITTEN DOWN ANYWHERE.
+--------------------------------------------------------------------------
+telegram-bot.py:reply() called send() and discarded the result, so the
+platform's message_id lived for the length of one function call. This was
+found only because Jafar asked for the message id of a reply as transport
+evidence and there was no way to answer from the container. FIXED in the same
+batch, since the evidence he asked for is unobtainable without it, but the
+class is worth naming: a channel that cannot be pointed at afterwards is not
+distinguishable from one that never carried anything.
+
+--------------------------------------------------------------------------
+2026-09-07  A THIRD INSTANCE, AND ITS SHAPE IS THE WORST OF THE THREE.
+            Found on review, not by me.
+--------------------------------------------------------------------------
+  tools/inbox-read.py:73   def git_run(...) returns (p.stdout + p.stderr)
+                           and lines 143, 180 and 230 parse it.
+
+WHY IT IS WORSE THAN THE OTHER TWO. This one runs `git show` and the output
+BECOMES THE CONTENT OF THE DELIVERED RECORD. The other two would fail: a
+glued string is not a ref, so the command downstream refuses and stops. Here
+a warning on stderr does not stop anything; it is prepended to, or appended
+to, the text of one of Jafar's messages, and the studio reads it as something
+he wrote. A stop is loud. A corrupted message is not.
+
+NOT FIXED TODAY for the same reason as the other two: his standing rule for
+this batch is no process changes until the round trip is proven. It is first
+in the queue when it is.

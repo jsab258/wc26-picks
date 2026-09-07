@@ -308,6 +308,54 @@ def answer_callback(token, callback_id, text):
 # tests run (the instruments rule: an unrun formatter printing a plausible
 # string is the silent-instrument failure).
 # --------------------------------------------------------------------------
+def looks_like_a_reading(text):
+    """True when the message is an ATTEMPT at a number and nothing else.
+
+    RULED BY JAFAR 2026-09-07, after the bot answered a question about the
+    game with a lecture about whole numbers: "only parse a reading when the
+    message is a bare number or answers a reading request."
+
+    WHY IT HAPPENED, because the fix only makes sense against it. The budget
+    question is asked once when the bot starts and `pending` then stays set
+    for as long as it takes him to answer, which can be hours. Every message
+    arriving in that window was fed to `parse_reading`, so a sentence about
+    anything at all was refused as a malformed percentage and he was told to
+    send a whole number instead. `pending` was being read as "he is answering
+    me now" when all it ever meant was "I asked once".
+
+    THE TEST IS THE SHAPE OF HIS MESSAGE, NOT THE STATE OF THE BOT. A decimal
+    still counts as an attempt, so "76.5" reaches `parse_reading` and is
+    refused there rather than rounded, which keeps the 2026-09-05 ruling
+    exactly as it was. Prose is a message for the studio and is filed as one.
+    """
+    # \d* AND NOT \d+ AFTER THE POINT, so that "77.." survives the single
+    # stop this strips and still READS as an attempt at a number. It is then
+    # refused by parse_reading rather than filed as prose in silence, which
+    # is what the ruling asks for: "77." records 77, "77.." is refused.
+    return bool(re.match(r"^[+-]?\d+(?:[.,]\d*)?$", _bare(text)))
+
+
+def _bare(text):
+    """His typed number with the chrome taken off, for both readers.
+
+    ONE TRAILING FULL STOP IS STRIPPED (A1, 2026-09-07). A phone that ends a
+    sentence for him turns "77" into "77.", which the shape test read as
+    prose and filed in silence with no read-back at all. That is a worse
+    outcome than the refusal it replaced, and it is the same class as
+    stripping "%": removing punctuation he did not mean is not rounding, and
+    the number itself is still taken exactly as typed.
+    """
+    t = (text or "").strip().lower()
+    for junk in ("percent", "per cent", "%"):
+        t = t.replace(junk, "")
+    t = t.strip()
+    # ONE stop, unconditionally. Gating this on there being exactly one
+    # dot made "77.." fall through as prose in silence, which is the
+    # very outcome A1 exists to prevent. Stripping one leaves "77.",
+    # which still reads as an attempt and is then refused out loud.
+    return t[:-1].strip() if t.endswith(".") else t
+
+
 def parse_reading(text):
     """(int, "") for a meter reading, or (None, why). RULED 2026-09-05.
 
@@ -317,10 +365,7 @@ def parse_reading(text):
     ceiling is the difference between stopping and carrying on, and a coerced
     one is a number the studio invented and wrote down as his.
     """
-    t = (text or "").strip().lower()
-    for junk in ("percent", "per cent", "%"):
-        t = t.replace(junk, "")
-    t = t.strip()
+    t = _bare(text)
     if not t:
         return None, "you sent nothing"
     if not re.match(r"^[+-]?\d+$", t):
@@ -473,6 +518,8 @@ class Bot(object):
         self.filed = 0         # messages written to production/inbox
         self.pushed = 0        # of those, that reached the branch
         self.push_fails = 0    # cumulative, whole run
+        self.replies = 0       # replies SENT, the denominator
+        self.receipted = 0     # of those, ones whose id was written down
         self.last_flush = 0.0  # when the retry last ran, a wall clock
         # THE OUTBOUND HALF, queue 089. Cumulative over the whole run, each
         # against the set it came from on the done line.
@@ -588,7 +635,81 @@ class Bot(object):
 
     # -- handling ---------------------------------------------------------
     def reply(self, text, markup=None):
-        send(self.token, self.chat, text, markup)
+        """Send it, AND WRITE THE PLATFORM'S MESSAGE ID DOWN.
+
+        THE RESULT USED TO BE DISCARDED, and that is why on 2026-09-07 there
+        was no way to answer "report the Telegram message ID of the reply"
+        from the container: the id existed for the length of this call and
+        was never recorded anywhere the studio can read. A reply nobody can
+        point to is indistinguishable from a reply that never went.
+
+        The receipt rides `pc-inbox` with everything else, so it costs no new
+        transport. It is written AFTER the send, so a send that throws leaves
+        no receipt, which is the direction the error should point.
+        """
+        result = send(self.token, self.chat, text, markup)
+        self.record_reply(text, result)
+        return result
+
+    def record_reply(self, text, result):
+        """The receipt for one reply. Returns the message id, or None.
+
+        THE KIND IS `bot-message` AND NOT A REPLY (A3): the opening line and
+        the meter question are sent before he has said anything, so filing
+        every one of these as a reply to a message would name something that
+        did not happen. One kind, and `outbox.outbound_summary` keys its
+        `replies` bucket on it.
+
+        WRAPPED, LIKE `file_message`: a receipt that cannot be written must
+        not take the channel down, because the reply itself has already been
+        delivered by the time this runs.
+        """
+        self.replies += 1
+        mid = (result or {}).get("message_id")
+        if not mid:
+            OUT.say("reply: SENT BUT NOT RECEIPTED, the platform returned no "
+                    "message id (%d receipted of %d reply/replies)"
+                    % (self.receipted, self.replies))
+            return None
+        try:
+            stamp = datetime.datetime.now(
+                datetime.timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
+            name = "%s-reply-%d.receipt.txt" % (stamp, int(mid))
+            d = os.path.join(self.repo, *inbox.OUTBOUND_DIR.split("/"))
+            os.makedirs(d, exist_ok=True)
+            # A3: THE PLATFORM'S OWN CLOCK WHERE IT GAVE ONE. `date` is
+            # when Telegram accepted the message; `time.time()` is this PC's
+            # clock, which is a different quantity and drifts.
+            # A3: THE PLATFORM'S OWN CLOCK WHERE IT GAVE ONE, and the
+            # window says which was used, because a receipt timed by the PC
+            # and one timed by Telegram are two different quantities.
+            stamped = (result or {}).get("date")
+            if isinstance(stamped, int) and not isinstance(stamped, bool):
+                when, clock = stamped, "telegram"
+            else:
+                when, clock = int(time.time()), "this-pc"
+            body = outbox.render_receipt(
+                inbox.OUTBOUND_DIR + "/" + name, "bot-message",
+                when, int(mid), len(text or ""), None, None, None,
+                "a reply is not a file committed first, so there is no file "
+                "commit instant to measure from.")
+            # newline="\n" LIKE EVERY OTHER WRITER ON THIS BRANCH (A3). A
+            # file written with the platform default lands with CRLF on
+            # Windows, and this batch exists because of what CRLF did here.
+            with open(os.path.join(d, name), "w", encoding="utf-8",
+                      newline="\n") as fh:
+                fh.write(body)
+        except Exception as e:                                # noqa: BLE001
+            OUT.say("reply: sent as messageId=%d but the receipt could not "
+                    "be written (%s). The reply arrived; only the proof is "
+                    "missing." % (int(mid), type(e).__name__))
+            return int(mid)
+        self.receipted += 1
+        OUT.say("reply: sent messageId=%d, receipted (%d of %d reply/replies "
+                "receipted) sentEpochClock=%s. The next flush carries it, at "
+                "most a minute."
+                % (int(mid), self.receipted, self.replies, clock))
+        return int(mid)
 
     def answer_tap(self, callback_id, text):
         """The one seam the tap path uses to reach the wire, so the selftest
@@ -650,7 +771,13 @@ class Bot(object):
             return
         self.last_flush = time.time()
         try:
-            waiting, _tip = inbox.pending_files(self.repo)
+            # `pending_all`, NOT `pending_files` (B2, ruled 2026-09-07). A
+            # reply receipt is not a message, so a flush that triggers only
+            # on messages left every receipt on the disk until he happened
+            # to send something else. The window said "it reaches the studio
+            # on the next flush" while no flush would ever run for it: built,
+            # not running, on the one path it was built for.
+            waiting, _tip = inbox.pending_all(self.repo)
             if not waiting:
                 return
             res = inbox.push_pending(self.repo, OUT.say)
@@ -658,13 +785,27 @@ class Bot(object):
             OUT.say("inbox: the retry could not run (%s)" % type(e).__name__)
             return
         if res["ok"] and res["pushed"]:
-            self.pushed += len(res["pushed"])
-            self.reply("The %d message(s) I was holding on the PC are on the "
-                       "branch now. Nothing was lost."
-                       % len(res["pushed"]))
+            his = inbox.messages_in(res["pushed"])
+            tapped = inbox.rulings_in(res["pushed"])
+            self.pushed += len(his)
+            # THE REPLY IS GATED ON SOMETHING OF HIS BEING IN THE PUSH, and
+            # this is the hazard the ruling named rather than a nicety. A
+            # reply writes a receipt; a receipt makes the next flush non
+            # empty; so a flush that spoke for receipts alone would send him
+            # one message a minute for ever. Receipts travel in silence and
+            # are reported to the window instead.
+            if his or tapped:
+                self.reply("The %d message(s) I was holding on the PC are on "
+                           "the branch now. Nothing was lost." % len(his))
+            else:
+                OUT.say("inbox: pushed %d record(s) of the studio's own and "
+                        "nothing of his, so nothing was sent to his phone "
+                        "(a reply here would write a receipt and loop)"
+                        % len(res["pushed"]))
         elif not res["ok"]:
-            OUT.say("inbox: still holding %d message(s): %s"
-                    % (len(res["pending"]), res["detail"]))
+            OUT.say("inbox: still holding %d message(s) and %d file(s) in "
+                    "all: %s" % (len(inbox.messages_in(res["pending"])),
+                                 len(res["pending"]), res["detail"]))
 
     def sweep_outbox(self, every=120):
         """Send anything the Producer left in the outbox, at most every two
@@ -701,7 +842,12 @@ class Bot(object):
                               % (up, self.mine, self.net_errors))
         if cmd == "/budget":
             return self.ask_budget()
-        if self.pending:
+        # THE SHAPE OF THE MESSAGE GATES THIS, NOT `pending` ALONE (ruled
+        # 2026-09-07). An open question is not a claim on every sentence he
+        # types; prose falls through to the ordinary message path below and
+        # is filed, with no refusal and no lecture. The question stays open
+        # and `/budget` or a bare number still answers it.
+        if self.pending and looks_like_a_reading(text):
             self.answers += 1
             v, why = parse_reading(text)
             if v is None:
@@ -741,9 +887,21 @@ class Bot(object):
                               text_out + "\n(The PC could not write its own "
                                           "log file, so this reading only "
                                           "exists in this chat.)")
+        # A2: WHEN IT COULD HAVE BEEN MEANT AS A READING, SAY SO ONCE.
+        # Prose is filed and never refused, but prose carrying a digit while
+        # the meter question is open is the one case where he might think he
+        # answered it. One sentence, no demand, and the question stays open.
+        # A2, RULED 2026-09-07: the sentence appears if and only if the
+        # question is open AND the message carries a digit. Prose with no
+        # digit could not have been meant as a reading, and a digit with no
+        # question open answers nothing.
+        tail = "Commands: /budget, /ping, /help."
+        if self.pending and any(c.isdigit() for c in (text or "")):
+            tail = ("The budget question is still open; a bare whole number "
+                    "answers it. " + tail)
         return self.reply(echo_reply(
-            text, "%s\nCommands: /budget, /ping, /help."
-                  % self.file_message(text, sent_epoch, update_id)))
+            text, "%s\n%s"
+                  % (self.file_message(text, sent_epoch, update_id), tail)))
 
     def handle_callback(self, cq, update_id):
         """A TAPPED OPTION BECOMES A RULING (queue 090).
@@ -933,7 +1091,8 @@ class Bot(object):
                 "taps=%d/%d tapsFiled=%d/%d tapsRefused=%d/%d "
                 "backlogFiled=%d/%d networkErrors=%d inboxFiled=%d "
                 "inboxPushed=%d/%d inboxPushFailures=%d inboxPending=%s "
-                "outboxPasses=%d outboxSent=%d outboxRefused=%d"
+                "outboxPasses=%d outboxSent=%d outboxRefused=%d "
+                "repliesReceipted=%d/%d"
                 % (int((time.time() - self.started) / 60), self.seen,
                    self.mine, self.seen, self.other, self.seen,
                    self.nontext, self.mine, self.readings, self.answers,
@@ -942,7 +1101,8 @@ class Bot(object):
                    self.backlog_filed, self.backlog_seen, self.net_errors,
                    self.filed, self.pushed, self.filed, self.push_fails,
                    "unreadable" if waiting < 0 else waiting, self.out_passes,
-                   self.out_sent, self.out_refused))
+                   self.out_sent, self.out_refused,
+                   self.receipted, self.replies))
 
 
 # --------------------------------------------------------------------------
@@ -1328,8 +1488,16 @@ def _selftest_cases(ok, bad, state):
     b.handle(update("what is the studio doing", 4128))
     check("accept/inbox-filed-even-with-the-budget-question-open",
           os.path.exists(os.path.join(watcher, *(
-              "production/inbox/" + inbox.message_name(sent, 4128)).split("/")))
-          and "TOTAL meter" in b.said[-1], b.said[-1][:80])
+              "production/inbox/" + inbox.message_name(sent, 4128)).split("/"))),
+          b.said[-1][:80])
+    # AND HE IS NOT LECTURED FOR IT. Ruled 2026-09-07, after the bot met
+    # "what is the studio doing" with a demand for a whole number. The
+    # question stays open; it just stops answering itself with his prose.
+    check("accept/and-prose-is-not-refused-as-a-reading",
+          NUMERIC_PLACEHOLDER not in b.said[-1]
+          and "I cannot take that" not in b.said[-1]
+          and b.refused == 0 and b.answers == 0 and b.pending == "total",
+          b.said[-1][:90])
 
     # THE REJECTING CASES. A foreign chat writes NO file and raises the
     # ignored counter, which is the existing behaviour this must not break.
@@ -1367,22 +1535,34 @@ def _selftest_cases(ok, bad, state):
     # refusal that quietly records anyway.
     b4b = Captured()
     b4b.pending, b4b.total = "fable", 40
-    for wrong in ("76,5", "76.5", "77.0", "about half", "101", "-3"):
+    # NUMBER-SHAPED AND WRONG. Each of these is an attempt at the meter, so
+    # each is refused rather than rounded, which is the 2026-09-05 ruling
+    # unchanged. "about half" is NOT in this list any more: see below.
+    for wrong in ("76,5", "76.5", "77.0", "101", "-3"):
         b4b.handle(update(wrong, 4200 + len(b4b.said)))
     check("reject/every-non-integer-is-refused-and-records-nothing",
-          b4b.readings == 0 and b4b.refused == 6 and b4b.answers == 6
+          b4b.readings == 0 and b4b.refused == 5 and b4b.answers == 5
           and b4b.pending == "fable"
-          and "budgetRefused=6/6" in b4b.done_line(), b4b.done_line())
+          and "budgetRefused=5/5" in b4b.done_line(), b4b.done_line())
     check("reject/and-the-refusal-tells-him-what-is-wanted",
           NUMERIC_PLACEHOLDER in b4b.said[-1]
           and "Nothing was recorded" in b4b.said[-1], b4b.said[-1][-120:])
     check("accept/a-refused-reading-is-still-filed-for-the-studio",
-          b4b.filed == 6 and "inboxFiled=6" in b4b.done_line(),
+          b4b.filed == 5 and "inboxFiled=5" in b4b.done_line(),
           b4b.done_line())
+    # AND THE PROSE HALF, WHICH IS THE 7 SEPTEMBER RULING ITSELF: a sentence
+    # is a message for the studio, not a malformed percentage. It moves
+    # neither counter and it leaves the question open.
+    before = (b4b.refused, b4b.answers, b4b.filed)
+    b4b.handle(update("about half, ask me later", 4260))
+    check("accept/prose-during-an-open-question-is-a-message-not-an-answer",
+          (b4b.refused, b4b.answers) == before[:2]
+          and b4b.filed == before[2] + 1 and b4b.pending == "fable"
+          and NUMERIC_PLACEHOLDER not in b4b.said[-1], b4b.said[-1][:90])
     b4b.handle(update("77", 4299))
     check("accept/and-the-next-good-one-is-taken-as-typed",
           b4b.readings == 1 and "fable at 77" in b4b.said[-1]
-          and "budgetRefused=6/7" in b4b.done_line(), b4b.done_line())
+          and "budgetRefused=5/6" in b4b.done_line(), b4b.done_line())
 
     # AND A HELD MESSAGE IS REPORTED, NOT DROPPED.
     inbox._fixture_git(["remote", "set-url", "--push", "origin",
@@ -1391,8 +1571,16 @@ def _selftest_cases(ok, bad, state):
     b5.handle(update("while the uplink is down", 4133))
     check("reject/inbox-a-failed-push-holds-the-message-and-says-so",
           b5.filed == 1 and b5.pushed == 0 and b5.push_fails == 1
-          and "NOT pushed" in b5.said[-1] and "none are dropped" in b5.said[-1],
+          and "Saved on the PC" in b5.said[-1]
+          and "Nothing is lost" in b5.said[-1]
+          and "retrying every minute" in b5.said[-1],
           b5.said[-1][:100] if b5.said else "SILENT")
+    # AND NO GIT INTERNALS REACH THE CHAT. This is the half he saw on his
+    # phone on 2026-09-07: a sha and a truncated git warning.
+    check("reject/and-the-held-message-carries-no-git-internals",
+          not any(w in b5.said[-1] for w in ("fatal:", "error:", "warning:",
+                                             "not shown", "refs/", "origin")),
+          b5.said[-1][:110])
     check("reject/inbox-and-the-done-line-counts-what-is-waiting",
           "inboxPushed=0/1" in b5.done_line()
           and "inboxPending=1" in b5.done_line(), b5.done_line())
@@ -1402,6 +1590,117 @@ def _selftest_cases(ok, bad, state):
           inbox.pending_files(watcher)[0] == []
           and "holding on the PC are on the branch now" in b5.said[-1],
           b5.said[-1][:90])
+
+    # ---- THE REPLY RECEIPT, added 2026-09-07 because Jafar asked for the
+    # message id of a reply and nothing in this file had ever written one
+    # down. `Captured` overrides `reply` so the wire is never touched, which
+    # means `record_reply` is exercised HERE, directly, or not at all.
+    b6 = Captured()
+    before6 = len(inbox.outbound_files(watcher))
+    got = b6.record_reply("a reply that really went", {"message_id": 60677})
+    after6 = inbox.outbound_files(watcher)
+    check("accept/a-reply-message-id-is-recorded",
+          got == 60677 and b6.receipted == 1 and b6.replies == 1
+          and len(after6) == before6 + 1, "%s / %d file(s)" % (got, len(after6)))
+    written = os.path.join(watcher, *after6[-1].split("/"))
+    with open(written, encoding="utf-8") as _fh6:
+        body6 = _fh6.read()
+    check("accept/and-the-receipt-carries-the-id-a-reader-can-find",
+          "messageId: 60677" in body6, body6.splitlines()[:1])
+    check("accept/and-the-receipt-is-a-name-the-reader-accepts",
+          inbox.OUTBOUND_RE.match(os.path.basename(after6[-1])) is not None,
+          os.path.basename(after6[-1]))
+    check("accept/and-it-rides-the-same-branch-as-a-message",
+          after6[-1] in inbox.pending_all(watcher)[0],
+          inbox.pending_all(watcher)[0][-2:])
+    check("accept/and-the-done-line-carries-the-denominator",
+          "repliesReceipted=1/1" in b6.done_line(), b6.done_line()[-40:])
+    # THE REJECTING HALF: a platform answer with no id writes nothing and
+    # says so, rather than inventing a receipt for a reply it cannot prove.
+    before7 = len(inbox.outbound_files(watcher))
+    none7 = b6.record_reply("a reply the platform did not confirm", {})
+    check("reject/no-message-id-writes-no-receipt",
+          none7 is None and b6.replies == 2 and b6.receipted == 1
+          and len(inbox.outbound_files(watcher)) == before7
+          and "repliesReceipted=1/2" in b6.done_line(), b6.done_line()[-40:])
+
+    # ---- B2: THE RECEIPT MUST TRAVEL, AND MUST NOT START A LOOP ------
+    # Ruled 2026-09-07. `flush_inbox` used to decide from `pending_files`,
+    # which is messages only, so a receipt sat on the disk until he happened
+    # to send something else, while the window said it had gone. The two
+    # halves are asserted together because fixing one alone is a trap: a
+    # flush that also SPOKE for receipts would reply, write a receipt, and
+    # send him one message a minute for ever.
+    b7 = Captured()
+    inbox.push_pending(watcher, lambda _s: None)          # start from clean
+    check("accept/b2-the-fixture-starts-with-nothing-waiting",
+          inbox.pending_all(watcher)[0] == [], inbox.pending_all(watcher)[0])
+    b7.record_reply("a reply, and nothing of his", {"message_id": 60678})
+    waiting_now = inbox.pending_all(watcher)[0]
+    check("accept/b2-a-receipt-alone-is-a-real-pending-file",
+          len(waiting_now) == 1 and not inbox.messages_in(waiting_now),
+          waiting_now)
+    saidbefore = len(b7.said)
+    b7.flush_inbox(every=0)
+    check("accept/b2-and-the-flush-actually-takes-it",
+          inbox.pending_all(watcher)[0] == [],
+          inbox.pending_all(watcher)[0])
+    check("reject/b2-but-says-nothing-to-him-about-it",
+          len(b7.said) == saidbefore, b7.said[saidbefore:][:1])
+    # AND THE OTHER DIRECTION, so this is not a flush that never speaks:
+    # something of his in the push still gets the sentence.
+    inbox.write_message(watcher, "his own message", sent + 99, 4141)
+    b7.flush_inbox(every=0)
+    check("accept/b2-but-a-message-of-his-is-still-announced",
+          len(b7.said) == saidbefore + 1
+          and "1 message(s) I was holding" in b7.said[-1],
+          b7.said[-1][:80] if len(b7.said) > saidbefore else "SILENT")
+
+    # ---- A1 and A2: the reading gate's two corrections ----------------
+    b8 = Captured()
+    b8.pending, b8.total = "fable", 40
+    b8.handle(update("77.", 4301))
+    check("accept/a1-a-trailing-full-stop-is-still-a-reading",
+          b8.readings == 1 and "fable at 77" in b8.said[-1], b8.said[-1][:70])
+    # AND THE REJECTING HALF, which is what keeps A1 from being a loosening:
+    # one stop is a phone finishing a sentence, two is not a number.
+    b8b = Captured()
+    b8b.pending, b8b.total = "fable", 40
+    b8b.handle(update("77..", 4303))
+    check("reject/a1-two-full-stops-are-refused-not-filed-in-silence",
+          b8b.readings == 0 and b8b.refused == 1
+          and NUMERIC_PLACEHOLDER in b8b.said[-1], b8b.said[-1][-90:])
+
+    # A2's three rows, exactly as ruled: digit with the question open, no
+    # digit, and a digit with no question open.
+    A2 = "The budget question is still open; a bare whole number answers it."
+    b9 = Captured()
+    b9.pending, b9.total = "fable", 40
+    b9.handle(update("how did run 25 go", 4302))
+    check("accept/a2-prose-with-a-digit-while-open-says-the-sentence",
+          b9.readings == 0 and b9.refused == 0 and b9.pending == "fable"
+          and A2 in b9.said[-1], b9.said[-1][-110:])
+    b9.handle(update("and what about the street", 4304))
+    check("reject/a2-prose-with-no-digit-does-not",
+          A2 not in b9.said[-1], b9.said[-1][-80:])
+    b9c = Captured()
+    b9c.pending = None
+    b9c.handle(update("run 25 looked good", 4305))
+    check("reject/a2-a-digit-with-no-open-question-does-not",
+          A2 not in b9c.said[-1], b9c.said[-1][-80:])
+
+    # A3: the kind and the platform's own clock, from a planted result.
+    bA3 = Captured()
+    bA3.record_reply("timed by telegram", {"message_id": 60679,
+                                           "date": 1788000123})
+    relA3 = inbox.outbound_files(watcher)[-1]
+    with open(os.path.join(watcher, *relA3.split("/")), encoding="utf-8") as f3:
+        bodyA3 = f3.read()
+    check("accept/a3-the-receipt-kind-is-bot-message",
+          "kind: bot-message" in bodyA3, bodyA3.splitlines()[2:3])
+    check("accept/a3-and-the-epoch-is-the-platforms-not-this-pcs",
+          "sentEpoch: 1788000123" in bodyA3,
+          [l for l in bodyA3.splitlines() if l.startswith("sentEpoch")])
 
     # ---- THE TAP, queue 090. A callback_query is not a message, and
     # before this branch existed it was counted as `other` and dropped.
