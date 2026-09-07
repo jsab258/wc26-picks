@@ -51,7 +51,11 @@ NEEDS = ("ledger-build-windows.yml", "ledger-probe-unreal.yml",
          # The scheduled-task installer, ruling 2026-09-07: it also runs on
          # ledger-pc and has a pwsh step, named here in the same change
          # that adds the workflow, for the same reason as the line above.
-         "ledger-install-supervisor-task.yml")
+         "ledger-install-supervisor-task.yml",
+         # The remote telegram-bot restart, route b of the same ruling's
+         # section 5: also self-hosted, also pwsh, named here for the same
+         # reason.
+         "ledger-restart-telegram-bot.yml")
 
 
 def scan(wf_dir=WF, needs=NEEDS, repo=REPO):

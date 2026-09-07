@@ -43,6 +43,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# THE THREE-WAY PROCESS READ, ONE IMPLEMENTATION. Get-MatchingProcesses
+# (query-failed / found-none / found-N, never folding the first into the
+# second) is defined once in tools/runner/process-query.ps1 and dot-sourced
+# here rather than duplicated, exactly as tools/runner/restart-telegram-
+# bot.ps1 also does - one idea in two files is how bootstrap-paths.cmd
+# drifted the first time it was copied instead of shared.
+. (Join-Path $PSScriptRoot "process-query.ps1")
+
 function Get-SupervisorProcesses {
     # THE THREE KINDS THAT CAN BE HOLDING THIS GIT INDEX (B1, found on
     # review). launch-supervisor.py and a direct supervise.py were the two
@@ -57,27 +65,17 @@ function Get-SupervisorProcesses {
     # something else resets once a minute while the evidence says the gate
     # held.
     #
-    # RETURNS AN OBJECT, NOT A BARE ARRAY, per the second half of B1: -q
-    # against WMI failing and the query returning zero matches are
-    # different facts, and folding them into one empty list is the more
-    # dangerous of the two, because it would let a resync and an install
-    # both proceed onto a live index. Ok=$false means the QUESTION could
-    # not be asked, not that the answer was no.
-    try {
-        $raw = @(Get-CimInstance Win32_Process `
-            -Filter "Name='python.exe' OR Name='pythonw.exe'" -ErrorAction Stop)
-    } catch {
-        return [pscustomobject]@{
-            Ok = $false
-            Processes = @()
-            QueryError = ($_.Exception.Message -replace '\s+', ' ')
-        }
+    # THE QUERY ITSELF IS Get-MatchingProcesses; THIS FUNCTION ONLY ADDS
+    # THE KIND LABEL each match gets, from the same CommandLine the shared
+    # query already read - a caller-side detail the generic query has no
+    # reason to know about.
+    $r = Get-MatchingProcesses -Pattern ('pc-watcher\.py|supervise\.py|' +
+                                        'launch-supervisor\.py')
+    if (-not $r.Ok) {
+        return [pscustomobject]@{ Ok = $false; Processes = @()
+                                  QueryError = $r.QueryError }
     }
-    $procs = @($raw | Where-Object { $_.CommandLine -and
-                     ($_.CommandLine -match 'pc-watcher\.py' -or
-                      $_.CommandLine -match 'supervise\.py' -or
-                      $_.CommandLine -match 'launch-supervisor\.py') } |
-      ForEach-Object {
+    $procs = @($r.Processes | ForEach-Object {
         $kind = if ($_.CommandLine -match 'launch-supervisor\.py') {
             'launch-supervisor.py'
         } elseif ($_.CommandLine -match 'pc-watcher\.py') {

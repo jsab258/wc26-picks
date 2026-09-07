@@ -40,6 +40,7 @@ on:
       - 'tools/runner/install-scheduled-task.ps1'
       - 'tools/runner/launch-supervisor.py'
       - 'tools/runner/single_instance.py'
+      - 'tools/runner/process-query.ps1'
 
 permissions:
   contents: write
@@ -159,6 +160,15 @@ jobs:
       # ABSENCE IS PUBLISHED TOO. A missing file means the supervisor has
       # not written one since it started, which is itself the answer, so it
       # is recorded in words rather than left as an empty section.
+      #
+      # A1, FOUND ON REVIEW: THE ENVIRONMENT'S OWN SHA, NOT `git
+      # rev-parse`. This step ran `git rev-parse --short HEAD` in pwsh
+      # with none of the GIT_CONFIG_* trio the bash steps set, inside a
+      # `_work` checkout git had already refused once for dubious
+      # ownership, so the landed copy of this file shipped an EMPTY sha on
+      # line 1. The restart workflow's own status step never had this
+      # fault because it already read its commit the same way; this step
+      # now matches it.
       - name: Publish the supervisor's own status
         if: always()
         continue-on-error: true
@@ -169,7 +179,8 @@ jobs:
           $out = "production/pc-ops/supervisor-status.txt"
           New-Item -ItemType Directory -Force -Path "production/pc-ops" | Out-Null
           $src = "C:\Users\Jafar\wc26-picks\game-design\pc-jobs\supervisor-status.txt"
-          $sha = (git rev-parse --short HEAD)
+          $sha = $env:GITHUB_SHA
+          if ($sha) { $sha = $sha.Substring(0, [Math]::Min(7, $sha.Length)) } else { $sha = "SHA-UNKNOWN" }
           $stamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
           $head = @(
             "# LEDGER supervisor status as CI read it - $sha @$stamp",

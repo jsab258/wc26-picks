@@ -1,0 +1,273 @@
+name: LEDGER restart telegram bot
+
+# ROUTE b, decision-2026-09-07-ruling-walk-clip-route-and-the-process-that-
+# never-restarted.md, section 5 item 3b, AMENDED by
+# decision-2026-09-07-ruling-remote-restart-job-and-the-pair-it-would-have-
+# refused.md after the first version would have refused on its own
+# accepting case (a supervised daemon on his PC is a venv redirector plus
+# the base interpreter it launches as a child, bpo-34977, so the naive
+# match found two processes for one bot). tools/supervise.py says outright:
+# the bot runs no git, runs whatever code was on disk when it started, and
+# a child is restarted only when it EXITS - nothing watches the source. So
+# code that lands on Jafar's disk is not in his running process until
+# something makes that process exit once. THIS is that something, run
+# remotely on his own runner so he is not paged to the floor at midnight
+# for something the studio can do (his own standing order 2 of
+# 2026-09-05). The manual fallback is unchanged: closing the LEDGER window
+# and double-clicking START EVERYTHING.bat.
+#
+# ITS OWN FILE, so it collides with neither ledger-probe-unreal.yml (being
+# edited concurrently) nor ledger-install-supervisor-task.yml (already
+# landed and gated by its own concurrency group).
+#
+# WHY workflow_dispatch ALONE IS NOT ENOUGH YET, and the push trigger
+# below: GitHub only dispatches a workflow_dispatch workflow that already
+# exists on the DEFAULT BRANCH (main), and this file lives on the working
+# branch.
+#
+# THE TRIGGER IS ONE PATH, A REQUEST FILE, NOT THE SCRIPTS (amended: this
+# workflow's effect is killing a process on his machine, and a push
+# touching its own paths was the wrong default for that). A comment edit
+# in process-query.ps1, a refactor, or a rename would otherwise become a
+# restart nobody decided; landing this batch would also have fired this
+# workflow AND the install workflow on the same push, and both rewrite
+# production/pc-ops/supervisor-status.txt from the same base, so the
+# second one's rebase conflicts on line 1 alone and its evidence dies on
+# the agent. So the push trigger fires on exactly
+# production/pc-ops/telegram-bot-restart.request and nothing else. Its
+# content is the reason, one line, no spaces (for example
+# `reason=load-a766deca-clip-code date=2026-09-07`), printed into the
+# evidence as `requestReason=`. A restart is then a deliberate, dated,
+# named act in a diff, and the scripts can be edited without touching his
+# process. workflow_dispatch stays for the day this file reaches main.
+#
+# WHEN THIS FILE REACHES main, DELETE THE PUSH TRIGGER. Workaround for a
+# permission boundary, not a design.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'production/pc-ops/telegram-bot-restart.request'
+
+permissions:
+  contents: write
+
+# A SECOND DISPATCH WHILE ONE IS STILL RUNNING QUEUES RATHER THAN RACES,
+# its own group so it can never collide with the install workflow's.
+concurrency:
+  group: ledger-restart-telegram-bot
+  cancel-in-progress: false
+
+jobs:
+  restart-telegram-bot:
+    runs-on: [self-hosted, ledger-pc]
+    # A CEILING ON A HANG, NOT A TARGET. The script itself measures its own
+    # wait (a poll to 30 seconds for the comeback, then a 20 second
+    # stability check) rather than assuming a fixed number; this is
+    # generous headroom around the sum of those, not an estimate of how
+    # long a restart should take.
+    timeout-minutes: 15
+
+    steps:
+      # THE COMPLETE BOOTSTRAP, VERBATIM, from ledger-probe-unreal.yml and
+      # ledger-install-supervisor-task.yml, which paid for it (task 006
+      # names the duplication and queues the dedup; until that lands,
+      # every self-hosted workflow using pwsh copies this whole block
+      # rather than a shortened one, because a shortened copy is exactly
+      # what broke it the first time).
+      - name: Checkout
+        timeout-minutes: 6
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: tool PATH bootstrap (self-hosted parity)
+        timeout-minutes: 1
+        shell: cmd
+        run: |
+          call tools\runner\bootstrap-paths.cmd
+          exit /b %ERRORLEVEL%
+
+      # THE RESTART AND ITS OWN VERIFICATION, BOTH INSIDE THE SCRIPT BEING
+      # RUN. restart-telegram-bot.ps1 is written to be runnable by hand on
+      # the PC too, so its printed lines are the evidence, captured into a
+      # file per the CI rule that the evidence channel is a file committed
+      # by CI.
+      #
+      # PER LINE, AS PRINTED, NEVER BUFFERED (B4, found on review).
+      # Assigning the child's whole output to a variable (`$x = & pwsh
+      # ...`) does not populate anything until the child exits, so a step
+      # timeout or a hung query AFTER Stop-Process would leave the file
+      # holding the header only - the worst combination there is, since
+      # his bot would already be stopped and the record would say nothing
+      # happened. .NET's own Process object with its output and error
+      # events is used instead, appending each line to the evidence file
+      # the instant it arrives, so a kill mid-run leaves everything
+      # printed up to that instant durably on disk.
+      #
+      # THE REQUEST FILE'S REASON IS READ HERE, into the evidence, since
+      # this step already owns the header. It is not read as an
+      # instruction; only its text is copied.
+      - name: Stop and let the supervisor restart the bot
+        id: restart
+        continue-on-error: true
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $out = "production/pc-ops/telegram-bot-restart.txt"
+          New-Item -ItemType Directory -Force -Path "production/pc-ops" | Out-Null
+          $sha = $env:GITHUB_SHA
+          if ($sha) { $sha = $sha.Substring(0, [Math]::Min(7, $sha.Length)) } else { $sha = "SHA-UNKNOWN" }
+          $reqPath = "production/pc-ops/telegram-bot-restart.request"
+          $reqReason = if (Test-Path $reqPath) { (Get-Content $reqPath -Raw).Trim() } else { "none" }
+          $header = @(
+            "# LEDGER telegram-bot remote restart - $sha @$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())",
+            "# Line 1 names the commit this was run on.",
+            "# Route b, ruling 2026-09-07: stops the telegram-bot.py process",
+            "# tree so tools/supervise.py restarts it on the code on disk.",
+            "requestReason=$($reqReason -replace '\s+','_')",
+            ""
+          )
+          $header | Set-Content $out -Encoding utf8
+
+          $psi = New-Object System.Diagnostics.ProcessStartInfo
+          $psi.FileName = "pwsh"
+          $psi.Arguments = '-NoProfile -File "tools\runner\restart-telegram-bot.ps1"'
+          $psi.RedirectStandardOutput = $true
+          $psi.RedirectStandardError = $true
+          $psi.UseShellExecute = $false
+          $psi.CreateNoWindow = $true
+          $proc = New-Object System.Diagnostics.Process
+          $proc.StartInfo = $psi
+          $appendLine = {
+            if ($null -ne $EventArgs.Data) {
+              Add-Content -Path $Event.MessageData -Value $EventArgs.Data
+            }
+          }
+          $subOut = Register-ObjectEvent -InputObject $proc -EventName OutputDataReceived -MessageData $out -Action $appendLine
+          $subErr = Register-ObjectEvent -InputObject $proc -EventName ErrorDataReceived -MessageData $out -Action $appendLine
+          $proc.Start() | Out-Null
+          $proc.BeginOutputReadLine()
+          $proc.BeginErrorReadLine()
+          $proc.WaitForExit()
+          Unregister-Event -SourceIdentifier $subOut.Name -ErrorAction SilentlyContinue
+          Unregister-Event -SourceIdentifier $subErr.Name -ErrorAction SilentlyContinue
+          $restartExit = $proc.ExitCode
+
+          "restartExitCode=$restartExit" | Add-Content $out
+          Write-Host (Get-Content $out -Raw)
+          if ($restartExit -ne 0) { exit 1 }
+
+      # THE SUPERVISOR'S OWN STATUS, THE SAME WAY ledger-install-
+      # supervisor-task.yml's "Publish the supervisor's own status" step
+      # already does, because telegram-botStarts going from 1 to 2 (or
+      # telegram-botUptimeSec falling back near zero) is the cleanest
+      # proof this restart actually happened and the give-up ladder reset,
+      # named explicitly in the ruling as the evidence to look for. Copied
+      # rather than extracted into a shared script this pass: the ruling's
+      # own reuse instruction named the process-query shape specifically,
+      # not this step.
+      #
+      # A1, FOUND ON REVIEW: THE ENVIRONMENT'S OWN SHA, NOT `git
+      # rev-parse`. The landed copy of this step shipped an EMPTY sha on
+      # line 1: `git rev-parse --short HEAD` run in pwsh with none of the
+      # GIT_CONFIG_* trio the bash steps set, inside a `_work` checkout
+      # git had already refused once for dubious ownership. The restart
+      # step above reads its own commit the same way and never had the
+      # fault; this step now matches it rather than the git command.
+      - name: Publish the supervisor's own status
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $out = "production/pc-ops/supervisor-status.txt"
+          New-Item -ItemType Directory -Force -Path "production/pc-ops" | Out-Null
+          $src = "C:\Users\Jafar\wc26-picks\game-design\pc-jobs\supervisor-status.txt"
+          $sha = $env:GITHUB_SHA
+          if ($sha) { $sha = $sha.Substring(0, [Math]::Min(7, $sha.Length)) } else { $sha = "SHA-UNKNOWN" }
+          $stamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+          $head = @(
+            "# LEDGER supervisor status as CI read it - $sha @$stamp",
+            "# Line 1 names the commit this was read on.",
+            "# Copied verbatim from the supervisor's own file on his PC,",
+            "# read right after the restart step above, so a changed",
+            "# telegram-botStarts or a reset telegram-botUptimeSec here is",
+            "# the evidence the restart actually took effect.",
+            "statusSource=$($src -replace ' ','~')")
+          if (Test-Path $src) {
+            $item = Get-Item $src
+            $ageSec = [int]((Get-Date).ToUniversalTime() - $item.LastWriteTimeUtc).TotalSeconds
+            $body = Get-Content $src -Raw -ErrorAction SilentlyContinue
+            $lines = @($body -split "`r?`n").Count
+            $head += "statusFound=yes statusBytes=$($item.Length) statusLines=$lines statusAgeSec=$ageSec"
+            $head += "statusFresh=$(if ($ageSec -le 180) { 'yes' } else { 'NO-stale-by-' + $ageSec + 's' })"
+            $head += ""
+            $head += $body
+          } else {
+            $head += "statusFound=no statusBytes=0 statusLines=0 statusAgeSec=nothing-measured"
+            $head += "NOTHING MEASURED - the supervisor has written no status file at that path, so nothing here says which daemons are up."
+          }
+          $head -join "`n" | Set-Content $out -Encoding utf8
+          Write-Host ($head | Select-Object -First 9 | Out-String)
+
+      # THE EVIDENCE CHANNEL. Staged BY NAME, checked against exactly the
+      # two paths the two steps above write, and this step carries the
+      # failure itself: a push that did not land is not a landed run, so
+      # continue-on-error stays off here even though the two steps above
+      # have it on.
+      #
+      # THE FALLBACK APPENDS, NEVER REPLACES (B4, found on review). The
+      # restart step now streams per line as it prints, so a timed-out or
+      # crashed run can still leave a header plus everything it managed to
+      # print before dying - including a line saying his bot was already
+      # stopped. Overwriting that with "nothing was measured" would be
+      # false. A missing file (the step never even got to write a header)
+      # is the one case a header is created here; an existing file missing
+      # only `restartExitCode=` gets one line appended, everything already
+      # written stays.
+      - name: Commit the restart evidence
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RESTART_OUTCOME: ${{ steps.restart.outcome }}
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: "*"
+        run: |
+          set -u
+          OUT=production/pc-ops/telegram-bot-restart.txt
+          if [ ! -f "$OUT" ]; then
+            printf '# LEDGER telegram-bot remote restart - %s\nNO RUN - the restart step never wrote its header (outcome: %s).\nNothing was measured on this commit; do not read an older file as this run.\n' \
+              "$(git rev-parse --short HEAD)" "${RESTART_OUTCOME:-unknown}" > "$OUT"
+          elif ! grep -q "restartExitCode=" "$OUT"; then
+            printf 'restartAction=incomplete reason=the-restart-step-did-not-reach-its-end outcome=%s\n' \
+              "${RESTART_OUTCOME:-unknown}" >> "$OUT"
+          fi
+          git config user.name "LEDGER restart"
+          git config user.email "restart@ledger.local"
+          git add -- "$OUT"
+          # THE SUPERVISOR STATUS, BY NAME, -A so its ABSENCE is staged
+          # too: a run where the supervisor wrote no status must not leave
+          # an earlier run's copy standing as if it were this one's.
+          git add -A -- production/pc-ops/supervisor-status.txt 2>/dev/null || true
+          git diff --cached --quiet && { echo "restart evidence unchanged; nothing to commit"; exit 0; }
+          git commit -m "telegram-bot remote restart from $(git rev-parse --short HEAD)"
+          BR="${GITHUB_REF_NAME}"
+          for i in 1 2 3; do
+            # --autostash, THE SAME RUN 27 FIX ledger-probe-unreal.yml and
+            # ledger-install-supervisor-task.yml already carry: a job
+            # always leaves unstaged changes, and without --autostash the
+            # plain form cannot rebase and the evidence dies on the agent.
+            git pull --rebase --autostash --no-edit origin "$BR" || \
+              git rebase --abort || true
+            if git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${BR}"; then
+              echo "restart evidence pushed to $BR"; exit 0
+            fi
+            sleep $((i * 5))
+          done
+          echo "could not push the restart evidence; it is committed locally on the agent"
+          exit 1
