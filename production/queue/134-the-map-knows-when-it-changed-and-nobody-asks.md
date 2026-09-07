@@ -7,12 +7,15 @@ acceptance: a material change to the map produces a message in
   and a NON-material change produces none; both outcomes watched, the
   accepting case being a real change to a real page
 max_sessions: 1
-status: BUILT 2026-09-06 AND UNPROVEN. The consumer is tools/map-notify.py
-  and the notify job in .github/workflows/publish-glance.yml, needs: publish.
-  Its acceptance, a real change to a real page, cannot be met while queue 139
-  holds: no page has been served, so no accepting case has run. WAITS on 139.
-  Nobody may report it as working before a publish run prints pageResult=OK
-  and this job prints mapNotifyResult with a real served digest.
+status: DONE 2026-09-07, PROVEN AGAINST THE SERVED PAGE. The consumer is
+  tools/map-notify.py in the notify job of .github/workflows/publish-glance.yml,
+  needs: publish. First accepting run: publish run 13 on commit 284cfb76.
+  production/map-notified.json records notified=true why=material-change
+  changedFields=q2/q3 digest=4917df34e120, and the page it verified was served
+  from that same commit. The run before it recorded a BASELINE and wrote no
+  message, which is the nothing-measured rule working: a first reading is not
+  a change. The message it wrote passes the SENDER path, not only the gate.
+  What is still unproven: that Jafar receives it, which needs the bot running.
 
 ## The finding, and it is CLAUDE.md rule 6
 

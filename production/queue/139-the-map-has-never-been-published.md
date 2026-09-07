@@ -5,7 +5,11 @@ acceptance: one publish-glance run reaching its steps and printing
   pageResult=OK, and the served map URL answering 200 with this branch's
   commit in its stamp
 max_sessions: 1
-status: BLOCKED ON JAFAR 2026-09-06. Not a code fault and not fixable here.
+status: DONE 2026-09-07. Jafar allowed the branch to deploy and a re-run
+  landed it: publish run 12 attempt 2 succeeded on 85b5222a, and run 13 on
+  284cfb76. The glance, the map and the gallery are served. Eleven of eleven
+  runs had failed in seconds with zero steps executed under an environment
+  protection rule, which no code change here could ever have fixed.
 
 ## The finding, confirmed twice
 

@@ -9,6 +9,52 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-07: THE PAGES SERVE, THE MAP IS A MAP, AND THE ROUTE EXISTS
+
+PAGES. Jafar allowed the branch to deploy. Publish run 12 attempt 2 landed on
+`85b5222a` and run 13 on `284cfb76`. Eleven of eleven earlier runs had failed in
+seconds with zero steps executed under an environment protection rule, which no
+code change here could have fixed. Queue 139 DONE.
+
+THE NOTIFICATION PATH IS PROVEN, and against the served page rather than a local
+build. `production/map-notified.json` records `notified=true why=material-change
+changedFields=q2/q3 digest=4917df34e120`, and the page it verified was served
+from `284cfb76`, the commit that carried the redesign. The run before it recorded
+a BASELINE and wrote nothing, which is the nothing-measured rule working: a first
+reading is not a change. Queue 134 DONE. What is NOT proven is that Jafar
+receives the message, which needs the bot running.
+
+THE MAP. Rejected by Jafar as a dense diagnostic report and rebuilt as a visual
+page: one sentence, the street frame inline, what runs and what to press, then an
+SVG chain from player action to consequence, with every SHA and verdict key
+behind a tap. Three area states are now DERIVED and each overturns a reading the
+old page gave: the street is SEEN, NOT MEASURED rather than nothing measured, and
+the word is granted only when the frame is shown; memory is RUNS, UNHEARD rather
+than harness-only-with-12-of-12-ok; gossip is RUNS, AND HEARD from a different
+fraction answering a different question.
+
+THE STALE PRIORITIES ARE STRUCTURALLY IMPOSSIBLE NOW. `production/next-three.json`
+is the one source and the NOW.md heading parser is DELETED, so THIS FILE NO
+LONGER FEEDS THE MAP. Do not add a heading here expecting it to appear there.
+The half that catches a superseded item is that nobody named it: queue 119's file
+still says READY, so no status word would ever have caught it.
+
+THE TELEGRAM TO CLAUDE ROUTE EXISTS AND HAS NEVER RUN. `tools/runner/executor.py`
+is the third daemon under `START EVERYTHING.bat`. Hop by hop: Telegram, the bot's
+inbox file, the pc-inbox branch, a 15 second poll, a journal line written BEFORE
+anything starts, a fetch into an isolated worktree, `claude -p` bounded to 60
+turns and 30 minutes, the register check, the outbox, the bot's sweep, a receipt
+carrying the platform message id.
+
+`git_call` RAISES on the repository root, because pc-watcher hard-resets it about
+once a minute. Exactly one git call sits outside that guard, `git worktree add`,
+once, touching no index or ref. The journal lives outside both checkouts.
+
+NOTHING HAS BEEN DELIVERED. `production/outbound/` does not exist, so zero
+messages have ever reached Jafar by any path, and the inbound half has never
+carried one either. The first double-click of `START EVERYTHING.bat` is the
+accepting case for the whole route.
+
 ## THE CODEX PATCH IS NOT INTEGRATED AND MUST NOT BE COUNTED
 
 Ruled by Jafar 2026-09-06: "Keep any unavailable Codex patch explicitly
