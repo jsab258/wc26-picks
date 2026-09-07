@@ -8,7 +8,7 @@
  "next": [
   {
    "title": "Control a character in the street that already exists",
-   "why": "the Unreal probe only aims a screenshot camera, so today there is nobody to be",
+   "why": "a character, a game mode and a player start now exist in the probe's source and compiled on the runner, but nothing has launched a build and walked it",
    "queue": "production/queue/138-one-playable-visual-crime-and-consequence-loop.md"
   },
   {
@@ -21,5 +21,7 @@
    "why": "the sweep measured overheard gossip as the one consequence route that speaks, so the loop is built on it",
    "queue": "production/queue/138-one-playable-visual-crime-and-consequence-loop.md"
   }
- ]
+ ],
+ "correctedOn": "2026-09-07",
+ "correctedWhy": "Item 1's reason had decayed into a false sentence on the map, which is Jafar's phone view: it still said the probe only aims a screenshot camera and there is nobody to be. A character, a game mode, a player start, input binding and a default pawn landed on 2026-09-07 and packaged successfully in run 28. The TITLE and the ORDER are untouched; only the reason is corrected, because the step is not done. Source markers prove code exists, not that it runs, and the automated walk that would prove it has never been dispatched."
 }

@@ -271,6 +271,58 @@ def send_photo(token, chat_id, path, caption, timeout=180):
     return _post(token, "sendPhoto", body, {"Content-Type": ctype}, timeout)
 
 
+def send_video(token, chat_id, path, caption, timeout=600):
+    """One clip, AS A VIDEO. Returns the platform's result payload.
+
+    `sendVideo` rather than `sendDocument` for the same reason `send_photo`
+    uses `sendPhoto`: a document arrives as a file to tap, and the
+    deliverable is a clip that plays in the chat. The proof of which one
+    happened is in the answer, which the receipt carries; this function does
+    not judge it, it returns it.
+
+    THE TIMEOUT IS LONGER THAN THE PHOTO'S ON PURPOSE. A still is tens of
+    kilobytes and a clip is tens of megabytes over the same domestic uplink,
+    so the 180 seconds that is generous for a picture is a coin toss for a
+    video. `outbox.VIDEO_MAX_BYTES` refuses anything above the platform's
+    own ceiling before this is ever called, so the worst case here is a
+    large but legal file on a slow line.
+
+    MP4 IS ASSUMED IN THE CONTENT TYPE ONLY. Telegram sniffs the container
+    itself; the type here is a hint, and the extension travels in the name.
+    """
+    with open(path, "rb") as fh:
+        blob = fh.read()
+    ctype, body = multipart({"chat_id": str(chat_id), "caption": caption,
+                             "supports_streaming": "true"},
+                            {"video": (os.path.basename(path), blob,
+                                       "video/mp4")})
+    return _post(token, "sendVideo", body, {"Content-Type": ctype}, timeout)
+
+
+def send_animation(token, chat_id, path, caption, timeout=600):
+    """One animated clip, AS A CLIP THAT PLAYS. Returns the result payload.
+
+    `sendAnimation` AND NOT `sendVideo`, because the clip this project can
+    actually produce is a GIF. Pillow writes GIF and cannot write MP4, and
+    adding a stitcher that could would be a new tool; the licence allowlist
+    governs model weights and shipped assets rather than build-time
+    libraries, but a new dependency still deserves a reason and there is not
+    one when Telegram already plays a GIF as a looping clip. Handing a GIF
+    to `sendVideo` gets it delivered as a file to tap, which is the outcome
+    ruling 1 exists to avoid.
+
+    Same long timeout as `send_video` and for the same reason: a clip is
+    orders of magnitude larger than a still on the same domestic uplink.
+    """
+    with open(path, "rb") as fh:
+        blob = fh.read()
+    ctype, body = multipart({"chat_id": str(chat_id), "caption": caption},
+                            {"animation": (os.path.basename(path), blob,
+                                           "image/gif")})
+    return _post(token, "sendAnimation", body, {"Content-Type": ctype},
+                 timeout)
+
+
 def send_params(chat_id, text, markup=None):
     """The parameters one sendMessage would carry. PURE, and separate from
     `send` so the selftest can read what a meter question actually asks for
@@ -1189,7 +1241,26 @@ def outbox_pass(creds, repo=None, say=None):
         except ApiError as e:
             raise outbox.SendFailed(str(e))
 
-    res = outbox.sweep(repo, sender, say=say)
+    def photo_sender(path, caption):
+        """The wire for a test request that names a picture (ruling 5).
+
+        WITHOUT THIS THE FEATURE IS BUILT AND NOT RUNNING, which is rule 6
+        here: `outbox.sweep` refuses a message naming a picture when no photo
+        sender is wired in, so every captioned test request would have been
+        refused on his PC while every selftest passed in the container. The
+        shape is deliberately identical to `frames_pass`'s closure, including
+        the OSError arm, because an unreadable file must reach the sweep as a
+        refusal it can write down rather than as a traceback.
+        """
+        try:
+            return send_photo(creds.token, str(creds.chat_id), path, caption)
+        except ApiError as e:
+            raise outbox.SendFailed(str(e))
+        except OSError as e:
+            raise outbox.SendFailed("could not read the file (%s)"
+                                    % type(e).__name__)
+
+    res = outbox.sweep(repo, sender, say=say, photo_sender=photo_sender)
     say(outbox.done_line(res))
     note = outbox.nothing_line(res)
     if note:
@@ -1230,6 +1301,52 @@ def cards_pass(creds, repo=None, say=None):
             raise outbox.SendFailed(str(e))
 
     return cards.send_cards(text, sender, say=say)
+
+
+def video_pass(creds, path, caption, repo=None, say=None, run_sha="unknown"):
+    """One clip, or the words that say why there is none (ruling 1).
+
+    The counterpart of `frames_pass` for a video. It supplies only the wire;
+    every decision about size, absence and refusal lives in
+    `outbox.send_video`, on this machine, where the tests run.
+
+    `path` MAY BE None AND THAT IS A REAL CASE, not a caller bug: a probe
+    that crashed before it captured anything has no clip, and the honest
+    outcome is the verdict sent as words rather than a refusal about a
+    missing file. Only a path expected to exist is passed here.
+    """
+    repo = repo or REPO
+    say = say or OUT.say
+
+    def video_sender(p, caption_text):
+        """THE EXTENSION PICKS THE METHOD, not the caller. A GIF handed to
+        sendVideo arrives as a file to tap rather than a clip that plays,
+        and the caller here is a CI step that knows what it rendered but
+        nothing about Telegram's methods."""
+        wire = send_animation if str(p).lower().endswith(".gif") else send_video
+        try:
+            return wire(creds.token, str(creds.chat_id), p, caption_text)
+        except ApiError as e:
+            raise outbox.SendFailed(str(e))
+        except OSError as e:
+            raise outbox.SendFailed("could not read the file (%s)"
+                                    % type(e).__name__)
+
+    def text_sender(text):
+        try:
+            return send(creds.token, str(creds.chat_id), text)
+        except ApiError as e:
+            raise outbox.SendFailed(str(e))
+
+    res = outbox.send_video(repo, video_sender, text_sender, path, caption,
+                            run_sha=run_sha, say=say)
+    say(outbox.video_done_line(res))
+    if res.get("records"):
+        push = inbox.push_pending(repo, say)
+        if not push["ok"]:
+            say("clip: the receipt is on this PC but NOT pushed (%s)"
+                % push["plain"])
+    return res
 
 
 def frames_pass(creds, repo=None, say=None, extra=None):
@@ -1702,6 +1819,118 @@ def _selftest_cases(ok, bad, state):
           "sentEpoch: 1788000123" in bodyA3,
           [l for l in bodyA3.splitlines() if l.startswith("sentEpoch")])
 
+    # ---- RULING 5 AND RULING 1: THE WIRES ARE ACTUALLY CONNECTED ------
+    # These exist because the fault they catch shipped once already today.
+    # `outbox.sweep` REFUSES a message naming a picture when no photo sender
+    # is wired in, so a captioned test request would have been refused on his
+    # PC while every case in outbox.py's own selftest passed here. Built is
+    # not running: the module tests the decision, and only these test that
+    # anything calls it.
+    class _Creds(object):
+        token, chat_id = "not-a-real-token", "0"
+
+    seen = {}
+    real_sweep, real_sendvid = outbox.sweep, outbox.send_video
+    real_photo, real_video = send_photo, send_video
+    try:
+        # CAPTURE, THEN DELEGATE TO THE REAL FUNCTION. A hand-built return
+        # value would be a second implementation of a result shape, and the
+        # first thing it did was disagree with the real one.
+        def _spy_sweep(repo, sender, **kw):
+            seen.update(sweep_kw=kw, sweep_sender=sender)
+            return real_sweep(repo, sender, **kw)
+
+        def _spy_video(repo, vs, ts, path, cap, **kw):
+            seen.update(vid_sender=vs, vid_path=path, vid_caption=cap)
+            return real_sendvid(repo, vs, ts, None, cap, **kw)
+
+        outbox.sweep = _spy_sweep
+        outbox.send_video = _spy_video
+        outbox_pass(_Creds(), watcher, lambda _s: None)
+        video_pass(_Creds(), "/tmp/nothing.mp4", "a verdict", watcher,
+                   lambda _s: None)
+    finally:
+        outbox.sweep, outbox.send_video = real_sweep, real_sendvid
+
+    check("accept/ruling5-the-sweep-is-given-a-photo-sender",
+          callable(seen.get("sweep_kw", {}).get("photo_sender")),
+          sorted(seen.get("sweep_kw", {})))
+    check("accept/ruling1-send_video-is-given-a-video-sender",
+          callable(seen.get("vid_sender"))
+          and seen.get("vid_path") == "/tmp/nothing.mp4"
+          and seen.get("vid_caption") == "a verdict", seen.get("vid_path"))
+
+    # AND EACH CLOSURE REACHES ITS OWN WIRE, not merely exists. A photo
+    # sender that quietly called sendMessage would pass the check above.
+    hit = {}
+    try:
+        globals()["send_photo"] = lambda t, c, path, cap, **k: (
+            hit.update(photo=(path, cap)) or {"message_id": 1})
+        globals()["send_video"] = lambda t, c, path, cap, **k: (
+            hit.update(video=(path, cap)) or {"message_id": 2})
+        seen["sweep_kw"]["photo_sender"]("a.jpg", "cap one")
+        seen["vid_sender"]("b.mp4", "cap two")
+    finally:
+        globals()["send_photo"], globals()["send_video"] = real_photo, real_video
+    check("accept/ruling5-the-photo-closure-calls-sendPhoto-not-sendMessage",
+          hit.get("photo") == ("a.jpg", "cap one"), hit.get("photo"))
+    check("accept/ruling1-the-video-closure-calls-sendVideo",
+          hit.get("video") == ("b.mp4", "cap two"), hit.get("video"))
+
+    # AND THE VIDEO WIRE ASKS THE PLATFORM FOR A VIDEO. The method name is
+    # the whole difference between a clip that plays and a file to tap.
+    posted = {}
+    real_post = _post
+    tmpclip = os.path.join(home, "clip.mp4")
+    with open(tmpclip, "wb") as fh:
+        fh.write(b"\x00\x00\x00\x18ftypmp42")
+    try:
+        globals()["_post"] = lambda tok, method, body, hdr, to: (
+            posted.update(method=method, size=len(body)) or {"message_id": 3})
+        real_video(_Creds.token, _Creds.chat_id, tmpclip, "one line")
+    finally:
+        globals()["_post"] = real_post
+    check("accept/ruling1-the-wire-calls-sendVideo-with-the-bytes",
+          posted.get("method") == "sendVideo" and posted.get("size", 0) > 8,
+          posted)
+
+    # AND A GIF TAKES THE OTHER METHOD. Both arms are asserted because a
+    # router with one arm tested is a router nobody has tested: a GIF handed
+    # to sendVideo is delivered as a file to tap, not a clip that plays,
+    # which is the whole outcome ruling 1 exists to produce.
+    real_anim = send_animation
+    routed = {}
+    try:
+        globals()["send_video"] = lambda t, c, path, cap, **k: (
+            routed.update(m="sendVideo") or {"message_id": 4})
+        globals()["send_animation"] = lambda t, c, path, cap, **k: (
+            routed.update(m="sendAnimation") or {"message_id": 5})
+        seen["vid_sender"]("walk.gif", "cap")
+        gif_went = routed.get("m")
+        seen["vid_sender"]("walk.mp4", "cap")
+        mp4_went = routed.get("m")
+    finally:
+        globals()["send_video"], globals()["send_animation"] = (real_video,
+                                                                real_anim)
+    check("accept/ruling1-a-gif-is-routed-to-sendAnimation",
+          gif_went == "sendAnimation", gif_went)
+    check("reject/ruling1-and-a-non-gif-is-not",
+          mp4_went == "sendVideo", mp4_went)
+
+    posted2 = {}
+    tmpgif = os.path.join(home, "clip.gif")
+    with open(tmpgif, "wb") as fh:
+        fh.write(b"GIF89a" + b"\x00" * 16)
+    try:
+        globals()["_post"] = lambda tok, method, body, hdr, to: (
+            posted2.update(method=method, size=len(body)) or {"message_id": 6})
+        real_anim(_Creds.token, _Creds.chat_id, tmpgif, "one line")
+    finally:
+        globals()["_post"] = real_post
+    check("accept/ruling1-the-animation-wire-calls-sendAnimation",
+          posted2.get("method") == "sendAnimation"
+          and posted2.get("size", 0) > 16, posted2)
+
     # ---- THE TAP, queue 090. A callback_query is not a message, and
     # before this branch existed it was counted as `other` and dropped.
     queue_rel = os.path.join(watcher, *cards.QUEUE_REL.split("/"))
@@ -1974,6 +2203,20 @@ def main(argv):
             return 1
         res = cards_pass(creds)
         return 1 if res["failed"] else 0
+    if "--send-clip" in args:
+        creds = load_or_explain()
+        if creds is None:
+            return 1
+        i = args.index("--send-clip")
+        clip = args[i + 1] if i + 1 < len(args) \
+            and not args[i + 1].startswith("--") else None
+        cap = "Clip from the last run."
+        if "--caption" in args:
+            j = args.index("--caption")
+            if j + 1 < len(args):
+                cap = args[j + 1]
+        res = video_pass(creds, clip, cap)
+        return 1 if (res["refused"] or res["failed"]) else 0
     if "--send-frame" in args:
         creds = load_or_explain()
         if creds is None:

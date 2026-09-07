@@ -2119,4 +2119,28 @@ namespace LedgerVignetteShot
 		       PStart != nullptr ? TEXT("spawned") : TEXT("SPAWN-FAILED"),
 		       *At.ToString(), Facing.Yaw, (int32)GSpec.Pieces.size());
 	}
+
+	// THE WALK PROBE'S THREE READS. Declared in VignetteShot.h; each one
+	// returns a global this same translation unit already maintains, so a
+	// walk run and a vignette run can never report two different counts
+	// for one fact. None of the three builds anything: a run that never
+	// called BuildScene reads GSceneLine's untouched default
+	// ("piecesEmitted=0/0"), GQuads empty, and GByName empty, which is
+	// exactly the "nothing measured" state a caller that starts too early
+	// ought to see.
+	FString StreetSceneLine()
+	{
+		return FString(UTF8_TO_TCHAR(GSceneLine.c_str()));
+	}
+
+	int32 ControlQuadsSpawnedCount()
+	{
+		return (int32)GQuads.size();
+	}
+
+	AActor* FindStreetPiece(const FString& Name)
+	{
+		AStaticMeshActor* const* Found = GByName.Find(Name);
+		return (Found != nullptr) ? static_cast<AActor*>(*Found) : nullptr;
+	}
 }

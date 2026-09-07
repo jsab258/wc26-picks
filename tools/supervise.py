@@ -321,18 +321,76 @@ def executor_keys(repo):
 # --------------------------------------------------------------------------
 # Start at sign-in. THE SAME FILE the studio machine writes, on purpose.
 # --------------------------------------------------------------------------
-def install_autostart(startup_dir, repo, launcher=LAUNCHER, hook=HOOK_NAME):
-    """(state, why, path). state is 'installed' or 'not-installed'.
 
-    THE EFFECT, NOT THE EXIT CODE: the file is read back, because a redirect
-    that wrote nothing reports success and this project has been told a step
-    succeeded while it produced an empty file.
+#: Must match tools/runner/install-scheduled-task.ps1's default -TaskName.
+#: Kept as one constant so a rename is a rename in one place, not a name to
+#: remember twice and eventually forget in one of them.
+SCHEDULED_TASK_NAME = "LEDGER supervisor"
+
+
+def default_task_exists(task_name=SCHEDULED_TASK_NAME):
+    """True only when Windows Task Scheduler is ASKED and answers that
+    `task_name` exists. False off Windows, and False if the query itself
+    could not be run - the safe side of this question is "keep the old
+    Startup hook", because a checker that has not proven the task exists
+    must not be the reason the ONLY thing that can start a supervisor gets
+    deleted."""
+    if os.name != "nt":
+        return False
+    try:
+        p = subprocess.run(["schtasks", "/query", "/tn", task_name],
+                           capture_output=True, text=True, timeout=15)
+    except Exception:                                          # noqa: BLE001
+        return False
+    return p.returncode == 0
+
+
+def install_autostart(startup_dir, repo, launcher=LAUNCHER, hook=HOOK_NAME,
+                      task_exists=None):
+    """(state, why, path). state is 'installed', 'removed' or
+    'not-installed'.
+
+    THE EFFECT, NOT THE EXIT CODE: every write, and now every removal, is
+    read back rather than assumed - a delete that silently failed must not
+    read the same as a hook that is genuinely gone.
 
     ONE ENTRY, NOT TWO. This writes the same name "START THE STUDIO
     MACHINE.bat" writes, so installing this cannot leave two autostart entries
     opening two watchers that fight over one git index. It REPLACES that hook.
+
+    B4, FOUND ON REVIEW 2026-09-07. Once the scheduled task exists, this
+    hook is a SECOND autostart racing the FIRST at every logon: both fire,
+    and whichever wins the single-instance lock runs; when the .bat wins,
+    the supervisor ends up inside a closeable window again and the task's
+    own launch exits 0 REFUSED, which Task Scheduler reads as a clean run
+    and never restarts - the 11:30 silence this ruling exists to end,
+    restored by this very hook. `task_exists` is injected, defaulting to
+    `default_task_exists` (False off Windows, so every caller and every
+    existing selftest that does not pass one keeps its old behaviour on
+    this container): when it says the task exists, this REMOVES the hook
+    instead of writing it, and the removal is verified by reading the
+    directory back, the same discipline the write path already used.
     """
     path = os.path.join(startup_dir, hook)
+    checker = task_exists if task_exists is not None else default_task_exists
+    if checker():
+        if not os.path.isdir(startup_dir):
+            return ("removed",
+                    "the scheduled task already covers this; the Startup "
+                    "folder is not even there", path)
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except OSError as e:
+                return ("not-installed",
+                        "the scheduled task exists but the old Startup "
+                        "hook could not be removed (%s)" % type(e).__name__,
+                        path)
+        if os.path.exists(path):
+            return ("not-installed",
+                    "the old Startup hook was asked to be removed but is "
+                    "still there after the removal", path)
+        return "removed", "the scheduled task covers this now", path
     if not os.path.isdir(startup_dir):
         return "not-installed", "the Startup folder is not there", path
     body = ("@echo off\r\n"
@@ -629,6 +687,12 @@ def run():
         print("    %s" % hook)
         print("  Delete that one file to stop it. No admin was needed.")
         print("  It starts when you SIGN IN, not when the PC boots.")
+    elif auto == "removed":
+        print("  STARTS AT SIGN-IN: YES, through the scheduled task, not")
+        print("  this Startup entry. The task already exists, so this old")
+        print("  hook was removed (read back to confirm it is gone) rather")
+        print("  than left to race the task at every logon.")
+        print("    %s" % hook)
     else:
         print("  STARTS AT SIGN-IN: NO. This run is start-once only.")
         print("    reason: %s" % why)
@@ -924,6 +988,47 @@ def selftest():
     state2, why2, _p = install_autostart(os.path.join(tmp, "nope"), tmp)
     check("reject/a-missing-startup-folder-is-not-installed-and-says-why",
           state2 == "not-installed" and "not there" in why2, why2)
+
+    # B4, FOUND ON REVIEW: BOTH BRANCHES OF THE INJECTED task_exists.
+    # ACCEPTING CASE FIRST: the task does not exist, which is every call
+    # above (no task_exists passed) and is also true unconditionally on
+    # this non-Windows container - `default_task_exists` must say so
+    # without raising, since nothing here can run `schtasks`.
+    check("accept/default-task-exists-is-false-off-windows-and-never-raises",
+          default_task_exists() is False, "exception or True")
+
+    # REJECTING THE OLD HOOK: the task exists, so a hook that IS there gets
+    # REMOVED rather than left to race it at every logon.
+    state3, why3, path3 = install_autostart(good, tmp,
+                                            task_exists=lambda: True)
+    check("reject/a-hook-is-removed-once-the-scheduled-task-exists",
+          state3 == "removed" and not os.path.exists(path3), (state3, path3))
+    check("reject/and-the-removal-is-verified-by-reading-the-directory-back",
+          why3 == "the scheduled task covers this now", why3)
+
+    # THE SAME CALL AGAIN IS IDEMPOTENT: nothing left to remove, still
+    # reads as 'removed', never as an error.
+    state4, why4, path4 = install_autostart(good, tmp,
+                                            task_exists=lambda: True)
+    check("reject/removing-an-already-absent-hook-is-still-removed-not-"
+          "an-error", state4 == "removed" and not os.path.exists(path4),
+          (state4, why4))
+
+    # A MISSING STARTUP FOLDER WITH THE TASK PRESENT is 'removed' too - the
+    # task covers it regardless, and this must never read as a failure.
+    state5, why5, _p5 = install_autostart(os.path.join(tmp, "nope2"), tmp,
+                                          task_exists=lambda: True)
+    check("accept/a-missing-startup-folder-with-the-task-present-still-"
+          "reads-as-removed-not-failed",
+          state5 == "removed" and "not even there" in why5, (state5, why5))
+
+    # THE OTHER BRANCH, EXPLICITLY INJECTED FALSE: behaves exactly like the
+    # calls above that passed no task_exists at all, proving the default
+    # and an explicit False agree.
+    state6, why6, path6 = install_autostart(good, tmp,
+                                            task_exists=lambda: False)
+    check("accept/an-injected-false-task-exists-writes-the-hook-again",
+          state6 == "installed" and os.path.isfile(path6), (state6, why6))
 
     # config.local: EXISTENCE ONLY, proved rather than asserted. The
     # fixture is synthetic, in a temporary directory, and carries a sentinel

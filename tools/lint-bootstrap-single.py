@@ -47,7 +47,11 @@ NEEDS = ("ledger-build-windows.yml", "ledger-probe-unreal.yml",
          # surface fetch. Named here in the same change that adds the
          # workflow, because a self-hosted workflow this list does not
          # know about is one the lint cannot hold to the shared script.
-         "ledger-vignette-fetch.yml")
+         "ledger-vignette-fetch.yml",
+         # The scheduled-task installer, ruling 2026-09-07: it also runs on
+         # ledger-pc and has a pwsh step, named here in the same change
+         # that adds the workflow, for the same reason as the line above.
+         "ledger-install-supervisor-task.yml")
 
 
 def scan(wf_dir=WF, needs=NEEDS, repo=REPO):

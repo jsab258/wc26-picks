@@ -1,0 +1,206 @@
+name: LEDGER install supervisor scheduled task
+
+# RULING 2026-09-07, VERBATIM: "The bot must not depend on a window staying
+# open. It died at 11:30 today because that window was closed and the only
+# signal I had was silence. Install the three daemons as a Windows
+# scheduled task that starts at logon and restarts on failure." This is
+# that install, run ON THE MACHINE ITSELF through the self-hosted runner,
+# so it can happen while Jafar is away from the PC.
+#
+# WHAT IT RUNS. tools/runner/install-scheduled-task.ps1, which registers
+# tools/runner/launch-supervisor.py (never tools/supervise.py directly - see
+# that file's own docstring for why the extra door matters) to start at
+# Jafar's logon and restart on failure, then reads the result BACK from
+# Windows rather than trusting its own exit code, per rule 4.
+#
+# WHY workflow_dispatch ALONE IS NOT ENOUGH YET. GitHub only dispatches a
+# workflow_dispatch workflow that already exists on the DEFAULT BRANCH
+# (main); this file lives on the working branch, exactly the situation
+# ledger-probe-unreal.yml already hit and already solved. Same fix, same
+# reasoning: a push that touches this workflow or the installer it runs
+# fires it directly, needing no access to main, and it stays additionally
+# dispatchable for whenever it does reach main.
+#
+# WHEN THIS FILE REACHES main, DELETE THE PUSH TRIGGER. It is a workaround
+# for a permission boundary (pushing only to the working branch), not a
+# design, and workflow_dispatch already works correctly the moment this
+# file is on the default branch.
+#
+# NOT EXPENSIVE, SO NOT GATED BEHIND A SENTINEL FILE THE WAY THE UNREAL
+# PROBE IS. Registering a scheduled task and reading it back costs seconds,
+# not the tens of minutes a cold engine build costs, so this fires on every
+# push that touches its own files rather than waiting for a deliberate
+# sentinel flip - the project law that expensive jobs are opt-in does not
+# name this one.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/ledger-install-supervisor-task.yml'
+      - 'tools/runner/install-scheduled-task.ps1'
+      - 'tools/runner/launch-supervisor.py'
+      - 'tools/runner/single_instance.py'
+
+permissions:
+  contents: write
+
+# A SECOND DISPATCH WHILE ONE IS STILL RUNNING QUEUES RATHER THAN RACES:
+# two installer runs touching the same scheduled task at once is exactly
+# the kind of concurrent write this project's CI rules say to scope a
+# group around. Not cancel-in-progress: a run already mid-install must
+# finish, not be cut off with the task half-registered.
+concurrency:
+  group: ledger-install-supervisor-task
+  cancel-in-progress: false
+
+jobs:
+  install-supervisor-task:
+    runs-on: [self-hosted, ledger-pc]
+    # A CEILING ON A HANG, NOT A TARGET. Every step below measures single
+    # digits of minutes at most; this is generous headroom, not an estimate
+    # of how long the install should take.
+    timeout-minutes: 20
+
+    steps:
+      # THE COMPLETE BOOTSTRAP, VERBATIM, from ledger-probe-unreal.yml,
+      # which paid for it (task 006 names the duplication and queues the
+      # dedup; until that lands, every self-hosted workflow using pwsh
+      # copies this whole block rather than a shortened one, because a
+      # shortened copy is exactly what broke it the first time).
+      - name: Checkout
+        timeout-minutes: 6
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: tool PATH bootstrap (self-hosted parity)
+        timeout-minutes: 1
+        shell: cmd
+        run: |
+          call tools\runner\bootstrap-paths.cmd
+          exit /b %ERRORLEVEL%
+
+      # THE INSTALL AND ITS OWN VERIFICATION, BOTH INSIDE THE SCRIPT BEING
+      # INSTALLED. install-scheduled-task.ps1 is written to be runnable by
+      # hand on the PC as well as from here, so its printed lines are the
+      # evidence, captured into a file rather than left in a log tail per
+      # the CI rule that the evidence channel is a file committed by CI.
+      #
+      # RUN AS A CHILD PROCESS (`& pwsh -File ...`), NOT DOT-SOURCED OR
+      # CALLED IN-PROCESS. The installer ends on `exit 0` / `exit 1`, and
+      # PowerShell's `exit` inside a script invoked in the CURRENT session
+      # (dot-sourcing, or the call operator on a .ps1 run in-process) tears
+      # down the whole host process, not just that script - which would
+      # skip every line below it in this same step, including the ones that
+      # write the evidence file. A separate pwsh.exe child keeps its `exit`
+      # scoped to itself and reports its code back through $LASTEXITCODE.
+      - name: Install and verify the scheduled task
+        id: install
+        continue-on-error: true
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $out = "production/pc-ops/scheduled-task-verify.txt"
+          New-Item -ItemType Directory -Force -Path "production/pc-ops" | Out-Null
+          $sha = $env:GITHUB_SHA
+          if ($sha) { $sha = $sha.Substring(0, [Math]::Min(7, $sha.Length)) } else { $sha = "SHA-UNKNOWN" }
+          $header = @(
+            "# LEDGER scheduled task install/verify - $sha @$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())",
+            "# Line 1 names the commit this was measured on.",
+            "# Installs tools/runner/launch-supervisor.py (wraps tools/supervise.py,",
+            "# unmodified) as a Windows scheduled task. Ruling 2026-09-07.",
+            ""
+          )
+          $header | Set-Content $out -Encoding utf8
+          $installOutput = & pwsh -NoProfile -File "tools\runner\install-scheduled-task.ps1" 2>&1
+          $installExit = $LASTEXITCODE
+          $installOutput | ForEach-Object { $_.ToString() } | Add-Content $out
+          "installerExitCode=$installExit" | Add-Content $out
+          Write-Host (Get-Content $out -Raw)
+          if ($installExit -ne 0) { exit 1 }
+
+      # THE SILENCE PROBLEM ITSELF (ruling point 4), ANSWERED BY READING
+      # AN EXISTING CHANNEL RATHER THAN BUILDING A SECOND TRANSPORT.
+      # pc-inbox already carries a de-facto heartbeat: tools/inbox-read.py's
+      # own outbound accounting climbs once per telegram-bot sweep, which is
+      # how the 11:30 outage was actually noticed (a refused-count that
+      # always climbed had stopped moving). Keeping all three daemons alive
+      # is what keeps that counter moving again; this step only reports how
+      # fresh that branch is, so the same evidence file also answers "is
+      # the existing signal reaching GitHub right now" without adding
+      # anything Jafar or the studio has to learn to read.
+      - name: Read the existing pc-inbox channel, without adding a new one
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 3
+        shell: bash
+        run: |
+          set -u
+          OUT=production/pc-ops/scheduled-task-verify.txt
+          echo "" >> "$OUT"
+          echo "# The existing channel, read rather than duplicated (ruling point 4)." >> "$OUT"
+          if git fetch -q origin pc-inbox 2>/tmp/pcinbox.err && git rev-parse -q --verify FETCH_HEAD >/dev/null 2>&1; then
+            SHORT="$(git rev-parse --short FETCH_HEAD)"
+            WHEN="$(git show -s --format=%ct FETCH_HEAD)"
+            NOW="$(date -u +%s)"
+            AGE=$(( NOW - WHEN ))
+            echo "pcInboxReachable=true pcInboxHeadShort=$SHORT pcInboxLastCommitAgeSec=$AGE" >> "$OUT"
+            echo "pcInboxNote=this-branch-is-the-studios-own-de-facto-heartbeat;no-new-transport-was-built" >> "$OUT"
+          else
+            ERR="$(tr '\n' ' ' < /tmp/pcinbox.err 2>/dev/null | cut -c1-160)"
+            echo "pcInboxReachable=false pcInboxError=${ERR:-unknown}" >> "$OUT"
+          fi
+          cat "$OUT"
+
+      # THE EVIDENCE CHANNEL. A run that measured nothing says so rather
+      # than committing a stale checkout's file as its own, staged BY NAME,
+      # and this step carries the failure itself (Amendment A2): a push
+      # that did not land is not a landed run, so continue-on-error stays
+      # off here even though the two steps above have it on.
+      - name: Commit the install verification
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: "*"
+        run: |
+          set -u
+          OUT=production/pc-ops/scheduled-task-verify.txt
+          if [ ! -f "$OUT" ] || ! grep -q "installerExitCode=" "$OUT"; then
+            printf '# LEDGER scheduled task install/verify - %s\nNO RUN - the install step did not reach its end (outcome: %s).\nNothing was measured on this commit; do not read an older file as this run.\n' \
+              "$(git rev-parse --short HEAD)" "${INSTALL_OUTCOME:-unknown}" > "$OUT"
+          fi
+          git config user.name "LEDGER installer"
+          git config user.email "installer@ledger.local"
+          git add -- "$OUT"
+          git diff --cached --quiet && { echo "install verification unchanged; nothing to commit"; exit 0; }
+          git commit -m "scheduled task install/verify from $(git rev-parse --short HEAD)"
+          BR="${GITHUB_REF_NAME}"
+          for i in 1 2 3; do
+            # --autostash IS LOAD-BEARING AND IT IS THE RUN 27 INCIDENT.
+            # Without it this reads "cannot pull with rebase: You have
+            # unstaged changes", the || swallows the error, all three pushes
+            # are then rejected as behind, and the evidence dies on the
+            # agent. Run 27 lost its whole probe result that way on
+            # 2026-09-07. A job always leaves unstaged changes, so the guard
+            # as written could never fire on the case it existed for.
+            # Reproduced both ways on a fixture before this line changed:
+            # without it rc=128 and nothing lands, with it rc=0 and the
+            # evidence reaches the remote beside the other commit.
+            # The abort STAYS. --autostash fixes the refusal to start;
+            # it does not fix a genuine content conflict, and that
+            # leaves a rebase in progress which would strand the
+            # checkout for every later job on this runner.
+            git pull --rebase --autostash --no-edit origin "$BR" || \
+              git rebase --abort || true
+            if git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${BR}"; then
+              echo "install verification pushed to $BR"; exit 0
+            fi
+            sleep $((i * 5))
+          done
+          echo "could not push the install verification; it is committed locally on the agent"
+          exit 1

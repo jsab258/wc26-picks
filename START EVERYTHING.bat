@@ -46,6 +46,15 @@ REM  that box. Nothing else stops when one thing does.
 REM
 REM  TO STOP EVERYTHING: close this window. Nothing is left running.
 REM
+REM  A SCHEDULED TASK MAY ALSO BE RUNNING THIS, per ruling 2026-09-07: it
+REM  starts the same supervisor at logon so a closed window can no longer
+REM  silence Telegram. Double-clicking this file while that task is
+REM  already running is SAFE: both now go through
+REM  tools\runner\launch-supervisor.py, which shares one lock file, so
+REM  whichever started first keeps running and this window will say
+REM  REFUSED and exit cleanly rather than starting a second supervisor.
+REM  This file remains the manual fallback; it is not replaced by the task.
+REM
 REM  IT NEVER OPENS tools\runner\config.local. It checks that the file
 REM  is there and says only that. No part of what is inside it is read,
 REM  printed, or sent anywhere, by this file or by anything it starts.
@@ -147,14 +156,20 @@ if not exist "%REPO%\tools\runner\config.local" (
 )
 
 echo.
-%PY% "%REPO%\tools\supervise.py"
+REM  THROUGH THE ONE DOOR, NOT tools\supervise.py DIRECTLY. This is the
+REM  same launch-supervisor.py the scheduled task calls, so both share the
+REM  lock that keeps two supervisors from ever running at once; see the
+REM  note near the top of this file. RC 0 from a REFUSED launch is not an
+REM  error - it means the task already had this covered.
+%PY% "%REPO%\tools\runner\launch-supervisor.py" start-everything-bat
 set "RC=%ERRORLEVEL%"
 
 echo.
-echo   THE SUPERVISOR ITSELF STOPPED, exit code %RC%. That is different
-echo   from a daemon stopping: nothing is watching anything now. The
-echo   lines above say why. Send them to Claude and click this file
-echo   again.
+echo   THE SUPERVISOR ITSELF STOPPED (or a second launch was refused
+echo   because one was already running), exit code %RC%. The lines above
+echo   say which happened and why. If it stopped for real, nothing is
+echo   watching anything now: send those lines to Claude and click this
+echo   file again.
 
 :theend
 echo.

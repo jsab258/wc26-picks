@@ -18,8 +18,28 @@ every sha, every verdict key, every file count and every caveat is one tap
 down, in a sheet, where the same derivation prints in full. Nothing on the
 first screen is a key.
 
-THE FIRST PHONE SCREEN ANSWERS EXACTLY THREE THINGS, and nothing else may
-compete for it:
+RULING 3, Jafar, 2026-09-07, VERBATIM, AND IT SITS ABOVE EVEN THE FIRST
+SCREEN BELOW: "The map needs a ladder at the very top: the steps to a
+playable loop, in order, with the current one highlighted, so I can read
+'step 2 of 10' in one glance from my phone." So the ladder is now the first
+thing on the page, above the three answers this section still describes for
+everything beneath it. IT IS PLAIN HTML, NOT SVG: SVG clips a line silently,
+which is one of the four faults this page was already rebuilt to fix, and
+normal text wraps on its own. WHERE THE STEPS COME FROM, so nobody reaches
+for a heading parser a second time: production/next-three.json's own `next`
+array is already ordered (Jafar's priority order, confirmed lower in this
+file by the selftest's own check that item 1 is "control", item 2 "crime",
+item 3 "gossip"), and its `milestone`/`milestoneFrom` fields already name the
+rung at the top. No new field was added: inventing a second, parallel list
+would only give the two a chance to drift. WHAT "DONE" MEANS: next-three.json
+removes a step once it is finished rather than marking it ("An item leaves
+the list by being deleted from it"), and the milestone file's structured
+header names no completed sub-step either, so no rung below the goal is ever
+shown done from these two sources, and the ladder says so in words instead of
+a tick nobody measured. See ladder_rungs() and ladder_html() below.
+
+THE FIRST PHONE SCREEN BELOW THE LADDER ANSWERS EXACTLY THREE THINGS, and
+nothing else may compete for it:
 
     1  WHAT EXISTS NOW. One sentence, and THE STREET FRAME ITSELF, shown
        inline rather than linked. The picture is the answer; the sentence is
@@ -586,13 +606,33 @@ def visual_probe(root):
 # derivation rather than a sentence somebody typed because the day a pawn
 # lands, this page must stop saying it without an edit here. Each entry is
 # (name, regex). The count of this tuple IS the denominator printed.
+#
+# PAWN AND CHARACTER WERE TWO MARKERS UNTIL 2026-09-07 and became one: a
+# direct APawn subclass and an ACharacter subclass are not two different
+# facts about this project, because Unreal's ACharacter IS an APawn in the
+# engine itself. Run 28 landed ALedgerCharacter (`: public ACharacter`), a
+# real class the two-marker version could never satisfy the first half of,
+# printing 5 of 6 for ever and reading as a permanent gap. Asking one
+# question ("is there a pawn to be, of either shape") makes every marker in
+# this tuple something this project's own choices can actually satisfy, so
+# the denominator means what it says. Fold this back into two if a future
+# probe ever wants BOTH an APawn that is not a Character and an ACharacter
+# side by side; nothing here has that shape today.
+#
+# inputBinding ALSO WIDENED THE SAME DAY: BindAxisKey/BindActionKey are the
+# calls run 28's code actually makes (`PlayerInputComponent->BindAxisKey(...)`
+# in LedgerCharacter.cpp), and \bBindAxis\b never matched "BindAxisKey" (no
+# word boundary between "Axis" and "Key"): the marker only read as found
+# because SetupPlayerInputComponent's own declaration happened to be in the
+# same two files. A marker that passes by a different marker's evidence is
+# not testing what its name says.
 PLAYER_MARKERS = (
-    ("pawnClass", re.compile(r"\bpublic\s+APawn\b|:\s*public\s+APawn\b")),
-    ("characterClass", re.compile(r":\s*public\s+ACharacter\b")),
+    ("pawnOrCharacterClass", re.compile(
+        r"\bpublic\s+APawn\b|:\s*public\s+APawn\b|:\s*public\s+ACharacter\b")),
     ("gameModeClass", re.compile(r":\s*public\s+AGameMode")),
     ("playerStart", re.compile(r"\bAPlayerStart\b")),
     ("inputBinding", re.compile(r"\bSetupPlayerInputComponent\b|"
-                                r"\bBindAction\b|\bBindAxis\b")),
+                                r"\bBindAction(?:Key)?\b|\bBindAxis(?:Key)?\b")),
     ("defaultPawnSetting", re.compile(r"(?i)^\s*DefaultPawnClass\s*=", re.M)),
 )
 # The one thing the probe DOES borrow, counted separately so the sentence can
@@ -628,6 +668,35 @@ def player_markers(root):
         "borrowsController": borrowed, "andOnlyAimsTheCamera": aims,
         "dirs": PROBE_SOURCE_DIRS,
     }
+
+
+# SOURCE EXISTING AND SOURCE COMPILING ARE DIFFERENT CLAIMS, and markers alone
+# cannot tell a syntax error from a working class: this reads the runner's own
+# build log rather than assuming a marker match means the engine accepted it.
+BUILD_STAMP_RX = re.compile(r"^#\s*UE probe build\s*-\s*([0-9a-f]{7,40})", re.M)
+
+
+def probe_compiled(root):
+    """(compiled, reading). Whether the WHOLE project, including whatever
+    player_markers() just found in source, compiled clean on the runner, read
+    from production/d1-probe/ue-build.txt's own coldBuildExit key: a full
+    recompile is the stronger of the two exits that file prints, because an
+    incremental warmBuild can in principle skip a file a real cold build would
+    not. NAMES THE COMMIT THE EVIDENCE IS FROM rather than asserting it
+    matches this checkout's HEAD, the same way the picture caption below names
+    the commit the frame was written on without re-verifying it against
+    git rev-parse: an older build recorded here does not silently become
+    evidence for source that has changed since.
+    """
+    p = Path(root) / UE_BUILD
+    if not p.is_file():
+        return False, {"seen": False, "coldBuildExit": None, "buildSha": None}
+    text = p.read_text(encoding="utf-8", errors="replace")
+    cold = read_key(root, UE_BUILD, "coldBuildExit")
+    m = BUILD_STAMP_RX.search(text)
+    return cold == "0", {"seen": cold is not None,
+                         "coldBuildExit": cold,
+                         "buildSha": m.group(1) if m else None}
 
 
 # KEYS THAT EXIST NOWHERE IN THIS REPOSITORY, ON PURPOSE. These name what would
@@ -697,6 +766,25 @@ def read_stamp(root, rel):
         return None, None
     m = STAMP_RX.search(p.read_text(encoding="utf-8", errors="replace")[:400])
     return (m.group(1), int(m.group(2))) if m else (None, None)
+
+
+ACCEPTANCE_RX = re.compile(r"^acceptance:\s*(.*?)(?=^[a-z_]+:\s|\Z)",
+                           re.M | re.S)
+
+
+def read_milestone_acceptance(root, rel):
+    """The milestone file's own `acceptance:` field, or None. Read the same
+    STRUCTURAL way queue_state() below reads `status:` (a labelled field, not
+    a guess about which paragraph is an instruction), so this is not the
+    prose parser RULING 3 forbids: it is one named key, from one named file,
+    the same way the rest of this file already reads that file's header."""
+    if not rel:
+        return None
+    p = Path(root) / rel
+    if not p.is_file():
+        return None
+    m = ACCEPTANCE_RX.search(p.read_text(encoding="utf-8", errors="replace"))
+    return " ".join(m.group(1).split()) if m else None
 
 
 def read_gates(root, rel=SIM_VERDICT):
@@ -793,6 +881,16 @@ def read_fraction(root, rel, key):
 #                       observed and, in the same breath, what is unverified.
 #   not started         the thing does not exist in the source yet, counted
 #                       over the source (0 of N markers in M files).
+#   in source, unproven a source-scanned thing has N of M markers (N > 0) AND
+#                       no build log records a clean compile of this project.
+#                       Markers alone cannot tell a syntax error from a
+#                       working class, so this is as far as a source scan
+#                       gets without one.
+#   built, not walked   a source-scanned thing has N of M markers (N > 0) AND
+#                       a build log records a clean compile. Code existing
+#                       and compiling is not a person having launched it and
+#                       walked it: that check does not exist in this
+#                       repository yet, so this page must not claim it.
 #   failing             a named gate in the verdict is not ok.
 #   runs, unheard       every named gate ok AND a committed sweep fraction
 #                       says a player never hears the result (0 of N).
@@ -816,6 +914,8 @@ def read_fraction(root, rel, key):
 WORD_NOTHING = NOTHING
 WORD_SEEN = "seen, not measured"
 WORD_NOT_STARTED = "not started"
+WORD_UNPROVEN = "in source, unproven"
+WORD_BUILT = "built, not walked"
 WORD_FAILING = "failing"
 WORD_UNHEARD = "runs, unheard"
 WORD_HEARD = "runs, and heard"
@@ -824,7 +924,8 @@ WORD_PLAYABLE = "playable"
 
 WORD_CLASS = {
     WORD_NOTHING: "s-none", WORD_SEEN: "s-seen",
-    WORD_NOT_STARTED: "s-notstarted", WORD_FAILING: "s-failing",
+    WORD_NOT_STARTED: "s-notstarted", WORD_UNPROVEN: "s-unproven",
+    WORD_BUILT: "s-built", WORD_FAILING: "s-failing",
     WORD_UNHEARD: "s-unheard", WORD_HEARD: "s-heard",
     WORD_HARNESS: "s-harness", WORD_PLAYABLE: "s-playable",
 }
@@ -881,7 +982,11 @@ AREAS = (
         "needs": (),
         "needsIn": UE_VERDICT,
         "sourceScan": True,
-        "blocker": "no character, no pawn, nothing bound to input",
+        # TRUE WHETHER THE SOURCE MARKERS BELOW ARE 0 OR ALL FOUND: this is
+        # the one thing no source scan and no build log can prove, and it is
+        # the honest gap whichever way the marker count moves next.
+        "blocker": "not yet launched from a plain start, and nobody has "
+                  "walked it",
         "gates": (),
         "readings": ((UE_VERDICT, ("shotCamPlaced", "captureSeconds")),),
         "dependsOn": ("street-and-its-look",),
@@ -999,6 +1104,8 @@ def area_states(root, shown_frame=None):
     exes, filesWalked = packaged_builds(root)
     playable = len(exes) > 0
     scan = player_markers(root)
+    compiled, compile_reading = probe_compiled(root)
+    scan = dict(scan, compiled=compiled, compileReading=compile_reading)
     mapped = set()
     out = []
     for spec in AREAS:
@@ -1034,15 +1141,50 @@ def area_states(root, shown_frame=None):
                             len(spec["needs"]), spec["needsIn"],
                             ", ".join(spec["needs"])))
         elif spec.get("sourceScan"):
+            # THREE STATES, NOT TWO, because "markers found" and "the project
+            # compiles" are different claims a source scan cannot conflate.
+            # A 2026-09-07 correction: this branch used to read found==0 as
+            # WORD_NOT_STARTED and anything else as WORD_HARNESS ("runs in
+            # text only"), which was never an honest word for native Unreal
+            # source and went straight from untested to FALSE the day markers
+            # first landed nonzero: run 28 compiled a real character, game
+            # mode, input binding and player start, and the page kept saying
+            # "no character, no pawn, no game mode, no player start" beside
+            # it. Neither new word claims a person has launched or walked
+            # anything; that check does not exist yet, so the AREA'S OWN
+            # blocker text (not this why-string) is what still says so.
             found = scan["markersFound"]
-            word = WORD_NOT_STARTED if found == 0 else WORD_HARNESS
-            why = ("%d of %d marker(s) of a controllable character are in the "
-                   "%d probe source file(s) walked under %s. %d of them borrow "
-                   "the engine's first player controller and %d of those use "
-                   "it only to point the view at the screenshot camera."
-                   % (found, scan["markersAsked"], scan["filesWalked"],
-                      ", ".join(scan["dirs"]), scan["borrowsController"],
-                      scan["andOnlyAimsTheCamera"]))
+            cr = scan["compileReading"]
+            if found == 0:
+                word = WORD_NOT_STARTED
+                why = ("0 of %d marker(s) of a controllable character are in "
+                       "the %d probe source file(s) walked under %s."
+                       % (scan["markersAsked"], scan["filesWalked"],
+                          ", ".join(scan["dirs"])))
+            elif scan["compiled"]:
+                word = WORD_BUILT
+                why = ("%d of %d marker(s) of a controllable character are "
+                       "in the %d probe source file(s) walked under %s, and "
+                       "%s records a clean compile of the whole project on "
+                       "commit %s (coldBuildExit=%s). Nobody has launched "
+                       "that build and walked it yet: that is a different "
+                       "question, and no instrument answering it is "
+                       "committed in this checkout yet."
+                       % (found, scan["markersAsked"], scan["filesWalked"],
+                          ", ".join(scan["dirs"]), UE_BUILD,
+                          cr["buildSha"] or NOTHING, cr["coldBuildExit"]))
+            else:
+                word = WORD_UNPROVEN
+                why = ("%d of %d marker(s) of a controllable character are "
+                       "in the %d probe source file(s) walked under %s, but "
+                       "%s %s. Markers alone cannot tell a syntax error from "
+                       "a working class."
+                       % (found, scan["markersAsked"], scan["filesWalked"],
+                          ", ".join(scan["dirs"]), UE_BUILD,
+                          "carries no coldBuildExit reading" if not
+                          cr["seen"] else
+                          "records coldBuildExit=%s, not a clean compile"
+                          % cr["coldBuildExit"]))
         elif not seen:
             word = WORD_NOTHING
             why = ("none of the %d gate(s) this area names is in %s"
@@ -1222,12 +1364,173 @@ NEXT_RULE = (
 
 
 # ---------------------------------------------------------------------------
-# THE MATERIAL CHANGE DETECTOR. UNCHANGED IN MEANING, and it may not change:
-# tools/map-notify.py imports material_fields, digest_of, changed_groups and
-# decode_fields from this file and reads mapDigest and mapFields out of the
-# SERVED page. The three groups are still the three the notifier names in
-# words: q1 the list of what you can run, q2 the state an area is in, q3 the
-# next three.
+# THE LADDER. RULING 3, Jafar, 2026-09-07, verbatim: "a ladder at the very
+# top: the steps to a playable loop, in order, with the current one
+# highlighted, so I can read 'step 2 of 10' in one glance from my phone.
+# Steps done, current, next, derived from next-three.json and the milestone
+# file, no prose parsing."
+#
+# NO NEW FIELD WAS ADDED, and that is a choice this file makes rather than
+# next-three.json, said here because RULING 3 asked which one was chosen. The
+# ordered list RULING 3 asked for already exists in both named sources: the
+# `next` array's ORDER already IS the priority order (the selftest already
+# asserts item 1 is "control", item 2 "crime", item 3 "gossip"), and
+# `milestone`/`milestoneFrom` already name the rung at the top. A second,
+# parallel `ladder` array would only give the two a chance to drift.
+#
+# WHAT "DONE" MEANS, decided once rather than guessed per rung: next-three.
+# json's own governance removes a step once it is finished rather than
+# marking it ("An item leaves the list by being deleted from it"), and the
+# milestone file's structured header (line/spec/acceptance/status) names no
+# completed sub-step either. So no rung below the goal can be shown done from
+# these two sources today, and the ladder says so in words rather than a tick
+# nobody measured.
+# ---------------------------------------------------------------------------
+
+def ladder_rungs(root, items_all, r3):
+    """(rungs, reading). rungs is the climb, in order: the same refusal guard
+    queue_state() already applies to a next-three item is reused rung by rung
+    here, and once more for the goal, because a stale rung shown as CURRENT
+    is the exact fault this page already refuses elsewhere.
+
+    CAPPED TO NEXT_ASKED, like the next three cards below it, so today's
+    climb and those cards name the same steps and a tap from one reaches the
+    sheet the other already built; a longer plan is announced rather than
+    silently grown past what the reader can tap through.
+    """
+    items = items_all[:NEXT_ASKED]
+    rungs = []
+    current_set = False
+    for it in items:
+        if it["refused"]:
+            state = "stale"
+        elif not current_set:
+            state, current_set = "current", True
+        else:
+            state = "next"
+        rungs.append({
+            "num": len(rungs) + 1, "title": it["title"], "state": state,
+            "refused": it["refused"], "stateWhy": it["stateWhy"],
+        })
+    milestone_from = r3.get("milestoneFrom")
+    m_state, m_why = (queue_state(root, milestone_from) if milestone_from
+                      else ("none", "no-milestoneFrom-in-%s" % PRIORITIES))
+    goal_refused = m_state in ("done", "moved-to-done", "missing")
+    rungs.append({
+        "num": len(rungs) + 1, "title": r3.get("milestone") or NOTHING,
+        "state": "goal", "refused": goal_refused, "stateWhy": m_why,
+    })
+    current_num = next((r["num"] for r in rungs if r["state"] == "current"),
+                       None)
+    return rungs, {
+        "total": len(rungs), "stepsShown": len(items),
+        "stepsNamedTotal": len(items_all),
+        "capped": len(items_all) > NEXT_ASKED,
+        "currentNum": current_num, "goalState": m_state, "goalWhy": m_why,
+        "goalRefused": goal_refused,
+        "staleCount": sum(1 for r in rungs if r["refused"]),
+        "acceptance": read_milestone_acceptance(root, milestone_from),
+        "milestoneFrom": milestone_from,
+    }
+
+
+def ladder_html(rungs, reading):
+    """Plain HTML, not SVG: see the module docstring's RULING 3 note. Every
+    rung says its own state in words, never colour alone, and a rung this run
+    could not verify says so rather than borrowing CURRENT or NEXT."""
+    if reading["goalRefused"]:
+        return ('<section class="ladder ladderStale" id="ladder">'
+                '<p class="ladderHead">THE LADDER IS STALE</p>'
+                '<p class="ladderNow">The goal\'s own file says its status is '
+                '%s (%s). Fix the plan before trusting a step count here.</p>'
+                '</section>'
+                % (esc(reading["goalState"]), esc(reading["goalWhy"])))
+    cur, total = reading["currentNum"], reading["total"]
+    if cur:
+        head = "STEP %d OF %d" % (cur, total)
+        now_line = esc(next(r["title"] for r in rungs if r["num"] == cur))
+    else:
+        head = "NO CURRENT STEP"
+        now_line = "Every named step below is stale; see why on each one."
+    rows = []
+    for r in rungs:
+        if r["refused"]:
+            cls, tag = "r-stale", "STATE NOT PROVEN"
+            body = "This step cannot be shown: %s." % esc(r["stateWhy"])
+        elif r["state"] == "goal":
+            cls, tag = "r-goal", "GOAL"
+            body = esc(r["title"])
+            if reading["acceptance"]:
+                body += (' <a class="tap" href="#t-goal">what done looks '
+                        'like</a>')
+        else:
+            cls = "r-current" if r["state"] == "current" else "r-next"
+            tag = r["state"].upper()
+            body = ('%s <a class="tap" href="#t-%d">what it rests on</a>'
+                    % (esc(r["title"]), r["num"]))
+        rows.append('<li class="rung %s"><span class="tag">%s</span>%s</li>'
+                    % (cls, tag, body))
+    cap = ""
+    if reading["capped"]:
+        cap = ('<p class="ladderNote">(+%d more step(s) named, not shown of '
+              '%d; see the next three below.)</p>'
+              % (reading["stepsNamedTotal"] - reading["stepsShown"],
+                 reading["stepsNamedTotal"]))
+    note = ("Steps already done: %s. A step is dropped from the plan once "
+           "finished rather than marked, and the goal names no completed "
+           "sub-step either, so this page cannot count them." % NOTHING)
+    return ('<section class="ladder" id="ladder">'
+            '<p class="ladderHead">%s</p>'
+            '<p class="ladderNow">%s</p>'
+            '<ol class="rungs">%s</ol>%s'
+            '<p class="ladderNote">%s</p>'
+            '</section>'
+            % (esc(head), now_line, "".join(rows), cap, esc(note)))
+
+
+def goal_sheet(reading):
+    """The tap behind the goal rung: what done looks like, quoted from the
+    milestone file's own acceptance: field, never typed here."""
+    return ('<section class="sheet" id="t-goal"><div class="inner">'
+            '<a class="close" href="#map">back to the map</a>'
+            '<h3>the goal of this ladder</h3>'
+            '<dl><dt>what done looks like</dt><dd>%s</dd>'
+            '<dt>its state</dt><dd>%s, because %s</dd>'
+            '<dt>how this is chosen</dt><dd>%s</dd></dl>'
+            '<a class="close" href="#map">back to the map</a>'
+            '</div></section>'
+            % (esc(reading["acceptance"] or NOTHING), esc(reading["goalState"]),
+               esc(reading["goalWhy"]), esc(NEXT_RULE)))
+
+
+LADDER_START = "<!-- LADDER START -->"
+LADDER_END = "<!-- LADDER END -->"
+
+
+def ladder_slice(page):
+    """The bytes between the ladder's own markers, or "" if either is
+    missing. Every check that must not see a raw path or a gate count OUTSIDE
+    the ladder, or must confirm one INSIDE it, reads only this slice, never
+    the whole page: the rest of the page is allowed both, one tap down."""
+    i, j = page.find(LADDER_START), page.find(LADDER_END)
+    return page[i:j] if 0 <= i < j else ""
+
+
+# ---------------------------------------------------------------------------
+# THE MATERIAL CHANGE DETECTOR. THE THREE GROUPS' MEANING IS UNCHANGED, and
+# may not change: tools/map-notify.py imports material_fields, digest_of,
+# changed_groups and decode_fields from this file and reads mapDigest and
+# mapFields out of the SERVED page. The three groups are still the three the
+# notifier names in words: q1 the list of what you can run, q2 the state an
+# area is in, q3 the next three.
+#
+# q3 NOW ALSO CARRIES EACH ITEM'S LIVE/STALE STATE, added for the ladder:
+# without it, a step's queue file flipping to DONE while next-three.json's
+# own text sits unedited moved the ladder's CURRENT tag with nothing for
+# tools/map-notify.py to see, so "a ladder that moves a step" would never
+# wake his phone. This does not change what q3 MEANS (the next three); it
+# only stops the group from reading identical when one of them quietly went
+# stale.
 #
 # NOT MATERIAL, deliberately: the generation time, the commit, the page bytes,
 # the picture's encoded size, and every number that moves without moving a
@@ -1245,7 +1548,8 @@ def material_fields(rows, areas, items):
                 for r in rows)
     q2 = ["%s|%s" % (a["key"], a["word"].replace(" ", "-").replace(",", ""))
           for a in areas]
-    q3 = ["%d|%s" % (i + 1, re.sub(r"\W+", "-", it["title"]).strip("-")[:60])
+    q3 = ["%d|%s|%s" % (i + 1, re.sub(r"\W+", "-", it["title"]).strip("-")[:60],
+                        "stale" if it["refused"] else "live")
           for i, it in enumerate(items[:NEXT_ASKED])]
     return {"q1": q1, "q2": q2, "q3": q3}
 
@@ -1500,6 +1804,27 @@ body { margin: 0 auto; padding: %(pad)dpx %(pad)dpx 40px; max-width: 620px;
   Helvetica, Arial, sans-serif; -webkit-text-size-adjust: 100%%;
   overflow-wrap: break-word; }
 a { color: #8fb8ff; }
+.ladder { margin: 0 0 22px; }
+.ladderHead { font-size: 26px; font-weight: 800; letter-spacing: 0.01em;
+  color: #f3f5f7; margin: 0 0 3px; }
+.ladderNow { font-size: 17px; font-weight: 600; color: #dbe0e6;
+  margin: 0 0 12px; line-height: 1.35; }
+.rungs { list-style: none; margin: 0; padding: 0; }
+.rung { border-left: 5px solid #4b535d; border-radius: 6px;
+  background: #191c21; padding: 9px 11px; margin: 0 0 7px;
+  font-size: 14.5px; line-height: 1.4; color: #ccd2d8; }
+.rung .tag { display: inline-block; font-size: 10.5px; font-weight: 800;
+  letter-spacing: 0.07em; text-transform: uppercase; color: #8a9199;
+  margin-right: 6px; }
+.r-current { border-left-color: #6fd08c; background: #16241c; }
+.r-current .tag { color: #6fd08c; }
+.r-goal { border-left-color: #8fb8ff; }
+.r-goal .tag { color: #8fb8ff; }
+.r-stale { border-left-color: #ff8f8f; background: #241a1a; }
+.r-stale .tag { color: #ff8f8f; }
+.ladderNote { font-size: 12.5px; line-height: 1.5; color: #868d95;
+  margin: 8px 0 0; }
+.ladderStale .ladderHead { color: #ff8f8f; }
 .top { display: flex; justify-content: space-between; align-items: baseline;
   font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
   color: #7d848c; margin-bottom: 14px; }
@@ -1555,6 +1880,8 @@ h2 { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
 .s-none .nbox { stroke: #6b727a; } .s-none .pill { fill: #99a0a8; }
 .s-seen .nbox { stroke: #8fb8ff; } .s-seen .pill { fill: #8fb8ff; }
 .s-notstarted .nbox { stroke: #b06a6a; } .s-notstarted .pill { fill: #d09090; }
+.s-unproven .nbox { stroke: #9b8fd9; } .s-unproven .pill { fill: #ab9fe0; }
+.s-built .nbox { stroke: #3fb0a0; } .s-built .pill { fill: #4fc2b2; }
 .s-failing .nbox { stroke: #ff8f8f; } .s-failing .pill { fill: #ff8f8f; }
 .s-unheard .nbox { stroke: #d9973c; } .s-unheard .pill { fill: #e5aa55; }
 .s-heard .nbox { stroke: #63b97e; } .s-heard .pill { fill: #74cc90; }
@@ -1584,6 +1911,10 @@ h2 { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
   font-weight: 600; }
 @media (prefers-color-scheme: light) {
   body { background: #f4f6f8; color: #191d22; }
+  .ladderHead { color: #0f1216; } .ladderNow { color: #23282e; }
+  .rung { background: #ffffff; border-color: #d9dee4; color: #2b3138; }
+  .r-current { background: #eafaf0; } .r-stale { background: #fdeeee; }
+  .ladderNote { color: #5d646c; }
   .top { color: #5d646c; } .top b { color: #23282e; }
   h2 { color: #5d646c; }
   .now { color: #0f1216; }
@@ -1662,12 +1993,22 @@ def now_html(picture, probe, hrs, areas):
 
     The sentence is assembled from readings, not typed: the frame count and
     the commit come from the verdict the run wrote, the age from its epoch,
-    and the second half from the source scan that found no character.
+    and the second half from the source scan of the probe's own player
+    control files.
+
+    THIS SECOND HALF WAS A LIE FOR A WHOLE DAY, 2026-09-07: the docstring
+    above already claimed it came from the scan, but the code ignored the
+    variable it had just read and always printed "Nobody to be in it yet."
+    A character, a game mode, input binding and a player start compiled on
+    the runner (run 28) while this sentence kept saying nobody existed. Now
+    it reads scan["markersFound"] like the docstring always said it did.
     """
     street = [a for a in areas if a["key"] == "street-and-its-look"][0]
     scan = street["scan"]
-    sentence = ("A textured street in Meridian, rendered on your PC. "
-                "Nobody to be in it yet.")
+    who = ("Nobody to be in it yet." if scan["markersFound"] == 0 else
+          "A character exists in the probe's own source now; nobody has "
+          "launched a build and walked it yet.")
+    sentence = "A textured street in Meridian, rendered on your PC. %s" % who
     if picture["shown"]:
         shot = ('<img class="shot" alt="the Meridian street, %s" src="data:%s;'
                 'base64,%s" width="780">'
@@ -1700,18 +2041,37 @@ def run_html(probe, pb, rows, r1, scan, tail=""):
     scan's denominator in the same sentence as the claim."""
     out = []
     if probe:
+        # THIS SENTENCE DECAYED ONCE ALREADY, 2026-09-07: it used to say
+        # "Nobody can play it: no character, no pawn, no game mode, no player
+        # start" unconditionally, and that went from true to false the day a
+        # character, a game mode, input binding and a player start first
+        # compiled (run 28), because the sentence was typed rather than
+        # derived from scan["markersFound"]. It is derived now, and
+        # check_player_control_matches_scan bites if it and the live scan
+        # ever disagree again in either direction.
+        if scan["markersFound"] == 0:
+            sub = ("Nobody can play it: no character, no pawn, no game mode, "
+                  "no player start. %d of %d marker(s) of one, over %d "
+                  "source file(s). It aims a camera and exits."
+                  % (scan["markersFound"], scan["markersAsked"],
+                     scan["filesWalked"]))
+        else:
+            sub = ("This capture still renders offscreen with nobody at the "
+                  "controls: %d of %d marker(s) of a controllable character "
+                  "are in the probe's own source now, over %d file(s). "
+                  "Launching a build and walking it is a different question "
+                  "this page does not yet measure."
+                  % (scan["markersFound"], scan["markersAsked"],
+                     scan["filesWalked"]))
         out.append(
             '<div class="card c-probe" data-avail="%s">'
             '<p class="lab">runs, and it is not a game</p>'
             '<p class="big">The street probe renders %s frames and exits.</p>'
-            '<p class="sub">Nobody can play it: no character, no pawn, no '
-            'game mode, no player start. %d of %d marker(s) of one, over %d '
-            'source file(s). It aims a camera and exits.</p>'
+            '<p class="sub">%s</p>'
             '<p class="press">Run it again: push a commit touching '
             '<code>%s</code>.</p></div>'
             % (esc(probe["avail"].replace(" ", "-")), esc(probe["wrote"]),
-               scan["markersFound"], scan["markersAsked"],
-               scan["filesWalked"], esc(probe["sentinel"])))
+               esc(sub), esc(probe["sentinel"])))
     else:
         out.append(
             '<div class="card c-probe" data-avail="%s">'
@@ -2087,6 +2447,7 @@ def build(root, now, out_path=None, served=None):
     pb = playable_build(root)
     code = code_only(root)
     items, r3 = next_three(root)
+    ladder, r4 = ladder_rungs(root, items, r3)
     commit = (GLANCE.git(root, "rev-parse", "--short", "HEAD") or NOTHING)
 
     # THE PICTURE IS ENCODED AGAINST WHAT THE REST OF THE PAGE LEAVES, so the
@@ -2139,7 +2500,8 @@ def build(root, now, out_path=None, served=None):
              "digest": dig, "prevDigest": prev_d, "change": change,
              "changedGroups": groups, "q1": q1, "things": things,
              "served": srv, "picture": picture, "geo": geo,
-             "shellBytes": shell}
+             "shellBytes": shell,
+             "ladder": dict(r4, rungs=ladder)}
     detail = [
         "picture=%s pictureShown=%s pictureB64Bytes=%d/%d-budget "
         "pictureSourceBytes=%d pictureQuality=%s resizer=%s pictureFrom=%s"
@@ -2217,6 +2579,18 @@ def build(root, now, out_path=None, served=None):
            NEXT_ASKED, r3.get("shown", 0), r3.get("refused", 0),
            re.sub(r"\s+", "-", str(r3.get("ruledBy") or NOTHING)),
            r3.get("ruledOn") or NOTHING.replace(" ", "-")),
+        # THE LADDER, RULING 3. currentNum is the rung this run highlighted;
+        # staleCount/total is a real N of M (every rung's refused flag was
+        # read), and doneCount is never a number: nothing in either named
+        # source can prove a rung finished, so it prints the words instead of
+        # a zero that would claim it checked and found none.
+        "ladderTotal=%d ladderStepsShown=%d/%d-named ladderCurrentNum=%s "
+        "ladderGoalState=%s ladderGoalRefused=%s ladderStaleCount=%d/%d "
+        "ladderDoneCount=%s"
+        % (r4["total"], r4["stepsShown"], r4["stepsNamedTotal"],
+           r4["currentNum"] if r4["currentNum"] else NOTHING.replace(" ", "-"),
+           r4["goalState"], "yes" if r4["goalRefused"] else "no",
+           r4["staleCount"], r4["total"], NOTHING.replace(" ", "-")),
         "flowNodes=%d/%d-areas svgHeightPx=%d boxWidthPx=%d textWidthPx=%d "
         "widestLineChars=%d atFontPx=%d wrapModel=avg-advance-0.5em"
         % (geo["nodes"], r2["areas"], geo["svgHeightPx"], geo["boxWidthPx"],
@@ -2261,8 +2635,13 @@ def build(root, now, out_path=None, served=None):
                      + [task_sheet(i + 1, it)
                         for i, it in enumerate(items[:NEXT_ASKED])
                         if not it["refused"]]
+                     + [goal_sheet(r4)]
                      + [tools_sheet(rows, r1), about_sheet(model, now, detail)])
     body = "\n".join([
+        # RULING 3: THE LADDER IS THE FIRST THING ON THE PAGE, above even the
+        # top bar and "what exists now" below it. Everything that used to be
+        # the first screen stays, unmoved, beneath it.
+        LADDER_START, ladder_html(ladder, r4), LADDER_END,
         '<div class="top"><b>LEDGER</b><span>%s at %s UTC</span></div>'
         % (esc(commit), esc(now.strftime("%Y-%m-%d %H:%M"))),
         now_html(picture, probe, q1["probeHours"], areas),
@@ -2300,9 +2679,13 @@ def build(root, now, out_path=None, served=None):
 # ---------------------------------------------------------------------------
 
 def check_first_screen(page, model):
-    """THE FIRST SCREEN ANSWERS THREE THINGS, IN ORDER, and the picture comes
-    before anything that competes with it. Order is a fact about the bytes; the
-    height is a fact about a browser and is checked by looking."""
+    """THE SCREEN BELOW THE LADDER ANSWERS THREE THINGS, IN ORDER, and the
+    picture comes before anything that competes with it. RULING 3 put a
+    fourth, higher thing above all of it (check_ladder_at_top below checks
+    that one); this check is unchanged because it only asserts the RELATIVE
+    order of the three marks that were already here, which the ladder does
+    not disturb. Order is a fact about the bytes; the height is a fact about
+    a browser and is checked by looking."""
     marks = [("whatExistsNow", page.find('class="now"')),
              ("thePicture", max(page.find('class="shot"'),
                                 page.find('class="noshot"'))),
@@ -2340,21 +2723,61 @@ def check_picture(page, model):
 
 def check_probe_is_not_a_game(page, model):
     """THE ONE DISTINCTION THIS PAGE EXISTS TO KEEP. An automated probe that
-    renders offscreen and exits may never be offered as something to play, and
-    the page must say so in words rather than by omission. The denominator is
-    the source scan behind the sentence."""
+    renders offscreen and exits may never be offered as something a person is
+    currently playing. THE SENTENCE IS CONDITIONAL ON THE LIVE SCAN NOW
+    (see run_html): a FIXED string is exactly the fault that let this read
+    "no character, no pawn, no game mode, no player start" for a day after a
+    character, a game mode, input binding and a player start all compiled
+    (run 28), so this reads which sentence today's scan calls for and
+    requires that one, and separately forbids the old absolute claim once any
+    marker exists."""
     scan = model["r2"]["scan"]
-    said = ("Nobody can play it" in page and "no player start" in page
-            and "nothing to play yet" in page)
-    honest = scan["markersFound"] == 0
-    return ("probeIsNotAGame", said or not model["q1"]["probe"],
-            "sentenceOnPage=%s playerMarkersFound=%d/%d-asked "
-            "probeSourceFilesWalked=%d borrowsController=%d "
-            "ofWhichOnlyAimTheCamera=%d scanAgrees=%s"
-            % ("yes" if said else "MISSING", scan["markersFound"],
-               scan["markersAsked"], scan["filesWalked"],
-               scan["borrowsController"], scan["andOnlyAimsTheCamera"],
-               "yes" if honest else "no"))
+    wanted = ("no character, no pawn, no game mode, no player start"
+              if scan["markersFound"] == 0 else "nobody at the controls")
+    said = wanted in page
+    stale_absolute = ("no character, no pawn, no game mode, no player start"
+                      in page and scan["markersFound"] > 0)
+    return ("probeIsNotAGame",
+            (said and not stale_absolute) or not model["q1"]["probe"],
+            "playerMarkersFound=%d/%d-asked wantedSentence=%s "
+            "wantedSentenceOnPage=%s staleAbsoluteClaimOnPage=%s"
+            % (scan["markersFound"], scan["markersAsked"], wanted,
+               "yes" if said else "MISSING",
+               "yes" if stale_absolute else "no"))
+
+
+def check_player_control_matches_scan(page, model):
+    """A GUARD ADDED AFTER A DECAYED CLAIM SHIPPED, 2026-09-07: this area's
+    word went from an honest "not started" to a false "runs in text only" the
+    day player_markers() first found something, because the word was only
+    ever tested at found==0. This reads TODAY'S LIVE SCAN, not a frozen
+    fixture, and requires both that the area's word is the one the live scan
+    calls for and that the marker fraction printed on the page is the live
+    one, so it bites BOTH if the code disappears again (a regression) and if
+    the page's text and the scan ever disagree (a stale claim), which is
+    exactly the fault this check exists to catch."""
+    ctrl = next(a for a in model["areas"] if a["key"] == "player-control")
+    scan = model["r2"]["scan"]
+    found = scan["markersFound"]
+    if found == 0:
+        wanted = WORD_NOT_STARTED
+    elif scan["compiled"]:
+        wanted = WORD_BUILT
+    else:
+        wanted = WORD_UNPROVEN
+    m = re.search(r"(\d+) of (\d+) marker\(s\) of a controllable character",
+                  page)
+    printed = (int(m.group(1)), int(m.group(2))) if m else None
+    matches_scan = printed == (found, scan["markersAsked"])
+    return ("playerControlMatchesScan",
+            ctrl["word"] == wanted and matches_scan,
+            "areaWord=%s wantedFromLiveScan=%s printedMarkers=%s "
+            "liveMarkers=%d/%d-asked matchesScan=%s compiled=%s"
+            % (ctrl["word"], wanted,
+               "%s/%s" % printed if printed else NOTHING.replace(" ", "-"),
+               found, scan["markersAsked"],
+               "yes" if matches_scan else "no",
+               "yes" if scan["compiled"] else "no"))
 
 
 def check_every_area_spoken(page, model):
@@ -2414,6 +2837,92 @@ def check_no_comforting_bar(page, model):
             "unansweredOrUnheardSheetsExamined=%d/%d-areas faults=%d%s"
             % (examined, len(model["areas"]), len(bad),
                "" if not bad else " (" + ",".join(bad) + ")"))
+
+
+def check_ladder_at_top(page, model):
+    """RULING 3, Jafar, 2026-09-07: the ladder is the first thing on the
+    page, above even "what exists now". Order is a fact about the bytes: the
+    ladder marker must sit immediately after the opening <body> tag (measured
+    at 16 bytes on a real build, for "<body id=\"map\">\\n"), with nothing
+    else rendered before it, and the existing top bar and "now" section must
+    still follow it."""
+    body_at = page.find("<body")
+    lad = page.find(LADDER_START)
+    top = page.find('class="top"')
+    now = page.find('class="now"')
+    ok = (body_at >= 0 and 0 <= lad - body_at <= 40
+          and top > lad and (now < 0 or now > top))
+    return ("ladderAtTop", ok,
+            "bodyTagAt=%d ladderMarkerAt=%d bytesBetween=%d/40-allowed "
+            "topBarAt=%d nowSectionAt=%d aboveTop=%s"
+            % (body_at, lad, lad - body_at, top, now, "yes" if ok else "no"))
+
+
+def check_ladder_step_count(page, model):
+    """"STEP N OF M" ON THE PAGE MATCHES WHAT THIS RUN COMPUTED, or the goal
+    is stale and the page says so instead of a fabricated count."""
+    lad = ladder_slice(page)
+    r = model["ladder"]
+    if r["goalRefused"]:
+        ok = "LADDER IS STALE" in lad
+        return ("ladderStepCount", ok,
+                "goalRefused=yes staleBannerShown=%s"
+                % ("yes" if ok else "MISSING"))
+    if r["currentNum"] is None:
+        ok = "NO CURRENT STEP" in lad
+        return ("ladderStepCount", ok,
+                "currentNum=none noCurrentStepWordingShown=%s"
+                % ("yes" if ok else "MISSING"))
+    m = re.search(r"STEP (\d+) OF (\d+)", lad)
+    ok = bool(m) and int(m.group(1)) == r["currentNum"] \
+        and int(m.group(2)) == r["total"]
+    return ("ladderStepCount", ok,
+            "onPage=%s computedCurrentOfTotal=%s/%s"
+            % ("/".join(m.groups()) if m else NOTHING.replace(" ", "-"),
+               r["currentNum"], r["total"]))
+
+
+def check_ladder_done_not_invented(page, model):
+    """RULING 3, verbatim: "if nothing in the repository can currently prove
+    a step is done then the ladder must say so in words rather than showing
+    a green tick nobody measured." Checked on the ladder's own bytes, and a
+    literal tick glyph would be exactly the invented progress this bites on."""
+    lad = ladder_slice(page)
+    if model["ladder"]["goalRefused"]:
+        return ("ladderDoneHonest", True, "ladder refused; nothing to check")
+    said = NOTHING in lad.lower()
+    ticks = lad.count("✓")
+    return ("ladderDoneHonest", said and ticks == 0,
+            "nothingMeasuredWordingOnLadder=%s invertedTickGlyphsOnLadder=%d/"
+            "0-allowed"
+            % ("yes" if said else "MISSING", ticks))
+
+
+def check_ladder_no_raw_content(page, model):
+    """PHONE FIRST: no raw repository path and no gate count in the ladder's
+    own bytes. Both are one tap away in the sheets this run already builds,
+    never on the face RULING 3 asked to be readable at arm's length."""
+    lad = ladder_slice(page)
+    paths = re.findall(r"\bproduction/\S+", lad)
+    gates = re.findall(r"\bgate", lad, re.I)
+    return ("ladderNoRawContent", not paths and not gates,
+            "rawPathsInLadder=%d gateWordsInLadder=%d bytesExamined=%d"
+            % (len(paths), len(gates), len(lad)))
+
+
+def check_ladder_stale_rungs_say_so(page, model):
+    """Every rung this run could not verify says so, never CURRENT or NEXT
+    borrowed by default. Counted, not just found once: one stale tag on a
+    page with three stale rungs is two rungs lying by omission."""
+    lad = ladder_slice(page)
+    r = model["ladder"]
+    if r["goalRefused"]:
+        return ("ladderStaleRungsSaySo", True, "ladder refused; nothing to "
+                "check inside it")
+    tags = lad.count("STATE NOT PROVEN")
+    return ("ladderStaleRungsSaySo", tags == r["staleCount"],
+            "staleRungsInModel=%d staleTagsOnLadder=%d/%d-needed"
+            % (r["staleCount"], tags, r["staleCount"]))
 
 
 def check_next_three(page, model):
@@ -2674,7 +3183,11 @@ check_weight = shared(GLANCE.check_weight)
 check_formatting = shared(GLANCE.check_formatting)
 check_secrets = shared(GLANCE.check_secrets)
 
-CHECKS = (check_first_screen, check_picture, check_probe_is_not_a_game,
+CHECKS = (check_ladder_at_top, check_ladder_step_count,
+          check_ladder_done_not_invented, check_ladder_no_raw_content,
+          check_ladder_stale_rungs_say_so,
+          check_first_screen, check_picture, check_probe_is_not_a_game,
+          check_player_control_matches_scan,
           check_every_area_spoken, check_no_comforting_bar, check_next_three,
           check_one_priority_source, check_material_rule, check_links,
           check_denominators, check_no_absence_claim, check_availability_words,
@@ -2827,12 +3340,23 @@ def selftest():
        conv["word"] == WORD_HEARD and conv["heardNum"] > 0,
        "%s heard=%s/%s" % (conv["word"], conv["heardNum"], conv["heardDen"]))
     ctrl = [a for a in model["areas"] if a["key"] == "player-control"][0]
+    cscan = ctrl["scan"]
+    # NOT PINNED TO "not started": that word was RIGHT the day this was
+    # written and WRONG the day run 28 compiled a character, a game mode,
+    # input binding and a player start, because the branch below it (any
+    # nonzero count read as "runs in text only") was never tested against a
+    # real nonzero count. This computes what today's live scan calls for the
+    # same way area_states() does, so the assertion tracks the honest word
+    # instead of freezing the word that happened to be true once.
+    wanted_word = (WORD_NOT_STARTED if cscan["markersFound"] == 0
+                  else WORD_BUILT if cscan["compiled"] else WORD_UNPROVEN)
     ok("player control reads '%s' from the probe's own source: %d of %d "
-       "marker(s) over %d file(s)"
-       % (ctrl["word"], ctrl["scan"]["markersFound"],
-          ctrl["scan"]["markersAsked"], ctrl["scan"]["filesWalked"]),
-       ctrl["word"] == WORD_NOT_STARTED and ctrl["scan"]["filesWalked"] >= 5,
-       ctrl["scan"])
+       "marker(s) over %d file(s), compiled=%s"
+       % (ctrl["word"], cscan["markersFound"], cscan["markersAsked"],
+          cscan["filesWalked"], cscan["compiled"]),
+       ctrl["word"] == wanted_word and cscan["filesWalked"] >= 5
+       and "runs in text only" not in ctrl["word"],
+       cscan)
     voice = [a for a in model["areas"] if a["key"] == "voice"][0]
     ok("voice says %s, because no gate in the verdict is a speech gate (%s)"
        % (NOTHING, voice["why"][:60]), voice["word"] == WORD_NOTHING,
@@ -2852,6 +3376,24 @@ def selftest():
        "gossip", [i["title"][:12] for i in model["items"]] ==
        ["Control a ch", "Commit one c", "Overhear the"],
        [i["title"] for i in model["items"]])
+
+    # RULING 3: THE LADDER, on the live repository FIRST, ACCEPTING case.
+    lad = model["ladder"]
+    ok("the ladder reads STEP 1 OF %d, current on 'Control a character...', "
+       "because none of the three named steps or the goal's own file is "
+       "stale today" % lad["total"],
+       lad["currentNum"] == 1 and not lad["goalRefused"]
+       and lad["rungs"][0]["state"] == "current"
+       and "STEP 1 OF %d" % lad["total"] in page,
+       (lad["currentNum"], lad["total"], lad["goalRefused"]))
+    ok("and the ladder's own bytes say steps-done is %s rather than a tick "
+       "nobody counted" % NOTHING,
+       NOTHING in ladder_slice(page).lower()
+       and "✓" not in ladder_slice(page),
+       ladder_slice(page)[:200])
+    ok("and the ladder sits above the top bar, which is RULING 3's whole "
+       "point: readable before anything else on the page",
+       check_ladder_at_top(page, model)[1], check_ladder_at_top(page, model))
 
     print("\n  THE SERIES this run printed, which is what any bound here "
           "would be read off:\n")
@@ -2939,6 +3481,16 @@ def selftest():
     ok("an item whose queue file says DONE is REFUSED, rendered as stale, and "
        "bites (%s)" % s,
        not c and ms["items"][0]["refused"] and "is stale" in ps, s)
+    # RULING 3: THE LADDER CANNOT PROVE THIS STEP'S STATE, on the same
+    # planted tree, so it says so rather than showing a false CURRENT or NEXT.
+    # With the one named step stale, there is nothing left to be current.
+    ok("the ladder shows a stale step as unable to prove its state, not as "
+       "CURRENT or NEXT, and with nothing left it says so instead of a "
+       "made-up step number",
+       ms["ladder"]["rungs"][0]["refused"]
+       and ms["ladder"]["currentNum"] is None
+       and "STATE NOT PROVEN" in ps and "NO CURRENT STEP" in ps,
+       (ms["ladder"]["rungs"][0], ms["ladder"]["currentNum"]))
     t_moved = _tree({"PLANTED.bat": FIXTURE_BAT, SIM_VERDICT: FIXTURE_VERDICT,
                      PRIORITIES: FIXTURE_STALE,
                      "production/queue/done/902-planted-done.md":
@@ -3016,8 +3568,61 @@ def selftest():
            % ("/".join(me["changedGroups"] or [])),
            me["change"] == "yes" and me["changedGroups"] == ["q3"],
            "%s %s" % (me["change"], me["changedGroups"]))
+        # RULING 3: A STEP TURNING STALE IS ALSO A MATERIAL CHANGE, even when
+        # next-three.json's own text does not move one byte: only the queue
+        # file behind item 1 flips to DONE. Without this, the ladder's
+        # CURRENT tag could move on his phone with nothing for
+        # tools/map-notify.py to see, and "a ladder that moves a step" would
+        # never wake it.
+        t5 = _tree({"PLANTED.bat": FIXTURE_BAT, SIM_VERDICT: FIXTURE_VERDICT,
+                   PRIORITIES: FIXTURE_PRIORITIES,
+                   "production/queue/901-planted-ready.md":
+                       FIXTURE_QUEUE_DONE})
+        out5 = Path(tmp) / "map5.html"
+        out5.write_text(pa, encoding="utf-8")
+        _pf, mf = build(t5, now, out_path=out5, served=NOWEB)
+        ok("a step turning stale IS a material change with next-three.json's "
+           "own bytes unedited, and the ladder's current rung actually moved "
+           "(%s, ladderCurrentNum now %s)"
+           % ("/".join(mf["changedGroups"] or []),
+              mf["ladder"]["currentNum"]),
+           mf["change"] == "yes" and mf["changedGroups"] == ["q3"]
+           and mf["ladder"]["rungs"][0]["refused"]
+           and mf["ladder"]["currentNum"] == 2,
+           "%s %s ladderCurrent=%s" % (mf["change"], mf["changedGroups"],
+                                       mf["ladder"]["currentNum"]))
 
     # THE GUARDS MUST BE ABLE TO GO RED, or they are ratchets.
+    n, c, s = check_ladder_at_top(
+        page.replace(LADDER_START, "", 1).replace(LADDER_END, "", 1)
+        + LADDER_START + "<p>moved</p>" + LADDER_END, model)
+    ok("ladderAtTop bites when the ladder is not the first thing on the page",
+       not c, s)
+    n, c, s = check_ladder_step_count(
+        "%sSTEP 9 OF 9%s" % (LADDER_START, LADDER_END), model)
+    ok("ladderStepCount bites when the printed step does not match what this "
+       "run computed", not c, s)
+    n, c, s = check_ladder_done_not_invented(
+        "%sit is all done: ✓%s" % (LADDER_START, LADDER_END), model)
+    ok("ladderDoneHonest bites on an invented checkmark (%s)" % s, not c, s)
+    n, c, s = check_ladder_done_not_invented(
+        "%sno wording about done steps here%s" % (LADDER_START, LADDER_END),
+        model)
+    ok("and bites when 'not measured' is missing from the ladder even "
+       "without a tick (%s)" % s, not c, s)
+    n, c, s = check_ladder_no_raw_content(
+        "%ssee production/queue/138-thing.md%s" % (LADDER_START, LADDER_END),
+        model)
+    ok("ladderNoRawContent bites on a raw repository path inside the ladder",
+       not c, s)
+    n, c, s = check_ladder_no_raw_content(
+        "%s3 of 12 gates ok%s" % (LADDER_START, LADDER_END), model)
+    ok("and bites on a gate count inside the ladder", not c, s)
+    n, c, s = check_ladder_stale_rungs_say_so(
+        "%squiet%s" % (LADDER_START, LADDER_END),
+        dict(m2, ladder=dict(m2["ladder"], goalRefused=False, staleCount=1)))
+    ok("ladderStaleRungsSaySo bites when a stale rung is claimed but the tag "
+       "is not on the page", not c, s)
     n, c, s = check_first_screen("<p>nothing at all</p>", m2)
     ok("firstScreen bites when the three answers are not there in order", not c, s)
     n, c, s = check_picture("<p>no picture here</p>",
@@ -3028,6 +3633,27 @@ def selftest():
     n, c, s = check_probe_is_not_a_game(
         "<p>a great game you can play right now</p>", model)
     ok("probeIsNotAGame bites when the page stops saying nobody can play it",
+       not c, s)
+    # THE GUARD ADDED FOR THE DECAYED CLAIM, BOTH DIRECTIONS, per the ruling
+    # that a check untested on a live regression cannot tell one from an
+    # improvement. Both planted on the LIVE model/page (accepting halves
+    # already proven above), never on a frozen fixture.
+    regressed = dict(model, r2=dict(model["r2"],
+                                    scan=dict(model["r2"]["scan"],
+                                             markersFound=0)))
+    n, c, s = check_player_control_matches_scan(page, regressed)
+    ok("playerControlMatchesScan bites if player control regresses to 0 "
+       "markers while the page still claims 'built, not walked' (%s)" % s,
+       not c, s)
+    stale_count_page = page.replace(
+        "%d of %d marker(s) of a controllable character"
+        % (model["r2"]["scan"]["markersFound"],
+           model["r2"]["scan"]["markersAsked"]),
+        "0 of %d marker(s) of a controllable character"
+        % model["r2"]["scan"]["markersAsked"])
+    n, c, s = check_player_control_matches_scan(stale_count_page, model)
+    ok("and bites when the printed marker count disagrees with the live "
+       "scan even though the area's own word did not change (%s)" % s,
        not c, s)
     n, c, s = check_no_absence_claim(
         "<p>There is no packaged game build exists at all.</p>", m2)

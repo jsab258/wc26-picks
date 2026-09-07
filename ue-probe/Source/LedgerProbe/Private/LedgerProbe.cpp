@@ -13,6 +13,7 @@
 #include "Perception.h"
 #include "FrameStats.h"
 #include "VignetteShot.h"
+#include "WalkProbe.h"
 
 #include "Misc/Paths.h"
 #include "Misc/FileHelper.h"
@@ -733,6 +734,18 @@ public:
 		if (FParse::Param(FCommandLine::Get(), TEXT("LedgerShot")))
 		{
 			StartShot();
+			return;
+		}
+		// RULING 1, JAFAR, 2026-09-07: THE SCRIPTED WALK, ITS OWN SWITCH FOR
+		// THE SAME REASON THE OTHER TWO ARE. WalkProbe.cpp drives the
+		// ordinary interactive pawn ALedgerGameMode::InitGame already spawns
+		// for a plain launch; this switch only decides whether THIS module
+		// also arms the ticker that scripts it, and it is checked nowhere
+		// else, so it cannot change what the cook commandlet or a real
+		// human launch see.
+		if (FParse::Param(FCommandLine::Get(), TEXT("LedgerWalk")))
+		{
+			LedgerWalkProbe::Start();
 			return;
 		}
 		if (!FParse::Param(FCommandLine::Get(), TEXT("LedgerGoldenTest")))

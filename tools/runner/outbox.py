@@ -88,6 +88,26 @@ NOT_A_MESSAGE = ("README.md",)
 PHOTO_MAX_BYTES = 10 * 1024 * 1024
 CAPTION_CAP = 1024
 
+#: TELEGRAM'S DOCUMENTED CEILING FOR A VIDEO UPLOADED BY A BOT VIA MULTIPART
+#: (as opposed to a URL Telegram fetches itself, which this project never
+#: does). Ruling 1, 2026-09-07: the automated playtest step's clip "goes to
+#: Telegram with a one-line verdict". A clip over this is refused WITH ITS
+#: MEASURED SIZE, exactly as an oversized photo is: never attempted, never
+#: silently dropped by the platform's own limit.
+VIDEO_MAX_BYTES = 50 * 1024 * 1024
+
+#: RULING 5, 2026-09-07, VERBATIM: "let the photo path carry a caption for a
+#: test request... rather than sending text without the picture." A message
+#: NAMES the picture it wants to carry in a SIDECAR file beside it, never in
+#: a line inside the message body: the body is exactly what producer-check
+#: reads and exactly what becomes the caption, and a path typed into that
+#: body would trip the "file path" entry of BANNED in
+#: tools/producer-check.py, which every register enforces. One file names
+#: the picture, one file is the message, and stripping a special line back
+#: out of the body would be a second parser for the register to disagree
+#: with about what the writer actually wrote.
+PHOTO_REF_SUFFIX = ".photo.txt"
+
 #: How much of the check's output is carried in a refusal record's clause.
 CLAUSE_CAP = 400
 
@@ -167,6 +187,47 @@ def photo_receipt_rel(frame, run_sha, role):
                                               role)
 
 
+def sidecar_rel(rel, suffix):
+    """Same directory, same stem as the message, a different suffix.
+
+    Sits BESIDE the message it names, in the OUTBOX tree (never
+    OUTBOUND_DIR): it is written by whoever COMPOSES the message, not by the
+    sender, exactly like the message itself. See PHOTO_REF_SUFFIX for why a
+    sidecar exists at all rather than a line inside the body.
+    """
+    stem = rel[:-len(".md")] if rel.endswith(".md") else rel
+    return stem + suffix
+
+
+def photo_ref_rel(rel):
+    """Where a message may NAME the picture it wants to carry as its
+    caption. RULING 5, 2026-09-07."""
+    return sidecar_rel(rel, PHOTO_REF_SUFFIX)
+
+
+def video_receipt_rel(path, run_sha, role):
+    """A receipt for a sent CLIP, ruling 1, 2026-09-07.
+
+    THE SUFFIX IS `.receipt.txt`, THE SAME ONE A PLAIN MESSAGE USES, NOT A
+    NEW ONE. `inbox.OUTBOUND_RE` in tools/runner/inbox.py is a fixed
+    allowlist of three shapes (`receipt`, `refused-XXXXXXXX`,
+    `photo-receipt`) and this file does not own that one: a fourth suffix
+    here would be invisible to the container's own walker and a video
+    receipt would silently never be read back. `receipt: video` INSIDE the
+    file is what tells a reader apart from a plain text send, exactly as
+    `receipt: photo` already does for a sim-shot picture sharing no special
+    suffix of its own beyond `photo-receipt`. The filename only has to be
+    UNIQUE per clip, which the run sha and the role make it.
+    """
+    stem = os.path.basename(path)
+    for ext in (".mp4", ".mov", ".webm", ".mkv", ".m4v"):
+        if stem.lower().endswith(ext):
+            stem = stem[: -len(ext)]
+            break
+    stem = re.sub(r"[^A-Za-z0-9._-]", "-", stem) or "clip"
+    return "%s/%s-%s-%s.receipt.txt" % (OUTBOUND_DIR, stem, run_sha, role)
+
+
 # --------------------------------------------------------------------------
 # The records. One implementation, written on the PC and read in the container.
 # --------------------------------------------------------------------------
@@ -227,6 +288,76 @@ def render_photo_receipt(frame, role, run_sha, path_bytes, sent_epoch,
                int(caption_chars), "yes" if capped else "no"))
 
 
+def render_captioned_receipt(rel, kind, photo_rel, sent_epoch, message_id,
+                             chars, sizes, commit_sha, commit_epoch, latency,
+                             why_no_latency=""):
+    """The proof that a PRODUCER MESSAGE left this PC AS ONE CAPTIONED PHOTO.
+
+    RULING 5, 2026-09-07: "let the photo path carry a caption for a test
+    request... rather than sending text without the picture." This carries
+    the SAME TWO PROOFS render_receipt and render_photo_receipt carry
+    separately, on one record, because this one send is both things at
+    once: a Producer message (fileCommit/outboundLatencySec, read the same
+    way `outbound_summary` reads a plain "sent" record) AND an
+    arrived-as-a-photo claim (photoSizes, the same descriptor
+    render_photo_receipt trusts and nothing else). `receipt: sent-with-photo`
+    is its own value so a reader can never confuse this with a plain text
+    send or a sim-shot picture: three record shapes, three meanings, one
+    reader (`outbound_summary`) that keys off this line rather than the
+    filename.
+    """
+    return ("receipt: sent-with-photo\n"
+            "file: %s\n"
+            "kind: %s\n"
+            "photoRef: %s\n"
+            "fileCommit: %s\n"
+            "fileCommitEpoch: %s\n"
+            "sent: %s\n"
+            "sentEpoch: %d\n"
+            "messageId: %d\n"
+            "chars: %d\n"
+            "photoSizes: %s\n"
+            "photoSizeCount: %d\n"
+            "outboundLatencySec: %s\n"
+            "outboundLatencySecFrom: fileCommitInstant\n"
+            "outboundLatencySecTo: sendInstant\n"
+            "note: one sample of one message, not a rate.%s\n"
+            % (rel, kind, photo_rel, commit_sha or "none",
+               "none" if commit_epoch is None else int(commit_epoch),
+               inbox.iso_utc(sent_epoch), int(sent_epoch), int(message_id),
+               int(chars), sizes_key(sizes) or "none", len(sizes or []),
+               "nothing-measured" if latency is None else int(latency),
+               (" " + why_no_latency) if why_no_latency else ""))
+
+
+def render_video_receipt(path, role, sent_epoch, message_id, path_bytes,
+                         descriptor, descriptor_kind, caption_chars):
+    """The proof that a CLIP left this PC as a clip.
+
+    RULING 1, 2026-09-07: the automated playtest step judges the build and
+    "the clip goes to Telegram with a one-line verdict". `descriptorKind`
+    NAMES WHICH FIELD THE PLATFORM ANSWERED WITH, "video" for sendVideo or
+    "animation" for sendAnimation, because the two calls carry their
+    arrived-proof under different keys and a receipt that guessed would be
+    reading the wrong one silently. A send with NEITHER key populated is
+    refused before this is ever called: see send_video.
+    """
+    return ("receipt: video\n"
+            "file: %s\n"
+            "role: %s\n"
+            "bytes: %d\n"
+            "sent: %s\n"
+            "sentEpoch: %d\n"
+            "messageId: %d\n"
+            "descriptorKind: %s\n"
+            "videoDescriptor: %s\n"
+            "captionChars: %d\n"
+            % (path, role, int(path_bytes), inbox.iso_utc(sent_epoch),
+               int(sent_epoch), int(message_id), descriptor_kind or "none",
+               video_descriptor_key(descriptor) or "none",
+               int(caption_chars)))
+
+
 def render_refusal(rel, kind, clause, when_epoch, hold, detail=""):
     return ("refused: %s\n"
             "file: %s\n"
@@ -280,6 +411,30 @@ def receipt_is_valid(content):
     return True, mid
 
 
+def read_photo_ref(repo, rel):
+    """(photo-rel, why-not) for the picture a message asks to carry.
+
+    (None, "") IS THE ORDINARY CASE: most messages name no picture at all,
+    and that is not an error. A sidecar that EXISTS but cannot be read as a
+    `photo: <path>` record is a DIFFERENT answer, (None, "some reason"),
+    because ruling 5 says a message that meant to carry a picture must never
+    fall back to going out as bare text: the caller reads the difference
+    between "no sidecar" and "a broken one" and refuses the second rather
+    than silently downgrading it. See sweep().
+    """
+    side = photo_ref_rel(rel)
+    raw = _read(repo, side)
+    if raw is None:
+        return None, ""
+    fields, why = parse_record(raw)
+    if fields is None:
+        return None, "%s exists but %s" % (side, why)
+    photo = (fields.get("photo") or "").strip()
+    if not photo:
+        return None, "%s exists but carries no photo: line" % side
+    return photo, ""
+
+
 def sizes_key(sizes):
     """`90x67/320x240/800x600`, or empty. NO SPACES: every reader of a
     key=value line splits on whitespace and truncates silently."""
@@ -290,6 +445,24 @@ def sizes_key(sizes):
         except (TypeError, ValueError):
             continue
     return "/".join(out)
+
+
+def video_descriptor_key(d):
+    """`1280x720/12s`, or empty. Built from whichever of `video` (sendVideo)
+    or `animation` (sendAnimation) the platform's answer carried; NO SPACES,
+    the same reader-safety as sizes_key() above."""
+    if not d:
+        return ""
+    try:
+        w, h = int(d.get("width") or 0), int(d.get("height") or 0)
+    except (TypeError, ValueError):
+        return ""
+    dur = d.get("duration")
+    try:
+        dur_s = "%ds" % int(dur) if dur is not None else "?s"
+    except (TypeError, ValueError):
+        dur_s = "?s"
+    return "%dx%d/%s" % (w, h, dur_s)
 
 
 # --------------------------------------------------------------------------
@@ -434,18 +607,26 @@ def holds_for(repo, rel):
     return out
 
 
-def sweep(repo, sender, now=None, say=None, only=None):
+def sweep(repo, sender, now=None, say=None, only=None, photo_sender=None):
     """Check and send every unsent file in the outbox. Returns a dict.
 
     `sender(text)` is the wire, injected so the selftest can drive every path
     without a network. It returns the platform's result payload, or raises
     SendFailed.
+
+    `photo_sender(path, caption)` is RULING 5, 2026-09-07: a message that
+    names a picture (read_photo_ref) goes out as ONE captioned photo through
+    this instead of `sender`. It is optional and defaults to None so an
+    existing caller that has not been updated keeps sending plain messages
+    exactly as before; a message naming a picture with no `photo_sender`
+    wired in is REFUSED rather than silently sent as bare text, which is the
+    one thing ruling 5 says must never happen again.
     """
     say = say or (lambda _s: None)
     now = int(now if now is not None else time.time())
-    res = {"files": [], "sent": [], "refused": [], "already": [],
-           "held": [], "failed": [], "bad_receipt": [], "records": [],
-           "samples": []}
+    res = {"files": [], "sent": [], "captioned": [], "refused": [],
+           "already": [], "held": [], "failed": [], "bad_receipt": [],
+           "records": [], "samples": []}
     files = outbox_files(repo)
     if only:
         files = [f for f in files if f in only or f.endswith("/" + only)]
@@ -495,6 +676,109 @@ def sweep(repo, sender, now=None, say=None, only=None):
             res["records"].append(rec)
             say("  outbox: REFUSED %s: %s" % (rel, clause))
             continue
+        photo_rel, photo_why = read_photo_ref(repo, rel)
+        if photo_why:
+            # A SIDECAR EXISTS AND CANNOT BE READ. Ruling 5: a message that
+            # meant to carry a picture is never sent as bare text instead,
+            # so this refuses rather than falling through to `sender(text)`.
+            clause = ("this message names a picture and it cannot be sent: "
+                      "%s. Ruling 5, 2026-09-07: a test request that means "
+                      "to carry a picture is never sent as bare text"
+                      % photo_why)
+            rec = _write(repo, refusal_rel(rel, clause),
+                         render_refusal(rel, kind, clause, now, False))
+            res["refused"].append((rel, clause))
+            res["records"].append(rec)
+            say("  outbox: REFUSED %s: %s" % (rel, clause))
+            continue
+        if photo_rel is not None:
+            # THE CAPTIONED PATH. THE OVERFLOW CASE IS THE ONE THAT MATTERS:
+            # the answer register carries NO WORD CAP (his question sets the
+            # length), so a long, perfectly legal test request may still be
+            # longer than Telegram's 1024-character caption. TRUNCATING IT
+            # WOULD BE DAMAGE EVEN IF ANNOUNCED, because the part cut is his
+            # numbered steps and "exactly what to reply", not a trailing
+            # URL: unlike cap_caption's machine-written text, there is no
+            # safe part of THIS text to lose. So an over-cap message is
+            # REFUSED rather than sent truncated, the same choice already
+            # made for an oversized picture (photo_refusal: "refused rather
+            # than truncated"), applied to the text instead of the file.
+            if len(text) > CAPTION_CAP:
+                clause = ("this message is %d character(s) long and names a "
+                          "picture, so it must go out as ONE captioned "
+                          "photo; the Telegram caption cap is %d and this is "
+                          "%d over it. Refused rather than sent truncated: "
+                          "shorten the message, or drop %s to send it as "
+                          "plain words"
+                          % (len(text), CAPTION_CAP,
+                             len(text) - CAPTION_CAP, photo_ref_rel(rel)))
+                rec = _write(repo, refusal_rel(rel, clause),
+                             render_refusal(rel, kind, clause, now, False))
+                res["refused"].append((rel, clause))
+                res["records"].append(rec)
+                say("  outbox: REFUSED %s: %s" % (rel, clause))
+                continue
+            if photo_sender is None:
+                clause = ("this message names a picture and this pass has "
+                          "no photo sender wired in, so it cannot go out as "
+                          "one captioned message; refused rather than sent "
+                          "as bare text (ruling 5, 2026-09-07)")
+                rec = _write(repo, refusal_rel(rel, clause),
+                             render_refusal(rel, kind, clause, now, False))
+                res["refused"].append((rel, clause))
+                res["records"].append(rec)
+                say("  outbox: REFUSED %s: %s" % (rel, clause))
+                continue
+            photo_full = full_path(repo, photo_rel)
+            pok, pwhy, _psize = photo_refusal(repo, photo_full)
+            if not pok:
+                clause = ("this message names a picture that cannot be "
+                          "sent: %s" % pwhy)
+                rec = _write(repo, refusal_rel(rel, clause),
+                             render_refusal(rel, kind, clause, now, False))
+                res["refused"].append((rel, clause))
+                res["records"].append(rec)
+                say("  outbox: REFUSED %s: %s" % (rel, clause))
+                continue
+            try:
+                result = photo_sender(photo_full, text)
+            except SendFailed as e:
+                res["failed"].append((rel, str(e)))
+                say("  outbox: NOT SENT %s (%s). It stays unsent and the "
+                    "next pass tries again." % (rel, e))
+                continue
+            mid = (result or {}).get("message_id")
+            sizes = (result or {}).get("photo") or []
+            if not mid or not sizes:
+                clause = ("the platform returned %s for this captioned "
+                          "message, so whether it arrived is unknown"
+                          % ("no message id" if not mid else
+                             "no photo descriptor, which is what a file "
+                             "filed as a document looks like"))
+                rec = _write(repo, refusal_rel(rel, clause),
+                             render_refusal(rel, kind, clause, now, True))
+                res["refused"].append((rel, clause))
+                res["records"].append(rec)
+                say("  outbox: NO RECEIPT for %s: %s. It is HELD, not "
+                    "retried." % (rel, clause))
+                continue
+            sha, c_epoch, no_lat = commit_epoch(repo, rel)
+            sent_epoch = int(time.time()) if now is None else now
+            latency = None if c_epoch is None else sent_epoch - c_epoch
+            rec = _write(repo, receipt,
+                         render_captioned_receipt(
+                             rel, kind, photo_rel, sent_epoch, mid,
+                             len(text), sizes, sha, c_epoch, latency, no_lat))
+            res["captioned"].append(rel)
+            res["records"].append(rec)
+            if latency is not None:
+                res["samples"].append(latency)
+            say("  outbox: sent %s kind=%s AS-CAPTIONED-PHOTO photoRef=%s "
+                "chars=%d messageId=%d photoSizes=%s outboundLatencySec=%s "
+                "receipt=%s"
+                % (rel, kind, photo_rel, len(text), mid, sizes_key(sizes),
+                   "nothing-measured" if latency is None else latency, rec))
+            continue
         try:
             result = sender(text)
         except SendFailed as e:
@@ -539,17 +823,25 @@ def done_line(res):
     `unsent` is the state at the END of the pass: everything in the outbox
     that has no valid receipt now, whatever the reason. `refused`, `held`,
     `failed` and `receiptRefused` are the reasons, and they sum to it.
+
+    `captionedSent` IS ITS OWN KEY, NOT FOLDED INTO `sent`: a message sent as
+    one captioned photo (ruling 5) is a different outcome from a plain text
+    send, and `sent` already meant "a plain Producer text message reached
+    his phone" before this pathway existed. One key, one meaning, ruled
+    2026-09-07 after `sent=` was found counting bot chrome for the same
+    reason.
     """
     n = len(res["files"])
-    sent, ref = len(res["sent"]), len(res["refused"])
+    sent, cap_sent, ref = (len(res["sent"]), len(res["captioned"]),
+                           len(res["refused"]))
     already, held = len(res["already"]), len(res["held"])
     failed, bad = len(res["failed"]), len(res["bad_receipt"])
-    unsent = n - sent - already
-    return ("outbox done: outboxFiles=%d sent=%d refused=%d unsent=%d "
-            "alreadySent=%d held=%d sendFailed=%d receiptRefused=%d "
+    unsent = n - sent - cap_sent - already
+    return ("outbox done: outboxFiles=%d sent=%d captionedSent=%d refused=%d "
+            "unsent=%d alreadySent=%d held=%d sendFailed=%d receiptRefused=%d "
             "recordsWritten=%d latencySamples=%d/%d outboundLatencySecAtWorst=%s"
-            % (n, sent, ref, unsent, already, held, failed, bad,
-               len(res["records"]), len(res["samples"]), sent,
+            % (n, sent, cap_sent, ref, unsent, already, held, failed, bad,
+               len(res["records"]), len(res["samples"]), sent + cap_sent,
                max(res["samples"]) if res["samples"] else "nothing-measured"))
 
 
@@ -633,6 +925,28 @@ def run_report_frame(repo, extra=None, timeout=120):
     return p.returncode, (p.stdout or "") + (p.stderr or "")
 
 
+def cap_caption(line, cap=CAPTION_CAP):
+    """(capped-line, was-capped, dropped-chars). ONE PLACE THE CAPTION CAP IS
+    ENFORCED WITH AN ANNOUNCEMENT, so a sim-shot caption (caption_for below)
+    and a video verdict (send_video) read the same number the same way
+    rather than each rolling its own arithmetic. Whitespace is collapsed
+    first so the length measured is the length Telegram will actually count.
+
+    THIS IS TRUNCATE-AND-ANNOUNCE, THE RIGHT CHOICE ONLY FOR MACHINE-WRITTEN
+    TEXT WHERE THE CUT PART IS RECONSTRUCTABLE (the sha in a caption's URL,
+    say). A HUMAN-AUTHORED TEST REQUEST IS THE OPPOSITE CASE and does NOT
+    call this: see sweep()'s captioned-message path, which refuses an
+    over-cap message instead, because the part a truncation would cut is his
+    numbered steps and "exactly what to reply", not a trailing URL.
+    """
+    line = " ".join(line.split())
+    if len(line) <= cap:
+        return line, False, 0
+    dropped = len(line) - cap
+    tail = " (+%d more character(s) not shown)" % dropped
+    return line[:cap - len(tail)] + tail, True, dropped
+
+
 def caption_for(frame, role, run_sha):
     """(caption, capped, dropped). ONE LINE, and the cap announces itself.
 
@@ -647,29 +961,42 @@ def caption_for(frame, role, run_sha):
             "%s as it was at run %s, the previous measuring run, for the "
             "comparison." % (stem, run_sha))
     line = "%s %s/%s/runs/%s.txt" % (what, REPO_BLOB, SHOTS_DIR, run_sha)
-    line = " ".join(line.split())
-    if len(line) <= CAPTION_CAP:
-        return line, False, 0
-    dropped = len(line) - CAPTION_CAP
-    tail = " (+%d more character(s) not shown)" % dropped
-    return line[:CAPTION_CAP - len(tail)] + tail, True, dropped
+    return cap_caption(line)
+
+
+def _size_refusal(path, max_bytes, noun):
+    """(ok, why, bytes) for a file this project uploads to Telegram: a
+    missing file is named, an oversized one carries its MEASURED size and
+    the ruled limit rather than a guess or a silent truncation. Shared by
+    photo_refusal, called from BOTH report-frame's picture path (queue 091)
+    and a captioned message's sidecar (ruling 5), and video_refusal (ruling
+    1, 2026-09-07): one "does this fit the platform" idea, read by every
+    caller rather than typed out twice with a different noun each time.
+    """
+    try:
+        size = os.path.getsize(path)
+    except OSError:
+        return False, "the %s file is not on this disk: %s" % (noun, path), None
+    if size > max_bytes:
+        return False, ("%s is %d byte(s), over the %d byte %s limit, so it "
+                       "is refused rather than truncated"
+                       % (os.path.basename(path), size, max_bytes, noun)), size
+    if size == 0:
+        return False, "%s is 0 byte(s) on this disk" % os.path.basename(path), 0
+    return True, "", size
 
 
 def photo_refusal(repo, path):
     """(ok, why, bytes). A missing file is named; an oversized one carries its
     MEASURED size rather than a guess or a truncation."""
-    try:
-        size = os.path.getsize(path)
-    except OSError:
-        return False, ("the file report-frame named is not on this disk: %s"
-                       % path), None
-    if size > PHOTO_MAX_BYTES:
-        return False, ("%s is %d byte(s), over the %d byte photo limit, so it "
-                       "is refused rather than truncated"
-                       % (os.path.basename(path), size, PHOTO_MAX_BYTES)), size
-    if size == 0:
-        return False, "%s is 0 byte(s) on this disk" % os.path.basename(path), 0
-    return True, "", size
+    return _size_refusal(path, PHOTO_MAX_BYTES, "photo")
+
+
+def video_refusal(path):
+    """(ok, why, bytes). Same check as photo_refusal, the video ceiling:
+    VIDEO_MAX_BYTES is Telegram's documented multipart upload limit for a
+    bot-sent clip, ruling 1, 2026-09-07."""
+    return _size_refusal(path, VIDEO_MAX_BYTES, "video")
 
 
 def send_frames(repo, photo_sender, text_sender, now=None, say=None,
@@ -765,6 +1092,103 @@ def frames_nothing_line(res):
 
 
 # --------------------------------------------------------------------------
+# THE CLIP, ruling 1, 2026-09-07: the automated playtest step's clip "goes
+# to Telegram with a one-line verdict". Built the same way send_frames
+# carries a picture: size checked HERE before any upload is attempted, the
+# wire is injected so this file never touches the network, and the
+# platform's own descriptor is the arrived-proof. NO PICKER OF ITS OWN: the
+# CI step that captures the clip and decides the verdict text is out of
+# scope here (a workflow file), so this takes the path and the caption as
+# given and does the send-refuse-receipt half only, exactly as send_photo
+# does the wire half of send_frames.
+# --------------------------------------------------------------------------
+def send_video(repo, video_sender, text_sender, path, caption, role="clip",
+               run_sha="unknown", now=None, say=None):
+    """One clip, to Jafar's phone, with a one-line verdict caption.
+
+    `video_sender(path, caption)` returns the platform's result payload,
+    exactly as `photo_sender` does for send_frames; `text_sender(text)` is
+    used only for the withheld case below. Returns {"sent", "refused",
+    "failed", "records", "captionCapped", "withheld"}, the same key set
+    send_frames returns so one reader parses both.
+
+    `path` MAY BE None: the run never produced a clip (it did not launch, or
+    crashed before the scripted route began), and the honest answer travels
+    as WORDS through `text_sender` rather than as an old clip reused,
+    exactly as send_frames sends a withheld picture as words instead of
+    silently reusing the last one.
+    """
+    say = say or (lambda _s: None)
+    now = int(now if now is not None else time.time())
+    res = {"sent": [], "refused": [], "failed": [], "records": [],
+          "captionCapped": 0, "withheld": ""}
+    if path is None:
+        note = ("No clip with this one, and that is the honest answer "
+               "rather than an old clip reused: nothing measured. %s"
+               % caption)
+        res["withheld"] = caption
+        try:
+            text_sender(note)
+            say("  video: WITHHELD, sent as words. %s" % caption)
+        except SendFailed as e:
+            res["failed"].append(("the withheld note", str(e)))
+            say("  video: WITHHELD and the note did not send (%s)" % e)
+        return res
+    ok, why, size = video_refusal(path)
+    if not ok:
+        res["refused"].append((path, why))
+        say("  video: REFUSED %s: %s" % (path, why))
+        return res
+    cap_text, capped, dropped = cap_caption(caption)
+    if capped:
+        res["captionCapped"] = 1
+        say("  video: caption capped, %d character(s) not shown" % dropped)
+    try:
+        result = video_sender(path, cap_text)
+    except SendFailed as e:
+        res["failed"].append((path, str(e)))
+        say("  video: NOT SENT %s (%s)" % (path, e))
+        return res
+    mid = (result or {}).get("message_id")
+    descriptor, dkind = None, ""
+    for key in ("video", "animation"):
+        if (result or {}).get(key):
+            descriptor, dkind = result[key], key
+            break
+    if not mid or not descriptor:
+        why = ("the platform returned %s, so this did not arrive as a clip "
+              "and no receipt is written"
+              % ("no message id" if not mid else
+                 "no video or animation descriptor, which is what a file "
+                 "filed as a document looks like"))
+        res["refused"].append((path, why))
+        say("  video: NO RECEIPT for %s: %s" % (path, why))
+        return res
+    rec = _write(repo, video_receipt_rel(path, run_sha, role),
+                render_video_receipt(path, role, now, mid, size, descriptor,
+                                     dkind, len(cap_text)))
+    res["sent"].append(path)
+    res["records"].append(rec)
+    say("  video: sent %s role=%s bytes=%d messageId=%d descriptorKind=%s "
+        "captionChars=%d receipt=%s"
+        % (path, role, size, mid, dkind, len(cap_text), rec))
+    return res
+
+
+def video_done_line(res, candidates=1):
+    """One clip's outcome against ITS denominator (1 candidate this pass,
+    ruling 1 is one clip per run), so `sent=0` reads as refused or failed
+    rather than as never-attempted."""
+    line = ("video done: sent=%d/%d refused=%d sendFailed=%d "
+           "captionCapped=%d receipts=%d"
+           % (len(res["sent"]), candidates, len(res["refused"]),
+              len(res["failed"]), res["captionCapped"], len(res["records"])))
+    if res["withheld"]:
+        line += " withheld=1"
+    return line
+
+
+# --------------------------------------------------------------------------
 # What the container reads back off the branch
 # --------------------------------------------------------------------------
 #: THE KINDS telegram-bot.py WRITES FOR ITS OWN CHAT TRAFFIC, as opposed to
@@ -782,7 +1206,7 @@ def outbound_summary(records):
     is a fact the studio has to learn without walking the PC's disk.
     """
     out = {"records": len(records), "sent": [], "refused": [], "photos": [],
-           "replies": [], "unreadable": []}
+           "replies": [], "captioned": [], "videos": [], "unreadable": []}
     for name in sorted(records):
         fields, why = parse_record(records[name] or "")
         if fields is None:
@@ -799,8 +1223,21 @@ def outbound_summary(records):
                 out["replies"].append(fields)
             else:
                 out["sent"].append(fields)
+        elif fields.get("receipt") == "sent-with-photo":
+            # RULING 5, 2026-09-07. A captioned test request is NEITHER a
+            # plain "sent" text message NOR a sim-shot "photo": it is a
+            # Producer message (counts against the same "did this reach him"
+            # question as `sent`) that also arrived as a picture. Its own
+            # bucket, its own count, never folded into either sibling.
+            out["captioned"].append(fields)
         elif fields.get("receipt") == "photo":
             out["photos"].append(fields)
+        elif fields.get("receipt") == "video":
+            # RULING 1, 2026-09-07. A clip is not a photo: its arrived-proof
+            # lives under a different key (`video`/`animation`, never
+            # `photo`) and it carries no `kind` from the outbox register at
+            # all, so it gets a bucket and a count of its own too.
+            out["videos"].append(fields)
         elif "refused" in fields:
             out["refused"].append(fields)
         else:
@@ -818,12 +1255,26 @@ def outbound_lines(summary):
                         f.get("messageId", "?"),
                         f.get("outboundLatencySec", "nothing-measured"),
                         f.get("sent", "?")))
+    for f in summary.get("captioned") or []:
+        lines.append("  outbound sent+photo file=%s kind=%s messageId=%s "
+                     "photoRef=%s photoSizes=%s outboundLatencySec=%s"
+                     % (f.get("file", "?"), f.get("kind", "?"),
+                        f.get("messageId", "?"), f.get("photoRef", "?"),
+                        f.get("photoSizes", "none"),
+                        f.get("outboundLatencySec", "nothing-measured")))
     for f in summary["photos"]:
         lines.append("  outbound photo  frame=%s role=%s runSha=%s "
                      "messageId=%s photoSizes=%s"
                      % (f.get("frame", "?"), f.get("role", "?"),
                         f.get("runSha", "?"), f.get("messageId", "?"),
                         f.get("photoSizes", "none")))
+    for f in summary.get("videos") or []:
+        lines.append("  outbound video   file=%s role=%s messageId=%s "
+                     "videoDescriptor=%s captionChars=%s"
+                     % (f.get("file", "?"), f.get("role", "?"),
+                        f.get("messageId", "?"),
+                        f.get("videoDescriptor", "none"),
+                        f.get("captionChars", "?")))
     for f in summary["refused"]:
         lines.append("  outbound REFUSED file=%s kind=%s hold=%s clause=%s"
                      % (f.get("file", "?"), f.get("kind", "?"),
@@ -839,9 +1290,11 @@ def outbound_lines(summary):
         newest = max(reps, key=lambda f: int(f.get("sentEpoch") or 0))
         lines.append("  outbound replies=%d newestMessageId=%s"
                      % (len(reps), newest.get("messageId", "?")))
-    lines.append("outbound: records=%d sent=%d replies=%d refused=%d "
-                 "photos=%d unreadable=%d"
+    lines.append("outbound: records=%d sent=%d replies=%d captioned=%d "
+                 "videos=%d refused=%d photos=%d unreadable=%d"
                  % (summary["records"], len(summary["sent"]), len(reps),
+                    len(summary.get("captioned") or []),
+                    len(summary.get("videos") or []),
                     len(summary["refused"]), len(summary["photos"]),
                     len(summary["unreadable"])))
     if summary["records"] == 0:
@@ -1264,6 +1717,143 @@ def _selftest_cases(ok, bad, state):
           "nothing measured" in nothing_line({"files": [], "already": []}),
           nothing_line({"files": [], "already": []}))
 
+    # ---- RULING 5, 2026-09-07: A TEST REQUEST CARRIES ITS PICTURE --------
+    # "let the photo path carry a caption for a test request... rather than
+    # sending text without the picture." ACCEPTING CASE FIRST, then the
+    # overflow case (the one that matters), then every way the sidecar can
+    # be broken, each one proving the message is REFUSED rather than
+    # silently downgraded to a bare text send.
+    print("")
+    cap_photo_rel = "game-design/sim-shots/captioned-selftest.jpg"
+    cap_photo_full = os.path.join(repo, *cap_photo_rel.split("/"))
+    os.makedirs(os.path.dirname(cap_photo_full), exist_ok=True)
+    with open(cap_photo_full, "wb") as fh:
+        fh.write(b"\xff\xd8\xff" + b"q" * 300)
+
+    check("accept/the-accepting-fixture-fits-under-the-caption-cap",
+          len(good_text.strip()) <= CAPTION_CAP,
+          "%d char(s), cap is %d" % (len(good_text.strip()), CAPTION_CAP))
+
+    cap_rel = "%s/2026-09-07-play-the-street-photo.answer.md" % OUTBOX_DIR
+    _commit(repo, cap_rel, good_text, when=commit_at)
+    _write(repo, photo_ref_rel(cap_rel), "photo: %s\n" % cap_photo_rel)
+
+    cap_photo_calls = []
+
+    def cap_photo_sender(path, caption):
+        cap_photo_calls.append((path, caption))
+        return {"message_id": 6001,
+                "photo": [{"width": 90, "height": 67, "file_size": 900}]}
+
+    calls_before = len(calls)
+    r_cap = sweep(repo, sender, now=sent_at + 600, only=cap_rel,
+                 photo_sender=cap_photo_sender)
+    check("accept/a-message-naming-a-picture-is-sent-as-one-captioned-photo",
+          r_cap["captioned"] == [cap_rel] and r_cap["sent"] == []
+          and len(cap_photo_calls) == 1
+          and cap_photo_calls[0][0] == cap_photo_full
+          and cap_photo_calls[0][1] == good_text.strip()
+          and len(calls) == calls_before,
+          "%s / %d photo call(s) / %d plain call(s) since"
+          % (r_cap["captioned"], len(cap_photo_calls), len(calls) - calls_before))
+    cap_rec = _read(repo, receipt_rel(cap_rel))
+    check("accept/the-captioned-receipt-carries-both-proofs",
+          cap_rec and "receipt: sent-with-photo" in cap_rec
+          and ("photoRef: " + cap_photo_rel) in cap_rec
+          and "photoSizes: 90x67" in cap_rec and "messageId: 6001" in cap_rec
+          and "fileCommit: " in cap_rec, (cap_rec or "")[:160])
+    check("accept/the-captioned-receipt-is-readable-by-receipt-is-valid",
+          receipt_is_valid(cap_rec or "") == (True, 6001),
+          receipt_is_valid(cap_rec or ""))
+    print("      says: %s" % done_line(r_cap))
+    check("accept/the-done-line-carries-captionedSent-as-its-own-key",
+          "captionedSent=1" in done_line(r_cap) and "sent=0" in done_line(r_cap),
+          done_line(r_cap))
+
+    r_cap2 = sweep(repo, sender, now=sent_at + 660, only=cap_rel,
+                  photo_sender=cap_photo_sender)
+    check("accept/a-second-pass-does-not-resend-the-captioned-message",
+          r_cap2["captioned"] == [] and r_cap2["already"] == [cap_rel]
+          and len(cap_photo_calls) == 1, r_cap2["already"])
+
+    # THE OVERFLOW CASE, THE ONE THAT MATTERS. "answer" carries NO word cap,
+    # so this is a legal test request that still overflows the caption.
+    long_cap_rel = "%s/2026-09-07-play-the-street-long.answer.md" % OUTBOX_DIR
+    long_text = good_text.strip() + ("\nword " * 250) + "\n"
+    check("accept/the-overflow-fixture-actually-overflows-the-cap",
+          len(long_text.strip()) > CAPTION_CAP,
+          "%d char(s), cap is %d" % (len(long_text.strip()), CAPTION_CAP))
+    _commit(repo, long_cap_rel, long_text, when=commit_at)
+    _write(repo, photo_ref_rel(long_cap_rel), "photo: %s\n" % cap_photo_rel)
+    calls_before, photo_calls_before = len(calls), len(cap_photo_calls)
+    r_long = sweep(repo, sender, now=sent_at + 720, only=long_cap_rel,
+                  photo_sender=cap_photo_sender)
+    long_clause = r_long["refused"][0][1] if r_long["refused"] else ""
+    check("reject/an-over-cap-captioned-message-is-refused-not-truncated",
+          r_long["captioned"] == [] and len(r_long["refused"]) == 1
+          and len(cap_photo_calls) == photo_calls_before
+          and len(calls) == calls_before
+          and str(CAPTION_CAP) in long_clause and "over it" in long_clause
+          and "Refused rather than sent truncated" in long_clause,
+          long_clause)
+
+    # A SIDECAR NAMES A PICTURE AND THIS PASS HAS NO photo_sender WIRED IN:
+    # must not fall back to sending as bare text (the whole point of the
+    # ruling).
+    nosender_rel = ("%s/2026-09-07-play-the-street-nosender.answer.md"
+                    % OUTBOX_DIR)
+    _commit(repo, nosender_rel, good_text, when=commit_at)
+    _write(repo, photo_ref_rel(nosender_rel), "photo: %s\n" % cap_photo_rel)
+    calls_before = len(calls)
+    r_ns = sweep(repo, sender, now=sent_at + 780, only=nosender_rel)
+    ns_clause = r_ns["refused"][0][1] if r_ns["refused"] else ""
+    check("reject/no-photo-sender-wired-in-refuses-rather-than-sends-bare-text",
+          r_ns["captioned"] == [] and r_ns["sent"] == []
+          and len(r_ns["refused"]) == 1 and len(calls) == calls_before
+          and "no photo sender" in ns_clause, ns_clause)
+
+    # A SIDECAR NAMING A PICTURE THAT IS NOT ON DISK.
+    missing_rel = ("%s/2026-09-07-play-the-street-missing.answer.md"
+                   % OUTBOX_DIR)
+    _commit(repo, missing_rel, good_text, when=commit_at)
+    _write(repo, photo_ref_rel(missing_rel), "photo: no-such-picture.jpg\n")
+    r_miss = sweep(repo, sender, now=sent_at + 840, only=missing_rel,
+                  photo_sender=cap_photo_sender)
+    miss_clause = r_miss["refused"][0][1] if r_miss["refused"] else ""
+    check("reject/a-sidecar-naming-a-picture-not-on-disk-is-refused",
+          r_miss["captioned"] == [] and len(r_miss["refused"]) == 1
+          and "not on this disk" in miss_clause, miss_clause)
+
+    # A SIDECAR NAMING A PICTURE OVER THE SIZE LIMIT, proven by planting the
+    # condition (the floor stays untouched): PHOTO_MAX_BYTES is lowered for
+    # one call, exactly as the frame tests below do.
+    oversize_rel = ("%s/2026-09-07-play-the-street-oversized.answer.md"
+                    % OUTBOX_DIR)
+    _commit(repo, oversize_rel, good_text, when=commit_at)
+    _write(repo, photo_ref_rel(oversize_rel), "photo: %s\n" % cap_photo_rel)
+    real_photo_max = PHOTO_MAX_BYTES
+    globals()["PHOTO_MAX_BYTES"] = 16
+    r_over = sweep(repo, sender, now=sent_at + 900, only=oversize_rel,
+                  photo_sender=cap_photo_sender)
+    globals()["PHOTO_MAX_BYTES"] = real_photo_max
+    over_clause = r_over["refused"][0][1] if r_over["refused"] else ""
+    check("reject/a-sidecar-naming-an-oversized-picture-is-refused-with-its-size",
+          r_over["captioned"] == [] and len(r_over["refused"]) == 1
+          and "byte(s)" in over_clause, over_clause)
+
+    # A SIDECAR THAT EXISTS BUT CARRIES NO `photo:` LINE.
+    broken_rel = ("%s/2026-09-07-play-the-street-broken-sidecar.answer.md"
+                  % OUTBOX_DIR)
+    _commit(repo, broken_rel, good_text, when=commit_at)
+    _write(repo, photo_ref_rel(broken_rel), "note: not a photo line\n")
+    calls_before = len(calls)
+    r_broken = sweep(repo, sender, now=sent_at + 960, only=broken_rel)
+    broken_clause = r_broken["refused"][0][1] if r_broken["refused"] else ""
+    check("reject/a-sidecar-with-no-photo-line-is-refused-not-sent-as-text",
+          r_broken["captioned"] == [] and r_broken["sent"] == []
+          and len(calls) == calls_before
+          and "carries no photo" in broken_clause, broken_clause)
+
     # ---- THE PICTURE ----------------------------------------------------
     print("")
     stdout = ("NOW   %s/game-design/sim-shots/review_day1_noon.jpg\n"
@@ -1382,6 +1972,160 @@ def _selftest_cases(ok, bad, state):
           dres["sent"] == [] and len(dres["refused"]) == 1
           and "document" in dres["refused"][0][1], dres["refused"])
 
+    # ---- RULING 1, 2026-09-07: THE CLIP -----------------------------------
+    # "the clip goes to Telegram with a one-line verdict." Built the same
+    # way the picture is: size checked before any upload, ACCEPTING CASE
+    # FIRST, then every failure planted rather than assumed.
+    print("")
+    clip_path = os.path.join(repo, "playtest-selftest.mp4")
+    with open(clip_path, "wb") as fh:
+        fh.write(b"\x00\x00\x00\x18ftypmp42" + b"m" * 400)
+
+    check("accept/a-clip-under-the-limit-passes-video-refusal",
+          video_refusal(clip_path) == (True, "", os.path.getsize(clip_path)),
+          video_refusal(clip_path))
+
+    real_video_max = VIDEO_MAX_BYTES
+    globals()["VIDEO_MAX_BYTES"] = 16
+    vok, vwhy, vsize = video_refusal(clip_path)
+    globals()["VIDEO_MAX_BYTES"] = real_video_max
+    check("reject/a-clip-over-the-limit-is-refused-with-its-measured-size",
+          not vok and "byte(s)" in vwhy and str(vsize) in vwhy
+          and vsize == os.path.getsize(clip_path), (vwhy, vsize))
+
+    mvok, mvwhy, _mvsize = video_refusal(os.path.join(repo, "no-clip.mp4"))
+    check("reject/a-missing-clip-is-named-not-guessed",
+          not mvok and "not on this disk" in mvwhy, mvwhy)
+
+    short_cap, short_capped, _sd = cap_caption("street ok, 5/5 checks passed")
+    check("accept/a-short-verdict-caption-is-not-capped",
+          not short_capped and short_cap == "street ok, 5/5 checks passed",
+          short_cap)
+    long_cap, long_capped, long_dropped = cap_caption("x" * (CAPTION_CAP + 40))
+    check("reject/an-over-cap-verdict-caption-is-capped-and-announces-it",
+          long_capped and len(long_cap) <= CAPTION_CAP
+          and "more character(s) not shown" in long_cap
+          and long_dropped == 40, (len(long_cap), long_dropped))
+
+    video_calls = []
+
+    def video_sender(path, caption):
+        video_calls.append((path, caption))
+        return {"message_id": 7001,
+                "video": {"width": 1280, "height": 720, "duration": 12,
+                          "file_size": os.path.getsize(clip_path)}}
+
+    def video_text_sender(text):
+        calls.append(text)
+        return {"message_id": 9101}
+
+    # NOT JUST video_refusal IN ISOLATION: send_video ITSELF must refuse
+    # BEFORE any upload is attempted. A spy sender proves it is never
+    # called, which video_refusal alone cannot show.
+    over_video_calls = []
+
+    def over_video_sender(path, caption):
+        over_video_calls.append(path)
+        return {"message_id": 9999, "video": {"width": 1, "height": 1}}
+
+    globals()["VIDEO_MAX_BYTES"] = 16
+    r_over_clip = send_video(repo, over_video_sender, video_text_sender,
+                             clip_path, "oversized clip verdict",
+                             role="oversized-check", run_sha="abc1234",
+                             now=sent_at)
+    globals()["VIDEO_MAX_BYTES"] = real_video_max
+    check("reject/send_video-refuses-an-oversized-clip-before-any-upload",
+          r_over_clip["sent"] == [] and len(r_over_clip["refused"]) == 1
+          and len(over_video_calls) == 0
+          and "byte(s)" in r_over_clip["refused"][0][1]
+          and str(os.path.getsize(clip_path)) in r_over_clip["refused"][0][1],
+          r_over_clip["refused"])
+
+    r_vid = send_video(repo, video_sender, video_text_sender, clip_path,
+                       "The street textured, the walking camera worked, "
+                       "collision held: 5/5.", role="clip", run_sha="abc1234",
+                       now=sent_at)
+    check("accept/a-clip-under-the-limit-is-sent-as-a-video",
+          r_vid["sent"] == [clip_path] and len(video_calls) == 1
+          and r_vid["withheld"] == "" and not r_vid["refused"], r_vid["sent"])
+    vid_rec_rel = video_receipt_rel(clip_path, "abc1234", "clip")
+    vid_rec = _read(repo, vid_rec_rel)
+    check("accept/the-video-receipt-carries-the-platforms-descriptor",
+          vid_rec and "receipt: video" in vid_rec
+          and "descriptorKind: video" in vid_rec
+          and "videoDescriptor: 1280x720/12s" in vid_rec
+          and "messageId: 7001" in vid_rec, (vid_rec or "")[:160])
+    check("accept/the-video-receipt-is-readable-by-receipt-is-valid",
+          receipt_is_valid(vid_rec or "") == (True, 7001),
+          receipt_is_valid(vid_rec or ""))
+    print("      says: %s" % video_done_line(r_vid))
+    check("accept/video-done-line-carries-its-denominator",
+          "sent=1/1" in video_done_line(r_vid), video_done_line(r_vid))
+
+    # ACCEPT: sendAnimation's own descriptor key is recognised too, under
+    # ITS OWN NAME (descriptorKind), never guessed as `video`.
+    def anim_sender(path, caption):
+        return {"message_id": 7002,
+                "animation": {"width": 640, "height": 360, "duration": 8}}
+
+    r_anim = send_video(repo, anim_sender, video_text_sender, clip_path,
+                        "anim verdict", role="anim-check", run_sha="abc1234",
+                        now=sent_at)
+    anim_rec = _read(repo, video_receipt_rel(clip_path, "abc1234",
+                                             "anim-check"))
+    check("accept/sendAnimations-own-descriptor-key-is-recognised",
+          r_anim["sent"] == [clip_path]
+          and anim_rec and "descriptorKind: animation" in anim_rec
+          and "videoDescriptor: 640x360/8s" in anim_rec, (anim_rec or "")[:160])
+
+    # REJECT: neither key populated, the platform filed it as a document.
+    r_doc = send_video(repo, lambda p, c: {"message_id": 8}, video_text_sender,
+                       clip_path, "doc verdict", role="doc-check",
+                       run_sha="abc1234", now=sent_at)
+    check("reject/no-video-or-animation-descriptor-means-no-receipt",
+          r_doc["sent"] == [] and len(r_doc["refused"]) == 1
+          and "document" in r_doc["refused"][0][1], r_doc["refused"])
+
+    # REJECT then ACCEPT: a dead uplink leaves it unsent and retryable.
+    def video_sender_down(path, caption):
+        raise SendFailed("Could not reach Telegram at all (URLError)")
+
+    r_vid_down = send_video(repo, video_sender_down, video_text_sender,
+                            clip_path, "down verdict", role="down-check",
+                            run_sha="abc1234", now=sent_at)
+    check("reject/a-dead-uplink-leaves-the-clip-unsent-and-retryable",
+          r_vid_down["sent"] == [] and len(r_vid_down["failed"]) == 1,
+          r_vid_down["failed"])
+    r_vid_retry = send_video(repo, video_sender, video_text_sender, clip_path,
+                             "down verdict", role="down-check",
+                             run_sha="abc1234", now=sent_at)
+    check("accept/and-the-next-pass-sends-it",
+          r_vid_retry["sent"] == [clip_path], r_vid_retry["sent"])
+
+    # ACCEPT then REJECT: no clip this run travels as WORDS, never an old
+    # clip reused.
+    text_before = len(calls)
+    r_withheld = send_video(repo, video_sender, video_text_sender, None,
+                            "it did not launch: no clip this run",
+                            role="clip", run_sha="abc1234", now=sent_at)
+    check("accept/no-clip-is-sent-as-words-not-an-old-clip-reused",
+          r_withheld["sent"] == [] and r_withheld["withheld"]
+          and len(calls) == text_before + 1
+          and "nothing measured" in calls[-1], calls[-1][:80])
+    check("reject/video-done-line-marks-a-withheld-run",
+          "withheld=1" in video_done_line(r_withheld),
+          video_done_line(r_withheld))
+
+    def dead_text_sender(text):
+        raise SendFailed("Could not reach Telegram at all (URLError)")
+
+    r_withheld_down = send_video(repo, video_sender, dead_text_sender, None,
+                                 "it did not launch", role="clip",
+                                 run_sha="abc1234", now=sent_at)
+    check("reject/a-withheld-note-that-fails-to-send-is-counted-failed",
+          r_withheld_down["sent"] == [] and len(r_withheld_down["failed"]) == 1,
+          r_withheld_down["failed"])
+
     # ---- WHAT THE CONTAINER READS BACK ----------------------------------
     print("")
     records = {}
@@ -1404,6 +2148,37 @@ def _selftest_cases(ok, bad, state):
     empty = outbound_lines(outbound_summary({}))
     check("reject/no-records-at-all-says-nothing-measured",
           any("nothing measured" in l for l in empty), empty)
+
+    # RULING 5 and RULING 1 READ BACK: a captioned message and a clip are
+    # NEITHER a plain "sent" text message NOR a sim-shot "photo", so each
+    # gets its own bucket and its own count rather than being folded into
+    # `sent` (which would silently change what `sent=` has meant since
+    # queue 089) or into `photos`.
+    check("accept/the-container-side-buckets-a-captioned-message-apart",
+          len(summary.get("captioned") or []) == 1
+          and summary["captioned"][0].get("messageId") == "6001"
+          and summary["captioned"][0].get("receipt") == "sent-with-photo",
+          summary.get("captioned"))
+    check("accept/a-captioned-message-does-not-inflate-plain-sent",
+          not any(f.get("messageId") == "6001" for f in summary["sent"]),
+          [f.get("messageId") for f in summary["sent"]])
+    check("accept/the-container-side-buckets-a-video-apart",
+          len(summary.get("videos") or []) == 3
+          and {f.get("messageId") for f in summary["videos"]} == {"7001",
+                                                                  "7002"},
+          summary.get("videos"))
+    check("accept/videos-do-not-land-in-photos-or-sent",
+          not any(f.get("messageId") in ("7001", "7002")
+                  for f in summary["photos"] + summary["sent"]),
+          [f.get("messageId") for f in summary["photos"] + summary["sent"]])
+    check("accept/the-tally-line-carries-captioned-and-videos-with-their-"
+          "own-counts",
+          ("captioned=%d" % len(summary.get("captioned") or [])) in lines[-1]
+          and ("videos=%d" % len(summary.get("videos") or [])) in lines[-1],
+          lines[-1])
+    print("      says: %s" % lines[-1])
+    check("accept/nothing-in-the-new-buckets-is-unreadable",
+          not summary["unreadable"], summary["unreadable"])
 
     # ---- A4: A BOT REPLY IS NOT A PRODUCER MESSAGE ----------------------
     # Ruled 2026-09-07. `sent=` is what queue 089 defined as messages the
