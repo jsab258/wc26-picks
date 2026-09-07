@@ -15,14 +15,22 @@
    "message": "production/outbox/2026-09-07-the-map-changed-4917df34e120.unprompted.md",
    "notified": true,
    "why": "material-change"
+  },
+  {
+   "at": "2026-09-07T20:24:44Z",
+   "changedFields": "q2/q3",
+   "digest": "78a360dcdf18",
+   "message": "production/outbox/2026-09-07-the-map-changed-78a360dcdf18.unprompted.md",
+   "notified": true,
+   "why": "material-change"
   }
  ],
  "historyCap": 20,
  "historyDropped": 0,
  "last": {
-  "at": "2026-09-07T00:59:06Z",
+  "at": "2026-09-07T20:24:44Z",
   "changedFields": "q2/q3",
-  "digest": "4917df34e120",
+  "digest": "78a360dcdf18",
   "fields": {
    "q1": [
     "LEDGER_Unreal_probe|runnable-visual-probe|ran-on-your-pc",
@@ -37,7 +45,7 @@
    ],
    "q2": [
     "street-and-its-look|seen-not-measured",
-    "player-control|not-started",
+    "player-control|built-not-walked",
     "the-crime-loop|runs-in-text-only",
     "people-and-their-memory|runs-unheard",
     "conversation|runs-and-heard",
@@ -45,14 +53,14 @@
     "the-worlds-props|runs-in-text-only"
    ],
    "q3": [
-    "1|Control-a-character-in-the-street-that-already-exists",
-    "2|Commit-one-crime-there-and-pass-a-real-witness-event-into-th",
-    "3|Overhear-the-gossip-it-causes-and-see-one-consequence-in-tha"
+    "1|Control-a-character-in-the-street-that-already-exists|live",
+    "2|Commit-one-crime-there-and-pass-a-real-witness-event-into-th|live",
+    "3|Overhear-the-gossip-it-causes-and-see-one-consequence-in-tha|live"
    ]
   },
-  "message": "production/outbox/2026-09-07-the-map-changed-4917df34e120.unprompted.md",
+  "message": "production/outbox/2026-09-07-the-map-changed-78a360dcdf18.unprompted.md",
   "notified": true,
-  "pageCommit": "284cfb767dcc9f23939b10546d26054ded0bf144",
+  "pageCommit": "45de6c2198d069117af1d2ee0287eb4501db6181",
   "servedUrl": "https://jsab258.github.io/wc26-picks/map.html",
   "why": "material-change"
  },
