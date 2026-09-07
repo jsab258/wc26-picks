@@ -1,18 +1,18 @@
-# UE probe build - 19d4829
+# UE probe build - de4ad4d
 
 engine=C:\Program~Files\Epic~Games\UE_5.8
 project=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject
 clearedBeforeCold=0/4 (Intermediate, Binaries, Packaged, Saved)
 cmd=Build.bat LedgerProbe Win64 Development -Project="C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject" -WaitMutex -NoHotReload
-coldBuildExit=0 coldBuildMinutes=1.07
+coldBuildExit=0 coldBuildMinutes=1.38
 warmBuildExit=0 warmBuildMinutes=0.03
-editorBuildExit=0 editorBuildMinutes=1.08
+editorBuildExit=0 editorBuildMinutes=1.3
 materialPythonPlugin=found/1
-materialEditorCmdExit=1 materialScriptMinutes=0.27
+materialEditorCmdExit=1 materialScriptMinutes=0.45
 materialStatus=COMPILE-UNPROVEN materialScriptReturn=2 materialPath=/Game/Ledger/M_LedgerSurface materialExistedBefore=yes materialParams=BaseColorMap/NormalMap/RoughnessMap materialParamsMade=3/3 materialScalars=TilingU/TilingV materialConnections=14/14 materialUvHeadVia=both.out.empty..in.empty materialUvHeadTriedAtWorst=1/9 materialUvHeadReadback=0/2..unreadable2 materialUvHeadByPropertyWrite=0/2 materialColourDefault=engine../Engine/EngineResources/DefaultTexture..asked.COLOR..derives.COLOR materialNormalDefault=generated../Game/Ledger/T_LedgerDefaultNormal..asked.NORMAL..derives.NORMAL materialRoughnessDefault=generated../Game/Ledger/T_LedgerDefaultRough..asked.LINEAR_COLOR..derives.LINEAR_COLOR materialDefaultsBound=3/3 materialDefaultsDetail=BaseColorMap.engine.type-ok/NormalMap.generated.type-ok/RoughnessMap.generated.type-ok materialDefaultsStat=samplers-with-a-default-whose-derived-type-matches/over-texture-parameters materialCompressionReadback=BaseColorMap.DEFAULT.via.enum-identity.srgb.yes/NormalMap.NORMALMAP.via.enum-identity.srgb.no/RoughnessMap.DEFAULT.via.enum-identity.srgb.no materialCompressionStat=per-texture-parameter/the-compression-leaf-read-back-and-the-route-that-read-it materialCompile=UNPROVEN materialCompileErrors=0/8 materialCompileMarkers=begin.yes/end.yes materialCompileInstructions=pixel.0..vertex.0 materialCompileSamplers=0 materialCompileControl=pixel.0..vertex.0..from./Game/Ledger/M_LedgerControlTwin materialCompileChannel=pixel.0..vertex.0..from./Engine/BasicShapes/BasicShapeMaterial..answered.3/4 materialCompileErrorsStat=matched-lines/over-log-lines-examined-between-the-markers materialCompileControlIs=a-TWIN-material-this-script-made-and-recompiled-in-this-process-and-read-through-the-same-call/nonzero-is-the-accepting-case-that-lets-our-own-zero-mean-anything/materialCompileChannel-beside-it-is-engine-materials-out-of-the-derived-data-cache-and-gates-nothing/answered-is-engine-materials-that-returned-a-number-over-engine-materials-asked materialCompileRule=OK-needs-a-log-read-AND-zero-errors-AND-lines-examined-above-zero-AND-both-markers-AND-a-nonzero-instruction-count/any-diagnostic-is-ERRORS-with-or-without-markers/a-zero-instruction-count-beside-a-nonzero-control-is-NO-SHADER/anything-else-is-UNPROVEN materialGeneratedDefaults=2/2 materialGeneratedFrom=4x4-uncompressed-32bit-tga-written-by-this-script materialGeneratedStat=samplers-on-a-generated-default/over-samplers-a-default-was-generated-for materialSaved=yes materialVerdictIs=materialScriptReturn/not-the-editor-process-exit materialNote=none
 materialUassetBytes=11112 materialUasset=ue-probe/Content/Ledger/M_LedgerSurface.uasset
 cookCmd=RunUAT.bat BuildCookRun -project="C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\LedgerProbe.uproject" -noP4 -platform=Win64 -clientconfig=Development -cook -build -stage -pak -archive -archivedirectory="C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged" -utf8output
-coldCookExit=0 coldCookMinutes=0.43
+coldCookExit=0 coldCookMinutes=0.72
 warmCookExit=0 warmCookMinutes=0.42
 packagedCandidates=2 packagedUnderBinaries=1
 packaged=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Binaries\Win64\LedgerProbe.exe
@@ -20,269 +20,341 @@ stagedProject=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Pack
 binaryCandidates=1
 ranBinary=packaged
 runWritesTo=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe
-binary=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Binaries\Win64\LedgerProbe.exe sizeKB=324214
-gameExit=1 testSeconds=1.17 gameExitIsNotTheVerdict=true
+binary=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Binaries\Win64\LedgerProbe.exe sizeKB=324254
+gameExit=1 testSeconds=1.31 gameExitIsNotTheVerdict=true
 resultCandidates=4 resultFound=yes
 resultFrom=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\golden-result.txt
 perceptionRows=1221 perceptionMismatches=0 tolerance=1e-09
 probeTest=PASS
 --- LedgerProbe.log (C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Saved\Logs\LedgerProbe.log), last 60 lines ---
-[2026.09.07-12.05.12:296][  0]LogHAL: Display: Platform has ~ 32 GB [34282192896 / 34359738368 / 32], which maps to Largest [LargestMinGB=32, LargerMinGB=12, DefaultMinGB=8, SmallerMinGB=6, SmallestMinGB=0)
-[2026.09.07-12.05.12:296][  0]LogDeviceProfileManager: Going up to parent DeviceProfile []
-[2026.09.07-12.05.12:296][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[UI.SlateSDFText.RasterizationMode:Bitmap -> Msdf]]
-[2026.09.07-12.05.12:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[UI.SlateSDFText.ResolutionLevel:2 -> 2]]
-[2026.09.07-12.05.12:297][  0]LogConfig: Applying CVar settings from Section [Startup] File [../../../Engine/Config/ConsoleVariables.ini]
-[2026.09.07-12.05.12:297][  0]LogConfig: Set CVar [[p.chaos.AllowCreatePhysxBodies:1]]
-[2026.09.07-12.05.12:297][  0]LogConfig: Set CVar [[fx.SkipVectorVMBackendOptimizations:1]]
-[2026.09.07-12.05.12:297][  0]LogConfig: Applying CVar settings from Section [Startup_Windows] File [../../../Engine/Config/ConsoleVariables.ini]
-[2026.09.07-12.05.12:297][  0]LogConfig: Applying CVar settings from Section [ConsoleVariables] File [Engine]
-[2026.09.07-12.05.12:297][  0]LogConfig: Set CVar [[WindowsApplication.UseWorkerThreadForRawInput:0]]
-[2026.09.07-12.05.12:297][  0]LogConfig: Set CVar [[r.PSOPrecache.KeepInMemoryForActiveMaterials:1]]
-[2026.09.07-12.05.12:298][  0]LogInit: Computer: JAFAR-DESKTOP
-[2026.09.07-12.05.12:298][  0]LogInit: User: Jafar
-[2026.09.07-12.05.12:298][  0]LogInit: CPU Page size=4096, Cores=6
-[2026.09.07-12.05.12:298][  0]LogInit: High frequency timer resolution =10.000000 MHz
-[2026.09.07-12.05.12:298][  0]LogInit: Gaming Handheld Device: 0
-[2026.09.07-12.05.12:298][  0]LogMemory: Process is running as part of a Windows Job with separate resource limits
-[2026.09.07-12.05.12:298][  0]LogMemory: Memory total: Physical=31.9GB (32GB approx) Virtual=33.9GB
-[2026.09.07-12.05.12:298][  0]LogMemory: Platform Memory Stats for Windows
-[2026.09.07-12.05.12:299][  0]LogMemory: Process Physical Memory: 190.71 MB used, 190.71 MB peak
-[2026.09.07-12.05.12:299][  0]LogMemory: Process Virtual Memory: 131.96 MB used, 131.96 MB peak
-[2026.09.07-12.05.12:299][  0]LogMemory: Physical Memory: 15641.67 MB used,  17052.38 MB free, 32694.05 MB total
-[2026.09.07-12.05.12:299][  0]LogMemory: Virtual Memory: 22834.80 MB used,  11907.24 MB free, 34742.05 MB total
-[2026.09.07-12.05.12:299][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
-[2026.09.07-12.05.12:299][  0]LogWindows: WindowsPlatformFeatures enabled
-[2026.09.07-12.05.12:299][  0]LogSpline: Registered spline type: TypeId=0x54E3AD22, Impl=MultiSpline, Value=Vector
-[2026.09.07-12.05.12:299][  0]LogChaosDD: Chaos Debug Draw Startup
-[2026.09.07-12.05.12:299][  0]LogInit: Physics initialised using underlying interface: Chaos
-[2026.09.07-12.05.12:300][  0]LogInit: Using OS detected language (en-US).
-[2026.09.07-12.05.12:300][  0]LogInit: Using OS detected locale (en-US).
-[2026.09.07-12.05.12:300][  0]LogTextLocalizationManager: No specific localization for 'en-US' exists, so 'en' will be used for the language.
-[2026.09.07-12.05.12:341][  0]LogWindowsTouchpad: Display: CacheForceMaxTouchpadSensitivityMode SetMaxTouchpadSensitivity
-[2026.09.07-12.05.12:341][  0]LogInputDeviceRegistry: RegisterDevice: DeviceId=0 InputDeviceName=WindowsApplication HardwareDeviceIdentifier=KBM (changed=true)
-[2026.09.07-12.05.12:344][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
-[2026.09.07-12.05.12:346][  0]LogSlate: New Slate User Created. Platform User Id 0, User Index 0, Is Virtual User: 0
-[2026.09.07-12.05.12:346][  0]LogSlate: Slate User Registered.  User Index 0, Is Virtual User: 0
-[2026.09.07-12.05.12:373][  0]LogInit: Running DelayedAutoRegister Phase PreRHIInit
-[2026.09.07-12.05.12:381][  0]LogVRS: Current RHI does not support Variable Rate Shading
-[2026.09.07-12.05.12:381][  0]LogRHI: Render tracing channels set: 'Submission' -> 0xf
-[2026.09.07-12.05.12:381][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Null"
-[2026.09.07-12.05.12:381][  0]LogCsvProfiler: Display: Metadata set : rhiname="Null"
-[2026.09.07-12.05.12:381][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
-[2026.09.07-12.05.12:382][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
-[2026.09.07-12.05.12:382][  0]LogCsvProfiler: Display: Metadata set : gpu=""
-[2026.09.07-12.05.12:382][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
-[2026.09.07-12.05.12:382][  0]LogInit: Initializing FReadOnlyCVARCache
-[2026.09.07-12.05.12:386][  0]LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
-[2026.09.07-12.05.12:386][  0]LogInit: Running DelayedAutoRegister Phase ShaderTypesReady
-[2026.09.07-12.05.12:387][  0]LogCore: Engine exit requested (reason: EngineExit() was called; note: exit was already requested)
-[2026.09.07-12.05.12:387][  0]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: )...
-[2026.09.07-12.05.12:387][  0]LogAudio: Display: Audio Device Manager Shutdown
-[2026.09.07-12.05.12:389][  0]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
-[2026.09.07-12.05.12:389][  0]LogExit: Preparing to exit.
-[2026.09.07-12.05.12:389][  0]LogUObjectArray: CloseDisregardForGC: 5605/5605 objects in disregard for GC pool
-[2026.09.07-12.05.12:392][  0]LogExit: Object subsystem successfully closed.
-[2026.09.07-12.05.12:393][  0]LogChaosDD: Chaos Debug Draw Shutdown
-[2026.09.07-12.05.12:395][  0]LogNFORDenoise: NFORDenoise function shutting down
-[2026.09.07-12.05.12:395][  0]LogPakFile: Destroying PakPlatformFile
-[2026.09.07-12.05.12:396][  0]LogExit: Exiting.
-[2026.09.07-12.05.12:407][  0]Log file closed, 09/07/26 14:05:12
+[2026.09.07-20.36.35:120][  0]LogHAL: Display: Platform has ~ 32 GB [34282192896 / 34359738368 / 32], which maps to Largest [LargestMinGB=32, LargerMinGB=12, DefaultMinGB=8, SmallerMinGB=6, SmallestMinGB=0)
+[2026.09.07-20.36.35:120][  0]LogDeviceProfileManager: Going up to parent DeviceProfile []
+[2026.09.07-20.36.35:120][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[UI.SlateSDFText.RasterizationMode:Bitmap -> Msdf]]
+[2026.09.07-20.36.35:120][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[UI.SlateSDFText.ResolutionLevel:2 -> 2]]
+[2026.09.07-20.36.35:121][  0]LogConfig: Applying CVar settings from Section [Startup] File [../../../Engine/Config/ConsoleVariables.ini]
+[2026.09.07-20.36.35:121][  0]LogConfig: Set CVar [[p.chaos.AllowCreatePhysxBodies:1]]
+[2026.09.07-20.36.35:121][  0]LogConfig: Set CVar [[fx.SkipVectorVMBackendOptimizations:1]]
+[2026.09.07-20.36.35:121][  0]LogConfig: Applying CVar settings from Section [Startup_Windows] File [../../../Engine/Config/ConsoleVariables.ini]
+[2026.09.07-20.36.35:121][  0]LogConfig: Applying CVar settings from Section [ConsoleVariables] File [Engine]
+[2026.09.07-20.36.35:121][  0]LogConfig: Set CVar [[WindowsApplication.UseWorkerThreadForRawInput:0]]
+[2026.09.07-20.36.35:121][  0]LogConfig: Set CVar [[r.PSOPrecache.KeepInMemoryForActiveMaterials:1]]
+[2026.09.07-20.36.35:121][  0]LogInit: Computer: JAFAR-DESKTOP
+[2026.09.07-20.36.35:121][  0]LogInit: User: Jafar
+[2026.09.07-20.36.35:122][  0]LogInit: CPU Page size=4096, Cores=6
+[2026.09.07-20.36.35:122][  0]LogInit: High frequency timer resolution =10.000000 MHz
+[2026.09.07-20.36.35:122][  0]LogInit: Gaming Handheld Device: 0
+[2026.09.07-20.36.35:122][  0]LogMemory: Process is running as part of a Windows Job with separate resource limits
+[2026.09.07-20.36.35:122][  0]LogMemory: Memory total: Physical=31.9GB (32GB approx) Virtual=33.9GB
+[2026.09.07-20.36.35:122][  0]LogMemory: Platform Memory Stats for Windows
+[2026.09.07-20.36.35:122][  0]LogMemory: Process Physical Memory: 190.83 MB used, 190.83 MB peak
+[2026.09.07-20.36.35:122][  0]LogMemory: Process Virtual Memory: 132.07 MB used, 132.07 MB peak
+[2026.09.07-20.36.35:122][  0]LogMemory: Physical Memory: 16190.70 MB used,  16503.34 MB free, 32694.05 MB total
+[2026.09.07-20.36.35:123][  0]LogMemory: Virtual Memory: 22966.28 MB used,  11775.77 MB free, 34742.05 MB total
+[2026.09.07-20.36.35:123][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
+[2026.09.07-20.36.35:123][  0]LogWindows: WindowsPlatformFeatures enabled
+[2026.09.07-20.36.35:123][  0]LogSpline: Registered spline type: TypeId=0x54E3AD22, Impl=MultiSpline, Value=Vector
+[2026.09.07-20.36.35:123][  0]LogChaosDD: Chaos Debug Draw Startup
+[2026.09.07-20.36.35:123][  0]LogInit: Physics initialised using underlying interface: Chaos
+[2026.09.07-20.36.35:123][  0]LogInit: Using OS detected language (en-US).
+[2026.09.07-20.36.35:123][  0]LogInit: Using OS detected locale (en-US).
+[2026.09.07-20.36.35:123][  0]LogTextLocalizationManager: No specific localization for 'en-US' exists, so 'en' will be used for the language.
+[2026.09.07-20.36.35:171][  0]LogWindowsTouchpad: Display: CacheForceMaxTouchpadSensitivityMode SetMaxTouchpadSensitivity
+[2026.09.07-20.36.35:172][  0]LogInputDeviceRegistry: RegisterDevice: DeviceId=0 InputDeviceName=WindowsApplication HardwareDeviceIdentifier=KBM (changed=true)
+[2026.09.07-20.36.35:175][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+[2026.09.07-20.36.35:176][  0]LogSlate: New Slate User Created. Platform User Id 0, User Index 0, Is Virtual User: 0
+[2026.09.07-20.36.35:177][  0]LogSlate: Slate User Registered.  User Index 0, Is Virtual User: 0
+[2026.09.07-20.36.35:205][  0]LogInit: Running DelayedAutoRegister Phase PreRHIInit
+[2026.09.07-20.36.35:213][  0]LogVRS: Current RHI does not support Variable Rate Shading
+[2026.09.07-20.36.35:213][  0]LogRHI: Render tracing channels set: 'Submission' -> 0xf
+[2026.09.07-20.36.35:213][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Null"
+[2026.09.07-20.36.35:213][  0]LogCsvProfiler: Display: Metadata set : rhiname="Null"
+[2026.09.07-20.36.35:213][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
+[2026.09.07-20.36.35:213][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
+[2026.09.07-20.36.35:213][  0]LogCsvProfiler: Display: Metadata set : gpu=""
+[2026.09.07-20.36.35:214][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
+[2026.09.07-20.36.35:214][  0]LogInit: Initializing FReadOnlyCVARCache
+[2026.09.07-20.36.35:218][  0]LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
+[2026.09.07-20.36.35:218][  0]LogInit: Running DelayedAutoRegister Phase ShaderTypesReady
+[2026.09.07-20.36.35:218][  0]LogCore: Engine exit requested (reason: EngineExit() was called; note: exit was already requested)
+[2026.09.07-20.36.35:219][  0]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: )...
+[2026.09.07-20.36.35:219][  0]LogAudio: Display: Audio Device Manager Shutdown
+[2026.09.07-20.36.35:220][  0]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
+[2026.09.07-20.36.35:220][  0]LogExit: Preparing to exit.
+[2026.09.07-20.36.35:221][  0]LogUObjectArray: CloseDisregardForGC: 5605/5605 objects in disregard for GC pool
+[2026.09.07-20.36.35:225][  0]LogExit: Object subsystem successfully closed.
+[2026.09.07-20.36.35:225][  0]LogChaosDD: Chaos Debug Draw Shutdown
+[2026.09.07-20.36.35:227][  0]LogNFORDenoise: NFORDenoise function shutting down
+[2026.09.07-20.36.35:227][  0]LogPakFile: Destroying PakPlatformFile
+[2026.09.07-20.36.35:228][  0]LogExit: Exiting.
+[2026.09.07-20.36.35:234][  0]Log file closed, 09/07/26 22:36:35
 --- game stdout, last 40 lines ---
-[2026.09.07-12.05.12:298][  0]LogMemory: Process Physical Memory: 190.71 MB used, 190.71 MB peak
-[2026.09.07-12.05.12:299][  0]LogMemory: Process Virtual Memory: 131.96 MB used, 131.96 MB peak
-[2026.09.07-12.05.12:299][  0]LogMemory: Physical Memory: 15641.67 MB used,  17052.38 MB free, 32694.05 MB total
-[2026.09.07-12.05.12:299][  0]LogMemory: Virtual Memory: 22834.80 MB used,  11907.24 MB free, 34742.05 MB total
-[2026.09.07-12.05.12:299][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
-[2026.09.07-12.05.12:299][  0]LogWindows: WindowsPlatformFeatures enabled
-[2026.09.07-12.05.12:299][  0]LogSpline: Registered spline type: TypeId=0x54E3AD22, Impl=MultiSpline, Value=Vector
-[2026.09.07-12.05.12:299][  0]LogChaosDD: Chaos Debug Draw Startup
-[2026.09.07-12.05.12:299][  0]LogInit: Physics initialised using underlying interface: Chaos
-[2026.09.07-12.05.12:299][  0]LogInit: Using OS detected language (en-US).
-[2026.09.07-12.05.12:300][  0]LogInit: Using OS detected locale (en-US).
-[2026.09.07-12.05.12:300][  0]LogTextLocalizationManager: No specific localization for 'en-US' exists, so 'en' will be used for the language.
-[2026.09.07-12.05.12:341][  0]LogWindowsTouchpad: Display: CacheForceMaxTouchpadSensitivityMode SetMaxTouchpadSensitivity
-[2026.09.07-12.05.12:341][  0]LogInputDeviceRegistry: RegisterDevice: DeviceId=0 InputDeviceName=WindowsApplication HardwareDeviceIdentifier=KBM (changed=true)
-[2026.09.07-12.05.12:344][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
-[2026.09.07-12.05.12:346][  0]LogSlate: New Slate User Created. Platform User Id 0, User Index 0, Is Virtual User: 0
-[2026.09.07-12.05.12:346][  0]LogSlate: Slate User Registered.  User Index 0, Is Virtual User: 0
-[2026.09.07-12.05.12:373][  0]LogInit: Running DelayedAutoRegister Phase PreRHIInit
-[2026.09.07-12.05.12:381][  0]LogVRS: Current RHI does not support Variable Rate Shading
-[2026.09.07-12.05.12:381][  0]LogRHI: Render tracing channels set: 'Submission' -> 0xf
-[2026.09.07-12.05.12:381][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Null"
-[2026.09.07-12.05.12:381][  0]LogCsvProfiler: Display: Metadata set : rhiname="Null"
-[2026.09.07-12.05.12:381][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
-[2026.09.07-12.05.12:381][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
-[2026.09.07-12.05.12:382][  0]LogCsvProfiler: Display: Metadata set : gpu=""
-[2026.09.07-12.05.12:382][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
-[2026.09.07-12.05.12:382][  0]LogInit: Initializing FReadOnlyCVARCache
-[2026.09.07-12.05.12:386][  0]LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
-[2026.09.07-12.05.12:386][  0]LogInit: Running DelayedAutoRegister Phase ShaderTypesReady
-[2026.09.07-12.05.12:387][  0]LogCore: Engine exit requested (reason: EngineExit() was called; note: exit was already requested)
-[2026.09.07-12.05.12:387][  0]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: )...
-[2026.09.07-12.05.12:387][  0]LogAudio: Display: Audio Device Manager Shutdown
-[2026.09.07-12.05.12:389][  0]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
-[2026.09.07-12.05.12:389][  0]LogExit: Preparing to exit.
-[2026.09.07-12.05.12:389][  0]LogUObjectArray: CloseDisregardForGC: 5605/5605 objects in disregard for GC pool
-[2026.09.07-12.05.12:392][  0]LogExit: Object subsystem successfully closed.
-[2026.09.07-12.05.12:393][  0]LogChaosDD: Chaos Debug Draw Shutdown
-[2026.09.07-12.05.12:395][  0]LogNFORDenoise: NFORDenoise function shutting down
-[2026.09.07-12.05.12:395][  0]LogPakFile: Destroying PakPlatformFile
-[2026.09.07-12.05.12:396][  0]LogExit: Exiting.
+[2026.09.07-20.36.35:122][  0]LogMemory: Process Physical Memory: 190.83 MB used, 190.83 MB peak
+[2026.09.07-20.36.35:122][  0]LogMemory: Process Virtual Memory: 132.07 MB used, 132.07 MB peak
+[2026.09.07-20.36.35:122][  0]LogMemory: Physical Memory: 16190.70 MB used,  16503.34 MB free, 32694.05 MB total
+[2026.09.07-20.36.35:122][  0]LogMemory: Virtual Memory: 22966.28 MB used,  11775.77 MB free, 34742.05 MB total
+[2026.09.07-20.36.35:123][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
+[2026.09.07-20.36.35:123][  0]LogWindows: WindowsPlatformFeatures enabled
+[2026.09.07-20.36.35:123][  0]LogSpline: Registered spline type: TypeId=0x54E3AD22, Impl=MultiSpline, Value=Vector
+[2026.09.07-20.36.35:123][  0]LogChaosDD: Chaos Debug Draw Startup
+[2026.09.07-20.36.35:123][  0]LogInit: Physics initialised using underlying interface: Chaos
+[2026.09.07-20.36.35:123][  0]LogInit: Using OS detected language (en-US).
+[2026.09.07-20.36.35:123][  0]LogInit: Using OS detected locale (en-US).
+[2026.09.07-20.36.35:123][  0]LogTextLocalizationManager: No specific localization for 'en-US' exists, so 'en' will be used for the language.
+[2026.09.07-20.36.35:171][  0]LogWindowsTouchpad: Display: CacheForceMaxTouchpadSensitivityMode SetMaxTouchpadSensitivity
+[2026.09.07-20.36.35:172][  0]LogInputDeviceRegistry: RegisterDevice: DeviceId=0 InputDeviceName=WindowsApplication HardwareDeviceIdentifier=KBM (changed=true)
+[2026.09.07-20.36.35:174][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+[2026.09.07-20.36.35:176][  0]LogSlate: New Slate User Created. Platform User Id 0, User Index 0, Is Virtual User: 0
+[2026.09.07-20.36.35:177][  0]LogSlate: Slate User Registered.  User Index 0, Is Virtual User: 0
+[2026.09.07-20.36.35:205][  0]LogInit: Running DelayedAutoRegister Phase PreRHIInit
+[2026.09.07-20.36.35:213][  0]LogVRS: Current RHI does not support Variable Rate Shading
+[2026.09.07-20.36.35:213][  0]LogRHI: Render tracing channels set: 'Submission' -> 0xf
+[2026.09.07-20.36.35:213][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Null"
+[2026.09.07-20.36.35:213][  0]LogCsvProfiler: Display: Metadata set : rhiname="Null"
+[2026.09.07-20.36.35:213][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
+[2026.09.07-20.36.35:213][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
+[2026.09.07-20.36.35:213][  0]LogCsvProfiler: Display: Metadata set : gpu=""
+[2026.09.07-20.36.35:213][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
+[2026.09.07-20.36.35:214][  0]LogInit: Initializing FReadOnlyCVARCache
+[2026.09.07-20.36.35:218][  0]LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
+[2026.09.07-20.36.35:218][  0]LogInit: Running DelayedAutoRegister Phase ShaderTypesReady
+[2026.09.07-20.36.35:218][  0]LogCore: Engine exit requested (reason: EngineExit() was called; note: exit was already requested)
+[2026.09.07-20.36.35:218][  0]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: )...
+[2026.09.07-20.36.35:219][  0]LogAudio: Display: Audio Device Manager Shutdown
+[2026.09.07-20.36.35:220][  0]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
+[2026.09.07-20.36.35:220][  0]LogExit: Preparing to exit.
+[2026.09.07-20.36.35:221][  0]LogUObjectArray: CloseDisregardForGC: 5605/5605 objects in disregard for GC pool
+[2026.09.07-20.36.35:224][  0]LogExit: Object subsystem successfully closed.
+[2026.09.07-20.36.35:225][  0]LogChaosDD: Chaos Debug Draw Shutdown
+[2026.09.07-20.36.35:227][  0]LogNFORDenoise: NFORDenoise function shutting down
+[2026.09.07-20.36.35:227][  0]LogPakFile: Destroying PakPlatformFile
+[2026.09.07-20.36.35:228][  0]LogExit: Exiting.
 ueVerdictCandidates=3 ueVerdictFound=yes
 ueVerdictFrom=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\ue-verdict.txt
 buildReached=end
 materialLogFile=production/d1-probe/ue-material-log.txt materialLogFromScript=True materialLogStdoutLines=247 materialLogStderrLines=0 materialGeneratedAssets=2 materialGeneratedAssetNames=T_LedgerDefaultNormal.uasset/T_LedgerDefaultRough.uasset materialLogStat=line-counts-of-the-editor-process-own-output/not-of-the-slice-the-script-scanned
 
 --- TASK 007 STEP 2, THE STILL ---
-shotCmd=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Binaries\Win64\LedgerProbe.exe -LedgerShot -LedgerCommit=19d4829 -RenderOffScreen -ResX=960 -ResY=540 -windowed -unattended -nosplash -nopause -stdout -FullStdOutLogOutput
-shotExit=0 shotSeconds=6.02 pngFound=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\ue-shot.png
+shotCmd=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Binaries\Win64\LedgerProbe.exe -LedgerShot -LedgerCommit=de4ad4d -RenderOffScreen -ResX=960 -ResY=540 -windowed -unattended -nosplash -nopause -stdout -FullStdOutLogOutput
+shotExit=0 shotSeconds=6.03 pngFound=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\ue-shot.png
 shotLogLines=982 shotInterestingLines=65 shotLogFrom=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Saved\Logs\LedgerProbe.log
-LogCsvProfiler: Display: Metadata set : commandline="" -LedgerShot -LedgerCommit=19d4829 -RenderOffScreen -ResX=960 -ResY=540 -windowed -unattended -nosplash -nopause -stdout -FullStdOutLogOutput""
-LogInit: Command Line:  -LedgerShot -LedgerCommit=19d4829 -RenderOffScreen -ResX=960 -ResY=540 -windowed -unattended -nosplash -nopause -stdout -FullStdOutLogOutput
-[2026.09.07-12.05.15:135][  0]LogRHI: Using Default RHI: D3D12
-[2026.09.07-12.05.15:135][  0]LogRHI: Using Highest Feature Level of D3D12: SM5
-[2026.09.07-12.05.15:136][  0]LogRHI: Loading RHI module D3D12RHI
-[2026.09.07-12.05.15:136][  0]LogRHI: Checking if RHI D3D12 with Feature Level SM5 is supported by your system.
-[2026.09.07-12.05.15:139][  0]LogRHI: RHI D3D12 with Feature Level SM5 is supported and will be used.
-[2026.09.07-12.05.15:216][  0]LogRHI: Using Default RHI: D3D12
-[2026.09.07-12.05.15:216][  0]LogRHI: Using Highest Feature Level of D3D12: SM5
-[2026.09.07-12.05.15:217][  0]LogRHI: Loading RHI module D3D12RHI
-[2026.09.07-12.05.15:217][  0]LogRHI: Checking if RHI D3D12 with Feature Level SM5 is supported by your system.
-[2026.09.07-12.05.15:217][  0]LogRHI: RHI D3D12 with Feature Level SM5 is supported and will be used.
-[2026.09.07-12.05.15:272][  0]LogRHI: Display: Timeout Detection and Recovery (TDR) summary: 
-[2026.09.07-12.05.15:272][  0]LogRHI: RHI Adapter Info:
-[2026.09.07-12.05.15:272][  0]LogRHI:             Name: AMD Radeon RX 6700
-[2026.09.07-12.05.15:273][  0]LogRHI:   Driver Version: AMD Software: Adrenalin Edition 26.8.1 (internal:32.0.21045.5002, unified:32.0.21045.5002)
-[2026.09.07-12.05.15:273][  0]LogRHI:      Driver Date: 8-17-2026
-[2026.09.07-12.05.15:273][  0]LogRHI: Performing driver check for denylisted drivers.
-[2026.09.07-12.05.15:389][  0]LogRHI: Texture pool is 5938 MB (70% of 8484 MB)
-[2026.09.07-12.05.15:397][  0]LogRHI: Render tracing channels set: 'Submission' -> 0xf
-[2026.09.07-12.05.15:454][  0]LogRHI: Could not open FPipelineCacheFile: ../../../LedgerProbe/Content/PipelineCaches/Windows/LedgerProbe_PCD3D_SM5.stable.upipelinecache
-[2026.09.07-12.05.15:454][  0]LogRHI: Could not open FPipelineCacheFile: ../../../LedgerProbe/Content/PipelineCaches/Windows/LedgerProbe_PCD3D_SM5.stable.upipelinecache
-[2026.09.07-12.05.15:455][  0]LogRHI: Could not open FPipelineCacheFile: ../../../LedgerProbe/Content/PipelineCaches/Windows/LedgerProbe_PCD3D_SM5.stable.upipelinecache
-[2026.09.07-12.05.15:999][  0]LogRHI: Display: ShaderPipelineCache: Paused Batching. 1
-[2026.09.07-12.05.16:000][  0]LogRHI: Display: ShaderPipelineCache: Resumed Batching. 0
-[2026.09.07-12.05.16:000][  0]LogRHI: Display: ShaderPipelineCache: Batching Resumed.
-[2026.09.07-12.05.16:021][  0]LogRHI: Display: Encountered a new graphics PSO: 1562664903 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.16:021][  0]LogRHI: Display: Encountered a new graphics PSO: 3365803695 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.16:021][  0]LogRHI: Display: Encountered a new graphics PSO: 2103596676 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.16:021][  0]LogRHI: Display: Encountered a new compute PSO: 2492016147 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.16:022][  0]LogRHI: Display: Encountered a new graphics PSO: 2577428162 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.16:022][  0]LogRHI: Display: Encountered a new graphics PSO: 84256573 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.16:022][  0]LogRHI: Display: Encountered a new graphics PSO: 351061559 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.16:022][  0]LogRHI: Display: Encountered a new graphics PSO: 1196237148 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.16:022][  0]LogRHI: Display: Encountered a new graphics PSO: 636927946 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.16:022][  0]LogRHI: Display: Encountered a new graphics PSO: 398146319 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.16:023][  0]LogRHI: Display: Encountered a new graphics PSO: 3748955475 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.16:023][  0]LogRHI: Display: Encountered a new graphics PSO: 954385289 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.16:023][  0]LogRHI: Display: Encountered a new graphics PSO: 3505259740 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.16:023][  0]LogRHI: Display: Encountered a new graphics PSO: 1127985678 (PSOPrecacheState: Missed)
+LogCsvProfiler: Display: Metadata set : commandline="" -LedgerShot -LedgerCommit=de4ad4d -RenderOffScreen -ResX=960 -ResY=540 -windowed -unattended -nosplash -nopause -stdout -FullStdOutLogOutput""
+LogInit: Command Line:  -LedgerShot -LedgerCommit=de4ad4d -RenderOffScreen -ResX=960 -ResY=540 -windowed -unattended -nosplash -nopause -stdout -FullStdOutLogOutput
+[2026.09.07-20.36.38:135][  0]LogRHI: Using Default RHI: D3D12
+[2026.09.07-20.36.38:135][  0]LogRHI: Using Highest Feature Level of D3D12: SM5
+[2026.09.07-20.36.38:136][  0]LogRHI: Loading RHI module D3D12RHI
+[2026.09.07-20.36.38:136][  0]LogRHI: Checking if RHI D3D12 with Feature Level SM5 is supported by your system.
+[2026.09.07-20.36.38:139][  0]LogRHI: RHI D3D12 with Feature Level SM5 is supported and will be used.
+[2026.09.07-20.36.38:216][  0]LogRHI: Using Default RHI: D3D12
+[2026.09.07-20.36.38:216][  0]LogRHI: Using Highest Feature Level of D3D12: SM5
+[2026.09.07-20.36.38:216][  0]LogRHI: Loading RHI module D3D12RHI
+[2026.09.07-20.36.38:217][  0]LogRHI: Checking if RHI D3D12 with Feature Level SM5 is supported by your system.
+[2026.09.07-20.36.38:217][  0]LogRHI: RHI D3D12 with Feature Level SM5 is supported and will be used.
+[2026.09.07-20.36.38:272][  0]LogRHI: Display: Timeout Detection and Recovery (TDR) summary: 
+[2026.09.07-20.36.38:273][  0]LogRHI: RHI Adapter Info:
+[2026.09.07-20.36.38:273][  0]LogRHI:             Name: AMD Radeon RX 6700
+[2026.09.07-20.36.38:273][  0]LogRHI:   Driver Version: AMD Software: Adrenalin Edition 26.8.1 (internal:32.0.21045.5002, unified:32.0.21045.5002)
+[2026.09.07-20.36.38:274][  0]LogRHI:      Driver Date: 8-17-2026
+[2026.09.07-20.36.38:274][  0]LogRHI: Performing driver check for denylisted drivers.
+[2026.09.07-20.36.38:389][  0]LogRHI: Texture pool is 5938 MB (70% of 8484 MB)
+[2026.09.07-20.36.38:396][  0]LogRHI: Render tracing channels set: 'Submission' -> 0xf
+[2026.09.07-20.36.38:452][  0]LogRHI: Could not open FPipelineCacheFile: ../../../LedgerProbe/Content/PipelineCaches/Windows/LedgerProbe_PCD3D_SM5.stable.upipelinecache
+[2026.09.07-20.36.38:452][  0]LogRHI: Could not open FPipelineCacheFile: ../../../LedgerProbe/Content/PipelineCaches/Windows/LedgerProbe_PCD3D_SM5.stable.upipelinecache
+[2026.09.07-20.36.38:452][  0]LogRHI: Could not open FPipelineCacheFile: ../../../LedgerProbe/Content/PipelineCaches/Windows/LedgerProbe_PCD3D_SM5.stable.upipelinecache
+[2026.09.07-20.36.39:018][  0]LogRHI: Display: ShaderPipelineCache: Paused Batching. 1
+[2026.09.07-20.36.39:018][  0]LogRHI: Display: ShaderPipelineCache: Resumed Batching. 0
+[2026.09.07-20.36.39:018][  0]LogRHI: Display: ShaderPipelineCache: Batching Resumed.
+[2026.09.07-20.36.39:040][  0]LogRHI: Display: Encountered a new graphics PSO: 3365803695 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.39:041][  0]LogRHI: Display: Encountered a new compute PSO: 2492016147 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.39:041][  0]LogRHI: Display: Encountered a new graphics PSO: 2103596676 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.39:041][  0]LogRHI: Display: Encountered a new graphics PSO: 1562664903 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.39:041][  0]LogRHI: Display: Encountered a new graphics PSO: 2577428162 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.39:042][  0]LogRHI: Display: Encountered a new graphics PSO: 84256573 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.39:042][  0]LogRHI: Display: Encountered a new graphics PSO: 351061559 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.39:042][  0]LogRHI: Display: Encountered a new graphics PSO: 636927946 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.39:042][  0]LogRHI: Display: Encountered a new graphics PSO: 1196237148 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.39:042][  0]LogRHI: Display: Encountered a new graphics PSO: 398146319 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.39:043][  0]LogRHI: Display: Encountered a new graphics PSO: 3748955475 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.39:043][  0]LogRHI: Display: Encountered a new graphics PSO: 954385289 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.39:043][  0]LogRHI: Display: Encountered a new graphics PSO: 3505259740 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.39:043][  0]LogRHI: Display: Encountered a new graphics PSO: 1127985678 (PSOPrecacheState: Missed)
 (+25 more matching line(s) not shown)
 --- last 30 lines of the shot run's log, as context ---
-[2026.09.07-12.05.18:148][ 13]LogWorld: BeginTearingDown for /Engine/Maps/Entry
-[2026.09.07-12.05.18:149][ 13]LogWorld: UWorld::CleanupWorld for Entry, bSessionEnded=true, bCleanupResources=true
-[2026.09.07-12.05.18:149][ 13]LogSlate: InvalidateAllWidgets triggered.  All widgets were invalidated
-[2026.09.07-12.05.18:151][ 13]LogRuntimeTelemetry: Recording EnginePreExit events
-[2026.09.07-12.05.18:821][ 13]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: AudioMixerWasapi)...
-[2026.09.07-12.05.18:822][ 13]LogAudio: Display: Destroying 1 Remaining Audio Device(s)...
-[2026.09.07-12.05.18:822][ 13]LogAudio: Display: Audio Device unregistered from world 'Entry'.
-[2026.09.07-12.05.18:822][ 13]LogAudio: Display: Shutting down audio device while 1 references to it are still alive. For more information, compile with INSTRUMENT_AUDIODEVICE_HANDLES.
-[2026.09.07-12.05.18:853][ 13]LogAudioMixer: Display: FAudioMixerWasapi::StopAudioStream() InstanceID=1, StreamState=4
-[2026.09.07-12.05.18:854][ 13]LogAudioMixerWasapi: Display: FWasapiServiceWatcher stopped.
-[2026.09.07-12.05.18:859][ 13]LogAudioMixer: Deinitializing Audio Bus Subsystem for audio device with ID -1
-[2026.09.07-12.05.18:859][ 13]LogAudio: Display: Audio Device Manager Shutdown
-[2026.09.07-12.05.18:859][ 13]LogSlate: Request Window 'LedgerProbe (64-bit Development PCD3D_SM5) ' being destroyed
-[2026.09.07-12.05.18:859][ 13]LogSlate: Window 'LedgerProbe (64-bit Development PCD3D_SM5) ' being destroyed
-[2026.09.07-12.05.18:860][ 13]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
-[2026.09.07-12.05.18:862][ 13]LogExit: Preparing to exit.
-[2026.09.07-12.05.18:862][ 13]LogMoviePlayer: Shutting down movie player
-[2026.09.07-12.05.18:868][ 13]LogSlate: Updating window title bar state: overlay mode, drag disabled, window buttons hidden, title bar hidden
-[2026.09.07-12.05.18:871][ 13]LogDemo: Cleaned up 0 splitscreen connections, owner deletion: enabled
-[2026.09.07-12.05.18:874][ 13]LogExit: Game engine shut down
-[2026.09.07-12.05.18:916][ 13]LogExit: Object subsystem successfully closed.
-[2026.09.07-12.05.18:922][ 13]LogShaderLibrary: Display: Closing logical shader library 'Global' with 1 components
-[2026.09.07-12.05.18:927][ 13]LogShaderLibrary: Display: Closing logical shader library 'LedgerProbe' with 1 components
-[2026.09.07-12.05.18:939][ 13]LogChaosDD: Chaos Debug Draw Shutdown
-[2026.09.07-12.05.18:940][ 13]LogNFORDenoise: NFORDenoise function shutting down
-[2026.09.07-12.05.18:941][ 13]RenderDocPlugin: plugin has been unloaded.
-[2026.09.07-12.05.18:941][ 13]LogPakFile: Destroying PakPlatformFile
-[2026.09.07-12.05.19:415][ 13]LogD3D12RHI: ~FD3D12DynamicRHI
-[2026.09.07-12.05.19:420][ 13]LogExit: Exiting.
-[2026.09.07-12.05.19:431][ 13]Log file closed, 09/07/26 14:05:19
+[2026.09.07-20.36.41:166][  7]LogWorld: BeginTearingDown for /Engine/Maps/Entry
+[2026.09.07-20.36.41:167][  7]LogWorld: UWorld::CleanupWorld for Entry, bSessionEnded=true, bCleanupResources=true
+[2026.09.07-20.36.41:167][  7]LogSlate: InvalidateAllWidgets triggered.  All widgets were invalidated
+[2026.09.07-20.36.41:169][  7]LogRuntimeTelemetry: Recording EnginePreExit events
+[2026.09.07-20.36.41:820][  7]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: AudioMixerWasapi)...
+[2026.09.07-20.36.41:820][  7]LogAudio: Display: Destroying 1 Remaining Audio Device(s)...
+[2026.09.07-20.36.41:820][  7]LogAudio: Display: Audio Device unregistered from world 'Entry'.
+[2026.09.07-20.36.41:820][  7]LogAudio: Display: Shutting down audio device while 1 references to it are still alive. For more information, compile with INSTRUMENT_AUDIODEVICE_HANDLES.
+[2026.09.07-20.36.41:857][  7]LogAudioMixer: Display: FAudioMixerWasapi::StopAudioStream() InstanceID=1, StreamState=4
+[2026.09.07-20.36.41:858][  7]LogAudioMixerWasapi: Display: FWasapiServiceWatcher stopped.
+[2026.09.07-20.36.41:867][  7]LogAudioMixer: Deinitializing Audio Bus Subsystem for audio device with ID -1
+[2026.09.07-20.36.41:867][  7]LogAudio: Display: Audio Device Manager Shutdown
+[2026.09.07-20.36.41:867][  7]LogSlate: Request Window 'LedgerProbe (64-bit Development PCD3D_SM5) ' being destroyed
+[2026.09.07-20.36.41:868][  7]LogSlate: Window 'LedgerProbe (64-bit Development PCD3D_SM5) ' being destroyed
+[2026.09.07-20.36.41:870][  7]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
+[2026.09.07-20.36.41:872][  7]LogExit: Preparing to exit.
+[2026.09.07-20.36.41:873][  7]LogMoviePlayer: Shutting down movie player
+[2026.09.07-20.36.41:884][  7]LogSlate: Updating window title bar state: overlay mode, drag disabled, window buttons hidden, title bar hidden
+[2026.09.07-20.36.41:887][  7]LogDemo: Cleaned up 0 splitscreen connections, owner deletion: enabled
+[2026.09.07-20.36.41:889][  7]LogExit: Game engine shut down
+[2026.09.07-20.36.41:941][  7]LogExit: Object subsystem successfully closed.
+[2026.09.07-20.36.41:951][  7]LogShaderLibrary: Display: Closing logical shader library 'Global' with 1 components
+[2026.09.07-20.36.41:959][  7]LogShaderLibrary: Display: Closing logical shader library 'LedgerProbe' with 1 components
+[2026.09.07-20.36.41:974][  7]LogChaosDD: Chaos Debug Draw Shutdown
+[2026.09.07-20.36.41:975][  7]LogNFORDenoise: NFORDenoise function shutting down
+[2026.09.07-20.36.41:976][  7]RenderDocPlugin: plugin has been unloaded.
+[2026.09.07-20.36.41:977][  7]LogPakFile: Destroying PakPlatformFile
+[2026.09.07-20.36.42:486][  7]LogD3D12RHI: ~FD3D12DynamicRHI
+[2026.09.07-20.36.42:492][  7]LogExit: Exiting.
+[2026.09.07-20.36.42:504][  7]Log file closed, 09/07/26 22:36:42
 
 --- PHASE B, THE STREET IN UNREAL ---
-vignCmd=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Binaries\Win64\LedgerProbe.exe -LedgerVignette -LedgerCommit=19d4829 -RenderOffScreen -ResX=1280 -ResY=720 -windowed -unattended -nosplash -nopause -stdout -FullStdOutLogOutput
-vignExit=0 vignSeconds=12.03 vignSpecBytes=167790 vignPngCopied=4
+vignCmd=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Binaries\Win64\LedgerProbe.exe -LedgerVignette -LedgerCommit=de4ad4d -RenderOffScreen -ResX=1280 -ResY=720 -windowed -unattended -nosplash -nopause -stdout -FullStdOutLogOutput
+vignExit=0 vignSeconds=12.02 vignSpecBytes=167790 vignPngCopied=4
 vignLogLines=983 vignInterestingLines=66 vignLogFrom=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Saved\Logs\LedgerProbe.log
-LogCsvProfiler: Display: Metadata set : commandline="" -LedgerVignette -LedgerCommit=19d4829 -RenderOffScreen -ResX=1280 -ResY=720 -windowed -unattended -nosplash -nopause -stdout -FullStdOutLogOutput""
-LogInit: Command Line:  -LedgerVignette -LedgerCommit=19d4829 -RenderOffScreen -ResX=1280 -ResY=720 -windowed -unattended -nosplash -nopause -stdout -FullStdOutLogOutput
-[2026.09.07-12.05.21:915][  0]LogRHI: Using Default RHI: D3D12
-[2026.09.07-12.05.21:915][  0]LogRHI: Using Highest Feature Level of D3D12: SM5
-[2026.09.07-12.05.21:915][  0]LogRHI: Loading RHI module D3D12RHI
-[2026.09.07-12.05.21:916][  0]LogRHI: Checking if RHI D3D12 with Feature Level SM5 is supported by your system.
-[2026.09.07-12.05.21:918][  0]LogRHI: RHI D3D12 with Feature Level SM5 is supported and will be used.
-[2026.09.07-12.05.21:999][  0]LogRHI: Using Default RHI: D3D12
-[2026.09.07-12.05.21:999][  0]LogRHI: Using Highest Feature Level of D3D12: SM5
-[2026.09.07-12.05.21:999][  0]LogRHI: Loading RHI module D3D12RHI
-[2026.09.07-12.05.22:000][  0]LogRHI: Checking if RHI D3D12 with Feature Level SM5 is supported by your system.
-[2026.09.07-12.05.22:000][  0]LogRHI: RHI D3D12 with Feature Level SM5 is supported and will be used.
-[2026.09.07-12.05.22:053][  0]LogRHI: Display: Timeout Detection and Recovery (TDR) summary: 
-[2026.09.07-12.05.22:054][  0]LogRHI: RHI Adapter Info:
-[2026.09.07-12.05.22:054][  0]LogRHI:             Name: AMD Radeon RX 6700
-[2026.09.07-12.05.22:054][  0]LogRHI:   Driver Version: AMD Software: Adrenalin Edition 26.8.1 (internal:32.0.21045.5002, unified:32.0.21045.5002)
-[2026.09.07-12.05.22:054][  0]LogRHI:      Driver Date: 8-17-2026
-[2026.09.07-12.05.22:054][  0]LogRHI: Performing driver check for denylisted drivers.
-[2026.09.07-12.05.22:166][  0]LogRHI: Texture pool is 5938 MB (70% of 8484 MB)
-[2026.09.07-12.05.22:172][  0]LogRHI: Render tracing channels set: 'Submission' -> 0xf
-[2026.09.07-12.05.22:225][  0]LogRHI: Could not open FPipelineCacheFile: ../../../LedgerProbe/Content/PipelineCaches/Windows/LedgerProbe_PCD3D_SM5.stable.upipelinecache
-[2026.09.07-12.05.22:225][  0]LogRHI: Could not open FPipelineCacheFile: ../../../LedgerProbe/Content/PipelineCaches/Windows/LedgerProbe_PCD3D_SM5.stable.upipelinecache
-[2026.09.07-12.05.22:225][  0]LogRHI: Could not open FPipelineCacheFile: ../../../LedgerProbe/Content/PipelineCaches/Windows/LedgerProbe_PCD3D_SM5.stable.upipelinecache
-[2026.09.07-12.05.22:731][  0]LogRHI: Display: ShaderPipelineCache: Paused Batching. 1
-[2026.09.07-12.05.22:731][  0]LogRHI: Display: ShaderPipelineCache: Resumed Batching. 0
-[2026.09.07-12.05.22:731][  0]LogRHI: Display: ShaderPipelineCache: Batching Resumed.
-[2026.09.07-12.05.22:752][  0]LogRHI: Display: Encountered a new graphics PSO: 1562664903 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.22:752][  0]LogRHI: Display: Encountered a new graphics PSO: 2103596676 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.22:752][  0]LogRHI: Display: Encountered a new graphics PSO: 3365803695 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.22:753][  0]LogRHI: Display: Encountered a new compute PSO: 2492016147 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.22:753][  0]LogRHI: Display: Encountered a new graphics PSO: 2577428162 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.22:753][  0]LogRHI: Display: Encountered a new graphics PSO: 84256573 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.22:753][  0]LogRHI: Display: Encountered a new graphics PSO: 636927946 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.22:754][  0]LogRHI: Display: Encountered a new graphics PSO: 351061559 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.22:754][  0]LogRHI: Display: Encountered a new graphics PSO: 1196237148 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.22:754][  0]LogRHI: Display: Encountered a new graphics PSO: 2519847289 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.22:754][  0]LogRHI: Display: Encountered a new graphics PSO: 2489923023 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.22:754][  0]LogRHI: Display: Encountered a new graphics PSO: 3490664842 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.22:754][  0]LogRHI: Display: Encountered a new graphics PSO: 1852929419 (PSOPrecacheState: Missed)
-[2026.09.07-12.05.22:754][  0]LogRHI: Display: Encountered a new graphics PSO: 3275642788 (PSOPrecacheState: Missed)
+LogCsvProfiler: Display: Metadata set : commandline="" -LedgerVignette -LedgerCommit=de4ad4d -RenderOffScreen -ResX=1280 -ResY=720 -windowed -unattended -nosplash -nopause -stdout -FullStdOutLogOutput""
+LogInit: Command Line:  -LedgerVignette -LedgerCommit=de4ad4d -RenderOffScreen -ResX=1280 -ResY=720 -windowed -unattended -nosplash -nopause -stdout -FullStdOutLogOutput
+[2026.09.07-20.36.45:107][  0]LogRHI: Using Default RHI: D3D12
+[2026.09.07-20.36.45:107][  0]LogRHI: Using Highest Feature Level of D3D12: SM5
+[2026.09.07-20.36.45:107][  0]LogRHI: Loading RHI module D3D12RHI
+[2026.09.07-20.36.45:108][  0]LogRHI: Checking if RHI D3D12 with Feature Level SM5 is supported by your system.
+[2026.09.07-20.36.45:110][  0]LogRHI: RHI D3D12 with Feature Level SM5 is supported and will be used.
+[2026.09.07-20.36.45:191][  0]LogRHI: Using Default RHI: D3D12
+[2026.09.07-20.36.45:191][  0]LogRHI: Using Highest Feature Level of D3D12: SM5
+[2026.09.07-20.36.45:192][  0]LogRHI: Loading RHI module D3D12RHI
+[2026.09.07-20.36.45:192][  0]LogRHI: Checking if RHI D3D12 with Feature Level SM5 is supported by your system.
+[2026.09.07-20.36.45:192][  0]LogRHI: RHI D3D12 with Feature Level SM5 is supported and will be used.
+[2026.09.07-20.36.45:257][  0]LogRHI: Display: Timeout Detection and Recovery (TDR) summary: 
+[2026.09.07-20.36.45:259][  0]LogRHI: RHI Adapter Info:
+[2026.09.07-20.36.45:259][  0]LogRHI:             Name: AMD Radeon RX 6700
+[2026.09.07-20.36.45:260][  0]LogRHI:   Driver Version: AMD Software: Adrenalin Edition 26.8.1 (internal:32.0.21045.5002, unified:32.0.21045.5002)
+[2026.09.07-20.36.45:260][  0]LogRHI:      Driver Date: 8-17-2026
+[2026.09.07-20.36.45:261][  0]LogRHI: Performing driver check for denylisted drivers.
+[2026.09.07-20.36.45:379][  0]LogRHI: Texture pool is 5938 MB (70% of 8484 MB)
+[2026.09.07-20.36.45:387][  0]LogRHI: Render tracing channels set: 'Submission' -> 0xf
+[2026.09.07-20.36.45:444][  0]LogRHI: Could not open FPipelineCacheFile: ../../../LedgerProbe/Content/PipelineCaches/Windows/LedgerProbe_PCD3D_SM5.stable.upipelinecache
+[2026.09.07-20.36.45:444][  0]LogRHI: Could not open FPipelineCacheFile: ../../../LedgerProbe/Content/PipelineCaches/Windows/LedgerProbe_PCD3D_SM5.stable.upipelinecache
+[2026.09.07-20.36.45:444][  0]LogRHI: Could not open FPipelineCacheFile: ../../../LedgerProbe/Content/PipelineCaches/Windows/LedgerProbe_PCD3D_SM5.stable.upipelinecache
+[2026.09.07-20.36.45:973][  0]LogRHI: Display: ShaderPipelineCache: Paused Batching. 1
+[2026.09.07-20.36.45:974][  0]LogRHI: Display: ShaderPipelineCache: Resumed Batching. 0
+[2026.09.07-20.36.45:974][  0]LogRHI: Display: ShaderPipelineCache: Batching Resumed.
+[2026.09.07-20.36.45:997][  0]LogRHI: Display: Encountered a new compute PSO: 2492016147 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.45:997][  0]LogRHI: Display: Encountered a new graphics PSO: 1562664903 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.45:997][  0]LogRHI: Display: Encountered a new graphics PSO: 3365803695 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.45:997][  0]LogRHI: Display: Encountered a new graphics PSO: 2103596676 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.45:997][  0]LogRHI: Display: Encountered a new graphics PSO: 2577428162 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.45:998][  0]LogRHI: Display: Encountered a new graphics PSO: 84256573 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.45:998][  0]LogRHI: Display: Encountered a new graphics PSO: 351061559 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.45:998][  0]LogRHI: Display: Encountered a new graphics PSO: 636927946 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.45:998][  0]LogRHI: Display: Encountered a new graphics PSO: 1196237148 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.45:998][  0]LogRHI: Display: Encountered a new graphics PSO: 2519847289 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.45:998][  0]LogRHI: Display: Encountered a new graphics PSO: 2489923023 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.45:998][  0]LogRHI: Display: Encountered a new graphics PSO: 3490664842 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.45:998][  0]LogRHI: Display: Encountered a new graphics PSO: 1852929419 (PSOPrecacheState: Missed)
+[2026.09.07-20.36.45:999][  0]LogRHI: Display: Encountered a new graphics PSO: 3275642788 (PSOPrecacheState: Missed)
 (+26 more matching line(s) not shown)
 --- last 30 lines of the vignette run's log, as context ---
-[2026.09.07-12.05.32:253][ 18]LogWorld: BeginTearingDown for /Engine/Maps/Entry
-[2026.09.07-12.05.32:254][ 18]LogWorld: UWorld::CleanupWorld for Entry, bSessionEnded=true, bCleanupResources=true
-[2026.09.07-12.05.32:255][ 18]LogSlate: InvalidateAllWidgets triggered.  All widgets were invalidated
-[2026.09.07-12.05.32:258][ 18]LogRuntimeTelemetry: Recording EnginePreExit events
-[2026.09.07-12.05.32:571][ 18]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: AudioMixerWasapi)...
-[2026.09.07-12.05.32:571][ 18]LogAudio: Display: Destroying 1 Remaining Audio Device(s)...
-[2026.09.07-12.05.32:571][ 18]LogAudio: Display: Audio Device unregistered from world 'Entry'.
-[2026.09.07-12.05.32:571][ 18]LogAudio: Display: Shutting down audio device while 1 references to it are still alive. For more information, compile with INSTRUMENT_AUDIODEVICE_HANDLES.
-[2026.09.07-12.05.32:571][ 18]LogAudioMixer: Display: FAudioMixerWasapi::StopAudioStream() InstanceID=1, StreamState=4
-[2026.09.07-12.05.32:572][ 18]LogAudioMixerWasapi: Display: FWasapiServiceWatcher stopped.
-[2026.09.07-12.05.32:577][ 18]LogAudioMixer: Deinitializing Audio Bus Subsystem for audio device with ID -1
-[2026.09.07-12.05.32:578][ 18]LogAudio: Display: Audio Device Manager Shutdown
-[2026.09.07-12.05.32:578][ 18]LogSlate: Request Window 'LedgerProbe (64-bit Development PCD3D_SM5) ' being destroyed
-[2026.09.07-12.05.32:578][ 18]LogSlate: Window 'LedgerProbe (64-bit Development PCD3D_SM5) ' being destroyed
-[2026.09.07-12.05.32:579][ 18]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
-[2026.09.07-12.05.32:581][ 18]LogExit: Preparing to exit.
-[2026.09.07-12.05.32:581][ 18]LogMoviePlayer: Shutting down movie player
-[2026.09.07-12.05.32:587][ 18]LogSlate: Updating window title bar state: overlay mode, drag disabled, window buttons hidden, title bar hidden
-[2026.09.07-12.05.32:589][ 18]LogDemo: Cleaned up 0 splitscreen connections, owner deletion: enabled
-[2026.09.07-12.05.32:591][ 18]LogExit: Game engine shut down
-[2026.09.07-12.05.32:683][ 18]LogExit: Object subsystem successfully closed.
-[2026.09.07-12.05.32:693][ 18]LogShaderLibrary: Display: Closing logical shader library 'Global' with 1 components
-[2026.09.07-12.05.32:698][ 18]LogShaderLibrary: Display: Closing logical shader library 'LedgerProbe' with 1 components
-[2026.09.07-12.05.32:706][ 18]LogChaosDD: Chaos Debug Draw Shutdown
-[2026.09.07-12.05.32:707][ 18]LogNFORDenoise: NFORDenoise function shutting down
-[2026.09.07-12.05.32:707][ 18]RenderDocPlugin: plugin has been unloaded.
-[2026.09.07-12.05.32:707][ 18]LogPakFile: Destroying PakPlatformFile
-[2026.09.07-12.05.32:789][ 18]LogD3D12RHI: ~FD3D12DynamicRHI
-[2026.09.07-12.05.32:794][ 18]LogExit: Exiting.
-[2026.09.07-12.05.32:803][ 18]Log file closed, 09/07/26 14:05:32
+[2026.09.07-20.36.55:623][  9]LogWorld: BeginTearingDown for /Engine/Maps/Entry
+[2026.09.07-20.36.55:624][  9]LogWorld: UWorld::CleanupWorld for Entry, bSessionEnded=true, bCleanupResources=true
+[2026.09.07-20.36.55:625][  9]LogSlate: InvalidateAllWidgets triggered.  All widgets were invalidated
+[2026.09.07-20.36.55:627][  9]LogRuntimeTelemetry: Recording EnginePreExit events
+[2026.09.07-20.36.55:813][  9]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: AudioMixerWasapi)...
+[2026.09.07-20.36.55:813][  9]LogAudio: Display: Destroying 1 Remaining Audio Device(s)...
+[2026.09.07-20.36.55:813][  9]LogAudio: Display: Audio Device unregistered from world 'Entry'.
+[2026.09.07-20.36.55:813][  9]LogAudio: Display: Shutting down audio device while 1 references to it are still alive. For more information, compile with INSTRUMENT_AUDIODEVICE_HANDLES.
+[2026.09.07-20.36.55:813][  9]LogAudioMixer: Display: FAudioMixerWasapi::StopAudioStream() InstanceID=1, StreamState=4
+[2026.09.07-20.36.55:814][  9]LogAudioMixerWasapi: Display: FWasapiServiceWatcher stopped.
+[2026.09.07-20.36.55:820][  9]LogAudioMixer: Deinitializing Audio Bus Subsystem for audio device with ID -1
+[2026.09.07-20.36.55:820][  9]LogAudio: Display: Audio Device Manager Shutdown
+[2026.09.07-20.36.55:820][  9]LogSlate: Request Window 'LedgerProbe (64-bit Development PCD3D_SM5) ' being destroyed
+[2026.09.07-20.36.55:820][  9]LogSlate: Window 'LedgerProbe (64-bit Development PCD3D_SM5) ' being destroyed
+[2026.09.07-20.36.55:822][  9]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
+[2026.09.07-20.36.55:823][  9]LogExit: Preparing to exit.
+[2026.09.07-20.36.55:823][  9]LogMoviePlayer: Shutting down movie player
+[2026.09.07-20.36.55:830][  9]LogSlate: Updating window title bar state: overlay mode, drag disabled, window buttons hidden, title bar hidden
+[2026.09.07-20.36.55:832][  9]LogDemo: Cleaned up 0 splitscreen connections, owner deletion: enabled
+[2026.09.07-20.36.55:835][  9]LogExit: Game engine shut down
+[2026.09.07-20.36.55:941][  9]LogExit: Object subsystem successfully closed.
+[2026.09.07-20.36.55:947][  9]LogShaderLibrary: Display: Closing logical shader library 'Global' with 1 components
+[2026.09.07-20.36.55:954][  9]LogShaderLibrary: Display: Closing logical shader library 'LedgerProbe' with 1 components
+[2026.09.07-20.36.55:969][  9]LogChaosDD: Chaos Debug Draw Shutdown
+[2026.09.07-20.36.55:970][  9]LogNFORDenoise: NFORDenoise function shutting down
+[2026.09.07-20.36.55:970][  9]RenderDocPlugin: plugin has been unloaded.
+[2026.09.07-20.36.55:971][  9]LogPakFile: Destroying PakPlatformFile
+[2026.09.07-20.36.56:035][  9]LogD3D12RHI: ~FD3D12DynamicRHI
+[2026.09.07-20.36.56:041][  9]LogExit: Exiting.
+[2026.09.07-20.36.56:050][  9]Log file closed, 09/07/26 22:36:56
+
+--- THE WALK RUN ---
+walkCmd=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Binaries\Win64\LedgerProbe.exe -LedgerWalk -LedgerCommit=de4ad4d -RenderOffScreen -ResX=960 -ResY=540 -windowed -unattended -nosplash -nopause -stdout -FullStdOutLogOutput
+walkExit=0 walkFinishedInTime=True walkSeconds=11.81
+walkLogLines=1031 walkInterestingLines=36 walkLogFrom=C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Packaged\Windows\LedgerProbe\Saved\Logs\LedgerProbe.log
+[2026.09.07-20.36.59:804][  0]LogTemp: LedgerProbe interactive street: playerStart=spawned at X=400.000 Y=400.000 Z=117.188 facing yaw 0.0, street pieces=593
+[2026.09.07-20.36.59:956][  0]LogOutputDevice: Error: === Handled ensure: ===
+[2026.09.07-20.36.59:956][  0]LogOutputDevice: Error: 
+[2026.09.07-20.36.59:956][  0]LogOutputDevice: Error: Ensure condition failed: AxisKey.IsAxis1D()  [File:C:\Program Files\Epic Games\UE_5.8\Engine\Source\Runtime\Engine\Classes\Components\InputComponent.h] [Line: 574] 
+[2026.09.07-20.36.59:956][  0]LogOutputDevice: Error: 
+[2026.09.07-20.36.59:956][  0]LogOutputDevice: Error: Stack: 
+[2026.09.07-20.36.59:956][  0]LogOutputDevice: Error: [Callstack] 0x00007ff64bedb6f4 LedgerProbe.exe!UInputComponent::BindAxisKey<ALedgerCharacter>() [C:\Program Files\Epic Games\UE_5.8\Engine\Source\Runtime\Engine\Classes\Components\InputComponent.h:973]
+[2026.09.07-20.36.59:956][  0]LogOutputDevice: Error: [Callstack] 0x00007ff64bedc2a8 LedgerProbe.exe!ALedgerCharacter::SetupPlayerInputComponent() [C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ue-probe\Source\LedgerProbe\Private\LedgerCharacter.cpp:58]
+[2026.09.07-20.36.59:956][  0]LogOutputDevice: Error: [Callstack] 0x00007ff648209d36 LedgerProbe.exe!APawn::PawnClientRestart() []
+[2026.09.07-20.36.59:957][  0]LogOutputDevice: Error: [Callstack] 0x00007ff6481e2496 LedgerProbe.exe!APawn::DispatchRestart() []
+[2026.09.07-20.36.59:957][  0]LogOutputDevice: Error: [Callstack] 0x00007ff64834c468 LedgerProbe.exe!APlayerController::ClientRestart_Implementation() []
+[2026.09.07-20.36.59:957][  0]LogOutputDevice: Error: [Callstack] 0x00007ff648395c29 LedgerProbe.exe!APlayerController::execClientRestart() []
+[2026.09.07-20.36.59:957][  0]LogOutputDevice: Error: [Callstack] 0x00007ff64477c248 LedgerProbe.exe!UFunction::Invoke() []
+[2026.09.07-20.36.59:957][  0]LogOutputDevice: Error: [Callstack] 0x00007ff644a2d659 LedgerProbe.exe!UObject::ProcessEvent() []
+[2026.09.07-20.36.59:957][  0]LogOutputDevice: Error: [Callstack] 0x00007ff6472e6897 LedgerProbe.exe!AActor::ProcessEvent() []
+[2026.09.07-20.36.59:958][  0]LogOutputDevice: Error: [Callstack] 0x00007ff64836d751 LedgerProbe.exe!APlayerController::OnPossess() []
+[2026.09.07-20.36.59:958][  0]LogOutputDevice: Error: [Callstack] 0x00007ff64799c94b LedgerProbe.exe!AController::Possess() []
+[2026.09.07-20.36.59:958][  0]LogOutputDevice: Error: [Callstack] 0x00007ff647bf7678 LedgerProbe.exe!AGameModeBase::FinishRestartPlayer() []
+[2026.09.07-20.36.59:958][  0]LogOutputDevice: Error: [Callstack] 0x00007ff647c23d90 LedgerProbe.exe!AGameModeBase::RestartPlayerAtPlayerStart() []
+[2026.09.07-20.36.59:958][  0]LogOutputDevice: Error: [Callstack] 0x00007ff647c23a5c LedgerProbe.exe!AGameModeBase::RestartPlayer() []
+[2026.09.07-20.36.59:958][  0]LogOutputDevice: Error: [Callstack] 0x00007ff647c088b0 LedgerProbe.exe!AGameModeBase::HandleStartingNewPlayer_Implementation() []
+[2026.09.07-20.36.59:958][  0]LogOutputDevice: Error: [Callstack] 0x00007ff647e77047 LedgerProbe.exe!UWorld::SpawnPlayActor() []
+[2026.09.07-20.36.59:958][  0]LogOutputDevice: Error: [Callstack] 0x00007ff647ed31d3 LedgerProbe.exe!ULocalPlayer::SpawnPlayActor() []
+[2026.09.07-20.36.59:958][  0]LogOutputDevice: Error: [Callstack] 0x00007ff648c55eb9 LedgerProbe.exe!UEngine::LoadMap() []
+[2026.09.07-20.36.59:959][  0]LogOutputDevice: Error: [Callstack] 0x00007ff648c16bcf LedgerProbe.exe!UEngine::Browse() []
+[2026.09.07-20.36.59:959][  0]LogOutputDevice: Error: [Callstack] 0x00007ff647c2c79b LedgerProbe.exe!UGameInstance::StartGameInstance() []
+[2026.09.07-20.36.59:959][  0]LogOutputDevice: Error: [Callstack] 0x00007ff647bad47b LedgerProbe.exe!UGameEngine::Start() []
+[2026.09.07-20.36.59:959][  0]LogOutputDevice: Error: [Callstack] 0x00007ff64bec9013 LedgerProbe.exe!FEngineLoop::Init() []
+[2026.09.07-20.36.59:959][  0]LogOutputDevice: Error: [Callstack] 0x00007ff64bec8427 LedgerProbe.exe!GuardedMain() []
+[2026.09.07-20.36.59:959][  0]LogOutputDevice: Error: [Callstack] 0x00007ff64bec85ea LedgerProbe.exe!GuardedMainWrapper() []
+[2026.09.07-20.36.59:960][  0]LogOutputDevice: Error: [Callstack] 0x00007ff64becc1d0 LedgerProbe.exe!LaunchWindowsStartup() []
+[2026.09.07-20.36.59:960][  0]LogOutputDevice: Error: [Callstack] 0x00007ff64bedafc4 LedgerProbe.exe!WinMain() []
+[2026.09.07-20.36.59:960][  0]LogOutputDevice: Error: [Callstack] 0x00007ff651369aee LedgerProbe.exe!__scrt_common_main_seh() [D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288]
+[2026.09.07-20.36.59:960][  0]LogOutputDevice: Error: [Callstack] 0x00007ff8f71cccb7 KERNEL32.DLL!UnknownFunction []
+[2026.09.07-20.36.59:960][  0]LogOutputDevice: Error: [Callstack] 0x00007ff8f838ad6c ntdll.dll!UnknownFunction []
+[2026.09.07-20.36.59:960][  0]LogOutputDevice: Error: 
+--- last 30 lines of the walk run's log, as context ---
+[2026.09.07-20.37.07:825][784]LogWorld: BeginTearingDown for /Engine/Maps/Entry
+[2026.09.07-20.37.07:827][784]LogWorld: UWorld::CleanupWorld for Entry, bSessionEnded=true, bCleanupResources=true
+[2026.09.07-20.37.07:831][784]LogSlate: InvalidateAllWidgets triggered.  All widgets were invalidated
+[2026.09.07-20.37.07:833][784]LogRuntimeTelemetry: Recording EnginePreExit events
+[2026.09.07-20.37.08:159][784]LogAudio: Display: Beginning Audio Device Manager Shutdown (Module: AudioMixerWasapi)...
+[2026.09.07-20.37.08:159][784]LogAudio: Display: Destroying 1 Remaining Audio Device(s)...
+[2026.09.07-20.37.08:160][784]LogAudio: Display: Audio Device unregistered from world 'Entry'.
+[2026.09.07-20.37.08:160][784]LogAudio: Display: Shutting down audio device while 1 references to it are still alive. For more information, compile with INSTRUMENT_AUDIODEVICE_HANDLES.
+[2026.09.07-20.37.08:160][784]LogAudioMixer: Display: FAudioMixerWasapi::StopAudioStream() InstanceID=1, StreamState=4
+[2026.09.07-20.37.08:160][784]LogAudioMixerWasapi: Display: FWasapiServiceWatcher stopped.
+[2026.09.07-20.37.08:165][784]LogAudioMixer: Deinitializing Audio Bus Subsystem for audio device with ID -1
+[2026.09.07-20.37.08:165][784]LogAudio: Display: Audio Device Manager Shutdown
+[2026.09.07-20.37.08:165][784]LogSlate: Request Window 'LedgerProbe (64-bit Development PCD3D_SM5) ' being destroyed
+[2026.09.07-20.37.08:166][784]LogSlate: Window 'LedgerProbe (64-bit Development PCD3D_SM5) ' being destroyed
+[2026.09.07-20.37.08:167][784]LogSlate: Slate User Destroyed.  User Index 0, Is Virtual User: 0
+[2026.09.07-20.37.08:168][784]LogExit: Preparing to exit.
+[2026.09.07-20.37.08:168][784]LogMoviePlayer: Shutting down movie player
+[2026.09.07-20.37.08:174][784]LogSlate: Updating window title bar state: overlay mode, drag disabled, window buttons hidden, title bar hidden
+[2026.09.07-20.37.08:175][784]LogDemo: Cleaned up 0 splitscreen connections, owner deletion: enabled
+[2026.09.07-20.37.08:177][784]LogExit: Game engine shut down
+[2026.09.07-20.37.08:272][784]LogExit: Object subsystem successfully closed.
+[2026.09.07-20.37.08:276][784]LogShaderLibrary: Display: Closing logical shader library 'Global' with 1 components
+[2026.09.07-20.37.08:282][784]LogShaderLibrary: Display: Closing logical shader library 'LedgerProbe' with 1 components
+[2026.09.07-20.37.08:290][784]LogChaosDD: Chaos Debug Draw Shutdown
+[2026.09.07-20.37.08:291][784]LogNFORDenoise: NFORDenoise function shutting down
+[2026.09.07-20.37.08:291][784]RenderDocPlugin: plugin has been unloaded.
+[2026.09.07-20.37.08:291][784]LogPakFile: Destroying PakPlatformFile
+[2026.09.07-20.37.08:371][784]LogD3D12RHI: ~FD3D12DynamicRHI
+[2026.09.07-20.37.08:374][784]LogExit: Exiting.
+[2026.09.07-20.37.08:380][784]Log file closed, 09/07/26 22:37:08

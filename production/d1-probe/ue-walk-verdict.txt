@@ -1,0 +1,49 @@
+# UE walk probe de4ad4d @1788813427
+# Line 1 names the commit this was measured on, as the Unity verdict does.
+# Ruling 1, Jafar, 2026-09-07: this replaces human smoke-testing. Five
+#   judgments; judgment 1 (launch) is added by the workflow step from this
+#   file's own presence, its last walkPhaseReached and its exit code, because
+#   only something watching the process from outside can tell a hang from a
+#   crash from a clean exit. Judgments 2-5 are below.
+# JUDGMENT 2, streetStatus / sceneStatus line: the SAME piecesEmitted=N/M
+#   counters BuildScene emits for the vignette path, read back, not
+#   recomputed.
+# JUDGMENT 3, walkCamera*: GetActorLocation() before and after a scripted
+#   AddMovementInput phase down the open footway. walkCameraDistanceCm is
+#   the ACCEPTING-CASE distance and is reused, not remeasured, as
+#   collisionClearDistanceCm below: they are one variable.
+# JUDGMENT 4, testCardsSpawned=N/M: M is LedgerSurface::ControlQuadCount(),
+#   the count the automation path would spawn; N is what THIS process
+#   actually spawned, which is 0 by construction on this path.
+# JUDGMENT 5, collision*: a PLANTED pair per rule 5b. collisionClear* is the
+#   accepting case (the open footway); collisionBlocked* is the rejecting
+#   case, walked straight at east_parade_bay0, a full-height terrace carcass
+#   looked up by name from the street BuildScene actually spawned. STOPPED,
+#   PASSED-THROUGH, MOVED and STUCK are coarse first-cut splits, not bounds
+#   read off a series (rule 2): this instrument has never run before this
+#   commit, so the raw *DistanceCm numbers beside every word are the
+#   evidence, not the word.
+# THE CLIP: this file writes two kinds of frame. ue-walk_NN_*.png is the
+#   evidence, five named milestones, untouched by the clip. ue-walkseq_NNN.png
+#   is the SEQUENCE (walkSeqFramesRequested/Wrote below), which
+#   tools/clip-from-frames.py (Pillow, no new dependency; see its own header)
+#   stitches into one GIF outside this process. This file never writes a GIF.
+
+sceneStatus=WHOLE piecesEmitted=593/593 asBox=427 asCyl=146 asPlane=20 propStandIns=23/23 decalQuads=20/20 skipped=0 lanternsPlaced=4/4 windowsLit=3/3 flatsLit=0/0 nothing-to-light multiRotationInFile=0 aheadOfUnityRun=none aheadPiecesThen=0 lampColourSpace=gamma-sRGB>linear windowColourSpace=gamma-sRGB>linear sceneNote=none sun=yes fill=3/3 fog=yes skyModel=none-black/phase-C-owns-the-hdri lampGain=1.00 fogGain=1.00 ambientModel=trilight-3-directional/not-a-captured-sky lightUnits=unitless/not-candelas decalLiftCm=1.0 decalModel=quad/phase-C-owns-the-decal
+walkCameraStartXYZcm=400.0/400.0/98.0 walkCameraEndXYZcm=1018.0/416.4/97.3 walkCameraDistanceCm=618.2 walkCameraSeconds=3.00 walkCameraStat=accepting-case/open-footway walkCameraStatus=MOVED
+collisionClearDistanceCm=618.2 collisionClearSeconds=3.00 collisionClearStat=same-measurement-as-walkCameraDistanceCm/one-variable collisionClearStatus=MOVED
+collisionBlockedWallName=east_parade_bay0 collisionBlockedApproachClearanceCm=150.0 collisionBlockedStartXYZcm=600.0/362.5/98.9 collisionBlockedEndXYZcm=600.0/462.5/98.7 collisionBlockedDistanceCm=100.0 collisionBlockedSeconds=3.00 collisionBlockedStat=first-run-of-this-instrument/not-a-tuned-bound collisionBlockedStatus=STOPPED
+collisionStatus=REAL collisionStatusNote=needs-both-the-accepting-and-the-planted-case/rule-5b
+testCardsSpawned=0/3 testCardsStatus=ABSENT
+walkFramesRequested=5/5 walkFramesWrote=5/5
+walkShot=start walkShotAtXYZcm=400.0/400.0/98.0 shotW=960 shotH=540 shotPixels=518400 shotMeanLuma=0.5698 shotMinLuma=0.0219 shotMaxLuma=0.9929 shotNonBlackPixels=518400 shotNonBlackPct=100.00 shotDistinctBuckets=1049/32768 shotBlank=no shotBytes=1143028
+walkShot=mid_clear walkShotAtXYZcm=825.4/416.4/97.7 shotW=960 shotH=540 shotPixels=518400 shotMeanLuma=0.4938 shotMinLuma=0.0067 shotMaxLuma=0.9926 shotNonBlackPixels=518400 shotNonBlackPct=100.00 shotDistinctBuckets=686/32768 shotBlank=no shotBytes=840615
+walkShot=after_clear walkShotAtXYZcm=1018.0/416.4/97.3 shotW=960 shotH=540 shotPixels=518400 shotMeanLuma=0.5009 shotMinLuma=0.0078 shotMaxLuma=1.0000 shotNonBlackPixels=518400 shotNonBlackPct=100.00 shotDistinctBuckets=921/32768 shotBlank=no shotBytes=1048155
+walkShot=before_blocked walkShotAtXYZcm=600.0/362.5/98.9 shotW=960 shotH=540 shotPixels=518400 shotMeanLuma=0.5562 shotMinLuma=0.0196 shotMaxLuma=0.9996 shotNonBlackPixels=518400 shotNonBlackPct=100.00 shotDistinctBuckets=903/32768 shotBlank=no shotBytes=1029245
+walkShot=after_blocked walkShotAtXYZcm=600.0/462.5/98.7 shotW=960 shotH=540 shotPixels=518400 shotMeanLuma=0.5446 shotMinLuma=0.0078 shotMaxLuma=1.0000 shotNonBlackPixels=518400 shotNonBlackPct=100.00 shotDistinctBuckets=956/32768 shotBlank=no shotBytes=1121017
+walkSeqFramesRequested=15/16 walkSeqFramesWrote=15/16 walkSeqIntervalSeconds=0.4 walkSeqCeilingSeconds=5.0 walkSeqNamePrefix=ue-walkseq_
+walkPhaseReached=done
+walkReached=end
+launchStatus=LAUNCHED launchExitCode=0 launchLastPhaseReached=done launchWaitSeconds=11.81 launchWaitCeilingSeconds=600 launchVerdictCandidates=3 launchVerdictFound=yes launchExitCodeIsNotTheVerdict=true
+walkFramesCollected=5/5 walkFramesCollectedFromDirs=3
+clip clipStatus=WROTE clipReason=none clipFramesExamined=15 clipFramesUsed=15 clipWidth=480 clipHeight=270 clipDurationMs=120 clipScale=0.5 clipBytes=1642282 clipMaxBytes=8388608 clipOut=production/d1-probe/ue-walk.gif
