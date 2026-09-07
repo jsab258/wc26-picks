@@ -130,11 +130,25 @@ jobs:
       # fresh that branch is, so the same evidence file also answers "is
       # the existing signal reaching GitHub right now" without adding
       # anything Jafar or the studio has to learn to read.
+      # SAFE.DIRECTORY, THE SAME WAY THE COMMIT STEP BELOW ALREADY SETS IT.
+      # A first run failed here with "detected dubious ownership in
+      # repository at 'C:/actions-runner-ledger/_work/wc26-picks/wc26-picks'"
+      # - git's own guard against operating in a directory owned by a
+      # different account than the one running it, which is exactly the
+      # self-hosted runner's shape. Not a second approach: this is the
+      # identical GIT_CONFIG_* trio the commit step and
+      # ledger-probe-unreal.yml already carry, applied here too so the
+      # heartbeat read actually runs instead of failing on its first git
+      # call.
       - name: Read the existing pc-inbox channel, without adding a new one
         if: always()
         continue-on-error: true
         timeout-minutes: 3
         shell: bash
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: "*"
         run: |
           set -u
           OUT=production/pc-ops/scheduled-task-verify.txt

@@ -7,6 +7,35 @@ Plain text on purpose. tools/producer-check.py walks *.md and tools/docs-check.p
 governs game-design/, so a .txt here is outside both and cannot turn verify red.
 
 --------------------------------------------------------------------------
+2026-09-07  CREATE_NO_WINDOW NEVER LANDED IN tools/supervise.py, SO THE
+            SCHEDULED TASK WILL STILL OPEN THREE CONSOLE WINDOWS.
+--------------------------------------------------------------------------
+FILED ON REVIEW OF THE SCHEDULED-TASK INSTALLER, NOT FIXED IN THAT PASS: the
+review named it explicitly as not mine to fix now.
+
+MEASURED: grepping tools/supervise.py for CREATE_NO_WINDOW, creationflags,
+NO_WINDOW and 08000000 finds none of them. `spawn()`, the function that
+Popens each of the three daemons, passes no creationflags at all, so every
+child gets Windows' ordinary console behaviour.
+
+tools/runner/launch-supervisor.py launches tools/supervise.py itself through
+pythonw.exe, which opens no console of its own for THAT process (fixed
+separately, ruling 2026-09-07 point B2). But supervise.py's own three
+children, studio-watcher, telegram-bot and claude-executor, are spawned by
+subprocess.Popen in that same function with no creation flag telling
+Windows to keep them windowless, so under the scheduled task each of the
+three is expected to open its own console window at logon, with nobody at
+the keyboard to see it and nothing watching whether it stays open.
+
+THE SHAPE OF A FIX, not applied here: pass
+creationflags=subprocess.CREATE_NO_WINDOW (0x08000000) to the Popen call in
+tools/supervise.py:spawn, guarded for non-Windows (the attribute does not
+exist there, so getattr(subprocess, "CREATE_NO_WINDOW", 0) or an os.name
+check is needed rather than a bare reference). NOT DONE HERE because
+tools/supervise.py is the thing this installer installs, and the review
+that found this was explicit that it is not this pass's fix.
+
+--------------------------------------------------------------------------
 2026-09-07  THE SAME GLUED-STREAM BUG IS LATENT IN TWO MORE TOOLS, BOTH OF
             WHICH RUN ON JAFAR'S PC.
 --------------------------------------------------------------------------

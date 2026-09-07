@@ -43,6 +43,203 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Get-SupervisorProcesses {
+    # THE THREE KINDS THAT CAN BE HOLDING THIS GIT INDEX (B1, found on
+    # review). launch-supervisor.py and a direct supervise.py were the two
+    # doors B3 already named; the THIRD is tools\pc-watcher.py, which is
+    # what actually hard-resets this checkout every pass
+    # (tools/pc-watcher.py:resync). It can be alive with NO supervisor
+    # above it at all: supervise.py Popens its children with no job object
+    # and only its KeyboardInterrupt path terminates them, a path a
+    # windowless, closed-window supervisor never takes - so an orphaned
+    # watcher outlives its parent, a check that only knew about the other
+    # two would read 0, and the installer would write into an index
+    # something else resets once a minute while the evidence says the gate
+    # held.
+    #
+    # RETURNS AN OBJECT, NOT A BARE ARRAY, per the second half of B1: -q
+    # against WMI failing and the query returning zero matches are
+    # different facts, and folding them into one empty list is the more
+    # dangerous of the two, because it would let a resync and an install
+    # both proceed onto a live index. Ok=$false means the QUESTION could
+    # not be asked, not that the answer was no.
+    try {
+        $raw = @(Get-CimInstance Win32_Process `
+            -Filter "Name='python.exe' OR Name='pythonw.exe'" -ErrorAction Stop)
+    } catch {
+        return [pscustomobject]@{
+            Ok = $false
+            Processes = @()
+            QueryError = ($_.Exception.Message -replace '\s+', ' ')
+        }
+    }
+    $procs = @($raw | Where-Object { $_.CommandLine -and
+                     ($_.CommandLine -match 'pc-watcher\.py' -or
+                      $_.CommandLine -match 'supervise\.py' -or
+                      $_.CommandLine -match 'launch-supervisor\.py') } |
+      ForEach-Object {
+        $kind = if ($_.CommandLine -match 'launch-supervisor\.py') {
+            'launch-supervisor.py'
+        } elseif ($_.CommandLine -match 'pc-watcher\.py') {
+            'pc-watcher.py'
+        } else {
+            'supervise.py'
+        }
+        [pscustomobject]@{
+            ProcessId = $_.ProcessId
+            ParentProcessId = $_.ParentProcessId
+            Kind = $kind
+        }
+      })
+    return [pscustomobject]@{ Ok = $true; Processes = $procs; QueryError = "" }
+}
+
+function Test-AnySupervisorRunning {
+    # ONE READING, USED WHEREVER THIS QUESTION IS ASKED (before the resync,
+    # before starting the task, and after, to verify the effect), so the
+    # three-way distinction from B1 is reported the same way every time
+    # rather than reimplemented at each call site. $Label says which call
+    # this was so the evidence file can tell them apart.
+    param([string]$Label)
+    $r = Get-SupervisorProcesses
+    if (-not $r.Ok) {
+        Write-Host ("supervisorQueryOk=false supervisorQueryContext=$Label " +
+                   "supervisorQueryError=$($r.QueryError)")
+        return [pscustomobject]@{ Determined = $false; AnyRunning = $false
+                                  Processes = @() }
+    }
+    Write-Host ("supervisorQueryOk=true supervisorQueryContext=$Label " +
+               "supervisorProcessesFound=$($r.Processes.Count)")
+    foreach ($p in $r.Processes) {
+        Write-Host ("supervisorQueryContext=$Label supervisorPid=$($p.ProcessId) " +
+                   "supervisorParentPid=$($p.ParentProcessId) " +
+                   "supervisorKind=$($p.Kind)")
+    }
+    return [pscustomobject]@{ Determined = $true
+                              AnyRunning = ($r.Processes.Count -gt 0)
+                              Processes = $r.Processes }
+}
+
+# THE DEADLOCK, FOUND ON REVIEW: C:\Users\$TargetUser\wc26-picks is stale
+# because the only thing that updates it is pc-watcher's resync, which
+# runs INSIDE the supervisor, and the supervisor has been down since the
+# outage this ruling exists to end. So the install that would keep the
+# supervisor alive could not run until something updated the checkout, and
+# nothing updated the checkout until the supervisor ran. Broken here, from
+# CI, the one thing on this machine that is definitely alive: fetch and
+# hard reset BEFORE Find-Repo looks for anything, the same discipline
+# tools/supervise.py:resync_once already uses (a discard, not a merge, so
+# untracked files - his inbox messages, the packaged build - survive).
+#
+# THE HAZARD DECIDES WHERE THIS GOES. Two writers on one git index is the
+# fight that cost this project four days, so this must never touch the
+# checkout while a supervisor OR a bare pc-watcher.py is running: either
+# one already keeps this checkout current, and Test-AnySupervisorRunning
+# is the same B1/B3 gate reused rather than a second implementation of the
+# same question.
+#
+# THE BRANCH IS A LITERAL, NEVER $env:GITHUB_REF_NAME (B2, found on
+# review). This run's push ref happens to equal the daemons' own work
+# branch, but the workflow's header plans a future dispatch from `main`,
+# and a hard reset onto main's tip would move Jafar's local working-branch
+# checkout out from under every daemon reading it. The same string
+# tools/runner/inbox.py:WORK_BRANCH, tools/pc-watcher.py:BRANCH and
+# tools/supervise.py:run's own fallback already carry is used here
+# instead, hard-coded, and the ref this workflow actually ran on is only
+# PRINTED, for a mismatch to be visible, never acted on.
+$DaemonsBranch = "claude/game-dev-ai-automation-2h67ix"
+Write-Host ("workflowRef=$($env:GITHUB_REF_NAME) daemonsBranch=$DaemonsBranch " +
+           "daemonsBranchIsWhatGitActuallyUses=true")
+
+$StableForResync = "C:\Users\$TargetUser\wc26-picks"
+$ResyncCheck = Test-AnySupervisorRunning -Label "before-resync"
+
+if (-not $ResyncCheck.Determined) {
+    Write-Host ("resyncAction=skipped-supervisor-query-failed reason=" +
+               "cannot-prove-nothing-is-running-so-refusing-to-touch-" +
+               "the-checkout")
+} elseif ($ResyncCheck.AnyRunning) {
+    $kinds = ($ResyncCheck.Processes | ForEach-Object { $_.Kind }) -join ','
+    Write-Host ("resyncAction=skipped-supervisor-running kinds=$kinds " +
+               "reason=a-running-supervisor-or-watcher-already-keeps-this-" +
+               "checkout-current-do-not-touch-its-index")
+} elseif ($env:USERNAME -ne $TargetUser) {
+    # THE ACCOUNT CHECK, THE SECOND HALF OF B2. CI writing into
+    # $TargetUser's home directory is acceptable only because THIS run's
+    # own evidence names the runner account as $TargetUser; an earlier or
+    # later era could run this installer as a different (service) account,
+    # and that must refuse rather than reset a checkout it does not own.
+    Write-Host ("resyncAction=skipped-account-mismatch runnerUser=" +
+               "$($env:USERNAME) targetUser=$TargetUser reason=refusing-" +
+               "to-write-into-a-different-accounts-home-directory")
+} elseif (-not (Test-Path (Join-Path $StableForResync ".git"))) {
+    Write-Host ("resyncAction=skipped-no-git-checkout-there path=" +
+               "$($StableForResync -replace ' ','~')")
+} else {
+    # SAFE.DIRECTORY, THE SAME WAY THE WORKFLOW'S OWN GIT STEPS ALREADY SET
+    # IT, rather than inventing a second approach: a self-hosted runner
+    # account touching a directory owned by $TargetUser is exactly the
+    # shape git's dubious-ownership guard exists for.
+    $env:GIT_CONFIG_COUNT = "1"
+    $env:GIT_CONFIG_KEY_0 = "safe.directory"
+    $env:GIT_CONFIG_VALUE_0 = "*"
+    $env:GIT_EDITOR = "true"
+    $env:GIT_MERGE_AUTOEDIT = "no"
+    $env:GIT_TERMINAL_PROMPT = "0"
+    Push-Location $StableForResync
+    try {
+        # A1, THE EVIDENCE OWED BEFORE A DESTRUCTIVE OPERATION. A hard
+        # reset discards local commits, and production/inbox, outbox and
+        # outbound ARE TRACKED on this branch (321 files, measured by
+        # `git ls-tree`) while the PC's own writers treat their copies as
+        # untracked; game-design/pc-jobs/result.txt is tracked too, and
+        # the watcher writes it. The reflog keeps what a reset discards,
+        # but only if this evidence names the sha to recover FROM.
+        $HeadSha = (& git rev-parse HEAD 2>&1)
+        Write-Host "resyncLocalAhead=$HeadSha"
+        $StatusLines = @(& git status --porcelain=v1 2>&1)
+        $DirtyTracked = @($StatusLines | Where-Object { $_ -notmatch '^\?\?' })
+        Write-Host "resyncDirtyTrackedPaths=$($DirtyTracked.Count)"
+        foreach ($line in $DirtyTracked) {
+            Write-Host "resyncDirtyTracked=$($line.Trim() -replace '\s+','_')"
+        }
+
+        # STDERR IS CAPTURED, NEVER DISCARDED (A1). A failure used to leave
+        # exitCode=128 with no words in the only channel anyone can read;
+        # a stale .git/index.lock from the 11:30 stop is one of the named
+        # ways this can fail, and its message only exists on stderr.
+        $FetchOutput = (& git fetch origin $DaemonsBranch 2>&1 |
+                        ForEach-Object { $_.ToString() })
+        $fetchExit = $LASTEXITCODE
+        if ($fetchExit -ne 0) {
+            Write-Host ("resyncAction=failed-fetch branch=$DaemonsBranch " +
+                       "exitCode=$fetchExit error=$($FetchOutput -join ' | ')")
+        } else {
+            $sha = (& git rev-parse FETCH_HEAD 2>&1)
+            if (-not $sha -or $sha -match '^fatal:') {
+                Write-Host ("resyncAction=failed-no-fetch-head " +
+                           "branch=$DaemonsBranch error=$sha")
+            } else {
+                $ResetOutput = (& git reset --hard $sha 2>&1 |
+                                ForEach-Object { $_.ToString() })
+                $resetExit = $LASTEXITCODE
+                if ($resetExit -ne 0) {
+                    Write-Host ("resyncAction=failed-reset " +
+                               "branch=$DaemonsBranch sha=$sha " +
+                               "exitCode=$resetExit " +
+                               "error=$($ResetOutput -join ' | ')")
+                } else {
+                    $short = $sha.Substring(0, [Math]::Min(7, $sha.Length))
+                    Write-Host ("resyncAction=updated branch=$DaemonsBranch " +
+                               "sha=$short")
+                }
+            }
+        }
+    } finally {
+        Pop-Location
+    }
+}
+
 function Find-Repo {
     # THE STABLE PATH FIRST, ALWAYS (B5, found on review). Not
     # $env:USERPROFILE: under the self-hosted runner SERVICE, USERPROFILE
@@ -207,43 +404,17 @@ Write-Host "installAction=$InstallAction"
 # he is back. A failed attempt here is not fatal - it commonly means no
 # interactive session for $TargetUser exists on this machine right now -
 # and the AtLogOn trigger still fires correctly the next time it does.
-function Get-SupervisorProcesses {
-    # MATCHES BOTH DOORS, NOT ONLY THE NEW ONE (B3, found on review). Every
-    # supervisor running on this PC TODAY was started by the pre-batch
-    # "START EVERYTHING.bat" or the Startup hook, and both of those run
-    # tools\supervise.py DIRECTLY - they hold no lock at all, because the
-    # lock did not exist before this change. A check that only recognised
-    # launch-supervisor.py would count zero here, start the task on top of
-    # one of those, and end with two watchers sharing one git index, the
-    # exact fight tools/supervise.py's own docstring says cost this project
-    # four days. Each match also carries WHICH pattern it was, so a refusal
-    # can say which kind of process is already running.
-    @(Get-CimInstance Win32_Process `
-        -Filter "Name='python.exe' OR Name='pythonw.exe'" `
-        -ErrorAction SilentlyContinue |
-      Where-Object { $_.CommandLine -and
-                     ($_.CommandLine -match 'supervise\.py' -or
-                      $_.CommandLine -match 'launch-supervisor\.py') } |
-      ForEach-Object {
-        $kind = if ($_.CommandLine -match 'launch-supervisor\.py') {
-            'launch-supervisor.py'
-        } else {
-            'supervise.py-direct-no-lock'
-        }
-        [pscustomobject]@{
-            ProcessId = $_.ProcessId
-            ParentProcessId = $_.ParentProcessId
-            Kind = $kind
-        }
-      })
-}
-
-$Before = Get-SupervisorProcesses
-Write-Host "supervisorProcessesBefore=$($Before.Count)"
-foreach ($p in $Before) {
-    Write-Host "supervisorBeforePid=$($p.ProcessId) supervisorBeforeKind=$($p.Kind)"
-}
-if ($Before.Count -eq 0) {
+# Test-AnySupervisorRunning is defined once, near the top of this file,
+# and reused here rather than redefined: it is the same B1/B3 question
+# asked again after the resync and the install, not a second
+# implementation.
+$StartCheck = Test-AnySupervisorRunning -Label "before-start"
+if (-not $StartCheck.Determined) {
+    # A QUERY THAT FAILED MUST REFUSE, NOT ASSUME NOTHING IS RUNNING (B1).
+    # The task stays registered and fires normally at the next logon.
+    Write-Host ("startedNow=refused reason=supervisor-query-failed-cannot-" +
+               "prove-nothing-is-running")
+} elseif (-not $StartCheck.AnyRunning) {
     try {
         Start-ScheduledTask -TaskName $TaskName
         Write-Host "startedNow=attempted"
@@ -252,16 +423,16 @@ if ($Before.Count -eq 0) {
                    ($_.Exception.Message -replace '\s+', ' '))
     }
 } else {
-    # REFUSE TO START ON TOP OF ONE THAT IS ALREADY RUNNING (B3). Most
-    # likely a supervise.py-direct process holding no lock, started before
-    # this task existed: starting the task now would run a SECOND
-    # supervisor beside it immediately, sharing one git index. The task
-    # stays registered either way and takes over cleanly the next time
-    # nothing is already running and a fresh logon fires it.
-    $kinds = ($Before | ForEach-Object { $_.Kind }) -join ','
+    # REFUSE TO START ON TOP OF ONE THAT IS ALREADY RUNNING (B3, and B1's
+    # third kind). Starting the task now would run a SECOND supervisor (or
+    # a supervisor beside an orphaned watcher) immediately, sharing one
+    # git index. The task stays registered either way and takes over
+    # cleanly the next time nothing is already running and a fresh logon
+    # fires it.
+    $kinds = ($StartCheck.Processes | ForEach-Object { $_.Kind }) -join ','
     Write-Host ("startedNow=refused reason=" +
-               "$($Before.Count)_supervisor_process(es)_already_running " +
-               "kinds=$kinds")
+               "$($StartCheck.Processes.Count)_supervisor_process(es)_" +
+               "already_running kinds=$kinds")
 }
 
 Start-Sleep -Seconds 3
@@ -273,7 +444,7 @@ $Info = $null
 if ($Task) {
     $Info = Get-ScheduledTaskInfo -TaskName $TaskName -ErrorAction SilentlyContinue
 }
-$After = Get-SupervisorProcesses
+$AfterCheck = Test-AnySupervisorRunning -Label "after-verify"
 
 Write-Host "taskExists=$([bool]$Task)"
 if ($Task) {
@@ -294,17 +465,17 @@ if ($Info) {
     Write-Host "taskLastTaskResult=$($Info.LastTaskResult)"
     Write-Host "taskNextRunTime=$($Info.NextRunTime)"
 }
-Write-Host "supervisorProcessesAfter=$($After.Count)"
-foreach ($p in $After) {
-    Write-Host ("supervisorPid=$($p.ProcessId) " +
-               "supervisorParentPid=$($p.ParentProcessId) " +
-               "supervisorKind=$($p.Kind)")
-}
+# Test-AnySupervisorRunning already printed supervisorQueryOk,
+# supervisorProcessesFound and one line per match above, tagged
+# supervisorQueryContext=after-verify - not repeated here, so one query is
+# one set of lines rather than two.
 
 if (-not $Task) {
     Write-Host "VERIFY FAILED: the task does not exist after installAction=$InstallAction"
     exit 1
 }
+$AfterCount = if ($AfterCheck.Determined) { "$($AfterCheck.Processes.Count)" }
+              else { "unknown-query-failed" }
 Write-Host ("install-scheduled-task: installAction=$InstallAction " +
-           "taskExists=True supervisorProcessesAfter=$($After.Count)")
+           "taskExists=True supervisorProcessesAfter=$AfterCount")
 exit 0
