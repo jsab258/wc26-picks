@@ -546,6 +546,97 @@ jobs:
           $L | Set-Content $out -Encoding utf8
           Write-Host ($L -join "`n")
 
+      # QUEUE 138: A STABLE PLACE TO FIND THE BUILD. The build step above
+      # clears ue-probe\Packaged before every cold build for provenance, so
+      # a packaged game only sits in the RUNNER's own workspace for the
+      # width of one run; PLAY THE STREET.bat runs on Jafar's own schedule,
+      # not the runner's, and found nothing there. This copies the SAME
+      # tree to a path outside that churn, which is already the second root
+      # the .bat searches, so the .bat itself needs no change.
+      #
+      # ITS OWN STEP, SMALL ON PURPOSE. tools/workflow-size.py measures the
+      # largest run: block against 23184, the largest ever dispatched, and
+      # the build step above already sits 17 characters under it; growing
+      # that step instead of adding this one risks losing workflow_dispatch
+      # entirely, which is the only channel out of CI here.
+      #
+      # if: always() AND READ OFF DISK, NOT FROM AN OUTCOME: a build that
+      # packaged but whose later measurement step failed must still reach
+      # Jafar, and this does not ask any later step whether it passed.
+      #
+      # LOOK BEFORE YOU DESTROY. The destination is only cleared once a real
+      # exe is confirmed on the source side: a run that packaged nothing
+      # must not take away the last good build Jafar could still play. The
+      # stamp file is what stops a stale copy from reading as fresh, not a
+      # deletion.
+      - name: Copy the packaged build to a stable path
+        id: stable-copy
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 10
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $src = Join-Path $PWD "ue-probe\Packaged"
+          $dst = "C:\Users\Jafar\wc26-picks\ue-probe\Packaged"
+
+          $srcExists = Test-Path $src
+          $srcFiles = @()
+          $srcExe = @()
+          if ($srcExists) {
+            $srcFiles = @(Get-ChildItem -Path $src -Recurse -File -ErrorAction SilentlyContinue)
+            $srcExe = @($srcFiles | Where-Object {
+              $_.Name -eq "LedgerProbe.exe" -and $_.FullName -match "\\Binaries\\Win64\\"
+            })
+          }
+          Write-Host ("stableCopySrc=$($src -replace ' ','~') stableCopySrcExists=$srcExists " +
+            "stableCopySrcFiles=$($srcFiles.Count) stableCopySrcExeFound=$($srcExe.Count)/1")
+
+          if ($srcExe.Count -eq 0) {
+            # NOTHING MEASURED, SAID LOUDLY, WITH THE ONE ROOT EXAMINED
+            # NAMED. The destination is left exactly as it was.
+            Write-Host ("STABLE COPY: NOTHING TO COPY - no LedgerProbe.exe under Binaries\Win64 " +
+              "examined at $($src -replace ' ','~') ($($srcFiles.Count) file(s) there, " +
+              "sourceExists=$srcExists). Destination untouched: $($dst -replace ' ','~')")
+            exit 0
+          }
+
+          New-Item -ItemType Directory -Force -Path (Split-Path $dst -Parent) | Out-Null
+          Remove-Item $dst -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item -Path $src -Destination $dst -Recurse -Force
+
+          # THE EFFECT, NOT THE EXIT CODE. Copy-Item reports success having
+          # copied nothing; this asks the destination directly.
+          $dstFiles = @(Get-ChildItem -Path $dst -Recurse -File -ErrorAction SilentlyContinue)
+          $dstExe = @($dstFiles | Where-Object {
+            $_.Name -eq "LedgerProbe.exe" -and $_.FullName -match "\\Binaries\\Win64\\"
+          })
+          $dstBytes = ($dstFiles | Measure-Object -Property Length -Sum).Sum
+          if (-not $dstBytes) { $dstBytes = 0 }
+
+          $sha = $env:GITHUB_SHA
+          if ($sha) { $sha = $sha.Substring(0, [Math]::Min(7, $sha.Length)) } else { $sha = "SHA-UNKNOWN" }
+          # CULTURE-INVARIANT, and this is not pedantry. Get-Date -UFormat %s
+          # returns a string with a decimal point, and [double]::Parse uses
+          # the CURRENT culture: on a Swiss machine the separator is a comma
+          # and this throws, which would kill the stamp AFTER the copy had
+          # already happened and leave a build with no provenance beside it.
+          $stamp = @(
+            "# LEDGER stable build copy $sha @$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())",
+            ("stableCopyStatus=" + $(if ($dstExe.Count -gt 0) { "COPIED" } else { "COPIED-NO-EXE-AT-DESTINATION" })),
+            "stableCopySrcFiles=$($srcFiles.Count) stableCopyDstFiles=$($dstFiles.Count)/$($srcFiles.Count)",
+            "stableCopyDstBytes=$dstBytes stableCopyDstExeFound=$($dstExe.Count)/1",
+            "stableCopyDst=$($dst -replace ' ','~')"
+          )
+          $stamp | Set-Content (Join-Path $dst "LEDGER-STABLE-COPY.txt") -Encoding utf8
+          Write-Host ($stamp -join "`n")
+
+          if ($dstExe.Count -eq 0) {
+            Write-Host "STABLE COPY: files landed but LedgerProbe.exe was not among them at the destination."
+            exit 1
+          }
+          Write-Host "stable copy ok: $($dstFiles.Count)/$($srcFiles.Count) file(s), $dstBytes byte(s), exe confirmed at destination"
+
       # THE MATERIAL STEP'S OWN OUTPUT, RETAINED. Its own step because the
       # build step above is 17 characters under the 23184 dispatch ceiling and
       # a step that cannot be dispatched takes the only readable channel out
