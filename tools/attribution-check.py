@@ -276,6 +276,14 @@ ASSET_SUFFIXES = {".fbx", ".png", ".jpg", ".jpeg", ".tga", ".psd", ".wav",
 # unclassified residue and is named out loud. A decision is inherited by the
 # next reader; an omission is not.
 NOT_ASSET_SUFFIXES = {
+    # .request ADDED 7 SEP 2026, caught by this check on the first run
+    # that produced one. It is a one-line SENTINEL: a workflow whose
+    # push trigger is a single path reads its content as the reason
+    # for the run. Plain text this project writes, carrying no
+    # third-party anything, and the only reason it is named here
+    # rather than waved through is that the union of the two sets has
+    # to cover everything walked.
+    ".request",
     # Source and build products of source.
     ".cs", ".py", ".pyc", ".sh", ".bat", ".cmd", ".ps1", ".h", ".cpp",
     ".shader", ".csproj", ".uproject", ".yml", ".ini",
