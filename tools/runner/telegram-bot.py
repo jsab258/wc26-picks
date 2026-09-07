@@ -1260,7 +1260,29 @@ def outbox_pass(creds, repo=None, say=None):
             raise outbox.SendFailed("could not read the file (%s)"
                                     % type(e).__name__)
 
-    res = outbox.sweep(repo, sender, say=say, photo_sender=photo_sender)
+    def video_sender(path, caption_text):
+        """The wire for a test request that names a CLIP (ruling 1).
+
+        THE SECOND HALF OF THE SAME OMISSION. `photo_sender` was added after
+        the sweep was found refusing every captioned request for want of a
+        wire; the clip path arrived later and repeated it exactly, so the
+        walk clip CI produced had no route to his phone at all: --send-clip
+        is a command line, and nothing types on that machine. The extension
+        picks sendAnimation or sendVideo here, in one place, because the
+        sweep should hand over a path and know nothing of Telegram methods.
+        """
+        wire = send_animation if str(path).lower().endswith(".gif") \
+            else send_video
+        try:
+            return wire(creds.token, str(creds.chat_id), path, caption_text)
+        except ApiError as e:
+            raise outbox.SendFailed(str(e))
+        except OSError as e:
+            raise outbox.SendFailed("could not read the file (%s)"
+                                    % type(e).__name__)
+
+    res = outbox.sweep(repo, sender, say=say, photo_sender=photo_sender,
+                       video_sender=video_sender)
     say(outbox.done_line(res))
     note = outbox.nothing_line(res)
     if note:
@@ -1855,6 +1877,12 @@ def _selftest_cases(ok, bad, state):
     check("accept/ruling5-the-sweep-is-given-a-photo-sender",
           callable(seen.get("sweep_kw", {}).get("photo_sender")),
           sorted(seen.get("sweep_kw", {})))
+    # AND A VIDEO SENDER, which the row above did not cover and which is
+    # exactly how the clip half slipped through: a test that asks only about
+    # the wire it was written for cannot see the wire added after it.
+    check("accept/ruling1-the-sweep-is-given-a-video-sender-too",
+          callable(seen.get("sweep_kw", {}).get("video_sender")),
+          sorted(seen.get("sweep_kw", {})))
     check("accept/ruling1-send_video-is-given-a-video-sender",
           callable(seen.get("vid_sender"))
           and seen.get("vid_path") == "/tmp/nothing.mp4"
@@ -1914,6 +1942,70 @@ def _selftest_cases(ok, bad, state):
                                                                 real_anim)
     check("accept/ruling1-a-gif-is-routed-to-sendAnimation",
           gif_went == "sendAnimation", gif_went)
+    sweep_routed = {}
+    try:
+        globals()["send_video"] = lambda t, c, path, cap, **k: (
+            sweep_routed.update(m="sendVideo") or {"message_id": 7})
+        globals()["send_animation"] = lambda t, c, path, cap, **k: (
+            sweep_routed.update(m="sendAnimation") or {"message_id": 8})
+        seen["sweep_kw"]["video_sender"]("walk.gif", "cap")
+    finally:
+        globals()["send_video"], globals()["send_animation"] = (real_video,
+                                                                real_anim)
+    check("accept/ruling1-the-sweeps-own-closure-routes-a-gif-as-well",
+          sweep_routed.get("m") == "sendAnimation", sweep_routed)
+
+    # A1, THE JOIN, AND IT IS THE ONLY ROW THAT PROVES THE FEATURE. Every
+    # other row above would still pass with the sweep refusing every clip:
+    # one asks whether a kwarg is callable, the other calls the closure by
+    # hand. outbox.py's own suite proves sweep reaches a stub sender. NOBODY
+    # PROVED THE TWO HALVES MEET, which is exactly how --send-clip came to
+    # exist with nothing calling it. This drives a real message with a real
+    # clip sidecar all the way through outbox_pass to the wire.
+    joined = {}
+    gif_rel = "production/d1-probe/selftest-join.gif"
+    gif_abs = os.path.join(watcher, *gif_rel.split("/"))
+    os.makedirs(os.path.dirname(gif_abs), exist_ok=True)
+    with open(gif_abs, "wb") as fh:
+        fh.write(b"GIF89a" + b"\x00" * 64)
+    # THE REGISTER MUST BE PRESENT IN THE FIXTURE OR THE SWEEP REFUSES
+    # before it ever reaches the clip branch, which would make this row pass
+    # for the wrong reason later if the refusal were ever ignored. Copied in
+    # rather than stubbed, so the message really is checked.
+    # capsay.py rides along because producer-check imports it and REFUSES to
+    # print a finding list without it, which is the right instinct and would
+    # otherwise make this row fail for a reason that has nothing to do with
+    # clips.
+    for _name in ("producer-check.py", "capsay.py"):
+        _dst = os.path.join(watcher, "tools", _name)
+        os.makedirs(os.path.dirname(_dst), exist_ok=True)
+        with open(os.path.join(REPO, "tools", _name), "rb") as _a, \
+                open(_dst, "wb") as _b:
+            _b.write(_a.read())
+    join_rel = "production/outbox/2026-09-07-join.answer.md"
+    join_abs = os.path.join(watcher, *join_rel.split("/"))
+    os.makedirs(os.path.dirname(join_abs), exist_ok=True)
+    with open(join_abs, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("The street walks.\n\n"
+                 "[the map](https://jsab258.github.io/wc26-picks/map.html)\n")
+    with open(join_abs[:-3] + ".photo.txt", "w", encoding="utf-8",
+              newline="\n") as fh:
+        fh.write("clip: %s\n" % gif_rel)
+    try:
+        globals()["send_animation"] = lambda t, c, path, cap, **k: (
+            joined.update(path=path, caption=cap) or
+            {"message_id": 9001, "animation": {"file_id": "x"}})
+        globals()["send_video"] = lambda t, c, path, cap, **k: (
+            joined.update(wrongWire="sendVideo") or {"message_id": 9002})
+        res_join = outbox_pass(_Creds(), watcher, lambda _s: None)
+    finally:
+        globals()["send_animation"], globals()["send_video"] = (real_anim,
+                                                                real_video)
+    check("accept/ruling1-a-clip-message-reaches-sendAnimation-through-outbox_pass",
+          joined.get("path", "").endswith("selftest-join.gif")
+          and "wrongWire" not in joined
+          and joined.get("caption", "").startswith("The street walks"),
+          "%s / refused=%s" % (joined, (res_join or {}).get("refused")))
     check("reject/ruling1-and-a-non-gif-is-not",
           mp4_went == "sendVideo", mp4_went)
 
