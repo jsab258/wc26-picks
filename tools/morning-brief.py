@@ -523,8 +523,30 @@ def compose(root, today):
     lines.append("[where it all stands](%s)" % glance_url)
     lines.append("")
 
-    lines.append("NEXT VISIBLE THING: unknown until the day is planned "
-                 "against your order.")
+    # THE NEXT THING COMES FROM THE ONE SOURCE THAT NAMES IT, never from a
+    # heading in a log. production/next-three.json is that source as of
+    # 2026-09-07; the map reads it too, so his phone and his page cannot
+    # disagree. A missing or unreadable file says so rather than guessing.
+    nxt = REPO / "production" / "next-three.json"
+    title = None
+    try:
+        import json as _json
+        items = (_json.loads(nxt.read_text(encoding="utf-8")) or {}).get("next") or []
+        if items and isinstance(items[0], dict):
+            title = (items[0].get("title") or "").strip() or None
+    except Exception:
+        title = None
+    facts["next_from"] = "production/next-three.json" if title else "nothing-measured"
+    if title:
+        # THE REGISTER WANTS A TIME OR THE WORD UNKNOWN, and naming the task
+        # without either is refused, which is right: he is asking WHEN he sees
+        # something, not what someone intends to do. So the task is named and
+        # the timing says unknown in that word, until a started item can date
+        # itself.
+        lines.append("NEXT VISIBLE THING: " + title[0].lower() + title[1:]
+                     + ", though when is unknown until it is started.")
+    else:
+        lines.append("NEXT VISIBLE THING: unknown, because nothing names it.")
     lines.append("")
 
     if budget["reading"] is None or budget["stale"]:
