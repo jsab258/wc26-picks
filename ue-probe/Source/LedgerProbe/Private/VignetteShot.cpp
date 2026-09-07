@@ -76,6 +76,7 @@
 #include "Engine/ExponentialHeightFog.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/PlayerStart.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "Engine/Texture2D.h"
@@ -330,6 +331,63 @@ namespace
 		return FString();
 	}
 
+	// FINDS, LOADS AND PARSES THE SHARED STREET FILE, ONCE PER RUN. Both
+	// entry points that need the street (the automation's Start() and the
+	// interactive BuildInteractiveStreet() below) call this and fill the
+	// same GSpec/GSpecPath/GSpecErr/GSpecTried globals either way, so a
+	// reader asking "which file answered" gets one answer whichever entry
+	// point ran. A run only ever takes one of the two paths, so nothing
+	// here has to guard against being called twice.
+	//
+	// ON FAILURE, GSceneLine CARRIES THE REASON in the exact shape the
+	// automation verdict already prints it, and the caller decides what to
+	// do with a street that could not be read: the automation writes a
+	// verdict and quits, the interactive path logs it and leaves the
+	// player standing in whatever the level would otherwise be.
+	bool LoadSpec()
+	{
+		// THE C NUMERIC LOCALE, SET BEFORE ANYTHING IS PARSED. Under a
+		// comma-decimal locale strtod reads "1.5" as 1, and every coordinate
+		// in this street would lose its fraction while every count stayed
+		// green. The g++ test asserts the same thing on the same file.
+		std::setlocale(LC_NUMERIC, "C");
+
+		GSpecPath = FindSpec(GSpecTried);
+		if (GSpecPath.IsEmpty())
+		{
+			// AND IT SAYS WHERE IT LOOKED, on the line a reader already has.
+			GSceneLine = "sceneStatus=NOTHING-EMITTED piecesEmitted=0/0"
+			             " sceneNote=piece-list-not-found-beside-the-binary-or-the-project"
+			             " specTried=" + LedgerSurface::PathListValue(GSpecTried, 8);
+			return false;
+		}
+		FString Contents;
+		if (!FFileHelper::LoadFileToString(Contents, *GSpecPath))
+		{
+			GSceneLine = "sceneStatus=NOTHING-EMITTED piecesEmitted=0/0"
+			             " sceneNote=piece-list-found-but-would-not-open specFrom="
+			           + std::string(TCHAR_TO_UTF8(*NoSp(GSpecPath)));
+			return false;
+		}
+		const std::string Text(TCHAR_TO_UTF8(*Contents));
+		if (!ParseSpec(Text, GSpec, GSpecErr))
+		{
+			// A FILE THAT WILL NOT PARSE IS A DIFFERENT FACT FROM A FILE THAT
+			// IS NOT THERE, and the reason is what says which.
+			GSceneLine = "sceneStatus=NOTHING-EMITTED piecesEmitted=0/0 sceneNote="
+			           + std::string(TCHAR_TO_UTF8(*NoSp(FString(UTF8_TO_TCHAR(GSpecErr.c_str())))))
+			           + " specFrom=" + std::string(TCHAR_TO_UTF8(*NoSp(GSpecPath)));
+			return false;
+		}
+		return true;
+	}
+
+	// GUARDS THE ONE CALLER THAT MATTERS: ALedgerGameMode::InitGame runs
+	// once per process for a plain launch, and there is no reason for a
+	// second call today, but a guard here costs one bool and stops the
+	// street from ever being spawned twice if that ever changes.
+	bool GInteractiveBuilt = false;
+
 	UWorld* GameWorld()
 	{
 		if (!GEngine) { return nullptr; }
@@ -356,7 +414,7 @@ namespace
 	}
 
 	AStaticMeshActor* SpawnPiece(UWorld* World, UStaticMesh* Mesh, const Piece& P,
-	                             const FVector& ScaleUU)
+	                             const FVector& ScaleUU, bool bInteractive)
 	{
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -373,9 +431,15 @@ namespace
 		{
 			C->SetMobility(EComponentMobility::Movable);
 			C->SetStaticMesh(Mesh);
-			// CreatePrimitive-style collision is not wanted here: 593 bodies
-			// cost simulation time in a frame this run is timing.
-			C->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			// CreatePrimitive-style collision is not wanted in the timed
+			// automation pass: 593 bodies cost simulation time in a frame
+			// that pass is timing. A person walking this same street needs
+			// exactly the opposite, or a Character's capsule falls straight
+			// through a pavement with NoCollision on it and the whole
+			// deliverable is a screen showing the sky forever. QueryOnly is
+			// enough for a capsule sweep and costs nothing physics does.
+			C->SetCollisionEnabled(bInteractive ? ECollisionEnabled::QueryOnly
+			                                     : ECollisionEnabled::NoCollision);
 			C->SetCastShadow(true);
 		}
 		A->SetActorScale3D(ScaleUU);
@@ -441,7 +505,15 @@ namespace
 	// BUILD THE WHOLE STREET ONCE. Every count is captured as it happens and
 	// the denominator comes off the FILE, before any spawning, so a run that
 	// dies halfway still prints what it was asked for.
-	void BuildScene(UWorld* World)
+	//
+	// bInteractive IS NAMED AT EVERY CALL SITE, NEVER DEFAULTED: it turns
+	// collision on for every spawned piece and skips the materials-test
+	// control quads, both of which are wrong to add to a frame the
+	// automation is timing and both of which are required for a person to
+	// walk here at all. The automation's own call (Tick's WaitWorld case)
+	// passes false; ALedgerGameMode's (LedgerVignetteShot::BuildInteractiveStreet,
+	// this file) passes true.
+	void BuildScene(UWorld* World, bool bInteractive)
 	{
 		int Boxes = 0, Cyls = 0, Planes = 0, Props = 0, Decals = 0, Skipped = 0, Emitted = 0;
 		std::string Note = "none";
@@ -472,7 +544,7 @@ namespace
 			// would catch it if the engine ever changed them.
 			const FVector Scale((float)P.SX, (float)P.SZ, (float)P.SY);
 			AStaticMeshActor* A = nullptr;
-			if (P.Shape == "box") { A = SpawnPiece(World, Cube, P, Scale); if (A) ++Boxes; }
+			if (P.Shape == "box") { A = SpawnPiece(World, Cube, P, Scale, bInteractive); if (A) ++Boxes; }
 			else if (P.Shape == "cyl")
 			{
 				// THE CYLINDER'S AXIS IS LOCAL +y IN THE FILE'S FRAME, which
@@ -480,7 +552,7 @@ namespace
 				// cylinder's own axis. Height is sy_m and the diameter is
 				// sx_m and sz_m, so the same scale vector is correct for
 				// both shapes and no special case is needed.
-				A = SpawnPiece(World, Cyl, P, Scale); if (A) ++Cyls;
+				A = SpawnPiece(World, Cyl, P, Scale, bInteractive); if (A) ++Cyls;
 			}
 			else if (P.Shape == "decal")
 			{
@@ -504,7 +576,7 @@ namespace
 				// a count.
 				Q.PitchDeg = P.PitchDeg - 90.0;
 				const FVector QScale((float)P.SX, (float)P.SY, 1.0f);
-				A = SpawnPiece(World, Plane, Q, QScale);
+				A = SpawnPiece(World, Plane, Q, QScale, bInteractive);
 				if (A)
 				{
 					// A CO-PLANAR QUAD Z-FIGHTS WITH THE SURFACE UNDER IT,
@@ -527,7 +599,7 @@ namespace
 				// prop's OWN stated size holds the space so the frame is
 				// comparable, and `propStandIns` on the scene line is what
 				// stops anybody reading it as a loaded model.
-				A = SpawnPiece(World, Cube, P, Scale);
+				A = SpawnPiece(World, Cube, P, Scale, bInteractive);
 				if (A) { ++Boxes; ++Props; }
 			}
 			else
@@ -633,7 +705,21 @@ namespace
 		// BindSurfaces loads. A control quad in front of the camera is not a
 		// piece and is not counted as one: the scene line's denominators come
 		// off the file and none of them moves.
-		SpawnControlQuads(World, Plane);
+		//
+		// SKIPPED FOR A PERSON WALKING HERE. The three colour-swatch planes
+		// exist only to prove a material instance can be told apart from the
+		// street around it in a photograph; standing them in front of the
+		// player's own spawn point would be the first thing anyone sees, and
+		// it answers a materials question nobody playing is asking.
+		if (!bInteractive)
+		{
+			SpawnControlQuads(World, Plane);
+		}
+		else
+		{
+			GQuadDone = "controlQuadsStatus=SKIPPED controlQuads=nothing-measured"
+			            " controlQuadsNote=interactive-build-does-not-spawn-the-materials-test-quads";
+		}
 	}
 
 	const Camera* FindCamera(const std::string& Id)
@@ -1792,7 +1878,7 @@ namespace
 				Finish(CaptureDoneLine(0, 0, 0, 0, Now - GStart, GTicks));
 				return false;
 			}
-			BuildScene(World);
+			BuildScene(World, /*bInteractive=*/false);
 			// UNCAP THE FRAME RATE BEFORE ANYTHING IS TIMED. A frame time
 			// measured against a 60 Hz cap is a measurement of the cap, and
 			// it would read as a suspiciously round 16.67 in the verdict.
@@ -1940,45 +2026,8 @@ namespace LedgerVignetteShot
 {
 	void Start()
 	{
-		// THE C NUMERIC LOCALE, SET BEFORE ANYTHING IS PARSED. Under a
-		// comma-decimal locale strtod reads "1.5" as 1, and every coordinate
-		// in this street would lose its fraction while every count stayed
-		// green. The g++ test asserts the same thing on the same file.
-		std::setlocale(LC_NUMERIC, "C");
-
-		GSpecPath = FindSpec(GSpecTried);
-		if (GSpecPath.IsEmpty())
+		if (!LoadSpec())
 		{
-			// AND IT SAYS WHERE IT LOOKED, on the line a reader already has.
-			GSceneLine = "sceneStatus=NOTHING-EMITTED piecesEmitted=0/0"
-			             " sceneNote=piece-list-not-found-beside-the-binary-or-the-project"
-			             " specTried=" + LedgerSurface::PathListValue(GSpecTried, 8);
-			GPhase = EPhase::Done;
-			WriteVerdict("captureStatus=NOTHING-MEASURED shotsWrote=0/0 shotsBlank=0/0"
-			             " shotsNoFile=0/0 captureSeconds=0.00 captureTicks=0");
-			FPlatformMisc::RequestExit(false);
-			return;
-		}
-		FString Contents;
-		if (!FFileHelper::LoadFileToString(Contents, *GSpecPath))
-		{
-			GSceneLine = "sceneStatus=NOTHING-EMITTED piecesEmitted=0/0"
-			             " sceneNote=piece-list-found-but-would-not-open specFrom="
-			           + std::string(TCHAR_TO_UTF8(*NoSp(GSpecPath)));
-			GPhase = EPhase::Done;
-			WriteVerdict("captureStatus=NOTHING-MEASURED shotsWrote=0/0 shotsBlank=0/0"
-			             " shotsNoFile=0/0 captureSeconds=0.00 captureTicks=0");
-			FPlatformMisc::RequestExit(false);
-			return;
-		}
-		const std::string Text(TCHAR_TO_UTF8(*Contents));
-		if (!ParseSpec(Text, GSpec, GSpecErr))
-		{
-			// A FILE THAT WILL NOT PARSE IS A DIFFERENT FACT FROM A FILE THAT
-			// IS NOT THERE, and the reason is what says which.
-			GSceneLine = "sceneStatus=NOTHING-EMITTED piecesEmitted=0/0 sceneNote="
-			           + std::string(TCHAR_TO_UTF8(*NoSp(FString(UTF8_TO_TCHAR(GSpecErr.c_str())))))
-			           + " specFrom=" + std::string(TCHAR_TO_UTF8(*NoSp(GSpecPath)));
 			GPhase = EPhase::Done;
 			WriteVerdict("captureStatus=NOTHING-MEASURED shotsWrote=0/0 shotsBlank=0/0"
 			             " shotsNoFile=0/0 captureSeconds=0.00 captureTicks=0");
@@ -1988,5 +2037,86 @@ namespace LedgerVignetteShot
 		GPhase = EPhase::WaitWorld;
 		GTicker = FTSTicker::GetCoreTicker().AddTicker(
 			FTickerDelegate::CreateStatic(&Tick), 0.0f);
+	}
+
+	// QUEUE 138 ITEM 1. See VignetteShot.h for the call-site contract; this
+	// is what it does.
+	void BuildInteractiveStreet(UWorld* World)
+	{
+		if (GInteractiveBuilt) { return; }
+		if (World == nullptr) { return; }
+		GInteractiveBuilt = true;
+
+		if (!LoadSpec())
+		{
+			UE_LOG(LogTemp, Error, TEXT("LedgerProbe interactive street: %s"),
+			       *FString(UTF8_TO_TCHAR(GSceneLine.c_str())));
+			return;
+		}
+
+		BuildScene(World, /*bInteractive=*/true);
+
+		// LIGHT IT. BuildScene spawns the sun and the three fill lights at
+		// zero intensity (ApplyCondition is their one owner, named at the
+		// top of this file) and the automation only ever turns them on by
+		// applying one of the file's named conditions per shot; this path
+		// has no shots, so it has to call the same owner directly or a
+		// person would be walking a street lit only by the lanterns and
+		// window practicals, which are the ones NOT zeroed at spawn.
+		// overcast_day is conditions[0] in the shared file and the
+		// condition the automation's own first shot uses, so this is not a
+		// second opinion about which light is "the" street light.
+		const Condition* Day = FindCondition("overcast_day");
+		if (Day != nullptr) { ApplyCondition(*Day); }
+		else if (!GSpec.Conditions.empty()) { ApplyCondition(GSpec.Conditions[0]); }
+		else
+		{
+			UE_LOG(LogTemp, Error,
+			       TEXT("LedgerProbe interactive street: the shared file named no condition at all"));
+		}
+
+		// PLACE THE PLAYER. cam_A is the shared file's own first camera and
+		// the position the automation photographs from a human eye height
+		// on the east footway; starting a person there rather than at an
+		// invented coordinate is the same "no second opinion about the
+		// street" rule PlaceCamera already follows for the automation
+		// camera. Spawned rather than hand-placed: this project's rule
+		// against a hand-edited scene applies to a PlayerStart exactly as
+		// it does to a wall, and /Engine/Maps/Entry is an engine map this
+		// project does not own to edit.
+		const Camera* StartCam = FindCamera("cam_A");
+		if (StartCam == nullptr && !GSpec.Cameras.empty()) { StartCam = &GSpec.Cameras[0]; }
+		if (StartCam == nullptr)
+		{
+			UE_LOG(LogTemp, Error,
+			       TEXT("LedgerProbe interactive street: the shared file named no camera to start the player at"));
+			return;
+		}
+		// A GENEROUS NAMED CLEARANCE ABOVE THE GROUND, NOT A MEASURED
+		// CAPSULE HALF-HEIGHT. ALedgerCharacter sets its own capsule to
+		// 34x88 (LedgerCharacter.cpp), but matching that number here
+		// exactly would be a second copy of it that could drift from the
+		// first; a spawn that starts clear of the pavement and falls the
+		// rest of the way under gravity does not need to match it, and a
+		// spawn that starts too LOW would not correct itself the same way.
+		const float kClearAboveGroundM = 1.1f;
+		const FVector At(StartCam->X * 100.0, StartCam->Z * 100.0,
+		                 (StartCam->GroundY + kClearAboveGroundM) * 100.0);
+		// FACING DOWN THE STREET, AT THE SAME YAW cam_A USES. The file's
+		// yaw is already this engine's yaw with no conversion, exactly as
+		// PlaceCamera uses it above; no pitch or roll on a PlayerStart, the
+		// character stands upright.
+		const FRotator Facing(0.0f, (float)StartCam->YawDeg, 0.0f);
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		APlayerStart* PStart = World->SpawnActor<APlayerStart>(
+			APlayerStart::StaticClass(), At, Facing, Params);
+		// READ BACK, NEVER ASSUMED: a spawn that returned null is a
+		// GameMode with nowhere to start a player, and this is the one
+		// line that would say so.
+		UE_LOG(LogTemp, Log,
+		       TEXT("LedgerProbe interactive street: playerStart=%s at %s facing yaw %.1f, street pieces=%d"),
+		       PStart != nullptr ? TEXT("spawned") : TEXT("SPAWN-FAILED"),
+		       *At.ToString(), Facing.Yaw, (int32)GSpec.Pieces.size());
 	}
 }

@@ -15,6 +15,13 @@ public class LedgerProbe : ModuleRules
 		// trusting that a call returned. Private, because nothing outside
 		// this module needs it, and named here so the cost of the extra
 		// module is visible in the build numbers D1 is comparing.
-		PrivateDependencyModuleNames.AddRange(new string[] { "ImageWrapper" });
+		//
+		// InputCore NAMES FKey AND EKeys, which ALedgerCharacter binds
+		// directly to (queue 138 item 1: the street's first playable
+		// character). Engine almost certainly carries this already as a
+		// transitive public dependency, but this project cannot compile
+		// locally to prove that, so it is named explicitly rather than
+		// trusted through a chain nobody here can see.
+		PrivateDependencyModuleNames.AddRange(new string[] { "ImageWrapper", "InputCore" });
 	}
 }
