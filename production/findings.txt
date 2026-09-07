@@ -69,3 +69,39 @@ he wrote. A stop is loud. A corrupted message is not.
 NOT FIXED TODAY for the same reason as the other two: his standing rule for
 this batch is no process changes until the round trip is proven. It is first
 in the queue when it is.
+
+--------------------------------------------------------------------------
+2026-09-07  THE OUTBOX RETRIES A PERMANENTLY REFUSED MESSAGE FOR EVER, AND
+            THAT IS WHAT THE "254 MESSAGES" ACTUALLY WERE.
+--------------------------------------------------------------------------
+MEASURED, NOT INFERRED. The pc-inbox branch carries exactly ONE message file
+from Jafar, 2026-09-07T0550Z-79313218.md, which is the same file this
+morning's push error named. Beside it sit 312 outbound records, of which 304
+are refusals of a SINGLE file: production/outbox/2026-09-03-batch-landed-and-
+the-wait.unprompted.md. One file, 304 refusals.
+
+So the "254 messages sitting on the PC" that opened this morning were not 254
+messages he typed. They were the outbound refusal backlog at that moment, and
+it has since grown to 304 while the channel was being fixed. He read the
+number off the bot window and reported it in good faith; the number was real
+and it was counting something else.
+
+THE BUG. `sweep_outbox` runs every 120 seconds, picks up the same unsent
+Producer message, puts it through the register, is refused, and WRITES A NEW
+REFUSAL RECORD. The refusal reasons are stable and self-inflicted: a deadline
+now 26 hours in the past, a word cap 22 words over, and two links pointing
+somewhere the 2026-09-06 ruling forbids. None of them can become true by
+waiting, so the retry can never succeed and never stops. Unbounded growth in
+a folder that rides the transport.
+
+WHAT IT COSTS. Every one of those records is pushed, delivered, read back and
+printed. The container's own report grows by a line per record for ever, and
+`outbound_from_branch` runs one `git show` per record per run.
+
+TWO FIXES, AND THEY ARE DIFFERENT. The message itself should be withdrawn or
+repaired, since it is four days stale and can never pass. And the sweep needs
+to stop writing a new record for a refusal it has already recorded for that
+file with those reasons: a refusal that has not changed is not news.
+
+NOT FIXED TODAY. His standing rule is no process changes until the clip
+exists. Recorded with its count so the number is not rediscovered.

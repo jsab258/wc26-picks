@@ -1,0 +1,13 @@
+receipt: sent
+file: production/outbox/2026-09-06-pc-processes-one-window.answer.md
+kind: answer
+fileCommit: 1e751f67ac69b9827f4605e8fb245472af8af75a
+fileCommitEpoch: 1788707027
+sent: 2026-09-06T17:59:17+00:00
+sentEpoch: 1788717557
+messageId: 16
+chars: 1233
+outboundLatencySec: 10530
+outboundLatencySecFrom: fileCommitInstant
+outboundLatencySecTo: sendInstant
+note: one sample of one message, not a rate.

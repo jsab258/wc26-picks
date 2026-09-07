@@ -1,0 +1,13 @@
+receipt: sent
+file: production/outbox/2026-09-05-the-console-run.unprompted.md
+kind: unprompted
+fileCommit: cca47beee17910cf6f0ff07b0c63de1c666c468f
+fileCommitEpoch: 1788642075
+sent: 2026-09-06T05:25:48+00:00
+sentEpoch: 1788672348
+messageId: 13
+chars: 2640
+outboundLatencySec: 30273
+outboundLatencySecFrom: fileCommitInstant
+outboundLatencySecTo: sendInstant
+note: one sample of one message, not a rate.

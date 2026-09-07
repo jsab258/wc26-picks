@@ -1,0 +1,13 @@
+receipt: sent
+file: production/outbox/2026-09-06-where-the-project-stands.unprompted.md
+kind: unprompted
+fileCommit: 288ff517eb28bb1ee8659b09a45e3910f5148527
+fileCommitEpoch: 1788710879
+sent: 2026-09-06T17:59:17+00:00
+sentEpoch: 1788717557
+messageId: 17
+chars: 797
+outboundLatencySec: 6678
+outboundLatencySecFrom: fileCommitInstant
+outboundLatencySecTo: sendInstant
+note: one sample of one message, not a rate.
