@@ -140,6 +140,64 @@ jobs:
       # ledger-probe-unreal.yml already carry, applied here too so the
       # heartbeat read actually runs instead of failing on its first git
       # call.
+      # THE SUPERVISOR'S OWN STATUS, CARRIED OFF THE MACHINE BY THE ONE
+      # THING THAT CAN READ IT. tools/supervise.py writes
+      # game-design/pc-jobs/supervisor-status.txt every 60 seconds, naming
+      # each daemon's state, its last words, and whether the give-up rule
+      # has stopped one. That file has never been published anywhere: it is
+      # on his disk and reaches nobody.
+      #
+      # WHY THAT MATTERS AND WHY THE EXISTING HEARTBEAT DOES NOT COVER IT.
+      # The pc-inbox counters only move when the BOT pushes, so they answer
+      # "is the bot working" with the bot's own hand. On 2026-09-07 the
+      # supervisor and the watcher were alive and the bot had not pushed for
+      # ten hours, and nothing anywhere could say why. This step reads the
+      # file the supervisor already writes and commits it, which is the
+      # existing channel this project trusts: a file committed by CI.
+      # NO SECOND TRANSPORT, no new daemon, no new format.
+      #
+      # ABSENCE IS PUBLISHED TOO. A missing file means the supervisor has
+      # not written one since it started, which is itself the answer, so it
+      # is recorded in words rather than left as an empty section.
+      - name: Publish the supervisor's own status
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $out = "production/pc-ops/supervisor-status.txt"
+          New-Item -ItemType Directory -Force -Path "production/pc-ops" | Out-Null
+          $src = "C:\Users\Jafar\wc26-picks\game-design\pc-jobs\supervisor-status.txt"
+          $sha = (git rev-parse --short HEAD)
+          $stamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+          $head = @(
+            "# LEDGER supervisor status as CI read it - $sha @$stamp",
+            "# Line 1 names the commit this was read on.",
+            "# Copied verbatim from the supervisor's own file on his PC.",
+            "# It is written there every 60s and was published nowhere until",
+            "# this step existed, which is why a bot that stopped at 11:30 on",
+            "# 2026-09-07 could not say so.",
+            "statusSource=$($src -replace ' ','~')")
+          if (Test-Path $src) {
+            $item = Get-Item $src
+            $ageSec = [int]((Get-Date).ToUniversalTime() - $item.LastWriteTimeUtc).TotalSeconds
+            $body = Get-Content $src -Raw -ErrorAction SilentlyContinue
+            $lines = @($body -split "`r?`n").Count
+            $head += "statusFound=yes statusBytes=$($item.Length) statusLines=$lines statusAgeSec=$ageSec"
+            # THE AGE IS THE READING, not the presence. A file written once
+            # and then abandoned looks identical to a live one until it is
+            # asked how old it is.
+            $head += "statusFresh=$(if ($ageSec -le 180) { 'yes' } else { 'NO-stale-by-' + $ageSec + 's' })"
+            $head += ""
+            $head += $body
+          } else {
+            $head += "statusFound=no statusBytes=0 statusLines=0 statusAgeSec=nothing-measured"
+            $head += "NOTHING MEASURED - the supervisor has written no status file at that path, so nothing here says which daemons are up."
+          }
+          $head -join "`n" | Set-Content $out -Encoding utf8
+          Write-Host ($head | Select-Object -First 9 | Out-String)
+
       - name: Read the existing pc-inbox channel, without adding a new one
         if: always()
         continue-on-error: true
@@ -191,6 +249,14 @@ jobs:
           git config user.name "LEDGER installer"
           git config user.email "installer@ledger.local"
           git add -- "$OUT"
+          # AND THE SUPERVISOR STATUS, BY NAME. Staging only $OUT is
+          # how B1 happened in the probe workflow on 2026-09-07: the
+          # clip step wrote a file the commit step never named, so
+          # every run wrote it and no run kept it. -A so its ABSENCE
+          # is staged too, because a run where the supervisor wrote no
+          # status must not leave the last run's copy standing as if
+          # it were this one's.
+          git add -A -- production/pc-ops/supervisor-status.txt 2>/dev/null || true
           git diff --cached --quiet && { echo "install verification unchanged; nothing to commit"; exit 0; }
           git commit -m "scheduled task install/verify from $(git rev-parse --short HEAD)"
           BR="${GITHUB_REF_NAME}"

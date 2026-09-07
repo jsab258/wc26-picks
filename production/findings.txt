@@ -161,3 +161,35 @@ of the file should mark the file rather than re-refuse it, so the sweep skips
 it and says once that it is held, with the count of held files as its own
 key. NOT DONE TODAY because the standing rule for this batch is no process
 changes until the clip exists.
+
+--------------------------------------------------------------------------
+2026-09-07  THE SUPERVISOR KNOWS WHY A DAEMON IS DOWN AND CAN TELL NOBODY.
+--------------------------------------------------------------------------
+MEASURED. At 21:13 UTC the scheduled-task install read four live processes on
+Jafar's PC (two supervise.py, two pc-watcher.py) and registered the task
+successfully. At the same instant the PC's last push to pc-inbox was still
+13:30:08 +0200, which is 11:30 UTC, and the refused= counter that climbed once
+per bot sweep all morning was still frozen at 304. So the supervisor was alive
+and the bot had not swept for nearly ten hours.
+
+NOTHING ANYWHERE COULD SAY WHY. tools/supervise.py writes a full status block
+to game-design/pc-jobs/supervisor-status.txt every 60 seconds, naming each
+daemon's state, its last words, and whether the give-up rule (five stops in
+half an hour) has stopped one. That file is on neither the work branch nor
+pc-results: checked both. It is written to his disk and reaches nobody.
+
+WHY THE HEARTBEAT THAT EXISTS DOES NOT COVER THIS. The pc-inbox counters move
+only when the BOT pushes, so they answer "is the bot working" using the bot's
+own hand. In the one case that matters, a bot that has stopped, they are
+silent by construction. A heartbeat that cannot report its own subject's death
+is not a heartbeat.
+
+FIXED IN PART, in the same commit as this entry: the install workflow now
+copies that status file off the machine and commits it as
+production/pc-ops/supervisor-status.txt, with its AGE, because a file written
+once and abandoned looks identical to a live one until it is asked how old it
+is. Absence is published in words too.
+
+NOT FIXED: this only runs when that workflow runs. A continuous signal would
+need the supervisor to publish for itself, which is a process change and
+outside the standing rule for today.

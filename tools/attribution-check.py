@@ -170,7 +170,13 @@ OURS = {
     # them to attribute. Phase C puts allowlisted textures on those surfaces,
     # and the licence question then belongs to the TEXTURES where it already
     # lives, not to the screenshot of them.
-    "production/d1-probe": "rendered by the Unreal probe from this project's own piece list, untextured engine primitives, committed by CI every run",
+    # CORRECTED 7 SEP 2026. This row said "untextured engine
+    # primitives", which was true until run 25 put Meridian's own
+    # textures on the street. These frames now CONTAIN ambientCG and
+    # CityPack pixels, both attributed on the other side of this file,
+    # and a licensing row that understates what is in a picture is the
+    # one kind of decayed claim this check exists to prevent.
+    "production/d1-probe": "rendered by the Unreal probe from this project's own piece list, carrying the ambientCG and CityPack textures this file attributes separately, committed by CI every run",
 }
 
 # File types that are content rather than code. A directory holding only text
@@ -185,6 +191,15 @@ OURS = {
 # set is printed and fails, so the next omission announces itself on the first
 # run instead of after a month.
 ASSET_SUFFIXES = {".fbx", ".png", ".jpg", ".jpeg", ".tga", ".psd", ".wav",
+                  # .gif ADDED 7 SEP 2026, and this check caught it on
+                  # the first run that produced one, which is what the
+                  # comment above promises. The walk probe stitches its
+                  # sequence frames into one animated GIF, so a GIF here
+                  # is the same kind of thing a .png already is: a
+                  # picture, which may be ours or may be somebody
+                  # else's, and must therefore be classified rather
+                  # than waved through.
+                  ".gif",
                   ".mp3", ".ogg", ".ttf", ".otf", ".bundle", ".obj", ".blend",
                   # RADIANCE AND OPENEXR, ADDED 24 AUG BECAUSE THEY WERE
                   # MISSING AND THE CHECK WAS SILENT ABOUT IT. 23MB of Poly
