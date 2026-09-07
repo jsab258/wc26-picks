@@ -1,0 +1,13 @@
+receipt: sent
+file: production/outbound/2026-09-07T111936Z-reply-24.receipt.txt
+kind: bot-message
+fileCommit: none
+fileCommitEpoch: none
+sent: 2026-09-07T11:19:36+00:00
+sentEpoch: 1788779976
+messageId: 24
+chars: 81
+outboundLatencySec: nothing-measured
+outboundLatencySecFrom: fileCommitInstant
+outboundLatencySecTo: sendInstant
+note: one sample of one message, not a rate. a reply is not a file committed first, so there is no file commit instant to measure from.
