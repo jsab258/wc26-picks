@@ -1,0 +1,36 @@
+# LEDGER telegram-bot remote restart - 30e5339 @1788824903
+# Line 1 names the commit this was run on.
+# Route b, ruling 2026-09-07: stops the telegram-bot.py process
+# tree so tools/supervise.py restarts it on the code on disk.
+requestReason=the_bot_is_wedged,_not_merely_stale:_it_can_see_the_message_and_will_not_send_it
+
+targetUser=Jafar
+runnerAccount=JAFAR-DESKTOP\Jafar
+stableEvidence=before
+stableHead=defe559b44a5544b68bafbd785f486abedbeb113
+botSourceSha256=CCECDA1AC468B31886645B845CF47022DECBE4156FC1C37E699042123B132136
+outboxSourceSha256=A86C71AFE67A85D341D86C94C42D00CA20AF3DB57A905160DA67A5AE9F086AEB
+botQueryOk=true botProcessesFound=2
+botCandidatePid=16208 botCandidateParentPid=14608 botCandidateCommandLine=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe~C:\Users\Jafar\wc26-picks\tools\runner\telegram-bot.py
+botCandidatePid=9740 botCandidateParentPid=16208 botCandidateCommandLine="C:\Users\Jafar\miniconda3\python.exe"~C:\Users\Jafar\wc26-picks\tools\runner\telegram-bot.py
+botTreeBefore=14608>16208>9740
+botRootCommandLine=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe~C:\Users\Jafar\wc26-picks\tools\runner\telegram-bot.py
+supervisorQueryOk=True supervisorPidsSeen=19712,14608
+botLeafStopped=9740
+botRootExitedOnItsOwn=true
+botOldPid=9740
+botStopInstant=2026-09-07T23:48:23.6938399Z
+botCameBackAfterSec=5
+botNewPid=6800
+botPidChanged=True
+botTreeJustAfter=14608>17232>6800
+botRootCreationDate=09/08/2026 01:48:29
+botTreeAfter=14608>17232>6800
+botNewTreeStableForSec=20
+stableEvidence=after
+stableHead=defe559b44a5544b68bafbd785f486abedbeb113
+botSourceSha256=CCECDA1AC468B31886645B845CF47022DECBE4156FC1C37E699042123B132136
+outboxSourceSha256=A86C71AFE67A85D341D86C94C42D00CA20AF3DB57A905160DA67A5AE9F086AEB
+botStopped=True
+restartAction=restarted
+restartExitCode=0
