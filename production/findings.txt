@@ -105,3 +105,30 @@ file with those reasons: a refusal that has not changed is not news.
 
 NOT FIXED TODAY. His standing rule is no process changes until the clip
 exists. Recorded with its count so the number is not rediscovered.
+
+--------------------------------------------------------------------------
+2026-09-07  THE OUTBOX RETRIES A PERMANENTLY REFUSED MESSAGE FOR EVER, AND
+            WRITES A NEW RECORD EVERY TIME.
+--------------------------------------------------------------------------
+MEASURED, not inferred. The pc-inbox branch carries 304 refusal records and
+every one of them names the SAME file:
+production/outbox/2026-09-03-batch-landed-and-the-wait.unprompted.md. One
+message, refused 304 times, once per sweep pass.
+
+WHY IT CAN NEVER SUCCEED. The refusal reasons are stable properties of the
+file rather than transient conditions: a deadline that is now days in the
+past, a word cap, and links pointing at destinations the 2026-09-06 ruling
+does not allow. Nothing about retrying changes any of them.
+
+WHAT IT COST TODAY. This is what Jafar read off the bot window as "254
+messages sitting on the PC", which sent the whole morning looking for a lost
+backlog of his own words. There was no backlog: the inbox branch carries
+exactly one message of his. A counter that folds the studio's own failed
+bookkeeping into a number a person reads as "your messages" is the same
+class of fault as B1 in the ruling of the same date.
+
+THE SHAPE OF A FIX, not applied: a refusal that names a permanent property
+of the file should mark the file rather than re-refuse it, so the sweep skips
+it and says once that it is held, with the count of held files as its own
+key. NOT DONE TODAY because the standing rule for this batch is no process
+changes until the clip exists.
