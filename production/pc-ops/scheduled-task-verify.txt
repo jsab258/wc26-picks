@@ -1,16 +1,48 @@
-# LEDGER scheduled task install/verify - 45de6c2 @1788812606
+# LEDGER scheduled task install/verify - 8881917 @1788814939
 # Line 1 names the commit this was measured on.
 # Installs tools/runner/launch-supervisor.py (wraps tools/supervise.py,
 # unmodified) as a Windows scheduled task. Ruling 2026-09-07.
 
+workflowRef=claude/game-dev-ai-automation-2h67ix daemonsBranch=claude/game-dev-ai-automation-2h67ix daemonsBranchIsWhatGitActuallyUses=true
+supervisorQueryOk=true supervisorQueryContext=before-resync supervisorProcessesFound=4
+supervisorQueryContext=before-resync supervisorPid=19712 supervisorParentPid=10700 supervisorKind=supervise.py
+supervisorQueryContext=before-resync supervisorPid=14608 supervisorParentPid=19712 supervisorKind=supervise.py
+supervisorQueryContext=before-resync supervisorPid=29456 supervisorParentPid=14608 supervisorKind=pc-watcher.py
+supervisorQueryContext=before-resync supervisorPid=14548 supervisorParentPid=29456 supervisorKind=pc-watcher.py
+resyncAction=skipped-supervisor-running kinds=supervise.py,supervise.py,pc-watcher.py,pc-watcher.py reason=a-running-supervisor-or-watcher-already-keeps-this-checkout-current-do-not-touch-its-index
 runnerAccount=JAFAR-DESKTOP\Jafar
-[31;1mException: [0mC:\actions-runner-ledger\_work\wc26-picks\wc26-picks\tools\runner\install-scheduled-task.ps1:131[0m
-[31;1m[0m[36;1mLine |[0m
-[31;1m[0m[36;1m[36;1m 131 | [0m     [36;1mthrow ("MISSING $Launcher - the door every launch is meant to go [0m …[0m
-[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
-[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mMISSING C:\Users\Jafar\wc26-picks\tools\runner\launch-supervisor.py - the door every launch is meant to go[0m
-[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m[31;1m[36;1m     | [31;1mthrough is not on disk. Nothing was registered.[0m
-installerExitCode=1
+repo=C:\Users\Jafar\wc26-picks
+python=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
+pythonForTask=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\pythonw.exe windowless=True
+configLocalPresent=True
+installAction=create
+supervisorQueryOk=true supervisorQueryContext=before-start supervisorProcessesFound=4
+supervisorQueryContext=before-start supervisorPid=19712 supervisorParentPid=10700 supervisorKind=supervise.py
+supervisorQueryContext=before-start supervisorPid=14608 supervisorParentPid=19712 supervisorKind=supervise.py
+supervisorQueryContext=before-start supervisorPid=29456 supervisorParentPid=14608 supervisorKind=pc-watcher.py
+supervisorQueryContext=before-start supervisorPid=14548 supervisorParentPid=29456 supervisorKind=pc-watcher.py
+startedNow=refused reason=4_supervisor_process(es)_already_running kinds=supervise.py,supervise.py,pc-watcher.py,pc-watcher.py
+supervisorQueryOk=true supervisorQueryContext=after-verify supervisorProcessesFound=4
+supervisorQueryContext=after-verify supervisorPid=19712 supervisorParentPid=10700 supervisorKind=supervise.py
+supervisorQueryContext=after-verify supervisorPid=14608 supervisorParentPid=19712 supervisorKind=supervise.py
+supervisorQueryContext=after-verify supervisorPid=29456 supervisorParentPid=14608 supervisorKind=pc-watcher.py
+supervisorQueryContext=after-verify supervisorPid=14548 supervisorParentPid=29456 supervisorKind=pc-watcher.py
+taskExists=True
+taskState=Ready
+taskEnabled=True
+taskTriggerKind=MSFT_TaskLogonTrigger
+taskRestartCount=999
+taskRestartInterval=PT1M
+taskMultipleInstancesPolicy=IgnoreNew
+taskHiddenInSchedulerUI=True
+taskRunAsUser=Jafar
+taskLogonType=Interactive
+taskLastRunTime=11/30/1999 00:00:00
+taskLastTaskResult=267011
+taskNextRunTime=
+install-scheduled-task: installAction=create taskExists=True supervisorProcessesAfter=4
+installerExitCode=0
 
 # The existing channel, read rather than duplicated (ruling point 4).
-pcInboxReachable=false pcInboxError=fatal: detected dubious ownership in repository at 'C:/actions-runner-ledger/_work/wc26-picks/wc26-picks' 'C:/actions-runner-ledger/_work/wc26-picks/wc26-picks'
+pcInboxReachable=true pcInboxHeadShort=22973f8 pcInboxLastCommitAgeSec=34338
+pcInboxNote=this-branch-is-the-studios-own-de-facto-heartbeat;no-new-transport-was-built
