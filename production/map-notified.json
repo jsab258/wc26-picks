@@ -7,14 +7,22 @@
    "message": null,
    "notified": false,
    "why": "baseline-recorded-no-message-written"
+  },
+  {
+   "at": "2026-09-07T00:59:06Z",
+   "changedFields": "q2/q3",
+   "digest": "4917df34e120",
+   "message": "production/outbox/2026-09-07-the-map-changed-4917df34e120.unprompted.md",
+   "notified": true,
+   "why": "material-change"
   }
  ],
  "historyCap": 20,
  "historyDropped": 0,
  "last": {
-  "at": "2026-09-06T20:08:20Z",
-  "changedFields": "none",
-  "digest": "e51512e30465",
+  "at": "2026-09-07T00:59:06Z",
+  "changedFields": "q2/q3",
+  "digest": "4917df34e120",
   "fields": {
    "q1": [
     "LEDGER_Unreal_probe|runnable-visual-probe|ran-on-your-pc",
@@ -28,23 +36,25 @@
     "the-source-in-this-checkout|implemented-code,-no-usable-build|unverified"
    ],
    "q2": [
-    "street-and-its-look|nothing-measured",
-    "people-and-their-memory|harness-only",
-    "conversation|harness-only",
+    "street-and-its-look|seen-not-measured",
+    "player-control|not-started",
+    "the-crime-loop|runs-in-text-only",
+    "people-and-their-memory|runs-unheard",
+    "conversation|runs-and-heard",
     "voice|nothing-measured",
-    "the-crime-loop|harness-only",
-    "the-worlds-props|harness-only"
+    "the-worlds-props|runs-in-text-only"
    ],
    "q3": [
-    "1|FIND-THE-CAUSE-OF-THE-UNTEXTURED-STREET-and-get-Meridian-s-t",
-    "2|QUEUE-119-the-three-unbriefed-players-SUPERSEDED-THE-SAME-DA"
+    "1|Control-a-character-in-the-street-that-already-exists",
+    "2|Commit-one-crime-there-and-pass-a-real-witness-event-into-th",
+    "3|Overhear-the-gossip-it-causes-and-see-one-consequence-in-tha"
    ]
   },
-  "message": null,
-  "notified": false,
-  "pageCommit": "85b5222a2551a0959917f0ce23e1c22f42f01032",
+  "message": "production/outbox/2026-09-07-the-map-changed-4917df34e120.unprompted.md",
+  "notified": true,
+  "pageCommit": "284cfb767dcc9f23939b10546d26054ded0bf144",
   "servedUrl": "https://jsab258.github.io/wc26-picks/map.html",
-  "why": "baseline-recorded-no-message-written"
+  "why": "material-change"
  },
  "what": "The material state of the published map that this consumer last ACCEPTED AS SERVED, and whether a message was written for it. Written only by tools/map-notify.py, only from a page that answered as ours. A state recorded here is never announced twice; a baseline recorded here was never announced at all, because a first reading is not a change. An outbox message is not a delivery: the receipt under production/outbound carrying the platform's message id is."
 }
