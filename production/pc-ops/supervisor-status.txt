@@ -1,0 +1,28 @@
+# LEDGER supervisor status as CI read it -  @1788816460
+# Line 1 names the commit this was read on.
+# Copied verbatim from the supervisor's own file on his PC.
+# It is written there every 60s and was published nowhere until
+# this step existed, which is why a bot that stopped at 11:30 on
+# 2026-09-07 could not say so.
+statusSource=C:\Users\Jafar\wc26-picks\game-design\pc-jobs\supervisor-status.txt
+statusFound=yes statusBytes=620 statusLines=18 statusAgeSec=24
+statusFresh=yes
+
+supervisor=running
+daemons=3
+running=3
+gaveUp=0
+autostart=installed
+resync=ok/df7a7061
+outboxFiles=7
+outboxReceipts=8
+outboxRefusals=305
+written=2026-09-07T23:27:16
+executorState=idle
+executorHandled=1
+executorPending=0
+executorLimitResumeIn=none
+studio-watcher=running studio-watcherUptimeSec=36505 studio-watcherStarts=1 studio-watcherStops=0 studio-watcherLastExit=none
+telegram-bot=running telegram-botUptimeSec=36505 telegram-botStarts=1 telegram-botStops=0 telegram-botLastExit=none
+claude-executor=running claude-executorUptimeSec=36505 claude-executorStarts=1 claude-executorStops=0 claude-executorLastExit=none
+

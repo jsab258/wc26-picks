@@ -1,4 +1,4 @@
-# LEDGER scheduled task install/verify - 8881917 @1788814939
+# LEDGER scheduled task install/verify - 7cb06cd @1788816454
 # Line 1 names the commit this was measured on.
 # Installs tools/runner/launch-supervisor.py (wraps tools/supervise.py,
 # unmodified) as a Windows scheduled task. Ruling 2026-09-07.
@@ -15,7 +15,7 @@ repo=C:\Users\Jafar\wc26-picks
 python=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
 pythonForTask=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\pythonw.exe windowless=True
 configLocalPresent=True
-installAction=create
+installAction=already-correct
 supervisorQueryOk=true supervisorQueryContext=before-start supervisorProcessesFound=4
 supervisorQueryContext=before-start supervisorPid=19712 supervisorParentPid=10700 supervisorKind=supervise.py
 supervisorQueryContext=before-start supervisorPid=14608 supervisorParentPid=19712 supervisorKind=supervise.py
@@ -40,9 +40,9 @@ taskLogonType=Interactive
 taskLastRunTime=11/30/1999 00:00:00
 taskLastTaskResult=267011
 taskNextRunTime=
-install-scheduled-task: installAction=create taskExists=True supervisorProcessesAfter=4
+install-scheduled-task: installAction=already-correct taskExists=True supervisorProcessesAfter=4
 installerExitCode=0
 
 # The existing channel, read rather than duplicated (ruling point 4).
-pcInboxReachable=true pcInboxHeadShort=22973f8 pcInboxLastCommitAgeSec=34338
+pcInboxReachable=true pcInboxHeadShort=22973f8 pcInboxLastCommitAgeSec=35853
 pcInboxNote=this-branch-is-the-studios-own-de-facto-heartbeat;no-new-transport-was-built
