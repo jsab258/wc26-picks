@@ -1,0 +1,13 @@
+receipt: sent
+file: production/outbox/2026-09-07-the-walk.answer.md
+kind: answer
+fileCommit: a766deca49b6983eb77de6685a92e588ba437df2
+fileCommitEpoch: 1788819953
+sent: 2026-09-08T01:35:46+00:00
+sentEpoch: 1788831346
+messageId: 30
+chars: 1601
+outboundLatencySec: 11393
+outboundLatencySecFrom: fileCommitInstant
+outboundLatencySecTo: sendInstant
+note: one sample of one message, not a rate.
