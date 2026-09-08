@@ -1,5 +1,5 @@
 {
- "acceptingCase": "propAcceptingCase=piece=prop_drainage_grate_01_0/asset=drainage_grate_01/RESOLVED/saved=yes/collisionPrims=-1/materialSlots=1/worstOrderedMm=0.0474/worstSortedMm=0.0474",
+ "acceptingCase": "propAcceptingCase=piece=prop_drainage_grate_01_0/asset=drainage_grate_01/RESOLVED/saved=yes/simplePrims=1/collidable=YES/simple-prims=1/bodySetup=present/traceFlag=CTF_USE_DEFAULT:~0>/sourceParts=1/materialSlots=1/worstOrderedMm=0.0474/worstSortedMm=0.0474",
  "assetsAsked": [
   "drainage_grate_01",
   "roll_top_chimney",
@@ -18,19 +18,20 @@
   "oil_barrel",
   "awning_02"
  ],
+ "collisionStat": "simplePrims is a count read off the body setup and is a PROXY; collidable is the asset's own answer and is not a sweep in a level",
  "extraAssets": [
   "lamp_post_01"
  ],
  "extras": [
   {
    "asset": "lamp_post_01",
-   "reading": "imported/saved=yes/collisionPrims=-1/extentUu=18.4,13.5,150.1"
+   "reading": "imported/saved=yes/simplePrims=1/collidable=YES/simple-prims=1/extentUu=18.4,13.5,150.1"
   }
  ],
  "failures": [
   {
    "asset": "pavement_sign",
-   "why": "did-not-load-back/none-of-3-candidates/ambiguous-3-appeared"
+   "why": "did-not-load-back/none-of-3-candidates/ambiguous-3-appeared/hinges,sign_back,sign_front/sourceParts=3=hinges,sign_front,sign_back"
   }
  ],
  "gltf": {
@@ -43,16 +44,16 @@
   "asked": 3,
   "canTranslate": 3,
   "enabledPlugins": [
-   "InterchangeAssets",
-   "Interchange",
-   "InterchangeEditor",
    "GLTFExporter",
+   "InterchangeEditor",
+   "Interchange",
+   "InterchangeAssets",
    "InterchangeTests",
    "InterchangeAxfAssets"
   ]
  },
- "lampPost01": "imported/saved=yes/collisionPrims=-1/extentUu=18.4,13.5,150.1",
- "line": "propImportStatus=PARTIAL propImportReturn=2 propMeshesAsked=16/23 propMeshesStat=unique-assets/over-pieces-asking propSources=16/16 propImported=15/16 propSaved=15/16 propCollisionPrims=0/15 propCollisionVia=legacy-box propImportVia=mixed-over-17 propPackageDir=/Game/Ledger/Props propNamePattern=SM_<asset> propGltfImporter=PRESENT/engine-says-it-can-translate/3-of-3 propGltfCanTranslate=3/3 propGltfPluginsEnabled=InterchangeAssets;Interchange;InterchangeEditor;GLTFExporter;InterchangeTests;InterchangeAxfAssets propGltfApi=InterchangeManager;AssetImportTask;InterchangeGenericAssetsPipeline;ImportAssetParameters propAcceptingCase=piece=prop_drainage_grate_01_0/asset=drainage_grate_01/RESOLVED/saved=yes/collisionPrims=-1/materialSlots=1/worstOrderedMm=0.0474/worstSortedMm=0.0474 propImportPreexistingDeleted=0/16 propImportSnapshotShape=/Game/Ledger/Props/awning_02/Materials/DefaultMaterial.DefaultMaterial,/Game/Ledger/Props/crowd_control_barrier/Materials/basic.basic propImportTaskApi=is_async_import_complete=present;get_objects=present propImportTaskAsync=before=True/after=True=17 propImportResultType=not-reached propImportResultWaitAttrs=none propImportRenamed=16/17 propImportAppearedUnnamed=0/17 propImportLookedFor=/Game/Ledger/Props/SM_<asset> propImportedNames=drainage_grate_01=basic,SM_drainage_grate_01;roll_top_chimney=basic,SM_roll_top_chimney;decorative_bollard_02=DefaultMaterial,SM_decorative_bollard_02;swing_bin=DefaultMaterial,lid,swing_bin;outdoor_bin=DefaultMaterial,SM_outdoor_bin;crowd_control_barrier=basic,SM_crowd_control_barrier;(+11~more~not~shown) propImportResolvedVia=ambiguous-3-appeared=1;exact-name-different-folder=14;name-contains-the-asset-id=2 propImportRouteRan=asset-import-task=16;interchange-import-asset=1 propImportWaitTaken=0/17 propImportWaitChanged=0/0 propImportWaitMeans=above-zero-is-an-async-import/zero-is-not-a-rule-out/the-wait-is-a-registry-scan propBoundsWorstMm=44.0215/on=wooden_crate_01/axis=z/of=15 propBoundsWorstSortedMm=44.0215/on=wooden_crate_01 propBoundsBound=NONE-YET/this-run-prints-the-series propBoundsStat=spec-box-minus-engine-bounds-at-worst-over-assets propPivotsUu=drainage_grate_01=0.0,0.0,-0.8;roll_top_chimney=-0.0,-0.0,50.1;decorative_bollard_02=-0.0,0.0,50.4;swing_bin=0.0,0.0,35.6;outdoor_bin=0.0,0.0,38.2;crowd_control_barrier=0.0,0.0,56.8;(+9~more~not~shown) propFailed=1/16 propFailedWhy=pavement_sign=did-not-load-back/none-of-3-candidates/ambiguous-3-appeared propScalePolicy=1/never-scaled/dims-policy-forbids-it propLampPost01=propExtras=lamp_post_01=imported/saved=yes/collisionPrims=-1/extentUu=18.4,13.5,150.1 propMaterialSlotsOver1=0/15 propMaterialSlotsUnread=0 propSlotNote=the-street-overwrites-slot-0-only propUassetBytes=1736681 propVerdictIs=propImportReturn/not-the-editor-process-exit propNote=subsystem-refused='NoneType'~object~has~no~attribute~'get_simple_collision_count'/subsystem-box-refused='NoneType'~object~has~no~attribute~'add_simple_collisions'/subsystem-refused='NoneType'~object~has~no~attribute~'get_simple_collision_count'/subsystem-box-refused='NoneType'~object~has~no~attribute~'add_simple_collisions'",
+ "lampPost01": "imported/saved=yes/simplePrims=1/collidable=YES/simple-prims=1/extentUu=18.4,13.5,150.1",
+ "line": "propImportStatus=PARTIAL propImportReturn=2 propMeshesAsked=16/23 propMeshesStat=unique-assets/over-pieces-asking propSources=16/16 propImported=15/16 propSaved=15/16 propCollisionPrims=15/15 propCollisionPrimsUnread=0/15 propCollisionRead=agg-geom-elems=15 propCollisionVia=not-needed/already-had-1=15 propCollisionAgree=agree=0;disagree=0;one-route=15;no-route=0/over=15 propCollisionFlagSet=0/15 propCollidable=15/15 propCollidableUnknown=0/15 propCollidableNo=0/15 propCollidableWhy=YES/simple-prims=1=15 propCollisionPrimsStat=saved-meshes-with-at-least-one-simple-primitive/count-read-off-the-body-setup/over-saved/A-PROXY-NOT-THE-QUESTION propCollidableStat=body-setup-plus-simple-prims-or-complex-as-simple/read-off-the-saved-asset/NOT-a-sweep/over-saved propImportVia=mixed-over-17 propPackageDir=/Game/Ledger/Props propNamePattern=SM_<asset> propGltfImporter=PRESENT/engine-says-it-can-translate/3-of-3 propGltfCanTranslate=3/3 propGltfPluginsEnabled=GLTFExporter;InterchangeEditor;Interchange;InterchangeAssets;InterchangeTests;InterchangeAxfAssets propGltfApi=InterchangeManager;AssetImportTask;InterchangeGenericAssetsPipeline;ImportAssetParameters propAcceptingCase=piece=prop_drainage_grate_01_0/asset=drainage_grate_01/RESOLVED/saved=yes/simplePrims=1/collidable=YES/simple-prims=1/bodySetup=present/traceFlag=CTF_USE_DEFAULT:~0>/sourceParts=1/materialSlots=1/worstOrderedMm=0.0474/worstSortedMm=0.0474 propImportPreexistingDeleted=15/16 propImportSnapshotShape=/Game/Ledger/Props/SM_lamp_post_01.SM_lamp_post_01,/Game/Ledger/Props/awning_02/Materials/DefaultMaterial.DefaultMaterial propImportTaskApi=is_async_import_complete=present;get_objects=present propImportTaskAsync=before=True/after=True=17 propImportResultType=not-reached propImportResultWaitAttrs=none propImportRenamed=15/17 propImportAppearedUnnamed=0/17 propImportLookedFor=/Game/Ledger/Props/SM_<asset> propImportedNames=drainage_grate_01=basic,SM_drainage_grate_01;roll_top_chimney=basic,SM_roll_top_chimney;decorative_bollard_02=DefaultMaterial,SM_decorative_bollard_02;swing_bin=DefaultMaterial,lid,swing_bin;outdoor_bin=DefaultMaterial,SM_outdoor_bin;crowd_control_barrier=basic,SM_crowd_control_barrier;(+11~more~not~shown) propImportResolvedVia=ambiguous-3-appeared/hinges,sign_back,sign_front=1;exact-name-different-folder=13;name-contains-the-asset-id=3 propImportRouteRan=asset-import-task=15;interchange-import-asset=2 propImportWaitTaken=1/17 propImportWaitChanged=0/1 propImportWaitMeans=above-zero-is-an-async-import/zero-is-not-a-rule-out/the-wait-is-a-registry-scan propBoundsWorstMm=44.0215/on=wooden_crate_01/axis=z/of=15 propBoundsWorstSortedMm=44.0215/on=wooden_crate_01 propBoundsBound=NONE-YET/this-run-prints-the-series propBoundsStat=spec-box-minus-engine-bounds-at-worst-over-assets propPivotsUu=drainage_grate_01=0.0,0.0,-0.8;roll_top_chimney=-0.0,-0.0,50.1;decorative_bollard_02=-0.0,0.0,50.4;swing_bin=0.0,0.0,35.6;outdoor_bin=0.0,0.0,38.2;crowd_control_barrier=0.0,0.0,56.8;(+9~more~not~shown) propFailed=1/16 propFailedWhy=pavement_sign=did-not-load-back/none-of-3-candidates/ambiguous-3-appeared/hinges,sign_back,sign_front/sourceParts=3=hinges,sign_front,sign_back propSourcePartsOver1=3/16 propSourcePartsWhich=pavement_sign=3;swing_bin=2;wooden_crate_01=2 propSourcePartsUnread=0/16 propSourcePartsStat=mesh-nodes-in-the-source-glb-per-asset/exactly-one-uasset-is-kept-per-asset/the-others-are-not-at-the-contract-path propSubsystems=StaticMeshEditorSubsystem=returned-None;EditorActorSubsystem=present;AssetEditorSubsystem=present;LevelEditorSubsystem=present propPipelineOpts=InterchangeGenericAssetsPipeline=0-of-50:none-matching;InterchangeGenericMeshPipeline=9-of-86:collision,combine_skeletal_meshes_behavior,combine_static_meshes,combine_static_meshes_behavior,fallback_collision_type,force_collision_primitive_generation,(+3~more~not~shown);InterchangePipelineStackOverride=0-of-27:none-matching propPipelineOptsFilter=collision|combine|convex|ucx/NOTHING-SET-THIS-RUN/names-read-for-the-next-one propScalePolicy=1/never-scaled/dims-policy-forbids-it propLampPost01=propExtras=lamp_post_01=imported/saved=yes/simplePrims=1/collidable=YES/simple-prims=1/extentUu=18.4,13.5,150.1 propMaterialSlotsOver1=0/15 propMaterialSlotsUnread=0 propSlotNote=the-street-overwrites-slot-0-only propUassetBytes=1739822 propVerdictIs=propImportReturn/not-the-editor-process-exit propNote=subsystem-count-refused=get_editor_subsystem-returned-None~x16/legacy-library-count-refused-with-sentinel=-1~x16/interchange-import-asset-with-result-raised='InterchangeManager'~object~has~no~attribute~'import_asset_with_result~x2",
  "lookups": [
   {
    "asset": "drainage_grate_01",
@@ -72,7 +73,11 @@
     "resultType": "not-reached",
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
-    "snapshotShape": "empty",
+    "snapshotShape": "/Game/Ledger/Props/SM_lamp_post_01.SM_lamp_post_01",
+    "sourceMeshNames": [
+     "drainage_grate_01"
+    ],
+    "sourceParts": 1,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -107,6 +112,10 @@
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
     "snapshotShape": "/Game/Ledger/Props/drainage_grate_01/Materials/basic.basic",
+    "sourceMeshNames": [
+     "roll_top_chimney"
+    ],
+    "sourceParts": 1,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -141,6 +150,10 @@
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
     "snapshotShape": "/Game/Ledger/Props/drainage_grate_01/Materials/basic.basic",
+    "sourceMeshNames": [
+     "decorative_bollard_02"
+    ],
+    "sourceParts": 1,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -177,6 +190,11 @@
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
     "snapshotShape": "/Game/Ledger/Props/decorative_bollard_02/Materials/DefaultMaterial.DefaultMaterial",
+    "sourceMeshNames": [
+     "swing_bin",
+     "lid"
+    ],
+    "sourceParts": 2,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -212,6 +230,10 @@
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
     "snapshotShape": "/Game/Ledger/Props/decorative_bollard_02/Materials/DefaultMaterial.DefaultMaterial",
+    "sourceMeshNames": [
+     "outdoor_bin"
+    ],
+    "sourceParts": 1,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -246,6 +268,10 @@
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
     "snapshotShape": "/Game/Ledger/Props/decorative_bollard_02/Materials/DefaultMaterial.DefaultMaterial",
+    "sourceMeshNames": [
+     "crowd_control_barrier"
+    ],
+    "sourceParts": 1,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -280,6 +306,10 @@
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
     "snapshotShape": "/Game/Ledger/Props/crowd_control_barrier/Materials/basic.basic",
+    "sourceMeshNames": [
+     "traffic_cone_01"
+    ],
+    "sourceParts": 1,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -314,6 +344,10 @@
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
     "snapshotShape": "/Game/Ledger/Props/crowd_control_barrier/Materials/basic.basic",
+    "sourceMeshNames": [
+     "traffic_cone_02"
+    ],
+    "sourceParts": 1,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -346,11 +380,17 @@
     },
     "lookedFor": "/Game/Ledger/Props/SM_pavement_sign.SM_pavement_sign",
     "renamed": false,
-    "resolvedVia": "ambiguous-3-appeared",
+    "resolvedVia": "ambiguous-3-appeared/hinges,sign_back,sign_front",
     "resultType": "not-reached",
     "resultWaitAttrs": [],
     "routeRan": "interchange-import-asset",
     "snapshotShape": "/Game/Ledger/Props/crowd_control_barrier/Materials/basic.basic",
+    "sourceMeshNames": [
+     "hinges",
+     "sign_front",
+     "sign_back"
+    ],
+    "sourceParts": 3,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -382,6 +422,10 @@
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
     "snapshotShape": "/Game/Ledger/Props/crowd_control_barrier/Materials/basic.basic",
+    "sourceMeshNames": [
+     "poster"
+    ],
+    "sourceParts": 1,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -416,6 +460,10 @@
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
     "snapshotShape": "/Game/Ledger/Props/crowd_control_barrier/Materials/basic.basic",
+    "sourceMeshNames": [
+     "framed_poster"
+    ],
+    "sourceParts": 1,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -450,6 +498,10 @@
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
     "snapshotShape": "/Game/Ledger/Props/crowd_control_barrier/Materials/basic.basic",
+    "sourceMeshNames": [
+     "skip"
+    ],
+    "sourceParts": 1,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -484,6 +536,10 @@
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
     "snapshotShape": "/Game/Ledger/Props/crowd_control_barrier/Materials/basic.basic",
+    "sourceMeshNames": [
+     "pallet"
+    ],
+    "sourceParts": 1,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -520,6 +576,11 @@
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
     "snapshotShape": "/Game/Ledger/Props/crowd_control_barrier/Materials/basic.basic",
+    "sourceMeshNames": [
+     "wooden_crate_01",
+     "wooden_crate_lid_01"
+    ],
+    "sourceParts": 2,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -555,6 +616,10 @@
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
     "snapshotShape": "/Game/Ledger/Props/crowd_control_barrier/Materials/basic.basic",
+    "sourceMeshNames": [
+     "oil_barrel"
+    ],
+    "sourceParts": 1,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -589,6 +654,10 @@
     "resultWaitAttrs": [],
     "routeRan": "asset-import-task",
     "snapshotShape": "/Game/Ledger/Props/crowd_control_barrier/Materials/basic.basic",
+    "sourceMeshNames": [
+     "awning_02"
+    ],
+    "sourceParts": 1,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
@@ -609,33 +678,34 @@
    "detail": {
     "appeared": [
      "/Game/Ledger/Props/lamp_post_01/Materials/DefaultMaterial",
-     "/Game/Ledger/Props/lamp_post_01/StaticMeshes/SM_lamp_post_01"
+     "/Game/Ledger/Props/lamp_post_01/StaticMeshes/lamp_post_01"
     ],
     "appearedClasses": {
      "DefaultMaterial": "MaterialInstanceConstant",
-     "SM_lamp_post_01": "StaticMesh"
+     "lamp_post_01": "StaticMesh"
     },
-    "loadedFrom": "/Game/Ledger/Props/SM_lamp_post_01",
+    "loadedFrom": "/Game/Ledger/Props/lamp_post_01/StaticMeshes/lamp_post_01",
     "lookedFor": "/Game/Ledger/Props/SM_lamp_post_01.SM_lamp_post_01",
-    "renamed": true,
-    "resolvedVia": "exact-name-different-folder",
+    "renamed": false,
+    "resolvedVia": "name-contains-the-asset-id",
     "resultType": "not-reached",
     "resultWaitAttrs": [],
-    "routeRan": "asset-import-task",
+    "routeRan": "interchange-import-asset",
     "snapshotShape": "/Game/Ledger/Props/awning_02/Materials/DefaultMaterial.DefaultMaterial",
+    "sourceMeshNames": [
+     "lamp_post_01"
+    ],
+    "sourceParts": 1,
     "taskApi": [
      "is_async_import_complete=present",
      "get_objects=present"
     ],
     "taskAsyncAfter": true,
     "taskAsyncBefore": true,
-    "taskPaths": [
-     "/Game/Ledger/Props/lamp_post_01/Materials/DefaultMaterial.DefaultMaterial",
-     "/Game/Ledger/Props/lamp_post_01/StaticMeshes/SM_lamp_post_01.SM_lamp_post_01"
-    ],
+    "taskPaths": [],
     "unnamedBounds": null,
     "waitChanged": false,
-    "waitTaken": false
+    "waitTaken": true
    }
   }
  ],
@@ -660,13 +730,21 @@
   "traffic_cone_02": 1,
   "wooden_crate_01": 2
  },
+ "pipelineOpts": [
+  "InterchangeGenericAssetsPipeline=0-of-50:none-matching",
+  "InterchangeGenericMeshPipeline=9-of-86:collision,combine_skeletal_meshes_behavior,combine_static_meshes,combine_static_meshes_behavior,fallback_collision_type,force_collision_primitive_generation,(+3~more~not~shown)",
+  "InterchangePipelineStackOverride=0-of-27:none-matching"
+ ],
  "placement": "the loaded mesh's own bounds centre goes at the piece's x_m/y_m/z_m, which is held_props.pivot_note in production/specs/vignette-scene.json",
  "readings": [
   {
    "asset": "drainage_grate_01",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     0.399947,
     0.399947,
@@ -686,26 +764,51 @@
     0.0
    ],
    "piecesUsingIt": 1,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.0,
     0.0473,
     0.0474
    ],
+   "sourceMeshNames": [
+    "drainage_grate_01"
+   ],
+   "sourceParts": 1,
    "specBoxM": [
     0.3999,
     0.015,
     0.3999
    ],
+   "staticMeshesAppeared": 1,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "x",
    "worstOrderedMm": 0.0474,
    "worstSortedMm": 0.0474
   },
   {
    "asset": "roll_top_chimney",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     0.673818,
     0.673818,
@@ -725,26 +828,51 @@
     0.0023
    ],
    "piecesUsingIt": 5,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.0181,
     0.0181,
     0.0023
    ],
+   "sourceMeshNames": [
+    "roll_top_chimney"
+   ],
+   "sourceParts": 1,
    "specBoxM": [
     0.6738,
     1.0011,
     0.6738
    ],
+   "staticMeshesAppeared": 1,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "x",
    "worstOrderedMm": 0.0181,
    "worstSortedMm": 0.0181
   },
   {
    "asset": "decorative_bollard_02",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     0.200989,
     0.200989,
@@ -764,26 +892,51 @@
     0.037
    ],
    "piecesUsingIt": 2,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.0111,
     0.0111,
     0.037
    ],
+   "sourceMeshNames": [
+    "decorative_bollard_02"
+   ],
+   "sourceParts": 1,
    "specBoxM": [
     0.201,
     1.0083,
     0.201
    ],
+   "staticMeshesAppeared": 1,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "z",
    "worstOrderedMm": 0.037,
    "worstSortedMm": 0.037
   },
   {
    "asset": "swing_bin",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     0.33,
     0.32,
@@ -803,26 +956,52 @@
     0.0011
    ],
    "piecesUsingIt": 1,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.0,
     0.0,
     0.0011
    ],
+   "sourceMeshNames": [
+    "swing_bin",
+    "lid"
+   ],
+   "sourceParts": 2,
    "specBoxM": [
     0.33,
     0.7123,
     0.32
    ],
+   "staticMeshesAppeared": 2,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "z",
    "worstOrderedMm": 0.0011,
    "worstSortedMm": 0.0011
   },
   {
    "asset": "outdoor_bin",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     0.599583,
     0.599583,
@@ -842,26 +1021,51 @@
     0.0313
    ],
    "piecesUsingIt": 1,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.0168,
     0.0168,
     0.0313
    ],
+   "sourceMeshNames": [
+    "outdoor_bin"
+   ],
+   "sourceParts": 1,
    "specBoxM": [
     0.5996,
     0.7636,
     0.5996
    ],
+   "staticMeshesAppeared": 1,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "z",
    "worstOrderedMm": 0.0313,
    "worstSortedMm": 0.0313
   },
   {
    "asset": "crowd_control_barrier",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     2.29073,
     0.395323,
@@ -881,26 +1085,51 @@
     0.0015
    ],
    "piecesUsingIt": 1,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.0234,
     0.0015,
     0.0304
    ],
+   "sourceMeshNames": [
+    "crowd_control_barrier"
+   ],
+   "sourceParts": 1,
    "specBoxM": [
     2.2907,
     1.1359,
     0.3953
    ],
+   "staticMeshesAppeared": 1,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "x",
    "worstOrderedMm": 0.0304,
    "worstSortedMm": 0.0304
   },
   {
    "asset": "traffic_cone_01",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     0.400915,
     0.347202,
@@ -920,26 +1149,51 @@
     0.0264
    ],
    "piecesUsingIt": 1,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.0024,
     0.0148,
     0.0264
    ],
+   "sourceMeshNames": [
+    "traffic_cone_01"
+   ],
+   "sourceParts": 1,
    "specBoxM": [
     0.4009,
     0.45,
     0.3472
    ],
+   "staticMeshesAppeared": 1,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "z",
    "worstOrderedMm": 0.0264,
    "worstSortedMm": 0.0264
   },
   {
    "asset": "traffic_cone_02",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     0.300196,
     0.300196,
@@ -959,26 +1213,51 @@
     0.0
    ],
    "piecesUsingIt": 1,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.0043,
     0.0043,
     0.0
    ],
+   "sourceMeshNames": [
+    "traffic_cone_02"
+   ],
+   "sourceParts": 1,
    "specBoxM": [
     0.3002,
     0.45,
     0.3002
    ],
+   "staticMeshesAppeared": 1,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "x",
    "worstOrderedMm": 0.0043,
    "worstSortedMm": 0.0043
   },
   {
    "asset": "poster",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     0.654108,
     0.023719,
@@ -998,26 +1277,51 @@
     0.0166
    ],
    "piecesUsingIt": 1,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.0192,
     0.0084,
     0.0166
    ],
+   "sourceMeshNames": [
+    "poster"
+   ],
+   "sourceParts": 1,
    "specBoxM": [
     0.6541,
     1.0031,
     0.0237
    ],
+   "staticMeshesAppeared": 1,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "y",
    "worstOrderedMm": 0.0192,
    "worstSortedMm": 0.0192
   },
   {
    "asset": "framed_poster",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     0.505671,
     0.013418,
@@ -1037,26 +1341,51 @@
     0.0215
    ],
    "piecesUsingIt": 1,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.0182,
     0.0286,
     0.0215
    ],
+   "sourceMeshNames": [
+    "framed_poster"
+   ],
+   "sourceParts": 1,
    "specBoxM": [
     0.5057,
     0.8005,
     0.0134
    ],
+   "staticMeshesAppeared": 1,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "x",
    "worstOrderedMm": 0.0286,
    "worstSortedMm": 0.0286
   },
   {
    "asset": "skip",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     2.0,
     3.308286,
@@ -1076,26 +1405,51 @@
     0.0374
    ],
    "piecesUsingIt": 1,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.0374,
     0.0,
     0.0142
    ],
+   "sourceMeshNames": [
+    "skip"
+   ],
+   "sourceParts": 1,
    "specBoxM": [
     2.0,
     0.9999,
     3.3083
    ],
+   "staticMeshesAppeared": 1,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "z",
    "worstOrderedMm": 0.0374,
    "worstSortedMm": 0.0374
   },
   {
    "asset": "pallet",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     1.2,
     1.2,
@@ -1115,26 +1469,51 @@
     0.0003
    ],
    "piecesUsingIt": 1,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.0003,
     0.0001,
     0.0001
    ],
+   "sourceMeshNames": [
+    "pallet"
+   ],
+   "sourceParts": 1,
    "specBoxM": [
     1.2,
     0.18,
     1.2
    ],
+   "staticMeshesAppeared": 1,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "z",
    "worstOrderedMm": 0.0003,
    "worstSortedMm": 0.0003
   },
   {
    "asset": "wooden_crate_01",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     0.880368,
     0.924386,
@@ -1154,26 +1533,52 @@
     44.0215
    ],
    "piecesUsingIt": 2,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.0316,
     0.0136,
     44.0215
    ],
+   "sourceMeshNames": [
+    "wooden_crate_01",
+    "wooden_crate_lid_01"
+   ],
+   "sourceParts": 2,
    "specBoxM": [
     0.8804,
     1.0447,
     0.9244
    ],
+   "staticMeshesAppeared": 2,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "z",
    "worstOrderedMm": 44.0215,
    "worstSortedMm": 44.0215
   },
   {
    "asset": "oil_barrel",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     0.597,
     0.597,
@@ -1193,26 +1598,51 @@
     0.046
    ],
    "piecesUsingIt": 1,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.0001,
     0.0001,
     0.046
    ],
+   "sourceMeshNames": [
+    "oil_barrel"
+   ],
+   "sourceParts": 1,
    "specBoxM": [
     0.597,
     0.8602,
     0.597
    ],
+   "staticMeshesAppeared": 1,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "z",
    "worstOrderedMm": 0.046,
    "worstSortedMm": 0.046
   },
   {
    "asset": "awning_02",
+   "bodySetup": "present",
    "boundsVia": "get_bounds",
-   "collisionPrims": -1,
-   "collisionVia": "legacy-box",
+   "collidable": "YES/simple-prims=1",
+   "collisionAddVia": "not-needed/already-had-1",
+   "collisionFlagSet": false,
+   "collisionFlagWhy": "not-needed",
    "engineSizeM": [
     3.000001,
     1.735051,
@@ -1232,58 +1662,153 @@
     0.049
    ],
    "piecesUsingIt": 2,
+   "primsBefore": 1,
    "saved": true,
+   "simplePrims": 1,
+   "simplePrimsAnswers": {
+    "agg-geom-elems": 1,
+    "aggPerList": {
+     "box_elems": 0,
+     "convex_elems": 1,
+     "sphere_elems": 0,
+     "sphyl_elems": 0,
+     "tapered_capsule_elems": 0
+    },
+    "legacy-library": "refused-with-sentinel/-1",
+    "subsystem": "refused/get_editor_subsystem-returned-None"
+   },
+   "simplePrimsVia": "agg-geom-elems",
    "sortedDeltaMm": [
     0.049,
     0.0492,
     0.0012
    ],
+   "sourceMeshNames": [
+    "awning_02"
+   ],
+   "sourceParts": 1,
    "specBoxM": [
     3.0,
     1.3233,
     1.7351
    ],
+   "staticMeshesAppeared": 1,
+   "traceFlag": "<CollisionTraceFlag.CTF_USE_DEFAULT:~0>",
+   "traceFlagVia": "trace-flag-property",
    "worstOrderedAxis": "y",
    "worstOrderedMm": 0.0492,
    "worstSortedMm": 0.0492
   }
  ],
  "reportLines": [
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
   "interchange-import-asset-with-result-raised='InterchangeManager' object has no attribute 'import_asset_with_result",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'",
-  "subsystem-refused='NoneType' object has no attribute 'get_simple_collision_count'",
-  "subsystem-box-refused='NoneType' object has no attribute 'add_simple_collisions'"
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1",
+  "interchange-import-asset-with-result-raised='InterchangeManager' object has no attribute 'import_asset_with_result",
+  "subsystem-count-refused=get_editor_subsystem-returned-None",
+  "legacy-library-count-refused-with-sentinel=-1"
  ],
  "scalePolicy": "1, never scaled, the spec box IS the GLB's measured size",
  "schema": "ledger.prop-mesh-import/1",
- "specPath": "C:\\actions-runner-ledger\\_work\\wc26-picks\\wc26-picks\\production\\specs\\vignette-pieces.json"
+ "sourceParts": [
+  {
+   "asset": "drainage_grate_01",
+   "meshes": 1
+  },
+  {
+   "asset": "roll_top_chimney",
+   "meshes": 1
+  },
+  {
+   "asset": "decorative_bollard_02",
+   "meshes": 1
+  },
+  {
+   "asset": "swing_bin",
+   "meshes": 2
+  },
+  {
+   "asset": "outdoor_bin",
+   "meshes": 1
+  },
+  {
+   "asset": "crowd_control_barrier",
+   "meshes": 1
+  },
+  {
+   "asset": "traffic_cone_01",
+   "meshes": 1
+  },
+  {
+   "asset": "traffic_cone_02",
+   "meshes": 1
+  },
+  {
+   "asset": "pavement_sign",
+   "meshes": 3
+  },
+  {
+   "asset": "poster",
+   "meshes": 1
+  },
+  {
+   "asset": "framed_poster",
+   "meshes": 1
+  },
+  {
+   "asset": "skip",
+   "meshes": 1
+  },
+  {
+   "asset": "pallet",
+   "meshes": 1
+  },
+  {
+   "asset": "wooden_crate_01",
+   "meshes": 2
+  },
+  {
+   "asset": "oil_barrel",
+   "meshes": 1
+  },
+  {
+   "asset": "awning_02",
+   "meshes": 1
+  }
+ ],
+ "specPath": "C:\\actions-runner-ledger\\_work\\wc26-picks\\wc26-picks\\production\\specs\\vignette-pieces.json",
+ "subsystems": [
+  "StaticMeshEditorSubsystem=returned-None",
+  "EditorActorSubsystem=present",
+  "AssetEditorSubsystem=present",
+  "LevelEditorSubsystem=present"
+ ]
 }
