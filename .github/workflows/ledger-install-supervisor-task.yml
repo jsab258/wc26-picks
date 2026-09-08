@@ -267,11 +267,22 @@ jobs:
             # receipt is written only AFTER Telegram accepted the message. So
             # the delivery evidence exists on that machine whether or not the
             # push ever works, and reading it does not need the push fixed.
+            #
+            # SIXTEEN, NOT FOUR, AND THE WIDENING IS A CORRECTION. At four
+            # this read showed ids 30, 29, 28 and 27, all sent after the bot
+            # was restarted at 01:18 UTC, and that was written up as "his
+            # phone kept receiving". Four newest receipts cannot say whether
+            # anything was sent in the fourteen hours BEFORE them, which is
+            # exactly the interval the claim was about. Sixteen reaches back
+            # past the last pushed receipt (reply-24 at 2026-09-07T11:19:36Z)
+            # so the gap either shows ids in it or is proven empty. The cap
+            # announces itself below rather than trimming in silence.
             $od = Join-Path $repo "production\outbound"
             if (Test-Path $od) {
-              $newest = @(Get-ChildItem $od -File -Filter "*.receipt.txt" -ErrorAction SilentlyContinue |
-                          Sort-Object LastWriteTime -Descending | Select-Object -First 4)
-              Say "receiptsOnDisk=$(@(Get-ChildItem $od -File -Filter '*.receipt.txt' -ErrorAction SilentlyContinue).Count) newestShown=$($newest.Count)"
+              $askedReceipts = 16
+              $allR = @(Get-ChildItem $od -File -Filter '*.receipt.txt' -ErrorAction SilentlyContinue)
+              $newest = @($allR | Sort-Object LastWriteTime -Descending | Select-Object -First $askedReceipts)
+              Say "receiptsOnDisk=$($allR.Count) newestShown=$($newest.Count)/$askedReceipts$(if ($allR.Count -gt $newest.Count) { " (+$($allR.Count - $newest.Count) older not shown)" } else { " (every receipt on this disk is shown)" })"
               foreach ($r in $newest) {
                 $body = (Get-Content $r.FullName -Raw -ErrorAction SilentlyContinue)
                 $f = if ($body -match "(?m)^file:\s*(.+)$") { $Matches[1].Trim() } else { "?" }
