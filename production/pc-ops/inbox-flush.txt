@@ -1,0 +1,21 @@
+# LEDGER one inbox flush - cfb6dc9 @1788849775
+# Line 1 names the commit this was run on. This step PUSHES the
+# return half: his messages and the bot's own receipts, onto
+# pc-inbox. It sends nothing and loads no credentials. The return
+# half stopped at 2026-09-07 11:30 UTC. The sending half stopped too
+# and recovered at the 01:18 UTC restart on the 8th; this half did not,
+# which is why the studio went on calling the channel dead after it sent.
+flushPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
+flushStatus=HUNG flushWaitedSec=150 flushNote=killed-after-the-wait/lines-below-are-where-it-got-to
+flushStream=flush-raw.txt flushLines=10
+08:42:55  flush: waiting=12 tip=22973f8
+08:42:55  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-22d06450.txt
+08:42:55  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-3f9a7bd7.txt
+08:42:55  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-8456488b.txt
+08:42:55  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-97efd9d4.txt
+08:42:55  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-ea449368.txt
+08:42:55  flush: waiting production/outbound/2026-09-07-the-map-changed-78a360dcdf18.unprompted.receipt.txt
+08:42:55  flush: waiting production/outbound/2026-09-07-the-walk.answer.receipt.txt
+08:42:55  flush: waiting production/outbound/2026-09-07T234830Z-reply-25.receipt.txt
+08:42:55  flush: (+4 more not shown)
+flushStream=flush-raw.txt.err flushLines=0
