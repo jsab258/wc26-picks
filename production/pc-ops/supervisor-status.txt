@@ -1,11 +1,11 @@
-# LEDGER supervisor status as CI read it - 7ec80fe @1788885001
+# LEDGER supervisor status as CI read it - a0ff30d @1788886522
 # Line 1 names the commit this was read on.
 # Copied verbatim from the supervisor's own file on his PC.
 # It is written there every 60s and was published nowhere until
 # this step existed, which is why a bot that stopped at 11:30 on
 # 2026-09-07 could not say so.
 statusSource=C:\Users\Jafar\wc26-picks\game-design\pc-jobs\supervisor-status.txt
-statusFound=yes statusBytes=630 statusLines=18 statusAgeSec=14
+statusFound=yes statusBytes=630 statusLines=18 statusAgeSec=34
 statusFresh=yes
 
 supervisor=running
@@ -14,15 +14,15 @@ running=3
 gaveUp=0
 autostart=installed
 resync=ok/df7a7061
-outboxFiles=11
-outboxReceipts=18
-outboxRefusals=356
-written=2026-09-08T18:29:47
+outboxFiles=12
+outboxReceipts=20
+outboxRefusals=360
+written=2026-09-08T18:54:48
 executorState=idle
 executorHandled=1
 executorPending=0
 executorLimitResumeIn=none
-studio-watcher=running studio-watcherUptimeSec=105056 studio-watcherStarts=1 studio-watcherStops=0 studio-watcherLastExit=none
-telegram-bot=running telegram-botUptimeSec=11707 telegram-botStarts=4 telegram-botStops=3 telegram-botLastExit=4294967295
-claude-executor=running claude-executorUptimeSec=105056 claude-executorStarts=1 claude-executorStops=0 claude-executorLastExit=none
+studio-watcher=running studio-watcherUptimeSec=106557 studio-watcherStarts=1 studio-watcherStops=0 studio-watcherLastExit=none
+telegram-bot=running telegram-botUptimeSec=13207 telegram-botStarts=4 telegram-botStops=3 telegram-botLastExit=4294967295
+claude-executor=running claude-executorUptimeSec=106557 claude-executorStarts=1 claude-executorStops=0 claude-executorLastExit=none
 
