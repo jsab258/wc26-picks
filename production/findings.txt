@@ -7,39 +7,94 @@ Plain text on purpose. tools/producer-check.py walks *.md and tools/docs-check.p
 governs game-design/, so a .txt here is outside both and cannot turn verify red.
 
 --------------------------------------------------------------------------
-2026-09-08  THE CHANNEL WAS NEVER DEAD. THE SENDING HALF RAN ALL NIGHT AND
-            THE RETURN HALF STOPPED AT 2026-09-07 11:30 UTC.
+2026-09-08  A RULING STAMP THE CADENCE GATE CANNOT PARSE IS IGNORED IN
+            SILENCE, NOT REFUSED.
 --------------------------------------------------------------------------
-THIS CORRECTS A CLAIM MADE TO JAFAR. He was told his Telegram channel had
-been dead since 11:30. It had not. Four messages reached his phone while
-that was being said: ids 27 and 28 at 2026-09-08T01:18:47Z, id 29 (the map
-changed) and id 30 (the walk) at 01:35:46Z.
+MEASURED, from the footer of a red verify on 2026-09-08:
 
-MEASURED, from production/pc-ops/push-diagnosis.txt at commit 3cf7fc1:
+    rulingRecords=0/46 rulingFiles=46 rulingUnmatched=1
+    45 stamp(s) name a row at or before the reference (a ruling on an older
+    batch); 1 stamp(s) name a time that is in NO studio-director row and
+    were NOT counted
 
-    receipt file=production/outbox/2026-09-07-the-walk.answer.md
-        messageId=30 sent=2026-09-08T01:35:46+00:00
+The one unmatched stamp read `<!--RULING spawn=studio-director-->`, an agent
+NAME where the gate wants a spawn TIMESTAMP. CLAUDE.md says a ruling "names a
+spawn row newer than the reference commit", which a reader can satisfy by
+naming the agent, and the working stamp form
+(`<!--RULING spawn=2026-09-08T02:21:36Z-->`) appears nowhere in that
+sentence. A director wrote the wrong form on its first ruling of the day.
+
+WHY IT MATTERS. The two failure modes are reported differently and only one
+of them is loud. A stamp naming an OLD row says so in words. A stamp the gate
+cannot parse is counted in `rulingUnmatched` and then dropped, and the run
+reads exactly like a batch with no ruling at all. A record can therefore be
+written, reviewed, committed and believed, while contributing nothing to the
+gate it was written for. That is a guard that cannot tell a missing ruling
+from a malformed one, and rule 5b says a guard which cannot tell a regression
+from an improvement is a ratchet.
+
+NOT FIXED HERE, and two things would fix it. The cheap half: make an
+unparseable stamp a REFUSAL naming the file and the string it found, so it
+cannot be silent. The half that stops it happening: say the exact stamp form
+in CLAUDE.md beside the sentence that asks for one, since that sentence is
+what a director reads before writing it.
+
+--------------------------------------------------------------------------
+2026-09-08  THE CHANNEL WAS SILENT, NOT DEAD. BOTH HALVES STOPPED AT
+            2026-09-07 11:30 UTC; THE SENDING HALF RECOVERED AT THE
+            01:18 UTC RESTART ON THE 8TH AND THE RETURN HALF DID NOT.
+--------------------------------------------------------------------------
+THIS CORRECTS A CLAIM MADE TO JAFAR, AND THEN CORRECTS THE CORRECTION. He
+was told his channel had been dead since 11:30. The studio replied that this
+was wrong and that his phone had been receiving all along. JAFAR WAS RIGHT
+AND THE STUDIO WAS WRONG TWICE. The process was alive the whole time
+(supervisor: Starts=3, Stops=2, both stops deliberate) and it sent nothing
+for twelve and a half hours.
+
+MEASURED. The first correction rested on the FOUR newest receipts, which
+were all after the restart and could not speak about the hours before them.
+Widened to sixteen at commit 8921809, the reader returned every receipt on
+that disk, fourteen of a cap of sixteen, so this is the whole list and not a
+window:
+
+    id 24  2026-09-07T11:19:36Z   the last message before the gap
+    (nothing at all for 12 hours 29 minutes)
+    id 25  2026-09-07T23:48:30Z   it came back on its own, briefly
+    id 26  2026-09-07T23:48:30Z
+    id 27  2026-09-08T01:18:47Z   the restart onto the poll fix
+    id 28  2026-09-08T01:18:47Z
+    id 29  2026-09-08T01:35:46Z   the map changed
+    id 30  2026-09-08T01:35:46Z   the walk answer
+    id 31  2026-09-08T02:34:14Z   the clip, as a captioned animation
+
     onDisk_production_outbound=320   against 312 in the branch
     lsRemoteSha=22973f8d  localTipRef=22973f8d   (both refs/heads/pc-inbox)
 
-22973f8d is dated 2026-09-07 13:30:08 +0200, which is 11:30:08 UTC. The
-local tip pointer and the remote branch AGREE, so nothing failed to push:
-nothing was committed to push. Eight outbound records sit on that disk which
-the branch does not carry, and the eight newest receipts are exactly the ones
-that would prove delivery.
+22973f8d is dated 2026-09-07 13:30:08 +0200, which is 11:30:08 UTC,
+corroborated from pcInboxLastCommitAgeSec=51912 in scheduled-task-verify.txt
+without git. The local tip pointer and the remote branch AGREE, which rules
+out ONE SHAPE ONLY: a push that reported success and sent nothing. It does
+not say whether push_pending ran, built a commit, or failed before, during or
+after the push; every one of those paths leaves the tip where it is
+(inbox.py: each held() return, and the update-ref at 710 that runs only after
+ls-remote confirms). Eight outbound records sit on that disk which the branch
+does not carry, and the eight newest receipts are exactly the ones that would
+prove delivery. Ruled 2026-09-08.
 
 WHAT THIS MEANS FOR EVERY FUTURE DIAGNOSIS OF SILENCE. The studio reads the
 channel through the RETURN half only. When the return half stops, the studio
 sees the same thing it would see if the bot were dead, if the token were
 revoked, or if Telegram were down. Silence in the repository is not evidence
 about his phone, and it was read as evidence about his phone four separate
-times yesterday, producing four wrong explanations in a row. The sending half
-now has its own window (production/pc-ops/outbox-sweep.txt). A window on the
-return half is WRITTEN AND NOT YET LANDED: a --flush-inbox flag and the
-workflow step that runs it are held out of this commit because the batch
-crossed the 100-line director threshold, so they wait on a ruling.
+times yesterday, producing four wrong explanations in a row. It then produced
+a fifth, in the opposite direction, on the same missing evidence: reading
+only the newest four receipts turned a twelve-hour outage into "his phone
+kept receiving". The sending half now has its own window
+(production/pc-ops/outbox-sweep.txt). The return half's window is written
+and held out of this commit for a second director read, because the batch
+grew past the reviewed one after the first ruling landed.
 
-NOT YET EXPLAINED: why nothing is committed. push_pending derives its backlog
+NOT YET EXPLAINED: why nothing lands on the branch. push_pending derives its backlog
 from the branch tree rather than remembering it, so a crash cannot lose it,
 and the bot's flush_inbox calls pending_all every 60 seconds. The reading
 that would decide between "the flush never runs" and "the flush runs and
@@ -51,18 +106,22 @@ run has produced it yet.
             HANG AND A CLEAN EXIT LOOK THE SAME.
 --------------------------------------------------------------------------
 MEASURED: production/pc-ops/outbox-sweep.txt at commit 3cf7fc1 carries
-sweepPython, then sweepStream, with no sweepStatus key between them. Both
-branches of that step's if write one (EXITED or HUNG), so the step left its
-own status branch without writing either, and neither sweepExitCode nor
-sweepWaitedSec is present to say which happened.
+sweepPython, then sweepStream, with no sweepStatus key between them.
+
+CAUSE, found on director review 2026-09-08 by reading the step rather than
+the file: $out is a RELATIVE path and both status writes sit between
+Push-Location $repo and Pop-Location, so they landed in
+C:\Users\Jafar\wc26-picks\production\pc-ops\outbox-sweep.txt, his checkout,
+not the runner's. The lines the file has are exactly the lines outside that
+pair. The flush step beside it copied the fault on all four of its status
+writes. Both fixes are written, held with the step above, and make $out
+absolute before the first Push-Location. MY OWN GUESS HAD BEEN THAT THE STEP LEFT ITS if WITHOUT
+WRITING EITHER BRANCH, which is what a reader concludes from the file alone.
 
 WHY IT MATTERS AND WHY IT IS NOT URGENT: the reading itself was decisive
 (alreadySent=7 of outboxFiles=8), so nothing was lost this time. But a status
 key that can go missing cannot tell a hang from a clean exit, which is the
-one distinction the step was rewritten to make. The flush step written today, and
-held out of this commit for a ruling, writes its status on EVERY path
-including the one where the process never starts, which would give a
-same-shape comparison the first time it runs.
+one distinction the step was rewritten to make.
 
 --------------------------------------------------------------------------
 2026-09-07  CREATE_NO_WINDOW NEVER LANDED IN tools/supervise.py, SO THE

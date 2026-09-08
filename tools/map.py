@@ -26,17 +26,27 @@ thing on the page, above the three answers this section still describes for
 everything beneath it. IT IS PLAIN HTML, NOT SVG: SVG clips a line silently,
 which is one of the four faults this page was already rebuilt to fix, and
 normal text wraps on its own. WHERE THE STEPS COME FROM, so nobody reaches
-for a heading parser a second time: production/next-three.json's own `next`
-array is already ordered (Jafar's priority order, confirmed lower in this
-file by the selftest's own check that item 1 is "control", item 2 "crime",
-item 3 "gossip"), and its `milestone`/`milestoneFrom` fields already name the
-rung at the top. No new field was added: inventing a second, parallel list
-would only give the two a chance to drift. WHAT "DONE" MEANS: next-three.json
-removes a step once it is finished rather than marking it ("An item leaves
-the list by being deleted from it"), and the milestone file's structured
-header names no completed sub-step either, so no rung below the goal is ever
-shown done from these two sources, and the ladder says so in words instead of
-a tick nobody measured. See ladder_rungs() and ladder_html() below.
+for a heading parser a second time: production/next-three.json's own `done`
+and `next` arrays are already ordered (Jafar's priority order, confirmed
+lower in this file by the selftest's own check that the steps read "control",
+then "crime", then "gossip" across the two), and its
+`milestone`/`milestoneFrom` fields already name the rung at the top.
+Inventing a second, parallel list would only give the two a chance to drift.
+
+WHAT "DONE" MEANS, CORRECTED BY THE RULING OF 2026-09-08 (game-design/
+decision-2026-09-08-the-crime-the-witness-and-the-overheard-consequence.md,
+section 7). It used to mean nothing here: next-three.json deleted a finished
+step instead of marking it, so the current rung was always rung one and the
+page could never print the "step 2 of 10" RULING 3 asked for. That file now
+carries a `done` array, a finished step MOVES into it, and each done entry is
+a CLAIM plus the instrument that proves it: {file, key} pairs whose exact
+key=value token this run looks for on a line of that committed file. This
+page checks the INSTRUMENT, never the claim. A done entry whose evidence file
+is missing or whose key is absent, or a title in both arrays, refuses the
+WHOLE ladder with the stale banner and the reason, because a step count on
+his phone rests on every done rung being real. With no `done` array at all
+the ladder still says so in words instead of a tick nobody measured. See
+ladder_rungs() and ladder_html() below.
 
 THE FIRST PHONE SCREEN BELOW THE LADDER ANSWERS EXACTLY THREE THINGS, and
 nothing else may compete for it:
@@ -1307,14 +1317,129 @@ def queue_state(root, rel):
     return "ready", "its-status-line-says-%s" % word
 
 
+# ---------------------------------------------------------------------------
+# A DONE STEP'S EVIDENCE. RULED 2026-09-08, section 7 of the crime ruling. A
+# `done` entry in next-three.json is a CLAIM plus the instrument that proves
+# it: each {file, key} pair names a committed file and an EXACT key=value
+# token that must stand as a whole whitespace-delimited token on one of its
+# lines. This page checks the INSTRUMENT, never the claim.
+#
+# WHOLE TOKEN, NEVER SUBSTRING: collisionStatus=REALLY must not satisfy
+# collisionStatus=REAL, and the no-spaces-in-values rule every verdict in this
+# repository already follows is what makes splitting on whitespace safe.
+#
+# A DIFFERENT QUESTION FROM key_present() ABOVE, and both are kept because
+# they are asked for different reasons. key_present asks "has any key with
+# this PREFIX ever been emitted here", which is how an area asks a question a
+# run may not have answered yet. This asks "is this exact reading still in
+# this file", which is how a finished step stays proven.
+#
+# WHY THE TELEGRAM MESSAGE ID IS NOT AN EVIDENCE KEY, for the reader who asks
+# why the street step's proof is the walk verdict and not the send. The send
+# is published by CI in production/pc-ops/outbox-sweep.txt, whose line reads
+# "outbox: sent ... clipRef=production/d1-probe/ue-walk.gif ... messageId=31
+# descriptorKind=animation ...". THAT FILE IS OVERWRITTEN BY EVERY LATER
+# SWEEP, so a messageId=31 evidence key would pass today and refuse the whole
+# ladder tomorrow, putting a stale banner on his phone for a step that really
+# is done. Evidence has to be durable or it is a timer. A durable append-only
+# send ledger is the next rung and is being added separately; when it exists
+# the street entry gains a third evidence pair naming it.
+# ---------------------------------------------------------------------------
+
+def evidence_token_found(root, rel, token):
+    """(fileExists, found) for ONE exact key=value token in ONE committed
+    file. No tally and no wording here: read_done() below owns the counting
+    and the refusal string, so there is one place that counts them."""
+    p = Path(root) / rel
+    if not rel or not p.is_file():
+        return False, False
+    for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+        if token and token in line.split():
+            return True, True
+    return True, False
+
+
+def read_done(root, data, next_titles):
+    """(entries, tally) for next-three.json's `done` array: the finished
+    steps, in order, each with every evidence pair OPENED and searched.
+
+    THE TALLY IS WHOLE-FILE and each number is named by what it counts:
+    `claimed` is how many entries the file names, `proven` is how many of
+    those had EVERY one of their keys found, `keysFound`/`keysAsked` is the
+    pair count underneath, and `refusal` is the FIRST disagreement in file
+    order. An absent `done` reads 0/absent and is NOT a refusal: a plan that
+    has finished nothing is a plan that has finished nothing. A `done` entry
+    that names no evidence at all IS a refusal, because an unproven done rung
+    is the invented progress RULING 3 forbids."""
+    raw = data.get("done")
+    present = isinstance(raw, list)
+    # THREE STATES, NEVER TWO. A `done` field that is there but is not a list
+    # is not the same fact as no `done` field at all, and reading the second
+    # word for the first would be a malformed plan printing as an empty one.
+    word = "present" if present else "absent" if raw is None else "not-a-list"
+    entries, refusal = [], (None if present or raw is None
+                            else "done-is-not-a-list")
+    for n, item in enumerate(raw if present else [], start=1):
+        e = item if isinstance(item, dict) else {}
+        title = str(e.get("title") or NOTHING)
+        pairs, why = [], None
+        for pair in (e.get("evidence") or []):
+            pair = pair if isinstance(pair, dict) else {}
+            rel = str(pair.get("file") or "")
+            key = str(pair.get("key") or "")
+            exists, found = evidence_token_found(root, rel, key)
+            pairs.append({"file": rel or NOTHING.replace(" ", "-"),
+                          "key": key or NOTHING.replace(" ", "-"),
+                          "fileExists": exists, "found": found})
+            if why is not None:
+                continue
+            if not exists:
+                why = ("done-step-%d-evidence-missing/%s"
+                       % (n, rel or "none-named"))
+            elif not found:
+                why = "done-step-%d-key-absent/%s" % (n, key or "none-named")
+        if not pairs and why is None:
+            why = "done-step-%d-evidence-missing/none-named" % n
+        # THE STRUCTURAL DISAGREEMENT WINS THE WORDING when both are true: a
+        # title standing in both arrays names the edit to make, and its
+        # evidence is beside the point until one copy is gone.
+        if title in next_titles:
+            why = "title-in-both-done-and-next"
+        entries.append({
+            "title": title, "why": str(e.get("why") or NOTHING),
+            "queue": e.get("queue"),
+            "doneOn": str(e.get("doneOn") or NOTHING),
+            "evidence": pairs,
+            "proven": bool(pairs) and all(p["found"] for p in pairs)
+            and why is None,
+            "refusal": why,
+        })
+        if refusal is None and why is not None:
+            refusal = why
+    return entries, {
+        "present": present, "word": word, "claimed": len(entries),
+        "proven": sum(1 for e in entries if e["proven"]),
+        "keysAsked": sum(len(e["evidence"]) for e in entries),
+        "keysFound": sum(1 for e in entries for p in e["evidence"]
+                         if p["found"]),
+        "refusal": refusal,
+    }
+
+
 def next_three(root):
     """(items, reading). Items carry their own refusal, so a stale entry
-    renders as a stale entry and never as the plan."""
+    renders as a stale entry and never as the plan. The FINISHED steps come
+    back on the reading as `done`, read and proved by read_done() above; the
+    NEXT_ASKED cap applies to `next` only, because a plan may finish more
+    steps than it shows at once."""
     root = Path(root)
     p = root / PRIORITIES
     blank = {"present": False, "parsed": False, "named": 0, "shown": 0,
              "refused": 0, "ruledBy": None, "ruledOn": None,
-             "milestone": None, "milestoneFrom": None, "why": ""}
+             "milestone": None, "milestoneFrom": None, "why": "",
+             "done": [], "donePresent": False, "doneWord": "absent",
+             "doneNamed": 0, "doneProven": 0,
+             "doneKeysAsked": 0, "doneKeysFound": 0, "doneRefusal": None}
     if not p.is_file():
         blank["why"] = "no-file-at-%s-in-this-checkout" % PRIORITIES
         return [], blank
@@ -1341,6 +1466,7 @@ def next_three(root):
             "queue": rel, "state": state, "stateWhy": why,
             "refused": state in ("done", "moved-to-done", "missing"),
         })
+    done, tally = read_done(root, data, set(i["title"] for i in items))
     reading = {
         "present": True, "parsed": True, "named": len(items),
         "shown": sum(1 for i in items if not i["refused"]),
@@ -1349,6 +1475,14 @@ def next_three(root):
         "milestone": data.get("milestone"),
         "milestoneFrom": data.get("milestoneFrom"),
         "why": "",
+        # THE FINISHED STEPS. doneNamed is what the file CLAIMS; doneProven is
+        # how many of those claims every named key survived this run.
+        "done": done, "donePresent": tally["present"],
+        "doneWord": tally["word"],
+        "doneNamed": tally["claimed"], "doneProven": tally["proven"],
+        "doneKeysAsked": tally["keysAsked"],
+        "doneKeysFound": tally["keysFound"],
+        "doneRefusal": tally["refusal"],
     }
     return items, reading
 
@@ -1370,21 +1504,26 @@ NEXT_RULE = (
 # Steps done, current, next, derived from next-three.json and the milestone
 # file, no prose parsing."
 #
-# NO NEW FIELD WAS ADDED, and that is a choice this file makes rather than
-# next-three.json, said here because RULING 3 asked which one was chosen. The
-# ordered list RULING 3 asked for already exists in both named sources: the
-# `next` array's ORDER already IS the priority order (the selftest already
-# asserts item 1 is "control", item 2 "crime", item 3 "gossip"), and
-# `milestone`/`milestoneFrom` already name the rung at the top. A second,
-# parallel `ladder` array would only give the two a chance to drift.
+# NO PARALLEL LADDER ARRAY WAS ADDED, and that is a choice this file makes
+# rather than next-three.json, said here because RULING 3 asked which one was
+# chosen. The ordered list RULING 3 asked for already exists in both named
+# sources: the `done` and `next` arrays' ORDER already IS the priority order
+# (the selftest asserts the steps read "control", then "crime", then "gossip"
+# across the two), and `milestone`/`milestoneFrom` already name the rung at
+# the top. A second, parallel `ladder` array would only give the two a chance
+# to drift.
 #
-# WHAT "DONE" MEANS, decided once rather than guessed per rung: next-three.
-# json's own governance removes a step once it is finished rather than
-# marking it ("An item leaves the list by being deleted from it"), and the
-# milestone file's structured header (line/spec/acceptance/status) names no
-# completed sub-step either. So no rung below the goal can be shown done from
-# these two sources today, and the ladder says so in words rather than a tick
-# nobody measured.
+# WHAT "DONE" MEANS, CORRECTED 2026-09-08 and decided once rather than guessed
+# per rung. It used to mean nothing that could be shown: next-three.json
+# deleted a finished step instead of marking it, so the current rung was
+# always rung one and finishing a step moved the page from STEP 1 OF 4 to STEP
+# 1 OF 3, which is the opposite of what RULING 3 asked to read. The ruling of
+# 2026-09-08 gave that file a `done` array whose entries carry the date and
+# the {file, key} evidence read_done() opens and searches. So this ladder
+# counts done rungs first, then the next ones, then the goal, and a done rung
+# whose evidence this run could not find refuses the WHOLE ladder rather than
+# standing as a number on his phone. With no `done` array at all the ladder
+# still says so in words rather than a tick nobody measured.
 # ---------------------------------------------------------------------------
 
 def ladder_rungs(root, items_all, r3):
@@ -1393,15 +1532,32 @@ def ladder_rungs(root, items_all, r3):
     here, and once more for the goal, because a stale rung shown as CURRENT
     is the exact fault this page already refuses elsewhere.
 
-    CAPPED TO NEXT_ASKED, like the next three cards below it, so today's
-    climb and those cards name the same steps and a tap from one reaches the
-    sheet the other already built; a longer plan is announced rather than
-    silently grown past what the reader can tap through.
+    THE `next` HALF IS CAPPED TO NEXT_ASKED, like the next three cards below
+    it, so today's climb and those cards name the same steps and a tap from
+    one reaches the sheet the other already built; a longer plan is announced
+    rather than silently grown past what the reader can tap through. THE
+    `done` HALF IS NOT CAPPED: it is the count under "step N of M", and a
+    silently dropped finished step would move that N.
+
+    TWO NUMBERING SEQUENCES, KEPT APART ON PURPOSE. `num` is the rung's place
+    on the ladder, counting done rungs first, and it is what "STEP N OF M"
+    reads. `taskNum` is the item's place in `next`, which is what the task
+    cards and their sheets (#t-1 .. #t-3) are keyed by. They were the same
+    number until done rungs existed; a rung linking to #t-<num> would now open
+    the wrong sheet.
     """
+    done = r3.get("done") or []
     items = items_all[:NEXT_ASKED]
     rungs = []
+    for d in done:
+        rungs.append({
+            "num": len(rungs) + 1, "title": d["title"], "state": "done",
+            "refused": False, "taskNum": None, "doneOn": d["doneOn"],
+            "stateWhy": ("proved-by-%d-evidence-key(s)-on-%s"
+                         % (len(d["evidence"]), d["doneOn"])),
+        })
     current_set = False
-    for it in items:
+    for n, it in enumerate(items, start=1):
         if it["refused"]:
             state = "stale"
         elif not current_set:
@@ -1411,6 +1567,7 @@ def ladder_rungs(root, items_all, r3):
         rungs.append({
             "num": len(rungs) + 1, "title": it["title"], "state": state,
             "refused": it["refused"], "stateWhy": it["stateWhy"],
+            "taskNum": n, "doneOn": None,
         })
     milestone_from = r3.get("milestoneFrom")
     m_state, m_why = (queue_state(root, milestone_from) if milestone_from
@@ -1419,16 +1576,35 @@ def ladder_rungs(root, items_all, r3):
     rungs.append({
         "num": len(rungs) + 1, "title": r3.get("milestone") or NOTHING,
         "state": "goal", "refused": goal_refused, "stateWhy": m_why,
+        "taskNum": None, "doneOn": None,
     })
     current_num = next((r["num"] for r in rungs if r["state"] == "current"),
                        None)
+    # THE WHOLE LADDER IS REFUSED BY EITHER HALF, and the reason says which:
+    # a done rung nobody can prove and a goal whose own file says it is
+    # finished both make every number here a fiction, so one flag drives the
+    # one banner and the checks read that flag rather than the goal's.
+    done_refusal = r3.get("doneRefusal")
     return rungs, {
         "total": len(rungs), "stepsShown": len(items),
         "stepsNamedTotal": len(items_all),
         "capped": len(items_all) > NEXT_ASKED,
         "currentNum": current_num, "goalState": m_state, "goalWhy": m_why,
         "goalRefused": goal_refused,
+        "refused": bool(goal_refused or done_refusal),
+        "refusedBy": ("goal-state" if goal_refused
+                      else "done-evidence" if done_refusal else "none"),
+        "refusedWhy": (m_why if goal_refused else done_refusal or "none"),
         "staleCount": sum(1 for r in rungs if r["refused"]),
+        # THE DONE HALF, whole-ladder: doneShown is what this ladder drew,
+        # doneClaimed what the file named, doneProven how many of those claims
+        # every named key survived, and the key pair count underneath.
+        "doneShown": len(done), "doneClaimed": r3.get("doneNamed", 0),
+        "doneProven": r3.get("doneProven", 0),
+        "donePresent": r3.get("donePresent", False),
+        "doneKeysAsked": r3.get("doneKeysAsked", 0),
+        "doneKeysFound": r3.get("doneKeysFound", 0),
+        "doneEntries": done,
         "acceptance": read_milestone_acceptance(root, milestone_from),
         "milestoneFrom": milestone_from,
     }
@@ -1437,14 +1613,20 @@ def ladder_rungs(root, items_all, r3):
 def ladder_html(rungs, reading):
     """Plain HTML, not SVG: see the module docstring's RULING 3 note. Every
     rung says its own state in words, never colour alone, and a rung this run
-    could not verify says so rather than borrowing CURRENT or NEXT."""
-    if reading["goalRefused"]:
+    could not verify says so rather than borrowing CURRENT or NEXT. A DONE
+    RUNG SAYS THE WORD DONE AND THE DATE IT LANDED, never a glyph alone: a
+    tick is unreadable at arm's length and unprovable at any distance."""
+    if reading["refused"]:
+        why = ("The goal's own file says its status is %s (%s)."
+               % (esc(reading["goalState"]), esc(reading["goalWhy"]))
+               if reading["goalRefused"] else
+               "A step this plan calls finished cannot be proved from this "
+               "checkout: %s." % esc(reading["refusedWhy"]))
         return ('<section class="ladder ladderStale" id="ladder">'
                 '<p class="ladderHead">THE LADDER IS STALE</p>'
-                '<p class="ladderNow">The goal\'s own file says its status is '
-                '%s (%s). Fix the plan before trusting a step count here.</p>'
-                '</section>'
-                % (esc(reading["goalState"]), esc(reading["goalWhy"])))
+                '<p class="ladderNow">%s Fix the plan before trusting a step '
+                'count here.</p>'
+                '</section>' % why)
     cur, total = reading["currentNum"], reading["total"]
     if cur:
         head = "STEP %d OF %d" % (cur, total)
@@ -1463,11 +1645,18 @@ def ladder_html(rungs, reading):
             if reading["acceptance"]:
                 body += (' <a class="tap" href="#t-goal">what done looks '
                         'like</a>')
+        elif r["state"] == "done":
+            cls, tag = "r-done", "DONE"
+            body = ('%s <span class="rungOn">finished %s</span>'
+                    % (esc(r["title"]), esc(r["doneOn"] or NOTHING)))
         else:
             cls = "r-current" if r["state"] == "current" else "r-next"
             tag = r["state"].upper()
+            # #t-<taskNum>, NEVER #t-<num>: the sheets are keyed by the item's
+            # place in `next`, and the rung's own number counts done rungs
+            # first, so the two parted company the day a done rung existed.
             body = ('%s <a class="tap" href="#t-%d">what it rests on</a>'
-                    % (esc(r["title"]), r["num"]))
+                    % (esc(r["title"]), r["taskNum"]))
         rows.append('<li class="rung %s"><span class="tag">%s</span>%s</li>'
                     % (cls, tag, body))
     cap = ""
@@ -1476,9 +1665,23 @@ def ladder_html(rungs, reading):
               '%d; see the next three below.)</p>'
               % (reading["stepsNamedTotal"] - reading["stepsShown"],
                  reading["stepsNamedTotal"]))
-    note = ("Steps already done: %s. A step is dropped from the plan once "
-           "finished rather than marked, and the goal names no completed "
-           "sub-step either, so this page cannot count them." % NOTHING)
+    # THE NOTE IS THE DONE HALF'S DENOMINATOR IN WORDS. With finished steps
+    # named it says how many of the rungs they are and how many evidence keys
+    # this run found again; with none named it says the words nothing measured,
+    # so an empty plan can never read as a clean one.
+    if reading["doneShown"]:
+        note = ("Steps already done: %d of %d rung(s) here. Each one carries "
+                "the date it landed and the evidence keys that prove it, %d "
+                "of %d found again in this checkout by this run. A finished "
+                "step moves into the plan's done list and is never deleted, "
+                "and a claim this page cannot prove takes the whole ladder "
+                "down rather than standing as a number."
+                % (reading["doneShown"], reading["total"],
+                   reading["doneKeysFound"], reading["doneKeysAsked"]))
+    else:
+        note = ("Steps already done: %s. The plan's done list names none, so "
+               "this page counts none rather than showing a tick nobody "
+               "measured." % NOTHING)
     return ('<section class="ladder" id="ladder">'
             '<p class="ladderHead">%s</p>'
             '<p class="ladderNow">%s</p>'
@@ -1822,6 +2025,9 @@ a { color: #8fb8ff; }
 .r-goal .tag { color: #8fb8ff; }
 .r-stale { border-left-color: #ff8f8f; background: #241a1a; }
 .r-stale .tag { color: #ff8f8f; }
+.r-done { border-left-color: #8a9199; }
+.r-done .tag { color: #b6bec7; }
+.rungOn { color: #8a9199; font-size: 12.5px; white-space: nowrap; }
 .ladderNote { font-size: 12.5px; line-height: 1.5; color: #868d95;
   margin: 8px 0 0; }
 .ladderStale .ladderHead { color: #ff8f8f; }
@@ -1914,6 +2120,8 @@ h2 { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
   .ladderHead { color: #0f1216; } .ladderNow { color: #23282e; }
   .rung { background: #ffffff; border-color: #d9dee4; color: #2b3138; }
   .r-current { background: #eafaf0; } .r-stale { background: #fdeeee; }
+  .r-done { background: #f2f4f6; } .r-done .tag { color: #5d646c; }
+  .rungOn { color: #5d646c; }
   .ladderNote { color: #5d646c; }
   .top { color: #5d646c; } .top b { color: #23282e; }
   h2 { color: #5d646c; }
@@ -2573,24 +2781,37 @@ def build(root, now, out_path=None, served=None):
         # THE NEXT THREE, AND WHERE THEY CAME FROM. nextSource is the only
         # file this page reads for them; nextRefused is how many named items
         # were stale enough to be refused rather than shown.
+        # doneNamed IS WHAT THE FILE CLAIMS, not what this run proved: an
+        # absent `done` array reads 0/absent, which is how a plan that has
+        # finished nothing is told apart from a plan whose done list this run
+        # could not read. What was PROVED is on the ladder line below.
         "nextSource=%s nextPresent=%s nextNamed=%d/%d-asked nextShown=%d "
-        "nextRefused=%d ruledBy=%s ruledOn=%s nowMdHeadingParser=deleted"
+        "nextRefused=%d doneNamed=%d/%s ruledBy=%s ruledOn=%s "
+        "nowMdHeadingParser=deleted"
         % (PRIORITIES, "yes" if r3.get("present") else "no", r3.get("named", 0),
            NEXT_ASKED, r3.get("shown", 0), r3.get("refused", 0),
+           r3.get("doneNamed", 0), r3.get("doneWord", "absent"),
            re.sub(r"\s+", "-", str(r3.get("ruledBy") or NOTHING)),
            r3.get("ruledOn") or NOTHING.replace(" ", "-")),
-        # THE LADDER, RULING 3. currentNum is the rung this run highlighted;
+        # THE LADDER, RULING 3 AND THE done ARRAY OF 2026-09-08. WHOLE-RUN
+        # NUMBERS, all of them: currentNum is the rung this run highlighted,
         # staleCount/total is a real N of M (every rung's refused flag was
-        # read), and doneCount is never a number: nothing in either named
-        # source can prove a rung finished, so it prints the words instead of
-        # a zero that would claim it checked and found none.
+        # read), ladderDoneCount is done rungs DRAWN over done steps CLAIMED
+        # by the file, and ladderDoneProven is how many of those claims had
+        # every one of their evidence keys found again by this run, with the
+        # key pair count beside it. Per-step evidence prints on that step's
+        # own map: done<N>= line, never here: one moment per line.
         "ladderTotal=%d ladderStepsShown=%d/%d-named ladderCurrentNum=%s "
         "ladderGoalState=%s ladderGoalRefused=%s ladderStaleCount=%d/%d "
-        "ladderDoneCount=%s"
+        "ladderDoneCount=%d/%d-claimed ladderDoneProven=%d/%d "
+        "ladderDoneKeys=%d/%d-found ladderRefused=%s ladderRefusedWhy=%s"
         % (r4["total"], r4["stepsShown"], r4["stepsNamedTotal"],
            r4["currentNum"] if r4["currentNum"] else NOTHING.replace(" ", "-"),
            r4["goalState"], "yes" if r4["goalRefused"] else "no",
-           r4["staleCount"], r4["total"], NOTHING.replace(" ", "-")),
+           r4["staleCount"], r4["total"],
+           r4["doneShown"], r4["doneClaimed"], r4["doneProven"],
+           r4["doneClaimed"], r4["doneKeysFound"], r4["doneKeysAsked"],
+           "yes" if r4["refused"] else "no", r4["refusedWhy"]),
         "flowNodes=%d/%d-areas svgHeightPx=%d boxWidthPx=%d textWidthPx=%d "
         "widestLineChars=%d atFontPx=%d wrapModel=avg-advance-0.5em"
         % (geo["nodes"], r2["areas"], geo["svgHeightPx"], geo["boxWidthPx"],
@@ -2859,15 +3080,17 @@ def check_ladder_at_top(page, model):
 
 
 def check_ladder_step_count(page, model):
-    """"STEP N OF M" ON THE PAGE MATCHES WHAT THIS RUN COMPUTED, or the goal
-    is stale and the page says so instead of a fabricated count."""
+    """"STEP N OF M" ON THE PAGE MATCHES WHAT THIS RUN COMPUTED, or the ladder
+    is refused and the page says so instead of a fabricated count. REFUSED,
+    NOT JUST goalRefused: since 2026-09-08 an unprovable done rung takes the
+    whole ladder down the same way a finished goal does."""
     lad = ladder_slice(page)
     r = model["ladder"]
-    if r["goalRefused"]:
+    if r["refused"]:
         ok = "LADDER IS STALE" in lad
         return ("ladderStepCount", ok,
-                "goalRefused=yes staleBannerShown=%s"
-                % ("yes" if ok else "MISSING"))
+                "ladderRefusedBy=%s staleBannerShown=%s"
+                % (r["refusedBy"], "yes" if ok else "MISSING"))
     if r["currentNum"] is None:
         ok = "NO CURRENT STEP" in lad
         return ("ladderStepCount", ok,
@@ -2886,16 +3109,35 @@ def check_ladder_done_not_invented(page, model):
     """RULING 3, verbatim: "if nothing in the repository can currently prove
     a step is done then the ladder must say so in words rather than showing
     a green tick nobody measured." Checked on the ladder's own bytes, and a
-    literal tick glyph would be exactly the invented progress this bites on."""
+    literal tick glyph is exactly the invented progress this bites on.
+
+    THE WORDING CLAUSE IS CONDITIONAL SINCE 2026-09-08, and only that clause
+    moved. With no done step named, the ladder must still say the words
+    nothing measured, so an empty plan cannot read as a clean one. With done
+    steps named, "nothing measured" would be the false sentence instead, so
+    what is required there is the count with its denominator and every rung
+    PROVEN: doneShown must equal doneClaimed and doneProven, or a claim this
+    run could not verify would be standing on the ladder as a number. Either
+    way a tick glyph is refused."""
     lad = ladder_slice(page)
-    if model["ladder"]["goalRefused"]:
+    r = model["ladder"]
+    if r["refused"]:
         return ("ladderDoneHonest", True, "ladder refused; nothing to check")
     said = NOTHING in lad.lower()
     ticks = lad.count("✓")
-    return ("ladderDoneHonest", said and ticks == 0,
-            "nothingMeasuredWordingOnLadder=%s invertedTickGlyphsOnLadder=%d/"
-            "0-allowed"
-            % ("yes" if said else "MISSING", ticks))
+    shown, claimed, proven = r["doneShown"], r["doneClaimed"], r["doneProven"]
+    if shown == 0:
+        good, need = said, "the-words-%s" % NOTHING.replace(" ", "-")
+    else:
+        good = (shown == claimed == proven
+                and "%d of %d rung(s)" % (shown, r["total"]) in lad)
+        need = "count-with-denominator-and-every-rung-proven"
+    return ("ladderDoneHonest", good and ticks == 0,
+            "doneShownOnLadder=%d/%d-claimed doneProven=%d/%d-claimed "
+            "requiredHere=%s nothingMeasuredWordingOnLadder=%s "
+            "invertedTickGlyphsOnLadder=%d/0-allowed"
+            % (shown, claimed, proven, claimed, need,
+               "yes" if said else "MISSING", ticks))
 
 
 def check_ladder_no_raw_content(page, model):
@@ -2916,7 +3158,7 @@ def check_ladder_stale_rungs_say_so(page, model):
     page with three stale rungs is two rungs lying by omission."""
     lad = ladder_slice(page)
     r = model["ladder"]
-    if r["goalRefused"]:
+    if r["refused"]:
         return ("ladderStaleRungsSaySo", True, "ladder refused; nothing to "
                 "check inside it")
     tags = lad.count("STATE NOT PROVEN")
@@ -3237,6 +3479,29 @@ FIXTURE_STALE = json.dumps({
     ]}, indent=1)
 FIXTURE_QUEUE_READY = "line: planted\nstatus: READY 2026-01-02. Planted.\n"
 FIXTURE_QUEUE_DONE = "line: planted\nstatus: DONE 2026-01-02. Planted.\n"
+# THE DONE FIXTURES. The live plan is the accepting fixture for a REAL done
+# step; these prove the same path, and then the three refusals, on files this
+# test wrote. The evidence key planted here exists in no real file and the
+# path is one no run writes, so doing the work this page asks for can neither
+# satisfy nor break a rejecting fixture.
+FIXTURE_EVIDENCE_REL = "production/planted-evidence.txt"
+FIXTURE_EVIDENCE = ("# A planted verdict, written by the selftest.\n"
+                    "plantedStatus=PROVEN plantedFrames=1/1\n")
+FIXTURE_DONE_TITLE = "a planted thing already finished"
+
+
+def _done_priorities(evidence, title=FIXTURE_DONE_TITLE):
+    """FIXTURE_PRIORITIES with one `done` step carrying the evidence given,
+    `done` before `next` as the ruling places it. ONE fixture builder for all
+    four done cases: the accepting one and the three refusals differ by their
+    evidence and their title, and by nothing else, which is what makes the
+    difference between them readable."""
+    out = {"done": [{"title": title, "why": "planted", "doneOn": "2026-01-02",
+                     "queue": "production/queue/901-planted-ready.md",
+                     "evidence": evidence}]}
+    for k, v in json.loads(FIXTURE_PRIORITIES).items():
+        out[k] = v
+    return json.dumps(out, indent=1)
 
 
 def _tree(files):
@@ -3362,35 +3627,78 @@ def selftest():
        % (NOTHING, voice["why"][:60]), voice["word"] == WORD_NOTHING,
        voice["word"])
 
-    # THE NEXT THREE, FROM ONE SOURCE.
-    ok("the next three come from %s, %d named, %d shown, %d refused as stale"
-       % (PRIORITIES, model["r3"]["named"], model["r3"]["shown"],
-          model["r3"]["refused"]),
-       model["r3"]["present"] and model["r3"]["named"] == NEXT_ASKED
+    # THE STEPS, FROM ONE SOURCE, DONE THEN NEXT. The cap is on `next` only,
+    # so what must equal NEXT_ASKED is the two arrays together, not `next`
+    # alone: the day the street step moved into `done`, pinning `next` to
+    # three would have called a correct plan broken.
+    ok("the steps come from %s: %d done and %d next, %d shown, %d refused as "
+       "stale"
+       % (PRIORITIES, model["r3"]["doneNamed"], model["r3"]["named"],
+          model["r3"]["shown"], model["r3"]["refused"]),
+       model["r3"]["present"] and model["r3"]["donePresent"]
+       and model["r3"]["doneNamed"] + model["r3"]["named"] == NEXT_ASKED
        and model["r3"]["refused"] == 0, model["r3"])
     ok("and production/NOW.md is named nowhere on the page, because the "
        "heading parser that read it is deleted",
        "production/NOW.md" not in page,
        [l for l in page.splitlines() if "NOW.md" in l][:1])
-    ok("and the three are the three Jafar ordered, control then crime then "
-       "gossip", [i["title"][:12] for i in model["items"]] ==
-       ["Control a ch", "Commit one c", "Overhear the"],
-       [i["title"] for i in model["items"]])
+    ok("and the three are the three Jafar ordered, done first then next: "
+       "control, then crime, then gossip",
+       [d["title"][:12] for d in model["r3"]["done"]]
+       + [i["title"][:12] for i in model["items"]]
+       == ["Control a ch", "Commit one c", "Overhear the"],
+       [d["title"] for d in model["r3"]["done"]]
+       + [i["title"] for i in model["items"]])
+    # THE EVIDENCE UNDER THE DONE STEP, opened and searched on the LIVE files.
+    # This is the accepting case for read_done(): the tool's own claim that a
+    # step is finished is only as good as the keys it just found again.
+    ok("and every done step's evidence is found again in this checkout "
+       "(%d of %d claimed step(s) proven, over %d of %d evidence key(s))"
+       % (model["r3"]["doneProven"], model["r3"]["doneNamed"],
+          model["r3"]["doneKeysFound"], model["r3"]["doneKeysAsked"]),
+       model["r3"]["doneNamed"] >= 1
+       and model["r3"]["doneProven"] == model["r3"]["doneNamed"]
+       and model["r3"]["doneKeysFound"] == model["r3"]["doneKeysAsked"]
+       and model["r3"]["doneKeysAsked"] >= 1
+       and model["r3"]["doneRefusal"] is None,
+       [(p["file"], p["key"], p["found"])
+        for d in model["r3"]["done"] for p in d["evidence"]])
 
-    # RULING 3: THE LADDER, on the live repository FIRST, ACCEPTING case.
+    # RULING 3 AND THE done ARRAY: THE LADDER, on the live repository FIRST,
+    # ACCEPTING case. The numbers are DERIVED rather than frozen at 2 of 4:
+    # the head printed above is today's series, and the day the crime step
+    # lands this reads 3 of 4 instead of calling a correct ladder broken.
     lad = model["ladder"]
-    ok("the ladder reads STEP 1 OF %d, current on 'Control a character...', "
-       "because none of the three named steps or the goal's own file is "
-       "stale today" % lad["total"],
-       lad["currentNum"] == 1 and not lad["goalRefused"]
-       and lad["rungs"][0]["state"] == "current"
-       and "STEP 1 OF %d" % lad["total"] in page,
-       (lad["currentNum"], lad["total"], lad["goalRefused"]))
-    ok("and the ladder's own bytes say steps-done is %s rather than a tick "
-       "nobody counted" % NOTHING,
-       NOTHING in ladder_slice(page).lower()
+    head = "STEP %s OF %s" % (lad["currentNum"], lad["total"])
+    ok("the ladder reads %s, current on '%s', with the finished step below it "
+       "as a DONE rung and neither it nor the goal stale today"
+       % (head, (lad["rungs"][lad["currentNum"] - 1]["title"][:44]
+                 if lad["currentNum"] else NOTHING)),
+       lad["doneShown"] >= 1 and not lad["refused"]
+       and lad["currentNum"] == lad["doneShown"] + 1
+       and lad["total"] == lad["doneShown"] + lad["stepsShown"] + 1
+       and [r["state"] for r in lad["rungs"][:lad["doneShown"] + 1]]
+       == ["done"] * lad["doneShown"] + ["current"]
+       and head in page,
+       (head, lad["currentNum"], lad["total"], lad["doneShown"],
+        [r["state"] for r in lad["rungs"]]))
+    ok("and the done rung says the word DONE and the date it landed, never a "
+       "glyph: '%s'"
+       % re.sub(r"<[^>]+>", " ",
+                [r for r in ladder_slice(page).split("<li")
+                 if "DONE" in r][0])[:96].strip(),
+       ">DONE<" in ladder_slice(page)
+       and all("finished %s" % d["doneOn"] in ladder_slice(page)
+               for d in lad["doneEntries"])
        and "✓" not in ladder_slice(page),
-       ladder_slice(page)[:200])
+       ladder_slice(page)[:400])
+    ok("and the ladder's own bytes count the done rungs with their "
+       "denominator instead of the words %s, because one IS measured now (%s)"
+       % (NOTHING, check_ladder_done_not_invented(page, model)[2]),
+       check_ladder_done_not_invented(page, model)[1]
+       and "%d of %d rung(s)" % (lad["doneShown"], lad["total"])
+       in ladder_slice(page),
+       ladder_slice(page)[-400:])
     ok("and the ladder sits above the top bar, which is RULING 3's whole "
        "point: readable before anything else on the page",
        check_ladder_at_top(page, model)[1], check_ladder_at_top(page, model))
@@ -3405,9 +3713,21 @@ def selftest():
               % (a["name"], a["word"], a["gatesSeen"], a["gatesNamed"],
                  ("%d/%d" % (a["heardNum"], a["heardDen"]))
                  if a["heardDen"] else NOTHING))
-    print("\n    the next three, as read from %s:" % PRIORITIES)
+    print("\n    the ladder, as read from %s, done rungs first:" % PRIORITIES)
+    for i, d in enumerate(model["r3"]["done"]):
+        print("    %d. %-62s [done %s, %d/%d key(s) found]"
+              % (i + 1, d["title"][:62], d["doneOn"],
+                 sum(1 for p in d["evidence"] if p["found"]),
+                 len(d["evidence"])))
+        for p in d["evidence"]:
+            print("       evidence %s..%s [%s]"
+                  % (p["file"], p["key"], "found" if p["found"]
+                     else "file-missing" if not p["fileExists"]
+                     else "key-absent"))
     for i, it in enumerate(model["items"]):
-        print("    %d. %-62s [%s]" % (i + 1, it["title"][:62], it["state"]))
+        print("    %d. %-62s [%s]"
+              % (len(model["r3"]["done"]) + i + 1, it["title"][:62],
+                 it["state"]))
 
     print("\n  ACCEPTING 2: a planted tree, so the accepting path is proven "
           "on files this test wrote.\n")
@@ -3429,6 +3749,45 @@ def selftest():
     ok("and with no frame to show, the planted tree's street falls back to %s"
        % NOTHING,
        not m2["picture"]["shown"] and NOTHING in p2, m2["picture"]["why"][:80])
+    ok("and with no done list at all the same ladder says %s in words and "
+       "counts no rung finished, so an empty plan cannot read as a clean one"
+       % NOTHING,
+       m2["ladder"]["doneShown"] == 0 and not m2["r3"]["donePresent"]
+       and m2["ladder"]["currentNum"] == 1
+       and NOTHING in ladder_slice(p2).lower()
+       and check_ladder_done_not_invented(p2, m2)[1],
+       check_ladder_done_not_invented(p2, m2)[2])
+
+    print("\n  ACCEPTING 2b: A PLANTED DONE STEP, the same path as the live "
+          "plan's, on an evidence file this test wrote.\n")
+    t_done = _tree({"PLANTED.bat": FIXTURE_BAT, SIM_VERDICT: FIXTURE_VERDICT,
+                    PRIORITIES: _done_priorities(
+                        [{"file": FIXTURE_EVIDENCE_REL,
+                          "key": "plantedStatus=PROVEN"}]),
+                    FIXTURE_EVIDENCE_REL: FIXTURE_EVIDENCE,
+                    "production/queue/901-planted-ready.md":
+                        FIXTURE_QUEUE_READY})
+    pdn, mdn = build(t_done, now, served=NOWEB)
+    dl = mdn["ladder"]
+    ok("a done step whose key IS in its file is proven (%d/%d claimed, %d/%d "
+       "key(s)) and the ladder counts done first: the page reads STEP %s OF "
+       "%s and every check passes"
+       % (dl["doneProven"], dl["doneClaimed"], dl["doneKeysFound"],
+          dl["doneKeysAsked"], dl["currentNum"], dl["total"]),
+       dl["doneProven"] == 1 and dl["doneKeysFound"] == 1
+       and dl["currentNum"] == 2 and dl["total"] == 4
+       and "STEP 2 OF 4" in pdn and not dl["refused"]
+       and not [n for n, c, _ in run_checks(pdn, mdn) if not c],
+       [n for n, c, _ in run_checks(pdn, mdn) if not c])
+    ok("and its rung carries the word DONE and the date, never a glyph "
+       "(rung 1 = %s)"
+       % re.sub(r"<[^>]+>", " ",
+                [r for r in ladder_slice(pdn).split("<li")
+                 if "DONE" in r][0])[:70].strip(),
+       ">DONE<" in ladder_slice(pdn)
+       and "finished 2026-01-02" in ladder_slice(pdn)
+       and "✓" not in ladder_slice(pdn)
+       and dl["rungs"][0]["state"] == "done", ladder_slice(pdn)[:300])
 
     print("\n  ACCEPTING 3: THE SERVED PAGE, requested over HTTP from a local "
           "server, because checking the bytes we just wrote is not checking "
@@ -3508,6 +3867,73 @@ def selftest():
        "empty plan (%s)" % (NOTHING, mbk["r3"]["why"]),
        mbk["r3"]["named"] == 0 and "did-not-parse" in mbk["r3"]["why"]
        and NOTHING in pbk, mbk["r3"])
+
+    # THE THREE DONE DISAGREEMENTS, RULED 2026-09-08. Each refuses the WHOLE
+    # ladder with the stale banner and NAMES the reason, and none of them may
+    # leave a step number on the page: a half-proven ladder is the invented
+    # progress RULING 3 forbids, and "step 2 of 4" with one rung unproven is
+    # exactly that. All three fixtures are synthetic.
+    for label, files, want in (
+        ("an evidence file that exists nowhere",
+         {PRIORITIES: _done_priorities(
+             [{"file": "production/planted-nowhere.txt",
+               "key": "plantedStatus=PROVEN"}])},
+         "done-step-1-evidence-missing/production/planted-nowhere.txt"),
+        ("a key that appears in no file",
+         {PRIORITIES: _done_priorities(
+             [{"file": FIXTURE_EVIDENCE_REL,
+               "key": "zzzNoSuchKeyEverEmitted=NEVER"}]),
+          FIXTURE_EVIDENCE_REL: FIXTURE_EVIDENCE},
+         "done-step-1-key-absent/zzzNoSuchKeyEverEmitted=NEVER"),
+        ("a title standing in both arrays",
+         {PRIORITIES: _done_priorities(
+             [{"file": FIXTURE_EVIDENCE_REL,
+               "key": "plantedStatus=PROVEN"}],
+             title="the first planted thing"),
+          FIXTURE_EVIDENCE_REL: FIXTURE_EVIDENCE},
+         "title-in-both-done-and-next"),
+        ("a done field that is there but is not a list",
+         {PRIORITIES: json.dumps(
+             dict(json.loads(FIXTURE_PRIORITIES), done={"oops": 1}),
+             indent=1)},
+         "done-is-not-a-list"),
+    ):
+        base = {"PLANTED.bat": FIXTURE_BAT, SIM_VERDICT: FIXTURE_VERDICT,
+                "production/queue/901-planted-ready.md": FIXTURE_QUEUE_READY}
+        base.update(files)
+        pr, mr = build(_tree(base), now, served=NOWEB)
+        lr = mr["ladder"]
+        ok("%s refuses the WHOLE ladder, names the reason and prints no step "
+           "number (refusedBy=%s refusedWhy=%s doneProven=%d/%d)"
+           % (label, lr["refusedBy"], lr["refusedWhy"], lr["doneProven"],
+              lr["doneClaimed"]),
+           lr["refused"] and lr["refusedBy"] == "done-evidence"
+           and lr["refusedWhy"] == want and lr["doneProven"] == 0
+           and "THE LADDER IS STALE" in ladder_slice(pr)
+           and want in ladder_slice(pr)
+           and "STEP " not in ladder_slice(pr)
+           and check_ladder_step_count(pr, mr)[1],
+           (lr["refusedWhy"], ladder_slice(pr)[:240]))
+    # AND THE GOAL'S OWN REFUSAL STILL WINS ITS OWN WORDING, so the two causes
+    # cannot be read as one: this one is refused by the goal, not by evidence.
+    t_goal = _tree({"PLANTED.bat": FIXTURE_BAT, SIM_VERDICT: FIXTURE_VERDICT,
+                    PRIORITIES: json.dumps(
+                        dict(json.loads(FIXTURE_PRIORITIES),
+                             milestoneFrom="production/queue/902-planted-"
+                                           "done.md"), indent=1),
+                    "production/queue/901-planted-ready.md":
+                        FIXTURE_QUEUE_READY,
+                    "production/queue/902-planted-done.md":
+                        FIXTURE_QUEUE_DONE})
+    pg, mg = build(t_goal, now, served=NOWEB)
+    ok("a goal whose own file says DONE still refuses the ladder as before, "
+       "and says so with its own reason (refusedBy=%s refusedWhy=%s)"
+       % (mg["ladder"]["refusedBy"], mg["ladder"]["refusedWhy"]),
+       mg["ladder"]["refused"] and mg["ladder"]["refusedBy"] == "goal-state"
+       and mg["ladder"]["goalRefused"]
+       and "THE LADDER IS STALE" in ladder_slice(pg)
+       and "STEP " not in ladder_slice(pg),
+       (mg["ladder"]["refusedBy"], ladder_slice(pg)[:200]))
 
     # A REJECTING KEY THAT EXISTS NOWHERE, on purpose.
     ok("a required key that exists nowhere keeps an area unanswered",
@@ -3607,9 +4033,17 @@ def selftest():
     ok("ladderDoneHonest bites on an invented checkmark (%s)" % s, not c, s)
     n, c, s = check_ladder_done_not_invented(
         "%sno wording about done steps here%s" % (LADDER_START, LADDER_END),
-        model)
-    ok("and bites when 'not measured' is missing from the ladder even "
-       "without a tick (%s)" % s, not c, s)
+        m2)
+    ok("and bites when 'not measured' is missing from a ladder with NO done "
+       "step named, even without a tick (%s)" % s, not c, s)
+    # THE HALF-PROVEN LADDER, which is the failure the done array could
+    # introduce and the one the ruling names: a rung claimed done whose
+    # evidence this run could not find must not stand as a number. Planted on
+    # the LIVE page, whose accepting half passed above.
+    n, c, s = check_ladder_done_not_invented(
+        page, dict(model, ladder=dict(model["ladder"], doneProven=0)))
+    ok("and bites when the ladder shows a done rung this run could not prove, "
+       "which is a step count resting on a claim (%s)" % s, not c, s)
     n, c, s = check_ladder_no_raw_content(
         "%ssee production/queue/138-thing.md%s" % (LADDER_START, LADDER_END),
         model)
@@ -3620,7 +4054,8 @@ def selftest():
     ok("and bites on a gate count inside the ladder", not c, s)
     n, c, s = check_ladder_stale_rungs_say_so(
         "%squiet%s" % (LADDER_START, LADDER_END),
-        dict(m2, ladder=dict(m2["ladder"], goalRefused=False, staleCount=1)))
+        dict(m2, ladder=dict(m2["ladder"], goalRefused=False, refused=False,
+                             staleCount=1)))
     ok("ladderStaleRungsSaySo bites when a stale rung is claimed but the tag "
        "is not on the page", not c, s)
     n, c, s = check_first_screen("<p>nothing at all</p>", m2)
@@ -3785,6 +4220,23 @@ def main():
                  else NOTHING.replace(" ", "-"),
                  "/".join("%s=%s" % (k, v) for k, v in a["readings"]
                           if v is not None) or NOTHING.replace(" ", "-")))
+    # PER-STEP NUMBERS ON THE STEP'S OWN LINE. A done step's evidence is a
+    # per-sample reading (which file, which key, was it found), so it belongs
+    # here and not on the done line, where a grep would read one step's pairs
+    # as the whole ladder's. file..key joined by dots and pairs by commas
+    # because every reader of this channel splits on whitespace.
+    for i, d in enumerate(model["ladder"]["doneEntries"]):
+        found = sum(1 for p in d["evidence"] if p["found"])
+        print("map: done%d=%s doneOn=%s proven=%s evidenceFound=%d/%d-pairs "
+              "evidence=%s refusal=%s"
+              % (i + 1, re.sub(r"\s+", "_", d["title"]),
+                 re.sub(r"\s+", "-", d["doneOn"]),
+                 "yes" if d["proven"] else "no", found, len(d["evidence"]),
+                 ",".join("%s..%s%s" % (p["file"], p["key"],
+                                        "" if p["found"] else "/ABSENT")
+                          for p in d["evidence"])
+                 or NOTHING.replace(" ", "-"),
+                 d["refusal"] or "none"))
     for i, it in enumerate(model["items"][:NEXT_ASKED]):
         print("map: next%d=%s state=%s queue=%s"
               % (i + 1, re.sub(r"\s+", "_", it["title"]), it["state"],

@@ -318,14 +318,26 @@ jobs:
       # message with a receipt is skipped as already sent, which the outbox
       # selftest proves. It never opens config.local; the tool reads it
       # itself and prints nothing from it.
+      # RETIRED 2026-09-08 BY DIRECTOR RULING, section 10 (2). This step SENT
+      # message id 31 at 02:34:14Z: a push touching this workflow fired the
+      # run, and its sweep sent a brief whose headline a director had refused
+      # fifteen minutes earlier. The question it existed to answer (does the
+      # sweep work) is answered, and it now races the bot's own loop on every
+      # workflow-touching push. `if: false` rather than deletion so the next
+      # reader sees what it was and why it stopped.
       - name: Run one outbox sweep on his machine and print what it says
-        if: always()
+        if: false
         continue-on-error: true
         timeout-minutes: 6
         shell: pwsh
         run: |
           $ErrorActionPreference = "Continue"
-          $out = "production/pc-ops/outbox-sweep.txt"
+          # ABSOLUTE, AND THIS LINE IS THE MISSING sweepStatus LINE. A
+          # relative $out is resolved at WRITE time, and the status writes
+          # below sit inside Push-Location $repo, so every one of them
+          # landed in his checkout instead of the runner workspace and
+          # never reached the commit. Ruled 2026-09-08, section 4.
+          $out = Join-Path (Get-Location).Path "production/pc-ops/outbox-sweep.txt"
           New-Item -ItemType Directory -Force -Path "production/pc-ops" | Out-Null
           $repo = "C:\Users\Jafar\wc26-picks"
           $sha = if ($env:GITHUB_SHA) { $env:GITHUB_SHA.Substring(0,7) } else { "SHA-UNKNOWN" }
@@ -382,6 +394,90 @@ jobs:
                   "sweepStream=$(Split-Path $f -Leaf) sweepLines=$($lines.Count)" | Add-Content $out
                   $lines | Select-Object -Last 40 | Add-Content $out
                   if ($lines.Count -gt 40) { "(+$($lines.Count - 40) earlier line(s) not shown)" | Add-Content $out }
+                }
+              }
+            }
+          }
+          Write-Host (Get-Content $out -Raw)
+
+      - name: Push the return half from his machine and print what it says
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          # ABSOLUTE, AND THIS LINE IS THE MISSING sweepStatus LINE. A
+          # relative $out is resolved at WRITE time, and the status writes
+          # below sit inside Push-Location $repo, so every one of them
+          # landed in his checkout instead of the runner workspace and
+          # never reached the commit. Ruled 2026-09-08, section 4.
+          $out = Join-Path (Get-Location).Path "production/pc-ops/inbox-flush.txt"
+          New-Item -ItemType Directory -Force -Path "production/pc-ops" | Out-Null
+          $repo = "C:\Users\Jafar\wc26-picks"
+          $sha = if ($env:GITHUB_SHA) { $env:GITHUB_SHA.Substring(0,7) } else { "SHA-UNKNOWN" }
+          "# LEDGER one inbox flush - $sha @$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())" |
+            Set-Content $out -Encoding utf8
+          "# Line 1 names the commit this was run on. This step PUSHES the" | Add-Content $out
+          "# return half: his messages and the bot's own receipts, onto" | Add-Content $out
+          "# pc-inbox. It sends nothing and loads no credentials. The return" | Add-Content $out
+          "# half stopped at 2026-09-07 11:30 UTC. The sending half stopped too" | Add-Content $out
+          "# and recovered at the 01:18 UTC restart on the 8th; this half did not," | Add-Content $out
+          "# which is why the studio went on calling the channel dead after it sent." | Add-Content $out
+          if (-not (Test-Path "$repo\tools\runner\telegram-bot.py")) {
+            "flushStatus=NOTHING-MEASURED reason=no-bot-at-that-path" | Add-Content $out
+          } else {
+            $py = $null
+            foreach ($c in @("$repo\tools\voice-live\env-export\Scripts\python.exe",
+                             "$env:USERPROFILE\miniconda3\python.exe", "python")) {
+              if (Test-Path $c) { $py = $c; break }
+              try { & $c --version *> $null; if ($LASTEXITCODE -eq 0) { $py = $c; break } } catch { }
+            }
+            if (-not $py) {
+              "flushStatus=NOTHING-MEASURED reason=no-python-found" | Add-Content $out
+            } else {
+              "flushPython=$($py -replace ' ','~')" | Add-Content $out
+              $raw = Join-Path $env:RUNNER_TEMP "flush-raw.txt"
+              Remove-Item $raw -Force -ErrorAction SilentlyContinue
+              Remove-Item "$raw.err" -Force -ErrorAction SilentlyContinue
+              Push-Location $repo
+              $proc = $null
+              try {
+                $proc = Start-Process -FilePath $py -PassThru -NoNewWindow -ArgumentList @("-u", "tools\runner\telegram-bot.py", "--flush-inbox") -RedirectStandardOutput $raw -RedirectStandardError "$raw.err"
+              } catch {
+                "flushStatus=NOT-STARTED reason=$($_.Exception.GetType().Name)" | Add-Content $out
+              }
+              # THE STATUS LINE IS WRITTEN ON EVERY PATH, AND TO THE RUNNER'S
+              # FILE: $out is absolute because both status writes here sit
+              # inside Push-Location, and the sweep step's relative $out is
+              # how its status line landed in his checkout instead (ruling
+              # 2026-09-08, section 4). A status key that can go missing
+              # cannot tell a hang from a clean exit.
+              if ($null -eq $proc) {
+                "flushStatus=NO-PROCESS flushWaitedSec=0" | Add-Content $out
+              } else {
+                $waited = 0
+                while (-not $proc.HasExited -and $waited -lt 150) {
+                  Start-Sleep -Seconds 3
+                  $waited += 3
+                }
+                if (-not $proc.HasExited) {
+                  "flushStatus=HUNG flushWaitedSec=$waited flushNote=killed-after-the-wait/lines-below-are-where-it-got-to" | Add-Content $out
+                  try { $proc.Kill() } catch { }
+                  Start-Sleep -Seconds 2
+                } else {
+                  "flushStatus=EXITED flushWaitedSec=$waited flushExitCode=$($proc.ExitCode)" | Add-Content $out
+                }
+              }
+              Pop-Location
+              foreach ($f in @($raw, "$raw.err")) {
+                if (Test-Path $f) {
+                  $lines = @(Get-Content $f -ErrorAction SilentlyContinue)
+                  "flushStream=$(Split-Path $f -Leaf) flushLines=$($lines.Count)" | Add-Content $out
+                  $lines | Select-Object -Last 40 | Add-Content $out
+                  if ($lines.Count -gt 40) { "(+$($lines.Count - 40) earlier line(s) not shown)" | Add-Content $out }
+                } else {
+                  "flushStream=$(Split-Path $f -Leaf) flushLines=nothing-measured reason=no-such-file" | Add-Content $out
                 }
               }
             }
@@ -493,6 +589,7 @@ jobs:
           # rather than by eye, because by eye missed it twice.
           git add -A -- production/pc-ops/push-diagnosis.txt 2>/dev/null || true
           git add -A -- production/pc-ops/outbox-sweep.txt 2>/dev/null || true
+          git add -A -- production/pc-ops/inbox-flush.txt 2>/dev/null || true
           git diff --cached --quiet && { echo "install verification unchanged; nothing to commit"; exit 0; }
           git commit -m "scheduled task install/verify from $(git rev-parse --short HEAD)"
           BR="${GITHUB_REF_NAME}"

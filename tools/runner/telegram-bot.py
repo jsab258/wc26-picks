@@ -8,6 +8,7 @@
     python3 tools/runner/telegram-bot.py --send-outbox     sweep the outbox
     python3 tools/runner/telegram-bot.py --send-frame      one verified picture
     python3 tools/runner/telegram-bot.py --send-cards      the WAITING cards
+    python3 tools/runner/telegram-bot.py --flush-inbox     push the return half
     python3 tools/runner/telegram-bot.py --selftest       offline, no network
 
 WHAT IT DOES TODAY, and the list is short on purpose (queue 067, narrowed to
@@ -2284,6 +2285,69 @@ def _selftest_cases(ok, bad, state):
           and "outboxPasses=1" in b6.done_line()
           and "outboxSent=0" in b6.done_line(), b6.done_line())
 
+    # ---- --flush-inbox, ON THE CASE IT MUST PASS --------------------------
+    # A DIRECTOR RECORDED, 2026-09-08, that this flag shipped with no case of
+    # its own, so the suite's count was consistent with the whole branch never
+    # having run. Rule 5b: the accepting case first. main() reaches the branch,
+    # the branch calls inbox, and the zero path prints its DENOMINATOR rather
+    # than the words "nothing measured", which is rule 3b: a flush that pushed
+    # nothing because there was nothing to push is not an unmeasured flush.
+    #
+    # THE REAL REPO IS NEVER TOUCHED. inbox.pending_all and inbox.push_pending
+    # are swapped for stubs and restored in a finally, so a case that fails
+    # here cannot leave the module able to push from a later case.
+    said = []
+    real_say, real_pending, real_push = OUT.say, inbox.pending_all, inbox.push_pending
+    try:
+        OUT.say = lambda text="": said.append(text)
+        inbox.pending_all = lambda repo: ([], "0" * 40)
+        inbox.push_pending = lambda *a, **k: (_ for _ in ()).throw(
+            AssertionError("push_pending must not run when nothing is waiting"))
+        rc_zero = main(["telegram-bot.py", "--flush-inbox"])
+        zero_line = next((l for l in said if l.startswith("flush done:")), "")
+        check("accept/flush-inbox-is-reached-from-main-and-returns-clean",
+              rc_zero == 0 and any(l.startswith("flush: waiting=0") for l in said),
+              "rc=%d said=%r" % (rc_zero, said[:2]))
+        check("accept/flush-inbox-zero-carries-its-denominator-not-nothing-measured",
+              "pushed=0/0" in zero_line and "tracked=" in zero_line
+              and "nothing measured" not in zero_line, zero_line or "NO DONE LINE")
+
+        # AND THE OTHER HALF: with something waiting, push_pending IS called
+        # and its result reaches the done line. Without this the case above
+        # would pass on a branch that could never push anything at all.
+        said[:] = []
+        waiting = ["production/inbox/a.md", "production/outbound/b.receipt.txt"]
+        called = []
+        inbox.pending_all = lambda repo: (list(waiting), "a" * 40)
+        inbox.push_pending = lambda repo, say=None, **k: (
+            called.append(repo) or {"ok": True, "pushed": list(waiting),
+                                    "pending": [], "commit": "b" * 40,
+                                    "replaced": False,
+                                    "detail": "pushed 2 file(s)", "plain": ""})
+        rc_work = main(["telegram-bot.py", "--flush-inbox"])
+        work_line = next((l for l in said if l.startswith("flush done:")), "")
+        check("accept/flush-inbox-actually-calls-the-push-when-work-waits",
+              rc_work == 0 and len(called) == 1 and "pushed=2/2" in work_line,
+              "rc=%d calls=%d %s" % (rc_work, len(called), work_line))
+        check("accept/flush-inbox-names-each-waiting-file",
+              sum(1 for l in said if l.startswith("flush: waiting p")) == 2,
+              [l for l in said if l.startswith("flush: waiting")])
+
+        # THE REJECTING HALF: a refused push must not report success.
+        said[:] = []
+        inbox.push_pending = lambda repo, say=None, **k: {
+            "ok": False, "pushed": [], "pending": list(waiting), "commit": None,
+            "replaced": False, "detail": "the push failed (no such remote)",
+            "plain": "the upload to the studio failed"}
+        rc_bad = main(["telegram-bot.py", "--flush-inbox"])
+        bad_line = next((l for l in said if l.startswith("flush done:")), "")
+        check("reject/a-refused-flush-exits-nonzero-and-says-so",
+              rc_bad == 1 and "ok=False" in bad_line
+              and "pushed=0/2" in bad_line, "rc=%d %s" % (rc_bad, bad_line))
+    finally:
+        OUT.say, inbox.pending_all, inbox.push_pending = (
+            real_say, real_pending, real_push)
+
 
 def selftest():
     """The whole suite, and it REPORTS ON EVERY PATH.
@@ -2366,6 +2430,34 @@ def main(argv):
                 cap = args[j + 1]
         res = video_pass(creds, clip, cap)
         return 1 if (res["refused"] or res["failed"]) else 0
+    if "--flush-inbox" in args:
+        # THE RETURN HALF, ON DEMAND. The bot pushes his messages and its own
+        # receipts back to pc-inbox once a minute, and when that stops the
+        # studio goes blind whether or not the sending half works. From
+        # 2026-09-07 11:30 UTC both halves were silent; from the 01:18 UTC
+        # restart on the 8th the sending half worked and this one still did
+        # not, which is why the studio kept calling the channel dead after it
+        # was sending. No credentials are loaded here. Nothing is sent.
+        waiting, tip = inbox.pending_all(REPO)
+        OUT.say("flush: waiting=%d tip=%s"
+                % (len(waiting), (tip or "none")[:7]))
+        for rel in waiting[:8]:
+            OUT.say("flush: waiting %s" % rel)
+        if len(waiting) > 8:
+            OUT.say("flush: (+%d more not shown)" % (len(waiting) - 8))
+        if not waiting:
+            OUT.say("flush done: pushed=0/0 waiting=0 tracked=%d, the "
+                    "branch already carries every file on this disk"
+                    % len(inbox.tracked_files(REPO)))
+            return 0
+        res = inbox.push_pending(REPO, OUT.say)
+        OUT.say("flush done: pushed=%d/%d ok=%s commit=%s replaced=%s "
+                "plain=%s detail=%s"
+                % (len(res["pushed"]), len(waiting), res["ok"],
+                   (res["commit"] or "none")[:7], res["replaced"],
+                   (res["plain"] or "none").replace(" ", "~"),
+                   (res["detail"] or "none").replace(" ", "~")))
+        return 0 if res["ok"] else 1
     if "--send-frame" in args:
         creds = load_or_explain()
         if creds is None:
