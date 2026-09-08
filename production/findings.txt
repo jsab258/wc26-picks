@@ -273,3 +273,43 @@ THE GENERAL SHAPE, third time in this file: a green reading answered a
 question adjacent to the one being decided. The material compile that was
 never proven, the uptime that measured existence rather than activity, and now
 a read that measured reachability rather than permission.
+
+--------------------------------------------------------------------------
+2026-09-08  A FOURTH HYPOTHESIS ABOUT THE SILENT BOT, REFUTED. THE DIAGNOSIS
+            WAS TESTED PROPERLY AND IT WAS WRONG.
+--------------------------------------------------------------------------
+HYPOTHESIS 4, THE OFFLINE WORK SITS DOWNSTREAM OF THE POLL. poll_forever had
+flush_inbox() and sweep_outbox() inside the try, after call(getUpdates), so a
+poll that raised took the except arm, slept, and looped without ever reaching
+them. It explained the receipt timestamps exactly: two sends at 11:18 and two
+at 23:48, both being the bot's startup pair, sent before the loop begins, with
+thirteen hours of nothing between.
+
+IT MADE A PREDICTION AND THE PREDICTION FAILED. The fix moved both calls into
+a finally. The bot was restarted onto it at about 01:18 UTC, and the restart
+is not in doubt: exit 0, back in 4 seconds, new tree stable for 20, and the
+loaded source hashes E4B54DAB, which is exactly the CRLF form of
+telegram-bot.py at 81546fd8, the commit carrying the fix. Ten minutes later
+pc-inbox had still not moved from 2026-09-07 13:30:08 +0200.
+
+SO IT IS REFUTED RATHER THAN UNTESTED, and those are different outcomes: a
+failed restart would have meant the fix never loaded and the idea was never
+tried. The hash match rules that out. The fix itself stays, because work that
+needs nothing from Telegram should not depend on Telegram answering
+regardless, and it now has a selftest row that plants a failing poll and
+asserts both halves still run.
+
+FOUR HYPOTHESES, FOUR REFUTATIONS, EACH BY MEASUREMENT: the bot is dead
+(uptime), the poll is wedged (a clean restart changed nothing), the
+credentials refuse writes (pushDryRunExit=0, "Everything up-to-date"), the
+work is downstream of the poll (fixed, loaded, still silent).
+
+WHAT IS BEING DONE INSTEAD OF A FIFTH GUESS. tools/runner/telegram-bot.py
+--send-outbox is an existing entry point that performs exactly one outbox pass
+and returns, printing what it did; it is the same pass the bot's own loop
+makes. A step now runs it on his machine and commits its output. It answers by
+DOING the thing rather than reasoning about it: either the sweep works, in
+which case the waiting message is delivered and the fault is in the loop that
+calls it, or it fails and prints the reason that has been going to a console
+nobody reads all day. It is allowed to send; receipts make a double send
+impossible.

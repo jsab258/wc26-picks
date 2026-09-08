@@ -285,6 +285,68 @@ jobs:
           if ($L.Count -gt 0) { $L -join "`n" | Set-Content $out -Encoding utf8 }
           Write-Host (Get-Content $out -Raw)
 
+      # STOP THEORISING AND RUN THE SWEEP. Four hypotheses have now been
+      # raised about why nothing leaves his PC and four have been refuted by
+      # measurement: the bot is dead (uptime), the poll loop is wedged (a
+      # clean restart changed nothing), credentials refuse writes
+      # (pushDryRunExit=0), and the offline work sits downstream of the poll
+      # (fixed, restarted onto the fix, still nothing). Guessing a fifth time
+      # is not a method.
+      #
+      # `--send-outbox` IS AN EXISTING ENTRY POINT that performs exactly one
+      # outbox pass and returns, printing what it did. It is not a new
+      # mechanism and it is what the bot's own loop calls. Running it here
+      # answers the question by doing the thing: either the sweep works, in
+      # which case Jafar gets the message that has been waiting since this
+      # afternoon and the fault is in the LOOP that calls it, or it fails and
+      # prints the reason that has been going to a console nobody reads all
+      # day.
+      #
+      # IT IS ALLOWED TO SEND, deliberately, and that is the one thing here
+      # that is not read-only. Receipts make a second send impossible: a
+      # message with a receipt is skipped as already sent, which the outbox
+      # selftest proves. It never opens config.local; the tool reads it
+      # itself and prints nothing from it.
+      - name: Run one outbox sweep on his machine and print what it says
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 6
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $out = "production/pc-ops/outbox-sweep.txt"
+          New-Item -ItemType Directory -Force -Path "production/pc-ops" | Out-Null
+          $repo = "C:\Users\Jafar\wc26-picks"
+          $sha = if ($env:GITHUB_SHA) { $env:GITHUB_SHA.Substring(0,7) } else { "SHA-UNKNOWN" }
+          "# LEDGER one outbox sweep - $sha @$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())" |
+            Set-Content $out -Encoding utf8
+          "# Line 1 names the commit this was run on. This step SENDS: it runs" | Add-Content $out
+          "# tools/runner/telegram-bot.py --send-outbox once, which is the same" | Add-Content $out
+          "# pass the bot's own loop makes. Streamed, so a timeout still leaves" | Add-Content $out
+          "# everything it learned." | Add-Content $out
+          if (-not (Test-Path "$repo\tools\runner\telegram-bot.py")) {
+            "sweepStatus=NOTHING-MEASURED reason=no-bot-at-that-path" | Add-Content $out
+          } else {
+            $py = $null
+            foreach ($c in @("$repo\tools\voice-live\env-export\Scripts\python.exe",
+                             "$env:USERPROFILE\miniconda3\python.exe", "python")) {
+              if (Test-Path $c) { $py = $c; break }
+              try { & $c --version *> $null; if ($LASTEXITCODE -eq 0) { $py = $c; break } } catch { }
+            }
+            if (-not $py) {
+              "sweepStatus=NOTHING-MEASURED reason=no-python-found" | Add-Content $out
+            } else {
+              "sweepPython=$($py -replace ' ','~')" | Add-Content $out
+              Push-Location $repo
+              & $py "tools\runner\telegram-bot.py" --send-outbox 2>&1 |
+                ForEach-Object { $_.ToString() | Add-Content $out; Write-Host $_ }
+              $code = $LASTEXITCODE
+              Pop-Location
+              "sweepExitCode=$code" | Add-Content $out
+            }
+          }
+          Write-Host (Get-Content $out -Raw)
+
       - name: Publish the supervisor's own status
         if: always()
         continue-on-error: true
@@ -389,6 +451,7 @@ jobs:
           # script that lists written paths against staged paths
           # rather than by eye, because by eye missed it twice.
           git add -A -- production/pc-ops/push-diagnosis.txt 2>/dev/null || true
+          git add -A -- production/pc-ops/outbox-sweep.txt 2>/dev/null || true
           git diff --cached --quiet && { echo "install verification unchanged; nothing to commit"; exit 0; }
           git commit -m "scheduled task install/verify from $(git rev-parse --short HEAD)"
           BR="${GITHUB_REF_NAME}"
