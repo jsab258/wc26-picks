@@ -382,8 +382,24 @@ jobs:
           # propGltfImporter first, because run 1 proved that when this route
           # fails it fails there, and the whole failure list underneath it is
           # sixteen copies of one cause.
-          for K in propGltfImporter propGltfCanTranslate propGltfPluginsEnabled \
-                   propImportStatus propImportReturn propAcceptingCase \
+          # RUN 2 MOVED WHAT MATTERS. propGltfCanTranslate came back 3/3, so
+          # the engine's capability is settled and the remaining question is
+          # the invocation: what appeared, under what name, and whether a wait
+          # changed it. Those three lead now.
+          # RUN 3 ADDS THE SEVEN DISCRIMINATORS the director's amendments put
+          # in. They are in the committed verdict file either way; listing them
+          # here is what puts them in front of a person reading the run, and a
+          # key left off this list reads as absent when it is only unprinted.
+          # THE LOOP IS UNCAPPED ON PURPOSE: one grep per named key, every key
+          # named, so nothing here can bite the way a `head -N` did.
+          for K in propImportStatus propImportedNames propImportResolvedVia \
+                   propImportRouteRan propImportWaitChanged propImportWaitMeans \
+                   propImportLookedFor propImportSnapshotShape \
+                   propImportTaskApi propImportTaskAsync \
+                   propImportResultType propImportResultWaitAttrs \
+                   propImportPreexistingDeleted propImportRenamed \
+                   propImportAppearedUnnamed \
+                   propAcceptingCase propGltfImporter propGltfCanTranslate \
                    propImported propCollisionPrims propBoundsWorstMm; do
             grep -o "$K=[^ ]*" "$F" || echo "$K=NOT-ON-THE-LINE"
           done

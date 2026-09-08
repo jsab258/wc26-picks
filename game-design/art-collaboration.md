@@ -29,6 +29,13 @@ touches any of these, on any branch:
 The list is short on purpose. Everything on it is a thing that, changed from
 two places at once, breaks the studio's ability to measure itself.
 
+IN-HOUSE CLAUSE, ruled 2026-09-08. A spawned designer has no separate
+checkout. It writes only under `production/art/<commission>/` in the studio
+checkout, and the resident prints `git status --porcelain` before committing to
+prove this list held. The separate-checkout sentence above still governs an
+outside delivery and a designer given its own clone; it does not govern a
+spawn, which never had one.
+
 ## 3. A delivery
 
 A delivery is one file: `production/art/<commission>/DELIVERY.md`, committed
@@ -48,9 +55,22 @@ and no message needs to be sent.
 | commission | branch | pinned source commit | issued |
 |---|---|---|---|
 | atlas-01 | `art/atlas-01` | `7722b45cb3dcee2fbcee26675fae4fef641cbba7` | 2026-09-08 |
+| atlas-02 | `art/atlas-02` | `f3f395c5dda6be684183ef4f02c1d0a533207bbf` | 2026-09-08 |
 
 The pin is the full forty characters on purpose. An abbreviation is a prefix
 match, and a prefix is not an identity.
+
+THE ART LINE MOVED IN-HOUSE on 2026-09-08 by Jafar's standing order, and the
+convention above did not change with it, which is the point of having written
+it down before there was anyone to follow it. `atlas-01` was an outside
+delivery; `atlas-02` continues it in-house, delivered on 2026-09-08 by a
+content-wrangler spawn under this convention (the spawn log has no
+`world-designer` row that day); the `world-designer` role in `.claude/agents/`
+staffs it from the next commission, with the standing constraints baked into
+the role rather than restated per commission: authored breadth, canon governs, photoreal
+late-analog Britain, D13 and D14, and this delivery convention. The do-not-touch
+list in section 2 binds the in-house line exactly as it bound the outside one,
+and still nothing validates it.
 
 ## 6. What is a convention, what is a consumer, what is a runner path
 

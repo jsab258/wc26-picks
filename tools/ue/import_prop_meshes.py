@@ -329,7 +329,7 @@ def import_return(status):
 
 def prop_line(status, asked, pieces, sources, imported, saved, collided,
               readings, failures, via, collision_via, extras, uasset_bytes,
-              note, gltf_block="", accepting_block=""):
+              note, gltf_block="", accepting_block="", lookup_block=""):
     """The one line the workflow copies into the build verdict.
 
     No spaces inside any value: every reader of these files splits on
@@ -367,7 +367,7 @@ def prop_line(status, asked, pieces, sources, imported, saved, collided,
             "propSources=%d/%d propImported=%d/%d propSaved=%d/%d "
             "propCollisionPrims=%d/%d propCollisionVia=%s "
             "propImportVia=%s propPackageDir=%s propNamePattern=%s<asset> "
-            "%s %s "
+            "%s %s %s "
             "%s propBoundsBound=NONE-YET/this-run-prints-the-series "
             "propBoundsStat=spec-box-minus-engine-bounds-at-worst-over-assets "
             "%s %s "
@@ -383,11 +383,129 @@ def prop_line(status, asked, pieces, sources, imported, saved, collided,
                gltf_block if gltf_block else "propGltfImporter=nothing-measured",
                accepting_block if accepting_block else
                "propAcceptingCase=nothing-measured",
+               lookup_block if lookup_block else lookup_field([]),
                worst_bounds(readings),
                pivot_field(readings),
                fallback_field(failures, asked),
                extras, uasset_bytes,
                str(note).replace(" ", "~") if note else "none"))
+
+
+def preexisting_field(deleted, asked):
+    """A2. How many assets were deleted before the loop, over assets asked.
+
+    WHY A DELETION IS PART OF A MEASUREMENT. The whole lookup rests on
+    `new = after - before`. An asset left behind by an earlier run is in
+    `before`, so a successful re-import of it appears in NEITHER set and the
+    resolver reads nothing-appeared over an import that worked perfectly. The
+    agent workspace on that runner is persistent, so this is not hypothetical:
+    the first run that imports anything at all makes every later run lie.
+    Deleting first is what makes the subtraction mean what it says."""
+    return "propImportPreexistingDeleted=%d/%d" % (deleted, asked)
+
+
+def lookup_field(details, cap=DETAIL_CAP):
+    """THE PAIR THE DIRECTOR ASKED FOR, and it is a pair on purpose.
+
+      propImportLookedFor   the object path the code asks for. One pattern,
+                            printed once, because it is the same shape for
+                            every asset.
+      propImportedNames     what actually appeared under the destination
+                            package path, per asset, after the import ran.
+                            Capped, and the cap announces itself.
+      propImportResolvedVia which RULE matched, tallied over the assets:
+                            exact-path is the healthy one, nothing-appeared
+                            means the import genuinely made nothing, and
+                            name-contains-the-asset-id or
+                            only-package-that-appeared means the import worked
+                            and run 2's lookup was the entire fault.
+      propImportRouteRan    which route got as far as running, tallied, and it
+                            is LAST-WINS over the routes: the loop tries the
+                            next route when one runs without producing a
+                            findable mesh, so this names the last route that
+                            ran for each asset and not the only one. Its
+                            companion, `appeared`, is CUMULATIVE over every
+                            route that ran, because a package made by route one
+                            must not vanish from the evidence when route two
+                            runs. Run 2 reported none-of-2-candidates while
+                            BOTH routes ran and raised nothing, because the
+                            route's return value was the load-back.
+      propImportWaitTaken   how many assets needed the registry wait because
+                            nothing had appeared yet, over the assets tried.
+      propImportWaitChanged of those, how many had something appear AFTER the
+                            wait. ABOVE ZERO IS THE ASYNC HYPOTHESIS CONFIRMED;
+                            zero is not a rule-out, because the wait is a
+                            registry scan and not a wait on the import. This
+                            is the one key that
+                            separates the director's first shape from his
+                            second.
+    """
+    if not details:
+        return ("propImportLookedFor=nothing-measured "
+                "propImportedNames=nothing-measured "
+                "propImportResolvedVia=nothing-measured "
+                "propImportRouteRan=nothing-measured "
+                "propImportSnapshotShape=nothing-measured "
+                "propImportTaskApi=nothing-measured "
+                "propImportTaskAsync=nothing-measured "
+                "propImportResultType=nothing-measured "
+                "propImportResultWaitAttrs=nothing-measured "
+                "propImportRenamed=0/0 propImportAppearedUnnamed=0/0 "
+                "propImportWaitTaken=0/0 propImportWaitChanged=0/0")
+    pattern = PACKAGE_DIR + "/" + UASSET_PREFIX + "<asset>"
+    shown = []
+    for asset_id, d in details[:cap]:
+        names = [str(x).rsplit("/", 1)[-1] for x in d.get("appeared", [])]
+        shown.append("%s=%s" % (asset_id,
+                                ",".join(names[:3]) if names else "none"))
+    names_field = ";".join(shown)
+    if len(details) > cap:
+        names_field += ";(+%d~more~not~shown)" % (len(details) - cap)
+    ways = {}
+    ran = {}
+    for _a, d in details:
+        ways[d.get("resolvedVia", "unknown")] = ways.get(d.get("resolvedVia", "unknown"), 0) + 1
+        ran[d.get("routeRan", "none")] = ran.get(d.get("routeRan", "none"), 0) + 1
+    took = sum(1 for _a, d in details if d.get("waitTaken"))
+    changed = sum(1 for _a, d in details if d.get("waitChanged"))
+    shapes = sorted(set(d.get("snapshotShape", "nothing-measured")
+                        for _a, d in details))
+    apis = sorted(set(";".join(d.get("taskApi") or ["nothing-measured"])
+                      for _a, d in details))
+    async_tally = {}
+    for _a, d in details:
+        k = "before=%s/after=%s" % (d.get("taskAsyncBefore"), d.get("taskAsyncAfter"))
+        async_tally[k] = async_tally.get(k, 0) + 1
+    rtypes = sorted(set(str(d.get("resultType", "not-reached")) for _a, d in details))
+    rattrs = sorted(set(";".join(d.get("resultWaitAttrs") or ["none"])
+                        for _a, d in details))
+    renamed = sum(1 for _a, d in details if d.get("renamed"))
+    unnamed = sum(1 for _a, d in details
+                  if str(d.get("resolvedVia", "")).startswith("appeared-unnamed"))
+    # NO SPACES IN ANY VALUE, and these four come from the ENGINE rather than
+    # from this file: a package path or a type name with a space in it would
+    # silently truncate every reader that splits on whitespace.
+    def flat(xs):
+        return [str(x).replace(" ", "~") for x in xs]
+    shapes, apis, rtypes, rattrs = flat(shapes), flat(apis), flat(rtypes), flat(rattrs)
+    async_tally = dict((str(k).replace(" ", "~"), v) for k, v in async_tally.items())
+    extra = ("propImportSnapshotShape=%s propImportTaskApi=%s "
+             "propImportTaskAsync=%s propImportResultType=%s "
+             "propImportResultWaitAttrs=%s "
+             "propImportRenamed=%d/%d propImportAppearedUnnamed=%d/%d "
+             % (",".join(shapes[:2]), ",".join(apis[:2]),
+                ";".join("%s=%d" % (k, v) for k, v in sorted(async_tally.items())),
+                ",".join(rtypes[:2]), ",".join(rattrs[:2]),
+                renamed, len(details), unnamed, len(details)))
+    return (extra +
+            "propImportLookedFor=%s propImportedNames=%s "
+            "propImportResolvedVia=%s propImportRouteRan=%s "
+            "propImportWaitTaken=%d/%d propImportWaitChanged=%d/%d "
+            "propImportWaitMeans=above-zero-is-an-async-import/zero-is-not-a-rule-out/the-wait-is-a-registry-scan"
+            % (pattern, names_field,
+               ";".join("%s=%d" % (k, v) for k, v in sorted(ways.items())),
+               ";".join("%s=%d" % (k, v) for k, v in sorted(ran.items())),
+               took, len(details), changed, took))
 
 
 def accepting_field(readings, failures, sources_found):
@@ -704,6 +822,116 @@ def selftest():
        r3["worstOrderedMm"] > 1.0 and r3["worstSortedMm"] > 1.0, r3)
     ok("the worst axis is named", r3["worstOrderedAxis"] in ("x", "y", "z"))
 
+    # -- E2. THE LOOKUP, WHICH IS WHAT RUN 2 GOT WRONG ---------------------
+    # ACCEPTING CASE FIRST: the importer named the asset what we asked for.
+    D = PACKAGE_DIR + "/"
+    ok("an asset at the exact path resolves by exact-path",
+       resolve_imported([D + "SM_drainage_grate_01"], "drainage_grate_01")
+       == (D + "SM_drainage_grate_01", "exact-path"),
+       resolve_imported([D + "SM_drainage_grate_01"], "drainage_grate_01"))
+    # THE THREE SHAPES RUN 2 COULD NOT TELL APART, each planted.
+    ok("an asset named after the MESH inside the file still resolves, and says "
+       "by which rule",
+       resolve_imported([D + "Grate_LOD0_SM_drainage_grate_01"], "drainage_grate_01")[1]
+       == "name-contains-the-asset-id",
+       resolve_imported([D + "Grate_LOD0_SM_drainage_grate_01"], "drainage_grate_01"))
+    ok("an asset nested in a per-source subfolder resolves by name",
+       resolve_imported([D + "drainage_grate_01/SM_drainage_grate_01"], "drainage_grate_01")[1]
+       == "exact-name-different-folder",
+       resolve_imported([D + "drainage_grate_01/SM_drainage_grate_01"], "drainage_grate_01"))
+    # A5, RE-EXPECTED. One unrecognisable package is a FAILURE that still
+    # reports what appeared, not a match on timing.
+    ok("one unrecognised package is a failure naming the leaf, not a match",
+       resolve_imported([D + "StaticMeshActor_17"], "drainage_grate_01")
+       == (None, "appeared-unnamed/StaticMeshActor_17"),
+       resolve_imported([D + "StaticMeshActor_17"], "drainage_grate_01"))
+
+    # A1(a). BOTH SNAPSHOT SHAPES, ACCEPTING CASE FIRST. These two rows are
+    # the ones that would have made a healthy run 3 print a false conclusion
+    # about run 2.
+    ok("a package-name snapshot of a perfect import resolves exact-path",
+       resolve_imported([D + "SM_drainage_grate_01"], "drainage_grate_01")[1]
+       == "exact-path")
+    ok("an OBJECT-PATH snapshot of the same perfect import also resolves "
+       "exact-path, which before A1 it did not",
+       resolve_imported([D + "SM_drainage_grate_01.SM_drainage_grate_01"],
+                        "drainage_grate_01")[1] == "exact-path",
+       resolve_imported([D + "SM_drainage_grate_01.SM_drainage_grate_01"],
+                        "drainage_grate_01"))
+    ok("and package_of leaves a package name alone",
+       package_of(D + "SM_a") == D + "SM_a")
+
+    # A1(b). THE SIBLING HAZARD, and what removes it. `new` is sorted, so a
+    # material whose leaf sorts before the mesh and contains the asset id
+    # would be returned as the mesh. The fix is the StaticMesh filter in
+    # _import_one, so the row asserts both halves: the hazard is real on the
+    # raw list, and resolving over the FILTERED list gives the mesh.
+    # The fixture has the mesh under the INTERNAL mesh's name, because that is
+    # the only case in which the sort order can bite: exact-path is tested
+    # first, so a mesh actually at the contract path is immune.
+    mesh_leaf = D + "SM_grate_body_drainage_grate_01"
+    mat_leaf = D + "MI_drainage_grate_01"
+    raw = sorted([mat_leaf, mesh_leaf])
+    ok("the material sorts before the mesh in this fixture, which is what "
+       "makes the hazard reachable at all", raw[0] == mat_leaf, raw)
+    ok("unfiltered, that material would be returned AS the mesh (the hazard)",
+       resolve_imported(raw, "drainage_grate_01")[0] == mat_leaf,
+       resolve_imported(raw, "drainage_grate_01"))
+    ok("filtered to the static meshes, the MESH resolves instead",
+       resolve_imported([mesh_leaf], "drainage_grate_01")
+       == (mesh_leaf, "name-contains-the-asset-id"),
+       resolve_imported([mesh_leaf], "drainage_grate_01"))
+
+    # A2. The tally string, which is the only part of the deletion this
+    # container can run.
+    ok("the preexisting tally ships its denominator",
+       preexisting_field(3, 16) == "propImportPreexistingDeleted=3/16",
+       preexisting_field(3, 16))
+    ok("and a clean slate prints a zero with its denominator, not nothing",
+       preexisting_field(0, 16) == "propImportPreexistingDeleted=0/16")
+    ok("nothing appearing says nothing-appeared, which is the ONLY reading "
+       "that means the import made nothing",
+       resolve_imported([], "x") == (None, "nothing-appeared"))
+    ok("two unrecognised packages are ambiguous and carry the count, not a guess",
+       resolve_imported([D + "a", D + "b"], "x") == (None, "ambiguous-2-appeared"),
+       resolve_imported([D + "a", D + "b"], "x"))
+    ok("a hyphen in the asset id does not defeat the name rule",
+       resolve_imported([D + "SM_a_b"], "a-b")[1] == "exact-path",
+       resolve_imported([D + "SM_a_b"], "a-b"))
+
+    # -- E3. THE ASYNC DISCRIMINATOR ---------------------------------------
+    det_ok = [("a", {"appeared": [D + "SM_a"], "resolvedVia": "exact-path",
+                     "routeRan": "asset-import-task", "waitTaken": False,
+                     "waitChanged": False})]
+    f = lookup_field(det_ok)
+    ok("a healthy lookup tallies exact-path and needs no wait",
+       "propImportResolvedVia=exact-path=1" in f
+       and "propImportWaitTaken=0/1" in f, f)
+    det_async = [("a", {"appeared": [D + "SM_a"], "resolvedVia": "exact-path",
+                        "routeRan": "interchange-import-asset",
+                        "waitTaken": True, "waitChanged": True})]
+    f2 = lookup_field(det_async)
+    ok("an import that only appeared AFTER the wait prints WaitChanged above "
+       "zero, which is the async hypothesis confirmed",
+       "propImportWaitTaken=1/1" in f2 and "propImportWaitChanged=1/1" in f2, f2)
+    det_dead = [("a", {"appeared": [], "resolvedVia": "nothing-appeared",
+                       "routeRan": "interchange-import-asset",
+                       "waitTaken": True, "waitChanged": False})]
+    f3 = lookup_field(det_dead)
+    ok("a wait that changed nothing is silence, not a rule-out, and still "
+       "names the route that ran",
+       "propImportWaitChanged=0/1" in f3
+       and "propImportRouteRan=interchange-import-asset=1" in f3, f3)
+    ok("and the three readings are all different, which is the point",
+       len(set([f, f2, f3])) == 3)
+    ok("a lookup over nothing says nothing-measured and still prints the keys",
+       "propImportedNames=nothing-measured" in lookup_field([])
+       and "propImportWaitTaken=0/0" in lookup_field([]))
+    manyd = [("a%d" % i, {"appeared": [], "resolvedVia": "nothing-appeared",
+                          "routeRan": "none"}) for i in range(DETAIL_CAP + 3)]
+    ok("a capped names list announces the cap",
+       "(+3~more~not~shown)" in lookup_field(manyd), lookup_field(manyd))
+
     # -- F. THE ZEROS, THE CAPS AND THE NEVER-RAN WORDS --------------------
     ok("a worst-bounds over nothing says nothing-measured",
        "nothing-measured" in worst_bounds([]))
@@ -729,7 +957,12 @@ def selftest():
                      "a note with spaces",
                      "propGltfImporter=" + gltf_verdict(True, [], 0, 3)
                      + " propGltfCanTranslate=0/3",
-                     accepting_field([], [(ACCEPTING_ASSET, "did not load back")], 16))
+                     accepting_field([], [(ACCEPTING_ASSET, "did not load back")], 16),
+                     lookup_field([("a", {"appeared": [PACKAGE_DIR + "/SM_a"],
+                                          "resolvedVia": "exact-path",
+                                          "routeRan": "asset-import-task",
+                                          "waitTaken": False,
+                                          "waitChanged": False})]))
     toks = line.split()
     ok("every whitespace-separated token of the verdict line is key=value",
        all("=" in t for t in toks), [t for t in toks if "=" not in t])
@@ -748,6 +981,10 @@ def selftest():
        and "propAcceptingCase=piece=" + ACCEPTING_PIECE in line, line)
     ok("and the accepting case's spaces were flattened too",
        "did~not~load~back" in line)
+    ok("the line carries the lookup pair that tells an import which made "
+       "nothing from one which made something else",
+       "propImportLookedFor=" in line and "propImportedNames=" in line
+       and "propImportResolvedVia=" in line, line)
 
     # -- H. THE REJECTING FIXTURE FOR THE NAME RULE ------------------------
     ok("an asset id with a slash is refused", not safe_asset_id("ambientcg/Leak"))
@@ -970,12 +1207,157 @@ def _material_slots(unreal, mesh, report):
     return -1 if v is None else int(v)
 
 
+def package_of(entry):
+    """Drop a trailing `.Name` so an object path and a package name compare.
+
+    A1(a), AND IT WOULD HAVE WASTED RUN 3. _list_package takes
+    EditorAssetLibrary.list_assets first and the asset registry's
+    package_name second, and the two return DIFFERENT SHAPES:
+    /Game/Ledger/Props/SM_x versus /Game/Ledger/Props/SM_x.SM_x. Two sources
+    disagreed about which list_assets gives and neither source was a run. If
+    the object-path shape came back, a PERFECT import at the exact contract
+    path would miss exact-path (the string differs) and miss
+    exact-name-different-folder (SM_x.SM_x is not SM_x), and land on
+    name-contains-the-asset-id, whose docstring says that reading means run
+    2's lookup was the entire fault. A healthy run would have printed a
+    conclusion about run 2 that the run never measured.
+
+    A package or object name cannot itself contain a dot, so cutting the leaf
+    at its first dot is exact rather than heuristic."""
+    e = str(entry)
+    at = e.rfind("/")
+    head, leaf = (e[:at + 1], e[at + 1:]) if at >= 0 else ("", e)
+    dot = leaf.find(".")
+    return head + (leaf[:dot] if dot >= 0 else leaf)
+
+
+def resolve_imported(appeared, asset_id):
+    """Which of the packages that APPEARED is this asset, and by what rule.
+
+    RUN 2'S WHOLE FAULT IN ONE FUNCTION. That run imported sixteen GLBs into
+    an engine that says it can translate all of them, raised nothing, and
+    reported none-of-2-candidates, because the code asked one question:
+    does /Game/Ledger/Props/SM_<asset> load? A glTF importer is under no
+    obligation to name the asset that. Interchange can name a static mesh
+    after the MESH inside the file rather than the file, and it can nest a
+    source's output under a subfolder. Either way the import worked and only
+    the lookup failed, and the old code could not tell that apart from an
+    import that produced nothing at all.
+
+    So this takes the list of packages that were not there before, and names
+    the RULE that matched, so a run says WHY it thinks a package is this
+    asset. Returns (path_or_None, how)."""
+    want = PACKAGE_DIR + "/" + uasset_name(asset_id)
+    # NORMALISED BEFORE ANY COMPARISON. See package_of().
+    leafs = [(package_of(p), package_of(p).rsplit("/", 1)[-1]) for p in appeared]
+
+    def norm(x):
+        return str(x).upper().replace("-", "_")
+
+    for p, leaf in leafs:
+        if p == want:
+            return p, "exact-path"
+    for p, leaf in leafs:
+        if norm(leaf) == norm(uasset_name(asset_id)):
+            return p, "exact-name-different-folder"
+    for p, leaf in leafs:
+        if norm(asset_id) in norm(leaf):
+            return p, "name-contains-the-asset-id"
+    if not leafs:
+        return None, "nothing-appeared"
+    if len(leafs) == 1:
+        # A5, AND IT OVERRULES A JUDGEMENT MADE HERE. This was kept as the
+        # weakest of five rules, on the grounds that it still tells you the
+        # import made SOMETHING. The director's correction: a rule that
+        # matches on TIMING rather than on a name is an inference, and
+        # counting an inference in the same tally as four name matches lets
+        # one number mix two kinds of evidence. So it is a FAILURE with its
+        # own tally. It still says the import made something, under the leaf's
+        # own name, without claiming to know it is the right something.
+        return None, "appeared-unnamed/" + leafs[0][1]
+    return None, "ambiguous-%d-appeared" % len(leafs)
+
+
+def _list_package(unreal, report):
+    """Every asset package currently under the destination directory.
+
+    The snapshot either side of an import is what turns "did SM_x load" into
+    "what did this import actually make", which is the pair the director asked
+    for. An unreadable directory returns None, which is a different fact from
+    an empty one and is carried as such."""
+    def via_editor_asset_library():
+        return list(unreal.EditorAssetLibrary.list_assets(
+            PACKAGE_DIR, True, False))
+
+    def via_registry():
+        ar = unreal.AssetRegistryHelpers.get_asset_registry()
+        return [str(a.package_name) for a in
+                ar.get_assets_by_path(PACKAGE_DIR, True)]
+
+    v, _via = _try([("list-assets", via_editor_asset_library),
+                    ("asset-registry", via_registry)], report)
+    if v is None:
+        return None, "unreadable"
+    # THE FIRST RAW ENTRY, UNNORMALISED, SO THE SHAPE IS NEVER GUESSED AGAIN.
+    # It goes on the verdict as propImportSnapshotShape and settles which of
+    # the two shapes this engine's list_assets returns.
+    raw = str(v[0]) if v else "empty"
+    return [package_of(x) for x in v], raw
+
+
+def _wait_for_registry(unreal, report):
+    """Take whatever wait this engine offers, and SAY WHETHER IT WAS TAKEN.
+
+    INTERCHANGE IMPORT IS ASYNCHRONOUS BY DEFAULT, which is the director's
+    first hypothesis and the one this code could not previously see: an import
+    that will succeed in a moment is indistinguishable from one that produced
+    nothing if the very next line loads by path. The counts that come back,
+    propImportWaitTaken and propImportWaitChanged, answer one half: a wait that
+    repeatedly CHANGES the answer is an async import. A wait that never changes
+    it rules NOTHING out, because what is waited on here is an asset-registry
+    scan and not the import itself, so zero is silence. propImportTaskAsync is
+    the key that watches the import."""
+    def via_registry_wait():
+        unreal.AssetRegistryHelpers.get_asset_registry().wait_for_completion()
+        return True
+
+    def via_scan_paths():
+        ar = unreal.AssetRegistryHelpers.get_asset_registry()
+        ar.scan_paths_synchronous([PACKAGE_DIR], True)
+        return True
+
+    v, via = _try([("registry-wait-for-completion", via_registry_wait),
+                   ("registry-scan-paths-synchronous", via_scan_paths)], report)
+    return bool(v), via
+
+
 def _import_one(unreal, abs_glb, asset_id, report):
-    """One GLB to one uasset. Returns the loaded UStaticMesh or None, and the
-    route that took. LOADED BACK, not "the task returned": an import task that
-    reports success over an asset nothing can load is exactly the shape of
-    failure this project keeps finding."""
+    """One GLB to one uasset. Returns (mesh_or_None, via, detail).
+
+    THE ROUTE LOOP IS WRITTEN OUT HERE RATHER THAN GOING THROUGH _try, and
+    that is the fix for run 2. _try treats a None RETURN as "this route did
+    not answer" and moves to the next one. The old routes ended in
+    load_asset(), which returns None when a path does not resolve, so a route
+    that ran perfectly and imported the file reported itself as refused, with
+    no exception to show for it. That is why run 2 printed
+    propImportVia=none-of-2-candidates beside propNote=none: nothing raised,
+    because nothing went wrong except the question being asked.
+
+    Now a route reports whether it RAN, separately from whether the asset was
+    then found, and what it made is enumerated rather than guessed at."""
     name = uasset_name(asset_id)
+    detail = {"lookedFor": object_path(asset_id), "appeared": [],
+              "appearedClasses": {}, "resolvedVia": "not-reached",
+              "routeRan": "none", "taskPaths": [], "waitTaken": False,
+              "waitChanged": False, "snapshotShape": "nothing-measured",
+              "taskApi": [], "taskAsyncBefore": "no-api",
+              "taskAsyncAfter": "no-api", "resultType": "not-reached",
+              "resultWaitAttrs": [], "renamed": False,
+              "unnamedBounds": None}
+
+    before, raw_shape = _list_package(unreal, report)
+    detail["snapshotShape"] = raw_shape
+    before_set = set(before or [])
 
     def via_task():
         task = unreal.AssetImportTask()
@@ -986,27 +1368,190 @@ def _import_one(unreal, abs_glb, asset_id, report):
         task.set_editor_property("replace_existing", True)
         task.set_editor_property("save", False)
         unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks([task])
-        return unreal.load_asset(object_path(asset_id))
+        # A1(c). THE TASK'S OWN ASYNC FLAG, READ EITHER SIDE OF get_objects().
+        # AssetImportTask carries an async completion flag in some engine
+        # versions and not others, and get_objects() is documented to block
+        # until the objects exist. Both are guarded by hasattr and BOTH NAMES
+        # ARE PRINTED present or absent, because "the flag said incomplete" and
+        # "there is no flag on this class" are different facts and an absent
+        # API must never read as a negative answer.
+        api = []
+        if hasattr(task, "is_async_import_complete"):
+            api.append("is_async_import_complete=present")
+            try:
+                detail["taskAsyncBefore"] = bool(task.is_async_import_complete())
+            except Exception as e:
+                detail["taskAsyncBefore"] = "raised/" + str(e).split("\n")[0][:40]
+        else:
+            api.append("is_async_import_complete=absent")
+        if hasattr(task, "get_objects"):
+            api.append("get_objects=present")
+            try:
+                task.get_objects()
+            except Exception as e:
+                report.append("task-get-objects-raised=%s" % str(e).split("\n")[0][:60])
+        else:
+            api.append("get_objects=absent")
+        if hasattr(task, "is_async_import_complete"):
+            try:
+                detail["taskAsyncAfter"] = bool(task.is_async_import_complete())
+            except Exception as e:
+                detail["taskAsyncAfter"] = "raised/" + str(e).split("\n")[0][:40]
+        detail["taskApi"] = api
+        # THE TASK'S OWN ANSWER ABOUT WHAT IT MADE, which run 2's code
+        # computed and threw away before going to look for a path instead.
+        try:
+            return [str(x) for x in
+                    task.get_editor_property("imported_object_paths")]
+        except Exception:
+            return []
+
+    def via_interchange_result():
+        # THE SYNCHRONOUS-SHAPED VARIANT FIRST. It returns a result object
+        # rather than firing and forgetting, and it is tried ahead of
+        # import_asset for exactly that reason. Whether it actually blocks in
+        # this engine is not asserted here; propImportResultWaitAttrs and
+        # propImportTaskAsync are what would show it did not.
+        # propImportWaitChanged would not: it scans the registry, not the
+        # import.
+        mgr = unreal.InterchangeManager.get_interchange_manager_scripted()
+        src = unreal.InterchangeManager.create_source_data(abs_glb)
+        params = unreal.ImportAssetParameters()
+        params.set_editor_property("is_automated", True)
+        # A1(d). THE RETURN VALUE IS KEPT, NOT DISCARDED. Run 2's code threw
+        # it away, which is why nothing here knew whether a wait was even
+        # offered. Its type name and every attribute whose name mentions wait,
+        # done or complete go on the verdict, so the engine tells us what the
+        # handle can do instead of us guessing from a docs page.
+        res = mgr.import_asset_with_result(PACKAGE_DIR, src, params)
+        detail["resultType"] = type(res).__name__ if res is not None else "None"
+        try:
+            detail["resultWaitAttrs"] = [a for a in dir(res) if
+                                         ("wait" in a.lower() or "done" in a.lower()
+                                          or "complete" in a.lower())]
+        except Exception:
+            detail["resultWaitAttrs"] = ["dir-refused"]
+        if hasattr(res, "wait_until_done"):
+            try:
+                res.wait_until_done()
+                detail["resultWaitAttrs"].append("wait_until_done=TAKEN")
+            except Exception as e:
+                report.append("wait-until-done-raised=%s" % str(e).split("\n")[0][:60])
+        return []
 
     def via_interchange():
         mgr = unreal.InterchangeManager.get_interchange_manager_scripted()
         src = unreal.InterchangeManager.create_source_data(abs_glb)
         params = unreal.ImportAssetParameters()
-        params.is_automated = True
+        params.set_editor_property("is_automated", True)
         mgr.import_asset(PACKAGE_DIR, src, params)
-        return unreal.load_asset(object_path(asset_id))
+        return []
 
-    obj, via = _try([("asset-import-task", via_task),
-                     ("interchange-manager", via_interchange)], report)
-    if obj is None:
-        return None, via
-    if not isinstance(obj, unreal.StaticMesh):
-        # A GLB CAN IMPORT AS SOMETHING ELSE. The constraint that an .hdr
-        # imports as a 2D texture has the same shape: what it loaded AS is a
-        # reading, not an assumption, so it is named.
-        report.append("%s-loaded-as=%s" % (asset_id, type(obj).__name__))
-        return None, via + "/loaded-as-" + type(obj).__name__
-    return obj, via
+    routes = [("asset-import-task", via_task),
+              ("interchange-import-asset-with-result", via_interchange_result),
+              ("interchange-import-asset", via_interchange)]
+
+    for route_name, fn in routes:
+        try:
+            task_paths = fn()
+        except Exception as e:
+            report.append("%s-raised=%s" % (route_name, str(e).split("\n")[0][:70]))
+            continue
+        detail["routeRan"] = route_name
+        detail["taskPaths"] = list(task_paths or [])
+
+        after, _shape = _list_package(unreal, report)
+        new = sorted(set(after or []) - before_set)
+        if not new:
+            # THE ASYNC HYPOTHESIS, TESTED RATHER THAN ASSUMED AWAY.
+            took, _wvia = _wait_for_registry(unreal, report)
+            detail["waitTaken"] = took
+            if took:
+                after, _shape = _list_package(unreal, report)
+                new = sorted(set(after or []) - before_set)
+                detail["waitChanged"] = bool(new)
+        # CUMULATIVE over the routes that ran, for the reason A4 names.
+        detail["appeared"] = sorted(set(detail["appeared"]) | set(new))
+
+        # A1(b). LOAD EVERY NEW PACKAGE AND ASK WHAT IT IS, then resolve among
+        # the static meshes ONLY. A glTF import through the generic pipeline
+        # makes a material and often a texture beside the mesh, and `new` is
+        # sorted, so a sibling whose leaf sorts first and happens to contain
+        # the asset id would have been returned as the mesh and then rejected
+        # as "loaded-as-MaterialInstanceConstant" with the real mesh sitting
+        # two entries away, unlooked-at.
+        meshes = []
+        loaded = {}
+        for entry in new:
+            o = None
+            for cand in (str(entry) + "." + str(entry).rsplit("/", 1)[-1], str(entry)):
+                try:
+                    o = unreal.load_asset(cand)
+                except Exception:
+                    o = None
+                if o is not None:
+                    break
+            cls = type(o).__name__ if o is not None else "would-not-load"
+            detail["appearedClasses"][str(entry).rsplit("/", 1)[-1]] = cls
+            loaded[str(entry)] = o
+            if o is not None and isinstance(o, unreal.StaticMesh):
+                meshes.append(str(entry))
+
+        path, how = resolve_imported(meshes, asset_id)
+        detail["resolvedVia"] = how
+        if path is None:
+            # A5: an unnamed package still gets its bounds read, under the
+            # leaf's own name, because "the import made something of the right
+            # size that I cannot name" is a finding and not a blank.
+            if how.startswith("appeared-unnamed") and meshes:
+                o = loaded.get(meshes[0])
+                org, ext, _bv = _bounds_of(unreal, o, report) if o is not None else (None, None, "no-object")
+                if ext is not None:
+                    detail["unnamedBounds"] = {
+                        "leaf": str(meshes[0]).rsplit("/", 1)[-1],
+                        "localCentreUu": [round(float(v), 3) for v in org],
+                        "extentUu": [round(float(v), 3) for v in ext]}
+            # This route ran and made nothing findable. Try the next one.
+            continue
+        obj = loaded.get(str(path))
+        if obj is None:
+            try:
+                obj = unreal.load_asset(object_path(asset_id))
+            except Exception:
+                obj = None
+        if obj is None:
+            continue
+        detail["loadedFrom"] = str(path)
+
+        # A3. RENAME TO THE CONTRACT PATH, UNDER THE TWO NAME RULES ONLY.
+        # VignetteShot.cpp derives its path from the piece's asset field and
+        # nothing else, so a mesh that resolved under a different name is a
+        # mesh the street will never find. The rename happens HERE, before the
+        # save, so what lands on disk is at the contract path. exact-path needs
+        # no rename and appeared-unnamed must not get one: renaming a package
+        # this code could not name would put an unidentified asset at the
+        # street's path, which is worse than a box.
+        if how in ("exact-name-different-folder", "name-contains-the-asset-id"):
+            want_pkg = package_path(asset_id)
+            if str(path) != want_pkg:
+                try:
+                    if unreal.EditorAssetLibrary.rename_asset(str(path), want_pkg):
+                        detail["renamed"] = True
+                        o2 = unreal.load_asset(object_path(asset_id))
+                        if o2 is not None:
+                            obj = o2
+                            detail["loadedFrom"] = want_pkg
+                except Exception as e:
+                    report.append("rename-refused=%s" % str(e).split("\n")[0][:60])
+        if not isinstance(obj, unreal.StaticMesh):
+            # A GLB CAN IMPORT AS SOMETHING ELSE. The constraint that an .hdr
+            # imports as a 2D texture has the same shape: what it loaded AS is
+            # a reading, not an assumption, so it is named.
+            report.append("%s-loaded-as=%s" % (asset_id, type(obj).__name__))
+            return None, route_name + "/loaded-as-" + type(obj).__name__, detail
+        return obj, route_name + "/" + how, detail
+
+    return None, "none-of-%d-candidates/%s" % (len(routes), detail["resolvedVia"]), detail
 
 
 def run_in_unreal():
@@ -1029,7 +1574,7 @@ def run_in_unreal():
     report = []
     readings, failures = [], []
     sources = imported = saved = collided = 0
-    vias, coll_vias = [], []
+    vias, coll_vias, details = [], [], []
     extras = []
 
     # ASK THE ENGINE WHAT IT CAN DO BEFORE ASKING IT TO DO ANYTHING. Run 1
@@ -1039,6 +1584,22 @@ def run_in_unreal():
     probe_sources = [q for q in probe_sources if os.path.exists(q)]
     can_ok, can_asked, plugin_names, api_names = _engine_gltf_probe(
         unreal, probe_sources, report)
+
+    # A2. CLEAR THE CONTRACT PATHS FIRST. The agent workspace on that runner
+    # is persistent, so an asset left by an earlier run sits in `before` and a
+    # perfect re-import of it appears in neither `before` nor `after`: the
+    # resolver then reads nothing-appeared over an import that worked. Deleting
+    # first is what makes `new = after - before` mean what it says. Counted,
+    # because a deletion nobody counted is a deletion nobody can audit.
+    deleted = 0
+    for asset_id, _names in asked:
+        try:
+            if unreal.load_asset(object_path(asset_id)) is not None:
+                if unreal.EditorAssetLibrary.delete_asset(package_path(asset_id)):
+                    deleted += 1
+        except Exception as e:
+            report.append("predelete-refused/%s=%s"
+                          % (asset_id, str(e).split("\n")[0][:50]))
 
     todo = [(a, boxes[a]) for a, _ in asked] + [(e, None) for e in EXTRA_ASSETS]
     for asset_id, box in todo:
@@ -1052,8 +1613,9 @@ def run_in_unreal():
         if not safe_asset_id(asset_id):
             (extras if is_extra else failures).append((asset_id, "asset-id-is-not-a-legal-package-name"))
             continue
-        mesh, via = _import_one(unreal, abs_glb, asset_id, report)
+        mesh, via, det = _import_one(unreal, abs_glb, asset_id, report)
         vias.append(via)
+        details.append((asset_id, det))
         if mesh is None:
             (extras if is_extra else failures).append((asset_id, "did-not-load-back/" + via))
             continue
@@ -1136,7 +1698,9 @@ def run_in_unreal():
                      % (len(multi), len(readings), len(unread_slots)),
                      total_bytes,
                      "/".join(report[:4]) if report else "none",
-                     gltf_block, accepting_field(readings, failures, sources))
+                     gltf_block, accepting_field(readings, failures, sources),
+                     preexisting_field(deleted, len(asked)) + " "
+                     + lookup_field(details))
     man = manifest("unreal/engine-readback", spec_path, asked, readings,
                    failures, [{"asset": a, "reading": w} for a, w in extras])
     man["line"] = line
@@ -1144,6 +1708,7 @@ def run_in_unreal():
     man["gltf"] = {"canTranslate": can_ok, "asked": can_asked,
                    "enabledPlugins": plugin_names, "api": api_names}
     man["acceptingCase"] = accepting_field(readings, failures, sources)
+    man["lookups"] = [{"asset": a, "detail": d} for a, d in details]
     man["reportLines"] = report
     return line, man
 

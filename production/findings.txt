@@ -95,6 +95,40 @@ pilot package one records zero verified pieces (production/throughput.md).
 Whether one more run clears it depends entirely on that key, and nobody should
 say it is close until the number exists.
 
+RUN 2 CORRECTION, 2026-09-08. `propImportVia=none-of-2-candidates` beside
+`propNote=none` and `propGltfCanTranslate=3/3` was the lookup, not the engine:
+`_try` treated a None return as a refusal and both routes ended in
+`load_asset(object_path)`, which returns None without raising for a path that
+does not resolve. Whether the import made an asset elsewhere, made nothing and
+logged, or completed after the lookup is what run 3 measures
+(`propImportResolvedVia`, `propImportedNames`, `propImportTaskAsync`).
+
+--------------------------------------------------------------------------
+2026-09-08  THE STREET HAS A GULLY GRATE AND TWO MANHOLES AND NO PAVEMENT
+            BEER DROP, AND IT IS ABOUT TO HAVE A PUB ON IT.
+--------------------------------------------------------------------------
+FOUND BY THE FIRST IN-HOUSE ART COMMISSION while researching the small-pub
+plan, which is the kind of gap only somebody thinking about what a building
+DOES will notice.
+
+Every barrel that ever entered a British pub of this period went in through a
+pavement drop, not through the front door. The 593 pieces carry A7_gully_grate
+and two A8_manhole rows and nothing else that opens into the ground. Put
+Mickey's on Quay Street without one and the building has no way to take
+delivery, which is the sort of detail that reads wrong before anybody can say
+why.
+
+MEASURED FROM THE RESEARCH: about 1100 by 1100 mm, set in the 2.0 m footway,
+over a cellar floor about 2.4 m below the road crown. Those numbers are the
+commission's DERIVED class, not CITED: no dimensioned survey of a real small
+pub was reachable from this container, and the file says so rather than
+dressing them as measured.
+
+NOT A QUEUE ITEM BY JAFAR'S STANDING ORDER of 2026-09-08: new findings go to
+this file, and only findings that block items 1 to 3 are fixed. This blocks
+nothing tonight. It becomes real work when Mickey's is authored, and the bill
+of materials is where it lands.
+
 --------------------------------------------------------------------------
 2026-09-08  THE BOT'S OWN LOOP SWEEPS. SEVENTY-SIX SECONDS, MEASURED BY
             TIMESTAMPS RATHER THAN BY THE COUNTER THAT WAS BUILT FOR IT.

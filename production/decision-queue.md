@@ -27,6 +27,84 @@ Irreversible items wait for Jafar and never guess.
 
 ## WAITING
 
+### Is Mickey's a free house or a tied house?
+CLASS: DECISION
+added 2026-09-08, from the first in-house art commission
+
+Canon says your uncle "left him the pub", which reads as a freehold rather
+than a brewery tenancy. But 1989 to 1992 is the exact window the Beer Orders
+were reshaping, with brewers under a 31 October 1992 deadline to sell or free
+thousands of pubs, so which one Mickey's is decides who can lean on you.
+
+- A. Free house, owned outright. The Beer Orders are WEATHER around you:
+  rivals buying up newly freed pubs, brewers dumping stock, nobody with a
+  contractual hold on your cellar.
+- B. Tied house with a brewery landlord. Real leverage over you, a rent
+  review somebody can weaponise, and a legal right to one guest cask beer.
+  Richer pressure, but it sits awkwardly with inheriting the place.
+
+RECOMMENDATION A, because the premise is a man who inherits something and
+finds it half dead, not a man who inherits a landlord.
+DEFAULT A if unruled by 2026-09-11.
+EVIDENCE: `production/art/atlas-02/research/small-pub-plan-measured.md`, the
+licensing and Beer Orders section, with the 1989 dates cited.
+
+---
+### How big is Mickey's on Quay Street?
+CLASS: DECISION
+added 2026-09-08, from the first in-house art commission
+
+The built street is six shopfront bays of 6.0 m each. The pub takes some of
+them and the number quietly sets its class.
+
+- A. Two bays. 12.0 m frontage by 8.0 m deep, 96 square metres, a derived
+  capacity near 130 and a busy Friday staged at about 44 adults.
+- B. Three bays. 18.0 m frontage. Reads as a corner house or a former
+  coaching inn, and raises the pub's standing whether or not you meant it to.
+
+WHICH BAYS, which depends on the bay card above: under the bay card's A this
+takes bays 0 and 1 and moves the fish market fascia to bay 3, the unlettered
+one; under B it takes bays 2 and 3 and moves nothing else. Three bays under A
+takes Rita's Pawn too.
+
+RECOMMENDATION A, because a two-bay back-street local is the pub a half-dead
+inheritance comes with.
+DEFAULT A if unruled by 2026-09-11.
+FOLDED IN UNLESS YOU SAY OTHERWISE: the rooms survive, a public bar and one
+snug NOT knocked through. The pubs that were not knocked through are the ones
+whose licensee never had the money, which is the state the premise starts
+from.
+EVIDENCE: `production/art/atlas-02/research/small-pub-plan-measured.md`, the
+carcass taken from the street's own scene file and the capacity derived from
+published fire floor-space factors.
+
+---
+### Which bay is Mickey's?
+CLASS: DECISION
+added 2026-09-08, from the vignette recipe's `bayHintConflict=`
+
+The built street's glazing centres sit at x 6.869 + 6n. The Mickey's fascia
+decal is at x 6, which is bay 0; the interior bar-back card is at x 18, which
+is bay 2, where the Rita's Pawn fascia also sits. A pawnbroker's window with a
+bar back behind it. D15 left WHICH BAY a small authored choice and did not
+decide it, so the recipe prints the conflict and refuses to resolve it.
+
+- A. Bay 0, where the lettering already is. The bar-back card moves from x 18
+  to x 6 and the shop-shelves card from x 6 to x 18: two fields in
+  `vignette-scene.json`, and the piece list regenerates.
+- B. Bay 2, where the bar back already is. The Mickey's and Rita's Pawn
+  fascias swap x.
+
+RECOMMENDATION A, because a fascia is what a player reads from the street and
+what the crime's witness names, while the interior card is a generated 768x512
+image that moves by one field.
+DEFAULT A if unruled by 2026-09-11. Until you rule, the recipe's default of bay
+0 stands and says so on every run.
+EVIDENCE: `game-design/decision-2026-09-08-crimeprobe-the-grate-and-the-art-line.md`
+section 4.1, which reads the x values off `production/specs/vignette-scene.json`
+577 to 580 rather than off the recipe's claim about them.
+
+---
 ### How close should strangers stand?
 CLASS: DECISION
 added 2026-08-04, still open, and it now has the picture it was waiting for
