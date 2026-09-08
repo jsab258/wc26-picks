@@ -7,6 +7,70 @@ Plain text on purpose. tools/producer-check.py walks *.md and tools/docs-check.p
 governs game-design/, so a .txt here is outside both and cannot turn verify red.
 
 --------------------------------------------------------------------------
+2026-09-08  THE RETURN HALF WORKS. THIRTY-SIX FILES CROSSED, AND ONE
+            ENVIRONMENT VARIABLE WAS THE WHOLE OF IT.
+--------------------------------------------------------------------------
+CLOSED, and this closes the investigation that ran from 2026-09-07 11:30 UTC.
+
+MEASURED, all four in one run, at commit 7ec80fe5:
+
+    18:29:57  inbox: pushed 36 file(s) as 64b50cb to pc-inbox
+    18:29:58  flush done: pushed=0/0 waiting=0 tracked=376, the branch
+              already carries every file on this disk
+    flushStatus=EXITED flushWaitedSec=3 flushExitCode=0
+    lsRemoteSha=7d847592  localTipRef=7d847592   (they AGREE)
+
+THE FIX WAS GCM_PROVIDER=generic, one line. Git Credential Manager holds a
+working credential on that machine and is reachable only under the generic
+provider; without it the push asked for a password nobody could type. Nothing
+was wrong with the credential, the token, the network or the branch, and all
+four were guessed at during the night of the 7th.
+
+HOW IT WAS FOUND, and this is the part worth keeping. Not by reasoning. A
+director noticed that the batch omitted a CONTRARY DATUM: the diagnosis step's
+push --dry-run succeeded as the same user on the same machine ninety seconds
+before the flush step's push failed. It declined to order a change and asked
+for both readings side by side in one run. Run a792307 produced them, the two
+environments differed in exactly one member, and the next run pushed 36 files.
+The whole day before that was spent proposing mechanisms.
+
+WHAT THE BOUNDED RUNNER BOUGHT, separately from the fix: the failure went from
+at least 150 seconds of silence to three seconds and a sentence naming the
+cause. That is what made the comparison possible at all. A fault that reports
+itself in words can be compared; a hang cannot.
+
+--------------------------------------------------------------------------
+2026-09-08  THE SUPERVISOR HAS THE STALENESS IT WAS BUILT TO PREVENT, AND
+            NO ROUTE TO FIX ITSELF.
+--------------------------------------------------------------------------
+MEASURED: grepping tools/supervise.py for execv, os.execl, re-exec and
+restart_self finds NONE of them. resync_once runs before anything is spawned
+and its own docstring explains why the CHILDREN must not run stale code: "the
+bot deliberately runs no git, so it runs whatever code was on disk when it
+started... a bot started from an older checkout cannot send anything, however
+long it stays up." Every word of that is true of the supervisor itself, and
+nothing applies it there.
+
+THE CONSEQUENCE, OBSERVED RATHER THAN PREDICTED. The per-pass sweep counter
+ruled by Jafar on 2026-09-08 is built, tested and published by
+bot_sweep_keys() in that same file. After the bot was restarted onto the new
+code, the supervisor status carried NO botSweep key at all, because the
+supervisor writing that file is still the process that started at logon. So
+the reading Jafar asked for is NOTHING MEASURED, and the reason is not that
+the counter is broken.
+
+THE ASYMMETRY IS THE POINT: the bot has a remote restart route
+(ledger-restart-telegram-bot.yml) and the supervisor has none, so the one
+process that can restart the others cannot be restarted itself except by
+killing it and letting the scheduled task's RestartCount=999 catch it.
+
+NOT FIXED HERE, deliberately: Jafar ruled "no process work beyond what is
+listed here" in the session that found this, and a supervisor restart route is
+process work. Named so the next session does not rediscover it, and so that a
+missing botSweep key is read as a stale supervisor rather than as a broken
+counter.
+
+--------------------------------------------------------------------------
 2026-09-08  A RULING STAMP THE CADENCE GATE CANNOT PARSE IS IGNORED IN
             SILENCE, NOT REFUSED.
 --------------------------------------------------------------------------
