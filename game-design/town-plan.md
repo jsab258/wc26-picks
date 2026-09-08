@@ -1,4 +1,4 @@
-# The town plan — a real town, drawn cheaply
+# The town plan: a real town, organised by human logic
 
 > **STATUS: SPEC**, approved by Jafar 2026-08-16 ("go"). The plan of
 > record for making LEDGER's city read as a real British port town.
@@ -9,12 +9,21 @@
 
 ## The vision
 
-A coherent, atmospheric, stylised late-analog British port town.
-Style stays cheap on purpose — low-poly vehicles, photo-textured
-brick, noir light — and everything is spent on URBAN COHERENCE:
-enclosure, hierarchy, grammar, purpose. The register ceiling is
-top-tier stylised, not photoreal, and every frame must obey one
-discipline: nothing in shot that a town would not have put there.
+A coherent, atmospheric late-analog British port town, PHOTOREAL.
+
+THE CEILING IN THIS PARAGRAPH IS RETIRED, D14, Jafar, 2026-09-08. It
+read "Style stays cheap on purpose" and "The register ceiling is
+top-tier stylised, not photoreal". D8 retired that for the exterior on
+2026-08-31 and nothing had retired it for the interior, so this
+document sat contradicting canon in the one place a new session looks
+first. Canon and D8 govern: photoreal, wet, overcast, grimy Britain.
+
+WHAT THIS PARAGRAPH IS STILL FOR, and why it is amended rather than
+deleted: everything is spent on URBAN COHERENCE, which is enclosure,
+hierarchy, grammar and purpose, and every frame must obey one
+discipline, nothing in shot that a town would not have put there.
+Those are observations about how a town is ORGANISED. No change of
+visual bar touches them, and they are the reason this plan exists.
 
 ## The one structural decision
 
@@ -82,7 +91,9 @@ street camera is where the playtest actually happens.
 7. **Parked cars.** Deterministic kerb slots along commercial and
    residential edges, filled 40–70% with the kit saloons in the town
    palette, registered as obstacles. The cheapest "lived-in" signal
-   that exists.
+   that exists. ("Cheap" here and at item 11 means cheap in EFFORT, not
+   cheap in register. D14 retired the stylised ceiling, not the habit of
+   spending least where it buys most.)
 
 ## Phase T3 — visible purpose *(the sim made legible)*
 

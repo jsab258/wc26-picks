@@ -7,7 +7,8 @@ agent; violating it is a gate failure.
 ## Game
 - LEDGER: open-town crime sim and social RPG. Single player, PC first.
 - Town: Meridian, a fictional British port town. One map, seven districts:
-  the Hook (old port, the player's pub), Copper Row (market quarter), the Exchange
+  the Hook (old port), the Parade (the built street, and the player's pub stands on
+  it, D15 2026-09-08), Copper Row (market quarter), the Exchange
   (offices, lawyers), the Parade (nightlife), Fairview (residential hills), Ironside
   (industrial), Gullwing (faded resort waterfront).
 - Streets minted: Quay Street, Weighhouse Lane, Tannery Row.
@@ -37,8 +38,12 @@ agent; violating it is a gate failure.
 
 ## Premise and cast (baseline pending OPEN 2)
 - Player: Tom Novak, arriving with one suitcase and a letter. His uncle Mickey
-  has died and left him the pub, Mickey's, in the Hook, plus a half-dead criminal
-  outfit and a book of uncollectable debts.
+  has died and left him the pub, Mickey's, ON THE PARADE, plus a half-dead criminal
+  outfit and a book of uncollectable debts. MOVED from the Hook by D15 on
+  2026-09-08 so that the pub stands on the one street that is built and walkable,
+  and the art line and the game line share that single location. Two consequences
+  are open and are Jafar's: the Hook is now the old port and nothing more, and the
+  Parade Rats are the wall crew of the street the player now lives on.
 - Inherited loyalists: Rocco (old muscle), Lena (older bookkeeper).
 - Three rival organisations: the old-money machine (corruption and lawyers, head
   Aldous Vane), the dockside syndicate (muscle and smuggling, head Sera Kest, called

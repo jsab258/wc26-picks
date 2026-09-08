@@ -5,6 +5,19 @@ globs: [".github/workflows/**", "**/ci/**", "tools/*dispatch*", "tools/*landed*"
 
 # CI and the feedback channel
 
+- **When something is SILENT, run the existing entry point on the machine
+  and read its output before proposing a mechanism.** Ruled by Jafar
+  2026-09-08. On the night of 7 September the studio produced four
+  explanations for a silent Telegram channel, and every one was refuted by a
+  single measurement that could have been taken first: the bot is dead
+  (refuted by uptime), the poll loop is wedged (by a clean restart that
+  changed nothing), the credentials refuse writes (by `pushDryRunExit=0`),
+  the work sits downstream of the poll (by fixing it, loading it, and still
+  silence). The answer came from running `--send-outbox` once, an entry
+  point that already existed. A fifth guess was then made in the opposite
+  direction from four receipts when sixteen were available. THE ENTRY POINT
+  IS CHEAPER THAN THE ARGUMENT, and it answers rather than narrows.
+
 - **The evidence channel is a file committed by CI** — stills, a
   `key=value` verdict naming its commit on line 1, per-run copies keyed by
   short-sha. Log tails, step summaries and artifact hosts have all failed;

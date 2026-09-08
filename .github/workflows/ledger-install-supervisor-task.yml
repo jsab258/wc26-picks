@@ -318,15 +318,21 @@ jobs:
       # message with a receipt is skipped as already sent, which the outbox
       # selftest proves. It never opens config.local; the tool reads it
       # itself and prints nothing from it.
-      # RETIRED 2026-09-08 BY DIRECTOR RULING, section 10 (2). This step SENT
-      # message id 31 at 02:34:14Z: a push touching this workflow fired the
-      # run, and its sweep sent a brief whose headline a director had refused
-      # fifteen minutes earlier. The question it existed to answer (does the
-      # sweep work) is answered, and it now races the bot's own loop on every
-      # workflow-touching push. `if: false` rather than deletion so the next
-      # reader sees what it was and why it stopped.
+      # RE-ENABLED 2026-09-08 BY JAFAR, overruling the director note kept
+      # below: "Re-enable the CI sweep step: it is the sender already proven
+      # to deliver, and the queued correction has passed review." The
+      # director retired it because it races the bot's own loop; whether that
+      # loop sweeps at all was never measured, and is now measured separately
+      # by botSweepPasses in the supervisor status rather than assumed. The
+      # hazard it was retired for, sending a message before its review lands,
+      # is real and is answered by not committing a message until the ruling
+      # on it has landed, which is a discipline rather than a switch.
+      #
+      # THE HISTORY, KEPT: this step SENT message id 31 at 02:34:14Z. A push
+      # touching this workflow fired the run, and its sweep sent a brief
+      # whose headline a director had refused fifteen minutes earlier.
       - name: Run one outbox sweep on his machine and print what it says
-        if: false
+        if: always()
         continue-on-error: true
         timeout-minutes: 6
         shell: pwsh
@@ -424,6 +430,12 @@ jobs:
           "# half stopped at 2026-09-07 11:30 UTC. The sending half stopped too" | Add-Content $out
           "# and recovered at the 01:18 UTC restart on the 8th; this half did not," | Add-Content $out
           "# which is why the studio went on calling the channel dead after it sent." | Add-Content $out
+          "# THE READING THIS STEP NOW EXISTS FOR: does the return push SUCCEED." | Add-Content $out
+          "# Every git call the bot makes is non-interactive and bounded since" | Add-Content $out
+          "# 2026-09-08, so a credential prompt fails in words in seconds rather" | Add-Content $out
+          "# than hanging. NON-INTERACTIVE FAILURE IS NOT A REPAIRED RETURN PATH:" | Add-Content $out
+          "# read ok= and detail= below, and pcInboxHeadShort in the verify step," | Add-Content $out
+          "# before calling it fixed. Last measurement: HUNG at 150s, 12 waiting." | Add-Content $out
           if (-not (Test-Path "$repo\tools\runner\telegram-bot.py")) {
             "flushStatus=NOTHING-MEASURED reason=no-bot-at-that-path" | Add-Content $out
           } else {
@@ -437,6 +449,14 @@ jobs:
               "flushStatus=NOTHING-MEASURED reason=no-python-found" | Add-Content $out
             } else {
               "flushPython=$($py -replace ' ','~')" | Add-Content $out
+              # A10, RULED 2026-09-08: WHICH CODE IS ON DISK. The bot and
+              # this step both run tools/runner/telegram-bot.py out of his
+              # checkout, and a HUNG from the OLD interactive git looks
+              # identical to a HUNG from the new bounded one. Without this
+              # key the first run after the fix cannot be told from the
+              # last run before it.
+              $head = (& git -c safe.directory=* -C $repo rev-parse --short HEAD 2>&1 | Out-String).Trim()
+              "flushRepoHead=$($head -replace '\s','~')" | Add-Content $out
               $raw = Join-Path $env:RUNNER_TEMP "flush-raw.txt"
               Remove-Item $raw -Force -ErrorAction SilentlyContinue
               Remove-Item "$raw.err" -Force -ErrorAction SilentlyContinue
@@ -457,7 +477,7 @@ jobs:
                 "flushStatus=NO-PROCESS flushWaitedSec=0" | Add-Content $out
               } else {
                 $waited = 0
-                while (-not $proc.HasExited -and $waited -lt 150) {
+                while (-not $proc.HasExited -and $waited -lt 90) {
                   Start-Sleep -Seconds 3
                   $waited += 3
                 }

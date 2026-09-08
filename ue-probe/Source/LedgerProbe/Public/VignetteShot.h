@@ -11,6 +11,38 @@
 class UWorld;
 class AActor;
 
+// THE MESH PIECE KIND, AND WHAT OWNS WHICH HALF OF IT.
+//
+// A piece of shape "mesh" in production/specs/vignette-pieces.json names a
+// held prop in its `asset` field. Twenty-three pieces do, over sixteen assets.
+// Until 8 September every one of them was drawn as a BOX of the prop's own
+// stated size, counted on the scene line as propStandIns.
+//
+//   tools/ue/import_prop_meshes.py   makes one static mesh per asset in a
+//                                    build step (.github/workflows/
+//                                    ledger-mesh-import.yml), at
+//                                    /Game/Ledger/Props/SM_<asset>, with
+//                                    simple collision, and commits the
+//                                    uassets. Never a human in an editor.
+//   VignetteShot.cpp's mesh branch   derives that path from the piece's
+//                                    `asset` field and NOTHING ELSE, places
+//                                    the loaded mesh's own bounds centre at
+//                                    the piece's x/y/z at scale 1, and falls
+//                                    back to the box when the path resolves
+//                                    to nothing.
+//
+// THE TWO HALVES AGREE BECAUSE A GUARD IN THE CONTAINER SAYS SO: the path is
+// built from kPropPackageDir and kPropNamePrefix in VignetteShot.cpp, and
+// import_prop_meshes.py --selftest reads those two literals out of that file
+// and compares them to its own constants before any dispatch. A path this
+// engine builds and nothing resolves returns null in silence.
+//
+// WHAT THE SCENE LINE NOW SAYS ABOUT IT: propsAsMesh=N/23 and propsAsBox=N/23
+// with propFallbackWhy beside them, propCentreWorstMm for how far the worst
+// placed mesh's world bounds centre is from the point the file named, and
+// propCollisionPrims for the count the walk clip lives on. propStandIns is
+// now the FALLBACK count and not the mesh-kind count, so 0/23 means every
+// prop in the frame is a real mesh.
 namespace LedgerVignetteShot
 {
 	// Arms the capture on the core ticker and returns immediately. The

@@ -130,3 +130,40 @@ CLAUDE.md on 2026-09-01 (task 013) and now sits, verbatim, in
 ledger-v2/studio-v2/runner.md, where the carry header directly above it
 carries the correction, applied under the director ruling of 2 September.
 Queue item 011 closed with that ruling.
+
+## Amendment 2026-09-08: the art branches, the budget ceiling, and silence
+
+The daily trigger `trig_013itgDeay6t41BHEmaYFbAj` had its prompt replaced on
+2026-09-08 at about 12:19Z. Four changes, all of them Jafar's rulings from that
+session, recorded here because the prompt lives in the trigger system and this
+file is the only artifact anyone can check it against.
+
+1. A new step, after the inbox and before the budget, in these words: THEN READ
+   THE ART BRANCHES, `python3 tools/art-deliveries.py`. It walks every `art/*`
+   ref, finds `production/art/<commission>/DELIVERY.md` without checking
+   anything out, and files one integration task per NEW delivery under
+   `production/queue/`. The prompt names the denominators the tool prints
+   (branchesWalked, deliveriesFound, alreadyFiled, filedNow), tells the session
+   to read the numbers rather than the exit code, and names what the tool does
+   NOT do: it never reads a delivery's contents and never checks that the art
+   branch left the studio's do-not-touch list alone.
+
+2. The budget paragraph now says the 80 percent ceiling yields to a lower one
+   Jafar sets for a session in his own words, and it carries his standing
+   instruction from 2026-09-08: DO NOT CLAIM TO MONITOR OR ENFORCE A LIVE
+   PERCENTAGE, because nothing in the container can read his usage page. Ask
+   for a fresh reading at the existing checkpoints instead.
+
+3. A new standing line: WHEN SOMETHING IS SILENT, RUN THE EXISTING ENTRY POINT
+   ON THE MACHINE AND READ ITS OUTPUT BEFORE PROPOSING A MECHANISM. The full
+   rule and the four refuted guesses that produced it are in
+   `.claude/rules/ci.md`.
+
+4. The pre-existing text is otherwise unchanged, including rule 13's resume,
+   the inbox-first order, the brief's shape and the push and secrecy rules.
+
+WHAT THIS FILE STILL CANNOT DO, unchanged since it was written: nothing
+mechanically compares the text above with the text in the trigger. The prompt
+itself instructs the daily session to compare them and to write any difference
+into `production/NOW.md` before anything else, which makes the check a habit
+rather than a gate.

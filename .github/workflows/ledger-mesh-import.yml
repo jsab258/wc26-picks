@@ -1,0 +1,290 @@
+# IMPORT THE STREET'S HELD PROP MESHES TO UASSETS, HEADLESSLY, IN CI.
+#
+# The second asset-making step in this project, and it is deliberately the
+# same shape as the first. tools/ue/make_base_material.py makes the one
+# material inside ledger-probe-unreal.yml's build step;
+# tools/ue/import_prop_meshes.py makes the static meshes here. Both are
+# scripts run by UnrealEditor-Cmd, both write a key=value evidence file beside
+# the project, both decide their own verdict in a pure function the container
+# can run, and neither is ever a human opening an editor.
+#
+# WHY THIS IS ITS OWN WORKFLOW AND NOT A STEP IN THE PROBE.
+#   1. The probe job already sits at a 155 minute ceiling over eight capped
+#      steps. Adding an editor build plus an import to it buys a longer
+#      round trip for every unrelated change.
+#   2. The uassets are a BUILD PRODUCT THAT IS COMMITTED. Once they are in
+#      the tree, the probe's cook picks them up with no change to the probe.
+#      So this runs rarely, when a GLB or the piece list changes, and the
+#      probe keeps running at its own rate against whatever is committed.
+#   3. workflow_dispatch ALONE, because it is an expensive job and
+#      CLAUDE.md rule 9 says expensive jobs are opt-in. Nothing pushed to a
+#      path triggers this.
+#
+# WHAT IT PROVES, AND WHAT IT CANNOT. The container can prove the name
+# contract and that the spec box is each GLB's own measured size; only a run
+# can prove what the glTF importer does to the axes and whether a body setup
+# came out of it. So the verdict carries propBoundsWorstMm as a PRINTED SERIES
+# with propBoundsBound=NONE-YET beside it: the first run reads the number, and
+# the bound is set from that reading afterwards, in that order.
+name: ledger-mesh-import
+
+on:
+  workflow_dispatch:
+
+# SCOPED TO THIS JOB ALONE. A group shared with the probe would make a cheap
+# check queue behind an editor build, which CLAUDE.md rule 9 forbids. Two of
+# THESE must not overlap: they write the same packages on the same runner.
+concurrency:
+  group: ledger-mesh-import
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  mesh-import:
+    runs-on: [self-hosted, ledger-pc]
+    # A CEILING ON A HANG, ABOVE THE SUM OF THE STEP CAPS. The named caps
+    # total 43 (6 checkout + 1 bootstrap + 2 selftest + 25 editor build +
+    # 9 import), and the evidence and commit steps carry none, so 60 leaves
+    # 17 minutes for the only channel anybody here can read.
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        timeout-minutes: 6
+        uses: actions/checkout@v4
+        with:
+          # The commit step brings its own credential, exactly as every other
+          # job here does. Nothing else in this workflow pushes.
+          persist-credentials: false
+
+      - name: tool PATH bootstrap (self-hosted parity)
+        timeout-minutes: 1
+        shell: cmd
+        run: |
+          call tools\runner\bootstrap-paths.cmd
+          exit /b %ERRORLEVEL%
+
+      # THE GUARD RUNS BEFORE THE EXPENSIVE PART, WHICH IS THE ONLY REASON A
+      # GUARD IS WORTH HAVING. import_prop_meshes.py --selftest checks the
+      # path literals in VignetteShot.cpp against its own constants and
+      # measures every spec box against its GLB. A mismatch there means the
+      # import would write assets at a path the street never looks at, and
+      # finding that out after a 25 minute editor build is a wasted round
+      # trip.
+      #
+      # NO PYTHON IS NOT A FAILED SELFTEST and must not read as one. The word
+      # says which happened.
+      - name: The importer's own selftest, before any engine time
+        id: selftest
+        timeout-minutes: 2
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $py = $null
+          foreach ($c in @("python", "python3", "py")) {
+            if (Get-Command $c -ErrorAction SilentlyContinue) { $py = $c; break }
+          }
+          if (-not $py) {
+            Write-Host "meshSelftest=NO-PYTHON-ON-RUNNER/the-guard-did-not-run"
+            "meshSelftest=NO-PYTHON-ON-RUNNER/the-guard-did-not-run" | Set-Content "mesh-selftest.txt"
+            exit 0
+          }
+          & $py "tools/ue/import_prop_meshes.py" --selftest 2>&1 |
+            Tee-Object -FilePath "selftest.log"
+          $code = $LASTEXITCODE
+          $line = (Select-String -Path "selftest.log" -Pattern "^import_prop_meshes --selftest:" |
+                   Select-Object -Last 1).Line
+          if (-not $line) { $line = "no-summary-line" }
+          $word = if ($code -eq 0) { "PASS" } else { "RED" }
+          "meshSelftest=$word/$($line -replace ' ','~')" | Set-Content "mesh-selftest.txt"
+          Write-Host "meshSelftest=$word exit=$code"
+          if ($code -ne 0) { exit 1 }
+
+      # THE EDITOR MODULE, because -run=pythonscript needs an editor and a
+      # C++ project cannot start one without its editor target built. This is
+      # the dominant cost of this workflow and it is named as such: on a warm
+      # agent workspace it is minutes, on a cold one it is the whole ceiling.
+      - name: Build the editor target
+        id: editorbuild
+        timeout-minutes: 25
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $L = @()
+          $ue = "C:\Program Files\Epic Games\UE_5.8"
+          $buildBat = Join-Path $ue "Engine\Build\BatchFiles\Build.bat"
+          $proj = Join-Path $PWD "ue-probe\LedgerProbe.uproject"
+          if (-not (Test-Path $buildBat)) {
+            "meshEditorBuild=NO-BUILD-TOOL/$($buildBat -replace ' ','~')" | Set-Content "mesh-editorbuild.txt"
+            Write-Host "BUILD TOOL NOT FOUND"; exit 1
+          }
+          $t = Get-Date
+          $p = Start-Process -FilePath $buildBat -ArgumentList @(
+                 "LedgerProbeEditor","Win64","Development","-Project=`"$proj`"",
+                 "-WaitMutex","-NoHotReload") -Wait -PassThru -NoNewWindow `
+               -RedirectStandardOutput "mesh-editor-build.log" `
+               -RedirectStandardError "mesh-editor-build.err"
+          $mins = [math]::Round(((Get-Date) - $t).TotalMinutes, 2)
+          "meshEditorBuildExit=$($p.ExitCode) meshEditorBuildMinutes=$mins" | Set-Content "mesh-editorbuild.txt"
+          Write-Host "editor build exit $($p.ExitCode) in $mins min"
+          if ($p.ExitCode -ne 0) {
+            # THE ERRORS FROM THE WHOLE LOG FIRST, then the tail as context,
+            # because run 10 of the probe lost a round trip to a tail that
+            # held shader-thread shutdown chatter while the sentence saying
+            # why sat above the window. Both caps announce themselves.
+            $e = @(Select-String -Path "mesh-editor-build.log" -Pattern "error|Error:" -ErrorAction SilentlyContinue)
+            Write-Host "editorBuildErrorLines=$($e.Count)"
+            $e | Select-Object -First 15 | ForEach-Object { Write-Host $_.Line }
+            if ($e.Count -gt 15) { Write-Host "(+$($e.Count - 15) more matching line(s) not shown)" }
+            exit 1
+          }
+
+      # THE IMPORT ITSELF. The script decides its own verdict; the editor
+      # process's exit code is the editor's and is named as such, which is the
+      # pair run 19 of the material generator could not explain.
+      - name: Import the prop meshes
+        id: import
+        timeout-minutes: 9
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $ue = "C:\Program Files\Epic Games\UE_5.8"
+          $edCmd = Join-Path $ue "Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
+          $proj = Join-Path $PWD "ue-probe\LedgerProbe.uproject"
+          $py = Join-Path $PWD "tools\ue\import_prop_meshes.py"
+          $txt = Join-Path $PWD "ue-probe\ue-prop-meshes.txt"
+          $jsn = Join-Path $PWD "ue-probe\ue-prop-meshes.json"
+          # NEVER CARRY A PREVIOUS RUN'S FILE UNDER THIS RUN'S NAME. Both are
+          # deleted before the editor starts, so an editor that never writes
+          # them leaves nothing for the next step to mistake for a reading.
+          Remove-Item $txt, $jsn -Force -ErrorAction SilentlyContinue
+          if (-not (Test-Path $edCmd) -or -not (Test-Path $py)) {
+            "propImportStatus=NO-TOOL propEditorFound=$(Test-Path $edCmd) propScriptFound=$(Test-Path $py)" |
+              Set-Content "mesh-import.txt"
+            exit 1
+          }
+          $pyp = @(Get-ChildItem (Join-Path $ue "Engine\Plugins") -Filter "PythonScriptPlugin.uplugin" -Recurse -ErrorAction SilentlyContinue)
+          $gltf = @(Get-ChildItem (Join-Path $ue "Engine\Plugins") -Filter "*GLTF*.uplugin" -Recurse -ErrorAction SilentlyContinue)
+          $L = @("propPythonPlugin=$(if ($pyp.Count) {'found'} else {'NOT-FOUND'})/$($pyp.Count)")
+          # WHICH glTF PLUGINS THE ENGINE ACTUALLY HAS, by name, because "the
+          # import refused" and "the importer is not installed" are different
+          # facts and only one of them is fixable from this repository.
+          $L += "propGltfPlugins=$(if ($gltf.Count) { ($gltf | ForEach-Object { $_.BaseName }) -join ';' } else { 'NONE-FOUND' })/$($gltf.Count)"
+          $t = Get-Date
+          $p = Start-Process -FilePath $edCmd -ArgumentList @(
+                 "`"$proj`"", "-run=pythonscript", "-script=`"$py`"",
+                 "-EnablePlugins=PythonScriptPlugin", "-unattended", "-nopause",
+                 "-nosplash", "-stdout") -Wait -PassThru -NoNewWindow `
+               -RedirectStandardOutput "mesh-import.log" -RedirectStandardError "mesh-import.err"
+          $L += "propEditorCmdExit=$($p.ExitCode) propImportMinutes=$([math]::Round(((Get-Date)-$t).TotalMinutes,2))"
+          if (Test-Path $txt) {
+            $L += (Get-Content $txt -Raw).Trim()
+          } else {
+            $L += "propImportStatus=NO-LINE propImportReturn=NOTHING-MEASURED propNote=no-ue-prop-meshes.txt"
+            $m = @(Get-Content "mesh-import.log" -ErrorAction SilentlyContinue |
+                   Select-String "Error:|Fatal|Traceback|Python|Interchange|glTF")
+            $L += "propLogInteresting=$($m.Count)"
+            $L += ($m | Select-Object -First 14 | ForEach-Object { $_.ToString() })
+            if ($m.Count -gt 14) { $L += "(+$($m.Count - 14) more matching line(s) not shown)" }
+          }
+          # THE EFFECT, NOT THE EXIT CODE. Jobs in this project have reported
+          # success while writing nothing, so the uassets are counted on disk
+          # by name and their total size named.
+          $dir = Join-Path $PWD "ue-probe\Content\Ledger\Props"
+          $ua = @(Get-ChildItem $dir -Filter "SM_*.uasset" -ErrorAction SilentlyContinue)
+          $bytes = 0; $ua | ForEach-Object { $bytes += $_.Length }
+          $L += "propUassetsOnDisk=$($ua.Count) propUassetBytesOnDisk=$bytes propUassetDir=ue-probe/Content/Ledger/Props"
+          $L += "propUassetNames=$(if ($ua.Count) { ($ua | Select-Object -First 20 | ForEach-Object { $_.BaseName }) -join ';' } else { 'none' })"
+          if ($ua.Count -gt 20) { $L += "(+$($ua.Count - 20) more uasset name(s) not shown)" }
+          $L | Set-Content "mesh-import.txt"
+          Write-Host ($L -join "`n")
+
+      # THE EVIDENCE CHANNEL IS A FILE COMMITTED BY CI. Line 1 names the
+      # commit, a run that measured nothing says NO RUN, and nothing from a
+      # previous run is carried forward under this run's name.
+      - name: Write the verdict file
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          mkdir -p production/d1-probe
+          OUT=production/d1-probe/ue-mesh-import.txt
+          SHA=$(git rev-parse --short HEAD)
+          {
+            echo "# ue mesh import - $SHA"
+            echo ""
+            cat mesh-selftest.txt 2>/dev/null || echo "meshSelftest=NOTHING-MEASURED/step-did-not-write"
+            cat mesh-editorbuild.txt 2>/dev/null || echo "meshEditorBuild=NOTHING-MEASURED/step-did-not-write"
+            if [ -f mesh-import.txt ]; then
+              cat mesh-import.txt
+            else
+              echo "NO RUN - the import step wrote nothing on this commit."
+              echo "propImportStatus=NO-RUN propImportReturn=NOTHING-MEASURED"
+            fi
+            echo ""
+            echo "meshImportReached=end"
+          } > "$OUT"
+          if [ -f ue-probe/ue-prop-meshes.json ]; then
+            cp ue-probe/ue-prop-meshes.json production/d1-probe/ue-mesh-import.json
+          fi
+          cat "$OUT"
+
+      - name: Commit the uassets and the verdict
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -u
+          git config user.name "ledger-ci"
+          git config user.email "ci@ledger.local"
+          # STAGED BY NAME, NEVER `git add <directory>`. A failed run must not
+          # commit its stale checkout's files as its own evidence, and it must
+          # not stage the DELETION of the assets the last good run made: a
+          # plain add of a path that does not exist is a no-op, which is the
+          # behaviour wanted here.
+          git add -- production/d1-probe/ue-mesh-import.txt
+          [ -f production/d1-probe/ue-mesh-import.json ] && \
+            git add -- production/d1-probe/ue-mesh-import.json
+          for U in ue-probe/Content/Ledger/Props/SM_*.uasset; do
+            [ -f "$U" ] && git add -- "$U"
+          done
+          git diff --cached --quiet && { echo "nothing changed; nothing to commit"; exit 0; }
+          MSG="mesh import from $(git rev-parse --short HEAD)"
+          git -c commit.gpgsign=false commit -m "$MSG"
+          BR="${GITHUB_REF_NAME}"
+          for i in 1 2 3; do
+            git pull --rebase --autostash --no-edit origin "$BR" || git rebase --abort || true
+            if git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${BR}"; then
+              echo "mesh import result pushed to $BR"; exit 0
+            fi
+            sleep $((i * 5))
+          done
+          echo "could not push the mesh import result; it is committed locally on the agent"
+          exit 1
+
+      # THE JOB'S COLOUR FOLLOWS THE VERDICT, NOT THE EDITOR PROCESS. Read
+      # AFTER the commit step, so a red gate still ships its evidence: a
+      # failed job in this project is usually a red gate and not a broken
+      # build, and the file is the thing that says which.
+      - name: Gate on the verdict the script decided
+        if: always()
+        shell: bash
+        run: |
+          set -u
+          F=production/d1-probe/ue-mesh-import.txt
+          [ -f "$F" ] || { echo "NO VERDICT FILE AT ALL"; exit 1; }
+          grep -o 'propImportStatus=[^ ]*' "$F" || true
+          grep -o 'propImportReturn=[^ ]*' "$F" || true
+          grep -o 'propBoundsWorstMm=[^ ]*' "$F" || true
+          if grep -q 'propImportReturn=0' "$F"; then
+            echo "GREEN: every asset the street asks for is a saved uasset with collision"
+            exit 0
+          fi
+          echo "RED GATE: read the verdict above. The evidence is committed either way."
+          exit 1

@@ -580,6 +580,17 @@ class Bot(object):
         self.out_passes = 0
         self.out_sent = 0
         self.out_refused = 0
+        # RULED BY JAFAR 2026-09-08: "measure whether the bot's own loop
+        # sweeps at all, with a per-pass counter in the published status.
+        # Report the observed number rather than reasoning about whether it
+        # should run." These three counters have existed since queue 089 and
+        # went to this process's stdout, which is a window nobody reads: on
+        # 2026-09-08 the studio argued for an hour about whether this loop
+        # sweeps, with the answer already being printed to a console on his
+        # desk. The file below puts them where the supervisor can carry them
+        # off the machine.
+        self.sweep_note = "no-pass-yet"
+        self.write_sweep_status()
 
     # -- startup ----------------------------------------------------------
     def hello(self):
@@ -860,6 +871,47 @@ class Bot(object):
                     "all: %s" % (len(inbox.messages_in(res["pending"])),
                                  len(res["pending"]), res["detail"]))
 
+    #: WHERE THE PER-PASS COUNTER GOES. Beside the supervisor's own status
+    #: file, in the same untracked directory, so the watcher's hard reset
+    #: cannot delete it and tools/supervise.py can read it without importing
+    #: this module.
+    SWEEP_STATUS_REL = "game-design/pc-jobs/bot-sweep.txt"
+
+    def write_sweep_status(self):
+        """Publish the sweep counters. Called on EVERY path out of a pass.
+
+        WRITTEN ONCE AT STARTUP TOO, with botSweepPasses=0, so the three
+        states are distinguishable rather than collapsed into one silence:
+        NO FILE means this process never started; passes=0 with a fresh
+        botSweepWrittenAt means it started and the loop has not reached the
+        sweep; passes>0 means the loop sweeps and the number says how often.
+        A missing file and a zero are different facts about the same
+        question and the old stdout line could tell neither.
+        """
+        try:
+            path = os.path.join(self.repo,
+                                *self.SWEEP_STATUS_REL.split("/"))
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            up = int(time.time() - self.started)
+            since = (int(time.time() - self.last_outbox)
+                     if self.last_outbox else -1)
+            lines = [
+                "botSweepPasses=%d" % self.out_passes,
+                "botSweepSent=%d" % self.out_sent,
+                "botSweepRefused=%d" % self.out_refused,
+                "botSweepEverySec=120",
+                "botSweepSecSinceLast=%s" % (since if since >= 0
+                                             else "nothing-measured"),
+                "botSweepLastResult=%s" % self.sweep_note.replace(" ", "-"),
+                "botUptimeSec=%d" % up,
+                "botSweepWrittenAt=%s"
+                % time.strftime("%Y-%m-%dT%H:%M:%S"),
+            ]
+            with open(path, "w", encoding="utf-8", newline="\n") as fh:
+                fh.write("\n".join(lines) + "\n")
+        except OSError:
+            pass
+
     def sweep_outbox(self, every=120):
         """Send anything the Producer left in the outbox, at most every two
         minutes.
@@ -878,10 +930,20 @@ class Bot(object):
         except Exception as e:                                # noqa: BLE001
             OUT.say("outbox: the sweep could not run (%s). The channel keeps "
                     "running." % type(e).__name__)
+            # A PASS THAT RAISED IS STILL A PASS THAT HAPPENED, and it is the
+            # one a reader most needs to see, so the counter moves and the
+            # note names the failure rather than the file going stale.
+            self.out_passes += 1
+            self.sweep_note = "raised/%s" % type(e).__name__
+            self.write_sweep_status()
             return
         self.out_passes += 1
         self.out_sent += len(res["sent"])
         self.out_refused += len(res["refused"])
+        self.sweep_note = ("sent%d/refused%d/of%d"
+                           % (len(res["sent"]), len(res["refused"]),
+                              len(res.get("files", res["sent"]))))
+        self.write_sweep_status()
 
     def handle_text(self, text, sent_epoch=None, update_id=None):
         cmd = text.strip().lower().split("@")[0]
@@ -2284,6 +2346,49 @@ def _selftest_cases(ok, bad, state):
           b6.out_passes == 1 and b6.out_sent == 0
           and "outboxPasses=1" in b6.done_line()
           and "outboxSent=0" in b6.done_line(), b6.done_line())
+
+    # ---- AND THE COUNTER LEAVES THE PROCESS, ruled 2026-09-08 -----------
+    # The three counters above have existed since queue 089 and went to a
+    # console on his desk. ACCEPTING CASE FIRST: after the pass above, the
+    # file the supervisor publishes exists and carries the number.
+    sweep_file = os.path.join(b6.repo, *Bot.SWEEP_STATUS_REL.split("/"))
+    swept = open(sweep_file, encoding="utf-8").read() if \
+        os.path.exists(sweep_file) else ""
+    check("accept/the-sweep-counter-reaches-the-file-the-supervisor-reads",
+          "botSweepPasses=1" in swept and "botSweepWrittenAt=" in swept
+          and "botSweepLastResult=" in swept, swept.replace("\n", " ")[:150])
+    # AND THE STATE THE RULING EXISTS TO TELL APART: a bot that started and
+    # has NOT swept must publish a zero with a fresh timestamp, not nothing,
+    # so "the loop never runs" and "the loop runs and sends nothing" are
+    # different readings rather than one silence.
+    b7 = Captured()
+    b7.creds = creds
+    fresh = os.path.join(b7.repo, *Bot.SWEEP_STATUS_REL.split("/"))
+    zero = open(fresh, encoding="utf-8").read() if os.path.exists(fresh) \
+        else ""
+    check("accept/a-bot-that-has-not-swept-yet-publishes-zero-not-silence",
+          "botSweepPasses=0" in zero
+          and "botSweepLastResult=no-pass-yet" in zero, zero.replace("\n", " ")[:150])
+
+    # AND THE EXCEPTION PATH, PLANTED (rule 5b): a sweep that raises is
+    # still a pass that happened, and the file must say so rather than
+    # freezing on the last good number.
+    b8 = Captured()
+    b8.creds = creds
+    real_pass = outbox_pass
+    try:
+        globals()["outbox_pass"] = (lambda *a, **k: (_ for _ in ()).throw(
+            RuntimeError("planted")))
+        b8.sweep_outbox(every=0)
+    finally:
+        globals()["outbox_pass"] = real_pass
+    b8fresh = os.path.join(b8.repo, *Bot.SWEEP_STATUS_REL.split("/"))
+    raised = open(b8fresh, encoding="utf-8").read() \
+        if os.path.exists(b8fresh) else ""
+    check("accept/a-sweep-that-raised-still-counts-and-names-the-raise",
+          b8.out_passes == 1 and "botSweepPasses=1" in raised
+          and "botSweepLastResult=raised/RuntimeError" in raised,
+          raised.replace("\n", " ")[:150])
 
     # ---- --flush-inbox, ON THE CASE IT MUST PASS --------------------------
     # A DIRECTOR RECORDED, 2026-09-08, that this flag shipped with no case of

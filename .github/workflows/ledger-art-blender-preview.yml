@@ -1,0 +1,141 @@
+name: LEDGER art Blender preview
+
+# OPT-IN AND LOWEST PRIORITY, ruled by Jafar 2026-09-08. Two separate
+# properties and they are achieved by two separate mechanisms, because a
+# concurrency group alone gives neither:
+#
+#   OPT-IN      workflow_dispatch only. There is no push, schedule or
+#               pull_request trigger, so nothing anybody commits can start
+#               this. Art work is never a reason for a studio push to cost
+#               runner time.
+#   LOWEST      it YIELDS rather than QUEUES. A concurrency group would make
+#               a game job wait behind this one, which is the opposite of
+#               what was asked. The first step asks GitHub whether any game
+#               workflow is in progress on this repository and, if one is,
+#               exits without doing anything and says so. Yielding loses this
+#               run; queueing would cost the game one.
+#
+# It runs a NAMED recipe. There is no recipe in the tree yet, and the step
+# refuses with the name it was given rather than inventing a default, so a
+# run against a recipe nobody wrote reads as a refusal and not as an empty
+# success.
+
+on:
+  workflow_dispatch:
+    inputs:
+      commission:
+        description: 'Commission, without the art/ prefix (e.g. atlas-01)'
+        required: true
+        type: string
+      recipe:
+        description: 'Named Blender recipe under tools/art-recipes/'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  preview:
+    runs-on: [self-hosted, windows]
+    steps:
+      # THE YIELD. Read-only, and it decides everything after it.
+      - name: Yield to any running game job
+        id: yield
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Continue"
+          # THE GAME WORKFLOWS BY FILE NAME. A list rather than a pattern:
+          # a pattern that grew to match this workflow itself would make it
+          # yield to its own run for ever, which is a deadlock that looks
+          # exactly like politeness.
+          $game = @("ledger-probe-unreal.yml", "ledger-build-windows.yml",
+                    "ledger-build-mac.yml", "ledger-core-tests.yml",
+                    "ledger-ai-playtest.yml")
+          $busy = @()
+          foreach ($wf in $game) {
+            $uri = "https://api.github.com/repos/${{ github.repository }}/actions/workflows/$wf/runs?status=in_progress&per_page=5"
+            try {
+              $r = Invoke-RestMethod -Uri $uri -Headers @{
+                Authorization = "Bearer $env:GH_TOKEN"
+                Accept = "application/vnd.github+json"
+                "User-Agent" = "ledger-art-preview"
+              } -TimeoutSec 20
+              if ($r.total_count -gt 0) { $busy += "$wf x$($r.total_count)" }
+            } catch {
+              # A FAILED QUERY YIELDS. It cannot prove the runner is free,
+              # and the cost of being wrong in this direction is one skipped
+              # preview against one delayed game job.
+              $busy += "$wf query-failed"
+            }
+          }
+          $n = $busy.Count
+          if ($n -gt 0) {
+            Write-Host "artPreviewStatus=YIELDED gameJobsInProgress=$n/$($game.Count)-workflow(s)-checked busy=$($busy -join ',')"
+            "yielded=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "artPreviewStatus=CLEAR gameJobsInProgress=0/$($game.Count)-workflow(s)-checked"
+            "yielded=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Checkout the art branch
+        if: steps.yield.outputs.yielded == 'false'
+        uses: actions/checkout@v4
+        with:
+          ref: art/${{ inputs.commission }}
+          fetch-depth: 0
+
+      - name: Render the named recipe headlessly
+        if: steps.yield.outputs.yielded == 'false'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $recipe = "tools/art-recipes/${{ inputs.recipe }}.py"
+          $outDir = "production/art/${{ inputs.commission }}/previews"
+          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+          if (-not (Test-Path $recipe)) {
+            # REFUSE BY NAME. An empty success here would read on the art
+            # branch as "the recipe ran and drew nothing".
+            Write-Host "artPreviewStatus=NO-RECIPE recipeAsked=${{ inputs.recipe }} recipePath=$($recipe -replace ' ','~')"
+            exit 1
+          }
+          $blender = $null
+          foreach ($c in @("$env:ProgramFiles\Blender Foundation\Blender 4.2\blender.exe",
+                           "$env:ProgramFiles\Blender Foundation\Blender 4.1\blender.exe",
+                           "blender")) {
+            if (Test-Path $c) { $blender = $c; break }
+            try { & $c --version *> $null; if ($LASTEXITCODE -eq 0) { $blender = $c; break } } catch { }
+          }
+          if (-not $blender) {
+            Write-Host "artPreviewStatus=NO-BLENDER recipeAsked=${{ inputs.recipe }}"
+            exit 1
+          }
+          $before = @(Get-ChildItem $outDir -Filter *.png -ErrorAction SilentlyContinue).Count
+          & $blender --background --factory-startup --python $recipe -- --out $outDir
+          $code = $LASTEXITCODE
+          $after = @(Get-ChildItem $outDir -Filter *.png -ErrorAction SilentlyContinue).Count
+          Write-Host "artPreviewStatus=RAN recipeAsked=${{ inputs.recipe }} blenderExit=$code previewsBefore=$before previewsAfter=$after previewsNew=$($after - $before)"
+          if ($code -ne 0 -or $after -le $before) { exit 1 }
+
+      - name: Commit the previews to the art branch
+        if: steps.yield.outputs.yielded == 'false'
+        shell: bash
+        run: |
+          set -u
+          git config user.name "ledger-art"
+          git config user.email "art@ledger.local"
+          # BY NAME, never `git add <directory>`: a failed render must not
+          # commit the previous run's pictures as its own.
+          git add -A -- "production/art/${{ inputs.commission }}/previews/"*.png 2>/dev/null || true
+          git diff --cached --quiet && { echo "artCommitStatus=NOTHING-NEW"; exit 0; }
+          git commit -m "art preview: ${{ inputs.commission }} / ${{ inputs.recipe }}"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin "art/${{ inputs.commission }}" || true
+            git push origin "HEAD:art/${{ inputs.commission }}" && { echo "artCommitStatus=PUSHED"; exit 0; }
+            sleep $((2 ** i))
+          done
+          echo "artCommitStatus=PUSH-FAILED"
+          exit 1

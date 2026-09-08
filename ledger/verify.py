@@ -916,6 +916,44 @@ def ue_material_selftest():
     return True, f"ue material generator ok ({m.group(1)} checks)"
 
 
+def ue_prop_import_selftest():
+    """The prop mesh importer's own checks, RUN, in the container.
+
+    SAME SHAPE AND SAME REASON AS `ue_material_selftest` ABOVE, and the
+    builder that wrote the tool said the quiet part out loud: without this
+    wiring "the guard is a comment". Every rule in
+    tools/ue/import_prop_meshes.py that decides a word or a number is a pure
+    function the container can run, including the bounds arithmetic that
+    decides whether an imported mesh landed where its box stood, and the two
+    path literals it reads out of VignetteShot.cpp rather than trusting a
+    comment. Its own first run read 46 checks with 2 failures, those two
+    literals, so the guard has already caught something.
+
+    A SKIP IS NOT A PASS: the tool missing names itself rather than reading
+    as green."""
+    tool = ROOT.parent / "tools" / "ue" / "import_prop_meshes.py"
+    if not tool.exists():
+        return False, ("UE PROP IMPORT TOOL MISSING: "
+                       "tools/ue/import_prop_meshes.py")
+    code, out = run(["python3", str(tool), "--selftest"])
+    line = ""
+    for l in out.splitlines():
+        if l.startswith("import_prop_meshes --selftest:"):
+            line = l.strip()
+    if code != 0 or not line:
+        bad = [l.strip() for l in out.splitlines()
+               if l.strip().startswith("FAIL")]
+        return False, ("UE PROP IMPORT SELFTEST RED: "
+                       + _cap(bad, keep=3, tail="selftest did not pass")
+                       if bad else
+                       "UE PROP IMPORT SELFTEST RED: no summary line, exit "
+                       + str(code))
+    m = re.search(r"(\d+) check\(s\), (\d+) failure", line)
+    if not m or m.group(2) != "0":
+        return False, "UE PROP IMPORT SELFTEST RED: " + line
+    return True, f"ue prop mesh importer ok ({m.group(1)} checks)"
+
+
 def voice_assets():
     """The vocabulary and the voices can reach the build.
 
@@ -6181,6 +6219,7 @@ def main():
                powershell_steps, sheet_read, prop_dimensions, prop_reach,
                ue_probe_tests,
                ue_material_selftest,
+               ue_prop_import_selftest,
                propview, meshgen_suite, ref_bench,
                decal_ink,
                frame_drift, verdict_keys, verdict_format, verdict_dupkeys,

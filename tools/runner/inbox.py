@@ -44,6 +44,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 
 #: The work branch, whose newest commit is the awake/asleep proxy. Same
@@ -159,7 +160,118 @@ def why(out, err):
     return (err or out or "no output").strip()
 
 
-def git_call(args, repo, timeout=60, extra_env=None):
+#: NON-INTERACTIVE, AND `GIT_TERMINAL_PROMPT` ALONE IS NOT ENOUGH. Ruled by
+#: Jafar 2026-09-08: "The push from my PC hangs on a credential prompt nobody
+#: can answer. Make every git call the bot makes non-interactive so it fails
+#: in words within seconds instead of hanging."
+#:
+#: `GIT_TERMINAL_PROMPT=0` was already set here and the push hung anyway,
+#: which is the whole finding. That variable stops GIT from asking on the
+#: terminal. It says nothing to Git Credential Manager, which is what
+#: `credentialHelper=manager` on his PC means: a separate program that opens
+#: a WINDOW on his desktop and waits. He was away, so it waited for ever.
+#: The flush step measured it: `flush: waiting=12 tip=22973f8` and then
+#: `flushStatus=HUNG flushWaitedSec=150`, against push_pending's own 120
+#: second timeout, which is the second fault below.
+#:
+#: These are set as environment AND passed as `-c` on every command line, so
+#: a value in his repo or global config cannot put the dialog back.
+NONINTERACTIVE_ENV = {
+    "GIT_TERMINAL_PROMPT": "0",     # git's own tty prompt
+    "GCM_INTERACTIVE": "Never",     # Git Credential Manager, any version
+    "GCM_GUI_PROMPT": "false",      # GCM's window specifically
+    "GIT_ASKPASS": "echo",          # any helper that would shell out
+    "SSH_ASKPASS": "echo",
+    "SSH_ASKPASS_REQUIRE": "never",
+    "GIT_FLUSH": "1",
+}
+NONINTERACTIVE_ARGS = ("-c", "credential.interactive=false",
+                       "-c", "credential.guiPrompt=false",
+                       "-c", "core.askPass=")
+
+#: TIMEOUTS IN SECONDS: ceilings on a hang, never targets, and NOT YET
+#: SET FROM A SERIES (rule 2). What is measured: one ls-remote from his
+#: PC at 0.5 s (push-diagnosis, cfb6dc9); no push has been timed. A
+#: ceiling that is too low announces itself: rc 124 names the
+#: subcommand and the number in the window and in the flush file. The
+#: series that sets these is the per-call elapsed published beside the
+#: sweep counter; read a day of it, then set. NETWORK covers push and
+#: ls-remote; LOCAL covers the plumbing, which touches no network.
+NETWORK_TIMEOUT = 30
+LOCAL_TIMEOUT = 20
+
+
+def _run_bounded(cmd, cwd, env, timeout, what=None):
+    """Run `cmd`, returning (rc, out, err) in AT MOST `timeout` seconds.
+
+    THE SECOND FAULT, AND IT IS WHY A 120 SECOND TIMEOUT DID NOT BOUND A 150
+    SECOND HANG. `subprocess.run(capture_output=True, timeout=T)` kills the
+    DIRECT child when T expires and then drains the pipes to end of file. A
+    credential dialog spawned by git inherits those pipe handles and holds
+    them open after git is gone, so the drain blocks and the call outlives
+    its own timeout with nothing to show. A timeout that can be outlived is
+    not a timeout.
+
+    So the pipes are drained by daemon threads that this function never
+    joins. On the timeout path the child is killed and whatever the readers
+    reached so far is returned immediately; a grandchild still holding a
+    handle keeps a daemon thread alive and blocks nothing.
+    """
+    try:
+        p = subprocess.Popen(cmd, cwd=cwd, env=env,
+                             stdin=subprocess.DEVNULL,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             universal_newlines=True, errors="replace")
+    except FileNotFoundError:
+        return 127, "", "git is not on PATH on this PC"
+    except OSError as e:
+        return 125, "", "could not run git (%s)" % type(e).__name__
+    got = {"out": "", "err": ""}
+
+    def drain(stream, key):
+        # LINE BY LINE, so the timeout path can return what was printed
+        # BEFORE the hang. A single read() returns only at end of file,
+        # and on the fault this function exists for, end of file is
+        # exactly what never comes.
+        try:
+            for line in iter(stream.readline, ""):
+                got[key] += line
+        except Exception:                                     # noqa: BLE001
+            pass
+    readers = []
+    for stream, key in ((p.stdout, "out"), (p.stderr, "err")):
+        t = threading.Thread(target=drain, args=(stream, key), daemon=True)
+        t.start()
+        readers.append(t)
+    try:
+        rc = p.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        try:
+            p.kill()
+        except Exception:                                     # noqa: BLE001
+            pass
+        # A SHORT GRACE AND NO MORE. This is the only join, it is bounded,
+        # and it exists so the usual case still returns git's own words.
+        for t in readers:
+            t.join(timeout=1.0)
+        alive = [t for t in readers if t.is_alive()]
+        said = one_line(got["err"].strip() or got["out"].strip(), 120)
+        return 124, got["out"].strip(), (
+            "git %s did not finish within %d second(s) and was stopped, so "
+            "its result is unknown; the next pass rebuilds from the branch's "
+            "own tree.%s%s"
+            % (what or (cmd[1] if len(cmd) > 1 else "?"), timeout,
+               (" It said: " + said) if said
+               else " It printed nothing before it was stopped.",
+               (" Something it started is still running and holding its "
+                "output open, which is the shape of a credential helper "
+                "waiting for somebody.") if alive else ""))
+    for t in readers:
+        t.join(timeout=5.0)
+    return rc, got["out"].strip(), got["err"].strip()
+
+
+def git_call(args, repo, timeout=LOCAL_TIMEOUT, extra_env=None):
     """One git command. Returns (rc, stdout, stderr). Never raises, prompts.
 
     THREE VALUES AND NOT TWO, AND THIS IS THE 7 SEPTEMBER INCIDENT ITSELF.
@@ -190,9 +302,8 @@ def git_call(args, repo, timeout=60, extra_env=None):
                          % (args[0] if args else "", "/".join(ALLOWED)))
     env = dict(os.environ)
     env.update({
-        # No editor, no credential prompt, no pager. This runs in a window
-        # nobody is watching, which is the 26 August incident exactly.
-        "GIT_TERMINAL_PROMPT": "0",
+        # No editor, no pager. This runs in a window nobody is watching,
+        # which is the 26 August incident exactly.
         "GIT_EDITOR": "true",
         "GIT_MERGE_AUTOEDIT": "no",
         "GIT_PAGER": "cat",
@@ -201,19 +312,15 @@ def git_call(args, repo, timeout=60, extra_env=None):
         "GIT_COMMITTER_NAME": COMMIT_NAME,
         "GIT_COMMITTER_EMAIL": COMMIT_EMAIL,
     })
+    env.update(NONINTERACTIVE_ENV)      # after the block above, never before
     if extra_env:
         env.update(extra_env)
-    try:
-        p = subprocess.run(["git"] + list(args), cwd=repo, env=env,
-                           capture_output=True, text=True, timeout=timeout)
-    except FileNotFoundError:
-        return 127, "", "git is not on PATH on this PC"
-    except subprocess.TimeoutExpired:
-        return 124, "", "git %s did not finish within %d second(s)" % (args[0],
-                                                                       timeout)
-    except OSError as e:
-        return 125, "", "could not run git (%s)" % type(e).__name__
-    return p.returncode, (p.stdout or "").strip(), (p.stderr or "").strip()
+    # THE `-c` FLAGS GO BEFORE THE SUBCOMMAND, which is the only place git
+    # accepts them, and they are NOT part of the ALLOWED check above: that
+    # check reads args[0], the subcommand this file was asked for, and it
+    # has already passed. Adding configuration cannot widen it.
+    cmd = ["git"] + list(NONINTERACTIVE_ARGS) + list(args)
+    return _run_bounded(cmd, repo, env, timeout, what=args[0])
 
 
 # --------------------------------------------------------------------------
@@ -608,7 +715,7 @@ def held(out, pending, plain, detail):
     return out
 
 
-def push_pending(repo, say=None, timeout=120):
+def push_pending(repo, say=None, timeout=NETWORK_TIMEOUT):
     """Put every unsent message on `pc-inbox`. Returns a result dict.
 
     Keys: ok, pushed (list), pending (list), commit, replaced, detail.
@@ -632,6 +739,19 @@ def push_pending(repo, say=None, timeout=120):
     try:
         if os.path.exists(index):
             os.remove(index)
+    except OSError:
+        pass
+    # THE LOCK TOO, WHEN IT IS STALE. A plumbing command stopped by the
+    # timeout in `_run_bounded` leaves `<index>.lock` behind, and git then
+    # refuses every later pass with "File exists" for ever. A lock older
+    # than LOCAL_TIMEOUT cannot belong to a live command of this file,
+    # because no command of this file lives that long; a younger one may
+    # be the CI flush running beside this process, and is left alone.
+    lock = index + ".lock"
+    try:
+        if os.path.exists(lock) and \
+                time.time() - os.path.getmtime(lock) > LOCAL_TIMEOUT:
+            os.remove(lock)
     except OSError:
         pass
     env = {"GIT_INDEX_FILE": index}
@@ -702,6 +822,14 @@ def push_pending(repo, say=None, timeout=120):
                                   "refs/heads/" + INBOX_BRANCH], repo,
                                  timeout=timeout)
     seen = remote.split()[0] if rc == 0 and remote.strip() else ""
+    if rc != 0:
+        # THE CHECK ITSELF FAILED, which says nothing about the push. A
+        # push that landed and a verification that timed out must not read
+        # as "sent nothing": that is a false claim with a sha on it. The
+        # tip stays where it was, so the next pass re-pushes and re-checks.
+        return held(out, pending, PLAIN_ARRIVE,
+                    "the push may have landed but could not be verified "
+                    "(%s)" % one_line(why(remote, _rerr), 120))
     if seen != commit:
         return held(out, pending, PLAIN_ARRIVE,
                     "the push sent nothing: %s is not what %s holds (%s)"
@@ -1182,6 +1310,62 @@ def _selftest():
     check("accept/autocrlf-leaves-nothing-waiting-on-disk",
           pending_all(watcher)[0] == [], pending_all(watcher)[0])
     _fixture_git(["config", "--unset", "core.autocrlf"], watcher)
+
+    # ---- THE CREDENTIAL HANG, ON BOTH OUTCOMES -------------------------
+    # Ruled by Jafar 2026-09-08 after the flush step measured
+    # `flushStatus=HUNG flushWaitedSec=150` on his PC with twelve files
+    # waiting. `GIT_TERMINAL_PROMPT=0` was already set and did not bound it,
+    # because Git Credential Manager is a separate program with a window.
+    #
+    # ACCEPTING CASE FIRST, and it is the one above: every push in this
+    # suite has already gone through the new `-c` flags and the bounded
+    # runner, so a flag git refused or a runner that lost output would have
+    # turned the autocrlf case red before reaching here. This states it as
+    # a check rather than leaving it implied.
+    check("accept/noninteractive-flags-do-not-break-a-working-push",
+          res_crlf["ok"] and pending_all(watcher)[0] == [],
+          res_crlf["detail"] or res_crlf["plain"])
+
+    # AND THE THING IT ASSERTS CAN HAPPEN: a command that never returns is
+    # STOPPED, in bounded time, with words. Not a git command, on purpose:
+    # the whitelist above would refuse one, and the fault being tested is in
+    # `_run_bounded` rather than in git.
+    t_sleep = time.time()
+    rc_h, out_h, err_h = _run_bounded(
+        [sys.executable, "-c", "import time; time.sleep(30)"],
+        watcher, dict(os.environ), 2, what="push")
+    took = time.time() - t_sleep
+    check("accept/a-command-that-hangs-is-stopped-inside-its-own-timeout",
+          rc_h == 124 and took < 8.0,
+          "rc=%d took=%.1fs (ceiling 2s + grace)" % (rc_h, took))
+    check("accept/and-the-hang-is-reported-in-words-naming-the-subcommand",
+          "git push did not finish within 2 second(s)" in err_h
+          and "printed nothing" in err_h, err_h[:140])
+
+    # THE REJECTING HALF, AS FAR AS THIS CONTAINER CAN TAKE IT. This remote
+    # never resolves, so git fails before any 401 and no credential prompt
+    # runs here; the prompt is exercised only on his PC, and the fixture
+    # that plants it is queued (ruling 2026-09-08, section 5).
+    _fixture_git(["remote", "set-url", "--push", "origin",
+                  "https://example.invalid/no-such-repo.git"], watcher)
+    write_message(watcher, "A message behind a locked remote.", epoch + 3000,
+                  4132)
+    t_auth = time.time()
+    res_auth = push_pending(watcher)
+    auth_took = time.time() - t_auth
+    check("reject/an-unreachable-remote-fails-in-words-and-holds-the-message",
+          (not res_auth["ok"]) and res_auth["pending"]
+          and "did not finish within" not in res_auth["detail"],
+          "took=%.1fs ok=%s pending=%d detail=%s"
+          % (auth_took, res_auth["ok"], len(res_auth["pending"]),
+             res_auth["detail"][:80]))
+    print("      says: unreachableRemoteFailSec=%.1f networkTimeoutSec=%d"
+          % (auth_took, NETWORK_TIMEOUT))
+    check("reject/and-his-phone-is-told-one-plain-sentence-with-no-internals",
+          res_auth["plain"] in (PLAIN_UPLOAD, PLAIN_PREPARE, PLAIN_ARRIVE)
+          and not re.search(r"[0-9a-f]{7,}", res_auth["plain"]),
+          res_auth["plain"])
+    _fixture_git(["remote", "set-url", "--push", "origin", far], watcher)
 
     print("\ninbox --selftest: %s, %d passed, %d failed, %d case(s) run. "
           "THE TELEGRAM HALF IS NOT COVERED: no case here touches the "

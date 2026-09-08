@@ -68,6 +68,7 @@ never passed on, here or anywhere.
 import collections
 import os
 import queue
+import shutil
 import subprocess
 import sys
 import threading
@@ -115,6 +116,11 @@ LAST_WORDS = 8
 #: Where the answer goes for a reader who is not at the keyboard. The window
 #: is not a channel anybody but Jafar can read.
 STATUS_REL = "game-design/pc-jobs/supervisor-status.txt"
+#: THE BOT'S OWN PER-PASS COUNTER, written by tools/runner/telegram-bot.py
+#: and carried here so it leaves the machine. Ruled by Jafar 2026-09-08:
+#: measure whether the bot's loop sweeps at all, and report the observed
+#: number rather than reasoning about whether it should run.
+BOT_SWEEP_REL = "game-design/pc-jobs/bot-sweep.txt"
 
 #: Reused, not reinvented: the exact file "START THE STUDIO MACHINE.bat"
 #: writes. Same folder AND same name, so there can never be two autostart
@@ -520,6 +526,45 @@ def status_block(children, repo, now):
     return "\n".join(out)
 
 
+def bot_sweep_keys(repo):
+    """The bot's own sweep counters, copied through verbatim.
+
+    THREE STATES, NOT TWO, and that is the whole reason this is a file rather
+    than a guess. NO FILE means the bot process never got as far as writing
+    one, so nothing is known: it prints `botSweepPasses=nothing-measured`
+    with the reason, never a zero. A ZERO with a fresh `botSweepWrittenAt`
+    means the process is up and its loop has not reached a sweep. A NUMBER
+    means the loop sweeps and says how often. On 2026-09-08 a whole hour went
+    into arguing which of those was true from a counter that could not tell
+    them apart.
+    """
+    path = os.path.join(repo, *BOT_SWEEP_REL.split("/"))
+    try:
+        with open(path, encoding="utf-8") as fh:
+            raw = [l.strip() for l in fh if "=" in l]
+    except OSError:
+        return ["botSweepPasses=nothing-measured",
+                "botSweepStatus=no-file/the-bot-never-wrote-one"]
+    if not raw:
+        return ["botSweepPasses=nothing-measured",
+                "botSweepStatus=file-empty"]
+    # THE AGE, ON THIS MACHINE'S OWN CLOCK. A number that stopped moving
+    # looks exactly like one still moving until something says how old it
+    # is. Both stamps are local time from one clock, so the subtraction is
+    # honest; no bound is set here, the series is printed first (rule 2).
+    age = "nothing-measured/no-botSweepWrittenAt"
+    for kv in raw:
+        if kv.startswith("botSweepWrittenAt="):
+            try:
+                then = time.mktime(time.strptime(kv.split("=", 1)[1],
+                                                 "%Y-%m-%dT%H:%M:%S"))
+                age = "%d" % int(time.time() - then)
+            except (ValueError, OverflowError):
+                age = "nothing-measured/unparseable-botSweepWrittenAt"
+    return raw + ["botSweepAgeSec=%s" % age,
+                  "botSweepStatus=read/%d-key(s)" % len(raw)]
+
+
 def write_status_file(repo, children, now, autostart, resync):
     """The same answer where somebody who is not at the keyboard can read it.
     Untracked, so the watcher's hard reset cannot delete it."""
@@ -538,6 +583,7 @@ def write_status_file(repo, children, now, autostart, resync):
              "outboxRefusals=%s" % ("unreadable" if refusals is None
                                     else refusals),
              "written=%s" % time.strftime("%Y-%m-%dT%H:%M:%S")]
+    lines.extend(bot_sweep_keys(repo))
     lines.extend(executor_keys(repo))
     for c in children:
         lines.append(c.key_values(now))
@@ -1091,6 +1137,39 @@ def selftest():
     check("reject/an-unspawnable-child-is-a-counted-failure-not-a-crash",
           ghost.state == "waiting" and ghost.failures == 1
           and ghost.last_exit == "could-not-spawn", ghost.state)
+
+    # ---- THE BOT'S SWEEP COUNTER, ON THE CASE IT MUST PASS -------------
+    # Ruled 2026-09-08. ACCEPTING FIRST: a real file is copied through
+    # verbatim, because the whole point is that this file reports the
+    # OBSERVED number rather than reasoning about it. Then the two shapes a
+    # zero must never be mistaken for.
+    import tempfile
+    sweeproot = tempfile.mkdtemp(prefix="supervise-sweep-")
+    sweeppath = os.path.join(sweeproot, *BOT_SWEEP_REL.split("/"))
+    os.makedirs(os.path.dirname(sweeppath), exist_ok=True)
+    with open(sweeppath, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("botSweepPasses=7\nbotSweepSent=2\n"
+                 "botSweepWrittenAt=2026-09-08T09:00:00\n")
+    got = bot_sweep_keys(sweeproot)
+    check("accept/the-bots-sweep-counter-is-carried-through-verbatim",
+          "botSweepPasses=7" in got and "botSweepSent=2" in got
+          and any(k.startswith("botSweepStatus=read/") for k in got), got)
+    check("accept/and-the-supervisor-prints-how-old-that-number-is",
+          any(k.startswith("botSweepAgeSec=") and k.split("=", 1)[1].isdigit()
+              for k in got), got)
+    os.remove(sweeppath)
+    gone = bot_sweep_keys(sweeproot)
+    check("reject/no-file-reads-as-nothing-measured-and-never-as-zero",
+          "botSweepPasses=nothing-measured" in gone
+          and "botSweepPasses=0" not in gone
+          and any("no-file" in k for k in gone), gone)
+    with open(sweeppath, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("")
+    empty = bot_sweep_keys(sweeproot)
+    check("reject/an-empty-file-is-not-a-zero-either",
+          "botSweepPasses=nothing-measured" in empty
+          and any("file-empty" in k for k in empty), empty)
+    shutil.rmtree(sweeproot, ignore_errors=True)
 
     # THE SHAPE `ledger/verify.py:TOOL_COUNT_RE` READS. A tool that stops
     # printing it goes RED there rather than silently passing, which is the

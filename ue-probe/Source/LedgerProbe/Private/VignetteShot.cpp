@@ -69,6 +69,10 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/StaticMeshActor.h"
 #include "Components/StaticMeshComponent.h"
+// UBodySetup and its AggGeom, for READING BACK how many simple collision
+// primitives the imported prop mesh actually carries. A mesh with none
+// renders perfectly and lets a walking Character straight through it.
+#include "PhysicsEngine/BodySetup.h"
 #include "Engine/PointLight.h"
 #include "Components/PointLightComponent.h"
 #include "Engine/DirectionalLight.h"
@@ -413,6 +417,66 @@ namespace
 		return LoadObject<UStaticMesh>(nullptr, Path);
 	}
 
+	// ---- THE MESH PIECE KIND'S PATH CONTRACT -----------------------------
+	//
+	// tools/ue/import_prop_meshes.py writes one static mesh per held prop the
+	// street names, at kPropPackageDir/kPropNamePrefix<asset>, and its
+	// --selftest READS THESE TWO LITERALS OUT OF THIS FILE and compares them
+	// to its own constants. That check runs in the container before any
+	// dispatch, which is the only reason the two can be trusted to agree: a
+	// path this file builds and nothing resolves returns null silently, the
+	// piece falls back to a box, and the frame looks like a street with a
+	// crate in it instead of a crate.
+	const TCHAR* kPropPackageDir = TEXT("/Game/Ledger/Props");
+	const TCHAR* kPropNamePrefix = TEXT("SM_");
+
+	// The piece's own `asset` field and nothing else decides the path. A
+	// hyphen is the one character an asset id may carry that a package name
+	// may not, and the Python maps it the same way; every other illegal
+	// character is refused by the importer BEFORE an asset is made, so a
+	// piece naming one cannot have a uasset to find here.
+	FString PropObjectPath(const std::string& AssetId)
+	{
+		FString Name = FString(kPropNamePrefix) + FString(UTF8_TO_TCHAR(AssetId.c_str()));
+		Name.ReplaceInline(TEXT("-"), TEXT("_"));
+		return FString(kPropPackageDir) + TEXT("/") + Name + TEXT(".") + Name;
+	}
+
+	// THE MESH, OR NULL, AND NULL IS A MEASUREMENT. Loading a cooked asset
+	// that was never cooked is the likeliest failure on this route and it is
+	// indistinguishable from a missing GLB unless the reason is carried out,
+	// so the caller gets one and puts it on the verdict.
+	UStaticMesh* LoadPropMesh(const std::string& AssetId, std::string& WhyNot)
+	{
+		if (AssetId.empty()) { WhyNot = "piece-names-no-asset"; return nullptr; }
+		const FString Path = PropObjectPath(AssetId);
+		UStaticMesh* M = LoadObject<UStaticMesh>(nullptr, *Path);
+		if (M == nullptr)
+		{
+			// THE ASSET, NOT THE PATH. Four full object paths overran the
+			// scene line's segment buffer, and snprintf truncates in
+			// silence; propPackageDir and propNamePattern are on the same
+			// line, so the path is derivable from this and shorter.
+			WhyNot = "no-uasset-for-" + AssetId;
+			return nullptr;
+		}
+		return M;
+	}
+
+	// HOW MANY SIMPLE COLLISION PRIMITIVES THE LOADED MESH ACTUALLY HAS.
+	// The importer adds a box to every prop; a mesh that arrives without one
+	// places, renders and photographs clean and lets a walking Character
+	// through it, so the count is read off the asset at spawn rather than
+	// assumed from the import step's own verdict. Negative means the engine
+	// would not answer, which is a different fact from zero.
+	int PropCollisionPrims(UStaticMesh* M)
+	{
+		if (M == nullptr) { return -1; }
+		UBodySetup* BS = M->GetBodySetup();
+		if (BS == nullptr) { return 0; }
+		return BS->AggGeom.GetElementCount();
+	}
+
 	AStaticMeshActor* SpawnPiece(UWorld* World, UStaticMesh* Mesh, const Piece& P,
 	                             const FVector& ScaleUU, bool bInteractive)
 	{
@@ -518,6 +582,38 @@ namespace
 		int Boxes = 0, Cyls = 0, Planes = 0, Props = 0, Decals = 0, Skipped = 0, Emitted = 0;
 		std::string Note = "none";
 
+		// ---- THE MESH PIECE KIND'S OWN INSTRUMENT ------------------------
+		// Props counts every mesh-kind piece that got an actor of any sort;
+		// Meshes counts the ones that got a LOADED PROP MESH, and StandIns
+		// the ones that fell back to a box. Meshes + StandIns == Props is the
+		// identity the verdict can be checked against, and StandIns is what
+		// now goes to SceneLine's propStandIns, whose denominator is the mesh
+		// piece count: 0/23 means every prop is real, 23/23 means the import
+		// step never ran.
+		int Meshes = 0, StandIns = 0;
+		int MeshCollided = 0, MeshCollisionUnread = 0;
+		// PLACEMENT, MEASURED AGAINST THE BOX IT REPLACED, AT WORST over the
+		// placed meshes with the piece it was worst ON captured at the same
+		// instant. Two halves, because they answer different questions and
+		// only one of them survives rotation:
+		//   Centre: how far the placed mesh's WORLD bounds centre is from the
+		//           x_m/y_m/z_m the file named. Valid at every rotation,
+		//           because rotating about the bounds centre leaves the
+		//           centre where it was, and it is the number the contract in
+		//           vignette-scene.json's held_props.pivot_note is about.
+		//   Size:   whether the loaded mesh is the size the spec box was.
+		//           ONLY COMPARABLE on an axis-aligned piece: a world AABB
+		//           around a mesh yawed 20 degrees is legitimately bigger
+		//           than the box, so the comparable count ships its own
+		//           denominator rather than letting two of twenty-three
+		//           rotated props read as a size fault.
+		double WorstCentreMm = 0.0, WorstSizeMm = 0.0;
+		std::string WorstCentreOn = "nothing-measured";
+		std::string WorstSizeOn = "nothing-measured";
+		int SizeComparable = 0;
+		// WHY A PIECE FELL BACK, capped, and the cap announces itself.
+		std::vector<std::string> FellBack;
+
 		UStaticMesh* Cube  = LoadShape(TEXT("/Engine/BasicShapes/Cube.Cube"));
 		UStaticMesh* Cyl   = LoadShape(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
 		UStaticMesh* Plane = LoadShape(TEXT("/Engine/BasicShapes/Plane.Plane"));
@@ -593,14 +689,116 @@ namespace
 			}
 			else if (P.Shape == "mesh")
 			{
-				// A STAND-IN, COUNTED AND NAMED. The prop pipeline's models
-				// are .glb files Unity imports at build time; this engine has
-				// no runtime importer and Phase C owns that. A box of the
-				// prop's OWN stated size holds the space so the frame is
-				// comparable, and `propStandIns` on the scene line is what
-				// stops anybody reading it as a loaded model.
-				A = SpawnPiece(World, Cube, P, Scale, bInteractive);
-				if (A) { ++Boxes; ++Props; }
+				// THE MESH PIECE KIND, WHICH IS A REAL MESH WHEN THE IMPORT
+				// STEP RAN AND THE BOX STAND-IN WHEN IT DID NOT.
+				//
+				// The GLBs under ledger/Assets/Props/base-mesh become uassets
+				// in a build step, by tools/ue/import_prop_meshes.py, never by
+				// a human in an editor. This engine still has no runtime
+				// importer and does not need one: the piece names an asset,
+				// the path is derived from that name alone, and a path that
+				// resolves to nothing falls back to the box this branch used
+				// to always spawn, COUNTED AND NAMED, so a missing import can
+				// never read as a loaded model.
+				std::string WhyNot;
+				UStaticMesh* PropMesh = LoadPropMesh(P.Asset, WhyNot);
+				if (PropMesh != nullptr)
+				{
+					// SCALE 1, AND NEVER ANYTHING ELSE. The dims policy in
+					// production/specs/vignette-scene.json forbids inventing a
+					// size, and tools/ue/import_prop_meshes.py --selftest has
+					// MEASURED that each spec box is its GLB's own dimensions
+					// (worst 0.0000 mm over 16 assets): so the mesh is already
+					// the size the street drew, and passing Scale here would
+					// square it.
+					A = SpawnPiece(World, PropMesh, P, FVector(1.0f, 1.0f, 1.0f), bInteractive);
+					if (A != nullptr)
+					{
+						// THE PIVOT CORRECTION, FROM THE ENGINE'S OWN READING
+						// OF THE MESH AND NOT FROM A CONVENTION. The file
+						// names where the prop's BOUNDING BOX CENTRE goes;
+						// the source pivots are measured to be all over the
+						// place (awning_02's origin is at its top-back,
+						// the posters are centred, drainage_grate_01 hangs
+						// 15 mm below its origin, the rest stand on it), so
+						// the correction is the mesh's own local bounds
+						// centre, which the engine hands back, rotated into
+						// the actor's frame the same way the decal lift above
+						// is. Scale is 1 here, which is the only reason this
+						// offset needs no scale term.
+						const FVector LocalCentre = PropMesh->GetBounds().Origin;
+						A->AddActorWorldOffset(
+							A->GetActorRotation().RotateVector(-LocalCentre));
+
+						// READ BACK WHERE IT LANDED. 1 uu is 1 cm, so uu * 10
+						// is mm.
+						FVector WOrg(0, 0, 0), WExt(0, 0, 0);
+						A->GetActorBounds(false, WOrg, WExt);
+						const FVector WantUU(P.X * 100.0, P.Z * 100.0, P.Y * 100.0);
+						const double CentreMm = (WOrg - WantUU).Size() * 10.0;
+						if (CentreMm > WorstCentreMm || WorstCentreOn == "nothing-measured")
+						{
+							WorstCentreMm = CentreMm;
+							WorstCentreOn = NoSpaces(P.Name);
+						}
+
+						// THE SIZE HALF, ON AXIS-ALIGNED PIECES ONLY.
+						const double AbsYaw = P.YawDeg < 0 ? -P.YawDeg : P.YawDeg;
+						const bool bQuarter = (AbsYaw > 89.0 && AbsYaw < 91.0)
+						                   || (AbsYaw > 269.0 && AbsYaw < 271.0);
+						const bool bHalf = (AbsYaw < 1.0) || (AbsYaw > 179.0 && AbsYaw < 181.0)
+						                || (AbsYaw > 359.0);
+						if (P.PitchDeg == 0.0 && P.RollDeg == 0.0 && (bQuarter || bHalf))
+						{
+							double WantX = P.SX * 100.0, WantY = P.SZ * 100.0;
+							const double WantZ = P.SY * 100.0;
+							if (bQuarter) { const double T = WantX; WantX = WantY; WantY = T; }
+							const double DX = (WExt.X * 2.0 - WantX) * 10.0;
+							const double DY = (WExt.Y * 2.0 - WantY) * 10.0;
+							const double DZ = (WExt.Z * 2.0 - WantZ) * 10.0;
+							double Worst = DX < 0 ? -DX : DX;
+							const double AY = DY < 0 ? -DY : DY;
+							const double AZ = DZ < 0 ? -DZ : DZ;
+							if (AY > Worst) { Worst = AY; }
+							if (AZ > Worst) { Worst = AZ; }
+							++SizeComparable;
+							if (Worst > WorstSizeMm || WorstSizeOn == "nothing-measured")
+							{
+								WorstSizeMm = Worst;
+								WorstSizeOn = NoSpaces(P.Name);
+							}
+						}
+
+						// COLLISION, READ OFF THE ASSET RATHER THAN TRUSTED
+						// FROM THE IMPORT STEP'S OWN VERDICT. A negative
+						// answer means the engine would not say, which is a
+						// different fact from none.
+						const int Prims = PropCollisionPrims(PropMesh);
+						if (Prims > 0) { ++MeshCollided; }
+						else if (Prims < 0) { ++MeshCollisionUnread; }
+
+						++Meshes; ++Props;
+					}
+					else
+					{
+						WhyNot = "spawn-refused";
+					}
+				}
+				if (A == nullptr)
+				{
+					// THE BOX STAND-IN, UNCHANGED, AND STILL THE RIGHT
+					// FALLBACK. A box of the prop's OWN stated size holds the
+					// space so the frame stays comparable to the Unity pair.
+					A = SpawnPiece(World, Cube, P, Scale, bInteractive);
+					if (A != nullptr)
+					{
+						++Boxes; ++Props; ++StandIns;
+						if (FellBack.size() < 4)
+						{
+							FellBack.push_back(NoSpaces(P.Name) + "=" + NoSpaces(WhyNot));
+						}
+					}
+				}
 			}
 			else
 			{
@@ -683,8 +881,68 @@ namespace
 			MakeMovable(GFog);
 		}
 
-		GSceneLine = SceneLine(GSpec, Emitted, Boxes, Cyls, Planes, Props, Decals,
+		// StandIns, NOT Props, IS WHAT propStandIns MEANS. Its denominator in
+		// SceneLine is the mesh piece count, so 0/23 reads "every prop is a
+		// real mesh" and 23/23 reads "the import step did not reach this
+		// build". Passing Props here, as this call did while every mesh piece
+		// was a box, would have made those two indistinguishable the moment
+		// one prop became real.
+		GSceneLine = SceneLine(GSpec, Emitted, Boxes, Cyls, Planes, StandIns, Decals,
 		                       GLanterns.Num(), GWindows.Num(), Skipped, Note);
+
+		// ---- THE MESH ROUTE'S OWN SEGMENT, APPENDED --------------------
+		// Appended rather than folded into SceneLine because SceneLine is the
+		// tested header's shared shape and both engines read it; these keys
+		// are this engine's mesh route and nothing in Unity has them.
+		{
+			std::string Why;
+			for (size_t K = 0; K < FellBack.size(); ++K)
+			{
+				if (K) { Why += ";"; }
+				Why += FellBack[K];
+			}
+			if (StandIns > (int)FellBack.size())
+			{
+				char More[64];
+				std::snprintf(More, sizeof(More), ";(+%d~more~not~shown)",
+				              StandIns - (int)FellBack.size());
+				Why += More;
+			}
+			if (Why.empty()) { Why = "none"; }
+			// SIZED FROM THE RENDERED WORST CASE, NOT GUESSED: the fixed
+			// text alone is 531 characters and four named fallbacks add
+			// about 290, so 700 truncated and said nothing about it.
+			char MBuf[1100];
+			const int MWrote = std::snprintf(MBuf, sizeof(MBuf),
+				" propsAsMesh=%d/%d propsAsBox=%d/%d propFallbackWhy=%s"
+				" propPackageDir=%s propNamePattern=%s<asset>"
+				" propScale=1/never-scaled/dims-policy"
+				" propCentreWorstMm=%.2f/on=%s/of=%d"
+				" propCentreStat=distance-from-the-files-own-xyz-to-the-placed-meshes-world-bounds-centre-at-worst"
+				" propSizeWorstMm=%.2f/on=%s propSizeComparable=%d/%d"
+				" propSizeStat=axis-aligned-pieces-only/a-yawed-world-aabb-is-legitimately-bigger"
+				" propCollisionPrims=%d/%d propCollisionUnread=%d"
+				" propCollisionEnabled=%s",
+				Meshes, ShapeCount(GSpec.Pieces, "mesh"),
+				StandIns, ShapeCount(GSpec.Pieces, "mesh"), NoSpaces(Why).c_str(),
+				TCHAR_TO_UTF8(kPropPackageDir), TCHAR_TO_UTF8(kPropNamePrefix),
+				WorstCentreMm, WorstCentreOn.c_str(), Meshes,
+				WorstSizeMm, WorstSizeOn.c_str(), SizeComparable, Meshes,
+				MeshCollided, Meshes, MeshCollisionUnread,
+				bInteractive ? "QueryOnly/the-walk-path" : "NoCollision/the-timed-automation");
+			GSceneLine += MBuf;
+			// EVERY CAP ANNOUNCES ITSELF. snprintf returns what it WOULD have
+			// written, so a segment that did not fit says so instead of
+			// ending mid-key and reading as a missing measurement.
+			if (MWrote < 0 || MWrote >= (int)sizeof(MBuf))
+			{
+				char TBuf[96];
+				std::snprintf(TBuf, sizeof(TBuf),
+					" propSegmentTruncated=yes/wanted=%d/buffer=%d",
+					MWrote, (int)sizeof(MBuf));
+				GSceneLine += TBuf;
+			}
+		}
 		// THE SPAWNS THAT ARE NOT PIECES, READ BACK RATHER THAN ASSUMED. A
 		// null here is why a frame would be black, and it is a different
 		// fault from an empty street.
