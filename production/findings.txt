@@ -7,6 +7,40 @@ Plain text on purpose. tools/producer-check.py walks *.md and tools/docs-check.p
 governs game-design/, so a .txt here is outside both and cannot turn verify red.
 
 --------------------------------------------------------------------------
+2026-09-08  THE BOT'S OWN LOOP SWEEPS. SEVENTY-SIX SECONDS, MEASURED BY
+            TIMESTAMPS RATHER THAN BY THE COUNTER THAT WAS BUILT FOR IT.
+--------------------------------------------------------------------------
+RULING 2's SECOND HALF, ANSWERED, and it corrects a suspicion of mine from
+earlier in the day. On reading outboxFiles=10 against outboxReceipts=15 I told
+Jafar the bot's loop probably did not sweep at all and that I had switched off
+the only proven sender. That reading was taken 2.5 minutes after the file
+appeared and could not support the claim.
+
+MEASURED, by three clocks that cannot be reconciled any other way:
+
+    commit a0ff30d4 pushed          2026-09-08T16:37:09Z
+    message 36 accepted by Telegram 2026-09-08T16:38:25Z   (76 seconds later)
+    the previous CI sweep ran       2026-09-08T16:29Z, before the file existed
+    my CI dispatch                  2026-09-08T16:54:46Z, 16 minutes AFTER
+
+No CI sweep existed in the window, so the bot's own loop found the file and
+sent it. The run I dispatched afterwards confirms it from the other side:
+sent=0 alreadySent=11.
+
+WHY THE COUNTER DID NOT ANSWER THIS, which is the part worth keeping. The
+per-pass counter Jafar ruled is built, tested and published, and it reported
+NOTHING at all, because the supervisor that writes the status file has not
+reloaded (see the supervisor staleness finding below). The question was
+answered instead by three timestamps that were already being recorded for
+other reasons. AN INSTRUMENT BUILT FOR A QUESTION IS NOT ALWAYS THE FASTEST
+ROUTE TO THE ANSWER, and waiting for it here would have left the question open
+for no reason.
+
+WHAT IS STILL NOT KNOWN: how OFTEN it sweeps, and whether it keeps sweeping
+over hours. One send proves the loop runs; it does not measure a rate. The
+counter is the right instrument for that and needs the supervisor restarted.
+
+--------------------------------------------------------------------------
 2026-09-08  THE RETURN HALF WORKS. THIRTY-SIX FILES CROSSED, AND ONE
             ENVIRONMENT VARIABLE WAS THE WHOLE OF IT.
 --------------------------------------------------------------------------
