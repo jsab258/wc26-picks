@@ -1,35 +1,35 @@
-# LEDGER telegram-bot remote restart - 7e479b5 @1788830321
+# LEDGER telegram-bot remote restart - 192bc4e @1788873274
 # Line 1 names the commit this was run on.
 # Route b, ruling 2026-09-07: stops the telegram-bot.py process
 # tree so tools/supervise.py restarts it on the code on disk.
-requestReason=the_poll_fix_landed_and_the_bot_is_still_running_the_code_from_before_it
+requestReason=reason=load-noninteractive-git-and-the-sweep-counter_date=2026-09-08
 
-runnerAccount=JAFAR-DESKTOP\Jafar
 targetUser=Jafar
+runnerAccount=JAFAR-DESKTOP\Jafar
 stableEvidence=before
-stableHead=81546fd8f96d39be8939ee89914e926958bdf324
-botSourceSha256=E4B54DABEE0A7AFF69B5A131FBAD4260A47F415ADC69F885C117B62F16B2D855
+stableHead=614bddb2343a2e8d395ff44ba294f0b01d3fadb9
+botSourceSha256=72D11D0A506A5A2C1DA45630D46E80CC463E2D4830C26901FB3F9043D49516CC
 outboxSourceSha256=A86C71AFE67A85D341D86C94C42D00CA20AF3DB57A905160DA67A5AE9F086AEB
 botQueryOk=true botProcessesFound=2
-botCandidatePid=17232 botCandidateParentPid=14608 botCandidateCommandLine=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe~C:\Users\Jafar\wc26-picks\tools\runner\telegram-bot.py
-botCandidatePid=6800 botCandidateParentPid=17232 botCandidateCommandLine="C:\Users\Jafar\miniconda3\python.exe"~C:\Users\Jafar\wc26-picks\tools\runner\telegram-bot.py
-botTreeBefore=14608>17232>6800
+botCandidatePid=3312 botCandidateParentPid=14608 botCandidateCommandLine=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe~C:\Users\Jafar\wc26-picks\tools\runner\telegram-bot.py
+botCandidatePid=9364 botCandidateParentPid=3312 botCandidateCommandLine="C:\Users\Jafar\miniconda3\python.exe"~C:\Users\Jafar\wc26-picks\tools\runner\telegram-bot.py
+botTreeBefore=14608>3312>9364
 botRootCommandLine=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe~C:\Users\Jafar\wc26-picks\tools\runner\telegram-bot.py
 supervisorQueryOk=True supervisorPidsSeen=19712,14608
-botLeafStopped=6800
+botLeafStopped=9364
 botRootExitedOnItsOwn=true
-botOldPid=6800
-botStopInstant=2026-09-08T01:18:41.8790568Z
-botCameBackAfterSec=4
-botNewPid=9364
+botOldPid=9364
+botStopInstant=2026-09-08T13:14:35.0794114Z
+botCameBackAfterSec=5
+botNewPid=3868
 botPidChanged=True
-botTreeJustAfter=14608>3312>9364
-botRootCreationDate=09/08/2026 03:18:46
-botTreeAfter=14608>3312>9364
+botTreeJustAfter=14608>5620>3868
+botRootCreationDate=09/08/2026 15:14:40
+botTreeAfter=14608>5620>3868
 botNewTreeStableForSec=20
 stableEvidence=after
-stableHead=81546fd8f96d39be8939ee89914e926958bdf324
-botSourceSha256=E4B54DABEE0A7AFF69B5A131FBAD4260A47F415ADC69F885C117B62F16B2D855
+stableHead=614bddb2343a2e8d395ff44ba294f0b01d3fadb9
+botSourceSha256=72D11D0A506A5A2C1DA45630D46E80CC463E2D4830C26901FB3F9043D49516CC
 outboxSourceSha256=A86C71AFE67A85D341D86C94C42D00CA20AF3DB57A905160DA67A5AE9F086AEB
 botStopped=True
 restartAction=restarted
