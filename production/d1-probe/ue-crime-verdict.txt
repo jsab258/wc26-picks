@@ -1,0 +1,9 @@
+# UE crime probe 76d9bd6 @1788896250
+# Line 1 names the commit this was measured on, as the Unity verdict does.
+
+launchStatus=NO-LAUNCH launchReason=build-step-published-no-binary
+witnessStatus=NOTHING-MEASURED gossipStatus=NOTHING-MEASURED
+overheardStatus=NOTHING-MEASURED crimeFramesWrote=0/6 crimeSeqFramesWrote=0/32
+NOTHING MEASURED - no crime was committed on this commit and no older one is carried forward.
+crimeReached=end
+crimeClipStatus=SKIPPED crimeClipReason=no-sequence-frames-found crimeClipDirsSearched=1/3
