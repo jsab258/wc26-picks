@@ -337,12 +337,42 @@ jobs:
               "sweepStatus=NOTHING-MEASURED reason=no-python-found" | Add-Content $out
             } else {
               "sweepPython=$($py -replace ' ','~')" | Add-Content $out
+              # -u AND A HARD WAIT, because the first attempt produced NOT
+              # ONE LINE in six minutes and then died with the step. Two
+              # things could do that, and both are fixed here rather than
+              # guessed between: python block-buffers stdout when it is a
+              # pipe rather than a console, so even a process that ran fine
+              # would show nothing until it exited; and a process that truly
+              # hangs never exits, so a pipeline that appends on completion
+              # appends never. -u makes each line appear as it happens, and
+              # the redirect plus a bounded wait means a hang still leaves
+              # the lines it reached, which is the half that names WHERE.
+              $raw = Join-Path $env:RUNNER_TEMP "sweep-raw.txt"
+              Remove-Item $raw -Force -ErrorAction SilentlyContinue
+              Remove-Item "$raw.err" -Force -ErrorAction SilentlyContinue
               Push-Location $repo
-              & $py "tools\runner\telegram-bot.py" --send-outbox 2>&1 |
-                ForEach-Object { $_.ToString() | Add-Content $out; Write-Host $_ }
-              $code = $LASTEXITCODE
+              $proc = Start-Process -FilePath $py -PassThru -NoNewWindow -ArgumentList @("-u", "tools\runner\telegram-bot.py", "--send-outbox") -RedirectStandardOutput $raw -RedirectStandardError "$raw.err"
+              $waited = 0
+              while (-not $proc.HasExited -and $waited -lt 180) {
+                Start-Sleep -Seconds 3
+                $waited += 3
+              }
+              if (-not $proc.HasExited) {
+                "sweepStatus=HUNG sweepWaitedSec=$waited sweepNote=killed-after-the-wait/lines-below-are-where-it-got-to" | Add-Content $out
+                try { $proc.Kill() } catch { }
+                Start-Sleep -Seconds 2
+              } else {
+                "sweepStatus=EXITED sweepWaitedSec=$waited sweepExitCode=$($proc.ExitCode)" | Add-Content $out
+              }
               Pop-Location
-              "sweepExitCode=$code" | Add-Content $out
+              foreach ($f in @($raw, "$raw.err")) {
+                if (Test-Path $f) {
+                  $lines = @(Get-Content $f -ErrorAction SilentlyContinue)
+                  "sweepStream=$(Split-Path $f -Leaf) sweepLines=$($lines.Count)" | Add-Content $out
+                  $lines | Select-Object -Last 40 | Add-Content $out
+                  if ($lines.Count -gt 40) { "(+$($lines.Count - 40) earlier line(s) not shown)" | Add-Content $out }
+                }
+              }
             }
           }
           Write-Host (Get-Content $out -Raw)
