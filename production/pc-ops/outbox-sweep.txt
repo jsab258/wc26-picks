@@ -1,0 +1,6 @@
+# LEDGER one outbox sweep - a785fa5 @1788831346
+# Line 1 names the commit this was run on. This step SENDS: it runs
+# tools/runner/telegram-bot.py --send-outbox once, which is the same
+# pass the bot's own loop makes. Streamed, so a timeout still leaves
+# everything it learned.
+sweepPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
