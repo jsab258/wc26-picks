@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using Ledger.Core;
 
@@ -84,6 +86,8 @@ namespace Ledger.PerceptionGolden
                                   .Append(D(ly)).Append('|').Append(D(lt)).Append('|').Append(occ ? "1" : "0")
                                   .Append('|').Append(Perception.SymmetryPredictsSeen(m, a, ly, lt, occ) ? "1" : "0").Append('\n');
 
+            EmitCrimeSlice(sb);
+
             var text = sb.ToString();
             System.IO.File.WriteAllText(path, text);
             // The COUNT with its denominator, on stderr so it cannot pollute
@@ -93,6 +97,666 @@ namespace Ledger.PerceptionGolden
             foreach (var ch in text) if (ch == '\n') rows++;
             Console.Error.WriteLine($"golden rows emitted: {rows - 2} -> {path}");
             return 0;
+        }
+
+        // ---------------------------------------------------------------
+        // THE CRIME SLICE, ruled 2026-09-08 (section 1 of
+        // game-design/decision-2026-09-08-the-crime-the-witness-and-the-
+        // overheard-consequence.md). Every row below is emitted BY THE REAL
+        // CORE: the C++ transliteration in ue-probe answers the same rows
+        // and the two must agree. Nothing here computes an expectation by
+        // hand, because a hand-typed expectation would only prove that the
+        // hand and the port agree.
+        //
+        // NO VALUE MAY CONTAIN A SPACE, A NEWLINE OR A PIPE. Every reader on
+        // both sides splits on a delimiter and truncates silently when one
+        // appears, so strings travel escaped: space as ~, newline as ^, pipe
+        // as !. The C++ Escape in CoreGolden.h is the same three
+        // substitutions and a dropped carriage return.
+        static string Esc(string s)
+        {
+            if (s == null) return "null";
+            var sb = new StringBuilder();
+            foreach (var c in s)
+            {
+                if (c == ' ') sb.Append('~');
+                else if (c == '\n') sb.Append('^');
+                else if (c == '\r') { }
+                else if (c == '|') sb.Append('!');
+                else sb.Append(c);
+            }
+            return sb.ToString();
+        }
+        static string Unesc(string s)
+        {
+            var sb = new StringBuilder();
+            foreach (var c in s)
+            {
+                if (c == '~') sb.Append(' ');
+                else if (c == '^') sb.Append('\n');
+                else if (c == '!') sb.Append('|');
+                else sb.Append(c);
+            }
+            return sb.ToString();
+        }
+        static string Bit(bool b) => b ? "1" : "0";
+
+        static void Row(StringBuilder sb, params string[] parts)
+        {
+            sb.Append(string.Join("|", parts)).Append('\n');
+        }
+
+        static void EmitCrimeSlice(StringBuilder sb)
+        {
+            // ---- Perception, the hearing half -------------------------
+            //
+            // THE CONSTANTS BY NAME. A constant that drifted would otherwise
+            // only surface through whichever function happens to read it,
+            // and "the radius is wrong" is a much worse bug report than
+            // "AudibleDivisor is 8.5 here and 8.0 there".
+            Row(sb, "PerceptionConst", "NoticeSeconds", D(Perception.NoticeSeconds));
+            Row(sb, "PerceptionConst", "AmbientNight3am", D(Perception.AmbientNight3am));
+            Row(sb, "PerceptionConst", "AmbientDaytimeStreet", D(Perception.AmbientDaytimeStreet));
+            Row(sb, "PerceptionConst", "LoudShout", D(Perception.LoudShout));
+            Row(sb, "PerceptionConst", "LoudBottleSmash", D(Perception.LoudBottleSmash));
+            Row(sb, "PerceptionConst", "WallAttenuation", D(Perception.WallAttenuation));
+            Row(sb, "PerceptionConst", "LoudRemark", D(Perception.LoudRemark));
+            Row(sb, "PerceptionConst", "AudibleBaseMetres", D(Perception.AudibleBaseMetres));
+            Row(sb, "PerceptionConst", "AudibleDivisor", D(Perception.AudibleDivisor));
+            Row(sb, "PerceptionConst", "AudibleCapMetres", D(Perception.AudibleCapMetres));
+            Row(sb, "PerceptionConst", "AlertFloorDrop", D(Perception.AlertFloorDrop));
+
+            // The six worked cases in the docstring are inside this spread,
+            // plus the wall, the cap and a loudness under every floor.
+            foreach (var loud in new double[] { 0, 25, 38, 42, 55, 58, 62, 65, 70, 100 })
+                foreach (var amb in new double[] { 15, 37, 45, 58, 68 })
+                    foreach (var occ in new[] { false, true })
+                        Row(sb, "AudibleRadius", D(loud), D(amb), Bit(occ),
+                            D(Perception.AudibleRadius(loud, amb, occ)));
+
+            foreach (var amb in new double[] { 15, 45, 68 })
+                foreach (var alert in new double[] { -1, 0, 0.25, 0.5, 1, 2 })
+                    Row(sb, "EffectiveFloor", D(amb), D(alert),
+                        D(Perception.EffectiveFloor(amb, alert)));
+
+            foreach (var m in new double[] { 0, 1.94, 1.95, 2.3, 3.6, 13.0, 13.1, 14, 20, 86, 177, 250, 251 })
+                foreach (var loud in new double[] { 25, 65, 70, 100 })
+                    foreach (var amb in new double[] { 15, 45 })
+                        foreach (var occ in new[] { false, true })
+                            foreach (var alert in new double[] { 0, 1 })
+                                Row(sb, "Heard", D(m), D(loud), D(amb), Bit(occ), D(alert),
+                                    Bit(Perception.Heard(m, loud, amb, occ, alert)));
+
+            // ---- Observation ------------------------------------------
+            //
+            // EVERY SLOT SET THERE IS. 128 combinations of seven flags, so
+            // every branch of Label is reached by something and the count
+            // has a denominator a reader can check.
+            for (int bits = 0; bits < 128; bits++)
+            {
+                var o = new Observation { Slots = (Slot)bits };
+                Row(sb, "Label", bits.ToString(Inv), Esc(o.Label()));
+            }
+
+            foreach (var bits in new[] { 0, 1, 2, 4, 8, 16, 32, 64, 12, 28, 60, 20, 36, 68, 65, 127 })
+                foreach (var rung in new[] { 0, 1, 3, 4 })
+                    foreach (var looked in new[] { false, true })
+                        foreach (var heard in new[] { false, true })
+                            Row(sb, "CertaintyFor", bits.ToString(Inv), rung.ToString(Inv),
+                                Bit(looked), Bit(heard),
+                                D(Observe.CertaintyFor((Slot)bits, rung, looked, heard)));
+
+            EmitResolveCases(sb);
+
+            // ---- GameTime ---------------------------------------------
+            foreach (var t in new[] { new GameTime(1, 12, 0), new GameTime(1, 0, 0),
+                                      new GameTime(3, 14, 5), new GameTime(0, 23, 59),
+                                      new GameTime(12, 9, 30) })
+            {
+                Row(sb, "GameTime", t.Day.ToString(Inv), t.Hour.ToString(Inv), t.Minute.ToString(Inv),
+                    "toString", Esc(t.ToString()));
+                Row(sb, "GameTime", t.Day.ToString(Inv), t.Hour.ToString(Inv), t.Minute.ToString(Inv),
+                    "totalMinutes", t.TotalMinutes.ToString(Inv));
+            }
+
+            // ---- MemoryEvent ------------------------------------------
+            //
+            // THE SIX IMPORTANCES WHERE C# AND printf DISAGREE ARE ALL HERE.
+            // ToString("0.00") rounds the shortest decimal half away from
+            // zero; C's %.2f rounds the binary value half to even, and 0.125
+            // prints 0.13 in one and 0.12 in the other. The port carries its
+            // own formatter for exactly this reason and these rows are what
+            // check it.
+            // THE TWO ROWS THAT DECIDE WHICH DECIMAL BUFFER C# ROUNDS.
+            // BitDecrement gives the neighbour double by construction so
+            // nobody types seventeen digits, and the pair sits one ulp below
+            // a half, which is where a fifteen-digit render and a
+            // shortest-round-trip render part company.
+            foreach (var imp in new double[] { 0.125, 0.135, 0.005, 0.015, 0.045, 0.345,
+                                               0.36096, 0.9, 0.6, 0.85, 0.4512, 0, 1, 1.5, -0.5,
+                                               Math.BitDecrement(0.125), Math.BitDecrement(0.135) })
+                Row(sb, "TwoDecimals", D(imp),
+                    Esc(imp.ToString("0.00", Inv)));
+
+            foreach (var imp in new double[] { 0.6, 0.9, 0.36096, 0.125, 0.85, 1.4 })
+                Row(sb, "MemoryLine", "1", "12", "5", "observation", D(imp),
+                    Esc("a window on the Parade went in"),
+                    Esc(new MemoryEvent(new GameTime(1, 12, 5), "observation", imp,
+                                        "a window on the Parade went in").ToLine()));
+            Row(sb, "MemoryLine", "2", "9", "0", "reflection", D(0.4),
+                Esc("  two lines\nbecome one  "),
+                Esc(new MemoryEvent(new GameTime(2, 9, 0), "reflection", 0.4,
+                                    "  two lines\nbecome one  ").ToLine()));
+
+            // ---- Suspicion --------------------------------------------
+            foreach (var which in new[] { "subject", "predicate", "value", "none" })
+            {
+                string got;
+                try
+                {
+                    var f = new Fact(which == "subject" ? null : "player",
+                                     which == "predicate" ? null : "broke_window_d1",
+                                     which == "value" ? null : "east_parade_glass0");
+                    got = Esc(f.ToString());
+                }
+                catch (ArgumentNullException e) { got = "threw/" + e.ParamName; }
+                Row(sb, "FactNull", which, got);
+            }
+
+            // ---- the leak guard ---------------------------------------
+            var sayCases = new[]
+            {
+                new[] { "Mitch says it was player, and came to say so", "player" },
+                new[] { "two players were there", "player" },
+                new[] { "it was the player's coat", "player" },
+                new[] { "Player was seen on the Parade", "player" },
+                new[] { "a player", "player" },
+                new[] { "player", "player" },
+                new[] { "replayer", "player" },
+                new[] { "player_one", "player" },
+                new[] { "", "player" },
+                new[] { "the new owner", "player" },
+                new[] { "Novak said so", "novak" },
+            };
+            foreach (var c in sayCases)
+                Row(sb, "SaysWord", Esc(c[0]), Esc(c[1]), Bit(GossipMill.SaysWord(c[0], c[1])));
+
+            EmitScenarios(sb);
+        }
+
+        // Resolve's arguments, in the order the table writes them. This list
+        // and the one in ue-probe CoreGolden.h are the contract between the
+        // two engines.
+        //   1 loudness        2 criesOut       3 weaponDrawn   4 actorFled
+        //   5 leavesBody      6 hadPrecursor   7 isAccident
+        //   8 actorMetres     9 actorOffAxis  10 actorLight   11 actorOccluded
+        //  12 victimMetres   13 victimOffAxis 14 victimLight  15 victimOccluded
+        //  16 familiarity    17 actorHasMark  18 faceToward   19 ambientFloor
+        //  20 alertness      21 secondsWatching  22 rungFloor 23 arrivedLater
+        //  24 field          25 expected
+        class RCase
+        {
+            public string Name;
+            public double Loud; public bool Cry, Drawn, Fled, Body, Precursor, Accident;
+            public double AM, AOff, ALight; public bool AOcc;
+            public double VM, VOff, VLight; public bool VOcc;
+            public double Fam; public bool Mark, Face;
+            public double Amb, Alert, Watching; public int Floor; public bool Later;
+        }
+
+        static void EmitResolveCases(StringBuilder sb)
+        {
+            // TWELVE CASES CHOSEN TO STRADDLE BRANCHES, NOT TO BE TIDY. The
+            // first two are the ruling's own prediction for crime A and
+            // crime B; the rest reach the branches those two do not.
+            var cases = new List<RCase>
+            {
+                // crime A, the doorstep witness: sees both, hears it, rung 3.
+                new RCase { Name = "crimeA", Loud = 70, Fled = true,
+                            AM = 2.3, ALight = 1.0, VM = 2.3, VLight = 1.0,
+                            Face = true, Amb = 45, Watching = 3.0 },
+                // crime B, the yard: a terrace in the way, and the occluded
+                // hearing radius is 1.95m against fourteen.
+                new RCase { Name = "crimeB", Loud = 70, Fled = true,
+                            AM = 14, ALight = 1.0, AOcc = true,
+                            VM = 14, VLight = 1.0, VOcc = true,
+                            Face = true, Amb = 45, Watching = 3.0 },
+                // walked into it afterwards: aftermath and nothing else.
+                new RCase { Name = "arrivedBody", Loud = 70, Body = true,
+                            AM = 2, ALight = 1, VM = 2, VLight = 1,
+                            Face = true, Amb = 45, Watching = 3, Later = true },
+                // and an accident with no body still returns 0.9 certainty
+                // with an EMPTY slot set, which is the subtle half.
+                new RCase { Name = "arrivedAccident", Loud = 70, Accident = true,
+                            AM = 2, ALight = 1, VM = 2, VLight = 1,
+                            Face = true, Amb = 45, Watching = 3, Later = true },
+                // a glance too short to be a look: still hears it.
+                new RCase { Name = "glance", Loud = 70, Fled = true,
+                            AM = 2.3, ALight = 1, VM = 2.3, VLight = 1,
+                            Face = true, Amb = 45, Watching = 0.34 },
+                // what they had already worked out, as a floor.
+                new RCase { Name = "rungFloor", Loud = 70, AM = 30, ALight = 1,
+                            VM = 30, VLight = 1, Face = true, Amb = 45,
+                            Watching = 3, Floor = 4 },
+                // the weapon appearing, victim out of sight, nothing audible.
+                new RCase { Name = "drawNoAct", Loud = 0, Drawn = true,
+                            AM = 3, ALight = 1, VM = 1e6, VLight = 0, VOcc = true,
+                            Face = true, Amb = 45, Watching = 3 },
+                new RCase { Name = "precursorOnly", Loud = 0, Precursor = true,
+                            AM = 3, ALight = 1, VM = 1e6, VLight = 0, VOcc = true,
+                            Face = true, Amb = 45, Watching = 3 },
+                new RCase { Name = "flight", Loud = 0, Fled = true,
+                            AM = 3, ALight = 1, VM = 1e6, VLight = 0, VOcc = true,
+                            Face = true, Amb = 45, Watching = 3 },
+                // a cry heard from a victim nobody is looking at: the ACT
+                // slot arrives on hearing while CertaintyFor's heard flag is
+                // heardAct alone, so this one takes the full 0.40.
+                new RCase { Name = "cryOnly", Loud = 0, Cry = true,
+                            AM = 1e6, ALight = 0, AOcc = true,
+                            VM = 5, VOff = 70, VLight = 1,
+                            Face = true, Amb = 45, Watching = 3 },
+                // three in the morning: too dark to see, loud enough to hear.
+                new RCase { Name = "night", Loud = 70, AM = 5, ALight = 0,
+                            VM = 5, VLight = 0, Face = true, Amb = 15, Watching = 3 },
+                // the same distance, twice, with the alert floor between them.
+                new RCase { Name = "calmAt20", Loud = 70, AM = 20, ALight = 0,
+                            VM = 20, VLight = 0, Face = true, Amb = 45, Watching = 3 },
+                new RCase { Name = "alertAt20", Loud = 70, AM = 20, ALight = 0,
+                            VM = 20, VLight = 0, Face = true, Amb = 45,
+                            Alert = 1.0, Watching = 3 },
+            };
+
+            string[] fields = { "slots", "rung", "certainty", "willingness", "label",
+                                "accused", "namesSomebody", "empty", "witnessId", "eventId",
+                                "awareness", "retellings" };
+            foreach (var c in cases)
+            {
+                var deed = new Deed
+                {
+                    EventId = "e1", ActorId = "a1", VictimId = "v1",
+                    Loudness = c.Loud, VictimCriesOut = c.Cry, WeaponDrawn = c.Drawn,
+                    ActorFled = c.Fled, LeavesBody = c.Body, HadPrecursor = c.Precursor,
+                    IsAccident = c.Accident,
+                };
+                var v = new Vantage
+                {
+                    WitnessId = "w1",
+                    ToActor = Sight.At(c.AM, c.ALight, c.AOff, c.AOcc),
+                    ToVictim = Sight.At(c.VM, c.VLight, c.VOff, c.VOcc),
+                    Familiarity = c.Fam, ActorHasMark = c.Mark, FaceToward = c.Face,
+                    AmbientFloor = c.Amb, Alertness = c.Alert, SecondsWatching = c.Watching,
+                    RungFloor = c.Floor, ArrivedLater = c.Later,
+                };
+                var o = Observe.Resolve(deed, v);
+                var args = new List<string>
+                {
+                    "Resolve",
+                    D(c.Loud), Bit(c.Cry), Bit(c.Drawn), Bit(c.Fled), Bit(c.Body),
+                    Bit(c.Precursor), Bit(c.Accident),
+                    D(c.AM), D(c.AOff), D(c.ALight), Bit(c.AOcc),
+                    D(c.VM), D(c.VOff), D(c.VLight), Bit(c.VOcc),
+                    D(c.Fam), Bit(c.Mark), Bit(c.Face), D(c.Amb), D(c.Alert), D(c.Watching),
+                    c.Floor.ToString(Inv), Bit(c.Later),
+                };
+                foreach (var f in fields)
+                {
+                    string got;
+                    switch (f)
+                    {
+                        case "slots": got = ((int)o.Slots).ToString(Inv); break;
+                        case "rung": got = o.Rung.ToString(Inv); break;
+                        case "certainty": got = D(o.Certainty); break;
+                        case "willingness": got = D(o.Willingness); break;
+                        case "label": got = Esc(o.Label()); break;
+                        case "accused": got = Esc(string.IsNullOrEmpty(o.AccusedId) ? "none" : o.AccusedId); break;
+                        case "namesSomebody": got = Bit(o.NamesSomebody); break;
+                        case "empty": got = Bit(o.Empty); break;
+                        case "witnessId": got = Esc(o.WitnessId); break;
+                        case "awareness": got = ((int)o.Awareness).ToString(Inv); break;
+                        case "retellings": got = o.Retellings.ToString(Inv); break;
+                        default: got = Esc(o.EventId); break;
+                    }
+                    var row = new List<string>(args); row.Add(f); row.Add(got);
+                    Row(sb, row.ToArray());
+                }
+            }
+        }
+
+        // ---- the stateful half ----------------------------------------
+        //
+        // THE FIXTURE IS WRITTEN TWICE, here and in ue-probe CoreGolden.h,
+        // and that cost is named rather than hidden. A memory that prunes
+        // and a mill that ticks cannot be described by one row of arguments,
+        // so each scenario is built by both engines and its READINGS are
+        // compared. If the builders drift the readings disagree and the test
+        // goes red; the one failure mode this cannot have is a silent pass,
+        // which would need both builders wrong in the same way at once.
+        static void Key(StringBuilder sb, string scenario, string key, string value)
+        {
+            Row(sb, "Scenario", scenario, key, value);
+        }
+
+        static Gossiper Agent(string id, string name, string circle)
+        {
+            return new Gossiper(id, name, null, null, null, circle);
+        }
+
+        static void EmitScenarios(StringBuilder sb)
+        {
+            {   // mem_basic
+                var s = new MemoryStore("w1");
+                s.Append(new MemoryEvent(new GameTime(1, 12, 0), "observation", 0.6,
+                                         "a window on the Parade went in"));
+                s.Append(new MemoryEvent(new GameTime(1, 12, 5), "heard", 0.36096,
+                                         "I heard from the shopkeeper that a window went in"));
+                s.Append(new MemoryEvent(new GameTime(2, 9, 0), "reflection", 0.125,
+                                         "  two lines\nbecome one  "));
+                Key(sb, "mem_basic", "count", s.Events.Count.ToString(Inv));
+                Key(sb, "mem_basic", "day1", s.EventsOnDay(1).Count.ToString(Inv));
+                Key(sb, "mem_basic", "day2", s.EventsOnDay(2).Count.ToString(Inv));
+                Key(sb, "mem_basic", "day3", s.EventsOnDay(3).Count.ToString(Inv));
+                Key(sb, "mem_basic", "line0", Esc(s.Events[0].ToLine()));
+                Key(sb, "mem_basic", "line1", Esc(s.Events[1].ToLine()));
+                Key(sb, "mem_basic", "line2", Esc(s.Events[2].ToLine()));
+                Key(sb, "mem_basic", "markdown", Esc(s.ToMarkdown()));
+            }
+            {   // mem_prune. Distinct importances on purpose: List.Sort and
+                // std::sort are both unstable, so a tie would be answered by
+                // the sort rather than by the model.
+                var s = new MemoryStore("w1");
+                for (int i = 0; i <= 600; i++)
+                    s.Append(new MemoryEvent(new GameTime(1, i / 60, i % 60), "observation",
+                                             i / 1000.0, "e" + i.ToString(Inv)));
+                Key(sb, "mem_prune", "countAfter601", s.Events.Count.ToString(Inv));
+                Key(sb, "mem_prune", "firstImportanceAfter601", D(s.Events[0].Importance));
+                Key(sb, "mem_prune", "firstTextAfter601", Esc(s.Events[0].Text));
+                Key(sb, "mem_prune", "lastImportanceAfter601", D(s.Events[s.Events.Count - 1].Importance));
+                for (int i = 601; i <= 700; i++)
+                    s.Append(new MemoryEvent(new GameTime(1, i / 60, i % 60), "observation",
+                                             i / 1000.0, "e" + i.ToString(Inv)));
+                Key(sb, "mem_prune", "countAfter701", s.Events.Count.ToString(Inv));
+                Key(sb, "mem_prune", "firstImportanceAfter701", D(s.Events[0].Importance));
+                Key(sb, "mem_prune", "lastTextAfter701", Esc(s.Events[s.Events.Count - 1].Text));
+                Key(sb, "mem_prune", "maxEvents", MemoryStore.MaxEvents.ToString(Inv));
+            }
+            {   // gossip_crime: the ruling's own numbers.
+                var g = new SocialGraph();
+                g.Link("w1", "n2", 0.6);
+                var mill = new GossipMill(g);
+                mill.Add(Agent("w1", "the shopkeeper", "day"));
+                mill.Add(Agent("n2", "the lad in the yard", "day"));
+                var content = new Fact("player", "broke_window_d1", "east_parade_glass0");
+                var summary = "a window on the Parade went in, and I would know the face again";
+                mill.Witness("w1", content, summary, false, new GameTime(1, 12, 0), 0.94);
+                var w1 = mill.Get("w1"); var n2 = mill.Get("n2");
+                Key(sb, "gossip_crime", "tie", D(mill.Tie("w1", "n2")));
+                Key(sb, "gossip_crime", "offered", mill.WitnessesOffered.ToString(Inv));
+                Key(sb, "gossip_crime", "dropped", mill.WitnessesDropped.ToString(Inv));
+                Key(sb, "gossip_crime", "w1Rumors", w1.Rumors.Count.ToString(Inv));
+                Key(sb, "gossip_crime", "w1Conf", D(w1.Rumors[0].Confidence));
+                Key(sb, "gossip_crime", "w1Hops", w1.Rumors[0].Hops.ToString(Inv));
+                Key(sb, "gossip_crime", "w1Topic", Esc(w1.Rumors[0].TopicKey));
+                Key(sb, "gossip_crime", "w1Knowledge", w1.Knowledge.Facts.Count.ToString(Inv));
+                Key(sb, "gossip_crime", "w1MemCount", w1.Memory.Events.Count.ToString(Inv));
+                Key(sb, "gossip_crime", "w1MemLine0", Esc(w1.Memory.Events[0].ToLine()));
+                Key(sb, "gossip_crime", "saysPlayer", mill.SummariesSaying("player").ToString(Inv));
+                var r1 = mill.Tick(new GameTime(1, 12, 1), (a, b) => false);
+                Key(sb, "gossip_crime", "r1Events", r1.Count.ToString(Inv));
+                Key(sb, "gossip_crime", "r1N2Rumors", n2.Rumors.Count.ToString(Inv));
+                var r2 = mill.Tick(new GameTime(1, 12, 2), (a, b) => true);
+                Key(sb, "gossip_crime", "r2Events", r2.Count.ToString(Inv));
+                Key(sb, "gossip_crime", "r2From", Esc(r2.Count == 0 ? "none" : r2[0].FromId));
+                Key(sb, "gossip_crime", "r2To", Esc(r2.Count == 0 ? "none" : r2[0].ToId));
+                Key(sb, "gossip_crime", "r2Conf", r2.Count == 0 ? "none" : D(r2[0].Rumor.Confidence));
+                Key(sb, "gossip_crime", "r2Hops", r2.Count == 0 ? "none" : r2[0].Rumor.Hops.ToString(Inv));
+                Key(sb, "gossip_crime", "r2Contradiction", r2.Count == 0 ? "none" : Bit(r2[0].Contradiction));
+                Key(sb, "gossip_crime", "r2Exposure", r2.Count == 0 ? "none" : Bit(r2[0].Exposure));
+                Key(sb, "gossip_crime", "r2N2Rumors", n2.Rumors.Count.ToString(Inv));
+                Key(sb, "gossip_crime", "r2N2MemCount", n2.Memory.Events.Count.ToString(Inv));
+                Key(sb, "gossip_crime", "r2N2MemLine0", Esc(n2.Memory.Events[0].ToLine()));
+                Key(sb, "gossip_crime", "r2N2Knowledge", n2.Knowledge.Facts.Count.ToString(Inv));
+                var r3 = mill.Tick(new GameTime(1, 12, 3), (a, b) => true);
+                Key(sb, "gossip_crime", "r3Events", r3.Count.ToString(Inv));
+                Key(sb, "gossip_crime", "r3N2Rumors", n2.Rumors.Count.ToString(Inv));
+                Key(sb, "gossip_crime", "r3W1Rumors", w1.Rumors.Count.ToString(Inv));
+                Key(sb, "gossip_crime", "r3N2MemCount", n2.Memory.Events.Count.ToString(Inv));
+                Key(sb, "gossip_crime", "n2Holds", Bit(n2.Holds("player.broke_window_d1", "east_parade_glass0")));
+                Key(sb, "gossip_crime", "n2HoldsOther", Bit(n2.Holds("player.broke_window_d1", "east_parade_glass1")));
+                Key(sb, "gossip_crime", "w1BestConf", D(w1.Best("player.broke_window_d1").Confidence));
+                Key(sb, "gossip_crime", "n2BestConf", D(n2.Best("player.broke_window_d1").Confidence));
+            }
+            {   // gossip_dropped
+                var mill = new GossipMill(new SocialGraph());
+                mill.Witness("ghost", new Fact("player", "broke_window_d1", "east_parade_glass0"),
+                             "a window went in", false, new GameTime(1, 12, 0), 1.0);
+                Key(sb, "gossip_dropped", "offered", mill.WitnessesOffered.ToString(Inv));
+                Key(sb, "gossip_dropped", "dropped", mill.WitnessesDropped.ToString(Inv));
+                Key(sb, "gossip_dropped", "agents", mill.Agents.Count().ToString(Inv));
+            }
+            {   // gossip_contradiction
+                var g = new SocialGraph(); g.Link("w1", "n2", 0.6);
+                var mill = new GossipMill(g);
+                mill.Add(Agent("w1", "the shopkeeper", "day"));
+                mill.Add(Agent("n2", "the lad in the yard", "day"));
+                mill.Get("n2").Knowledge.Learn(new Fact("player", "location_d2_evening", "home"));
+                mill.Witness("w1", new Fact("player", "location_d2_evening", "warehouse"),
+                             "he was down at the warehouse", false, new GameTime(1, 12, 0), 1.0);
+                var ev = mill.Tick(new GameTime(1, 12, 2), (a, b) => true);
+                var n2 = mill.Get("n2");
+                Key(sb, "gossip_contradiction", "events", ev.Count.ToString(Inv));
+                Key(sb, "gossip_contradiction", "contradiction", ev.Count == 0 ? "none" : Bit(ev[0].Contradiction));
+                Key(sb, "gossip_contradiction", "exposure", ev.Count == 0 ? "none" : Bit(ev[0].Exposure));
+                Key(sb, "gossip_contradiction", "passed", ev.Count == 0 ? "none" : D(ev[0].Rumor.Confidence));
+                Key(sb, "gossip_contradiction", "n2MemCount", n2.Memory.Events.Count.ToString(Inv));
+                Key(sb, "gossip_contradiction", "n2MemLine0", Esc(n2.Memory.Events[0].ToLine()));
+                Key(sb, "gossip_contradiction", "n2MemLine1", Esc(n2.Memory.Events[1].ToLine()));
+            }
+            {   // gossip_exposure
+                var g = new SocialGraph(); g.Link("w1", "n2", 0.6);
+                var mill = new GossipMill(g);
+                mill.Add(Agent("w1", "the fence", "night"));
+                mill.Add(Agent("n2", "the shopkeeper", "day"));
+                mill.Witness("w1", new Fact("player", "night_business_d1", "the docks"),
+                             "he was down the docks after midnight", true, new GameTime(1, 12, 0), 1.0);
+                var ev = mill.Tick(new GameTime(1, 12, 2), (a, b) => true);
+                Key(sb, "gossip_exposure", "events", ev.Count.ToString(Inv));
+                Key(sb, "gossip_exposure", "contradiction", ev.Count == 0 ? "none" : Bit(ev[0].Contradiction));
+                Key(sb, "gossip_exposure", "exposure", ev.Count == 0 ? "none" : Bit(ev[0].Exposure));
+            }
+            {   // gossip_suppressed
+                var g = new SocialGraph(); g.Link("w1", "n2", 0.6);
+                var mill = new GossipMill(g);
+                mill.Add(Agent("w1", "the shopkeeper", "day"));
+                mill.Add(Agent("n2", "the lad in the yard", "day"));
+                mill.Witness("w1", new Fact("player", "broke_window_d1", "east_parade_glass0"),
+                             "a window on the Parade went in", false, new GameTime(1, 12, 0), 0.94);
+                mill.Get("w1").Suppressed.Add("player.broke_window_d1");
+                var ev = mill.Tick(new GameTime(1, 12, 2), (a, b) => true);
+                Key(sb, "gossip_suppressed", "events", ev.Count.ToString(Inv));
+                Key(sb, "gossip_suppressed", "n2Rumors", mill.Get("n2").Rumors.Count.ToString(Inv));
+            }
+            {   // gossip_leashed
+                var g = new SocialGraph(); g.Link("w1", "n2", 0.6);
+                var mill = new GossipMill(g);
+                mill.Add(Agent("w1", "the shopkeeper", "day"));
+                mill.Add(Agent("n2", "the lad in the yard", "day"));
+                mill.Witness("w1", new Fact("player", "broke_window_d1", "east_parade_glass0"),
+                             "a window on the Parade went in", false, new GameTime(1, 12, 0), 0.94);
+                mill.Witness("w1", new Fact("novak", "owes_money_d1", "forty pounds"),
+                             "Novak is into somebody for forty", false, new GameTime(1, 12, 0), 0.94);
+                mill.Get("w1").Leashed = true;
+                var ev = mill.Tick(new GameTime(1, 12, 2), (a, b) => true);
+                Key(sb, "gossip_leashed", "events", ev.Count.ToString(Inv));
+                Key(sb, "gossip_leashed", "passedSubject", ev.Count == 0 ? "none" : Esc(ev[0].Rumor.Content.Subject));
+            }
+            {   // gossip_indelible
+                var g = new SocialGraph(); g.Link("w1", "n2", 0.1);
+                var mill = new GossipMill(g);
+                mill.Add(Agent("w1", "the shopkeeper", "day"));
+                mill.Add(Agent("n2", "the lad in the yard", "day"));
+                mill.Witness("w1", new Fact("player", "killed_d1", "the docker"),
+                             "he put the docker down and walked off", false,
+                             new GameTime(1, 12, 0), 1.0, true);
+                var ev = mill.Tick(new GameTime(1, 12, 2), (a, b) => true);
+                Key(sb, "gossip_indelible", "events", ev.Count.ToString(Inv));
+                Key(sb, "gossip_indelible", "passed", ev.Count == 0 ? "none" : D(ev[0].Rumor.Confidence));
+                Key(sb, "gossip_indelible", "hops", ev.Count == 0 ? "none" : ev[0].Rumor.Hops.ToString(Inv));
+                Key(sb, "gossip_indelible", "n2Knowledge", mill.Get("n2").Knowledge.Facts.Count.ToString(Inv));
+            }
+            {   // gossip_indelible_floor
+                var g = new SocialGraph(); g.Link("w1", "n2", 0.9);
+                var mill = new GossipMill(g);
+                mill.Add(Agent("w1", "the shopkeeper", "day"));
+                mill.Add(Agent("n2", "the lad in the yard", "day"));
+                mill.Witness("w1", new Fact("player", "killed_d1", "the docker"),
+                             "somebody put the docker down", false, new GameTime(1, 12, 0), 0.1, true);
+                var ev = mill.Tick(new GameTime(1, 12, 2), (a, b) => true);
+                Key(sb, "gossip_indelible_floor", "events", ev.Count.ToString(Inv));
+                Key(sb, "gossip_indelible_floor", "w1Conf", D(mill.Get("w1").Rumors[0].Confidence));
+                Key(sb, "gossip_indelible_floor", "w1Indelible", Bit(mill.Get("w1").Rumors[0].Indelible));
+            }
+            {   // witness_upgrade: all four branches of Witness, in order.
+                var mill = new GossipMill(new SocialGraph());
+                mill.Add(Agent("w1", "the shopkeeper", "day"));
+                var f = new Fact("player", "broke_window_d1", "east_parade_glass0");
+                mill.Witness("w1", f, "s1", false, new GameTime(1, 12, 0), 0.5);
+                mill.Witness("w1", f, "s2", false, new GameTime(1, 12, 1), 0.3);
+                mill.Witness("w1", f, "s3", false, new GameTime(1, 12, 2), 0.9);
+                mill.Witness("w1", f, "s4", false, new GameTime(1, 12, 3), 0.4, true);
+                var w1 = mill.Get("w1");
+                Key(sb, "witness_upgrade", "rumors", w1.Rumors.Count.ToString(Inv));
+                Key(sb, "witness_upgrade", "conf", D(w1.Rumors[0].Confidence));
+                Key(sb, "witness_upgrade", "hops", w1.Rumors[0].Hops.ToString(Inv));
+                Key(sb, "witness_upgrade", "indelible", Bit(w1.Rumors[0].Indelible));
+                Key(sb, "witness_upgrade", "summary", Esc(w1.Rumors[0].Summary));
+                Key(sb, "witness_upgrade", "knowledge", w1.Knowledge.Facts.Count.ToString(Inv));
+                Key(sb, "witness_upgrade", "memCount", w1.Memory.Events.Count.ToString(Inv));
+                Key(sb, "witness_upgrade", "memLine3", Esc(w1.Memory.Events[3].ToLine()));
+                mill.Witness("w1", new Fact("player", "seen_d1", "the parade"), "s5",
+                             false, new GameTime(1, 12, 4), 1.0);
+                Key(sb, "witness_upgrade", "memLine4", Esc(w1.Memory.Events[4].ToLine()));
+                Key(sb, "witness_upgrade", "knowledgeAfterCertain", w1.Knowledge.Facts.Count.ToString(Inv));
+                mill.Witness("w1", new Fact("player", "tie_d1", "glass0"), "t0", false,
+                             new GameTime(1, 12, 5), 0.5);
+                mill.Witness("w1", new Fact("player", "tie_d1", "glass1"), "t1", false,
+                             new GameTime(1, 12, 6), 0.5);
+                Key(sb, "witness_upgrade", "bestValueTie", Esc(w1.Best("player.tie_d1").Content.Value));
+                Key(sb, "witness_upgrade", "bestConfTie", D(w1.Best("player.tie_d1").Confidence));
+            }
+            {   // knowledge
+                var k = new KnowledgeBase();
+                var home = new Fact("player", "location_d2_evening", "home");
+                var ware = new Fact("player", "location_d2_evening", "warehouse");
+                Key(sb, "knowledge", "empty", ((int)k.CheckClaim(home)).ToString(Inv));
+                k.Learn(home);
+                Key(sb, "knowledge", "consistent", ((int)k.CheckClaim(home)).ToString(Inv));
+                Key(sb, "knowledge", "contradiction", ((int)k.CheckClaim(ware)).ToString(Inv));
+                k.Learn(ware);
+                Key(sb, "knowledge", "countAfterRelearn", k.Facts.Count.ToString(Inv));
+                Key(sb, "knowledge", "consistentAfterRelearn", ((int)k.CheckClaim(ware)).ToString(Inv));
+                k.Learn(new Fact("player", "owes_d1", "forty"));
+                Key(sb, "knowledge", "countAfterSecondTopic", k.Facts.Count.ToString(Inv));
+                Key(sb, "knowledge", "toString",
+                    Esc(new Fact("PLAYER", "Location_D2_Evening", "WAREHOUSE").ToString()));
+                Key(sb, "knowledge", "sameTopic", Bit(home.SameTopic(ware)));
+                Key(sb, "knowledge", "sameTopicOther",
+                    Bit(home.SameTopic(new Fact("player", "owes_d1", "forty"))));
+            }
+            {   // summaries: the leak guard on a real mill.
+                var mill = new GossipMill(new SocialGraph());
+                mill.Add(Agent("w1", "the shopkeeper", "day"));
+                mill.Witness("w1", new Fact("player", "a_d1", "x"),
+                             "Mitch says it was player, and came to say so", false, new GameTime(1, 12, 0), 1.0);
+                mill.Witness("w1", new Fact("player", "b_d1", "x"),
+                             "two players were there", false, new GameTime(1, 12, 0), 1.0);
+                mill.Witness("w1", new Fact("player", "c_d1", "x"),
+                             "it was the player's coat", false, new GameTime(1, 12, 0), 1.0);
+                Key(sb, "summaries", "sayingPlayer", mill.SummariesSaying("player").ToString(Inv));
+                Key(sb, "summaries", "sayingNovak", mill.SummariesSaying("novak").ToString(Inv));
+                Key(sb, "summaries", "sayingEmpty", mill.SummariesSaying("").ToString(Inv));
+                Key(sb, "summaries", "rumors", mill.Get("w1").Rumors.Count.ToString(Inv));
+            }
+            EmitObservationFour(sb);
+        }
+
+        // Vantage builder of the CoreTests shape, Program.cs 16030 to 16040.
+        static Vantage FourAt(string id, double m, double light, double fam,
+                              bool occ = false, bool mark = false, bool face = true,
+                              double ambient = Perception.AmbientDaytimeStreet,
+                              double watched = 3.0, bool later = false)
+        {
+            var v = Vantage.Both(id, m, light, fam, ambient);
+            v.ToActor.Occluded = occ; v.ToVictim.Occluded = occ;
+            v.ActorHasMark = mark; v.FaceToward = face;
+            v.SecondsWatching = watched; v.ArrivedLater = later;
+            return v;
+        }
+
+        static void PutObs(StringBuilder sb, string prefix, Observation o)
+        {
+            Key(sb, "observation_four", prefix + "Slots", ((int)o.Slots).ToString(Inv));
+            Key(sb, "observation_four", prefix + "Rung", o.Rung.ToString(Inv));
+            Key(sb, "observation_four", prefix + "Certainty", D(o.Certainty));
+            Key(sb, "observation_four", prefix + "Label", Esc(o.Label()));
+            Key(sb, "observation_four", prefix + "Accused",
+                Esc(string.IsNullOrEmpty(o.AccusedId) ? "none" : o.AccusedId));
+            Key(sb, "observation_four", prefix + "NamesSomebody", Bit(o.NamesSomebody));
+        }
+
+        // THE NAMED FIXTURE, CoreTests/Program.cs 16019 to 16103. The crime
+        // ruling names it as the port's own proof and the director's review
+        // found no Resolve row reached its one branch, "act, no actor": the
+        // victim falls in the market light at 9 m while the shooter stands in
+        // a doorway at 24 m under 0.08 light. Three of its constants are
+        // outside the port's scope (LoudSuppressed22, AmbientMarketNoon,
+        // LoudSnub38), so this side reads the REAL constants and the C++ side
+        // carries their values as literals: if one moves, the rows go red,
+        // which is the right outcome for a number two engines share.
+        static void EmitObservationFour(StringBuilder sb)
+        {
+            var deed = new Deed
+            {
+                EventId = "e1", ActorId = "player", VictimId = "tony",
+                Loudness = Perception.LoudSuppressed22,
+                VictimCriesOut = false, WeaponDrawn = true, ActorFled = true,
+                LeavesBody = true, HadPrecursor = true,
+            };
+            var close = Observe.Resolve(deed, FourAt("close", 4, 1.0, 0.9));
+            var wall = Observe.Resolve(deed, FourAt("wall", 6, 1.0, 0.9, occ: true));
+            var later_ = Observe.Resolve(deed, FourAt("later", 1, 1.0, 0.9, later: true));
+            var acrossTheStreet = new Vantage
+            {
+                WitnessId = "across",
+                ToVictim = Sight.At(9, 1.0),
+                ToActor = Sight.At(24, 0.08),
+                Familiarity = 0.9,
+                AmbientFloor = Perception.AmbientMarketNoon,
+                FaceToward = true, SecondsWatching = 3.0,
+            };
+            var far = Observe.Resolve(deed, acrossTheStreet);
+            var litShooter = acrossTheStreet; litShooter.ToActor = Sight.At(24, 1.0);
+            var seen = Observe.Resolve(deed, litShooter);
+            var loud = deed; loud.Loudness = Perception.LoudSnub38;
+            var wallLoud = Observe.Resolve(loud, FourAt("wall", 6, 1.0, 0.9, occ: true));
+            var blindV = FourAt("blindVictim", 4, 1.0, 0.9);
+            blindV.ToVictim = Sight.Blind;
+            var blindObs = Observe.Resolve(deed, blindV);
+
+            PutObs(sb, "close", close);
+            PutObs(sb, "wall", wall);
+            PutObs(sb, "later", later_);
+            PutObs(sb, "across", far);
+            PutObs(sb, "litShooter", seen);
+            PutObs(sb, "wallLoud", wallLoud);
+            PutObs(sb, "blindVictim", blindObs);
+
+            var sets = new[] { close.Slots, far.Slots, wall.Slots, later_.Slots };
+            Key(sb, "observation_four", "distinctSets", sets.Distinct().Count().ToString(Inv));
+
+            var blind = Sight.Blind;
+            Key(sb, "observation_four", "blindMetres", D(blind.Metres));
+            Key(sb, "observation_four", "blindLight", D(blind.LightLevel));
+            Key(sb, "observation_four", "blindOccluded", Bit(blind.Occluded));
         }
     }
 }

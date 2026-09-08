@@ -823,6 +823,19 @@ def ue_probe_tests():
     planted, because a repository with a broken street in it is not a
     repository anybody wants.
 
+    THE THIRD BINARY IS THE PORTED SIMULATION, added 8 September by the crime
+    ruling. `core-port-test.cpp` compiles the LedgerCore transliteration
+    (Perception, Observation, GameTime, MemoryStore, Suspicion, Gossip) and
+    runs it over `ue-probe/perception-golden.txt`, every expected value in
+    which was emitted by `ledger/PerceptionGolden` from the REAL Ledger.Core.
+    So the port is checked against the other ENGINE rather than against
+    numbers its author typed. It needs two include paths the other two do
+    not: the module's Public directory, and `ue-probe/tests/unreal-shim`,
+    which holds an EMPTY CoreMinimal.h so `Perception.h`'s Unreal include
+    resolves to nothing here. Empty on purpose: anything in the port that
+    reaches for a real Unreal type fails loudly rather than being quietly
+    satisfied.
+
     A SKIP SAYS SO AND NAMES WHAT IS MISSING. Without g++ nothing here can
     run, and "the UE instruments pass" must not read the same as "nothing was
     compiled"."""
@@ -830,16 +843,25 @@ def ue_probe_tests():
     if shutil.which("g++") is None:
         return True, "ue-probe instruments SKIPPED (no g++ in this container)"
     probe = ROOT.parent / "ue-probe"
+    binaries = (
+        ("tests/frame-stats-test.cpp", [], [], []),
+        ("tests/vignette-spec-test.cpp",
+         [str(ROOT.parent / "production" / "specs" / "vignette-pieces.json")], [], []),
+        ("tests/core-port-test.cpp",
+         [str(probe / "perception-golden.txt")],
+         [str(probe / "Source" / "LedgerProbe" / "Private" / "Perception.cpp")],
+         ["-I", str(probe / "Source" / "LedgerProbe" / "Public"),
+          "-I", str(probe / "tests" / "unreal-shim")]),
+    )
     total, ran = 0, 0
-    for src, args in (("tests/frame-stats-test.cpp", []),
-                      ("tests/vignette-spec-test.cpp",
-                       [str(ROOT.parent / "production" / "specs" / "vignette-pieces.json")])):
+    for src, args, extra_src, flags in binaries:
         path = probe / src
         if not path.exists():
             return False, f"UE PROBE TEST MISSING: {src}"
         binp = ROOT / ".ue-test" / (path.stem)
         binp.parent.mkdir(parents=True, exist_ok=True)
-        code, out = run(["g++", "-std=c++11", "-O1", "-Wall", "-o", str(binp), str(path)])
+        code, out = run(["g++", "-std=c++11", "-O1", "-Wall"] + flags
+                        + ["-o", str(binp), str(path)] + extra_src)
         if code != 0:
             errs = [l for l in out.splitlines() if "error" in l]
             return False, ("UE PROBE TEST WILL NOT COMPILE (" + src + "): "
@@ -856,7 +878,8 @@ def ue_probe_tests():
             m = re.search(r"PASS: \d+ of (\d+) check\(s\) failed", line)
             if m:
                 total += int(m.group(1))
-    return True, f"ue-probe instruments ok ({total} checks over {ran} of 2 binaries)"
+    return True, (f"ue-probe instruments ok ({total} checks over {ran} of "
+                  f"{len(binaries)} binaries)")
 
 
 def ue_material_selftest():

@@ -11,10 +11,12 @@
 // is why the sim's verdict is a file rather than a log tail.
 #include "LedgerProbe.h"
 #include "Perception.h"
+#include "CoreGolden.h"
 #include "FrameStats.h"
 #include "VignetteShot.h"
 #include "WalkProbe.h"
 
+#include "Containers/StringConv.h"
 #include "Misc/Paths.h"
 #include "Misc/FileHelper.h"
 #include "HAL/PlatformMisc.h"
@@ -131,10 +133,22 @@ namespace
 		else
 		{
 			// The done line: whole-run numbers only, no spaces in any value.
+			// THE REASON RIDES THE KEY ONLY IN THE BUILD THAT CAUSES IT.
+			// If this module was compiled without exceptions the four
+			// FactNull rows are compiled out of the evaluator and count as
+			// Unknown (Suspicion.h says why); in every other build the
+			// suffix is empty, so it can never explain an unknown it did not
+			// cause. A count above four with this suffix means something
+			// ELSE is also unanswered and the number says so.
+#if LEDGER_CORE_EXCEPTIONS
+			const TCHAR* UnknownWhy = TEXT("");
+#else
+			const TCHAR* UnknownWhy = TEXT("/FactNull-needs-exceptions");
+#endif
 			Out.Add(FString::Printf(
-				TEXT("perceptionRows=%ld perceptionMismatches=%ld perceptionUnknownFns=%ld ")
+				TEXT("perceptionRows=%ld perceptionMismatches=%ld perceptionUnknownFns=%ld%s ")
 				TEXT("perceptionTolerance=%g probeTest=%s goldenTable=%s"),
-				Rows, Bad, Unknown, Tol,
+				Rows, Bad, Unknown, UnknownWhy, Tol,
 				Bad == 0 ? TEXT("PASS") : TEXT("FAIL"),
 				GoldenUsed.IsEmpty() ? TEXT("NONE-FOUND")
 				                     : *FPaths::GetCleanFilename(GoldenUsed)));
@@ -658,7 +672,47 @@ namespace
 			else if (Fn == TEXT("InSight"))             { Got = Perception::InSight(D(F[1]), D(F[2]), D(F[3]), B(F[4]), D(F[5])) ? 1 : 0; Want = D(F[6]); }
 			else if (Fn == TEXT("IdRung"))              { Got = Perception::IdRung(D(F[1]), D(F[2]), D(F[3]), B(F[4]), B(F[5])); Want = D(F[6]); }
 			else if (Fn == TEXT("SymmetryPredictsSeen")){ Got = Perception::SymmetryPredictsSeen(D(F[1]), D(F[2]), D(F[3]), D(F[4]), B(F[5])) ? 1 : 0; Want = D(F[6]); }
-			else { ++Unknown; --Rows; continue; }
+			else
+			{
+				// THE CRIME SLICE, ANSWERED BY THE SHARED EVALUATOR, added 8
+				// September. The seven branches above are left exactly as
+				// they were because they have been green on this machine for
+				// weeks and a rewrite of a working path is a round trip
+				// nobody asked for; everything the crime ruling ported goes
+				// through LedgerCore::Golden::Evaluate instead.
+				//
+				// THE EVALUATOR IS IN A HEADER WITH NO UNREAL TYPE IN IT ON
+				// PURPOSE. This file compiles only on Jafar's PC, so a
+				// dispatcher written here would ship UNRUN;
+				// ue-probe/tests/core-port-test.cpp compiles that header with
+				// g++ and runs it over this same table in the container
+				// before anything is dispatched. What is unverified here is
+				// the six lines of string bridging below and nothing else.
+				//
+				// A STRING ANSWER COMPARES EXACTLY AND A NUMBER TO 1e-9,
+				// which Agrees decides; the table carries no value with a
+				// space in it, so both halves are safe to print into the
+				// result file.
+				std::vector<std::string> Fields;
+				for (size_t Ix = 0; Ix < F.size(); ++Ix)
+				{
+					Fields.push_back(std::string(TCHAR_TO_UTF8(*F[Ix])));
+				}
+				const LedgerCore::Golden::Answer A = LedgerCore::Golden::Evaluate(Fields);
+				if (!A.Known) { ++Unknown; --Rows; continue; }
+				const std::string& WantS = Fields[Fields.size() - 1];
+				if (!LedgerCore::Golden::Agrees(A.Got, WantS, Tol))
+				{
+					++Bad;
+					if (Bad <= 10)
+					{
+						Detail += FString::Printf(TEXT("  MISMATCH %s got=%s want=%s\n"),
+						                          *Fn, UTF8_TO_TCHAR(A.Got.c_str()),
+						                          UTF8_TO_TCHAR(WantS.c_str()));
+					}
+				}
+				continue;
+			}
 
 			if (FMath::Abs(Got - Want) > Tol)
 			{

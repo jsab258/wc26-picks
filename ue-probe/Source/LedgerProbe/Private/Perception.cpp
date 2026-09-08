@@ -71,4 +71,28 @@ namespace LedgerCore
 		if (!FacingIsReadable(Metres, LightOnThem)) return false;
 		return InSight(Metres, DegreesOffAxis, LightOnYou, bOccluded);
 	}
+
+	// ---------------------------------------------------------------
+	// HEARING. Perception.cs 290 to 364, transliterated line for line.
+
+	double Perception::AudibleRadius(double Loudness, double AmbientFloor, bool bOccluded)
+	{
+		const double L = Loudness - (bOccluded ? WallAttenuation : 0.0);
+		if (L <= AmbientFloor) return 0.0;
+		const double R = AudibleBaseMetres * std::pow(2.0, (L - AmbientFloor) / AudibleDivisor);
+		return R < AudibleCapMetres ? R : AudibleCapMetres;   // Math.Min
+	}
+
+	double Perception::EffectiveFloor(double AmbientFloor, double Alertness)
+	{
+		// Feel.Clamp01 in the C#; LedgerCore::Clamp01 here, and the header
+		// says so once so no site has to say it again.
+		return AmbientFloor - AlertFloorDrop * Clamp01(Alertness);
+	}
+
+	bool Perception::Heard(double Metres, double Loudness, double AmbientFloor,
+	                       bool bOccluded, double Alertness)
+	{
+		return Metres <= AudibleRadius(Loudness, EffectiveFloor(AmbientFloor, Alertness), bOccluded);
+	}
 }

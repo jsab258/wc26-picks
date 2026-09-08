@@ -321,7 +321,7 @@ namespace Ledger.Core
             }
             w.Memory.Append(new MemoryEvent(now, "observation", sensitive ? 0.9 : 0.6,
                 confidence >= 0.95 ? $"I saw it myself: {summary}"
-                    : $"I think I saw it — couldn't swear to it: {summary}"));
+                    : $"I think I saw it, couldn't swear to it: {summary}"));
         }
 
         /// The player tells one NPC something checkable. Recorded so a later rumor can
