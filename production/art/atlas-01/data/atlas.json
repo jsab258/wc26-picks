@@ -1,0 +1,1945 @@
+{
+  "schema": "atlas-01.authored-proposal/1",
+  "base_commit": "7722b45cb3dcee2fbcee26675fae4fef641cbba7",
+  "status": "OWNER VISUAL APPROVAL PENDING",
+  "units": "metres; atlas points are [east,north], north up; fictional local datum",
+  "land": [
+    [
+      50,
+      220
+    ],
+    [
+      300,
+      220
+    ],
+    [
+      385,
+      220
+    ],
+    [
+      385,
+      240
+    ],
+    [
+      300,
+      240
+    ],
+    [
+      300,
+      280
+    ],
+    [
+      440,
+      280
+    ],
+    [
+      440,
+      180
+    ],
+    [
+      620,
+      195
+    ],
+    [
+      790,
+      250
+    ],
+    [
+      1040,
+      390
+    ],
+    [
+      1040,
+      1000
+    ],
+    [
+      50,
+      1000
+    ]
+  ],
+  "districts": [
+    {
+      "id": "hook",
+      "name": "The Hook",
+      "role": "Old port / Mickey's",
+      "colour": "#b87b61",
+      "label": [
+        450,
+        355
+      ],
+      "polygon": [
+        [
+          220,
+          220
+        ],
+        [
+          300,
+          220
+        ],
+        [
+          385,
+          220
+        ],
+        [
+          385,
+          240
+        ],
+        [
+          300,
+          240
+        ],
+        [
+          300,
+          280
+        ],
+        [
+          440,
+          280
+        ],
+        [
+          440,
+          180
+        ],
+        [
+          620,
+          195
+        ],
+        [
+          620,
+          440
+        ],
+        [
+          460,
+          480
+        ],
+        [
+          330,
+          550
+        ],
+        [
+          220,
+          450
+        ]
+      ],
+      "height_m": [
+        3,
+        8
+      ],
+      "landmark": "H1",
+      "materials": [
+        [
+          "red brick",
+          "#814d3e"
+        ],
+        [
+          "slate",
+          "#424d50"
+        ],
+        [
+          "oxblood paint",
+          "#552c31"
+        ],
+        [
+          "quay stone",
+          "#a7a398"
+        ]
+      ],
+      "objects": [
+        "rope fender",
+        "beer firkin",
+        "paper delivery docket",
+        "galvanised dustbin"
+      ]
+    },
+    {
+      "id": "copper",
+      "name": "Copper Row",
+      "role": "Market quarter",
+      "colour": "#c2964c",
+      "label": [
+        485,
+        600
+      ],
+      "polygon": [
+        [
+          330,
+          550
+        ],
+        [
+          460,
+          480
+        ],
+        [
+          620,
+          440
+        ],
+        [
+          650,
+          650
+        ],
+        [
+          600,
+          780
+        ],
+        [
+          330,
+          750
+        ]
+      ],
+      "height_m": [
+        8,
+        16
+      ],
+      "landmark": "C1",
+      "materials": [
+        [
+          "buff brick",
+          "#b79870"
+        ],
+        [
+          "painted iron",
+          "#3e635c"
+        ],
+        [
+          "canvas",
+          "#b0a88c"
+        ],
+        [
+          "terrazzo",
+          "#8d8780"
+        ]
+      ],
+      "objects": [
+        "weighing scale",
+        "produce crate",
+        "folding stall",
+        "paper betting slip"
+      ]
+    },
+    {
+      "id": "exchange",
+      "name": "The Exchange",
+      "role": "Offices / lawyers",
+      "colour": "#829aa0",
+      "label": [
+        840,
+        855
+      ],
+      "polygon": [
+        [
+          600,
+          780
+        ],
+        [
+          650,
+          650
+        ],
+        [
+          810,
+          690
+        ],
+        [
+          1040,
+          800
+        ],
+        [
+          1040,
+          1000
+        ],
+        [
+          700,
+          1000
+        ],
+        [
+          700,
+          900
+        ]
+      ],
+      "height_m": [
+        14,
+        24
+      ],
+      "landmark": "E1",
+      "materials": [
+        [
+          "pale stone",
+          "#b6b1a2"
+        ],
+        [
+          "dark bronze",
+          "#68543c"
+        ],
+        [
+          "granite",
+          "#626763"
+        ],
+        [
+          "cream paint",
+          "#dad2ba"
+        ]
+      ],
+      "objects": [
+        "brass nameplate",
+        "document trolley",
+        "venetian blind",
+        "landline"
+      ]
+    },
+    {
+      "id": "parade",
+      "name": "The Parade",
+      "role": "Nightlife",
+      "colour": "#9b7786",
+      "label": [
+        720,
+        555
+      ],
+      "polygon": [
+        [
+          620,
+          440
+        ],
+        [
+          760,
+          400
+        ],
+        [
+          810,
+          500
+        ],
+        [
+          810,
+          690
+        ],
+        [
+          650,
+          650
+        ]
+      ],
+      "height_m": [
+        6,
+        15
+      ],
+      "landmark": "P1",
+      "materials": [
+        [
+          "glazed tile",
+          "#3e4946"
+        ],
+        [
+          "oxblood vinyl",
+          "#712c3b"
+        ],
+        [
+          "painted stucco",
+          "#b6ada4"
+        ],
+        [
+          "small neon",
+          "#cf835e"
+        ]
+      ],
+      "objects": [
+        "queue rope",
+        "cinema poster case",
+        "ashtray",
+        "taxi landline notice"
+      ]
+    },
+    {
+      "id": "fairview",
+      "name": "Fairview",
+      "role": "Residential hills",
+      "colour": "#8f9f78",
+      "label": [
+        350,
+        895
+      ],
+      "polygon": [
+        [
+          50,
+          750
+        ],
+        [
+          330,
+          750
+        ],
+        [
+          600,
+          780
+        ],
+        [
+          700,
+          900
+        ],
+        [
+          700,
+          1000
+        ],
+        [
+          50,
+          1000
+        ]
+      ],
+      "height_m": [
+        18,
+        46
+      ],
+      "landmark": "F1",
+      "materials": [
+        [
+          "pebbledash",
+          "#bcb6a5"
+        ],
+        [
+          "red tile",
+          "#89564c"
+        ],
+        [
+          "privet",
+          "#50624c"
+        ],
+        [
+          "retaining stone",
+          "#88877c"
+        ]
+      ],
+      "objects": [
+        "wire washing line",
+        "garden gate",
+        "milk bottle",
+        "school satchel"
+      ]
+    },
+    {
+      "id": "ironside",
+      "name": "Ironside",
+      "role": "Industrial edge",
+      "colour": "#8b8d91",
+      "label": [
+        180,
+        595
+      ],
+      "polygon": [
+        [
+          50,
+          220
+        ],
+        [
+          220,
+          220
+        ],
+        [
+          220,
+          450
+        ],
+        [
+          330,
+          550
+        ],
+        [
+          330,
+          750
+        ],
+        [
+          50,
+          750
+        ]
+      ],
+      "height_m": [
+        3,
+        10
+      ],
+      "landmark": "I1",
+      "materials": [
+        [
+          "soot brick",
+          "#4c4641"
+        ],
+        [
+          "sheet metal",
+          "#818781"
+        ],
+        [
+          "oxide paint",
+          "#944b35"
+        ],
+        [
+          "concrete",
+          "#929184"
+        ]
+      ],
+      "objects": [
+        "chain hoist",
+        "workbench vice",
+        "clocking card",
+        "steel skip"
+      ]
+    },
+    {
+      "id": "gullwing",
+      "name": "Gullwing",
+      "role": "Faded resort waterfront",
+      "colour": "#7ca6a2",
+      "label": [
+        925,
+        505
+      ],
+      "polygon": [
+        [
+          620,
+          195
+        ],
+        [
+          790,
+          250
+        ],
+        [
+          1040,
+          390
+        ],
+        [
+          1040,
+          800
+        ],
+        [
+          810,
+          690
+        ],
+        [
+          810,
+          500
+        ],
+        [
+          760,
+          400
+        ],
+        [
+          620,
+          440
+        ]
+      ],
+      "height_m": [
+        4,
+        16
+      ],
+      "landmark": "G1",
+      "materials": [
+        [
+          "salt render",
+          "#d5cbb8"
+        ],
+        [
+          "faded teal",
+          "#477b7b"
+        ],
+        [
+          "rust",
+          "#915946"
+        ],
+        [
+          "sea wall stone",
+          "#9b9d91"
+        ]
+      ],
+      "objects": [
+        "arcade cabinet",
+        "pier bench",
+        "folded deckchair",
+        "boarding-house key"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "id": "quay",
+      "name": "Quay Street",
+      "kind": "main",
+      "points": [
+        [
+          310,
+          240
+        ],
+        [
+          310,
+          300
+        ],
+        [
+          400,
+          320
+        ],
+        [
+          400,
+          350
+        ],
+        [
+          400,
+          392
+        ],
+        [
+          400,
+          430
+        ],
+        [
+          465,
+          490
+        ],
+        [
+          485,
+          600
+        ]
+      ]
+    },
+    {
+      "id": "weighhouse",
+      "name": "Weighhouse Lane",
+      "kind": "main",
+      "points": [
+        [
+          240,
+          590
+        ],
+        [
+          365,
+          580
+        ],
+        [
+          485,
+          600
+        ],
+        [
+          595,
+          620
+        ],
+        [
+          690,
+          635
+        ],
+        [
+          760,
+          635
+        ]
+      ]
+    },
+    {
+      "id": "tannery",
+      "name": "Tannery Row",
+      "kind": "main",
+      "points": [
+        [
+          150,
+          260
+        ],
+        [
+          170,
+          375
+        ],
+        [
+          205,
+          450
+        ],
+        [
+          240,
+          590
+        ],
+        [
+          270,
+          700
+        ]
+      ]
+    },
+    {
+      "id": "civic",
+      "name": "Civic Rise (proposal)",
+      "kind": "main",
+      "points": [
+        [
+          485,
+          600
+        ],
+        [
+          530,
+          705
+        ],
+        [
+          675,
+          740
+        ],
+        [
+          810,
+          810
+        ],
+        [
+          950,
+          910
+        ]
+      ]
+    },
+    {
+      "id": "coast",
+      "name": "Sea Road (proposal)",
+      "kind": "main",
+      "points": [
+        [
+          460,
+          315
+        ],
+        [
+          580,
+          300
+        ],
+        [
+          700,
+          325
+        ],
+        [
+          800,
+          350
+        ],
+        [
+          950,
+          430
+        ],
+        [
+          975,
+          550
+        ],
+        [
+          945,
+          675
+        ]
+      ]
+    },
+    {
+      "id": "night",
+      "name": "Tivoli Street (proposal)",
+      "kind": "main",
+      "points": [
+        [
+          580,
+          300
+        ],
+        [
+          625,
+          415
+        ],
+        [
+          690,
+          500
+        ],
+        [
+          720,
+          570
+        ],
+        [
+          760,
+          635
+        ],
+        [
+          810,
+          810
+        ]
+      ]
+    },
+    {
+      "id": "hill",
+      "name": "Chapel Road (proposal)",
+      "kind": "main",
+      "points": [
+        [
+          270,
+          700
+        ],
+        [
+          320,
+          820
+        ],
+        [
+          460,
+          850
+        ],
+        [
+          600,
+          825
+        ],
+        [
+          675,
+          740
+        ]
+      ]
+    },
+    {
+      "id": "crest",
+      "name": "School Brow (proposal)",
+      "kind": "minor",
+      "points": [
+        [
+          160,
+          900
+        ],
+        [
+          320,
+          915
+        ],
+        [
+          445,
+          940
+        ],
+        [
+          570,
+          935
+        ],
+        [
+          620,
+          900
+        ],
+        [
+          600,
+          825
+        ]
+      ]
+    },
+    {
+      "id": "goods",
+      "name": "Goods Lane (proposal)",
+      "kind": "minor",
+      "points": [
+        [
+          130,
+          470
+        ],
+        [
+          205,
+          450
+        ],
+        [
+          330,
+          485
+        ],
+        [
+          400,
+          430
+        ]
+      ]
+    },
+    {
+      "id": "marketback",
+      "name": "Market rear service",
+      "kind": "minor",
+      "points": [
+        [
+          365,
+          580
+        ],
+        [
+          385,
+          685
+        ],
+        [
+          530,
+          705
+        ]
+      ]
+    },
+    {
+      "id": "marketupper",
+      "name": "Market north",
+      "kind": "minor",
+      "points": [
+        [
+          385,
+          685
+        ],
+        [
+          440,
+          745
+        ],
+        [
+          560,
+          755
+        ],
+        [
+          600,
+          825
+        ]
+      ]
+    },
+    {
+      "id": "legalback",
+      "name": "Record Lane (proposal)",
+      "kind": "minor",
+      "points": [
+        [
+          675,
+          740
+        ],
+        [
+          740,
+          915
+        ],
+        [
+          865,
+          950
+        ],
+        [
+          950,
+          910
+        ],
+        [
+          985,
+          815
+        ],
+        [
+          810,
+          810
+        ]
+      ]
+    },
+    {
+      "id": "resortback",
+      "name": "Boarding-house lane",
+      "kind": "minor",
+      "points": [
+        [
+          800,
+          350
+        ],
+        [
+          850,
+          460
+        ],
+        [
+          875,
+          565
+        ],
+        [
+          760,
+          635
+        ]
+      ]
+    },
+    {
+      "id": "steps",
+      "name": "School Steps (proposal)",
+      "kind": "foot",
+      "points": [
+        [
+          320,
+          820
+        ],
+        [
+          320,
+          915
+        ]
+      ]
+    },
+    {
+      "id": "promenade",
+      "name": "Sea-wall walk",
+      "kind": "foot",
+      "points": [
+        [
+          650,
+          245
+        ],
+        [
+          785,
+          305
+        ],
+        [
+          980,
+          415
+        ],
+        [
+          1010,
+          520
+        ]
+      ]
+    },
+    {
+      "id": "dockfoot",
+      "name": "Old Basin swing footbridge (proposal)",
+      "kind": "foot",
+      "points": [
+        [
+          285,
+          300
+        ],
+        [
+          285,
+          250
+        ],
+        [
+          375,
+          250
+        ],
+        [
+          375,
+          230
+        ],
+        [
+          455,
+          230
+        ],
+        [
+          455,
+          315
+        ]
+      ],
+      "limit": "55m water opening at narrowed basin mouth; crossing only while bridge is closed to boats. Engineering and gameplay unverified."
+    },
+    {
+      "id": "pubrear",
+      "name": "Mickey's rear lane",
+      "kind": "foot",
+      "points": [
+        [
+          400,
+          351.5
+        ],
+        [
+          420.325,
+          351.5
+        ],
+        [
+          420.325,
+          358.2
+        ],
+        [
+          419.125,
+          358.2
+        ]
+      ]
+    },
+    {
+      "id": "pier",
+      "name": "Short pier walk",
+      "kind": "foot",
+      "points": [
+        [
+          955,
+          450
+        ],
+        [
+          1010,
+          450
+        ],
+        [
+          1060,
+          450
+        ]
+      ]
+    }
+  ],
+  "rail": {
+    "name": "Former goods alignment, proposal",
+    "points": [
+      [
+        60,
+        310
+      ],
+      [
+        105,
+        400
+      ],
+      [
+        240,
+        505
+      ],
+      [
+        300,
+        650
+      ],
+      [
+        300,
+        770
+      ]
+    ],
+    "state": "disused track in yard; two controlled crossings"
+  },
+  "contours": [
+    {
+      "height": 10,
+      "points": [
+        [
+          60,
+          700
+        ],
+        [
+          250,
+          700
+        ],
+        [
+          350,
+          735
+        ],
+        [
+          560,
+          700
+        ],
+        [
+          750,
+          710
+        ],
+        [
+          1010,
+          760
+        ]
+      ]
+    },
+    {
+      "height": 20,
+      "points": [
+        [
+          70,
+          800
+        ],
+        [
+          250,
+          800
+        ],
+        [
+          450,
+          795
+        ],
+        [
+          590,
+          810
+        ],
+        [
+          720,
+          880
+        ],
+        [
+          1030,
+          900
+        ]
+      ]
+    },
+    {
+      "height": 35,
+      "points": [
+        [
+          80,
+          895
+        ],
+        [
+          220,
+          875
+        ],
+        [
+          400,
+          885
+        ],
+        [
+          530,
+          920
+        ],
+        [
+          570,
+          985
+        ]
+      ]
+    },
+    {
+      "height": 45,
+      "points": [
+        [
+          110,
+          975
+        ],
+        [
+          230,
+          945
+        ],
+        [
+          385,
+          950
+        ],
+        [
+          435,
+          995
+        ]
+      ]
+    }
+  ],
+  "landmarks": [
+    {
+      "id": "H1",
+      "name": "Mickey's",
+      "district": "hook",
+      "point": [
+        409.125,
+        356
+      ],
+      "type": "pub",
+      "venue": true
+    },
+    {
+      "id": "H2",
+      "name": "Old Basin",
+      "district": "hook",
+      "point": [
+        370,
+        245
+      ],
+      "type": "basin",
+      "venue": false
+    },
+    {
+      "id": "H3",
+      "name": "Harbour Board",
+      "district": "hook",
+      "point": [
+        510,
+        320
+      ],
+      "type": "office",
+      "venue": false
+    },
+    {
+      "id": "C1",
+      "name": "Market Hall",
+      "district": "copper",
+      "point": [
+        450,
+        650
+      ],
+      "type": "market",
+      "venue": true
+    },
+    {
+      "id": "E1",
+      "name": "Records Court cafe",
+      "district": "exchange",
+      "point": [
+        800,
+        860
+      ],
+      "type": "cafe",
+      "venue": true
+    },
+    {
+      "id": "E2",
+      "name": "Police station",
+      "district": "exchange",
+      "point": [
+        870,
+        915
+      ],
+      "type": "police",
+      "venue": false
+    },
+    {
+      "id": "P1",
+      "name": "The Tivoli",
+      "district": "parade",
+      "point": [
+        773,
+        565
+      ],
+      "type": "cinema",
+      "venue": true
+    },
+    {
+      "id": "F1",
+      "name": "Chapel / school gate",
+      "district": "fairview",
+      "point": [
+        330,
+        835
+      ],
+      "type": "church",
+      "venue": true
+    },
+    {
+      "id": "I1",
+      "name": "Clocking-in club",
+      "district": "ironside",
+      "point": [
+        250,
+        575
+      ],
+      "type": "club",
+      "venue": true
+    },
+    {
+      "id": "I2",
+      "name": "Retort works",
+      "district": "ironside",
+      "point": [
+        125,
+        380
+      ],
+      "type": "works",
+      "venue": false
+    },
+    {
+      "id": "G1",
+      "name": "Winter Rooms arcade",
+      "district": "gullwing",
+      "point": [
+        910,
+        450
+      ],
+      "type": "arcade",
+      "venue": true
+    },
+    {
+      "id": "G2",
+      "name": "Short pier",
+      "district": "gullwing",
+      "point": [
+        1060,
+        450
+      ],
+      "type": "pier",
+      "venue": false
+    }
+  ],
+  "blocks": [
+    [
+      "I01",
+      65,
+      550,
+      110,
+      130
+    ],
+    [
+      "I02",
+      65,
+      450,
+      50,
+      70
+    ],
+    [
+      "I03",
+      80,
+      265,
+      50,
+      55
+    ],
+    [
+      "I04",
+      175,
+      520,
+      35,
+      38
+    ],
+    [
+      "I05",
+      70,
+      695,
+      150,
+      35
+    ],
+    [
+      "I06",
+      310,
+      610,
+      15,
+      85
+    ],
+    [
+      "H01",
+      245,
+      340,
+      50,
+      80
+    ],
+    [
+      "H02",
+      270,
+      500,
+      50,
+      40
+    ],
+    [
+      "H03",
+      350,
+      495,
+      32,
+      35
+    ],
+    [
+      "H04",
+      450,
+      335,
+      100,
+      55
+    ],
+    [
+      "H05",
+      475,
+      230,
+      95,
+      50
+    ],
+    [
+      "H06",
+      515,
+      405,
+      90,
+      28
+    ],
+    [
+      "C01",
+      410,
+      625,
+      70,
+      45
+    ],
+    [
+      "C02",
+      550,
+      650,
+      45,
+      38
+    ],
+    [
+      "C03",
+      405,
+      520,
+      48,
+      42
+    ],
+    [
+      "C04",
+      510,
+      490,
+      86,
+      55
+    ],
+    [
+      "C05",
+      457,
+      716,
+      65,
+      24
+    ],
+    [
+      "C06",
+      338,
+      600,
+      20,
+      60
+    ],
+    [
+      "F01",
+      100,
+      815,
+      165,
+      24
+    ],
+    [
+      "F02",
+      100,
+      850,
+      165,
+      18
+    ],
+    [
+      "F03",
+      180,
+      930,
+      105,
+      20
+    ],
+    [
+      "F04",
+      380,
+      890,
+      80,
+      22
+    ],
+    [
+      "F05",
+      450,
+      805,
+      95,
+      20
+    ],
+    [
+      "F06",
+      350,
+      860,
+      45,
+      24
+    ],
+    [
+      "E01",
+      770,
+      845,
+      60,
+      32
+    ],
+    [
+      "E02",
+      855,
+      905,
+      30,
+      25
+    ],
+    [
+      "E03",
+      930,
+      950,
+      50,
+      30
+    ],
+    [
+      "E04",
+      675,
+      840,
+      22,
+      40
+    ],
+    [
+      "E05",
+      885,
+      750,
+      95,
+      35
+    ],
+    [
+      "P01",
+      755,
+      535,
+      40,
+      48
+    ],
+    [
+      "P02",
+      650,
+      535,
+      30,
+      45
+    ],
+    [
+      "P03",
+      633,
+      475,
+      20,
+      28
+    ],
+    [
+      "P04",
+      680,
+      605,
+      42,
+      20
+    ],
+    [
+      "G01",
+      875,
+      430,
+      60,
+      48
+    ],
+    [
+      "G02",
+      890,
+      490,
+      60,
+      35
+    ],
+    [
+      "G03",
+      905,
+      575,
+      38,
+      65
+    ],
+    [
+      "G04",
+      845,
+      405,
+      24,
+      20
+    ],
+    [
+      "G05",
+      960,
+      675,
+      48,
+      90
+    ]
+  ],
+  "gameplay": {
+    "status": "DESIGN INTENT ONLY. Not simulated. Sightlines require ray, pose, lighting and occluder checks; recognition remains relationship-gated.",
+    "daily": [
+      {
+        "name": "Dock shift to pub, 06:00 / 17:30 intention",
+        "points": [
+          [
+            125,
+            380
+          ],
+          [
+            205,
+            450
+          ],
+          [
+            330,
+            485
+          ],
+          [
+            400,
+            430
+          ],
+          [
+            400,
+            356
+          ]
+        ]
+      },
+      {
+        "name": "Market to school, 08:15 / 15:15 intention",
+        "points": [
+          [
+            450,
+            650
+          ],
+          [
+            475,
+            622
+          ],
+          [
+            485,
+            600
+          ],
+          [
+            530,
+            705
+          ],
+          [
+            675,
+            740
+          ],
+          [
+            600,
+            825
+          ],
+          [
+            460,
+            850
+          ],
+          [
+            330,
+            835
+          ]
+        ]
+      },
+      {
+        "name": "Clerk to cinema, 18:00 intention",
+        "points": [
+          [
+            800,
+            860
+          ],
+          [
+            842,
+            833
+          ],
+          [
+            810,
+            810
+          ],
+          [
+            760,
+            635
+          ],
+          [
+            737,
+            595
+          ],
+          [
+            773,
+            565
+          ]
+        ]
+      },
+      {
+        "name": "Promenade trade to market, 10:00 intention",
+        "points": [
+          [
+            910,
+            450
+          ],
+          [
+            950,
+            450
+          ],
+          [
+            950,
+            430
+          ],
+          [
+            800,
+            350
+          ],
+          [
+            700,
+            325
+          ],
+          [
+            580,
+            300
+          ],
+          [
+            460,
+            315
+          ],
+          [
+            440,
+            320
+          ],
+          [
+            440,
+            430
+          ],
+          [
+            465,
+            490
+          ],
+          [
+            485,
+            600
+          ],
+          [
+            475,
+            622
+          ],
+          [
+            450,
+            650
+          ]
+        ]
+      }
+    ],
+    "escape": [
+      {
+        "name": "Hook public detour, conditional on swing bridge position",
+        "points": [
+          [
+            400,
+            356
+          ],
+          [
+            400,
+            320
+          ],
+          [
+            310,
+            300
+          ],
+          [
+            285,
+            300
+          ],
+          [
+            285,
+            250
+          ],
+          [
+            375,
+            250
+          ],
+          [
+            375,
+            230
+          ],
+          [
+            455,
+            230
+          ],
+          [
+            455,
+            315
+          ],
+          [
+            465,
+            315
+          ]
+        ]
+      },
+      {
+        "name": "Pub rear lane",
+        "points": [
+          [
+            413.425,
+            356.15
+          ],
+          [
+            419.125,
+            358.2
+          ],
+          [
+            420.325,
+            358.2
+          ],
+          [
+            420.325,
+            351.5
+          ],
+          [
+            400,
+            351.5
+          ]
+        ]
+      },
+      {
+        "name": "Fairview steps",
+        "points": [
+          [
+            330,
+            835
+          ],
+          [
+            320,
+            820
+          ],
+          [
+            320,
+            915
+          ],
+          [
+            445,
+            940
+          ]
+        ]
+      }
+    ],
+    "witness": [
+      [
+        400,
+        356,
+        400,
+        392
+      ],
+      [
+        485,
+        600,
+        530,
+        705
+      ],
+      [
+        945,
+        455,
+        975,
+        550
+      ],
+      [
+        810,
+        810,
+        900,
+        880
+      ]
+    ],
+    "phones": [
+      [
+        404,
+        380
+      ],
+      [
+        492,
+        595
+      ],
+      [
+        765,
+        630
+      ],
+      [
+        935,
+        447
+      ]
+    ],
+    "limits": "Lines describe possible views, never magical walls-through vision. Witness contact, speaking thresholds, clocks and interception durations remain integration tests. No human preference evidence."
+  },
+  "street_anchor": {
+    "source": "production/specs/vignette-scene.json",
+    "pieces": "production/specs/vignette-pieces.json",
+    "origin_atlas": [
+      400,
+      350
+    ],
+    "source_to_atlas": "east=400+z_m; north=350+x_m; height=y_m+4.0 (proposed datum only)",
+    "length_m": 42,
+    "carriageway_m": 6,
+    "footway_each_m": 2,
+    "frontage_z_m": 5.125,
+    "mickeys_piece": "east_parade_bay0",
+    "mickeys_sign": "east_parade_fascia0",
+    "mickeys_x_range": [
+      3,
+      9
+    ],
+    "mickeys_z_range": [
+      5.125,
+      13.125
+    ],
+    "yard_gap_x": [
+      21,
+      24
+    ],
+    "note": "east_parade is a retained piece ID, not a district assignment; this street is in the Hook. No source values edited."
+  },
+  "map_labels": [
+    {
+      "text": "Tannery Row",
+      "point": [
+        92,
+        740
+      ],
+      "district": "ironside"
+    },
+    {
+      "text": "Quay Street",
+      "point": [
+        347,
+        420
+      ],
+      "district": "hook"
+    },
+    {
+      "text": "Weighhouse Lane",
+      "point": [
+        422,
+        570
+      ],
+      "district": "copper"
+    },
+    {
+      "text": "Civic Rise",
+      "point": [
+        735,
+        777
+      ],
+      "district": "exchange"
+    },
+    {
+      "text": "Sea Road",
+      "point": [
+        892,
+        355
+      ],
+      "district": "gullwing"
+    },
+    {
+      "text": "School Brow",
+      "point": [
+        450,
+        965
+      ],
+      "district": "fairview"
+    },
+    {
+      "text": "Tivoli Street",
+      "point": [
+        645,
+        455
+      ],
+      "district": "parade"
+    }
+  ]
+}

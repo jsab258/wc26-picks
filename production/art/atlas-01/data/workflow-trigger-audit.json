@@ -1,0 +1,307 @@
+{
+  "base": "7722b45cb3dcee2fbcee26675fae4fef641cbba7",
+  "result": "No push trigger matches changes confined to production/art/atlas-01 on art/atlas-01. No workflow file edited.",
+  "art_branch_runs_before_push": 0,
+  "actions_query": "https://api.github.com/repos/jsab258/wc26-picks/actions/runs?branch=art%2Fatlas-01&per_page=10",
+  "workflows": [
+    {
+      "file": "citypack-fetch.yml",
+      "sha256": "6db887d80beac47a8d9714ac0d5b52e2c199ab4a2adf38e0f9090aa5998a2448",
+      "triggers": {
+        "push": {
+          "branches": [
+            "claude/game-dev-ai-automation-2h67ix"
+          ],
+          "paths": [
+            "tools/citypack/choices.json"
+          ]
+        },
+        "workflow_dispatch": null
+      }
+    },
+    {
+      "file": "citypack-inventory.yml",
+      "sha256": "46c213fade532e8316e1e3c159d6e1fa6a69eeb952d4e4f55a107df4249a381a",
+      "triggers": {
+        "push": {
+          "branches": [
+            "claude/game-dev-ai-automation-2h67ix"
+          ],
+          "paths": [
+            ".github/workflows/citypack-inventory.yml",
+            "tools/citypack/fetch_textures.py",
+            "tools/citypack/fetch_font.py"
+          ]
+        },
+        "workflow_dispatch": null
+      }
+    },
+    {
+      "file": "ledger-ai-playtest.yml",
+      "sha256": "6591104caa43a461a686a51eae2c0112f8cb92b80bdf5cb55378a4129185e481",
+      "triggers": {
+        "workflow_dispatch": null,
+        "push": {
+          "paths": [
+            "ledger/Assets/Scripts/Core/**",
+            "ledger/Assets/Scripts/Game/LenaSetup.cs",
+            "ledger/SimHarness/**",
+            ".github/workflows/ledger-ai-playtest.yml"
+          ]
+        }
+      }
+    },
+    {
+      "file": "ledger-build-mac.yml",
+      "sha256": "e0c35f816e8781474e95d01c4b6f6b1c891a1c61ecbac4b9a3e4a8d77120e2d7",
+      "triggers": {
+        "push": {
+          "branches": [
+            "claude/game-dev-ai-automation-2h67ix"
+          ],
+          "paths": [
+            ".github/workflows/ledger-build-mac.yml",
+            "ledger/Assets/Editor/**",
+            "ledger/Assets/Characters/**"
+          ]
+        },
+        "workflow_dispatch": null
+      }
+    },
+    {
+      "file": "ledger-build-windows.yml",
+      "sha256": "9abe195efb787516da5f5f6268ec9f9c9a242dbca937885911ca933bf17099c9",
+      "triggers": {
+        "workflow_dispatch": null
+      }
+    },
+    {
+      "file": "ledger-core-tests.yml",
+      "sha256": "a46ff4794b8a34225d2a26e73713b7659b673e885b0538fc6d56c8fb62b95b0e",
+      "triggers": {
+        "push": {
+          "paths": [
+            "ledger/**",
+            "game-design/**",
+            "tools/*.py",
+            "tools/*.sh",
+            "THIRD-PARTY.md",
+            "voice-candidates/**",
+            ".github/workflows/ledger-core-tests.yml"
+          ]
+        },
+        "workflow_dispatch": null
+      }
+    },
+    {
+      "file": "ledger-imagegen.yml",
+      "sha256": "9ee5d31e542a3d919d8a9a9a55279c2c6776d1f9b549642501357e095a2a87d2",
+      "triggers": {
+        "workflow_dispatch": {
+          "inputs": {
+            "limit": {
+              "description": "how many pictures this run may GENERATE (blank means 4)",
+              "required": false
+            },
+            "only": {
+              "description": "comma-separated ids from prompts.json (blank means the next ones in order)",
+              "required": false
+            },
+            "max_minutes": {
+              "description": "wall-clock cap on the generating loop, minutes (blank means 60)",
+              "required": false
+            }
+          }
+        },
+        "push": {
+          "paths": [
+            "production/d1-probe/RUN-IMAGEGEN"
+          ]
+        }
+      }
+    },
+    {
+      "file": "ledger-install-supervisor-task.yml",
+      "sha256": "ea91a6a37b810e5f1da2cf322725aa018ff3ad9df3a832bb493e0b4ed7f2ede4",
+      "triggers": {
+        "workflow_dispatch": null,
+        "push": {
+          "paths": [
+            ".github/workflows/ledger-install-supervisor-task.yml",
+            "tools/runner/install-scheduled-task.ps1",
+            "tools/runner/launch-supervisor.py",
+            "tools/runner/single_instance.py",
+            "tools/runner/process-query.ps1"
+          ]
+        }
+      }
+    },
+    {
+      "file": "ledger-probe-unreal.yml",
+      "sha256": "0a26ba5e8ae18eba22cd18a24fb1ee3b76f9cdc61e6249292c1b58842fdec599",
+      "triggers": {
+        "workflow_dispatch": null,
+        "push": {
+          "paths": [
+            "production/d1-probe/DISPATCH"
+          ]
+        }
+      }
+    },
+    {
+      "file": "ledger-restart-telegram-bot.yml",
+      "sha256": "77331eda613f8a0b597ecf32bc30a8cfadfd178d5fa7911600a0a2163a2410a1",
+      "triggers": {
+        "workflow_dispatch": null,
+        "push": {
+          "paths": [
+            "production/pc-ops/telegram-bot-restart.request"
+          ]
+        }
+      }
+    },
+    {
+      "file": "ledger-setup-msvc.yml",
+      "sha256": "1c4f9ffa04e28870273c59cc2b8324b0606ae43a8e0f3d0bb1f82865147b383c",
+      "triggers": {
+        "workflow_dispatch": null,
+        "push": {
+          "paths": [
+            "production/d1-probe/SETUP-MSVC",
+            "production/d1-probe/SETUP-BLENDER"
+          ]
+        }
+      }
+    },
+    {
+      "file": "ledger-vignette-fetch.yml",
+      "sha256": "e1671064a7a91eb6909bf5c9dca3cfdeb0c61f3da345c90b16eccad06221b108",
+      "triggers": {
+        "workflow_dispatch": null,
+        "push": {
+          "paths": [
+            "production/d1-probe/FETCH-VIGNETTE"
+          ]
+        }
+      }
+    },
+    {
+      "file": "props-fetch.yml",
+      "sha256": "7d573e01cedb29820aa58c7a0da8e082cb6d589414809a0ed47c0745af780c94",
+      "triggers": {
+        "push": {
+          "branches": [
+            "claude/game-dev-ai-automation-2h67ix"
+          ],
+          "paths": [
+            ".github/workflows/props-fetch.yml",
+            "tools/props/fetch_props.py",
+            "tools/props/fetch_visual.py"
+          ]
+        },
+        "workflow_dispatch": null
+      }
+    },
+    {
+      "file": "publish-glance.yml",
+      "sha256": "f7ddb61e4eb0b9799940d6301b8e6005d3ec163b014e899e40ba6d3860f5745c",
+      "triggers": {
+        "push": {
+          "branches": [
+            "claude/game-dev-ai-automation-2h67ix"
+          ],
+          "paths": [
+            "production/outbox/**",
+            "production/decision-queue.md",
+            "production/budget.md",
+            "production/frames/**",
+            "game-design/sim-shots/**",
+            "tools/glance.py",
+            "tools/publish-glance.py",
+            ".github/workflows/publish-glance.yml",
+            "production/systems-inventory.json",
+            "tools/systems-inventory-check.py",
+            "tools/map.py",
+            "ledger-v2/respec/decision-register/**",
+            "production/queue/**",
+            "production/next-three.json",
+            "production/stranger-test/**",
+            "ue-probe/Source/**",
+            "ue-probe/Config/**",
+            "*.bat",
+            "production/d1-probe/**",
+            "tools/gallery.py"
+          ]
+        },
+        "workflow_dispatch": null
+      }
+    },
+    {
+      "file": "tier2-generate.yml",
+      "sha256": "5fc4e834d5743c0d7e6ce7a8d2cd738e33f55ebbe574bab6dfa5a1f0fe9a1521",
+      "triggers": {
+        "workflow_dispatch": {
+          "inputs": {
+            "count": {
+              "description": "Fresh cards to generate \u00e2\u20ac\u201d LEAVE EMPTY unless new people are wanted",
+              "required": false,
+              "default": ""
+            },
+            "model": {
+              "description": "Generation model",
+              "required": false,
+              "default": "claude-sonnet-5"
+            }
+          }
+        }
+      }
+    },
+    {
+      "file": "voice-candidates.yml",
+      "sha256": "e5bc2ec1470fece3392171bc107d106a5f8e38eeaa32a4d816012f62a39c3321",
+      "triggers": {
+        "push": {
+          "branches": [
+            "claude/game-dev-ai-automation-2h67ix"
+          ],
+          "paths": [
+            "tools/voice-fetch/**",
+            ".github/workflows/voice-candidates.yml"
+          ]
+        },
+        "workflow_dispatch": {
+          "inputs": {
+            "inventory": {
+              "description": "Set to yes to enumerate the corpus speakers instead of fetching",
+              "default": "no"
+            },
+            "skip_rows": {
+              "description": "Start this many rows in \u00e2\u20ac\u201d the stretch a previous run already claimed",
+              "default": "0"
+            },
+            "minutes": {
+              "description": "Fetch budget in minutes",
+              "default": "38"
+            },
+            "candidates": {
+              "description": "How many voices to offer per character",
+              "required": false,
+              "default": "6"
+            },
+            "source": {
+              "description": "vctk | commonvoice | libritts (blank = try in order)",
+              "required": false,
+              "default": ""
+            },
+            "who": {
+              "description": "Comma-separated character ids, or blank for all",
+              "required": false,
+              "default": ""
+            }
+          }
+        }
+      }
+    }
+  ],
+  "hash_convention": "SHA-256 with LF line endings"
+}

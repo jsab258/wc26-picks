@@ -1,0 +1,30 @@
+{
+  "base_commit": "7722b45cb3dcee2fbcee26675fae4fef641cbba7",
+  "pin_authority": "Owner explicitly authorized this exact commit in this Codex task, replacing a separately issued studio pin.",
+  "files": {
+    "canon.md": "4e86b9c7355e4b8f7ac9a8af24c6dd3ea55c76f2d46b3a907515b3f1391d9485",
+    "CLAUDE.md": "3349587a01d96261b64c65f1fb7c3f74bb41b98612f0ed57a5ab0e419070066c",
+    "ledger-v2/respec/vision-pillars-v2.md": "381332f267d056f4a0c4d3dc17d1d9943198064cd49372c37fd859892d1dc42a",
+    "ledger-v2/respec/scope-v2.md": "898780e6cc585563f7ca4790af98ad9b478441f33081f87b569128bcd55d7773",
+    "ledger-v2/respec/decision-register/D13-street-layout-method.md": "6eb879fbe84e101fedd853926c61fd099c0973e2293f15b453ee10b5ce4220f9",
+    "ledger-v2/respec/decision-register/D8-visual-bar.md": "9c1e1ac4cb337d7bbb0de6549d8e9d2e9772da328d3a3b6cffa21c8c01461bbb",
+    "ledger-v2/respec/decision-register/D5-interiors.md": "f64f6babf381c1cae0fc0c30b01543cced0dc37a06e74b9511f8233353525742",
+    "production/specs/vignette-bill-of-materials.md": "a18f76e381ea1799a3c4097a3c034740fc65a9638f353324fc73ef2791a8ccff",
+    "production/specs/vignette-bill-of-materials.json": "c80100e605cfa502638f2cfd11cea139b5f6baf01f287285f1c470ceb30b014d",
+    "production/specs/vignette-scene.json": "d79548323e411841ed11c8a2d6412f62ea1681e168d093f8b493797b02b1c445",
+    "production/specs/vignette-pieces.json": "96a04e238099f6d60a8878161b207e62dfd82c81aed4f84e87afb9b62616b94a",
+    "game-design/town-plan.md": "51d1178d84ac87b523e1b3128bcf2781703faa6ff1b473a03d74e22dcd2bdb41"
+  },
+  "missing_at_pin": [
+    "D14 record",
+    "studio general asset interface",
+    "art handoff convention",
+    "opt-in Blender recipe lane"
+  ],
+  "owner_overrides": [
+    "All in-scope interiors authored; no procedural Tier 2 room grammar.",
+    "Mickey's belongs on the existing walkable street.",
+    "D8 photoreal late-analog target supersedes old town-plan stylisation."
+  ],
+  "hash_convention": "SHA-256 of UTF-8 source text with LF line endings"
+}

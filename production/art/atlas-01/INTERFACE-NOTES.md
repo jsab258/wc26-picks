@@ -1,0 +1,13 @@
+# Asset interface and render boundary
+
+STATUS: COMMISSION-LOCAL ASSUMPTIONS. No global asset interface or Blender recipe lane was found at the owner-pinned base. No Blender executable was found on PATH or under Program Files/Blender Foundation. No Blender or Unreal process was returned by the limited process-name query. That observation does not prove the shared PC is available; no render, install, daemon change or dispatch was attempted.
+
+The existing vignette frame is authoritative for the existing street: metres, +x north along street, +y up, +z east across street. The atlas introduces a separate drawing frame [east,north], mapped explicitly in data/atlas.json. Mickey's local Blender frame is X=u=north, Y=v=east, Z=h=up; source coordinates are [3+u,0.1+h,5.125+v]. This is an isolated authoring convention pending the studio interface. No FBX, glTF, engine package or mass export is produced.
+
+The recipe makes named objects in a new scene. Solid blockout pieces use bounds-centre origins; proposed door hinge markers use hinge origins. Material slot zero is the named A01 material for that part. Materials are flat spatial aids, not final shaders or PBR assets. Glass is an explicitly opaque proxy. Every interaction marker has runtime_binding=NONE. None of these markers grants gameplay authority.
+
+Reconcile before integration-ready exports: handedness and export axis conversion; mesh and actor pivots; material-slot order and PBR sets; stable ID namespace; UV density; collision hulls; door aperture versus leaf bounds; navmesh and step thresholds; streaming ownership; damage/dirt state; room and acoustic portals; door locks; source facade openings; observation slots; schedule destinations; asset licensing tags. The existing piece east_parade_bay0 is a solid proxy: the proposed hollow interior needs a deliberate replacement, never both shells occupying the same space.
+
+Only Claude's opted-in, scheduled Blender lane may run this recipe on the shared PC. No such lane exists in this snapshot. The render request is therefore pending and unsubmitted. It asks for street approach, front, rear, overhead cutaway and player-height interior, with Blender version and input hashes in a receipt. It must use an explicitly pinned delivery source and preserve its outputs before any banking operation. A successful recipe exit is not visual acceptance.
+
+The five cameras inspect: frontage proportion and source door anchors; roof running along the terrace; WC and gate route; stair/upper opening and furniture clearances; and what the screen actually hides at 1.6 m. A cloth or glass proxy does not establish acoustic occlusion, vision or gameplay concealment. Scene edits, integration, schedules and Telegram remain Claude's responsibility.
