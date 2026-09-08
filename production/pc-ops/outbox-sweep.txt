@@ -1,11 +1,11 @@
-# LEDGER one outbox sweep - 8921809 @1788834850
+# LEDGER one outbox sweep - a792307 @1788872781
 # Line 1 names the commit this was run on. This step SENDS: it runs
 # tools/runner/telegram-bot.py --send-outbox once, which is the same
 # pass the bot's own loop makes. Streamed, so a timeout still leaves
 # everything it learned.
 sweepPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
-sweepStream=sweep-raw.txt sweepLines=3
-04:34:10    outbox: REFUSED production/outbox/2026-09-03-batch-landed-and-the-wait.unprompted.md (unprompted): deadline item 1 gives -43.6 hour(s), under the ruled 24; linkdest 2 of 2 link(s) point somewhere other than the glance, the map or the gallery. Ruled 2026-09-06: never to a rep...; linkfloor no link to the glance, the map or the gallery (https://github.com/jsab258/wc26-picks/commit/ab276fa4; https://...; wordcap 22 words over the 120 cap (142 words)
-04:34:14    outbox: sent production/outbox/2026-09-08-the-street-and-the-correction.brief.md kind=brief AS-CAPTIONED-CLIP clipRef=production/d1-probe/ue-walk.gif chars=907 messageId=31 descriptorKind=animation outboundLatencySec=504 receipt=production/outbound/2026-09-08-the-street-and-the-correction.brief.receipt.txt
-04:34:14  outbox done: outboxFiles=9 sent=0 captionedSent=0 captionedClipsSent=1 refused=1 unsent=1 alreadySent=7 held=0 sendFailed=0 receiptRefused=0 recordsWritten=2 latencySamples=1/1 outboundLatencySecAtWorst=504
+sweepStatus=HUNG sweepWaitedSec=180 sweepNote=killed-after-the-wait/lines-below-are-where-it-got-to
+sweepStream=sweep-raw.txt sweepLines=2
+15:06:21    outbox: REFUSED production/outbox/2026-09-03-batch-landed-and-the-wait.unprompted.md (unprompted): deadline item 1 gives -54.1 hour(s), under the ruled 24; linkdest 2 of 2 link(s) point somewhere other than the glance, the map or the gallery. Ruled 2026-09-06: never to a rep...; linkfloor no link to the glance, the map or the gallery (https://github.com/jsab258/wc26-picks/commit/ab276fa4; https://...; wordcap 22 words over the 120 cap (142 words)
+15:06:21  outbox done: outboxFiles=10 sent=0 captionedSent=0 captionedClipsSent=0 refused=1 unsent=1 alreadySent=9 held=0 sendFailed=0 receiptRefused=0 recordsWritten=1 latencySamples=0/0 outboundLatencySecAtWorst=nothing-measured
 sweepStream=sweep-raw.txt.err sweepLines=0

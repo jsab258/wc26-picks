@@ -1,21 +1,22 @@
-# LEDGER one inbox flush - cfb6dc9 @1788849775
+# LEDGER one inbox flush - a792307 @1788872964
 # Line 1 names the commit this was run on. This step PUSHES the
 # return half: his messages and the bot's own receipts, onto
 # pc-inbox. It sends nothing and loads no credentials. The return
 # half stopped at 2026-09-07 11:30 UTC. The sending half stopped too
 # and recovered at the 01:18 UTC restart on the 8th; this half did not,
 # which is why the studio went on calling the channel dead after it sent.
+# THE READING THIS STEP NOW EXISTS FOR: does the return push SUCCEED.
+# Every git call the bot makes is non-interactive and bounded since
+# 2026-09-08, so a credential prompt fails in words in seconds rather
+# than hanging. NON-INTERACTIVE FAILURE IS NOT A REPAIRED RETURN PATH:
+# read ok= and detail= below, and pcInboxHeadShort in the verify step,
+# before calling it fixed. Last measurement: HUNG at 150s, 12 waiting.
 flushPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
-flushStatus=HUNG flushWaitedSec=150 flushNote=killed-after-the-wait/lines-below-are-where-it-got-to
-flushStream=flush-raw.txt flushLines=10
-08:42:55  flush: waiting=12 tip=22973f8
-08:42:55  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-22d06450.txt
-08:42:55  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-3f9a7bd7.txt
-08:42:55  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-8456488b.txt
-08:42:55  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-97efd9d4.txt
-08:42:55  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-ea449368.txt
-08:42:55  flush: waiting production/outbound/2026-09-07-the-map-changed-78a360dcdf18.unprompted.receipt.txt
-08:42:55  flush: waiting production/outbound/2026-09-07-the-walk.answer.receipt.txt
-08:42:55  flush: waiting production/outbound/2026-09-07T234830Z-reply-25.receipt.txt
-08:42:55  flush: (+4 more not shown)
+flushRepoHead=a792307e5
+flushStatus=EXITED flushWaitedSec=3 flushExitCode=1
+flushStream=flush-raw.txt flushLines=4
+15:09:24  flush: waiting=2 tip=094fda6
+15:09:24  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-716d7955.txt
+15:09:24  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-b795b47b.txt
+15:09:25  flush done: pushed=0/2 ok=False commit=none replaced=False plain=the~upload~to~the~studio~failed detail=the~push~failed~(fatal:~Cannot~prompt~because~user~interactivity~has~been~disabled.~fatal:~unable~to~get~password~from~user)
 flushStream=flush-raw.txt.err flushLines=0
