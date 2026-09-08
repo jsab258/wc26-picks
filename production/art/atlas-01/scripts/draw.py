@@ -4,7 +4,8 @@ import json, html, math, base64
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'previews'; OUT.mkdir(exist_ok=True)
 A=json.loads((ROOT/'data/atlas.json').read_text())
-M=json.loads((ROOT/'data/mickeys.json').read_text())
+from pub_geometry import geometry, resolved, plan_boxes, digest
+M=resolved(json.loads((ROOT/'data/mickeys.json').read_text()))
 INK='#253a3d'; BG='#f5f0e5'; MUTED='#607073'
 def esc(s): return html.escape(str(s))
 def text(x,y,s,size=20,fill=INK,anchor='start',weight=400):
@@ -117,71 +118,56 @@ def hook():
 def dim(x1,y1,x2,y2,label):
     return line(x1,y1,x2,y2,'#667578',1)+line(x1-5,y1-5,x1+5,y1+5,'#667578',1)+line(x2-5,y2-5,x2+5,y2+5,'#667578',1)+text((x1+x2)/2,(y1+y2)/2-8,label,17,MUTED,'middle')
 def plan(upper=False):
-    s=90;ox=80;oy=280
-    def box(a,col,stroke=INK):u,v,w,h=a;return rect(ox+u*s,oy+v*s,w*s,h*s,col,stroke,1.5)
+    s=90;ox=80;oy=280;sh=M['shell'];w=sh['width'];d=sh['depth']
+    def box(a,col,stroke=INK):u,v,ww,dd=a;return rect(ox+u*s,oy+v*s,ww*s,dd*s,col,stroke,1)
     b=text(80,196,'WEST / QUAY STREET',20,weight=700)+text(690,196,'NORTH →',20,weight=700)
-    b+=box([0,0,6,8],INK)+box([.215,.215,5.57,7.57],'#e9e0cf')
-    b+=dim(ox,oy-45,ox+540,oy-45,'6.00 m source frontage')
-    b+=line(ox-30,oy,ox-30,oy+720,MUTED,1)+text(ox-35,oy+375,'8 m',16,MUTED,'end')
+    b+=box([0,0,w,d],'#e9e0cf')
+    rooms=M['upper_rooms'] if upper else M['ground_zones']
+    for r in rooms:b+=box(r['box'],r['colour'],'none')
+    if upper:b+=box(M['stairs']['floor_void'],'#8c938d')
+    colours={'brick':INK,'plaster':'#686d64','wood':'#886146','cloth':'#a57a75','glass_proxy':'#83b4bb','maroon':'#602f34','metal':'#5c6a68'}
+    for g in plan_boxes(M,upper):
+        u,v,ww,dd=g['box']
+        # The yard has its own sheet. Retain open leaves at the facade.
+        if u<0 or u>=w or v>=d or v+dd<0:continue
+        projected=box(g['box'],colours.get(g['material'],'#d5c5a8'))
+        b+=f'<g id="geom-{g["id"]}" data-box="'+','.join(str(round(x,6)) for x in g['box'])+'">'+projected+'</g>'
+    b+=f'<metadata id="geometry-digest">{digest(M)}</metadata>'
+    b+=dim(ox,oy-45,ox+w*s,oy-45,f'{w:.2f} m source frontage')
+    b+=line(ox-30,oy,ox-30,oy+d*s,MUTED,1)+text(ox-35,oy+d*s/2,f'{d:g} m',16,MUTED,'end')
     if upper:
-        for room in M['upper_rooms']:
-            b+=box(room['box'],room['colour']);u,v,w,h=room['box']
-            if room['id']!='bedroom':
-                b+=text(ox+(u+w/2)*s,oy+(v+h/2)*s,room['name'],19,anchor='middle',weight=700)
-                b+=text(ox+(u+w/2)*s,oy+(v+h/2)*s+25,f'{w:.3f} x {h:.3f} m',12,MUTED,'middle')
-        b+=box(M['stairs']['floor_void'],'#8c938d')
-        b+=text(ox+.66*s,oy+3.3*s,'VOID',17,'white','middle')
-        # Door openings in partitions: every authored room connects to hall/living.
-        for u,v,hor in [(2.3,2.5,False),(2.3,4.9,False),(1.5,5.95,True),(3.05,5.95,True),(4.65,5.95,True)]:
-            if hor:b+=line(ox+u*s,oy+v*s,ox+(u+.7)*s,oy+v*s,'#e9e0cf',6)
-            else:b+=line(ox+u*s,oy+v*s,ox+u*s,oy+(v+.7)*s,'#e9e0cf',6)
-        b+=box([3.7,.55,1.4,2],'#93846f')+text(ox+4.4*s,oy+1.6*s,'BED',17,'white','middle')
-        b+=text(ox+3*s,oy+1.2*s,"Tom's",19,anchor='middle',weight=700)+text(ox+3*s,oy+1.5*s,'room',19,anchor='middle',weight=700)
-        b+=text(ox+4*s,oy+3*s,'3.485 x 3.185 m',15,MUTED,'middle')
-        b+=text(695,302,'Private household',24,weight=700)
-        notes=['Stair retained behind','the source side door.','',"Tom’s room at the front;",'bookkeeping at the rear.','','Kitchen and bath are','authored rooms, reached','from the living space.','','Upper floor: +3.40 m.','Eaves: +6.20 m above','the pub threshold.','','Plan is spatial design,','not building certification.']
-        for i,n in enumerate(notes):b+=text(695,342+i*30,n,19,MUTED)
-        height=1130
+        for r in rooms:
+            u,v,ww,dd=r['box'];x=ox+(u+ww/2)*s;y=oy+(v+.32)*s
+            b+=text(x,y,r['name'],17,anchor='middle',weight=700)+text(x,y+20,f'{ww:.3f} × {dd:.3f} m',13,MUTED,'middle')
+        b+=text(ox+.68*s,oy+3.2*s,'VOID',16,'white','middle')
+        notes=['Private household','Walls and furniture','follow authored room edges.','','Bedroom / living room','Book room / kitchen / bath','','No customer access','No invented room solver','','Door gaps: 0.70 m','Upper level: +'+str(sh['ground_floor_height'])+' m','','Stair, leaf poses and','headroom await Blender','and navigation review.']
     else:
-        for z in M['ground_zones']:
-            b+=box(z['box'],z['colour'],'none' if z['id'] in ['public','staff','rear_passage'] else INK);u,v,w,h=z['box']
-            if z['id'] not in ['backbar','staff','public','stair']:
-                b+=text(ox+(u+w/2)*s,oy+(v+h/2)*s,z['name'],18,anchor='middle',weight=700)
-        b+=line(ox+1.138*s,oy+.215*s,ox+1.138*s,oy+5.6*s,INK,7)
-        for i in range(19):b+=line(ox+.24*s,oy+(.3+i*.24)*s,ox+1.04*s,oy+(.3+i*.24)*s,MUTED,1)
-        b+=text(ox+.64*s,oy+2.4*s,'UP',17,anchor='middle',weight=700)
-        b+=line(ox+2.15*s,oy+5.7*s,ox+2.15*s,oy+6.05*s,INK,7)+line(ox+2.15*s,oy+6.95*s,ox+2.15*s,oy+7.785*s,INK,7)
-        for f in M['furniture']:b+=box(f['box'],'#927258')
-        for op in M['openings']:
-            y=oy if op['side']=='front' else oy+720
-            col='#83b4bb' if op['id']=='front_glass' else '#f5f0e5'
-            b+=line(ox+op['start']*s,y,ox+(op['start']+op['width'])*s,y,col,22)
-            if op['id']!='front_glass': b+=line(ox+op['start']*s,y,ox+op['start']*s,y+op.get('swing_v',1)*op['width']*s,'#42534a',2)
-        p=M['information']['overhear'];b+=circle(ox+p[0]*s,oy+p[1]*s,15,'#d3a447',INK)+text(ox+p[0]*s,oy+p[1]*s+6,'O',17,INK,'middle',700)
-        # public and staff routes; rear yard is its own drawing
-        for key,col in [('customer','#c37c21'),('staff','#2a8179')]:
-            pts=[(ox+u*s,oy+v*s) for u,v in M['paths'][key] if -.2<=v<=8]
-            b+=path(pts,'none',col,5,False,'8 5')
-        b+=text(695,290,'A SMALL WORKING PUB',21,weight=700)
-        notes=['Public door: 0.90 m','Private door: 0.838 m','','Counter: 0.60 × 4.20 m','Staff aisle: 1.15 m','','O  Overhearing nook','1.45 m screen breaks','views of hands and lap.','Voice carry is untested.','','Beer store at the back.','Public rear door and','staff door stay separate.','','19 risers to +3.40 m','18 goings × 0.24 m','Private stair: 0.80 m','','Yard WC and escape','continue on site sheet.']
-        for i,n in enumerate(notes):b+=text(695,327+i*29,n,19,MUTED)
-        b+=text(80,1050,'EAST / REAR YARD',20,weight=700)
-        b+=text(80,1090,'Doors, screen and furniture are proposed replacements within the source shell.',16,MUTED)
-        height=1190
-    save('mickeys-upper' if upper else 'mickeys-ground',1060,height,b,"Mickey's / upper floor" if upper else "Mickey's / ground floor",'DIMENSIONED AUTHORING PLAN / METRES')
+        for r in rooms:
+            if r['id'] in ['public','store','rear_passage','snug','counter']:
+                u,v,ww,dd=r['box'];b+=text(ox+(u+ww/2)*s,oy+(v+dd/2)*s,r['name'],16,anchor='middle',weight=700)
+        p=M['information']['overhear'];b+=circle(ox+p[0]*s,oy+p[1]*s,13,'#d3a447',INK)+text(ox+p[0]*s,oy+p[1]*s+5,'O',15,anchor='middle')
+        for key,col in [('customer','#c37c21'),('staff','#2a8179')]:b+=path([(ox+u*s,oy+v*s) for u,v in M['paths'][key] if -.2<=v<=d],'none',col,4,False,'8 5')
+        st=M['stairs'];notes=['Public door: 0.90 m','Private door: 0.838 m','','O  Overhearing nook','Screen: 1.45 m','','Rear beer-store proposal','Public / staff rear doors','','Private stair: '+str(st['width'])+' m',str(st['risers'])+' risers / '+str(st['goings'])+' goings','Going: '+str(st['going'])+' m','','Outward private leaf','conflicts with footway.','Review access detail.','','Yard WC on site sheet.']
+    for i,n in enumerate(notes):b+=text(695,300+i*29,n,19,MUTED)
+    b+=text(80,1050,'EAST / REAR YARD',20,weight=700)
+    b+=text(80,1090,'Shared geometry commands drive this plan and the unexecuted Blender adapter.',16,MUTED)
+    save('mickeys-upper' if upper else 'mickeys-ground',1060,1190,b,"Mickey's / upper floor" if upper else "Mickey's / ground floor",'DIMENSIONED AUTHORING PLAN / METRES')
+
 def elevations():
-    b='';s=74
+    b='';s=74;sh=M['shell'];ew=sh['width'];eh=sh['ground_floor_height']+sh['upper_height'];ridge=eh+sh['depth']/2*math.tan(math.radians(sh['roof_pitch_deg']))
     for rear,ox in [(False,65),(True,620)]:
-        oy=1000;W=444
-        def ex(u,w=0): return ox+((u if rear else 6-u-w)*s)
+        oy=1000;W=ew*s
+        def ex(u,w=0): return ox+((u if rear else ew-u-w)*s)
         b+=text(ox,203,'REAR / EAST' if rear else 'FRONT / WEST',25,weight=700)
-        b+=rect(ox,oy-6.2*s,W,6.2*s,'#9a6450',INK,2)
-        b+=rect(ox-22,oy-9.001*s,488,2.801*s,'#556160',INK,2)
+        b+=rect(ox,oy-eh*s,W,eh*s,'#9a6450',INK,2)
+        b+=rect(ox-22,oy-ridge*s,W+44,(ridge-eh)*s,'#556160',INK,2)
         for rh in [6.7,7.2,7.7,8.2,8.7]:b+=line(ox-20,oy-rh*s,ox+464,oy-rh*s,'#7a8581',1)
         b+=rect(ox+25,oy-9.8*s,35,1.25*s,'#82543f',INK)+rect(ox+370,oy-9.8*s,35,1.25*s,'#82543f',INK)
-        for u in [1.8,3.6]:b+=rect(ex(u,.85),oy-5.8*s,.85*s,1.5*s,'#9fb2b0',INK,5)
+        for op in M['upper_openings']:
+            if op['side']==('rear' if rear else 'front'):b+=rect(ex(op['start'],op['width']),oy-(sh['ground_floor_height']+op['sill']+op['height'])*s,op['width']*s,op['height']*s,'#9fb2b0',INK,5)
         if rear:
-            for u,w in [(2.7,.9),(4.83,.84)]:b+=rect(ox+u*s,oy-2.04*s,w*s,2.04*s,'#485a4f',INK,2)
+            for op in M['openings']:
+                if op['side']=='rear':b+=rect(ox+op['start']*s,oy-op['height']*s,op['width']*s,op['height']*s,'#485a4f',INK,2)
             b+=rect(ox,oy-2.55*s,2.2*s,2.55*s,'#b18c6d',INK,2)
             b+=rect(ox-.05*s,oy-2.68*s,2.3*s,.13*s,'#575f5d',INK)
             b+=text(ox+15,oy+30,'1958 WC addition / repaired rear brick',16,MUTED)

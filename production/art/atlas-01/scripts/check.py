@@ -6,6 +6,8 @@ A=json.loads((R/'data/atlas.json').read_text());M=json.loads((R/'data/mickeys.js
 B=json.loads((REPO/'production/specs/vignette-bill-of-materials.json').read_text())
 P=json.loads((REPO/'production/specs/vignette-pieces.json').read_text())
 S=json.loads((REPO/'production/specs/vignette-scene.json').read_text())
+from pub_geometry import resolved, headroom
+M=resolved(M)
 checks=[]
 def check(name,condition):
     assert condition,name
@@ -44,13 +46,14 @@ for route in ['customer','staff','escape','delivery']:
     check(route+' path clears furniture at 0.30m radius',not hits)
     check(route+' avoids next east terrace bay',not any(intersects(p,q,[6,0,6,8]) for p,q in segments(M['paths'][route])))
 check('Rear lane and south passage correctly used',all(u<6 or v>=14 for u,v in M['paths']['escape']) and [-1.5,15.2] in M['paths']['escape'])
-check('19 risers reach source upper level',M['stairs']['risers']==19 and M['stairs']['rise_total']==M['shell']['ground_floor_height']==3.4)
-check('18 goings match authored stair run',math.isclose(M['stairs']['goings']*M['stairs']['going'],4.32))
-min_head=3.2-6*(3.4/19)
+check('19 risers reach source upper level',M['stairs']['risers']==19 and M['shell']['ground_floor_height']==3.4)
+check('18 goings match authored stair run',math.isclose(M['stairs']['goings']*M['stairs']['going'],next(z['box'][3] for z in M['ground_zones'] if z['id']=='stair')))
+min_head=headroom(M)
 check('Simple under-floor headroom before void exceeds 2m',min_head>2)
 observer=M['information']['street_witness'];target=M['information']['blocked_target']
-t=(3.3-observer[1])/(target[1]-observer[1]);u=observer[0]+t*(target[0]-observer[0]);h=1.6+t*(.85-1.6)
-check('Illustrated hand sightline meets screen below top',1.3<u<2.4 and 0<h<1.45)
+screen=next(f for f in M['furniture'] if f['id']=='screen');sx,sy,sw,sd=screen['box'];eye=M['information']['eye_height'];hand=M['information']['target_hand_height']
+t=(sy-observer[1])/(target[1]-observer[1]);u=observer[0]+t*(target[0]-observer[0]);h=eye+t*(hand-eye)
+check('Illustrated hand sightline meets screen below top',sx<u<sx+sw and 0<h<screen['height'])
 audit=json.loads((R/'data/assets.json').read_text());ids={x['id'] for x in B['items']}
 check('All 77 existing BOM lines audited',len(ids)==77 and {x['id'] for x in audit['items'] if x['id_kind']=='existing BOM'}==ids)
 check('New IDs are separate and all related BOM IDs resolve',all(x['id'] not in ids and all(y in ids for y in x['related_existing_bom_ids']) for x in audit['items'] if x['id_kind']!='existing BOM'))

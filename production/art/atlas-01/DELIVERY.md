@@ -6,6 +6,10 @@
 
 OWNER VISUAL APPROVAL PENDING. Base commit: **7722b45cb3dcee2fbcee26675fae4fef641cbba7**, explicitly pinned by the owner in Codex desktop. Branch: **art/atlas-01**, created from that exact commit in an isolated clone after inspecting the available checkout and worktrees. No prior conversation SHA or main state was used.
 
+## Recipe repair continuation
+
+The reviewed delivery is preserved. [Recipe repair](RECIPE-REPAIR.md) removes the hardcoded plan/model split; [access comparison](previews/mickeys-access.png) exposes the private-door conflict without moving its source anchor. Twelve focused mutation checks passed in addition to the original invariants. The studio interface and opt-in lane now exist and were read at e5b33d1317e20d672e4f9e39c09e4db41d023e0f; [reconciliation](RECONCILIATION.md) records the revisions and the required lane adapter. Research and production-catalogue continuation is in progress.
+
 ## Visual index and inventory
 
 | Package | Open the work | Provenance |
@@ -31,7 +35,7 @@ The broad atlas is an authored morphology/massing proposal, not a finished door-
 
 ## Pending render and interface dependencies
 
-No Blender executable was found in the inspected locations, and the pinned studio snapshot has no opt-in Blender recipe lane or general art interface. No shared-PC render or dispatch was attempted. The exact pending request is [render-request.json](render-request.json), pinned to art source commit **b9ad0626791cf265cc75a2962171953348b661b2**, which contains the recipe and its JSON. Claude owns scheduling; this file is a request, not a queue submission.
+No Blender execution or shared-PC dispatch was attempted. The studio now has an opt-in lane and static-prop interface, read at e5b33d1317e20d672e4f9e39c09e4db41d023e0f. The lane needs the adapter and exact-source reconciliation described in INTERFACE-NOTES.md. The existing [render-request.json](render-request.json) is being updated to the repair source revision; this is a request, not a submission.
 
 The recipe requests five previews: street approach, front, rear, overhead cutaway and player-height interior. Success requires visible agreement with the plans, continuous routes and correct source placement, plus a Blender-version/input-hash receipt. A .blend file, object count or successful exit alone is insufficient. No Blender preview or engine-ready export is included.
 
@@ -48,4 +52,4 @@ Consume only production/art/atlas-01 from this branch. Keep Mickey's at east_par
 3. The small counter-and-snug interior, compact private stair with an outward-opening household door, yard WC and overlooked rear escape route. The private door's footway sweep needs particular review.
 4. The seven district palettes and landmark silhouettes shown in the concepts, before detailed asset production.
 
-The source pin is resolved. Remaining dependencies are visual approval, the studio asset interface, a scheduled Blender lane, and live-game verification.
+The source pin is resolved. Remaining dependencies are visual approval, reconciliation with the narrow static-prop interface, a scheduled Blender preview, and live-game verification.

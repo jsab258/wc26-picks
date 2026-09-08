@@ -1,0 +1,21 @@
+{
+  "kind": "12 Python mutation/source checks; NOT Blender execution",
+  "count": 12,
+  "passed": [
+    "Retained first and final tread rise and position",
+    "Retained upper bed is now room-relative geometry",
+    "Both real plan sheets match current model commands",
+    "Going mutation changes final model tread and real SVG together",
+    "Room move controls upper wall AND bed in model",
+    "Room move controls real upper drawing",
+    "Stale plan/model divergence is exposed after room move",
+    "Store partition thickness mutation reaches both outputs",
+    "Headroom responds to actual floor void mutation",
+    "Headroom responds to actual slab thickness",
+    "Opening outside shell is rejected, not silently clamped",
+    "Blender adapter consumes shared commands and records their digest"
+  ],
+  "untested": [
+    "Blender API, mesh/render agreement, leaf poses, stair traversal, navmesh, acoustics, regulations"
+  ]
+}

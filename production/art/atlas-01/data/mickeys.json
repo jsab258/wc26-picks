@@ -1,56 +1,906 @@
 {
-  "schema":"atlas-01.mickeys-blockout/1",
-  "status":"ART PROPOSAL, no runtime integration",
-  "source_piece":"east_parade_bay0",
-  "source_sign":"east_parade_fascia0",
-  "local_frame":"u runs north along facade; v east into pub; h up. source [x,y,z]=[3+u,0.1+h,5.125+v]. Blender [X,Y,Z]=[u,v,h].",
-  "shell":{"width":6,"depth":8,"wall":0.215,"ground_floor_height":3.4,"upper_height":2.8,"roof_pitch_deg":35,"eaves_overhang":0.3},
-  "yard":{"width":6,"depth":6,"start_v":8,"rear_lane_width":2.4,"wall_height":1.8,"wc_annex":[0,8,2.2,2.6]},
-  "openings":[
-    {"id":"public_entry","side":"front","start":1.188,"width":0.9,"height":2.04,"source":"east_parade_shopdoor0","stateful":true},
-    {"id":"private_entry","side":"front","start":0.35,"width":0.838,"height":1.981,"source":"east_parade_sidedoor0","stateful":true,"swing_v":-1,"note":"Proposed outward-opening private door avoids the retained compact stair run. Footway obstruction and stair-foot pose require review."},
-    {"id":"front_glass","side":"front","start":2.22,"width":3.33,"sill":0.6,"height":1.8,"stateful":true},
-    {"id":"public_rear","side":"rear","start":2.7,"width":0.9,"height":2.04,"stateful":true},
-    {"id":"service_rear","side":"rear","start":4.83,"width":0.84,"height":2.04,"stateful":true}
-  ],
-  "ground_zones":[
-    {"id":"stair","name":"Private stair","box":[0.24,0.3,0.8,4.32],"colour":"#ada799"},
-    {"id":"public","name":"Public bar","box":[1.25,0.25,4.535,2],"colour":"#dfd4c0"},
-    {"id":"counter","name":"BAR","box":[3.8,2.4,0.6,4.2],"height":1.05,"colour":"#744634"},
-    {"id":"staff","name":"Staff 1.15m","box":[4.4,2.4,1.15,4.2],"colour":"#bfd0c5"},
-    {"id":"backbar","name":"Back bar","box":[5.55,2.4,0.235,4.2],"height":2.2,"colour":"#886146"},
-    {"id":"snug","name":"Snug","box":[1.3,4.8,1.55,0.7],"height":0.48,"colour":"#a57a75"},
-    {"id":"store","name":"Beer store","box":[0.215,5.7,1.935,2.085],"colour":"#c3b7a0"},
-    {"id":"rear_passage","name":"Rear passage","box":[2.3,6.75,3.485,1.035],"colour":"#e9e0d0"}
-  ],
-  "furniture":[
-    {"id":"window_bench","box":[2.3,0.35,3.05,0.48],"height":0.48},
-    {"id":"table_front","box":[2.5,1.1,0.7,0.65],"height":0.73},
-    {"id":"table_snug","box":[1.65,4,0.7,0.65],"height":0.73},
-    {"id":"screen","box":[1.3,3.3,1.1,0.1],"height":1.45},
-    {"id":"till","box":[3.85,2.6,0.45,0.45],"height":1.35}
-  ],
-  "stairs":{"risers":19,"rise_total":3.4,"goings":18,"going":0.24,"width":0.8,"landing_v":[4.62,5.6],"floor_void":[0.215,1.7,0.925,3.9]},
-  "upper_rooms":[
-    {"id":"bedroom","name":"Tom's bedroom","box":[2.3,0.215,3.485,3.185],"colour":"#d0c8b2"},
-    {"id":"living","name":"Living room","box":[2.3,3.55,3.485,2.25],"colour":"#ddd0b6"},
-    {"id":"office","name":"Book room","box":[0.215,5.95,2.085,1.835],"colour":"#c7b89a"},
-    {"id":"kitchen","name":"Kitchen","box":[2.45,5.95,1.65,1.835],"colour":"#b8c4ba"},
-    {"id":"bath","name":"Bath","box":[4.25,5.95,1.535,1.835],"colour":"#bcccd0"}
-  ],
-  "paths":{
-    "customer":[[1.638,-1],[1.638,1],[1.638,2.15],[2.7,2.15],[3.3,3]],
-    "staff":[[5.25,9],[5.25,7.2],[4.95,6.4],[4.95,2.8]],
-    "escape":[[3.25,3.8],[3.25,6.2],[3.15,8.3],[3.5,11.2],[5.2,14.2],[5.2,15.2],[-1.5,15.2],[-1.5,-1.5],[1.638,-1.5]],
-    "delivery":[[-1.5,-1.5],[-1.5,15.2],[5.2,15.2],[5.2,14],[3.2,11.5],[3.15,7.2],[2,6.5]]
+  "schema": "atlas-01.mickeys-blockout/2",
+  "status": "ART PROPOSAL, no runtime integration",
+  "source_piece": "east_parade_bay0",
+  "source_sign": "east_parade_fascia0",
+  "local_frame": "u runs north along facade; v east into pub; h up. source [x,y,z]=[3+u,0.1+h,5.125+v]. Blender [X,Y,Z]=[u,v,h].",
+  "shell": {
+    "width": 6,
+    "depth": 8,
+    "wall": 0.215,
+    "ground_floor_height": 3.4,
+    "upper_height": 2.8,
+    "roof_pitch_deg": 35,
+    "eaves_overhang": 0.3,
+    "floor_thickness": 0.2,
+    "roof_thickness": 0.15,
+    "source_floor_y": 0.1
   },
-  "information":{"overhear":[2.1,4.8],"bar_speaker":[3.2,3.3],"street_witness":[3,-1.5],"partial_view_target":[3.2,2.2],"blocked_target":[1.7,4.9],"note":"Snug screen interrupts torso/hand views; voices might carry. Acoustic and perception tests pending, no guaranteed audibility."},
-  "cameras":[
-    {"id":"street_approach","position":[-8,-5,1.6],"target":[3,1,2.8],"lens":28},
-    {"id":"front","position":[3,-15,4.5],"target":[3,3,4.5],"lens":34},
-    {"id":"rear","position":[9,19,5],"target":[3,8,3.3],"lens":30},
-    {"id":"overhead","position":[3,6,24],"target":[3,6,0],"lens":30,"cutaway":true},
-    {"id":"interior","position":[1.85,1.1,1.6],"target":[3.4,5.3,1.5],"lens":22,"cutaway":true}
+  "yard": {
+    "width": 6,
+    "depth": 6,
+    "start_v": 8,
+    "rear_lane_width": 2.4,
+    "wall_height": 1.8,
+    "wc_annex": [
+      0,
+      8,
+      2.2,
+      2.6
+    ],
+    "wall_thickness": 0.15,
+    "gate_start": 4.6,
+    "gate_width": 1.2,
+    "wc_wall": 0.2,
+    "wc_height": 2.55,
+    "wc_door_offset": 0.7,
+    "wc_door_width": 0.8,
+    "wc_door_height": 2.04
+  },
+  "openings": [
+    {
+      "id": "public_entry",
+      "side": "front",
+      "start": 1.188,
+      "width": 0.9,
+      "height": 2.04,
+      "source": "east_parade_shopdoor0",
+      "stateful": true,
+      "kind": "door"
+    },
+    {
+      "id": "private_entry",
+      "side": "front",
+      "start": 0.35,
+      "width": 0.838,
+      "height": 1.981,
+      "source": "east_parade_sidedoor0",
+      "stateful": true,
+      "swing_v": -1,
+      "note": "Proposed outward-opening private door avoids the retained compact stair run. Footway obstruction and stair-foot pose require review.",
+      "kind": "door"
+    },
+    {
+      "id": "front_glass",
+      "side": "front",
+      "start": 2.22,
+      "width": 3.33,
+      "sill": 0.6,
+      "height": 1.8,
+      "stateful": true,
+      "kind": "glass"
+    },
+    {
+      "id": "public_rear",
+      "side": "rear",
+      "start": 2.7,
+      "width": 0.9,
+      "height": 2.04,
+      "stateful": true,
+      "kind": "door"
+    },
+    {
+      "id": "service_rear",
+      "side": "rear",
+      "start": 4.83,
+      "width": 0.84,
+      "height": 2.04,
+      "stateful": true,
+      "kind": "door"
+    }
   ],
-  "history":["c.1880: narrow chandler's shop with household above, built into the east terrace.","c.1925: licensed beer house; maroon timber frontage retains private household door.","c.1958: rear yard WC in cheaper brick; former store window infilled.","c.1976: back bar and half-height snug screen inserted; stairs remain independent.","1988-1992: Mickey's worn but maintained pub, paper tabs, hand-polished counter, mismatched repairs; all history is proposed and changes no canon."]
+  "ground_zones": [
+    {
+      "id": "stair",
+      "name": "Private stair",
+      "colour": "#ada799"
+    },
+    {
+      "id": "public",
+      "name": "Public bar",
+      "box": [
+        1.25,
+        0.25,
+        4.535,
+        2
+      ],
+      "colour": "#dfd4c0"
+    },
+    {
+      "id": "counter",
+      "name": "BAR",
+      "box": [
+        3.8,
+        2.4,
+        0.6,
+        4.2
+      ],
+      "height": 1.05,
+      "colour": "#744634",
+      "solid": true,
+      "material": "wood"
+    },
+    {
+      "id": "staff",
+      "name": "Staff 1.15m",
+      "box": [
+        4.4,
+        2.4,
+        1.15,
+        4.2
+      ],
+      "colour": "#bfd0c5"
+    },
+    {
+      "id": "backbar",
+      "name": "Back bar",
+      "box": [
+        5.55,
+        2.4,
+        0.235,
+        4.2
+      ],
+      "height": 2.2,
+      "colour": "#886146",
+      "solid": true,
+      "material": "wood"
+    },
+    {
+      "id": "snug",
+      "name": "Snug",
+      "box": [
+        1.3,
+        4.8,
+        1.55,
+        0.7
+      ],
+      "height": 0.48,
+      "colour": "#a57a75",
+      "solid": true,
+      "material": "cloth"
+    },
+    {
+      "id": "store",
+      "name": "Beer store",
+      "box": [
+        0.215,
+        5.7,
+        1.935,
+        2.085
+      ],
+      "colour": "#c3b7a0"
+    },
+    {
+      "id": "rear_passage",
+      "name": "Rear passage",
+      "box": [
+        2.3,
+        6.75,
+        3.485,
+        1.035
+      ],
+      "colour": "#e9e0d0"
+    }
+  ],
+  "furniture": [
+    {
+      "id": "window_bench",
+      "box": [
+        2.3,
+        0.35,
+        3.05,
+        0.48
+      ],
+      "height": 0.48,
+      "base_h": 0,
+      "material": "cloth"
+    },
+    {
+      "id": "table_front",
+      "box": [
+        2.5,
+        1.1,
+        0.7,
+        0.65
+      ],
+      "height": 0.73,
+      "base_h": 0,
+      "material": "wood"
+    },
+    {
+      "id": "table_snug",
+      "box": [
+        1.65,
+        4,
+        0.7,
+        0.65
+      ],
+      "height": 0.73,
+      "base_h": 0,
+      "material": "wood"
+    },
+    {
+      "id": "screen",
+      "box": [
+        1.3,
+        3.3,
+        1.1,
+        0.1
+      ],
+      "height": 1.45,
+      "base_h": 0,
+      "material": "wood"
+    },
+    {
+      "id": "till",
+      "box": [
+        3.85,
+        2.6,
+        0.45,
+        0.45
+      ],
+      "height": 0.3,
+      "base_h": 1.05,
+      "material": "metal"
+    }
+  ],
+  "stairs": {
+    "risers": 19,
+    "goings": 18,
+    "going": 0.24,
+    "width": 0.8,
+    "landing_v": [
+      4.62,
+      5.6
+    ],
+    "floor_void": [
+      0.215,
+      1.7,
+      0.925,
+      3.9
+    ],
+    "start": [
+      0.24,
+      0.3
+    ],
+    "landing_box": [
+      0.215,
+      4.62,
+      0.925,
+      0.98
+    ],
+    "partition": {
+      "box": [
+        1.088,
+        0.215,
+        0.1,
+        5.385
+      ],
+      "height": 3.4
+    }
+  },
+  "upper_rooms": [
+    {
+      "id": "bedroom",
+      "name": "Tom's bedroom",
+      "box": [
+        2.3,
+        0.215,
+        3.485,
+        3.185
+      ],
+      "colour": "#d0c8b2"
+    },
+    {
+      "id": "living",
+      "name": "Living room",
+      "box": [
+        2.3,
+        3.55,
+        3.485,
+        2.25
+      ],
+      "colour": "#ddd0b6"
+    },
+    {
+      "id": "office",
+      "name": "Book room",
+      "box": [
+        0.215,
+        5.95,
+        2.085,
+        1.835
+      ],
+      "colour": "#c7b89a"
+    },
+    {
+      "id": "kitchen",
+      "name": "Kitchen",
+      "box": [
+        2.45,
+        5.95,
+        1.65,
+        1.835
+      ],
+      "colour": "#b8c4ba"
+    },
+    {
+      "id": "bath",
+      "name": "Bath",
+      "box": [
+        4.25,
+        5.95,
+        1.535,
+        1.835
+      ],
+      "colour": "#bcccd0"
+    }
+  ],
+  "paths": {
+    "customer": [
+      [
+        1.638,
+        -1
+      ],
+      [
+        1.638,
+        1
+      ],
+      [
+        1.638,
+        2.15
+      ],
+      [
+        2.7,
+        2.15
+      ],
+      [
+        3.3,
+        3
+      ]
+    ],
+    "staff": [
+      [
+        5.25,
+        9
+      ],
+      [
+        5.25,
+        7.2
+      ],
+      [
+        4.95,
+        6.4
+      ],
+      [
+        4.95,
+        2.8
+      ]
+    ],
+    "escape": [
+      [
+        3.25,
+        3.8
+      ],
+      [
+        3.25,
+        6.2
+      ],
+      [
+        3.15,
+        8.3
+      ],
+      [
+        3.5,
+        11.2
+      ],
+      [
+        5.2,
+        14.2
+      ],
+      [
+        5.2,
+        15.2
+      ],
+      [
+        -1.5,
+        15.2
+      ],
+      [
+        -1.5,
+        -1.5
+      ],
+      [
+        1.638,
+        -1.5
+      ]
+    ],
+    "delivery": [
+      [
+        -1.5,
+        -1.5
+      ],
+      [
+        -1.5,
+        15.2
+      ],
+      [
+        5.2,
+        15.2
+      ],
+      [
+        5.2,
+        14
+      ],
+      [
+        3.2,
+        11.5
+      ],
+      [
+        3.15,
+        7.2
+      ],
+      [
+        2,
+        6.5
+      ]
+    ]
+  },
+  "information": {
+    "overhear": [
+      2.1,
+      4.8
+    ],
+    "bar_speaker": [
+      3.2,
+      3.3
+    ],
+    "street_witness": [
+      3,
+      -1.5
+    ],
+    "partial_view_target": [
+      3.2,
+      2.2
+    ],
+    "blocked_target": [
+      1.7,
+      4.9
+    ],
+    "note": "Snug screen interrupts torso/hand views; voices might carry. Acoustic and perception tests pending, no guaranteed audibility.",
+    "eye_height": 1.6,
+    "target_hand_height": 0.85
+  },
+  "cameras": [
+    {
+      "id": "street_approach",
+      "position": [
+        -8,
+        -5,
+        1.6
+      ],
+      "target": [
+        3,
+        1,
+        2.8
+      ],
+      "lens": 28
+    },
+    {
+      "id": "front",
+      "position": [
+        3,
+        -15,
+        4.5
+      ],
+      "target": [
+        3,
+        3,
+        4.5
+      ],
+      "lens": 34
+    },
+    {
+      "id": "rear",
+      "position": [
+        9,
+        19,
+        5
+      ],
+      "target": [
+        3,
+        8,
+        3.3
+      ],
+      "lens": 30
+    },
+    {
+      "id": "overhead",
+      "position": [
+        3,
+        6,
+        24
+      ],
+      "target": [
+        3,
+        6,
+        0
+      ],
+      "lens": 30,
+      "cutaway": true
+    },
+    {
+      "id": "interior",
+      "position": [
+        1.85,
+        1.1,
+        1.6
+      ],
+      "target": [
+        3.4,
+        5.3,
+        1.5
+      ],
+      "lens": 22,
+      "cutaway": true
+    }
+  ],
+  "history": [
+    "c.1880: narrow chandler's shop with household above, built into the east terrace.",
+    "c.1925: licensed beer house; maroon timber frontage retains private household door.",
+    "c.1958: rear yard WC in cheaper brick; former store window infilled.",
+    "c.1976: back bar and half-height snug screen inserted; stairs remain independent.",
+    "1988-1992: Mickey's worn but maintained pub, paper tabs, hand-polished counter, mismatched repairs; all history is proposed and changes no canon."
+  ],
+  "upper_openings": [
+    {
+      "id": "upper_front_window0",
+      "side": "front",
+      "start": 1.8,
+      "width": 0.85,
+      "sill": 0.9,
+      "height": 1.5,
+      "kind": "glass"
+    },
+    {
+      "id": "upper_front_window1",
+      "side": "front",
+      "start": 3.6,
+      "width": 0.85,
+      "sill": 0.9,
+      "height": 1.5,
+      "kind": "glass"
+    },
+    {
+      "id": "upper_rear_window0",
+      "side": "rear",
+      "start": 1.8,
+      "width": 0.85,
+      "sill": 0.9,
+      "height": 1.5,
+      "kind": "glass"
+    },
+    {
+      "id": "upper_rear_window1",
+      "side": "rear",
+      "start": 3.6,
+      "width": 0.85,
+      "sill": 0.9,
+      "height": 1.5,
+      "kind": "glass"
+    }
+  ],
+  "partitions": [
+    {
+      "id": "store_top",
+      "floor": "ground",
+      "room": "store",
+      "edge": "front",
+      "thickness": 0.1,
+      "height": 3,
+      "openings": []
+    },
+    {
+      "id": "store_side",
+      "floor": "ground",
+      "room": "store",
+      "edge": "right",
+      "thickness": 0.1,
+      "height": 3,
+      "openings": [
+        {
+          "offset": 0.35,
+          "width": 0.9,
+          "height": 2.04
+        }
+      ]
+    },
+    {
+      "id": "bed_living",
+      "floor": "upper",
+      "room": "bedroom",
+      "edge": "back",
+      "outside": true,
+      "thickness": 0.15,
+      "height": "upper_height",
+      "openings": []
+    },
+    {
+      "id": "office_front",
+      "floor": "upper",
+      "room": "office",
+      "edge": "front",
+      "thickness": 0.1,
+      "height": "upper_height",
+      "openings": [
+        {
+          "offset": 1.285,
+          "width": 0.7,
+          "height": 2.04
+        }
+      ]
+    },
+    {
+      "id": "kitchen_front",
+      "floor": "upper",
+      "room": "kitchen",
+      "edge": "front",
+      "thickness": 0.1,
+      "height": "upper_height",
+      "openings": [
+        {
+          "offset": 0.6,
+          "width": 0.7,
+          "height": 2.04
+        }
+      ]
+    },
+    {
+      "id": "bath_front",
+      "floor": "upper",
+      "room": "bath",
+      "edge": "front",
+      "thickness": 0.1,
+      "height": "upper_height",
+      "openings": [
+        {
+          "offset": 0.4,
+          "width": 0.7,
+          "height": 2.04
+        }
+      ]
+    },
+    {
+      "id": "office_kitchen",
+      "floor": "upper",
+      "room": "office",
+      "edge": "right",
+      "outside": true,
+      "thickness": 0.15,
+      "height": "upper_height",
+      "openings": []
+    },
+    {
+      "id": "kitchen_bath",
+      "floor": "upper",
+      "room": "kitchen",
+      "edge": "right",
+      "outside": true,
+      "thickness": 0.15,
+      "height": "upper_height",
+      "openings": []
+    },
+    {
+      "id": "bed_hall",
+      "floor": "upper",
+      "room": "bedroom",
+      "edge": "left",
+      "thickness": 0.1,
+      "height": "upper_height",
+      "openings": [
+        {
+          "offset": 2.285,
+          "width": 0.7,
+          "height": 2.04
+        }
+      ]
+    },
+    {
+      "id": "living_hall",
+      "floor": "upper",
+      "room": "living",
+      "edge": "left",
+      "thickness": 0.1,
+      "height": "upper_height",
+      "openings": [
+        {
+          "offset": 1.35,
+          "width": 0.7,
+          "height": 2.04
+        }
+      ]
+    }
+  ],
+  "upper_furniture": [
+    {
+      "id": "bed",
+      "room": "bedroom",
+      "box": [
+        1.4,
+        0.335,
+        1.4,
+        2
+      ],
+      "base_h": 0,
+      "height": 0.64,
+      "material": "cloth"
+    },
+    {
+      "id": "book_room_desk",
+      "room": "office",
+      "box": [
+        0.385,
+        1.075,
+        1.3,
+        0.65
+      ],
+      "base_h": 0,
+      "height": 0.75,
+      "material": "wood"
+    },
+    {
+      "id": "kitchen_counter",
+      "room": "kitchen",
+      "box": [
+        0.1,
+        1.225,
+        1.4,
+        0.55
+      ],
+      "base_h": 0,
+      "height": 0.92,
+      "material": "wood"
+    },
+    {
+      "id": "bath_proxy",
+      "room": "bath",
+      "box": [
+        0.075,
+        0.775,
+        1.35,
+        0.65
+      ],
+      "base_h": 0,
+      "height": 0.54,
+      "material": "plaster"
+    }
+  ],
+  "detail_boxes": [
+    {
+      "id": "fascia",
+      "center": [
+        3,
+        -0.06,
+        3.125
+      ],
+      "size": [
+        6,
+        0.12,
+        0.55
+      ],
+      "material": "maroon",
+      "floor": "ground",
+      "bom": "C5_shopfront_assembly"
+    },
+    {
+      "id": "footway_context",
+      "center": [
+        3,
+        -1,
+        -0.08
+      ],
+      "size": [
+        12,
+        2,
+        0.16
+      ],
+      "material": "yard",
+      "floor": "ground",
+      "bom": "A0_ground_planes"
+    },
+    {
+      "id": "kerb_context",
+      "center": [
+        3,
+        -2.0625,
+        -0.0625
+      ],
+      "size": [
+        12,
+        0.125,
+        0.125
+      ],
+      "material": "yard",
+      "floor": "ground",
+      "bom": "B1_kerbstone_run"
+    },
+    {
+      "id": "road_context",
+      "center": [
+        3,
+        -5.125,
+        -0.2
+      ],
+      "size": [
+        22,
+        6,
+        0.2
+      ],
+      "material": "metal",
+      "floor": "ground",
+      "bom": "A0_ground_planes"
+    },
+    {
+      "id": "south_passage",
+      "center": [
+        -1.5,
+        6,
+        -0.1
+      ],
+      "size": [
+        3,
+        16,
+        0.2
+      ],
+      "material": "yard",
+      "floor": "ground",
+      "bom": "A01_PROPOSED"
+    },
+    {
+      "id": "wc_pan_proxy",
+      "center": [
+        0.7,
+        9.8,
+        0.23
+      ],
+      "size": [
+        0.4,
+        0.55,
+        0.46
+      ],
+      "material": "plaster",
+      "floor": "ground",
+      "bom": "A01_PROPOSED"
+    },
+    {
+      "id": "wc_basin_proxy",
+      "center": [
+        0.65,
+        8.4,
+        0.8
+      ],
+      "size": [
+        0.55,
+        0.35,
+        0.15
+      ],
+      "material": "plaster",
+      "floor": "ground",
+      "bom": "A01_PROPOSED"
+    }
+  ],
+  "fascia_text": {
+    "text": "MICKEY'S",
+    "position": [
+      3,
+      -0.131,
+      3.1
+    ],
+    "size": 0.33
+  },
+  "chimney": {
+    "width": 0.9,
+    "depth": 0.45,
+    "height": 1
+  }
 }
