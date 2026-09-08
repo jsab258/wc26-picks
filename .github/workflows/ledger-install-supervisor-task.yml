@@ -204,34 +204,52 @@ jobs:
           if (-not (Test-Path "$repo\.git")) {
             $L += "NOTHING MEASURED - no git checkout at that path, so none of the four questions could be asked."
           } else {
+            # NOTHING INTERACTIVE, EVER. credential.helper is "manager",
+            # which is Git Credential Manager and CAN open a window. On a
+            # runner nobody is sitting at, that window is an infinite hang,
+            # and the 4 minute step timeout then kills the step before it
+            # writes a single line. That is what happened on the 2592c14 run:
+            # the other two evidence files updated and this one did not.
             $env:GIT_TERMINAL_PROMPT = "0"
+            $env:GCM_INTERACTIVE = "never"
+            $env:GIT_ASKPASS = "echo"
+            $env:GCM_PROVIDER = "generic"
             $g = @("-c", "safe.directory=*", "-C", $repo)
+            # THE EVIDENCE IS WRITTEN BEFORE THE RISKY CALLS AND APPENDED TO
+            # AFTER, which is the amendment a director made to the restart
+            # job an hour ago and which this step did not have. A step whose
+            # whole output is buffered until it finishes has no output at all
+            # when it is killed, and a killed step is exactly when the reason
+            # matters most.
+            $L -join "`n" | Set-Content $out -Encoding utf8
+            function Say($line) { $line | Add-Content $out -Encoding utf8; Write-Host $line }
+            $L = @()
             # Q1: does the remote answer AS HIM, and what does it hold?
             $t0 = Get-Date
             $ls = (& git @g ls-remote origin refs/heads/pc-inbox 2>&1 | Out-String).Trim()
             $secs = [math]::Round(((Get-Date) - $t0).TotalSeconds, 1)
             $sha = if ($ls -match "^([0-9a-f]{40})") { $Matches[1] } else { "none" }
-            $L += "lsRemoteExit=$LASTEXITCODE lsRemoteSec=$secs lsRemoteSha=$sha"
+            Say "lsRemoteExit=$LASTEXITCODE lsRemoteSec=$secs lsRemoteSha=$sha"
             if ($sha -eq "none") {
-              $L += "lsRemoteSaid=$((($ls -split "`r?`n") | Select-Object -First 2 | ForEach-Object { $_ -replace ' ','~' }) -join '/')"
+              Say "lsRemoteSaid=$((($ls -split "`r?`n") | Select-Object -First 2 | ForEach-Object { $_ -replace ' ','~' }) -join '/')"
             }
             # Q2: where does the LOCAL parent pointer think it is? A tip that
             # names a commit the remote never took is the shape of a push
             # that reported success and sent nothing.
             $tip = (& git @g rev-parse --verify --quiet "refs/ledger-inbox/tip^{commit}" 2>&1 | Out-String).Trim()
-            $L += "localTipRef=$(if ($tip) { $tip.Substring(0, [Math]::Min(40, $tip.Length)) } else { 'unset' })"
+            Say "localTipRef=$(if ($tip) { $tip.Substring(0, [Math]::Min(40, $tip.Length)) } else { 'unset' })"
             # Q3: how much is waiting on his disk, against what the branch holds.
             foreach ($d in @("production\inbox", "production\outbound", "production\rulings")) {
               $p = Join-Path $repo $d
               $n = if (Test-Path $p) { @(Get-ChildItem $p -File -ErrorAction SilentlyContinue).Count } else { -1 }
-              $L += "onDisk_$($d -replace '\\','_')=$n"
+              Say "onDisk_$($d -replace '\\','_')=$n"
             }
             # Q4: the remote and the helper, by NAME only.
             $url = (& git @g config --get remote.origin.url 2>&1 | Out-String).Trim()
             $safe = if ($url -match "://[^/]*@?([^/]+)/(.+)$") { "$($Matches[1])/$($Matches[2])" } else { "unreadable" }
-            $L += "remoteHostPath=$($safe -replace ' ','~')"
+            Say "remoteHostPath=$($safe -replace ' ','~')"
             $helper = (& git @g config --get credential.helper 2>&1 | Out-String).Trim()
-            $L += "credentialHelper=$(if ($helper) { ($helper -split '\s+')[0] } else { 'none-configured' })"
+            Say "credentialHelper=$(if ($helper) { ($helper -split '\s+')[0] } else { 'none-configured' })"
             # Q5: CAN IT WRITE, WHICH ls-remote NEVER ASKED. A read that
             # answers in 0.4s proves the host is reachable and says nothing
             # about whether a PUSH is authorised; the credential manager can
@@ -240,10 +258,10 @@ jobs:
             $tipSha = (& git @g rev-parse --verify --quiet "refs/ledger-inbox/tip^{commit}" 2>&1 | Out-String).Trim()
             if ($tipSha -match "^[0-9a-f]{40}$") {
               $dry = (& git @g push --dry-run --force origin "$($tipSha):refs/heads/pc-inbox" 2>&1 | Out-String).Trim()
-              $L += "pushDryRunExit=$LASTEXITCODE"
-              $L += "pushDryRunSaid=$((($dry -split "`r?`n") | Select-Object -First 3 | ForEach-Object { $_ -replace ' ','~' }) -join '/')"
+              Say "pushDryRunExit=$LASTEXITCODE"
+              Say "pushDryRunSaid=$((($dry -split "`r?`n") | Select-Object -First 3 | ForEach-Object { $_ -replace ' ','~' }) -join '/')"
             } else {
-              $L += "pushDryRunExit=nothing-measured pushDryRunSaid=no-local-tip-to-offer"
+              Say "pushDryRunExit=nothing-measured pushDryRunSaid=no-local-tip-to-offer"
             }
             # Q6: THE RECEIPTS ALREADY ON HIS DISK CARRY MESSAGE IDS, and a
             # receipt is written only AFTER Telegram accepted the message. So
@@ -253,19 +271,19 @@ jobs:
             if (Test-Path $od) {
               $newest = @(Get-ChildItem $od -File -Filter "*.receipt.txt" -ErrorAction SilentlyContinue |
                           Sort-Object LastWriteTime -Descending | Select-Object -First 4)
-              $L += "receiptsOnDisk=$(@(Get-ChildItem $od -File -Filter '*.receipt.txt' -ErrorAction SilentlyContinue).Count) newestShown=$($newest.Count)"
+              Say "receiptsOnDisk=$(@(Get-ChildItem $od -File -Filter '*.receipt.txt' -ErrorAction SilentlyContinue).Count) newestShown=$($newest.Count)"
               foreach ($r in $newest) {
                 $body = (Get-Content $r.FullName -Raw -ErrorAction SilentlyContinue)
                 $f = if ($body -match "(?m)^file:\s*(.+)$") { $Matches[1].Trim() } else { "?" }
                 $mid = if ($body -match "(?m)^messageId:\s*(\d+)") { $Matches[1] } else { "none" }
                 $sent = if ($body -match "(?m)^sent:\s*(.+)$") { $Matches[1].Trim() } else { "?" }
-                $L += "receipt file=$($f -replace ' ','~') messageId=$mid sent=$($sent -replace ' ','~')"
+                Say "receipt file=$($f -replace ' ','~') messageId=$mid sent=$($sent -replace ' ','~')"
               }
             }
-            $L += "diagNote=reads-plus-one-push-dry-run/no-ref-was-updated-and-nothing-was-sent"
+            Say "diagNote=reads-plus-one-push-dry-run/no-ref-was-updated-and-nothing-was-sent"
           }
-          $L -join "`n" | Set-Content $out -Encoding utf8
-          Write-Host ($L -join "`n")
+          if ($L.Count -gt 0) { $L -join "`n" | Set-Content $out -Encoding utf8 }
+          Write-Host (Get-Content $out -Raw)
 
       - name: Publish the supervisor's own status
         if: always()
