@@ -1,6 +1,12 @@
 # Operating plan, week of 2026-08-31 (W36)
 
-STATUS: LIVE. Verified 2026-09-01.
+STATUS: LOG. Was LIVE, verified 2026-09-01; superseded 2026-09-08 by the
+regime change below.
+
+RATES IN THIS FILE ARE VOID, by Jafar's ruling of 2026-09-08: "the plan is now
+Max 20x; every rate computed before this reading is void." The numbers are left
+as written because a deleted number cannot be audited. The live plan is
+production/week-plan-2026-09-08.md.
 
 Written because the week is 2.5x over budget 28 hours in. The plan is not a
 wish list; it is what fits in 46 points of weekly budget over 140 hours.

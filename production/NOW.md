@@ -9,6 +9,40 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-08 NIGHT: THE CRIME LANDED, THE PROPS IMPORT, COLLISION DOES NOT
+
+THE NIGHT'S ONE REQUIRED OUTCOME IS DONE. Run 32 launched the packaged build on
+Jafar's PC and committed two crimes on Quay Street, one seen and one blocked by a
+named wall (west_south_bay2), both decided by the ported Observe::Resolve on real
+line traces rather than by a script. crimeStatus=COMMITTED twice,
+witnessStatus=REAL, gossipStatus=REAL, overheardStatus=HEARD, memoryFiles=2/2,
+clipStatus=WROTE at 2381728 bytes. production/next-three.json now has all three
+steps in `done`, so the milestone's ladder reads 4 of 4 and the map shows the
+goal as current.
+
+THE PROP ROUTE WORKS AS OF RUN 3 ON 7f12005. propImported=15/16 propSaved=15/16
+propUassetsOnDisk=16, and sixteen .uasset files are committed under
+ue-probe/Content/Ledger/Props/. The grate resolves at 0.0474 mm worst against its
+spec box.
+
+WHAT IS STILL OPEN, and it is the thing Jafar's accepting case actually asks for:
+COLLISION. propCollisionPrims=0/15 with the editor subsystem returning None in
+the commandlet. A mesh with no body setup photographs clean and a walking
+character falls through it, so pilot package one still counts ZERO on the
+throughput ledger. A builder is on it, with three instrument faults in the same
+pass (an unreadable count printing as zero, two numbers in one run disagreeing
+about one thing, and a docstring claiming a proxy is the thing).
+
+IN FLIGHT TONIGHT, so a fresh session does not duplicate it: queue 147, porting
+StreetVoice.Exchange into the probe so the overheard reply is COMPOSED from what
+the gossip mill carried rather than PICKED from a bank by seed. That is Jafar's
+priority 3 and the rung above what run 32 achieved.
+
+TWO TASTE CARDS ARE WAITING with defaults and a 2026-09-11 deadline: which bay
+Mickey's takes, and how many bays it takes. Queue 155 (the pub's pavement beer
+drop) is BLOCKED on both, on purpose: the drop goes in front of the pub's door
+and building it first puts a hole in the pavement outside a pawnbroker.
+
 ## 2026-09-07: THE PAGES SERVE, THE MAP IS A MAP, AND THE ROUTE EXISTS
 
 PAGES. Jafar allowed the branch to deploy. Publish run 12 attempt 2 landed on

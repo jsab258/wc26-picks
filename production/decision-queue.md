@@ -322,6 +322,41 @@ about to act on a paraphrase of a sentence that exists in no file. His words:
 > "No further channel work this week. The supervisor's staleness is a recorded
 > finding."
 
+### The overnight standing order, 2026-09-08
+
+Recorded for the same reason, and with a limit on it stated up front. THIS IS
+NOT THE WHOLE MESSAGE. It survives only through a session summary written when
+the context window filled, and that summary elided the middle of three priority
+lines with an ellipsis. The elisions are Jafar's sentences, lost in the handoff;
+they are marked below and must not be filled in by a later reader. What is
+quoted is exact.
+
+> "Readings: total 6, Fable 8, taken now, window not clean. Regime change: the
+> plan is now Max 20x; every rate computed before this reading is void. Ceiling
+> stays 75 on the governing meter. Overnight standing order. I am asleep until
+> morning. Work continuously until the ceiling or a limit; on a limit arm the
+> resume trigger and continue. Do not stop for me; anything that needs my taste
+> becomes a Telegram card with a default and a deadline, and you carry on.
+> Nothing reaches me outside Telegram. Priorities, in order: 1. The crime item
+> [ELIDED]. This is the night's one required outcome. 2. The grate [ELIDED].
+> Clip to my phone. 3. If 1 lands with budget left: the overheard consequence
+> [ELIDED]. 4. The art line moves in-house [ELIDED]. Open art/atlas-02, pinned
+> to tonight's HEAD [ELIDED]. 5. Images, when the runner is idle and behind
+> every game build [ELIDED]. 6. Art budget share: at most a quarter of the
+> week's points, yielding to game work for the PC and the runner. The weekly
+> planner reports the split. Rules: no channel work; the supervisor's staleness
+> stays a recorded finding. New findings go to the findings file, not the queue.
+> Findings that block items 1 to 3 are fixed; nothing else is. Morning brief at
+> 06:00: what landed, every clip and image, what needs my taste as cards, the
+> split, the budget. If item 1 did not land, say why in one sentence, first."
+
+WHAT THE RESIDENT DID WITH ITEM 3's ELISION, so the choice is auditable rather
+than invisible: item 3 is being read as queue 147, which is the only filed item
+whose line is "narrative (the overheard consequence)" and whose acceptance is
+the rung above what run 32 achieved. Run 32 already printed overheardStatus=
+HEARD, so item 3 cannot mean the beat itself and must mean its next rung. If
+that reading is wrong, the work is not wasted, but the priority was.
+
 HOW IT WAS APPLIED THE SAME DAY, so the exception is visible rather than
 implied. The mesh import's evidence fault shipped: its verdict step died on
 directory ownership and published nothing while the run had measured all

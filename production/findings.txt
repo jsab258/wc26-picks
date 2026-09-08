@@ -651,3 +651,95 @@ which case the waiting message is delivered and the fault is in the loop that
 calls it, or it fails and prints the reason that has been going to a console
 nobody reads all day. It is allowed to send; receipts make a double send
 impossible.
+
+--------------------------------------------------------------------------
+2026-09-08  A CONTEXT COMPACTION ATE THE MIDDLE OF THREE LINES OF JAFAR'S
+            STANDING ORDER, AND THE SUMMARY THAT REPLACED IT READS AS
+            COMPLETE.
+--------------------------------------------------------------------------
+The overnight standing order of 2026-09-08 survives only through a session
+summary written when the context window filled. That summary renders three of
+the six priority lines with an ellipsis through the middle: "1. The crime
+item... This is the night's one required outcome", "2. The grate... Clip to my
+phone", "3. If 1 lands with budget left: the overheard consequence...".
+
+THE SENTENCES INSIDE THOSE ELLIPSES ARE GONE. The transcript file holds the
+summary, not the message it summarised, so there is nothing to read them back
+out of. Checked rather than assumed: the session jsonl was searched for the
+original user turn and only the summary is present.
+
+WHY IT MATTERS MORE THAN IT LOOKS. A summary is an analysis, and rule 3 says an
+analysis is not evidence. This one is worse than a decayed comment because it
+reads as a quotation: three lines with ellipses look like a faithful excerpt,
+and a later session with no memory of the compaction would act on them as if
+they were the whole instruction. Item 3 is the live case. "The overheard
+consequence" with its qualifier missing could be the beat itself, which run 32
+already landed, or the rung above it.
+
+WHAT WAS DONE, and it is a mitigation and not a fix: the order is recorded in
+production/decision-queue.md with every elision MARKED as an elision and a
+sentence forbidding a later reader from filling one in, plus the resident's
+reading of item 3 and its reasoning, so the choice is auditable instead of
+invisible. Item 3 is being read as queue 147, the only filed item whose line is
+"narrative (the overheard consequence)" and whose acceptance sits above what run
+32 achieved.
+
+THE STANDING LESSON: an instruction that matters past the current window is
+copied into a file WHEN IT ARRIVES, not when it is needed. Every ruling recorded
+verbatim this week survived; the one paraphrased into a summary did not.
+
+--------------------------------------------------------------------------
+2026-09-08  RUN 3 IMPORTED FIFTEEN OF SIXTEEN PROPS, AND ITS COLLISION ZERO
+            CANNOT TELL "NO COLLISION" FROM "NOTHING COULD READ IT".
+--------------------------------------------------------------------------
+MEASURED, run 3 on 7f12005, production/d1-probe/ue-mesh-import.txt:
+
+    propImported=15/16 propSaved=15/16
+    propUassetsOnDisk=16 propUassetBytesOnDisk=1736681
+    propAcceptingCase=piece=prop_drainage_grate_01_0/asset=drainage_grate_01/
+      RESOLVED/saved=yes/collisionPrims=-1/materialSlots=1/
+      worstOrderedMm=0.0474/worstSortedMm=0.0474
+    propCollisionPrims=0/15 propCollisionVia=legacy-box
+    propNote=subsystem-refused='NoneType'~object~has~no~attribute~
+      'get_simple_collision_count'/subsystem-box-refused='NoneType'~object~
+      has~no~attribute~'add_simple_collisions'
+
+THE ROUTE WORKS. Sixteen real .uasset files are committed under
+ue-probe/Content/Ledger/Props/; SM_drainage_grate_01.uasset is 92014 bytes and
+carries the package name /Game/Ledger/Props/SM_drainage_grate_01. Opened, not
+inferred: its name table holds BodySetup, KAggregateGeom and KConvexElem, WHICH
+PROVES THE SCHEMA AND NOT THE CONTENT. A class's reflected property names are in
+every package of that class. Nothing in that file read as collision and nothing
+here claims it.
+
+FINDING 1, AN UNREADABLE COUNT PRINTS AS ZERO. tools/ue/import_prop_meshes.py
+_add_collision ends `return (after if after is not None else 0), via`. When every
+route refuses, the count is 0, the tally never increments, and the run prints
+propCollisionPrims=0/15. That zero cannot tell a mesh with no collision from a
+mesh nobody could ask. Rule 3b, and instruments.md's first bullet.
+
+FINDING 2, TWO NUMBERS IN ONE RUN DISAGREE ABOUT ONE THING. The run line says
+propCollisionPrims=0/15; the accepting-case line says collisionPrims=-1 for the
+same asset. One is a tally and one is a dict default standing in for a missing
+key. A grep that reads either alone gets a different answer about the grate.
+
+FINDING 3, THE DOCSTRING CLAIMS A PROXY IS THE THING. propCollisionPrims's
+docstring says "This is the number the walk clip lives on." It is not. A simple
+primitive count is a proxy: a mesh set to use its complex geometry as simple
+collides perfectly and reports zero primitives. What the clip lives on is
+whether a sweep in the built level hits the grate.
+
+FINDING 4, ONE ASSET MADE THREE PACKAGES APPEAR. propFailed=1/16
+propFailedWhy=pavement_sign=did-not-load-back/none-of-3-candidates/
+ambiguous-3-appeared. The manifest now carries appearedClasses per asset, so
+what the three were is readable rather than guessable. Unread at the time of
+writing.
+
+WHAT RUN 3 ALSO SETTLED, so no later session re-opens it: the engine returns the
+OBJECT-PATH snapshot shape, the importer writes into a per-asset subfolder
+(propImportResolvedVia=exact-name-different-folder=14), the rename to the
+contract path did the work (propImportRenamed=16/17), and the import was already
+complete when asked (propImportTaskAsync=before=True/after=True=17), so there is
+no async wait to add. Every one of those four came from an amendment dictated
+hours earlier; without the first the run would have resolved through
+name-contains-the-asset-id and published a conclusion it never measured.
