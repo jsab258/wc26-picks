@@ -28,8 +28,20 @@
 # the bound is set from that reading afterwards, in that order.
 name: ledger-mesh-import
 
+# TWO TRIGGERS, AND THE SECOND IS NOT A CONVENIENCE. `workflow_dispatch`
+# only registers for a workflow that exists on the DEFAULT branch, and this
+# repository's studio work never touches the default branch, so a workflow
+# added here cannot be dispatched at all until it lands there. Measured
+# 2026-09-08: the dispatch API answered 404 for this exact file, minutes
+# after it was pushed and while it was plainly present on the branch. The
+# request-file push trigger is the pattern this repository already proves
+# (ledger-restart-telegram-bot.yml), and it is scoped to ONE path so that
+# ordinary work on this branch never fires an engine job.
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'production/pc-ops/mesh-import.request'
 
 # SCOPED TO THIS JOB ALONE. A group shared with the probe would make a cheap
 # check queue behind an editor build, which CLAUDE.md rule 9 forbids. Two of

@@ -2,7 +2,7 @@
   "schema": 1,
   "name": "vignette-street",
   "written": "2026-09-02",
-  "scope": "The D1b street vignette and nothing else, per game-design/decision-D1b-rescope.md.",
+  "street_identity": "Quay Street, in the Hook. Ruled by Jafar 2026-09-08 (D15 amendment, option C). The piece identifiers in vignette-pieces.json are all east_parade_*, and those are ASSET NAMES minted before this street had a district: they carry no claim about where it is and are deliberately not renamed, because renaming them would break the bill of materials, the golden rows and every verdict key that has ever named a piece. The player's pub, Mickey's, stands on this street.", "scope": "The D1b street vignette and nothing else, per game-design/decision-D1b-rescope.md.",
   "law": "THIS FILE IS THE SCENE. Every object in either engine arrives via that engine's generator reading THIS file. A hand-placed object, a hand-edited binary scene or a hand-edited uasset disqualifies the still as D1b evidence, so a dimension that is not here may not be invented in an emitter.",
   "bill_of_materials": "production/specs/vignette-bill-of-materials.json. Every emitted piece carries the id of the BOM line that authorises it; the 26 lines with make_by=PROC are the ones this file drives.",
   "period": {

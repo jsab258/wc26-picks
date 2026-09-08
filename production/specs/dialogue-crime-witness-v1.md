@@ -89,13 +89,13 @@ a future change to one must not silently assume it moves the other.
 ## Speakers, not cast
 `w1` displays as "the shopkeeper" and `n2` as "the lad in the yard".
 These are archetypes fixed by the crime probe's geometry (a doorstep on
-the Parade; a yard behind the west crossover), not named characters.
+Quay Street; a yard behind the west crossover), not named characters.
 Canon's cast baseline is OPEN 2 and a probe does not mint cast: do not
 rename either archetype to a day-life-ring name (Sam, Ada, June, and so
 on) without a canon ruling naming them explicitly for this vignette.
 
 ## Location
-One window, on the Parade: the ruling's own phrase for it, and the same
+One window, on Quay Street: the ruling's own phrase for it, and the same
 word the pub-regular-v1 bank already uses for the district
 (`content/dialogue/pub-regular-v1.json`, lines pr-030 and pr-044). No
 street name below district level is minted by this bank.
@@ -150,7 +150,7 @@ license gate, same as every other bank.
   `novak`, `tom` never appears.
 - The two archetypes and their display labels; no cast name is minted
   here.
-- The location word, "the Parade", and the one-window premise.
+- The location word, "Quay Street", and the one-window premise.
 - The absence of the word "player" and of any `toma` line.
 - The discipline that a reply may never claim more than its paired
   summary. Adding detail to make a low-idRung reply feel richer is a

@@ -7,14 +7,21 @@ agent; violating it is a gate failure.
 ## Game
 - LEDGER: open-town crime sim and social RPG. Single player, PC first.
 - Town: Meridian, a fictional British port town. One map, seven districts:
-  the Hook (old port), the Parade (the built street, and the player's pub stands on
-  it, D15 2026-09-08), Copper Row (market quarter), the Exchange
+  the Hook (old port, the player's pub), Copper Row (market quarter), the Exchange
   (offices, lawyers), the Parade (nightlife), Fairview (residential hills), Ironside
   (industrial), Gullwing (faded resort waterfront).
 - Streets minted: Quay Street, Weighhouse Lane, Tannery Row.
 - Street districts, minted 2026-09-02 by the director on delegated authority,
   struck on sight if Jafar disagrees: Quay Street is in the Hook, Weighhouse
   Lane in Copper Row, Tannery Row in Ironside.
+- THE BUILT STREET IS QUAY STREET, IN THE HOOK, and Mickey's stands on it.
+  Ruled by Jafar 2026-09-08, option C, after a director briefly moved Mickey's
+  to the Parade and canon contradicted itself for one commit. The 593 pieces
+  keep their `east_parade_*` identifiers: those are ASSET NAMES minted before
+  the street had a district and they carry no claim about where it is. Renaming
+  them would break the bill of materials, the golden rows and every verdict key
+  that has ever named a piece, for nothing. Canon and the atlas agree: one
+  street, Quay Street, the Hook, the player's pub on it.
 - Graffiti tags, minted 2026-09-02 (Jafar delegated the naming to the studio
   on 2 September): TANNER (Ironside), SNIDE (Copper Row), GULL (Gullwing),
   QUAY FIRM (the Hook), PARADE RATS (the Parade). Wall names, not any of the
@@ -38,12 +45,8 @@ agent; violating it is a gate failure.
 
 ## Premise and cast (baseline pending OPEN 2)
 - Player: Tom Novak, arriving with one suitcase and a letter. His uncle Mickey
-  has died and left him the pub, Mickey's, ON THE PARADE, plus a half-dead criminal
-  outfit and a book of uncollectable debts. MOVED from the Hook by D15 on
-  2026-09-08 so that the pub stands on the one street that is built and walkable,
-  and the art line and the game line share that single location. Two consequences
-  are open and are Jafar's: the Hook is now the old port and nothing more, and the
-  Parade Rats are the wall crew of the street the player now lives on.
+  has died and left him the pub, Mickey's, in the Hook, plus a half-dead criminal
+  outfit and a book of uncollectable debts.
 - Inherited loyalists: Rocco (old muscle), Lena (older bookkeeper).
 - Three rival organisations: the old-money machine (corruption and lawyers, head
   Aldous Vane), the dockside syndicate (muscle and smuggling, head Sera Kest, called
