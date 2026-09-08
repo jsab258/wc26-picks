@@ -1102,15 +1102,6 @@ class Bot(object):
                     since_ok, backoff = 0, 5
                 for u in updates or []:
                     self.handle(u)
-                # AFTER THE MESSAGES, NOT INSTEAD OF THEM. This is a no-op
-                # unless something is held on disk, and it is rate-limited to
-                # once a minute, so a quiet bot costs one `rev-parse` and one
-                # directory listing per poll.
-                self.flush_inbox()
-                # AND THE OUTBOUND HALF, in the same rhythm. After the
-                # messages, never instead of them: a message from him is the
-                # thing that must not wait.
-                self.sweep_outbox()
             except ApiError as e:
                 if e.kind != "network":
                     OUT.say("STOPPING: %s" % e)
@@ -1125,6 +1116,32 @@ class Bot(object):
             except KeyboardInterrupt:
                 OUT.say("stopped from the keyboard")
                 return 0
+            finally:
+                # THE WORK IS NOT DOWNSTREAM OF THE POLL. Ruled from evidence
+                # on 2026-09-08. These two lines used to sit inside the `try`
+                # AFTER getUpdates, so a poll that raised took the except arm,
+                # slept, and looped, and neither of them ever ran. On Jafar's
+                # PC that produced a bot with a perfect health report and no
+                # work done: it sent its two startup messages before the loop
+                # began, then nothing for thirteen hours, twice over, while
+                # uptime climbed and the supervisor called it running.
+                #
+                # A MESSAGE FROM HIM IS STILL THE THING THAT MUST NOT WAIT, so
+                # this stays AFTER `handle`; the change is that a broken poll
+                # can no longer stop the half of the job that does not need
+                # Telegram to answer. Pushing receipts and sending the outbox
+                # are local work plus a git push, and neither has any reason
+                # to depend on getUpdates succeeding.
+                #
+                # WRAPPED, because a raise in a finally would replace whatever
+                # the try was already doing, including the deliberate returns
+                # above it.
+                try:
+                    self.flush_inbox()
+                    self.sweep_outbox()
+                except Exception as e:                        # noqa: BLE001
+                    OUT.say("the offline half could not run this pass (%s). "
+                            "The bot keeps polling." % type(e).__name__)
 
     def done_line(self):
         """The whole run's tally. Every count against the set it came from.
@@ -2022,6 +2039,46 @@ def _selftest_cases(ok, bad, state):
     check("accept/ruling1-the-animation-wire-calls-sendAnimation",
           posted2.get("method") == "sendAnimation"
           and posted2.get("size", 0) > 16, posted2)
+
+    # ---- A BROKEN POLL MUST NOT STOP THE OFFLINE HALF -----------------
+    # THIS ROW IS THE ONE THAT WOULD HAVE CAUGHT THE 2026-09-08 FAULT, and it
+    # did not exist because every earlier row asked whether a wire was
+    # connected, never whether the work still happened when the wire failed.
+    # On his PC the bot sent its two startup messages, then getUpdates raised
+    # on every pass for thirteen hours, and flush_inbox and sweep_outbox sat
+    # inside the try AFTER it, so neither ever ran. Uptime climbed, the
+    # supervisor reported it running, receipts piled up on disk, and nothing
+    # moved.
+    ran = {"flush": 0, "sweep": 0}
+    bP = Captured()
+    bP.flush_inbox = lambda every=60: ran.__setitem__("flush", ran["flush"] + 1)
+    bP.sweep_outbox = lambda every=120: ran.__setitem__("sweep", ran["sweep"] + 1)
+
+    class _Enough(Exception):
+        pass
+
+    def _boom(*_a, **_k):
+        raise ApiError("network", "planted: the poll cannot reach Telegram")
+
+    def _one_pass(_sec):
+        raise _Enough()
+
+    real_call2, real_sleep = call, time.sleep
+    try:
+        globals()["call"] = _boom
+        time.sleep = _one_pass
+        try:
+            bP.poll_forever()
+        except _Enough:
+            pass
+    finally:
+        globals()["call"] = real_call2
+        time.sleep = real_sleep
+
+    check("accept/a-failing-poll-still-flushes-and-sweeps",
+          ran["flush"] == 1 and ran["sweep"] == 1, ran)
+    check("accept/and-the-poll-failure-was-real-not-a-vacuous-pass",
+          bP.net_errors == 1, "netErrors=%d" % bP.net_errors)
 
     # ---- THE TAP, queue 090. A callback_query is not a message, and
     # before this branch existed it was counted as `other` and dropped.
