@@ -180,6 +180,22 @@ NONINTERACTIVE_ENV = {
     "GIT_TERMINAL_PROMPT": "0",     # git's own tty prompt
     "GCM_INTERACTIVE": "Never",     # Git Credential Manager, any version
     "GCM_GUI_PROMPT": "false",      # GCM's window specifically
+    # GCM_PROVIDER=generic, AND THIS ONE IS EVIDENCE, NOT A GUESS. A director
+    # flagged on review that the batch omitted a contrary datum: the push
+    # --dry-run in the diagnosis step succeeds as the same user on the same
+    # machine, so a credential IS stored and works, and the two environments
+    # differ in exactly this member. It declined to order the change and asked
+    # for both readings side by side. Run a792307 produced them, one run, two
+    # steps:
+    #   diagnosis, WITH this variable:  pushDryRunExit=0, and the remote
+    #     answered "+ 33b9caf2a..094fda66b -> pc-inbox (forced update)"
+    #   flush, WITHOUT it:              "fatal: Cannot prompt because user
+    #     interactivity has been disabled. fatal: unable to get password"
+    # So the helper that holds the working credential is reached only under
+    # the generic provider. If a later run shows this is wrong, the flush file
+    # says so in words in three seconds rather than hanging, which is what
+    # makes a wrong guess here cheap.
+    "GCM_PROVIDER": "generic",
     "GIT_ASKPASS": "echo",          # any helper that would shell out
     "SSH_ASKPASS": "echo",
     "SSH_ASKPASS_REQUIRE": "never",
