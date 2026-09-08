@@ -560,6 +560,24 @@ def selftest():
     ok("an importer plugin that still refuses is REFUSED, not ABSENT",
        gltf_verdict(True, ["InterchangeGLTF"], 0, 3).startswith("REFUSED/"),
        gltf_verdict(True, ["InterchangeGLTF"], 0, 3))
+    # THE INPUT THAT WOULD HAVE UNDONE ALL FOUR WORDS. Accepting case first:
+    # an Interchange plugin IS an importer candidate even though its name
+    # contains no GLTF, so an Interchange engine that refuses reads REFUSED
+    # and not ABSENT/exporter-only.
+    ok("an Interchange plugin counts as an importer candidate",
+       importer_candidates(["GLTFExporter", "InterchangeEditor"]) == ["InterchangeEditor"],
+       importer_candidates(["GLTFExporter", "InterchangeEditor"]))
+    ok("and an exporter alone yields no candidate at all",
+       importer_candidates(["GLTFExporter"]) == [],
+       importer_candidates(["GLTFExporter"]))
+    ok("so an Interchange engine that refuses reads REFUSED, not exporter-only",
+       gltf_verdict(True, importer_candidates(["GLTFExporter", "InterchangeEditor"]),
+                    0, 3).startswith("REFUSED/"),
+       gltf_verdict(True, importer_candidates(["GLTFExporter", "InterchangeEditor"]), 0, 3))
+    ok("while an exporter-only engine still reads exporter-only",
+       gltf_verdict(True, importer_candidates(["GLTFExporter"]), 0, 3)
+       == "ABSENT/exporter-only/no-importer-plugin-and-translate-said-no",
+       gltf_verdict(True, importer_candidates(["GLTFExporter"]), 0, 3))
     ok("a question never put reads nothing-measured, not absent",
        gltf_verdict(False, [], 0, 0).startswith("NOTHING-MEASURED/"),
        gltf_verdict(False, [], 0, 0))
@@ -828,6 +846,30 @@ def _add_collision(unreal, mesh, report):
     return (after if after is not None else 0), via
 
 
+def importer_candidates(names):
+    """Which of the engine's enabled plugins could POSSIBLY be importing glTF.
+
+    THE HOLE THIS CLOSES, found by reading rather than running. The first
+    version of this test asked only for GLTF in the name, which is the exact
+    mistake that produced run 1's propGltfPlugins=GLTFExporter/1: in modern
+    Unreal the glTF importer ships inside the Interchange plugins, whose names
+    contain no GLTF at all. So an Interchange-only engine that refuses the
+    file would have printed ABSENT/exporter-only, which is run 1's misreading
+    wearing the new key, and the gate step pulls that word to the top of the
+    output where a person reads it first.
+
+    GLTF or INTERCHANGE, and never EXPORT: an exporter is not an importer and
+    that is the one distinction this whole key exists to hold."""
+    out = []
+    for n in names:
+        u = str(n).upper()
+        if "EXPORT" in u:
+            continue
+        if "GLTF" in u or "INTERCHANGE" in u:
+            out.append(n)
+    return out
+
+
 def gltf_verdict(exporter_found, importer_plugins, translate_ok, translate_asked):
     """THE THREE FACTS THE FIRST RUN COULD NOT TELL APART, AND WHY.
 
@@ -1058,8 +1100,9 @@ def run_in_unreal():
             if f.endswith(".uasset"):
                 total_bytes += os.path.getsize(os.path.join(content, f))
 
-    importer_plugins = [n for n in plugin_names
-                        if "GLTF" in n.upper() and "EXPORT" not in n.upper()]
+    # NOT a GLTF-name test. See importer_candidates(): Interchange is where
+    # the importer lives and its plugin names say nothing about glTF.
+    importer_plugins = importer_candidates(plugin_names)
     exporter_found = any("GLTF" in n.upper() and "EXPORT" in n.upper()
                          for n in plugin_names)
     gltf_block = ("propGltfImporter=%s propGltfCanTranslate=%d/%d "

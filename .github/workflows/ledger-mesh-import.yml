@@ -225,8 +225,11 @@ jobs:
           # own answer about which ones took travels back in
           # propGltfPluginsEnabled. Only names actually present on this
           # machine are passed, which is why the scan above runs first.
+          # InterchangeTests DROPPED (director, 2026-09-08): a test plugin is
+          # not an import route, and enabling one in a headless editor is
+          # cost with no possible effect on whether a .glb translates.
           $want = @("PythonScriptPlugin", "InterchangeEditor", "InterchangeAssets",
-                    "InterchangeTests", "GLTFImporter", "GLTFCore")
+                    "GLTFImporter", "GLTFCore")
           $have = @($want | Where-Object { $n = $_; $allPlugins.BaseName -contains $n })
           $L += "propPluginsAsked=$($want -join ';') propPluginsPresent=$($have -join ';')/$($have.Count)-of-$($want.Count)"
           $p = Start-Process -FilePath $edCmd -ArgumentList @(
