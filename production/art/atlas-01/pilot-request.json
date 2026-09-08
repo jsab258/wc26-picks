@@ -1,9 +1,15 @@
 {
   "schema": "atlas-01.production-pilot-request/1",
   "status": "PENDING / NOT DISPATCHED",
-  "source_revision": "recorded in DELIVERY.md after source commit",
+  "source_revision": "359236548953e8e0b68fabf9303685bec8d464e2",
   "owner": "Claude schedules through existing opt-in lanes; Codex owns art briefs and review",
-  "consume": ["data/first-batch.json", "ARTWORK-BRIEFS.md", "data/pilot-image-inputs.json", "artwork/fascia_mickeys-layout-proof.svg", "artwork/mickeys-hours-proof.svg"],
+  "consume": [
+    "data/first-batch.json",
+    "ARTWORK-BRIEFS.md",
+    "data/pilot-image-inputs.json",
+    "artwork/fascia_mickeys-layout-proof.svg",
+    "artwork/mickeys-hours-proof.svg"
+  ],
   "blender_request": "Reuse render-request.json at 40811f56825ac0737b818689f5e138396d7218a2; no duplicate five-camera request",
   "pilot": [
     "Inspect the existing 400mm drainage_grate_01 and plain framed_poster at life size, one copy each, using source mesh hashes in data/mesh-inspections.json",
@@ -11,8 +17,38 @@
     "Through the existing imagegen lane, reconcile one proposed a01_maroon_timber_sample record; select only that ID and limit to one candidate. Do not regenerate or reseed fascia_mickeys"
   ],
   "lane_dependency": "Current imagegen.py reads its existing prompts.json and supports --only; no arbitrary prompt-file flag. Claude must reconcile the single proposed record, validate it and use current machine/model paths. Do not dispatch a fabricated command.",
-  "views": ["dry diffuse daylight, player eye 1.7m, 1m detail", "dry diffuse daylight, 5m reading", "street approach", "same layout under existing evening lighting"],
-  "receipt_required": ["exact source and effective prompt hashes", "runtime/model/Blender version", "raw candidates and rejected outputs", "per-attempt GPU process elapsed seconds", "revisions and reasons", "human review minutes if observed; otherwise unknown", "separate art acceptance and engine integration verdicts"],
+  "views": [
+    "dry diffuse daylight, player eye 1.7m, 1m detail",
+    "dry diffuse daylight, 5m reading",
+    "street approach",
+    "same layout under existing evening lighting"
+  ],
+  "receipt_required": [
+    "exact source and effective prompt hashes",
+    "runtime/model/Blender version",
+    "raw candidates and rejected outputs",
+    "per-attempt GPU process elapsed seconds",
+    "revisions and reasons",
+    "human review minutes if observed; otherwise unknown",
+    "separate art acceptance and engine integration verdicts"
+  ],
   "acceptance": "Scale and silhouette match specification; text readable without distortion at stated distances; colour sample is a surface rather than a scene; no default/fallback rendering. A colour image does not establish normal/roughness or finished-material quality.",
-  "observed_this_continuation": {"new_gpu_attempts": 0, "accepted_finished_3d_assets": 0, "accepted_generated_production_images": 0, "new_vector_layout_proofs": 4, "local_gpu_seconds": 0, "human_review_minutes": null}
+  "observed_this_continuation": {
+    "new_gpu_attempts": 0,
+    "accepted_finished_3d_assets": 0,
+    "accepted_generated_production_images": 0,
+    "new_vector_layout_proofs": 4,
+    "local_gpu_seconds": 0,
+    "human_review_minutes": null
+  },
+  "input_sha256_git_blob_bytes": {
+    "data/first-batch.json": "b07ed2de1b523ed3494ce618df056e8e7afdbcf3c193b83351761bae585ee565",
+    "ARTWORK-BRIEFS.md": "f4b8121042f38c638988598bc6786ffad9078c4cec38a3e4e706f8cdb946e01e",
+    "data/pilot-image-inputs.json": "43ef02f2703e4123665aa6bcd5230de82d24db8adc6792951da2f23260a94343",
+    "artwork/fascia_mickeys-layout-proof.svg": "68cf184da1f0d493df7347d32302ee4f75b8966a8cc2a2969d9b48601c5d88b5",
+    "artwork/mickeys-hours-proof.svg": "3c731cce8dd40ee1734aa6d209682c83ac36db438fbab6bae98bfdc957bbf1bd",
+    "data/mesh-inspections.json": "f43fe9d4cd723fab12201aff638894689a7e97d98532dd406441b3c0fa361f53",
+    "artwork/mickeys-returns-proof.svg": "383a8c4a387a2d4024e2c6d56829a419306835aaac91ef5f621f043c0b1ee75a",
+    "artwork/mickeys-pump-clip-proof.svg": "1db5495cb7c455ef974c9715eb3b82a6d7ba5ba5ec4e50eb6679a34204372bd0"
+  }
 }

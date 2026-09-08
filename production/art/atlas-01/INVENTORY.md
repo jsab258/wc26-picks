@@ -35,11 +35,11 @@ All paths are relative to this directory. Text bytes and SHA-256 values use cano
 | [data/source-lock.json](data/source-lock.json) | 2015 | 7345c9e3af3904e8762ad72d38e5ce479b484754d3edd68398b2c2587b3e19a1 |
 | [data/studio-asset-review.json](data/studio-asset-review.json) | 811 | bc9064a4704c80655a1657f2772bc20f1be944e6d6078adf0ffb268c7546e412 |
 | [data/workflow-trigger-audit.json](data/workflow-trigger-audit.json) | 9304 | 38bbd425d041d8b0c40ff06024c37875bd890fcaac166665cbded86de3e30db7 |
-| [DELIVERY.md](DELIVERY.md) | 12875 | 85848bcf9465a924c9c768a57af1d5fea8e89b93e1be51631a784217c3bd1098 |
+| [DELIVERY.md](DELIVERY.md) | 12942 | 9e91f389b5140f386ac6d8b74728dec241d869957e8876c5811403ebe0bf5ed2 |
 | [DISTRICTS.md](DISTRICTS.md) | 5650 | 435fa54da65ba5df1e33e5d2da10f42e464d85968c40011e6f797d4225b7e854 |
 | [INTERFACE-NOTES.md](INTERFACE-NOTES.md) | 3084 | 0223596e9aa7c325d46fb9bdb57685b69663e1cbf2af2b23158f0b0391c6c491 |
 | [MICKEYS.md](MICKEYS.md) | 6729 | 6ff3f7a2a6d64ca765824df3add57bbdab1e4d1d7ba94c06a15a433ae0a0236e |
-| [pilot-request.json](pilot-request.json) | 2321 | 1642927f007916a56cd97d1de555ed07b13d94de492586b6565b98051a8278ae |
+| [pilot-request.json](pilot-request.json) | 3299 | 7c8a28ffc858186114977dc6bf2e7afcb9eadcd42b196ba9c376919728aad387 |
 | [previews/asset-audit-phone.png](previews/asset-audit-phone.png) | 92951 | c54389d1c5f80606a77594c3ade5a88a8348b7f0e65994c5e0ac11eaeedd11d1 |
 | [previews/atlas-overview.png](previews/atlas-overview.png) | 392168 | bb4c945942e04d26453fe7dec593d1aab60145e53eae5579e77c2a8f1922436f |
 | [previews/atlas-overview.svg](previews/atlas-overview.svg) | 24100 | e0e681290f80dff109b85393f81135949ee06d293809db6be0add1db27a3356d |
@@ -134,7 +134,7 @@ All paths are relative to this directory. Text bytes and SHA-256 values use cano
 | [README.md](README.md) | 1200 | 5f7143b4ede28f8e6f5e5d673b9d292ca992988745f7ceb7e5fd3c86acc0112d |
 | [RECIPE-REPAIR.md](RECIPE-REPAIR.md) | 2593 | f7ef71ec72894eb988f61758b9a839464564dca6aabf3bcc194dfd1ec28b4321 |
 | [recipes/mickeys_blockout.py](recipes/mickeys_blockout.py) | 7199 | 8148558cbbd62aafff6bd7f0d1318e0cccb5f435e9da8cb37336c57430514f56 |
-| [RECONCILIATION.md](RECONCILIATION.md) | 3228 | a213ebf2b9c68836e358ed1453aed881cefd99bbfe38b25b6ff08f492998d6f9 |
+| [RECONCILIATION.md](RECONCILIATION.md) | 3610 | 44539bf032552c11c5a58cff051689134c88da1875ba19dafe51210096f23b8d |
 | [references/CONTINUATION.md](references/CONTINUATION.md) | 12432 | c2a01bba9fd62697b431e0a6fc2f7207f7c793eb5ba1bdad99e3122e035eff8e |
 | [references/hull-map.png](references/hull-map.png) | 543619 | d53ac365bf1530014001d5daee64a0aaaf0d7a37ac4a673501ed1eabec4cbed2 |
 | [references/hull-west-dock-1981.jpg](references/hull-west-dock-1981.jpg) | 211309 | 198d612f44224700b702ea5eead13fddfe623922b46ed3c936f4dd8b267613f5 |
