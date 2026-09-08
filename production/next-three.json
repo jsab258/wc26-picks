@@ -21,20 +21,41 @@
      "key": "collisionStatus=REAL"
     }
    ]
-  }
- ],
- "next": [
+  },
   {
    "title": "Commit one crime there and pass a real witness event into the simulation",
-   "why": "the crime loop and the witnesses run in text; nothing carries one from the street into them",
-   "queue": "production/queue/138-one-playable-visual-crime-and-consequence-loop.md"
+   "why": "run 32 launched the packaged build on his own PC and committed two crimes on Quay Street: one where the witness could see it and one where she could not. Both were decided by the ported Observe::Resolve on real line traces, not by a script. She stood 1.57 m away with a clear sightline; for the second crime the line was blocked and the blocker is named, west_south_bay2. Same code, two answers, decided by the geometry.",
+   "queue": "production/queue/138-one-playable-visual-crime-and-consequence-loop.md",
+   "doneOn": "2026-09-08",
+   "evidence": [
+    {
+     "file": "production/d1-probe/ue-crime-verdict.txt",
+     "key": "witnessStatus=REAL"
+    },
+    {
+     "file": "production/d1-probe/ue-crime-verdict.txt",
+     "key": "crimeStatus=COMMITTED"
+    }
+   ]
   },
   {
    "title": "Overhear the gossip it causes and see one consequence, in that same build",
-   "why": "the sweep measured overheard gossip as the one consequence route that speaks, so the loop is built on it",
-   "queue": "production/queue/138-one-playable-visual-crime-and-consequence-loop.md"
+   "why": "the same run. The second person saw neither crime. Apart, nothing passed; together, the memory passed through the ported gossip mill and he answered at the rung she actually reached, a face she would know again and not a name, from the bank rather than a literal. Both memories were written to disk.",
+   "queue": "production/queue/138-one-playable-visual-crime-and-consequence-loop.md",
+   "doneOn": "2026-09-08",
+   "evidence": [
+    {
+     "file": "production/d1-probe/ue-crime-verdict.txt",
+     "key": "overheardStatus=HEARD"
+    },
+    {
+     "file": "production/d1-probe/ue-crime-verdict.txt",
+     "key": "gossipStatus=REAL"
+    }
+   ]
   }
  ],
+ "next": [],
  "correctedOn": "2026-09-07",
  "correctedWhy": "Item 1's reason had decayed into a false sentence on the map, which is Jafar's phone view: it still said the probe only aims a screenshot camera and there is nobody to be. A character, a game mode, a player start, input binding and a default pawn landed on 2026-09-07 and packaged successfully in run 28. The TITLE and the ORDER are untouched; only the reason is corrected, because the step is not done. Source markers prove code exists, not that it runs, and the automated walk that would prove it has never been dispatched."
 }

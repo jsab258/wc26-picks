@@ -1578,7 +1578,31 @@ def ladder_rungs(root, items_all, r3):
         "state": "goal", "refused": goal_refused, "stateWhy": m_why,
         "taskNum": None, "doneOn": None,
     })
-    current_num = next((r["num"] for r in rungs if r["state"] == "current"),
+    # EVERY NAMED STEP IS DONE, SO THE GOAL IS WHAT HE IS ON. Without this
+    # the page read "STEP None OF 4" the first time the last named step
+    # landed, because `current` is only ever set on a `next` item and there
+    # were none left. Caught by the selftest's own accepting case on the live
+    # plan, not in review: the run that finished the crime and the overheard
+    # consequence emptied `next` in one go.
+    #
+    # THE GOAL KEEPS ITS OWN STATE WORD. It is marked `goal-current` rather
+    # than `current` so the page still says GOAL on that rung and the reader
+    # is not told a milestone is a step; the number counts it because he asked
+    # to read "step N of M" and with everything below it done the goal is
+    # honestly where the climb has reached. A REFUSED goal is left alone: a
+    # milestone whose own file says it is finished must not become the
+    # current rung of a ladder that is about to refuse itself.
+    # ONLY WHEN THERE ARE NO NAMED STEPS LEFT, never when steps exist and are
+    # all STALE. A stale step is one this page could not prove; promoting the
+    # goal over a plan it cannot read would put a step number on his phone
+    # that no evidence supports, which is the invented progress ruling 3
+    # exists to forbid. Empty and unprovable are different facts and the
+    # rejecting fixture for the second one asserts the ladder still says so.
+    if not items and not goal_refused \
+            and not any(r["state"] == "current" for r in rungs):
+        rungs[-1]["state"] = "goal-current"
+    current_num = next((r["num"] for r in rungs
+                        if r["state"] in ("current", "goal-current")),
                        None)
     # THE WHOLE LADDER IS REFUSED BY EITHER HALF, and the reason says which:
     # a done rung nobody can prove and a goal whose own file says it is
@@ -1639,8 +1663,16 @@ def ladder_html(rungs, reading):
         if r["refused"]:
             cls, tag = "r-stale", "STATE NOT PROVEN"
             body = "This step cannot be shown: %s." % esc(r["stateWhy"])
-        elif r["state"] == "goal":
-            cls, tag = "r-goal", "GOAL"
+        elif r["state"] in ("goal", "goal-current"):
+            # THE GOAL RUNG HAS NO TASK SHEET, so it must never fall through
+            # to the branch below, which formats a #t-<taskNum> the goal does
+            # not have. The first render after every named step landed crashed
+            # here on a None, which is why `goal-current` is matched HERE and
+            # not treated as a kind of current.
+            cls = "r-goal r-goal-current" if r["state"] == "goal-current" \
+                else "r-goal"
+            tag = "GOAL, AND THE ONE YOU ARE ON" \
+                if r["state"] == "goal-current" else "GOAL"
             body = esc(r["title"])
             if reading["acceptance"]:
                 body += (' <a class="tap" href="#t-goal">what done looks '
@@ -3667,7 +3699,14 @@ def selftest():
     # RULING 3 AND THE done ARRAY: THE LADDER, on the live repository FIRST,
     # ACCEPTING case. The numbers are DERIVED rather than frozen at 2 of 4:
     # the head printed above is today's series, and the day the crime step
-    # lands this reads 3 of 4 instead of calling a correct ladder broken.
+    # landed this read 4 of 4 instead of calling a correct ladder broken.
+    #
+    # AND THE RUNG AFTER THE DONE ONES IS `current` OR `goal-current`, which
+    # is the shape that arrived the night the last two named steps landed in
+    # ONE run and emptied `next`. The page then read "STEP None OF 4" and
+    # ladder_html crashed formatting a task number the goal does not have.
+    # Both are fixed in ladder_rungs and ladder_html; this line is the half
+    # that keeps them fixed.
     lad = model["ladder"]
     head = "STEP %s OF %s" % (lad["currentNum"], lad["total"])
     ok("the ladder reads %s, current on '%s', with the finished step below it "
@@ -3678,7 +3717,8 @@ def selftest():
        and lad["currentNum"] == lad["doneShown"] + 1
        and lad["total"] == lad["doneShown"] + lad["stepsShown"] + 1
        and [r["state"] for r in lad["rungs"][:lad["doneShown"] + 1]]
-       == ["done"] * lad["doneShown"] + ["current"]
+       == ["done"] * lad["doneShown"]
+       + [("goal-current" if lad["stepsShown"] == 0 else "current")]
        and head in page,
        (head, lad["currentNum"], lad["total"], lad["doneShown"],
         [r["state"] for r in lad["rungs"]]))
