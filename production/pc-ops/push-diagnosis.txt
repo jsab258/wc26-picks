@@ -1,19 +1,29 @@
-# LEDGER push diagnosis - 580a9ec @1788834379
+# LEDGER push diagnosis - 8921809 @1788834847
 # Line 1 names the commit this was read on. READ ONLY: nothing here
 # writes to his checkout, pushes, or prints any credential value.
 diagRepo=C:\Users\Jafar\wc26-picks diagRepoExists=True
 lsRemoteExit=0 lsRemoteSec=0.5 lsRemoteSha=22973f8da9e1fc3bfbfc549ace5db039fe700dc7
 localTipRef=22973f8da9e1fc3bfbfc549ace5db039fe700dc7
 onDisk_production_inbox=2
-onDisk_production_outbound=321
+onDisk_production_outbound=322
 onDisk_production_rulings=-1
 remoteHostPath=m/jsab258/wc26-picks.git
 credentialHelper=manager
 pushDryRunExit=0
 pushDryRunSaid=Everything~up-to-date
-receiptsOnDisk=14 newestShown=4
+receiptsOnDisk=14 newestShown=14/16 (every receipt on this disk is shown)
 receipt file=production/outbox/2026-09-07-the-walk.answer.md messageId=30 sent=2026-09-08T01:35:46+00:00
 receipt file=production/outbox/2026-09-07-the-map-changed-78a360dcdf18.unprompted.md messageId=29 sent=2026-09-08T01:35:46+00:00
 receipt file=production/outbound/2026-09-08T011847Z-reply-28.receipt.txt messageId=28 sent=2026-09-08T01:18:47+00:00
 receipt file=production/outbound/2026-09-08T011847Z-reply-27.receipt.txt messageId=27 sent=2026-09-08T01:18:47+00:00
+receipt file=production/outbound/2026-09-07T234830Z-reply-26.receipt.txt messageId=26 sent=2026-09-07T23:48:30+00:00
+receipt file=production/outbound/2026-09-07T234830Z-reply-25.receipt.txt messageId=25 sent=2026-09-07T23:48:30+00:00
+receipt file=production/outbound/2026-09-07T111936Z-reply-24.receipt.txt messageId=24 sent=2026-09-07T11:19:36+00:00
+receipt file=production/outbound/2026-09-07T111852Z-reply-23.receipt.txt messageId=23 sent=2026-09-07T11:18:52+00:00
+receipt file=production/outbound/2026-09-07T111851Z-reply-22.receipt.txt messageId=22 sent=2026-09-07T11:18:51+00:00
+receipt file=production/outbox/2026-09-06-where-the-project-stands.unprompted.md messageId=17 sent=2026-09-06T17:59:17+00:00
+receipt file=production/outbox/2026-09-07-the-map-changed-4917df34e120.unprompted.md messageId=19 sent=2026-09-07T01:00:27+00:00
+receipt file=production/outbox/2026-09-06-the-map-and-its-link.unprompted.md messageId=18 sent=2026-09-06T19:54:33+00:00
+receipt file=production/outbox/2026-09-06-pc-processes-one-window.answer.md messageId=16 sent=2026-09-06T17:59:17+00:00
+receipt file=production/outbox/2026-09-05-the-console-run.unprompted.md messageId=13 sent=2026-09-06T05:25:48+00:00
 diagNote=reads-plus-one-push-dry-run/no-ref-was-updated-and-nothing-was-sent
