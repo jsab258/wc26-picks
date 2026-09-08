@@ -223,6 +223,14 @@ namespace
 	TArray<APointLight*> GLanterns;
 	TArray<APointLight*> GWindows;
 	TMap<FString, AStaticMeshActor*> GByName;
+	// A SEPARATE MAP FOR THE CRIME PROBE'S OWN PIECES, ruling of 2026-09-08
+	// section 2. Shards, a brick, two stand-in bodies and a yard floor are
+	// NOT street pieces: they are not in vignette-pieces.json, nothing
+	// regenerates them and no count of the street may include them. Keeping
+	// them out of GByName is what leaves piecesEmitted=593/593, propStandIns,
+	// the surface binds and every other vignette counter reading exactly what
+	// they read before this map existed.
+	TMap<FString, AStaticMeshActor*> GProbeByName;
 	// THE NAMES OF THE LIGHTS, IN THE ORDER THEY WERE SPAWNED. A per-light
 	// reading whose subject is called "light 3" is not attributable to
 	// anything in the file, so the piece name the lantern hangs under and the
@@ -2400,5 +2408,87 @@ namespace LedgerVignetteShot
 	{
 		AStaticMeshActor* const* Found = GByName.Find(Name);
 		return (Found != nullptr) ? static_cast<AActor*>(*Found) : nullptr;
+	}
+
+	// THE CRIME PROBE'S ONE HELPER, NOT FIVE. Ruling of 2026-09-08 section 2:
+	// a thin export over the SpawnPiece this file already uses for all 593
+	// street pieces, so a shard, a brick, a stand-in body and the yard floor
+	// are placed by the same code path, with the same frame mapping, the same
+	// movable mobility and the same interactive collision as a kerbstone.
+	//
+	// CentreM AND SizeM ARE IN THE SHARED FILE'S OWN FRAME (x along, y up, z
+	// across), exactly as a Piece states them, and NOT in the engine's. The
+	// one place that converts between the two is SpawnPiece, three hundred
+	// lines above; a second converter at a call site is how two frames drift
+	// apart, and this probe's whole geometry would then be wrong in a way no
+	// count could see.
+	//
+	// bInteractive=true, ALWAYS: every caller of this is a person-scale
+	// object in a street somebody is walking and tracing through. The
+	// automation's collision-off saving applies to a frame it is timing, and
+	// nothing here is in one.
+	//
+	// THE SURFACE IS RECORDED AND NOT BOUND. BindSurfaces runs once inside
+	// BuildScene, over GSpec.Pieces, long before any of these exist, so a
+	// piece spawned here carries the mesh's default material. The crime
+	// verdict prints that as probePiecesMaterialBound=0/N with the reason
+	// rather than leaving a reader to wonder why a shard is grey.
+	AActor* SpawnProbePiece(UWorld* World, const FString& Name,
+	                        const FVector& CentreM, const FVector& SizeM,
+	                        const FString& Shape, const FString& Surface)
+	{
+		if (World == nullptr) { return nullptr; }
+		UStaticMesh* Cube = LoadShape(TEXT("/Engine/BasicShapes/Cube.Cube"));
+		UStaticMesh* Cyl  = LoadShape(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+		const bool bCyl = (Shape == TEXT("cyl"));
+		UStaticMesh* Mesh = bCyl ? Cyl : Cube;
+		if (Mesh == nullptr) { return nullptr; }
+
+		// QUALIFIED, not leaned on the using-directive inside the unnamed
+		// namespace three hundred lines above: this function is outside that
+		// block and the leak of a using-directive out of an unnamed namespace
+		// is a rule most readers would have to look up.
+		LedgerVignette::Piece P;
+		P.Name    = std::string(TCHAR_TO_UTF8(*Name));
+		P.Shape   = bCyl ? "cyl" : "box";
+		P.Surface = std::string(TCHAR_TO_UTF8(*Surface));
+		P.X = CentreM.X; P.Y = CentreM.Y; P.Z = CentreM.Z;
+		P.SX = SizeM.X;  P.SY = SizeM.Y;  P.SZ = SizeM.Z;
+		// The same scale mapping BuildScene uses for a box and a cylinder
+		// alike: the engine's basic shapes are one metre, so the scale IS the
+		// size, and the cylinder's axis is local +Z which is the file's +y.
+		const FVector Scale((float)P.SX, (float)P.SZ, (float)P.SY);
+		AStaticMeshActor* A = SpawnPiece(World, Mesh, P, Scale, /*bInteractive=*/true);
+		if (A == nullptr) { return nullptr; }
+		GProbeByName.Add(Name, A);
+		return static_cast<AActor*>(A);
+	}
+
+	// THE NAME A TRACE HIT, WHICH IS THE HALF OF AN OCCLUSION READING THAT
+	// SAYS ANYTHING. SpawnPiece only calls SetActorLabel under WITH_EDITOR,
+	// so in a packaged build every one of these actors answers GetName() with
+	// StaticMeshActor_NNN and a verdict saying actorBlocker=StaticMeshActor_213
+	// names nothing a reader can look up. FindStreetPiece is name-to-actor
+	// only, so this is its reverse and it is the reason this export exists.
+	//
+	// READ-ONLY, AND BOTH MAPS. It adds to neither, so the ruling's own
+	// check (one grep for the street map's single Add call) still finds
+	// exactly one site, in BuildScene. The probe map is searched
+	// second so a street piece can never be shadowed by a probe piece of the
+	// same name, and a blocker that IS a probe piece (the yard floor, a
+	// stand-in body) names itself rather than falling through to the engine's
+	// number.
+	FString StreetPieceNameOf(const AActor* Actor)
+	{
+		if (Actor == nullptr) { return FString(); }
+		for (TMap<FString, AStaticMeshActor*>::TConstIterator It(GByName); It; ++It)
+		{
+			if (It.Value() == Actor) { return It.Key(); }
+		}
+		for (TMap<FString, AStaticMeshActor*>::TConstIterator It(GProbeByName); It; ++It)
+		{
+			if (It.Value() == Actor) { return It.Key(); }
+		}
+		return FString();
 	}
 }

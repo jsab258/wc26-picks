@@ -6,6 +6,13 @@
 // to a module that did work it was not asked to do.
 #pragma once
 
+// CoreMinimal RATHER THAN Containers/UnrealString.h ALONE, since 8
+// September: SpawnProbePiece below takes FVector, which is a template alias
+// (UE::Math::TVector<double>) in UE5 and therefore cannot be forward
+// declared the way UWorld and AActor are. Every translation unit that
+// includes this header already includes CoreMinimal.h itself, so this adds
+// nothing to any compile that was not already there.
+#include "CoreMinimal.h"
 #include "Containers/UnrealString.h"
 
 class UWorld;
@@ -97,4 +104,26 @@ namespace LedgerVignetteShot
 	// a caller measuring its bounds reads the ENGINE's placement of it
 	// (after scale and rotation), never the file's numbers a second time.
 	AActor* FindStreetPiece(const FString& Name);
+
+	// THE CRIME PROBE'S TWO, ruling of 2026-09-08 sections 2 and 4. See
+	// VignetteShot.cpp for what each does and why the probe's pieces are
+	// kept in a map of their own.
+	//
+	// ONE HELPER, NOT FIVE: shards, a brick, two stand-in bodies and a yard
+	// floor, all placed through the SAME SpawnPiece the 593 street pieces go
+	// through, with bInteractive=true. CentreM and SizeM are in the SHARED
+	// FILE'S FRAME (x along, y up, z across), not the engine's. Registered in
+	// a separate map, so piecesEmitted=593/593 and every vignette counter is
+	// untouched by anything spawned here.
+	AActor* SpawnProbePiece(UWorld* World, const FString& Name,
+	                        const FVector& CentreM, const FVector& SizeM,
+	                        const FString& Shape, const FString& Surface);
+
+	// The reverse of FindStreetPiece: the name a hit actor was spawned
+	// under, or an empty string when it was not spawned by this module.
+	// READ-ONLY. A packaged build gives a spawned StaticMeshActor no label
+	// (SpawnPiece calls SetActorLabel under WITH_EDITOR only), so without
+	// this an occlusion reading can only name StaticMeshActor_NNN, which
+	// names nothing anybody can look up in vignette-pieces.json.
+	FString StreetPieceNameOf(const AActor* Actor);
 }

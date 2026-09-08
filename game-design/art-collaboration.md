@@ -79,5 +79,12 @@ AN EXECUTABLE RUNNER PATH, which means a machine can be told to do it:
 NOT BUILT, and named so nobody looks for it:
 - nothing validates that an art branch left the section 2 list alone
 - nothing checks a delivery's contents, only that the file exists
-- no Blender recipe is written yet; the workflow takes a recipe name and
-  refuses with that name if it does not resolve
+- THE FIRST RECIPE'S RENDER HAS NEVER EXECUTED. `quay-street-mickeys-walk`
+  exists and resolves, so the workflow no longer refuses it, and its PLAN is a
+  working consumer: the wrapper's selftest reads the plan on every run, 45 of
+  45 cases, and the plan reports five camera stations one bay pitch apart at
+  the file's own 1.6 m eye height with `baysInAnyFrame=6/6`. But Blender is
+  NOT INSTALLED in the container where the recipe was written, measured three
+  ways, so every `bpy` call in it ships unrun and the first execution is the
+  first run on the Windows runner. A recipe that exists and a recipe that has
+  RENDERED are different facts and this line is here to keep them apart.

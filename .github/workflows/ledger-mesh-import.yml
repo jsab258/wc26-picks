@@ -181,16 +181,57 @@ jobs:
             exit 1
           }
           $pyp = @(Get-ChildItem (Join-Path $ue "Engine\Plugins") -Filter "PythonScriptPlugin.uplugin" -Recurse -ErrorAction SilentlyContinue)
-          $gltf = @(Get-ChildItem (Join-Path $ue "Engine\Plugins") -Filter "*GLTF*.uplugin" -Recurse -ErrorAction SilentlyContinue)
           $L = @("propPythonPlugin=$(if ($pyp.Count) {'found'} else {'NOT-FOUND'})/$($pyp.Count)")
-          # WHICH glTF PLUGINS THE ENGINE ACTUALLY HAS, by name, because "the
-          # import refused" and "the importer is not installed" are different
-          # facts and only one of them is fixable from this repository.
-          $L += "propGltfPlugins=$(if ($gltf.Count) { ($gltf | ForEach-Object { $_.BaseName }) -join ';' } else { 'NONE-FOUND' })/$($gltf.Count)"
+
+          # RUN 1's INSTRUMENT WAS THE FAULT BEFORE THE ENGINE WAS.
+          # It globbed Engine\Plugins for *GLTF*.uplugin, found GLTFExporter,
+          # and printed propGltfPlugins=GLTFExporter/1. That reading cannot
+          # see a glTF importer that ships INSIDE the Interchange plugins,
+          # whose files are named InterchangeAssets and InterchangeEditor and
+          # contain no GLTF in the name at all. So an exporter-only engine and
+          # an engine with a perfectly good Interchange importer produce the
+          # SAME string, and the run drew the wrong conclusion from it.
+          #
+          # This lists what is actually on the machine, three ways, and none
+          # of the three is trusted as the answer: the answer comes from the
+          # engine itself, in propGltfCanTranslate, which asks whether it can
+          # translate a real .glb from this repository. These are the
+          # explanation for that answer, not a substitute for it.
+          $plugRoot = Join-Path $ue "Engine\Plugins"
+          $allPlugins = @(Get-ChildItem $plugRoot -Filter "*.uplugin" -Recurse -ErrorAction SilentlyContinue)
+          $byName = @($allPlugins | Where-Object { $_.BaseName -match "(?i)gltf" })
+          $interchange = @($allPlugins | Where-Object { $_.BaseName -match "(?i)interchange" })
+          # BY CONTENT, because the module that translates glTF need not be in
+          # a plugin whose NAME says glTF, which is the exact hole above.
+          $byContent = @($allPlugins | Where-Object {
+            try { (Get-Content $_.FullName -Raw -ErrorAction Stop) -match "(?i)gltf" } catch { $false }
+          } | Where-Object { $byName.FullName -notcontains $_.FullName })
+          $L += "propPluginsScanned=$($allPlugins.Count) propPluginRoot=$($plugRoot -replace ' ','~')"
+          $L += "propGltfByName=$(if ($byName.Count) { ($byName | ForEach-Object { $_.BaseName }) -join ';' } else { 'none' })/$($byName.Count)"
+          $L += "propGltfByContentNotName=$(if ($byContent.Count) { ($byContent | Select-Object -First 8 | ForEach-Object { $_.BaseName }) -join ';' } else { 'none' })/$($byContent.Count)"
+          if ($byContent.Count -gt 8) { $L += "propGltfByContentCapped=(+$($byContent.Count - 8)~more~not~shown)" }
+          $L += "propInterchangePlugins=$(if ($interchange.Count) { ($interchange | ForEach-Object { $_.BaseName }) -join ';' } else { 'NONE-FOUND' })/$($interchange.Count)"
+          # WHAT THE PROJECT ITSELF ASKS FOR, read rather than assumed: a
+          # plugin absent from the uproject is not loaded no matter what sits
+          # in the engine directory.
+          $upl = Get-Content $proj -Raw
+          $L += "propUprojectPlugins=$(if ($upl -match '(?i)"Plugins"') { 'declares-a-Plugins-block' } else { 'declares-NO-Plugins-block/engine-defaults-only' })"
           $t = Get-Date
+          # ENABLED THE SAME WAY THE MATERIAL GENERATOR GETS PYTHON: on the
+          # command line, not by editing the uproject, so this workflow cannot
+          # change what the probe's cook builds. -EnablePlugins ADDS to the
+          # enabled set and warns about a name it does not know rather than
+          # refusing to start, so listing candidates is safe and the engine's
+          # own answer about which ones took travels back in
+          # propGltfPluginsEnabled. Only names actually present on this
+          # machine are passed, which is why the scan above runs first.
+          $want = @("PythonScriptPlugin", "InterchangeEditor", "InterchangeAssets",
+                    "InterchangeTests", "GLTFImporter", "GLTFCore")
+          $have = @($want | Where-Object { $n = $_; $allPlugins.BaseName -contains $n })
+          $L += "propPluginsAsked=$($want -join ';') propPluginsPresent=$($have -join ';')/$($have.Count)-of-$($want.Count)"
           $p = Start-Process -FilePath $edCmd -ArgumentList @(
                  "`"$proj`"", "-run=pythonscript", "-script=`"$py`"",
-                 "-EnablePlugins=PythonScriptPlugin", "-unattended", "-nopause",
+                 "-EnablePlugins=$($have -join ',')", "-unattended", "-nopause",
                  "-nosplash", "-stdout") -Wait -PassThru -NoNewWindow `
                -RedirectStandardOutput "mesh-import.log" -RedirectStandardError "mesh-import.err"
           $L += "propEditorCmdExit=$($p.ExitCode) propImportMinutes=$([math]::Round(((Get-Date)-$t).TotalMinutes,2))"
@@ -222,13 +263,41 @@ jobs:
       - name: Write the verdict file
         if: always()
         shell: bash
+        env:
+          # THE FAULT THAT COST RUN 1 ITS ENTIRE EVIDENCE CHANNEL.
+          # The agent service checks the workspace out as NT AUTHORITY/NETWORK
+          # SERVICE and the step runs as JAFAR-Desktop\Jafar, so every git
+          # call dies with "detected dubious ownership". `git rev-parse` sat
+          # OUTSIDE the brace block below, under bash -e, so the step died on
+          # that line and the verdict file was never written at all: the run
+          # measured all sixteen assets and published a blank, which is the
+          # precise failure .claude/rules/ci.md exists to prevent. Every other
+          # workflow on this runner already carries these three variables;
+          # this one did not, and that omission was the whole fault.
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: "*"
         run: |
+          # NO -e HERE, DELIBERATELY. This step's entire job is to publish
+          # whatever was measured; a step that aborts on a failed command
+          # publishes nothing, which is worse than any wrong value it could
+          # print. Everything below is written on every path.
+          set +e
           set -u
           mkdir -p production/d1-probe
           OUT=production/d1-probe/ue-mesh-import.txt
-          SHA=$(git rev-parse --short HEAD)
+          # THE SHA, WITH A FALLBACK THAT DOES NOT NEED GIT AT ALL, and the
+          # word says which one it got, because a verdict whose line 1 names
+          # the wrong commit is worse than one that admits it guessed.
+          SHA=$(git -c safe.directory='*' rev-parse --short HEAD 2>/dev/null)
+          SHA_FROM=git
+          if [ -z "${SHA:-}" ]; then
+            SHA="${GITHUB_SHA:-SHA-UNKNOWN}"
+            SHA="${SHA:0:7}"
+            SHA_FROM=GITHUB_SHA-env/git-refused
+          fi
           {
-            echo "# ue mesh import - $SHA"
+            echo "# ue mesh import - $SHA (shaFrom=$SHA_FROM)"
             echo ""
             cat mesh-selftest.txt 2>/dev/null || echo "meshSelftest=NOTHING-MEASURED/step-did-not-write"
             cat mesh-editorbuild.txt 2>/dev/null || echo "meshEditorBuild=NOTHING-MEASURED/step-did-not-write"
@@ -241,6 +310,12 @@ jobs:
             echo ""
             echo "meshImportReached=end"
           } > "$OUT"
+          # VERIFY THE EFFECT, NOT THE EXIT CODE. If the redirect above
+          # produced nothing, say so here rather than letting the next step
+          # find an empty file and call it a missing run.
+          if [ ! -s "$OUT" ]; then
+            printf '# ue mesh import - %s\nNO RUN - the verdict step produced an empty file.\npropImportStatus=NO-RUN propImportReturn=NOTHING-MEASURED\nmeshImportReached=end\n' "$SHA" > "$OUT"
+          fi
           if [ -f ue-probe/ue-prop-meshes.json ]; then
             cp ue-probe/ue-prop-meshes.json production/d1-probe/ue-mesh-import.json
           fi
@@ -251,28 +326,37 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # SAME FAULT, SAME FIX. Run 1's commit step died with "fatal: not in
+          # a git directory" for exactly this reason, so even a successful
+          # import could not have landed its uassets.
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: "*"
         run: |
           set -u
-          git config user.name "ledger-ci"
-          git config user.email "ci@ledger.local"
+          # BELT AND BRACES: the env vars above cover git's own config, and
+          # the explicit -c covers the case where a git old enough to ignore
+          # GIT_CONFIG_COUNT is on PATH. The install workflow carries both.
+          git -c safe.directory='*' config user.name "ledger-ci"
+          git -c safe.directory='*' config user.email "ci@ledger.local"
           # STAGED BY NAME, NEVER `git add <directory>`. A failed run must not
           # commit its stale checkout's files as its own evidence, and it must
           # not stage the DELETION of the assets the last good run made: a
           # plain add of a path that does not exist is a no-op, which is the
           # behaviour wanted here.
-          git add -- production/d1-probe/ue-mesh-import.txt
+          git -c safe.directory='*' add -- production/d1-probe/ue-mesh-import.txt
           [ -f production/d1-probe/ue-mesh-import.json ] && \
-            git add -- production/d1-probe/ue-mesh-import.json
+            git -c safe.directory='*' add -- production/d1-probe/ue-mesh-import.json
           for U in ue-probe/Content/Ledger/Props/SM_*.uasset; do
-            [ -f "$U" ] && git add -- "$U"
+            [ -f "$U" ] && git -c safe.directory='*' add -- "$U"
           done
-          git diff --cached --quiet && { echo "nothing changed; nothing to commit"; exit 0; }
-          MSG="mesh import from $(git rev-parse --short HEAD)"
-          git -c commit.gpgsign=false commit -m "$MSG"
+          git -c safe.directory='*' diff --cached --quiet && { echo "nothing changed; nothing to commit"; exit 0; }
+          MSG="mesh import from $(git -c safe.directory='*' rev-parse --short HEAD 2>/dev/null || echo \"${GITHUB_SHA:0:7}\")"
+          git -c safe.directory='*' -c commit.gpgsign=false commit -m "$MSG"
           BR="${GITHUB_REF_NAME}"
           for i in 1 2 3; do
-            git pull --rebase --autostash --no-edit origin "$BR" || git rebase --abort || true
-            if git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${BR}"; then
+            git -c safe.directory='*' pull --rebase --autostash --no-edit origin "$BR" || git -c safe.directory='*' rebase --abort || true
+            if git -c safe.directory='*' push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${BR}"; then
               echo "mesh import result pushed to $BR"; exit 0
             fi
             sleep $((i * 5))
@@ -291,9 +375,15 @@ jobs:
           set -u
           F=production/d1-probe/ue-mesh-import.txt
           [ -f "$F" ] || { echo "NO VERDICT FILE AT ALL"; exit 1; }
-          grep -o 'propImportStatus=[^ ]*' "$F" || true
-          grep -o 'propImportReturn=[^ ]*' "$F" || true
-          grep -o 'propBoundsWorstMm=[^ ]*' "$F" || true
+          # THE KEYS A PERSON READING THE RUN NEEDS, PULLED TO THE TOP.
+          # propGltfImporter first, because run 1 proved that when this route
+          # fails it fails there, and the whole failure list underneath it is
+          # sixteen copies of one cause.
+          for K in propGltfImporter propGltfCanTranslate propGltfPluginsEnabled \
+                   propImportStatus propImportReturn propAcceptingCase \
+                   propImported propCollisionPrims propBoundsWorstMm; do
+            grep -o "$K=[^ ]*" "$F" || echo "$K=NOT-ON-THE-LINE"
+          done
           if grep -q 'propImportReturn=0' "$F"; then
             echo "GREEN: every asset the street asks for is a saved uasset with collision"
             exit 0

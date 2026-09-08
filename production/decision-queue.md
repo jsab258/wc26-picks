@@ -236,6 +236,28 @@ Unreal street", when item 9 of the console lands.
 LIGHTER RULING, not a D-record: it schedules work rather than changing
 architecture or identity.
 
+## RULED THIS WEEK, in Jafar's own words
+
+Recorded here on the director's instruction 2026-09-08, because the studio was
+about to act on a paraphrase of a sentence that exists in no file. His words:
+
+> "No further channel work this week. The supervisor's staleness is a recorded
+> finding."
+
+HOW IT WAS APPLIED THE SAME DAY, so the exception is visible rather than
+implied. The mesh import's evidence fault shipped: its verdict step died on
+directory ownership and published nothing while the run had measured all
+sixteen assets, which is CLAUDE.md rule 12, a blocked feedback channel, and
+rule 12 outranks a scheduling preference. The art preview workflow has the
+IDENTICAL fault and did NOT ship: it is queue 152, waiting, because nothing is
+currently trying to read its output. The test applied was whether a channel
+somebody is reading is blocked, not whether the word "channel" appears in the
+task.
+
+THE SUPERVISOR STALENESS is `production/findings.txt`, the entry titled "THE
+SUPERVISOR HAS THE STALENESS IT WAS BUILT TO PREVENT, AND NO ROUTE TO FIX
+ITSELF". It stays a finding this week by his ruling.
+
 ---
 
 ## RETIRED

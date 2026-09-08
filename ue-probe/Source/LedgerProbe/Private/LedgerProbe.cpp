@@ -15,6 +15,7 @@
 #include "FrameStats.h"
 #include "VignetteShot.h"
 #include "WalkProbe.h"
+#include "CrimeProbe.h"
 
 #include "Containers/StringConv.h"
 #include "Misc/Paths.h"
@@ -800,6 +801,20 @@ public:
 		if (FParse::Param(FCommandLine::Get(), TEXT("LedgerWalk")))
 		{
 			LedgerWalkProbe::Start();
+			return;
+		}
+		// THE CRIME, THE WITNESS AND THE OVERHEARD CONSEQUENCE, ruling of
+		// 2026-09-08, and its own switch for the same reason all four above are.
+		// CrimeProbe.cpp drives the ordinary interactive pawn
+		// ALedgerGameMode::InitGame already spawns for a plain launch, in the
+		// street BuildInteractiveStreet already builds; this switch only decides
+		// whether THIS module also arms the ticker that scripts it, and it is
+		// checked NOWHERE ELSE in the source, so it cannot change what the cook
+		// commandlet, the three automation passes, the walk or a real human
+		// launch see.
+		if (FParse::Param(FCommandLine::Get(), TEXT("LedgerCrime")))
+		{
+			LedgerCrimeProbe::Start();
 			return;
 		}
 		if (!FParse::Param(FCommandLine::Get(), TEXT("LedgerGoldenTest")))

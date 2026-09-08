@@ -7,6 +7,95 @@ Plain text on purpose. tools/producer-check.py walks *.md and tools/docs-check.p
 governs game-design/, so a .txt here is outside both and cannot turn verify red.
 
 --------------------------------------------------------------------------
+2026-09-08  A RUN MEASURED EVERYTHING AND PUBLISHED NOTHING, BECAUSE ONE
+            GIT CALL OUTSIDE THE BRACES DIED ON DIRECTORY OWNERSHIP.
+--------------------------------------------------------------------------
+THE EXACT FAULT `.claude/rules/ci.md` EXISTS TO PREVENT, shipped by me, in a
+workflow written the same day I re-read that rule.
+
+MEASURED, run 34261995425 on Jafar's PC:
+
+    fatal: detected dubious ownership in repository at
+      'C:/actions-runner-ledger/_work/wc26-picks/wc26-picks'
+    owned by: NT AUTHORITY/NETWORK SERVICE
+    current user: JAFAR-DESKTOP/Jafar
+    ...
+    NO VERDICT FILE AT ALL
+
+The runner's checkout is owned by the service account and the steps run as
+Jafar, so every plain `git` call in that workflow refuses. The step that
+assembles the evidence file begins
+
+    SHA=$(git rev-parse --short HEAD)
+
+OUTSIDE the brace block that redirects into the file, under `bash -e`. So the
+step died on its first line, the file was never created, and the next step
+reported NO VERDICT FILE AT ALL. The commit-and-push step then died the same
+way with "fatal: not in a git directory".
+
+WHAT WAS LOST, and this is why it matters more than a red job: the run WORKED
+in the sense that counts. It launched the editor, read all sixteen assets,
+tried both import routes and printed a complete, correct verdict naming the
+cause. Those numbers exist only in the raw Actions log, which is the channel
+this project has ruled unreliable and stopped reading. The committed evidence
+channel showed a blank.
+
+TWO SEPARATE LESSONS AND THEY ARE BOTH GENERAL:
+1. `-c safe.directory=*` is not optional on this runner. The install workflow
+   already does it on every call; the new one did not, and nothing checks that
+   a new workflow copied it.
+2. A VERDICT FILE MUST NOT DEPEND ON GIT SUCCEEDING. The sha is a nicety; the
+   measurements are the point. Compute the sha with a fallback to
+   `${GITHUB_SHA}` and write the file on every path, so a run that cannot name
+   its own commit still publishes what it measured.
+
+--------------------------------------------------------------------------
+2026-09-08  I READ "GLTFExporter/1" AS "NO IMPORTER". IT WAS A GLOB THAT
+            ONLY MATCHED FILENAMES CONTAINING GLTF, AND IT MEASURED
+            NOTHING ABOUT WHETHER AN IMPORTER EXISTS.
+--------------------------------------------------------------------------
+MEASURED, same run:
+
+    propGltfPlugins=GLTFExporter/1
+    propImportVia=none-of-2-candidates
+    propImportStatus=NOTHING-IMPORTED propImportReturn=2
+    propSources=16/16 propImported=0/16 propSaved=0/16 propFailed=16/16
+
+I WROTE, ON READING THAT, THAT THE ENGINE HAS AN EXPORTER AND NO IMPORTER.
+The builder refused it and was right. The step globbed the engine plugin
+directory for `*GLTF*.uplugin`. In recent Unreal the glTF translator
+belongs to the Interchange framework, whose plugin files need not carry GLTF
+in the name at all; which plugin names his 5.8 install actually has is what
+`propInterchangePlugins=` prints on run 2. The exporter
+is separately named, so the glob found it and only it. AN EXPORTER-ONLY ENGINE
+AND AN ENGINE WITH A WORKING INTERCHANGE IMPORTER PRODUCE THE IDENTICAL
+STRING. The reading cannot tell them apart, and I turned it into a conclusion
+about the engine within minutes of reading it.
+
+THAT IS RULE 3, ON ME, ON THE SAME DAY I RECORDED A RULE ABOUT NOT PROPOSING
+MECHANISMS. The ruler was wrong and I read the number off it anyway. It is
+also rule 1: I asserted a fact about that machine that no command had checked.
+
+WHAT IS ACTUALLY KNOWN: both candidate import routes returned nothing, sixteen
+of sixteen sources were found and measured, and the spec box matches each GLB
+to 0.0000 mm on every axis. WHY they returned nothing is UNMEASURED.
+
+THE INSTRUMENT THAT WILL ANSWER IT, built rather than argued: the run now asks
+the editor `InterchangeManager.can_translate_source_data()` against three real
+.glb files from this repository BEFORE the import loop, and prints
+`propGltfCanTranslate=N/M` plus `propGltfImporter` carrying one of four
+provably distinct words: PRESENT, REFUSED, ABSENT/exporter-only, or
+NOTHING-MEASURED. The runner-side scan now lists plugins three ways, by name,
+by CONTENT of the .uplugin text, and every Interchange plugin by name, which is
+the hole that hid them. Run 1's exact reading is planted in the selftest as a
+rejecting fixture asserted distinct from the no-plugin-at-all case.
+
+WHAT THIS BLOCKS meanwhile: station 4 INTEGRATE for the whole prop line, so
+pilot package one records zero verified pieces (production/throughput.md).
+Whether one more run clears it depends entirely on that key, and nobody should
+say it is close until the number exists.
+
+--------------------------------------------------------------------------
 2026-09-08  THE BOT'S OWN LOOP SWEEPS. SEVENTY-SIX SECONDS, MEASURED BY
             TIMESTAMPS RATHER THAN BY THE COUNTER THAT WAS BUILT FOR IT.
 --------------------------------------------------------------------------

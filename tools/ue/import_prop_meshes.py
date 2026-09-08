@@ -91,6 +91,15 @@ UASSET_PREFIX = "SM_"
 # absorb the other.
 EXTRA_ASSETS = ("lamp_post_01",)
 
+# THE ACCEPTING CASE, NAMED, SO ITS STATE IS READABLE WITHOUT PARSING A LIST.
+# Retargeted by Jafar on 2026-09-08 from lamp_post_01, which no piece places,
+# to A7_gully_grate, which is a real piece of the built street: it has a box
+# in the frame today, so replacing that box with the mesh is a thing a person
+# can look at. Both constants are checked against the live spec by --selftest
+# rather than trusted from this comment.
+ACCEPTING_ASSET = "drainage_grate_01"
+ACCEPTING_PIECE = "prop_drainage_grate_01_0"
+
 # ONE MICRON, AND IT IS THE MEASURED SERIES AND NOT A ROUND NUMBER.
 # vignette-pieces.json carries quantisation_decimals=6, so a size in it is
 # within 0.5 um of the plan, and the worst disagreement between a spec box
@@ -320,7 +329,7 @@ def import_return(status):
 
 def prop_line(status, asked, pieces, sources, imported, saved, collided,
               readings, failures, via, collision_via, extras, uasset_bytes,
-              note):
+              note, gltf_block="", accepting_block=""):
     """The one line the workflow copies into the build verdict.
 
     No spaces inside any value: every reader of these files splits on
@@ -342,16 +351,23 @@ def prop_line(status, asked, pieces, sources, imported, saved, collided,
       propBoundsBound      THE WORD THAT SAYS THERE IS NO GATE HERE YET. No
                            run has printed the engine-versus-spec series, so
                            this run prints it and sets nothing. Rule 2.
-      propLampPost01       the file Jafar named, which no piece references.
-                           Imported and reported on its own key so that its
-                           presence can never be read as the street placing
-                           it.
+      propLampPost01       the file Jafar named first, which no piece
+                           references. Imported and reported on its own key so
+                           that its presence can never be read as the street
+                           placing it.
+      propGltfImporter     the word gltf_verdict() decided, which tells an
+                           exporter-only engine from an absent importer from a
+                           refusal. Run 1 could not.
+      propAcceptingCase    A7_gully_grate, the piece the accepting case is
+                           now about, on its own key so its state is readable
+                           without parsing propFailedWhy.
     """
     return ("propImportStatus=%s propImportReturn=%d "
             "propMeshesAsked=%d/%d propMeshesStat=unique-assets/over-pieces-asking "
             "propSources=%d/%d propImported=%d/%d propSaved=%d/%d "
             "propCollisionPrims=%d/%d propCollisionVia=%s "
             "propImportVia=%s propPackageDir=%s propNamePattern=%s<asset> "
+            "%s %s "
             "%s propBoundsBound=NONE-YET/this-run-prints-the-series "
             "propBoundsStat=spec-box-minus-engine-bounds-at-worst-over-assets "
             "%s %s "
@@ -364,11 +380,41 @@ def prop_line(status, asked, pieces, sources, imported, saved, collided,
                sources, asked, imported, asked, saved, asked,
                collided, saved, collision_via,
                via, PACKAGE_DIR, UASSET_PREFIX,
+               gltf_block if gltf_block else "propGltfImporter=nothing-measured",
+               accepting_block if accepting_block else
+               "propAcceptingCase=nothing-measured",
                worst_bounds(readings),
                pivot_field(readings),
                fallback_field(failures, asked),
                extras, uasset_bytes,
                str(note).replace(" ", "~") if note else "none"))
+
+
+def accepting_field(readings, failures, sources_found):
+    """A7_gully_grate's own key. It answers, in one value, the only question
+    the accepting case asks: is the grate a real mesh with collision, and how
+    far off did it land.
+
+    A KEY THAT IS ABSENT WHEN THE THING FAILED IS NOT A KEY. Every path
+    produces a word here, including the path where the asset was never
+    reached at all, because "no propAcceptingCase on the line" and "the grate
+    is fine" look identical to a grep."""
+    for r in readings:
+        if r.get("asset") == ACCEPTING_ASSET:
+            return ("propAcceptingCase=piece=%s/asset=%s/RESOLVED/saved=%s/"
+                    "collisionPrims=%d/materialSlots=%d/worstOrderedMm=%.4f/"
+                    "worstSortedMm=%.4f"
+                    % (ACCEPTING_PIECE, ACCEPTING_ASSET,
+                       "yes" if r.get("saved") else "NO",
+                       r.get("collisionPrims", -1), r.get("materialSlots", -1),
+                       r.get("worstOrderedMm", -1.0), r.get("worstSortedMm", -1.0)))
+    for a, w in failures:
+        if a == ACCEPTING_ASSET:
+            return ("propAcceptingCase=piece=%s/asset=%s/FAILED/%s"
+                    % (ACCEPTING_PIECE, ACCEPTING_ASSET,
+                       str(w).replace(" ", "~")))
+    return ("propAcceptingCase=piece=%s/asset=%s/NOT-REACHED/sourcesFound=%d"
+            % (ACCEPTING_PIECE, ACCEPTING_ASSET, sources_found))
 
 
 def manifest(measured_by, spec_path, asked, readings, failures, extras):
@@ -483,6 +529,66 @@ def selftest():
         ok("the extra asset %s is on disk" % extra,
            os.path.exists(os.path.join(root, glb_source(extra))),
            glb_source(extra))
+
+    # -- A2. THE ACCEPTING CASE IS A REAL PIECE OF THE BUILT STREET --------
+    # Retargeted 2026-09-08. The previous accepting case named a file no piece
+    # references, which is why it was never reachable; this one is checked
+    # against the live spec so that it cannot quietly stop being real.
+    grate = [p for p in pieces if p.get("name") == ACCEPTING_PIECE]
+    ok("the accepting piece %s is in the street" % ACCEPTING_PIECE,
+       len(grate) == 1, len(grate))
+    if grate:
+        ok("and it is a mesh piece naming %s" % ACCEPTING_ASSET,
+           grate[0].get("shape") == "mesh" and grate[0].get("asset") == ACCEPTING_ASSET,
+           "%s/%s" % (grate[0].get("shape"), grate[0].get("asset")))
+        ok("and it had a box in the frame to replace, which is what makes it "
+           "reachable at all",
+           grate[0].get("asset") in dict(asked), grate[0].get("asset"))
+
+    # -- A3. THE THREE FACTS RUN 1 COULD NOT TELL APART --------------------
+    # ACCEPTING CASE FIRST: an engine that says it can translate is PRESENT,
+    # whatever the plugin listing looked like.
+    ok("an engine that can translate reads PRESENT",
+       gltf_verdict(True, [], 3, 3).startswith("PRESENT/"), gltf_verdict(True, [], 3, 3))
+    # THE READING RUN 1 ACTUALLY HAD, planted: exporter present, no importer
+    # plugin, nothing translatable.
+    ok("exporter-only reads ABSENT and says exporter-only",
+       gltf_verdict(True, [], 0, 3) == "ABSENT/exporter-only/no-importer-plugin-and-translate-said-no",
+       gltf_verdict(True, [], 0, 3))
+    ok("and it does NOT read the same as no plugin of either kind",
+       gltf_verdict(True, [], 0, 3) != gltf_verdict(False, [], 0, 3))
+    ok("an importer plugin that still refuses is REFUSED, not ABSENT",
+       gltf_verdict(True, ["InterchangeGLTF"], 0, 3).startswith("REFUSED/"),
+       gltf_verdict(True, ["InterchangeGLTF"], 0, 3))
+    ok("a question never put reads nothing-measured, not absent",
+       gltf_verdict(False, [], 0, 0).startswith("NOTHING-MEASURED/"),
+       gltf_verdict(False, [], 0, 0))
+    ok("all four words are distinct, which is the whole point of the key",
+       len(set([gltf_verdict(True, [], 3, 3), gltf_verdict(True, [], 0, 3),
+                gltf_verdict(True, ["x"], 0, 3), gltf_verdict(False, [], 0, 0)])) == 4)
+
+    # -- A4. THE ACCEPTING CASE ALWAYS PRODUCES A WORD ---------------------
+    good = bounds_reading(ACCEPTING_ASSET, (0.4, 0.015, 0.4), (0, 0, 0),
+                          (20.0, 20.0, 0.75))
+    good["saved"] = True
+    good["collisionPrims"] = 1
+    good["materialSlots"] = 1
+    ok("a resolved grate says RESOLVED with its collision count",
+       "RESOLVED" in accepting_field([good], [], 16)
+       and "collisionPrims=1" in accepting_field([good], [], 16),
+       accepting_field([good], [], 16))
+    ok("a failed grate says FAILED and carries the reason",
+       "FAILED/why" in accepting_field([], [(ACCEPTING_ASSET, "why")], 16),
+       accepting_field([], [(ACCEPTING_ASSET, "why")], 16))
+    ok("a grate nothing reached still prints a key, because a missing key and "
+       "a healthy grate look identical to a grep",
+       accepting_field([], [], 0).endswith("NOT-REACHED/sourcesFound=0"),
+       accepting_field([], [], 0))
+    ok("and every one of the three names the piece and the asset",
+       all(ACCEPTING_PIECE in f and ACCEPTING_ASSET in f for f in
+           (accepting_field([good], [], 16),
+            accepting_field([], [(ACCEPTING_ASSET, "why")], 16),
+            accepting_field([], [], 0))))
 
     # -- B. THE SPEC BOX IS THE GLB'S OWN MEASURED SIZE --------------------
     # The one claim that makes scale 1 correct. Measured, not assumed, and it
@@ -602,7 +708,10 @@ def selftest():
                      [("x", "a reason with spaces")], "asset-import-task",
                      "static-mesh-editor-subsystem",
                      "propExtras=lamp_post_01=ok", 123456,
-                     "a note with spaces")
+                     "a note with spaces",
+                     "propGltfImporter=" + gltf_verdict(True, [], 0, 3)
+                     + " propGltfCanTranslate=0/3",
+                     accepting_field([], [(ACCEPTING_ASSET, "did not load back")], 16))
     toks = line.split()
     ok("every whitespace-separated token of the verdict line is key=value",
        all("=" in t for t in toks), [t for t in toks if "=" not in t])
@@ -616,6 +725,11 @@ def selftest():
        "propBoundsBound=NONE-YET/this-run-prints-the-series" in line)
     ok("and it names what the bounds number is a statistic OF",
        "propBoundsStat=" in line and "at-worst" in line)
+    ok("the line carries the glTF word and the accepting case on their own keys",
+       "propGltfImporter=ABSENT/exporter-only" in line
+       and "propAcceptingCase=piece=" + ACCEPTING_PIECE in line, line)
+    ok("and the accepting case's spaces were flattened too",
+       "did~not~load~back" in line)
 
     # -- H. THE REJECTING FIXTURE FOR THE NAME RULE ------------------------
     ok("an asset id with a slash is refused", not safe_asset_id("ambientcg/Leak"))
@@ -714,6 +828,85 @@ def _add_collision(unreal, mesh, report):
     return (after if after is not None else 0), via
 
 
+def gltf_verdict(exporter_found, importer_plugins, translate_ok, translate_asked):
+    """THE THREE FACTS THE FIRST RUN COULD NOT TELL APART, AND WHY.
+
+    Run 1 printed propGltfPlugins=GLTFExporter/1 beside
+    propImportVia=none-of-2-candidates, and the pair is ambiguous in exactly
+    the way that costs a round trip. Three different worlds produce it:
+
+      1. the engine has NO glTF import at all;
+      2. the engine HAS glTF import, through Interchange, whose plugin files
+         are named InterchangeAssets and InterchangeEditor and which a glob
+         for *GLTF*.uplugin therefore cannot see;
+      3. the import exists and was refused for some other reason.
+
+    The instrument that produced GLTFExporter/1 could not distinguish any of
+    them, which is rule 3: suspect the ruler before the reading. So the word
+    below is decided by asking the ENGINE whether it can translate the actual
+    file, not by counting plugin files, and the plugin names travel beside it
+    as the explanation rather than as the evidence.
+
+    translate_ok/translate_asked is the engine's own answer over the sources
+    offered to it. nothing-measured when the question could not be put."""
+    if translate_asked <= 0:
+        return "NOTHING-MEASURED/the-engine-was-never-asked"
+    if translate_ok > 0:
+        return "PRESENT/engine-says-it-can-translate/%d-of-%d" % (translate_ok, translate_asked)
+    if importer_plugins:
+        return ("REFUSED/importer-plugin-present-but-translate-said-no/%s"
+                % ";".join(importer_plugins[:3]))
+    if exporter_found:
+        # THE READING RUN 1 ACTUALLY HAD, now sayable in one word. An exporter
+        # is not an importer and this key will never let the two read alike
+        # again.
+        return "ABSENT/exporter-only/no-importer-plugin-and-translate-said-no"
+    return "ABSENT/no-gltf-plugin-of-either-kind"
+
+
+def _engine_gltf_probe(unreal, sources, report):
+    """Ask the engine, once, what it can do with these files.
+
+    THE ENTRY POINT IS CHEAPER THAN THE ARGUMENT (ci.md, ruled 2026-09-08 over
+    four refuted explanations of a silent channel). Rather than reasoning
+    about which plugin ships glTF import in this engine version, put the file
+    in front of the engine and record the answer.
+
+    Returns (translate_ok, translate_asked, plugin_names, api_names)."""
+    ok_n = 0
+    asked = 0
+
+    def can(path):
+        mgr = unreal.InterchangeManager.get_interchange_manager_scripted()
+        src = unreal.InterchangeManager.create_source_data(path)
+        return bool(mgr.can_translate_source_data(src))
+
+    for path in sources[:3]:
+        asked += 1
+        v, _via = _try([("can-translate", lambda p=path: can(p))], report)
+        if v:
+            ok_n += 1
+
+    # WHICH PLUGINS THE ENGINE SAYS ARE ENABLED, from the engine and not from
+    # a directory listing, because -EnablePlugins on the command line and a
+    # .uplugin on disk are different facts and only the first one runs.
+    def enabled():
+        return [str(n) for n in unreal.PluginBlueprintLibrary.get_enabled_plugin_names()]
+
+    names, _v = _try([("enabled-plugin-names", enabled)], report)
+    if names is None:
+        names = []
+    interesting = [n for n in names
+                   if "GLTF" in n.upper() or "INTERCHANGE" in n.upper()]
+
+    # AND WHAT THE PYTHON API OFFERS, because a class that is not there is why
+    # a route raises AttributeError and reads as "refused".
+    api = [n for n in ("InterchangeManager", "AssetImportTask",
+                       "InterchangeGenericAssetsPipeline", "ImportAssetParameters")
+           if hasattr(unreal, n)]
+    return ok_n, asked, interesting, api
+
+
 def _material_slots(unreal, mesh, report):
     """How many material slots the imported mesh has.
 
@@ -797,6 +990,14 @@ def run_in_unreal():
     vias, coll_vias = [], []
     extras = []
 
+    # ASK THE ENGINE WHAT IT CAN DO BEFORE ASKING IT TO DO ANYTHING. Run 1
+    # spent its whole import loop discovering, sixteen times, that no route
+    # answered, and then reported the count rather than the cause.
+    probe_sources = [os.path.join(root, glb_source(a)) for a, _ in asked[:3]]
+    probe_sources = [q for q in probe_sources if os.path.exists(q)]
+    can_ok, can_asked, plugin_names, api_names = _engine_gltf_probe(
+        unreal, probe_sources, report)
+
     todo = [(a, boxes[a]) for a, _ in asked] + [(e, None) for e in EXTRA_ASSETS]
     for asset_id, box in todo:
         is_extra = box is None
@@ -857,6 +1058,20 @@ def run_in_unreal():
             if f.endswith(".uasset"):
                 total_bytes += os.path.getsize(os.path.join(content, f))
 
+    importer_plugins = [n for n in plugin_names
+                        if "GLTF" in n.upper() and "EXPORT" not in n.upper()]
+    exporter_found = any("GLTF" in n.upper() and "EXPORT" in n.upper()
+                         for n in plugin_names)
+    gltf_block = ("propGltfImporter=%s propGltfCanTranslate=%d/%d "
+                  "propGltfPluginsEnabled=%s propGltfApi=%s"
+                  % (gltf_verdict(exporter_found, importer_plugins,
+                                  can_ok, can_asked),
+                     can_ok, can_asked,
+                     ";".join(plugin_names[:8]) if plugin_names else "none-reported",
+                     ";".join(api_names) if api_names else "none-of-4"))
+    if len(plugin_names) > 8:
+        gltf_block += " propGltfPluginsCapped=(+%d~more~not~shown)" % (len(plugin_names) - 8)
+
     multi = [r["asset"] for r in readings if r.get("materialSlots", -1) > 1]
     unread_slots = [r["asset"] for r in readings if r.get("materialSlots", -1) < 0]
     status = import_status(len(asked), sources, imported, saved, collided)
@@ -877,11 +1092,15 @@ def run_in_unreal():
                      "propSlotNote=the-street-overwrites-slot-0-only"
                      % (len(multi), len(readings), len(unread_slots)),
                      total_bytes,
-                     "/".join(report[:4]) if report else "none")
+                     "/".join(report[:4]) if report else "none",
+                     gltf_block, accepting_field(readings, failures, sources))
     man = manifest("unreal/engine-readback", spec_path, asked, readings,
                    failures, [{"asset": a, "reading": w} for a, w in extras])
     man["line"] = line
     man["lampPost01"] = lamp
+    man["gltf"] = {"canTranslate": can_ok, "asked": can_asked,
+                   "enabledPlugins": plugin_names, "api": api_names}
+    man["acceptingCase"] = accepting_field(readings, failures, sources)
     man["reportLines"] = report
     return line, man
 

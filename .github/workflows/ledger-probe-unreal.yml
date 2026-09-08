@@ -61,13 +61,18 @@ jobs:
     # the same reason it went to 95, then 115, then 135: the job ceiling
     # must sit above the SUM of the step ceilings, or a legitimate slow run
     # is killed by the clock and the evidence file reads as a build fault.
-    # Recounted rather than trusted from the previous comment (rule 1): the
-    # named step caps now total 133
-    # (6+1+10+60+10+15+20+11, checkout/bootstrap/probe/build/stable-copy/
-    # shot/vignette/walk), and two steps carry no cap of their own
-    # (material-evidence, commit), so the old 135 would have left barely
-    # two minutes for the only channel anyone can read. 155 leaves 22.
-    timeout-minutes: 155
+    # RAISED TO 180 WHEN THE CRIME STEPS WERE ADDED (ruling 2026-09-08).
+    # RECOUNTED FROM THE FILE RATHER THAN TRUSTED FROM THE PREVIOUS COMMENT
+    # (rule 1), AND THE PREVIOUS COMMENT WAS WRONG: it said 133 over eight
+    # steps and never counted the walk clip's own 5, so the true sum at 155
+    # was already 138 and the margin was 17 rather than 22. The named caps
+    # now total 157
+    # (6+1+10+60+10+15+20+11+5+14+5, checkout/bootstrap/probe/build/
+    # stable-copy/shot/vignette/walk/walk-clip/crime/crime-clip), and two
+    # steps carry no cap of their own (material-evidence, commit), so 155
+    # would have left the only channel anyone can read to be killed by the
+    # clock. 180 leaves 23.
+    timeout-minutes: 180
 
     steps:
       # THE COMPLETE BOOTSTRAP FROM THE UNITY JOB, VERBATIM.
@@ -1375,6 +1380,409 @@ jobs:
           }
           if ($stitchExit -eq 0) { exit 0 } else { exit 1 }
 
+      # THE CRIME, THE WITNESS AND THE OVERHEARD CONSEQUENCE, LAUNCHED.
+      # Ruling game-design/decision-2026-09-08-the-crime-the-witness-and-the-
+      # overheard-consequence.md.
+      #
+      # WHY THIS STEP EXISTS AT ALL: CrimeProbe.cpp is built, armed on
+      # -LedgerCrime beside -LedgerWalk at one site in LedgerProbe.cpp, and
+      # NOTHING HAS EVER LAUNCHED IT. Built is not running (CLAUDE.md rule
+      # 6): a module no command line reaches measures nothing, however green
+      # this job goes. This is the call site.
+      #
+      # MODELLED ON THE WALK STEP, NOT INVENTED. The same candidate-path
+      # search, the same launchStatus four-way, the same collection BY NAME
+      # PREFIX, the same NO RUN guard. Every one of those shapes is here
+      # because the walk step paid for it.
+      #
+      # TWO INPUT FILES ARE STAGED BESIDE THE BINARY AND THE RUN IS WORTH
+      # NOTHING WITHOUT EITHER. The module builds the street from
+      # vignette-pieces.json exactly as the vignette step's run does, and it
+      # reads its spoken lines from crime-witness-v1.json, whose candidates
+      # (CrimeProbe.cpp, the LoadBank list) are the project dir, the project
+      # content dir, the launch dir and the exe dir. A packaged build's
+      # ProjectDir is the STAGED project and not this checkout, so one
+      # hard-coded location works in exactly one of the two ways this binary
+      # gets run. Both files go to every candidate directory the walk step
+      # already searches, and what landed is counted PER DESTINATION against
+      # what was asked, so a zero cannot read the same as nobody-looked.
+      #
+      # -RenderOffScreen, NOT -nullrhi. They are opposite things: nullrhi
+      # renders nothing at all, and this run's output is frames.
+      #
+      # A HANG IS KILLED, NOT WAITED OUT, for the reason the walk step
+      # states: Start-Process -Wait has no ceiling of its own beyond the
+      # step's, and a step timeout reads in the log exactly like every other
+      # timeout, which is not evidence. WaitForExit(ms) lets a hang be named
+      # launchStatus=HANG in the COMMITTED file, distinct from a crash and
+      # from a clean exit.
+      #
+      # 720 SECONDS IS ARITHMETIC AND NOT A TARGET. CrimeProbe.cpp's own
+      # ceilings sum to 584 s if every single one of them bites: 45 world +
+      # 30 pawn + 6 milestone shots at 15 s each with one 15 s HighResShot
+      # retry each (180) + 32 sequence frames at 5 s each with a 5 s retry
+      # each (320) + 8.5 s of scripted approach, settle and hold. That is a
+      # run in which nothing worked rather than a slow one, so 720 leaves
+      # engine start and shutdown on top of it and still names a genuine
+      # hang. The step cap is 14 minutes so the kill lands INSIDE the step
+      # and the evidence file is still written afterwards.
+      - name: Commit two crimes and judge the witness
+        id: crime
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 14
+        shell: pwsh
+        env:
+          SHOT_EXE: ${{ steps.build.outputs.exe }}
+          SHOT_PROJ: ${{ steps.build.outputs.projectDir }}
+          SHOT_SHA: ${{ steps.build.outputs.sha }}
+        run: |
+          $ErrorActionPreference = "Continue"
+          $out = "production/d1-probe/ue-crime-verdict.txt"
+          $sideLeaves = @("ue-crimeseq-keys.txt", "ue-crime-memory-w1.md", "ue-crime-memory-n2.md")
+          New-Item -ItemType Directory -Force -Path "production/d1-probe" | Out-Null
+          $sha = $env:SHOT_SHA
+          if (-not $sha) {
+            $sha = $env:GITHUB_SHA
+            if ($sha) { $sha = $sha.Substring(0, [Math]::Min(7, $sha.Length)) } else { $sha = "SHA-UNKNOWN" }
+          }
+          $epoch = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+          # THE TRACKED COPIES GO FIRST, ALL FOUR KINDS. They are tracked
+          # files, so the checkout restored the previous run's verdict, its
+          # keys file, its two memory files and its six frames; a run that
+          # launches nothing must not leave those to be committed again
+          # under this run's message and read as this run's.
+          Remove-Item $out -Force -ErrorAction SilentlyContinue
+          foreach ($leaf in $sideLeaves) {
+            Remove-Item (Join-Path "production/d1-probe" $leaf) -Force -ErrorAction SilentlyContinue
+          }
+          Get-ChildItem "production/d1-probe" -Filter "ue-crime_*.png" -ErrorAction SilentlyContinue |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+
+          $exe = $env:SHOT_EXE
+          $proj = $env:SHOT_PROJ
+          if ((-not $exe) -or (-not (Test-Path $exe))) {
+            # NOTHING MEASURED, IN WORDS, WITH THE REASON NAMED. A build that
+            # published no binary and a crime run that failed are different
+            # facts and must not read alike.
+            @("# UE crime probe $sha @$epoch",
+              "# Line 1 names the commit this was measured on, as the Unity verdict does.",
+              "",
+              "launchStatus=NO-LAUNCH launchReason=build-step-published-no-binary",
+              "witnessStatus=NOTHING-MEASURED gossipStatus=NOTHING-MEASURED",
+              "overheardStatus=NOTHING-MEASURED crimeFramesWrote=0/6 crimeSeqFramesWrote=0/32",
+              "NOTHING MEASURED - no crime was committed on this commit and no older one is carried forward.",
+              "crimeReached=end") | Set-Content $out -Encoding utf8
+            Write-Host (Get-Content $out -Raw)
+            exit 1
+          }
+          $binDir = Split-Path $exe -Parent
+          # WRAPPED IN @() ROUND THE WHOLE PIPELINE, not just the literal: a
+          # filter that leaves one directory standing hands back a bare
+          # string, and every count printed below would then be a string's.
+          $dirs = @(@($proj, $binDir, (Join-Path $PWD "ue-probe")) |
+                    Where-Object { $_ -and (Test-Path $_) })
+
+          # THE INPUTS, STAGED BY NAME, AND THE EFFECT READ BACK RATHER THAN
+          # THE CALL BELIEVED: Copy-Item reports success having copied
+          # nothing, so each destination is asked for its own size and only a
+          # byte-for-byte match counts as landed.
+          function StageInput($src, $leaf, $dests) {
+            $n = 0
+            if (Test-Path $src) {
+              $bytes = (Get-Item $src).Length
+              foreach ($d in $dests) {
+                $dest = Join-Path $d $leaf
+                Copy-Item $src $dest -Force -ErrorAction SilentlyContinue
+                if ((Test-Path $dest) -and ((Get-Item $dest).Length -eq $bytes)) { $n++ }
+              }
+            }
+            return $n
+          }
+          $specSrc = "production/specs/vignette-pieces.json"
+          $bankSrc = "content/dialogue/crime-witness-v1.json"
+          $specStaged = StageInput $specSrc "vignette-pieces.json" $dirs
+          $bankStaged = StageInput $bankSrc "crime-witness-v1.json" $dirs
+          $specBytes = if (Test-Path $specSrc) { (Get-Item $specSrc).Length } else { 0 }
+          $bankBytes = if (Test-Path $bankSrc) { (Get-Item $bankSrc).Length } else { 0 }
+
+          # THE TEXTURE PACK IS NOT RE-STAGED HERE AND THE REASON IS NAMED.
+          # The vignette step earlier in this same job copies the pack into
+          # a CityPackTextures directory beside the staged project and
+          # beside the exe, and the runner's workspace persists between
+          # steps, so it is already where this binary looks. Two writers of
+          # one piece of state is how a calibration gets lost, so this one
+          # only READS: the count says whether the directories are there, so
+          # an untextured street can be told from a pack nobody staged.
+          $texDirs = 0
+          foreach ($d in @($proj, $binDir)) {
+            if ($d -and (Test-Path (Join-Path $d "CityPackTextures"))) { $texDirs++ }
+          }
+
+          # NAMED CANDIDATES, CLEARED BEFORE THE RUN. This workspace persists
+          # between runs, so a verdict, a keys file, a memory file or a frame
+          # left by an earlier attempt must not be found afterwards and
+          # reported as this run's.
+          $vCands = @($dirs | ForEach-Object { Join-Path $_ "ue-crime-verdict.txt" })
+          foreach ($c in $vCands) { Remove-Item $c -Force -ErrorAction SilentlyContinue }
+          foreach ($d in $dirs) {
+            foreach ($pat in @("ue-crime_*.png", "ue-crimeseq_*.png", "ue-crimeseq-keys.txt",
+                               "ue-crime-memory-*.md")) {
+              Get-ChildItem $d -Filter $pat -ErrorAction SilentlyContinue |
+                Remove-Item -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+          # 960x540 IS THE WALK'S OWN CAPTURE SIZE, character for character:
+          # these frames are committed on every run and stitched into a clip
+          # Jafar reads on a phone, so they are asked for at a size a git
+          # history can carry. The verdict prints the size each frame came
+          # back as, which is the half that would catch the request being
+          # ignored.
+          $crimeArgs = @("-LedgerCrime", "-LedgerCommit=$sha", "-RenderOffScreen",
+                         "-ResX=960", "-ResY=540", "-windowed",
+                         "-unattended", "-nosplash", "-nopause", "-stdout", "-FullStdOutLogOutput")
+          $t0 = Get-Date
+          $p = Start-Process -FilePath $exe -ArgumentList $crimeArgs -PassThru -NoNewWindow `
+               -RedirectStandardOutput "crime-run.log" -RedirectStandardError "crime-run.err"
+          $finishedInTime = $p.WaitForExit(720000)
+          $sec = [math]::Round(((Get-Date) - $t0).TotalSeconds, 2)
+          $exitCode = $null
+          if (-not $finishedInTime) {
+            try { $p.Kill() } catch {}
+            try { $exitCode = $p.ExitCode } catch {}
+          } else {
+            $exitCode = $p.ExitCode
+          }
+
+          # MEASURED LINES ONLY, never the header. The verdict's own header
+          # explains its keys in prose above the numbers, and a first-match
+          # reader that does not skip comments reads the explanation: the
+          # still's gate here was once unfalsifiable for exactly that.
+          $vf = $vCands | Where-Object { Test-Path $_ } | Select-Object -First 1
+          $reachedEnd = $false
+          $lastPhase = "none"
+          if ($vf) {
+            $body = @(Get-Content $vf | Where-Object { $_ -notmatch '^\s*#' })
+            $reachedEnd = [bool]($body | Select-String -Pattern "^crimeReached=end$")
+            $m = $body | Select-String -Pattern "crimePhaseReached=(\S+)" | Select-Object -First 1
+            if ($m) { $lastPhase = $m.Matches[0].Groups[1].Value }
+          }
+          # FOUR WORDS, FOUR DIFFERENT NEXT ACTIONS. A hang never reaches its
+          # own file; a crash reaches it (the module writes a breadcrumb at
+          # every phase) but never writes the last line; a missing binary
+          # never gets here at all and is handled above.
+          if (-not $finishedInTime)      { $launchStatus = "HANG" }
+          elseif (-not $vf)              { $launchStatus = "NO-LAUNCH" }
+          elseif ($reachedEnd)           { $launchStatus = "LAUNCHED" }
+          else                           { $launchStatus = "CRASHED" }
+
+          if ($vf) {
+            # THE GAME'S OWN FILE IS THE BASE, header and all: line 1 names
+            # the commit the binary was handed, and every decision in it was
+            # made by CrimeProbe.h, which g++ compiles and RUNS in
+            # ue-probe/tests before any of this is dispatched.
+            Copy-Item $vf $out -Force
+          } else {
+            @("# UE crime probe $sha @$epoch",
+              "# Line 1 names the commit this was measured on, as the Unity verdict does.",
+              "",
+              "witnessStatus=NOTHING-MEASURED gossipStatus=NOTHING-MEASURED",
+              "overheardStatus=NOTHING-MEASURED crimeFramesWrote=0/6 crimeSeqFramesWrote=0/32",
+              "NOTHING MEASURED - the process ran and wrote no crime verdict; nothing is carried forward.",
+              "crimeReached=end") | Set-Content $out -Encoding utf8
+          }
+          # THE JUDGMENT ONLY THIS STEP CAN MAKE, plus what it staged. The
+          # exit code is not the verdict: asking the engine to quit from a
+          # ticker exits non-zero by design, which is why it is printed
+          # beside a key that says so.
+          Add-Content $out ("launchStatus=$launchStatus " +
+            "launchExitCode=$(if ($exitCode -ne $null) { $exitCode } else { 'NONE' }) " +
+            "launchLastPhaseReached=$lastPhase launchWaitSeconds=$sec launchWaitCeilingSeconds=720 " +
+            "launchVerdictCandidates=$($vCands.Count) launchVerdictFound=$(if ($vf) { 'yes' } else { 'no' }) " +
+            "launchExitCodeIsNotTheVerdict=true")
+          Add-Content $out ("stagedSpec=$($specStaged)/$($dirs.Count) stagedSpecBytes=$specBytes " +
+            "stagedBank=$($bankStaged)/$($dirs.Count) stagedBankBytes=$bankBytes " +
+            "stagedBankFrom=$($bankSrc -replace ' ','~') " +
+            "stagedAs=vignette-pieces.json/crime-witness-v1.json-beside-the-project-and-the-exe " +
+            "stagedTexDirsPresent=$texDirs/2 " +
+            "stagedTexNote=staged-by-the-vignette-step-earlier-in-this-job/read-here-never-written " +
+            "stagedStat=per-destination-count-of-a-byte-for-byte-match-read-back-off-the-destination")
+
+          # THE FILES THIS RUN COMMITS, COLLECTED BY NAME AND NEVER BY
+          # DIRECTORY. The six milestone frames are written beside the
+          # PROJECT only (the module's shot path builds an absolute project
+          # path); the keys file and the two memory files are written beside
+          # the project AND the exe. All three directories are searched
+          # either way and the first copy of a name wins.
+          $frames = 0
+          foreach ($d in $dirs) {
+            foreach ($f in (Get-ChildItem $d -Filter "ue-crime_*.png" -ErrorAction SilentlyContinue)) {
+              $dest = Join-Path "production/d1-probe" $f.Name
+              if (-not (Test-Path $dest)) { Copy-Item $f.FullName $dest -Force; $frames++ }
+            }
+          }
+          $side = 0
+          foreach ($d in $dirs) {
+            foreach ($leaf in $sideLeaves) {
+              $src = Join-Path $d $leaf
+              $dest = Join-Path "production/d1-probe" $leaf
+              if ((Test-Path $src) -and (-not (Test-Path $dest))) { Copy-Item $src $dest -Force; $side++ }
+            }
+          }
+          Add-Content $out ("crimeFramesCollected=$frames/6 crimeSideFilesCollected=$side/3 " +
+            "crimeSideFiles=ue-crimeseq-keys.txt/ue-crime-memory-w1.md/ue-crime-memory-n2.md " +
+            "crimeCollectedFromDirs=$($dirs.Count)/3 " +
+            "crimeCollectedStat=count-of-distinct-names-copied-into-the-repository-this-run")
+
+          # THE TRANSCRIPT GOES IN THE BUILD LOG, NOT THE VERDICT, so the
+          # verdict stays a file of keys. Error lines come from the WHOLE
+          # log rather than a tail alone, because run 10 put the sentence
+          # that mattered above a 40-line window, and the cap announces
+          # itself: a cap nobody is told about is indistinguishable from a
+          # finding.
+          $D = @("", "--- THE CRIME RUN ---", "crimeCmd=$exe $($crimeArgs -join ' ')",
+                 "crimeExit=$exitCode crimeFinishedInTime=$finishedInTime crimeSeconds=$sec")
+          $ueLog = @((Join-Path $proj "Saved\Logs\LedgerProbe.log"),
+                     (Join-Path $PWD "ue-probe\Saved\Logs\LedgerProbe.log")) |
+                   Where-Object { Test-Path $_ } |
+                   Sort-Object { (Get-Item $_).LastWriteTime } -Descending | Select-Object -First 1
+          if ($ueLog) {
+            $all = @(Get-Content $ueLog)
+            $errs = @($all | Select-String -Pattern "Error:|Fatal|Assertion failed|LedgerProbe crime")
+            $D += "crimeLogLines=$($all.Count) crimeInterestingLines=$($errs.Count) crimeLogFrom=$($ueLog -replace ' ','~')"
+            $D += ($errs | Select-Object -First 40 | ForEach-Object { $_.ToString() })
+            if ($errs.Count -gt 40) { $D += "(+$($errs.Count - 40) more matching line(s) not shown)" }
+            $D += "--- last 30 lines of the crime run's log, as context ---"
+            $D += ($all | Select-Object -Last 30)
+          } else {
+            $D += "crimeLogLines=0 (no LedgerProbe.log in either named location after the crime run)"
+          }
+          if ((Test-Path "crime-run.err") -and (Get-Item "crime-run.err").Length -gt 0) {
+            $D += "--- crime stderr, last 20 lines ---"; $D += (Get-Content "crime-run.err" -Tail 20)
+          }
+          $buildLog = "production/d1-probe/ue-build.txt"
+          if (Test-Path $buildLog) { Add-Content $buildLog ($D -join "`n") } else { $D | Set-Content $buildLog -Encoding utf8 }
+
+          Write-Host (Get-Content $out -Raw)
+          if ($launchStatus -eq "LAUNCHED") { Write-Host "crime ok: $launchStatus"; exit 0 }
+          Write-Host "CRIME NOT USABLE: launchStatus=$launchStatus (the evidence is committed either way)"
+          exit 1
+
+      # THE CRIME CLIP, ITS OWN STEP for the reason the walk's clip is its
+      # own: a Python problem on this machine must not touch the readings
+      # the step above already committed evidence for. It appends to the
+      # SAME verdict rather than rewriting it, so a clip fault reads as
+      # extra lines beside a witness reading that already landed.
+      #
+      # PILLOW AND THE MISSING SELF-HEALING FETCH: both reasons are written
+      # out in full above the walk's clip step and are unchanged here. This
+      # step only LOOKS for a python that already answers and names why it
+      # skipped when none does.
+      #
+      # --frame-keys AND --bank GO TOGETHER OR NOT AT ALL. The stitcher
+      # REFUSES, writing no clip, when it is handed keys it cannot read or
+      # keys without a bank: that is the right refusal for a run whose
+      # captions went missing and the wrong outcome for a run that never had
+      # any, so which of the two was absent is printed and the clip is still
+      # made uncaptioned. The keys file is the one the step above collected,
+      # falling back to the copy beside the frames.
+      #
+      # 200 MS A FRAME, AGAINST THE WALK'S 120, AND THE ARITHMETIC IS THE
+      # WHOLE ARGUMENT: the module holds the overheard beat for 3 s and
+      # samples every 0.4 s, so the words sit on about seven frames, which
+      # is 1.4 s of reading at 200 ms and 0.84 s at 120. Nothing gates on
+      # this number and Jafar can move it on feel.
+      - name: Stitch the crime sequence into a captioned clip
+        id: crimeclip
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 5
+        shell: pwsh
+        env:
+          SHOT_EXE: ${{ steps.build.outputs.exe }}
+          SHOT_PROJ: ${{ steps.build.outputs.projectDir }}
+        run: |
+          $ErrorActionPreference = "Continue"
+          $crimeOut = "production/d1-probe/ue-crime-verdict.txt"
+          $gifOut = "production/d1-probe/ue-crime.gif"
+          # THE TRACKED COPY GOES FIRST, like every other evidence file here:
+          # a run that skips or fails below must not leave yesterday's clip
+          # to be committed again and read as this run's.
+          Remove-Item $gifOut -Force -ErrorAction SilentlyContinue
+
+          function PyOk($exe) {
+            try { & $exe --version *> $null; return $LASTEXITCODE -eq 0 } catch { return $false }
+          }
+          $py = $null
+          foreach ($cand in @("python3", "python", "C:\LedgerTools\python312\python.exe")) {
+            if (PyOk $cand) { $py = $cand; break }
+          }
+          if (-not $py) {
+            Add-Content $crimeOut "crimeClipStatus=SKIPPED crimeClipReason=no-python-interpreter-found-on-this-runner"
+            Write-Host "crime clip skipped: no python interpreter answered on this runner"
+            exit 0
+          }
+
+          & $py -m pip install --disable-pip-version-check --quiet Pillow 2>$null
+          $pillowCheck = & $py -c "import PIL; print(PIL.__version__)" 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            Add-Content $crimeOut ("crimeClipStatus=SKIPPED crimeClipReason=pillow-not-importable-after-install-attempt " +
+              "crimeClipPillowCheck=$($pillowCheck -join '~')")
+            Write-Host "crime clip skipped: Pillow did not import after an install attempt with $py"
+            exit 0
+          }
+
+          $exe = $env:SHOT_EXE
+          $proj = $env:SHOT_PROJ
+          $binDir = if ($exe) { Split-Path $exe -Parent } else { $null }
+          $seqDirs = @(@($proj, $binDir, (Join-Path $PWD "ue-probe")) |
+                       Where-Object { $_ -and (Test-Path $_) })
+          $seqDir = $null
+          foreach ($d in $seqDirs) {
+            if (@(Get-ChildItem $d -Filter "ue-crimeseq_*.png" -ErrorAction SilentlyContinue).Count -gt 0) {
+              $seqDir = $d; break
+            }
+          }
+          if (-not $seqDir) {
+            Add-Content $crimeOut ("crimeClipStatus=SKIPPED crimeClipReason=no-sequence-frames-found " +
+              "crimeClipDirsSearched=$($seqDirs.Count)/3")
+            Write-Host "crime clip skipped: no ue-crimeseq_*.png found in any of $($seqDirs.Count) director(y/ies)"
+            exit 0
+          }
+
+          $keys = @("production/d1-probe/ue-crimeseq-keys.txt",
+                    (Join-Path $seqDir "ue-crimeseq-keys.txt")) |
+                  Where-Object { Test-Path $_ } | Select-Object -First 1
+          $bank = "content/dialogue/crime-witness-v1.json"
+          $capArgs = @()
+          if ($keys -and (Test-Path $bank)) {
+            $capArgs = @("--frame-keys", $keys, "--bank", $bank)
+            $capNote = "keys-and-bank-both-passed"
+          } elseif (-not $keys) {
+            $capNote = "no-keys-file-this-run-wrote-none/clip-is-uncaptioned"
+          } else {
+            $capNote = "no-bank-file-in-this-checkout/clip-is-uncaptioned"
+          }
+
+          # THE STITCHER'S OWN key=value LINE IS THE EVIDENCE, appended
+          # as-is: this step decides nothing about frame counts, captions or
+          # bytes, tools/clip-from-frames.py does, with its own selftest.
+          $stitchOut = & $py "tools/clip-from-frames.py" --frames-glob "$seqDir\ue-crimeseq_*.png" `
+                       --out $gifOut --scale 0.5 --duration-ms 200 --max-bytes 8388608 @capArgs 2>&1
+          $stitchExit = $LASTEXITCODE
+          Add-Content $crimeOut ($stitchOut -join "`n")
+          Add-Content $crimeOut ("crimeClipCaptions=$capNote " +
+            "crimeClipKeysFrom=$(if ($keys) { $keys -replace ' ','~' } else { 'none' }) " +
+            "crimeClipSeqDir=$($seqDir -replace ' ','~') crimeClipDirsSearched=$($seqDirs.Count)/3 " +
+            "crimeClipDurationMs=200")
+          if (Test-Path $gifOut) {
+            Write-Host "crime clip written: $((Get-Item $gifOut).Length) byte(s) at $gifOut"
+          } else {
+            Write-Host "crime clip not written this run (see clipStatus above, evidence committed either way)"
+          }
+          if ($stitchExit -eq 0) { exit 0 } else { exit 1 }
+
       # THE EVIDENCE CHANNEL, and the two rules the Unity workflow paid for.
       # A run that measured nothing must SAY so rather than committing a
       # stale checkout's file as its own, and every output is staged BY NAME.
@@ -1498,6 +1906,42 @@ jobs:
           # its absence rather than leaving the last one to be
           # committed as this run's.
           git add -A -- 'production/d1-probe/ue-walk.gif' 2>/dev/null || true
+          # THE CRIME, THE WITNESS AND THE OVERHEARD CONSEQUENCE (ruling
+          # 2026-09-08), THE SAME TWO RULES A FOURTH TIME. The crime verdict
+          # is a TRACKED file, so a run that never reached the crime step,
+          # or that hung and was killed before it could write one, would
+          # commit last night's verdict, keys, memories and frames under
+          # this run's message and they would read as this run's. Seven
+          # characters, compared as a PREFIX, because seven is what the
+          # binary was handed and an eight-character needle would condemn
+          # every fresh verdict while looking like a working guard.
+          CRIMEVERDICT=production/d1-probe/ue-crime-verdict.txt
+          if [ ! -f "$CRIMEVERDICT" ] || ! head -1 "$CRIMEVERDICT" | grep -q "$SHORT"; then
+            printf '# UE crime probe %s @%s\n# Line 1 names the commit this was measured on, as the Unity verdict does.\n\nlaunchStatus=NO-LAUNCH launchReason=no-crime-verdict-carrying-this-commit\nwitnessStatus=NOTHING-MEASURED gossipStatus=NOTHING-MEASURED\noverheardStatus=NOTHING-MEASURED crimeFramesWrote=0/6 crimeSeqFramesWrote=0/32\nNOTHING MEASURED - no crime was committed on this commit; do not read an older file as this run.\ncrimeReached=end\n' \
+              "$SHORT" "$(date -u +%s)" > "$CRIMEVERDICT"
+          fi
+          [ -f "$CRIMEVERDICT" ] && git add -- "$CRIMEVERDICT"
+          # THE KEYS FILE AND THE TWO MEMORY FILES, BY NAME, with -A so that
+          # their ABSENCE is staged too: the crime step deletes the tracked
+          # copies before it launches anything, so each path either holds
+          # what this run wrote or holds nothing. The keys file is what
+          # carries the spoken lines into the clip's captions and the two
+          # markdown files are the artefact of "permanently remember";
+          # neither may ride in on a directory add.
+          git add -A -- production/d1-probe/ue-crimeseq-keys.txt 2>/dev/null || true
+          git add -A -- production/d1-probe/ue-crime-memory-w1.md 2>/dev/null || true
+          git add -A -- production/d1-probe/ue-crime-memory-n2.md 2>/dev/null || true
+          # THE SIX MILESTONE FRAMES, by NAME PREFIX and never by directory,
+          # with -A for the same reason. The sequence frames are NOT staged:
+          # they exist to be stitched, and thirty-two stills per run is a
+          # git history nobody can clone.
+          git add -A -- 'production/d1-probe/ue-crime_*.png' 2>/dev/null || true
+          # AND THE CLIP, WHICH THAT GLOB DOES NOT MATCH: the file is
+          # ue-crime.gif and the pattern above is ue-crime_*.png. This is
+          # the same B1 mistake the walk clip already paid for, where every
+          # run staged the clip's DELETION, which its step does at the top
+          # for provenance, and never the clip it then made.
+          git add -A -- 'production/d1-probe/ue-crime.gif' 2>/dev/null || true
           # THE BASE MATERIAL, BY NAME. It is a BUILD PRODUCT made by
           # tools/ue/make_base_material.py in the step above, never by hand,
           # and it is committed so the next cook has something to carry into

@@ -552,3 +552,16 @@ STILL OPEN AND NOT THIS RUN'S JOB: materialConnections=14/14 sits beside
 materialUvHeadVia=both.out.empty..in.empty and materialUvHeadReadback=0/2..
 unreadable2. Two of those fourteen were made by a nameless pin pair and neither
 reads back. Queue 135.
+run 31 - 2026-09-08 - THE FIRST CRIME. Two crimes on Quay Street, one inside
+the witness's sight and one behind west_south_bay2, both decided by the ported
+Observe::Resolve on real line traces rather than by a script; a memory filed,
+the ported gossip mill run with a real together predicate, and a second NPC
+replying at the rung she actually achieved, from the bank and not from a C++
+literal. Read, in this order: crimeReached=end, crimeSelftestFailed=0/57,
+sceneStatus with piecesEmitted, crimeStatus twice, the four witness lines for
+actorBlocker and victimVantageAt and idRung and certainty and filed, then
+witnessStatus, gossipStatus, overheardStatus, then crimeSeqFramesWrote and
+clipStatus. The four-way launchStatus was exercised against a stand-in binary
+in the container, so a HANG, a CRASH and a silent binary each have a known
+shape; what no container can prove is that the packaged build reaches
+-LedgerCrime at all.
