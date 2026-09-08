@@ -1,4 +1,4 @@
-# LEDGER one inbox flush - a792307 @1788872964
+# LEDGER one inbox flush - 7ec80fe @1788884998
 # Line 1 names the commit this was run on. This step PUSHES the
 # return half: his messages and the bot's own receipts, onto
 # pc-inbox. It sends nothing and loads no credentials. The return
@@ -12,11 +12,9 @@
 # read ok= and detail= below, and pcInboxHeadShort in the verify step,
 # before calling it fixed. Last measurement: HUNG at 150s, 12 waiting.
 flushPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
-flushRepoHead=a792307e5
-flushStatus=EXITED flushWaitedSec=3 flushExitCode=1
-flushStream=flush-raw.txt flushLines=4
-15:09:24  flush: waiting=2 tip=094fda6
-15:09:24  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-716d7955.txt
-15:09:24  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-b795b47b.txt
-15:09:25  flush done: pushed=0/2 ok=False commit=none replaced=False plain=the~upload~to~the~studio~failed detail=the~push~failed~(fatal:~Cannot~prompt~because~user~interactivity~has~been~disabled.~fatal:~unable~to~get~password~from~user)
+flushRepoHead=7ec80fe52
+flushStatus=EXITED flushWaitedSec=3 flushExitCode=0
+flushStream=flush-raw.txt flushLines=2
+18:29:58  flush: waiting=0 tip=64b50cb
+18:29:58  flush done: pushed=0/0 waiting=0 tracked=376, the branch already carries every file on this disk
 flushStream=flush-raw.txt.err flushLines=0

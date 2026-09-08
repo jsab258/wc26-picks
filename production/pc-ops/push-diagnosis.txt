@@ -1,17 +1,19 @@
-# LEDGER push diagnosis - a792307 @1788872779
+# LEDGER push diagnosis - 7ec80fe @1788884989
 # Line 1 names the commit this was read on. READ ONLY: nothing here
 # writes to his checkout, pushes, or prints any credential value.
 diagRepo=C:\Users\Jafar\wc26-picks diagRepoExists=True
-lsRemoteExit=0 lsRemoteSec=0.5 lsRemoteSha=33b9caf2a8489e90334f45e5ffdb7124e263fd7d
-localTipRef=094fda66ba639d10eb0a366fe0acf01e3f06f965
+lsRemoteExit=0 lsRemoteSec=0.5 lsRemoteSha=7d847592802c652b55673572697af86eff0b1de3
+localTipRef=7d847592802c652b55673572697af86eff0b1de3
 onDisk_production_inbox=2
-onDisk_production_outbound=337
+onDisk_production_outbound=374
 onDisk_production_rulings=-1
 remoteHostPath=m/jsab258/wc26-picks.git
 credentialHelper=manager
 pushDryRunExit=0
-pushDryRunSaid=To~https://github.com/jsab258/wc26-picks.git/~+~33b9caf2a...094fda66b~094fda66ba639d10eb0a366fe0acf01e3f06f965~->~pc-inbox~(forced~update)
-receiptsOnDisk=16 newestShown=16/16 (every receipt on this disk is shown)
+pushDryRunSaid=Everything~up-to-date
+receiptsOnDisk=18 newestShown=16/16 (+2 older not shown)
+receipt file=production/outbound/2026-09-08T131441Z-reply-34.receipt.txt messageId=34 sent=2026-09-08T13:14:41+00:00
+receipt file=production/outbound/2026-09-08T131441Z-reply-33.receipt.txt messageId=33 sent=2026-09-08T13:14:41+00:00
 receipt file=production/outbox/2026-09-08-you-were-right-about-11-30.unprompted.md messageId=32 sent=2026-09-08T11:52:50+00:00
 receipt file=production/outbox/2026-09-08-the-street-and-the-correction.brief.md messageId=31 sent=2026-09-08T02:34:10+00:00
 receipt file=production/outbox/2026-09-07-the-walk.answer.md messageId=30 sent=2026-09-08T01:35:46+00:00
@@ -23,9 +25,7 @@ receipt file=production/outbound/2026-09-07T234830Z-reply-25.receipt.txt message
 receipt file=production/outbound/2026-09-07T111936Z-reply-24.receipt.txt messageId=24 sent=2026-09-07T11:19:36+00:00
 receipt file=production/outbound/2026-09-07T111852Z-reply-23.receipt.txt messageId=23 sent=2026-09-07T11:18:52+00:00
 receipt file=production/outbound/2026-09-07T111851Z-reply-22.receipt.txt messageId=22 sent=2026-09-07T11:18:51+00:00
-receipt file=production/outbox/2026-09-06-where-the-project-stands.unprompted.md messageId=17 sent=2026-09-06T17:59:17+00:00
 receipt file=production/outbox/2026-09-07-the-map-changed-4917df34e120.unprompted.md messageId=19 sent=2026-09-07T01:00:27+00:00
+receipt file=production/outbox/2026-09-06-where-the-project-stands.unprompted.md messageId=17 sent=2026-09-06T17:59:17+00:00
 receipt file=production/outbox/2026-09-06-the-map-and-its-link.unprompted.md messageId=18 sent=2026-09-06T19:54:33+00:00
-receipt file=production/outbox/2026-09-06-pc-processes-one-window.answer.md messageId=16 sent=2026-09-06T17:59:17+00:00
-receipt file=production/outbox/2026-09-05-the-console-run.unprompted.md messageId=13 sent=2026-09-06T05:25:48+00:00
 diagNote=reads-plus-one-push-dry-run/no-ref-was-updated-and-nothing-was-sent
