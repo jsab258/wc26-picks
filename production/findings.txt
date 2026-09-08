@@ -237,3 +237,39 @@ stores LF and writes CRLF. The restart evidence looked like the bot had loaded
 stale code until the CRLF form was hashed and matched exactly. The same
 autocrlf that caused this morning's bug, this time in the instrument built to
 check it.
+
+--------------------------------------------------------------------------
+2026-09-08  THE CHANNEL WAS NEVER DOWN. THE EVIDENCE CHANNEL WAS. AND THE
+            DIAGNOSTIC ASKED A READ QUESTION ABOUT A WRITE FAULT.
+--------------------------------------------------------------------------
+MEASURED, and it reverses most of a night's reporting. The supervisor status
+copied at 02:23 local reads outboxReceipts=10 where every earlier reading said
+8. A receipt is written only AFTER Telegram accepts a message, so the bot has
+sent two messages since the restart, and the walk answer is almost certainly
+one of them. Jafar has been receiving messages while this session described
+his channel as dead since 11:30 UTC.
+
+WHAT IS ACTUALLY BROKEN is narrower and less alarming: the git push that
+carries the RECEIPTS back to the studio. The messages go; the proof does not.
+So the studio was blind, not mute, and those are different faults with
+different urgencies. Calling it a dead channel was wrong three times over the
+course of one evening.
+
+AND THE DIAGNOSTIC I BUILT TO SETTLE IT ASKED THE WRONG HALF OF THE QUESTION.
+It ran git ls-remote, got exit 0 in 0.4 seconds, and that was read as "the
+transport works". ls-remote is a READ. A push is a WRITE, and a credential
+manager can hold a working read token while a write is refused. One proves the
+host is reachable and says nothing whatever about whether a push is
+authorised. The instrument answered a question nobody had asked.
+
+TWO THINGS ADDED AS A RESULT. A push --dry-run, which does the full
+authorisation handshake and updates no ref, so the write question is asked
+directly. And a reader for the receipts already sitting on his disk: each one
+carries the platform's messageId, and since a receipt only exists after
+Telegram accepted the message, the delivery evidence has been on that machine
+all along and does not need the push fixed to be read.
+
+THE GENERAL SHAPE, third time in this file: a green reading answered a
+question adjacent to the one being decided. The material compile that was
+never proven, the uptime that measured existence rather than activity, and now
+a read that measured reachability rather than permission.

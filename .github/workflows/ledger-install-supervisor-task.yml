@@ -232,7 +232,37 @@ jobs:
             $L += "remoteHostPath=$($safe -replace ' ','~')"
             $helper = (& git @g config --get credential.helper 2>&1 | Out-String).Trim()
             $L += "credentialHelper=$(if ($helper) { ($helper -split '\s+')[0] } else { 'none-configured' })"
-            $L += "diagNote=every-question-above-is-read-only/no-push-was-attempted-from-CI"
+            # Q5: CAN IT WRITE, WHICH ls-remote NEVER ASKED. A read that
+            # answers in 0.4s proves the host is reachable and says nothing
+            # about whether a PUSH is authorised; the credential manager can
+            # hold a read token while a write is refused. --dry-run does the
+            # full handshake and updates no ref.
+            $tipSha = (& git @g rev-parse --verify --quiet "refs/ledger-inbox/tip^{commit}" 2>&1 | Out-String).Trim()
+            if ($tipSha -match "^[0-9a-f]{40}$") {
+              $dry = (& git @g push --dry-run --force origin "$($tipSha):refs/heads/pc-inbox" 2>&1 | Out-String).Trim()
+              $L += "pushDryRunExit=$LASTEXITCODE"
+              $L += "pushDryRunSaid=$((($dry -split "`r?`n") | Select-Object -First 3 | ForEach-Object { $_ -replace ' ','~' }) -join '/')"
+            } else {
+              $L += "pushDryRunExit=nothing-measured pushDryRunSaid=no-local-tip-to-offer"
+            }
+            # Q6: THE RECEIPTS ALREADY ON HIS DISK CARRY MESSAGE IDS, and a
+            # receipt is written only AFTER Telegram accepted the message. So
+            # the delivery evidence exists on that machine whether or not the
+            # push ever works, and reading it does not need the push fixed.
+            $od = Join-Path $repo "production\outbound"
+            if (Test-Path $od) {
+              $newest = @(Get-ChildItem $od -File -Filter "*.receipt.txt" -ErrorAction SilentlyContinue |
+                          Sort-Object LastWriteTime -Descending | Select-Object -First 4)
+              $L += "receiptsOnDisk=$(@(Get-ChildItem $od -File -Filter '*.receipt.txt' -ErrorAction SilentlyContinue).Count) newestShown=$($newest.Count)"
+              foreach ($r in $newest) {
+                $body = (Get-Content $r.FullName -Raw -ErrorAction SilentlyContinue)
+                $f = if ($body -match "(?m)^file:\s*(.+)$") { $Matches[1].Trim() } else { "?" }
+                $mid = if ($body -match "(?m)^messageId:\s*(\d+)") { $Matches[1] } else { "none" }
+                $sent = if ($body -match "(?m)^sent:\s*(.+)$") { $Matches[1].Trim() } else { "?" }
+                $L += "receipt file=$($f -replace ' ','~') messageId=$mid sent=$($sent -replace ' ','~')"
+              }
+            }
+            $L += "diagNote=reads-plus-one-push-dry-run/no-ref-was-updated-and-nothing-was-sent"
           }
           $L -join "`n" | Set-Content $out -Encoding utf8
           Write-Host ($L -join "`n")
