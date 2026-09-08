@@ -565,3 +565,15 @@ clipStatus. The four-way launchStatus was exercised against a stand-in binary
 in the container, so a HANG, a CRASH and a silent binary each have a known
 shape; what no container can prove is that the packaged build reaches
 -LedgerCrime at all.
+run 32 - 2026-09-08 - THE SAME CRIME, ON A BUILD THAT COMPILES. Run 31 died at
+[8/18] with one error, CoreGolden.h(834,4) C4530, exceptions used in a module
+that does not enable them, which a director had pre-ruled the fix for before
+the build that needed it: compile the FactNull branch out, never set
+bEnableExceptions. PublicDefinitions.Add("LEDGER_CORE_NO_EXCEPTIONS=1") is in,
+and both paths were compiled in the container first, with exceptions and with
+-fno-exceptions, which is the case the guard must pass and the case it exists
+for. Run 31 also proved the refusal half: launchStatus=NO-LAUNCH
+launchReason=build-step-published-no-binary, every downstream key
+NOTHING-MEASURED, and no older frame carried forward under this run's name.
+Expect perceptionUnknownFns=4/FactNull-needs-exceptions, which is the ruled
+cost of the fix and not a regression.
