@@ -193,3 +193,47 @@ is. Absence is published in words too.
 NOT FIXED: this only runs when that workflow runs. A continuous signal would
 need the supervisor to publish for itself, which is a process change and
 outside the standing rule for today.
+
+--------------------------------------------------------------------------
+2026-09-08  TWO HYPOTHESES ABOUT THE SILENT BOT, BOTH REFUTED BY THEIR OWN
+            PREDICTIONS. WRITTEN DOWN BECAUSE A WRONG GUESS THAT IS QUIETLY
+            DROPPED GETS MADE AGAIN.
+--------------------------------------------------------------------------
+THE FACT: pc-inbox has taken nothing since 2026-09-07 11:30 UTC. The bot is
+running, its outbox counters move locally (outboxRefusals went 304 to 305,
+outboxFiles 7 to 8), and none of it reaches the branch.
+
+HYPOTHESIS 1, THE BOT IS DEAD. Made twice on 2026-09-07, in both directions,
+off a counter that had stopped moving. REFUTED by the supervisor's own status:
+telegram-bot=running with twelve hours of uptime, Starts=1, Stops=0. The
+lesson was that uptime measures whether a process EXISTS and the outbox
+counters measure whether it is DOING anything, and neither answers the other's
+question.
+
+HYPOTHESIS 2, THE POLL LOOP IS WEDGED. flush_inbox and sweep_outbox are both
+called after the long-poll in the same loop, so a stuck network call would
+stop everything downstream while the process stayed alive. It fit every fact
+at the time and it made a prediction: a restart would clear it. REFUTED. The
+bot was restarted at 23:48:23 UTC, cleanly (leaf stopped, root exited on its
+own, back in 5 seconds, stable for 20, new PID 6800, exit 0), verifiably
+running today's code, and 28 minutes later pc-inbox had still taken nothing.
+
+WHAT REMAINS: inbox.push_pending fails on that machine and reports its reason
+only to a console window nobody reads. That is the same shape as the bug that
+opened this day, where a working git command was read as a failure and the
+words that would have said so were unreadable from here.
+
+NOT GUESSED A THIRD TIME. A read-only diagnostic now runs on his machine and
+commits its answers: does the remote answer as his account and what sha does
+it hold, where does the local refs/ledger-inbox/tip pointer sit, how many
+files wait under production/inbox, outbound and rulings, and what credential
+helper is configured, by name. No writes, no push from CI. A tip pointing at a
+commit the remote never took would be a push that reported success and sent
+nothing, which is worth knowing before anything is changed.
+
+ONE THING ALREADY LEARNED FROM THE ATTEMPT: comparing a Windows working-tree
+file's sha256 against a git blob hash can never match, because core.autocrlf
+stores LF and writes CRLF. The restart evidence looked like the bot had loaded
+stale code until the CRLF form was hashed and matched exactly. The same
+autocrlf that caused this morning's bug, this time in the instrument built to
+check it.

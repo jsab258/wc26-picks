@@ -169,6 +169,74 @@ jobs:
       # line 1. The restart workflow's own status step never had this
       # fault because it already read its commit the same way; this step
       # now matches it.
+      # WHY THE BOT'S RECORDS NEVER LEAVE HIS DISK. Read-only, and it
+      # exists because guessing ran out. Since 11:30 UTC on 2026-09-07 the
+      # bot has written records locally (outboxRefusals moved 304 to 305)
+      # while pc-inbox took nothing, and a deliberate restart at 23:48 that
+      # verifiably brought back a process running today's code did not
+      # change it. So the fault is not staleness and not a wedged poll loop;
+      # both were tried and both were wrong. `inbox.push_pending` reports
+      # its reason to a console window nobody reads, which is the same shape
+      # as the bug that started this day.
+      #
+      # NOTHING HERE WRITES OR PUSHES. It asks his checkout four questions
+      # and commits the answers. A fix guessed from here would be a third
+      # guess; this is to see.
+      #
+      # NO CREDENTIAL VALUE IS EVER PRINTED. The remote URL is reported as
+      # its host and path only, the helper by NAME, and `ls-remote` output
+      # is reduced to the sha it returned.
+      - name: Ask his checkout why nothing is pushed
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 4
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $out = "production/pc-ops/push-diagnosis.txt"
+          New-Item -ItemType Directory -Force -Path "production/pc-ops" | Out-Null
+          $repo = "C:\Users\Jafar\wc26-picks"
+          $L = @(
+            "# LEDGER push diagnosis - $($env:GITHUB_SHA.Substring(0,7)) @$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())",
+            "# Line 1 names the commit this was read on. READ ONLY: nothing here",
+            "# writes to his checkout, pushes, or prints any credential value.",
+            "diagRepo=$($repo -replace ' ','~') diagRepoExists=$(Test-Path $repo)")
+          if (-not (Test-Path "$repo\.git")) {
+            $L += "NOTHING MEASURED - no git checkout at that path, so none of the four questions could be asked."
+          } else {
+            $env:GIT_TERMINAL_PROMPT = "0"
+            $g = @("-c", "safe.directory=*", "-C", $repo)
+            # Q1: does the remote answer AS HIM, and what does it hold?
+            $t0 = Get-Date
+            $ls = (& git @g ls-remote origin refs/heads/pc-inbox 2>&1 | Out-String).Trim()
+            $secs = [math]::Round(((Get-Date) - $t0).TotalSeconds, 1)
+            $sha = if ($ls -match "^([0-9a-f]{40})") { $Matches[1] } else { "none" }
+            $L += "lsRemoteExit=$LASTEXITCODE lsRemoteSec=$secs lsRemoteSha=$sha"
+            if ($sha -eq "none") {
+              $L += "lsRemoteSaid=$((($ls -split "`r?`n") | Select-Object -First 2 | ForEach-Object { $_ -replace ' ','~' }) -join '/')"
+            }
+            # Q2: where does the LOCAL parent pointer think it is? A tip that
+            # names a commit the remote never took is the shape of a push
+            # that reported success and sent nothing.
+            $tip = (& git @g rev-parse --verify --quiet "refs/ledger-inbox/tip^{commit}" 2>&1 | Out-String).Trim()
+            $L += "localTipRef=$(if ($tip) { $tip.Substring(0, [Math]::Min(40, $tip.Length)) } else { 'unset' })"
+            # Q3: how much is waiting on his disk, against what the branch holds.
+            foreach ($d in @("production\inbox", "production\outbound", "production\rulings")) {
+              $p = Join-Path $repo $d
+              $n = if (Test-Path $p) { @(Get-ChildItem $p -File -ErrorAction SilentlyContinue).Count } else { -1 }
+              $L += "onDisk_$($d -replace '\\','_')=$n"
+            }
+            # Q4: the remote and the helper, by NAME only.
+            $url = (& git @g config --get remote.origin.url 2>&1 | Out-String).Trim()
+            $safe = if ($url -match "://[^/]*@?([^/]+)/(.+)$") { "$($Matches[1])/$($Matches[2])" } else { "unreadable" }
+            $L += "remoteHostPath=$($safe -replace ' ','~')"
+            $helper = (& git @g config --get credential.helper 2>&1 | Out-String).Trim()
+            $L += "credentialHelper=$(if ($helper) { ($helper -split '\s+')[0] } else { 'none-configured' })"
+            $L += "diagNote=every-question-above-is-read-only/no-push-was-attempted-from-CI"
+          }
+          $L -join "`n" | Set-Content $out -Encoding utf8
+          Write-Host ($L -join "`n")
+
       - name: Publish the supervisor's own status
         if: always()
         continue-on-error: true
@@ -268,6 +336,11 @@ jobs:
           # status must not leave the last run's copy standing as if
           # it were this one's.
           git add -A -- production/pc-ops/supervisor-status.txt 2>/dev/null || true
+          # AND THE PUSH DIAGNOSIS, BY NAME. Third time today that a
+          # step wrote a file this step did not name; checked with a
+          # script that lists written paths against staged paths
+          # rather than by eye, because by eye missed it twice.
+          git add -A -- production/pc-ops/push-diagnosis.txt 2>/dev/null || true
           git diff --cached --quiet && { echo "install verification unchanged; nothing to commit"; exit 0; }
           git commit -m "scheduled task install/verify from $(git rev-parse --short HEAD)"
           BR="${GITHUB_REF_NAME}"
