@@ -1,0 +1,143 @@
+{
+ "acceptingCase": "propAcceptingCase=piece=prop_drainage_grate_01_0/asset=drainage_grate_01/FAILED/did-not-load-back/none-of-2-candidates",
+ "assetsAsked": [
+  "drainage_grate_01",
+  "roll_top_chimney",
+  "decorative_bollard_02",
+  "swing_bin",
+  "outdoor_bin",
+  "crowd_control_barrier",
+  "traffic_cone_01",
+  "traffic_cone_02",
+  "pavement_sign",
+  "poster",
+  "framed_poster",
+  "skip",
+  "pallet",
+  "wooden_crate_01",
+  "oil_barrel",
+  "awning_02"
+ ],
+ "extraAssets": [
+  "lamp_post_01"
+ ],
+ "extras": [
+  {
+   "asset": "lamp_post_01",
+   "reading": "did-not-load-back/none-of-2-candidates"
+  }
+ ],
+ "failures": [
+  {
+   "asset": "drainage_grate_01",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "roll_top_chimney",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "decorative_bollard_02",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "swing_bin",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "outdoor_bin",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "crowd_control_barrier",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "traffic_cone_01",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "traffic_cone_02",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "pavement_sign",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "poster",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "framed_poster",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "skip",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "pallet",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "wooden_crate_01",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "oil_barrel",
+   "why": "did-not-load-back/none-of-2-candidates"
+  },
+  {
+   "asset": "awning_02",
+   "why": "did-not-load-back/none-of-2-candidates"
+  }
+ ],
+ "gltf": {
+  "api": [
+   "InterchangeManager",
+   "AssetImportTask",
+   "InterchangeGenericAssetsPipeline",
+   "ImportAssetParameters"
+  ],
+  "asked": 3,
+  "canTranslate": 3,
+  "enabledPlugins": [
+   "GLTFExporter",
+   "InterchangeAssets",
+   "InterchangeEditor",
+   "Interchange",
+   "InterchangeTests",
+   "InterchangeAxfAssets"
+  ]
+ },
+ "lampPost01": "did-not-load-back/none-of-2-candidates",
+ "line": "propImportStatus=NOTHING-IMPORTED propImportReturn=2 propMeshesAsked=16/23 propMeshesStat=unique-assets/over-pieces-asking propSources=16/16 propImported=0/16 propSaved=0/16 propCollisionPrims=0/0 propCollisionVia=nothing-measured propImportVia=none-of-2-candidates propPackageDir=/Game/Ledger/Props propNamePattern=SM_<asset> propGltfImporter=PRESENT/engine-says-it-can-translate/3-of-3 propGltfCanTranslate=3/3 propGltfPluginsEnabled=GLTFExporter;InterchangeAssets;InterchangeEditor;Interchange;InterchangeTests;InterchangeAxfAssets propGltfApi=InterchangeManager;AssetImportTask;InterchangeGenericAssetsPipeline;ImportAssetParameters propAcceptingCase=piece=prop_drainage_grate_01_0/asset=drainage_grate_01/FAILED/did-not-load-back/none-of-2-candidates propBoundsWorstMm=nothing-measured propBoundsWorstSortedMm=nothing-measured propBoundsBound=NONE-YET/this-run-prints-the-series propBoundsStat=spec-box-minus-engine-bounds-at-worst-over-assets propPivots=nothing-measured propFailed=16/16 propFailedWhy=drainage_grate_01=did-not-load-back/none-of-2-candidates;roll_top_chimney=did-not-load-back/none-of-2-candidates;decorative_bollard_02=did-not-load-back/none-of-2-candidates;swing_bin=did-not-load-back/none-of-2-candidates;outdoor_bin=did-not-load-back/none-of-2-candidates;crowd_control_barrier=did-not-load-back/none-of-2-candidates;(+10~more~not~shown) propScalePolicy=1/never-scaled/dims-policy-forbids-it propLampPost01=propExtras=lamp_post_01=did-not-load-back/none-of-2-candidates propMaterialSlotsOver1=0/0 propMaterialSlotsUnread=0 propSlotNote=the-street-overwrites-slot-0-only propUassetBytes=0 propVerdictIs=propImportReturn/not-the-editor-process-exit propNote=none",
+ "measuredBy": "unreal/engine-readback",
+ "namePattern": "SM_<asset>",
+ "packageDir": "/Game/Ledger/Props",
+ "piecesPerAsset": {
+  "awning_02": 2,
+  "crowd_control_barrier": 1,
+  "decorative_bollard_02": 2,
+  "drainage_grate_01": 1,
+  "framed_poster": 1,
+  "oil_barrel": 1,
+  "outdoor_bin": 1,
+  "pallet": 1,
+  "pavement_sign": 1,
+  "poster": 1,
+  "roll_top_chimney": 5,
+  "skip": 1,
+  "swing_bin": 1,
+  "traffic_cone_01": 1,
+  "traffic_cone_02": 1,
+  "wooden_crate_01": 2
+ },
+ "placement": "the loaded mesh's own bounds centre goes at the piece's x_m/y_m/z_m, which is held_props.pivot_note in production/specs/vignette-scene.json",
+ "readings": [],
+ "reportLines": [],
+ "scalePolicy": "1, never scaled, the spec box IS the GLB's measured size",
+ "schema": "ledger.prop-mesh-import/1",
+ "specPath": "C:\\actions-runner-ledger\\_work\\wc26-picks\\wc26-picks\\production\\specs\\vignette-pieces.json"
+}

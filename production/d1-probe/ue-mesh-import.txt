@@ -1,0 +1,17 @@
+# ue mesh import - f3f395c (shaFrom=git)
+
+meshSelftest=PASS/import_prop_meshes~--selftest:~67~check(s),~0~failure(s)
+meshEditorBuildExit=0 meshEditorBuildMinutes=1.42
+propPythonPlugin=found/1
+propPluginsScanned=895 propPluginRoot=C:\Program~Files\Epic~Games\UE_5.8\Engine\Plugins
+propGltfByName=GLTFExporter/1
+propGltfByContentNotName=Interchange/1
+propInterchangePlugins=DatasmithInterchange;InterchangeAxfAssets;InterchangeAxF;InterchangeAssets;InterchangeEditor;InterchangeChaosClothAsset;InterchangeOpenUSD;InterchangeOpenUSDChaosClothAsset;InterchangeOpenVDB;Interchange;InterchangeTests/11
+propUprojectPlugins=declares-NO-Plugins-block/engine-defaults-only
+propPluginsAsked=PythonScriptPlugin;InterchangeEditor;InterchangeAssets;GLTFImporter;GLTFCore propPluginsPresent=PythonScriptPlugin;InterchangeEditor;InterchangeAssets/3-of-5
+propEditorCmdExit=0 propImportMinutes=0.18
+propImportStatus=NOTHING-IMPORTED propImportReturn=2 propMeshesAsked=16/23 propMeshesStat=unique-assets/over-pieces-asking propSources=16/16 propImported=0/16 propSaved=0/16 propCollisionPrims=0/0 propCollisionVia=nothing-measured propImportVia=none-of-2-candidates propPackageDir=/Game/Ledger/Props propNamePattern=SM_<asset> propGltfImporter=PRESENT/engine-says-it-can-translate/3-of-3 propGltfCanTranslate=3/3 propGltfPluginsEnabled=GLTFExporter;InterchangeAssets;InterchangeEditor;Interchange;InterchangeTests;InterchangeAxfAssets propGltfApi=InterchangeManager;AssetImportTask;InterchangeGenericAssetsPipeline;ImportAssetParameters propAcceptingCase=piece=prop_drainage_grate_01_0/asset=drainage_grate_01/FAILED/did-not-load-back/none-of-2-candidates propBoundsWorstMm=nothing-measured propBoundsWorstSortedMm=nothing-measured propBoundsBound=NONE-YET/this-run-prints-the-series propBoundsStat=spec-box-minus-engine-bounds-at-worst-over-assets propPivots=nothing-measured propFailed=16/16 propFailedWhy=drainage_grate_01=did-not-load-back/none-of-2-candidates;roll_top_chimney=did-not-load-back/none-of-2-candidates;decorative_bollard_02=did-not-load-back/none-of-2-candidates;swing_bin=did-not-load-back/none-of-2-candidates;outdoor_bin=did-not-load-back/none-of-2-candidates;crowd_control_barrier=did-not-load-back/none-of-2-candidates;(+10~more~not~shown) propScalePolicy=1/never-scaled/dims-policy-forbids-it propLampPost01=propExtras=lamp_post_01=did-not-load-back/none-of-2-candidates propMaterialSlotsOver1=0/0 propMaterialSlotsUnread=0 propSlotNote=the-street-overwrites-slot-0-only propUassetBytes=0 propVerdictIs=propImportReturn/not-the-editor-process-exit propNote=none
+propUassetsOnDisk=0 propUassetBytesOnDisk=0 propUassetDir=ue-probe/Content/Ledger/Props
+propUassetNames=none
+
+meshImportReached=end
