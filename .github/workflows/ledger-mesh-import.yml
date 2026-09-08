@@ -392,19 +392,33 @@ jobs:
           # key left off this list reads as absent when it is only unprinted.
           # THE LOOP IS UNCAPPED ON PURPOSE: one grep per named key, every key
           # named, so nothing here can bite the way a `head -N` did.
-          for K in propImportStatus propImportedNames propImportResolvedVia \
+          # RUN 4 MOVES WHAT MATTERS AGAIN. The route works and sixteen
+          # uassets are committed; what run 3 could not say is whether any of
+          # them collides. propCollidable is the key that answers it and
+          # propCollisionPrimsUnread is the one that says whether the previous
+          # zero was an absence or a blind instrument, so both lead. propNote
+          # is on the list because it now carries DISTINCT refusals with
+          # counts rather than one pair repeated.
+          for K in propImportStatus propCollidable propCollidableUnknown \
+                   propCollidableNo propCollidableWhy \
+                   propCollisionPrims propCollisionPrimsUnread \
+                   propCollisionRead propCollisionVia propCollisionAgree \
+                   propCollisionFlagSet propSubsystems propPipelineOpts \
+                   propSourcePartsOver1 propSourcePartsWhich \
+                   propAcceptingCase propFailed propFailedWhy propNote \
+                   propImportedNames propImportResolvedVia \
                    propImportRouteRan propImportWaitChanged propImportWaitMeans \
                    propImportLookedFor propImportSnapshotShape \
                    propImportTaskApi propImportTaskAsync \
                    propImportResultType propImportResultWaitAttrs \
                    propImportPreexistingDeleted propImportRenamed \
                    propImportAppearedUnnamed \
-                   propAcceptingCase propGltfImporter propGltfCanTranslate \
-                   propImported propCollisionPrims propBoundsWorstMm; do
+                   propGltfImporter propGltfCanTranslate \
+                   propImported propBoundsWorstMm; do
             grep -o "$K=[^ ]*" "$F" || echo "$K=NOT-ON-THE-LINE"
           done
           if grep -q 'propImportReturn=0' "$F"; then
-            echo "GREEN: every asset the street asks for is a saved uasset with collision"
+            echo "GREEN: every asset the street asks for is a saved uasset the engine reports as collidable"
             exit 0
           fi
           echo "RED GATE: read the verdict above. The evidence is committed either way."

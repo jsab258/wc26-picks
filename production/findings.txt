@@ -743,3 +743,240 @@ complete when asked (propImportTaskAsync=before=True/after=True=17), so there is
 no async wait to add. Every one of those four came from an amendment dictated
 hours earlier; without the first the run would have resolved through
 name-contains-the-asset-id and published a conclusion it never measured.
+
+--------------------------------------------------------------------------
+2026-09-08  I OPENED ALL SIX CRIME STILLS. THERE IS NOT ONE HUMAN FIGURE IN
+            ANY OF THEM, AND THE SKY IS A WHITE VOID.
+--------------------------------------------------------------------------
+DENOMINATOR FIRST: 6 of 6 stills opened, ue-crime_00_start.png through
+ue-crime_05_overheard.png, all written 2026-09-08 20:47 by run 32, between
+0.99 and 1.09 MB each. The 2.38 MB ue-crime.gif was not opened frame by frame;
+these six are the run's own key frames and the gif is built from the sequence.
+
+RULE 4 IS THE WHOLE POINT OF THIS ENTRY. Run 32's verdict is green in every
+place that matters to the simulation: crimeStatus=COMMITTED twice,
+witnessStatus=REAL with the witness 1.57 m from the actor and actorOccluded=no,
+gossipStatus=REAL, overheardStatus=HEARD, memoryFiles=2/2. Every one of those is
+TRUE and none of them is visible. The frame labelled overheard shows an empty
+street. A green number stood in for the picture it claimed to describe, and the
+only way to find that out was to look.
+
+WHAT IS THERE, over 6 of 6, and this is LOOKING and not measuring: a picture is
+strong evidence that something is wrong and weak evidence of what or why, so
+each item names the number that would settle it.
+
+1. NO HUMAN FIGURE IN ANY FRAME. Not the actor, not the witness at 1.57 m, not
+   the two who gossip. The walk clip of 2026-09-08 did show a character, so this
+   is a STAGING fault and not a missing character: the crime cameras are not
+   pointed at the people. Settled by a key that prints, per shot, whether the
+   actor and the witness were inside the frustum when the shutter fired.
+2. THE SKY IS PURE WHITE in all six. Not an overcast British sky, a blown-out
+   void. The premise is wet, overcast, grimy Britain. Settled by the sky's
+   luminance at the horizon and at zenith, which nothing prints.
+3. THE STREET ENDS IN THAT VOID. In 00 the footway is a slab whose cut end and
+   underside are visible against white. There is no ground plane beyond the
+   built pieces. Settled by whether a backdrop or ground plane exists at all,
+   which is a scene fact and readable without a render.
+4. LARGE UNTEXTURED GREY BOXES stand where props belong, and in 05 one fills
+   half the frame. These are the placeholders the prop route exists to replace;
+   sixteen real uassets now exist and the street has not yet placed them. This
+   one has a number already: propCollisionPrims=0/15 blocks the placement.
+5. TEXTURE SCALE IS WRONG on several surfaces. The brick in 05 reads as roughly
+   half-metre bricks, the boarding in 03 and 05 as enormous planks, and the
+   right-hand building's rock reads as a cliff face rather than a British
+   shopfront. Settled by texels per metre against the real size of a brick,
+   which nothing prints.
+6. NO WETNESS, no puddles, no grime, flat light, no cast shadow I can see.
+7. 03 and 04 (before and after crime B) are indistinguishable, which is
+   CONSISTENT and not a fault: crime B is the occluded one. 01 and 02 (before
+   and after crime A) differ only in the right-hand building's material, which
+   changes from a dark glazed grid to a dark rock. That is not a broken window,
+   and what it actually is went unmeasured.
+
+WHY THIS IS NOT BEING FIXED TONIGHT: Jafar's standing order says findings that
+block items 1 to 3 are fixed and nothing else is. Items 1 to 3 are the crime
+(landed), the grate's collision (in flight) and the overheard reply (in flight).
+Item 4 above is inside item 2 and is being fixed. The other six are the visual
+bar, which is the Meridian Test's first condition and a bigger piece of work
+than a night: a person who loves GTA or KCD2 would bounce off these frames, and
+saying so plainly is worth more than half-fixing one of them at 22:40.
+
+THE HONEST SUMMARY FOR THE MORNING BRIEF: the simulation did everything it
+claimed. The pictures do not show it, and the pictures are what Jafar sees.
+
+--------------------------------------------------------------------------
+2026-09-08  THE RECEIPT DIRECTORY STOPS ON 7 SEPTEMBER, AND THE MAP CLAIMS A
+            DELIVERY ON 8 SEPTEMBER THAT NO FILE IN IT PROVES.
+--------------------------------------------------------------------------
+MEASURED, over the whole directory: production/outbound/ holds 312 files, of
+which 8 are receipts. Their message ids are 13, 16, 17, 18, 19, 22, 23 and 24,
+and the newest was sent 2026-09-07T11:19:36Z. THERE IS NO RECEIPT FILE FOR ANY
+MESSAGE DATED 2026-09-08, including the first-crime brief that
+production/outbox/2026-09-08-the-first-crime.brief.md was written for.
+
+WHAT THE MAP SAYS MEANWHILE. production/next-three.json, which is Jafar's phone
+view, states as fact that "the clip reached his phone as Telegram message id 31
+at 2026-09-08T02:34:14Z, sent as a captioned animation, which is the accepting
+case he named".
+
+WHERE THAT CAME FROM, traced rather than assumed: a resident note appended to
+game-design/decision-2026-09-08-the-return-half-and-the-correction.md section 9,
+written from the bot's own live receipts read during an install run. It carries a
+character count (907) and an outbound latency (504 s), so it is a reading and not
+an invention. But the reading lived in a run's output, and the receipt FILE that
+would prove it never came back to this repository.
+
+SO THE TWO FACTS ARE DIFFERENT AND MUST NOT BE MERGED: a message was observed
+sent, and no artifact in this repository records it. A later session that greps
+production/outbound/ to answer "did the clip reach him" gets the wrong answer,
+because the newest receipt there is 24 hours older than the claim.
+
+NOT FIXED, AND ON PURPOSE. Jafar ruled on 2026-09-08: "No further channel work
+this week." Chasing why the receipt did not come back is channel work. Recording
+that the evidence directory and the map disagree is not, and the morning brief
+carries it as an unproven delivery rather than a proven one.
+
+--------------------------------------------------------------------------
+2026-09-08  BOTH BUILDERS DISPATCHED TONIGHT HIT A 45-TURN LIMIT MID-EDIT,
+            AND ONE LEFT THE FILE UNPARSEABLE.
+--------------------------------------------------------------------------
+MEASURED, 2 of 2 builders dispatched after 22:00Z: the queue-147 port stopped
+after 52 tool uses with only a header written, and the collision fix stopped
+after 46 tool uses with tools/ue/import_prop_meshes.py raising
+`TypeError: 'int' object is not iterable` from its own selftest. Both were
+resumed and both resumed cleanly, so the limit is a ceiling on one dispatch and
+not a failure of the work.
+
+THE COST IS NOT THE RESUME, IT IS THE STATE AT THE CUT. A builder stopped
+mid-edit leaves a file that does not parse, and while it does not parse the
+resident cannot run verify, cannot commit, and cannot dispatch the PC run that
+the night's second priority is waiting on. One builder's turn limit therefore
+stops the whole line, including work that has nothing to do with it.
+
+WHAT CHANGES IN HOW BRIEFS ARE WRITTEN, and it is cheap: every brief now ends
+with the instruction to STOP EDITING AND REPORT while the file still parses,
+rather than to finish. A half-applied edit reported honestly is recoverable in
+one resume; a half-applied edit reported as finished costs a Windows run, and
+there is one runner.
+
+WHAT WAS ALREADY RIGHT: the standing order that builders never commit. If either
+of these had committed on its way past the limit, the branch would now carry a
+broken importer, and the stop hook that asks a resident to commit a builder's
+work in progress is the thing CLAUDE.md forbids for exactly this reason.
+
+--------------------------------------------------------------------------
+2026-09-08  "g++ COMPILES AND RUNS IT BEFORE ANY DISPATCH" WAS TRUE OF THE
+            HEADER AND FALSE OF THE LIST THAT WOULD HAVE DONE IT.
+--------------------------------------------------------------------------
+FOUND BY A BUILDER, CHECKED BY THE RESIDENT AGAINST THE COMMITTED FILE rather
+than accepted from a report. ue-probe/Source/LedgerProbe/Public/CrimeProbe.h
+line 20 says its contents carry no Unreal type "so g++ compiles and RUNS it
+before any dispatch". The binaries tuple in ledger/verify.py's ue_probe_tests
+at HEAD names three: tests/frame-stats-test.cpp, tests/vignette-spec-test.cpp
+and tests/core-port-test.cpp. NONE OF THEM INCLUDES CrimeProbe.h.
+
+SO LedgerCrime::Selftest() RAN ONLY ON JAFAR'S PC. Its 57 checks are real and
+run 32 printed crimeSelftestFailed=0/57, so nothing measured was wrong. What was
+wrong is where the checking happened: the whole point of the standing rule from
+25 August is that measurement arithmetic and formatting live WHERE THE TESTS RUN,
+because a formatter written in a layer that does not compile locally ships unrun.
+The header asserted the remedy and the remedy was never wired.
+
+THE SHAPE OF THIS FAULT, which is what makes it worth an entry: the false half
+was not a number and not a gate. It was a SENTENCE IN A COMMENT describing
+another file, and comments about other files are the least checkable claims this
+project makes. The verify footer could not catch it, because a binary that does
+not exist produces no failure.
+
+FIXED IN THE SAME PASS by the queue-147 builder: crime-probe-test.cpp is the
+fourth binary, the live committed bank is its accepting fixture, and the header's
+sentence is corrected in place to say that before queue 147 it described an
+intention.
+
+THE DENOMINATOR, because one corrected claim says nothing about the rest. 17
+headers under ue-probe/Source/LedgerProbe/Public/. Twelve are now compiled by a
+container test, five directly (FrameStats, SurfaceBind, VignetteSpec, CoreGolden,
+CrimeProbe) and seven transitively through CrimeProbe.h (GameTime, Gossip,
+MemoryStore, Observation, Perception, StreetVoice, Suspicion). The five that are
+not are LedgerCharacter, LedgerGameMode, LedgerProbe, VignetteShot and WalkProbe,
+every one of which carries Unreal types BY DESIGN and cannot be compiled by g++.
+So the answer is 12 of 12 possible, not 12 of 17, and saying which denominator is
+meant is the difference between a gap and a clean result.
+
+--------------------------------------------------------------------------
+2026-09-08  CORRECTION TO THE ENTRY ABOVE: THE -1 WAS NOT A MISSING KEY. IT
+            WAS A LIBRARY REFUSING IN THE COSTUME OF A COUNT.
+--------------------------------------------------------------------------
+The entry "RUN 3 IMPORTED FIFTEEN OF SIXTEEN PROPS" said finding 2 was two
+numbers disagreeing, and guessed that collisionPrims=-1 was the dict default
+r.get("collisionPrims", -1) standing in for a missing key. MEASURED SINCE, by
+reading production/d1-probe/ue-mesh-import.json rather than the code that reads
+it: `readings` carried collisionPrims: -1 for EVERY asset. The key was present.
+The engine produced the -1.
+
+WHAT ACTUALLY HAPPENED, and it is a better fault than the one I guessed.
+`EditorStaticMeshLibrary.get_simple_collision_count` refuses by RETURNING -1,
+not by raising. `_try` treats any non-None return as an answer, so a refusal
+became the reading, and -1 then collided exactly with the missing-key default,
+which is why it was unreadable as either.
+
+SO propCollisionPrims=0/15 WAS THE LIE, not the -1. `if prims > 0: collided += 1`
+turned a refusal into a measured absence. The published number said fifteen
+meshes have no collision; the truth was that nothing read whether any of them
+has any. Had the sixteenth asset landed, the run would have printed the status
+word IMPORTED-NO-COLLISION, which is a MEASURED FAILURE, over a measurement that
+never happened.
+
+THE GENERAL SHAPE, worth more than this instance: a sentinel return value is a
+refusal that passes every is-it-None test in the language. Rule 3b says a zero
+needs a denominator; this says a NUMBER needs to be asked whether it is a number
+at all. The fix is an accept predicate on _try rather than a None check, and a
+negative count now prints nothing-measured with the name of the route that
+refused.
+
+AND ONE THING RUN 3 SAID THAT NOBODY ASKED. propBoundsWorstMm=44.0215 on
+wooden_crate_01 was read all evening as a bounds discrepancy. The GLB holds two
+mesh nodes: the crate body measures 0.880368 x 1.000679 x 0.924386 m, which is
+run 3's engineSizeM to six decimals, and the whole file is 1.0447 m tall. THE
+44 MM IS A DROPPED LID, not an axis convention and not an import error. swing_bin
+drops a lid too and its delta is 0.0011 mm, because that lid sits INSIDE the
+body's box where the bounds instrument cannot see it. Three of sixteen sources
+hold more than one mesh, and the new key propSourcePartsOver1=3/16 says so before
+anyone reads a bounds number as a fault again.
+
+--------------------------------------------------------------------------
+2026-09-08  THE ONE ROLE THAT DECIDES WHETHER A THING PASSES CANNOT RUN IT.
+            EVERY TIER-2 VERIFIER CAN.
+--------------------------------------------------------------------------
+MEASURED, over all 16 role files in .claude/agents/: studio-director's tools
+line is `Read, Glob, Grep, Write, WebSearch`. NO BASH. Every tier-2 verifier has
+it (artifact-reader, claim-auditor, guard-tester, integrator, measurement-auditor,
+reach-auditor), every tier-3 builder has it, and the two roles besides the
+director without it are planner and producer, neither of which reviews code.
+
+FOUND THE HARD WAY TONIGHT. The resident briefed a director to review a new
+C++ test binary and told it to "run the new binary yourself rather than believe
+its pasted output". It could not. It said so plainly and read instead, which was
+the right call, and the resident ran both compiles and the binary and handed it
+the real output (153 checks, 0 failures, exit 0 on both the exceptions-on and
+-fno-exceptions builds).
+
+WHY IT MATTERS BEYOND ONE BAD BRIEF. The director is the binding decision-maker
+on whether work lands. CLAUDE.md rule 1 says your own docs are not evidence and
+you must run the command that proves the fact in the same turn. A role that
+cannot run a command can only ever accept a BUILDER'S REPORT as evidence for
+whether the builder's own work passes, which is the shape rule 1 exists to
+forbid. Tonight that was covered because the resident ran it and relayed the
+output, but that is a habit and not a mechanism, and the escalation rules do not
+require it.
+
+NOT FIXED TONIGHT, and the reason is that the fix is not obviously "add Bash".
+A director with a shell is a tier-1 role that can change the tree it is judging,
+and the split exists because the deciding role does not implement. The other
+shape is the one that worked by accident tonight: the resident runs, the director
+rules on the output, and the brief is required to CARRY the run rather than ask
+for it. That is a change to the studio's own rules, which is a director's call
+and not a resident's, so it is filed here rather than acted on.
+
+WHAT WOULD SETTLE IT: how many director rulings in game-design/ rest on a number
+that only a builder ever ran. Nobody has counted, and the count is the argument.

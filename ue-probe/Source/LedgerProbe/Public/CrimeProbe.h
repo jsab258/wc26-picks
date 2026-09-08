@@ -15,15 +15,22 @@
 // project's top layer does not compile in the container that writes it, so a
 // formatter written there ships UNRUN, and an unrun formatter printing a
 // plausible string is the quietest instrument fault there is. Everything
-// below is plain C++ over the six transliterated LedgerCore headers and
-// carries no Unreal type, so g++ compiles and RUNS it before any dispatch.
+// below is plain C++ over the seven transliterated LedgerCore headers (the
+// six of the crime ruling plus StreetVoice.h, queue 147) and carries no
+// Unreal type, so g++ compiles and RUNS it before any dispatch. THE BINARY
+// THAT DOES SO IS ue-probe/tests/crime-probe-test.cpp, wired into
+// ledger/verify.py as the fourth ue-probe binary; before queue 147 that
+// sentence described an intention, because no container binary included this
+// header and Selftest() therefore ran only on the PC.
 // CrimeProbe.cpp supplies live world state and nothing else: actors, traces,
 // distances read off the engine's own transforms, screenshots and file
 // writes.
 //
 // SELFTEST, ACCEPTING CASE FIRST. Selftest() below is the live decision path
-// run on fixed inputs, and CrimeProbe.cpp calls it at Start() so its result
-// is a number on the verdict rather than a claim in a comment. The rejecting
+// run on fixed inputs. CrimeProbe.cpp calls it at Start() so its result is a
+// number on the verdict rather than a claim in a comment, and
+// crime-probe-test.cpp calls it in the container so a broken row is found
+// before a dispatch rather than by one. The rejecting
 // fixtures are synthetic (a bank with no line at the asked rung, a context
 // that exists nowhere), so doing the work this tool prompts can never break
 // the tool.
@@ -39,6 +46,7 @@
 #include "MemoryStore.h"
 #include "Observation.h"
 #include "Perception.h"
+#include "StreetVoice.h"
 #include "Suspicion.h"
 
 #include <cmath>
@@ -703,6 +711,178 @@ namespace LedgerCrime
 		return true;
 	}
 
+	// ---- the overheard reply, COMPOSED RATHER THAN PICKED ------------------
+	//
+	// QUEUE 147, AND WHAT RUN 32 ACTUALLY MEASURED. That run landed
+	// overheardStatus=HEARD at overheardIdRung=3 with
+	// overheardLineIds=cw-ws-r3-02,cw-ov-r3-02, and those two ids are the whole
+	// of the finding: the beat read a bank off disk, took the row filed at the
+	// rung the memory reached, and took one variant of it by a seed. The town's
+	// reply was one of N pre-written strings chosen by arithmetic on a clock.
+	//
+	// StreetVoice.Exchange is the rung above that, and StreetVoice.h is the
+	// port of it: the teller's sentence is BUILT around the rumour's own
+	// Summary, so what the player overhears carries the thing that actually
+	// happened rather than naming a row that happened to be filed.
+	//
+	// THE BANK STAYS, for two reasons. It supplies the rung and the id, which
+	// is the measurement run 32 made and which a composed line would otherwise
+	// delete; and it is the fallback when composition refuses, so a refusal
+	// reads as a named reason on the verdict instead of as silence.
+	//
+	// THE ANSWER IS STILL A LITERAL AND THE VERDICT SAYS SO. The C# marks only
+	// the telling Composed (StreetVoice.cs 289 to 295): the answer is a pick
+	// from the band the HEARER'S OWN DISPOSITION selects, seeded with who is
+	// replying. That is a different axis from the bank's rung and it is a
+	// better one, but it is not composition, and calling the exchange composed
+	// because half of it is would be the instrument flattering the work.
+
+	// THE COMPOSED SENTENCE CARRIES THE CARRIED WORDS, tested on the BODY of
+	// the summary rather than on all of it: Cap moves exactly the first
+	// character for the templates that open on the summary, so a whole-string
+	// find would read a correct composition as a failure on nine of the
+	// fourteen lines in a band.
+	inline bool CarriesSummary(const std::string& Composed, const std::string& What)
+	{
+		if (What.empty() || Composed.empty()) { return false; }
+		const std::string Body = What.size() > 1 ? What.substr(1) : What;
+		return Composed.find(Body) != std::string::npos;
+	}
+
+	// WHAT SHAPE THE CARRIED SUMMARY WAS IN, as a reading and not as a gate.
+	// StreetVoice.cs 768's docstring states the contract Exchange is written
+	// to: a Rumor.Summary is a LOWERCASE CLAUSE, written to be spliced into
+	// the middle of a sentence, because half the templates do exactly that.
+	// A summary that is itself a finished sentence composes into something
+	// grammatical only by luck, so the run prints which shape it spliced
+	// rather than leaving a reader to guess from the prose.
+	inline std::string SummaryShape(const std::string& What)
+	{
+		if (What.empty()) { return "nothing-measured"; }
+		const bool bLower = What[0] >= 'a' && What[0] <= 'z';
+		std::string::size_type Stop = What.find(". ");
+		const bool bInteriorStop = Stop != std::string::npos;
+		if (bLower && !bInteriorStop) { return "clause"; }
+		if (!bLower && bInteriorStop) { return "sentence-not-clause/upper-first-and-interior-full-stop"; }
+		if (!bLower)                  { return "sentence-not-clause/upper-first-character"; }
+		return "sentence-not-clause/interior-full-stop";
+	}
+
+	// THE SENTINEL CrimeProbe.cpp FILES AS A SUMMARY WHEN THE BANK COULD NOT BE
+	// READ, in one place so the producer and the check cannot drift apart.
+	//
+	// WHY IT HAS TO BE CHECKED HERE. Exchange composes from whatever string it
+	// is handed, and a diagnostic is a string: without this the beat would have
+	// said "You hear all sorts. Bank-unreadable/bank-not-found-beside-the-
+	// binary, apparently." and the verdict would have read COMPOSED with no
+	// hint that anything was wrong. Composition refuses on it by name instead,
+	// which is the difference between a refusal and a silent wrong answer.
+	inline const char* UnreadableSummaryPrefix() { return "bank-unreadable/"; }
+
+	inline bool IsUnreadableSummary(const std::string& Summary)
+	{
+		const std::string Prefix = UnreadableSummaryPrefix();
+		return Summary.size() >= Prefix.size() && Summary.compare(0, Prefix.size(), Prefix) == 0;
+	}
+
+	// ONE EXCHANGE, AND HOW EACH OF ITS TWO BEATS GOT ITS WORDS.
+	//
+	// Mode is the reading the acceptance turns on and it is three words that
+	// cannot be confused with one another: COMPOSED (the telling was built at
+	// run time around the carried summary), COMPOSED-REFUSED (it was not, for
+	// the reason in Why, and the bank's pick stood in), NOTHING-MEASURED (no
+	// exchange was staged at all, so neither word applies).
+	struct ComposedExchange
+	{
+		std::string Mode, Why;
+		std::string TellText, ReplyText, PickedReplyText, CarriedSummary;
+		double      CarriedConfidence;
+		int         CarriedHops;
+		// A COUNT OF BEATS IN EACH MODE OVER THE BEATS STAGED, this exchange.
+		// Both are printed rather than one and a subtraction: composed plus
+		// picked has to equal staged, and a sum that does not is a fault in
+		// this struct that nothing else would show.
+		int         BeatsStaged, BeatsComposed, BeatsPicked;
+		std::string TellBand, AnswerBand;
+		int         TellIndex, TellCount, AnswerIndex, AnswerCount, AnswerSeedValue;
+		bool        bCarriesSummary;
+
+		ComposedExchange()
+			: Mode("NOTHING-MEASURED"), Why("nothing-measured"),
+			  TellText("nothing-measured"), ReplyText("nothing-measured"),
+			  PickedReplyText("none"), CarriedSummary("nothing-measured"),
+			  CarriedConfidence(0.0), CarriedHops(0),
+			  BeatsStaged(0), BeatsComposed(0), BeatsPicked(0),
+			  TellBand("none"), AnswerBand("none"),
+			  TellIndex(-1), TellCount(0), AnswerIndex(-1), AnswerCount(0),
+			  AnswerSeedValue(0), bCarriesSummary(false)
+		{
+		}
+	};
+
+	// THE DECISION, WHERE THE TEST RUNS. CrimeProbe.cpp supplies the rumour
+	// the mill actually carried, the two agents and the seed, and nothing
+	// else: which band, which line, what the sentence reads as and what the
+	// verdict says about it are all decided here, where g++ runs them.
+	//
+	// PickedTell and PickedReply are the bank's own rows at the achieved rung.
+	// They are not used when composition succeeds, and they are what stands in
+	// when it refuses, which is why both arrive.
+	inline ComposedExchange ComposeOverheard(const LedgerCore::RumorPtr& Carried,
+	                                         const LedgerCore::GossiperPtr& From,
+	                                         const LedgerCore::GossiperPtr& To,
+	                                         int Seed,
+	                                         const std::string& PickedTell,
+	                                         const std::string& PickedReply)
+	{
+		ComposedExchange C;
+		C.PickedReplyText = PickedReply.empty() ? std::string("none") : PickedReply;
+		if (Carried)
+		{
+			C.CarriedSummary = Carried->Summary.empty() ? std::string("none") : Carried->Summary;
+			C.CarriedConfidence = Carried->Confidence;
+			C.CarriedHops = Carried->Hops;
+		}
+		LedgerCore::StreetVoice::ExchangeTrace T;
+		const bool bSentinel = Carried && IsUnreadableSummary(Carried->Summary);
+		const std::vector<LedgerCore::SpokenLine> Lines = bSentinel
+			? std::vector<LedgerCore::SpokenLine>()
+			: LedgerCore::StreetVoice::Exchange(Carried, From, To, Seed, &T);
+		if (bSentinel) { T.Refused = "carried-summary-is-the-bank-unreadable-sentinel"; }
+		if (Lines.size() == 2 && T.bComposed)
+		{
+			C.Mode = "COMPOSED";
+			C.Why = "none";
+			C.TellText = Lines[0].Text;
+			C.ReplyText = Lines[1].Text;
+			C.TellBand = LedgerCore::StreetVoice::TellBandName(T.TellBand);
+			C.AnswerBand = LedgerCore::StreetVoice::AnswerBandName(T.AnswerBand);
+			C.TellIndex = T.TellIndex;   C.TellCount = T.TellCount;
+			C.AnswerIndex = T.AnswerIndex; C.AnswerCount = T.AnswerCount;
+			C.AnswerSeedValue = T.AnswerSeedValue;
+			// THE TELLING IS THE COMPOSED BEAT AND THE ANSWER IS NOT, which is
+			// the C#'s own accounting and not a softening of it.
+			C.BeatsStaged = 2; C.BeatsComposed = 1; C.BeatsPicked = 1;
+			C.bCarriesSummary = CarriesSummary(C.TellText,
+				LedgerCore::StreetVoice::Trim(Carried ? Carried->Summary : std::string()));
+			return C;
+		}
+		// REFUSED. The reason is the port's own, never a guess, and the bank's
+		// rows stand in so the beat still has words.
+		C.Why = NoSpaces(T.Refused);
+		if (PickedTell.empty() && PickedReply.empty())
+		{
+			C.Mode = "NOTHING-MEASURED";
+			C.Why = "nothing-measured/" + C.Why + "/and-no-bank-row-either";
+			return C;
+		}
+		C.Mode = "COMPOSED-REFUSED";
+		C.TellText = PickedTell.empty() ? std::string("none") : PickedTell;
+		C.ReplyText = PickedReply.empty() ? std::string("none") : PickedReply;
+		C.BeatsStaged = 2; C.BeatsComposed = 0; C.BeatsPicked = 2;
+		return C;
+	}
+
 	// ---- the overheard beat ------------------------------------------------
 	struct OverheardReading
 	{
@@ -712,6 +892,8 @@ namespace LedgerCrime
 		int    SeedValue, Variants, VariantPicked;
 		std::string SummaryId, ReplyId, BankPath, WhyNot;
 		bool   bBankRead;
+		// HOW THE TWO BEATS GOT THEIR WORDS, filled by ComposeOverheard.
+		ComposedExchange Reply;
 
 		OverheardReading()
 			: Events(0), EventsAsked(1), PlayerToW1M(0.0), PlayerToN2M(0.0), IdRung(0),
@@ -729,6 +911,7 @@ namespace LedgerCrime
 
 	inline std::string OverheardLine(const OverheardReading& O)
 	{
+		const ComposedExchange& C = O.Reply;
 		return "overheardEvents=" + Int(O.Events) + "/" + Int(O.EventsAsked)
 		     + " overheardPlayerToW1M=" + F1(O.PlayerToW1M)
 		     + " overheardPlayerToN2M=" + F1(O.PlayerToN2M)
@@ -745,7 +928,79 @@ namespace LedgerCrime
 		     + " overheardBankRead=" + YesNo(O.bBankRead)
 		     + " overheardBank=" + NoSpaces(O.BankPath)
 		     + " overheardBankNote=" + NoSpaces(O.WhyNot)
-		     + " overheardLineSource=bank/StreetVoice.Exchange-not-ported";
+		     // THE ACCEPTANCE OF QUEUE 147, IN WORDS THAT CANNOT BE CONFUSED.
+		     + " overheardReplyMode=" + C.Mode
+		     + (C.Mode == "COMPOSED"
+		          ? "/telling-built-at-run-time-around-the-carried-summary"
+		          : C.Mode == "COMPOSED-REFUSED"
+		              ? "/bank-row-stood-in"
+		              : "/no-exchange-was-staged")
+		     + " overheardBeatsComposed=" + Int(C.BeatsComposed) + "/" + Int(C.BeatsStaged)
+		     + " overheardBeatsPicked=" + Int(C.BeatsPicked) + "/" + Int(C.BeatsStaged)
+		     + " overheardBeatsStat=count-of-beats-in-each-mode-over-beats-staged/this-exchange"
+		       "/composed-plus-picked-equals-staged-or-this-struct-is-broken"
+		     + " overheardBeatModes=" + (C.Mode == "COMPOSED"
+		          ? "tell..COMPOSED-from-the-carried-summary"
+		            ",answer..PICKED-from-the-hearer-disposition-band/StreetVoice.cs-289-295"
+		          : C.Mode == "COMPOSED-REFUSED"
+		              ? "tell..PICKED-from-the-bank-at-the-achieved-rung"
+		                ",answer..PICKED-from-the-bank-at-the-achieved-rung"
+		              : "nothing-measured,nothing-measured")
+		     + " overheardComposedRefusedWhy=" + NoSpaces(C.Why)
+		     + " overheardCarriedConfidence=" + F2(C.CarriedConfidence)
+		     + " overheardCarriedHops=" + Int(C.CarriedHops)
+		     // ZERO-BASED, SAID OUT LOUD: the index is the modulus result, so a
+		     // band of fourteen runs 0 to 13 and a reader must not take
+		     // index-13-of-14 for the last-but-one line.
+		     + " overheardTellBand=" + NoSpaces(C.TellBand)
+		     + "/index-" + Int(C.TellIndex) + "-of-" + Int(C.TellCount) + "-zero-based"
+		     + " overheardAnswerBand=" + NoSpaces(C.AnswerBand)
+		     + "/index-" + Int(C.AnswerIndex) + "-of-" + Int(C.AnswerCount) + "-zero-based"
+		     + " overheardAnswerSeed=" + Int(C.AnswerSeedValue)
+		     + " overheardAnswerSeedFormula=seed*97+31+FNV1a(replierId)%9973/StreetVoice.cs-734"
+		     + " overheardComposedCarriesSummary=" + YesNo(C.bCarriesSummary)
+		     + " overheardSummaryShape=" + NoSpaces(SummaryShape(C.CarriedSummary))
+		     + " overheardSummaryShapeRule=StreetVoice.cs-768/a-Summary-is-a-lowercase-clause-to-be-spliced"
+		     + " overheardLineSource=" + (C.Mode == "COMPOSED"
+		          ? "composed/StreetVoice.Exchange-ported-in-StreetVoice.h"
+		          : C.Mode == "COMPOSED-REFUSED"
+		              ? "bank/composition-refused-see-overheardComposedRefusedWhy"
+		              : "none/nothing-measured");
+	}
+
+	// WHERE ONE BEAT'S WORDS CAME FROM, for the sequence keys line that
+	// captions the evidence frames. A string, so it is decided here where the
+	// test runs, and per BEAT rather than per exchange: the telling and the
+	// answer of one composed exchange have different answers, and a single
+	// label for both is how an instrument comes to say composed about a
+	// literal.
+	inline std::string BeatTextSource(const ComposedExchange& C, bool bTell)
+	{
+		if (C.Mode == "COMPOSED")
+		{
+			return bTell ? "composed/StreetVoice.Exchange-around-the-carried-summary"
+			             : "picked/the-hearer-s-own-disposition-band/not-the-bank-s-rung";
+		}
+		if (C.Mode == "COMPOSED-REFUSED")
+		{
+			return "bank/crime-witness-v1.json-at-the-achieved-rung/composition-refused";
+		}
+		return "none/nothing-measured";
+	}
+
+	// THE PROSE, ON ITS OWN LINE, because a value may not carry a space and
+	// every sentence here is mostly spaces. Dashes in, so the shape of the
+	// sentence survives a reader that splits on whitespace; the unmangled text
+	// is on the sequence keys file, escaped with ~, for the caption tool.
+	inline std::string OverheardTextLine(const OverheardReading& O)
+	{
+		const ComposedExchange& C = O.Reply;
+		return "overheardTellText=" + NoSpaces(C.TellText)
+		     + " overheardReplyText=" + NoSpaces(C.ReplyText)
+		     + " overheardCarriedSummary=" + NoSpaces(C.CarriedSummary)
+		     + " overheardPickWouldHaveSaid=" + NoSpaces(C.PickedReplyText)
+		     + " overheardTextNote=spaces-become-dashes-in-a-value"
+		       "/overheardPickWouldHaveSaid-is-the-bank-row-this-beat-no-longer-speaks";
 	}
 
 	// ---- the sequence keys file --------------------------------------------
@@ -753,15 +1008,47 @@ namespace LedgerCrime
 	// One line per sequence frame, read by tools/clip-from-frames.py
 	// --frame-keys. The caption, the wrapping and every printed number about
 	// them live in that tool, where its selftest runs them; this supplies
-	// which frame, which beat and which id, and nothing else.
+	// which frame, which beat, which id and, since queue 147, THE WORDS
+	// THEMSELVES.
+	//
+	// WHY THE WORDS ARE ON THE LINE NOW. The caption tool resolves lineId
+	// against the bank, which worked for as long as every spoken line WAS a
+	// bank row. A composed telling is not in the bank and never can be (its
+	// space is every summary the street has ever carried), so a frame captioned
+	// by id would burn the row the beat no longer speaks. The text rides here
+	// instead, and the id stays beside it because the id is still the
+	// provenance of what was carried.
+	//
+	// SPACES AS ~, which is the escape this project already uses for a string
+	// riding inside a key=value value (ledger/PerceptionGolden/Program.cs's
+	// Esc, CoreGolden.h's Escape). A dash cannot be undone, because the prose
+	// contains real hyphens. A LINE CARRYING A LITERAL ~ WOULD ROUND-TRIP
+	// WRONGLY, so nothing is allowed to author one: measured 2026-09-08, 0
+	// tildes in the 98 lines of StreetVoice.Exchange and 0 in
+	// content/dialogue/crime-witness-v1.json.
+	inline std::string Tilde(const std::string& S)
+	{
+		std::string Out = S;
+		for (std::string::size_type I = 0; I < Out.size(); ++I)
+		{
+			if (Out[I] == ' ' || Out[I] == '\t' || Out[I] == '\n' || Out[I] == '\r') { Out[I] = '~'; }
+		}
+		return Out;
+	}
+
 	inline std::string SeqKeyLine(const std::string& FrameName, const std::string& Beat,
 	                              const std::string& Speaker, const std::string& LineId,
+	                              const std::string& LineText, const std::string& LineTextSource,
 	                              bool bHeard)
 	{
 		return "frame=" + NoSpaces(FrameName)
 		     + " beat=" + NoSpaces(Beat)
 		     + " speaker=" + NoSpaces(Speaker.empty() ? std::string("none") : Speaker)
 		     + " lineId=" + NoSpaces(LineId.empty() ? std::string("none") : LineId)
+		     + " lineText=" + (LineText.empty() ? std::string("none") : Tilde(LineText))
+		     + " lineTextSource=" + NoSpaces(LineTextSource.empty()
+		          ? std::string("none/this-frame-carries-no-words") : LineTextSource)
+		     + " lineTextEscape=spaces-are-~"
 		     + " heard=" + YesNo(bHeard);
 	}
 
@@ -943,6 +1230,277 @@ namespace LedgerCrime
 		Expect(R, GossipStatus(One, NeverRan) == "NOTHING-MEASURED", "gossipStatus-refuses-a-missing-round");
 		Two.Passed = 0;
 		Expect(R, GossipStatus(One, Two) == "NOT-PROVEN", "gossipStatus-catches-a-silent-pair");
+
+		// 8. THE OVERHEARD REPLY IS COMPOSED, queue 147. ACCEPTING CASE
+		//    FIRST, on the run's own numbers: the rumour n2 actually receives
+		//    in round 2 carries w1's 0.94 sighting through one hop at tie 0.6
+		//    and hop decay 0.8, which is 0.4512, and the seed is D1 12:00's 43.
+		//
+		//    EVERY EXPECTED STRING IN THIS SECTION WAS EMITTED BY THE REAL
+		//    Ledger.Core, not typed: ledger/Assets/Scripts/Core/StreetVoice.cs
+		//    was compiled with the rest of Core and asked for these exact
+		//    fixtures on 2026-09-08, and the port answered all 90 emitted lines
+		//    identically. A hand-typed expectation would prove only that the
+		//    hand and the port agree, which is the trap the golden table exists
+		//    for; the permanent cross-engine rows are queue-named.
+		const std::string Clause =
+			"whoever put the window in on Quay Street was seen full in the face";
+		// The bank's own witness_summary row at rung 3, cw-ws-r3-02, verbatim.
+		const std::string BankSentence =
+			"He looked straight at me before he ran. Couldn't tell you his name, "
+			"but I've got his face now.";
+		const std::string PickedTell = "He looked straight at me before he ran.";
+		const std::string PickedReply = "A face you'd know is worth more than most talk in here.";
+
+		LedgerCore::GossiperPtr W1 = std::make_shared<LedgerCore::Gossiper>(
+			"w1", "the shopkeeper", std::shared_ptr<LedgerCore::MemoryStore>(),
+			std::shared_ptr<LedgerCore::KnowledgeBase>(), "day");
+		LedgerCore::GossiperPtr N2 = std::make_shared<LedgerCore::Gossiper>(
+			"n2", "the lad in the yard", std::shared_ptr<LedgerCore::MemoryStore>(),
+			std::shared_ptr<LedgerCore::KnowledgeBase>(), "day");
+
+		LedgerCore::RumorPtr Carried = std::make_shared<LedgerCore::Rumor>(
+			LedgerCore::Fact("player", "broke_a_window", "east_parade_glass0"));
+		Carried->OriginId = "w1";
+		Carried->Summary = Clause;
+		Carried->Confidence = 0.94 * LedgerCrime::kTie * 0.8;   // 0.4512, one hop
+		Carried->Hops = 1;
+
+		ComposedExchange C = ComposeOverheard(Carried, W1, N2, 43, PickedTell, PickedReply);
+		Expect(R, C.Mode == "COMPOSED", "composed-accepting-case-mode");
+		Expect(R, C.TellText == "You hear all sorts. Whoever put the window in on Quay "
+		                        "Street was seen full in the face, apparently.",
+		       "composed-accepting-case-tell-is-the-C#-sentence");
+		Expect(R, C.bCarriesSummary, "composed-accepting-case-tell-carries-the-summary");
+		Expect(R, C.TellText != PickedTell, "composed-accepting-case-tell-is-not-the-bank-row");
+		Expect(R, C.ReplyText == "God. And here?", "composed-accepting-case-reply-is-the-C#-line");
+		Expect(R, C.BeatsStaged == 2 && C.BeatsComposed == 1 && C.BeatsPicked == 1,
+		       "composed-accepting-case-beats-1-composed-1-picked-of-2");
+		Expect(R, C.BeatsComposed + C.BeatsPicked == C.BeatsStaged,
+		       "composed-beats-sum-to-the-denominator");
+		Expect(R, C.TellBand == "confidence-below-0.50", "composed-accepting-case-tell-band");
+		Expect(R, C.AnswerBand == "no-disposition-above-0.65", "composed-accepting-case-answer-band");
+		Expect(R, C.TellCount == 14 && C.AnswerCount == 14, "composed-bands-are-fourteen-deep");
+		Expect(R, C.Why == "none", "composed-accepting-case-refuses-nothing");
+		Expect(R, F2(C.CarriedConfidence) == "0.45", "composed-accepting-case-carried-0.45");
+		Expect(R, SummaryShape(Clause) == "clause", "composed-a-clause-reads-as-a-clause");
+
+		// THE SHAPE THE BANK ACTUALLY CARRIES, pinned with the sentence it
+		// composes into. The bank's witness_summary rows are finished
+		// first-person sentences, not the lowercase clause StreetVoice.cs 768
+		// documents, and splicing one produces the string below. It is a
+		// measurement rather than a complaint, it is on the verdict as
+		// overheardSummaryShape, and the queue item that fixes the bank is
+		// named in the report for this change.
+		LedgerCore::RumorPtr AsBanked = std::make_shared<LedgerCore::Rumor>(
+			LedgerCore::Fact("player", "broke_a_window", "east_parade_glass0"));
+		AsBanked->Summary = BankSentence;
+		AsBanked->Confidence = 0.4512;
+		ComposedExchange Banked = ComposeOverheard(AsBanked, W1, N2, 43, PickedTell, PickedReply);
+		Expect(R, Banked.Mode == "COMPOSED", "composed-a-banked-sentence-still-composes");
+		Expect(R, Banked.TellText == "You hear all sorts. He looked straight at me before "
+		                             "he ran. Couldn't tell you his name, but I've got his "
+		                             "face now, apparently.",
+		       "composed-a-banked-sentence-splices-as-the-C#-splices-it");
+		Expect(R, SummaryShape(BankSentence)
+		       == "sentence-not-clause/upper-first-and-interior-full-stop",
+		       "composed-names-a-sentence-that-is-not-a-clause");
+
+		// THE THREE CONFIDENCE BANDS, each on its own side of the boundary, and
+		// each answering from ITS set and not another's. The boundaries are
+		// >= 0.8 and >= 0.5, so 0.8 and 0.5 belong to the band above.
+		Carried->Confidence = 0.8;
+		const ComposedExchange Top = ComposeOverheard(Carried, W1, N2, 43, PickedTell, PickedReply);
+		Expect(R, Top.TellBand == "confidence-at-or-above-0.80", "composed-band-0-at-0.80-exactly");
+		Expect(R, Top.TellText == "Whoever put the window in on Quay Street was seen full "
+		                          "in the face. I know what I saw.",
+		       "composed-band-0-line-is-band-0-s");
+		Carried->Confidence = 0.5;
+		const ComposedExchange Mid = ComposeOverheard(Carried, W1, N2, 43, PickedTell, PickedReply);
+		Expect(R, Mid.TellBand == "confidence-0.50-to-0.80", "composed-band-1-at-0.50-exactly");
+		Expect(R, Mid.TellText == "Word is whoever put the window in on Quay Street was "
+		                          "seen full in the face.",
+		       "composed-band-1-line-is-band-1-s");
+		Carried->Confidence = 0.4999;
+		const ComposedExchange Low = ComposeOverheard(Carried, W1, N2, 43, PickedTell, PickedReply);
+		Expect(R, Low.TellBand == "confidence-below-0.50", "composed-band-2-just-under-0.50");
+		Expect(R, Low.TellText != Mid.TellText && Low.TellText != Top.TellText,
+		       "composed-three-bands-three-different-sentences");
+
+		// DETERMINISM AND ITS OPPOSITE, both watched. The same seed must give
+		// the same line twice; two seeds inside ONE band must be able to give
+		// two different lines, and the band is fourteen deep so the thing this
+		// row asserts can actually happen.
+		Carried->Confidence = 0.4512;
+		const ComposedExchange Again = ComposeOverheard(Carried, W1, N2, 43, PickedTell, PickedReply);
+		Expect(R, Again.TellText == C.TellText && Again.ReplyText == C.ReplyText,
+		       "composed-same-seed-same-line-twice");
+		const ComposedExchange Next = ComposeOverheard(Carried, W1, N2, 44, PickedTell, PickedReply);
+		Expect(R, Next.TellBand == C.TellBand, "composed-seed-44-is-the-same-band");
+		Expect(R, Next.TellText != C.TellText, "composed-two-seeds-two-tellings-in-one-band");
+		Expect(R, Next.ReplyText != C.ReplyText, "composed-two-seeds-two-answers-in-one-band");
+		Expect(R, Next.TellText == "Somebody's saying whoever put the window in on Quay "
+		                           "Street was seen full in the face. Somebody's always "
+		                           "saying something.",
+		       "composed-seed-44-telling-is-the-C#-sentence");
+		Expect(R, Next.ReplyText == "Since when?", "composed-seed-44-answer-is-the-C#-line");
+
+		// THE HEARER'S FOUR BANDS, by disposition, in the C#'s own order. Every
+		// string is the C#'s answer for the same fixture.
+		LedgerCore::GossiperPtr Brave = std::make_shared<LedgerCore::Gossiper>(
+			"n2", "n2", std::shared_ptr<LedgerCore::MemoryStore>(),
+			std::shared_ptr<LedgerCore::KnowledgeBase>(), "day", 0.5, 0.9, 0.5);
+		Carried->Sensitive = true;
+		ComposedExchange Frightened = ComposeOverheard(Carried, W1, Brave, 43, PickedTell, PickedReply);
+		Expect(R, Frightened.AnswerBand == "nerve-above-0.65-and-sensitive",
+		       "composed-answer-band-0-needs-nerve-and-sensitive");
+		Expect(R, Frightened.ReplyText == "Not here. Not with that door open.",
+		       "composed-answer-band-0-line");
+		Carried->Sensitive = false;
+		ComposedExchange NotSensitive = ComposeOverheard(Carried, W1, Brave, 43, PickedTell, PickedReply);
+		Expect(R, NotSensitive.AnswerBand == "no-disposition-above-0.65",
+		       "composed-nerve-alone-is-not-the-frightened-band");
+		Carried->Sensitive = true;
+		LedgerCore::GossiperPtr OnTheBound = std::make_shared<LedgerCore::Gossiper>(
+			"n2", "n2", std::shared_ptr<LedgerCore::MemoryStore>(),
+			std::shared_ptr<LedgerCore::KnowledgeBase>(), "day", 0.5, 0.65, 0.5);
+		Expect(R, ComposeOverheard(Carried, W1, OnTheBound, 43, PickedTell, PickedReply).AnswerBand
+		       == "no-disposition-above-0.65", "composed-nerve-0.65-exactly-is-strictly-below");
+		Carried->Sensitive = false;
+		LedgerCore::GossiperPtr Loyal = std::make_shared<LedgerCore::Gossiper>(
+			"n2", "n2", std::shared_ptr<LedgerCore::MemoryStore>(),
+			std::shared_ptr<LedgerCore::KnowledgeBase>(), "day", 0.5, 0.5, 0.9);
+		ComposedExchange LoyalReply = ComposeOverheard(Carried, W1, Loyal, 43, PickedTell, PickedReply);
+		Expect(R, LoyalReply.AnswerBand == "loyalty-above-0.65", "composed-answer-band-1");
+		Expect(R, LoyalReply.ReplyText == "And you believed it, did you?",
+		       "composed-answer-band-1-line");
+		LedgerCore::GossiperPtr Greedy = std::make_shared<LedgerCore::Gossiper>(
+			"n2", "n2", std::shared_ptr<LedgerCore::MemoryStore>(),
+			std::shared_ptr<LedgerCore::KnowledgeBase>(), "day", 0.9, 0.5, 0.5);
+		ComposedExchange GreedyReply = ComposeOverheard(Carried, W1, Greedy, 43, PickedTell, PickedReply);
+		Expect(R, GreedyReply.AnswerBand == "greed-above-0.65", "composed-answer-band-2");
+		Expect(R, GreedyReply.ReplyText == "How long have you been sitting on it?",
+		       "composed-answer-band-2-line");
+
+		// THE REFUSALS, each with the reason the port itself gave, and the bank
+		// standing in rather than a blank beat.
+		LedgerCore::RumorPtr NoWords = std::make_shared<LedgerCore::Rumor>(
+			LedgerCore::Fact("player", "broke_a_window", "east_parade_glass0"));
+		NoWords->Summary = "   ";
+		NoWords->Confidence = 0.94;
+		const ComposedExchange Refused =
+			ComposeOverheard(NoWords, W1, N2, 43, PickedTell, PickedReply);
+		Expect(R, Refused.Mode == "COMPOSED-REFUSED", "composed-empty-summary-refuses");
+		Expect(R, Refused.Why == "summary-carried-no-text", "composed-refusal-names-the-reason");
+		Expect(R, Refused.TellText == PickedTell && Refused.ReplyText == PickedReply,
+		       "composed-refusal-falls-back-to-the-bank");
+		Expect(R, Refused.BeatsComposed == 0 && Refused.BeatsPicked == 2 && Refused.BeatsStaged == 2,
+		       "composed-refusal-counts-both-beats-as-picked");
+		const ComposedExchange NoRumour =
+			ComposeOverheard(LedgerCore::RumorPtr(), W1, N2, 43, PickedTell, PickedReply);
+		Expect(R, NoRumour.Mode == "COMPOSED-REFUSED" && NoRumour.Why == "no-rumour-or-no-speaker",
+		       "composed-nothing-carried-refuses-and-says-which");
+		// THE BANK'S OWN FAILURE, CARRIED AS A SUMMARY. The mill files a
+		// diagnostic when the bank could not be read, and a composer that
+		// splices anything it is handed would have said it out loud.
+		LedgerCore::RumorPtr Diagnostic = std::make_shared<LedgerCore::Rumor>(
+			LedgerCore::Fact("player", "broke_a_window", "east_parade_glass0"));
+		Diagnostic->Summary = std::string(UnreadableSummaryPrefix()) + "bank-not-found";
+		Diagnostic->Confidence = 0.4512;
+		const ComposedExchange Sentinel =
+			ComposeOverheard(Diagnostic, W1, N2, 43, PickedTell, PickedReply);
+		Expect(R, Sentinel.Mode == "COMPOSED-REFUSED", "composed-refuses-the-unreadable-sentinel");
+		Expect(R, Sentinel.Why == "carried-summary-is-the-bank-unreadable-sentinel",
+		       "composed-names-the-sentinel-as-the-reason");
+		Expect(R, Sentinel.TellText.find("Bank-unreadable") == std::string::npos,
+		       "composed-never-says-a-diagnostic-out-loud");
+		Expect(R, IsUnreadableSummary(Diagnostic->Summary), "sentinel-accepts-its-own-prefix");
+		Expect(R, !IsUnreadableSummary(Clause), "sentinel-rejects-a-real-summary");
+		const ComposedExchange SentinelAlone =
+			ComposeOverheard(Diagnostic, W1, N2, 43, "", "");
+		Expect(R, SentinelAlone.Mode == "NOTHING-MEASURED",
+		       "composed-an-unreadable-bank-with-no-fallback-is-nothing-measured");
+
+		const ComposedExchange Nothing =
+			ComposeOverheard(LedgerCore::RumorPtr(), W1, N2, 43, "", "");
+		Expect(R, Nothing.Mode == "NOTHING-MEASURED", "composed-no-bank-and-no-rumour-is-nothing-measured");
+		Expect(R, Nothing.BeatsStaged == 0 && Nothing.BeatsComposed == 0,
+		       "composed-nothing-measured-stages-no-beats");
+		Expect(R, Nothing.TellText == "nothing-measured", "composed-nothing-measured-says-the-words");
+		Expect(R, SummaryShape("") == "nothing-measured", "composed-summary-shape-of-nothing");
+
+		// THE CARRIES-SUMMARY READING, on the case it must PASS and the case it
+		// must CATCH: a bank row about the same event does not carry the
+		// summary's words and must not read as though it did.
+		Expect(R, CarriesSummary(C.TellText, Clause), "carries-summary-accepts-the-composed-telling");
+		Expect(R, !CarriesSummary(PickedReply, Clause), "carries-summary-rejects-a-bank-row");
+		Expect(R, !CarriesSummary("", Clause), "carries-summary-rejects-an-empty-line");
+
+		// The two helpers the interpolation needs, on the C#'s own rules.
+		Expect(R, LedgerCore::StreetVoice::Trim("  it was Novak.  ") == "it was Novak",
+		       "street-voice-trim-strips-space-and-one-full-stop");
+		Expect(R, LedgerCore::StreetVoice::Cap("whoever put the window in")
+		       == "Whoever put the window in", "street-voice-cap-raises-the-first-letter");
+		Expect(R, LedgerCore::StreetVoice::Cap("Novak put the window in")
+		       == "Novak put the window in", "street-voice-cap-leaves-a-proper-noun-alone");
+
+		// The verdict's own two lines, read back: the acceptance is a string on
+		// a line and not a field in a struct.
+		OverheardReading OHeard;
+		OHeard.Events = 1; OHeard.PlayerToW1M = 4.0; OHeard.PlayerToN2M = 5.6;
+		OHeard.IdRung = 3; OHeard.SummaryId = "cw-ws-r3-02"; OHeard.ReplyId = "cw-ov-r3-02";
+		OHeard.Reply = C;
+		const std::string Line = OverheardLine(OHeard);
+		Expect(R, Line.find("overheardReplyMode=COMPOSED/telling-built-at-run-time") != std::string::npos,
+		       "verdict-names-the-mode-in-words");
+		Expect(R, Line.find("overheardBeatsComposed=1/2") != std::string::npos,
+		       "verdict-ships-the-composed-count-with-its-denominator");
+		Expect(R, Line.find("overheardBeatsPicked=1/2") != std::string::npos,
+		       "verdict-ships-the-picked-count-with-its-denominator");
+		Expect(R, Line.find("overheardLineIds=cw-ws-r3-02,cw-ov-r3-02") != std::string::npos,
+		       "verdict-keeps-the-bank-ids-run-32-measured");
+		Expect(R, Line.find(" ") != std::string::npos && Line.find("= ") == std::string::npos,
+		       "verdict-has-no-empty-value");
+		Expect(R, OverheardTextLine(OHeard).find("overheardTellText=You-hear-all-sorts.")
+		       != std::string::npos, "verdict-text-line-carries-the-composed-sentence");
+		OverheardReading Never;
+		const std::string NeverLine = OverheardLine(Never);
+		Expect(R, NeverLine.find("overheardReplyMode=NOTHING-MEASURED") != std::string::npos,
+		       "verdict-never-ran-says-nothing-measured");
+		Expect(R, NeverLine.find("overheardBeatsComposed=0/0") != std::string::npos,
+		       "verdict-never-ran-ships-a-zero-denominator-rather-than-a-bare-zero");
+
+		// THE SEQUENCE KEYS LINE, which is what captions the evidence frames.
+		// Accepting case: a composed telling rides with its spaces recoverable
+		// and its id still beside it. Rejecting case: a frame with no words
+		// says none rather than carrying an empty value a reader would split
+		// straight through.
+		const std::string Keys = SeqKeyLine("ue-crimeseq_012.png", "overheard", "w1",
+			"cw-ws-r3-02", C.TellText, "composed/StreetVoice.Exchange", true);
+		Expect(R, Keys.find("lineText=You~hear~all~sorts.") != std::string::npos,
+		       "seq-keys-carry-the-composed-words-with-spaces-as-tilde");
+		Expect(R, Keys.find("lineId=cw-ws-r3-02") != std::string::npos,
+		       "seq-keys-keep-the-bank-id-beside-the-words");
+		Expect(R, Keys.find(" heard=yes") != std::string::npos, "seq-keys-heard-yes");
+		Expect(R, Keys.find("lineText= ") == std::string::npos, "seq-keys-never-leave-a-value-empty");
+		const std::string Silent = SeqKeyLine("ue-crimeseq_001.png", "deed_a", "", "", "", "", false);
+		Expect(R, Silent.find("lineText=none") != std::string::npos,
+		       "seq-keys-a-silent-frame-says-none");
+		Expect(R, Silent.find("lineTextSource=none/this-frame-carries-no-words") != std::string::npos,
+		       "seq-keys-a-silent-frame-names-why-there-are-no-words");
+		Expect(R, Silent.find("speaker=none") != std::string::npos && Silent.find("lineId=none") != std::string::npos,
+		       "seq-keys-a-silent-frame-names-no-speaker-and-no-id");
+		Expect(R, BeatTextSource(C, true) == "composed/StreetVoice.Exchange-around-the-carried-summary",
+		       "beat-source-names-the-telling-composed");
+		Expect(R, BeatTextSource(C, false)
+		       == "picked/the-hearer-s-own-disposition-band/not-the-bank-s-rung",
+		       "beat-source-names-the-answer-picked");
+		Expect(R, BeatTextSource(Refused, true)
+		       == "bank/crime-witness-v1.json-at-the-achieved-rung/composition-refused",
+		       "beat-source-on-a-refusal-names-the-bank");
+		Expect(R, BeatTextSource(Nothing, true) == "none/nothing-measured",
+		       "beat-source-with-nothing-staged-says-nothing-measured");
+
 
 		return R;
 	}

@@ -160,6 +160,14 @@ namespace
 	std::string GSummaryText = "none", GReplyText = "none";
 	int GAchievedRung = 0;
 
+	// THE RUMOUR THE MILL ACTUALLY CARRIED, queue 147. GossipMill::Tick hands
+	// the LISTENER'S OWN COPY back on the event (Gossip.cs 386 to 398: the
+	// heard rumour at the decayed confidence, not the speaker's), and
+	// GossipDirector.cs 587 composes from exactly that copy. So this is what
+	// the exchange is built from, and it is a handle on the object in n2's
+	// Rumors rather than a reconstruction of it.
+	RumorPtr GCarried;
+
 	// SECONDS WATCHING, MEASURED, one accumulator per witness per crime. The
 	// ticker adds this frame's delta for a witness whose sightline to the
 	// actor holds RIGHT NOW, which is what Witnesses.cs 178 to 192 says
@@ -194,6 +202,10 @@ namespace
 	// transitions and read at capture, so a frame can never claim a beat that
 	// was not running when the shutter opened.
 	std::string GBeat = "start", GBeatSpeaker = "none", GBeatLineId = "none";
+	// THE WORDS ON THE FRAME, and where they came from. A composed telling is
+	// not in the bank and cannot be captioned by id, so the text rides on the
+	// keys line beside the id.
+	std::string GBeatLineText, GBeatLineTextSource;
 	bool GBeatHeard = false;
 
 	// ---- small engine helpers, the same shapes WalkProbe.cpp uses --------
@@ -407,7 +419,8 @@ namespace
 		ShotBegin(AbsProject(*Leaf), Now);
 		GSeqInFlight = true;
 		GSeqKeys.push_back(LedgerCrime::SeqKeyLine(Utf8(Leaf), GBeat, GBeatSpeaker,
-		                                           GBeatLineId, GBeatHeard));
+		                                           GBeatLineId, GBeatLineText,
+		                                           GBeatLineTextSource, GBeatHeard));
 		WriteSeqKeys();
 		++GSeqRequested;
 		if (bForced) { ++GSeqForced; }
@@ -843,6 +856,10 @@ namespace
 			{
 				Out.ConfidencePassed = Events[I].RumorRef->Confidence;
 				Out.Hops = Events[I].RumorRef->Hops;
+				// WHAT THE OVERHEARD BEAT WILL BE COMPOSED FROM. Last one
+				// wins, which is the same rumour every time here: one topic,
+				// one pair, one hop per round.
+				GCarried = Events[I].RumorRef;
 			}
 			Out.bContradiction = Events[I].Contradiction;
 			Out.bExposure = Events[I].Exposure;
@@ -939,10 +956,15 @@ namespace
 		Out.Add(TEXT("# THE MILL: gossipRound= lines are the rule-5b pair. Round 1 is the same two"));
 		Out.Add(TEXT("#   people too far apart to talk; round 2 is the same two in the yard. Nothing"));
 		Out.Add(TEXT("#   about the rumour changes between them except where they are standing."));
-		Out.Add(TEXT("# THE LINE: picked from content/dialogue/crime-witness-v1.json by the seed the"));
-		Out.Add(TEXT("#   game uses, Day*31+Hour. The seed, the modulus and the picked index are"));
-		Out.Add(TEXT("#   printed so the pick can be checked. Section 4's example pair is"));
-		Out.Add(TEXT("#   unreachable from one seed and the RULE is what this follows."));
+		Out.Add(TEXT("# THE LINE IS COMPOSED, NOT PICKED, since queue 147. The bank at"));
+		Out.Add(TEXT("#   content/dialogue/crime-witness-v1.json still supplies the rung and the id"));
+		Out.Add(TEXT("#   by the seed the game uses, Day*31+Hour, and the seed, the modulus and the"));
+		Out.Add(TEXT("#   picked index are printed so that pick can still be checked. What the two"));
+		Out.Add(TEXT("#   of them SAY is then built by the ported StreetVoice.Exchange around the"));
+		Out.Add(TEXT("#   summary the mill actually carried. overheardReplyMode says which, with"));
+		Out.Add(TEXT("#   the count of beats in each mode; the telling is the composed beat and the"));
+		Out.Add(TEXT("#   answer is a literal from the HEARER'S disposition band, which is the C#'s"));
+		Out.Add(TEXT("#   own accounting at StreetVoice.cs 289 to 295 and not a softening of it."));
 		Out.Add(TEXT("# EVERY ZERO SHIPS ITS DENOMINATOR AND EVERY CAP ANNOUNCES ITSELF."));
 		Out.Add(TEXT(""));
 
@@ -1016,8 +1038,9 @@ namespace
 		Out.Add(Un(LedgerCrime::GossipRoundLine(GRound1)));
 		Out.Add(Un(LedgerCrime::GossipRoundLine(GRound2)));
 
-		// 7. The overheard beat.
+		// 7. The overheard beat, and the prose on its own line under it.
 		Out.Add(Un(LedgerCrime::OverheardLine(GOverheard)));
+		Out.Add(Un(LedgerCrime::OverheardTextLine(GOverheard)));
 
 		// 8. Memory, whole run.
 		const int W1Events = (GW1 && GW1->Memory) ? (int)GW1->Memory->Events.size() : 0;
@@ -1076,7 +1099,8 @@ namespace
 		         + " bankFrom=" + GOverheard.BankPath
 		         + " bankSummaryText=" + LedgerCrime::NoSpaces(GSummaryText)
 		         + " bankReplyText=" + LedgerCrime::NoSpaces(GReplyText)
-		         + " bankTextNote=spaces-become-dashes-in-a-value/the-bank-file-holds-the-prose"));
+		         + " bankTextNote=spaces-become-dashes-in-a-value/the-bank-file-holds-the-prose"
+		           "/these-two-are-the-BANK-rows-at-the-rung/what-was-said-is-on-the-overheardTellText-line"));
 		Out.Add(FString::Printf(TEXT("crimeTicks=%d crimeSeconds=%.2f crimeFinishReason=%s"),
 		                        GTicks, FPlatformTime::Seconds() - GRunStart, *GFinishReason));
 
@@ -1149,7 +1173,11 @@ namespace
 			std::string Id, Text, Speaker, Why;
 			int Variants = 0;
 			const int Seed = LedgerCrime::Seed(GNow);
-			std::string Summary = "bank-unreadable/" + GOverheard.WhyNot;
+			// THE SENTINEL LIVES IN THE HEADER, where the test that refuses to
+			// compose from it lives: two copies of this string would let the
+			// producer drift away from the check and the beat would speak a
+			// diagnostic.
+			std::string Summary = LedgerCrime::UnreadableSummaryPrefix() + GOverheard.WhyNot;
 			if (LedgerCrime::BankPick(GBankText, "witness_summary", R.O.Rung, Seed,
 			                          Id, Text, Speaker, Variants, Why))
 			{
@@ -1425,6 +1453,16 @@ namespace
 				}
 				else if (GOverheard.WhyNot == "none") { GOverheard.WhyNot = Why; }
 			}
+			// AND THE EXCHANGE IS COMPOSED, queue 147. The bank above supplied
+			// the rung and the id, which is what run 32 measured and what a
+			// composed line would otherwise delete; this builds the sentence
+			// the two of them actually say, around the summary the mill
+			// carried, through the ported StreetVoice.Exchange. A refusal
+			// falls back to the bank rows and says why on the verdict.
+			GOverheard.Reply = LedgerCrime::ComposeOverheard(
+				GCarried, GW1, GN2, LedgerCrime::Seed(GNow),
+				GSummaryText == "none" ? std::string() : GSummaryText,
+				GReplyText == "none" ? std::string() : GReplyText);
 			GOverheard.Events = GRound2.Passed;
 			WriteBreadcrumb(TEXT("gossip-round-2"));
 			GPhase = ECrimePhase::MoveToOverhear;
@@ -1459,6 +1497,8 @@ namespace
 			GBeat = "overheard";
 			GBeatSpeaker = "w1";
 			GBeatLineId = GOverheard.SummaryId;
+			GBeatLineText = GOverheard.Reply.TellText;
+			GBeatLineTextSource = LedgerCrime::BeatTextSource(GOverheard.Reply, /*bTell=*/true);
 			GBeatHeard = GOverheard.Heard();
 			GPhase = ECrimePhase::OverheardHold;
 			GPhaseStart = Now;
@@ -1472,6 +1512,8 @@ namespace
 			{
 				GBeatSpeaker = "n2";
 				GBeatLineId = GOverheard.ReplyId;
+				GBeatLineText = GOverheard.Reply.ReplyText;
+				GBeatLineTextSource = LedgerCrime::BeatTextSource(GOverheard.Reply, /*bTell=*/false);
 			}
 			MaybeCaptureSequence(Now);
 			if ((Now - GPhaseStart) < LedgerCrime::kOverheardHoldSeconds) { return true; }

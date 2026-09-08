@@ -67,6 +67,62 @@ and not an uncaptioned frame: a clip whose words silently went missing looks
 exactly like a clip that was never meant to have any, and the whole point of
 this pass is that the second window's consequence is that nobody speaks of
 it. The two cases must not read alike.
+
+THE WORDS ON THE ROW NOW OUTRANK THE BANK, 2026-09-08. The overheard beat no
+longer SPEAKS a bank row: it composes a telling at run time from the rumour
+the gossip mill actually carried (StreetVoice.Exchange, ported in
+ue-probe/Source/LedgerProbe/Public/StreetVoice.h), and the bank row is what
+the pick WOULD have said. So CrimeProbe.h's SeqKeyLine puts the sentence
+itself on the row as `lineText=`, spaces escaped to `~` because no key=value
+value may carry a space, beside `lineTextSource=` naming where it came from
+(composed/..., picked/..., bank/...) and `lineTextEscape=spaces-are-~`.
+
+A CAPTION FROM THE BANK AND A CAPTION FROM WHAT WAS SAID MUST NOT READ
+ALIKE, so every reason string here opens with the source it used: `spoken/`,
+`bank/`, `nowords/` or a refusal. Burning the bank row while the simulation
+said something else is worse than burning nothing: the clip IS the artifact,
+and a caption that disagrees with the verdict makes the clip unusable as
+evidence for either sentence (CLAUDE.md rule 4).
+
+WHEN BOTH EXIST AND DISAGREE, THAT IS INFORMATION AND NOT A CONFLICT TO
+SUPPRESS. The spoken text wins because it is what was said; the bank row is
+never drawn beside it (one sentence reaches the frame, ever); the
+disagreement is named in that frame's reason (`bank-row-differed`) and
+counted on the done line as clipCaptionSpokenVsBank.
+
+THE FOUR THINGS THE ~ UN-ESCAPE CAN MEET, each decided here and each in
+--selftest:
+
+  a real tilde in the prose   Every ~ becomes one space, because that is the
+                              escape's definition, and a lone literal tilde
+                              cannot be told from an escaped space by anything
+                              on the row. A run of two or more, or a leading
+                              or trailing one, IS a signal: it is either a
+                              literal tilde beside a space or a double space,
+                              and this tool cannot say which, so it captions
+                              the frame, notes `tilde-run..suspect` in the
+                              reason and counts it as clipCaptionTildeRuns
+                              rather than deciding. Measured 2026-09-08: 0
+                              tildes in content/dialogue/crime-witness-v1.json
+                              and 0 in StreetVoice.h, so nothing authored in
+                              the project today can reach this case.
+  lineText absent, or `none`  Falls back to the bank lookup by lineId, which
+                              is exactly the behaviour before this change, and
+                              the reason says `bank/` and says which of the
+                              two it was.
+  lineText of only tildes     Un-escapes to blank, which would paint an empty
+                              strip on a frame somebody is speaking on. Not
+                              spoken text: falls back to the bank with the
+                              blankness named in the reason.
+  lineText carrying an `=`    Survives intact. read_frame_keys splits a token
+                              on the FIRST `=` only, so `2~+~2~=~4` comes back
+                              as `2 + 2 = 4`.
+
+AND THE ESCAPE IS READ, NOT ASSUMED. A row declaring an escape this tool does
+not implement REFUSES, naming the value, rather than un-escaping by a rule it
+guessed: a mangled sentence burned onto a frame is the same silent fault as
+the wrong sentence. A row with a lineText and no lineTextEscape at all is
+un-escaped by the documented rule, with `escape..assumed-` in the reason.
 """
 import glob
 import json
@@ -131,6 +187,32 @@ CAPTION_FONT_CANDIDATES = (
     "C:/Windows/Fonts/segoeui.ttf",
 )
 
+# THE ONE ESCAPE THIS TOOL IMPLEMENTS, matching CrimeProbe.h's Tilde and the
+# `lineTextEscape=` it writes beside every lineText. Compared, not assumed: a
+# row declaring a different rule refuses rather than being un-escaped by this
+# one (see the header).
+LINE_TEXT_ESCAPE = "spaces-are-~"
+
+# THE TWO WAYS A ROW SAYS "NO SENTENCE HERE". SeqKeyLine writes the word
+# `none` when the beat carried no words, because a key=value value may not be
+# empty either; a hand-written or older row can also carry `lineText=` with
+# nothing after it. Both mean the same thing and both fall back to the bank.
+LINE_TEXT_ABSENT_TOKENS = ("", "none")
+
+# HOW MANY PER-FRAME LINES GET PRINTED, FROM A PRINTED SERIES AND NOT A GUESS.
+# The live keys file (production/d1-probe/ue-crimeseq-keys.txt, run 5ea6cb0)
+# has 25 rows of which 8 carry words, and CrimeProbe.h's own clock cap is
+# kMaxSeqFrames = 32 frames in total, so 16 is twice the observed number of
+# with-words rows and half the structural maximum. It announces itself either
+# way: the last clipframe line always says whether it bit and over what.
+SAMPLE_LINE_CAP = 16
+
+# THE ECHOED SENTENCE'S OWN CAP, also from a measured series: the composed
+# tellings this beat can produce (42 templates in StreetVoice.h wrapped around
+# the live witness summary) measured 110 to 149 characters on 2026-09-08, so
+# 200 clears every one of them and a value that does hit it says by how much.
+SAMPLE_TEXT_CAP = 200
+
 FIELD_ORDER = (
     "clipStatus", "clipReason", "clipFramesExamined", "clipFramesUsed",
     "clipWidth", "clipHeight", "clipDurationMs", "clipScale",
@@ -138,6 +220,10 @@ FIELD_ORDER = (
     "clipCaptionedFrames", "clipCaptionReason", "clipCaptionTextPx",
     "clipCaptionFont", "clipCaptionLinesDropped", "clipCaptionKeysRead",
     "clipCaptionBankRead",
+    # ADDED 2026-09-08 WITH THE lineText PREFERENCE. All three are whole-run
+    # and all three ship their denominator; the per-frame half of the same
+    # facts is the `clipframe` lines, never this line.
+    "clipCaptionsBySource", "clipCaptionSpokenVsBank", "clipCaptionTildeRuns",
 )
 
 
@@ -157,7 +243,11 @@ def read_frame_keys(path):
     Returns (rows, examined, error). `examined` counts every non-comment,
     non-blank line READ, which is the denominator for anything said about
     them later; a line with no `frame=` key is counted and skipped, and the
-    count of those is the difference between the two numbers."""
+    count of those is the difference between the two numbers.
+
+    THE SPLIT IS ON THE FIRST `=` ONLY, which is what lets a sentence riding
+    in `lineText=` carry an `=` of its own, and the split on whitespace is
+    what guarantees no value can contain a space by the time it is read."""
     rows = {}
     examined = 0
     try:
@@ -204,24 +294,125 @@ def read_bank(path):
     return out, len(rows), ""
 
 
-def caption_for(keys_rows, bank_lines, basename):
-    """(text, reason) for one frame. text is None when this frame carries no
-    words, which is the ordinary case and NOT an error: the second window's
-    consequence is that nobody speaks of it.
+def tilde_escape(text):
+    """Each whitespace character to one `~`, which is exactly what
+    CrimeProbe.h's Tilde does on the way out. Used here to put the sentence
+    this tool actually burned back onto its own sample line, so the words in
+    the committed evidence file and the words on the frame are the same string
+    and a reader can compare them without reading pixels."""
+    return "".join("~" if ch in " \t\r\n" else ch for ch in str(text))
 
-    A `heard=yes` frame naming an id the bank does not carry is the one case
-    that REFUSES, with the id in the reason."""
+
+def unescape_line_text(raw):
+    """(text, tilde_run) for one `lineText=` value.
+
+    EVERY ~ BECOMES ONE SPACE, the inverse of CrimeProbe.h's Tilde, which
+    writes one ~ per whitespace character. A lone literal tilde in the prose is
+    indistinguishable from an escaped space and becomes one: that is a property
+    of the escape, not a choice this function can make.
+
+    tilde_run is True when the raw value carries a run of two or more tildes,
+    or begins or ends with one. Those shapes are either a literal tilde beside
+    a space or a double space, and nothing on the row can tell them apart, so
+    the frame is still captioned and the count is printed instead
+    (clipCaptionTildeRuns)."""
+    s = str(raw)
+    tilde_run = ("~~" in s) or s.startswith("~") or s.endswith("~")
+    return s.replace("~", " "), tilde_run
+
+
+def _facts(source, bank_row, tilde_run, line_id):
+    """The third return of caption_for, as fields rather than a prefix the
+    caller would have to re-parse out of the reason string. The tally reads
+    these; the reason string is for a human reading the evidence file, and the
+    two must agree because they are built in the same place."""
+    return {"source": source, "bankRow": bank_row,
+            "tildeRun": bool(tilde_run), "lineId": line_id}
+
+
+def caption_for(keys_rows, bank_lines, basename):
+    """(text, reason, facts) for one frame.
+
+    text is None when this frame carries no words, which is the ordinary case
+    and NOT an error: the second window's consequence is that nobody speaks of
+    it. text is False when the frame REFUSES.
+
+    WHAT WAS SAID OUTRANKS WHAT WOULD HAVE BEEN SAID. `lineText` on the row is
+    the sentence the simulation actually spoke (a composed telling is not in
+    the bank and never can be), so it is preferred whenever it is present and
+    non-empty, and the bank lookup by `lineId` is the fallback for a row that
+    carries no words of its own. The reason names which of the two answered
+    EVERY time, in both directions, so a frame captioned from the bank can
+    never read like a frame captioned from what was said.
+
+    A `heard=yes` frame with no usable lineText AND an id the bank does not
+    carry is the case that REFUSES, with the id in the reason. A frame that HAS
+    a spoken sentence does not refuse over its id, because nothing went
+    missing: the words are on the row."""
     row = keys_rows.get(basename)
     if row is None:
-        return None, "no-keys-line-for-this-frame"
+        return None, "nowords/no-keys-line-for-this-frame", _facts(
+            "nowords", "none", False, "none")
     if row.get("heard") != "yes":
-        return None, "heard=" + str(row.get("heard", "absent"))
-    line_id = row.get("lineId", "")
-    if not line_id or line_id == "none":
-        return None, "heard=yes-but-no-lineId"
+        return None, _nospace("nowords/heard..%s" % row.get("heard", "absent")), _facts(
+            "nowords", "none", False, _nospace(row.get("lineId", "none")))
+
+    line_id = row.get("lineId", "") or "none"
+    raw = row.get("lineText")
+    escape = row.get("lineTextEscape", "")
+    spoken, tilde_run, why_not_spoken = None, False, ""
+    if raw is None:
+        why_not_spoken = "lineText..absent-key"
+    elif raw in LINE_TEXT_ABSENT_TOKENS:
+        why_not_spoken = ("lineText..empty-value" if raw == ""
+                          else "lineText..none-sentinel")
+    elif escape and escape != LINE_TEXT_ESCAPE:
+        # REFUSES RATHER THAN GUESSING THE RULE. An un-escape by the wrong rule
+        # burns a mangled sentence, which is the same class of fault as burning
+        # the wrong sentence, and falling back to the bank here would burn the
+        # row this beat no longer speaks.
+        return False, _nospace("refused/lineText-escape-unknown..%s"
+                               "/this-tool-implements..%s" % (escape, LINE_TEXT_ESCAPE)), \
+            _facts("refused", "unread", False, line_id)
+    else:
+        candidate, tilde_run = unescape_line_text(raw)
+        if candidate.strip() == "":
+            # A VALUE OF NOTHING BUT TILDES paints an empty strip on a frame
+            # somebody is speaking on, which reads as "nobody said anything".
+            why_not_spoken = "lineText..only-tildes-unescapes-to-blank"
+        else:
+            spoken = candidate
+
+    if spoken is not None:
+        src = _nospace(row.get("lineTextSource", "") or "absent-key")
+        bank_text = bank_lines.get(line_id) if line_id != "none" else None
+        if bank_text is None:
+            bank_row, said = "absent", "bank-row-absent"
+        elif bank_text == spoken:
+            bank_row, said = "agrees", "bank-row-agrees"
+        else:
+            # THE DISAGREEMENT IS THE INFORMATION: the composed line won, and
+            # the row it differs from is named so the verdict's
+            # overheardPickWouldHaveSaid can be matched against it.
+            bank_row, said = "differed", "bank-row-differed"
+        reason = "spoken/from-lineText/%s/id..%s/src..%s" % (said, line_id, src)
+        if not escape:
+            reason += "/escape..assumed-" + LINE_TEXT_ESCAPE
+        if tilde_run:
+            reason += "/tilde-run..suspect-see-clipCaptionTildeRuns"
+        return spoken, _nospace(reason), _facts("spoken", bank_row, tilde_run, line_id)
+
+    if line_id == "none":
+        return None, _nospace("nowords/heard..yes-but-no-lineId-and-%s"
+                              % why_not_spoken), _facts(
+            "nowords", "none", tilde_run, line_id)
     if line_id not in bank_lines:
-        return False, _nospace("bank-has-no-line-id:%s" % line_id)
-    return bank_lines[line_id], "none"
+        return False, _nospace("bank-has-no-line-id:%s/and-%s"
+                               % (line_id, why_not_spoken)), _facts(
+            "refused", "absent", tilde_run, line_id)
+    return bank_lines[line_id], _nospace(
+        "bank/from-lineId-lookup/id..%s/%s" % (line_id, why_not_spoken)), _facts(
+        "bank", "used", tilde_run, line_id)
 
 
 def load_caption_font(out_height):
@@ -300,10 +491,16 @@ def burn_caption(img, text, font, line_px):
 
 
 def build(pattern, out_path, scale=DEFAULT_SCALE, duration_ms=DEFAULT_DURATION_MS,
-          max_bytes=DEFAULT_MAX_BYTES, frame_keys=None, bank=None):
+          max_bytes=DEFAULT_MAX_BYTES, frame_keys=None, bank=None,
+          sample_out=None):
     """Returns (ok, fields). fields carries EVERY key in FIELD_ORDER on every
     call, whichever branch answered, so a caller printing the line never has
-    to guess which keys a given outcome left out."""
+    to guess which keys a given outcome left out.
+
+    sample_out, when a list is passed, receives ONE DICT PER FRAME THAT CARRIED
+    WORDS, for the caller to print as its own lines. The per-frame facts do not
+    go into fields: fields is the done line, and a per-sample number under a
+    whole-run key is the pair a grep silently merges."""
     paths = sorted(glob.glob(pattern))
     examined = len(paths)
     fields = {
@@ -311,7 +508,11 @@ def build(pattern, out_path, scale=DEFAULT_SCALE, duration_ms=DEFAULT_DURATION_M
         "clipFramesExamined": examined, "clipFramesUsed": 0,
         "clipWidth": 0, "clipHeight": 0,
         "clipDurationMs": duration_ms, "clipScale": scale,
-        "clipBytes": 0, "clipMaxBytes": max_bytes, "clipOut": out_path,
+        # _nospace ON THE PATH: every other value in this dict is built from
+        # tokens that cannot contain a space, and this one is whatever the
+        # caller passed. A reader splitting on whitespace would take the half
+        # after the space as a key with no `=` and drop it silently.
+        "clipBytes": 0, "clipMaxBytes": max_bytes, "clipOut": _nospace(out_path),
         # NEVER-ATTEMPTED PRINTS THE WORDS, not a zero: a clip nobody asked
         # to caption and a clip whose captions all failed are different
         # facts with different next actions (rule 3b).
@@ -320,6 +521,12 @@ def build(pattern, out_path, scale=DEFAULT_SCALE, duration_ms=DEFAULT_DURATION_M
         "clipCaptionTextPx": 0, "clipCaptionFont": "none",
         "clipCaptionLinesDropped": "0/0-wrapped",
         "clipCaptionKeysRead": 0, "clipCaptionBankRead": 0,
+        # THE WORDS, NOT A ZERO, FOR ALL THREE. "no frame was captioned from
+        # what the simulation said" and "nobody asked for captions" are
+        # different facts, and `spoken..0` would read as the first.
+        "clipCaptionsBySource": "nothing-measured",
+        "clipCaptionSpokenVsBank": "nothing-measured",
+        "clipCaptionTildeRuns": "nothing-measured",
     }
 
     frames = []
@@ -359,7 +566,8 @@ def build(pattern, out_path, scale=DEFAULT_SCALE, duration_ms=DEFAULT_DURATION_M
     # shrunk into illegibility. Refuses before writing anything: a GIF whose
     # words went missing must not exist on disk to be sent.
     if frame_keys:
-        ok_caption, reason = _apply_captions(resized, paths, frame_keys, bank, fields)
+        ok_caption, reason = _apply_captions(resized, paths, frame_keys, bank,
+                                             fields, sample_out)
         if not ok_caption:
             fields["clipStatus"] = "REFUSED"
             fields["clipReason"] = reason
@@ -389,9 +597,10 @@ def build(pattern, out_path, scale=DEFAULT_SCALE, duration_ms=DEFAULT_DURATION_M
     return True, fields
 
 
-def _apply_captions(resized, paths, frame_keys, bank, fields):
-    """Burns the bank's words onto the frames whose keys line says
-    `heard=yes`. Returns (ok, reason) and fills every clipCaption* field.
+def _apply_captions(resized, paths, frame_keys, bank, fields, sample_out=None):
+    """Burns the words onto the frames whose keys line says `heard=yes`: the
+    sentence on the row when it carries one, the bank row for its lineId when
+    it does not. Returns (ok, reason) and fills every clipCaption* field.
 
     The two counts are a real fraction: `clipCaptionedFrames=N/M` has as its
     denominator the frames THIS CALL examined for a caption, which is every
@@ -417,32 +626,141 @@ def _apply_captions(resized, paths, frame_keys, bank, fields):
     fields["clipCaptionFont"] = font_name
     fields["clipCaptionTextPx"] = line_px
 
+    # ALL CUMULATIVE OVER THE FRAMES THIS CALL EXAMINED, one bucket per frame,
+    # because caption_for returns exactly one source for every frame it is
+    # asked about.
+    spoken_n = bank_n = nowords_n = 0
+    differed = agreed = tilde_runs = 0
     captioned, dropped, wrapped = 0, 0, 0
     for img, path in zip(resized, paths):
-        text, reason = caption_for(keys_rows, bank_lines, os.path.basename(path))
+        name = os.path.basename(path)
+        text, reason, facts = caption_for(keys_rows, bank_lines, name)
         if text is False:
+            # THE DENOMINATOR IS CAPTURED AT THE INSTANT THE RUN STOPS and is
+            # NAMED for that moment: the frames after this one were never
+            # classified, so `examined..len(paths)` would be a count of a set
+            # nobody looked at.
+            # clipCaptionedFrames KEEPS THE WHOLE CLIP AS ITS DENOMINATOR on
+            # this path (N captioned of the clip's M frames, which is what it
+            # has always meant); the keys below name the moment instead, and a
+            # reader must not merge the two denominators.
             fields["clipCaptionedFrames"] = "%d/%d" % (captioned, len(paths))
             fields["clipCaptionReason"] = reason
+            fields["clipCaptionLinesDropped"] = ("%d/%d-wrapped-atRefusal"
+                                                 % (dropped, wrapped))
+            fields["clipCaptionsBySource"] = (
+                "spoken..%d/bank..%d/nowords..%d/refused..1/examinedAtRefusal..%d"
+                % (spoken_n, bank_n, nowords_n,
+                   spoken_n + bank_n + nowords_n + 1))
+            fields["clipCaptionSpokenVsBank"] = (
+                "differed..%d/agreed..%d/comparable..%d"
+                % (differed, agreed, differed + agreed))
+            fields["clipCaptionTildeRuns"] = ("runs..%d/spoken..%d"
+                                              % (tilde_runs, spoken_n))
+            if sample_out is not None:
+                sample_out.append({"frame": name, "source": "refused",
+                                   "reason": reason, "text": None,
+                                   "shown": 0, "wrapped": 0})
             return False, reason
         if text is None:
+            nowords_n += 1
             continue
         _, shown, total = burn_caption(img, text, font, line_px)
         captioned += 1
         wrapped += total
         dropped += total - shown
+        if facts["source"] == "spoken":
+            spoken_n += 1
+            if facts["bankRow"] == "differed":
+                differed += 1
+            elif facts["bankRow"] == "agrees":
+                agreed += 1
+            # ON SPOKEN FRAMES ONLY, which is what the denominator beside it
+            # counts. A tilde run on a row whose caption came from the bank is
+            # named in that row's own reason instead of counted against a
+            # denominator it is not a member of.
+            if facts["tildeRun"]:
+                tilde_runs += 1
+        else:
+            bank_n += 1
+        if sample_out is not None:
+            sample_out.append({"frame": name, "source": facts["source"],
+                               "reason": reason, "text": text,
+                               "shown": shown, "wrapped": total})
     fields["clipCaptionedFrames"] = "%d/%d" % (captioned, len(paths))
     fields["clipCaptionReason"] = "none"
     # CUMULATIVE OVER EVERY CAPTIONED FRAME, named so: this is the cap on
     # the strip announcing itself, and a non-zero numerator means words a
     # viewer will never read.
     fields["clipCaptionLinesDropped"] = "%d/%d-wrapped" % (dropped, wrapped)
+    # WHOLE-RUN, CUMULATIVE, AND A PARTITION BY CONSTRUCTION: spoken + bank +
+    # nowords + refused == examined, because every frame gets exactly one
+    # source. spoken + bank is clipCaptionedFrames' numerator split a second
+    # way, not a second measurement of it.
+    fields["clipCaptionsBySource"] = (
+        "spoken..%d/bank..%d/nowords..%d/refused..0/examined..%d"
+        % (spoken_n, bank_n, nowords_n, len(paths)))
+    # CUMULATIVE OVER THE FRAMES WHERE BOTH A SPOKEN SENTENCE AND A BANK ROW
+    # EXISTED, which is the only set where a disagreement is a fact at all:
+    # comparable..0 means nothing was comparable, NOT that everything agreed.
+    fields["clipCaptionSpokenVsBank"] = (
+        "differed..%d/agreed..%d/comparable..%d"
+        % (differed, agreed, differed + agreed))
+    fields["clipCaptionTildeRuns"] = "runs..%d/spoken..%d" % (tilde_runs, spoken_n)
     return True, "none"
+
+
+def format_sample_lines(samples, cap=SAMPLE_LINE_CAP, text_cap=SAMPLE_TEXT_CAP):
+    """The per-frame lines: one per frame that carried words, then a final line
+    that ALWAYS says whether the cap bit and over what.
+
+    WHY ONLY THE FRAMES THAT CARRIED WORDS. The live keys file is 17 silent
+    rows to 8 speaking ones, and a line per silent frame would bury the ones
+    that matter in the evidence file. The silent frames are counted on the done
+    line instead (clipCaptionsBySource nowords..N), which is where a whole-run
+    number belongs.
+
+    THE CAP ANNOUNCES ITSELF IN A CHANNEL THAT ALLOWS NO SPACES, so the
+    canonical `(+N more not shown)` is written `+N-more-not-shown`, and the
+    sentence echoed back carries its own cap the same way."""
+    out = []
+    if not samples:
+        return out
+    for s in samples[:cap]:
+        if s["text"] is None:
+            echo = "none"
+        else:
+            # THE SENTENCE THAT WAS BURNED, ESCAPED THE WAY IT ARRIVED, so the
+            # evidence file and the frame carry the same string and a reader
+            # can diff the caption against overheardTellText without pixels.
+            echo = tilde_escape(s["text"])
+            if len(echo) > text_cap:
+                echo = echo[:text_cap] + ("/+%d-chars-not-shown"
+                                          % (len(echo) - text_cap))
+        out.append("clipframe frame=%s captionSource=%s captionReason=%s "
+                   "captionTextTilde=%s captionLines=shown..%d/wrapped..%d"
+                   % (_nospace(s["frame"]), _nospace(s["source"]),
+                      _nospace(s["reason"]), _nospace(echo),
+                      s["shown"], s["wrapped"]))
+    shown_rows = min(len(samples), cap)
+    out.append("clipframe capBit=%s capNote=shownRows..%d/withWordsRows..%d"
+               "/+%d-more-not-shown/capIs..%d"
+               % ("yes" if len(samples) > cap else "no", shown_rows,
+                  len(samples), len(samples) - shown_rows, cap))
+    return out
 
 
 def report(pattern, out_path, scale, duration_ms, max_bytes,
            frame_keys=None, bank=None):
+    samples = []
     ok, fields = build(pattern, out_path, scale, duration_ms, max_bytes,
-                       frame_keys, bank)
+                       frame_keys, bank, sample_out=samples)
+    # PER-FRAME LINES FIRST, THE DONE LINE LAST. instruments.md: whole-run
+    # numbers on the done line, per-sample numbers on the sample line, and
+    # never one key carrying both moments. A run with no captions at all emits
+    # no clipframe lines and says so on the done line instead.
+    for line in format_sample_lines(samples):
+        print(line)
     print("clip " + " ".join("%s=%s" % (k, fields[k]) for k in FIELD_ORDER))
     return 0 if ok else 1
 
@@ -459,7 +777,15 @@ def selftest():
     right frame count. Then three rejecting cases the tool must refuse on:
     no frames, one frame, a corrupt frame; plus a size bound it cannot meet,
     because "refuses" and "silently ships something smaller" are different
-    outcomes and only a planted case tells them apart."""
+    outcomes and only a planted case tells them apart.
+
+    THE CAPTION SECTIONS FOLLOW THE SAME ORDER. For the lineText preference
+    added 2026-09-08 the accepting case is first (a row carrying the words
+    captions from them, spaces restored), then the regression it must not cause
+    (a row with no lineText still captions from the bank), then the refusal that
+    must survive (no lineText and an id the bank lacks), then the planted
+    disagreement, then the four shapes the ~ un-escape can meet. The live keys
+    file and the live bank are accepting fixtures and PRINT what they found."""
     ok, fails = 0, []
 
     def check(name, cond):
@@ -636,6 +962,14 @@ def selftest():
               and "cw-ws-r9-99" in fields["clipCaptionReason"])
         check("rejecting: a refused caption writes no clip at all",
               not os.path.exists(miss_out))
+        # THE DENOMINATOR AT THE MOMENT THE RUN STOPPED, not the whole clip:
+        # frame 002 was never classified, so counting it as examined would be a
+        # count of a set nobody looked at.
+        check("rejecting: the by-source counts name the moment they stopped at",
+              fields["clipCaptionsBySource"]
+              == "spoken..0/bank..0/nowords..1/refused..1/examinedAtRefusal..2")
+        check("rejecting: the wrapped lines so far are named at-refusal too",
+              fields["clipCaptionLinesDropped"].endswith("-wrapped-atRefusal"))
 
         # ---- rejecting: keys without a bank, and a keys file that is not there.
         nb_ok, fields = build(os.path.join(cap_dir, "ue-crimeseq_*.png"),
@@ -668,6 +1002,206 @@ def selftest():
         check("planted: a caption too long for the strip announces the lines lost",
               long_ok and int(dropped) > 0)
 
+        # ---- THE WORDS ON THE ROW OUTRANK THE BANK, ACCEPTING CASE FIRST.
+        #
+        # THE DISAGREEMENT IS PLANTED, NOT HOPED FOR. Frame 001 carries a
+        # composed telling that is NOT the bank row for its id, which is the
+        # exact fault this section fixes; frame 002 carries a lineText that IS
+        # its bank row word for word, so the agrees branch runs too and
+        # `differed` cannot pass by counting everything it sees.
+        spoken_line = ("You hear all sorts. He looked straight at me before he "
+                       "ran, apparently.")
+        agreeing_line = "Then you want to keep that to yourself."
+        sp_keys = os.path.join(tmp, "keys-spoken.txt")
+        with open(sp_keys, "w", encoding="utf-8") as fh:
+            fh.write("# synthetic keys file WITH the words on the row\n")
+            fh.write("frame=ue-crimeseq_000.png beat=deed_a speaker=none lineId=none "
+                     "lineText=none lineTextSource=none/this-frame-carries-no-words "
+                     "lineTextEscape=spaces-are-~ heard=no\n")
+            fh.write("frame=ue-crimeseq_001.png beat=overheard speaker=w1 "
+                     "lineId=test-ws-01 lineText=%s "
+                     "lineTextSource=composed/StreetVoice.Exchange-around-the-carried-summary "
+                     "lineTextEscape=spaces-are-~ heard=yes\n" % tilde_escape(spoken_line))
+            fh.write("frame=ue-crimeseq_002.png beat=overheard speaker=n2 "
+                     "lineId=test-ov-01 lineText=%s "
+                     "lineTextSource=picked/the-hearer-s-own-disposition-band/not-the-bank-s-rung "
+                     "lineTextEscape=spaces-are-~ heard=yes\n" % tilde_escape(agreeing_line))
+
+        sp_rows, sp_examined, sp_err = read_frame_keys(sp_keys)
+        sel_bank, _, _ = read_bank(bank_path)
+        t1, r1, f1 = caption_for(sp_rows, sel_bank, "ue-crimeseq_001.png")
+        check("accepting (spoken): the sentence comes back with its spaces, exactly",
+              t1 == spoken_line and not sp_err and sp_examined == 3)
+        check("accepting (spoken): the reason names the source, the id and the provenance",
+              r1 == "spoken/from-lineText/bank-row-differed/id..test-ws-01"
+                    "/src..composed/StreetVoice.Exchange-around-the-carried-summary")
+        check("accepting (spoken): the source is a fact, not a prefix to re-parse",
+              f1["source"] == "spoken" and f1["bankRow"] == "differed")
+        check("planted: the bank row for that id is NOT what was said, and what was "
+              "said is what came back", sel_bank["test-ws-01"] != t1)
+        t2, r2, f2 = caption_for(sp_rows, sel_bank, "ue-crimeseq_002.png")
+        check("accepting (spoken): a lineText equal to its bank row reads as agrees",
+              t2 == agreeing_line and f2["bankRow"] == "agrees"
+              and r2 == "spoken/from-lineText/bank-row-agrees/id..test-ov-01"
+                        "/src..picked/the-hearer-s-own-disposition-band/not-the-bank-s-rung")
+
+        # THE REGRESSION THIS CHANGE MUST NOT CAUSE: the original fixture rows
+        # carry no lineText at all, and must caption from the bank exactly as
+        # they did before tonight.
+        nolt_rows, _, _ = read_frame_keys(keys_path)
+        tb, rb, fb = caption_for(nolt_rows, sel_bank, "ue-crimeseq_001.png")
+        check("accepting (bank, the regression): a row with no lineText still "
+              "captions from the bank, word for word",
+              tb == sel_bank["test-ws-01"] and fb["source"] == "bank")
+        check("accepting (bank): the reason says bank and says why it fell back",
+              rb == "bank/from-lineId-lookup/id..test-ws-01/lineText..absent-key")
+        check("accepting: a bank caption cannot read like a spoken one",
+              rb.split("/")[0] == "bank" and r1.split("/")[0] == "spoken")
+
+        # THE REFUSAL THAT MUST SURVIVE: no lineText, and an id the bank lacks.
+        badk_rows, _, _ = read_frame_keys(bad_keys)
+        tr, rr, fr = caption_for(badk_rows, sel_bank, "ue-crimeseq_001.png")
+        check("rejecting: no lineText and an id the bank lacks still REFUSES with "
+              "the id in the reason",
+              tr is False and "cw-ws-r9-99" in rr and fr["source"] == "refused")
+
+        # ---- THE FOUR THINGS THE ~ UN-ESCAPE CAN MEET, through the real
+        # parser (read_frame_keys), because a second parser written here would
+        # be a second place to fix when the first one is wrong.
+        edge_keys = os.path.join(tmp, "keys-edges.txt")
+        with open(edge_keys, "w", encoding="utf-8") as fh:
+            fh.write("frame=tilde.png beat=overheard speaker=w1 lineId=test-ws-01 "
+                     "lineText=He~said~~tilde~here. lineTextSource=composed/x "
+                     "lineTextEscape=spaces-are-~ heard=yes\n")
+            fh.write("frame=empty.png beat=overheard speaker=w1 lineId=test-ws-01 "
+                     "lineText= lineTextSource=composed/x "
+                     "lineTextEscape=spaces-are-~ heard=yes\n")
+            fh.write("frame=tildesonly.png beat=overheard speaker=w1 lineId=test-ws-01 "
+                     "lineText=~~~ lineTextSource=composed/x "
+                     "lineTextEscape=spaces-are-~ heard=yes\n")
+            fh.write("frame=equals.png beat=overheard speaker=n2 lineId=test-ov-01 "
+                     "lineText=2~+~2~=~4,~he~said. lineTextSource=composed/x "
+                     "lineTextEscape=spaces-are-~ heard=yes\n")
+            fh.write("frame=noid.png beat=overheard speaker=w1 lineId=none "
+                     "lineText=none lineTextSource=none/x "
+                     "lineTextEscape=spaces-are-~ heard=yes\n")
+            fh.write("frame=otherescape.png beat=overheard speaker=w1 "
+                     "lineId=test-ws-01 lineText=He~said~it lineTextSource=composed/x "
+                     "lineTextEscape=spaces-are-underscore heard=yes\n")
+            # THE ONE PLACE BEHAVIOUR NARROWED, pinned so it cannot drift back:
+            # a row that HAS the words does not refuse over an id the bank
+            # lacks, because nothing went missing. The refusal is for the row
+            # with no words AND no bank row, which is still tested above.
+            fh.write("frame=spokenbutnoid.png beat=overheard speaker=w1 "
+                     "lineId=cw-ws-r9-99 lineText=He~said~it~himself. "
+                     "lineTextSource=composed/x lineTextEscape=spaces-are-~ heard=yes\n")
+        ed, ed_examined, _ = read_frame_keys(edge_keys)
+        check("edge fixture: all seven rows parsed", ed_examined == 7 and len(ed) == 7)
+        te, re_t, fe = caption_for(ed, sel_bank, "tilde.png")
+        check("edge (a real tilde): every ~ becomes one space, and the run says so",
+              te == "He said  tilde here." and fe["tildeRun"] is True
+              and re_t.endswith("/tilde-run..suspect-see-clipCaptionTildeRuns"))
+        t_em, r_em, f_em = caption_for(ed, sel_bank, "empty.png")
+        check("edge (an empty lineText): the bank answers and the empty value is named",
+              t_em == sel_bank["test-ws-01"] and f_em["source"] == "bank"
+              and r_em == "bank/from-lineId-lookup/id..test-ws-01/lineText..empty-value")
+        t_ot, r_ot, f_ot = caption_for(ed, sel_bank, "tildesonly.png")
+        check("edge (only tildes): blank is not a caption, so the bank answers and "
+              "the blankness is named",
+              t_ot == sel_bank["test-ws-01"] and f_ot["source"] == "bank"
+              and r_ot == "bank/from-lineId-lookup/id..test-ws-01"
+                          "/lineText..only-tildes-unescapes-to-blank")
+        t_eq, r_eq, f_eq = caption_for(ed, sel_bank, "equals.png")
+        check("edge (a lineText carrying an = sign): it survives the parser intact",
+              t_eq == "2 + 2 = 4, he said." and f_eq["source"] == "spoken")
+        t_ni, r_ni, f_ni = caption_for(ed, sel_bank, "noid.png")
+        check("edge (heard=yes, no words, no id): no caption, and the reason says "
+              "both halves",
+              t_ni is None and f_ni["source"] == "nowords"
+              and r_ni == "nowords/heard..yes-but-no-lineId-and-lineText..none-sentinel")
+        t_oe, r_oe, f_oe = caption_for(ed, sel_bank, "otherescape.png")
+        check("rejecting: an escape this tool does not implement refuses, naming it",
+              t_oe is False and "spaces-are-underscore" in r_oe
+              and f_oe["source"] == "refused")
+        t_sn, r_sn, f_sn = caption_for(ed, sel_bank, "spokenbutnoid.png")
+        check("accepting (the one narrowing): words on the row and an id the bank "
+              "lacks captions from the words and does not refuse",
+              t_sn == "He said it himself." and f_sn["source"] == "spoken"
+              and r_sn == "spoken/from-lineText/bank-row-absent/id..cw-ws-r9-99"
+                          "/src..composed/x")
+
+        # ---- THE DONE LINE AND THE FRAMES, TOGETHER. A caption requested is
+        # not a caption on the frame: the strip's own pixels decide (rule 4),
+        # and the two GIFs differ in exactly one thing, which row the words
+        # came from.
+        sp_samples = []
+        sp_out = os.path.join(tmp, "cap-spoken.gif")
+        sp_ok, sp_fields = build(os.path.join(cap_dir, "ue-crimeseq_*.png"), sp_out,
+                                 0.5, 100, 8 * 1024 * 1024, frame_keys=sp_keys,
+                                 bank=bank_path, sample_out=sp_samples)
+        check("accepting (done line): the four sources partition the frames examined",
+              sp_ok and sp_fields["clipCaptionsBySource"]
+              == "spoken..2/bank..0/nowords..1/refused..0/examined..3")
+        check("accepting (done line): spoken plus bank IS the captioned numerator",
+              sp_fields["clipCaptionedFrames"] == "2/3")
+        check("accepting (done line): the disagreement is counted with its own "
+              "denominator",
+              sp_fields["clipCaptionSpokenVsBank"]
+              == "differed..1/agreed..1/comparable..2")
+        check("accepting (done line): the tilde runs are counted over spoken frames",
+              sp_fields["clipCaptionTildeRuns"] == "runs..0/spoken..2")
+        sp_done = "clip " + " ".join("%s=%s" % (k, sp_fields[k]) for k in FIELD_ORDER)
+        check("accepting (done line): every key present and no value carries a space",
+              len(sp_done.split()) == 1 + len(FIELD_ORDER))
+        check("accepting (pixels): the strip burned from what was SAID is not the "
+              "strip burned from the bank row",
+              cap_ok and sp_ok and strip_bytes(cap_out, 1) != strip_bytes(sp_out, 1))
+        check("accepting (pixels): the frame whose lineText equals its bank row "
+              "burns the identical strip",
+              cap_ok and sp_ok and strip_bytes(cap_out, 2) == strip_bytes(sp_out, 2))
+        none_fields = build(os.path.join(cap_dir, "ue-crimeseq_*.png"),
+                            os.path.join(tmp, "cap-none2.gif"), 0.5, 100,
+                            8 * 1024 * 1024)[1]
+        check("accepting: a run that captioned nothing prints the words on all three",
+              none_fields["clipCaptionsBySource"] == "nothing-measured"
+              and none_fields["clipCaptionSpokenVsBank"] == "nothing-measured"
+              and none_fields["clipCaptionTildeRuns"] == "nothing-measured")
+
+        # ---- THE PER-FRAME LINES, which are where the reasons reach a reader.
+        sp_lines = format_sample_lines(sp_samples)
+        check("accepting (sample lines): one line per frame that carried words, "
+              "plus the cap line", len(sp_lines) == 3)
+        check("accepting (sample lines): the burned sentence is echoed back escaped, "
+              "so the evidence file carries the words the frame carries",
+              ("captionTextTilde=" + tilde_escape(spoken_line)) in sp_lines[0])
+        # SIX TOKENS AND THREE: `clipframe` plus its five keys, and `clipframe`
+        # plus the cap's two. A value that leaked a space would split into a
+        # seventh token and the reader after it would drop the remainder.
+        check("accepting (sample lines): no value on any of them carries a space",
+              all(len(ln.split()) == 6 for ln in sp_lines[:2])
+              and len(sp_lines[2].split()) == 3)
+        check("accepting (sample lines): the cap says it did not bite, with its "
+              "denominator",
+              sp_lines[2] == "clipframe capBit=no capNote=shownRows..2"
+                             "/withWordsRows..2/+0-more-not-shown/capIs..16")
+        check("accepting (sample lines): a run with no captions emits none at all",
+              format_sample_lines([]) == [])
+        many = [{"frame": "f_%03d.png" % i, "source": "spoken", "text": "a sentence",
+                 "reason": "spoken/from-lineText/bank-row-differed/id..x/src..composed/y",
+                 "shown": 1, "wrapped": 1} for i in range(SAMPLE_LINE_CAP + 4)]
+        many_lines = format_sample_lines(many)
+        check("planted: more with-words frames than the cap, and the cap announces it",
+              len(many_lines) == SAMPLE_LINE_CAP + 1
+              and many_lines[-1] == "clipframe capBit=yes capNote=shownRows..16"
+                                    "/withWordsRows..20/+4-more-not-shown/capIs..16")
+        long_echo = format_sample_lines([{"frame": "f.png", "source": "spoken",
+                                          "reason": "spoken/x",
+                                          "text": ("word " * 80).strip(),
+                                          "shown": 1, "wrapped": 1}])
+        check("planted: a sentence longer than the echo cap says how much it lost",
+              "-chars-not-shown" in long_echo[0]
+              and "/+%d-chars-not-shown" % (399 - SAMPLE_TEXT_CAP) in long_echo[0])
+
         # ---- THE LIVE BANK IS AN ACCEPTING FIXTURE TOO (instruments.md: for
         # a tool that checks the project itself, the live codebase is the
         # accepting fixture). Every line the dialogue writer actually wrote
@@ -691,8 +1225,55 @@ def selftest():
                   % examined, not err and examined > 0 and len(lines) == examined)
             check("accepting (live bank): the worst line wraps to %d, the strip "
                   "holds %d (%s)" % (worst, room, worst_id), worst <= room)
+            # THE SERIES PRINTS WHETHER OR NOT THE CHECK PASSES. A check name
+            # carrying the numbers is only read on a failure, and the margin
+            # between the worst line and the strip is the number somebody will
+            # want before they widen a caption (rule 2: print the series first).
+            print("clipselftest liveBank=content/dialogue/crime-witness-v1.json"
+                  " bankLinesRead=%d worstWrapLines=%d stripHoldsLines=%d"
+                  " worstId=%s marginLinesSpare=%d"
+                  % (examined, worst, room, _nospace(worst_id), room - worst))
         else:
             check("live bank absent, so nothing measured about it", True)
+
+        # ---- THE LIVE KEYS FILE IS AN ACCEPTING FIXTURE TOO, AND IT IS
+        # SHAPE-AGNOSTIC ON PURPOSE. Tonight's committed file (run 5ea6cb0)
+        # carries no lineText and the next run's will carry one on every
+        # speaking row, so this asserts only what must hold in BOTH shapes:
+        # every speaking row resolves to a non-empty sentence from a named
+        # source and nothing refuses. It PRINTS the mix it found in the check
+        # name rather than pinning it, because pinning a live asset's current
+        # shape is how doing the work breaks the tool.
+        live_keys = os.path.join(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))), "production", "d1-probe",
+            "ue-crimeseq-keys.txt")
+        if os.path.exists(live_keys) and os.path.exists(live_bank):
+            lrows, lexamined, lerr = read_frame_keys(live_keys)
+            lbank, lbank_n, _ = read_bank(live_bank)
+            mix = {"spoken": 0, "bank": 0, "nowords": 0, "refused": 0}
+            blank = 0
+            for nm in sorted(lrows):
+                lt, lr, lf = caption_for(lrows, lbank, nm)
+                mix[lf["source"]] += 1
+                if lf["source"] in ("spoken", "bank") and not str(lt).strip():
+                    blank += 1
+            check("accepting (live keys): %d row(s) read against %d bank line(s), "
+                  "mix spoken..%d/bank..%d/nowords..%d/refused..%d, blank..%d"
+                  % (lexamined, lbank_n, mix["spoken"], mix["bank"],
+                     mix["nowords"], mix["refused"], blank),
+                  not lerr and lexamined > 0 and mix["refused"] == 0 and blank == 0
+                  and (mix["spoken"] + mix["bank"]) > 0)
+            # AND THE LIVE MIX PRINTS EVERY RUN, because which source the real
+            # file resolves through is the fact this change is about, and it
+            # will change shape on the next probe run.
+            print("clipselftest liveKeys=production/d1-probe/ue-crimeseq-keys.txt"
+                  " rowsRead=%d bankLinesRead=%d"
+                  " mix=spoken..%d/bank..%d/nowords..%d/refused..%d/rows..%d"
+                  " blankCaptions=%d"
+                  % (lexamined, lbank_n, mix["spoken"], mix["bank"],
+                     mix["nowords"], mix["refused"], len(lrows), blank))
+        else:
+            check("live keys file absent, so nothing measured about it", True)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

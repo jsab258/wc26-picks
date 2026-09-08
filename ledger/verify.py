@@ -804,7 +804,7 @@ def backend_compiles():
 
 
 def ue_probe_tests():
-    """The two Unreal-side headers that have no Unreal type in them, RUN.
+    """The Unreal-side headers that have no Unreal type in them, RUN.
 
     THE RULE THIS EXISTS FOR, ruled standing on 25 August after the third
     instance: measurement arithmetic and formatting live where the tests run.
@@ -836,6 +836,17 @@ def ue_probe_tests():
     reaches for a real Unreal type fails loudly rather than being quietly
     satisfied.
 
+    THE FOURTH BINARY IS THE CRIME PROBE'S DECISION LAYER, added 8 September
+    by queue 147, and it is a correction rather than an addition. CrimeProbe.h
+    says at its top that g++ compiles and RUNS it before any dispatch; that
+    was true of the header and false of this list, which named no binary
+    including it, so `LedgerCrime::Selftest()` ran only on Jafar's PC.
+    `crime-probe-test.cpp` runs it here AND runs the overheard beat's data
+    path on the COMMITTED dialogue bank: the rung-3 row picked by the real
+    seed, passed by a two-agent mill at the real tie, composed by the ported
+    StreetVoice.Exchange. The live bank is the accepting fixture, this
+    project's rule for a tool that checks the project itself.
+
     A SKIP SAYS SO AND NAMES WHAT IS MISSING. Without g++ nothing here can
     run, and "the UE instruments pass" must not read the same as "nothing was
     compiled"."""
@@ -849,6 +860,11 @@ def ue_probe_tests():
          [str(ROOT.parent / "production" / "specs" / "vignette-pieces.json")], [], []),
         ("tests/core-port-test.cpp",
          [str(probe / "perception-golden.txt")],
+         [str(probe / "Source" / "LedgerProbe" / "Private" / "Perception.cpp")],
+         ["-I", str(probe / "Source" / "LedgerProbe" / "Public"),
+          "-I", str(probe / "tests" / "unreal-shim")]),
+        ("tests/crime-probe-test.cpp",
+         [str(ROOT.parent / "content" / "dialogue" / "crime-witness-v1.json")],
          [str(probe / "Source" / "LedgerProbe" / "Private" / "Perception.cpp")],
          ["-I", str(probe / "Source" / "LedgerProbe" / "Public"),
           "-I", str(probe / "tests" / "unreal-shim")]),
@@ -871,6 +887,12 @@ def ue_probe_tests():
             bad = [l.strip() for l in out.splitlines() if "FAILED" in l or "FAIL:" in l]
             return False, ("UE PROBE TEST RED (" + src + "): " + _cap(bad, keep=3))
         ran += 1
+        # TWO SHAPES, SUMMED PER LINE AND ACROSS LINES. A line matching both
+        # would count twice, and a binary printing two summary lines adds
+        # rather than replaces. The convention that keeps them disjoint lives
+        # in the test files (crime-probe-test.cpp 69 to 73, written after a
+        # total that counted one binary's rows twice). Queue 164 makes this
+        # last-wins per binary.
         for line in out.splitlines():
             m = re.search(r"(\d+) check\(s\), \d+ failure", line)
             if m:

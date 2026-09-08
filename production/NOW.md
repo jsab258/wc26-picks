@@ -26,12 +26,15 @@ ue-probe/Content/Ledger/Props/. The grate resolves at 0.0474 mm worst against it
 spec box.
 
 WHAT IS STILL OPEN, and it is the thing Jafar's accepting case actually asks for:
-COLLISION. propCollisionPrims=0/15 with the editor subsystem returning None in
-the commandlet. A mesh with no body setup photographs clean and a walking
-character falls through it, so pilot package one still counts ZERO on the
-throughput ledger. A builder is on it, with three instrument faults in the same
-pass (an unreadable count printing as zero, two numbers in one run disagreeing
-about one thing, and a docstring claiming a proxy is the thing).
+COLLISION, and the honest state is weaker than run 3's number suggested.
+propCollisionPrims=0/15 was not a measurement: the legacy library refuses by
+returning -1 rather than raising, the importer believed it, and a refusal became
+a measured absence. Nothing read whether any of the fifteen has collision. A
+mesh with no body setup photographs clean and a walking character falls through
+it, so pilot package one still counts ZERO on the throughput ledger. The fix
+landed uncommitted tonight: four add routes and three read routes, each read
+back, a three-valued propCollidable, and a status word that separates measuring
+a failure from failing to measure.
 
 IN FLIGHT TONIGHT, so a fresh session does not duplicate it: queue 147, porting
 StreetVoice.Exchange into the probe so the overheard reply is COMPOSED from what

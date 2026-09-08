@@ -44,12 +44,28 @@ measured by the half of the pipeline that can see it:
      failure this project keeps finding. propBoundsBound says so out loud.
 
 WHAT IT MAKES. One static mesh per held asset the street names, at
-/Game/Ledger/Props/SM_<asset>, plus simple collision on each, because a
-mesh without a body setup reads as placed and walks through. The names are a
+/Game/Ledger/Props/SM_<asset>, plus collision on each, because a mesh
+without collision reads as placed and walks through. The names are a
 contract with VignetteShot.cpp's mesh branch, which derives the object path
 from the piece's own "asset" field and nothing else, and --selftest reads
 that derivation out of the C++ rather than trusting the two were kept in
 step by hand.
+
+COLLISION, AND WHY IT IS TWO READINGS AND NOT ONE. Run 3 printed
+propCollisionPrims=0/15 over fifteen saved meshes and the accepting case
+printed collisionPrims=-1 for the same mesh in the same run. Neither number
+was a count. The -1 is what EditorStaticMeshLibrary returns when it refuses,
+which it does in a commandlet, and the 0 is that -1 run through a
+`prims > 0` tally: a refusal counted as an absence, which is rule 3b with a
+number on it. So the count routes now reject a negative as a SENTINEL and
+name it, an unreadable count prints nothing-measured with the refusal rather
+than a zero, and the count lives beside the reading that answers the
+question the walk clip actually asks. A simple-primitive count is a PROXY: a
+mesh whose body setup says use-complex-as-simple collides with its own
+triangles and reports zero simple primitives. propCollidable is the key for
+that, read off the saved asset, and it is still not a sweep. Only the walk
+clip in the built level is a sweep, and it is the one thing this script
+cannot run.
 
 WHAT THE EVIDENCE IS. ue-prop-meshes.txt beside the project, one key=value
 line, copied into the verdict by the workflow, because a log tail is not an
@@ -294,17 +310,29 @@ def fallback_field(failures, asked, cap=DETAIL_CAP):
     return "propFailed=%d/%d propFailedWhy=%s" % (len(failures), asked, out)
 
 
-def import_status(asked, sources, imported, saved, collided):
+def import_status(asked, sources, imported, saved, collidable, unknown=0):
     """The one word. It needs every asset the street asks for to have become a
     saved uasset, for the reason MADE needed every connection in the material
     generator: a street missing one prop is a street with a box in it, and the
     scene line is the only place that would have shown it.
 
-    COLLISION IS PART OF THE WORD and not a footnote. A mesh with no body
-    setup places, renders, photographs clean and lets a walking Character
-    through it, and the walk clip is the deliverable. So a full import with no
+    COLLISION IS PART OF THE WORD and not a footnote. A mesh with no collision
+    places, renders, photographs clean and lets a walking Character through
+    it, and the walk clip is the deliverable. So a full import with no
     collision is IMPORTED-NO-COLLISION, which returns non-zero, rather than
-    IMPORTED with a quiet count beside it."""
+    IMPORTED with a quiet count beside it.
+
+    AND A THIRD WORD, ADDED AFTER RUN 3, because the two words above cannot
+    say the thing that actually happened there. `collidable` counts the saved
+    meshes the engine reports as collidable; `unknown` counts the ones where
+    nothing could be read either way. A run that cannot tell must not print
+    the word for a run that measured a failure, so an unreadable collision
+    state is IMPORTED-COLLISION-UNREADABLE. Both non-IMPORTED words return
+    non-zero: the difference is whether the next move is fixing the meshes or
+    fixing the instrument.
+
+    A definite failure outranks an unreadable one in the word, because
+    `saved - collidable - unknown` meshes are known to be walk-through."""
     if asked == 0:
         return "NOTHING-ASKED"
     if sources == 0:
@@ -313,8 +341,10 @@ def import_status(asked, sources, imported, saved, collided):
         return "NOTHING-IMPORTED"
     if saved < asked:
         return "PARTIAL"
-    if collided < saved:
+    if saved - collidable - unknown > 0:
         return "IMPORTED-NO-COLLISION"
+    if unknown > 0:
+        return "IMPORTED-COLLISION-UNREADABLE"
     return "IMPORTED"
 
 
@@ -327,9 +357,354 @@ def import_return(status):
     return 0 if status == "IMPORTED" else 2
 
 
-def prop_line(status, asked, pieces, sources, imported, saved, collided,
-              readings, failures, via, collision_via, extras, uasset_bytes,
-              note, gltf_block="", accepting_block="", lookup_block=""):
+# ---- collision: the proxy, the real question, and the refusals ------------
+#
+# EVERY FUNCTION IN THIS SECTION IS PURE AND RUNS IN THE CONTAINER, for the
+# reason instruments.md gives as a standing rule: a formatter written where
+# the tests do not run ships unrun, and an unrun formatter printing a
+# plausible string is the silent-instrument failure. The engine half supplies
+# live state and nothing else. It decides no words.
+
+COMPLEX_AS_SIMPLE = "COMPLEX_AS_SIMPLE"
+
+
+def flat(value):
+    """No spaces in any value, ever: every reader of these files splits on
+    whitespace and truncates silently."""
+    return str(value).replace(" ", "~")
+
+
+def short_flag(flag):
+    """The trace flag without its enum's type name, which is noise on a line.
+
+    None is the WORD nothing-measured and never a flag value, because "the
+    flag says use-default" and "nothing could read the flag" are the two
+    facts run 3 could not tell apart anywhere in its collision reading."""
+    if flag is None:
+        return "nothing-measured"
+    s = flat(flag)
+    return s.rsplit(".", 1)[-1] if "." in s else s
+
+
+def is_complex_as_simple(flag):
+    """Does this trace flag mean the mesh collides with its own triangles?
+
+    READ OFF THE ENGINE'S OWN SPELLING rather than compared to a literal: the
+    Python binding prints the enumerator as CollisionTraceFlag.CTF_USE_COMPLEX
+    _AS_SIMPLE, the C++ spells it CTF_UseComplexAsSimple, and a string compare
+    against either one is a claim about a binding this container cannot run.
+    So it normalises case and separators and asks whether the name contains
+    the three words in order."""
+    if flag is None:
+        return False
+    s = str(flag).upper()
+    for ch in ("_", "-", " ", "."):
+        s = s.replace(ch, "")
+    return COMPLEX_AS_SIMPLE.replace("_", "") in s
+
+
+def prims_word(prims, via):
+    """The per-mesh simple-primitive count, or the words nothing-measured.
+
+    THIS IS THE FIX FOR RUN 3'S ZERO. A count nothing could read is not zero
+    and must not print as a number at all, which is rule 3b and the first
+    bullet of instruments.md. The refusal travels with it so the reader knows
+    which name refused."""
+    if prims is None:
+        return "nothing-measured/" + flat(via or "no-route-tried")
+    return "%d" % int(prims)
+
+
+def collidable_word(body_setup, prims, trace_flag, extent_uu):
+    """CAN A SWEEP HIT THIS MESH, as far as the saved asset can say.
+
+    THIS IS NOT THE PRIMITIVE COUNT AND THEY ARE NOT THE SAME QUESTION. The
+    old docstring on propCollisionPrims said the primitive count was "the
+    number the walk clip lives on". It is a proxy for it: a mesh whose body
+    setup says use-complex-as-simple collides perfectly with its own render
+    triangles and reports ZERO simple primitives, and a mesh with a body setup
+    full of primitives and no geometry collides with nothing a player can see.
+
+    THE HONEST LIMIT, stated in the stat key on the line as well as here: what
+    the walk clip lives on is whether a capsule sweep in the BUILT LEVEL hits
+    the grate. This function reads the asset, not a sweep. It can say NO with
+    confidence (no body setup, or no primitive and a flag that needs one) and
+    it can say YES on the asset's own terms; it cannot stand in for the clip.
+
+    Three-valued on purpose. UNKNOWN is a real answer here and the whole
+    reason this key exists."""
+    if extent_uu is None:
+        geom = "unread"
+    elif max(abs(float(v)) for v in extent_uu) <= 0.0:
+        geom = "empty"
+    else:
+        geom = "nonzero"
+    # STARTSWITH, NOT EQUALS. The engine half says absent, or
+    # absent/could-not-make/<the name that refused>, and both mean the mesh has
+    # no container for collision to live in, which is a measured NO.
+    if str(body_setup).startswith("absent"):
+        return "NO/no-body-setup"
+    if prims is not None and int(prims) > 0:
+        return "YES/simple-prims=%d" % int(prims)
+    if is_complex_as_simple(trace_flag):
+        if geom == "nonzero":
+            return "YES/complex-as-simple/boundsUu-nonzero"
+        if geom == "empty":
+            return "NO/complex-as-simple-but-bounds-are-empty"
+        return "UNKNOWN/complex-as-simple/bounds-unread"
+    if prims is None and trace_flag is None:
+        return "UNKNOWN/nothing-measured/no-prim-count-and-no-trace-flag"
+    if prims is None:
+        return "UNKNOWN/nothing-measured/prim-count-unreadable/flag=%s" % short_flag(trace_flag)
+    return "NO/no-simple-prims/flag=%s" % short_flag(trace_flag)
+
+
+def collidable_tally(readings, saved_total=None):
+    """(yes, unknown, no, denominator) over the SAVED meshes, which is the
+    denominator the status word and the line both read.
+
+    One function so that two numbers about one population cannot drift: the
+    status word and propCollidable are the same count seen twice, and run 3
+    shipped exactly that pair disagreeing.
+
+    saved_total IS propSaved, and passing it is what keeps every collision
+    denominator equal to it. A package that saved but produced no reading at
+    all, because its bounds would not read, is counted UNKNOWN rather than
+    dropped from the denominator: a mesh nobody measured is not a mesh that
+    failed, and it is certainly not a mesh that passed."""
+    saved = [r for r in readings if r.get("saved")]
+    m = len(saved) if saved_total is None else max(int(saved_total), len(saved))
+    yes = sum(1 for r in saved if str(r.get("collidable", "")).startswith("YES"))
+    unk = sum(1 for r in saved if str(r.get("collidable", "")).startswith("UNKNOWN"))
+    unk += m - len(saved)
+    return yes, unk, m - yes - unk, m
+
+
+def _tally(words, cap=DETAIL_CAP):
+    """name=count;name=count, sorted, with the cap announcing itself."""
+    t = {}
+    for w in words:
+        k = flat(w)
+        t[k] = t.get(k, 0) + 1
+    items = sorted(t.items())
+    out = ";".join("%s=%d" % (k, v) for k, v in items[:cap])
+    if len(items) > cap:
+        out += ";(+%d~more~not~shown)" % (len(items) - cap)
+    return out or "none"
+
+
+def collision_field(readings, saved_total=None):
+    """THE WHOLE-RUN COLLISION BLOCK, and every key on it is a statistic over
+    the saved meshes.
+
+    WHY THE PER-MESH KEYS ARE SPELLED DIFFERENTLY. Run 3 put
+    propCollisionPrims=0/15 on the done line and collisionPrims=-1 on the
+    accepting-case line, two different numbers about one thing under one name,
+    which is the pair instruments.md says a grep silently merges. So the
+    whole-run tallies are propCollision* and propCollidable* and the per-mesh
+    readings are simplePrims= and collidable=. A grep for either one cannot
+    pick up the other.
+
+      propCollisionPrims      saved meshes whose body setup holds at least one
+                              simple collision primitive, COUNT READ, over
+                              saved. A PROXY for collidability, not the
+                              question: see collidable_word().
+      propCollisionPrimsUnread saved meshes where no route could read a count
+                              at all. This is the number that was hiding
+                              inside run 3's zero.
+      propCollidable          saved meshes the asset itself reports as
+                              collidable, over saved. The question the walk
+                              clip asks, answered off the asset and not by a
+                              sweep.
+      propCollidableUnknown   saved meshes where neither a primitive count nor
+                              a trace flag could be read.
+      propCollisionAgree      how many meshes had two or more count routes
+                              ANSWER, and whether they agreed. A legacy
+                              library that forwards to a subsystem which is
+                              None can answer a plausible number; two routes
+                              agreeing is what makes one believable.
+      propCollisionFlagSet    meshes this run CHANGED the trace flag on, which
+                              is the write-on-change count. Above zero means
+                              no simple primitive could be added.
+    """
+    yes, unk, no, m = collidable_tally(readings, saved_total)
+    saved = [r for r in readings if r.get("saved")]
+    # SAVED PACKAGES WITH NO READING AT ALL. They are in the denominator and
+    # they are nothing-measured in every tally below, never a zero.
+    unmeasured = m - len(saved)
+    stats = ("propCollisionPrimsStat=saved-meshes-with-at-least-one-simple-primitive"
+             "/count-read-off-the-body-setup/over-saved/A-PROXY-NOT-THE-QUESTION "
+             "propCollidableStat=body-setup-plus-simple-prims-or-complex-as-simple"
+             "/read-off-the-saved-asset/NOT-a-sweep/over-saved")
+    if m == 0:
+        return ("propCollisionPrims=nothing-measured/0-saved-meshes "
+                "propCollisionPrimsUnread=0/0 "
+                "propCollisionRead=nothing-measured propCollisionVia=nothing-measured "
+                "propCollisionAgree=nothing-measured propCollisionFlagSet=0/0 "
+                "propCollidable=nothing-measured/0-saved-meshes "
+                "propCollidableUnknown=0/0 propCollidableWhy=nothing-measured "
+                "propCollidableNo=0/0 " + stats)
+    with_prims = sum(1 for r in saved
+                     if r.get("simplePrims") is not None and int(r["simplePrims"]) > 0)
+    unread = sum(1 for r in saved if r.get("simplePrims") is None) + unmeasured
+    agree = disagree = one = 0
+    none = unmeasured
+    for r in saved:
+        nums = [v for v in (r.get("simplePrimsAnswers") or {}).values()
+                if isinstance(v, int)]
+        if len(nums) == 0:
+            none += 1
+        elif len(nums) == 1:
+            one += 1
+        elif len(set(nums)) == 1:
+            agree += 1
+        else:
+            disagree += 1
+    return ("propCollisionPrims=%d/%d propCollisionPrimsUnread=%d/%d "
+            "propCollisionRead=%s propCollisionVia=%s "
+            "propCollisionAgree=agree=%d;disagree=%d;one-route=%d;no-route=%d/over=%d "
+            "propCollisionFlagSet=%d/%d "
+            "propCollidable=%d/%d propCollidableUnknown=%d/%d propCollidableNo=%d/%d "
+            "propCollidableWhy=%s %s"
+            % (with_prims, m, unread, m,
+               _tally([r.get("simplePrimsVia", "none") for r in saved]),
+               _tally([r.get("collisionAddVia", "none") for r in saved]),
+               agree, disagree, one, none, m,
+               sum(1 for r in saved if r.get("collisionFlagSet")), m,
+               yes, m, unk, m, no, m,
+               _tally([r.get("collidable", "nothing-measured") for r in saved]),
+               stats))
+
+
+def source_parts_field(parts, cap=DETAIL_CAP):
+    """HOW MANY MESHES EACH SOURCE FILE HOLDS, because exactly one uasset is
+    kept per asset and any others are left where the street never looks.
+
+    MEASURED IN THE CONTAINER 2026-09-08 over the seventeen shipped GLBs:
+    fourteen hold one mesh, swing_bin and wooden_crate_01 hold two,
+    pavement_sign holds three. All three show up in run 3 and only one of them
+    showed up as a failure.
+
+      pavement_sign     three static meshes appeared (hinges, sign_front,
+                        sign_back), none of them named after the asset, so the
+                        resolver refused to choose and the asset failed. That
+                        refusal is CORRECT and is not loosened.
+      wooden_crate_01   two meshes appeared, the body matched the asset name,
+                        and the lid was LEFT BEHIND silently. The body alone
+                        measures 0.880368 x 1.000679 x 0.924386 m, which is
+                        the engine reading run 3 printed to six decimals, and
+                        the whole file is 1.0447 m tall. propBoundsWorstMm
+                        = 44.0215 mm is that dropped lid and nothing else.
+      swing_bin         two meshes, lid dropped the same way, and the bounds
+                        delta is 0.0011 mm because that lid sits INSIDE the
+                        body's box. The bounds instrument cannot see this one
+                        at all, which is why the count below exists.
+
+    parts is [(asset_id, mesh_count_or_None)]. None means the GLB could not be
+    read, which is a different fact from one mesh and is counted apart."""
+    if not parts:
+        return ("propSourcePartsOver1=nothing-measured "
+                "propSourcePartsWhich=nothing-measured "
+                "propSourcePartsUnread=0/0 " + _SOURCE_PARTS_STAT)
+    over = [(a, n) for a, n in parts if isinstance(n, int) and n > 1]
+    unread = [a for a, n in parts if n is None]
+    which = ";".join("%s=%d" % (a, n) for a, n in sorted(over)[:cap]) or "none"
+    if len(over) > cap:
+        which += ";(+%d~more~not~shown)" % (len(over) - cap)
+    return ("propSourcePartsOver1=%d/%d propSourcePartsWhich=%s "
+            "propSourcePartsUnread=%d/%d %s"
+            % (len(over), len(parts), which, len(unread), len(parts),
+               _SOURCE_PARTS_STAT))
+
+
+_SOURCE_PARTS_STAT = ("propSourcePartsStat=mesh-nodes-in-the-source-glb-per-asset"
+                      "/exactly-one-uasset-is-kept-per-asset"
+                      "/the-others-are-not-at-the-contract-path")
+
+
+def engine_field(subsystems, pipeline_opts):
+    """THE TWO ENGINE QUESTIONS THE NEXT RUN NEEDS ANSWERED, formatted here
+    rather than at the call site, because a string built where the tests do not
+    run ships unrun.
+
+      propSubsystems   why fault 1 happened: get_editor_subsystem returned
+                       None, which is not the same fact as a missing method.
+                       Asking for four of them says whether this commandlet
+                       has editor subsystems at all.
+      propPipelineOpts which import-time option names this engine exposes for
+                       collision and for combining a multi-mesh file. NOTHING
+                       IS SET from them this run, and the key says so: run 3
+                       proved the import route that works, and changing its
+                       options in the same pass that fixes collision would
+                       risk fifteen working assets to test a property name."""
+    return ("propSubsystems=%s propPipelineOpts=%s "
+            "propPipelineOptsFilter=collision|combine|convex|ucx"
+            "/NOTHING-SET-THIS-RUN/names-read-for-the-next-one"
+            % (";".join(subsystems) if subsystems else "nothing-measured",
+               ";".join(pipeline_opts) if pipeline_opts else "nothing-measured"))
+
+
+def note_value(report, cap=4):
+    """THE REFUSALS, DISTINCT, WITH HOW MANY TIMES EACH HAPPENED.
+
+    Run 3's propNote printed one pair of refusals twice and had room for
+    nothing else, because the note was the first four lines of a list that
+    holds one entry per mesh per route: 33 lines, 4 distinct. A note that
+    spends its cap on repeats is a note that hides the other causes, so this
+    deduplicates, counts, and announces its own cap."""
+    if not report:
+        return "none"
+    order, seen = [], {}
+    for line in report:
+        k = flat(line)
+        if k not in seen:
+            seen[k] = 0
+            order.append(k)
+        seen[k] += 1
+    parts = ["%s~x%d" % (k, seen[k]) for k in order[:cap]]
+    out = "/".join(parts)
+    if len(order) > cap:
+        out += "/(+%d~more~not~shown)" % (len(order) - cap)
+    return out
+
+
+def glb_mesh_names(path):
+    """The names of the meshes inside a .glb, read out of the file's own JSON
+    chunk. None when the file cannot be read as a GLB at all.
+
+    WHY A SECOND READER EXISTS HERE. The engine half of this script runs on
+    the editor's embedded interpreter, where tools/meshgen is not importable,
+    so the count has to be readable from this file alone. The duplication is
+    paid for by --selftest, which reads every shipped GLB with BOTH readers
+    and asserts they agree: a second reader that drifts from the first is
+    caught in the container on every run, by the accepting case."""
+    try:
+        with open(path, "rb") as f:
+            head = f.read(12)
+            if len(head) < 12 or head[:4] != b"glTF":
+                return None
+            chunk = f.read(8)
+            if len(chunk) < 8:
+                return None
+            clen = int.from_bytes(chunk[0:4], "little")
+            if chunk[4:8] != b"JSON":
+                return None
+            body = f.read(clen)
+        if len(body) < clen:
+            return None
+        js = json.loads(body.decode("utf-8"))
+    except Exception:
+        return None
+    out = []
+    for i, m in enumerate(js.get("meshes") or []):
+        out.append(str(m.get("name") or ("mesh%d" % i)))
+    return out
+
+
+def prop_line(status, asked, pieces, sources, imported, saved,
+              readings, failures, via, collision_block, extras, uasset_bytes,
+              note, gltf_block="", accepting_block="", lookup_block="",
+              parts_block="", engine_block=""):
     """The one line the workflow copies into the build verdict.
 
     No spaces inside any value: every reader of these files splits on
@@ -344,8 +719,18 @@ def prop_line(status, asked, pieces, sources, imported, saved, collided,
                            "the import task returned".
       propSaved            of those, the ones whose package saved to disk.
       propCollisionPrims   saved meshes whose body setup holds at least one
-                           simple collision primitive, over saved. This is
-                           the number the walk clip lives on.
+                           simple collision primitive, over saved. A PROXY,
+                           corrected 2026-09-08: the docstring here used to
+                           say it was "the number the walk clip lives on" and
+                           it is not, because a mesh set to use its complex
+                           geometry as simple collides and reports zero. The
+                           whole block comes from collision_field(); the key
+                           that answers the walk clip's question as far as an
+                           asset can is propCollidable.
+      propSourcePartsOver1 assets whose source GLB holds more than one mesh,
+                           over assets. One uasset is kept per asset, so any
+                           other part of that file is not at the contract path
+                           and is not in the street. See source_parts_field().
       propImportVia        which import route took, or none-of-N, the same
                            shape make_base_material.py prints for a pin name.
       propBoundsBound      THE WORD THAT SAYS THERE IS NO GATE HERE YET. No
@@ -365,12 +750,12 @@ def prop_line(status, asked, pieces, sources, imported, saved, collided,
     return ("propImportStatus=%s propImportReturn=%d "
             "propMeshesAsked=%d/%d propMeshesStat=unique-assets/over-pieces-asking "
             "propSources=%d/%d propImported=%d/%d propSaved=%d/%d "
-            "propCollisionPrims=%d/%d propCollisionVia=%s "
+            "%s "
             "propImportVia=%s propPackageDir=%s propNamePattern=%s<asset> "
             "%s %s %s "
             "%s propBoundsBound=NONE-YET/this-run-prints-the-series "
             "propBoundsStat=spec-box-minus-engine-bounds-at-worst-over-assets "
-            "%s %s "
+            "%s %s %s %s "
             "propScalePolicy=1/never-scaled/dims-policy-forbids-it "
             "propLampPost01=%s propUassetBytes=%d "
             "propVerdictIs=propImportReturn/not-the-editor-process-exit "
@@ -378,7 +763,7 @@ def prop_line(status, asked, pieces, sources, imported, saved, collided,
             % (status, import_return(status),
                asked, pieces,
                sources, asked, imported, asked, saved, asked,
-               collided, saved, collision_via,
+               collision_block if collision_block else collision_field([]),
                via, PACKAGE_DIR, UASSET_PREFIX,
                gltf_block if gltf_block else "propGltfImporter=nothing-measured",
                accepting_block if accepting_block else
@@ -387,8 +772,11 @@ def prop_line(status, asked, pieces, sources, imported, saved, collided,
                worst_bounds(readings),
                pivot_field(readings),
                fallback_field(failures, asked),
+               parts_block if parts_block else source_parts_field([]),
+               engine_block if engine_block else
+               "propSubsystems=nothing-measured propPipelineOpts=nothing-measured",
                extras, uasset_bytes,
-               str(note).replace(" ", "~") if note else "none"))
+               flat(note) if note else "none"))
 
 
 def preexisting_field(deleted, asked):
@@ -485,9 +873,10 @@ def lookup_field(details, cap=DETAIL_CAP):
     # NO SPACES IN ANY VALUE, and these four come from the ENGINE rather than
     # from this file: a package path or a type name with a space in it would
     # silently truncate every reader that splits on whitespace.
-    def flat(xs):
+    def flatten_all(xs):
         return [str(x).replace(" ", "~") for x in xs]
-    shapes, apis, rtypes, rattrs = flat(shapes), flat(apis), flat(rtypes), flat(rattrs)
+    shapes, apis, rtypes, rattrs = (flatten_all(shapes), flatten_all(apis),
+                                    flatten_all(rtypes), flatten_all(rattrs))
     async_tally = dict((str(k).replace(" ", "~"), v) for k, v in async_tally.items())
     extra = ("propImportSnapshotShape=%s propImportTaskApi=%s "
              "propImportTaskAsync=%s propImportResultType=%s "
@@ -516,15 +905,30 @@ def accepting_field(readings, failures, sources_found):
     A KEY THAT IS ABSENT WHEN THE THING FAILED IS NOT A KEY. Every path
     produces a word here, including the path where the asset was never
     reached at all, because "no propAcceptingCase on the line" and "the grate
-    is fine" look identical to a grep."""
+    is fine" look identical to a grep.
+
+    THE PER-MESH KEYS ARE NAMED DIFFERENTLY FROM THE WHOLE-RUN ONES on
+    purpose: simplePrims and collidable here, propCollisionPrims and
+    propCollidable on the done line. Run 3 printed collisionPrims=-1 here
+    beside propCollisionPrims=0/15 there, one name over two populations and
+    two meanings, which is the merge instruments.md warns about. The -1 was
+    not a missing-key default either: it was the engine's own refusal
+    sentinel passed through as if it were a count. A count that could not be
+    read now prints the words nothing-measured and the name that refused."""
     for r in readings:
         if r.get("asset") == ACCEPTING_ASSET:
             return ("propAcceptingCase=piece=%s/asset=%s/RESOLVED/saved=%s/"
-                    "collisionPrims=%d/materialSlots=%d/worstOrderedMm=%.4f/"
+                    "simplePrims=%s/collidable=%s/bodySetup=%s/traceFlag=%s/"
+                    "sourceParts=%s/materialSlots=%d/worstOrderedMm=%.4f/"
                     "worstSortedMm=%.4f"
                     % (ACCEPTING_PIECE, ACCEPTING_ASSET,
                        "yes" if r.get("saved") else "NO",
-                       r.get("collisionPrims", -1), r.get("materialSlots", -1),
+                       prims_word(r.get("simplePrims"), r.get("simplePrimsVia")),
+                       flat(r.get("collidable", "nothing-measured")),
+                       flat(r.get("bodySetup", "nothing-measured")),
+                       short_flag(r.get("traceFlag")),
+                       r.get("sourceParts", "nothing-measured"),
+                       r.get("materialSlots", -1),
                        r.get("worstOrderedMm", -1.0), r.get("worstSortedMm", -1.0)))
     for a, w in failures:
         if a == ACCEPTING_ASSET:
@@ -589,6 +993,11 @@ def measure_against_glb(spec, glb_stats):
             "verts": st["verts"],
             "tris": st["tris"],
             "bytes": st["bytes"],
+            # THE TWO READERS, SIDE BY SIDE. meshgen's count and this file's
+            # own, because the engine half cannot import meshgen and a second
+            # reader nobody cross-checks is a second reader that drifts.
+            "sourceMeshes": st["meshes"],
+            "sourceMeshNames": glb_mesh_names(src),
         })
     return rows
 
@@ -601,6 +1010,94 @@ def load_spec(path=None):
 
 
 # ---- the selftest, which runs with no engine anywhere near it -------------
+
+
+def _stand_in_engine(mode):
+    """A STAND-IN FOR `unreal`, AND IT PROVES EXACTLY ONE THING: that the
+    collision flow in this file RUNS, in each of the worlds it was written for,
+    and produces the words the verdict prints.
+
+    WHAT IT DOES NOT PROVE, stated here so that no reading of this section can
+    be mistaken for a reading of the engine: nothing whatever about Unreal. The
+    property names, the enum spelling and whether KBoxElem exists are the
+    engine's business and only a run can answer them. This is a guard against a
+    typo in a refusal path costing a twenty minute round trip, which is the
+    only thing the container can be guarded against here.
+
+    Four worlds, and the second is run 3's:
+      box-works      the element list is readable and writable, so a box lands
+      all-refuse     the subsystem is None and the legacy library answers -1,
+                     exactly as run 3 measured, and the element lists refuse
+      blind          even the body setup's properties refuse
+      no-kboxelem    the count reads a real zero and no add route exists
+    """
+    class Obj(object):
+        def __init__(self, **kw):
+            self._d = dict(kw)
+
+        def get_editor_property(self, n):
+            if n not in self._d:
+                raise RuntimeError("no-property/" + n)
+            return self._d[n]
+
+        def set_editor_property(self, n, v):
+            self._d[n] = v
+            return True
+
+    class Blind(Obj):
+        def get_editor_property(self, n):
+            raise RuntimeError("binding-refuses/" + n)
+
+    agg = Obj(**dict((n, []) for n in AGG_ELEM_LISTS))
+    bs = Obj(agg_geom=(Blind() if mode == "all-refuse" else agg),
+             collision_trace_flag="CollisionTraceFlag.CTF_USE_DEFAULT")
+    if mode == "blind":
+        bs = Blind()
+    mesh = Obj(body_setup=bs)
+
+    class Engine(object):
+        class StaticMeshEditorSubsystem(object):
+            pass
+
+        class BodySetup(object):
+            pass
+
+        class CollisionTraceFlag(object):
+            CTF_USE_DEFAULT = "CollisionTraceFlag.CTF_USE_DEFAULT"
+            CTF_USE_COMPLEX_AS_SIMPLE = "CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE"
+
+        class ScriptingCollisionShapeType(object):
+            BOX = "BOX"
+
+        class EditorStaticMeshLibrary(object):
+            # THE SENTINEL, AS MEASURED. Both calls answered -1 in run 3.
+            @staticmethod
+            def get_simple_collision_count(m):
+                return -1
+
+            @staticmethod
+            def add_simple_collisions(m, t):
+                return -1
+
+        class Vector(object):
+            def __init__(self, x, y, z):
+                self.x, self.y, self.z = x, y, z
+
+        class KBoxElem(Obj):
+            def __init__(self):
+                Obj.__init__(self, center=None, x=0.0, y=0.0, z=0.0)
+
+        @staticmethod
+        def get_editor_subsystem(cls):
+            return None
+
+        @staticmethod
+        def new_object(cls, outer=None):
+            return bs
+
+    if mode == "no-kboxelem":
+        del Engine.KBoxElem
+    return Engine, mesh
 
 
 def selftest():
@@ -707,12 +1204,38 @@ def selftest():
     good = bounds_reading(ACCEPTING_ASSET, (0.4, 0.015, 0.4), (0, 0, 0),
                           (20.0, 20.0, 0.75))
     good["saved"] = True
-    good["collisionPrims"] = 1
+    good["simplePrims"] = 1
+    good["simplePrimsVia"] = "agg-geom-elems"
+    good["collidable"] = collidable_word("present", 1, "CTF_USE_DEFAULT",
+                                         (20.0, 20.0, 0.75))
+    good["bodySetup"] = "present"
+    good["traceFlag"] = "CollisionTraceFlag.CTF_USE_DEFAULT"
+    good["sourceParts"] = 1
     good["materialSlots"] = 1
     ok("a resolved grate says RESOLVED with its collision count",
        "RESOLVED" in accepting_field([good], [], 16)
-       and "collisionPrims=1" in accepting_field([good], [], 16),
+       and "simplePrims=1" in accepting_field([good], [], 16),
        accepting_field([good], [], 16))
+    # THE RUN-3 READING, PLANTED: nothing could read a count. The accepting
+    # case must say so in words, and it must not print a number of any kind,
+    # because -1 is what it printed last time and -1 read as a count.
+    blind = dict(good)
+    blind["simplePrims"] = None
+    blind["simplePrimsVia"] = "none-of-3-candidates"
+    blind["collidable"] = collidable_word("present", None, None, (20.0, 20.0, 0.75))
+    blind["traceFlag"] = None
+    f_good, f_blind = accepting_field([good], [], 16), accepting_field([blind], [], 16)
+    ok("a grate whose count nothing could read says nothing-measured and names "
+       "the refusal, where run 3 printed collisionPrims=-1",
+       "simplePrims=nothing-measured/none-of-3-candidates" in f_blind
+       and "-1" not in f_blind, f_blind)
+    ok("and the answering and refusing readings are DIFFERENT strings, which "
+       "is the whole falsifiable point", f_good != f_blind,
+       "%s vs %s" % (f_good, f_blind))
+    ok("the accepting case carries the collidable word, the body setup and the "
+       "trace flag, because the primitive count is only a proxy",
+       "collidable=YES/simple-prims=1" in f_good and "bodySetup=present" in f_good
+       and "traceFlag=CTF_USE_DEFAULT" in f_good, f_good)
     ok("a failed grate says FAILED and carries the reason",
        "FAILED/why" in accepting_field([], [(ACCEPTING_ASSET, "why")], 16),
        accepting_field([], [(ACCEPTING_ASSET, "why")], 16))
@@ -757,6 +1280,35 @@ def selftest():
         off = [r["asset"] for r in measured if abs(r["baseY"]) > 0.01]
         ok("the population contains props whose pivot is NOT at the base, "
            "which is what the correction is for", len(off) >= 3, off)
+        # B2. THE TWO GLB READERS, CROSS-CHECKED ON EVERY SHIPPED FILE.
+        # glb_mesh_names() exists because the engine half cannot import
+        # meshgen, and a second reader nobody checks is a second reader that
+        # drifts. This is the accepting case: the live library.
+        drift = [(r["asset"], r["sourceMeshes"], r["sourceMeshNames"])
+                 for r in measured
+                 if r["sourceMeshNames"] is None
+                 or len(r["sourceMeshNames"]) != r["sourceMeshes"]]
+        ok("both GLB readers agree on the mesh count for all %d assets"
+           % len(measured), drift == [], drift)
+        # AND THE REJECTING FIXTURE: a file that is not a GLB reads as None,
+        # which is nothing-measured and not a count of zero.
+        ok("a file that is not a GLB reads as None, not as zero meshes",
+           glb_mesh_names(spec_path) is None, glb_mesh_names(spec_path))
+        ok("and a path that does not exist does the same",
+           glb_mesh_names(os.path.join(root, "no-such-file.glb")) is None)
+        # THE ACCEPTING ASSET'S OWN SOURCE, because a multi-part grate would
+        # make the accepting case unreachable the way pavement_sign is.
+        acc = [r for r in measured if r["asset"] == ACCEPTING_ASSET]
+        ok("the accepting asset's source holds exactly one mesh, so one uasset "
+           "is the whole prop", len(acc) == 1 and acc[0]["sourceMeshes"] == 1,
+           [(r["asset"], r["sourceMeshes"]) for r in acc])
+        # THE SERIES, PRINTED AND NOT GATED. Run 3 kept one mesh per asset and
+        # silently left the others behind; --measure prints the whole column.
+        multi_src = sorted((r["asset"], r["sourceMeshes"]) for r in measured
+                           if r["sourceMeshes"] > 1)
+        ok("the multi-mesh sources are READABLE in the container, which is "
+           "what makes propSourcePartsWhich checkable before a run",
+           all(isinstance(n, int) for _a, n in multi_src), multi_src)
 
     # -- C. THE NAME CONTRACT WITH THE C++, READ OUT OF THE C++ ------------
     cpp = os.path.join(root, "ue-probe", "Source", "LedgerProbe", "Private",
@@ -794,7 +1346,330 @@ def selftest():
     ok("and every non-IMPORTED word returns non-zero",
        all(import_return(w) != 0 for w in
            ("PARTIAL", "NOTHING-IMPORTED", "NO-SOURCES", "NOTHING-ASKED",
-            "IMPORTED-NO-COLLISION")))
+            "IMPORTED-NO-COLLISION", "IMPORTED-COLLISION-UNREADABLE")))
+    # D2. THE WORD RUN 3 COULD NOT SAY. It printed PARTIAL over a missing
+    # asset, but had every asset landed it would have said IMPORTED-NO-
+    # COLLISION over fifteen meshes whose collision state nothing had read.
+    # "measured a failure" and "could not measure" are different words now.
+    ok("an unreadable collision state is its own word, not a failure",
+       import_status(16, 16, 16, 16, 0, 16) == "IMPORTED-COLLISION-UNREADABLE")
+    ok("and it returns non-zero, because a run that cannot tell has not proved "
+       "the walk clip anything",
+       import_return(import_status(16, 16, 16, 16, 0, 16)) != 0)
+    ok("a KNOWN walk-through outranks an unreadable one in the word, because "
+       "that mesh is a measured defect",
+       import_status(16, 16, 16, 16, 10, 3) == "IMPORTED-NO-COLLISION")
+    ok("every mesh collidable and none unreadable is still IMPORTED",
+       import_status(16, 16, 16, 16, 16, 0) == "IMPORTED")
+    ok("and the three collision outcomes are three different words",
+       len(set([import_status(16, 16, 16, 16, 16, 0),
+                import_status(16, 16, 16, 16, 0, 16),
+                import_status(16, 16, 16, 16, 10, 3)])) == 3)
+
+    # -- D3. COLLIDABILITY, WHICH IS THE QUESTION THE PRIMITIVE COUNT ONLY
+    # PROXIES FOR. Accepting case first: one box is collidable.
+    ext = (20.0, 20.0, 0.75)
+    ok("a mesh with a simple primitive is collidable",
+       collidable_word("present", 1, "CTF_USE_DEFAULT", ext) == "YES/simple-prims=1",
+       collidable_word("present", 1, "CTF_USE_DEFAULT", ext))
+    # THE CASE THAT BREAKS THE PROXY, and it is the reason this key exists: a
+    # flat grate set to use its own triangles collides perfectly and reports
+    # ZERO simple primitives. propCollisionPrims would call that a failure.
+    ok("a mesh with ZERO primitives and complex-as-simple is collidable anyway",
+       collidable_word("present", 0, "CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE",
+                       ext).startswith("YES/complex-as-simple"),
+       collidable_word("present", 0, "CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE", ext))
+    ok("but complex-as-simple over EMPTY bounds is not, because there are no "
+       "triangles for a sweep to hit",
+       collidable_word("present", 0, "CTF_USE_COMPLEX_AS_SIMPLE",
+                       (0.0, 0.0, 0.0)).startswith("NO/"),
+       collidable_word("present", 0, "CTF_USE_COMPLEX_AS_SIMPLE", (0.0, 0.0, 0.0)))
+    ok("zero primitives and a flag that needs them is a measured NO",
+       collidable_word("present", 0, "CTF_USE_DEFAULT", ext)
+       == "NO/no-simple-prims/flag=CTF_USE_DEFAULT",
+       collidable_word("present", 0, "CTF_USE_DEFAULT", ext))
+    ok("no body setup at all is a measured NO and says which",
+       collidable_word("absent", None, None, ext) == "NO/no-body-setup")
+    ok("and a body setup that could not even be MADE is the same measured NO, "
+       "not an unknown, because that mesh has nowhere for collision to live",
+       collidable_word("absent/could-not-make/new-object-body-setup", None,
+                       None, ext) == "NO/no-body-setup")
+    ok("while a body setup nothing could READ is UNKNOWN, which is the other "
+       "fault in the same place",
+       collidable_word("unread", None, None, ext).startswith("UNKNOWN/"),
+       collidable_word("unread", None, None, ext))
+    # RUN 3'S ACTUAL STATE, PLANTED. Nothing could read either half, and the
+    # word for that is UNKNOWN. It must not read as the NO above.
+    unknown = collidable_word("present", None, None, ext)
+    ok("a count and a flag nothing could read is UNKNOWN, never NO",
+       unknown.startswith("UNKNOWN/nothing-measured"), unknown)
+    ok("and UNKNOWN is a different string from both NO and YES, which is what "
+       "run 3's zero could not be",
+       len(set([unknown, collidable_word("present", 0, "CTF_USE_DEFAULT", ext),
+                collidable_word("present", 1, "CTF_USE_DEFAULT", ext)])) == 3)
+    ok("a readable flag with an unreadable count still names the flag",
+       "flag=CTF_USE_DEFAULT" in collidable_word("present", None, "CTF_USE_DEFAULT", ext),
+       collidable_word("present", None, "CTF_USE_DEFAULT", ext))
+    # THE ENUM SPELLING, BOTH WAYS ROUND, because this container cannot run the
+    # binding that decides which one the engine prints.
+    ok("the engine's Python spelling of complex-as-simple is recognised",
+       is_complex_as_simple("CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE"))
+    ok("and the C++ spelling is too", is_complex_as_simple("CTF_UseComplexAsSimple"))
+    ok("while simple-as-complex, which is the opposite setting, is NOT",
+       not is_complex_as_simple("CTF_UseSimpleAsComplex"))
+    ok("nor is use-default", not is_complex_as_simple("CTF_USE_DEFAULT"))
+    ok("and nothing-measured is not a flag value",
+       not is_complex_as_simple(None) and short_flag(None) == "nothing-measured")
+
+    # -- D4. THE COUNT THAT COULD NOT BE READ, WHICH IS FAULT 2 -------------
+    # ACCEPTING CASE FIRST: a route that answers prints the number.
+    ok("a route that answers a real count prints that count",
+       prims_word(2, "agg-geom-elems") == "2", prims_word(2, "agg-geom-elems"))
+    ok("and a route that answers ZERO prints zero, because zero primitives is "
+       "a real reading", prims_word(0, "agg-geom-elems") == "0")
+    # THE REFUSAL, PLANTED. This is the string run 3 should have printed.
+    ok("a route that refuses prints nothing-measured and names the refusal",
+       prims_word(None, "none-of-3-candidates")
+       == "nothing-measured/none-of-3-candidates",
+       prims_word(None, "none-of-3-candidates"))
+    ok("and the answering and refusing strings are DIFFERENT, which is the "
+       "whole of rule 3b here",
+       prims_word(0, "legacy-library") != prims_word(None, "legacy-library"))
+    # AND IT IS NOT A NUMBER. A value a reader can int() is a value a tally
+    # will absorb, which is exactly how -1 became 0/15 on run 3's done line.
+    def parses_as_int(s):
+        try:
+            int(s)
+            return True
+        except ValueError:
+            return False
+    ok("an answered count parses as a number", parses_as_int(prims_word(0, "x")))
+    ok("and a refusal never does, so no tally can absorb it",
+       not parses_as_int(prims_word(None, "none-of-3-candidates")),
+       prims_word(None, "none-of-3-candidates"))
+    ok("the -1 run 3 printed is not a reading any route can return now: a "
+       "negative is rejected as a sentinel and reads as nothing-measured",
+       prims_word(None, "legacy-library-refused-with-sentinel/-1")
+       .startswith("nothing-measured/"))
+
+    # -- D5. THE WHOLE-RUN BLOCK, AND ITS DENOMINATORS ----------------------
+    # crowd_control_barrier's own numbers, read out of the spec file, so the
+    # fixture is a real prop's proportions rather than an invented one.
+    cbox = (2.291, 1.136, 0.395)
+    chalf = tuple(v * CENTIMETRES_PER_METRE / 2.0 for v in expected_ue_size_m(cbox))
+
+    def reading_with(asset, prims, via, flag, answers, saved=True, add="agg-geom-box"):
+        r = bounds_reading(asset, cbox, (0, 0, 0), chalf)
+        r["saved"] = saved
+        r["simplePrims"] = prims
+        r["simplePrimsVia"] = via
+        r["simplePrimsAnswers"] = answers
+        r["collisionAddVia"] = add
+        r["bodySetup"] = "present"
+        r["traceFlag"] = flag
+        r["collidable"] = collidable_word("present", prims, flag, chalf)
+        return r
+    # ACCEPTING CASE: three meshes, each with a box two routes agree on.
+    healthy = [reading_with("a%d" % i, 1, "agg-geom-elems", "CTF_USE_DEFAULT",
+                            {"agg-geom-elems": 1, "legacy-library": 1})
+               for i in range(3)]
+    fh = collision_field(healthy, 3)
+    ok("a healthy collision block counts the primitives and the collidables "
+       "over the saved meshes",
+       "propCollisionPrims=3/3" in fh and "propCollidable=3/3" in fh
+       and "propCollidableUnknown=0/3" in fh, fh)
+    ok("and it says out loud that the primitive count is a proxy",
+       "A-PROXY-NOT-THE-QUESTION" in fh and "NOT-a-sweep" in fh, fh)
+    ok("and two routes agreeing is counted, because one route answering alone "
+       "is weaker evidence", "propCollisionAgree=agree=3;" in fh, fh)
+    # RUN 3, PLANTED IN FULL: every route refused on every mesh.
+    blind3 = [reading_with("a%d" % i, None, "none-of-3-candidates", None,
+                           {"legacy-library": "refused-with-sentinel/-1"},
+                           add="none-of-3-candidates")
+              for i in range(3)]
+    fb = collision_field(blind3, 3)
+    ok("run 3's reading now counts as unread and unknown, not as zero "
+       "collision", "propCollisionPrimsUnread=3/3" in fb
+       and "propCollidableUnknown=3/3" in fb, fb)
+    ok("and propCollisionPrims=0/3 no longer stands alone, because the unread "
+       "count sits beside it", "propCollisionPrims=0/3" in fb
+       and "propCollisionPrimsUnread=3/3" in fb, fb)
+    ok("the healthy and the blind blocks are DIFFERENT strings", fh != fb)
+    ok("no route answering at all is counted apart from routes disagreeing",
+       "agree=0;disagree=0;one-route=0;no-route=3/over=3" in fb, fb)
+    # THE MESH THAT WAS SAVED AND NEVER MEASURED. It is in the denominator and
+    # it is UNKNOWN: dropping it would make 2/2 out of three meshes.
+    yes_n, unk_n, no_n, m = collidable_tally(healthy, 4)
+    ok("a saved package with no reading at all is UNKNOWN and stays in the "
+       "denominator", (yes_n, unk_n, no_n, m) == (3, 1, 0, 4),
+       (yes_n, unk_n, no_n, m))
+    ok("and the block's denominator is propSaved, not the number of readings",
+       "propCollidable=3/4" in collision_field(healthy, 4),
+       collision_field(healthy, 4))
+    ok("a mesh with no simple primitive and a complex-as-simple flag is "
+       "collidable on the block too, which is the proxy's blind spot",
+       "propCollidable=1/1" in collision_field(
+           [reading_with("g", 0, "agg-geom-elems", "CTF_USE_COMPLEX_AS_SIMPLE",
+                         {"agg-geom-elems": 0})], 1)
+       and "propCollisionPrims=0/1" in collision_field(
+           [reading_with("g", 0, "agg-geom-elems", "CTF_USE_COMPLEX_AS_SIMPLE",
+                         {"agg-geom-elems": 0})], 1),
+       collision_field([reading_with("g", 0, "agg-geom-elems",
+                                     "CTF_USE_COMPLEX_AS_SIMPLE",
+                                     {"agg-geom-elems": 0})], 1))
+    ok("nothing saved says nothing-measured with its own zero denominator, "
+       "never 0/0 dressed as a pass",
+       "propCollidable=nothing-measured/0-saved-meshes" in collision_field([], 0),
+       collision_field([], 0))
+    ok("two routes that disagree are counted as a disagreement, because a "
+       "legacy library forwarding to a dead subsystem can answer plausibly",
+       "disagree=1" in collision_field(
+           [reading_with("d", 1, "agg-geom-elems", "CTF_USE_DEFAULT",
+                         {"agg-geom-elems": 1, "legacy-library": 0})], 1),
+       collision_field([reading_with("d", 1, "agg-geom-elems", "CTF_USE_DEFAULT",
+                                     {"agg-geom-elems": 1, "legacy-library": 0})], 1))
+
+    # -- D6. THE NOTE, WHICH RUN 3 SPENT ON REPEATS -------------------------
+    rep = (["subsystem-count-refused=returned-None"] * 15
+           + ["legacy-library-count-refused-with-sentinel=-1"] * 15
+           + ["rename-refused=x"] + ["a-fourth=y"] + ["a-fifth=z"])
+    nv = note_value(rep)
+    ok("the note counts repeats instead of spending its cap on them",
+       "subsystem-count-refused=returned-None~x15" in nv, nv)
+    ok("and five distinct causes under a cap of four announce the cap",
+       "(+1~more~not~shown)" in nv, nv)
+    ok("run 3's note had room for two causes; this one has four",
+       nv.count("~x") >= 3, nv)
+    ok("no refusals at all is the word none, not an empty value",
+       note_value([]) == "none")
+    ok("and a refusal with spaces in it is flattened",
+       " " not in note_value(["'NoneType' object has no attribute get"]),
+       note_value(["'NoneType' object has no attribute get"]))
+
+    # -- D7. HOW MANY MESHES THE SOURCE FILE HOLDS --------------------------
+    # ACCEPTING CASE: every source holds one mesh, so nothing is left behind.
+    ones = source_parts_field([("a", 1), ("b", 1), ("c", 1)])
+    ok("sources that hold one mesh each print a zero with its denominator",
+       "propSourcePartsOver1=0/3" in ones and "propSourcePartsWhich=none" in ones,
+       ones)
+    # THE RUN-3 POPULATION, PLANTED FROM THE CONTAINER'S OWN MEASUREMENT.
+    three_kinds = source_parts_field([("pavement_sign", 3), ("swing_bin", 2),
+                                      ("wooden_crate_01", 2), ("pallet", 1)])
+    ok("a multi-mesh source is counted and named",
+       "propSourcePartsOver1=3/4" in three_kinds
+       and "pavement_sign=3" in three_kinds, three_kinds)
+    ok("and the two readings are different strings", ones != three_kinds)
+    ok("a GLB that could not be read is counted apart from one mesh",
+       "propSourcePartsUnread=1/2" in source_parts_field([("a", 1), ("b", None)]),
+       source_parts_field([("a", 1), ("b", None)]))
+    ok("nothing measured says so rather than printing 0/0",
+       "propSourcePartsOver1=nothing-measured" in source_parts_field([]))
+    ok("and the key names what it is a statistic of",
+       "propSourcePartsStat=mesh-nodes-in-the-source-glb-per-asset" in ones, ones)
+
+    # -- D8. THE COLLISION FLOW, RUN AGAINST A STAND-IN ENGINE --------------
+    # WHAT THIS SECTION IS FOR, because it is easy to over-read: the refusal
+    # paths are the half that ships unrun, and the refusal path is what
+    # produced run 3's wrong number. These rows run them. They prove the flow
+    # executes and the words come out; they prove NOTHING about Unreal, and
+    # _stand_in_engine's docstring says so at greater length.
+    bounds = (44.0, 46.2, 50.0)
+    states = {}
+    notes = {}
+    for mode in ("box-works", "all-refuse", "blind", "no-kboxelem"):
+        eng, mesh = _stand_in_engine(mode)
+        rep = []
+        st = _ensure_collision(eng, mesh, (0.0, 0.0, 37.5), bounds, rep)
+        st["collidable"] = collidable_word(st["bodySetup"], st["simplePrims"],
+                                           st["traceFlag"], bounds)
+        st["saved"] = True
+        states[mode] = st
+        notes[mode] = note_value(rep)
+    # ACCEPTING CASE FIRST: a box lands, the count READS BACK, and the trace
+    # flag is left alone because write-on-change means not touching a mesh that
+    # already collides.
+    w = states["box-works"]
+    ok("a route that can write a box answers a real count and names itself",
+       w["simplePrims"] == 1 and w["collisionAddVia"] == "agg-geom-box"
+       and w["collidable"] == "YES/simple-prims=1",
+       (w["simplePrims"], w["collisionAddVia"], w["collidable"]))
+    ok("and the trace flag is NOT rewritten on a mesh that already collides, "
+       "which is write-on-change",
+       w["collisionFlagSet"] is False and is_complex_as_simple(w["traceFlag"]) is False,
+       (w["collisionFlagSet"], w["traceFlag"]))
+    ok("the per-list breakdown travels, so a zero on this route ships the "
+       "number of element lists that answered",
+       len(w["simplePrimsAnswers"].get("aggPerList") or {}) == len(AGG_ELEM_LISTS),
+       w["simplePrimsAnswers"].get("aggPerList"))
+    # RUN 3'S WORLD, PLANTED: subsystem None, legacy answering -1, element
+    # lists refusing. The count must read nothing-measured and the -1 must be
+    # recorded as a SENTINEL rather than believed.
+    a = states["all-refuse"]
+    ok("in run 3's world the count is nothing-measured, not zero and not -1",
+       a["simplePrims"] is None
+       and prims_word(a["simplePrims"], a["simplePrimsVia"]).startswith("nothing-measured/"),
+       prims_word(a["simplePrims"], a["simplePrimsVia"]))
+    ok("and the legacy library's -1 is recorded as a refused sentinel",
+       str(a["simplePrimsAnswers"].get("legacy-library")).startswith("refused-with-sentinel"),
+       a["simplePrimsAnswers"])
+    ok("and the subsystem's refusal names the SUBSYSTEM, not a missing method, "
+       "which is what run 3's note said",
+       "returned-None" in str(a["simplePrimsAnswers"].get("subsystem")),
+       a["simplePrimsAnswers"].get("subsystem"))
+    ok("so the mesh is made collidable by the trace flag instead, and the "
+       "reason is recorded",
+       a["collisionFlagSet"] is True
+       and a["collidable"].startswith("YES/complex-as-simple")
+       and "unreadable" in a["collisionFlagWhy"],
+       (a["collidable"], a["collisionFlagWhy"]))
+    # THE WORLD WHERE EVEN THE FALLBACK REFUSES. The word must be UNKNOWN: a
+    # run that cannot tell must not print the word for a run that measured.
+    b = states["blind"]
+    ok("when even the trace flag refuses, the mesh is UNKNOWN and not NO",
+       b["collidable"].startswith("UNKNOWN/") and b["collisionFlagSet"] is False,
+       (b["collidable"], b["collisionFlagWhy"]))
+    ok("and the refusal names which route refused rather than printing a zero",
+       "refused=" in b["collisionFlagWhy"] or "refused/" in str(b["simplePrimsAnswers"]),
+       (b["collisionFlagWhy"], b["simplePrimsAnswers"]))
+    # A REAL ZERO, WHICH IS THE READING THAT MUST NOT LOOK LIKE A REFUSAL: the
+    # count answered 0 and no add route existed.
+    z = states["no-kboxelem"]
+    ok("a count that answers ZERO prints zero, and is a different reading from "
+       "a count nothing could read",
+       z["simplePrims"] == 0
+       and prims_word(z["simplePrims"], z["simplePrimsVia"]) == "0"
+       and prims_word(a["simplePrims"], a["simplePrimsVia"]) != "0",
+       (prims_word(z["simplePrims"], z["simplePrimsVia"]),
+        prims_word(a["simplePrims"], a["simplePrimsVia"])))
+    ok("and a zero with no primitive to add still becomes collidable by flag, "
+       "with the reason saying it was a zero and not a blank",
+       z["collidable"].startswith("YES/complex-as-simple")
+       and "no-simple-primitive-could-be-added" in z["collisionFlagWhy"],
+       (z["collidable"], z["collisionFlagWhy"]))
+    ok("all four worlds produce DIFFERENT collision readings, which is what "
+       "makes any of them falsifiable",
+       len(set((st["collidable"], prims_word(st["simplePrims"], st["simplePrimsVia"]),
+                st["collisionAddVia"]) for st in states.values())) == 4,
+       [(m, s["collidable"], s["collisionAddVia"]) for m, s in states.items()])
+    ok("every world's note names a cause rather than printing none",
+       all(v != "none" for v in notes.values()), notes)
+    ok("and five near-identical element-list refusals are ONE cause in the "
+       "note, not five, because the cap is four",
+       "agg-elems-refused=" in notes["all-refuse"], notes["all-refuse"])
+    # AND THE WHOLE-RUN BLOCK OVER THE FOUR, so the tallies are exercised on
+    # live state rather than on hand-written fixtures.
+    fmix = collision_field(list(states.values()), len(states))
+    ok("the block over a mixed population counts three collidable and one "
+       "unknown over four",
+       "propCollidable=3/4" in fmix and "propCollidableUnknown=1/4" in fmix, fmix)
+    ok("and it counts one mesh with a primitive and two whose count was unread",
+       "propCollisionPrims=1/4" in fmix and "propCollisionPrimsUnread=2/4" in fmix,
+       fmix)
+    ok("the status word over that population says UNREADABLE rather than "
+       "claiming a failure it did not measure",
+       import_status(4, 4, 4, 4, *collidable_tally(list(states.values()), 4)[:2])
+       == "IMPORTED-COLLISION-UNREADABLE",
+       collidable_tally(list(states.values()), 4))
 
     # -- E. THE BOUNDS ARITHMETIC ------------------------------------------
     # Accepting case: an engine that returns exactly the spec box, in the axis
@@ -893,8 +1768,25 @@ def selftest():
        "that means the import made nothing",
        resolve_imported([], "x") == (None, "nothing-appeared"))
     ok("two unrecognised packages are ambiguous and carry the count, not a guess",
-       resolve_imported([D + "a", D + "b"], "x") == (None, "ambiguous-2-appeared"),
+       resolve_imported([D + "a", D + "b"], "x") == (None, "ambiguous-2-appeared/a,b"),
        resolve_imported([D + "a", D + "b"], "x"))
+    # RUN 3'S ONE FAILURE, PLANTED FROM THE MANIFEST IT ACTUALLY WROTE.
+    # pavement_sign's appearedClasses were basic=MaterialInstanceConstant,
+    # hinges=StaticMesh, sign_back=StaticMesh, sign_front=StaticMesh, so the
+    # class filter had already done its job and the three left were three real
+    # meshes out of one GLB. The refusal is correct and stays; what was
+    # missing is that the reason never said WHICH three, which cost a read of
+    # the manifest to find out.
+    three = [D + "pavement_sign/StaticMeshes/" + n
+             for n in ("hinges", "sign_back", "sign_front")]
+    got = resolve_imported(three, "pavement_sign")
+    ok("three meshes out of one source are still a refusal, never a pick",
+       got[0] is None and got[1].startswith("ambiguous-3-appeared/"), got)
+    ok("and the refusal NAMES the three, which run 3's reason did not",
+       "hinges,sign_back,sign_front" in got[1], got)
+    ok("a fourth would announce the cap rather than growing the value",
+       "(+1~more~not~shown)" in resolve_imported(three + [D + "zz"], "pavement_sign")[1],
+       resolve_imported(three + [D + "zz"], "pavement_sign"))
     ok("a hyphen in the asset id does not defeat the name rule",
        resolve_imported([D + "SM_a_b"], "a-b")[1] == "exact-path",
        resolve_imported([D + "SM_a_b"], "a-b"))
@@ -950,9 +1842,18 @@ def selftest():
        "(+2~more~not~shown)" in pivot_field(rs), pivot_field(rs))
 
     # -- G. NO SPACES IN ANY VALUE -----------------------------------------
-    line = prop_line("IMPORTED", 16, 23, 16, 16, 16, 16, rs,
+    for r in rs:
+        r["saved"] = True
+        r["simplePrims"] = 1
+        r["simplePrimsVia"] = "agg-geom-elems"
+        r["simplePrimsAnswers"] = {"agg-geom-elems": 1, "legacy-library": 1}
+        r["collisionAddVia"] = "agg-geom-box"
+        r["bodySetup"] = "present"
+        r["traceFlag"] = "CollisionTraceFlag.CTF_USE_DEFAULT"
+        r["collidable"] = collidable_word("present", 1, r["traceFlag"], half)
+    line = prop_line("IMPORTED", 16, 23, 16, 16, len(rs), rs,
                      [("x", "a reason with spaces")], "asset-import-task",
-                     "static-mesh-editor-subsystem",
+                     collision_field(rs, len(rs)),
                      "propExtras=lamp_post_01=ok", 123456,
                      "a note with spaces",
                      "propGltfImporter=" + gltf_verdict(True, [], 0, 3)
@@ -962,7 +1863,11 @@ def selftest():
                                           "resolvedVia": "exact-path",
                                           "routeRan": "asset-import-task",
                                           "waitTaken": False,
-                                          "waitChanged": False})]))
+                                          "waitChanged": False})]),
+                     source_parts_field([("a", 1), ("b", 2)]),
+                     engine_field(["StaticMeshEditorSubsystem=returned-None"],
+                                  ["InterchangeGenericMeshPipeline=2-of-80:"
+                                   "import_collision,combine_static_meshes"]))
     toks = line.split()
     ok("every whitespace-separated token of the verdict line is key=value",
        all("=" in t for t in toks), [t for t in toks if "=" not in t])
@@ -985,6 +1890,40 @@ def selftest():
        "nothing from one which made something else",
        "propImportLookedFor=" in line and "propImportedNames=" in line
        and "propImportResolvedVia=" in line, line)
+    # G2. THE COLLISION PAIR, ON THE LINE, UNDER NAMES A GREP CANNOT MERGE.
+    # Run 3 put propCollisionPrims=0/15 on this line and collisionPrims=-1
+    # inside propAcceptingCase, one name over two populations.
+    ok("the whole-run collision keys are on the line with their denominators",
+       "propCollisionPrims=%d/%d" % (len(rs), len(rs)) in line
+       and "propCollisionPrimsUnread=0/%d" % len(rs) in line
+       and "propCollidable=%d/%d" % (len(rs), len(rs)) in line, line)
+    ok("and the per-mesh key is spelled differently from the whole-run key, so "
+       "one grep cannot pick up the other",
+       "collisionPrims=" not in line.replace("propCollisionPrims=", "")
+       .replace("propCollisionPrimsUnread=", "")
+       .replace("propCollisionPrimsStat=", ""), line)
+    ok("the line carries what the source files hold, because one uasset per "
+       "asset leaves any other part of the file out of the street",
+       "propSourcePartsOver1=1/2" in line and "b=2" in line, line)
+    ok("and it carries the two engine questions the next run needs answered",
+       "propSubsystems=" in line and "propPipelineOpts=" in line
+       and "NOTHING-SET-THIS-RUN" in line, line)
+    ok("the status word and the collision block cannot disagree, because both "
+       "read collidable_tally over one population",
+       import_status(len(rs), len(rs), len(rs), len(rs),
+                     *collidable_tally(rs, len(rs))[:2]) == "IMPORTED"
+       and "propCollidable=%d/%d" % (len(rs), len(rs)) in line)
+    ok("and a blind run's tally drives the word that says so",
+       import_status(3, 3, 3, 3, *collidable_tally(blind3, 3)[:2])
+       == "IMPORTED-COLLISION-UNREADABLE",
+       collidable_tally(blind3, 3))
+    ok("the engine block names which subsystem answered and sets nothing",
+       "propSubsystems=StaticMeshEditorSubsystem=returned-None" in
+       engine_field(["StaticMeshEditorSubsystem=returned-None"], [])
+       and "NOTHING-SET-THIS-RUN" in engine_field([], []), engine_field([], []))
+    ok("and with nothing asked it says nothing-measured on both keys",
+       "propSubsystems=nothing-measured" in engine_field([], [])
+       and "propPipelineOpts=nothing-measured" in engine_field([], []))
 
     # -- H. THE REJECTING FIXTURE FOR THE NAME RULE ------------------------
     ok("an asset id with a slash is refused", not safe_asset_id("ambientcg/Leak"))
@@ -1008,20 +1947,33 @@ def selftest():
 # ---- the half that needs Unreal. It supplies numbers and decides nothing ---
 
 
-def _try(calls, report):
+def _try(calls, report, accept=None):
     """Take the first route that answers, and RECORD WHICH ONE, the same shape
     make_base_material.py uses for a pin name. A fallback that works silently
     is a fallback nobody knows they are depending on.
 
     calls is a list of (name, zero-argument callable). Returns
-    (value, via) where via is the name that answered or none-of-N."""
+    (value, via) where via is the name that answered or none-of-N.
+
+    `accept` IS THE FIX FOR RUN 3'S ZERO, and the fault it closes is narrow
+    and expensive. An engine API that refuses does not always raise: the
+    legacy EditorStaticMeshLibrary answers -1 when it will not run, which it
+    will not in a commandlet, and -1 is not None, so the old code took it as
+    the answer, printed collisionPrims=-1 on one line and turned the same -1
+    into 0/15 on another. A route whose answer fails `accept` is REFUSED, with
+    the sentinel named in the report, and the next route gets its turn."""
     for name, fn in calls:
         try:
             v = fn()
-            if v is not None:
-                return v, name
         except Exception as e:
             report.append("%s-refused=%s" % (name, str(e).split("\n")[0][:80]))
+            continue
+        if v is None:
+            continue
+        if accept is not None and not accept(v):
+            report.append("%s-refused-with-sentinel=%s" % (name, flat(v)[:40]))
+            continue
+        return v, name
     return None, "none-of-%d-candidates" % len(calls)
 
 
@@ -1047,40 +1999,444 @@ def _bounds_of(unreal, mesh, report):
     return ((o.x, o.y, o.z), (e.x, e.y, e.z), via)
 
 
-def _add_collision(unreal, mesh, report):
-    """Simple collision on the imported mesh, and THE COUNT IS READ BACK.
+# THE ELEMENT LISTS OF A BODY SETUP'S AGGREGATE GEOMETRY. Every one is read
+# separately and a list that refuses is counted apart from a list that is
+# empty, so a zero here ships the number of lists that answered.
+AGG_ELEM_LISTS = ("box_elems", "sphere_elems", "sphyl_elems", "convex_elems",
+                  "tapered_capsule_elems")
 
-    A mesh with no body setup places, renders and photographs clean, and a
-    walking Character falls straight through it. That is the failure this
-    whole step exists to prevent, so the number that ends up on the verdict
-    is what the engine answers AFTER the call, never the call returning."""
-    def count():
+
+def _body_setup(unreal, mesh, report):
+    """The mesh's own body setup, which is where collision actually lives.
+
+    WRITTEN OUT RATHER THAN THROUGH _try, and the reason is the distinction
+    _try cannot make: a UPROPERTY that reads fine and is NULL and a property
+    this engine will not let Python read both come back None. The first means
+    the mesh has no collision container at all, which is a finding; the second
+    means the instrument is blind, which is a different finding. Returns
+    (body_setup_or_None, word) with word in present / absent / unread."""
+    def via_property():
+        return mesh.get_editor_property("body_setup")
+
+    def via_attribute():
+        return mesh.body_setup
+
+    for name, fn in (("body-setup-property", via_property),
+                     ("body-setup-attribute", via_attribute)):
+        try:
+            bs = fn()
+        except Exception as e:
+            report.append("%s-refused=%s" % (name, str(e).split("\n")[0][:70]))
+            continue
+        if bs is None:
+            return None, "absent"
+        return bs, "present"
+    return None, "unread"
+
+
+def _make_body_setup(unreal, mesh, report):
+    """Give a mesh a body setup when it has none, because nothing else in this
+    section can work without one. Read back off the mesh, never assumed from
+    the call returning."""
+    def via_new_object():
+        bs = unreal.new_object(unreal.BodySetup, outer=mesh)
+        mesh.set_editor_property("body_setup", bs)
+        return mesh.get_editor_property("body_setup")
+
+    v, via = _try([("new-object-body-setup", via_new_object)], report)
+    return v, via
+
+
+def _agg_geom(unreal, bs, report):
+    """The aggregate geometry struct off a body setup, or None with the via."""
+    def via_property():
+        return bs.get_editor_property("agg_geom")
+
+    def via_attribute():
+        return bs.agg_geom
+
+    return _try([("agg-geom-property", via_property),
+                 ("agg-geom-attribute", via_attribute)], report)
+
+
+def _agg_prim_count(agg, report):
+    """Simple primitives in the aggregate geometry, PER LIST.
+
+    A ZERO NEEDS A DENOMINATOR: the second return value is how many of the
+    element lists answered at all, so "no primitives" and "this binding does
+    not expose the element lists" are different readings. None means nothing
+    answered and the count is nothing-measured, not zero."""
+    total, read, per = 0, 0, {}
+    refused, why = [], ""
+    for nm in AGG_ELEM_LISTS:
+        try:
+            n = len(agg.get_editor_property(nm))
+        except Exception as e:
+            refused.append(nm)
+            why = why or str(e).split("\n")[0][:40]
+            continue
+        read += 1
+        per[nm] = int(n)
+        total += int(n)
+    if refused:
+        # ONE LINE FOR ALL FIVE LISTS, NOT FIVE. propNote has a cap of four
+        # distinct causes and five near-identical refusals would spend all of
+        # it on one cause, which is the fault run 3's note had in the other
+        # direction.
+        report.append("agg-elems-refused=%s/%d-of-%d/%s"
+                      % (",".join(refused), len(refused), len(AGG_ELEM_LISTS), why))
+    if read == 0:
+        return None, per
+    return total, per
+
+
+def _simple_prim_count(unreal, mesh, bs, report):
+    """How many simple collision primitives this mesh has, ASKED EVERY WAY.
+
+    EVERY ROUTE IS RUN, not just the first that answers, because that is the
+    paired reading this fault needs. Run 3's only count came from the legacy
+    library, which answered -1 and was believed. A second route that answers
+    the same number is what makes one believable, and propCollisionAgree is
+    the count of meshes where two or more routes answered and agreed.
+
+    A NEGATIVE IS A REFUSAL SENTINEL AND NOT A COUNT. There is no such thing
+    as minus one box.
+
+    Returns (count_or_None, via, answers) where answers maps every route name
+    to the int it answered or the string that says how it refused."""
+    answers = {}
+
+    def agg_route():
+        if bs is None:
+            raise RuntimeError("no-body-setup-to-read")
+        agg, _v = _agg_geom(unreal, bs, report)
+        if agg is None:
+            raise RuntimeError("agg-geom-unreadable")
+        n, per = _agg_prim_count(agg, report)
+        if per:
+            answers["aggPerList"] = per
+        if n is None:
+            raise RuntimeError("no-element-list-answered")
+        return n
+
+    def subsystem_route():
         sub = unreal.get_editor_subsystem(unreal.StaticMeshEditorSubsystem)
+        if sub is None:
+            # NAMED, NOT AN ATTRIBUTE ERROR ON None. Run 3's note said
+            # "'NoneType' object has no attribute get_simple_collision_count",
+            # which reads as a missing METHOD and is really a missing
+            # SUBSYSTEM. propSubsystems settles which.
+            raise RuntimeError("get_editor_subsystem-returned-None")
         return sub.get_simple_collision_count(mesh)
 
-    def count_legacy():
+    def legacy_route():
         return unreal.EditorStaticMeshLibrary.get_simple_collision_count(mesh)
 
-    before, _ = _try([("subsystem", count), ("legacy-library", count_legacy)],
-                     report)
+    routes = [("agg-geom-elems", agg_route), ("subsystem", subsystem_route),
+              ("legacy-library", legacy_route)]
+    first, first_via = None, "none-of-%d-candidates" % len(routes)
+    for name, fn in routes:
+        try:
+            v = fn()
+        except Exception as e:
+            msg = str(e).split("\n")[0][:60]
+            answers[name] = "refused/" + flat(msg)
+            report.append("%s-count-refused=%s" % (name, msg))
+            continue
+        if v is None:
+            answers[name] = "answered-None"
+            continue
+        try:
+            iv = int(v)
+        except Exception:
+            answers[name] = "answered-non-number/" + flat(v)[:30]
+            continue
+        if iv < 0:
+            answers[name] = "refused-with-sentinel/%d" % iv
+            report.append("%s-count-refused-with-sentinel=%d" % (name, iv))
+            continue
+        answers[name] = iv
+        if first is None:
+            first, first_via = iv, name
+    return first, first_via, answers
+
+
+def _trace_flag(unreal, bs, report):
+    """The body setup's collision trace flag, as the engine spells it.
+
+    It is the half of collidability a primitive count cannot see: complex-as-
+    simple means the mesh collides with its own triangles and holds no simple
+    primitives at all."""
+    if bs is None:
+        return None, "no-body-setup"
+
+    def via_property():
+        return bs.get_editor_property("collision_trace_flag")
+
+    v, via = _try([("trace-flag-property", via_property)], report)
+    return (None if v is None else flat(v)), via
+
+
+def _complex_as_simple_value(unreal):
+    """The enumerator this engine spells for use-complex-as-simple, FOUND BY
+    NAME rather than assumed, and the name it found travels back.
+
+    CTF_USE_COMPLEX_AS_SIMPLE is what the Python binding is expected to call
+    it. If this engine calls it something else, scanning the enum for the
+    three words finds it and says which name was used; a route that cannot
+    find it says so instead of silently setting nothing."""
+    cls = getattr(unreal, "CollisionTraceFlag", None)
+    if cls is None:
+        return None, "CollisionTraceFlag-class-absent"
+    direct = getattr(cls, "CTF_USE_COMPLEX_AS_SIMPLE", None)
+    if direct is not None:
+        return direct, "CTF_USE_COMPLEX_AS_SIMPLE"
+    for nm in sorted(dir(cls)):
+        if is_complex_as_simple(nm):
+            return getattr(cls, nm), nm
+    return None, "no-enumerator-matching-" + COMPLEX_AS_SIMPLE
+
+
+def _set_complex_as_simple(unreal, bs, report):
+    """Make the mesh collide with its own render triangles, and READ THE FLAG
+    BACK off the body setup.
+
+    FOR A FLAT GRATE A CHARACTER WALKS OVER, THIS IS ARGUABLY THE RIGHT ANSWER
+    AND NOT A WORKAROUND: the grate is 40 x 40 x 1.5 cm and its triangles are
+    the surface the capsule stands on. It is taken here only when no simple
+    primitive could be added or counted, so a mesh that has a box keeps the
+    cheaper shape, which is write-on-change rather than a blanket policy."""
+    want, name = _complex_as_simple_value(unreal)
+    if want is None:
+        report.append("complex-as-simple-refused=%s" % name)
+        return None, name
+
+    def via_property():
+        bs.set_editor_property("collision_trace_flag", want)
+        return bs.get_editor_property("collision_trace_flag")
+
+    v, via = _try([("trace-flag-set-property", via_property)], report)
+    if v is None:
+        return None, via
+    return flat(v), name
+
+
+def _add_box_elem(unreal, bs, origin_uu, extent_uu, report):
+    """A box the size of the mesh's own measured bounds, straight into the
+    body setup's aggregate geometry.
+
+    WHY A BOX AND NOT A CONVEX HULL: a box element is analytic, so it needs no
+    cooked physics data to exist in a saved package, which a convex hull does.
+    What is written here is serialised with the asset and is there on load.
+
+    FKBoxElem's x, y and z are FULL LENGTHS and not half-extents, which is why
+    the engine's half-extent reading is doubled. That is an assumption about
+    the struct, and the reading that would catch it being wrong is the
+    primitive count coming back while a walk clip still falls through: the
+    count cannot see a box of the wrong size. Named here as the open
+    assumption it is."""
+    if extent_uu is None:
+        raise RuntimeError("no-bounds-to-size-a-box-from")
+    elem = unreal.KBoxElem()
+    elem.set_editor_property("center", unreal.Vector(
+        float(origin_uu[0]), float(origin_uu[1]), float(origin_uu[2])))
+    elem.set_editor_property("x", float(extent_uu[0]) * 2.0)
+    elem.set_editor_property("y", float(extent_uu[1]) * 2.0)
+    elem.set_editor_property("z", float(extent_uu[2]) * 2.0)
+    agg, via = _agg_geom(unreal, bs, report)
+    if agg is None:
+        raise RuntimeError("agg-geom-unreadable/" + str(via))
+    boxes = list(agg.get_editor_property("box_elems"))
+    boxes.append(elem)
+    agg.set_editor_property("box_elems", boxes)
+    bs.set_editor_property("agg_geom", agg)
+    return True
+
+
+def _ensure_collision(unreal, mesh, origin_uu, extent_uu, report):
+    """COLLISION ON THE IMPORTED MESH, AND THE STATE IS READ BACK OFF THE
+    ASSET. Returns a dict of live state; every word on the verdict is decided
+    by the pure functions above from this dict.
+
+    Four routes for adding, in the order of how much the engine has to agree
+    with us, and each one that refuses says which name refused:
+
+      agg-geom-box           a box element written into the body setup. Needs
+                             unreal.KBoxElem and the element list to be
+                             writable from Python; both are unknown until a
+                             run says.
+      subsystem-box          StaticMeshEditorSubsystem.add_simple_collisions.
+                             Refused in run 3 because the subsystem itself was
+                             None in this commandlet.
+      legacy-box             EditorStaticMeshLibrary.add_simple_collisions.
+                             Answered -1 in run 3, which is a refusal.
+      complex-as-simple-flag not a primitive at all: the mesh collides with its
+                             own triangles. Taken last, and only when no count
+                             above zero could be read.
+
+    EVERY ADD IS FOLLOWED BY A READ-BACK AND THE READ-BACK IS WHAT DECIDES. A
+    route that returns without raising has not added anything: it has failed to
+    complain. propCollisionVia therefore names a route that MOVED THE COUNT, or
+    says which routes ran without effect."""
+    state = {"bodySetup": "unread", "simplePrims": None,
+             "simplePrimsVia": "not-reached", "simplePrimsAnswers": {},
+             "primsBefore": None, "traceFlag": None,
+             "traceFlagVia": "not-reached", "collisionAddVia": "not-reached",
+             "collisionFlagSet": False, "collisionFlagWhy": "not-needed"}
+
+    bs, word = _body_setup(unreal, mesh, report)
+    if bs is None and word == "absent":
+        bs2, mvia = _make_body_setup(unreal, mesh, report)
+        word = ("made/" + mvia) if bs2 is not None else ("absent/could-not-make/" + mvia)
+        bs = bs2
+    state["bodySetup"] = word
+
+    before, bvia, answers = _simple_prim_count(unreal, mesh, bs, report)
+    state["primsBefore"] = before
+    state["simplePrims"], state["simplePrimsVia"] = before, bvia
+    state["simplePrimsAnswers"] = answers
+
     if before is not None and before > 0:
         # WRITE-ON-CHANGE. A mesh the importer already gave collision to is
         # not given a second box on top of the first.
-        return before, "already-had-%d" % before
+        state["collisionAddVia"] = "not-needed/already-had-%d" % before
+    else:
+        def add_agg_box():
+            return _add_box_elem(unreal, bs, origin_uu, extent_uu, report)
 
-    def add():
-        sub = unreal.get_editor_subsystem(unreal.StaticMeshEditorSubsystem)
-        sub.add_simple_collisions(mesh, unreal.ScriptingCollisionShapeType.BOX)
-        return sub.get_simple_collision_count(mesh)
+        def add_subsystem():
+            sub = unreal.get_editor_subsystem(unreal.StaticMeshEditorSubsystem)
+            if sub is None:
+                raise RuntimeError("get_editor_subsystem-returned-None")
+            sub.add_simple_collisions(mesh, unreal.ScriptingCollisionShapeType.BOX)
+            return True
 
-    def add_legacy():
-        unreal.EditorStaticMeshLibrary.add_simple_collisions(
-            mesh, unreal.ScriptingCollisionShapeType.BOX)
-        return unreal.EditorStaticMeshLibrary.get_simple_collision_count(mesh)
+        def add_legacy():
+            r = unreal.EditorStaticMeshLibrary.add_simple_collisions(
+                mesh, unreal.ScriptingCollisionShapeType.BOX)
+            # -1 IS HOW THIS LIBRARY SAYS NO. It returns the index it added at,
+            # so a negative is a refusal and must not read as a success.
+            if isinstance(r, int) and r < 0:
+                raise RuntimeError("legacy-add-returned-%d" % r)
+            return True
 
-    after, via = _try([("subsystem-box", add), ("legacy-box", add_legacy)],
-                      report)
-    return (after if after is not None else 0), via
+        if bs is None:
+            # THE WORD TRAVELS, because "this mesh has no body setup" and
+            # "Python could not read the body setup" need different fixes.
+            state["collisionAddVia"] = "not-attempted/body-setup=" + word
+        else:
+            # A ROUTE THAT RAN IS NOT A ROUTE THAT WORKED. That was run 2's
+            # whole fault in the import loop and it is not repeated here: each
+            # add is followed by a READ-BACK, and a route whose write changed
+            # the count by nothing hands over to the next one under its own
+            # name. _try cannot express this, because to _try a call that
+            # returns without raising has answered.
+            after, avia2, answers2 = before, bvia, answers
+            added_via = "none-of-3-candidates"
+            for nm, fn in (("agg-geom-box", add_agg_box),
+                           ("subsystem-box", add_subsystem),
+                           ("legacy-box", add_legacy)):
+                try:
+                    fn()
+                except Exception as e:
+                    msg = str(e).split("\n")[0][:70]
+                    report.append("%s-refused=%s" % (nm, msg))
+                    continue
+                after, avia2, answers2 = _simple_prim_count(unreal, mesh, bs, report)
+                if after is None:
+                    # THE WRITE MAY HAVE WORKED AND THE READER IS BLIND. Stop
+                    # rather than let the next route put a second box on top of
+                    # a first one nobody can see.
+                    added_via = nm + "/ran/count-unreadable"
+                    break
+                if after > (before or 0):
+                    added_via = nm
+                    break
+                report.append("%s-ran-without-effect=count-still-%d" % (nm, after))
+            state["collisionAddVia"] = added_via
+            # LAST-WINS, AND IT IS THE COUNT AFTER THE WRITE. primsBefore
+            # keeps the other moment, so the two are never one key.
+            state["simplePrims"], state["simplePrimsVia"] = after, avia2
+            state["simplePrimsAnswers"] = answers2
+
+    flag, fvia = _trace_flag(unreal, bs, report)
+    state["traceFlag"], state["traceFlagVia"] = flag, fvia
+
+    prims = state["simplePrims"]
+    if bs is not None and not is_complex_as_simple(flag) and (prims is None or prims <= 0):
+        why = ("no-simple-primitive-could-be-added" if prims == 0
+               else "simple-primitive-count-unreadable")
+        newflag, fname = _set_complex_as_simple(unreal, bs, report)
+        if newflag is not None:
+            state["traceFlag"] = newflag
+            state["collisionFlagSet"] = True
+            state["collisionFlagWhy"] = why + "/enum=" + fname
+        else:
+            state["collisionFlagWhy"] = why + "/refused=" + fname
+    return state
+
+
+def _subsystem_probe(unreal, report):
+    """WHY FAULT 1 HAPPENED AT ALL, asked of the engine instead of argued
+    about. get_editor_subsystem(StaticMeshEditorSubsystem) returned None in
+    run 3, so every attribute error in that run's note was an error on None
+    and not a missing method. Asking for three more subsystems settles which
+    world this is: all None means editor subsystems are not created in this
+    commandlet at all, one None means that one module is not loaded.
+
+    Three words, and they are different facts: class-absent (the binding does
+    not know the type), returned-None (the engine would not give it), present.
+    """
+    out = []
+    for nm in ("StaticMeshEditorSubsystem", "EditorActorSubsystem",
+               "AssetEditorSubsystem", "LevelEditorSubsystem"):
+        cls = getattr(unreal, nm, None)
+        if cls is None:
+            out.append("%s=class-absent" % nm)
+            continue
+        try:
+            sub = unreal.get_editor_subsystem(cls)
+        except Exception as e:
+            out.append("%s=raised/%s" % (nm, flat(str(e).split("\n")[0][:30])))
+            continue
+        out.append("%s=%s" % (nm, "present" if sub is not None else "returned-None"))
+    return out
+
+
+def _pipeline_probe(unreal, report):
+    """WHICH IMPORT-TIME OPTIONS THIS ENGINE ACTUALLY EXPOSES, BY NAME.
+
+    NOTHING IS SET HERE, and that is deliberate. Asking the import to build
+    collision, or to combine a multi-mesh file into one asset, are both real
+    candidates for the next run, and both need a property name this container
+    cannot check and no docs page can be trusted for. Run 3 proved the import
+    route that works; changing its options in the same pass that fixes
+    collision would risk fifteen working assets to test a name. So this run
+    READS the names and the next one can use them.
+
+    Each class ships its matching names over the total it has, so a zero here
+    has a denominator and cannot read as "this engine has no such option"
+    when it means "dir() returned nothing"."""
+    out = []
+    keys = ("collision", "combine", "convex", "ucx")
+    for cls_name in ("InterchangeGenericAssetsPipeline",
+                     "InterchangeGenericMeshPipeline",
+                     "InterchangePipelineStackOverride"):
+        cls = getattr(unreal, cls_name, None)
+        if cls is None:
+            out.append("%s=class-absent" % cls_name)
+            continue
+        try:
+            names = [a for a in dir(cls) if not a.startswith("_")]
+        except Exception as e:
+            out.append("%s=dir-refused/%s" % (cls_name, flat(str(e)[:30])))
+            continue
+        want = sorted(a for a in names if any(k in a.lower() for k in keys))
+        shown = ",".join(want[:6]) if want else "none-matching"
+        if len(want) > 6:
+            shown += ",(+%d~more~not~shown)" % (len(want) - 6)
+        out.append("%s=%d-of-%d:%s" % (cls_name, len(want), len(names), shown))
+    return out
 
 
 def importer_candidates(names):
@@ -1275,7 +2631,17 @@ def resolve_imported(appeared, asset_id):
         # own tally. It still says the import made something, under the leaf's
         # own name, without claiming to know it is the right something.
         return None, "appeared-unnamed/" + leafs[0][1]
-    return None, "ambiguous-%d-appeared" % len(leafs)
+    # AND IT NAMES THEM, because "ambiguous-3-appeared" cost a round trip to
+    # the manifest to find out that the three were hinges, sign_front and
+    # sign_back: three real static meshes out of one GLB, with the material
+    # already filtered out by the class filter in _import_one. The names are
+    # the finding. Nothing about the RULE is loosened: three meshes and no way
+    # to tell which is the prop is still a refusal, because choosing one would
+    # put a sign with no hinges at the street's path and call it a pass.
+    shown = ",".join(sorted(leaf for _p, leaf in leafs)[:3])
+    if len(leafs) > 3:
+        shown += ",(+%d~more~not~shown)" % (len(leafs) - 3)
+    return None, "ambiguous-%d-appeared/%s" % (len(leafs), shown)
 
 
 def _list_package(unreal, report):
@@ -1573,9 +2939,14 @@ def run_in_unreal():
     boxes, _ = box_per_asset(spec)
     report = []
     readings, failures = [], []
-    sources = imported = saved = collided = 0
-    vias, coll_vias, details = [], [], []
+    sources = imported = saved = 0
+    vias, details = [], []
     extras = []
+    # HOW MANY MESHES EACH SOURCE FILE HOLDS, read before the import rather
+    # than inferred from what appeared, so the cause is on the line beside the
+    # effect. pavement_sign's three packages in run 3 are three mesh nodes in
+    # one GLB; that is readable from the file and was not read.
+    parts = []
 
     # ASK THE ENGINE WHAT IT CAN DO BEFORE ASKING IT TO DO ANYTHING. Run 1
     # spent its whole import loop discovering, sixteen times, that no route
@@ -1605,6 +2976,15 @@ def run_in_unreal():
     for asset_id, box in todo:
         is_extra = box is None
         abs_glb = os.path.join(root, glb_source(asset_id))
+        # THE SOURCE'S OWN MESH COUNT, FOR EVERY ASSET, INCLUDING THE ONES
+        # THAT THEN FAIL. A failure reason that names the cause is worth a
+        # round trip on its own.
+        mesh_names = glb_mesh_names(abs_glb) if os.path.exists(abs_glb) else None
+        nparts = None if mesh_names is None else len(mesh_names)
+        if not is_extra:
+            parts.append((asset_id, nparts))
+        part_note = ("/sourceParts=%d=%s" % (nparts, ",".join(mesh_names[:3]))
+                     if nparts and nparts > 1 else "")
         if not os.path.exists(abs_glb):
             (extras if is_extra else failures).append((asset_id, "no-glb-at-" + glb_source(asset_id).replace(os.sep, "/")))
             continue
@@ -1614,38 +2994,52 @@ def run_in_unreal():
             (extras if is_extra else failures).append((asset_id, "asset-id-is-not-a-legal-package-name"))
             continue
         mesh, via, det = _import_one(unreal, abs_glb, asset_id, report)
+        det["sourceParts"] = nparts
+        det["sourceMeshNames"] = mesh_names
         vias.append(via)
         details.append((asset_id, det))
         if mesh is None:
-            (extras if is_extra else failures).append((asset_id, "did-not-load-back/" + via))
+            (extras if is_extra else failures).append(
+                (asset_id, "did-not-load-back/" + via + part_note))
             continue
         if not is_extra:
             imported += 1
-        prims, cvia = _add_collision(unreal, mesh, report)
-        coll_vias.append(cvia)
+        # BOUNDS FIRST, BECAUSE THE BOX IS SIZED FROM THEM. Reading the mesh's
+        # own bounds does not touch the asset, and the collision box wants the
+        # measured extent rather than the spec's, so that a wrong axis
+        # convention cannot put a box where the mesh is not.
+        origin, extent, bvia = _bounds_of(unreal, mesh, report)
+        cstate = _ensure_collision(unreal, mesh, origin, extent, report)
         ok_save = False
         try:
             ok_save = bool(unreal.EditorAssetLibrary.save_asset(package_path(asset_id), False))
         except Exception as e:
             report.append("%s-save-refused=%s" % (asset_id, str(e).split("\n")[0][:80]))
-        origin, extent, bvia = _bounds_of(unreal, mesh, report)
+        collidable = collidable_word(cstate["bodySetup"], cstate["simplePrims"],
+                                    cstate["traceFlag"], extent)
         if is_extra:
             extras.append((asset_id,
-                           "imported/saved=%s/collisionPrims=%d/extentUu=%s"
-                           % ("yes" if ok_save else "NO", prims,
+                           "imported/saved=%s/simplePrims=%s/collidable=%s/extentUu=%s"
+                           % ("yes" if ok_save else "NO",
+                              prims_word(cstate["simplePrims"],
+                                         cstate["simplePrimsVia"]),
+                              flat(collidable),
                               "%.1f,%.1f,%.1f" % extent if extent else "unread")))
             continue
         if ok_save:
             saved += 1
-        if prims > 0:
-            collided += 1
         if extent is None:
             failures.append((asset_id, "bounds-unreadable/" + bvia))
             continue
         r = bounds_reading(asset_id, box, origin, extent)
         r["materialSlots"] = _material_slots(unreal, mesh, report)
-        r["collisionPrims"] = prims
-        r["collisionVia"] = cvia
+        r.update(cstate)
+        r["collidable"] = collidable
+        r["sourceParts"] = nparts
+        r["sourceMeshNames"] = mesh_names
+        r["staticMeshesAppeared"] = sum(
+            1 for v in (det.get("appearedClasses") or {}).values()
+            if str(v) == "StaticMesh")
         r["boundsVia"] = bvia
         r["importVia"] = via
         r["saved"] = bool(ok_save)
@@ -1679,11 +3073,13 @@ def run_in_unreal():
 
     multi = [r["asset"] for r in readings if r.get("materialSlots", -1) > 1]
     unread_slots = [r["asset"] for r in readings if r.get("materialSlots", -1) < 0]
-    status = import_status(len(asked), sources, imported, saved, collided)
+    # ONE TALLY, READ TWICE. The status word and propCollidable come from the
+    # same function over the same population, which is what run 3's pair of
+    # disagreeing collision numbers could not do.
+    yes_n, unk_n, _no_n, _m = collidable_tally(readings, saved)
+    status = import_status(len(asked), sources, imported, saved, yes_n, unk_n)
     via_word = vias[0] if vias and all(v == vias[0] for v in vias) else \
         ("mixed-over-%d" % len(vias) if vias else "nothing-measured")
-    cvia_word = coll_vias[0] if coll_vias and all(v == coll_vias[0] for v in coll_vias) else \
-        ("mixed-over-%d" % len(coll_vias) if coll_vias else "nothing-measured")
     extra_field = "propExtras=" + (
         ";".join("%s=%s" % (a, str(w).replace(" ", "~")) for a, w in extras)
         if extras else "none")
@@ -1691,16 +3087,23 @@ def run_in_unreal():
     for a, w in extras:
         if a == "lamp_post_01":
             lamp = str(w).replace(" ", "~")
+    # ASKED ONCE, USED TWICE. Two calls would double every refusal line these
+    # probes add to the report, and propNote counts repeats now.
+    subsys = _subsystem_probe(unreal, report)
+    pipe = _pipeline_probe(unreal, report)
+    engine_block = engine_field(subsys, pipe)
     line = prop_line(status, len(asked), pieces, sources, imported, saved,
-                     collided, readings, failures, via_word, cvia_word,
+                     readings, failures, via_word,
+                     collision_field(readings, saved),
                      extra_field + " propMaterialSlotsOver1=%d/%d propMaterialSlotsUnread=%d "
                      "propSlotNote=the-street-overwrites-slot-0-only"
                      % (len(multi), len(readings), len(unread_slots)),
                      total_bytes,
-                     "/".join(report[:4]) if report else "none",
+                     note_value(report),
                      gltf_block, accepting_field(readings, failures, sources),
                      preexisting_field(deleted, len(asked)) + " "
-                     + lookup_field(details))
+                     + lookup_field(details),
+                     source_parts_field(parts), engine_block)
     man = manifest("unreal/engine-readback", spec_path, asked, readings,
                    failures, [{"asset": a, "reading": w} for a, w in extras])
     man["line"] = line
@@ -1710,6 +3113,15 @@ def run_in_unreal():
     man["acceptingCase"] = accepting_field(readings, failures, sources)
     man["lookups"] = [{"asset": a, "detail": d} for a, d in details]
     man["reportLines"] = report
+    # THE THINGS THAT DO NOT FIT ON THE LINE AND ARE THE WHOLE POINT OF THE
+    # NEXT RUN: which subsystems this commandlet has, which import-time option
+    # names this engine exposes, and how many meshes each source file holds.
+    man["subsystems"] = subsys
+    man["pipelineOpts"] = pipe
+    man["sourceParts"] = [{"asset": a, "meshes": n} for a, n in parts]
+    man["collisionStat"] = ("simplePrims is a count read off the body setup "
+                            "and is a PROXY; collidable is the asset's own "
+                            "answer and is not a sweep in a level")
     return line, man
 
 
@@ -1767,9 +3179,23 @@ def measure_only():
     print("spec box minus GLB measured dims, mm, worst axis per asset, "
           "descending over %d of %d assets:" % (len(measured), len(asked)))
     for r in sorted(measured, key=lambda r: -r["worstMm"]):
-        print("  %8.4f  %-24s baseY=%+.4f verts=%-6d %s"
+        print("  %8.4f  %-24s baseY=%+.4f verts=%-6d meshes=%-2s %s"
               % (r["worstMm"], r["asset"], r["baseY"], r["verts"],
-                 r["specBoxM"]))
+                 r["sourceMeshes"], r["specBoxM"]))
+    # THE SECOND SERIES, PRINTED AND NOT GATED. One uasset is kept per asset,
+    # so a source holding two meshes loses one of them to a folder the street
+    # never reads. wooden_crate_01 is the whole of the 44 mm bounds outlier
+    # above: the kept body measures 1.000679 m tall and the file measures
+    # 1.0447, and the difference is the lid.
+    multi = sorted(((r["sourceMeshes"], r["asset"], r["sourceMeshNames"])
+                    for r in measured if (r["sourceMeshes"] or 0) > 1),
+                   reverse=True)
+    print("meshes per source file, the ones above one, over %d assets:"
+          % len(measured))
+    if not multi:
+        print("  none: every source holds exactly one mesh")
+    for n, a, names in multi:
+        print("  %d  %-24s %s" % (n, a, ",".join(names or [])))
     if not measured:
         print("  NOTHING MEASURED: no asset had a GLB on disk")
         return 2
