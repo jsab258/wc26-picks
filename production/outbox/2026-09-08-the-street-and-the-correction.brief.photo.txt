@@ -1,0 +1,1 @@
+clip: production/d1-probe/ue-walk.gif

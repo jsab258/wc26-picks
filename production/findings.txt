@@ -7,6 +7,64 @@ Plain text on purpose. tools/producer-check.py walks *.md and tools/docs-check.p
 governs game-design/, so a .txt here is outside both and cannot turn verify red.
 
 --------------------------------------------------------------------------
+2026-09-08  THE CHANNEL WAS NEVER DEAD. THE SENDING HALF RAN ALL NIGHT AND
+            THE RETURN HALF STOPPED AT 2026-09-07 11:30 UTC.
+--------------------------------------------------------------------------
+THIS CORRECTS A CLAIM MADE TO JAFAR. He was told his Telegram channel had
+been dead since 11:30. It had not. Four messages reached his phone while
+that was being said: ids 27 and 28 at 2026-09-08T01:18:47Z, id 29 (the map
+changed) and id 30 (the walk) at 01:35:46Z.
+
+MEASURED, from production/pc-ops/push-diagnosis.txt at commit 3cf7fc1:
+
+    receipt file=production/outbox/2026-09-07-the-walk.answer.md
+        messageId=30 sent=2026-09-08T01:35:46+00:00
+    onDisk_production_outbound=320   against 312 in the branch
+    lsRemoteSha=22973f8d  localTipRef=22973f8d   (both refs/heads/pc-inbox)
+
+22973f8d is dated 2026-09-07 13:30:08 +0200, which is 11:30:08 UTC. The
+local tip pointer and the remote branch AGREE, so nothing failed to push:
+nothing was committed to push. Eight outbound records sit on that disk which
+the branch does not carry, and the eight newest receipts are exactly the ones
+that would prove delivery.
+
+WHAT THIS MEANS FOR EVERY FUTURE DIAGNOSIS OF SILENCE. The studio reads the
+channel through the RETURN half only. When the return half stops, the studio
+sees the same thing it would see if the bot were dead, if the token were
+revoked, or if Telegram were down. Silence in the repository is not evidence
+about his phone, and it was read as evidence about his phone four separate
+times yesterday, producing four wrong explanations in a row. The sending half
+now has its own window (production/pc-ops/outbox-sweep.txt). A window on the
+return half is WRITTEN AND NOT YET LANDED: a --flush-inbox flag and the
+workflow step that runs it are held out of this commit because the batch
+crossed the 100-line director threshold, so they wait on a ruling.
+
+NOT YET EXPLAINED: why nothing is committed. push_pending derives its backlog
+from the branch tree rather than remembering it, so a crash cannot lose it,
+and the bot's flush_inbox calls pending_all every 60 seconds. The reading
+that would decide between "the flush never runs" and "the flush runs and
+refuses" is the waiting list plus what push_pending says about it, and no
+run has produced it yet.
+
+--------------------------------------------------------------------------
+2026-09-08  THE SWEEP STEP CAN PUBLISH A STREAM WITH NO STATUS LINE, SO A
+            HANG AND A CLEAN EXIT LOOK THE SAME.
+--------------------------------------------------------------------------
+MEASURED: production/pc-ops/outbox-sweep.txt at commit 3cf7fc1 carries
+sweepPython, then sweepStream, with no sweepStatus key between them. Both
+branches of that step's if write one (EXITED or HUNG), so the step left its
+own status branch without writing either, and neither sweepExitCode nor
+sweepWaitedSec is present to say which happened.
+
+WHY IT MATTERS AND WHY IT IS NOT URGENT: the reading itself was decisive
+(alreadySent=7 of outboxFiles=8), so nothing was lost this time. But a status
+key that can go missing cannot tell a hang from a clean exit, which is the
+one distinction the step was rewritten to make. The flush step written today, and
+held out of this commit for a ruling, writes its status on EVERY path
+including the one where the process never starts, which would give a
+same-shape comparison the first time it runs.
+
+--------------------------------------------------------------------------
 2026-09-07  CREATE_NO_WINDOW NEVER LANDED IN tools/supervise.py, SO THE
             SCHEDULED TASK WILL STILL OPEN THREE CONSOLE WINDOWS.
 --------------------------------------------------------------------------
