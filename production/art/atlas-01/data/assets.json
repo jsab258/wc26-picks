@@ -1,11 +1,12 @@
 {
-  "schema": "atlas-01.asset-audit/1",
+  "schema": "atlas-01.asset-catalogue/2",
   "base": "7722b45cb3dcee2fbcee26675fae4fef641cbba7",
   "definitions": {
-    "usable": "usable for the stated purpose only, not an engine-ready stamp",
-    "revise": "seen in retained evidence, change or close-up review needed for this design",
-    "missing": "no judged usable exemplar delivered for this design; bytes may exist elsewhere uninspected",
-    "source_primitive_entries": "pieces/component placements in retained manifest, never distinct asset count"
+    "availability": "presence or inventory evidence, never an appearance judgement",
+    "suitability": "fitness for the explicitly named design use; unverified is distinct from missing bytes",
+    "integration_status": "runtime verification, independent of presence and suitability",
+    "legacy_status": "retained old audit judgement for traceability, not used as active status",
+    "counts": "77 original BOM IDs +21 original proposed IDs retained; row count is not finished output or throughput"
   },
   "items": [
     {
@@ -14,7 +15,6 @@
       "name": "The carriageway and footway themselves: two ground planes at different levels, with road camber falling to the gutter",
       "priority": 0,
       "kind": "reusable family",
-      "status": "usable",
       "basis": "Road and footways are visibly continuous in the retained walk frames and their dimensions are explicit in source JSON. Usable for preserving spatial blockout; finished surface quality is assessed separately.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -23,7 +23,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "usable",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "usable for spatial blockout only",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A1_road_asphalt",
@@ -31,7 +35,6 @@
       "name": "Road surface material, colour plus normal plus roughness",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -40,7 +43,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A2_road_asphalt_maps_upgrade",
@@ -48,7 +55,6 @@
       "name": "The AO and displacement maps the original fetch did not take, and 4K where published",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -57,7 +63,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route FETCH; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A3_pavement_slabs",
@@ -65,7 +75,6 @@
       "name": "Pavement paving material",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -74,7 +83,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A4_pavement_tarmac_patch",
@@ -82,7 +95,6 @@
       "name": "Tarmac repair patch over slabs, the commonest British pavement fault",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -91,7 +103,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route FETCH; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A5_double_yellow_lines",
@@ -99,7 +115,6 @@
       "name": "Double yellow line pair running the length of the kerb",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -108,7 +123,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A6_worn_road_paint",
@@ -116,7 +135,6 @@
       "name": "Worn white road markings, centre line and stop line",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -125,7 +143,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A7_gully_grate",
@@ -133,16 +155,20 @@
       "name": "Road gully grate at the kerb",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
-      "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
-      "thumbnail": "references/source-street-day.png",
-      "thumbnail_kind": "retained game frame, assembly context",
+      "basis": "0.400m square diagonal open grate, 0.015m deep. Reuse actual geometry; recess/collision still needs engine check.",
+      "thumbnail": "previews/mesh-drainage_grate_01.png",
+      "thumbnail_kind": "actual source triangle projection, not Blender or Unreal render",
       "source_bom_route": "HAVE",
       "source_primitive_entries": 1,
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f",
+      "suitability": "usable for pilot",
+      "integration_status": "unverified for this design",
+      "existing_file": "ledger/Assets/Props/base-mesh/drainage_grate_01.glb"
     },
     {
       "id": "A8_manhole",
@@ -150,16 +176,20 @@
       "name": "Manhole or inspection cover in the carriageway",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
-      "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
-      "thumbnail": "references/source-street-day.png",
-      "thumbnail_kind": "retained game frame, assembly context",
+      "basis": "0.100m perforated round fitting; not a road manhole. Do not enlarge blindly. Keep for small drain use only if later placed deliberately.",
+      "thumbnail": "previews/mesh-drain_cover_01.png",
+      "thumbnail_kind": "actual source triangle projection, not Blender or Unreal render",
       "source_bom_route": "HAVE",
       "source_primitive_entries": 2,
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f",
+      "suitability": "unsuitable for named use",
+      "integration_status": "unverified for this design",
+      "existing_file": "ledger/Assets/Props/base-mesh/drain_cover_01.glb"
     },
     {
       "id": "A9_puddle_mask",
@@ -167,7 +197,6 @@
       "name": "Mask saying where standing water sits, so the wet condition is not a uniformly wet plane",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -176,7 +205,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A10_kerb_material",
@@ -184,7 +217,6 @@
       "name": "Kerbstone surface material",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -193,7 +225,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "B1_kerbstone_run",
@@ -201,7 +237,6 @@
       "name": "The kerb itself, an extruded profile following the road edge, with the upstand height that makes a pavement read as a pavement",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -210,7 +245,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "B2_dropped_kerb",
@@ -218,7 +257,6 @@
       "name": "Dropped kerb at a vehicle crossover or crossing",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -227,7 +265,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "B3_gully_recess",
@@ -235,7 +277,6 @@
       "name": "The recess in the kerb line the gully grate sits in",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -244,7 +285,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "B4_gutter_water",
@@ -252,7 +297,6 @@
       "name": "Water running in the gutter, a decal strip",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -261,7 +305,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "C1_terrace_carcass",
@@ -269,7 +317,6 @@
       "name": "The building masses themselves, a run of terrace with shop at ground floor and flat above",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Source carcass preserves the 6m bay and terrace silhouette, but is a solid proxy. Mickey's requires a hollow replacement and actual door apertures. Existing carcass cannot be retained inside the pub interior.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -278,7 +325,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "C2_brick_red",
@@ -286,7 +337,6 @@
       "name": "Red or orange brick, the northern terrace surface",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -295,7 +345,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "C3_brick_soot",
@@ -303,7 +357,6 @@
       "name": "Blackened or grey brick, the hundred-years-of-pollution read",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -312,7 +365,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "C4_render_pebbledash",
@@ -320,7 +377,6 @@
       "name": "Pebbledash or roughcast render, named in art-direction as the late-20th-century British facade",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -329,7 +385,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route FETCH; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "C5_shopfront_assembly",
@@ -337,16 +397,19 @@
       "name": "Stallriser, pilasters, fascia band, transom, the four parts that make a British shopfront read as one",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
-      "thumbnail": "references/source-street-day.png",
-      "thumbnail_kind": "retained game frame, assembly context",
+      "thumbnail": "previews/target-a01_pub_fascia_body.png",
+      "thumbnail_kind": "original authored target detail / not finished asset",
       "source_bom_route": "GENERATE",
       "source_primitive_entries": 36,
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "C6_fascia_lettering",
@@ -354,16 +417,20 @@
       "name": "Shop name lettering on the fascia band",
       "priority": 0,
       "kind": "unique lettering",
-      "status": "revise",
-      "basis": "Retained facade view does not show convincing readable Mickey's lettering. Existing fascia ID retained; make a bespoke authored sign from the approved elevation.",
-      "thumbnail": "references/source-street-day.png",
-      "thumbnail_kind": "retained game frame, assembly context",
+      "basis": "MICKEY\u2019S is legible, but 2:1 composition includes lamps, moulding and white surroundings. Current fascia is 6\u00d70.55m: do not stretch this image across it.",
+      "thumbnail": "previews/target-a01_mickeys_fascia_plate.png",
+      "thumbnail_kind": "original authored target detail / not finished asset",
       "source_bom_route": "HAVE",
       "source_primitive_entries": 4,
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "existing generated PNG inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f",
+      "suitability": "revise for aspect and separation",
+      "integration_status": "unverified for this design",
+      "existing_file": "ledger/Assets/StreamingAssets/Decals/generated/fascia_mickeys.png"
     },
     {
       "id": "C7_shop_glazing",
@@ -371,7 +438,6 @@
       "name": "Shop window glass and its reflection response",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -380,7 +446,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "C8_door_shop",
@@ -388,7 +458,6 @@
       "name": "Shop door, glazed upper half",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -397,7 +466,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "C9_door_side",
@@ -405,7 +478,6 @@
       "name": "Side door to the flat above, panelled, with a number and a letterplate",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -414,7 +486,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "C10_roller_shutter",
@@ -422,7 +498,6 @@
       "name": "Closed roller shutter over a shopfront, which is what a British parade looks like at night",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -431,7 +506,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route FETCH; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "C11_lit_interior_card",
@@ -439,7 +518,6 @@
       "name": "What is visible through a lit window at night: a back-wall card with shelves, a bar, a stair",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Flat interior cards may suggest occupied neighbours. Replace the Mickey's card with the authored room and actual openings. Do not retire cards for unrelated distant windows by implication.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -448,7 +526,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "C12_net_curtain",
@@ -456,16 +538,19 @@
       "name": "Net curtain or blind in the flat window",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
-      "thumbnail": "concepts/hook.png",
-      "thumbnail_kind": "AI concept target, not existing asset evidence",
+      "thumbnail": "previews/target-a01_pub_net.png",
+      "thumbnail_kind": "original authored target detail / not finished asset",
       "source_bom_route": "GENERATE",
       "source_primitive_entries": 0,
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "C13_sills_lintels",
@@ -473,7 +558,6 @@
       "name": "Sills, lintels, thresholds, air bricks: the small reveals that stop a wall reading as a plane",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -482,7 +566,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "C14_wall_grime_overlays",
@@ -490,7 +578,6 @@
       "name": "Salt bloom and soot overlays for the wall surfaces",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -499,7 +586,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "D1_roof_slate",
@@ -507,7 +598,6 @@
       "name": "Roof covering, Welsh slate dark grey to black per art-direction",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -516,7 +606,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "D2_chimney_stack",
@@ -524,7 +618,6 @@
       "name": "Brick chimney stack rising from the party wall",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -533,7 +626,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "D3_chimney_pots",
@@ -541,7 +638,6 @@
       "name": "Chimney pots on the stack",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -550,7 +646,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "D4_tv_aerial",
@@ -558,7 +658,6 @@
       "name": "Television aerial on the stack, the skyline marker of the era",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -567,7 +666,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "D5_downpipe",
@@ -575,7 +678,6 @@
       "name": "Rainwater downpipe with hopper and shoe, the British vertical",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -584,7 +686,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "D6_gutter_run",
@@ -592,7 +698,6 @@
       "name": "Eaves gutter and fascia board",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -601,7 +706,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "D7_parapet_coping",
@@ -609,7 +718,6 @@
       "name": "Parapet and coping where the frontage is flat-topped",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -618,7 +726,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "D8_upper_windows",
@@ -626,7 +738,6 @@
       "name": "Sash windows to the flat above, with reveal depth",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -635,7 +746,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E1_lighting_column",
@@ -643,16 +758,20 @@
       "name": "Street lighting column, swan neck, at a height that lights a carriageway",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
-      "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
-      "thumbnail": "references/source-street-day.png",
-      "thumbnail_kind": "retained game frame, assembly context",
+      "basis": "3.002m ornamental lantern. Does not supply the chosen simple Hook road column; reserve potential promenade reuse for later review.",
+      "thumbnail": "previews/mesh-lamp_post_01.png",
+      "thumbnail_kind": "actual source triangle projection, not Blender or Unreal render",
       "source_bom_route": "GENERATE",
       "source_primitive_entries": 20,
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f",
+      "suitability": "unsuitable for named use",
+      "integration_status": "unverified for this design",
+      "existing_file": "ledger/Assets/Props/base-mesh/lamp_post_01.glb"
     },
     {
       "id": "E2_sodium_lantern_head",
@@ -660,7 +779,6 @@
       "name": "The lantern itself, the bowl on the swan neck, with an emissive surface",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -669,7 +787,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E3_telephone_kiosk",
@@ -677,7 +799,6 @@
       "name": "Red telephone kiosk",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -686,7 +807,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E4_pillar_box",
@@ -694,7 +819,6 @@
       "name": "Red pillar box",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -703,7 +827,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E5_bollards",
@@ -711,7 +839,6 @@
       "name": "Pavement bollards",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -720,7 +847,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E6_public_bins",
@@ -728,16 +859,20 @@
       "name": "Public litter bins",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
-      "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
-      "thumbnail": "references/source-street-day.png",
-      "thumbnail_kind": "retained game frame, assembly context",
+      "basis": "0.600m square hooded public bin. Decorative form is possible at Gullwing; do not scatter it across utilitarian Hook.",
+      "thumbnail": "previews/mesh-outdoor_bin.png",
+      "thumbnail_kind": "actual source triangle projection, not Blender or Unreal render",
       "source_bom_route": "HAVE",
       "source_primitive_entries": 2,
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f",
+      "suitability": "revise",
+      "integration_status": "unverified for this design",
+      "existing_file": "ledger/Assets/Props/base-mesh/outdoor_bin.glb"
     },
     {
       "id": "E7_benches",
@@ -745,7 +880,6 @@
       "name": "Benches",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -754,7 +888,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E8_guard_railing",
@@ -762,7 +900,6 @@
       "name": "Pedestrian guard railing at the kerb",
       "priority": 1,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -771,7 +908,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E9_tree_pit_railing",
@@ -779,7 +920,6 @@
       "name": "Victorian tree pit guard",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -788,7 +928,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E10_street_name_plate",
@@ -796,7 +940,6 @@
       "name": "Street name plate on the wall or on a post, carrying a canon street name",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -805,7 +948,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E11_cones_barrier",
@@ -813,7 +960,6 @@
       "name": "Traffic cones and a crowd barrier",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -822,7 +968,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E12_a_board_posters",
@@ -830,16 +980,20 @@
       "name": "Pavement A-board and wall-mounted poster frames",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
-      "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
-      "thumbnail": "concepts/hook.png",
-      "thumbnail_kind": "AI concept target, not existing asset evidence",
+      "basis": "Plain 0.506\u00d70.801m frame. Reuse for pub notice case; paper is separate. A-board also inspected: 0.681\u00d70.904m, not selected for narrow door frontage.",
+      "thumbnail": "previews/mesh-framed_poster.png",
+      "thumbnail_kind": "actual source triangle projection, not Blender or Unreal render",
       "source_bom_route": "HAVE",
       "source_primitive_entries": 3,
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f",
+      "suitability": "usable for pilot",
+      "integration_status": "unverified for this design",
+      "existing_file": "ledger/Assets/Props/base-mesh/framed_poster.glb"
     },
     {
       "id": "E13_household_dustbin",
@@ -847,16 +1001,19 @@
       "name": "Galvanised metal household dustbin, the pre-wheelie British bin",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
-      "thumbnail": "concepts/hook.png",
-      "thumbnail_kind": "AI concept target, not existing asset evidence",
+      "thumbnail": "previews/target-a01_pub_metal_bin.png",
+      "thumbnail_kind": "original authored target detail / not finished asset",
       "source_bom_route": "GENERATE",
       "source_primitive_entries": 4,
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E14_dock_clutter",
@@ -864,16 +1021,20 @@
       "name": "Crates, pallets, barrels and a builder's skip",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
-      "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
-      "thumbnail": "concepts/hook.png",
-      "thumbnail_kind": "AI concept target, not existing asset evidence",
+      "basis": "1.200m square pallet inspected. Fits a goods yard, not the narrow pub aisle. No blanket clutter placement.",
+      "thumbnail": "previews/mesh-pallet.png",
+      "thumbnail_kind": "actual source triangle projection, not Blender or Unreal render",
       "source_bom_route": "HAVE",
       "source_primitive_entries": 5,
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f",
+      "suitability": "usable for space study",
+      "integration_status": "unverified for this design",
+      "existing_file": "ledger/Assets/Props/base-mesh/pallet.glb"
     },
     {
       "id": "E15_belisha_beacon",
@@ -881,7 +1042,6 @@
       "name": "Belisha beacon at a crossing, black and white pole with a yellow globe",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -890,7 +1050,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E16_parking_meter",
@@ -898,7 +1062,6 @@
       "name": "Parking meter",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -907,7 +1070,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E17_bus_shelter",
@@ -915,7 +1082,6 @@
       "name": "Bus shelter",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -924,7 +1090,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E18_shop_awnings",
@@ -932,7 +1102,6 @@
       "name": "Retractable shop awning over a frontage",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -941,7 +1110,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "E19_finger_post_sign",
@@ -949,7 +1122,6 @@
       "name": "Direction finger post",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -958,7 +1130,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "F1_character_body",
@@ -966,7 +1142,6 @@
       "name": "One clothed character body, which D1b names as mandatory scene content",
       "priority": 2,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/copper.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -975,7 +1150,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "F2_period_wardrobe",
@@ -983,7 +1162,6 @@
       "name": "Clothing that reads as 1988 to 1992 Britain rather than contemporary casual",
       "priority": 2,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/copper.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -992,7 +1170,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route BLOCKED; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "F3_idle_animation",
@@ -1000,7 +1182,6 @@
       "name": "One idle or standing animation so the body is not a T-pose in the still",
       "priority": 2,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/copper.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -1009,7 +1190,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "F4_parked_vehicle",
@@ -1017,7 +1202,6 @@
       "name": "One parked period British car, boxy hatchback or estate",
       "priority": 2,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/copper.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -1026,7 +1210,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route FETCH; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "G1_leak_stains",
@@ -1034,7 +1222,6 @@
       "name": "Water and leak staining below hoppers, sills and gutters",
       "priority": 2,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -1043,7 +1230,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "G2_asphalt_damage",
@@ -1051,7 +1242,6 @@
       "name": "Potholes, patches and road scars",
       "priority": 2,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/ironside.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -1060,7 +1250,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "G3_imperfection_masks",
@@ -1068,7 +1262,6 @@
       "name": "Dirt, wear and scratch masks for breaking up flat surfaces",
       "priority": 2,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/ironside.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -1077,7 +1270,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "G4_moss_damp",
@@ -1085,7 +1282,6 @@
       "name": "Damp growth at wall feet and in joints",
       "priority": 2,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/ironside.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -1094,7 +1290,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "G5_stickers",
@@ -1102,7 +1302,6 @@
       "name": "Stickers and torn paper remains on posts and boxes",
       "priority": 2,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/ironside.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -1111,7 +1310,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "G6_fly_posters",
@@ -1119,7 +1322,6 @@
       "name": "Fly-posted gig bills and public notices, period-fictional",
       "priority": 2,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/ironside.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -1128,7 +1330,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "G7_graffiti_tags",
@@ -1136,7 +1342,6 @@
       "name": "Marker and chrome tags of the period, naming in-world crews",
       "priority": 2,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/ironside.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -1145,7 +1350,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "G8_litter",
@@ -1153,7 +1362,6 @@
       "name": "Chip papers, cans, cigarette ends in the gutter and against the wall feet",
       "priority": 2,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -1162,7 +1370,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "G9_chewing_gum",
@@ -1170,7 +1382,6 @@
       "name": "Trodden gum spots on the pavement",
       "priority": 2,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/ironside.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -1179,7 +1390,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "H1_sky_overcast_day",
@@ -1187,7 +1402,6 @@
       "name": "Overcast daylight environment, which art-direction R-B2 makes the DEFAULT frame rather than a side case",
       "priority": 0,
       "kind": "reusable family",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -1196,7 +1410,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "H2_sky_night",
@@ -1204,7 +1422,6 @@
       "name": "Overcast night environment with distant urban glow",
       "priority": 1,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -1213,7 +1430,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "recorded HAVE in studio BOM; individual file uninspected",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "H3_sun_moon",
@@ -1221,7 +1442,6 @@
       "name": "The directional light and its elevation, capped at 59 degrees at noon by latitude",
       "priority": 1,
       "kind": "engine feature",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -1230,7 +1450,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route ENGINE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "H4_sodium_practicals",
@@ -1238,7 +1462,6 @@
       "name": "The practical lights themselves at night: the sodium lamp emitters",
       "priority": 0,
       "kind": "engine feature",
-      "status": "revise",
       "basis": "Retained night image has very limited legibility. Rejudge entrance, faces and ground at player height. Art has changed no lights or material code.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -1247,7 +1470,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route ENGINE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "H5_window_practicals",
@@ -1255,7 +1482,6 @@
       "name": "Light spilling from lit shopfronts and flats onto the wet pavement",
       "priority": 0,
       "kind": "engine feature",
-      "status": "revise",
       "basis": "Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.",
       "thumbnail": "references/source-street-day.png",
       "thumbnail_kind": "retained game frame, assembly context",
@@ -1264,7 +1490,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "revise",
+      "availability": "source route ENGINE; usable file not established",
+      "suitability": "requires close-up review",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "H6_wet_surface_response",
@@ -1272,7 +1502,6 @@
       "name": "The wet BRDF: darkened albedo, lowered roughness, reflection of everything above the ground",
       "priority": 1,
       "kind": "engine feature",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -1281,7 +1510,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route ENGINE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "H7_fog_haze",
@@ -1289,7 +1522,6 @@
       "name": "Atmospheric depth: haze that separates the near frontage from the far end of the street",
       "priority": 1,
       "kind": "engine feature",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -1298,7 +1530,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route ENGINE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "H8_rain_streaks",
@@ -1306,7 +1542,6 @@
       "name": "Falling rain, as particles or as a screen effect",
       "priority": 1,
       "kind": "engine feature",
-      "status": "missing",
       "basis": "No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target, not existing asset evidence",
@@ -1315,7 +1550,11 @@
       "variant_intention": "Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.",
       "placements": "Existing placements remain owned by source scene. No placement added here.",
       "stateful_requirement": "No automatic binding. Weather, visibility and damage need a separate authored state policy.",
-      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only."
+      "engine_integration": "Not verified for atlas-01. Retained source frames are earlier evidence only.",
+      "legacy_status": "missing",
+      "availability": "source route ENGINE; usable file not established",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_PUB_SHELL",
@@ -1323,7 +1562,6 @@
       "name": "Hollow Mickey's shell",
       "priority": 0,
       "kind": "unique assembly",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
       "thumbnail": "previews/mickeys-elevations.png",
       "thumbnail_kind": "authored plan",
@@ -1333,7 +1571,11 @@
       "placements": "One 6 x 8m bay; front, rear and party walls.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Retain east_parade_bay0 anchor; replace solid source carcass.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_PUB_FLOOR",
@@ -1341,7 +1583,6 @@
       "name": "Ground and upper floors with stair opening",
       "priority": 0,
       "kind": "unique assembly",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
       "thumbnail": "previews/mickeys-upper.png",
       "thumbnail_kind": "authored plan",
@@ -1351,7 +1592,11 @@
       "placements": "2 floors; 1 explicit stair void.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Collision, step and room bounds.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_PUB_STAIR",
@@ -1359,7 +1604,6 @@
       "name": "Private timber stair and landing",
       "priority": 0,
       "kind": "unique",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
       "thumbnail": "previews/mickeys-ground.png",
       "thumbnail_kind": "authored plan",
@@ -1369,7 +1613,11 @@
       "placements": "19 risers, 18 x .24m goings, .80m clear width.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Walk and head clearance; separate household access.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_PUB_BAR",
@@ -1377,17 +1625,20 @@
       "name": "Counter and back bar",
       "priority": 0,
       "kind": "unique assembly",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
-      "thumbnail": "previews/mickeys-ground.png",
-      "thumbnail_kind": "authored plan",
+      "thumbnail": "previews/target-a01_pub_counter.png",
+      "thumbnail_kind": "original authored target detail / not finished asset",
       "related_existing_bom_ids": [
         "C5_shopfront_assembly"
       ],
       "placements": "1 counter .60 x 4.20m; 1 back bar; 1.15m staff aisle.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Till/service ownership and hand reach.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_PUB_SNUG",
@@ -1395,17 +1646,20 @@
       "name": "Bench and low screen",
       "priority": 0,
       "kind": "unique assembly",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
-      "thumbnail": "previews/mickeys-ground.png",
-      "thumbnail_kind": "authored plan",
+      "thumbnail": "previews/target-a01_pub_screen.png",
+      "thumbnail_kind": "original authored target detail / not finished asset",
       "related_existing_bom_ids": [
         "C11_lit_interior_card"
       ],
       "placements": "1 snug bench 1.55m; 1 screen 1.45m high.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Seat poses; partial sightline and sound tests.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_PUB_FURNITURE",
@@ -1413,17 +1667,20 @@
       "name": "Tables, window bench and chairs",
       "priority": 0,
       "kind": "reusable family",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
-      "thumbnail": "previews/mickeys-ground.png",
-      "thumbnail_kind": "authored plan",
+      "thumbnail": "previews/target-a01_pub_table.png",
+      "thumbnail_kind": "original authored target detail / not finished asset",
       "related_existing_bom_ids": [
         "C11_lit_interior_card"
       ],
       "placements": "2 tables and 1 window bench authored. Chairs require a later count after pose clearance.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Seat IDs, obstruction and ownership.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_PUB_TILL",
@@ -1431,17 +1688,20 @@
       "name": "Mechanical cash till and tab book",
       "priority": 0,
       "kind": "unique prop pair",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
-      "thumbnail": "concepts/hook.png",
-      "thumbnail_kind": "AI concept target",
+      "thumbnail": "previews/target-a01_pub_till.png",
+      "thumbnail_kind": "original authored target detail / not finished asset",
       "related_existing_bom_ids": [
         "C11_lit_interior_card"
       ],
       "placements": "1 till on counter; 1 paper tab book proposed.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Cash authority, stealing and visible handling are Core integration.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_PUB_BEER",
@@ -1449,17 +1709,21 @@
       "name": "Beer firkins, rack and delivery trolley",
       "priority": 0,
       "kind": "reusable family",
-      "status": "missing",
-      "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
-      "thumbnail": "concepts/hook.png",
-      "thumbnail_kind": "AI concept target",
+      "basis": "0.601\u00d70.815\u00d70.617m wooden hooped barrel. Current study calls for smaller metal casks and stillage; do not treat this decorative shape as equipment verification.",
+      "thumbnail": "previews/target-a01_pub_beer_engine.png",
+      "thumbnail_kind": "original authored target detail / not finished asset",
       "related_existing_bom_ids": [
         "E14_dock_clutter"
       ],
       "placements": "2 firkins and 1 rack in store, 1 hand trolley proposed; not instantiated by recipe.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Stock/delivery schedule; payload and door clearance.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f",
+      "suitability": "unsuitable for selected beer service",
+      "integration_status": "unverified for this design",
+      "existing_file": "ledger/Assets/Props/base-mesh/wood_barrel.glb"
     },
     {
       "id": "A01_PUB_YARD",
@@ -1467,7 +1731,6 @@
       "name": "Rear yard and WC extension",
       "priority": 0,
       "kind": "unique assembly",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
       "thumbnail": "previews/mickeys-yard.png",
       "thumbnail_kind": "authored plan",
@@ -1477,7 +1740,11 @@
       "placements": "6 x 6m yard; 2.2 x 2.6m WC; 2.4m rear lane.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Room/door portals; sight from upper windows.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_PUB_GATE",
@@ -1485,7 +1752,6 @@
       "name": "Rear gate and two rear doors",
       "priority": 0,
       "kind": "variant family",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
       "thumbnail": "previews/mickeys-elevations.png",
       "thumbnail_kind": "authored plan",
@@ -1495,7 +1761,11 @@
       "placements": "1 gate 1.2m; 1 public .9m and 1 staff .84m rear door.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Hinges, latches, locks and navigation.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_PUB_UPPER",
@@ -1503,7 +1773,6 @@
       "name": "Authored household furniture",
       "priority": 1,
       "kind": "unique arrangement / reusable pieces",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
       "thumbnail": "previews/mickeys-upper.png",
       "thumbnail_kind": "authored plan",
@@ -1513,7 +1782,11 @@
       "placements": "1 bed, 1 desk, 1 kitchen counter, 1 bath proxy.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Tom's privacy; bookkeeper visits are a proposal, no live schedule.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_PUB_NOTICES",
@@ -1521,17 +1794,20 @@
       "name": "Mickey's local paper notices",
       "priority": 1,
       "kind": "unique graphic family",
-      "status": "missing",
-      "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
-      "thumbnail": "concepts/hook.png",
-      "thumbnail_kind": "AI concept target",
+      "basis": "DARTS LEAGUE heading reads, table body is gibberish and contains an embedded building scene. Opening-hours image contains a window and blank timetable. Use authored text/paper planes, preserve originals.",
+      "thumbnail": "previews/target-a01_pub_notice_paper.png",
+      "thumbnail_kind": "original authored target detail / not finished asset",
       "related_existing_bom_ids": [
         "G6_fly_posters"
       ],
       "placements": "1 delivery docket, 1 events sheet, 1 handwritten tab sample proposed.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Readable text, dates and information ownership.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "existing darts and opening-hours PNGs inspected",
+      "suitability": "revise for readable close-up text",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_MARKET_HALL",
@@ -1539,7 +1815,6 @@
       "name": "Copper Row hall and clock gable",
       "priority": 2,
       "kind": "unique landmark",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
       "thumbnail": "concepts/copper.png",
       "thumbnail_kind": "AI concept target",
@@ -1549,7 +1824,11 @@
       "placements": "1 hall; explicitly authored stalls to follow visual approval.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Market work and gossip crossing; no generated rooms.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_RECORDS_COURT",
@@ -1557,7 +1836,6 @@
       "name": "Court, cafe and records frontage",
       "priority": 2,
       "kind": "unique landmark group",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
       "thumbnail": "concepts/exchange.png",
       "thumbnail_kind": "AI concept target",
@@ -1567,7 +1845,11 @@
       "placements": "1 court group; 1 cafe; 1 police station atlas anchor.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Public/private thresholds, legal visits and file handling.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_TIVOLI",
@@ -1575,7 +1857,6 @@
       "name": "Cinema and late-night entrance",
       "priority": 2,
       "kind": "unique landmark",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
       "thumbnail": "concepts/parade.png",
       "thumbnail_kind": "AI concept target",
@@ -1585,7 +1866,11 @@
       "placements": "1 cinema; 1 club frontage; 1 queue position group.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Queue sightlines, ticket check, evening meetings.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_SCHOOL_GATE",
@@ -1593,7 +1878,6 @@
       "name": "Fairview chapel/school gate and steps",
       "priority": 2,
       "kind": "unique landmark group",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
       "thumbnail": "concepts/fairview.png",
       "thumbnail_kind": "AI concept target",
@@ -1603,7 +1887,11 @@
       "placements": "1 school gate and 1 authored stair shortcut.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Pickup meeting opportunities, overlooks and private gardens.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_RETORT_WORKS",
@@ -1611,7 +1899,6 @@
       "name": "Retort works and clocking-in club",
       "priority": 2,
       "kind": "unique landmark group",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
       "thumbnail": "concepts/ironside.png",
       "thumbnail_kind": "AI concept target",
@@ -1621,7 +1908,11 @@
       "placements": "1 stack, 1 works yard, 1 club; named on atlas.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Shift gates and controlled rail crossings.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_WINTER_ROOMS",
@@ -1629,7 +1920,6 @@
       "name": "Winter Rooms arcade and short pier",
       "priority": 2,
       "kind": "unique landmark group",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
       "thumbnail": "concepts/gullwing.png",
       "thumbnail_kind": "AI concept target",
@@ -1639,7 +1929,11 @@
       "placements": "1 arcade, 1 short pier; boarding-house family distinct from Hook.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Arcade social contact, keys and sea-wall access.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_FACADE_FAMILIES",
@@ -1647,7 +1941,6 @@
       "name": "Seven district frontage families",
       "priority": 2,
       "kind": "reusable family with authored variants",
-      "status": "missing",
       "basis": "Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.",
       "thumbnail": "previews/atlas-overview.png",
       "thumbnail_kind": "authored plan",
@@ -1657,7 +1950,11 @@
       "placements": "Hook 6m bays; market stallable fronts; civic stone; nightlife tile; hill housing; workshop sheds; resort render.",
       "variant_intention": "Named design only; reuse components after identity and proportions are approved.",
       "stateful_requirement": "Per-building IDs and authored alterations, no random assemblage.",
-      "engine_integration": "Not integrated; interface and game validation pending."
+      "engine_integration": "Not integrated; interface and game validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_QUAYS",
@@ -1665,7 +1962,6 @@
       "name": "Working quay, narrowed basin mouth and swing footbridge",
       "priority": 2,
       "kind": "unique assembly",
-      "status": "missing",
       "basis": "Authored atlas design only; no judged finished asset delivered.",
       "thumbnail": "previews/district-hook-plan.png",
       "thumbnail_kind": "authored plan",
@@ -1676,7 +1972,11 @@
       "placements": "1 authored basin edge; 55m bridge water opening with short landings. Engineering design pending.",
       "variant_intention": "Hook working quay differs from Gullwing promenade sea wall.",
       "stateful_requirement": "Gate/bridge position, tide edge safety and public access need authored policy; escape route is conditional.",
-      "engine_integration": "Not integrated; interface and runtime validation pending."
+      "engine_integration": "Not integrated; interface and runtime validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     },
     {
       "id": "A01_HARBOUR_BOARD",
@@ -1684,7 +1984,6 @@
       "name": "Harbour Board frontage",
       "priority": 2,
       "kind": "unique assembly",
-      "status": "missing",
       "basis": "Authored atlas design only; no judged finished asset delivered.",
       "thumbnail": "concepts/hook.png",
       "thumbnail_kind": "AI concept target",
@@ -1694,7 +1993,11 @@
       "placements": "1 named office by the basin; plan and interior to be authored after visual approval.",
       "variant_intention": "Hook working quay differs from Gullwing promenade sea wall.",
       "stateful_requirement": "Gate/bridge position, tide edge safety and public access need authored policy; escape route is conditional.",
-      "engine_integration": "Not integrated; interface and runtime validation pending."
+      "engine_integration": "Not integrated; interface and runtime validation pending.",
+      "legacy_status": "missing",
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "integration_status": "unverified for this design"
     }
   ]
 }

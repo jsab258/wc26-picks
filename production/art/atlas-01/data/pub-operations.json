@@ -1,0 +1,179 @@
+{
+  "status": "Authored operational proposal; separate from repaired/pinned geometry. Does not alter doors, stairs or source street.",
+  "snapshot": "Ordinary Tuesday in autumn 1990; one design scenario within canon 1988\u20131992",
+  "neighbours": [
+    [
+      "east_parade_bay0",
+      "Mickey\u2019s",
+      "drinks-led pub / private household above",
+      "own yard WC and empties"
+    ],
+    [
+      "east_parade_bay1",
+      "Fish shop",
+      "retail counter and cold cabinet / household above",
+      "own rear receiving space; never an escape through neighbour"
+    ],
+    [
+      "east_parade_bay2",
+      "Quay Stores",
+      "fictional grocer; rice sacks, tins, spices, household essentials",
+      "rear stock receiving; flats above"
+    ],
+    [
+      "east_parade_bay3",
+      "Repair shop",
+      "small electrical repair counter; bench at rear",
+      "secure repair returns and cardboard"
+    ],
+    [
+      "east_parade_bay4",
+      "Letting office",
+      "one recently subdivided office; vacant upper room",
+      "meter access and waste sacks"
+    ],
+    [
+      "east_parade_bay5",
+      "Sewing rooms",
+      "alterations counter and chosen worktables",
+      "deliveries at street door"
+    ],
+    [
+      "west_south_bay0",
+      "Dock cafe",
+      "breakfasts; shift notices by entrance",
+      "food receiving and bins"
+    ],
+    [
+      "west_south_bay1",
+      "Chandler",
+      "hardware racks and workwear",
+      "west service court receiving"
+    ],
+    [
+      "west_south_bay2",
+      "Launderette",
+      "machines and waiting bench",
+      "repair access from service court"
+    ],
+    [
+      "west_north_bay0",
+      "Rita\u2019s pawnshop",
+      "canon business name; contents require authored inventory",
+      "secured rear storage"
+    ],
+    [
+      "west_north_bay1",
+      "Bookmaker",
+      "counter and paper race sheets",
+      "shared waste collection"
+    ],
+    [
+      "west_north_bay2",
+      "Barber",
+      "two chairs, mirror and small waiting area",
+      "household above; courtyard clothes line"
+    ]
+  ],
+  "beer_store": {
+    "option": "A retained, conditional cooled room",
+    "room_box": [
+      0.215,
+      5.7,
+      1.935,
+      2.085
+    ],
+    "cask_envelope_m": [
+      0.41,
+      0.49
+    ],
+    "stillage_box": [
+      0.3,
+      6.2,
+      0.55,
+      1.1
+    ],
+    "reserve_box": [
+      1.52,
+      6.2,
+      0.49,
+      1.1
+    ],
+    "clear_centre_aisle_m": 0.67,
+    "counts": {
+      "on_stillage": 2,
+      "reserve": 2,
+      "on_sale_cask_lines": 1
+    },
+    "reason": "one serving, one settling; two reserves. Capacity is a space test, not a demand forecast",
+    "cooling": "evaporator high on rear store wall; condenser position/period unit and noise still unresolved; no fridge or food storage in this room",
+    "alternative_B": "Basement: not adopted; requires new structure, drainage, cellar stair and safe delivery arrangement, none present in source",
+    "alternative_C": "Yard store: not adopted; reduces 6x6 yard, WC access and route; requires new enclosure and insulated beer line"
+  },
+  "bar_work": {
+    "counter_box": [
+      3.8,
+      2.4,
+      0.6,
+      4.2
+    ],
+    "sink_box": [
+      3.8,
+      5.6,
+      0.6,
+      0.8
+    ],
+    "till_box": [
+      3.85,
+      2.6,
+      0.45,
+      0.45
+    ],
+    "pump_point": [
+      4.1,
+      3.65
+    ],
+    "shelf_depth_m": 0.235,
+    "decision": "washing lives under counter, not on the shallow bottle shelf; lower washing recess needs detailed countertop design"
+  },
+  "routine": [
+    [
+      "08:30",
+      "Tom descends privately; unlocks yard; collects bottles and sacks",
+      "private landing \u2192 household door \u2192 return passage"
+    ],
+    [
+      "09:00",
+      "Checks delivery tally, empties and casks; trolley unloaded outside trading",
+      "basin loading point \u2192 south return \u2192 lane \u2192 yard \u2192 rear public door \u2192 store"
+    ],
+    [
+      "10:30",
+      "Cleans glasses/bar, checks beer condition, prepares float and wipes tables",
+      "store / undercounter sink / till"
+    ],
+    [
+      "11:30\u201314:30",
+      "One person serves; lunchtime help clears tables",
+      "bar aisle / public room"
+    ],
+    [
+      "14:30\u201317:30",
+      "Chosen business closure; household time, cleaning, paperwork",
+      "locked public frontage; private entry remains"
+    ],
+    [
+      "17:30\u201323:00",
+      "Evening drinks, paper results, regulars and shift arrivals",
+      "front room / snug; no universal automatic overhearing"
+    ],
+    [
+      "after closing",
+      "Wash, close beer taps, count cash privately, secure rear gate",
+      "bar \u2192 upstairs book room; not a simulation clock binding"
+    ]
+  ],
+  "food": "Packaged crisps/nuts only in this version. No hot-food kitchen, fryer or invented extract duct. Upstairs kitchen is private; served meals would require a further authored revision.",
+  "toilets": "Existing yard WC envelope retained. Partition, fittings, patron capacity and access require a dedicated revision before production; no code compliance or public accessibility claim.",
+  "household_contents": "Retain bedroom, living, book room, kitchen, bath. Proposed later inventory: modest bed and wardrobe; two-seat settee, small CRT and repair basket; bookkeeping desk with paper ledger; electric cooker, kettle, small fridge; enamel bath. Exact period models and quantities beyond the blockout remain unverified."
+}

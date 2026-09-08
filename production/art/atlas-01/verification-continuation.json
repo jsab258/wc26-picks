@@ -1,0 +1,21 @@
+{
+  "kind": "source/specification checks, not PC execution",
+  "count": 15,
+  "passed": [
+    "All original identities retained and unique",
+    "Availability, suitability and integration independent",
+    "Batch IDs and dependencies resolve",
+    "Named placement counts explicit",
+    "Each batch package has an individual picture",
+    "No unsupported material names in static batch",
+    "No accidental duplicate new global BOM IDs",
+    "Named frontages retain twelve existing source bay IDs",
+    "Operational till envelope agrees with repaired geometry",
+    "Beer-store allocation stays inside actual room",
+    "Beer-store aisle derived from allocation",
+    "Published recipe inputs unchanged by research continuation",
+    "Single explicitly seeded image input, no fascia reseed",
+    "Generated text proofs contain no Windows decoding damage",
+    "Four SVG artwork proofs parse"
+  ]
+}

@@ -1,0 +1,558 @@
+{
+  "schema": "atlas-01.first-batch/1",
+  "name": "Mickey\u2019s frontage and bar-read pilot batch",
+  "base": "7722b45cb3dcee2fbcee26675fae4fef641cbba7",
+  "studio_interface_revision": "e5b33d1317e20d672e4f9e39c09e4db41d023e0f",
+  "scope": "12 work packages; includes named component requirements, not a complete pub. Shell/access preview is prerequisite for fitted parts. Individual private door, WC and full upstairs inventory remain phase 2. No automatically generated placements.",
+  "common": {
+    "units": "metres; dimensions [width,height,depth] in glTF +Y up, front -Z",
+    "pivot": "author at bounds centre; studio placement uses measured bounds centre, never placement scaling",
+    "mesh_lane": "one untextured slot per GLB, zero images; slot0 is replaced by existing surface. Rich finishes require separate compatible pieces or future interface work",
+    "uv": "provisional 512px/m near player; seams on rear/underside; no mirrored lettering. Static lane ignores authored textures; retain UV0 for future use",
+    "collision": "per-item proposal; Claude binds in piece data, never guessed GLB metadata",
+    "budget": "no engine-derived budget. Aim no more geometry than silhouette needs; compare pilot to measured source, then profile. No mass exports.",
+    "placement_rotation": "Right-hand yaw about source +Y; yaw0 faces source -Z/west; +90 faces -X/south. Bounds-centre positions are design proposals, never live placements."
+  },
+  "items": [
+    {
+      "id": "A7_gully_grate",
+      "name": "Grate at pub-side kerb",
+      "acquisition": "reuse",
+      "mesh_id": "drainage_grate_01",
+      "dimensions_m": [
+        0.4,
+        0.015,
+        0.4
+      ],
+      "quantity": 1,
+      "placements": [
+        {
+          "id": "a01_gully_pub",
+          "source_bounds_centre_m": [
+            3.6,
+            0.0925,
+            3.125
+          ],
+          "yaw_deg_about_source_y": 0
+        }
+      ],
+      "variants": "one mesh, no invented variation",
+      "surface": "metal",
+      "collision_gameplay": "flush top to road; simple support/collision supplied by road, no catchable bars",
+      "steps": "inspect current grate \u2192 verify recess alignment \u2192 engine dry/wet close-up",
+      "dependencies": [],
+      "estimate_person_hours": 0.5,
+      "estimate_basis": "planning allowance, not observed effort",
+      "existing_file": "ledger/Assets/Props/base-mesh/drainage_grate_01.glb",
+      "availability": "file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f",
+      "suitability": "usable for pilot",
+      "picture": "previews/mesh-drainage_grate_01.png",
+      "picture_kind": "actual GLB projection",
+      "license": "CC0-1.0; The Base Mesh via M3-org",
+      "source_url": "https://github.com/jsab258/wc26-picks/blob/e5b33d1317e20d672e4f9e39c09e4db41d023e0f/ledger/Assets/Props/base-mesh/drainage_grate_01.glb",
+      "integration": "pending; no atlas engine import",
+      "texture_requirement": "none in supported one-slot static pilot"
+    },
+    {
+      "id": "E12_a_board_posters",
+      "name": "Indoor notice frame",
+      "acquisition": "reuse",
+      "mesh_id": "framed_poster",
+      "dimensions_m": [
+        0.506,
+        0.801,
+        0.013
+      ],
+      "quantity": 1,
+      "placements": [
+        {
+          "id": "a01_pub_notice_case",
+          "source_bounds_centre_m": [
+            8.7,
+            1.9,
+            9.2
+          ],
+          "yaw_deg_about_source_y": 90
+        }
+      ],
+      "variants": "one retained plain frame; no pavement A-board",
+      "surface": "wood",
+      "collision_gameplay": "nonblocking wall decoration; paper plane separately bound",
+      "steps": "reuse geometry \u2192 add separate paper proof \u2192 inspect at eye height",
+      "dependencies": [
+        "A01_PUB_NOTICES"
+      ],
+      "estimate_person_hours": 0.75,
+      "estimate_basis": "planning allowance, not observed effort",
+      "existing_file": "ledger/Assets/Props/base-mesh/framed_poster.glb",
+      "availability": "file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f",
+      "suitability": "usable for pilot",
+      "picture": "previews/mesh-framed_poster.png",
+      "picture_kind": "actual GLB projection",
+      "license": "CC0-1.0; The Base Mesh via M3-org",
+      "source_url": "https://github.com/jsab258/wc26-picks/blob/e5b33d1317e20d672e4f9e39c09e4db41d023e0f/ledger/Assets/Props/base-mesh/framed_poster.glb",
+      "integration": "pending; no atlas engine import",
+      "texture_requirement": "none in supported one-slot static pilot"
+    },
+    {
+      "id": "C6_fascia_lettering",
+      "name": "Mickey\u2019s fascia lettering",
+      "acquisition": "vector",
+      "mesh_id": "a01_mickeys_fascia_plate",
+      "dimensions_m": [
+        6,
+        0.55,
+        0.002
+      ],
+      "quantity": 1,
+      "placements": [
+        {
+          "id": "east_parade_fascia0",
+          "source_bounds_centre_m": [
+            6,
+            3.225,
+            5.065
+          ],
+          "yaw_deg_about_source_y": 0
+        }
+      ],
+      "variants": "unique MICKEY\u2019S plate; same ID as existing brief, no duplicate generation",
+      "surface": "card",
+      "collision_gameplay": "nonblocking; attach to existing fascia only once",
+      "steps": "review vector proof \u2192 outline type \u2192 align inside existing fascia \u2192 separate colour/mouldings",
+      "dependencies": [
+        "C5_shopfront_assembly"
+      ],
+      "estimate_person_hours": 1.5,
+      "estimate_basis": "planning allowance, not observed effort",
+      "existing_file": "ledger/Assets/StreamingAssets/Decals/generated/fascia_mickeys.png",
+      "availability": "existing generated PNG inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f",
+      "suitability": "revise for aspect and separation",
+      "picture": "previews/target-a01_mickeys_fascia_plate.png",
+      "picture_kind": "original authored target detail / not finished asset",
+      "license": "original authored design; type must be outlined/licence checked before export",
+      "source_url": "references/CONTINUATION.md",
+      "integration": "pending; no atlas engine import",
+      "texture_requirement": "see 2D briefs; richer appearance unavailable through current static prop override"
+    },
+    {
+      "id": "C5_shopfront_assembly",
+      "name": "Fascia timber body",
+      "acquisition": "custom",
+      "mesh_id": "a01_pub_fascia_body",
+      "dimensions_m": [
+        6,
+        0.55,
+        0.12
+      ],
+      "quantity": 1,
+      "placements": [
+        {
+          "id": "east_parade_fascia0_body",
+          "source_bounds_centre_m": [
+            6,
+            3.225,
+            5.065
+          ],
+          "yaw_deg_about_source_y": 0
+        }
+      ],
+      "variants": "unique dimensions; plain moulded upper/lower edges",
+      "surface": "wood",
+      "collision_gameplay": "static decoration; source apertures unchanged",
+      "steps": "model dimensioned body by hand \u2192 small bevels \u2192 one-slot dry blockout \u2192 bind lettering",
+      "dependencies": [],
+      "estimate_person_hours": 2,
+      "estimate_basis": "planning allowance, not observed effort",
+      "existing_file": null,
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "requires close-up review",
+      "picture": "previews/target-a01_pub_fascia_body.png",
+      "picture_kind": "original authored target detail / not finished asset",
+      "license": "original authored design; type must be outlined/licence checked before export",
+      "source_url": "references/CONTINUATION.md",
+      "integration": "pending; no atlas engine import",
+      "texture_requirement": "see 2D briefs; richer appearance unavailable through current static prop override"
+    },
+    {
+      "id": "A01_PUB_BAR",
+      "name": "Counter with washing end",
+      "acquisition": "custom",
+      "mesh_id": "a01_pub_counter",
+      "dimensions_m": [
+        0.6,
+        1.05,
+        4.2
+      ],
+      "quantity": 1,
+      "placements": [
+        {
+          "id": "a01_pub_counter",
+          "source_bounds_centre_m": [
+            7.1,
+            0.625,
+            9.625
+          ],
+          "yaw_deg_about_source_y": 0
+        }
+      ],
+      "variants": "unique 4.2m run; worn serving edge / washing-end recess deliberately placed",
+      "surface": "wood",
+      "collision_gameplay": "counter blocks public access; preserve 1.15m staff aisle; sink and basin separate parts",
+      "steps": "model existing box \u2192 0.8m washing zone at v5.6 \u2192 insert metal sink part \u2192 check reach",
+      "dependencies": [
+        "A01_PUB_SHELL"
+      ],
+      "estimate_person_hours": 4,
+      "estimate_basis": "planning allowance, not observed effort",
+      "existing_file": null,
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "picture": "previews/target-a01_pub_counter.png",
+      "picture_kind": "original authored target detail / not finished asset",
+      "license": "original authored design; type must be outlined/licence checked before export",
+      "source_url": "references/CONTINUATION.md",
+      "integration": "pending; no atlas engine import",
+      "texture_requirement": "see 2D briefs; richer appearance unavailable through current static prop override"
+    },
+    {
+      "id": "A01_PUB_TILL",
+      "name": "Compact cash till",
+      "acquisition": "custom",
+      "mesh_id": "a01_pub_till",
+      "dimensions_m": [
+        0.45,
+        0.3,
+        0.45
+      ],
+      "quantity": 1,
+      "placements": [
+        {
+          "id": "a01_pub_till",
+          "source_bounds_centre_m": [
+            7.075,
+            1.3,
+            7.95
+          ],
+          "yaw_deg_about_source_y": -90
+        }
+      ],
+      "variants": "one cash drawer; cream casing, dark keys, simple numeric display proposal",
+      "surface": "metal",
+      "collision_gameplay": "static pilot; later cash state/interaction point at operator face; not self-authorizing money",
+      "steps": "hand model slab/wedge/key bank \u2192 period-model review \u2192 separate paper roll target \u2192 test drawer pose",
+      "dependencies": [
+        "A01_PUB_BAR"
+      ],
+      "estimate_person_hours": 3,
+      "estimate_basis": "planning allowance, not observed effort",
+      "existing_file": null,
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "picture": "previews/target-a01_pub_till.png",
+      "picture_kind": "original authored target detail / not finished asset",
+      "license": "original authored design; type must be outlined/licence checked before export",
+      "source_url": "references/CONTINUATION.md",
+      "integration": "pending; no atlas engine import",
+      "texture_requirement": "see 2D briefs; richer appearance unavailable through current static prop override"
+    },
+    {
+      "id": "A01_PUB_BEER",
+      "name": "Single hand-pull and store equipment",
+      "acquisition": "custom",
+      "mesh_id": "a01_pub_beer_engine",
+      "dimensions_m": [
+        0.14,
+        0.5,
+        0.22
+      ],
+      "quantity": 1,
+      "placements": [
+        {
+          "id": "a01_pub_pump",
+          "source_bounds_centre_m": [
+            7.1,
+            1.4,
+            8.775
+          ],
+          "yaw_deg_about_source_y": 90
+        }
+      ],
+      "variants": "one pump; fictional CLAYBANK BITTER clip. Store set is four casks plus two-place stillage, phase 2",
+      "surface": "metal",
+      "collision_gameplay": "static pump first; later serving action/beer line binding separate from model",
+      "steps": "hand model pump, handle and spout \u2192 label proof \u2192 plan hose to store; separate cask study later",
+      "dependencies": [
+        "A01_PUB_BAR"
+      ],
+      "estimate_person_hours": 3,
+      "estimate_basis": "planning allowance, not observed effort",
+      "existing_file": "ledger/Assets/Props/base-mesh/wood_barrel.glb",
+      "availability": "file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f",
+      "suitability": "unsuitable for selected beer service",
+      "picture": "previews/target-a01_pub_beer_engine.png",
+      "picture_kind": "original authored target detail / not finished asset",
+      "license": "original authored design; type must be outlined/licence checked before export",
+      "source_url": "references/CONTINUATION.md",
+      "integration": "pending; no atlas engine import",
+      "texture_requirement": "see 2D briefs; richer appearance unavailable through current static prop override"
+    },
+    {
+      "id": "A01_PUB_FURNITURE",
+      "name": "Front and snug tables",
+      "acquisition": "custom",
+      "mesh_id": "a01_pub_table",
+      "dimensions_m": [
+        0.7,
+        0.73,
+        0.65
+      ],
+      "quantity": 2,
+      "placements": [
+        {
+          "id": "a01_table_front",
+          "source_bounds_centre_m": [
+            5.85,
+            0.465,
+            6.55
+          ],
+          "yaw_deg_about_source_y": 0
+        },
+        {
+          "id": "a01_table_snug",
+          "source_bounds_centre_m": [
+            5,
+            0.465,
+            9.45
+          ],
+          "yaw_deg_about_source_y": 0
+        }
+      ],
+      "variants": "one construction repeated twice; deliberate front edge wear vs quieter snug",
+      "surface": "wood",
+      "collision_gameplay": "simple box collision below tabletop; no invisible oversized collider",
+      "steps": "hand model top/apron/4 legs from authored dimensions \u2192 bevel \u2192 underside UV \u2192 validate routes",
+      "dependencies": [
+        "A01_PUB_SHELL"
+      ],
+      "estimate_person_hours": 2,
+      "estimate_basis": "planning allowance, not observed effort",
+      "existing_file": null,
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "picture": "previews/target-a01_pub_table.png",
+      "picture_kind": "original authored target detail / not finished asset",
+      "license": "original authored design; type must be outlined/licence checked before export",
+      "source_url": "references/CONTINUATION.md",
+      "integration": "pending; no atlas engine import",
+      "texture_requirement": "see 2D briefs; richer appearance unavailable through current static prop override"
+    },
+    {
+      "id": "A01_PUB_SNUG",
+      "name": "Screen and fixed seating",
+      "acquisition": "custom",
+      "mesh_id": "a01_pub_screen",
+      "dimensions_m": [
+        1.1,
+        1.45,
+        0.1
+      ],
+      "quantity": 1,
+      "placements": [
+        {
+          "id": "a01_pub_screen",
+          "source_bounds_centre_m": [
+            4.85,
+            0.825,
+            8.475
+          ],
+          "yaw_deg_about_source_y": 0
+        }
+      ],
+      "variants": "one screen; bench and window seat remain separate phase-2 pieces",
+      "surface": "wood",
+      "collision_gameplay": "opaque screen at 1.45m, tested hand ray only; do not treat as full sound barrier",
+      "steps": "model framed low panel \u2192 inspect standing/seated occlusion \u2192 retain exact height",
+      "dependencies": [
+        "A01_PUB_SHELL"
+      ],
+      "estimate_person_hours": 1.5,
+      "estimate_basis": "planning allowance, not observed effort",
+      "existing_file": null,
+      "availability": "not located in inspected source set",
+      "suitability": "unverified",
+      "picture": "previews/target-a01_pub_screen.png",
+      "picture_kind": "original authored target detail / not finished asset",
+      "license": "original authored design; type must be outlined/licence checked before export",
+      "source_url": "references/CONTINUATION.md",
+      "integration": "pending; no atlas engine import",
+      "texture_requirement": "see 2D briefs; richer appearance unavailable through current static prop override"
+    },
+    {
+      "id": "C12_net_curtain",
+      "name": "Pub front net curtain",
+      "acquisition": "cloth",
+      "mesh_id": "a01_pub_net",
+      "dimensions_m": [
+        3.33,
+        0.65,
+        0.035
+      ],
+      "quantity": 1,
+      "placements": [
+        {
+          "id": "a01_pub_net",
+          "source_bounds_centre_m": [
+            6.885,
+            1.025,
+            5.36
+          ],
+          "yaw_deg_about_source_y": 0
+        }
+      ],
+      "variants": "one authored gathered panel across lower glazing; optional drawn-aside state later",
+      "surface": "card",
+      "collision_gameplay": "no collision; alpha/perception handling not supported by static slot override",
+      "steps": "cloth mesh or manual folds \u2192 original tiling net pattern \u2192 alpha review \u2192 engine sightline test",
+      "dependencies": [
+        "C7_shop_glazing"
+      ],
+      "estimate_person_hours": 2.5,
+      "estimate_basis": "planning allowance, not observed effort",
+      "existing_file": null,
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "unverified",
+      "picture": "previews/target-a01_pub_net.png",
+      "picture_kind": "original authored target detail / not finished asset",
+      "license": "original authored design; type must be outlined/licence checked before export",
+      "source_url": "references/CONTINUATION.md",
+      "integration": "pending; no atlas engine import",
+      "texture_requirement": "see 2D briefs; richer appearance unavailable through current static prop override"
+    },
+    {
+      "id": "E13_household_dustbin",
+      "name": "Pub yard metal bins",
+      "acquisition": "custom",
+      "mesh_id": "a01_pub_metal_bin",
+      "dimensions_m": [
+        0.45,
+        0.66,
+        0.45
+      ],
+      "quantity": 2,
+      "placements": [
+        {
+          "id": "a01_yard_bin1",
+          "source_bounds_centre_m": [
+            3.6,
+            0.43,
+            17.925
+          ],
+          "yaw_deg_about_source_y": 0
+        },
+        {
+          "id": "a01_yard_bin2",
+          "source_bounds_centre_m": [
+            4.15,
+            0.43,
+            17.925
+          ],
+          "yaw_deg_about_source_y": 0
+        }
+      ],
+      "variants": "same ribbed body; closed lid and liftable lid designated poses",
+      "surface": "metal",
+      "collision_gameplay": "simple cylinder collision; keep gate/walking route clear; lid/rubbish state needs binding",
+      "steps": "manual ribbed cylinder and lid \u2192 worn handles \u2192 yard placement review",
+      "dependencies": [
+        "A01_PUB_YARD"
+      ],
+      "estimate_person_hours": 2,
+      "estimate_basis": "planning allowance, not observed effort",
+      "existing_file": null,
+      "availability": "source route GENERATE; usable file not established",
+      "suitability": "unverified",
+      "picture": "previews/target-a01_pub_metal_bin.png",
+      "picture_kind": "original authored target detail / not finished asset",
+      "license": "original authored design; type must be outlined/licence checked before export",
+      "source_url": "references/CONTINUATION.md",
+      "integration": "pending; no atlas engine import",
+      "texture_requirement": "see 2D briefs; richer appearance unavailable through current static prop override"
+    },
+    {
+      "id": "A01_PUB_NOTICES",
+      "name": "Hours, returns and beer clip",
+      "acquisition": "vector",
+      "mesh_id": "a01_pub_notice_paper",
+      "dimensions_m": [
+        0.21,
+        0.297,
+        0.001
+      ],
+      "quantity": 3,
+      "placements": [
+        {
+          "id": "a01_hours",
+          "source_bounds_centre_m": [
+            4.638,
+            1.6,
+            5.34
+          ],
+          "dimensions_m": [
+            0.21,
+            0.297,
+            0.001
+          ],
+          "yaw_deg_about_source_y": 0
+        },
+        {
+          "id": "a01_returns",
+          "source_bounds_centre_m": [
+            5.9,
+            1.8,
+            13.1
+          ],
+          "dimensions_m": [
+            0.3,
+            0.15,
+            0.001
+          ],
+          "yaw_deg_about_source_y": 0
+        },
+        {
+          "id": "a01_pump_clip",
+          "source_bounds_centre_m": [
+            7.1,
+            1.56,
+            8.71
+          ],
+          "dimensions_m": [
+            0.075,
+            0.095,
+            0.002
+          ],
+          "yaw_deg_about_source_y": 90
+        }
+      ],
+      "variants": "three named designs, not random notice variants; separate sizes in artwork briefs",
+      "surface": "card",
+      "collision_gameplay": "no collision; readable art only, clocks/trade are authored game data",
+      "steps": "compose exact text \u2192 raster proof \u2192 inspect at target distance \u2192 bind flat card",
+      "dependencies": [
+        "A01_PUB_BAR"
+      ],
+      "estimate_person_hours": 1.5,
+      "estimate_basis": "planning allowance, not observed effort",
+      "existing_file": null,
+      "availability": "existing darts and opening-hours PNGs inspected",
+      "suitability": "revise for readable close-up text",
+      "picture": "previews/target-a01_pub_notice_paper.png",
+      "picture_kind": "original authored target detail / not finished asset",
+      "license": "original authored design; type must be outlined/licence checked before export",
+      "source_url": "references/CONTINUATION.md",
+      "integration": "pending; no atlas engine import",
+      "texture_requirement": "see 2D briefs; richer appearance unavailable through current static prop override",
+      "dimensions_note": "Row envelope is the A4 variant; each named placement carries its own graphic size."
+    }
+  ]
+}

@@ -1029,6 +1029,101 @@
           450
         ]
       ]
+    },
+    {
+      "id": "harbourlink",
+      "name": "Harbour Board approach",
+      "kind": "minor",
+      "points": [
+        [
+          400,
+          320
+        ],
+        [
+          460,
+          315
+        ],
+        [
+          510,
+          320
+        ]
+      ]
+    },
+    {
+      "id": "westroad",
+      "name": "Western freight road / beyond atlas",
+      "kind": "main",
+      "points": [
+        [
+          50,
+          687.5
+        ],
+        [
+          260,
+          687.5
+        ],
+        [
+          270,
+          700
+        ]
+      ]
+    },
+    {
+      "id": "northroad",
+      "name": "Inland bus and shopping road / beyond atlas",
+      "kind": "main",
+      "points": [
+        [
+          600,
+          825
+        ],
+        [
+          650,
+          940
+        ],
+        [
+          650,
+          1000
+        ]
+      ]
+    },
+    {
+      "id": "coldstore",
+      "name": "Cold-store service entry",
+      "kind": "minor",
+      "points": [
+        [
+          150,
+          260
+        ],
+        [
+          215,
+          260
+        ],
+        [
+          245,
+          310
+        ]
+      ]
+    },
+    {
+      "id": "courtsteps",
+      "name": "Foundry Court access",
+      "kind": "foot",
+      "points": [
+        [
+          320,
+          820
+        ],
+        [
+          350,
+          795
+        ],
+        [
+          410,
+          795
+        ]
+      ]
     }
   ],
   "rail": {
@@ -1569,11 +1664,23 @@
     "status": "DESIGN INTENT ONLY. Not simulated. Sightlines require ray, pose, lighting and occluder checks; recognition remains relationship-gated.",
     "daily": [
       {
-        "name": "Dock shift to pub, 06:00 / 17:30 intention",
+        "name": "Packing shift \u2192 Mickey\u2019s / 06:00 start / 17:30 visit, proposal",
         "points": [
           [
-            125,
-            380
+            245,
+            310
+          ],
+          [
+            215,
+            260
+          ],
+          [
+            150,
+            260
+          ],
+          [
+            170,
+            375
           ],
           [
             205,
@@ -1589,57 +1696,73 @@
           ],
           [
             400,
+            392
+          ],
+          [
+            400,
+            356
+          ],
+          [
+            405.125,
             356
           ]
         ]
       },
       {
-        "name": "Market to school, 08:15 / 15:15 intention",
+        "name": "Homes \u2192 school \u2192 market / 08:15 / 15:15, proposal",
         "points": [
           [
-            450,
-            650
+            410,
+            795
           ],
           [
-            475,
-            622
+            350,
+            795
           ],
           [
-            485,
-            600
+            320,
+            820
           ],
           [
-            530,
-            705
+            330,
+            835
           ],
           [
-            675,
-            740
-          ],
-          [
-            600,
-            825
+            320,
+            820
           ],
           [
             460,
             850
           ],
           [
-            330,
-            835
+            600,
+            825
+          ],
+          [
+            560,
+            755
+          ],
+          [
+            440,
+            745
+          ],
+          [
+            385,
+            685
+          ],
+          [
+            450,
+            650
           ]
         ]
       },
       {
-        "name": "Clerk to cinema, 18:00 intention",
+        "name": "Clerks \u2192 evening cinema / 18:00, proposal",
         "points": [
           [
             800,
             860
-          ],
-          [
-            842,
-            833
           ],
           [
             810,
@@ -1650,8 +1773,8 @@
             635
           ],
           [
-            737,
-            595
+            720,
+            570
           ],
           [
             773,
@@ -1660,55 +1783,31 @@
         ]
       },
       {
-        "name": "Promenade trade to market, 10:00 intention",
+        "name": "Boarding house \u2192 shopping / 10:00, proposal",
         "points": [
           [
             910,
             450
           ],
           [
-            950,
-            450
+            875,
+            565
           ],
           [
-            950,
-            430
+            760,
+            635
           ],
           [
-            800,
-            350
+            690,
+            635
           ],
           [
-            700,
-            325
-          ],
-          [
-            580,
-            300
-          ],
-          [
-            460,
-            315
-          ],
-          [
-            440,
-            320
-          ],
-          [
-            440,
-            430
-          ],
-          [
-            465,
-            490
+            595,
+            620
           ],
           [
             485,
             600
-          ],
-          [
-            475,
-            622
           ],
           [
             450,
@@ -1941,5 +2040,331 @@
       ],
       "district": "parade"
     }
-  ]
+  ],
+  "working_town": {
+    "status": "Fictional causal design, not employment data or live schedules. Broad blocks remain massing.",
+    "reason_for_port": "Sheltered basin at a sheltered coastal inlet beside an inland road; deeper western berths developed outside this compact study area. The Hook retained small landing, boat repair and harbour offices after larger freight moved west.",
+    "flows": [
+      {
+        "id": "WT1",
+        "name": "Packing shift \u2192 Mickey\u2019s",
+        "from": "Old Basin Cold Stores",
+        "to": "Mickey\u2019s",
+        "time": "06:00 start / 17:30 visit, proposal",
+        "points": [
+          [
+            245,
+            310
+          ],
+          [
+            215,
+            260
+          ],
+          [
+            150,
+            260
+          ],
+          [
+            170,
+            375
+          ],
+          [
+            205,
+            450
+          ],
+          [
+            330,
+            485
+          ],
+          [
+            400,
+            430
+          ],
+          [
+            400,
+            392
+          ],
+          [
+            400,
+            356
+          ],
+          [
+            405.125,
+            356
+          ]
+        ]
+      },
+      {
+        "id": "WT2",
+        "name": "Homes \u2192 school \u2192 market",
+        "from": "Foundry Court homes",
+        "to": "Market Hall",
+        "time": "08:15 / 15:15, proposal",
+        "points": [
+          [
+            410,
+            795
+          ],
+          [
+            350,
+            795
+          ],
+          [
+            320,
+            820
+          ],
+          [
+            330,
+            835
+          ],
+          [
+            320,
+            820
+          ],
+          [
+            460,
+            850
+          ],
+          [
+            600,
+            825
+          ],
+          [
+            560,
+            755
+          ],
+          [
+            440,
+            745
+          ],
+          [
+            385,
+            685
+          ],
+          [
+            450,
+            650
+          ]
+        ]
+      },
+      {
+        "id": "WT3",
+        "name": "Clerks \u2192 evening cinema",
+        "from": "Records Court cafe",
+        "to": "The Tivoli",
+        "time": "18:00, proposal",
+        "points": [
+          [
+            800,
+            860
+          ],
+          [
+            810,
+            810
+          ],
+          [
+            760,
+            635
+          ],
+          [
+            720,
+            570
+          ],
+          [
+            773,
+            565
+          ]
+        ]
+      },
+      {
+        "id": "WT4",
+        "name": "Boarding house \u2192 shopping",
+        "from": "Winter Rooms arcade",
+        "to": "Market Hall",
+        "time": "10:00, proposal",
+        "points": [
+          [
+            910,
+            450
+          ],
+          [
+            875,
+            565
+          ],
+          [
+            760,
+            635
+          ],
+          [
+            690,
+            635
+          ],
+          [
+            595,
+            620
+          ],
+          [
+            485,
+            600
+          ],
+          [
+            450,
+            650
+          ]
+        ]
+      }
+    ],
+    "places": [
+      {
+        "id": "WT_COLD",
+        "name": "Old Basin Cold Stores",
+        "point": [
+          245,
+          310
+        ],
+        "district": "hook",
+        "use": "Fictional fish packing employer; imported fish by lorry supplements local landing; return crates, wash apron, locked yard",
+        "phase": "adapted older shed; exact interior not yet authored"
+      },
+      {
+        "id": "WT_COURT",
+        "name": "Foundry Court homes",
+        "point": [
+          410,
+          795
+        ],
+        "district": "fairview",
+        "use": "Fictional rented post-war flats at lower slope; drying court, meter cupboards, pram store",
+        "phase": "1959 infill proposal; courts designed schematically, individual flats pending"
+      },
+      {
+        "id": "WT_BUS",
+        "name": "Market bus stop",
+        "point": [
+          490,
+          605
+        ],
+        "district": "copper",
+        "use": "Inland bus to station and edge supermarket beyond study; named connection, timetable unresolved",
+        "phase": "shelter/flag choice pending period reference"
+      },
+      {
+        "id": "WT_SLIP",
+        "name": "Retort repair yard",
+        "point": [
+          130,
+          470
+        ],
+        "district": "ironside",
+        "use": "Metal and marine repair; goods receiving and waste skip behind controlled gate",
+        "phase": "retained stack belongs to older works; active sheds occupy only part of site"
+      },
+      {
+        "id": "WT_LAUNDRY",
+        "name": "Boarding-house wash yard",
+        "point": [
+          850,
+          460
+        ],
+        "district": "gullwing",
+        "use": "Linen delivery, laundry drying and seasonal staff entrance",
+        "phase": "rear domestic service space, not a second promenade"
+      }
+    ],
+    "external_connections": [
+      {
+        "point": [
+          50,
+          687.5
+        ],
+        "label": "WEST: freight terminal / regional road",
+        "mode": "lorry road",
+        "note": "Working rail terminal beyond study area; atlas diagonal rails remain disused, not falsely revived"
+      },
+      {
+        "point": [
+          650,
+          1000
+        ],
+        "label": "NORTH: station / supermarket / inland towns",
+        "mode": "bus and road",
+        "note": "Passenger rail lies beyond frame. Timetable and exact station layout unresolved"
+      },
+      {
+        "point": [
+          620,
+          195
+        ],
+        "label": "SEA: coastal cargo / small fishing craft",
+        "mode": "water",
+        "note": "Deep-draught cargo uses western berths outside the map; no vessel manoeuvring proof"
+      }
+    ],
+    "transitions": [
+      {
+        "pair": "Hook \u2192 Copper Row",
+        "route": "quay",
+        "change": "rear packing and repair give way to small grocers, market stalls and upstairs households"
+      },
+      {
+        "pair": "Ironside \u2192 Fairview",
+        "route": "hill",
+        "change": "works gates end at retaining wall; housing access climbs by road and steps"
+      },
+      {
+        "pair": "Copper Row \u2192 Exchange",
+        "route": "civic",
+        "change": "market loading mouths become wider rebuilt office frontages and formal queues"
+      },
+      {
+        "pair": "Hook \u2192 Parade",
+        "route": "harbourlink",
+        "change": "working quay access turns inland to evening venues; no uninterrupted public quayside"
+      },
+      {
+        "pair": "Parade \u2192 Gullwing",
+        "route": "coast",
+        "change": "cinema and taxi trade give way to boarding-house breakfasts and seafront leisure"
+      },
+      {
+        "pair": "Fairview \u2192 Exchange",
+        "route": "hill",
+        "change": "front gardens and drying court become civic grounds; two income groups share bus and school routes"
+      }
+    ],
+    "boundaries": [
+      {
+        "name": "Cold-store service gate",
+        "points": [
+          [
+            225,
+            292
+          ],
+          [
+            260,
+            292
+          ]
+        ],
+        "access": "staff and checked deliveries"
+      },
+      {
+        "name": "Retort works boundary",
+        "points": [
+          [
+            95,
+            355
+          ],
+          [
+            150,
+            355
+          ],
+          [
+            155,
+            430
+          ]
+        ],
+        "access": "controlled work site; no public escape promise"
+      }
+    ]
+  }
 }

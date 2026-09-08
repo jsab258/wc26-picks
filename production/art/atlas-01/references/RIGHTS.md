@@ -1,5 +1,7 @@
 # Research image provenance
 
+Continuation: [CONTINUATION.md](CONTINUATION.md) distinguishes historical evidence, interpretation, fictional choices and source-specific rights. Newly inspected period photographs and archive PDFs are linked rather than redistributed. The eight `previews/mesh-*` projections derive from the studio's CC0-1.0 Base Mesh files; hashes and exact source revision are retained. The three `studio-*.png` files are existing repository-generated imagery for review, not historical reference. Original SVG design targets and typographic proofs are commission work; system-font lettering must be outlined and its export rights checked before shipping. Reference access never grants permission to ship a photo as a texture.
+
 These files are reference evidence, not a cleared game-asset library. Do not include the reference boards, historic photographs or map extracts in a game build or commercial art export without resolving the applicable rights. The authored Meridian drawings do not trace real map geometry.
 
 | File | Provenance and date | Rights information available |

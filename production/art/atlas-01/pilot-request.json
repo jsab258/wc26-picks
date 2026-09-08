@@ -1,0 +1,18 @@
+{
+  "schema": "atlas-01.production-pilot-request/1",
+  "status": "PENDING / NOT DISPATCHED",
+  "source_revision": "recorded in DELIVERY.md after source commit",
+  "owner": "Claude schedules through existing opt-in lanes; Codex owns art briefs and review",
+  "consume": ["data/first-batch.json", "ARTWORK-BRIEFS.md", "data/pilot-image-inputs.json", "artwork/fascia_mickeys-layout-proof.svg", "artwork/mickeys-hours-proof.svg"],
+  "blender_request": "Reuse render-request.json at 40811f56825ac0737b818689f5e138396d7218a2; no duplicate five-camera request",
+  "pilot": [
+    "Inspect the existing 400mm drainage_grate_01 and plain framed_poster at life size, one copy each, using source mesh hashes in data/mesh-inspections.json",
+    "Apply authored hours paper to a separate card plane inside the notice case; test exact-size fascia composition on its existing 6 by 0.55m body",
+    "Through the existing imagegen lane, reconcile one proposed a01_maroon_timber_sample record; select only that ID and limit to one candidate. Do not regenerate or reseed fascia_mickeys"
+  ],
+  "lane_dependency": "Current imagegen.py reads its existing prompts.json and supports --only; no arbitrary prompt-file flag. Claude must reconcile the single proposed record, validate it and use current machine/model paths. Do not dispatch a fabricated command.",
+  "views": ["dry diffuse daylight, player eye 1.7m, 1m detail", "dry diffuse daylight, 5m reading", "street approach", "same layout under existing evening lighting"],
+  "receipt_required": ["exact source and effective prompt hashes", "runtime/model/Blender version", "raw candidates and rejected outputs", "per-attempt GPU process elapsed seconds", "revisions and reasons", "human review minutes if observed; otherwise unknown", "separate art acceptance and engine integration verdicts"],
+  "acceptance": "Scale and silhouette match specification; text readable without distortion at stated distances; colour sample is a surface rather than a scene; no default/fallback rendering. A colour image does not establish normal/roughness or finished-material quality.",
+  "observed_this_continuation": {"new_gpu_attempts": 0, "accepted_finished_3d_assets": 0, "accepted_generated_production_images": 0, "new_vector_layout_proofs": 4, "local_gpu_seconds": 0, "human_review_minutes": null}
+}

@@ -1,9 +1,9 @@
 # Meridian: a town shaped by work
 
-STATUS: ART PROPOSAL. Research completed before atlas layout authoring, 2026-09-08.
+STATUS: ART PROPOSAL. Initial research preceded layout authoring; continuation research and revisions dated 2026-09-08. Appearance and layouts remain unapproved.
 Base: 7722b45cb3dcee2fbcee26675fae4fef641cbba7, explicitly pinned by the owner in Codex desktop.
 
-Two ports were studied: Hull Old Town and Grimsby's Kasbah. They supply different spatial causes, not a layout to trace. All Meridian coordinates are authored here. No GIS, OSM, real-town street graph or imported geodata is used.
+Hull Old Town and Grimsby's Kasbah supplied the initial morphology. The continuation adds ordinary Hull streets in 1989, Plymouth's hilly harbour fabric, period retail and pub records, and operational comparisons. They supply spatial causes, not a layout to trace. All Meridian coordinates are authored here. No GIS, OSM, real-town street graph or imported geodata is used. [Evidence ledger](references/CONTINUATION.md) records actual inspection, dates, limitations and named decisions; [visual changes](previews/evidence-revisions.png) show the consequences.
 
 ## Reference evidence
 
@@ -33,4 +33,18 @@ All new widths, heights, gradients and areas are dimensioned design choices, not
 
 ## Era and appearance
 
-1988-1992, photoreal late-analog Britain. Fictional signage; ordinary paper notices, cash tills and landlines. No modern cafe terraces, ubiquitous cameras, wheeled bins, blister paving, real vehicle models or copied operator marks. Grime follows water paths, hands, deliveries and heating. It does not cover every surface equally. The old town-plan's observations about enclosure, ground-floor depth and destinations are useful; its retired stylised target and procedural grammar are not adopted. The owner's D14 ruling overrides the procedural Tier 2 wording still present at this base.
+1988-1992, photoreal late-analog Britain. Fictional signage; ordinary paper notices, cash tills and landlines. The former blanket exclusions of wheeled bins, tactile paving and contemporary cafe refits were unsupported and are withdrawn: R12/R17/R18 show why. Select municipal rollout and individual refits deliberately. No automatic adoption of today's coordinated bin sets or paving patterns. Canon still governs rare CCTV, real vehicle models and copied operator marks. Grime follows water paths, hands, deliveries and heating. It does not cover every surface equally. Dry diffuse daylight is a useful verification condition alongside canon's wet overcast target. The old town-plan's urban observations remain useful; its retired stylised target and procedural grammar are not adopted. The owner's D14 ruling governs every interior.
+
+## Physical and social history — fictional choices
+
+**D04: why the port exists.** A sheltered old basin and an inland road allowed small landing, chandlery and coastal trade. Later rail and deeper western berths drew bulky cargo away from the Hook. In the proposed 1990 snapshot, Old Basin Cold Stores packs local and lorry-delivered fish; Retort's surviving sheds repair metalwork and marine equipment; independent shopkeepers, harbour staff and transport workers have daily reasons to cross the Hook. Larger freight/rail facilities lie beyond the west edge. This is a study area, not a claim that a whole port economy fits inside one kilometre. Cargo volumes, exact fleet and employer sizes remain unresolved.
+
+**D06: unequal change.** Proposed sequence: older quay/shop plots; railway-era works and terraces; selective wartime gaps; 1950s housing/civic infill; a later freight road; 1970s/80s commercial refits. Dates and affected buildings are fiction, informed by R10/R11/R12 rather than copied bomb maps. Exchange offices can be post-war without turning the whole quarter into one modern estate. Retort's stack survives a change of use. Hook shops receive metal frames, practical light fittings and repair patches within older masonry. R08 prevents treating decline as abandonment everywhere.
+
+**D02/D03/D10: households and destinations.** Upper Fairview keeps residential hills, villas, altered terraces and front gardens; lower Foundry Court introduces a deliberately placed post-war housing court with laundry and meter access. Different maintenance histories matter more than a rich/poor colour code. School gates, the market, repair jobs, shopping and family care join households to other districts. A station and a competing supermarket beyond the north edge explain bus trips that do not end at a landmark. Timetable, tenure and detailed possessions remain proposals pending further period sources.
+
+**D01/D07/D08: the Hook first.** [Twelve named frontage uses](previews/hook-uses.png) turn source modules into a grocery, fish shop, repairs, cafe, chandler, laundry and other deliberate uses around Mickey's. Rear spaces receive stock, empty containers, repairs and household access; they are not random escape mouths. The pub's service study retains a possible cooled ground store and compares two unadopted alternatives. Mickey's has one cask line and packaged snacks in this version. The afternoon closure is a chosen business routine, not a universal period rule.
+
+**Connections and transitions.** [Work/home map](previews/town-work-and-home.png) and atlas `working_town` data give routes starts and destinations, external road/sea connections and controlled work gates. Quay Street joins Copper Row shopping; Tannery Row meets hill housing; Civic Rise moves from loading mouths to public offices; evening Parade trade connects to Gullwing's boarding-house service yards. The old rail diagonal remains disused. The basin swing crossing remains an unengineered proposal and never an unconditional escape guarantee.
+
+The overview remains schematic massing. Only the source street and pub have detailed dimensions; naming a neighbouring use does not invent its complete interior. Original concepts remain visual proposals, qualified by the continuation drawings. Fairview's existing concept is now explicitly an upper-hill view, not every household. No replacement generated concept was needed to change the core geography. D13 comparisons and outstanding household/equipment evidence are listed in the evidence ledger.

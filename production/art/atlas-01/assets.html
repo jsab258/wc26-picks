@@ -1,691 +1,691 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LEDGER atlas 01 asset audit</title>
 <style>body{margin:auto;max-width:1100px;padding:24px;background:#f5f0e5;color:#253a3d;font:17px/1.5 system-ui}h1{font-size:38px}h2{font-size:20px;overflow-wrap:anywhere}h3{font-size:18px}article{display:grid;grid-template-columns:220px 1fr;gap:24px;border-top:1px solid #abb5aa;padding:24px 0}img{width:100%;max-height:340px;object-fit:contain;object-position:top}small{color:#546869}strong{padding:4px 10px}.usable{background:#bad1b1}.revise{background:#ead19b}.missing{background:#dfb7ae}input,select{font:inherit;padding:10px;margin:5px}nav{position:sticky;top:0;background:#f5f0e5;padding:10px 0;border-bottom:2px solid}article[hidden]{display:none}@media(max-width:650px){article{grid-template-columns:1fr}img{max-height:250px;width:100%}body{padding:16px}}</style>
 <h1>Assets follow the design</h1><p>Atlas 01 / proposal / base 7722b45cb3dcee2fbcee26675fae4fef641cbba7.</p>
-<p><b>Usable</b> means only the stated review purpose. <b>Revise</b> means seen but changes or closer inspection are needed. <b>Missing</b> means no judged usable exemplar for this design, even if bytes exist elsewhere. Pictures marked AI are targets, not evidence that the asset exists. Primitive entries are placement components, never unique asset counts.</p>
+<p>Availability, suitability and engine integration are independent. Uninspected is not missing. Original audit statuses remain in JSON for traceability only. Pictures marked AI are targets, not evidence that an individual asset exists. <a href="PRODUCTION-CATALOGUE.md">First batch, production order and pilot</a>. Primitive entries and audit rows are not finished-asset counts.</p>
 <p>P0: Mickey's and immediate street. P1: inhabited street detail. P2: town-wide production after visual approval. Engine integration is a separate status in every row.</p>
-<nav><input id="q" placeholder="Find ID or object" aria-label="Find ID or object"><select id="p" aria-label="Priority"><option value="all">All priorities</option><option value="0">P0 Mickey's first</option><option value="1">P1 street detail</option><option value="2">P2 wider town</option></select><span id="count"></span></nav><article data-search="A0_ground_planes The carriageway and footway themselves: two ground planes at different levels, with road camber falling to the gutter usable" data-priority="0">
+<nav><input id="q" placeholder="Find ID or object" aria-label="Find ID or object"><select id="p" aria-label="Priority"><option value="all">All priorities</option><option value="0">P0 Mickey's first</option><option value="1">P1 street detail</option><option value="2">P2 wider town</option></select><span id="count"></span></nav><article data-search="A0_ground_planes The carriageway and footway themselves: two ground planes at different levels, with road camber falling to the gutter usable for spatial blockout only" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>A0_ground_planes</h2>
-    <h3>The carriageway and footway themselves: two ground planes at different levels, with road camber falling to the gutter</h3><strong class="usable">USABLE</strong>
+    <h3>The carriageway and footway themselves: two ground planes at different levels, with road camber falling to the gutter</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> usable for spatial blockout only</p><p><b>Integration:</b> unverified for this design</p>
     <p>Road and footways are visibly continuous in the retained walk frames and their dimensions are explicit in source JSON. Usable for preserving spatial blockout; finished surface quality is assessed separately.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 9. Related BOM: A0_ground_planes</small></div></article><article data-search="A1_road_asphalt Road surface material, colour plus normal plus roughness revise" data-priority="0">
+    <small>Source primitive entries: 9. Related BOM: A0_ground_planes</small></div></article><article data-search="A1_road_asphalt Road surface material, colour plus normal plus roughness requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>A1_road_asphalt</h2>
-    <h3>Road surface material, colour plus normal plus roughness</h3><strong class="revise">REVISE</strong>
+    <h3>Road surface material, colour plus normal plus roughness</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: A1_road_asphalt</small></div></article><article data-search="A2_road_asphalt_maps_upgrade The AO and displacement maps the original fetch did not take, and 4K where published missing" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: A1_road_asphalt</small></div></article><article data-search="A2_road_asphalt_maps_upgrade The AO and displacement maps the original fetch did not take, and 4K where published unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>A2_road_asphalt_maps_upgrade</h2>
-    <h3>The AO and displacement maps the original fetch did not take, and 4K where published</h3><strong class="missing">MISSING</strong>
+    <h3>The AO and displacement maps the original fetch did not take, and 4K where published</h3><p><b>Availability:</b> source route FETCH; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: A2_road_asphalt_maps_upgrade</small></div></article><article data-search="A3_pavement_slabs Pavement paving material revise" data-priority="0">
+    <small>Source primitive entries: 0. Related BOM: A2_road_asphalt_maps_upgrade</small></div></article><article data-search="A3_pavement_slabs Pavement paving material requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>A3_pavement_slabs</h2>
-    <h3>Pavement paving material</h3><strong class="revise">REVISE</strong>
+    <h3>Pavement paving material</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: A3_pavement_slabs</small></div></article><article data-search="A4_pavement_tarmac_patch Tarmac repair patch over slabs, the commonest British pavement fault missing" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: A3_pavement_slabs</small></div></article><article data-search="A4_pavement_tarmac_patch Tarmac repair patch over slabs, the commonest British pavement fault unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>A4_pavement_tarmac_patch</h2>
-    <h3>Tarmac repair patch over slabs, the commonest British pavement fault</h3><strong class="missing">MISSING</strong>
+    <h3>Tarmac repair patch over slabs, the commonest British pavement fault</h3><p><b>Availability:</b> source route FETCH; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: A4_pavement_tarmac_patch</small></div></article><article data-search="A5_double_yellow_lines Double yellow line pair running the length of the kerb revise" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: A4_pavement_tarmac_patch</small></div></article><article data-search="A5_double_yellow_lines Double yellow line pair running the length of the kerb requires close-up review" data-priority="1">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>A5_double_yellow_lines</h2>
-    <h3>Double yellow line pair running the length of the kerb</h3><strong class="revise">REVISE</strong>
+    <h3>Double yellow line pair running the length of the kerb</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 4. Related BOM: A5_double_yellow_lines</small></div></article><article data-search="A6_worn_road_paint Worn white road markings, centre line and stop line missing" data-priority="1">
+    <small>Source primitive entries: 4. Related BOM: A5_double_yellow_lines</small></div></article><article data-search="A6_worn_road_paint Worn white road markings, centre line and stop line unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>A6_worn_road_paint</h2>
-    <h3>Worn white road markings, centre line and stop line</h3><strong class="missing">MISSING</strong>
+    <h3>Worn white road markings, centre line and stop line</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: A6_worn_road_paint</small></div></article><article data-search="A7_gully_grate Road gully grate at the kerb revise" data-priority="1">
-    <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
+    <small>Source primitive entries: 0. Related BOM: A6_worn_road_paint</small></div></article><article data-search="A7_gully_grate Road gully grate at the kerb usable for pilot" data-priority="1">
+    <img src="previews/mesh-drainage_grate_01.png" alt="actual source triangle projection, not Blender or Unreal render" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>A7_gully_grate</h2>
-    <h3>Road gully grate at the kerb</h3><strong class="revise">REVISE</strong>
-    <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
+    <h3>Road gully grate at the kerb</h3><p><b>Availability:</b> file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f</p><p><b>Suitability:</b> usable for pilot</p><p><b>Integration:</b> unverified for this design</p>
+    <p>0.400m square diagonal open grate, 0.015m deep. Reuse actual geometry; recess/collision still needs engine check.</p><p><b>Picture:</b> actual source triangle projection, not Blender or Unreal render</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 1. Related BOM: A7_gully_grate</small></div></article><article data-search="A8_manhole Manhole or inspection cover in the carriageway revise" data-priority="1">
-    <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
+    <small>Source primitive entries: 1. Related BOM: A7_gully_grate</small></div></article><article data-search="A8_manhole Manhole or inspection cover in the carriageway unsuitable for named use" data-priority="1">
+    <img src="previews/mesh-drain_cover_01.png" alt="actual source triangle projection, not Blender or Unreal render" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>A8_manhole</h2>
-    <h3>Manhole or inspection cover in the carriageway</h3><strong class="revise">REVISE</strong>
-    <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
+    <h3>Manhole or inspection cover in the carriageway</h3><p><b>Availability:</b> file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f</p><p><b>Suitability:</b> unsuitable for named use</p><p><b>Integration:</b> unverified for this design</p>
+    <p>0.100m perforated round fitting; not a road manhole. Do not enlarge blindly. Keep for small drain use only if later placed deliberately.</p><p><b>Picture:</b> actual source triangle projection, not Blender or Unreal render</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 2. Related BOM: A8_manhole</small></div></article><article data-search="A9_puddle_mask Mask saying where standing water sits, so the wet condition is not a uniformly wet plane missing" data-priority="1">
+    <small>Source primitive entries: 2. Related BOM: A8_manhole</small></div></article><article data-search="A9_puddle_mask Mask saying where standing water sits, so the wet condition is not a uniformly wet plane unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>A9_puddle_mask</h2>
-    <h3>Mask saying where standing water sits, so the wet condition is not a uniformly wet plane</h3><strong class="missing">MISSING</strong>
+    <h3>Mask saying where standing water sits, so the wet condition is not a uniformly wet plane</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: A9_puddle_mask</small></div></article><article data-search="A10_kerb_material Kerbstone surface material missing" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: A9_puddle_mask</small></div></article><article data-search="A10_kerb_material Kerbstone surface material unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>A10_kerb_material</h2>
-    <h3>Kerbstone surface material</h3><strong class="missing">MISSING</strong>
+    <h3>Kerbstone surface material</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: A10_kerb_material</small></div></article><article data-search="B1_kerbstone_run The kerb itself, an extruded profile following the road edge, with the upstand height that makes a pavement read as a pavement revise" data-priority="0">
+    <small>Source primitive entries: 0. Related BOM: A10_kerb_material</small></div></article><article data-search="B1_kerbstone_run The kerb itself, an extruded profile following the road edge, with the upstand height that makes a pavement read as a pavement requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>B1_kerbstone_run</h2>
-    <h3>The kerb itself, an extruded profile following the road edge, with the upstand height that makes a pavement read as a pavement</h3><strong class="revise">REVISE</strong>
+    <h3>The kerb itself, an extruded profile following the road edge, with the upstand height that makes a pavement read as a pavement</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 84. Related BOM: B1_kerbstone_run</small></div></article><article data-search="B2_dropped_kerb Dropped kerb at a vehicle crossover or crossing revise" data-priority="0">
+    <small>Source primitive entries: 84. Related BOM: B1_kerbstone_run</small></div></article><article data-search="B2_dropped_kerb Dropped kerb at a vehicle crossover or crossing requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>B2_dropped_kerb</h2>
-    <h3>Dropped kerb at a vehicle crossover or crossing</h3><strong class="revise">REVISE</strong>
+    <h3>Dropped kerb at a vehicle crossover or crossing</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 5. Related BOM: B2_dropped_kerb</small></div></article><article data-search="B3_gully_recess The recess in the kerb line the gully grate sits in missing" data-priority="1">
+    <small>Source primitive entries: 5. Related BOM: B2_dropped_kerb</small></div></article><article data-search="B3_gully_recess The recess in the kerb line the gully grate sits in unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>B3_gully_recess</h2>
-    <h3>The recess in the kerb line the gully grate sits in</h3><strong class="missing">MISSING</strong>
+    <h3>The recess in the kerb line the gully grate sits in</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 4. Related BOM: B3_gully_recess</small></div></article><article data-search="B4_gutter_water Water running in the gutter, a decal strip missing" data-priority="1">
+    <small>Source primitive entries: 4. Related BOM: B3_gully_recess</small></div></article><article data-search="B4_gutter_water Water running in the gutter, a decal strip unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>B4_gutter_water</h2>
-    <h3>Water running in the gutter, a decal strip</h3><strong class="missing">MISSING</strong>
+    <h3>Water running in the gutter, a decal strip</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: B4_gutter_water</small></div></article><article data-search="C1_terrace_carcass The building masses themselves, a run of terrace with shop at ground floor and flat above revise" data-priority="0">
+    <small>Source primitive entries: 0. Related BOM: B4_gutter_water</small></div></article><article data-search="C1_terrace_carcass The building masses themselves, a run of terrace with shop at ground floor and flat above requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>C1_terrace_carcass</h2>
-    <h3>The building masses themselves, a run of terrace with shop at ground floor and flat above</h3><strong class="revise">REVISE</strong>
+    <h3>The building masses themselves, a run of terrace with shop at ground floor and flat above</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Source carcass preserves the 6m bay and terrace silhouette, but is a solid proxy. Mickey&#x27;s requires a hollow replacement and actual door apertures. Existing carcass cannot be retained inside the pub interior.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 16. Related BOM: C1_terrace_carcass</small></div></article><article data-search="C2_brick_red Red or orange brick, the northern terrace surface revise" data-priority="0">
+    <small>Source primitive entries: 16. Related BOM: C1_terrace_carcass</small></div></article><article data-search="C2_brick_red Red or orange brick, the northern terrace surface requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>C2_brick_red</h2>
-    <h3>Red or orange brick, the northern terrace surface</h3><strong class="revise">REVISE</strong>
+    <h3>Red or orange brick, the northern terrace surface</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: C2_brick_red</small></div></article><article data-search="C3_brick_soot Blackened or grey brick, the hundred-years-of-pollution read revise" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: C2_brick_red</small></div></article><article data-search="C3_brick_soot Blackened or grey brick, the hundred-years-of-pollution read requires close-up review" data-priority="1">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>C3_brick_soot</h2>
-    <h3>Blackened or grey brick, the hundred-years-of-pollution read</h3><strong class="revise">REVISE</strong>
+    <h3>Blackened or grey brick, the hundred-years-of-pollution read</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: C3_brick_soot</small></div></article><article data-search="C4_render_pebbledash Pebbledash or roughcast render, named in art-direction as the late-20th-century British facade missing" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: C3_brick_soot</small></div></article><article data-search="C4_render_pebbledash Pebbledash or roughcast render, named in art-direction as the late-20th-century British facade unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>C4_render_pebbledash</h2>
-    <h3>Pebbledash or roughcast render, named in art-direction as the late-20th-century British facade</h3><strong class="missing">MISSING</strong>
+    <h3>Pebbledash or roughcast render, named in art-direction as the late-20th-century British facade</h3><p><b>Availability:</b> source route FETCH; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: C4_render_pebbledash</small></div></article><article data-search="C5_shopfront_assembly Stallriser, pilasters, fascia band, transom, the four parts that make a British shopfront read as one revise" data-priority="0">
-    <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
+    <small>Source primitive entries: 0. Related BOM: C4_render_pebbledash</small></div></article><article data-search="C5_shopfront_assembly Stallriser, pilasters, fascia band, transom, the four parts that make a British shopfront read as one requires close-up review" data-priority="0">
+    <img src="previews/target-a01_pub_fascia_body.png" alt="original authored target detail / not finished asset" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>C5_shopfront_assembly</h2>
-    <h3>Stallriser, pilasters, fascia band, transom, the four parts that make a British shopfront read as one</h3><strong class="revise">REVISE</strong>
-    <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
+    <h3>Stallriser, pilasters, fascia band, transom, the four parts that make a British shopfront read as one</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
+    <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> original authored target detail / not finished asset</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 36. Related BOM: C5_shopfront_assembly</small></div></article><article data-search="C6_fascia_lettering Shop name lettering on the fascia band revise" data-priority="0">
-    <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
+    <small>Source primitive entries: 36. Related BOM: C5_shopfront_assembly</small></div></article><article data-search="C6_fascia_lettering Shop name lettering on the fascia band revise for aspect and separation" data-priority="0">
+    <img src="previews/target-a01_mickeys_fascia_plate.png" alt="original authored target detail / not finished asset" loading="lazy"><div>
     <small>P0 / existing BOM / unique lettering</small><h2>C6_fascia_lettering</h2>
-    <h3>Shop name lettering on the fascia band</h3><strong class="revise">REVISE</strong>
-    <p>Retained facade view does not show convincing readable Mickey&#x27;s lettering. Existing fascia ID retained; make a bespoke authored sign from the approved elevation.</p><p><b>Picture:</b> retained game frame, assembly context</p>
+    <h3>Shop name lettering on the fascia band</h3><p><b>Availability:</b> existing generated PNG inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f</p><p><b>Suitability:</b> revise for aspect and separation</p><p><b>Integration:</b> unverified for this design</p>
+    <p>MICKEY’S is legible, but 2:1 composition includes lamps, moulding and white surroundings. Current fascia is 6×0.55m: do not stretch this image across it.</p><p><b>Picture:</b> original authored target detail / not finished asset</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 4. Related BOM: C6_fascia_lettering</small></div></article><article data-search="C7_shop_glazing Shop window glass and its reflection response revise" data-priority="0">
+    <small>Source primitive entries: 4. Related BOM: C6_fascia_lettering</small></div></article><article data-search="C7_shop_glazing Shop window glass and its reflection response requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>C7_shop_glazing</h2>
-    <h3>Shop window glass and its reflection response</h3><strong class="revise">REVISE</strong>
+    <h3>Shop window glass and its reflection response</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 12. Related BOM: C7_shop_glazing</small></div></article><article data-search="C8_door_shop Shop door, glazed upper half revise" data-priority="0">
+    <small>Source primitive entries: 12. Related BOM: C7_shop_glazing</small></div></article><article data-search="C8_door_shop Shop door, glazed upper half requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>C8_door_shop</h2>
-    <h3>Shop door, glazed upper half</h3><strong class="revise">REVISE</strong>
+    <h3>Shop door, glazed upper half</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 18. Related BOM: C8_door_shop</small></div></article><article data-search="C9_door_side Side door to the flat above, panelled, with a number and a letterplate revise" data-priority="0">
+    <small>Source primitive entries: 18. Related BOM: C8_door_shop</small></div></article><article data-search="C9_door_side Side door to the flat above, panelled, with a number and a letterplate requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>C9_door_side</h2>
-    <h3>Side door to the flat above, panelled, with a number and a letterplate</h3><strong class="revise">REVISE</strong>
+    <h3>Side door to the flat above, panelled, with a number and a letterplate</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 30. Related BOM: C9_door_side</small></div></article><article data-search="C10_roller_shutter Closed roller shutter over a shopfront, which is what a British parade looks like at night missing" data-priority="1">
+    <small>Source primitive entries: 30. Related BOM: C9_door_side</small></div></article><article data-search="C10_roller_shutter Closed roller shutter over a shopfront, which is what a British parade looks like at night unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>C10_roller_shutter</h2>
-    <h3>Closed roller shutter over a shopfront, which is what a British parade looks like at night</h3><strong class="missing">MISSING</strong>
+    <h3>Closed roller shutter over a shopfront, which is what a British parade looks like at night</h3><p><b>Availability:</b> source route FETCH; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: C10_roller_shutter</small></div></article><article data-search="C11_lit_interior_card What is visible through a lit window at night: a back-wall card with shelves, a bar, a stair revise" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: C10_roller_shutter</small></div></article><article data-search="C11_lit_interior_card What is visible through a lit window at night: a back-wall card with shelves, a bar, a stair requires close-up review" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>C11_lit_interior_card</h2>
-    <h3>What is visible through a lit window at night: a back-wall card with shelves, a bar, a stair</h3><strong class="revise">REVISE</strong>
+    <h3>What is visible through a lit window at night: a back-wall card with shelves, a bar, a stair</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Flat interior cards may suggest occupied neighbours. Replace the Mickey&#x27;s card with the authored room and actual openings. Do not retire cards for unrelated distant windows by implication.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 3. Related BOM: C11_lit_interior_card</small></div></article><article data-search="C12_net_curtain Net curtain or blind in the flat window missing" data-priority="1">
-    <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
+    <small>Source primitive entries: 3. Related BOM: C11_lit_interior_card</small></div></article><article data-search="C12_net_curtain Net curtain or blind in the flat window unverified" data-priority="1">
+    <img src="previews/target-a01_pub_net.png" alt="original authored target detail / not finished asset" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>C12_net_curtain</h2>
-    <h3>Net curtain or blind in the flat window</h3><strong class="missing">MISSING</strong>
-    <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
+    <h3>Net curtain or blind in the flat window</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
+    <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> original authored target detail / not finished asset</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: C12_net_curtain</small></div></article><article data-search="C13_sills_lintels Sills, lintels, thresholds, air bricks: the small reveals that stop a wall reading as a plane revise" data-priority="0">
+    <small>Source primitive entries: 0. Related BOM: C12_net_curtain</small></div></article><article data-search="C13_sills_lintels Sills, lintels, thresholds, air bricks: the small reveals that stop a wall reading as a plane requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>C13_sills_lintels</h2>
-    <h3>Sills, lintels, thresholds, air bricks: the small reveals that stop a wall reading as a plane</h3><strong class="revise">REVISE</strong>
+    <h3>Sills, lintels, thresholds, air bricks: the small reveals that stop a wall reading as a plane</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 72. Related BOM: C13_sills_lintels</small></div></article><article data-search="C14_wall_grime_overlays Salt bloom and soot overlays for the wall surfaces missing" data-priority="1">
+    <small>Source primitive entries: 72. Related BOM: C13_sills_lintels</small></div></article><article data-search="C14_wall_grime_overlays Salt bloom and soot overlays for the wall surfaces unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>C14_wall_grime_overlays</h2>
-    <h3>Salt bloom and soot overlays for the wall surfaces</h3><strong class="missing">MISSING</strong>
+    <h3>Salt bloom and soot overlays for the wall surfaces</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: C14_wall_grime_overlays</small></div></article><article data-search="D1_roof_slate Roof covering, Welsh slate dark grey to black per art-direction revise" data-priority="0">
+    <small>Source primitive entries: 0. Related BOM: C14_wall_grime_overlays</small></div></article><article data-search="D1_roof_slate Roof covering, Welsh slate dark grey to black per art-direction requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>D1_roof_slate</h2>
-    <h3>Roof covering, Welsh slate dark grey to black per art-direction</h3><strong class="revise">REVISE</strong>
+    <h3>Roof covering, Welsh slate dark grey to black per art-direction</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: D1_roof_slate</small></div></article><article data-search="D2_chimney_stack Brick chimney stack rising from the party wall revise" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: D1_roof_slate</small></div></article><article data-search="D2_chimney_stack Brick chimney stack rising from the party wall requires close-up review" data-priority="1">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>D2_chimney_stack</h2>
-    <h3>Brick chimney stack rising from the party wall</h3><strong class="revise">REVISE</strong>
+    <h3>Brick chimney stack rising from the party wall</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 5. Related BOM: D2_chimney_stack</small></div></article><article data-search="D3_chimney_pots Chimney pots on the stack revise" data-priority="1">
+    <small>Source primitive entries: 5. Related BOM: D2_chimney_stack</small></div></article><article data-search="D3_chimney_pots Chimney pots on the stack requires close-up review" data-priority="1">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>D3_chimney_pots</h2>
-    <h3>Chimney pots on the stack</h3><strong class="revise">REVISE</strong>
+    <h3>Chimney pots on the stack</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 5. Related BOM: D3_chimney_pots</small></div></article><article data-search="D4_tv_aerial Television aerial on the stack, the skyline marker of the era revise" data-priority="1">
+    <small>Source primitive entries: 5. Related BOM: D3_chimney_pots</small></div></article><article data-search="D4_tv_aerial Television aerial on the stack, the skyline marker of the era requires close-up review" data-priority="1">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>D4_tv_aerial</h2>
-    <h3>Television aerial on the stack, the skyline marker of the era</h3><strong class="revise">REVISE</strong>
+    <h3>Television aerial on the stack, the skyline marker of the era</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 24. Related BOM: D4_tv_aerial</small></div></article><article data-search="D5_downpipe Rainwater downpipe with hopper and shoe, the British vertical revise" data-priority="0">
+    <small>Source primitive entries: 24. Related BOM: D4_tv_aerial</small></div></article><article data-search="D5_downpipe Rainwater downpipe with hopper and shoe, the British vertical requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>D5_downpipe</h2>
-    <h3>Rainwater downpipe with hopper and shoe, the British vertical</h3><strong class="revise">REVISE</strong>
+    <h3>Rainwater downpipe with hopper and shoe, the British vertical</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 27. Related BOM: D5_downpipe</small></div></article><article data-search="D6_gutter_run Eaves gutter and fascia board revise" data-priority="0">
+    <small>Source primitive entries: 27. Related BOM: D5_downpipe</small></div></article><article data-search="D6_gutter_run Eaves gutter and fascia board requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>D6_gutter_run</h2>
-    <h3>Eaves gutter and fascia board</h3><strong class="revise">REVISE</strong>
+    <h3>Eaves gutter and fascia board</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 2. Related BOM: D6_gutter_run</small></div></article><article data-search="D7_parapet_coping Parapet and coping where the frontage is flat-topped revise" data-priority="1">
+    <small>Source primitive entries: 2. Related BOM: D6_gutter_run</small></div></article><article data-search="D7_parapet_coping Parapet and coping where the frontage is flat-topped requires close-up review" data-priority="1">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>D7_parapet_coping</h2>
-    <h3>Parapet and coping where the frontage is flat-topped</h3><strong class="revise">REVISE</strong>
+    <h3>Parapet and coping where the frontage is flat-topped</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 4. Related BOM: D7_parapet_coping</small></div></article><article data-search="D8_upper_windows Sash windows to the flat above, with reveal depth revise" data-priority="0">
+    <small>Source primitive entries: 4. Related BOM: D7_parapet_coping</small></div></article><article data-search="D8_upper_windows Sash windows to the flat above, with reveal depth requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>D8_upper_windows</h2>
-    <h3>Sash windows to the flat above, with reveal depth</h3><strong class="revise">REVISE</strong>
+    <h3>Sash windows to the flat above, with reveal depth</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 36. Related BOM: D8_upper_windows</small></div></article><article data-search="E1_lighting_column Street lighting column, swan neck, at a height that lights a carriageway revise" data-priority="1">
-    <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
+    <small>Source primitive entries: 36. Related BOM: D8_upper_windows</small></div></article><article data-search="E1_lighting_column Street lighting column, swan neck, at a height that lights a carriageway unsuitable for named use" data-priority="1">
+    <img src="previews/mesh-lamp_post_01.png" alt="actual source triangle projection, not Blender or Unreal render" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E1_lighting_column</h2>
-    <h3>Street lighting column, swan neck, at a height that lights a carriageway</h3><strong class="revise">REVISE</strong>
-    <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
+    <h3>Street lighting column, swan neck, at a height that lights a carriageway</h3><p><b>Availability:</b> file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f</p><p><b>Suitability:</b> unsuitable for named use</p><p><b>Integration:</b> unverified for this design</p>
+    <p>3.002m ornamental lantern. Does not supply the chosen simple Hook road column; reserve potential promenade reuse for later review.</p><p><b>Picture:</b> actual source triangle projection, not Blender or Unreal render</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 20. Related BOM: E1_lighting_column</small></div></article><article data-search="E2_sodium_lantern_head The lantern itself, the bowl on the swan neck, with an emissive surface revise" data-priority="1">
+    <small>Source primitive entries: 20. Related BOM: E1_lighting_column</small></div></article><article data-search="E2_sodium_lantern_head The lantern itself, the bowl on the swan neck, with an emissive surface requires close-up review" data-priority="1">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E2_sodium_lantern_head</h2>
-    <h3>The lantern itself, the bowl on the swan neck, with an emissive surface</h3><strong class="revise">REVISE</strong>
+    <h3>The lantern itself, the bowl on the swan neck, with an emissive surface</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 4. Related BOM: E2_sodium_lantern_head</small></div></article><article data-search="E3_telephone_kiosk Red telephone kiosk revise" data-priority="1">
+    <small>Source primitive entries: 4. Related BOM: E2_sodium_lantern_head</small></div></article><article data-search="E3_telephone_kiosk Red telephone kiosk requires close-up review" data-priority="1">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E3_telephone_kiosk</h2>
-    <h3>Red telephone kiosk</h3><strong class="revise">REVISE</strong>
+    <h3>Red telephone kiosk</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 11. Related BOM: E3_telephone_kiosk</small></div></article><article data-search="E4_pillar_box Red pillar box revise" data-priority="1">
+    <small>Source primitive entries: 11. Related BOM: E3_telephone_kiosk</small></div></article><article data-search="E4_pillar_box Red pillar box requires close-up review" data-priority="1">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E4_pillar_box</h2>
-    <h3>Red pillar box</h3><strong class="revise">REVISE</strong>
+    <h3>Red pillar box</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 4. Related BOM: E4_pillar_box</small></div></article><article data-search="E5_bollards Pavement bollards revise" data-priority="1">
+    <small>Source primitive entries: 4. Related BOM: E4_pillar_box</small></div></article><article data-search="E5_bollards Pavement bollards requires close-up review" data-priority="1">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E5_bollards</h2>
-    <h3>Pavement bollards</h3><strong class="revise">REVISE</strong>
+    <h3>Pavement bollards</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
     <small>Source primitive entries: 2. Related BOM: E5_bollards</small></div></article><article data-search="E6_public_bins Public litter bins revise" data-priority="1">
-    <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
+    <img src="previews/mesh-outdoor_bin.png" alt="actual source triangle projection, not Blender or Unreal render" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E6_public_bins</h2>
-    <h3>Public litter bins</h3><strong class="revise">REVISE</strong>
-    <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
+    <h3>Public litter bins</h3><p><b>Availability:</b> file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f</p><p><b>Suitability:</b> revise</p><p><b>Integration:</b> unverified for this design</p>
+    <p>0.600m square hooded public bin. Decorative form is possible at Gullwing; do not scatter it across utilitarian Hook.</p><p><b>Picture:</b> actual source triangle projection, not Blender or Unreal render</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 2. Related BOM: E6_public_bins</small></div></article><article data-search="E7_benches Benches missing" data-priority="1">
+    <small>Source primitive entries: 2. Related BOM: E6_public_bins</small></div></article><article data-search="E7_benches Benches unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E7_benches</h2>
-    <h3>Benches</h3><strong class="missing">MISSING</strong>
+    <h3>Benches</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: E7_benches</small></div></article><article data-search="E8_guard_railing Pedestrian guard railing at the kerb revise" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: E7_benches</small></div></article><article data-search="E8_guard_railing Pedestrian guard railing at the kerb requires close-up review" data-priority="1">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E8_guard_railing</h2>
-    <h3>Pedestrian guard railing at the kerb</h3><strong class="revise">REVISE</strong>
+    <h3>Pedestrian guard railing at the kerb</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 25. Related BOM: E8_guard_railing</small></div></article><article data-search="E9_tree_pit_railing Victorian tree pit guard missing" data-priority="1">
+    <small>Source primitive entries: 25. Related BOM: E8_guard_railing</small></div></article><article data-search="E9_tree_pit_railing Victorian tree pit guard unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E9_tree_pit_railing</h2>
-    <h3>Victorian tree pit guard</h3><strong class="missing">MISSING</strong>
+    <h3>Victorian tree pit guard</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: E9_tree_pit_railing</small></div></article><article data-search="E10_street_name_plate Street name plate on the wall or on a post, carrying a canon street name missing" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: E9_tree_pit_railing</small></div></article><article data-search="E10_street_name_plate Street name plate on the wall or on a post, carrying a canon street name unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E10_street_name_plate</h2>
-    <h3>Street name plate on the wall or on a post, carrying a canon street name</h3><strong class="missing">MISSING</strong>
+    <h3>Street name plate on the wall or on a post, carrying a canon street name</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: E10_street_name_plate</small></div></article><article data-search="E11_cones_barrier Traffic cones and a crowd barrier missing" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: E10_street_name_plate</small></div></article><article data-search="E11_cones_barrier Traffic cones and a crowd barrier unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E11_cones_barrier</h2>
-    <h3>Traffic cones and a crowd barrier</h3><strong class="missing">MISSING</strong>
+    <h3>Traffic cones and a crowd barrier</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 3. Related BOM: E11_cones_barrier</small></div></article><article data-search="E12_a_board_posters Pavement A-board and wall-mounted poster frames missing" data-priority="1">
-    <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
+    <small>Source primitive entries: 3. Related BOM: E11_cones_barrier</small></div></article><article data-search="E12_a_board_posters Pavement A-board and wall-mounted poster frames usable for pilot" data-priority="1">
+    <img src="previews/mesh-framed_poster.png" alt="actual source triangle projection, not Blender or Unreal render" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E12_a_board_posters</h2>
-    <h3>Pavement A-board and wall-mounted poster frames</h3><strong class="missing">MISSING</strong>
-    <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
+    <h3>Pavement A-board and wall-mounted poster frames</h3><p><b>Availability:</b> file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f</p><p><b>Suitability:</b> usable for pilot</p><p><b>Integration:</b> unverified for this design</p>
+    <p>Plain 0.506×0.801m frame. Reuse for pub notice case; paper is separate. A-board also inspected: 0.681×0.904m, not selected for narrow door frontage.</p><p><b>Picture:</b> actual source triangle projection, not Blender or Unreal render</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 3. Related BOM: E12_a_board_posters</small></div></article><article data-search="E13_household_dustbin Galvanised metal household dustbin, the pre-wheelie British bin missing" data-priority="1">
-    <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
+    <small>Source primitive entries: 3. Related BOM: E12_a_board_posters</small></div></article><article data-search="E13_household_dustbin Galvanised metal household dustbin, the pre-wheelie British bin unverified" data-priority="1">
+    <img src="previews/target-a01_pub_metal_bin.png" alt="original authored target detail / not finished asset" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E13_household_dustbin</h2>
-    <h3>Galvanised metal household dustbin, the pre-wheelie British bin</h3><strong class="missing">MISSING</strong>
-    <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
+    <h3>Galvanised metal household dustbin, the pre-wheelie British bin</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
+    <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> original authored target detail / not finished asset</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 4. Related BOM: E13_household_dustbin</small></div></article><article data-search="E14_dock_clutter Crates, pallets, barrels and a builder&#x27;s skip missing" data-priority="1">
-    <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
+    <small>Source primitive entries: 4. Related BOM: E13_household_dustbin</small></div></article><article data-search="E14_dock_clutter Crates, pallets, barrels and a builder&#x27;s skip usable for space study" data-priority="1">
+    <img src="previews/mesh-pallet.png" alt="actual source triangle projection, not Blender or Unreal render" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E14_dock_clutter</h2>
-    <h3>Crates, pallets, barrels and a builder&#x27;s skip</h3><strong class="missing">MISSING</strong>
-    <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
+    <h3>Crates, pallets, barrels and a builder&#x27;s skip</h3><p><b>Availability:</b> file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f</p><p><b>Suitability:</b> usable for space study</p><p><b>Integration:</b> unverified for this design</p>
+    <p>1.200m square pallet inspected. Fits a goods yard, not the narrow pub aisle. No blanket clutter placement.</p><p><b>Picture:</b> actual source triangle projection, not Blender or Unreal render</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 5. Related BOM: E14_dock_clutter</small></div></article><article data-search="E15_belisha_beacon Belisha beacon at a crossing, black and white pole with a yellow globe missing" data-priority="1">
+    <small>Source primitive entries: 5. Related BOM: E14_dock_clutter</small></div></article><article data-search="E15_belisha_beacon Belisha beacon at a crossing, black and white pole with a yellow globe unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E15_belisha_beacon</h2>
-    <h3>Belisha beacon at a crossing, black and white pole with a yellow globe</h3><strong class="missing">MISSING</strong>
+    <h3>Belisha beacon at a crossing, black and white pole with a yellow globe</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: E15_belisha_beacon</small></div></article><article data-search="E16_parking_meter Parking meter missing" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: E15_belisha_beacon</small></div></article><article data-search="E16_parking_meter Parking meter unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E16_parking_meter</h2>
-    <h3>Parking meter</h3><strong class="missing">MISSING</strong>
+    <h3>Parking meter</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: E16_parking_meter</small></div></article><article data-search="E17_bus_shelter Bus shelter missing" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: E16_parking_meter</small></div></article><article data-search="E17_bus_shelter Bus shelter unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E17_bus_shelter</h2>
-    <h3>Bus shelter</h3><strong class="missing">MISSING</strong>
+    <h3>Bus shelter</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: E17_bus_shelter</small></div></article><article data-search="E18_shop_awnings Retractable shop awning over a frontage missing" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: E17_bus_shelter</small></div></article><article data-search="E18_shop_awnings Retractable shop awning over a frontage unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E18_shop_awnings</h2>
-    <h3>Retractable shop awning over a frontage</h3><strong class="missing">MISSING</strong>
+    <h3>Retractable shop awning over a frontage</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 2. Related BOM: E18_shop_awnings</small></div></article><article data-search="E19_finger_post_sign Direction finger post missing" data-priority="1">
+    <small>Source primitive entries: 2. Related BOM: E18_shop_awnings</small></div></article><article data-search="E19_finger_post_sign Direction finger post unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>E19_finger_post_sign</h2>
-    <h3>Direction finger post</h3><strong class="missing">MISSING</strong>
+    <h3>Direction finger post</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: E19_finger_post_sign</small></div></article><article data-search="F1_character_body One clothed character body, which D1b names as mandatory scene content missing" data-priority="2">
+    <small>Source primitive entries: 0. Related BOM: E19_finger_post_sign</small></div></article><article data-search="F1_character_body One clothed character body, which D1b names as mandatory scene content unverified" data-priority="2">
     <img src="concepts/copper.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P2 / existing BOM / reusable family</small><h2>F1_character_body</h2>
-    <h3>One clothed character body, which D1b names as mandatory scene content</h3><strong class="missing">MISSING</strong>
+    <h3>One clothed character body, which D1b names as mandatory scene content</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: F1_character_body</small></div></article><article data-search="F2_period_wardrobe Clothing that reads as 1988 to 1992 Britain rather than contemporary casual missing" data-priority="2">
+    <small>Source primitive entries: 0. Related BOM: F1_character_body</small></div></article><article data-search="F2_period_wardrobe Clothing that reads as 1988 to 1992 Britain rather than contemporary casual unverified" data-priority="2">
     <img src="concepts/copper.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P2 / existing BOM / reusable family</small><h2>F2_period_wardrobe</h2>
-    <h3>Clothing that reads as 1988 to 1992 Britain rather than contemporary casual</h3><strong class="missing">MISSING</strong>
+    <h3>Clothing that reads as 1988 to 1992 Britain rather than contemporary casual</h3><p><b>Availability:</b> source route BLOCKED; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: F2_period_wardrobe</small></div></article><article data-search="F3_idle_animation One idle or standing animation so the body is not a T-pose in the still missing" data-priority="2">
+    <small>Source primitive entries: 0. Related BOM: F2_period_wardrobe</small></div></article><article data-search="F3_idle_animation One idle or standing animation so the body is not a T-pose in the still unverified" data-priority="2">
     <img src="concepts/copper.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P2 / existing BOM / reusable family</small><h2>F3_idle_animation</h2>
-    <h3>One idle or standing animation so the body is not a T-pose in the still</h3><strong class="missing">MISSING</strong>
+    <h3>One idle or standing animation so the body is not a T-pose in the still</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: F3_idle_animation</small></div></article><article data-search="F4_parked_vehicle One parked period British car, boxy hatchback or estate missing" data-priority="2">
+    <small>Source primitive entries: 0. Related BOM: F3_idle_animation</small></div></article><article data-search="F4_parked_vehicle One parked period British car, boxy hatchback or estate unverified" data-priority="2">
     <img src="concepts/copper.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P2 / existing BOM / reusable family</small><h2>F4_parked_vehicle</h2>
-    <h3>One parked period British car, boxy hatchback or estate</h3><strong class="missing">MISSING</strong>
+    <h3>One parked period British car, boxy hatchback or estate</h3><p><b>Availability:</b> source route FETCH; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> Door lock/open, glass opacity/breakage, sign legibility or light state where applicable; current art grants no interaction.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: F4_parked_vehicle</small></div></article><article data-search="G1_leak_stains Water and leak staining below hoppers, sills and gutters revise" data-priority="2">
+    <small>Source primitive entries: 0. Related BOM: F4_parked_vehicle</small></div></article><article data-search="G1_leak_stains Water and leak staining below hoppers, sills and gutters requires close-up review" data-priority="2">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P2 / existing BOM / reusable family</small><h2>G1_leak_stains</h2>
-    <h3>Water and leak staining below hoppers, sills and gutters</h3><strong class="revise">REVISE</strong>
+    <h3>Water and leak staining below hoppers, sills and gutters</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 3. Related BOM: G1_leak_stains</small></div></article><article data-search="G2_asphalt_damage Potholes, patches and road scars missing" data-priority="2">
+    <small>Source primitive entries: 3. Related BOM: G1_leak_stains</small></div></article><article data-search="G2_asphalt_damage Potholes, patches and road scars unverified" data-priority="2">
     <img src="concepts/ironside.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P2 / existing BOM / reusable family</small><h2>G2_asphalt_damage</h2>
-    <h3>Potholes, patches and road scars</h3><strong class="missing">MISSING</strong>
+    <h3>Potholes, patches and road scars</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 2. Related BOM: G2_asphalt_damage</small></div></article><article data-search="G3_imperfection_masks Dirt, wear and scratch masks for breaking up flat surfaces missing" data-priority="2">
+    <small>Source primitive entries: 2. Related BOM: G2_asphalt_damage</small></div></article><article data-search="G3_imperfection_masks Dirt, wear and scratch masks for breaking up flat surfaces unverified" data-priority="2">
     <img src="concepts/ironside.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P2 / existing BOM / reusable family</small><h2>G3_imperfection_masks</h2>
-    <h3>Dirt, wear and scratch masks for breaking up flat surfaces</h3><strong class="missing">MISSING</strong>
+    <h3>Dirt, wear and scratch masks for breaking up flat surfaces</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: G3_imperfection_masks</small></div></article><article data-search="G4_moss_damp Damp growth at wall feet and in joints missing" data-priority="2">
+    <small>Source primitive entries: 0. Related BOM: G3_imperfection_masks</small></div></article><article data-search="G4_moss_damp Damp growth at wall feet and in joints unverified" data-priority="2">
     <img src="concepts/ironside.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P2 / existing BOM / reusable family</small><h2>G4_moss_damp</h2>
-    <h3>Damp growth at wall feet and in joints</h3><strong class="missing">MISSING</strong>
+    <h3>Damp growth at wall feet and in joints</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 2. Related BOM: G4_moss_damp</small></div></article><article data-search="G5_stickers Stickers and torn paper remains on posts and boxes missing" data-priority="2">
+    <small>Source primitive entries: 2. Related BOM: G4_moss_damp</small></div></article><article data-search="G5_stickers Stickers and torn paper remains on posts and boxes unverified" data-priority="2">
     <img src="concepts/ironside.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P2 / existing BOM / reusable family</small><h2>G5_stickers</h2>
-    <h3>Stickers and torn paper remains on posts and boxes</h3><strong class="missing">MISSING</strong>
+    <h3>Stickers and torn paper remains on posts and boxes</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 1. Related BOM: G5_stickers</small></div></article><article data-search="G6_fly_posters Fly-posted gig bills and public notices, period-fictional missing" data-priority="2">
+    <small>Source primitive entries: 1. Related BOM: G5_stickers</small></div></article><article data-search="G6_fly_posters Fly-posted gig bills and public notices, period-fictional unverified" data-priority="2">
     <img src="concepts/ironside.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P2 / existing BOM / reusable family</small><h2>G6_fly_posters</h2>
-    <h3>Fly-posted gig bills and public notices, period-fictional</h3><strong class="missing">MISSING</strong>
+    <h3>Fly-posted gig bills and public notices, period-fictional</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 3. Related BOM: G6_fly_posters</small></div></article><article data-search="G7_graffiti_tags Marker and chrome tags of the period, naming in-world crews missing" data-priority="2">
+    <small>Source primitive entries: 3. Related BOM: G6_fly_posters</small></div></article><article data-search="G7_graffiti_tags Marker and chrome tags of the period, naming in-world crews unverified" data-priority="2">
     <img src="concepts/ironside.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P2 / existing BOM / reusable family</small><h2>G7_graffiti_tags</h2>
-    <h3>Marker and chrome tags of the period, naming in-world crews</h3><strong class="missing">MISSING</strong>
+    <h3>Marker and chrome tags of the period, naming in-world crews</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: G7_graffiti_tags</small></div></article><article data-search="G8_litter Chip papers, cans, cigarette ends in the gutter and against the wall feet revise" data-priority="2">
+    <small>Source primitive entries: 0. Related BOM: G7_graffiti_tags</small></div></article><article data-search="G8_litter Chip papers, cans, cigarette ends in the gutter and against the wall feet requires close-up review" data-priority="2">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P2 / existing BOM / reusable family</small><h2>G8_litter</h2>
-    <h3>Chip papers, cans, cigarette ends in the gutter and against the wall feet</h3><strong class="revise">REVISE</strong>
+    <h3>Chip papers, cans, cigarette ends in the gutter and against the wall feet</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 34. Related BOM: G8_litter</small></div></article><article data-search="G9_chewing_gum Trodden gum spots on the pavement missing" data-priority="2">
+    <small>Source primitive entries: 34. Related BOM: G8_litter</small></div></article><article data-search="G9_chewing_gum Trodden gum spots on the pavement unverified" data-priority="2">
     <img src="concepts/ironside.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P2 / existing BOM / reusable family</small><h2>G9_chewing_gum</h2>
-    <h3>Trodden gum spots on the pavement</h3><strong class="missing">MISSING</strong>
+    <h3>Trodden gum spots on the pavement</h3><p><b>Availability:</b> source route GENERATE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 60. Related BOM: G9_chewing_gum</small></div></article><article data-search="H1_sky_overcast_day Overcast daylight environment, which art-direction R-B2 makes the DEFAULT frame rather than a side case revise" data-priority="0">
+    <small>Source primitive entries: 60. Related BOM: G9_chewing_gum</small></div></article><article data-search="H1_sky_overcast_day Overcast daylight environment, which art-direction R-B2 makes the DEFAULT frame rather than a side case requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / reusable family</small><h2>H1_sky_overcast_day</h2>
-    <h3>Overcast daylight environment, which art-direction R-B2 makes the DEFAULT frame rather than a side case</h3><strong class="revise">REVISE</strong>
+    <h3>Overcast daylight environment, which art-direction R-B2 makes the DEFAULT frame rather than a side case</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: H1_sky_overcast_day</small></div></article><article data-search="H2_sky_night Overcast night environment with distant urban glow missing" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: H1_sky_overcast_day</small></div></article><article data-search="H2_sky_night Overcast night environment with distant urban glow unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / reusable family</small><h2>H2_sky_night</h2>
-    <h3>Overcast night environment with distant urban glow</h3><strong class="missing">MISSING</strong>
+    <h3>Overcast night environment with distant urban glow</h3><p><b>Availability:</b> recorded HAVE in studio BOM; individual file uninspected</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: H2_sky_night</small></div></article><article data-search="H3_sun_moon The directional light and its elevation, capped at 59 degrees at noon by latitude missing" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: H2_sky_night</small></div></article><article data-search="H3_sun_moon The directional light and its elevation, capped at 59 degrees at noon by latitude unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / engine feature</small><h2>H3_sun_moon</h2>
-    <h3>The directional light and its elevation, capped at 59 degrees at noon by latitude</h3><strong class="missing">MISSING</strong>
+    <h3>The directional light and its elevation, capped at 59 degrees at noon by latitude</h3><p><b>Availability:</b> source route ENGINE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: H3_sun_moon</small></div></article><article data-search="H4_sodium_practicals The practical lights themselves at night: the sodium lamp emitters revise" data-priority="0">
+    <small>Source primitive entries: 0. Related BOM: H3_sun_moon</small></div></article><article data-search="H4_sodium_practicals The practical lights themselves at night: the sodium lamp emitters requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / engine feature</small><h2>H4_sodium_practicals</h2>
-    <h3>The practical lights themselves at night: the sodium lamp emitters</h3><strong class="revise">REVISE</strong>
+    <h3>The practical lights themselves at night: the sodium lamp emitters</h3><p><b>Availability:</b> source route ENGINE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained night image has very limited legibility. Rejudge entrance, faces and ground at player height. Art has changed no lights or material code.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: H4_sodium_practicals</small></div></article><article data-search="H5_window_practicals Light spilling from lit shopfronts and flats onto the wet pavement revise" data-priority="0">
+    <small>Source primitive entries: 0. Related BOM: H4_sodium_practicals</small></div></article><article data-search="H5_window_practicals Light spilling from lit shopfronts and flats onto the wet pavement requires close-up review" data-priority="0">
     <img src="references/source-street-day.png" alt="retained game frame, assembly context" loading="lazy"><div>
     <small>P0 / existing BOM / engine feature</small><h2>H5_window_practicals</h2>
-    <h3>Light spilling from lit shopfronts and flats onto the wet pavement</h3><strong class="revise">REVISE</strong>
+    <h3>Light spilling from lit shopfronts and flats onto the wet pavement</h3><p><b>Availability:</b> source route ENGINE; usable file not established</p><p><b>Suitability:</b> requires close-up review</p><p><b>Integration:</b> unverified for this design</p>
     <p>Retained day and night frames show the source street assembly, but flat or repetitive surface response and limited detail do not meet this concept target. Revise and judge a close-up; no individual shader fault inferred.</p><p><b>Picture:</b> retained game frame, assembly context</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: H5_window_practicals</small></div></article><article data-search="H6_wet_surface_response The wet BRDF: darkened albedo, lowered roughness, reflection of everything above the ground missing" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: H5_window_practicals</small></div></article><article data-search="H6_wet_surface_response The wet BRDF: darkened albedo, lowered roughness, reflection of everything above the ground unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / engine feature</small><h2>H6_wet_surface_response</h2>
-    <h3>The wet BRDF: darkened albedo, lowered roughness, reflection of everything above the ground</h3><strong class="missing">MISSING</strong>
+    <h3>The wet BRDF: darkened albedo, lowered roughness, reflection of everything above the ground</h3><p><b>Availability:</b> source route ENGINE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: H6_wet_surface_response</small></div></article><article data-search="H7_fog_haze Atmospheric depth: haze that separates the near frontage from the far end of the street missing" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: H6_wet_surface_response</small></div></article><article data-search="H7_fog_haze Atmospheric depth: haze that separates the near frontage from the far end of the street unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / engine feature</small><h2>H7_fog_haze</h2>
-    <h3>Atmospheric depth: haze that separates the near frontage from the far end of the street</h3><strong class="missing">MISSING</strong>
+    <h3>Atmospheric depth: haze that separates the near frontage from the far end of the street</h3><p><b>Availability:</b> source route ENGINE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: H7_fog_haze</small></div></article><article data-search="H8_rain_streaks Falling rain, as particles or as a screen effect missing" data-priority="1">
+    <small>Source primitive entries: 0. Related BOM: H7_fog_haze</small></div></article><article data-search="H8_rain_streaks Falling rain, as particles or as a screen effect unverified" data-priority="1">
     <img src="concepts/hook.png" alt="AI concept target, not existing asset evidence" loading="lazy"><div>
     <small>P1 / existing BOM / engine feature</small><h2>H8_rain_streaks</h2>
-    <h3>Falling rain, as particles or as a screen effect</h3><strong class="missing">MISSING</strong>
+    <h3>Falling rain, as particles or as a screen effect</h3><p><b>Availability:</b> source route ENGINE; usable file not established</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>No close enough judged exemplar in the retained street frames. BOM route/HELD is inventory evidence only; this is a missing visual verification, not proof bytes are absent.</p><p><b>Picture:</b> AI concept target, not existing asset evidence</p>
     <p><b>Placements:</b> Existing placements remain owned by source scene. No placement added here.</p><p><b>Variant:</b> Keep Hook brick/maroon; alter age, repair and finish deliberately for other districts. No random dressing.</p>
     <p><b>State:</b> No automatic binding. Weather, visibility and damage need a separate authored state policy.</p><p><b>Engine:</b> Not verified for atlas-01. Retained source frames are earlier evidence only.</p>
-    <small>Source primitive entries: 0. Related BOM: H8_rain_streaks</small></div></article><article data-search="A01_PUB_SHELL Hollow Mickey&#x27;s shell missing" data-priority="0">
+    <small>Source primitive entries: 0. Related BOM: H8_rain_streaks</small></div></article><article data-search="A01_PUB_SHELL Hollow Mickey&#x27;s shell unverified" data-priority="0">
     <img src="previews/mickeys-elevations.png" alt="authored plan" loading="lazy"><div>
     <small>P0 / PROPOSED NEW, commission-local / unique assembly</small><h2>A01_PUB_SHELL</h2>
-    <h3>Hollow Mickey&#x27;s shell</h3><strong class="missing">MISSING</strong>
+    <h3>Hollow Mickey&#x27;s shell</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> authored plan</p>
     <p><b>Placements:</b> One 6 x 8m bay; front, rear and party walls.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Retain east_parade_bay0 anchor; replace solid source carcass.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_PUB_FLOOR Ground and upper floors with stair opening missing" data-priority="0">
+    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_PUB_FLOOR Ground and upper floors with stair opening unverified" data-priority="0">
     <img src="previews/mickeys-upper.png" alt="authored plan" loading="lazy"><div>
     <small>P0 / PROPOSED NEW, commission-local / unique assembly</small><h2>A01_PUB_FLOOR</h2>
-    <h3>Ground and upper floors with stair opening</h3><strong class="missing">MISSING</strong>
+    <h3>Ground and upper floors with stair opening</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> authored plan</p>
     <p><b>Placements:</b> 2 floors; 1 explicit stair void.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Collision, step and room bounds.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_PUB_STAIR Private timber stair and landing missing" data-priority="0">
+    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_PUB_STAIR Private timber stair and landing unverified" data-priority="0">
     <img src="previews/mickeys-ground.png" alt="authored plan" loading="lazy"><div>
     <small>P0 / PROPOSED NEW, commission-local / unique</small><h2>A01_PUB_STAIR</h2>
-    <h3>Private timber stair and landing</h3><strong class="missing">MISSING</strong>
+    <h3>Private timber stair and landing</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> authored plan</p>
     <p><b>Placements:</b> 19 risers, 18 x .24m goings, .80m clear width.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Walk and head clearance; separate household access.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C9_door_side</small></div></article><article data-search="A01_PUB_BAR Counter and back bar missing" data-priority="0">
-    <img src="previews/mickeys-ground.png" alt="authored plan" loading="lazy"><div>
+    <small>Source primitive entries: n/a. Related BOM: C9_door_side</small></div></article><article data-search="A01_PUB_BAR Counter and back bar unverified" data-priority="0">
+    <img src="previews/target-a01_pub_counter.png" alt="original authored target detail / not finished asset" loading="lazy"><div>
     <small>P0 / PROPOSED NEW, commission-local / unique assembly</small><h2>A01_PUB_BAR</h2>
-    <h3>Counter and back bar</h3><strong class="missing">MISSING</strong>
-    <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> authored plan</p>
+    <h3>Counter and back bar</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
+    <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> original authored target detail / not finished asset</p>
     <p><b>Placements:</b> 1 counter .60 x 4.20m; 1 back bar; 1.15m staff aisle.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Till/service ownership and hand reach.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C5_shopfront_assembly</small></div></article><article data-search="A01_PUB_SNUG Bench and low screen missing" data-priority="0">
-    <img src="previews/mickeys-ground.png" alt="authored plan" loading="lazy"><div>
+    <small>Source primitive entries: n/a. Related BOM: C5_shopfront_assembly</small></div></article><article data-search="A01_PUB_SNUG Bench and low screen unverified" data-priority="0">
+    <img src="previews/target-a01_pub_screen.png" alt="original authored target detail / not finished asset" loading="lazy"><div>
     <small>P0 / PROPOSED NEW, commission-local / unique assembly</small><h2>A01_PUB_SNUG</h2>
-    <h3>Bench and low screen</h3><strong class="missing">MISSING</strong>
-    <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> authored plan</p>
+    <h3>Bench and low screen</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
+    <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> original authored target detail / not finished asset</p>
     <p><b>Placements:</b> 1 snug bench 1.55m; 1 screen 1.45m high.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Seat poses; partial sightline and sound tests.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C11_lit_interior_card</small></div></article><article data-search="A01_PUB_FURNITURE Tables, window bench and chairs missing" data-priority="0">
-    <img src="previews/mickeys-ground.png" alt="authored plan" loading="lazy"><div>
+    <small>Source primitive entries: n/a. Related BOM: C11_lit_interior_card</small></div></article><article data-search="A01_PUB_FURNITURE Tables, window bench and chairs unverified" data-priority="0">
+    <img src="previews/target-a01_pub_table.png" alt="original authored target detail / not finished asset" loading="lazy"><div>
     <small>P0 / PROPOSED NEW, commission-local / reusable family</small><h2>A01_PUB_FURNITURE</h2>
-    <h3>Tables, window bench and chairs</h3><strong class="missing">MISSING</strong>
-    <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> authored plan</p>
+    <h3>Tables, window bench and chairs</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
+    <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> original authored target detail / not finished asset</p>
     <p><b>Placements:</b> 2 tables and 1 window bench authored. Chairs require a later count after pose clearance.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Seat IDs, obstruction and ownership.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C11_lit_interior_card</small></div></article><article data-search="A01_PUB_TILL Mechanical cash till and tab book missing" data-priority="0">
-    <img src="concepts/hook.png" alt="AI concept target" loading="lazy"><div>
+    <small>Source primitive entries: n/a. Related BOM: C11_lit_interior_card</small></div></article><article data-search="A01_PUB_TILL Mechanical cash till and tab book unverified" data-priority="0">
+    <img src="previews/target-a01_pub_till.png" alt="original authored target detail / not finished asset" loading="lazy"><div>
     <small>P0 / PROPOSED NEW, commission-local / unique prop pair</small><h2>A01_PUB_TILL</h2>
-    <h3>Mechanical cash till and tab book</h3><strong class="missing">MISSING</strong>
-    <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> AI concept target</p>
+    <h3>Mechanical cash till and tab book</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
+    <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> original authored target detail / not finished asset</p>
     <p><b>Placements:</b> 1 till on counter; 1 paper tab book proposed.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Cash authority, stealing and visible handling are Core integration.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C11_lit_interior_card</small></div></article><article data-search="A01_PUB_BEER Beer firkins, rack and delivery trolley missing" data-priority="0">
-    <img src="concepts/hook.png" alt="AI concept target" loading="lazy"><div>
+    <small>Source primitive entries: n/a. Related BOM: C11_lit_interior_card</small></div></article><article data-search="A01_PUB_BEER Beer firkins, rack and delivery trolley unsuitable for selected beer service" data-priority="0">
+    <img src="previews/target-a01_pub_beer_engine.png" alt="original authored target detail / not finished asset" loading="lazy"><div>
     <small>P0 / PROPOSED NEW, commission-local / reusable family</small><h2>A01_PUB_BEER</h2>
-    <h3>Beer firkins, rack and delivery trolley</h3><strong class="missing">MISSING</strong>
-    <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> AI concept target</p>
+    <h3>Beer firkins, rack and delivery trolley</h3><p><b>Availability:</b> file present; actual GLB projected and visually inspected at e5b33d1317e20d672e4f9e39c09e4db41d023e0f</p><p><b>Suitability:</b> unsuitable for selected beer service</p><p><b>Integration:</b> unverified for this design</p>
+    <p>0.601×0.815×0.617m wooden hooped barrel. Current study calls for smaller metal casks and stillage; do not treat this decorative shape as equipment verification.</p><p><b>Picture:</b> original authored target detail / not finished asset</p>
     <p><b>Placements:</b> 2 firkins and 1 rack in store, 1 hand trolley proposed; not instantiated by recipe.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Stock/delivery schedule; payload and door clearance.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: E14_dock_clutter</small></div></article><article data-search="A01_PUB_YARD Rear yard and WC extension missing" data-priority="0">
+    <small>Source primitive entries: n/a. Related BOM: E14_dock_clutter</small></div></article><article data-search="A01_PUB_YARD Rear yard and WC extension unverified" data-priority="0">
     <img src="previews/mickeys-yard.png" alt="authored plan" loading="lazy"><div>
     <small>P0 / PROPOSED NEW, commission-local / unique assembly</small><h2>A01_PUB_YARD</h2>
-    <h3>Rear yard and WC extension</h3><strong class="missing">MISSING</strong>
+    <h3>Rear yard and WC extension</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> authored plan</p>
     <p><b>Placements:</b> 6 x 6m yard; 2.2 x 2.6m WC; 2.4m rear lane.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Room/door portals; sight from upper windows.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: A0_ground_planes</small></div></article><article data-search="A01_PUB_GATE Rear gate and two rear doors missing" data-priority="0">
+    <small>Source primitive entries: n/a. Related BOM: A0_ground_planes</small></div></article><article data-search="A01_PUB_GATE Rear gate and two rear doors unverified" data-priority="0">
     <img src="previews/mickeys-elevations.png" alt="authored plan" loading="lazy"><div>
     <small>P0 / PROPOSED NEW, commission-local / variant family</small><h2>A01_PUB_GATE</h2>
-    <h3>Rear gate and two rear doors</h3><strong class="missing">MISSING</strong>
+    <h3>Rear gate and two rear doors</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> authored plan</p>
     <p><b>Placements:</b> 1 gate 1.2m; 1 public .9m and 1 staff .84m rear door.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Hinges, latches, locks and navigation.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C8_door_shop</small></div></article><article data-search="A01_PUB_UPPER Authored household furniture missing" data-priority="1">
+    <small>Source primitive entries: n/a. Related BOM: C8_door_shop</small></div></article><article data-search="A01_PUB_UPPER Authored household furniture unverified" data-priority="1">
     <img src="previews/mickeys-upper.png" alt="authored plan" loading="lazy"><div>
     <small>P1 / PROPOSED NEW, commission-local / unique arrangement / reusable pieces</small><h2>A01_PUB_UPPER</h2>
-    <h3>Authored household furniture</h3><strong class="missing">MISSING</strong>
+    <h3>Authored household furniture</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> authored plan</p>
     <p><b>Placements:</b> 1 bed, 1 desk, 1 kitchen counter, 1 bath proxy.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Tom&#x27;s privacy; bookkeeper visits are a proposal, no live schedule.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C11_lit_interior_card</small></div></article><article data-search="A01_PUB_NOTICES Mickey&#x27;s local paper notices missing" data-priority="1">
-    <img src="concepts/hook.png" alt="AI concept target" loading="lazy"><div>
+    <small>Source primitive entries: n/a. Related BOM: C11_lit_interior_card</small></div></article><article data-search="A01_PUB_NOTICES Mickey&#x27;s local paper notices revise for readable close-up text" data-priority="1">
+    <img src="previews/target-a01_pub_notice_paper.png" alt="original authored target detail / not finished asset" loading="lazy"><div>
     <small>P1 / PROPOSED NEW, commission-local / unique graphic family</small><h2>A01_PUB_NOTICES</h2>
-    <h3>Mickey&#x27;s local paper notices</h3><strong class="missing">MISSING</strong>
-    <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> AI concept target</p>
+    <h3>Mickey&#x27;s local paper notices</h3><p><b>Availability:</b> existing darts and opening-hours PNGs inspected</p><p><b>Suitability:</b> revise for readable close-up text</p><p><b>Integration:</b> unverified for this design</p>
+    <p>DARTS LEAGUE heading reads, table body is gibberish and contains an embedded building scene. Opening-hours image contains a window and blank timetable. Use authored text/paper planes, preserve originals.</p><p><b>Picture:</b> original authored target detail / not finished asset</p>
     <p><b>Placements:</b> 1 delivery docket, 1 events sheet, 1 handwritten tab sample proposed.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Readable text, dates and information ownership.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: G6_fly_posters</small></div></article><article data-search="A01_MARKET_HALL Copper Row hall and clock gable missing" data-priority="2">
+    <small>Source primitive entries: n/a. Related BOM: G6_fly_posters</small></div></article><article data-search="A01_MARKET_HALL Copper Row hall and clock gable unverified" data-priority="2">
     <img src="concepts/copper.png" alt="AI concept target" loading="lazy"><div>
     <small>P2 / PROPOSED NEW, commission-local / unique landmark</small><h2>A01_MARKET_HALL</h2>
-    <h3>Copper Row hall and clock gable</h3><strong class="missing">MISSING</strong>
+    <h3>Copper Row hall and clock gable</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> AI concept target</p>
     <p><b>Placements:</b> 1 hall; explicitly authored stalls to follow visual approval.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Market work and gossip crossing; no generated rooms.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_RECORDS_COURT Court, cafe and records frontage missing" data-priority="2">
+    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_RECORDS_COURT Court, cafe and records frontage unverified" data-priority="2">
     <img src="concepts/exchange.png" alt="AI concept target" loading="lazy"><div>
     <small>P2 / PROPOSED NEW, commission-local / unique landmark group</small><h2>A01_RECORDS_COURT</h2>
-    <h3>Court, cafe and records frontage</h3><strong class="missing">MISSING</strong>
+    <h3>Court, cafe and records frontage</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> AI concept target</p>
     <p><b>Placements:</b> 1 court group; 1 cafe; 1 police station atlas anchor.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Public/private thresholds, legal visits and file handling.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_TIVOLI Cinema and late-night entrance missing" data-priority="2">
+    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_TIVOLI Cinema and late-night entrance unverified" data-priority="2">
     <img src="concepts/parade.png" alt="AI concept target" loading="lazy"><div>
     <small>P2 / PROPOSED NEW, commission-local / unique landmark</small><h2>A01_TIVOLI</h2>
-    <h3>Cinema and late-night entrance</h3><strong class="missing">MISSING</strong>
+    <h3>Cinema and late-night entrance</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> AI concept target</p>
     <p><b>Placements:</b> 1 cinema; 1 club frontage; 1 queue position group.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Queue sightlines, ticket check, evening meetings.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_SCHOOL_GATE Fairview chapel/school gate and steps missing" data-priority="2">
+    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_SCHOOL_GATE Fairview chapel/school gate and steps unverified" data-priority="2">
     <img src="concepts/fairview.png" alt="AI concept target" loading="lazy"><div>
     <small>P2 / PROPOSED NEW, commission-local / unique landmark group</small><h2>A01_SCHOOL_GATE</h2>
-    <h3>Fairview chapel/school gate and steps</h3><strong class="missing">MISSING</strong>
+    <h3>Fairview chapel/school gate and steps</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> AI concept target</p>
     <p><b>Placements:</b> 1 school gate and 1 authored stair shortcut.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Pickup meeting opportunities, overlooks and private gardens.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: E8_guard_railing</small></div></article><article data-search="A01_RETORT_WORKS Retort works and clocking-in club missing" data-priority="2">
+    <small>Source primitive entries: n/a. Related BOM: E8_guard_railing</small></div></article><article data-search="A01_RETORT_WORKS Retort works and clocking-in club unverified" data-priority="2">
     <img src="concepts/ironside.png" alt="AI concept target" loading="lazy"><div>
     <small>P2 / PROPOSED NEW, commission-local / unique landmark group</small><h2>A01_RETORT_WORKS</h2>
-    <h3>Retort works and clocking-in club</h3><strong class="missing">MISSING</strong>
+    <h3>Retort works and clocking-in club</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> AI concept target</p>
     <p><b>Placements:</b> 1 stack, 1 works yard, 1 club; named on atlas.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Shift gates and controlled rail crossings.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_WINTER_ROOMS Winter Rooms arcade and short pier missing" data-priority="2">
+    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_WINTER_ROOMS Winter Rooms arcade and short pier unverified" data-priority="2">
     <img src="concepts/gullwing.png" alt="AI concept target" loading="lazy"><div>
     <small>P2 / PROPOSED NEW, commission-local / unique landmark group</small><h2>A01_WINTER_ROOMS</h2>
-    <h3>Winter Rooms arcade and short pier</h3><strong class="missing">MISSING</strong>
+    <h3>Winter Rooms arcade and short pier</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> AI concept target</p>
     <p><b>Placements:</b> 1 arcade, 1 short pier; boarding-house family distinct from Hook.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Arcade social contact, keys and sea-wall access.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_FACADE_FAMILIES Seven district frontage families missing" data-priority="2">
+    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_FACADE_FAMILIES Seven district frontage families unverified" data-priority="2">
     <img src="previews/atlas-overview.png" alt="authored plan" loading="lazy"><div>
     <small>P2 / PROPOSED NEW, commission-local / reusable family with authored variants</small><h2>A01_FACADE_FAMILIES</h2>
-    <h3>Seven district frontage families</h3><strong class="missing">MISSING</strong>
+    <h3>Seven district frontage families</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Design and dimensions supplied; game-ready geometry/materials have not been delivered. Recipe proxies where present are unrendered spatial sources, not finished assets.</p><p><b>Picture:</b> authored plan</p>
     <p><b>Placements:</b> Hook 6m bays; market stallable fronts; civic stone; nightlife tile; hill housing; workshop sheds; resort render.</p><p><b>Variant:</b> Named design only; reuse components after identity and proportions are approved.</p>
     <p><b>State:</b> Per-building IDs and authored alterations, no random assemblage.</p><p><b>Engine:</b> Not integrated; interface and game validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_QUAYS Working quay, narrowed basin mouth and swing footbridge missing" data-priority="2">
+    <small>Source primitive entries: n/a. Related BOM: C1_terrace_carcass</small></div></article><article data-search="A01_QUAYS Working quay, narrowed basin mouth and swing footbridge unverified" data-priority="2">
     <img src="previews/district-hook-plan.png" alt="authored plan" loading="lazy"><div>
     <small>P2 / PROPOSED NEW, commission-local / unique assembly</small><h2>A01_QUAYS</h2>
-    <h3>Working quay, narrowed basin mouth and swing footbridge</h3><strong class="missing">MISSING</strong>
+    <h3>Working quay, narrowed basin mouth and swing footbridge</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Authored atlas design only; no judged finished asset delivered.</p><p><b>Picture:</b> authored plan</p>
     <p><b>Placements:</b> 1 authored basin edge; 55m bridge water opening with short landings. Engineering design pending.</p><p><b>Variant:</b> Hook working quay differs from Gullwing promenade sea wall.</p>
     <p><b>State:</b> Gate/bridge position, tide edge safety and public access need authored policy; escape route is conditional.</p><p><b>Engine:</b> Not integrated; interface and runtime validation pending.</p>
-    <small>Source primitive entries: n/a. Related BOM: E8_guard_railing, E14_dock_clutter</small></div></article><article data-search="A01_HARBOUR_BOARD Harbour Board frontage missing" data-priority="2">
+    <small>Source primitive entries: n/a. Related BOM: E8_guard_railing, E14_dock_clutter</small></div></article><article data-search="A01_HARBOUR_BOARD Harbour Board frontage unverified" data-priority="2">
     <img src="concepts/hook.png" alt="AI concept target" loading="lazy"><div>
     <small>P2 / PROPOSED NEW, commission-local / unique assembly</small><h2>A01_HARBOUR_BOARD</h2>
-    <h3>Harbour Board frontage</h3><strong class="missing">MISSING</strong>
+    <h3>Harbour Board frontage</h3><p><b>Availability:</b> not located in inspected source set</p><p><b>Suitability:</b> unverified</p><p><b>Integration:</b> unverified for this design</p>
     <p>Authored atlas design only; no judged finished asset delivered.</p><p><b>Picture:</b> AI concept target</p>
     <p><b>Placements:</b> 1 named office by the basin; plan and interior to be authored after visual approval.</p><p><b>Variant:</b> Hook working quay differs from Gullwing promenade sea wall.</p>
     <p><b>State:</b> Gate/bridge position, tide edge safety and public access need authored policy; escape route is conditional.</p><p><b>Engine:</b> Not integrated; interface and runtime validation pending.</p>

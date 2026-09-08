@@ -1,5 +1,7 @@
 # What each kind of picture means
 
+Continuation provenance: `previews/evidence-revisions`, `town-work-and-home`, `hook-uses`, `mickeys-service-options` and `target-*` are original SVG design studies, rasterised with the existing Sharp bundle. `previews/mesh-*` project actual studio GLB triangles with node transforms; they are neither lit Blender renders nor engine frames. `artwork/*.svg` and their preview PNGs are four original exact-text layout proofs using system fonts, not final font-cleared textures. `references/studio-*.png` are three retained studio AI outputs read at e5b33d1317e20d672e4f9e39c09e4db41d023e0f, with hashes in data/studio-asset-review.json. No new AI image generation, Blender render or Unreal frame occurred in this continuation. The initial concepts below remain unchanged.
+
 All new design work is a proposal dated 2026-09-08, based on the owner's pin 7722b45cb3dcee2fbcee26675fae4fef641cbba7. [data/source-lock.json](data/source-lock.json) records source-document hashes and the owner's overrides. No studio pin was invented.
 
 | Files | Origin | Evidential limit |
