@@ -24,7 +24,7 @@ All paths are relative to this directory. Text bytes and SHA-256 values use cano
 | [data/mickeys.json](data/mickeys.json) | 4516 | fc2da78fb3a20ee14eb2bce548a7eb8228581b1d5235b6bcf2fe946a54f30b0f |
 | [data/source-lock.json](data/source-lock.json) | 2015 | 7345c9e3af3904e8762ad72d38e5ce479b484754d3edd68398b2c2587b3e19a1 |
 | [data/workflow-trigger-audit.json](data/workflow-trigger-audit.json) | 9304 | 38bbd425d041d8b0c40ff06024c37875bd890fcaac166665cbded86de3e30db7 |
-| [DELIVERY.md](DELIVERY.md) | 7425 | 344e298f408cb5a81f9c08e07ba701ba4717a3791ff8c5419375f12129954b63 |
+| [DELIVERY.md](DELIVERY.md) | 7471 | fa62d00bcbf1d4a8f029c776a676ff92d05d1d35cf80543c2ce0cadb0f9069b1 |
 | [DISTRICTS.md](DISTRICTS.md) | 3314 | e70e603b275999fb0b3ddf503bd6341cf5093d3d15d33cff1a81e1552f50da7b |
 | [INTERFACE-NOTES.md](INTERFACE-NOTES.md) | 2757 | acdfae4f41e7b6a88d4f5d0d6cc40c32f3a3d9fbfdd5602e008325ba2a2c9aa4 |
 | [MICKEYS.md](MICKEYS.md) | 3986 | 9202e31fceb5592b908cdc6766159e76fb4bb50932490306961d0a01affb1c11 |
@@ -73,6 +73,7 @@ All paths are relative to this directory. Text bytes and SHA-256 values use cano
 | [references/RIGHTS.md](references/RIGHTS.md) | 2308 | 0a0674c966d6371751f3ca86ed8761ea1b0f01026b3a4310be653c91b338eab4 |
 | [references/source-street-day.png](references/source-street-day.png) | 1599870 | 61b4f365735809080b7e1c95714b12ceb6633fcb21da48955c09db01f2407c9c |
 | [references/street-evidence-contact.png](references/street-evidence-contact.png) | 1179007 | 63cf29ee7c5b4c21122b13492c54bfb07de4a30eb4ea6aa143792dc2dc23919f |
+| [render-request.json](render-request.json) | 3168 | 76d3ec4906fb6ca9380fba9deef2e5d654df8f909ac9e03c3d6190697bfd635c |
 | [scripts/asset-view.py](scripts/asset-view.py) | 3613 | f2849bb0cd2cde015e92f8cce97f9d2875d3ec97a7ae8fa8f2b95c47ea6d26d8 |
 | [scripts/check.py](scripts/check.py) | 5332 | 7458201438c5fc7bf14281de721a7c948b04472a85b98d96b9e8fc63c1693444 |
 | [scripts/draw.py](scripts/draw.py) | 19525 | e17b537ed6b703ba373ef013a0c2e67a9a7665fd5bcb912373e7765c17a53002 |

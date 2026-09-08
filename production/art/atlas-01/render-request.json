@@ -1,0 +1,53 @@
+{
+  "schema": "atlas-01.render-request/1",
+  "status": "PENDING, NOT SUBMITTED OR DISPATCHED",
+  "requested_by": "atlas-01 art commission",
+  "source_commit": "b9ad0626791cf265cc75a2962171953348b661b2",
+  "source_branch": "art/atlas-01",
+  "owner_base": "7722b45cb3dcee2fbcee26675fae4fef641cbba7",
+  "input_sha256_git_blob_bytes": {
+    "recipes/mickeys_blockout.py": "b4df6e5385cb6895c263c842bea98b8bdc98312033dd398914b94d134f3b3640",
+    "data/mickeys.json": "fc2da78fb3a20ee14eb2bce548a7eb8228581b1d5235b6bcf2fe946a54f30b0f"
+  },
+  "execution_authority": "Only the studio's opt-in Blender recipe lane, when Claude has scheduled the shared PC. This JSON does not authorize an independent launch, stop or runner configuration change.",
+  "environment": "An already installed Blender 4.2+ with BLENDER_EEVEE_NEXT; exact version must be recorded by receipt. No toolchain installation requested.",
+  "working_directory": "isolated checkout of source_commit, never switch Claude's checkout",
+  "command_arguments": [
+    "blender",
+    "--background",
+    "--factory-startup",
+    "--python",
+    "production/art/atlas-01/recipes/mickeys_blockout.py",
+    "--",
+    "--output-dir",
+    "production/art/atlas-01/renders/first-look",
+    "--render"
+  ],
+  "expected_outputs": [
+    "mickeys-blockout.blend",
+    "street_approach.png",
+    "front.png",
+    "rear.png",
+    "overhead.png",
+    "interior.png",
+    "receipt.json"
+  ],
+  "success_requires": [
+    "Input hashes match the source Git blobs; receipt records actual Blender version and five successfully written frames.",
+    "Street approach/front show the 6m bay, two front doors at the retained anchors, parallel roof ridge and intended threshold relationship. Context ground is deliberately simplified, not source camber verification.",
+    "Rear shows the 6x6m yard, 2.2x2.6m WC, 1.2m gate and rear-lane/south-passage connection without crossing a neighbouring interior.",
+    "Overhead ground cutaway shows counter, staff aisle, snug, store and continuous circulation; inspect upper objects and stair void in the saved .blend against the upper plan because this cutaway hides the upper collection.",
+    "Player-height interior shows the intended partial screen, usable central aisle and separate rear staff/public doors. Opaque proxy glass must not be scored as final transparent glazing.",
+    "Owner/studio inspects actual images and the compact stair/private-door footway sweep; a zero exit or object total alone is not success."
+  ],
+  "failure_evidence": [
+    "Nonzero Blender exit, API error, missing or blank frame, clipped cameras, wrong axes or source anchors.",
+    "Visible door/stair collision, blocked aisle, misplaced rear route, or facade/roof discrepancy against the dimensioned plans."
+  ],
+  "not_proven": [
+    "Finished material quality or shader compilation in Unreal",
+    "Navmesh, acoustics, crime perception, memory, gossip or dialogue",
+    "Building regulations or real-world safety certification"
+  ],
+  "banking": "Keep images, .blend, receipt and full local Blender log even if a later result push fails. Banking/scheduling belongs to Claude; no workflow edit is included."
+}

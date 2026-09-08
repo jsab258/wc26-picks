@@ -31,7 +31,7 @@ The broad atlas is an authored morphology/massing proposal, not a finished door-
 
 ## Pending render and interface dependencies
 
-No Blender executable was found in the inspected locations, and the pinned studio snapshot has no opt-in Blender recipe lane or general art interface. No shared-PC render or dispatch was attempted. The exact pending request is [render-request.json](render-request.json), pinned to the art source commit containing the recipe and its JSON. Claude owns scheduling; this file is a request, not a queue submission.
+No Blender executable was found in the inspected locations, and the pinned studio snapshot has no opt-in Blender recipe lane or general art interface. No shared-PC render or dispatch was attempted. The exact pending request is [render-request.json](render-request.json), pinned to art source commit **b9ad0626791cf265cc75a2962171953348b661b2**, which contains the recipe and its JSON. Claude owns scheduling; this file is a request, not a queue submission.
 
 The recipe requests five previews: street approach, front, rear, overhead cutaway and player-height interior. Success requires visible agreement with the plans, continuous routes and correct source placement, plus a Blender-version/input-hash receipt. A .blend file, object count or successful exit alone is insufficient. No Blender preview or engine-ready export is included.
 
