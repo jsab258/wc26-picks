@@ -1,5 +1,5 @@
-# UE probe verdict 76d9bd6 @1788896253
+# UE probe verdict 5ea6cb0 @1788900361
 # Line 1 names the commit this was measured on, as the Unity verdict does.
 
-NO RUN - no verdict carrying this commit was produced; do not read an older file as this run.
+perceptionRows=2494 perceptionMismatches=0 perceptionUnknownFns=4/FactNull-needs-exceptions perceptionTolerance=1e-09 probeTest=PASS goldenTable=perception-golden.txt
 verdictReached=end
