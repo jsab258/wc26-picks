@@ -22,9 +22,10 @@ All paths are relative to this directory. Text bytes and SHA-256 values use cano
 | [data/concept-period-prompts.json](data/concept-period-prompts.json) | 1327 | cb43a977c8688179c1e9425b166bf58db4fa46fb35820b05702219c9f0e5d840 |
 | [data/concept-prompts.json](data/concept-prompts.json) | 9607 | 5c59b142d9394c6359561d56d41b097e7179febc18fd6197ecde1ff12975d2ad |
 | [data/mickeys.json](data/mickeys.json) | 15104 | a8dde2383f3ae5bd9b8014aedbd9a378b8da8d531cda6120b56cc53a1a6ff9c1 |
+| [data/repair-source.json](data/repair-source.json) | 166 | 41f264604268b25bf7d492e5186e7d4acf5868818f9b4d2f4a1b6dc684caa3a6 |
 | [data/source-lock.json](data/source-lock.json) | 2015 | 7345c9e3af3904e8762ad72d38e5ce479b484754d3edd68398b2c2587b3e19a1 |
 | [data/workflow-trigger-audit.json](data/workflow-trigger-audit.json) | 9304 | 38bbd425d041d8b0c40ff06024c37875bd890fcaac166665cbded86de3e30db7 |
-| [DELIVERY.md](DELIVERY.md) | 8040 | f770dd0633b6d84b47ec95a04737f3a7076a3b24c467c5a51a136b09be59e7ca |
+| [DELIVERY.md](DELIVERY.md) | 8065 | dde4757bc71d0b06be5940bf55ebe68b530eb7aa0ee9065030bf479102de4d21 |
 | [DISTRICTS.md](DISTRICTS.md) | 3314 | e70e603b275999fb0b3ddf503bd6341cf5093d3d15d33cff1a81e1552f50da7b |
 | [INTERFACE-NOTES.md](INTERFACE-NOTES.md) | 3084 | 0223596e9aa7c325d46fb9bdb57685b69663e1cbf2af2b23158f0b0391c6c491 |
 | [MICKEYS.md](MICKEYS.md) | 3986 | 9202e31fceb5592b908cdc6766159e76fb4bb50932490306961d0a01affb1c11 |
@@ -77,7 +78,7 @@ All paths are relative to this directory. Text bytes and SHA-256 values use cano
 | [references/RIGHTS.md](references/RIGHTS.md) | 2308 | 0a0674c966d6371751f3ca86ed8761ea1b0f01026b3a4310be653c91b338eab4 |
 | [references/source-street-day.png](references/source-street-day.png) | 1599870 | 61b4f365735809080b7e1c95714b12ceb6633fcb21da48955c09db01f2407c9c |
 | [references/street-evidence-contact.png](references/street-evidence-contact.png) | 1179007 | 63cf29ee7c5b4c21122b13492c54bfb07de4a30eb4ea6aa143792dc2dc23919f |
-| [render-request.json](render-request.json) | 3168 | 76d3ec4906fb6ca9380fba9deef2e5d654df8f909ac9e03c3d6190697bfd635c |
+| [render-request.json](render-request.json) | 3940 | 24c794780e73b84a37a1a21e6989c32fe2057ef8ac0fb8bf56259d6586b5803a |
 | [scripts/asset-view.py](scripts/asset-view.py) | 3613 | f2849bb0cd2cde015e92f8cce97f9d2875d3ec97a7ae8fa8f2b95c47ea6d26d8 |
 | [scripts/check.py](scripts/check.py) | 5598 | bc8fc24838074dd2d9daf044af09d9fec4e0864055549ae4261b831a87a32e95 |
 | [scripts/check_pub_geometry.py](scripts/check_pub_geometry.py) | 3744 | a651e0b30ada077a72e8907a870347da88214fa3ba102926f127dc05c1ba9e99 |

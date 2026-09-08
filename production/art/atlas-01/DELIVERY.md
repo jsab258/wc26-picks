@@ -35,7 +35,7 @@ The broad atlas is an authored morphology/massing proposal, not a finished door-
 
 ## Pending render and interface dependencies
 
-No Blender execution or shared-PC dispatch was attempted. The studio now has an opt-in lane and static-prop interface, read at e5b33d1317e20d672e4f9e39c09e4db41d023e0f. The lane needs the adapter and exact-source reconciliation described in INTERFACE-NOTES.md. The existing [render-request.json](render-request.json) is being updated to the repair source revision; this is a request, not a submission.
+No Blender execution or shared-PC dispatch was attempted. The studio now has an opt-in lane and static-prop interface, read at e5b33d1317e20d672e4f9e39c09e4db41d023e0f. The lane needs the adapter and exact-source reconciliation described in INTERFACE-NOTES.md. The existing [render-request.json](render-request.json) is pinned to repair source **40811f56825ac0737b818689f5e138396d7218a2**; this is a request, not a submission.
 
 The recipe requests five previews: street approach, front, rear, overhead cutaway and player-height interior. Success requires visible agreement with the plans, continuous routes and correct source placement, plus a Blender-version/input-hash receipt. A .blend file, object count or successful exit alone is insufficient. No Blender preview or engine-ready export is included.
 

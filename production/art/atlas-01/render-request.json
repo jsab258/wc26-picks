@@ -1,13 +1,14 @@
 {
   "schema": "atlas-01.render-request/1",
-  "status": "PENDING, NOT SUBMITTED OR DISPATCHED",
+  "status": "PENDING, SAME REQUEST UPDATED; NOT SUBMITTED OR DISPATCHED",
   "requested_by": "atlas-01 art commission",
-  "source_commit": "b9ad0626791cf265cc75a2962171953348b661b2",
+  "source_commit": "40811f56825ac0737b818689f5e138396d7218a2",
   "source_branch": "art/atlas-01",
   "owner_base": "7722b45cb3dcee2fbcee26675fae4fef641cbba7",
   "input_sha256_git_blob_bytes": {
-    "recipes/mickeys_blockout.py": "b4df6e5385cb6895c263c842bea98b8bdc98312033dd398914b94d134f3b3640",
-    "data/mickeys.json": "fc2da78fb3a20ee14eb2bce548a7eb8228581b1d5235b6bcf2fe946a54f30b0f"
+    "recipes/mickeys_blockout.py": "8148558cbbd62aafff6bd7f0d1318e0cccb5f435e9da8cb37336c57430514f56",
+    "data/mickeys.json": "a8dde2383f3ae5bd9b8014aedbd9a378b8da8d531cda6120b56cc53a1a6ff9c1",
+    "scripts/pub_geometry.py": "152871833a40458a48cf0ef23e796e048119a4d3dddd6e90ffe5da743a100164"
   },
   "execution_authority": "Only the studio's opt-in Blender recipe lane, when Claude has scheduled the shared PC. This JSON does not authorize an independent launch, stop or runner configuration change.",
   "environment": "An already installed Blender 4.2+ with BLENDER_EEVEE_NEXT; exact version must be recorded by receipt. No toolchain installation requested.",
@@ -20,7 +21,7 @@
     "production/art/atlas-01/recipes/mickeys_blockout.py",
     "--",
     "--output-dir",
-    "production/art/atlas-01/renders/first-look",
+    "production/art/atlas-01/renders/recipe-repair-40811f5",
     "--render"
   ],
   "expected_outputs": [
@@ -49,5 +50,12 @@
     "Navmesh, acoustics, crime perception, memory, gossip or dialogue",
     "Building regulations or real-world safety certification"
   ],
-  "banking": "Keep images, .blend, receipt and full local Blender log even if a later result push fails. Banking/scheduling belongs to Claude; no workflow edit is included."
+  "banking": "Keep images, .blend, receipt and full local Blender log even if a later result push fails. Banking/scheduling belongs to Claude; no workflow edit is included.",
+  "supersedes_source_commit": "b9ad0626791cf265cc75a2962171953348b661b2",
+  "studio_lane_revision": "e5b33d1317e20d672e4f9e39c09e4db41d023e0f",
+  "lane_reconciliation_required": [
+    "Studio workflow expects tools/art-recipes/NAME.py. Claude supplies its conventional wrapper outside art scope; call this recipe with --render and --out to a fresh commission directory.",
+    "Lane checks out art branch HEAD. Claude must arrange this exact source revision and hold branch during result banking.",
+    "Lane currently commits PNGs only; preserve blend, receipt, shared geometry digest and full log in the existing studio result path."
+  ]
 }
