@@ -1211,3 +1211,40 @@ THE ONE FALLBACK IS CORRECT: propFallbackWhy=prop_pavement_sign_0=no-uasset-for-
 pavement_sign, whose source GLB holds three mesh nodes (hinges, sign_front,
 sign_back) and whose resolver refuses to choose. Nothing was loosened to make a
 number go green.
+
+--------------------------------------------------------------------------
+2026-09-09  THE GRATE IS FLUSH AND A DOUBLE YELLOW LINE IS NOW PAINTED
+            ACROSS A QUARTER OF IT.
+--------------------------------------------------------------------------
+MEASURED after the set_in emitter was changed to mean flush:
+propFullyBuried 1/23 becomes 0/23; the per-cell series over the grate goes from
+20 of 20 cell centres buried at 19.75 to 10.25 mm to 13 of 20 reading
+nothing-overhead; and CoreTests prints the top face against the running surface
+at three points with offsetMm=0.000 at each.
+
+THE NEW FINDING IS THE ONE THE FIX EXPOSED RATHER THAN CAUSED. yellow_east_0 is
+y_m -0.0615, sy_m 0.012, z_m 2.7, sz_m 0.1: it spans z 2.65 to 2.75, crosses
+100 mm of the grate's 400 mm, and stands 12 mm proud of the road. While the grate
+was buried the stripe cleared it by 13 to 20 mm and nothing noticed. Now it lies
+ON it, so a quarter of the accepting case is under a yellow stripe in the next
+frame.
+
+IN A REAL BRITISH STREET A DOUBLE YELLOW DOES NOT CROSS A GULLY GRATE. The
+painter goes round it. The scene file already records that the bands do not break
+at the CROSSOVER as a named next step; they do not break at the gully either, and
+that is the same fault found at a second site. It is an emitter change that could
+move the piece count, so it is not tonight's work.
+
+THE SHAPE WORTH KEEPING: burying a piece HID A SECOND FAULT AND MADE THE FIRST
+UNMEASURABLE. Nobody could have seen the stripe problem while the grate was under
+15 mm of asphalt, and no instrument was going to report it, because a stripe over
+a buried piece is correct. Fixing one placement fault is how the next one becomes
+visible, which is an argument for fixing them rather than for cataloguing them.
+
+AND ONE THING THE RUN MUST DECIDE, NOT AN ARGUMENT. The fix makes the grate's top
+face EXACTLY COINCIDENT with the carriageway and channel top faces over about
+0.16 square metres, both rendered solids, nothing cutting a hole. That is a
+z-fighting risk. The builder refused to invent an offset to dodge it, on the
+grounds that every candidate available (the decals' 10 mm standoff, a stray
+0.098 mm) would be a number with no derivation behind it. The run is the
+measurement.

@@ -196,6 +196,17 @@ namespace Ledger.Core
                 }
                 return KerbTopY;
             }
+
+            /// HOW FAR THE CHANNEL SINKS UNDER THE GRATE AT THIS x ON THIS
+            /// SIDE. Zero everywhere but the 0.40 m of channel the gully
+            /// occupies. Written once here for the same reason `KerbTopAt` is:
+            /// the ground query SUBTRACTS it to answer what a foot stands on,
+            /// and the `set_in` prop emitter ADDS IT BACK to answer where the
+            /// running surface over the dish is, and two copies of that one
+            /// condition is how the two answers drift apart.
+            public double DishAt(double x, string side)
+                => side == GullySide && Math.Abs(x - GullyCentreX) <= GullyGrateM * 0.5
+                   ? GullyDishM : 0.0;
         }
 
         /// A rectangle of ground behind a building line that the scene has to
@@ -310,9 +321,7 @@ namespace Ledger.Core
                     }
                     if (az <= s.HalfWidthM)
                     {
-                        y = -az * s.CrossFall; edge = side + "_channel";
-                        if (side == s.GullySide && Math.Abs(x - s.GullyCentreX) <= s.GullyGrateM * 0.5)
-                            y -= s.GullyDishM;
+                        y = -az * s.CrossFall - s.DishAt(x, side); edge = side + "_channel";
                         return true;
                     }
                     if (az <= s.FootwayFrontZ)
@@ -1449,7 +1458,7 @@ namespace Ledger.Core
 
                 string side = Str(o, "side");
                 double sgn = side == "east" ? 1 : -1;
-                double cx = Num(o, "x_m"), cy, cz, footY;
+                double cx = Num(o, "x_m"), cy, cz, footY, pitchDeg = 0;
                 string edge;
                 if (kind == "wall")
                 {
@@ -1476,8 +1485,64 @@ namespace Ledger.Core
                         throw new InvalidOperationException(
                             asset + " at x=" + cx.ToString(CultureInfo.InvariantCulture)
                             + " has no ground under it");
-                    cy = gy + sy * 0.5;
                     footY = gy;
+                    if (kind == "set_in")
+                    {
+                        // SET IN MEANS FLUSH, AND FLUSH MEANS PITCHED. A gully
+                        // grate is the LID of its dish, not a plate dropped
+                        // into it: its top face IS the running surface, which
+                        // is what makes water reach it. Until 2026-09-09 this
+                        // branch stood the grate on the dish floor the ground
+                        // query reports, and the measured result was a prop
+                        // buried 20.00 mm under the carriageway slab at the
+                        // west edge of its own footprint and 10.25 mm under
+                        // the channel slab at the east, with no CSG cutting
+                        // either slab, so no part of it could be seen or stood
+                        // on. The arithmetic is queue 162 and the ruling is
+                        // game-design/decision-2026-09-09-the-twelve-clauses-and-the-buried-grate.md
+                        // section 3.
+                        //
+                        // TWO TERMS AND BOTH ARE DERIVED, so a changed
+                        // crossfall or dish moves them and no number here goes
+                        // stale. The dish the ground query subtracted goes
+                        // back on, because the surface a grate is flush with
+                        // is the channel the dish hangs under. Then the centre
+                        // drops half a thickness DOWN THE PIECE'S OWN NORMAL,
+                        // which is the same walk `Slab` takes and is
+                        // `sy * 0.5 / cos(fall)` of height; at a fall of 1 in
+                        // 40 that is 2.3 um more than half the thickness, and
+                        // the cosine is written because the face is tilted,
+                        // not because 2.3 um matters.
+                        //
+                        // THE PITCH IS PART OF THE PLACEMENT AND NOT A
+                        // REFINEMENT OF IT: a flat grate raised to be flush on
+                        // its centre line stands 0.025 x 0.19995 m = 5.0 mm
+                        // proud at one edge and 5.0 mm low at the other, and a
+                        // 5 mm lip across a carriageway is a trip hazard that
+                        // reads wrong before anybody can say why.
+                        //
+                        // THE FALL COMES FROM THE SECTION, NOT FROM TWO GROUND
+                        // SAMPLES the way a ground decal's does, and the
+                        // reason is the same one that exempts this prop from
+                        // the foot probe below: it straddles the step between
+                        // carriageway, channel and kerb recess by design, so
+                        // two samples a quarter of a metre apart would measure
+                        // the kerb. That makes the carriageway crossfall the
+                        // only fall this rule knows, so a `set_in` prop
+                        // anywhere else is refused by name rather than laid at
+                        // a fall nobody measured.
+                        if (edge != side + "_carriageway" && edge != side + "_channel")
+                            throw new InvalidOperationException(
+                                asset + " is set_in over " + edge
+                                + ", and the carriageway crossfall is the only fall set_in knows");
+                        double fall = Math.Atan(s.CrossFall);
+                        pitchDeg = sgn * fall * 180.0 / Math.PI;
+                        cy = gy + s.DishAt(cx, side) - sy * 0.5 / Math.Cos(fall);
+                    }
+                    else
+                    {
+                        cy = gy + sy * 0.5;
+                    }
                 }
 
                 seen.TryGetValue(asset, out int n);
@@ -1486,7 +1551,7 @@ namespace Ledger.Core
                 {
                     Bom = bom, Name = "prop_" + asset + "_" + n, Shape = "mesh", Asset = asset,
                     Surface = surface, X = cx, Y = cy, Z = cz, SX = sx, SY = sy, SZ = sz,
-                    YawDeg = yaw, Edge = edge, Region = RegionOf(cx)
+                    PitchDeg = pitchDeg, YawDeg = yaw, Edge = edge, Region = RegionOf(cx)
                 };
                 plan.Add(p);
                 // A `set_in` prop is NOT foot-probed, and it is the one

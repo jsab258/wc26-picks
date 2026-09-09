@@ -79,6 +79,45 @@ carcass taken from the street's own scene file and the capacity derived from
 published fire floor-space factors.
 
 ---
+### The gully grate is under the road. Raise it flush, or cut the ground?
+CLASS: DECISION
+added 2026-09-09, from run 33's own placed-bounds reading
+
+Run 33 placed 22 of 23 props as real meshes with collision. The drainage grate is
+one of them and NOTHING CAN SEE IT: it sits under 20.00 mm of cover at the west
+edge of its own footprint and 10.00 mm at the east, both taken at the footprint
+edges rather than mixed with the cell-centre figures, under the carriageway slab and
+the channel slab both, which overlap by 0.469 mm with no gap between them. It is a
+verified piece and it is invisible, and it is the piece you named as the accepting
+case for the whole prop route.
+
+The placement is DELIBERATE in the scene file, which says a grate "sits IN the
+ground rather than on it". The fault is not that intent, it is that the ground
+planes are emitted as continuous slabs over the top of it. There is no CSG here:
+nothing cuts a hole.
+
+- A. THE GRATE RISES AND TAKES THE CROSS-FALL. y_m -0.0925 to -0.077502 and
+  pitch_deg 0 to 1.432096, so it sits flush with the channel along its own width.
+  The pitch is part of the fix and not a refinement: a flat grate raised to be
+  flush at its centre line leaves a 5 mm lip a shoe would catch.
+- B. THE GROUND IS CUT. The channel and carriageway emitters leave a 0.40 m gap at
+  the gully and the grate stays where it is, sitting in an open dish. More
+  faithful to how a real gully is built, and it is a change to how 593 pieces are
+  generated rather than to one row.
+
+RECOMMENDATION A, because a gully grate in a British street IS flush with the
+channel invert; that is what makes water reach it. B is more faithful to the
+masonry and buys nothing a camera can see, at ten times the risk.
+DEFAULT A if unruled by 2026-09-11. The studio is proceeding on A tonight so that
+a clip can exist; if you rule B, A is two numbers to revert.
+EVIDENCE: `production/d1-probe/ue-crime-verdict.txt`,
+propBurialSubject=prop_drainage_grate_01_0/via=loaded-asset/collision=YES/
+buried=100.0pct, and
+`game-design/decision-2026-09-09-the-twelve-clauses-and-the-buried-grate.md`
+section 3, which checked the arithmetic off the spec file twice and killed the
+first proposed fix (cutting the channel alone) by finding the carriageway over it.
+
+---
 ### Which bay is Mickey's?
 CLASS: DECISION
 added 2026-09-08, from the vignette recipe's `bayHintConflict=`
@@ -124,6 +163,20 @@ DEFAULT B if unruled by 2026-09-07, the Monday reset.
 EVIDENCE: `game-design/sim-shots/vign_camA_night.jpg` is the street with people
 absent; the crowd still that would settle this does not exist yet, which is the
 honest reason this has waited a month.
+
+THE DEADLINE PASSED AND THE DEFAULT TOOK, RECORDED 2026-09-09, TWO DAYS LATE.
+By this card's own terms B took effect on 2026-09-07 when the Monday reset came
+and went unruled. NOBODY APPLIED IT: no commit since that date changes a
+separation number, checked with a log search over the term rather than recalled,
+and the card went on reading "still open" in the waiting list. So the studio has
+been running on 0.45 m, which is A and then some, while its own record said the
+answer was B.
+THIS IS THE DECAY THE DEFAULT MECHANISM EXISTS TO PREVENT, happening to the
+mechanism itself: a default is only worth having if something applies it, and
+nothing here watches a deadline. THE CARD IS NOT MOVED TO RULED, because that
+would claim a change that has not been made. It stays here, saying what it is:
+ruled by default, unapplied, and the smallest fix is the one that also stops the
+next one, a check that reads every DEFAULT line's date.
 
 ---
 ### The pages cannot be published until the studio's branch may deploy

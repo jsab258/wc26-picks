@@ -853,21 +853,30 @@ namespace LedgerVignette
 	//   THE DECOMPOSITION AT THIS PROP, ruled as 34.32 mm of half-width
 	//   cross-fall plus 35.78 mm of distance past the slab's centre line,
 	//   70.10 mm. ReadCoverProfile below now prints that figure instead of
-	//   arguing it, off the file's own pitches, and on the committed street it
-	//   reads localAtFootprintCentre=15.00mm@z2.800000/aabbWorstMinusThis=
-	//   70.00mm, with localDeepestAtFootprintEdge=20.00mm and
-	//   localDeepestAtCellCentre=19.75mm. The ruling's 19.90, 14.90 and 35.78
+	//   arguing it, off the file's own pitches. ON THE STREET AS IT STOOD
+	//   BEFORE THE GRATE WAS RAISED on 2026-09-09 it read
+	//   localAtFootprintCentre=15.00mm@z2.800000/aabbWorstMinusThis=70.00mm,
+	//   with localDeepestAtFootprintEdge=20.00mm and
+	//   localDeepestAtCellCentre=19.75mm; queue 162 then lifted that one row
+	//   flush and the same keys read no-local-cover at the centre line,
+	//   65.01mm at the east footprint edge (a 75 um sliver of the grate under
+	//   the gully kerb block) and 10.26mm at a cell centre (the 12 mm double
+	//   yellow line, which crosses the grate and does not break at it). The
+	//   decomposition above is unaffected: it is arithmetic about a pitched
+	//   AABB and not about where the grate sits.
+	//   The ruling's 19.90, 14.90 and 35.78
 	//   anchor the slab's top face at the piece's own z; the pitch shifts that
 	//   face 3.75 mm in z, which is 0.09 mm of y, and that 0.09 mm is the whole
 	//   of the difference in every one of those three. The printed series is
 	//   the authority, which is what A8 ordered it for.
-	//   AND THE RULED FIGURE IS TWO POINTS. 85.00 mm is the carriageway's AABB
-	//   depth at the grate's western cells and 15.00 mm is the channel's real
-	//   cover at the centre line, so that subtraction crosses both a point and
-	//   a covering piece. The profile prints it because a reader subtracting
-	//   this comment's millimetres from 85.00 is computing exactly it, and
-	//   prints TWO-POINTS beside it. The strict same-point overstatement, one
-	//   cell and one cover, is 65.25 mm at iz=0.
+	//   AND THE RULED FIGURE IS TWO POINTS. On that pre-raise street 85.00 mm
+	//   was the carriageway's AABB depth at the grate's western cells and
+	//   15.00 mm was the channel's real cover at the centre line, so that
+	//   subtraction crossed both a point and a covering piece. The profile
+	//   prints it because a reader subtracting this comment's millimetres from
+	//   an AABB depth is computing exactly that, and prints TWO-POINTS beside
+	//   it. The strict same-point overstatement, one cell and one cover, was
+	//   65.25 mm at iz=0 then and is 65.00 mm at the west footprint edge now.
 	//   The buried or not answer is unaffected by any of this, the
 	//   millimetres are a ceiling, and the stat key says so. The reading that
 	//   has neither limit is a downward trace at the cell, which is the
@@ -1242,8 +1251,11 @@ namespace LedgerVignette
 	// WHY THIS EXISTS, A8 and section 4 of the ruling of 2026-09-09. The
 	// burial half above reads world AABBs, which is all a cooked run can ask a
 	// placed actor for, and a pitched slab's AABB top is its HIGH EDGE: over
-	// the drainage grate it prints 85.00 mm of cover where the road surface is
-	// about 15 mm above the grate's top. Two numbers were then argued from
+	// the drainage grate it printed 85.00 mm of cover where the road surface
+	// was about 15 mm above the grate's top, and since the grate was raised
+	// flush on 2026-09-09 it prints 65.01 mm over a top face that is IN that
+	// surface. The overstatement is the instrument's, not the street's, both
+	// times. Two numbers were then argued from
 	// prose, 18.7 mm against 19.90 mm, neither of them a named statistic and
 	// neither of them read off a printed series. That is rule 2's own failure
 	// and this is the printer rule 2 asks for FIRST. No bound is set here and
@@ -1345,9 +1357,13 @@ namespace LedgerVignette
 		std::string LocalBy;
 		// THE SECOND HALF OF THE LOCAL READING, because a bare 0.00 mm cannot
 		// tell open sky from a solid sitting just above with air underneath,
-		// and at this grate's east footprint edge it is the second: the
-		// channel's pitched end face is overhead there with 8 mm of daylight
-		// under it, which the AABB calls 16.37 mm of burial.
+		// and on the committed street one point of twenty-three is the second.
+		// Which point MOVED when the grate was raised on 2026-09-09 and the
+		// reading did not: it was the grate's east footprint edge, where the
+		// channel's pitched end face stood overhead with 8 mm of daylight
+		// under it and the AABB called 16.37 mm of burial; it is now the cell
+		// at z=2.749981, where the double yellow line's end face stands
+		// 2.13 mm over the raised grate and the AABB calls 10.75 mm.
 		bool   bLocalAbove;
 		double LocalAboveLowM, LocalAboveHeadroomMm;
 		std::string LocalAboveBy;

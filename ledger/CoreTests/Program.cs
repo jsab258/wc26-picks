@@ -19701,6 +19701,91 @@ namespace Ledger.CoreTests
             Check(moved.Error != null && moved.Error.Contains("east_parade_fascia9"),
                   "a decal anchored to a piece that does not exist is refused BY NAME",
                   moved.Error ?? "(no error raised)");
+
+            // ---- QUEUE 162: THE set_in PROP LIES IN THE SURFACE IT DRAINS --
+            //
+            // THE HALF OF A PLACEMENT METRIC THAT ASKS WHETHER THE DATUM IS
+            // OVER THE PIECE. `propCentreWorstMm` said the grate was 0.47 mm
+            // from where the file put it while it sat 10.25 to 20.00 mm under
+            // two ground slabs that cut no hole for it, which is the mirror of
+            // the rule in .claude/rules/instruments.md: distance to the datum
+            // and existence of the datum are two halves and this was the
+            // missing one. Measured on 2026-09-09 off the committed piece list,
+            // west edge to east: 20.00 / 15.00 / 10.25 mm of cover, every one
+            // of 400 cells buried.
+            //
+            // WHICH PROPS ARE set_in IS THE SCENE FILE'S ANSWER, read here
+            // rather than inferred from a non-zero pitch: a prop that LOST its
+            // pitch has to FAIL this check rather than leave its population.
+            var setInAssets = new HashSet<string>(StringComparer.Ordinal);
+            var heldItems = MiniJson.GetList(
+                MiniJson.GetObject(MiniJson.AsObject(MiniJson.Deserialize(scene)), "held_props"),
+                "items");
+            Check(heldItems != null, "the scene file's held_props items are readable for the set_in check");
+            foreach (var hf in heldItems)
+            {
+                var ho = MiniJson.AsObject(hf);
+                if (MiniJson.GetString(ho, "place") == "set_in")
+                    setInAssets.Add(MiniJson.GetString(ho, "asset"));
+            }
+            int setIns = 0; double flushWorstMm = 0; string flushWorstAt = "nothing-measured";
+            var flushRows = new List<string>();
+            StreetVignette.Piece subject = default;
+            foreach (var p in plan.Pieces)
+            {
+                if (p.Shape != "mesh" || p.Asset == null || !setInAssets.Contains(p.Asset)) continue;
+                setIns++;
+                subject = p;
+                double mm = SetInFlushWorstMm(s, p, flushRows);
+                // THE FIRST PIECE ALWAYS NAMES ITSELF. A worst of exactly zero
+                // is the answer this check WANTS, and `>` alone left the name
+                // reading "nothing measured" beside a series of three measured
+                // points, which is the one thing that phrase must never say.
+                if (setIns == 1 || Math.Abs(mm) > Math.Abs(flushWorstMm))
+                { flushWorstMm = mm; flushWorstAt = p.Name; }
+            }
+            foreach (var l in flushRows) Console.WriteLine(l);
+            Console.WriteLine($"    set_in flush: props={setIns} assets={setInAssets.Count} " +
+                              $"worstOffsetMm={(setIns == 0 ? "nothing-measured" : flushWorstMm.ToString("0.000000"))} " +
+                              $"at={flushWorstAt} points={flushRows.Count} stat=signed-at-worst-over-the-three-points-a-plane-needs");
+            Check(setIns == 1 && setInAssets.Count == 1,
+                  "exactly one prop is set_in, which is the grate this bound was measured for",
+                  setIns + " placed of " + setInAssets.Count + " asked");
+            // THE BOUND IS THE QUANTISATION AND NOT A TOLERANCE. A face laid
+            // in a plane by arithmetic is in it to the last bit a double
+            // carries; the only thing between this plan and the published file
+            // is the piece list's six-decimal rounding, which its own header
+            // calls a micrometre. Ten of those is the bound: 500 times under
+            // the 5.0 mm lip it exists to catch, and the printed series above
+            // is what any future reader sets it from.
+            Check(setIns > 0 && Math.Abs(flushWorstMm) <= 0.01,
+                  "the set_in prop's top face lies IN the running surface along its whole width",
+                  flushWorstMm.ToString("0.0000") + " mm at " + flushWorstAt);
+            // PLANTED CASE, so the bound above cannot be a ratchet that would
+            // pass the thing it was written for. Take the pitch out of the same
+            // prop, leaving it flush on its own centre line, and the same
+            // arithmetic has to see the 5 mm lip: 0.19995 m of half-width at a
+            // fall of 1 in 40 is 5.0 mm at each end, which is why the pitch is
+            // part of the placement and not a refinement of it.
+            var flat = subject; flat.PitchDeg = 0;
+            double flatMm = SetInFlushWorstMm(s, flat, null);
+            Console.WriteLine($"    set_in PLANTED flat, pitch stripped: worstOffsetMm={flatMm:0.000} " +
+                              $"expectedMm={subject.SZ * 0.5 * 0.025 * 1000:0.000}");
+            Check(Math.Abs(flatMm) > 4.9 && Math.Abs(flatMm) < 5.1,
+                  "PLANTED CASE - the same prop with its pitch removed reads the 5 mm lip, so this bound can fail",
+                  flatMm.ToString("0.000") + " mm");
+            // REJECTING CASE: the fall comes from the carriageway crossfall, so
+            // a set_in prop over a surface that falls some other way has to be
+            // refused by name rather than laid at a fall nobody measured. The
+            // fixture moves the grate 1.2 m out from the kerb face, onto the
+            // footway, which falls the other way.
+            var setInOffRoad = StreetVignette.Read(
+                scene.Replace("\"place\": \"set_in\", \"z_from_kerb_face_m\": -0.2",
+                              "\"place\": \"set_in\", \"z_from_kerb_face_m\": 1.2"));
+            Check(setInOffRoad.Error != null && setInOffRoad.Error.Contains("set_in")
+                  && setInOffRoad.Error.Contains("footway"),
+                  "REJECTING CASE - a set_in prop over a surface whose fall this rule does not know is refused, and the message names the surface",
+                  setInOffRoad.Error ?? "(no error raised)");
             // AND THE COUNTS ARE A STATEMENT ABOUT WHAT WAS ASKED FOR, which
             // is the M in propsPlaced=N/M. The N is the engine's and cannot
             // be known here; the emitter's own report carries it.
@@ -19724,6 +19809,47 @@ namespace Ledger.CoreTests
                   broken.Error ?? "(no error raised)");
             var notJson = StreetVignette.Read("this is not json");
             Check(notJson.Error != null, "an unreadable scene json is an error");
+        }
+
+        /// HOW FAR A set_in PIECE'S OWN TOP FACE SITS OFF THE RUNNING SURFACE,
+        /// in millimetres, SIGNED (positive is proud) and AT WORST over the
+        /// three points a plane needs: both ends of the face and its centre.
+        /// Appends one row per point when given a list, because the bound this
+        /// feeds is read off the series and not the other way round.
+        ///
+        /// THE SURFACE IS THE SECTION'S OWN CAMBER, `-|z| x crossfall`, which
+        /// is the level `GroundAt` reports on the carriageway and the channel
+        /// and which the checks above pin at the crown and at the channel. It
+        /// is deliberately NOT a second call to the emitter's placement
+        /// arithmetic: this walks the piece's rotation instead, so a missing or
+        /// wrong-signed pitch moves it by 5 mm and a missing dish by 30.
+        ///
+        /// Written once and called twice, on the real piece and on a copy with
+        /// the pitch stripped, so the accepting case and the planted case
+        /// cannot drift apart.
+        static double SetInFlushWorstMm(StreetVignette.StreetSection s,
+                                        StreetVignette.Piece p, List<string> rowsOut)
+        {
+            double th = p.PitchDeg * Math.PI / 180.0;
+            // The top face's centre is half a thickness along the piece's own
+            // normal, which tips toward +z as the +z end goes down, and the
+            // face then runs half a width each way along its long axis.
+            double tcY = p.Y + 0.5 * p.SY * Math.Cos(th);
+            double tcZ = p.Z + 0.5 * p.SY * Math.Sin(th);
+            string[] ends = { "west-end ", "centre   ", "east-end " };
+            double worst = 0;
+            for (int k = -1; k <= 1; k++)
+            {
+                double fz = tcZ + k * 0.5 * p.SZ * Math.Cos(th);
+                double fy = tcY - k * 0.5 * p.SZ * Math.Sin(th);
+                double surf = -Math.Abs(fz) * s.CrossFall;
+                double mm = (fy - surf) * 1000.0;
+                if (Math.Abs(mm) > Math.Abs(worst)) worst = mm;
+                if (rowsOut != null)
+                    rowsOut.Add($"    set_in {p.Name} {ends[k + 1]} z={fz:0.000000} " +
+                                $"topFace={fy:0.000000} surface={surf:0.000000} offsetMm={mm:0.000}");
+            }
+            return worst;
         }
 
         /// The bill-of-materials lines this scene is answerable for: the 26
