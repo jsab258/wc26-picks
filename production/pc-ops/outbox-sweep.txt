@@ -1,12 +1,11 @@
-# LEDGER one outbox sweep - e95f5e4 @1788930667
+# LEDGER one outbox sweep - 3cf3731 @1788943346
 # Line 1 names the commit this was run on. This step SENDS: it runs
 # tools/runner/telegram-bot.py --send-outbox once, which is the same
 # pass the bot's own loop makes. Streamed, so a timeout still leaves
 # everything it learned.
 sweepPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
-sweepStatus=EXITED sweepWaitedSec=12 sweepExitCode=1
-sweepStream=sweep-raw.txt sweepLines=3
-07:11:07    outbox: REFUSED production/outbox/2026-09-03-batch-landed-and-the-wait.unprompted.md (unprompted): deadline item 1 gives -70.2 hour(s), under the ruled 24; linkdest 2 of 2 link(s) point somewhere other than the glance, the map or the gallery. Ruled 2026-09-06: never to a rep...; linkfloor no link to the glance, the map or the gallery (https://github.com/jsab258/wc26-picks/commit/ab276fa4; https://...; wordcap 22 words over the 120 cap (142 words)
-07:11:07  outbox done: outboxFiles=15 sent=0 captionedSent=0 captionedClipsSent=0 refused=1 unsent=1 alreadySent=14 held=0 sendFailed=0 receiptRefused=0 recordsWritten=1 latencySamples=0/0 outboundLatencySecAtWorst=nothing-measured
-07:11:17    inbox: pushed 126 file(s) as 650c2c3 to pc-inbox
+sweepStatus=EXITED sweepWaitedSec=3 sweepExitCode=0
+sweepStream=sweep-raw.txt sweepLines=2
+10:42:26  outbox done: outboxFiles=15 sent=0 captionedSent=0 captionedClipsSent=0 refused=0 unsent=0 alreadySent=15 held=0 sendFailed=0 receiptRefused=0 recordsWritten=0 latencySamples=0/0 outboundLatencySecAtWorst=nothing-measured
+10:42:26  nothing measured: all 15 file(s) in production/outbox already carry a receipt, so no message was checked or sent this pass.
 sweepStream=sweep-raw.txt.err sweepLines=0

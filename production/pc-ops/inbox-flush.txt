@@ -1,4 +1,4 @@
-# LEDGER one inbox flush - e95f5e4 @1788930680
+# LEDGER one inbox flush - 3cf3731 @1788943352
 # Line 1 names the commit this was run on. This step PUSHES the
 # return half: his messages and the bot's own receipts, onto
 # pc-inbox. It sends nothing and loads no credentials. The return
@@ -12,9 +12,19 @@
 # read ok= and detail= below, and pcInboxHeadShort in the verify step,
 # before calling it fixed. Last measurement: HUNG at 150s, 12 waiting.
 flushPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
-flushRepoHead=e95f5e46c
-flushStatus=EXITED flushWaitedSec=3 flushExitCode=0
-flushStream=flush-raw.txt flushLines=2
-07:11:20  flush: waiting=0 tip=650c2c3
-07:11:20  flush done: pushed=0/0 waiting=0 tracked=507, the branch already carries every file on this disk
+flushRepoHead=650f0755c
+flushStatus=EXITED flushWaitedSec=6 flushExitCode=0
+flushStream=flush-raw.txt flushLines=12
+10:42:33  flush: waiting=12 tip=650c2c3
+10:42:33  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-073d2180.txt
+10:42:33  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-07ed192a.txt
+10:42:33  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-189f28a6.txt
+10:42:33  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-23bf969f.txt
+10:42:33  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-3c9ed7b1.txt
+10:42:33  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-74c8dcdd.txt
+10:42:33  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-8ab04e04.txt
+10:42:33  flush: waiting production/outbound/2026-09-03-batch-landed-and-the-wait.unprompted.refused-8dd2f00f.txt
+10:42:33  flush: (+4 more not shown)
+10:42:36    inbox: pushed 12 file(s) as ffd7a79 to pc-inbox
+10:42:36  flush done: pushed=12/12 ok=True commit=ffd7a79 replaced=False plain=none detail=pushed~12~file(s)~as~ffd7a79
 flushStream=flush-raw.txt.err flushLines=0

@@ -1,0 +1,18 @@
+# LEDGER one decision-cards pass - 3cf3731 @1788943349
+# Line 1 names the commit this was run on. This step SENDS: it runs
+# tools/runner/telegram-bot.py --send-cards once, which is the same
+# pass the bot's own loop makes every 120s. One message per WAITING
+# card, with one tap button per option, and a receipt per card so an
+# unchanged card is never sent twice. Streamed, so a timeout still
+# leaves everything it learned.
+cardsPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
+cardsStatus=EXITED cardsWaitedSec=3 cardsExitCode=0
+cardsStream=cards-raw.txt cardsLines=7
+10:42:29    card sent: "Is Mickey's a free house or a tied house?" cardId=85bff034 options=2
+10:42:29    card sent: "How big is Mickey's on Quay Street?" cardId=341aa761 options=2
+10:42:30    card sent: "The gully grate is under the road. Raise it flush, or cut the ground?" cardId=4f99f11e options=2
+10:42:30    card sent: "Which bay is Mickey's?" cardId=ead0341a options=2
+10:42:30    card sent: "How close should strangers stand?" cardId=c37b5b24 options=3
+10:42:30    card sent: "The pages cannot be published until the studio's branch may deploy" cardId=803a6f77 options=2
+10:42:30  cards-sent: cardsSent=6/6 waiting skipped=0/6 failed=0/6 waitingTotal=6 file=production/decision-queue.md
+cardsStream=cards-raw.txt.err cardsLines=0
