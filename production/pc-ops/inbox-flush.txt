@@ -1,4 +1,4 @@
-# LEDGER one inbox flush - de326cf @1788944051
+# LEDGER one inbox flush - 884f049 @1788951350
 # Line 1 names the commit this was run on. This step PUSHES the
 # return half: his messages and the bot's own receipts, onto
 # pc-inbox. It sends nothing and loads no credentials. The return
@@ -12,9 +12,21 @@
 # read ok= and detail= below, and pcInboxHeadShort in the verify step,
 # before calling it fixed. Last measurement: HUNG at 150s, 12 waiting.
 flushPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
-flushRepoHead=de326cf73
+flushRepoHead=884f049c4
+# QUEUE 189 GATE, and the two shas below are DIFFERENT QUESTIONS.
+# flushCheckoutRunSha is the commit CI was started FOR. flushCheckoutPcHeadSha is the
+# commit HIS CHECKOUT was AT when this step read it. Line 1 of this
+# file names the first one, which is why it could be true and
+# misleading at once (queue 189). CONTAINS, not equals: his PC
+# commits its own evidence, so flushCheckoutAheadCommits above 0 is normal.
+# flushCheckoutBehindSecByCommitTime is the run's committer time minus the
+# checkout head's, so positive means his files are older.
+flushCheckoutRunSha=884f049c4f5d2cdc9836138c613a29b56f176601 flushCheckoutPcHeadSha=884f049c4f5d2cdc9836138c613a29b56f176601 flushCheckoutContains=yes flushCheckoutOutcome=contains flushCheckoutDecision=send
+flushCheckoutBehindCommits=0 flushCheckoutAheadCommits=0 flushCheckoutBehindSecByCommitTime=0 flushCheckoutPcHeadCommitIso=2026-09-09T10:54:40Z
+flushCheckoutWaitedSec=0/30 flushCheckoutPolls=1 flushCheckoutPollSec=5 flushCheckoutSeries=0s/884f049c4f flushCheckoutSeriesShown=1/1
+flushCheckoutReason=his-checkout-contains-this-runs-commit/the-files-this-step-reads-are-at-or-ahead-of-the-push
 flushStatus=EXITED flushWaitedSec=3 flushExitCode=0
 flushStream=flush-raw.txt flushLines=2
-10:54:11  flush: waiting=0 tip=4e1c0b6
-10:54:11  flush done: pushed=0/0 waiting=0 tracked=528, the branch already carries every file on this disk
+12:55:51  flush: waiting=0 tip=4c29a45
+12:55:51  flush done: pushed=0/0 waiting=0 tracked=529, the branch already carries every file on this disk
 flushStream=flush-raw.txt.err flushLines=0

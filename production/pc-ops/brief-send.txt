@@ -1,0 +1,27 @@
+# LEDGER one daily-brief send - 884f049 @1788951343
+# Line 1 names the commit this was run on. This step SENDS: it runs
+# tools/runner/telegram-bot.py --send-brief once. ONE message: the
+# brief a Producer turn wrote for today, checked here against the
+# register before it goes, carrying two buttons, readable and
+# unreadable. One receipt per day, so it is never sent twice. The
+# bot's loop does NOT also send it: one sender, no race. Streamed,
+# so a timeout still leaves everything it learned.
+briefPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
+# QUEUE 189 GATE, and the two shas below are DIFFERENT QUESTIONS.
+# briefCheckoutRunSha is the commit CI was started FOR. briefCheckoutPcHeadSha is the
+# commit HIS CHECKOUT was AT when this step read it. Line 1 of this
+# file names the first one, which is why it could be true and
+# misleading at once (queue 189). CONTAINS, not equals: his PC
+# commits its own evidence, so briefCheckoutAheadCommits above 0 is normal.
+# briefCheckoutBehindSecByCommitTime is the run's committer time minus the
+# checkout head's, so positive means his files are older.
+briefCheckoutRunSha=884f049c4f5d2cdc9836138c613a29b56f176601 briefCheckoutPcHeadSha=884f049c4f5d2cdc9836138c613a29b56f176601 briefCheckoutContains=yes briefCheckoutOutcome=contains briefCheckoutDecision=send
+briefCheckoutBehindCommits=0 briefCheckoutAheadCommits=0 briefCheckoutBehindSecByCommitTime=0 briefCheckoutPcHeadCommitIso=2026-09-09T10:54:40Z
+briefCheckoutWaitedSec=0/30 briefCheckoutPolls=1 briefCheckoutPollSec=5 briefCheckoutSeries=0s/884f049c4f briefCheckoutSeriesShown=1/1
+briefCheckoutReason=his-checkout-contains-this-runs-commit/the-files-this-step-reads-are-at-or-ahead-of-the-push
+briefStatus=EXITED briefWaitedSec=6 briefExitCode=0
+briefStream=brief-raw.txt briefLines=3
+12:55:44    brief sent: production/briefs/2026-09-09.md chars=890 buttons=2 messageId=56
+12:55:44  brief-send done: briefDay=2026-09-09 briefSent=1/1 briefAlready=0/1 briefRefused=0/1 briefChecked=yes briefButtons=2 briefChars=890 messageId=56 records=1 clause=none
+12:55:47    inbox: pushed 1 file(s) as 4c29a45 to pc-inbox
+briefStream=brief-raw.txt.err briefLines=0

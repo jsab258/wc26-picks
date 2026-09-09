@@ -1,4 +1,4 @@
-# LEDGER scheduled task install/verify - de326cf @1788944033
+# LEDGER scheduled task install/verify - 884f049 @1788951305
 # Line 1 names the commit this was measured on.
 # Installs tools/runner/launch-supervisor.py (wraps tools/supervise.py,
 # unmodified) as a Windows scheduled task. Ruling 2026-09-07.
@@ -44,5 +44,5 @@ install-scheduled-task: installAction=already-correct taskExists=True supervisor
 installerExitCode=0
 
 # The existing channel, read rather than duplicated (ruling point 4).
-pcInboxReachable=true pcInboxHeadShort=4e1c0b6 pcInboxLastCommitAgeSec=9
+pcInboxReachable=true pcInboxHeadShort=4c29a45 pcInboxLastCommitAgeSec=11
 pcInboxNote=this-branch-is-the-studios-own-de-facto-heartbeat;no-new-transport-was-built

@@ -1,17 +1,24 @@
-# LEDGER push diagnosis - de326cf @1788944039
+# LEDGER push diagnosis - 884f049 @1788951311
 # Line 1 names the commit this was read on. READ ONLY: nothing here
 # writes to his checkout, pushes, or prints any credential value.
 diagRepo=C:\Users\Jafar\wc26-picks diagRepoExists=True
-lsRemoteExit=0 lsRemoteSec=0.5 lsRemoteSha=ffd7a79b46b0eabb94bbf266f4aa60a28a93dc9b
-localTipRef=ffd7a79b46b0eabb94bbf266f4aa60a28a93dc9b
+lsRemoteExit=0 lsRemoteSec=0.5 lsRemoteSha=4e1c0b6e4754006a823d95182918ef4b557d0bb7
+localTipRef=4e1c0b6e4754006a823d95182918ef4b557d0bb7
 onDisk_production_inbox=2
-onDisk_production_outbound=520
+onDisk_production_outbound=527
 onDisk_production_rulings=-1
 remoteHostPath=m/jsab258/wc26-picks.git
 credentialHelper=manager
 pushDryRunExit=0
 pushDryRunSaid=Everything~up-to-date
-receiptsOnDisk=26 newestShown=16/16 (+10 older not shown)
+receiptsOnDisk=33 newestShown=16/16 (+17 older not shown)
+receipt file=? messageId=55 sent=2026-09-09T08:54:06+00:00
+receipt file=? messageId=54 sent=2026-09-09T08:54:06+00:00
+receipt file=? messageId=53 sent=2026-09-09T08:54:05+00:00
+receipt file=? messageId=52 sent=2026-09-09T08:54:05+00:00
+receipt file=? messageId=51 sent=2026-09-09T08:54:05+00:00
+receipt file=? messageId=50 sent=2026-09-09T08:54:05+00:00
+receipt file=? messageId=49 sent=2026-09-09T08:54:05+00:00
 receipt file=production/outbox/2026-09-09-the-map-changed-388cdbcead10.unprompted.md messageId=48 sent=2026-09-09T08:44:59+00:00
 receipt file=production/outbox/2026-09-09-atlas-02-research-digest.unprompted.md messageId=47 sent=2026-09-09T08:42:52+00:00
 receipt file=production/outbox/2026-09-09-morning-brief.brief.md messageId=39 sent=2026-09-09T04:28:38+00:00
@@ -21,11 +28,4 @@ receipt file=production/outbound/2026-09-08T011847Z-reply-28.receipt.txt message
 receipt file=production/outbound/2026-09-08T011847Z-reply-27.receipt.txt messageId=27 sent=2026-09-08T01:18:47+00:00
 receipt file=production/outbox/2026-09-08-you-were-right-about-11-30.unprompted.md messageId=32 sent=2026-09-08T11:52:50+00:00
 receipt file=production/outbox/2026-09-08-the-street-and-the-correction.brief.md messageId=31 sent=2026-09-08T02:34:10+00:00
-receipt file=production/outbox/2026-09-08-the-return-half-works.unprompted.md messageId=36 sent=2026-09-08T16:38:25+00:00
-receipt file=production/outbox/2026-09-08-the-four-confirmations.brief.md messageId=37 sent=2026-09-08T20:24:57+00:00
-receipt file=production/outbox/2026-09-08-the-first-crime.brief.md messageId=38 sent=2026-09-08T20:58:08+00:00
-receipt file=production/outbox/2026-09-08-closing-status.brief.md messageId=35 sent=2026-09-08T16:29:52+00:00
-receipt file=production/outbound/2026-09-07T234830Z-reply-26.receipt.txt messageId=26 sent=2026-09-07T23:48:30+00:00
-receipt file=production/outbound/2026-09-07T234830Z-reply-25.receipt.txt messageId=25 sent=2026-09-07T23:48:30+00:00
-receipt file=production/outbox/2026-09-07-the-walk.answer.md messageId=30 sent=2026-09-08T01:35:46+00:00
 diagNote=reads-plus-one-push-dry-run/no-ref-was-updated-and-nothing-was-sent
