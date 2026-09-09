@@ -3092,3 +3092,40 @@ THE TRANSFERABLE HALF, and it is the same sentence as this morning's: A LANE THA
 HAS NEVER COMPLETED ONCE HAS NO WORKING STEPS, ONLY UNFALSIFIED ONES. Three
 dispatches have now found three distinct faults, each hidden behind the one before
 it, and none of them was visible to any check that runs in this container.
+
+--------------------------------------------------------------------------------
+2026-09-09, THE ART LANE COMPLETED A RUN FOR THE FIRST TIME, AND THE PREDICTION HELD
+
+Third dispatch, 0755b44a. The verdict the recipe wrote inside Blender:
+
+    status=RAN previewsWrote=5/5 previewsZeroBytes=0/5 smallestPngBytes=1792843
+    engineUsed=BLENDER_EEVEE_NEXT samples=64/eevee-engine-default-read-back
+    objectsBuilt=171/171-planned doorsParented=5/5-authored doorLeafDrift_mm=0.0000
+    boxesAuthored=123 boxesUpper=51/123 rooms=5 doors=5 worstAimError_deg=0.0000
+    elapsedSeconds=12.8
+
+Twelve point eight seconds. The 30-minute cap was never the constraint; three
+distinct faults were, and each was invisible until the one before it was fixed.
+
+THE PREDICTION WRITTEN BEFORE THE RUN HELD. Blender was found where this repository
+said it was on 1 September, at C:\LedgerTools\blender, not under Program Files and
+not on PATH. The five roots now searched put that one first because a committed file
+said so, and the run agreed with the file.
+
+THE COMMIT STEP WORKED TOO, which nothing had ever demonstrated: six paths staged by
+name and pushed to art/atlas-01 as 46d7d759, with the sixty-odd PNGs that directory
+already held left alone. Both repairs to that step, the git array and the staging
+list built from what is on disk, were exercised by this run.
+
+WHAT THE FRAMES SHOW, opened rather than inferred. Mickey's as a corner pub in
+massing: two storeys, gable end, slate roof, a chimney, upper windows, a shopfront,
+and an oxblood board carrying the name. The interior cutaway has a bar counter down
+one side, a back bar, a partition and doorways. Flat colour throughout, no texture,
+no wear, no light doing anything, which is what a blockout is and is the honest word
+for it.
+
+THE STATUS OF THIS LANE IS NOW SAYABLE, under the rule ruled four hours ago. It is no
+longer "a lane that has never completed once and may claim only that its steps are
+written". Every step has now executed at least once on the real machine, which is a
+different sentence and a stronger one, and it took three round trips to be allowed to
+say it.
