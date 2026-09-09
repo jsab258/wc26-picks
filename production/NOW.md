@@ -9,6 +9,61 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-09 17:40Z: TWO LANES, AND NEITHER ENDS A TURN WITH WORK IN THE QUEUE
+
+Jafar, reading total 39, Fable 38, ceiling 75. His standing correction first,
+because it is about how a turn ends: "Do not stop when work lands. Continue until
+the ceiling or a limit; on a limit arm the resume and continue when it fires. The
+06:00 brief is a report on the way, not an end. If you find yourself about to end a
+turn with work in the queue and budget left, that is yesterday's fault again; arm
+the resume instead."
+
+THE GAME LANE, RUNG 1, IN HIS ORDER. Two faults are fixed FIRST because they block
+trusting any comparison at all:
+  1. Frames with identical inputs must be the same picture. Run 38 proved they are
+     not: camA_day and ladder_sun003 carry identical conditions and differ in every
+     one of 921600 pixels, the later shot darker by a luma ratio of 0.82. Find and
+     fix the shot-order exposure dependence.
+  2. The verdict must carry ONE CAMERA LINE PER SHOT (queue 208) so the shadow probe
+     can bind. It refuses on every ladder frame today and is right to.
+THEN, and only then: bring the SKY DOWN toward the reference rather than pushing the
+sun up, then wetness, then worn materials. EACH VERIFIED BY OPENING THE FRAME
+against the lower panel of the Hook sheet, which is rule 4 and is the resident's job.
+
+WHEN RUNG 1 HAS A FRAME WORTH HIS EYE it goes beside the panel in the brief and the
+studio MOVES TO RUNG 2 WITHOUT WAITING. His words: "my verdict adjusts, it does not
+gate." Nothing waits on him.
+
+THE ART LANE IS PROTECTED at a third of the week's points and now QUEUES BEHIND THE
+GAME LANE FOR THE RUNNER RATHER THAN YIELDING. That reverses the standing behaviour:
+losing a render to a game job that happened to be running is a third of a lane's
+output thrown away. A shared concurrency group is still refused, because that makes a
+game job wait behind an art job.
+
+HIS CORRECTION TO THE RECORD, AND IT REMOVES AN EXCUSE THIS STUDIO WAS LEANING ON:
+Codex's concept sheets were inspected and corrected BY CODEX ITSELF, not by a person.
+We had written "with a human eye between each pass" and built a fairness caveat on it;
+their PROVENANCE.md says only "selectively edited after visual inspection" and names no
+inspector. THE COMPARISON IS MODEL AGAINST MODEL. So it is not a fairness problem, it
+is a METHOD problem, and a method problem has a fix: our lane draws the Hook from the
+creation prompt, INSPECTS ITS OWN DRAW BY VISION, corrects once, and the result goes
+beside theirs captioned THREE PASSES AGAINST TWO. It is sent whatever it looks like.
+
+THEN the twelve-package batch, THE FASCIA FIRST, through all five stations to a real
+mesh in the street. Every day after, in the brief, as images: one district sheet
+regenerated in-house by the same three-pass method until all seven exist, one batch
+package landed as a real mesh, and the Mickey's blockout iterated from its plans
+toward a walkable interior shell. The two partial research gaps continue in the
+background.
+
+RULES FOR THE ART LANE, both of which cut against this studio's instincts: NOTHING IT
+PRODUCES IS WITHHELD FOR QUALITY OR FAIRNESS, it is sent with an honest caption and he
+decides; and NO NEW INSTRUMENT IS BUILT FOR IT THIS WEEK, because what exists is
+enough to judge by eye.
+
+THE CHANNEL: nothing reaches him except the daily brief and a genuinely Blocking card.
+Every decision with a recommendation is TAKEN and logged.
+
 ## 2026-09-09 15:55Z: EVERYTHING HE ASKED FOR ON 9 SEPTEMBER IS LANDED
 
 His three owed items and the map ruling are done and pushed. In his order:

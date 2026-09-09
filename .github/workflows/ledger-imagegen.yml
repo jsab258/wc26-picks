@@ -46,6 +46,23 @@ name: LEDGER imagegen batch
 # `workflow_dispatch:` only. Nothing else in .github/workflows lists those
 # paths.
 #
+# WHERE THE PICTURES GO IS NO LONGER FIXED, WHICH QUALIFIES THE PARAGRAPH
+# ABOVE. `spec` and `out`, read from the sentinel by imagegen.py
+# --batch-settings and exported as BATCH_SPEC and BATCH_OUT, let one run draw a
+# one-off spec into a directory that is not the shipped decals directory. That
+# is the only way to make a comparison board without adding its items to the
+# library, where every later night would regenerate them. So a run's committed
+# paths are BATCH_OUT plus game-design/agent-reports/machine-report.txt, and
+# what a run triggers depends on where its `out` points. Checked against
+# .github/workflows on 2026-09-09: the only push filters over production/ are
+# this file's own sentinel (production/d1-probe/RUN-IMAGEGEN),
+# ledger-art-blender-preview's production/pc-ops/art-preview.request, and the
+# supervisor task's production/outbox/**, production/briefs/** and
+# production/decision-queue.md. An `out` under any of those re-fires that
+# workflow. The value in the sentinel today, production/art/compare/
+# hook-2026-09-09, matches none of them, and game-design/** still starts the
+# one cheap core-tests run.
+#
 # IT DOES CONTEND FOR THE MACHINE, WHICH IS THE ONE COST WORTH SAYING OUT LOUD.
 # `ledger-pc` is one PC. A batch running here is a Unity build waiting, so the
 # batch is BOUNDED rather than open-ended: BATCH_LIMIT below caps how many
@@ -93,6 +110,11 @@ name: LEDGER imagegen batch
 # covered by `imagegen.py --selftest` (137 checks, both outcomes); this file's
 # own control flow is not, which is why the first dispatch is deliberately
 # four pictures and why the selftest runs here as a step before anything else.
+# THE spec/out WIRING AND THE REFUSAL GUARD IN THE GENERATE STEP ARE THE
+# NEWEST UNRUN PART, added 2026-09-09. No lint here can prove a bash guard's
+# behaviour on a machine this container has never reached; what the first
+# dispatch has to show is specAsked beside batchSpec, genDir beside the
+# verdict's own outDir, and the printed argv carrying --spec and --out.
 on:
   workflow_dispatch:
     inputs:
@@ -104,6 +126,18 @@ on:
         required: false
       max_minutes:
         description: "wall-clock cap on the generating loop, minutes (blank means 60)"
+        required: false
+      # THE TWO ROUTES TAKE THE SAME FIVE KEYS, so they cannot disagree about
+      # what a run is. imagegen.py --batch-settings reads `spec` and `out`
+      # from the sentinel and from these inputs in one function, with the
+      # dispatch input outranking the file, and exports BATCH_SPEC and
+      # BATCH_OUT. Blank means the old behaviour in both cases: the library
+      # beside the tool, and the shipped decals directory.
+      spec:
+        description: "the prompt spec to read (blank means the 45-item library beside the tool)"
+        required: false
+      out:
+        description: "output directory, relative to the checkout (blank means the shipped decals directory). A one-off spec MUST name one: this workflow refuses a spec with no out"
         required: false
   push:
     paths:
@@ -157,6 +191,19 @@ jobs:
       INPUT_LIMIT: ${{ github.event.inputs.limit || '' }}
       INPUT_ONLY: ${{ github.event.inputs.only || '' }}
       INPUT_MAX_MINUTES: ${{ github.event.inputs.max_minutes || '' }}
+      INPUT_SPEC: ${{ github.event.inputs.spec || '' }}
+      INPUT_OUT: ${{ github.event.inputs.out || '' }}
+
+      # THE SHIPPED DIRECTORY, SPELLED ONCE IN THIS FILE. Three steps below
+      # need a repo-relative path for git (staging, ls-tree, and the cat of
+      # the verdict), and a second hand-spelled copy of it is how two of them
+      # end up measuring different directories. It is the same string as
+      # imagegen.py output_dir()'s repo default, and the two are compared
+      # every run without a human: this file prints `genDir=` and the verdict
+      # imagegen.py writes prints `outDir=` with that directory's own name.
+      # It is NOT the answer when BATCH_OUT is set; it is the answer when it
+      # is not.
+      GENDIR_DEFAULT: ledger/Assets/StreamingAssets/Decals/generated
 
     # WHICH STEPS MAY STOP THE JOB, DECIDED ONCE AND WRITTEN DOWN RATHER THAN
     # DRIFTED INTO. Run 33654488608 raised the question the honest way: one
@@ -411,6 +458,15 @@ jobs:
       #   --max-minutes    the loop's wall-clock cap (line 3069)
       #   --repo           GITHUB_WORKSPACE, so the pictures land in the game
       #   --workspace      outside the repo, where the weights already are
+      #   --spec           WHICH prompt file; omitted means the shipped
+      #                    library beside the tool, and a path nobody can read
+      #                    is refused there with exit 7 before the 6.7 GB
+      #   --out            WHERE the pictures go; omitted means the shipped
+      #                    decals directory. Passed to the two read-only calls
+      #                    in the commit step as well, because output_dir() is
+      #                    one implementation and all three callers have to be
+      #                    told the same thing or two of them measure a
+      #                    directory the third never wrote to.
       - name: Generate the batch
         id: generate
         timeout-minutes: 260
@@ -432,8 +488,93 @@ jobs:
             BATCH_LIMIT=4
             BATCH_ONLY=""
             BATCH_MAX_MINUTES=60
+            # FIVE KEYS, NOT THREE. The fallback means the small library batch,
+            # so it clears the two that name a different run; a BATCH_SPEC
+            # surviving a settings step that died would be a value nothing
+            # validated. The guard below turns "asked for and not here" into a
+            # stop rather than into a library run.
+            BATCH_SPEC=""
+            BATCH_OUT=""
           fi
-          echo "batchLimit=${BATCH_LIMIT:-none} batchOnly=${BATCH_ONLY:-none} batchMaxMinutes=${BATCH_MAX_MINUTES}"
+          # WAS A SPEC ASKED FOR, AND IS THIS STEP PASSING ONE? The check sits
+          # HERE, in the step that builds the arguments, because this is the
+          # only place that holds both facts, and it sits BEFORE the tool is
+          # called because everything after that point costs the GPU or writes
+          # a file. imagegen.py cannot make this check: invoked with no --spec
+          # it reads the library and has no way to know a spec was ever
+          # requested. It refuses a spec it cannot READ (exit 7); it can never
+          # refuse a spec it was never TOLD about.
+          # THE FAILURE THIS PREVENTS IS NOT EXOTIC. The settings step above is
+          # continue-on-error, so a run where it dies exports no BATCH_SPEC and
+          # this step would generate the 45-item shipped library into the
+          # shipped decals directory, then main() writes manifest.json and
+          # calls write_attribution UNCONDITIONALLY on whatever run_batch
+          # returned, including a REFUSED one. The commit step stages
+          # manifest.json, made.json, PROGRESS.txt and ATTRIBUTION.json by
+          # name. The 45 shipped PNGs would survive; their provenance would
+          # not. Stopping costs one dispatch; that costs a file nobody can
+          # rebuild.
+          # THE DETECTOR IS COARSE AND FAILS CLOSED. It parses no value and
+          # produces none. It strips `#` to end of line exactly as
+          # batch_settings does, and it is LAST-WINS exactly as batch_settings
+          # is, which is not a detail: this sentinel is append-only, so run 5's
+          # `spec:` line is in the file for ever and the only way a later run
+          # goes back to the library is by appending an EMPTY `spec:` to
+          # cancel it. A detector that counted every spec line instead of
+          # reading the last one would refuse every run after run 5. That is
+          # not a guess about the future; the first version written here did
+          # exactly that and the cancelling fixture caught it.
+          # Where it could still disagree with the tested parser it errs toward
+          # "asked", which stops a run that could have proceeded rather than
+          # running one nobody asked for.
+          SENTINEL=production/d1-probe/RUN-IMAGEGEN
+          SENT_STATE=absent-nothing-read
+          SENT_LINES=0
+          SPEC_LINES=0
+          OUT_LINES=0
+          SPEC_LAST=""
+          OUT_LAST=""
+          if [ -f "$SENTINEL" ]; then
+            SENT_STATE=read
+            SENT_LINES="$(grep -c '' "$SENTINEL" || true)"
+            SPEC_LINES="$(sed 's/#.*//' "$SENTINEL" | grep -Eci '^[[:space:]]*spec[[:space:]]*[:=]' || true)"
+            OUT_LINES="$(sed 's/#.*//' "$SENTINEL" | grep -Eci '^[[:space:]]*out[[:space:]]*[:=]' || true)"
+            SPEC_LAST="$(sed 's/#.*//' "$SENTINEL" | grep -Ei '^[[:space:]]*spec[[:space:]]*[:=]' | tail -n 1 || true)"
+            OUT_LAST="$(sed 's/#.*//' "$SENTINEL" | grep -Ei '^[[:space:]]*out[[:space:]]*[:=]' | tail -n 1 || true)"
+          fi
+          SPEC_ASKED=no
+          OUT_ASKED=no
+          SPEC_LASTVAL=empty
+          OUT_LASTVAL=empty
+          # A VALUE, NOT A MENTION: the last line for the key has to carry
+          # something after its separator. An empty one is the cancel.
+          if printf '%s' "$SPEC_LAST" | grep -Eq '[:=][[:space:]]*[^[:space:]]'; then
+            SPEC_ASKED=sentinel-file/lastOf$SPEC_LINES
+            SPEC_LASTVAL=set
+          fi
+          if printf '%s' "$OUT_LAST" | grep -Eq '[:=][[:space:]]*[^[:space:]]'; then
+            OUT_ASKED=sentinel-file/lastOf$OUT_LINES
+            OUT_LASTVAL=set
+          fi
+          if [ -n "${INPUT_SPEC:-}" ]; then SPEC_ASKED=dispatch-input; fi
+          if [ -n "${INPUT_OUT:-}" ]; then OUT_ASKED=dispatch-input; fi
+          echo "specAsked=$SPEC_ASKED outAsked=$OUT_ASKED sentinel=$SENT_STATE specKeyLines=$SPEC_LINES specLastValue=$SPEC_LASTVAL outKeyLines=$OUT_LINES outLastValue=$OUT_LASTVAL sentinelLinesRead=$SENT_LINES batchSettings=${BATCH_SETTINGS_OK:-DID-NOT-RUN}"
+          if [ "$SPEC_ASKED" != "no" ] && [ -z "${BATCH_SPEC:-}" ]; then
+            echo "specPassed=none outPassed=${BATCH_OUT:-none} itemsExamined=0 picturesGenerated=0 result=nothing-measured"
+            echo "REFUSED: a spec was asked for by $SPEC_ASKED and this step was handed none, so the run would have read the 45-item shipped library instead of what was asked for, and written a manifest and an ATTRIBUTION.json over the shipped decals directory. Nothing measured: 0 items examined, 0 pictures generated, no GPU spent, nothing written. The settings step above says what it did; fix that, or clear the spec request, and run again."
+            exit 7
+          fi
+          if [ "$OUT_ASKED" != "no" ] && [ -z "${BATCH_OUT:-}" ]; then
+            echo "specPassed=${BATCH_SPEC:-none} outPassed=none itemsExamined=0 picturesGenerated=0 result=nothing-measured"
+            echo "REFUSED: an output directory was asked for by $OUT_ASKED and this step was handed none, so the pictures would have landed in the shipped decals directory and the manifest there would have been written over. Nothing measured: 0 items examined, 0 pictures generated."
+            exit 7
+          fi
+          if [ -n "${BATCH_SPEC:-}" ] && [ -z "${BATCH_OUT:-}" ]; then
+            echo "specPassed=$BATCH_SPEC outPassed=none itemsExamined=0 picturesGenerated=0 result=nothing-measured"
+            echo "REFUSED: a one-off spec was named with no out, and the two are not separable here. write_attribution rewrites ATTRIBUTION.json in the output directory from THIS run's manifest, so a four-item spec generated into the shipped decals directory replaces the provenance of everything already committed there. imagegen.py's own --spec help says a one-off spec belongs in its own file with its own --out. Add an out: line to the sentinel, or pass the out dispatch input, and run again. Nothing measured: 0 items examined, 0 pictures generated."
+            exit 8
+          fi
+          echo "batchLimit=${BATCH_LIMIT:-none} batchOnly=${BATCH_ONLY:-none} batchMaxMinutes=${BATCH_MAX_MINUTES} batchSpec=${BATCH_SPEC:-none} batchOut=${BATCH_OUT:-none}"
           ARGS=(all
                 --machine "$IMAGEGEN_MACHINE"
                 --workspace "$IMAGEGEN_WS"
@@ -444,6 +585,14 @@ jobs:
                 --max-minutes "$BATCH_MAX_MINUTES")
           if [ -n "$BATCH_LIMIT" ]; then ARGS+=(--limit "$BATCH_LIMIT"); fi
           if [ -n "$BATCH_ONLY" ]; then ARGS+=(--only "$BATCH_ONLY"); fi
+          # APPENDED ONLY WHEN NON-EMPTY, exactly as the two above. An empty
+          # --spec and an empty --out are both read as "not given" by
+          # spec_file() and output_dir(), so passing them would be harmless;
+          # they are still left off, because a run that took a new path
+          # through an old default is not the same evidence as a run that took
+          # the old path, and the printed argv below is what says which.
+          if [ -n "${BATCH_SPEC:-}" ]; then ARGS+=(--spec "$BATCH_SPEC"); fi
+          if [ -n "${BATCH_OUT:-}" ]; then ARGS+=(--out "$BATCH_OUT"); fi
           echo "imagegen.py ${ARGS[*]}"
           python3 tools/imagegen/imagegen.py "${ARGS[@]}" 2>&1 | tee -a imagegen-run.log
 
@@ -518,6 +667,21 @@ jobs:
           # <directory>` is what does that, so it is not used here. A
           # `.BLANK.png` is never staged: it stays on the runner as evidence,
           # and its four numbers are already in the verdict.
+          # WHERE THIS RUN'S PICTURES LIVE, DECIDED ONCE, BEFORE THE FIRST
+          # READER. Same selection rule as the generate step's --out:
+          # BATCH_OUT when the run named one, the shipped directory when it
+          # did not. Both spellings are relative to the checkout root, which
+          # is this step's working directory, and that is what lets one string
+          # serve git and python at once. It is printed beside the verdict's
+          # own `outDir=` so the two can be compared without a human.
+          # ONE EXPRESSION, WRITTEN THE SAME WAY IN BOTH STEPS THAT NEED IT,
+          # so a grep for it finds every reader and neither can drift into a
+          # different rule. `:-` and not `-`: BATCH_OUT set but empty is the
+          # library run, which is the same answer as unset.
+          GENDIR="${BATCH_OUT:-$GENDIR_DEFAULT}"
+          GENDIR_SOURCE=default-shipped-decals
+          if [ -n "${BATCH_OUT:-}" ]; then GENDIR_SOURCE=batch-out; fi
+          echo "genDir=$GENDIR genDirSource=$GENDIR_SOURCE"
           staged=0
           while read -r f; do
             # PRINTED WITH %q BEFORE ANYTHING TOUCHES IT. Windows Python ends
@@ -534,8 +698,16 @@ jobs:
             else
               echo "  NOT ON DISK under $PWD, not staged"
             fi
+          # `--out` PASSED UNCONDITIONALLY, INCLUDING EMPTY, AND THAT IS
+          # SAFE RATHER THAN SLOPPY: output_dir() takes `--out` only when it
+          # is truthy and otherwise falls back to --repo's default, so an
+          # empty value here resolves to exactly the directory this call
+          # resolved to before this line existed. One call site rather than an
+          # if with two copies of the command, because two copies of a command
+          # is how one of them keeps a flag the other loses.
           done < <(python3 tools/imagegen/imagegen.py --staged-files \
-                     --repo "$GITHUB_WORKSPACE" --run-sha "$SHORT")
+                     --repo "$GITHUB_WORKSPACE" --run-sha "$SHORT" \
+                     --out "${BATCH_OUT:-}")
           # The machine report, by name, and only if THIS run wrote it. It is
           # the file that says what the PC is and why a stopped run stopped,
           # so it matters most exactly when the batch failed.
@@ -553,7 +725,6 @@ jobs:
           # happened to four PNGs regenerated byte-identically.
           STAGEDLIST="${RUNNER_TEMP:-.}/imagegen-staged.txt"
           HEADLIST="${RUNNER_TEMP:-.}/imagegen-head.txt"
-          GENDIR=ledger/Assets/StreamingAssets/Decals/generated
           rm -f "$STAGEDLIST" "$HEADLIST"
           if git diff --cached --name-only > "$STAGEDLIST"; then
             echo "gitAddCalls=$staged pathsWithAChange=$(grep -c . "$STAGEDLIST" || echo 0)"
@@ -576,7 +747,7 @@ jobs:
           # instead of the answer.
           vrc=0
           python3 tools/imagegen/imagegen.py --verdict --repo "$GITHUB_WORKSPACE" \
-            --run-sha "$SHORT" --steps "$STEPS" \
+            --run-sha "$SHORT" --steps "$STEPS" --out "${BATCH_OUT:-}" \
             --staged-list "$STAGEDLIST" --in-head-list "$HEADLIST" || vrc=$?
           echo "$vrc" > .imagegen-verdict-rc
           echo "verdict exit code $vrc (0 means the pictures this run made are IN THIS COMMIT)"
@@ -629,13 +800,22 @@ jobs:
             --work "selftest=${{ steps.selftest.outcome }},probe=${{ steps.probe.outcome }},generate=${{ steps.generate.outcome }},attribution=${{ steps.attribution.outcome }}" \
             --non-gating "probe" \
             --cause "selftest=imagegen.py does not pass its own checks on this machine; nothing below is trustworthy" \
-            --cause "generate=the exit code says which: 2 disk, 3 setup, 4 nothing came out, 5 stopped before downloading (no GPU found), 6 a BLANK or unreadable PNG. The machine report in the commit above says what was found." \
+            --cause "generate=the exit code says which: 2 disk, 3 setup, 4 nothing came out, 5 stopped before downloading (no GPU found), 6 a BLANK or unreadable PNG, 7 a spec was asked for and not read (imagegen.py could not read the file, or this workflow was not handed one and stopped before the GPU rather than falling through to the shipped library), 8 this workflow refused a one-off spec that named no output directory, because generating one into the shipped decals directory rewrites the ATTRIBUTION.json of everything already committed there. The machine report in the commit above says what was found, and the step's own log prints specAsked beside specPassed." \
             --cause "attribution=tools/attribution-check.py returned non-zero; a file arrived without the attribution it owes" \
             --cause "probe=the probe reported non-success. THE PROBE IS NOT A GATE: exit 10 means no display adapter was found, and imagegen.py's own gate is what decided what that is worth" \
             || bad=1
-          echo "--- the committed verdict ---"
-          cat ledger/Assets/StreamingAssets/Decals/generated/imagegen-verdict.txt 2>/dev/null \
-            || echo "NO VERDICT FILE - the run did not reach the verdict step's own writer"
+          # THE VERDICT THIS RUN WROTE, AND IT IS NOT ALWAYS IN THE SHIPPED
+          # DIRECTORY NOW. imagegen.py --verdict writes into the output
+          # directory it was given, so a run carrying an `out` puts it there.
+          # A path hard-coded here would print the PREVIOUS run's verdict,
+          # from a directory this run never wrote to, under this run's name,
+          # which is the green number standing in for the frame. Same
+          # selection rule as the commit step and the same single spelling of
+          # the default.
+          GENDIR="${BATCH_OUT:-$GENDIR_DEFAULT}"
+          echo "--- the committed verdict, from $GENDIR ---"
+          cat "$GENDIR/imagegen-verdict.txt" 2>/dev/null \
+            || echo "NO VERDICT FILE under $GENDIR - the run did not reach the verdict step's own writer"
           rc="$(cat .imagegen-verdict-rc 2>/dev/null || echo 1)"
           [ "$rc" = "0" ] || { echo "VERDICT RED - this commit banked no picture, or banked a blank one. The done line above says which and how many, with its denominator."; bad=1; }
           # `if`, not `[ ... ] && echo`. The two behave the same under -e (a

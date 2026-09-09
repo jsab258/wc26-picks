@@ -455,11 +455,11 @@ def main(argv=None):
     ap.add_argument("--pieces", default=PIECES)
     ap.add_argument("--shot", default=SHOT_ID)
     ap.add_argument("--camera", default=CAM_ID)
-    # FAIL-CLOSED BY DEFAULT. The verdict's shotCam line is one-per-run and
-    # last-wins, so it only describes the LAST camera a run placed. Reading a
-    # frame whose camera that line does not describe needs this flag, which
-    # names itself on the output, and the control-quad reprojection is then
-    # the only evidence the camera is right.
+    # FAIL-CLOSED BY DEFAULT. A verdict written before queue 208 carries only
+    # a one-per-run shotCam line describing the LAST camera the run placed.
+    # Reading a frame whose camera that line does not describe needs this
+    # flag, which names itself on the output, and the control-quad
+    # reprojection is then the only evidence the camera is right.
     ap.add_argument("--camera-from-json", action="store_true")
     ap.add_argument("--dump-mask", default=None)
     args = ap.parse_args(argv)
@@ -494,10 +494,10 @@ def run(out, stride_shadow, stride_contact, pieces_path=PIECES,
         % (commit, shot_id, cam_id))
 
     # ---- the camera, taken from the engine's own readback ----------------
-    # FAIL CLOSED. The shotCam line is one-per-run/last-wins, so it is only
-    # the hook camera's if its eye height and yaw match the hook shot's. If
-    # they do not, this tool must refuse rather than trace a camera that took
-    # a different picture.
+    # FAIL CLOSED. Whichever line the pose came off, it is only the hook
+    # camera's if its eye height and yaw match the hook shot's. If they do
+    # not, this tool must refuse rather than trace a camera that took a
+    # different picture.
     cam_json = None
     for c in spec["cameras"]:
         if c["id"] == cam_id:
@@ -506,20 +506,40 @@ def run(out, stride_shadow, stride_contact, pieces_path=PIECES,
         say(out, "probeStatus=NO-CAMERA probeNote=no-" + cam_id
             + "-in-the-pieces-file probe=nothing-measured")
         return out
-    read_xyz = [float(v) for v in keys["shotCamReadXYZcm"].split("/")]
-    read_py = [float(v) for v in keys["shotCamReadPitchYaw"].split("/")]
+    # QUEUE 208: THE POSE IS A PER-SHOT KEY NOW, AND THIS IS THE ONLY THING
+    # THAT CHANGED IN THIS TOOL. It reads the SHOT's own camera keys when the
+    # verdict carries them and falls back to the one-per-run line when it does
+    # not, so a verdict written before 2026-09-09 reads exactly as it did.
+    # Which source answered is printed, because a bind off the run line is
+    # last-wins and a bind off the shot line is not, and nothing else here
+    # could tell them apart. Nothing below this block moved: the rule, the
+    # tolerances and every measurement are untouched.
+    cam_src = "shot-line" if "shotCamReadXYZcm" in shot else "run-line-one-per-run"
+    src = shot if cam_src == "shot-line" else keys
+    try:
+        read_xyz = [float(v) for v in src["shotCamReadXYZcm"].split("/")]
+        read_py = [float(v) for v in src["shotCamReadPitchYaw"].split("/")]
+    except (KeyError, ValueError):
+        # A POSE THE VERDICT COULD NOT MEASURE IS NOT A POSE AT THE ORIGIN.
+        say(out, "camBind=REFUSED camBindFrom=%s camReadXYZcm=nothing-measured"
+                 " camReadPitchYaw=nothing-measured"
+                 " camBindRule=this-shots-own-camera-keys-must-match-this-shots-eye-and-this-cameras-angles"
+            % cam_src)
+        say(out, "probeStatus=REFUSED probe=nothing-measured")
+        return out
     eye_shot = float(shot["eye"].split("/")[0])
     bind_ok = (abs(read_xyz[2] / 100.0 - eye_shot) <= 0.01
                and abs(read_py[1] - cam_json["yaw_deg"]) <= 0.05
                and abs(read_py[0] + cam_json["pitch_deg"]) <= 0.05
                and abs(read_xyz[0] / 100.0 - cam_json["x_m"]) <= 0.01
                and abs(read_xyz[1] / 100.0 - cam_json["z_m"]) <= 0.01)
-    say(out, "camBind=%s camReadXYZcm=%.1f/%.1f/%.1f camReadPitchYaw=%.1f/%.1f"
+    say(out, "camBind=%s camBindFrom=%s camReadXYZcm=%.1f/%.1f/%.1f camReadPitchYaw=%.1f/%.1f"
              " camShotEyeM=%.3f camJsonXZYawPitch=%.1f/%.1f/%.1f/%.1f"
-             " camBindRule=the-one-per-run-shotCam-line-must-match-this-shots-eye-and-this-cameras-angles"
+             " camBindRule=this-shots-own-camera-keys-must-match-this-shots-eye-and-this-cameras-angles"
         % ("MATCHES-" + cam_id if bind_ok
            else ("FROM-JSON-AND-SHOT-EYE/the-quad-reprojection-below-is-the-evidence"
                  if cam_from_json else "REFUSED"),
+           cam_src,
            read_xyz[0], read_xyz[1], read_xyz[2], read_py[0], read_py[1],
            eye_shot, cam_json["x_m"], cam_json["z_m"], cam_json["yaw_deg"],
            cam_json["pitch_deg"]))

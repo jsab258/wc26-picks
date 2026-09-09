@@ -483,6 +483,72 @@ int main()
 		      "a blown band counts every clipped pixel over its own denominator");
 	}
 
+	{
+		// ---- THE RIG'S OWN DETERMINISM, ACCEPTING CASE FIRST -------------
+		//
+		// The accepting case is the one that matters: two takes of the same
+		// picture must read IDENTICAL with a zero count over a real
+		// denominator, or the key can never clear and the guard is a ratchet.
+		const int W = 40, H = 40;
+		std::vector<unsigned char> A = Flat(W, H, 100, 110, 120);
+		std::vector<unsigned char> B = A;
+		const RepeatDiff Same = MeasureRepeat(A.data(), B.data(), W, H);
+		const std::string L = RigDeterminismLine("vign_camA_day", 11, 11, "MEASURED", Same);
+		std::printf("    %s\n", L.c_str());
+		Check(Same.Comparable && Same.Pixels == 1600 && Same.DiffPixels == 0
+		      && Same.MaxAbsChannel == 0 && Near(Same.MeanLumaDelta, 0.0),
+		      "two identical frames differ in no pixel and no channel");
+		Check(L.find("rigDeterminism=IDENTICAL") != std::string::npos
+		      && L.find("rigDiffPixels=0/1600") != std::string::npos
+		      && L.find("rigMaxAbsChannelDiff=0/255") != std::string::npos,
+		      "and the line says IDENTICAL with the zero beside its denominator");
+		Check(L.find("rigRepeatAfterShots=11/11") != std::string::npos,
+		      "the repeat prints how many shots stood between it and the first frame");
+		Check(ValuesHaveNoSpaces(L), "the rig determinism line is space-free");
+
+		// ---- AND THE PLANTED CASE THE KEY EXISTS TO CATCH ----------------
+		//
+		// Rule 5b: the thing it asserts must be shown to be able to happen.
+		// Three pixels moved, one of them by 7 codes, and the run 38 shape
+		// planted in miniature: the repeat uniformly darker.
+		B[0 * 4 + 1] = 103;                       // green, 7 codes down
+		B[1 * 4 + 2] = 119;                       // red, 1 code down
+		B[2 * 4 + 0] = 101;                       // blue, 1 code up
+		const RepeatDiff Moved = MeasureRepeat(A.data(), B.data(), W, H);
+		const std::string M = RigDeterminismLine("vign_camA_day", 11, 11, "MEASURED", Moved);
+		std::printf("    %s\n", M.c_str());
+		Check(Moved.DiffPixels == 3 && Moved.MaxAbsChannel == 7,
+		      "three moved pixels are counted and the worst channel is the worst one");
+		Check(M.find("rigDeterminism=DIFFERS") != std::string::npos
+		      && M.find("rigDiffPixels=3/1600") != std::string::npos
+		      && M.find("rigMaxAbsChannelDiff=7/255") != std::string::npos,
+		      "a rig that moved says DIFFERS and prints how far, over its denominator");
+		Check(Moved.MeanLumaRepeat < Moved.MeanLumaFirst
+		      && M.find("rigMeanLumaDelta=-") != std::string::npos,
+		      "a repeat that came back darker prints a signed negative delta");
+
+		// ---- AND A RUN THAT COULD NOT TAKE THE REPEAT --------------------
+		//
+		// No repeat and no difference are the two readings this key exists
+		// to keep apart, so an unmeasured run may not print a zero.
+		const RepeatDiff None = MeasureRepeat(A.data(), 0, W, H);
+		const std::string N = RigDeterminismLine("", 0, 11, "NO-FIRST-FRAME", None);
+		std::printf("    %s\n", N.c_str());
+		Check(!None.Comparable && None.Pixels == 0,
+		      "a missing half measures nothing rather than measuring agreement");
+		Check(N.find("rigDeterminism=NOTHING-MEASURED") != std::string::npos
+		      && N.find("rigRepeatStatus=NO-FIRST-FRAME") != std::string::npos
+		      && N.find("rigDiffPixels=nothing-measured") != std::string::npos,
+		      "and the line says the words rather than printing a zero difference");
+		Check(ValuesHaveNoSpaces(N), "the nothing-measured rig line is space-free too");
+		// A DECODED PAIR THE CALLER MARKED UNMEASURED STAYS UNMEASURED: the
+		// status word is the caller's and it outranks the arithmetic.
+		const std::string P = RigDeterminismLine("vign_camA_day", 11, 11, "NO-FILE", Same);
+		Check(P.find("rigDeterminism=NOTHING-MEASURED") != std::string::npos
+		      && P.find("rigRepeatStatus=NO-FILE") != std::string::npos,
+		      "a repeat whose file never landed cannot read as IDENTICAL");
+	}
+
 	std::printf("frame-stats-test: %d check(s), %d failure(s)\n", Checks, Failures);
 	return Failures == 0 ? 0 : 2;
 }

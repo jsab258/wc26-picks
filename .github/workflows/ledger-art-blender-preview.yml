@@ -1,19 +1,34 @@
 name: LEDGER art Blender preview
 
-# OPT-IN AND LOWEST PRIORITY, ruled by Jafar 2026-09-08. Two separate
-# properties and they are achieved by two separate mechanisms, because a
-# concurrency group alone gives neither:
+# OPT-IN AND LAST IN LINE, ruled by Jafar 2026-09-08 and REVISED by him
+# 2026-09-09. Two separate properties and they are achieved by two separate
+# mechanisms, because a concurrency group alone gives neither:
 #
 #   OPT-IN      workflow_dispatch only. There is no push, schedule or
 #               pull_request trigger, so nothing anybody commits can start
 #               this. Art work is never a reason for a studio push to cost
 #               runner time.
-#   LOWEST      it YIELDS rather than QUEUES. A concurrency group would make
-#               a game job wait behind this one, which is the opposite of
-#               what was asked. The first step asks GitHub whether any game
-#               workflow is in progress on this repository and, if one is,
-#               exits without doing anything and says so. Yielding loses this
-#               run; queueing would cost the game one.
+#   LAST        it QUEUES rather than YIELDS. Jafar 2026-09-09, verbatim:
+#               "Art lane, protected, at a third of the week's points,
+#               queuing behind the game lane for the runner rather than
+#               yielding." The queue step polls GitHub until the five game
+#               workflows are clear and then renders, and refuses loudly at
+#               a cap rather than either losing the run silently or waiting
+#               for ever.
+#
+# THE HALF OF THE OLD REASONING THAT STANDS, AND ALWAYS WILL. A `concurrency`
+# group SHARED with the game jobs is refused: it makes a GAME job queue behind
+# an ART render, which is the reverse of the priority Jafar has now stated
+# twice. The group below is art-only for that reason. Do not reach for
+# `concurrency` across the two lanes.
+#
+# THE HALF THAT CHANGED. This step used to exit having rendered nothing on the
+# first busy reading, on the accounting "yielding loses this run; queueing
+# would cost the game one". Both sides of that are now wrong. The art lane is
+# protected work at a third of the week's points, so its run is no longer the
+# cheap thing to lose; and the cost to the game lane is not one job, it is
+# bounded by the queue cap and printed as a series, so it can be read and
+# argued with instead of assumed.
 #
 # It runs a NAMED recipe. `tools/art-recipes/mickeys-blockout.py` renders the
 # atlas-01 commission's five authored views, and the step refuses with the name
@@ -57,13 +72,30 @@ concurrency:
 
 jobs:
   preview:
-    runs-on: [self-hosted, windows]
+    # PINNED TO THE MACHINE, NOT TO AN OS LABEL, queue 200. This read
+    # [self-hosted, windows] until 2026-09-09 where the other eight
+    # self-hosted workflows read [self-hosted, ledger-pc]. `windows` is a
+    # label the runner application adds by itself, not a machine name, and it
+    # matched only because ledger-pc happens to carry both. Nothing was broken
+    # today; the hazard was future and quiet. A second Windows runner joining
+    # the account becomes eligible for Blender renders on a machine with no
+    # Blender, and that failure reads as a broken recipe rather than as a
+    # misrouted job. Nine self-hosted workflows now name the same machine.
+    runs-on: [self-hosted, ledger-pc]
     # A CEILING ON A HANG, NOT A TARGET, and it sits above the sum of the step
-    # caps below (2 checkout + 1 PATH bootstrap + 1 yield + 6 art checkout +
-    # 1 studio checkout + 30 render + 2 commit = 43). Blender rendering five
-    # frames is the only step that can stall for hours, and this PC is the one
-    # the game builds run on.
-    timeout-minutes: 45
+    # caps on the LONGEST path, which is the rendering one: 2 checkout + 1 PATH
+    # bootstrap + 15 queue + 6 art checkout + 2 studio checkout + 30 render +
+    # 2 commit = 58. The refusing path is exclusive with the render and comes
+    # to 28. Two of those numbers moved on 2026-09-09: the queue step replaced
+    # a 1-minute yield, and the old comment's arithmetic said 43 against an
+    # actual 44 because it credited the second studio checkout with 1 minute
+    # where the file says 2. RAISED RATHER THAN ABSORBED: a run that waits 12
+    # minutes and then renders must not have its render cut short by the JOB
+    # timeout, because a job killed by its own timeout commits no verdict at
+    # all, which is this lane's oldest and quietest failure. Blender rendering
+    # five frames is still the only step that can stall for hours, and this PC
+    # is the one the game builds run on.
+    timeout-minutes: 65
     steps:
       # THE STUDIO CHECKOUT COMES FIRST, AND IT IS NOT OPTIONAL. Until this
       # step existed, the resolve step below read `production/pc-ops/
@@ -144,61 +176,262 @@ jobs:
           "commission=$c" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "recipe=$r" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      # THE YIELD. Read-only, and it decides everything after it.
-      - name: Yield to any running game job
-        id: yield
-        timeout-minutes: 1
+      # THE QUEUE. Read-only, and it decides everything after it.
+      #
+      # WHAT WAITING BUYS AND WHAT IT COSTS, because the five workflows are not
+      # one population. Read from their own `runs-on` lines on 2026-09-09
+      # rather than assumed:
+      #
+      #   ledger-probe-unreal.yml    [self-hosted, ledger-pc]   THIS MACHINE
+      #   ledger-build-windows.yml   [self-hosted, ledger-pc]   THIS MACHINE
+      #   ledger-build-mac.yml       macos-latest               GitHub-hosted
+      #   ledger-core-tests.yml      ubuntu-latest              GitHub-hosted
+      #   ledger-ai-playtest.yml     ubuntu-latest              GitHub-hosted
+      #
+      # TWO OF FIVE ARE ON THIS PC AND THREE ARE SOMEWHERE ELSE, and waiting
+      # means a different thing for each half.
+      #
+      # For the two on ledger-pc, the queue that does the real work is not this
+      # loop, it is the runner's own: one runner process, one job at a time,
+      # measured and ruled in ruling 7 of
+      # game-design/decision-2026-09-02-vignette-batch-canon-crews-d1-timebox.md.
+      # This step is EXECUTING, therefore the runner was free when the job
+      # started, therefore neither of those two held it. Queueing behind the
+      # game lane for the runner is what Jafar asked for and GitHub already
+      # does it, before this file gets a say.
+      #
+      # WHICH IS WHY SLEEPING ON THOSE TWO IS A CYCLE AND NOT A WAIT. If one of
+      # them reads in progress while this job runs, the likeliest truth is that
+      # its ledger-pc job is QUEUED BEHIND US and cannot start until this job
+      # ends. Sleeping then delays it by exactly the length of the sleep and it
+      # can never go clear on its own. The cap is the only thing that breaks
+      # that cycle, which is why it is a hard bound rather than a courtesy, and
+      # why every busy name in the series below carries its lane: a run that
+      # burned its whole cap on `.pc` names was waiting for something that was
+      # waiting for it, and that is readable afterwards from the committed
+      # verdict instead of being a mystery.
+      #
+      # AND IT IS WHY `queued` IS NOT ADDED TO THE STATUS FILTER. Asking for
+      # queued runs as well would reliably FIND the game job that is waiting
+      # for this one, and then wait for it: the likely cycle becomes a certain
+      # one, every time. In progress only, deliberately.
+      #
+      # For the three GitHub-hosted, the wait is about ORDER and not about the
+      # machine. They contend for nothing this job holds, so waiting for them
+      # spends ledger-pc minutes and hands the game lane no runner time in
+      # exchange. It is done because the ruling puts the art lane last, and it
+      # is capped tightly for the same reason. Narrowing the list to the two
+      # `.pc` entries is a ruling somebody should make holding the series this
+      # step now prints; this pass keeps the list the ruling named.
+      #
+      # THE INTERVAL AND THE CAP, and why each is that number.
+      #
+      #   pollSec 30  Five REST calls per poll. Twenty-five polls is 125 calls
+      #               against the 1000-per-hour-per-repository ceiling the
+      #               GITHUB_TOKEN gets in Actions, which leaves that budget
+      #               alone. It also bounds the overshoot: a game job that ends
+      #               just after a reading costs at most 30 extra seconds of
+      #               holding the PC. Five seconds would be 600 calls and would
+      #               buy back at most 25 of those seconds.
+      #   capSec 720  THIS IS A BUDGET FOR HARM, NOT A PREDICTION. It is not
+      #               "how long a game job lasts": ledger-core-tests and
+      #               ledger-ai-playtest declare no job timeout at all, so
+      #               GitHub's 360-minute default is their only stated bound,
+      #               and ledger-build-windows runs 17 to 33 minutes by
+      #               CLAUDE.md's own measured note under a 110-minute cap.
+      #               Waiting any of those out is not on the table. What the
+      #               number bounds is how long the art lane may OCCUPY this PC
+      #               doing nothing, and 12 minutes is under half the 30 the
+      #               render step is allowed to hold it doing something. It
+      #               also sits comfortably above the only case a wait can
+      #               actually win, a hosted dotnet job started by the same
+      #               push, and deliberately below the PC builds it cannot.
+      #
+      # AND BOTH ARE PROVISIONAL UNTIL THE SERIES EXISTS. Rule 2 wants the
+      # printed series before the bound, and there is no such series today:
+      # nothing in this repository has ever recorded how long a game workflow
+      # stays in progress as seen from here. So this ships the printer with the
+      # number derived from the one cost that IS known, and the keys to move it
+      # from are artQueueWaitedSec and artQueueSeries in the committed verdict.
+      # Change the number from those runs, not from this comment.
+      - name: Queue behind any running game job
+        id: queue
+        # 15, ABOVE THE 12-MINUTE CAP AND THE POLL THAT CROSSES IT. A final
+        # poll starting at 720s can spend five request timeouts of 15s before
+        # it returns, so the worst wall clock is 720 + 75 = 795s = 13.3
+        # minutes. The step cap is the backstop for a wedged Invoke-RestMethod,
+        # not the mechanism: the mechanism is the stopwatch below, and a step
+        # killed by its own timeout would write no outputs and no series.
+        timeout-minutes: 15
+        # THE STEP'S REFUSAL IS NOT THE JOB'S VERDICT, which is the same shape
+        # the render step below already uses. On a cap refusal this exits 1
+        # loudly, and continue-on-error is what lets the publish and commit
+        # steps still put that refusal on the art branch instead of losing it.
+        # The gate at the bottom reads this step's outcome and is what turns
+        # the job red, so a refused run is never green.
+        continue-on-error: true
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = "Continue"
-          # THE GAME WORKFLOWS BY FILE NAME. A list rather than a pattern:
-          # a pattern that grew to match this workflow itself would make it
-          # yield to its own run for ever, which is a deadlock that looks
-          # exactly like politeness.
+          # THE GAME WORKFLOWS BY FILE NAME, WITH THE LANE EACH ONE RUNS IN. A
+          # list rather than a pattern: a pattern that grew to match this
+          # workflow itself would make it wait for its own run until the cap,
+          # which is a deadlock that looks exactly like politeness.
           #
           # WHY `ledger-imagegen.yml` IS NOT ON THIS LIST, ruled rather than
           # left silent. It is the other job that wants this PC's GPU, and it
           # runs for up to 300 minutes by its own cap. Adding it would mean the
-          # art lane yields for five hours of picture generation and Jafar gets
-          # no previews on any evening a batch is running. It is also the one
+          # art lane waits out its whole cap on every evening a batch is
+          # running, refuses, and Jafar gets no previews. It is also the one
           # case the list cannot help with: `ledger-pc` is one machine with one
-          # runner, and a runner executes one job at a time, so an imagegen
-          # batch in progress already prevents this job from STARTING. The
-          # queue is the mechanism there, not the yield, and the yield would
-          # only convert a wait into a loss.
-          $game = @("ledger-probe-unreal.yml", "ledger-build-windows.yml",
-                    "ledger-build-mac.yml", "ledger-core-tests.yml",
-                    "ledger-ai-playtest.yml")
+          # runner, so an imagegen batch in progress already prevents this job
+          # from STARTING. The runner's queue is the mechanism there, and this
+          # loop would only add twelve idle minutes on top of it.
+          $game = [ordered]@{
+            "ledger-probe-unreal.yml"  = "pc"
+            "ledger-build-windows.yml" = "pc"
+            "ledger-build-mac.yml"     = "hosted"
+            "ledger-core-tests.yml"    = "hosted"
+            "ledger-ai-playtest.yml"   = "hosted"
+          }
+          $capSec = 720
+          $pollSec = 30
+          # DERIVED FROM THE TWO CONSTANTS, never typed twice, so the printed
+          # denominator cannot drift away from the bound it describes.
+          #
+          # AND IT REFUSES RATHER THAN DIVIDING BY ZERO, which is not a
+          # hypothetical: run with $pollSec at 0 while testing the fold and
+          # this printed `artQueuePolls=20/-max`, a denominator that had gone
+          # BLANK while every other number on the line stayed plausible. That
+          # is the silent-instrument shape exactly, so a poll interval that
+          # cannot produce a denominator stops the step instead.
+          if ($pollSec -lt 1 -or $capSec -lt 1) {
+            Write-Host "artQueueStatus=BAD-CONSTANTS capSec=$capSec pollSec=$pollSec reason=a-poll-interval-under-one-second-has-no-denominator nothing measured"
+            "proceed=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 1
+          }
+          $maxPolls = [int][Math]::Floor($capSec / $pollSec) + 1
+          $sw = [System.Diagnostics.Stopwatch]::StartNew()
+          $polls = 0
+          $series = @()
+          $proceed = $false
+          $capBit = $false
           $busy = @()
-          foreach ($wf in $game) {
-            $uri = "https://api.github.com/repos/${{ github.repository }}/actions/workflows/$wf/runs?status=in_progress&per_page=5"
-            try {
-              $r = Invoke-RestMethod -Uri $uri -Headers @{
-                Authorization = "Bearer $env:GH_TOKEN"
-                Accept = "application/vnd.github+json"
-                "User-Agent" = "ledger-art-preview"
-              } -TimeoutSec 20
-              if ($r.total_count -gt 0) { $busy += "$wf x$($r.total_count)" }
-            } catch {
-              # A FAILED QUERY YIELDS. It cannot prove the runner is free,
-              # and the cost of being wrong in this direction is one skipped
-              # preview against one delayed game job.
-              $busy += "$wf query-failed"
+          $unknown = @()
+          while ($true) {
+            $polls = $polls + 1
+            $atSec = [int]$sw.Elapsed.TotalSeconds
+            $busy = @()
+            $unknown = @()
+            foreach ($wf in $game.Keys) {
+              $short = ($wf -replace '^ledger-', '') -replace '\.yml$', ''
+              $uri = "https://api.github.com/repos/${{ github.repository }}/actions/workflows/$wf/runs?status=in_progress&per_page=5"
+              try {
+                $r = Invoke-RestMethod -Uri $uri -Headers @{
+                  Authorization = "Bearer $env:GH_TOKEN"
+                  Accept = "application/vnd.github+json"
+                  "User-Agent" = "ledger-art-preview"
+                } -TimeoutSec 15
+                if ($r.total_count -gt 0) { $busy += "$short.$($game[$wf])x$($r.total_count)" }
+              } catch {
+                $unknown += "$short.$($game[$wf])"
+              }
             }
+            $busyNames = "none/0-in-progress"
+            if ($busy.Count -gt 0) { $busyNames = ($busy -join "+") }
+            $unkNames = "none/0-queries-failed"
+            if ($unknown.Count -gt 0) { $unkNames = ($unknown -join "+") }
+            # THE PER-POLL LINE CARRIES PER-POLL NUMBERS ONLY. The whole-run
+            # numbers are on the done line below and nowhere else, so a grep
+            # cannot merge one moment's reading with another's.
+            Write-Host "artQueuePoll=$polls/$maxPolls-max atSec=$atSec capSec=$capSec busy=$($busy.Count)/$($game.Count)-workflows-checked busyNames=$busyNames unknown=$($unknown.Count)/$($game.Count)-workflows-checked unknownNames=$unkNames"
+            $series += "p$polls" + ":t" + $atSec + "s:busy=$($busy.Count)/$($game.Count):$busyNames" + ":unk=$($unknown.Count)/$($game.Count)"
+            # A FAILED QUERY NO LONGER COUNTS AS BUSY, and the reversal is the
+            # cost function's, not a change of mind about certainty. It used to
+            # be folded into `busy` on the grounds that it cannot prove the
+            # runner is free, and the price of being wrong was one skipped
+            # preview. Under a QUEUE that price is different and worse: an API
+            # that is down or a token that lost `actions: read` returns the
+            # same failure at every poll, so counting it as busy means burning
+            # the entire cap and then refusing. The run is lost exactly as
+            # before AND the PC was held for twelve minutes to lose it. That is
+            # the infinite wait this must not become.
+            #
+            # AND THE PHYSICS SAYS IT IS SAFE. The thing an unreadable API
+            # could hide is a game job in progress. If it were on ledger-pc,
+            # this step would not be executing, because the runner runs one job
+            # at a time. So an unknown can only ever hide a GitHub-hosted game
+            # job, which contends for nothing this render touches. Proceeding
+            # costs the game lane no runner time; waiting costs it twelve
+            # minutes of this PC.
+            #
+            # NOT SILENTLY, THOUGH. `artQueueProved=no` and the unknown count
+            # ride into the committed verdict, so a render that ran without
+            # proof that the lane was clear says so in the file, and a lane
+            # that is quietly unreadable for a week is visible rather than
+            # inferred.
+            if ($busy.Count -eq 0) { $proceed = $true; break }
+            if (($sw.Elapsed.TotalSeconds + $pollSec) -gt $capSec) { $capBit = $true; break }
+            Start-Sleep -Seconds $pollSec
           }
-          $n = $busy.Count
-          if ($n -gt 0) {
-            Write-Host "artPreviewStatus=YIELDED gameJobsInProgress=$n/$($game.Count)-workflow(s)-checked busy=$($busy -join ',')"
-            "yielded=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          } else {
-            Write-Host "artPreviewStatus=CLEAR gameJobsInProgress=0/$($game.Count)-workflow(s)-checked"
-            "yielded=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          $waited = [int]$sw.Elapsed.TotalSeconds
+          # THE SERIES IS FOLDED FOR CARRYING, NOT FOR COUNTING. Every poll is
+          # in the log above, uncapped. This copy has to fit in a step output
+          # and then in one line of the committed verdict, so it keeps the
+          # first six polls and the last six and says how many it dropped.
+          $keepHead = 6
+          $keepTail = 6
+          $carry = $series
+          if ($series.Count -gt ($keepHead + $keepTail)) {
+            $dropped = $series.Count - $keepHead - $keepTail
+            $carry = @($series[0..($keepHead - 1)]) + @("(+$dropped~more~not~shown)") +
+                     @($series[($series.Count - $keepTail)..($series.Count - 1)])
           }
+          $seriesLine = "artQueueSeries=" + ($carry -join ";") + " artQueueSeriesPolls=$($carry.Count)/$($series.Count)-recorded"
+          $proved = "yes"
+          if ($unknown.Count -gt 0) { $proved = "no/$($unknown.Count)-of-$($game.Count)-queries-failed-at-the-last-poll" }
+          $busyLast = "none/0-in-progress"
+          if ($busy.Count -gt 0) { $busyLast = ($busy -join "+") }
+          if ($proceed) {
+            $status = "CLEAR"
+            if ($polls -gt 1) { $status = "QUEUED-THEN-CLEAR" }
+            # WHOLE-RUN NUMBERS, ON THE DONE LINE. artQueueWaitedSec is wall
+            # clock from the step's first instruction to the clear reading, so
+            # a run that started instantly prints 0 and an eleven-minute wait
+            # prints about 660, and the two are not the same run afterwards.
+            $line = "artQueueStatus=$status artQueueWaitedSec=$waited artQueueCapSec=$capSec artQueueCapBit=no/cap-not-reached artQueuePolls=$polls/$maxPolls-max artQueuePollSec=$pollSec artQueueBusyAtLast=0/$($game.Count)-workflows-checked artQueueUnknownAtLast=$($unknown.Count)/$($game.Count)-workflows-checked artQueueProved=$proved"
+            Write-Host $line
+            Write-Host $seriesLine
+            "proceed=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "line=$line" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "series=$seriesLine" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0
+          }
+          # THE CAP BIT, AND IT SAYS SO BY NAME. Not exit 0, not a render
+          # anyway: the run refuses, names the cap it hit, names what it was
+          # still waiting for and in which lane, and the publish step below
+          # puts all of that on the art branch so the refusal is readable
+          # without opening a log.
+          $line = "artQueueStatus=QUEUE-CAP-HIT artQueueWaitedSec=$waited artQueueCapSec=$capSec artQueueCapBit=yes/the-queue-cap-of-$capSec-sec-bit artQueuePolls=$polls/$maxPolls-max artQueuePollSec=$pollSec artQueueBusyAtLast=$($busy.Count)/$($game.Count)-workflows-checked artQueueBusyNames=$busyLast artQueueUnknownAtLast=$($unknown.Count)/$($game.Count)-workflows-checked artQueueProved=$proved nothing measured"
+          Write-Host $line
+          Write-Host $seriesLine
+          "proceed=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "line=$line" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "series=$seriesLine" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          exit 1
 
+      # ON BOTH PATHS NOW, and the guard moved rather than vanished. It used
+      # to hang off the yield, which also happened to skip it when the resolve
+      # step had failed and left no commission to check out. That safety is now
+      # explicit: no resolved commission, no checkout of `art/`. A queue refusal
+      # still needs this tree, because the refusal is published as a verdict on
+      # the art branch and a refusal nobody can read is the failure this lane
+      # keeps having. It costs a fetch on a run that will render nothing; that
+      # is the price of the evidence and it is paid deliberately.
       - name: Checkout the art branch
-        if: steps.yield.outputs.yielded == 'false'
+        if: always() && steps.what.outcome == 'success'
         timeout-minutes: 6
         uses: actions/checkout@v4
         with:
@@ -213,7 +446,7 @@ jobs:
       # takes `--root` explicitly: a root derived from its own path would find
       # the studio tree and no commission data in it.
       - name: Checkout the studio branch again, for the recipe
-        if: steps.yield.outputs.yielded == 'false'
+        if: steps.queue.outputs.proceed == 'true'
         timeout-minutes: 2
         uses: actions/checkout@v4
         with:
@@ -222,9 +455,53 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      # THE REFUSAL IS PUBLISHED, WHICH IS THE WHOLE POINT OF NOT YIELDING.
+      # Under the old behaviour a run that lost to a game job wrote nothing
+      # anywhere: the commit and gate steps were skipped, the branch was
+      # untouched, and the only trace was a log this project has ruled it
+      # cannot read. So a lane that quietly never rendered for a week would
+      # have looked identical to a lane nobody dispatched. This writes the same
+      # NO-RUN verdict shape the NO-RECIPE and NO-BLENDER refusals write, with
+      # the wait series in it, and the existing commit step below pushes it.
+      #
+      # EXCLUSIVE WITH THE RENDER by construction: one runs on proceed=true and
+      # the other on proceed=false, so the two can never both write this file.
+      - name: Publish the queue refusal to the art branch
+        if: steps.queue.outputs.proceed == 'false' && steps.what.outcome == 'success'
+        timeout-minutes: 2
+        shell: pwsh
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: "*"
+          QUEUE_LINE: ${{ steps.queue.outputs.line }}
+          QUEUE_SERIES: ${{ steps.queue.outputs.series }}
+        run: |
+          $ErrorActionPreference = "Continue"
+          $name = "${{ steps.what.outputs.recipe }}"
+          $commission = "${{ steps.what.outputs.commission }}"
+          $ws = $env:GITHUB_WORKSPACE
+          $outDir = Join-Path $ws "production/art/$commission/previews"
+          $verdict = Join-Path $outDir "$name-verdict.txt"
+          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+          $artSha = (& git -c "safe.directory=*" -C $ws rev-parse --short HEAD 2>$null)
+          if (-not $artSha) { $artSha = "${{ github.sha }}".Substring(0,7) + "/git-refused" }
+          # LINE 1 NAMES ITS COMMIT, the format ci.md requires of every verdict
+          # this project commits, and the same first line the other two
+          # refusals write so one reader parses all three.
+          "artPreviewVerdict=1 commit=$artSha commission=$commission recipe=$name status=NO-RUN at=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())" | Set-Content -Path $verdict -Encoding utf8
+          Add-Content -Path $verdict -Value ""
+          Add-Content -Path $verdict -Value "NO RUN - the art lane queued for the game lane, hit its queue cap with a game workflow still in progress, and never started Blender."
+          Add-Content -Path $verdict -Value "$env:QUEUE_LINE"
+          Add-Content -Path $verdict -Value "$env:QUEUE_SERIES"
+          Add-Content -Path $verdict -Value "artPreviewStatus=QUEUE-CAP recipeAsked=$name previewsWrote=0/0-cameras-read nothing measured"
+          Write-Host "artRefusalPublished=yes verdictPath=$($verdict -replace ' ','~') verdictBytes=$((Get-Item -LiteralPath $verdict).Length)"
+
       - name: Render the named recipe headlessly
         id: render
-        if: steps.yield.outputs.yielded == 'false'
+        # NEVER ON A REFUSAL. `proceed` is the only thing that opens this step,
+        # so a run that hit the queue cap cannot silently render anyway.
+        if: steps.queue.outputs.proceed == 'true'
         timeout-minutes: 30
         # A FAILED RENDER MUST STILL PUBLISH. Without this the commit and gate
         # steps would be skipped and a failure would leave no committed word
@@ -235,6 +512,8 @@ jobs:
           GIT_CONFIG_COUNT: "1"
           GIT_CONFIG_KEY_0: safe.directory
           GIT_CONFIG_VALUE_0: "*"
+          QUEUE_LINE: ${{ steps.queue.outputs.line }}
+          QUEUE_SERIES: ${{ steps.queue.outputs.series }}
         run: |
           $ErrorActionPreference = "Continue"
           $name = "${{ steps.what.outputs.recipe }}"
@@ -262,6 +541,8 @@ jobs:
             "artPreviewVerdict=1 commit=$artSha commission=$commission recipe=$name status=NO-RUN at=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())" | Set-Content -Path $verdict -Encoding utf8
             Add-Content -Path $verdict -Value ""
             Add-Content -Path $verdict -Value "NO RUN - the recipe file was not in the studio checkout, so Blender was never started."
+            Add-Content -Path $verdict -Value "$env:QUEUE_LINE"
+            Add-Content -Path $verdict -Value "$env:QUEUE_SERIES"
             Add-Content -Path $verdict -Value "artPreviewStatus=NO-RECIPE recipeAsked=$name studioSha=$studioSha previewsWrote=0/0-cameras-read nothing measured"
             exit 1
           }
@@ -363,6 +644,8 @@ jobs:
             Add-Content -Path $verdict -Value ""
             Add-Content -Path $verdict -Value "NO RUN - no blender.exe was found under any searched root and none is on PATH, so nothing was rendered."
             Add-Content -Path $verdict -Value "artPreviewStatus=NO-BLENDER recipeAsked=$name exesFound=0 rootsWithExe=0/$($bases.Count)-roots-examined rootsPresent=$rootsPresent/$($bases.Count)-roots-examined onPath=no previewsWrote=0/0-cameras-read nothing measured"
+            Add-Content -Path $verdict -Value "$env:QUEUE_LINE"
+            Add-Content -Path $verdict -Value "$env:QUEUE_SERIES"
             foreach ($l in $rootLines) { Add-Content -Path $verdict -Value $l }
             exit 1
           }
@@ -385,14 +668,26 @@ jobs:
           # delta answers "did anything appear" while the recipe-prefixed delta
           # answers "did THIS recipe draw", which is the question.
           Write-Host "artPreviewStatus=RAN recipeAsked=$name blenderExit=$code previewsBefore=$before previewsAfter=$after previewsNew=$($after - $before) recipePngsBefore=$mineBefore recipePngsAfter=$mineAfter recipePngsNew=$($mineAfter - $mineBefore)"
-          if (-not (Test-Path $verdict)) {
+          # APPENDED, NEVER CREATED, and the difference is the gate's. The
+          # recipe writes this file; the gate below reads an ABSENT or empty one
+          # as NO-VERDICT, which is a real failure it must keep being able to
+          # see. Creating the file here to hold the wait would hand that gate a
+          # non-empty file for a run that measured nothing, so on that path the
+          # series stays in the log and the gate stays honest. Every other path
+          # carries it into the committed file.
+          if (Test-Path $verdict) {
+            Add-Content -Path $verdict -Value "$env:QUEUE_LINE"
+            Add-Content -Path $verdict -Value "$env:QUEUE_SERIES"
+            Write-Host "artQueueEvidenceInVerdict=yes lines=2/2-appended"
+          } else {
             Write-Host "artVerdictMissing=yes reason=recipe-wrote-no-verdict-file"
+            Write-Host "artQueueEvidenceInVerdict=no/0-of-2-appended reason=no-verdict-file-to-append-to"
           }
           if ($code -ne 0 -or $mineAfter -le $mineBefore) { exit 1 }
 
       - name: Commit the previews to the art branch
         id: commit
-        if: always() && steps.yield.outputs.yielded == 'false'
+        if: always() && steps.what.outcome == 'success'
         timeout-minutes: 2
         shell: bash
         # THE ENV TRIPLE, QUEUE 152 AND A5 OF THE 2026-09-08 RULING. The
@@ -404,6 +699,7 @@ jobs:
           GIT_CONFIG_COUNT: "1"
           GIT_CONFIG_KEY_0: safe.directory
           GIT_CONFIG_VALUE_0: "*"
+          QUEUE_PROCEED: ${{ steps.queue.outputs.proceed }}
         run: |
           # NO -e HERE, DELIBERATELY. This step's whole job is to publish
           # whatever was measured; a step that aborts on a failed command
@@ -477,7 +773,16 @@ jobs:
           ADDED=$("${G[@]}" diff --cached --name-only | wc -l | tr -d ' ')
           echo "artCommitStaged=$ADDED/$N-matched"
           "${G[@]}" diff --cached --quiet && { echo "artCommitStatus=NOTHING-NEW stagedPaths=$N-matched/0-changed"; exit 0; }
-          "${G[@]}" commit -m "art preview: ${{ steps.what.outputs.commission }} / $NAME"
+          # THE SUBJECT NAMES WHAT THE COMMIT CARRIES, because this step now
+          # publishes refusals as well as renders. "art preview: atlas-01 /
+          # mickeys-blockout" over a NO-RUN verdict is the pairing ci.md calls
+          # out by name, a commit that carried the run confused with a run that
+          # measured something.
+          SUBJ="art preview: ${{ steps.what.outputs.commission }} / $NAME"
+          if [ "$QUEUE_PROCEED" != "true" ]; then
+            SUBJ="art preview QUEUE-REFUSED (nothing rendered): ${{ steps.what.outputs.commission }} / $NAME"
+          fi
+          "${G[@]}" commit -m "$SUBJ"
           if [ $? -ne 0 ]; then
             echo "artCommitStatus=COMMIT-REFUSED stagedPaths=$ADDED/$N-matched"
             exit 1
@@ -490,24 +795,45 @@ jobs:
           echo "artCommitStatus=PUSH-FAILED attempts=3/3 paths=$ADDED/$N-matched"
           exit 1
 
-      # THE GATE READS THE FILE, NOT THE COLOUR. The render step is
-      # continue-on-error so that the commit step above always publishes, which
-      # means the job's own verdict has to be decided here, from the evidence
-      # that was actually committed.
+      # THE GATE READS THE FILE, NOT THE COLOUR. The render step and the queue
+      # step are both continue-on-error so that the commit step above always
+      # publishes, which means the job's own verdict has to be decided here,
+      # from the evidence that was actually committed.
+      #
+      # AND IT IS WHAT MAKES A REFUSED RUN RED. The queue step exits 1 on the
+      # cap and its continue-on-error keeps the later steps alive to publish
+      # that refusal; nothing else in the job would then fail, so without the
+      # queue check below a run that waited twelve minutes and rendered nothing
+      # would end GREEN with a NO-RUN verdict sitting under it. That is the
+      # exact pairing ci.md warns about, a job reporting success while its
+      # effects say otherwise, so the queue outcome is checked FIRST and names
+      # itself rather than arriving as a mystery render failure.
       - name: Gate on what was measured
-        if: always() && steps.yield.outputs.yielded == 'false'
+        if: always() && steps.what.outcome == 'success'
         shell: bash
+        env:
+          QUEUE_LINE: ${{ steps.queue.outputs.line }}
+          QUEUE_SERIES: ${{ steps.queue.outputs.series }}
         run: |
           set +e
           set -u
           NAME="${{ steps.what.outputs.recipe }}"
           V="production/art/${{ steps.what.outputs.commission }}/previews/$NAME-verdict.txt"
+          # THE WAIT IS ON THE GATE'S OWN LINES TOO, not only in the verdict.
+          # A reader who has the log open should not have to open the branch to
+          # learn that this run spent eleven of its minutes queueing.
+          echo "$QUEUE_LINE"
+          echo "$QUEUE_SERIES"
           if [ ! -s "$V" ]; then
-            echo "artGateStatus=NO-VERDICT renderOutcome=${{ steps.render.outcome }} commitOutcome=${{ steps.commit.outcome }} nothing measured"
+            echo "artGateStatus=NO-VERDICT queueOutcome=${{ steps.queue.outcome }} queueProceed=${{ steps.queue.outputs.proceed }} renderOutcome=${{ steps.render.outcome }} commitOutcome=${{ steps.commit.outcome }} nothing measured"
             exit 1
           fi
           head -1 "$V"
           grep -o "previewsWrote=[^ ]*" "$V" | tail -1
-          echo "artGateStatus=READ renderOutcome=${{ steps.render.outcome }} commitOutcome=${{ steps.commit.outcome }} verdictLines=$(wc -l < "$V" | tr -d ' ')"
+          echo "artGateStatus=READ queueOutcome=${{ steps.queue.outcome }} queueProceed=${{ steps.queue.outputs.proceed }} renderOutcome=${{ steps.render.outcome }} commitOutcome=${{ steps.commit.outcome }} verdictLines=$(wc -l < "$V" | tr -d ' ')"
+          if [ "${{ steps.queue.outcome }}" != "success" ]; then
+            echo "artGateStatus=QUEUE-REFUSED queueOutcome=${{ steps.queue.outcome }} renderOutcome=${{ steps.render.outcome }} commitOutcome=${{ steps.commit.outcome }} previewsWrote=0/0-cameras-read nothing measured"
+            exit 1
+          fi
           [ "${{ steps.render.outcome }}" = "success" ] || exit 1
           [ "${{ steps.commit.outcome }}" = "success" ] || exit 1

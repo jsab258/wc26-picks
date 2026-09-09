@@ -2341,6 +2341,10 @@ OURS IS ONE DRAW AT A SEED NOBODY CHOSE, at 688x1024, which is 45 per cent of
 their pixel count, because 1024 is the largest long edge this lane has banked
 without a blank and theirs is 1536.
 
+[CORRECTED 2026-09-09 BY JAFAR: the passes were inspected and corrected BY CODEX
+ITSELF, not by a person. Their PROVENANCE.md says only 'selectively edited after
+visual inspection' and names no inspector; 'eye-selected' was our inference. The
+comparison is model against model. See the correction later in findings.txt.]
 SO THE HONEST FRAMING IS: their third pass, eye-selected and twice corrected,
 against our first draw, smaller. The dictated caption says ours is one draw at a
 fixed seed. IT DOES NOT SAY THEIRS WAS REDRAWN TWICE, and without that clause the
@@ -3203,3 +3207,163 @@ THE HONEST SUMMARY OF THE DAY'S LAST RUN: it answered the question that mattered
 slope), while failing its own headline prediction for a third reason nobody had
 written down, and leaving its stated acceptance number unmeasurable by an
 instrument fault filed hours earlier.
+
+--------------------------------------------------------------------------------
+2026-09-09, JAFAR CORRECTS THE RECORD: CODEX INSPECTED ITS OWN SHEETS, AND WE
+INVENTED THE HUMAN
+
+His words: "Codex's concept sheets were corrected by Codex itself after its own
+inspection, not by a human; the comparison is model against model with three
+passes on its side."
+
+WHAT WE HAD WRITTEN, in tools/imagegen/compare-hook-2026-09-09.json, in
+findings.txt, and in the brief that reached his phone: their board is three
+generations deep "with a human eye between each pass", and therefore the
+comparison is not a fair pair.
+
+WHAT THE SOURCE ACTUALLY SAYS, read now rather than remembered. Their
+PROVENANCE.md, line 9: the concepts were "selectively edited after visual
+inspection". IT NAMES NO INSPECTOR. We read "visual inspection" and wrote "a
+human eye", which is an inference presented as a reading, and then built a
+fairness caveat on top of it and put that caveat in front of him.
+
+THE CAVEAT WAS THE WRONG SHAPE TWICE OVER. It made the comparison sound rigged
+when it is model against model, and it made the studio's single draw sound
+excusable when the real gap is simply that they took three passes and we took
+one. That is not a fairness problem, it is a method problem, and a method
+problem has a fix while a fairness problem only has an excuse.
+
+AND HE HAS RULED THE FIX RATHER THAN THE EXCUSE: our lane draws from the
+creation prompt, INSPECTS ITS OWN DRAW BY VISION, corrects once, and the result
+goes beside theirs captioned three passes against two. The asymmetry is stated
+on the picture instead of being argued in a document nobody opens.
+
+THE SENTENCE IS CORRECTED AT EVERY SITE I CAN CHANGE and left standing at the
+one I cannot: production/briefs/2026-09-09.md was SENT, and a sent message is a
+record of what was said, not a draft. The correction rides in the next brief
+instead.
+
+--------------------------------------------------------------------------------
+2026-09-09, THE SENTINEL COULD NAME A SPEC AND THE WORKFLOW HAD NEVER HEARD OF IT,
+AND PUSHING IT WOULD HAVE STRIPPED THE ATTRIBUTION OF 45 SHIPPED PICTURES
+
+Preparing the art lane's Hook draw, a builder checked the plumbing rather than
+assuming it. `tools/imagegen/imagegen.py` `batch_settings()` parses five keys out
+of the sentinel: limit, only, max_minutes, SPEC and OUT, and `main()` writes
+BATCH_SPEC and BATCH_OUT to GITHUB_ENV.
+
+`.github/workflows/ledger-imagegen.yml` READS NEITHER. Grepped the whole file:
+both names appear nowhere. Four sites still hard-name the library and the shipped
+directory, and the workflow_dispatch route has no such inputs either. RULE 6, and
+the shape is the one this project keeps paying for: a tool grew a feature, a
+selftest covered it, and the only caller never learned it existed.
+
+WHAT A PUSH WOULD ACTUALLY HAVE DONE, traced through the code rather than run:
+--spec is dropped, the run reads the 45-item shipped library, the four requested
+ids match no library item (verified: zero overlap over 45 ids), and run_batch
+REFUSES before generating. Then `main` writes manifest.json and calls
+write_attribution UNCONDITIONALLY after run_batch, with outdir still pointing at
+the SHIPPED decals directory. `staged_file_list` sees a manifest whose run.sha
+equals this run's and stages manifest.json, made.json, PROGRESS.txt and
+ATTRIBUTION.json by name.
+
+    A REFUSED, ZERO-IMAGE MANIFEST AND A STRIPPED ATTRIBUTION.JSON COMMITTED OVER
+    THE PROVENANCE OF 45 SHIPPED PICTURES. The pictures survive; their provenance
+    does not.
+
+TWO THINGS BOUNDED THE DAMAGE AND BOTH ARE STANDING RULES. Staging BY NAME rather
+than by directory keeps it to four files instead of the whole tree. And the
+one-off spec living in its own file means no night `all` run can regenerate these
+items into the shipped library.
+
+WHAT IT COST TO FIND: one builder reading two files, in this container, before
+anything was pushed. What it would have cost to find the other way: a night run,
+a damaged attribution file, and a session tomorrow wondering why the provenance
+of 45 pictures went blank. THE ENTRY POINT WAS CHEAPER THAN THE ARGUMENT for the
+fifth time this week, and this time it was cheaper than the accident.
+
+AND IT IS A NEW FAULT SHAPE WORTH NAMING: not a decayed claim, not a wrong
+denominator, but a FEATURE WITH NO CALLER WHOSE ABSENCE IS SILENT AND WHOSE
+FALLBACK IS DESTRUCTIVE. The tool did nothing wrong. It offered an option, the
+caller never took it, and the default path led somewhere that writes.
+
+--------------------------------------------------------------------------------
+2026-09-09, NO FRAME IN RUN 38 WAS PHOTOGRAPHED AT A SETTLED EXPOSURE, AND THAT
+RETRO-INVALIDATES EVERY LIGHT DELTA THE RUN PRINTED
+
+Jafar ruled that two faults block trusting any comparison and are fixed first.
+The first was "frames with identical inputs must be the same picture". It is
+answered, and the answer is worse and more useful than the question assumed.
+
+THREE READINGS, EACH WITH ITS MEANING WRITTEN DOWN BEFORE IT WAS TAKEN, which is
+the only reason the answer is a choice rather than a story that fits.
+
+R1, THE CONTROL FRAME. Run 38 photographs each night shot a second time with
+`control_no_toggle`, which toggles nothing, about 0.28 s later, in the same shot,
+with no ApplyCondition between them. If the delta were zero or symmetric noise,
+an adjacent repeat is the same picture and the fault lives only ACROSS shots.
+It is not zero:
+
+    vign_camA_night  deltaMeanFull=-0.00383  darker on 715552/921600 pixels
+    vign_camB_night  deltaMeanFull=-0.00432  darker on 900970/921600 pixels
+
+Two takes of one picture, a third of a second apart, are not the same picture.
+
+R2, THE DIRECTION. Each successive probe frame REMOVES a light. If the frames
+darkened, the lights explain it. They brighten, monotonically, while lights are
+being switched off one at a time:
+
+    0.09490  0.09785  0.10038  0.10252  0.10426  0.10565  0.10686  0.10780
+    increments 295 253 214 174 139 121 94, a decaying exponential,
+    retention about 0.85 per 0.28 s frame, still moving two seconds in.
+
+R3, THE PLACE. band.skyCentre is lit by the atmosphere and the sun, not by the
+skylight's captured cubemap, and both frames read the same sun off the live
+component, so those 23040 pixels have identical scene radiance BY CONSTRUCTION.
+They moved anyway: 0.8450 to 0.7731, p50 0.9640 to 0.9291.
+
+THE VERDICT IS TEMPORAL AUTO EXPOSURE, UNCONVERGED AND CARRIED ACROSS SHOTS. R2
+rules out the scene. R3 places the change after the scene and before the display.
+R1 rules out both cross-shot candidates by itself, and the skylight is refuted
+twice over: no sky write happens between a shot and its own control, and
+skyWrites=11/of=984 over eleven shots means every shot got exactly one fresh
+recapture, so there is no capture-age asymmetry to explain anything. The settings
+nobody set were printed rather than assumed: cvarDefaultAutoExposure=1,
+ppAutoExposureMethod=0, cvarEyeAdaptationMethodOverride=-1, and the four
+ppOverrides at 0.
+
+    THE SHUTTER FALLS ABOUT 0.65 SECONDS AFTER EACH CONDITION CHANGE, AGAINST A
+    DRIFT STILL MOVING AFTER TWO. NO FRAME IN RUN 38 WAS SETTLED.
+
+WHAT THAT COSTS RETROACTIVELY, and it is the part to carry forward: every light
+delta run 38 printed is contaminated, and the sign of the contamination is now
+known. Lanterns "removed" made the frame BRIGHTER. Any past conclusion of the
+shape "we turned X off and the frame moved by D" from this rig is suspect unless
+its two frames were adjacent and its delta far exceeds the drift.
+
+THE FIX SNAPS THE RATE, NOT THE VALUE, AND THE REASON IS RULE 2. Pinning the
+exposure VALUE needs a number nothing here has measured, because the adapted
+exposure is a render-thread quantity this process never reads. Pinning the RATE
+removes the temporal state without moving the exposure policy: the still keeps
+the level a player standing there would settle at, and only the transition goes.
+THE COST IS NAMED: this rig can now never judge a transition or an
+adaptation-dependent moment, walking out of a dark alley being the obvious one.
+
+AND THE FIX SHIPS ITS OWN ACCEPTANCE TEST, which is the part that makes it more
+than a hope. The run re-photographs the FIRST shot's camera and condition as the
+LAST thing it does, at maximum order separation, to a scratch file that is never
+committed, and prints rigDeterminism=IDENTICAL with rigDiffPixels=0/921600 and
+rigMaxAbsChannelDiff=0/255. No epsilon: the claim under test is that identical
+inputs give the same picture, and the honest bound for that is zero. A run that
+could not take the repeat prints NOTHING-MEASURED with a status word, so no
+repeat and no difference stay apart.
+
+IF IT READS DIFFERS, the engine clamped the speed or the override never landed,
+and the next step is pinning the value off the series this run prints. That is
+named in advance so the next run is a reading rather than an argument.
+
+A SECOND, LATENT ORDER DEPENDENCE WAS FOUND AND REMOVED IN THE SAME PASS: the sky
+recapture was keyed on the CONDITION id, so two shots naming one condition in a
+row shared a capture and the second was shot against a cubemap a whole shot old.
+Run 38's list happens to name no condition twice in a row, so it is latent rather
+than that run's fault, and it is keyed on the pass now.

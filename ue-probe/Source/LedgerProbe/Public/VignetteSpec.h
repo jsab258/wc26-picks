@@ -2080,6 +2080,86 @@ namespace LedgerVignette
 		return std::string(Buf);
 	}
 
+	// ---- QUEUE 208: THE CAMERA THAT TOOK ONE FRAME, ON THAT FRAME'S LINE -
+	//
+	// PER-SAMPLE, NOT PER-RUN, and it is the same rule ShotLightLine above
+	// obeys one bracket away. Until 2026-09-09 the whole verdict carried a
+	// single shotCam line that the shot loop OVERWROTE, so the camera a frame
+	// was taken from was a per-sample fact printed once on the whole-run line,
+	// last-wins. MEASURED, NOT ARGUED: tools/frame-shadow-probe.py reads that
+	// line, and on run 38 it refused every ladder frame with
+	// camBind=REFUSED probeStatus=REFUSED probe=nothing-measured, because the
+	// last camera the run placed was not the one the frame it was asked about
+	// was taken from. The tool fails closed, which is correct; the verdict is
+	// what could not answer it. A RUN WHOSE SHOT ORDER DECIDES WHETHER A TOOL
+	// CAN READ IT IS ONE REORDERING FROM SILENCE.
+	//
+	// WHAT THE .cpp SUPPLIES: the transform it ASKED FOR and the transform it
+	// READ BACK off the player view point, never one standing in for the
+	// other, and a status word for the case where there was nothing to read.
+	// The distance between the two is computed HERE, because measurement
+	// arithmetic belongs where the tests run.
+	struct ShotCamIn
+	{
+		std::string CamId;
+		// MEASURED / NO-WORLD / SPAWN-FAILED / NO-VIEWPOINT / NO-SUCH-CAMERA
+		// / NOT-REACHED. Only MEASURED prints numbers.
+		std::string Status;
+		double AskedXCm, AskedYCm, AskedZCm;
+		double ReadXCm, ReadYCm, ReadZCm;
+		double AskedPitchDeg, AskedYawDeg;
+		double ReadPitchDeg, ReadYawDeg;
+		ShotCamIn() : CamId("none"), Status("NOT-REACHED"),
+		              AskedXCm(0.0), AskedYCm(0.0), AskedZCm(0.0),
+		              ReadXCm(0.0), ReadYCm(0.0), ReadZCm(0.0),
+		              AskedPitchDeg(0.0), AskedYawDeg(0.0),
+		              ReadPitchDeg(0.0), ReadYawDeg(0.0) {}
+	};
+
+	// HOW FAR THE CAMERA ENDED UP FROM WHERE IT WAS SENT, in centimetres.
+	// Asking for a transform and printing the transform you asked for is not
+	// evidence that anything moved, so the pair is printed and this is the
+	// distance between the halves.
+	inline double ShotCamDeltaCm(const ShotCamIn& In)
+	{
+		const double DX = In.ReadXCm - In.AskedXCm;
+		const double DY = In.ReadYCm - In.AskedYCm;
+		const double DZ = In.ReadZCm - In.AskedZCm;
+		return std::sqrt(DX * DX + DY * DY + DZ * DZ);
+	}
+
+	inline std::string ShotCamSegment(const ShotCamIn& In)
+	{
+		char Buf[600];
+		const std::string Id = NoSpaces(In.CamId.empty() ? std::string("none") : In.CamId);
+		const std::string St = NoSpaces(In.Status.empty() ? std::string("NOT-REACHED") : In.Status);
+		if (St != "MEASURED")
+		{
+			std::snprintf(Buf, sizeof(Buf),
+				"shotCamId=%s shotCamRead=%s "
+				"shotCamAskedXYZcm=nothing-measured shotCamReadXYZcm=nothing-measured "
+				"shotCamDeltaCm=nothing-measured "
+				"shotCamAskedPitchYaw=nothing-measured shotCamReadPitchYaw=nothing-measured "
+				"shotCamStat=asked-against-read-back-off-the-player-view-point-while-THIS-frame-"
+				"stood/per-sample-not-per-run",
+				Id.c_str(), St.c_str());
+			return std::string(Buf);
+		}
+		std::snprintf(Buf, sizeof(Buf),
+			"shotCamId=%s shotCamRead=MEASURED "
+			"shotCamAskedXYZcm=%.1f/%.1f/%.1f shotCamReadXYZcm=%.1f/%.1f/%.1f "
+			"shotCamDeltaCm=%.2f "
+			"shotCamAskedPitchYaw=%.1f/%.1f shotCamReadPitchYaw=%.1f/%.1f "
+			"shotCamStat=asked-against-read-back-off-the-player-view-point-while-THIS-frame-"
+			"stood/per-sample-not-per-run",
+			Id.c_str(),
+			In.AskedXCm, In.AskedYCm, In.AskedZCm,
+			In.ReadXCm, In.ReadYCm, In.ReadZCm,
+			ShotCamDeltaCm(In),
+			In.AskedPitchDeg, In.AskedYawDeg, In.ReadPitchDeg, In.ReadYawDeg);
+		return std::string(Buf);
+	}
+
 	inline std::string SkySegment(const SkyIn& In)
 	{
 		// GROWN FOR THE SUN SEGMENT. snprintf truncates in silence, which
@@ -2090,7 +2170,7 @@ namespace LedgerVignette
 			"skyLight=%s skyLightComponent=%s skyAtmosphere=%s skyAtmosphereComponent=%s "
 			"skySourceTypeRead=%d skyRealTimeCaptureRead=%s skyIntensityRead=%.3f "
 			"%s "
-			"skyWrites=%d/of=%d/applyCondition-calls/write-on-change "
+			"skyWrites=%d/of=%d/applyCondition-calls/write-once-per-shot-never-per-settle-tick "
 			"fogComponent=%s fogDensityRead=%.4f fogMaxOpacityRead=%.3f "
 			"fillsRetiredToZero=%s fillsSpawned=%d/3 "
 			"skyHdriAsked=%s skyHdriFoundAt=%s skyHdriBytes=%lld skyHdriDetectedAs=%s "

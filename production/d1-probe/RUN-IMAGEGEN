@@ -101,3 +101,62 @@ arithmetic was wrong and the rest of this run's evidence is read in that light.
 # THE SETTINGS. Uncommented lines only. Last-wins.
 limit: all
 max_minutes: 240
+
+# ---------------------------------------------------------------------------
+# run 5 - 2026-09-09 - THE HOOK COMPARISON, AND THE FIRST RUN THAT IS NOT THE
+# SHIPPED LIBRARY. Jafar 2026-09-09 item 4(a): his Codex Hook concept sheet
+# beside what this lane draws from the same description. Model against model,
+# three passes on their side (creation prompt, edit pass, spatial correction,
+# every one of them inspected and corrected by Codex itself) against two on
+# ours (draw, inspect by vision, correct once). The spec is
+# tools/imagegen/compare-hook-2026-09-09.json and NOT tools/imagegen/
+# prompts.json, which is the whole reason nothing here can reach the shipped
+# decals directory: 4 items, 688x1024, cfg 1.0, 8 steps, seeds 20260909 to
+# 20260912 written into the spec before anything was generated. validate_spec
+# on that file: 0 problems of 4 items examined, 0 forbidden-token hits and 0
+# exclusion-scan hits over 229 words per item.
+#
+# WHAT IT COSTS, READ OFF THE TOOL'S OWN NUMBERS rather than typed here.
+# estimate_seconds(688, 1024, cfg=1.0) = 152.4 s per image on the card
+# COST_SOURCE names (RX 6700 / Vulkan / Z-Image-Turbo Q4_K / 8 steps), so
+# 610 s = 10.2 min of GPU for all four, 2.5 min for the one that goes in the
+# message. The measured neighbours are run 4's own manifest (sha 991aabf, 41
+# images with seconds): 640x896 median 102 s over 19 images, 1024x512 median
+# 91 s over 4, 768x512 median 56 s over 17. 688x1024 is 704512 px, 1.23x the
+# largest of those areas, and no run here has banked that pair, so a blank is
+# a live possibility and the run prints the blank verdict per image.
+# max_minutes 30 is about three times the estimate and inside the ceiling of
+# 250: the generating loop stops itself and hands back to the commit step.
+#
+# THE BLOCKER ABOVE IS CLEARED. This entry was written while
+# .github/workflows/ledger-imagegen.yml read NEITHER spec nor out, which is
+# why it said DO NOT PUSH. All four sites now carry the values and the
+# workflow refuses rather than falling back: a sentinel that ASKS for a spec
+# the workflow cannot pass stops the run before the probe and before the
+# 6.7 GB, exit 7, with specPassed= and outPassed= printed.
+#
+# THE LINE NUMBERS THAT USED TO BE HERE ARE GONE ON PURPOSE. They were 437 to
+# 446, 537, 578 and 556, and every one of them moved when the fix landed. A
+# comment that pins a line number in another file is a claim that decays the
+# next time somebody edits that file, and this one decayed within the hour.
+#
+# WHAT THE OLD STATE WOULD HAVE COST, kept because it is the reason this
+# paragraph exists at all: a push would not have drawn the Hook. It would have
+# read the 45-item library, refused because the four ids below are in no
+# library item, and written a REFUSED manifest.json and ATTRIBUTION.json into
+# ledger/Assets/StreamingAssets/Decals/generated, which the commit step stages
+# BY NAME, over the provenance of 45 shipped pictures. Built is not running,
+# rule 6, and its fallback was destructive.
+#
+# Every prose line in this entry begins with a #, and that is deliberate:
+# batch_settings reads `key: value` off any line that is not commented out,
+# and one uncommented sentence beginning with the word spec, out, only, limit
+# or max_minutes would silently become the setting.
+#
+# THE SETTINGS. Uncommented lines only, last-wins, so these five override the
+# run 4 pair above and nothing at all is inherited by accident.
+spec: tools/imagegen/compare-hook-2026-09-09.json
+out: production/art/compare/hook-2026-09-09
+only: hook_compare,hook_compare_s2,hook_compare_s3,hook_compare_s4
+limit: 4
+max_minutes: 30

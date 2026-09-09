@@ -2100,6 +2100,67 @@ int main(int argc, char** argv)
 		      "a frame taken with no sun component says nothing-measured on its own line");
 	}
 
+	{
+		// ---- QUEUE 208: THE CAMERA ON THE FRAME'S OWN LINE ---------------
+		//
+		// ACCEPTING CASE FIRST, and it is the one the tool has to read:
+		// cam_hook as run 38 placed it. x_m 4.0 and z_m -2.1 map to X 400.0
+		// and Y -210.0, ground -0.0525 plus eye 1.65 is Z 159.8, and the
+		// file's pitch of -2.6 down is a POSITIVE 2.6 in this engine. Those
+		// are the numbers tools/frame-shadow-probe.py compares against the
+		// shared json, so if this string is wrong the tool refuses.
+		LedgerVignette::ShotCamIn In;
+		In.CamId = "cam_hook";
+		In.Status = "MEASURED";
+		In.AskedXCm = 400.0; In.AskedYCm = -210.0; In.AskedZCm = 159.75;
+		In.ReadXCm  = 400.0; In.ReadYCm  = -210.0; In.ReadZCm  = 159.75;
+		In.AskedPitchDeg = 2.6; In.AskedYawDeg = 11.0;
+		In.ReadPitchDeg  = 2.6; In.ReadYawDeg  = 11.0;
+		const std::string L = LedgerVignette::ShotCamSegment(In);
+		std::printf("    %s\n", L.c_str());
+		Check(L.find("shotCamId=cam_hook") != std::string::npos
+		      && L.find("shotCamReadXYZcm=400.0/-210.0/159.8") != std::string::npos
+		      && L.find("shotCamReadPitchYaw=2.6/11.0") != std::string::npos,
+		      "the frame's own line carries the camera it was taken from and the pose read back");
+		Check(L.find("shotCamDeltaCm=0.00") != std::string::npos,
+		      "a camera that landed where it was sent prints a zero distance, not a claim");
+		Check(L.find("shotCamStat=asked-against-read-back-off-the-player-view-point-while-THIS-"
+		             "frame-stood/per-sample-not-per-run") != std::string::npos,
+		      "and says it is a per-sample reading, so it is never read as a whole-run number");
+		Check(EveryTokenIsKeyValue(L), "the shot camera segment is space-free");
+
+		// ---- AND THE PLANTED CASE: A CAMERA THAT DID NOT ARRIVE ----------
+		//
+		// Rule 5b, the other outcome watched. The distance is computed here
+		// rather than in the module, so a camera that was sent somewhere and
+		// ended up somewhere else says so with a number.
+		LedgerVignette::ShotCamIn Off = In;
+		Off.ReadZCm = 159.75 - 40.0;
+		const std::string M = LedgerVignette::ShotCamSegment(Off);
+		Check(M.find("shotCamDeltaCm=40.00") != std::string::npos
+		      && M.find("shotCamAskedXYZcm=400.0/-210.0/159.8") != std::string::npos
+		      && M.find("shotCamReadXYZcm=400.0/-210.0/119.8") != std::string::npos,
+		      "a camera that did not arrive prints both halves and the distance between them");
+
+		// ---- AND A SHOT THAT HAD NO CAMERA TO READ -----------------------
+		LedgerVignette::ShotCamIn None;
+		None.CamId = "cam_A";
+		None.Status = "NO-WORLD";
+		const std::string N = LedgerVignette::ShotCamSegment(None);
+		std::printf("    %s\n", N.c_str());
+		Check(N.find("shotCamRead=NO-WORLD") != std::string::npos
+		      && N.find("shotCamReadXYZcm=nothing-measured") != std::string::npos
+		      && N.find("shotCamDeltaCm=nothing-measured") != std::string::npos,
+		      "a shot whose camera could not be read says the words rather than printing an origin");
+		Check(EveryTokenIsKeyValue(N), "the nothing-measured camera segment is space-free too");
+		// A ZERO POSE AND AN UNREAD POSE ARE DIFFERENT FACTS, and the second
+		// may never print as the first: an unread camera at 0/0/0 would read
+		// as a camera that really was at the world origin.
+		Check(N.find("0.0/0.0/0.0") == std::string::npos,
+		      "an unread camera never prints the origin it was default-constructed at");
+	}
+
+
 	std::printf("%s: %d of %d check(s) failed\n",
 	            gFailed == 0 ? "PASS" : "FAIL", gFailed, gChecks);
 	return gFailed == 0 ? 0 : 1;

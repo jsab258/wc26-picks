@@ -694,3 +694,133 @@ namespace LedgerFrame
 		return Out;
 	}
 }
+
+// ============================================================================
+// THE RIG'S OWN DETERMINISM, MEASURED RATHER THAN ASSERTED.
+//
+// WHY THIS EXISTS, AND THE READING THAT MADE IT NECESSARY. Run 38 photographed
+// vign_camA_day as shot 1 of 11 and vign_ladder_sun003 as shot 6. Their two
+// condition rows differ on `id` and `note` and on nothing else of eleven keys,
+// both are cam_A, both read sun 3.000 and sky 1.000 back off the live
+// components on their own shot lines, and every one of 921600 pixels differs,
+// the later frame darker, whole-frame mean 0.7048 against 0.5942. THE SAME RUN
+// SAID WHY, one line further down: `light control_no_toggle` photographs the
+// scene a second time with NOTHING TOGGLED, and its two takes differ by 0.0038
+// of mean luma with 715552 of 921600 pixels darker in the first. A rig whose
+// output depends on when a frame was taken cannot compare frames, which is the
+// only thing this rig is for.
+//
+// SO THE RUN PROVES IT RATHER THAN CLAIMING IT. The probe photographs the
+// FIRST shot's camera and condition again as the LAST thing it does, and this
+// is the difference between the two. Identical inputs, maximum order
+// separation: every other shot, every condition change and every light probe
+// stood between them. IDENTICAL is the only reading that lets a cross-shot
+// comparison mean anything; any other number says how much of the next
+// comparison is the rig rather than the street.
+//
+// WHAT EACH NUMBER IS A STATISTIC OF, all whole-frame, one per run:
+//   DiffPixels     COUNT of pixels differing in any of B, G, R, over Pixels
+//   MaxAbsChannel  the WORST single channel difference in 8-bit codes, 0..255
+//   MeanLumaFirst  mean luma of the first shot's committed frame
+//   MeanLumaRepeat mean luma of the repeat, taken last
+//   MeanLumaDelta  repeat MINUS first, so a negative number means the rig
+//                  drifted DARKER over the run
+namespace LedgerFrame
+{
+	struct RepeatDiff
+	{
+		bool      Comparable;        // two decoded frames of equal, non-zero size
+		long long Pixels;            // the denominator, pixels examined
+		long long DiffPixels;        // of those, how many differ in any channel
+		int       MaxAbsChannel;     // worst channel difference, 8-bit codes
+		double    MeanLumaFirst;
+		double    MeanLumaRepeat;
+		double    MeanLumaDelta;     // repeat minus first
+		RepeatDiff() : Comparable(false), Pixels(0), DiffPixels(0), MaxAbsChannel(0),
+		               MeanLumaFirst(0.0), MeanLumaRepeat(0.0), MeanLumaDelta(0.0) {}
+	};
+
+	// First and Repeat are BGRA8 buffers of the SAME dimensions, top row
+	// first. Different dimensions is not a small problem to paper over: it
+	// means the two are not the same frame and Comparable stays false, which
+	// prints the words rather than a zero that would read as agreement.
+	inline RepeatDiff MeasureRepeat(const unsigned char* First,
+	                                const unsigned char* Repeat, int W, int H)
+	{
+		RepeatDiff D;
+		if (First == 0 || Repeat == 0 || W <= 0 || H <= 0) { return D; }
+		D.Comparable = true;
+		D.Pixels = (long long)W * (long long)H;
+		double SumA = 0.0, SumB = 0.0;
+		for (long long P = 0; P < D.Pixels; ++P)
+		{
+			const long long I = P * 4;
+			const int B0 = First[I],  G0 = First[I + 1],  R0 = First[I + 2];
+			const int B1 = Repeat[I], G1 = Repeat[I + 1], R1 = Repeat[I + 2];
+			const int DB = B1 - B0 >= 0 ? B1 - B0 : B0 - B1;
+			const int DG = G1 - G0 >= 0 ? G1 - G0 : G0 - G1;
+			const int DR = R1 - R0 >= 0 ? R1 - R0 : R0 - R1;
+			int Worst = DB > DG ? DB : DG;
+			if (DR > Worst) { Worst = DR; }
+			if (Worst > 0) { ++D.DiffPixels; }
+			if (Worst > D.MaxAbsChannel) { D.MaxAbsChannel = Worst; }
+			SumA += Luma((unsigned char)R0, (unsigned char)G0, (unsigned char)B0);
+			SumB += Luma((unsigned char)R1, (unsigned char)G1, (unsigned char)B1);
+		}
+		D.MeanLumaFirst  = SumA / (double)D.Pixels;
+		D.MeanLumaRepeat = SumB / (double)D.Pixels;
+		D.MeanLumaDelta  = D.MeanLumaRepeat - D.MeanLumaFirst;
+		return D;
+	}
+
+	// ONE LINE, WHOLE-RUN, AND THE WORD IS DECIDED FROM THE COUNT AND NEVER
+	// FROM A TOLERANCE. There is no epsilon here on purpose: the claim being
+	// tested is that two frames with identical inputs are the same picture,
+	// and the honest bound for that is zero. A run that could not take the
+	// repeat prints the words rather than a zero difference, because "no
+	// repeat" and "no difference" are the two readings this key exists to
+	// keep apart.
+	inline std::string RigDeterminismLine(const std::string& RepeatOfShotId,
+	                                      int ShotsBetween, int ShotsAsked,
+	                                      const std::string& Status,
+	                                      const RepeatDiff& D)
+	{
+		char Buf[900];
+		const bool bMeasured = (Status == "MEASURED") && D.Comparable && D.Pixels > 0;
+		if (!bMeasured)
+		{
+			std::snprintf(Buf, sizeof(Buf),
+				"rigDeterminism=NOTHING-MEASURED rigRepeatStatus=%s rigRepeatOf=%s "
+				"rigRepeatAfterShots=%d/%d "
+				"rigDiffPixels=nothing-measured rigDiffPct=nothing-measured "
+				"rigMaxAbsChannelDiff=nothing-measured "
+				"rigMeanLumaFirst=nothing-measured rigMeanLumaRepeat=nothing-measured "
+				"rigMeanLumaDelta=nothing-measured "
+				"rigStat=per-pixel-difference-between-the-first-shots-frame-and-a-repeat-of-its-"
+				"camera-and-condition-photographed-last/whole-frame/one-per-run "
+				"rigRule=identical-inputs-must-be-the-same-picture/"
+				"any-nonzero-here-means-a-cross-shot-luma-comparison-in-this-run-is-partly-a-"
+				"comparison-of-the-rig-and-not-of-the-street",
+				(Status.empty() ? "NOT-RUN" : Status.c_str()),
+				(RepeatOfShotId.empty() ? "none" : RepeatOfShotId.c_str()),
+				ShotsBetween, ShotsAsked);
+			return std::string(Buf);
+		}
+		std::snprintf(Buf, sizeof(Buf),
+			"rigDeterminism=%s rigRepeatStatus=MEASURED rigRepeatOf=%s "
+			"rigRepeatAfterShots=%d/%d "
+			"rigDiffPixels=%lld/%lld rigDiffPct=%.2f rigMaxAbsChannelDiff=%d/255 "
+			"rigMeanLumaFirst=%.4f rigMeanLumaRepeat=%.4f rigMeanLumaDelta=%+.4f "
+			"rigStat=per-pixel-difference-between-the-first-shots-frame-and-a-repeat-of-its-"
+			"camera-and-condition-photographed-last/whole-frame/one-per-run "
+			"rigRule=identical-inputs-must-be-the-same-picture/"
+			"any-nonzero-here-means-a-cross-shot-luma-comparison-in-this-run-is-partly-a-"
+			"comparison-of-the-rig-and-not-of-the-street",
+			D.DiffPixels == 0 ? "IDENTICAL" : "DIFFERS",
+			(RepeatOfShotId.empty() ? "none" : RepeatOfShotId.c_str()),
+			ShotsBetween, ShotsAsked,
+			D.DiffPixels, D.Pixels, Pct(D.DiffPixels, D.Pixels), D.MaxAbsChannel,
+			D.MeanLumaFirst, D.MeanLumaRepeat, D.MeanLumaDelta);
+		return std::string(Buf);
+	}
+}

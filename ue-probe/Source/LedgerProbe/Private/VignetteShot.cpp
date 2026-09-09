@@ -236,6 +236,32 @@ namespace
 	const double kLightProbeBudgetSeconds = 240.0;
 	// ONE SCRATCH NAME FOR EVERY PROBE FRAME, deleted when the run ends.
 	const TCHAR* kProbePngLeaf = TEXT("ue-lightprobe.png");
+	// AND ONE FOR THE DETERMINISM REPEAT, which is half of a difference and
+	// not evidence, exactly as a probe frame is. Deleted when the run ends.
+	const TCHAR* kRepeatPngLeaf = TEXT("ue-rigrepeat.png");
+
+	// ---- THE EXPOSURE IS PINNED IN TIME, NOT IN VALUE --------------------
+	//
+	// WHAT THIS NUMBER IS AND WHERE IT CAME FROM. Eye adaptation blends the
+	// current exposure toward the histogram's target by a factor that decays
+	// exponentially with the frame's own delta time, so the number below is
+	// a RATE, not a threshold on any measurement, and it is chosen to be far
+	// enough above the run's own frame rate that the blend completes inside
+	// one frame. Run 38's slowest shot measured frameMedianMs=5.26, and at
+	// 5.26 ms a rate of 10000 leaves less than one part in 10^15 of the old
+	// exposure, which is below a float's ability to hold it. The 32 frames
+	// this rig stands still for before every shutter cover any frame time
+	// from 0.1 ms up.
+	//
+	// WHY A RATE AND NOT A FIXED EXPOSURE VALUE. Pinning the VALUE would need
+	// a number nothing here has measured: the adapted exposure is a render
+	// thread quantity this process never reads, and rule 2 forbids inventing
+	// it. Pinning the RATE removes the temporal state without moving the
+	// exposure policy, so a still keeps the level a player standing on that
+	// spot would settle at; only the transition is gone. If the rig repeat
+	// still reads DIFFERS after this, the follow-up pins the value off the
+	// series this run prints, in that order.
+	const double kExposureSnapSpeed = 10000.0;
 
 	// ---- phase C: the pack's maps and the one asset a script had to make --
 	//
@@ -293,12 +319,25 @@ namespace
 	// same rule the sun, the fills and the fog already live under.
 	ASkyLight*      GSky        = nullptr;
 	ASkyAtmosphere* GAtmosphere = nullptr;
-	// WRITE-ON-CHANGE, AND BOTH HALVES COUNTED. ApplyCondition is re-entered
-	// every tick while a condition settles, so a recapture written per tick
-	// is a rebuild asked for four times over. GSkyAppliedId is the last
-	// condition the sky was written for; the two counters are what prove the
-	// guard is doing its job rather than being trusted to.
-	std::string GSkyAppliedId = "none-yet";
+	// WRITE ONCE PER SHOT, NEVER PER SETTLE TICK, AND BOTH HALVES COUNTED.
+	// ApplyCondition is re-entered every tick while a condition settles, so a
+	// recapture written per tick is a rebuild asked for a hundred times over,
+	// and the two counters are what prove the guard is doing its job rather
+	// than being trusted to.
+	//
+	// IT USED TO BE KEYED ON THE CONDITION ID, WHICH MADE THE AGE OF A
+	// FRAME'S SKY A FUNCTION OF THE SHOT ORDER. Two shots naming the same
+	// condition in a row got ONE capture between them, so the second was
+	// photographed against a cubemap a whole shot older than the first's,
+	// and which shots those were depended entirely on the order the file
+	// lists them in. MEASURED, AND IT IS A LATENT PATH RATHER THAN RUN 38's
+	// FAULT: that run's eleven shots name no condition twice in a row, so it
+	// wrote the sky eleven times over eleven shots and no frame in it carries
+	// a stale capture. The epoch is bumped once per photographed pass
+	// instead, so the shot list can be reordered or extended without the
+	// question coming back.
+	int32       GSkyEpoch     = -1;   // the pass the sky was last written for
+	int32       GWantSkyEpoch = 0;    // bumped once per pass, at build and per shot
 	int32       GApplyCalls   = 0;
 	int32       GSkyWrites    = 0;
 	// THE HDRI THE SHARED FILE NAMES: looked for, measured, NOT bound.
@@ -339,6 +378,35 @@ namespace
 	int GShotsProbed = 0, GControls = 0;
 	FString GToneLine = TEXT("tonemapRead=NOT-REACHED");
 
+	// ---- the rig's own determinism (the shot-order exposure fault) -------
+	//
+	// THE FIRST SHOT'S PIXELS, KEPT FOR THE WHOLE RUN so the repeat at the
+	// end has something to be identical to. One frame of BGRA8 at 1280x720
+	// is 3.7 MB and it is held once, not once per shot.
+	TArray64<uint8> GFirstBgra;
+	int32       GFirstW = 0, GFirstH = 0;
+	std::string GFirstShotId;
+	bool        GRepeating = false;   // the repeat pass is in flight
+	bool        GRepeatRan = false;   // and it is taken exactly once
+	std::string GRigLine = LedgerFrame::RigDeterminismLine(
+		std::string(), 0, 0, "NOT-RUN", LedgerFrame::RepeatDiff());
+	// ONE PASS IS ONE PHOTOGRAPHED SHOT OR THE REPEAT. The preamble each pass
+	// writes (the control quads' visibility, the sky recapture) is written
+	// once per pass and never per settle tick, and keying it on the PASS
+	// rather than on the shot index is what lets the repeat re-run shot 0's
+	// preamble in full instead of inheriting the last shot's.
+	int32 GShotPass     = 0;
+	int32 GPassPrepared = -1;
+	// WHICH CAPTURE PATH TOOK THIS FRAME. GUseHighRes is adopted for the
+	// whole run the first time candidate A writes nothing, so a run can
+	// legitimately contain frames from two different capture paths and
+	// nothing on the shot line said which. Per-sample, on the sample line.
+	std::string GCaptureVia = "requestscreenshot";
+	// THE CAMERA THAT TOOK THIS FRAME, QUEUE 208. Filled by PlaceCamera and
+	// read by MeasureShot, so the pose rides the shot line rather than the
+	// one-per-run line the shot loop used to overwrite.
+	LedgerVignette::ShotCamIn GShotCam;
+
 	// ---- the material pass -------------------------------------------------
 	FString GTexRoot;
 	int32   GTexRootFiles = 0;
@@ -366,7 +434,6 @@ namespace
 	// ControlQuadsVisibleFor and lives in the header the test compiles; this
 	// is only its call site and its tally.
 	TArray<AStaticMeshActor*> GQuadActors;
-	int32 GQuadVisShot = -1;      // the shot index the visibility was last written for
 	int   GQuadShotsSeen = 0;     // shots that reached the write, over which the tally is taken
 	int   GQuadHidden = 0;        // of those, how many had the controls hidden
 	std::string GQuadHiddenIds;
@@ -1295,12 +1362,21 @@ namespace
 		// ---- THE SKY, WRITTEN ON CHANGE AND NOT PER TICK ---------------
 		//
 		// This function is re-entered every tick while a condition settles.
-		// A recapture per tick is a rebuild asked for four times, and the
-		// count of asks against the count of writes rides the scene line so
-		// nobody has to take this comment's word for it.
-		if (bWhole && GSkyAppliedId != C.Id)
+		// A recapture per tick is a rebuild asked for a hundred times, and
+		// the count of asks against the count of writes rides the scene line
+		// so nobody has to take this comment's word for it.
+		//
+		// ONCE PER PASS, NOT ONCE PER CONDITION CHANGE. Keyed on the pass
+		// epoch rather than on the condition id, because two shots naming the
+		// same condition are two frames and the second would otherwise be
+		// photographed against a capture one whole shot older. The sky is not
+		// a light value and none of the four scattering constants or the
+		// intensity above changes here: this decides only WHEN the same write
+		// happens. skyWrites therefore reads one per pass rather than one per
+		// condition change, and a pass is a shot or the determinism repeat.
+		if (bWhole && GSkyEpoch != GWantSkyEpoch)
 		{
-			GSkyAppliedId = C.Id;
+			GSkyEpoch = GWantSkyEpoch;
 			++GSkyWrites;
 			if (USkyAtmosphereComponent* A =
 			        GAtmosphere->FindComponentByClass<USkyAtmosphereComponent>())
@@ -1463,6 +1539,9 @@ namespace
 			// A WORLD THAT WENT AWAY BETWEEN TWO TICKS IS A FINDING, and it
 			// must not read as a camera that was placed at the origin.
 			GCamLine = TEXT("shotCamPlaced=NO-WORLD shotCamReason=the-game-world-vanished-between-ticks");
+			GShotCam = LedgerVignette::ShotCamIn();
+			GShotCam.CamId  = C.Id;
+			GShotCam.Status = "NO-WORLD";
 			return;
 		}
 		// EYE HEIGHT IS MEASURED FROM THE PAVEMENT UNDER THE CAMERA and the
@@ -1503,6 +1582,36 @@ namespace
 				// force; the cvars beside them are what actually decides, and
 				// a cvar this engine version does not have prints `absent`
 				// rather than a zero that would read as "off".
+				// ---- THE ONE THING THIS PROBE NOW OVERRIDES, AND WHY ----
+				//
+				// MEASURED, NOT ARGUED. Run 38's `light control_no_toggle`
+				// line photographs a shot a second time with NOTHING
+				// TOGGLED: 715552 of 921600 pixels came back darker in the
+				// first take and the whole-frame mean moved 0.09107 to
+				// 0.09490, 0.28 s apart, same camera, same condition, same
+				// sky capture. The eight successive frames of that shot's
+				// probe pass then rise MONOTONICALLY, 0.09490 to 0.10780,
+				// while lights are being switched OFF one at a time. A frame
+				// getting brighter as the scene loses lights is not the
+				// scene: it is a gain applied after it, still moving two
+				// seconds in. Eye adaptation is temporal and every shutter
+				// here falls 0.65 s after its condition change, so no frame
+				// in that run was photographed at a settled exposure and
+				// every cross-shot luma comparison it supports is partly a
+				// comparison of the adaptation's starting point.
+				//
+				// ONE OWNER PER GLOBAL. This is written HERE and nowhere
+				// else: the only other post-process writer in this module is
+				// the readback below, which reads. It is the camera's own
+				// component rather than a cvar, so nothing outside this
+				// probe's view is touched, and the override flags are set
+				// beside the values because a value that is not overridden
+				// is not the value in force.
+				FPostProcessSettings& PPW = CC->PostProcessSettings;
+				PPW.bOverride_AutoExposureSpeedUp   = true;
+				PPW.AutoExposureSpeedUp             = (float)kExposureSnapSpeed;
+				PPW.bOverride_AutoExposureSpeedDown = true;
+				PPW.AutoExposureSpeedDown           = (float)kExposureSnapSpeed;
 				const FPostProcessSettings& PP = CC->PostProcessSettings;
 				GToneLine = FString::Printf(
 					TEXT("tonemapRead=camera-postprocess-and-cvars ")
@@ -1511,8 +1620,12 @@ namespace
 					TEXT("ppOverridesMethod/Bias/Min/Max=%d/%d/%d/%d ")
 					TEXT("cvarDefaultAutoExposure=%s cvarDefaultAutoExposureMethod=%s ")
 					TEXT("cvarEyeAdaptationMethodOverride=%s cvarExtendDefaultLuminanceRange=%s ")
+					TEXT("ppAutoExposureSpeedUpRead=%.1f ppAutoExposureSpeedDownRead=%.1f ")
+					TEXT("ppOverridesSpeedUp/SpeedDown=%d/%d ppBlendWeightRead=%.3f ")
 					TEXT("tonemapStat=last-camera-placement/one-per-run ")
-					TEXT("ppNote=this-probe-overrides-nothing/cvars-are-what-is-in-force"),
+					TEXT("ppNote=this-probe-overrides-the-two-eye-adaptation-SPEEDS-and-nothing-else/")
+					TEXT("the-values-above-are-the-game-threads-copy-after-the-write/")
+					TEXT("cvars-are-what-is-in-force-for-everything-else"),
 					(int32)PP.AutoExposureMethod, PP.AutoExposureBias,
 					PP.AutoExposureMinBrightness, PP.AutoExposureMaxBrightness,
 					PP.bOverride_AutoExposureMethod ? 1 : 0,
@@ -1522,7 +1635,11 @@ namespace
 					*CVarIntOrAbsent(TEXT("r.DefaultFeature.AutoExposure")),
 					*CVarIntOrAbsent(TEXT("r.DefaultFeature.AutoExposure.Method")),
 					*CVarIntOrAbsent(TEXT("r.EyeAdaptation.MethodOverride")),
-					*CVarIntOrAbsent(TEXT("r.DefaultFeature.AutoExposure.ExtendDefaultLuminanceRange")));
+					*CVarIntOrAbsent(TEXT("r.DefaultFeature.AutoExposure.ExtendDefaultLuminanceRange")),
+					PP.AutoExposureSpeedUp, PP.AutoExposureSpeedDown,
+					PP.bOverride_AutoExposureSpeedUp ? 1 : 0,
+					PP.bOverride_AutoExposureSpeedDown ? 1 : 0,
+					CC->PostProcessBlendWeight);
 				// ---- QUEUE 186: WHAT, IF ANYTHING, THE ROAD CAN REFLECT --
 				//
 				// A sky that lights a scene and a sky that is MIRRORED in
@@ -1553,19 +1670,50 @@ namespace
 		}
 		FVector GotLoc = FVector::ZeroVector;
 		FRotator GotRot = FRotator::ZeroRotator;
+		// A POSE NOBODY ANSWERED IS NOT A POSE AT THE ORIGIN. Without a
+		// player controller there is no view point to ask, and the two zero
+		// vectors below would otherwise print as a camera that really was at
+		// the world origin looking down the street.
+		bool bReadViewPoint = false;
 		if (APlayerController* PC = World->GetFirstPlayerController())
 		{
 			if (GCam != nullptr) { PC->SetViewTarget(GCam); }
 			PC->GetPlayerViewPoint(GotLoc, GotRot);
+			bReadViewPoint = true;
 		}
+		// ---- QUEUE 208: THE POSE IS A PER-SAMPLE FACT AND HAS MOVED -----
+		//
+		// This line keeps ONLY what is true of the run: that a camera actor
+		// exists at all, and which map it is in. The actor is spawned once
+		// and moved, so both are run facts. Everything the shot loop used to
+		// overwrite here now rides the shot line through ShotCamSegment,
+		// which is formatted and tested in VignetteSpec.h. No key is printed
+		// in both places: one key with two values under two line shapes is
+		// what tools/verdict-dupkeys.py exists to catch.
 		GCamLine = FString::Printf(
-			TEXT("shotCamPlaced=%s shotCamAskedXYZcm=%.1f/%.1f/%.1f shotCamReadXYZcm=%.1f/%.1f/%.1f ")
-			TEXT("shotCamDeltaCm=%.2f shotCamAskedPitchYaw=%.1f/%.1f shotCamReadPitchYaw=%.1f/%.1f ")
-			TEXT("shotWorld=%s"),
+			TEXT("shotCamPlaced=%s shotWorld=%s ")
+			TEXT("shotCamActorStat=one-per-run/the-camera-actor-is-spawned-once-and-moved-per-shot ")
+			TEXT("shotCamPoseStat=the-pose-and-the-camera-id-are-per-sample-and-are-on-each-shot-line/")
+			TEXT("shotCamId-shotCamAskedXYZcm-shotCamReadXYZcm-shotCamDeltaCm-shotCamAskedPitchYaw-shotCamReadPitchYaw"),
 			GCam != nullptr ? TEXT("yes") : TEXT("SPAWN-FAILED"),
-			Want.X, Want.Y, Want.Z, GotLoc.X, GotLoc.Y, GotLoc.Z,
-			FVector::Dist(Want, GotLoc), WantRot.Pitch, WantRot.Yaw,
-			GotRot.Pitch, GotRot.Yaw, *NoSp(World->GetMapName()));
+			*NoSp(World->GetMapName()));
+		// AND THE PAIRED READING FOR THIS FRAME, ASKED AGAINST READ BACK.
+		// The distance between the halves is computed in the tested header,
+		// never here.
+		GShotCam = LedgerVignette::ShotCamIn();
+		GShotCam.CamId  = C.Id;
+		GShotCam.Status = (GCam == nullptr) ? "SPAWN-FAILED"
+		                                   : (bReadViewPoint ? "MEASURED" : "NO-VIEWPOINT");
+		GShotCam.AskedXCm = (double)Want.X;
+		GShotCam.AskedYCm = (double)Want.Y;
+		GShotCam.AskedZCm = (double)Want.Z;
+		GShotCam.ReadXCm  = (double)GotLoc.X;
+		GShotCam.ReadYCm  = (double)GotLoc.Y;
+		GShotCam.ReadZCm  = (double)GotLoc.Z;
+		GShotCam.AskedPitchDeg = (double)WantRot.Pitch;
+		GShotCam.AskedYawDeg   = (double)WantRot.Yaw;
+		GShotCam.ReadPitchDeg  = (double)GotRot.Pitch;
+		GShotCam.ReadYawDeg    = (double)GotRot.Yaw;
 	}
 
 	// ---- the verdict ----------------------------------------------------
@@ -1651,6 +1799,22 @@ namespace
 		Out.Add(TEXT("#   the quad lines say only where to look and what was asked for."));
 		Out.Add(TEXT("#   The controls occupy their printed boxes, so any whole-frame statistic"));
 		Out.Add(TEXT("#   taken from this run includes them and must exclude those boxes first."));
+		Out.Add(TEXT("# QUEUE 208, THE CAMERA. shotCamId and the asked-against-read pose ride"));
+		Out.Add(TEXT("#   EACH SHOT LINE, because the camera a frame was taken from is a"));
+		Out.Add(TEXT("#   per-sample fact. The one-per-run shotCam line keeps only what is true"));
+		Out.Add(TEXT("#   of the run: that a camera actor exists, and the map it is in. It used"));
+		Out.Add(TEXT("#   to carry the pose, last-wins, and tools/frame-shadow-probe.py refused"));
+		Out.Add(TEXT("#   every frame whose camera was not the last one the run placed."));
+		Out.Add(TEXT("# THE RIG LINE, rigDeterminism, IS THIS RUN ASKING WHETHER IT CAN BE"));
+		Out.Add(TEXT("#   COMPARED AT ALL. The first shot's camera and condition are"));
+		Out.Add(TEXT("#   photographed again as the last thing the run does, to a scratch file"));
+		Out.Add(TEXT("#   that is not committed, and rigDiffPixels is the count of pixels that"));
+		Out.Add(TEXT("#   differ over the whole frame. There is no epsilon: identical inputs"));
+		Out.Add(TEXT("#   must be the same picture, so the honest bound is zero. Anything else"));
+		Out.Add(TEXT("#   means a cross-shot luma comparison in this run is partly a comparison"));
+		Out.Add(TEXT("#   of the rig. The eye adaptation SPEEDS are the one thing this probe"));
+		Out.Add(TEXT("#   overrides, named on the tonemap line; the exposure VALUE is still the"));
+		Out.Add(TEXT("#   engine's own, so a still is still the level a player would settle at."));
 		Out.Add(TEXT("# NO COMMENT IN THIS HEADER WRITES A KEY WITH AN EQUALS AND A VALUE."));
 		Out.Add(TEXT("#   Run 19 spelled this key out with MISSING beside it up here and"));
 		Out.Add(TEXT("#   measured it as loaded down there, which tools/verdict-dupkeys.py"));
@@ -1714,6 +1878,8 @@ namespace
 			GRestoreMismatch, GShotsProbed, (int)GSpec.Shots.size(),
 			kLightProbeBudgetSeconds, GProbeSpent,
 			kWarmFrames + kTimedFrames, GControls).c_str())));
+		// THE RIG'S OWN DETERMINISM, BESIDE THE PASS SUMMARIES IT QUALIFIES.
+		Out.Add(FString(UTF8_TO_TCHAR(GRigLine.c_str())));
 		Out.Add(FString(UTF8_TO_TCHAR(DoneLine.c_str())));
 		if (!GArt.empty())
 		{
@@ -1732,8 +1898,9 @@ namespace
 		GPhase = EPhase::Done;
 		WriteVerdict(DoneLine);
 		// THE PROBE'S SCRATCH FRAME IS NOT EVIDENCE AND DOES NOT SURVIVE THE
-		// RUN. Scoped to exactly the one file this pass wrote.
+		// RUN. Scoped to exactly the two files these passes wrote, by name.
 		IFileManager::Get().Delete(*AbsProject(kProbePngLeaf), false, true, true);
+		IFileManager::Get().Delete(*AbsProject(kRepeatPngLeaf), false, true, true);
 		FPlatformMisc::RequestExit(false);
 	}
 
@@ -1880,6 +2047,23 @@ namespace
 		                                     Mobility, bSkyComp, SkyIntensity);
 	}
 
+	// ---- QUEUE 208 AND THE CAPTURE PATH, ON EVERY SHOT LINE -------------
+	//
+	// ONE PRODUCER FOR BOTH, because a shot line assembled twice drifts the
+	// moment either half changes, and all four of MeasureShot's exits print
+	// it. The camera segment is formatted in the tested header; the capture
+	// path is the one word that says WHICH of the two screenshot candidates
+	// wrote this file, which was invisible before: GUseHighRes is adopted for
+	// the whole run the first time candidate A writes nothing, so a run can
+	// hold frames from two different capture paths and only the shot that
+	// switched carries a note about it.
+	std::string ShotCamAndCaptureNow()
+	{
+		return LedgerVignette::ShotCamSegment(GShotCam)
+		     + " shotCaptureVia=" + GCaptureVia
+		     + " shotCaptureViaStat=per-sample/the-path-is-adopted-run-wide-once-candidate-A-fails-once";
+	}
+
 	// MEASURE THE FILE THAT IS ABOUT TO BE COMMITTED, not the buffer the
 	// engine had in memory, and let the maths and the string come from the
 	// tested header.
@@ -1894,7 +2078,8 @@ namespace
 			GShotLines.push_back(ShotLine(S.Id, S.CameraId, S.ConditionId, GEyeY,
 				TCHAR_TO_UTF8(*GCamEdge), Median, kTimedFrames, kWarmFrames,
 				kShotW, kShotH, VFov, HFov, 0, "NO-FILE", "none",
-				std::string(TCHAR_TO_UTF8(*GNote))));
+				std::string(TCHAR_TO_UTF8(*GNote)))
+				+ " " + ShotCamAndCaptureNow());
 			return;
 		}
 		const int64 Bytes = IFileManager::Get().FileSize(*PngPath);
@@ -1907,7 +2092,8 @@ namespace
 			GShotLines.push_back(ShotLine(S.Id, S.CameraId, S.ConditionId, GEyeY,
 				TCHAR_TO_UTF8(*GCamEdge), Median, kTimedFrames, kWarmFrames,
 				0, 0, VFov, HFov, (long long)Bytes, "UNDECODABLE",
-				TCHAR_TO_UTF8(*FPaths::GetCleanFilename(PngPath)), Note));
+				TCHAR_TO_UTF8(*FPaths::GetCleanFilename(PngPath)), Note)
+				+ " " + ShotCamAndCaptureNow());
 			return;
 		}
 		const LedgerFrame::FrameStats St =
@@ -1957,7 +2143,23 @@ namespace
 		// OF THE FILE THAT ASKED FOR IT. Per-sample keys on the sample line.
 		Line += " ";
 		Line += ShotLightNow();
+		// AND WHAT TOOK IT: the camera this frame was photographed from, and
+		// which of the two capture paths wrote the file. Per-sample, queue
+		// 208, and the reason tools/frame-shadow-probe.py can bind a shot
+		// that is not the last one the run placed.
+		Line += " ";
+		Line += ShotCamAndCaptureNow();
 		GShotLines.push_back(Line);
+		// ---- THE FIRST SHOT'S PIXELS, KEPT FOR THE REPEAT AT THE END -----
+		//
+		// A COPY, taken before the light probe may move this buffer out from
+		// under it. Only the first shot is kept, and only once: the repeat
+		// is one difference, not eleven.
+		if (GFirstBgra.Num() == 0 && GShotIndex == 0)
+		{
+			GFirstBgra = Bgra;
+			GFirstW = W; GFirstH = H; GFirstShotId = S.Id;
+		}
 		if (GArt.empty())
 		{
 			GArt = LedgerFrame::AsciiLuma((const unsigned char*)Bgra.GetData(), W, H);
@@ -1991,6 +2193,62 @@ namespace
 	FString ProbePngPath()
 	{
 		return AbsProject(kProbePngLeaf);
+	}
+
+	// AND ONE FOR THE DETERMINISM REPEAT, for the same reason: the repeat is
+	// half of a difference and the difference is the finding, so the frame
+	// itself is not committed and the step stages by name in any case.
+	FString RepeatPngPath()
+	{
+		return AbsProject(kRepeatPngLeaf);
+	}
+
+	// ---- IS THIS RIG DETERMINISTIC, ASKED OF THE RUN ITSELF -------------
+	//
+	// The first shot's camera and condition, photographed again as the last
+	// thing the run does. Identical inputs and maximum order separation, so
+	// anything other than IDENTICAL is the rig's own drift and every
+	// cross-shot comparison the run supports carries it. The arithmetic and
+	// the string are in FrameStats.h, where g++ runs them before any
+	// dispatch; this supplies the two buffers and a status word.
+	void MeasureRigRepeat(const FString& PngPath, bool bHaveFile)
+	{
+		LedgerFrame::RepeatDiff D;
+		const int OfShots = (int)GSpec.Shots.size();
+		if (!bHaveFile)
+		{
+			GRigLine = LedgerFrame::RigDeterminismLine(
+				GFirstShotId, OfShots, OfShots, "NO-FILE", D);
+			return;
+		}
+		TArray64<uint8> Bgra;
+		int32 W = 0, H = 0;
+		std::string Note("none");
+		if (!DecodeBgra(PngPath, Bgra, W, H, Note))
+		{
+			GRigLine = LedgerFrame::RigDeterminismLine(
+				GFirstShotId, OfShots, OfShots, "UNDECODABLE", D);
+			return;
+		}
+		if (GFirstBgra.Num() == 0)
+		{
+			GRigLine = LedgerFrame::RigDeterminismLine(
+				GFirstShotId, OfShots, OfShots, "NO-FIRST-FRAME", D);
+			return;
+		}
+		if (W != GFirstW || H != GFirstH)
+		{
+			// TWO SIZES ARE NOT TWO TAKES OF ONE PICTURE, and a difference
+			// taken across them would be arithmetic on unrelated pixels.
+			GRigLine = LedgerFrame::RigDeterminismLine(
+				GFirstShotId, OfShots, OfShots, "SIZE-MISMATCH", D);
+			return;
+		}
+		D = LedgerFrame::MeasureRepeat(
+			(const unsigned char*)GFirstBgra.GetData(),
+			(const unsigned char*)Bgra.GetData(), W, H);
+		GRigLine = LedgerFrame::RigDeterminismLine(
+			GFirstShotId, OfShots, OfShots, "MEASURED", D);
 	}
 
 	void EmitLightLine(const Shot& S, int32 Seq, const char* Status,
@@ -2134,6 +2392,17 @@ namespace
 	void AfterFrame(bool bHaveFile)
 	{
 		const Shot& S = GSpec.Shots[GShotIndex];
+		if (GRepeating)
+		{
+			// THE REPEAT PUSHES NO SHOT LINE. Its frame is half of a
+			// difference, not evidence, and a twelfth shot line would put a
+			// frame nothing committed into every denominator on the file.
+			MeasureRigRepeat(GAskedPath, bHaveFile);
+			GRepeating = false;
+			GShotIndex = (int32)GSpec.Shots.size();
+			GPhase = EPhase::ApplyShot;
+			return;
+		}
 		if (GProbing)
 		{
 			MeasureProbe(S, GAskedPath, bHaveFile);
@@ -2152,6 +2421,7 @@ namespace
 			GRefBgra.Empty();
 			GRefW = 0; GRefH = 0; GRefShotId.clear();
 			++GShotIndex;
+			++GShotPass;
 			GPhase = EPhase::ApplyShot;
 			return;
 		}
@@ -2163,6 +2433,7 @@ namespace
 			return;
 		}
 		++GShotIndex;
+		++GShotPass;
 		GPhase = EPhase::ApplyShot;
 	}
 
@@ -2745,7 +3016,38 @@ namespace
 		}
 		case EPhase::ApplyShot:
 		{
-			if (GShotIndex >= (int32)GSpec.Shots.size()) { FinishNormally(); return false; }
+			if (GShotIndex >= (int32)GSpec.Shots.size())
+			{
+				// ---- THE DETERMINISM REPEAT, LAST, OF THE FIRST SHOT -----
+				//
+				// The same camera and the same condition as shot 1, arrived
+				// at from the opposite end of the run: every other shot,
+				// every condition change and every light probe stood between
+				// the two. It writes to a scratch path, pushes no shot line
+				// and moves no tally; the only thing it produces is one
+				// difference, and that difference is what says whether any
+				// cross-shot comparison in this run means anything.
+				if (!GRepeatRan && !GSpec.Shots.empty() && GFirstBgra.Num() > 0)
+				{
+					GRepeatRan  = true;
+					GRepeating  = true;
+					GShotIndex  = 0;
+					++GShotPass;
+					GPhaseStart = Now; GPhaseTicks = 0;
+					return true;
+				}
+				if (!GRepeatRan)
+				{
+					// NOTHING TO BE IDENTICAL TO IS ITS OWN READING and is
+					// not a zero difference.
+					LedgerFrame::RepeatDiff Nothing;
+					GRigLine = LedgerFrame::RigDeterminismLine(
+						GFirstShotId, GShotIndex, (int)GSpec.Shots.size(),
+						"NO-FIRST-FRAME", Nothing);
+				}
+				FinishNormally();
+				return false;
+			}
 			const Shot& S = GSpec.Shots[GShotIndex];
 			const Camera* C = FindCamera(S.CameraId);
 			const Condition* Cond = FindCondition(S.ConditionId);
@@ -2754,10 +3056,18 @@ namespace
 				// A SHOT NAMING A CAMERA OR A CONDITION THE FILE DOES NOT
 				// CARRY IS COUNTED, not skipped in silence.
 				++GNoFile;
+				GShotCam = LedgerVignette::ShotCamIn();
+				GShotCam.CamId  = S.CameraId;
+				GShotCam.Status = "NO-SUCH-CAMERA";
 				GShotLines.push_back(ShotLine(S.Id, S.CameraId, S.ConditionId, 0.0, "none",
 					-1.0, kTimedFrames, kWarmFrames, kShotW, kShotH, 0.0, 0.0, 0,
-					"NO-SUCH-CAMERA-OR-CONDITION", "none", "nothing-measured"));
+					"NO-SUCH-CAMERA-OR-CONDITION", "none", "nothing-measured")
+					+ " " + ShotCamAndCaptureNow());
 				++GShotIndex;
+				// A SKIPPED SHOT IS STILL A PASS. Without this the NEXT
+				// shot's preamble would read as already written and it
+				// would inherit this one's control quads and sky capture.
+				++GShotPass;
 				return true;
 			}
 			// THE CONTROLS ARE HIDDEN FOR EVERY SHOT BUT THEIR OWN, and the
@@ -2767,25 +3077,43 @@ namespace
 			// asked for four times. A run with no quads spawned counts
 			// nothing, so the verdict line reads nothing-measured rather
 			// than claiming a hide that had nothing to hide.
-			if (GQuadVisShot != GShotIndex && GQuadActors.Num() > 0)
+			// ONCE PER PASS, NOT ONCE PER SETTLE TICK AND NOT ONCE PER SHOT
+			// INDEX. This phase is re-entered while the condition settles, so
+			// a per-tick write is both a lie in the tally and a rebuild asked
+			// for a hundred times; keying it on the PASS is what lets the
+			// determinism repeat re-run shot 1's preamble in full rather than
+			// inheriting whatever the last shot left behind. The sky epoch is
+			// bumped here for the same reason.
+			if (GPassPrepared != GShotPass)
 			{
-				GQuadVisShot = GShotIndex;
-				const Camera* QuadCam = ControlCamera();
-				const bool bShow = LedgerSurface::ControlQuadsVisibleFor(
-					S.CameraId, QuadCam != nullptr ? QuadCam->Id : std::string());
-				for (int32 QI = 0; QI < GQuadActors.Num(); ++QI)
+				GPassPrepared = GShotPass;
+				++GWantSkyEpoch;
+				if (GQuadActors.Num() > 0)
 				{
-					if (GQuadActors[QI] != nullptr)
+					const Camera* QuadCam = ControlCamera();
+					const bool bShow = LedgerSurface::ControlQuadsVisibleFor(
+						S.CameraId, QuadCam != nullptr ? QuadCam->Id : std::string());
+					for (int32 QI = 0; QI < GQuadActors.Num(); ++QI)
 					{
-						GQuadActors[QI]->SetActorHiddenInGame(!bShow);
+						if (GQuadActors[QI] != nullptr)
+						{
+							GQuadActors[QI]->SetActorHiddenInGame(!bShow);
+						}
 					}
-				}
-				++GQuadShotsSeen;
-				if (!bShow)
-				{
-					++GQuadHidden;
-					if (!GQuadHiddenIds.empty()) { GQuadHiddenIds += ";"; }
-					GQuadHiddenIds += S.Id;
+					// THE REPEAT IS NOT A SHOT AND IS NOT COUNTED AS ONE. It
+					// writes the same visibility so its picture matches, and
+					// stays out of the tally so the denominator keeps
+					// counting the shots the file asked for.
+					if (!GRepeating)
+					{
+						++GQuadShotsSeen;
+						if (!bShow)
+						{
+							++GQuadHidden;
+							if (!GQuadHiddenIds.empty()) { GQuadHiddenIds += ";"; }
+							GQuadHiddenIds += S.Id;
+						}
+					}
 				}
 			}
 			ApplyCondition(*Cond);
@@ -2824,7 +3152,8 @@ namespace
 		case EPhase::Ask:
 		{
 			const Shot& S = GSpec.Shots[GShotIndex];
-			GAskedPath = GProbing ? ProbePngPath() : ShotPngPath(S);
+			GAskedPath = GProbing ? ProbePngPath()
+			                      : (GRepeating ? RepeatPngPath() : ShotPngPath(S));
 			IFileManager::Get().Delete(*GAskedPath, false, true, true);
 			GSizeTracker = -1;
 			if (!GUseHighRes)
@@ -2885,6 +3214,7 @@ namespace
 				// cost 25 wasted seconds per shot for no new information.
 				GNote = TEXT("requestScreenshot-wrote-nothing-in-25s/switched-to-HighResShot");
 				GUseHighRes = true;
+				GCaptureVia = "highresshot";
 				GTriedHighResThisShot = true;
 				GPhase = EPhase::Ask;
 				GPhaseStart = Now; GPhaseTicks = 0;
