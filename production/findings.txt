@@ -2977,3 +2977,118 @@ SUN GOES UP TENFOLD AND THE STEP STAYS UNDER +0.01, the sun is not the limiting
 term, the skylight owns the whole exposure, and the next move is kSkyIntensityDay
 coming down rather than the sun going up. Naming the second suspect in advance is
 what stops the next run being an argument.
+
+--------------------------------------------------------------------------------
+2026-09-09, THE SECOND DISPATCH GOT TWO MINUTES IN AND FOUND TWO MORE FAULTS, ONE
+OF WHICH WOULD HAVE EATEN A SUCCESSFUL RENDER
+
+The PATH bootstrap fix WORKED. The first dispatch died in twelve seconds on
+`pwsh: command not found`; the second ran for two minutes, resolved the request
+file, yielded to nothing, checked out both branches and reached the recipe. That
+half of a87254bc is now proven on the machine rather than by a lint.
+
+FAULT ONE, THE BLOCKER: Blender is not where the workflow looks.
+
+    artPreviewStatus=NO-BLENDER recipeAsked=mickeys-blockout candidatesTried=3/3
+    previewsWrote=0/0-cameras-read
+
+Three hardcoded candidates: Blender 4.2 and 4.1 under Program Files, and a bare
+`blender` on PATH. All three missed. This workflow has run exactly twice in its
+life and has never found Blender, so NOTHING WE HAVE DISTINGUISHES "Blender is not
+installed on that machine" FROM "Blender is installed at a version this list does
+not name". `candidatesTried=3/3` is a count of our own guesses, not a reading of
+his disk, and a second identical run would teach exactly as much as the first.
+
+That is the fix: the refusal must enumerate what IS in the Blender Foundation
+directory, so one round trip answers the question instead of narrowing it. Nothing
+gets installed by the studio; whether software goes on his machine is his call.
+
+FAULT TWO, AND IT HAS BEEN THERE SINCE THE STEP WAS WRITTEN. The commit step's
+every git call is malformed, and it would have failed a run that produced five
+perfect PNGs:
+
+    shopt -s nullglob
+    G="git -c safe.directory=*"
+    $G add -A -- "${FILES[@]}"
+
+`$G` is unquoted, so the shell globs it, and the `nullglob` set two lines earlier
+for the FILES array DELETES the non-matching `safe.directory=*` entirely. Measured
+here rather than reasoned:
+
+    $ shopt -s nullglob; G="git -c safe.directory=*"; set -- $G; echo argc=$#
+    argc=2        # git, -c. The assignment's value is gone.
+
+So the command runs as `git -c add -A ...`: `add` is eaten as the argument to `-c`
+and `-A` becomes the subcommand. The log shows it four times over, `unknown option:
+-A`, `unknown option: --cached` twice, `unknown option: -m`, ending
+`artCommitStatus=COMMIT-REFUSED stagedPaths=0/1-matched`. The step cannot stage,
+cannot diff and cannot commit.
+
+THIS FAULT WAS HIDING BEHIND THE OTHER TWO, which is the transferable half. A
+workflow that fails early never reaches its later steps, so every step after the
+first failure is UNRUN CODE WEARING THE APPEARANCE OF WORKING CODE. Two failures
+in a row moved the failure point forward and exposed it. The lesson is not "fix
+the glob": it is that a lane which has never completed once has no working steps,
+only unfalsified ones, and the count of round trips to green is the count of
+distinct faults, not one.
+
+AND THE SAME RULE ALREADY COVERED IT. The step sets GIT_CONFIG_COUNT,
+GIT_CONFIG_KEY_0 and GIT_CONFIG_VALUE_0 in its env block, which is the same
+instruction by a route the shell cannot touch. The inline `-c` is a second
+implementation of one idea, and the one nobody looked at is the one that was
+broken.
+
+--------------------------------------------------------------------------------
+2026-09-09, THE ANSWER TO "IS BLENDER ON HIS MACHINE" WAS COMMITTED IN THIS REPO
+EIGHT DAYS AGO, AND I SPENT A ROUND TRIP ASKING
+
+I dispatched a second render to find out whether Blender was absent or merely
+somewhere else, and briefed a builder to make the refusal enumerate his disk. The
+builder found the answer already in the tree instead:
+
+    production/mesh-reports/blender-setup.txt, committed 2026-09-01 by
+    ledger-setup-msvc.yml running on that machine, host=JAFAR-DESKTOP
+        blenderPath=C:\LedgerTools\blender\4.5.13\blender-4.5.13-windows-x64\blender.exe
+        blenderVersion=4.5.13
+        onPath=no
+        verified: it RAN and reported its version.
+
+Blender is installed. It is 4.5.13. It is not on PATH and not under Program Files,
+which is exactly why all three hardcoded candidates missed: THIS PROJECT'S OWN
+SETUP WORKFLOW unpacks the portable zip to C:\LedgerTools\blender, because an MSI
+needs an elevated runner service and msiexec returned 1603 on 1 September.
+
+TWO PARTIES AND ONE UNDOCUMENTED AGREEMENT, for the seventh time this week. One
+workflow installs Blender somewhere and writes down where. Another workflow looks
+for Blender somewhere else. Neither names the other, nothing compares them, and
+the disagreement is invisible until a job fails with a refusal that counts its own
+guesses: candidatesTried=3/3 is a count of what WE tried, never a reading of what
+is THERE.
+
+AND THE CHEAPER ENTRY POINT EXISTED. ci.md says the entry point is cheaper than the
+argument; the entry point here was a grep of the committed evidence, and I reached
+for a dispatch. The round trip was not wasted, because it proved the PATH bootstrap
+and uncovered two further faults, but the Blender question itself could have been
+answered in this container in one command before anything was pushed.
+
+THE REPAIR SHIPS AS A PREDICTION rather than a hope. Five roots are now searched
+with C:\LedgerTools\blender first, every root prints whether it exists and what its
+children are called, and the next run should read:
+
+    artBlenderChosen=C:\LedgerTools\blender\4.5.13\blender-4.5.13-windows-x64\blender.exe
+    artBlenderVersion=Blender~4.5.13~LTS
+
+If it does not, the per-root lines say what is on that disk instead of how many
+guesses we made.
+
+AND A THIRD FAULT WAS FOUND IN THE SAME STEP, hiding behind the first two. `git add
+-A -- <five files that exist> <one that does not>` exits 128 AND STAGES NOTHING.
+The FILES array is built from a glob plus a quoted literal verdict path, and
+nullglob can drop the glob but never the literal, so a recipe that had rendered
+five frames and failed to write its verdict would have lost all five at the commit
+step. Measured on a scratch repository, both ways, accepting case first.
+
+THE TRANSFERABLE HALF, and it is the same sentence as this morning's: A LANE THAT
+HAS NEVER COMPLETED ONCE HAS NO WORKING STEPS, ONLY UNFALSIFIED ONES. Three
+dispatches have now found three distinct faults, each hidden behind the one before
+it, and none of them was visible to any check that runs in this container.

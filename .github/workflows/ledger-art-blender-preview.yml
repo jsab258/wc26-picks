@@ -265,27 +265,115 @@ jobs:
             Add-Content -Path $verdict -Value "artPreviewStatus=NO-RECIPE recipeAsked=$name studioSha=$studioSha previewsWrote=0/0-cameras-read nothing measured"
             exit 1
           }
+          # SEARCH THE DISK, THEN PRINT WHAT IS ON IT. What this replaces was
+          # three hardcoded paths (Blender 4.2, Blender 4.1, `blender` on
+          # PATH) reporting `candidatesTried=3/3`, which is a count of GUESSES
+          # and not a reading of the machine. Two runs of this workflow have
+          # both ended NO-BLENDER and neither could distinguish "Blender is not
+          # on ledger-pc" from "Blender is on ledger-pc at a path those three
+          # did not name". A round trip to that PC is expensive and whoever
+          # reads the log cannot see the disk, so the refusal below prints the
+          # roots, whether each exists, and the child directories of the ones
+          # that do. That single listing is the answer.
+          #
+          # THE ROOTS ARE THE ONES tools/meshgen/probe-tools.ps1 ALREADY
+          # SEARCHES, and C:\LedgerTools\blender is FIRST for the reason that
+          # file gives: ledger-setup-msvc.yml unpacks Blender's portable zip to
+          # C:\LedgerTools\blender\<version>\ because a per-machine MSI needs
+          # an elevated runner service and does not get one (msiexec 1603,
+          # 1 Sep). The three-path list did not name that root at all, so a
+          # Blender put there by this project's own setup workflow was
+          # invisible to this step. NOTHING HERE INSTALLS ANYTHING: whether
+          # software goes on that machine is Jafar's decision.
+          $bases = @("C:\LedgerTools\blender")
+          if ($env:ProgramFiles) { $bases += (Join-Path $env:ProgramFiles "Blender Foundation") }
+          if (${env:ProgramFiles(x86)}) {
+            $bases += (Join-Path ${env:ProgramFiles(x86)} "Blender Foundation")
+            $bases += (Join-Path ${env:ProgramFiles(x86)} "Steam\steamapps\common\Blender")
+          }
+          if ($env:LOCALAPPDATA) { $bases += (Join-Path $env:LOCALAPPDATA "Programs\Blender Foundation") }
+          $hits = @()
+          $rootsPresent = 0
+          $rootsWithExe = 0
+          $rootLines = @()
+          foreach ($b in $bases) {
+            if (Test-Path -LiteralPath $b) {
+              $rootsPresent = $rootsPresent + 1
+              $kids = @(Get-ChildItem -LiteralPath $b -Directory -ErrorAction SilentlyContinue |
+                          ForEach-Object { $_.Name } | Sort-Object)
+              $shown = @($kids | Select-Object -First 8)
+              $more = $kids.Count - $shown.Count
+              if ($shown.Count -gt 0) { $names = (($shown -join "/") -replace ' ','~') }
+              else { $names = "none/0-child-directories-under-an-existing-root" }
+              if ($more -gt 0) { $names = "$names/(+$more~more~not~shown)" }
+              # RECURSIVE, because both layouts put the binary one directory
+              # down: <root>\<version>\blender.exe from the portable zip and
+              # <root>\Blender 4.2\blender.exe from an installer. The cap is
+              # on what is CARRIED, not on what is counted, so the line can say
+              # when it bit.
+              $found = @(Get-ChildItem -LiteralPath $b -Filter "blender.exe" -File -Recurse `
+                           -ErrorAction SilentlyContinue)
+              $keep = @($found | Select-Object -First 8)
+              $hits += $keep
+              if ($found.Count -gt 0) { $rootsWithExe = $rootsWithExe + 1 }
+              $exe = "$($keep.Count)/$($found.Count)-found-under-this-root"
+              if ($found.Count -gt $keep.Count) { $exe = "$exe/(+$($found.Count - $keep.Count)~more~not~shown)" }
+              $rootLines += "artBlenderRoot=$($b -replace ' ','~') exists=yes childDirs=$($shown.Count)/$($kids.Count)-listed names=$names exeHere=$exe"
+            } else {
+              $rootLines += "artBlenderRoot=$($b -replace ' ','~') exists=no childDirs=0/0-root-absent exeHere=0/0-root-absent nothing measured"
+            }
+          }
+          # AND THE PATH, which is neither of the above: a Blender a human
+          # installed and put on PATH is found by nothing in the list.
+          $onPath = ""
+          $cmd = @(Get-Command blender -CommandType Application -ErrorAction SilentlyContinue |
+                     Select-Object -First 1)
+          if ($cmd.Count -gt 0 -and $cmd[0].Source) { $onPath = "$($cmd[0].Source)" }
+          # ORDERED, AND THE ORDER IS PRINTED. Highest version number first,
+          # read from the PARENT DIRECTORY NAME (`Blender 4.2` from an
+          # installer, `4.2.1` from the portable zip) rather than from the
+          # whole path, which carries digits of its own; then the full path
+          # ascending as the tiebreak, so two installs claiming one version can
+          # never swap between runs and the pick is reproducible from the log
+          # alone. A version in a directory name is a CLAIM about the binary
+          # and not a reading of it, which is why the winner is asked for
+          # --version below: the 4.1 directory can hold a 4.2 install.
+          $ordered = @($hits | Sort-Object `
+            @{Expression = { $v = 0; $d = "$($_.Directory.Name)"; if ($d -match '(\d+)\.(\d+)') { $v = ([int]$Matches[1] * 1000) + [int]$Matches[2] }; $v }; Descending = $true}, `
+            @{Expression = { $_.FullName }; Descending = $false})
           $blender = $null
-          $tried = 0
-          foreach ($c in @("$env:ProgramFiles\Blender Foundation\Blender 4.2\blender.exe",
-                           "$env:ProgramFiles\Blender Foundation\Blender 4.1\blender.exe",
-                           "blender")) {
-            $tried = $tried + 1
-            if (Test-Path $c) { $blender = $c; break }
-            try { & $c --version *> $null; if ($LASTEXITCODE -eq 0) { $blender = $c; break } } catch { }
+          $pickedBy = "none"
+          if ($ordered.Count -gt 0) {
+            $blender = $ordered[0].FullName
+            $pickedBy = "glob/version-desc-from-dirname/then-path-asc"
+          } elseif ($onPath) {
+            $blender = $onPath
+            $pickedBy = "Get-Command/PATH/no-glob-hit"
           }
           if (-not $blender) {
-            Write-Host "artPreviewStatus=NO-BLENDER recipeAsked=$name candidatesTried=$tried/3 nothing measured"
+            # THE REFUSAL PRINTS THE DISK. Every root gets a line whether it
+            # exists or not, so "no Blender anywhere" and "Blender is here and
+            # the search was wrong" are different readings rather than the same
+            # zero. Both the log and the COMMITTED verdict carry them, because
+            # the log is not the channel this project can read.
+            foreach ($l in $rootLines) { Write-Host $l }
+            Write-Host "artBlenderOnPath=none getCommandTried=1/1-Get-Command-blender nothing measured"
+            Write-Host "artPreviewStatus=NO-BLENDER recipeAsked=$name exesFound=0 rootsWithExe=0/$($bases.Count)-roots-examined rootsPresent=$rootsPresent/$($bases.Count)-roots-examined onPath=no nothing measured"
             "artPreviewVerdict=1 commit=$artSha commission=$commission recipe=$name status=NO-RUN at=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())" | Set-Content -Path $verdict -Encoding utf8
             Add-Content -Path $verdict -Value ""
-            Add-Content -Path $verdict -Value "NO RUN - no Blender was found on this machine, so nothing was rendered."
-            Add-Content -Path $verdict -Value "artPreviewStatus=NO-BLENDER recipeAsked=$name candidatesTried=$tried/3 previewsWrote=0/0-cameras-read nothing measured"
+            Add-Content -Path $verdict -Value "NO RUN - no blender.exe was found under any searched root and none is on PATH, so nothing was rendered."
+            Add-Content -Path $verdict -Value "artPreviewStatus=NO-BLENDER recipeAsked=$name exesFound=0 rootsWithExe=0/$($bases.Count)-roots-examined rootsPresent=$rootsPresent/$($bases.Count)-roots-examined onPath=no previewsWrote=0/0-cameras-read nothing measured"
+            foreach ($l in $rootLines) { Add-Content -Path $verdict -Value $l }
             exit 1
           }
-          # WHICH BLENDER WON, and its own version string rather than the path's
-          # claim about it: the 4.1 path can hold a 4.2 install.
+          # WHICH BLENDER WON, HOW IT WON, and its own version string rather
+          # than the path's claim about it.
           $ver = (& $blender --version 2>$null | Select-Object -First 1)
-          Write-Host "artBlenderChosen=$($blender -replace ' ','~') artBlenderCandidatesTried=$tried/3 artBlenderVersion=$($ver -replace ' ','~')"
+          if (-not $ver) { $ver = "none/the-binary-printed-no-version-line" }
+          $pathNote = "none"
+          if ($onPath) { $pathNote = ($onPath -replace ' ','~') }
+          foreach ($l in $rootLines) { Write-Host $l }
+          Write-Host "artBlenderChosen=$($blender -replace ' ','~') artBlenderPickedBy=$pickedBy exesFound=$($ordered.Count) rootsWithExe=$rootsWithExe/$($bases.Count)-roots-examined rootsPresent=$rootsPresent/$($bases.Count)-roots-examined artBlenderOnPath=$pathNote artBlenderVersion=$($ver -replace ' ','~')"
           $before = @(Get-ChildItem $outDir -Filter *.png -ErrorAction SilentlyContinue).Count
           $mineBefore = @(Get-ChildItem $outDir -Filter "$name-*.png" -ErrorAction SilentlyContinue).Count
           & $blender --background --factory-startup --python $recipe -- --out $outDir --root $ws --commission $commission --run-sha $artSha --studio-sha $studioSha
@@ -322,19 +410,62 @@ jobs:
           # publishes nothing, which is worse than any wrong value it prints.
           set +e
           set -u
-          G="git -c safe.directory=*"
+          # AN ARRAY, NOT A STRING, AND THAT IS THE WHOLE FIX. This was
+          # `G="git -c safe.directory=*"` used unquoted as `$G`, so the shell
+          # globbed the expansion and `shopt -s nullglob` (set below for FILES,
+          # and in scope for every line after it) DELETED the non-matching
+          # `safe.directory=*` word entirely. Measured in bash rather than
+          # reasoned about:
+          #
+          #   shopt -s nullglob; G="git -c safe.directory=*"; set -- $G
+          #   echo argc=$#   ->   argc=2      (git, -c: the value is gone)
+          #
+          # Every call then ran as `git -c <the next word>`, which is why the
+          # second dispatch logged `unknown option: -A`, `unknown option:
+          # --cached` twice and `unknown option: -m`, and finished
+          # `artCommitStatus=COMMIT-REFUSED stagedPaths=0/1-matched`. The step
+          # has been unable to stage, diff or commit since it was written, so a
+          # run that HAD rendered five PNGs would have lost them here. Expanded
+          # as "${G[@]}" an array is subject to neither word splitting nor
+          # pathname expansion, so a later edit cannot re-open this by dropping
+          # a quote.
+          #
+          # KEPT RATHER THAN DELETED, though the env triple above is the same
+          # instruction by another route: the twice-over is queue 152's ruling
+          # after dubious ownership killed the mesh import with no word about
+          # itself, and ledger-mesh-import.yml carries the inline -c on every
+          # call today. Removing half of a belt-and-braces a ruling asked for
+          # is a bigger change than quoting it.
+          G=(git -c safe.directory='*')
           NAME="${{ steps.what.outputs.recipe }}"
           DIR="production/art/${{ steps.what.outputs.commission }}/previews"
-          $G config user.name "ledger-art"
-          $G config user.email "art@ledger.local"
+          "${G[@]}" config user.name "ledger-art"
+          "${G[@]}" config user.email "art@ledger.local"
           # STAGED BY NAME, never `git add <directory>` and never a bare
           # `*.png`: this directory holds sixty-odd PNGs this run did not make,
           # and a failed render must not commit them as its own evidence. The
           # recipe prefixes every file it writes with its own name, which is
           # what makes naming them possible at all.
           shopt -s nullglob
-          FILES=( "$DIR/$NAME"-*.png "$DIR/$NAME-verdict.txt" )
+          # BUILT FROM WHAT IS ON DISK, and it is the same class of fault as
+          # the one above. `git add` is ATOMIC OVER ITS PATHSPECS: measured
+          # 2026-09-09 in a scratch repository, one absent path makes the whole
+          # add exit 128 and stage NOTHING, 0/6 with five PNGs sitting there.
+          # `nullglob` drops the PNG glob when it matches nothing but cannot
+          # drop `"$DIR/$NAME-verdict.txt"`, which is a quoted literal and not a
+          # pattern, so a recipe that rendered five frames and wrote no verdict
+          # would have lost all five here. The counts are printed separately
+          # because "no PNGs" and "no verdict" are different failures.
+          FILES=()
+          for f in "$DIR/$NAME"-*.png; do FILES+=("$f"); done
+          PNGS=${#FILES[@]}
+          VERDICTS=0
+          if [ -f "$DIR/$NAME-verdict.txt" ]; then
+            FILES+=( "$DIR/$NAME-verdict.txt" )
+            VERDICTS=1
+          fi
           N=${#FILES[@]}
+          echo "artCommitInputs=on-disk recipePngs=$PNGS verdictFiles=$VERDICTS/1-expected pathsToStage=$N"
           if [ "$N" -eq 0 ]; then
             # A NAMED REFUSAL, replacing the `2>/dev/null || true` that used to
             # hide exactly this case. Queue 152 names it the second silence.
@@ -342,18 +473,18 @@ jobs:
             exit 1
           fi
           for f in "${FILES[@]}"; do echo "artStaging path=$f bytes=$(wc -c < "$f" 2>/dev/null || echo 0)"; done
-          $G add -A -- "${FILES[@]}"
-          ADDED=$($G diff --cached --name-only | wc -l | tr -d ' ')
+          "${G[@]}" add -A -- "${FILES[@]}"
+          ADDED=$("${G[@]}" diff --cached --name-only | wc -l | tr -d ' ')
           echo "artCommitStaged=$ADDED/$N-matched"
-          $G diff --cached --quiet && { echo "artCommitStatus=NOTHING-NEW stagedPaths=$N-matched/0-changed"; exit 0; }
-          $G commit -m "art preview: ${{ steps.what.outputs.commission }} / $NAME"
+          "${G[@]}" diff --cached --quiet && { echo "artCommitStatus=NOTHING-NEW stagedPaths=$N-matched/0-changed"; exit 0; }
+          "${G[@]}" commit -m "art preview: ${{ steps.what.outputs.commission }} / $NAME"
           if [ $? -ne 0 ]; then
             echo "artCommitStatus=COMMIT-REFUSED stagedPaths=$ADDED/$N-matched"
             exit 1
           fi
           for i in 1 2 3; do
-            $G pull --rebase --autostash origin "art/${{ steps.what.outputs.commission }}"
-            $G push origin "HEAD:art/${{ steps.what.outputs.commission }}" && { echo "artCommitStatus=PUSHED attempt=$i/3 paths=$ADDED/$N-matched"; exit 0; }
+            "${G[@]}" pull --rebase --autostash origin "art/${{ steps.what.outputs.commission }}"
+            "${G[@]}" push origin "HEAD:art/${{ steps.what.outputs.commission }}" && { echo "artCommitStatus=PUSHED attempt=$i/3 paths=$ADDED/$N-matched"; exit 0; }
             sleep $((2 ** i))
           done
           echo "artCommitStatus=PUSH-FAILED attempts=3/3 paths=$ADDED/$N-matched"

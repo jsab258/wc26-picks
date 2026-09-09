@@ -2166,6 +2166,31 @@ HEAT_WHERE_SHORT = {"core-csharp": "are a reading of the C# game alone",
                     "both": "are measured on each side",
                     "ue-probe": "are the Unreal probe alone",
                     "repo": "are files and process"}
+# THE SAME FOUR COUNTS IN JAFAR'S VOCABULARY, WHICH IS THE VERSION THAT SITS ON
+# THE BOARD'S OWN FACE. Ruled 2026-09-09 section 2b, which overturned in part
+# the move of this fact into the sheet: the resident was RIGHT that C#, UE,
+# Unreal probe and repo are studio words that do not belong in front of him, and
+# WRONG to move the FACT when the fault was the WORDS. 26 green tiles with the
+# engine decision still open, most of them green in a build he is not looking
+# at, is exactly the page the whole typing exercise existed to prevent, and a
+# corner mark he can see and cannot decode is worse than either.
+#
+# THE CONSTRAINTS ON THESE FOUR PHRASES ARE THE RULING AND NOT TASTE: no
+# language name, no engine name, no repository word; every number computed from
+# the `where` field over the green tiles only and never typed in; the zero
+# ships its denominator; and no phrase may say which build is better or which
+# one wins the open decision, because that decision is not this page's to make.
+# Older and newer are the two builds' order in time, which is a fact, and the
+# marks they decode are defined in the sheet one tap down.
+HEAT_SPLIT_PLAIN = {"core-csharp": "are read in the older build only",
+                    "both": "in both builds",
+                    "ue-probe": "in the newer build on its own",
+                    "repo": "are about files rather than play"}
+# THE WORDS FOR A GREEN TILE WHOSE `where` IS NOT ONE OF THE FOUR. The fixed set
+# is the validator's, so this should never render; if it ever does it is said in
+# the sentence rather than dropped, because a count that quietly loses a tile is
+# the shape a total nobody can reconstruct comes from.
+HEAT_SPLIT_PLAIN_OTHER = "name no build this page knows"
 HEAT_WHERE_UNKNOWN = "?"
 # THE WORDS FOR A TILE THAT IS NOT ABSENT AND NAMES NO CODEBASE. The validator
 # refuses this, so the board should never draw one; if it ever does, it says so
@@ -2429,6 +2454,31 @@ def heat_counts_words(reading):
     return ", ".join(parts)
 
 
+def where_tally_text(tally, over):
+    """A `where` TALLY AS ONE key=value VALUE: ALL FOUR CASES, ZEROS INCLUDED,
+    IN A FIXED ORDER, WITH WHAT IT WAS COUNTED OVER ON THE END.
+
+    Written 2026-09-09 for the fourth case. heatGreenWhere, renamed
+    heatGreenTilesByWhere by this pass so the key says what it is a count OF,
+    printed the keys it happened to have, sorted: the count of tiles green in
+    the newer build alone was 0, was therefore absent, and the one number that
+    says "none of this board's green is in the newer build on its own" read as
+    a key nobody had thought of. A zero nobody prints is a zero nobody reads.
+    The order is HEAT_WHERE_ORDER and not alphabetical so two runs diff by
+    position, and a value outside the fixed set is APPENDED rather than
+    dropped, because a tally that silently loses a member is a total nobody can
+    reconstruct. `over` is the denominator phrase and it is required: this
+    function has no way to know which population it was handed.
+    """
+    out = "/".join("%s.%d" % (k, tally.get(k, 0)) for k in HEAT_WHERE_ORDER)
+    extra = sorted(k for k in (tally or {}) if k not in HEAT_WHERE_ORDER)
+    if extra:
+        out += "/outside-the-fixed-set:" + ",".join(
+            "%s.%d" % (re.sub(r"\s+", "-", k) or "empty", tally[k])
+            for k in extra)
+    return "%s/%s" % (out, over)
+
+
 def heat_series(vals):
     """min..max/med over n, in characters, for a key=value channel: the series
     a label-width bound would come FROM, with no bound set anywhere yet."""
@@ -2513,6 +2563,45 @@ def heat_where_words(reading):
             "on every tile." % (total, ", ".join(bits), last))
 
 
+def heat_split_words(reading):
+    """THE ENGINE SPLIT ON THE BOARD'S FACE, IN HIS WORDS, OVER THE GREEN TILES
+    ONLY. Ruled 2026-09-09 section 2b, and the shape is the ruling's:
+
+        26 tiles are green. 19 of them are read in one build only, 4 in both,
+        none in the newer build on its own, 3 are about files rather than play.
+
+    THIS IS THE SAME TALLY AS heat_where_words AND NOT A SECOND COUNT OF IT.
+    Both read `greenWhere`, which heatmap() builds once while it walks the file;
+    what differs is the register, because the two surfaces have two readers. The
+    sheet one tap down says the counts in the marks' own vocabulary so the
+    corner marks can be decoded; this one says them with no language name, no
+    engine name and no repository word, for the one screen Jafar judges in five
+    seconds. Neither may say which build is better: the engine decision is open
+    and the board measures where work HAS been done, never where it should be.
+
+    Every zero ships its denominator inside its own clause, because "none in
+    the newer build" and "nobody counted the newer build" are different facts
+    and the first is the finding. A board with no green tile at all says so with
+    the count it walked rather than rendering an empty list of four nones.
+    """
+    green = dict(reading.get("greenWhere") or {})
+    total = sum(green.values())
+    if not total:
+        return ("No tile here is green, of the %d on this board, so there is "
+                "nothing to split between the two builds."
+                % reading.get("tiles", 0))
+    bits = []
+    for key in HEAT_WHERE_ORDER:
+        n = green.get(key, 0)
+        bits.append("%s %s" % (str(n) if n else "none of the %d" % total,
+                               HEAT_SPLIT_PLAIN[key]))
+    for key in sorted(k for k in green if k not in HEAT_SPLIT_PLAIN):
+        bits.append("%d %s" % (green[key], HEAT_SPLIT_PLAIN_OTHER))
+    last = bits.pop()
+    return ("%d tiles here are green. %s, and %s."
+            % (total, ", ".join(bits), last))
+
+
 def heatmap_html(rows, r):
     """THE BOARD. Three signals per tile and the typed claim above the tiles.
 
@@ -2594,18 +2683,23 @@ def heatmap_html(rows, r):
             '<p class="hHead">THE BOARD</p>'
             '<p class="hNow">%s</p>'
             '<p class="hTyped">%s</p>'
+            '<p class="hSplit">%s</p>'
             '<p class="hLegend">%s</p>'
             '<p class="hNote">%s%s <a class="tap" href="#h-source">where '
             'these come from, and who typed each one</a></p>'
             '%s</section>%s'
             % (HEAT_START,
                esc("%d systems, %s." % (r["tiles"], heat_counts_words(r))),
-               # THE ONE COMPUTED SENTENCE THE RULING KEEPS HERE, computed
-               # from the file every run and never typed into this page, which
-               # is the whole point of it. The engine split is computed the
-               # same way and lives in the sheet one tap down, ruled off this
-               # surface for its studio vocabulary and its 73 px.
+               # THE TWO COMPUTED SENTENCES THE RULING PUTS HERE, both
+               # computed from the file every run and neither typed into this
+               # page, which is the whole point of them. The second one is the
+               # engine split, back on this surface by the ruling of 2026-09-09
+               # section 2b: it was moved into the sheet for its studio
+               # vocabulary and the move took the FACT with the WORDS, so the
+               # words changed and the fact came back. The marks' own
+               # vocabulary stays one tap down beside the glossary.
                esc(heat_typed_words(r)),
+               esc(heat_split_words(r)),
                legend,
                esc("Every colour here is a typed judgement of state, not "
                    "measured by this page, and it changes by a ruling rather "
@@ -2694,7 +2788,12 @@ def heatmap_sheets(rows, r):
                r.get("labelLongest", 0), r.get("labelLongestOn") or NOTHING,
                ", ".join("%d %s" % (r.get("whereCounts", {}).get(k, 0), k)
                          for k in HEAT_WHERE_ORDER)
-               + (", %d absent and carrying none" % r["counts"].get("absent", 0)),
+               + (", %d absent and carrying none" % r["counts"].get("absent", 0))
+               + (", %d naming a codebase outside the fixed set"
+                  % sum(n for k, n in (r.get("whereCounts") or {}).items()
+                        if k not in HEAT_WHERE_ORDER)
+                  if any(k not in HEAT_WHERE_ORDER
+                         for k in (r.get("whereCounts") or {})) else ""),
                r["evidencePaths"]))
     # THE MARK GLOSSARY LIVES HERE AND NOT ON THE BOARD. A second legend line
     # for the engine marks cost 60 px above the tiles in the browser at 390x844
@@ -3091,7 +3190,10 @@ a { color: #8fb8ff; }
   font-weight: 800; color: #868d95; margin: 0 0 4px; }
 .hNow { font-size: 17px; font-weight: 600; color: #e7e9ec; margin: 0 0 7px;
   line-height: 1.3; }
-.hTyped { font-size: 13px; line-height: 1.45; color: #c9ced5; margin: 0 0 6px; }
+.hTyped { font-size: 13px; line-height: 1.45; color: #c9ced5;
+  margin: 0 0 6px; }
+.hSplit { font-size: 13px; line-height: 1.45; color: #c9ced5;
+  margin: 0 0 8px; }
 .hLegend { font-size: 12px; margin: 0 0 6px; color: #aab1b9; }
 .hKey { display: inline-block; margin-right: 13px; letter-spacing: 0.04em; }
 .hNote { font-size: 12.5px; line-height: 1.5; color: #868d95; margin: 0 0 12px; }
@@ -3225,7 +3327,7 @@ h2 { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
   .tile .tName { color: #12161a; } .tile .tWord { color: #4d545c; }
   .hHead { color: #5d646c; } .hNow { color: #12161a; }
   .hLegend { color: #3c434a; } .hNote { color: #5d646c; }
-  .hTyped { color: #23282e; }
+  .hTyped { color: #23282e; } .hSplit { color: #23282e; }
   .hTile[data-eng]::before { color: #5d646c; }
   .hArea { color: #4d545c; } .hLink { color: #4d545c; }
   .hCount { color: #5d646c; }
@@ -4040,8 +4142,8 @@ def build(root, now, out_path=None, served=None):
         "heatLabelsClipped=%d/%d-tiles-never-clipped-since-the-ruling "
         "heatLongestLabelChars=%d/on=%s "
         "heatLabelCharsSeries=%s/whole-run-min..max-med "
-        "heatWhere=%s heatWhereMissing=%d/%d-not-absent "
-        "heatGreenWhere=%s/over-the-%d-green-tiles-only "
+        "heatTilesByWhere=%s heatWhereMissing=%d/%d-not-absent "
+        "heatGreenTilesByWhere=%s "
         "heatTypedBy=%s/untyped.%d/of.%d heatTypedOn=%s..%s-oldest..newest "
         "heatAreaLabelsAgreeWithTheRuling=%d/%d-in-the-file heatStampField=%s "
         "heatEvidencePathsTyped=%d-not-opened-by-this-page "
@@ -4058,14 +4160,14 @@ def build(root, now, out_path=None, served=None):
            h.get("labelLongest", 0),
            re.sub(r"\s+", "_", str(h.get("labelLongestOn") or NOTHING)),
            heat_series(h.get("labelChars")),
-           "/".join("%s.%d" % (k, h.get("whereCounts", {}).get(k, 0))
-                    for k in HEAT_WHERE_ORDER),
+           where_tally_text(h.get("whereCounts") or {},
+                            "census-of-where-over-the-%d-tile(s)-drawn"
+                            % h["tiles"]),
            h.get("whereMissing", 0),
            h["tiles"] - h["counts"].get("absent", 0),
-           "/".join("%s.%d" % (k, h.get("greenWhere", {}).get(k, 0))
-                    for k in sorted(h.get("greenWhere") or {}))
-           or NOTHING.replace(" ", "-"),
-           h["counts"].get("exists", 0),
+           where_tally_text(h.get("greenWhere") or {},
+                            "over-the-%d-green-tile(s)-only"
+                            % h["counts"].get("exists", 0)),
            "/".join("%s.%d" % kv for kv in sorted((h.get("roleCounts") or {})
                                                   .items()))
            or NOTHING.replace(" ", "-"),
@@ -4987,7 +5089,42 @@ def check_heatmap_is_typed_not_measured(page, model):
 TYPED_LINE_RX = re.compile(r"(\d+) of (\d+) typed by a director, (\d+) by a "
                            r"builder.*?(\d+) of (\d+) ruled by you")
 GREEN_SPLIT_RX = re.compile(r"Of the (\d+) tiles typed exists")
+# THE PLAIN SENTENCE'S OWN SHAPE, READ BACK OFF THE BOARD'S RENDERED BYTES. The
+# anchor is HEAT_SPLIT_PLAIN itself and not a second copy of the wording, so a
+# reworded phrase moves the sentence and its guard together; what CANNOT move
+# together is the NUMBER, which is parsed here and compared with the tally this
+# run counted out of the file. A zero is only accepted in the form "none of the
+# N": a bare "none" fails to match and reads as MISSING, which is rule 3b
+# enforced on the rendered bytes rather than trusted in the builder.
+# THE WORDS THE RULING KEEPS OFF THE FIRST SCREEN, watched on the rendered
+# sentence rather than trusted in the table above. The ruling of 2026-09-09
+# section 2b names four of them and the reason is the register, not the fact:
+# they are studio vocabulary and they do not belong in front of Jafar. The
+# scope is the sentence's own paragraph and not the whole board, because a tile
+# LABEL carrying one of these is a different fault with a different fix and a
+# guard that cannot tell them apart sends the next reader to the wrong place.
+STUDIO_WORDS_OFF_THE_BOARD = ("C#", "UE", "Unreal", "probe", "repo", "csharp",
+                              "codebase", "engine")
+SPLIT_TOTAL_RX = re.compile(r"(\d+) tiles here are green")
+SPLIT_COUNT_RX = {k: re.compile(r"(\d+|none of the \d+)\s+" + re.escape(v))
+                  for k, v in HEAT_SPLIT_PLAIN.items()}
 HEAT_SOURCE_START = '<section class="sheet" id="h-source">'
+HEAT_FIRST_TILE = '<span class="hTile '
+
+
+def heat_split_counts_on_page(text):
+    """{where: count} PARSED OFF THE BOARD'S OWN WORDS, plus the total it
+    printed. A key whose clause is missing, or whose zero came without the
+    denominator, is absent from the dict rather than defaulted to 0: a guard
+    that reads an unparseable clause as a zero would pass the exact sentence
+    this exists to catch."""
+    got = {}
+    for key, rx in SPLIT_COUNT_RX.items():
+        m = rx.search(text)
+        if m:
+            got[key] = 0 if m.group(1).startswith("none") else int(m.group(1))
+    m = SPLIT_TOTAL_RX.search(text)
+    return got, (int(m.group(1)) if m else None)
 
 
 def heat_source_slice(page):
@@ -5014,8 +5151,24 @@ def check_typed_attribution(page, model):
     this run counted in `typedBy`, its builder count likewise, and the count
     ruled by Jafar is the live one with its denominator beside it. The tile
     count is the denominator on the page and it is compared too, so a board
-    that drops a tile cannot keep a stale total. The engine split's own
-    denominator is read the same way, off the green tiles.
+    that drops a tile cannot keep a stale total.
+
+    THE SPLIT SENTENCE IS GUARDED THE SAME WAY AND ITS SENSE IS NOW THE OTHER
+    WAY ROUND. Until the ruling of 2026-09-09 section 2b this asserted
+    greenSplitOnTheBoard=0: the split had been moved into the sheet for its
+    studio vocabulary, and the guard pinned the surface clear. That ruling
+    overturned the fix and not the finding, so the ABSENCE of the split from
+    the board is now the failure and the assertion is inverted rather than
+    deleted, which is the only way a guard can change sense without becoming a
+    ratchet against whichever page it was written on.
+
+    Four more things are read, all off the RENDERED bytes of the board itself:
+    the four counts, one per case of `where` including the case that is zero;
+    the total the sentence opens with, against the green tiles this run
+    counted; that the sentence sits ABOVE the first tile, which is what "on the
+    first screen" means for a board that scrolls; and that the marks version is
+    still whole in the sheet one tap down, because the plain words on the face
+    cannot decode the corner marks on their own.
     """
     h = model["heat"]
     slice_ = heat_slice(page)
@@ -5028,22 +5181,42 @@ def check_typed_attribution(page, model):
             roles.get("jafar", 0), h["tiles"])
     m = TYPED_LINE_RX.search(re.sub(r"<[^>]+>", " ", slice_))
     got = tuple(int(x) for x in m.groups()) if m else None
-    # THE SPLIT IS READ IN THE SHEET AND MUST NOT BE ON THE BOARD. Ruled off
-    # the first screen on 2026-09-09 for four pieces of studio vocabulary in
-    # one sentence, so both halves are checked: the number is still computed
-    # and printed one tap down, and the surface it was ruled off is clean.
+    # THE MARKS VERSION IS READ IN THE SHEET, THE PLAIN VERSION ON THE BOARD.
+    # Both halves are checked because both were ruled: the count survives one
+    # tap down beside the glossary that defines the marks, and the fact is back
+    # on the face in words that name no engine.
     sheet = re.sub(r"<[^>]+>", " ", heat_source_slice(page))
     g = GREEN_SPLIT_RX.search(sheet)
     green_on_page = int(g.group(1)) if g else None
     green_want = sum((h.get("greenWhere") or {}).values())
-    on_board = bool(GREEN_SPLIT_RX.search(re.sub(r"<[^>]+>", " ", slice_)))
-    ok = (got == want and green_on_page == green_want and not on_board
+    board_text = re.sub(r"<[^>]+>", " ", slice_)
+    split_got, split_total = heat_split_counts_on_page(board_text)
+    split_want = {k: (h.get("greenWhere") or {}).get(k, 0)
+                  for k in HEAT_WHERE_ORDER}
+    # PRESENCE AND CORRECTNESS ARE TWO FACTS AND GET TWO KEYS. A sentence that
+    # is gone and a sentence that carries a stale number fail for different
+    # reasons, and a reader who cannot tell them apart from the printed line
+    # has to reopen the page to find out which.
+    on_board = split_total is not None
+    counts_ok = split_got == split_want and split_total == green_want
+    # ABOVE THE FIRST TILE IS WHAT "ON THE FIRST SCREEN" MEANS HERE. The board
+    # is the second screenful on a 390x844 phone at this tile count and says so
+    # on its own face, so a pixel line cannot be the test; what the ruling put
+    # above the colours is a position in the bytes, and this is that position.
+    at_split = slice_.find("tiles here are green")
+    at_tile = slice_.find(HEAT_FIRST_TILE)
+    above_tiles = 0 <= at_split < at_tile if at_tile >= 0 else at_split >= 0
+    ok = (got == want and green_on_page == green_want and on_board
+          and counts_ok and above_tiles
           and (h.get("typedOldest") or "") in slice_)
     return ("typedAttribution", ok,
             "attributionSentenceFound=%s directorOnPage=%s/counted=%d "
             "builderOnPage=%s/counted=%d ruledByJafarOnPage=%s/counted=%d "
             "denominatorOnPage=%s/tilesDrawn=%d greenSplitDenominator=%s/"
-            "greenTiles=%d greenSplitOnTheBoard=%s/0-allowed-since-the-ruling "
+            "greenTiles=%d greenSplitOnTheBoard=%d/1-required-since-the-ruling "
+            "greenSplitCountsOnTheBoard=%s greenSplitCountsCounted=%s "
+            "greenSplitTotalOnTheBoard=%s/greenTilesCounted=%d "
+            "greenSplitAboveTheFirstTile=%s "
             "typedOnOldestOnPage=%s rolesCounted=%s"
             % ("yes" if m else "MISSING",
                got[0] if got else "MISSING", want[0],
@@ -5052,6 +5225,16 @@ def check_typed_attribution(page, model):
                got[1] if got else "MISSING", h["tiles"],
                green_on_page if g else "MISSING", green_want,
                1 if on_board else 0,
+               "/".join("%s.%s" % (k, split_got[k] if k in split_got
+                                   else "MISSING")
+                        for k in HEAT_WHERE_ORDER)
+               + "/parsed-off-the-board(a-zero-must-carry-its-denominator)",
+               where_tally_text(h.get("greenWhere") or {},
+                                "counted-over-the-%d-green-tile(s)-only"
+                                % green_want),
+               split_total if split_total is not None else "MISSING",
+               green_want,
+               "yes" if above_tiles else "MISSING",
                "yes" if (h.get("typedOldest") or "") in slice_ else "MISSING",
                "/".join("%s.%d" % kv for kv in sorted(roles.items()))
                or NOTHING.replace(" ", "-")))
@@ -6388,16 +6571,65 @@ def selftest():
        (eng_on_page, want_eng, hm["whereCounts"], hm["whereMissing"]))
     # THE SENTENCE ITSELF IS THE FIXTURE, never a typed copy of it: a second
     # copy here would drift the first time the wording moved, which it did.
-    # BOTH HALVES OF THE 2026-09-09 MOVE: the count survives one tap down and
-    # the board's face is clear of it. The counts did not change when it moved,
-    # which is what the second assertion pins.
-    ok("the engine split is in the sheet one tap down, whole, and NOT on the "
-       "board's face: '%s'" % heat_where_words(hm),
+    # BOTH SURFACES, RULED 2026-09-09 SECTION 2b: the fact is on the board's
+    # face in words that name no engine, and the marks version is whole in the
+    # sheet one tap down beside the glossary that defines the marks. The counts
+    # are the same counts on both, which is what the next assertion pins.
+    ok("the split in his words is ON THE BOARD'S FACE, above the first tile: "
+       "'%s'" % heat_split_words(hm),
+       heat_split_words(hm) in heat_slice(page)
+       and 0 <= heat_slice(page).find("tiles here are green")
+       < heat_slice(page).find(HEAT_FIRST_TILE),
+       (heat_split_words(hm) in heat_slice(page),
+        heat_slice(page).find("tiles here are green"),
+        heat_slice(page).find(HEAT_FIRST_TILE)))
+    # THE REGISTER IS THE RULING'S OWN CONSTRAINT AND IT IS CHECKED, not left
+    # to the prose. No language name, no engine name, no repository word in the
+    # board's VISIBLE text: the marks live in attributes the reader taps
+    # through to, and this reads the text with the tags stripped, the same way
+    # the diagnostics check does.
+    said = re.search(r'<p class="hSplit">(.*?)</p>', page, re.S)
+    said_text = re.sub(r"<[^>]+>", " ", said.group(1)) if said else ""
+    studio_words = [w for w in STUDIO_WORDS_OFF_THE_BOARD
+                    if re.search(r"(?<![\w-])%s(?![\w-])" % re.escape(w),
+                                 said_text, re.I)]
+    ok("and it says it in his vocabulary: %d studio word(s) in the sentence "
+       "of the %d watched for, over %d word(s) rendered"
+       % (len(studio_words), len(STUDIO_WORDS_OFF_THE_BOARD),
+          len(said_text.split())),
+       bool(said_text) and not studio_words, (studio_words, said_text[:90]))
+    ok("and the marks version is still whole in the sheet one tap down, with "
+       "the glossary that decodes them: '%s'" % heat_where_words(hm),
        heat_where_words(hm) in heat_source_slice(page)
-       and "Of the" not in heat_slice(page)
-       and "corner mark" in heat_source_slice(page),
+       and "corner mark" in heat_source_slice(page)
+       and "Of the" not in heat_slice(page),
        (heat_where_words(hm) in heat_source_slice(page),
         "Of the" in heat_slice(page)))
+    # THE FOUR COUNTS, PARSED BACK OFF THE RENDERED BYTES AND COMPARED WITH THE
+    # TALLY, INCLUDING THE ONE THAT IS ZERO. This is the accepting case on the
+    # live file: nothing here is pinned to 19 or 0, so the day a parity row
+    # moves a tile the rung still passes and the board still says the truth.
+    split_got, split_total = heat_split_counts_on_page(
+        re.sub(r"<[^>]+>", " ", heat_slice(page)))
+    ok("and all four cases of where are readable off the board including the "
+       "one that is zero (%s, total %s over %d green tile(s) counted)"
+       % ("/".join("%s.%s" % (k, split_got.get(k, "MISSING"))
+                   for k in HEAT_WHERE_ORDER), split_total,
+          sum(hm["greenWhere"].values())),
+       split_got == {k: hm["greenWhere"].get(k, 0) for k in HEAT_WHERE_ORDER}
+       and split_total == sum(hm["greenWhere"].values()),
+       (split_got, split_total, hm["greenWhere"]))
+    zeroes = [k for k in HEAT_WHERE_ORDER if not hm["greenWhere"].get(k, 0)]
+    carried = [k for k in zeroes
+               if ("none of the %d %s" % (sum(hm["greenWhere"].values()),
+                                          HEAT_SPLIT_PLAIN[k]))
+               in re.sub(r"<[^>]+>", " ", heat_slice(page))]
+    ok("and every case that is zero carries its denominator in its own "
+       "clause: %d of the %d zero case(s) of the %d watched say none of the "
+       "%d, so nothing measured cannot read as none found"
+       % (len(carried), len(zeroes), len(HEAT_WHERE_ORDER),
+          sum(hm["greenWhere"].values())),
+       carried == zeroes, (zeroes, carried))
     ok("and the number that moved is the same number: %d of the %d green "
        "tiles are the C# game alone and %d are the Unreal probe alone"
        % (hm["greenWhere"].get("core-csharp", 0),
@@ -6683,12 +6915,58 @@ def selftest():
                      "Of the %d tiles typed exists" % hm["tiles"], 1), model)
     ok("and bites when the engine split is counted over all the tiles instead "
        "of the green ones (%s)" % s, not c, s)
+    # THE INVERTED HALF, RULED 2026-09-09 SECTION 2b. This rung used to plant
+    # the split ON the board and require red; the ruling turned the sense over,
+    # so the planted page is now the board with the sentence taken OFF it and
+    # the failure is its absence. The sheet copy is left in place in this
+    # fixture, which is the exact page the overturned fix produced: a green
+    # board with the split one tap down is what must go red now.
     n, c, s = check_typed_attribution(
-        page.replace(HEAT_START, HEAT_START + "<p>Of the 26 tiles typed "
-                     "exists, 19 are a reading of the C# game alone.</p>", 1),
+        page.replace(heat_slice(page),
+                     heat_slice(page).replace(heat_split_words(hm), "", 1), 1),
         model)
-    ok("and bites when the engine split is put back on the board's face, "
-       "which is the surface the ruling cleared (%s)" % s, not c, s)
+    ok("and bites when the split is taken OFF the board's face and left only "
+       "in the sheet, which is the page the ruling overturned (%s)" % s,
+       not c, s)
+    # A NUMBER THAT MOVED WITHOUT THE FILE MOVING. Every count in the sentence
+    # is computed, so the way this sentence decays is somebody typing one in.
+    live_split = "%d %s" % (hm["greenWhere"].get("core-csharp", 0),
+                            HEAT_SPLIT_PLAIN["core-csharp"])
+    n, c, s = check_typed_attribution(
+        page.replace(live_split, "%d %s" % (hm["greenWhere"].get("core-csharp",
+                                                                0) + 1,
+                                            HEAT_SPLIT_PLAIN["core-csharp"]),
+                     1), model)
+    ok("and bites when one of the four counts on the board stops matching the "
+       "tally this run read out of the file (%s)" % s, not c, s)
+    # THE ZERO WITHOUT ITS DENOMINATOR, which is the whole reason the fourth
+    # case is printed at all: "none" alone cannot be told from a case nobody
+    # counted, so the guard refuses to parse it rather than reading it as 0.
+    n, c, s = check_typed_attribution(
+        page.replace("none of the %d %s" % (sum(hm["greenWhere"].values()),
+                                            HEAT_SPLIT_PLAIN["ue-probe"]),
+                     "none %s" % HEAT_SPLIT_PLAIN["ue-probe"], 1), model)
+    ok("and bites when a zero on the board drops its denominator and says "
+       "only none (%s)" % s, not c, s)
+    # THE POSITION, which is what "on the first screen" means for a board that
+    # scrolls: the sentence moved below the tiles is on the page and unread.
+    moved = heat_slice(page)
+    moved = moved.replace(heat_split_words(hm), "", 1) + \
+        '<p class="hSplit">%s</p>' % esc(heat_split_words(hm))
+    n, c, s = check_typed_attribution(page.replace(heat_slice(page), moved, 1),
+                                      model)
+    ok("and bites when the sentence is still on the board but pushed BELOW "
+       "the tiles, where the first screen no longer carries it (%s)" % s,
+       not c, s)
+    # THE SHEET HALF IS STILL GUARDED: the plain words on the face cannot
+    # decode the corner marks on their own, so the marks version staying one
+    # tap down is a requirement and not a leftover.
+    n, c, s = check_typed_attribution(
+        page.replace(heat_source_slice(page),
+                     heat_source_slice(page).replace(heat_where_words(hm), "",
+                                                     1), 1), model)
+    ok("and bites when the marks version is deleted from the sheet one tap "
+       "down, so the corner marks stop being decodable (%s)" % s, not c, s)
     n, c, s = check_heatmap_is_typed_not_measured(
         page.replace(HEAT_START,
                      HEAT_START + "<p>production/systems-inventory.json "
