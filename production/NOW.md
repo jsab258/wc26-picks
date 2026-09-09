@@ -124,7 +124,14 @@ AND THE SAME WAKE NAMED THREE THINGS THIS SESSION HAD NOT DONE: read the inbox
 (done, 0 inbound messages, so no blocking gap), walk the art branches, and stage
 the 194 outbound records this checkout is holding untracked.
 
-## 2026-09-09 05:25Z: THE GRATE IS IN A FRAME, READABLE AS IRONWORK
+## 2026-09-09 05:25Z: THE GRATE IS IN A FRAME, AND IT LOOKS LIKE PALE PLASTIC
+
+HEADING CORRECTED 2026-09-09 09:00Z. It read "READABLE AS IRONWORK" for four
+hours and that was half true: the geometry reads, the material does not. Cropping
+the subject rectangle out of the frame shows the bars and the gaps both pale grey
+with almost no separation. Measured since, by tools/road-brightness.py:
+roadCause=MATERIAL-ALBEDO, the kerb texture and not the light. The paragraph below
+is kept as it was written.
 
 RUN 36 ON 7a3fa3e. The camera traces before it shoots now: it tried three
 standpoints, two were refused with rail_post1 named, and the third had five clear

@@ -30,6 +30,15 @@ branch. Every link this studio has sent Jafar today, in this conversation and
 in the message waiting in `production/outbox/`, leads to a 404 or to the
 repository's old index.
 
+SUPERSEDED 2026-09-09, AND THE SENTENCE ABOVE IS NO LONGER TRUE. It was true
+when this item was filed on 2026-09-06. Four publish runs have succeeded since:
+12, 13, 14 and 18, the last at 2026-09-07T20:23:12Z on commit 45de6c21, which
+is the pageCommit recorded in production/map-notified.json. The pages EXIST.
+What is true today is that every run since 18 has failed, so they are stale
+rather than absent, and a stale page that looks current is the worse of the two
+because it does not announce itself. Kept unedited above so the change is
+readable rather than described.
+
 THE GLANCE, THE MAP AND THE GALLERY ARE ALL AFFECTED. The register's link
 allowlist names exactly those three pages, so every compliant message this
 studio can write links to something that does not exist.

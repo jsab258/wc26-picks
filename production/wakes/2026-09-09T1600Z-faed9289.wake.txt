@@ -1,0 +1,9 @@
+id: faed9289
+due: 2026-09-09T16:00:00Z
+armedAt: 2026-09-09T08:45:36Z
+armedBy: director/2026-09-09-batch-ruling
+blocks: 0
+dischargedAt: -
+capBitAt: -
+
+Land A1 of the batch ruling (the WAKE_DRAIN opt-out) before Jafar's evening; discharge when the executor journal prints the opted-out line

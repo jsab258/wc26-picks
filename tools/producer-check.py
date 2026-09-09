@@ -227,7 +227,13 @@ SITE_PAGES = (("", "the-glance"),
               # link. Ruled A5 of section 2.5 of game-design/decision-2026-09-
               # 09-the-hook-comparison-the-ruled-link-and-the-stale-pages.md.
               # Reversible in one line if he says the band stays at three.
-              ("world.html", "the-world"))
+              ("world.html", "the-world"),
+    # A2 OF THE BATCH RULING, 2026-09-09. tools/publish-glance.py PAGES (120)
+    # publishes index.html and glance.html from the ONE generator, so the glance
+    # under its own filename is the glance. The per-card link Jafar taps is
+    # index.html#card-<id>, and without this row site_page refuses it; it survives
+    # today only because send_cards never calls the check.
+    ("index.html", "the-glance"))
 # THE BAND, not a floor: one link at least (constitution law 12, evidence) and
 # two at most (Jafar, 2026-09-06). Both ends are his, neither is measured, and
 # both are cited rather than chosen.

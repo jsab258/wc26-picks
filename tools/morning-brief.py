@@ -938,11 +938,16 @@ def compose(root, today):
     # the attachment it carries, so the date belongs in the message.
     #
     # AND IT PROMISES HIM NO PAGE. It used to say the pictures are "in the
-    # gallery", which is a claim that a site he can open holds them; eight
-    # consecutive publish runs failed on the morning of 2026-09-09 (41 to 48),
-    # so the published pages have never served a byte. The brief says when the
-    # newest picture was taken, which is true of the repository, and the
-    # attachment on the done line is what actually reaches his phone.
+    # gallery", which is a claim that a site he can open holds them. THE
+    # ACCURATE STATEMENT IS STALENESS, NOT ABSENCE, and the first draft of this
+    # comment got it wrong: of 48 publish runs FOUR SUCCEEDED, the last on
+    # 2026-09-07 at 20:23Z on commit 45de6c21 (the pageCommit in
+    # production/map-notified.json), and every run since failed, 41 to 48 on the
+    # morning of 2026-09-09 among them. So a page he opens EXISTS and shows an
+    # older day. That is subtler than a 404 and worse: a 404 tells him something
+    # is wrong and a stale page does not. The brief says when the newest picture
+    # was taken, which is true of the repository, and the attachment on the done
+    # line is what actually reaches his phone.
     if pics["n"] is None:
         picture = "Nothing measured about new pictures this morning."
     elif pics["n"] and pics["newest"]:

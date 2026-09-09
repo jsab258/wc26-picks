@@ -1509,8 +1509,10 @@ the register should not be sent, and the sweep saying so on every pass is the
 guard working rather than a fault.
 
 --------------------------------------------------------------------------
-2026-09-09  RUN 36: THE GRATE IS IN THE PICTURE AND READABLE AS IRONWORK, AND
-            EVERY PREDICTION WRITTEN BEFORE THE RUN HELD.
+2026-09-09  RUN 36: THE GRATE IS IN THE PICTURE, AND EVERY PREDICTION WRITTEN
+            BEFORE THE RUN HELD. The word "readable" stood in this heading for
+            four hours and is corrected at 09:30Z below: the geometry reads,
+            the material renders near-white.
 --------------------------------------------------------------------------
 THE FRAME WAS OPENED FIRST. ue-walk_05_grate_a.png, dead centre: a drainage grate
 with diagonal slots and a frame around them, unmistakably ironwork, nothing across
@@ -2199,3 +2201,62 @@ straight kerb in a true perspective is exactly straight. So no exact camera exis
 to be derived from that image, and the numbers reproduce THE COMPOSITION rather
 than a camera matrix. That is worth knowing before anybody treats a mismatch as
 our fault.
+
+
+================================================================================
+2026-09-09 08:50Z: THE CARDS WENT OUT, AND THEY WENT OUT FROM YESTERDAY'S QUEUE
+================================================================================
+
+The first real cards pass ran on his machine and SENT SIX CARDS. That is queue
+090 finally reaching his phone after four months. It also sent the wrong six.
+
+    10:42:29  card sent: "Is Mickey's a free house or a tied house?"  85bff034
+    10:42:29  card sent: "How big is Mickey's on Quay Street?"        341aa761
+    10:42:30  card sent: "The gully grate is under the road..."       4f99f11e
+    10:42:30  card sent: "Which bay is Mickey's?"                     ead0341a
+    10:42:30  card sent: "How close should strangers stand?"          c37b5b24
+    10:42:30  card sent: "The pages cannot be published..."           803a6f77
+    10:42:30  cards-sent: cardsSent=6/6 waiting ... waitingTotal=6
+
+WHAT IS WRONG WITH THAT LIST. `803a6f77` IS THE CARD THIS SESSION DELIBERATELY
+TOOK OFF HIS PHONE five hours earlier, moved into a new ON US, NOT ON HIM section
+because the blocker turned out to be our own gate and there was nothing he could
+do. And the two cards added this morning are ABSENT: the visual ladder he asked
+for as a card, and the last bus. `waitingTotal=6` where the branch says 7.
+
+THE LIST IS EXACTLY THE QUEUE AS IT STOOD BEFORE THIS MORNING'S EDITS. The step
+read a stale working copy.
+
+THE CAUSE, AND IT IS A RACE RATHER THAN A BUG IN EITHER PART.
+`tools/runner/install-scheduled-task.ps1:153` deliberately SKIPS the CI resync
+when a supervisor is running, and its comment says why: "this must never touch the
+checkout while a supervisor OR a bare pc-watcher.py is running: either one already
+keeps this checkout current". That reasoning is sound and the deferral is correct.
+But it makes the checkout's freshness the property of a DIFFERENT PROCESS ON ITS
+OWN TIMER, and the cards step then reads that checkout with nothing asserting it
+is current. The push landed at 08:41 and the step ran at 08:42:29. pc-watcher had
+not come round.
+
+SO THE STEP'S OWN LINE 1 IS TRUE AND MISLEADING AT ONCE: it says
+`# LEDGER one decision-cards pass - 3cf3731`, naming the commit CI ran FOR, while
+the file it read was from an older one. Line 1 names the run's commit, not the
+checkout's, and until today nothing needed to tell those apart.
+
+THE CLASS, AND IT IS THE FOURTH INSTANCE TODAY OF ONE SHAPE: TWO SOURCES FOR ONE
+QUANTITY AND NOTHING COMPARING THEM. The wake existed in the scheduler and not on
+disk. The budget had two readers disagreeing on purpose. `resync=ok/df7a7061` was
+a startup value printed beside live counts. And now the run's commit and the
+checkout's commit are two facts under one heading. In every case the repair is the
+same: print both, and refuse when they differ.
+
+THE FIX OWED: the sweep and the cards steps assert the checkout's HEAD contains
+the run's commit, print both shas, and REFUSE TO SEND rather than send from a
+stale queue. Refusing costs one round trip. Sending cost Jafar a card he cannot
+act on and hid the one he asked for.
+
+WHAT HE ACTUALLY HAS ON HIS PHONE, so nobody has to guess: six cards with working
+tap buttons, one of them withdrawn and two of today's missing. The outbox sweep in
+the same run was clean (`outboxFiles=15 alreadySent=15`, nothing re-sent), and it
+incidentally settles an open question: the PC holds receipts for all fifteen, so
+the grate message DID reach him and the container had simply never looked. Absence
+of a receipt was absence of a look, exactly as suspected and now measured.
