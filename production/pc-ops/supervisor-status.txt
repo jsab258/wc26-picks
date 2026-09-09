@@ -1,11 +1,11 @@
-# LEDGER supervisor status as CI read it - 884f049 @1788951354
+# LEDGER supervisor status as CI read it - 8aaf780 @1788957210
 # Line 1 names the commit this was read on.
-# Copied verbatim from the supervisor's own file on his PC.
-# It is written there every 60s and was published nowhere until
-# this step existed, which is why a bot that stopped at 11:30 on
-# 2026-09-07 could not say so.
+# Copied verbatim from the supervisor's own file on his PC,
+# read right after the restart step above, so a changed
+# telegram-botStarts or a reset telegram-botUptimeSec here is
+# the evidence the restart actually took effect.
 statusSource=C:\Users\Jafar\wc26-picks\game-design\pc-jobs\supervisor-status.txt
-statusFound=yes statusBytes=630 statusLines=18 statusAgeSec=25
+statusFound=yes statusBytes=626 statusLines=18 statusAgeSec=21
 statusFresh=yes
 
 supervisor=running
@@ -15,14 +15,14 @@ gaveUp=0
 autostart=installed
 resync=ok/df7a7061
 outboxFiles=17
-outboxReceipts=33
+outboxReceipts=34
 outboxRefusals=494
-written=2026-09-09T12:55:29
+written=2026-09-09T14:33:09
 executorState=idle
 executorHandled=1
 executorPending=0
 executorLimitResumeIn=none
-studio-watcher=running studio-watcherUptimeSec=171398 studio-watcherStarts=1 studio-watcherStops=0 studio-watcherLastExit=none
-telegram-bot=running telegram-botUptimeSec=78048 telegram-botStarts=4 telegram-botStops=3 telegram-botLastExit=4294967295
-claude-executor=running claude-executorUptimeSec=171398 claude-executorStarts=1 claude-executorStops=0 claude-executorLastExit=none
+studio-watcher=running studio-watcherUptimeSec=177258 studio-watcherStarts=1 studio-watcherStops=0 studio-watcherLastExit=none
+telegram-bot=running telegram-botUptimeSec=0 telegram-botStarts=5 telegram-botStops=4 telegram-botLastExit=4294967295
+claude-executor=running claude-executorUptimeSec=177258 claude-executorStarts=1 claude-executorStops=0 claude-executorLastExit=none
 

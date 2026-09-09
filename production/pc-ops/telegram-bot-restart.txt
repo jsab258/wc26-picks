@@ -1,36 +1,36 @@
-# LEDGER telegram-bot remote restart - 192bc4e @1788873274
+# LEDGER telegram-bot remote restart - 8aaf780 @1788957183
 # Line 1 names the commit this was run on.
 # Route b, ruling 2026-09-07: stops the telegram-bot.py process
 # tree so tools/supervise.py restarts it on the code on disk.
-requestReason=reason=load-noninteractive-git-and-the-sweep-counter_date=2026-09-08
+requestReason=reason=the-two-buttons-his-tap-lands-in-a-process-that-has-never-heard-of-them_date=2026-09-09
 
 targetUser=Jafar
 runnerAccount=JAFAR-DESKTOP\Jafar
 stableEvidence=before
-stableHead=614bddb2343a2e8d395ff44ba294f0b01d3fadb9
-botSourceSha256=72D11D0A506A5A2C1DA45630D46E80CC463E2D4830C26901FB3F9043D49516CC
-outboxSourceSha256=A86C71AFE67A85D341D86C94C42D00CA20AF3DB57A905160DA67A5AE9F086AEB
+stableHead=bc7e114ae6fcf316ed4bb9d3e0b653ca4fde18bb
+botSourceSha256=C0EA5105AFDB5BEEEAD9E284155FEFCE9E63885ABFDD0EB4ACE6DAA306F76E3A
+outboxSourceSha256=6BB49AB52727CFFA2B479D79E63705AF988D8959B05E4D0AF13F17AFD6AD0FE8
 botQueryOk=true botProcessesFound=2
-botCandidatePid=3312 botCandidateParentPid=14608 botCandidateCommandLine=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe~C:\Users\Jafar\wc26-picks\tools\runner\telegram-bot.py
-botCandidatePid=9364 botCandidateParentPid=3312 botCandidateCommandLine="C:\Users\Jafar\miniconda3\python.exe"~C:\Users\Jafar\wc26-picks\tools\runner\telegram-bot.py
-botTreeBefore=14608>3312>9364
+botCandidatePid=5620 botCandidateParentPid=14608 botCandidateCommandLine=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe~C:\Users\Jafar\wc26-picks\tools\runner\telegram-bot.py
+botCandidatePid=3868 botCandidateParentPid=5620 botCandidateCommandLine="C:\Users\Jafar\miniconda3\python.exe"~C:\Users\Jafar\wc26-picks\tools\runner\telegram-bot.py
+botTreeBefore=14608>5620>3868
 botRootCommandLine=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe~C:\Users\Jafar\wc26-picks\tools\runner\telegram-bot.py
 supervisorQueryOk=True supervisorPidsSeen=19712,14608
-botLeafStopped=9364
+botLeafStopped=3868
 botRootExitedOnItsOwn=true
-botOldPid=9364
-botStopInstant=2026-09-08T13:14:35.0794114Z
+botOldPid=3868
+botStopInstant=2026-09-09T12:33:03.7724185Z
 botCameBackAfterSec=5
-botNewPid=3868
+botNewPid=27100
 botPidChanged=True
-botTreeJustAfter=14608>5620>3868
-botRootCreationDate=09/08/2026 15:14:40
-botTreeAfter=14608>5620>3868
+botTreeJustAfter=14608>36200>27100
+botRootCreationDate=09/09/2026 14:33:09
+botTreeAfter=14608>36200>27100
 botNewTreeStableForSec=20
 stableEvidence=after
-stableHead=614bddb2343a2e8d395ff44ba294f0b01d3fadb9
-botSourceSha256=72D11D0A506A5A2C1DA45630D46E80CC463E2D4830C26901FB3F9043D49516CC
-outboxSourceSha256=A86C71AFE67A85D341D86C94C42D00CA20AF3DB57A905160DA67A5AE9F086AEB
+stableHead=bc7e114ae6fcf316ed4bb9d3e0b653ca4fde18bb
+botSourceSha256=C0EA5105AFDB5BEEEAD9E284155FEFCE9E63885ABFDD0EB4ACE6DAA306F76E3A
+outboxSourceSha256=6BB49AB52727CFFA2B479D79E63705AF988D8959B05E4D0AF13F17AFD6AD0FE8
 botStopped=True
 restartAction=restarted
 restartExitCode=0
