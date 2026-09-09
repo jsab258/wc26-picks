@@ -1,0 +1,16 @@
+receipt: sent-with-photo
+file: production/outbox/2026-09-09-the-grate-readable.unprompted.md
+kind: unprompted
+photoRef: production/d1-probe/ue-walk_05_grate_a.png
+fileCommit: 4ba74b3a906557f32723eef1dc54c32b928aafdd
+fileCommitEpoch: 1788932479
+sent: 2026-09-09T05:44:01+00:00
+sentEpoch: 1788932641
+messageId: 40
+chars: 606
+photoSizes: 90x51/320x180/800x450/960x540
+photoSizeCount: 4
+outboundLatencySec: 162
+outboundLatencySecFrom: fileCommitInstant
+outboundLatencySecTo: sendInstant
+note: one sample of one message, not a rate.
