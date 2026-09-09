@@ -1,0 +1,9 @@
+receipt: card
+cardId: 341aa761
+fingerprint: 689e9259
+card: How big is Mickey's on Quay Street?
+options: A/B
+sent: 2026-09-09T08:54:05+00:00
+sentEpoch: 1788944045
+messageId: 51
+chars: 801

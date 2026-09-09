@@ -2808,3 +2808,172 @@ THE SWEEP IS QUEUE 198 AND ITS LIST IS A SHAPE, NOT A CHARGE SHEET. Five tools o
 the 69 that have a selftest carry both a frozen datetime literal and a real-clock
 call: gallery, map, morning-brief, producer-check, wake-queue. Being on that list
 is not evidence of a fault. It is where to look.
+
+--------------------------------------------------------------------------------
+2026-09-09, THE RENDER HE ASKED FOR FAILED IN TWELVE SECONDS, AND THE LINT THAT
+WATCHES FOR EXACTLY THIS PRINTED ZERO PROBLEMS
+
+The Mickey's blockout render was dispatched on its own push at 13:29:35Z, after
+core-tests cleared, exactly as he asked. The job failed at 13:29:47Z. The log's
+answer is one line:
+
+    ##[error]pwsh: command not found
+
+The first `shell: pwsh` step never executed. Its script was echoed into the log
+and its own refusal, `artPreviewStatus=NO-TARGET`, was never printed, so the step
+name in the run summary reads "Resolve the commission and the recipe" and invites
+the conclusion that the request file was unreadable. It was read by nothing. THE
+SHELL DID NOT EXIST.
+
+I would have guessed wrong. The four hypotheses available from the step name were
+all about the request file: absent from the checkout, in the wrong working
+directory, unmatched by the regex, or shadowed by a stale tree. The step even
+carries comments about three of those. One log read settled it in a line, which is
+the ci.md rule for the fourth time: THE ENTRY POINT IS CHEAPER THAN THE ARGUMENT.
+
+WHY pwsh IS MISSING HERE AND PRESENT EVERYWHERE ELSE. `tools/runner/bootstrap-paths.cmd`
+puts it on PATH, and eight workflows call it. Cross-tabulated rather than assumed,
+every workflow declaring self-hosted against whether it calls the bootstrap and
+whether tools/lint-bootstrap-single.py's NEEDS tuple names it:
+
+    ledger-art-blender-preview.yml       self-hosted   calls=0   inNEEDS=0
+    ledger-build-windows.yml             self-hosted   calls=1   inNEEDS=1
+    ledger-imagegen.yml                  self-hosted   calls=1   inNEEDS=0
+    ledger-install-supervisor-task.yml   self-hosted   calls=1   inNEEDS=1
+    ledger-mesh-import.yml               self-hosted   calls=1   inNEEDS=0
+    ledger-probe-unreal.yml              self-hosted   calls=1   inNEEDS=1
+    ledger-restart-telegram-bot.yml      self-hosted   calls=1   inNEEDS=1
+    ledger-setup-msvc.yml                self-hosted   calls=2   inNEEDS=1
+    ledger-vignette-fetch.yml            self-hosted   calls=1   inNEEDS=1
+
+Nine self-hosted, eight call it, one does not, and that one is the one NEEDS does
+not name. There is exactly one row with two zeroes and it is the workflow that
+failed today.
+
+THE LINT IS NOT BROKEN AND ITS ZERO IS NOT A LIE:
+
+    bootstrap-single: ok - 18 workflow(s) read, 8 call the shared script,
+                      6 named as needing it, 0 problem(s)
+
+It checked six workflows for the bootstrap and all six had it. THE DENOMINATOR
+COUNTED THE HAND LIST RATHER THAN THE SET THAT MATTERS, and rule 3b's sharp half
+is exactly this: ask what the denominator COUNTED. Nine workflows run on that
+machine and the lint was asked about six of them.
+
+AND THE LINT SAID SO IN ADVANCE. Its own docstring, written when it was built:
+"a self-hosted workflow this list does not know about is one the lint cannot hold
+to the shared script." The comment above NEEDS defends the hand list on the
+grounds that "adding a workflow is a deliberate decision here". The deliberate
+decision was never made for this workflow, and nothing anywhere noticed that it
+had not been. A list that must be maintained by memory, guarded by a lint that
+reads the same list, cannot catch the case where somebody forgot the list.
+
+THE REPAIR IS THE CLASS, NOT THE INSTANCE. Derive the set that needs the bootstrap
+from the workflows themselves (self-hosted plus a pwsh or bash step) and turn the
+hand list inside out: it becomes a list of deliberate EXEMPTIONS, each carrying a
+written reason. The question changes from "did somebody remember to add this" to
+"did somebody write down why this one does not need it", and only the second
+question has an answer a reader can check.
+
+WHAT IT COST. One round trip and the previews are not in tomorrow's message unless
+the fix lands and a second dispatch runs. Nothing was damaged, and the run refused
+in twelve seconds rather than rendering something wrong for thirty minutes.
+
+--------------------------------------------------------------------------------
+2026-09-09, THE BUTTONS DID REACH HIM, AND THE TWO SENDERS ARE NOT THE SAME SENDER
+
+Checked because a worry was forming that was wrong: the bot on his PC was running
+yesterday's code until the restart at 12:25, and today's brief went at 10:55, so
+the brief looked like it must have gone without its two buttons. It did not.
+
+    briefStatus=EXITED briefExitCode=0
+    brief sent: production/briefs/2026-09-09.md chars=890 buttons=2 messageId=56
+    brief-send done: briefDay=2026-09-09 briefSent=1/1 briefButtons=2 records=1
+    briefCheckoutPcHeadSha=884f049c briefCheckoutContains=yes briefCheckoutBehindCommits=0
+
+THE SEND IS NOT THE BOT'S LOOP. It is a CI step that does Push-Location into HIS
+CHECKOUT and runs `--send-brief` once from the files there, gated by queue 189's
+checkout-contains assertion. His checkout was AT 884f049c, the commit that added
+the two-button send, and the gate said so before anything was sent.
+
+SO THE TWO HALVES NEEDED DIFFERENT THINGS AND BOTH WERE RIGHT. Sending needed his
+CHECKOUT to be current, which it was, proven by the gate. Receiving a tap needs his
+RUNNING PROCESS to be current, which it was not until 12:25, because a long-running
+process holds the code it started with. The restart's stated reason was the tap and
+not the send, and it stands.
+
+WHAT THIS MEANS FOR THE ONLY MEASURE HE SET. briefsSentEver=1, briefTapRecords=0,
+briefStreakReadable=0/7. The zero is not a broken channel and not a missing button:
+it is a message sitting on his phone that he has not tapped. Nothing in the studio
+can move that number, which is exactly what he intended.
+
+--------------------------------------------------------------------------------
+2026-09-09, WHY NOTHING CASTS A SHADOW: THE SKY I ADDED DROWNED THE SUN
+
+Queue 197 asked which of shadow casting, ambient occlusion or the light rig is
+missing, and required the answer by measurement before anything is changed. It is
+THE LIGHT RIG, and shadow casting is proved present rather than assumed present.
+
+THE CONTROL IS WHAT MAKES THIS AN ANSWER. The same measurement, the same geometry,
+the same sun at the same intensity and direction, the same SetCastShadows(true)
+path, run on the frame from ONE COMMIT EARLIER, before the sky landed:
+
+    frame                                    shadow-edge step   denominators
+    camA_day @7a3fa3e, fills, no skylight          +0.0270      3768 out/1645 in
+    camA_day @bc7e114a, captured sky               -0.0003      the same pixels
+    hook_day @bc7e114a, the rung-1 frame           -0.0035      2151/2176
+
+The pre-sky profile climbs monotonically across the predicted shadow boundary,
+0.8046 to 0.8399. The current one does not move at all. Per surface on the rung-1
+frame, lit minus shadowed: asphalt -0.0131, sidewalk -0.0300, kerb -0.0131, metal
+-0.0374, every sign zero or negative, against every sign positive before the sky.
+
+SO THE SUN IS STILL THERE AND STILL CASTS. It spawns movable with
+SetCastShadows(true) at VignetteShot.cpp:1023, every street piece sets
+SetCastShadow(true) at 639, the only SetCastShadow(false) in the file is the
+control quads, and the sun points into the street from 36 degrees. What changed is
+what it is competing with: ambientModel went from three directional fills to a
+CAPTURED SKY, and the sun's intensity is a bare literal 3.0f at line 1240, the only
+light in the file with no named constant, beside kSkyIntensityDay = 1.0f.
+
+THIS IS A CONSEQUENCE OF MY OWN CHANGE AND I DID NOT PREDICT IT. Four predictions
+were written before the sky dispatch and all four held. None of them was about the
+sun, because nothing in the reasoning asked what a captured sky does to a
+directional light that was tuned against three fills. The sky was the right fix and
+it took the shadows with it.
+
+AMBIENT OCCLUSION IS NOT ABSENT, which is the half that would have been guessed
+wrong. Sidewalk luma by distance to the nearest riser, depth held still: 0.7080
+within 15 cm (n=2010), 0.8386 at 15 to 40 cm (n=371), 0.8738 at 40 to 100 cm
+(n=85). There is real short-range darkening. It simply cannot seat a bollard.
+Asphalt has n=0 inside 40 cm in both depth bands and therefore says nothing there,
+which the tool prints rather than reporting a clean zero.
+
+THE INSTRUMENT WAS CHECKED BEFORE THE READING, three ways, against numbers the
+engine itself produced: whole-frame mean 0.6717 against the verdict's own 0.6717 at
+delta 0.0000 over 921600 px; the three control quads the engine printed reprojected
+to within 0.42 px; the predicted skyline matching the frame's own at a median of
+0.0 px over 1280 of 1280 columns. Selftest 12 of 12, accepting first.
+
+AND THE BUILDER CORRECTED ITS OWN INSTRUMENT MID-RUN rather than shipping the
+number: its first face-orientation tally counted every hit pixel instead of only
+predicted-lit ones, so a sunward face standing in another building's shadow was
+counted as sunward. On the calibration frame that read -0.0534 with 4 of 6 surfaces
+the wrong way round, which would have said "no sun" about a frame that plainly has
+one. Restricted to the shared shadow mask it reads +0.2069. THE INSTRUMENT WAS THE
+FAULT AND THE CONTROL FOUND IT.
+
+WHAT HAPPENS NEXT, and it ships with the instrument the verdict lacks: the sun's
+intensity gets a name beside kSkyIntensityDay and goes up one order of magnitude,
+and the verdict starts reading sunIntensityRead, sunCastShadowsRead,
+sunPitchYawRead and sunMobilityRead OFF THE COMPONENT rather than off the constant,
+because `sun=yes fill=3/3` only ever said it spawned.
+
+THE PREDICTION IS REFUTABLE AND IS WRITTEN BEFORE THE RUN. On the next committed
+rung-1 frame the shadow-edge step must reach at least +0.027, the pre-sky frame's
+own measured value, where it now reads -0.0035; asphalt lit-minus-shadowed must go
+positive from -0.0131; and band.ground.p05 must fall below 0.50 from 0.5776. IF THE
+SUN GOES UP TENFOLD AND THE STEP STAYS UNDER +0.01, the sun is not the limiting
+term, the skylight owns the whole exposure, and the next move is kSkyIntensityDay
+coming down rather than the sun going up. Naming the second suspect in advance is
+what stops the next run being an argument.

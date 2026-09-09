@@ -29,6 +29,29 @@ anonymous colour. Evidence stays where it exists and becomes provenance for the
 audit view one tap down: still checked for SHAPE where present, never required,
 and never again the thing that licenses the state.
 
+TWO FIELDS RULED IN ON 2026-09-09, and the ruling is
+`game-design/decision-2026-09-09-ruling-typed-systems-inventory.md` section 4.
+
+`where` is WHICH CODEBASE THIS TILE'S COLOUR IS ABOUT: one of
+core-csharp | ue-probe | both | repo, REQUIRED when `status` is exists or
+partial and FORBIDDEN when it is absent. The asymmetry is the one `evidence`
+already carries and the logic is the same: a system that is nowhere cannot be
+somewhere, and a tile naming an engine for a thing that does not exist is a
+claim with a location on it. `both` is EARNED by a golden parity row or a
+printed key on each side and never by a ported header, which is the
+type-the-lower-state-when-unsure rule the data already carries. The field
+exists because 26 green tiles green in a codebase Jafar is not looking at, with
+D1 still open, is the page that flatters.
+
+`short` is the optional display label a tile uses when the name does not fit:
+a non-empty single line, no edge whitespace, STRICTLY shorter than `name`, and
+unique across the file. NO LENGTH BOUND IS SET HERE and that is deliberate: no
+rendered width has been measured at 360px in any session, so the tool prints
+the character series (short and name, min..max/median over n) and a later
+session sets a trigger from a pixel measurement instead of from a gap in a
+character distribution. The page shows the full name WRAPPED when no `short` is
+typed, never clipped.
+
 WHY JSON, unchanged from the first version. Two tools consume this file and
 neither may guess: the map view renders it and the roadmap fold reads the phase
 field. JSON parses with the Python standard library on both the container and
@@ -88,6 +111,16 @@ AREAS = ("moat", "world", "player-facing", "content", "studio")
 STATUSES = ("exists", "partial", "absent")
 CLASSES = ("cheap-to-author", "taste-bound", "moat-adjacent")
 PHASES = ("R", "0", "1", "2", "3", "4", "5", "6")
+# WHICH CODEBASE A TILE'S COLOUR IS ABOUT, ruled 2026-09-09 section 4b. It is
+# in the same fixed-set loop as the four above, so there is one implementation
+# of the idea rather than a second copy that drifts.
+#   core-csharp  a reading of the C# game under ledger/, and nothing on the
+#                Unreal side has been measured for this statement
+#   ue-probe     the Unreal probe only
+#   both         EARNED by a golden parity row or a printed key on EACH side,
+#                never by a ported header
+#   repo         files and process, neither engine
+WHERES = ("core-csharp", "ue-probe", "both", "repo")
 # WHO MAY TYPE A STATE. The judgement is Jafar's and a director's; a builder
 # may type one and says so, which is the point of recording the role.
 ROLES = ("jafar", "director", "builder", "producer")
@@ -379,6 +412,9 @@ def validate(doc, entries, names, today=None):
     today = today or datetime.date.today().isoformat()
     problems, checks = [], 0
     seen = {}
+    shorts = {}                  # label -> first entry index, for uniqueness
+    wheres = {}                  # where value -> count, 'none' counted too
+    short_lens, name_lens = [], []
     ev_refs = ev_ok = 0
     with_ev = 0
     note_lens = []
@@ -410,12 +446,68 @@ def validate(doc, entries, names, today=None):
             seen[name] = i
 
         for field, allowed in (("area", AREAS), ("status", STATUSES),
-                               ("class", CLASSES), ("phase", PHASES)):
+                               ("class", CLASSES), ("phase", PHASES),
+                               ("where", WHERES)):
             checks += 1
             val = e.get(field)
             if val is not None and str(val) not in allowed:
                 problems.append("%s %s=%r is not one of %s"
                                 % (tag, field, val, "|".join(allowed)))
+
+        # `where` IS REQUIRED WHEN THE SYSTEM IS SOMEWHERE AND FORBIDDEN WHEN
+        # IT IS NOWHERE, and these are TWO rungs because they fail apart: the
+        # first catches a tile whose colour names no codebase, the second a
+        # tile that names an engine for a thing that does not exist. Same
+        # asymmetry as `evidence`, same reason.
+        st = e.get("status")
+        wh = e.get("where")
+        checks += 1
+        if st in ("exists", "partial") and not (isinstance(wh, str) and wh):
+            problems.append("%s status=%s carries no 'where'; which codebase "
+                            "is this colour a reading of (%s)?"
+                            % (tag, st, "|".join(WHERES)))
+        checks += 1
+        if st == "absent" and wh not in (None, ""):
+            problems.append("%s status=absent must carry no 'where' (got %r): "
+                            "a system that is nowhere cannot be somewhere"
+                            % (tag, wh))
+
+        # `short`, THE OPTIONAL DISPLAY LABEL, four shape rungs and NO LENGTH
+        # BOUND. No rendered width has been measured at 360px in any session,
+        # so the instrument prints the character series and sets no threshold.
+        # It must be a single-line string with no edge whitespace, STRICTLY
+        # shorter than the name it stands in for, and unique across the file:
+        # two tiles reading the same label is worse than one tile reading long.
+        sh = e.get("short")
+        if sh is not None:
+            checks += 1
+            if not isinstance(sh, str) or not sh.strip() or "\n" in sh:
+                problems.append("%s short=%r must be a non-empty single-line "
+                                "string" % (tag, sh))
+            else:
+                checks += 1
+                if sh != sh.strip():
+                    problems.append("%s short=%r has leading or trailing "
+                                    "space" % (tag, sh))
+                checks += 1
+                if isinstance(name, str) and len(sh) >= len(name):
+                    problems.append("%s short=%r is %d chars and the name is "
+                                    "%d: a label that is not shorter than the "
+                                    "name it replaces has no reason to exist"
+                                    % (tag, sh, len(sh), len(name)))
+                checks += 1
+                if sh in shorts:
+                    problems.append("%s short=%r is also entry[%d]'s label; "
+                                    "two tiles reading the same label is "
+                                    "worse than one tile reading long"
+                                    % (tag, sh, shorts[sh]))
+                else:
+                    shorts[sh] = i
+                short_lens.append(len(sh))
+        if isinstance(name, str):
+            name_lens.append(len(name))
+        wheres[str(wh) if wh else "none"] = \
+            wheres.get(str(wh) if wh else "none", 0) + 1
 
         checks += 2
         check_attribution(e, tag, problems, today)
@@ -494,6 +586,11 @@ def validate(doc, entries, names, today=None):
         "evOk": ev_ok,
         "withEv": with_ev,
         "noteLens": sorted(note_lens),
+        "wheres": wheres,
+        "shortLens": sorted(short_lens),
+        "nameLens": sorted(name_lens),
+        "notAbsent": sum(1 for e in entries if isinstance(e, dict)
+                         and e.get("status") in ("exists", "partial")),
         "roles": roles,
         "dates": sorted(dates),
         "qBlockers": q_blockers,
@@ -580,6 +677,25 @@ def run(path, names_path=None, out=sys.stdout, emit=False, today=None):
     print("  byClass:  " + fmt_tally(st["tally"]["class"], n), file=out)
     print("  byArea:   " + fmt_tally(st["tally"]["area"], n), file=out)
     print("  byPhase:  " + fmt_tally(st["tally"]["phase"], n), file=out)
+    # WHICH CODEBASE THE COLOURS ARE ABOUT, a whole-file census at this run.
+    # `none` is the absent tiles, which may not carry one; `missing` is the
+    # fault, and it prints its denominator either way so a clean run cannot be
+    # confused with a run that examined nothing.
+    missing_where = sum(1 for e in entries if isinstance(e, dict)
+                        and e.get("status") in ("exists", "partial")
+                        and not e.get("where"))
+    print("  byWhere:  %s none=%d/%d-absent missingWhere=%d/%d-not-absent"
+          % (" ".join("%s=%d/%d" % (k, st["wheres"].get(k, 0), n)
+                      for k in WHERES),
+             st["wheres"].get("none", 0), n, missing_where, st["notAbsent"]),
+          file=out)
+    # THE LABEL SERIES, AND NO BOUND. 4a set no length threshold because no
+    # rendered width has been measured at 360px; this is the series a bound
+    # would come FROM, in characters, min..max/median over n.
+    print("  labels:   short=%d/%d shortChars=%s nameChars=%s "
+          "(series, no length bound set anywhere)"
+          % (len(st["shortLens"]), n, series(st["shortLens"]),
+             series(st["nameLens"])), file=out)
     absent = st["tally"]["status"]["absent"]
     # TYPED, AND BY WHOM. The zero that matters here is untypedBy: a tile with
     # no owner is the anonymous colour the ruling replaced.
@@ -703,8 +819,22 @@ def selftest():
         print("\n== rung 2 ACCEPTING: typed exists with no evidence at all "
               "(the reversal) ==")
         code = run(_fixture(tmp, [dict(GOOD, name="planted-typed-only",
-                                       status="exists")], tag="typedonly"))
+                                       status="exists",
+                                       where="core-csharp")],
+                            tag="typedonly"))
         rungs.append(("accept/typed-exists-with-no-evidence", 0, code))
+
+        # RUNG 3 ACCEPTING: THE TWO FIELDS RULED IN ON 2026-09-09, in the
+        # shapes the ruling dictates, so the accepting side of every new rung
+        # below is run before any refusal. The live inventory above is the
+        # other accepting fixture and it carries all four `where` values.
+        print("\n== rung 3 ACCEPTING: where on an exists entry and a short "
+              "shorter than its name ==")
+        code = run(_fixture(tmp, [
+            dict(GOOD, name="planted-with-where-and-short", status="partial",
+                 where="both", short="planted"),
+            dict(GOOD, name="planted-absent-with-no-where")], tag="wheresh"))
+        rungs.append(("accept/where-on-exists-and-absent-with-none", 0, code))
 
         planted = [
             ("refuse/schema-from-the-retired-contract", 1,
@@ -737,6 +867,29 @@ def selftest():
                              "#ZzQqSyntheticTokenThatExistsNowhere"])], None),
             ("refuse/area-outside-the-five", 1,
              [dict(GOOD, name="planted-area", area="vibes")], None),
+            # THE FIVE THE RULING NAMES, then three more that keep each shape
+            # rung from being a ratchet. Every fixture is synthetic.
+            ("refuse/where-outside-the-four", 1,
+             [dict(GOOD, name="planted-where", status="exists",
+                   where="unity")], None),
+            ("refuse/exists-with-no-where", 1,
+             [dict(GOOD, name="planted-nowhere", status="exists")], None),
+            ("refuse/absent-carrying-where", 1,
+             [dict(GOOD, name="planted-absent-somewhere",
+                   where="core-csharp")], None),
+            ("refuse/short-longer-than-its-name", 1,
+             [dict(GOOD, name="planted", status="exists",
+                   where="repo",
+                   short="a label longer than the name it stands for")], None),
+            ("refuse/two-entries-sharing-a-short", 1,
+             [dict(GOOD, name="planted-one", short="shared"),
+              dict(GOOD, name="planted-two", short="shared")], None),
+            ("refuse/short-as-long-as-its-name", 1,
+             [dict(GOOD, name="planted-equal", short="planted-equal")], None),
+            ("refuse/short-that-is-blank", 1,
+             [dict(GOOD, name="planted-blank-short", short="   ")], None),
+            ("refuse/short-with-a-trailing-space", 1,
+             [dict(GOOD, name="planted-padded-short", short="padded ")], None),
             ("refuse/missing-required-field", 1,
              [{k: v for k, v in GOOD.items() if k != "phase"}], None),
             ("refuse/blocker-names-no-decision-record", 1,

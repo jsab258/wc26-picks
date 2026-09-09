@@ -7,3 +7,41 @@ dischargedAt: -
 capBitAt: -
 
 Produce the 06:00 CEST brief and send it through the Producer. It leads with an OUTCOME, never a count: the ladder's current rung from production/ladder.md is the strongest source for where the project stands. It reports the studio versus game split, in spawns, with its denominator. Images go as Telegram images, never links, each the newest of its kind and dated in its caption. At most two links and only to the glance, the map or the gallery, and check first whether the site is actually serving: eight publish runs failed on 2026-09-09 and a link to a page nobody serves is a 404 with a rule behind it.
+
+AMENDED 2026-09-09T13:40Z by the resident director. Nothing above is deleted; where
+the two disagree, this paragraph wins, because it is later than the rulings the text
+above could not have known.
+
+RETIRED FROM THIS BRIEF: the studio versus game split. Jafar ruled at 10:54 that the
+message carries no numbers with units, no coordinates, no file names and no studio
+vocabulary, and the split breaks two of those. The Producer refused it once already
+and was right to. It is kept as a rule with its detector and fixtures intact and
+enforced by no register, waiting for a Sunday summary to pick it up.
+
+THE MESSAGE CARRIES PICTURES AND THEY ARE COMMITTED AND WAITING, under
+game-design/sim-shots/, newest of their kind, to be dated in their captions:
+  rung1_vs_reference.jpg  the street we render today beside the sheet it is meant to
+                          match. This is the strongest thing in the message and it
+                          needs no number beside it: eight people, lit shopfronts, a
+                          wet reflecting road and a roofline on one side, and none of
+                          those on ours.
+  sky_before_after.jpg    the same corner before and after the sky landed. Honest
+                          reading: the stone and the roof tiles read as themselves
+                          now, and the street got BRIGHTER when what the reference
+                          has is not more light but more shadow.
+  map_first_screen.jpg    the board he ruled, as his phone renders it.
+
+WHAT HE ASKED FOR AND MAY NOT HAVE: the five Mickey's previews. The render was
+dispatched on its own push after core-tests cleared, exactly as instructed, and the
+job died in twelve seconds because that workflow was the one self-hosted lane never
+wired to the PATH bootstrap. If a second dispatch has landed by the time this fires,
+the previews go in. If it has not, SAY SO IN ONE PLAIN SENTENCE rather than leaving
+it out: he asked for them by name.
+
+CHECK BEFORE LINKING, still true and still the reason: a link to a page nobody serves
+is a 404 with a rule behind it, and this container cannot reach the site to check.
+
+THE ONLY MEASURE OF THIS CHANNEL IS HIS THUMB. Two buttons ride on the message,
+readable and unreadable. Seven consecutive readable briefs tapped by him is the
+acceptance and no selftest moves it. If he taps unreadable, tomorrow's is written
+differently AND says what changed.

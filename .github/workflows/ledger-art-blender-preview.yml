@@ -59,9 +59,10 @@ jobs:
   preview:
     runs-on: [self-hosted, windows]
     # A CEILING ON A HANG, NOT A TARGET, and it sits above the sum of the step
-    # caps below (2 checkout + 1 yield + 6 art checkout + 1 studio checkout +
-    # 30 render + 2 commit). Blender rendering five frames is the only step
-    # that can stall for hours, and this PC is the one the game builds run on.
+    # caps below (2 checkout + 1 PATH bootstrap + 1 yield + 6 art checkout +
+    # 1 studio checkout + 30 render + 2 commit = 43). Blender rendering five
+    # frames is the only step that can stall for hours, and this PC is the one
+    # the game builds run on.
     timeout-minutes: 45
     steps:
       # THE STUDIO CHECKOUT COMES FIRST, AND IT IS NOT OPTIONAL. Until this
@@ -80,6 +81,34 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 1
           persist-credentials: false
+
+      # THE PATH BOOTSTRAP, AND IT IS WHY THE FIRST DISPATCH OF THIS
+      # WORKFLOW DIED IN TWELVE SECONDS. Run at 13:29:35Z on f08b5351, the
+      # step below printed its own script and then `##[error]pwsh: command
+      # not found`, so its NO-TARGET refusal was never printed either and
+      # every later step was skipped. pwsh and bash are both present on
+      # `ledger-pc` but neither is on the stock PATH the runner service
+      # hands a job; the shared script appends them via GITHUB_PATH. Eight
+      # other self-hosted workflows already called it and this one did not,
+      # and the lint that was meant to notice read a hand-written list
+      # instead of the workflows, so it printed `0 problem(s)` about this
+      # file for its whole life. tools/lint-bootstrap-single.py now DERIVES
+      # the set from the workflows themselves.
+      #
+      # AFTER A CHECKOUT, NEVER BEFORE ONE: the script is a repository file,
+      # and the same note is in its own header. It sits here rather than
+      # first for that reason, copied step for step from
+      # ledger-restart-telegram-bot.yml, which runs on this machine today.
+      # The art checkout further down cleans the workspace root and takes
+      # this file with it, which does not undo anything: GITHUB_PATH is read
+      # by the runner once per step for the rest of the JOB, not re-read
+      # from the tree.
+      - name: tool PATH bootstrap (self-hosted parity)
+        timeout-minutes: 1
+        shell: cmd
+        run: |
+          call tools\runner\bootstrap-paths.cmd
+          exit /b %ERRORLEVEL%
 
       # ONE SOURCE OF TRUTH FOR THE TWO VALUES, whichever trigger fired.
       # A dispatch carries them as inputs; a push carries them in the request

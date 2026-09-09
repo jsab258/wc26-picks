@@ -9,6 +9,69 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-09 13:45Z: THE MAP IS THE BOARD, THE SKY IS IN, THE RENDER IS BLOCKED
+
+Jafar, reading total 31, Fable 33, ceiling 75. Three owed items and a ruling on
+the map. Two owed items are done, the third is blocked and the blocker is named.
+
+LANDED, 60405a13. The map page is the heatmap he approved: 69 tiles in five areas,
+three colours, none hidden, the prose areas moved below the fold as the audit view.
+The inventory went 27 entries to 69 and its status from evidenced to TYPED, which
+is a change of contract, so it went to a director:
+game-design/decision-2026-09-09-ruling-typed-systems-inventory.md answers five
+questions and dictates six edits, all applied.
+
+WHAT THE BOARD CANNOT DO, and it is his instruction that does not hold at this
+size: every system a tile AND one phone screen stop being compatible at about 21
+systems. 506 px of overhead plus 16.1 px a tile, so 844 px holds 20, and he named
+25 player-facing systems himself. The page keeps every tile and says on its face
+that it scrolls. Taken as a decision with a default, not sent as a card.
+
+STILL OWED ON THAT PAGE and it is why the first screen is not yet his to judge:
+the board says "ruled by Jafar and updated by his rulings" while 62 of 69 tiles
+are a builder's reading and 7 a director's. Nobody has ruled one. A builder is on
+it now, adding the computed attribution line plus the `short` and `where` fields
+the ruling ordered.
+
+THE SKY LANDED AND TWO OF THE RESIDENT'S OWN READINGS OF IT WERE FALSE. Both were
+whole-run keys read as if they described one frame. The control quads were hidden
+correctly (controlQuadHidden=3/5 names the rung-1 camera; controlQuads=3/3 is a
+PLACEMENT count). And band.skyCentre is a fixed pixel rectangle read across
+cameras whose field of view differs by half, so on the wide ones it is full of
+rooftops: cam_A's 0.8459 is not the rung-1 camera's, which reads 0.9323 at spread
+0.0078. Queue 194.
+
+THE MEASUREMENT RUNG 1 WAS MISSING. The reference panel beside our frame: median
+0.3942 against 0.6987, darkest twentieth 0.1215 against 0.3238. OUR STREET HAS NO
+DARK IN IT. The sky lit the street UP when the reference has not more light but
+more shadow. Four items filed from opening the frame rather than from a gate: 194
+the sky band, 195 no windows anywhere, 196 the street furniture is flat grey and
+the phone box is not red, 197 nothing casts a contact shadow.
+
+THE RENDER HE ASKED FOR IS BLOCKED AND THE BLOCKER IS NAMED. The Mickey's blockout
+was dispatched on its own push after core-tests cleared, exactly as instructed, and
+died in twelve seconds: `pwsh: command not found`. Nine workflows run on his PC,
+eight call the PATH bootstrap, and the art lane is the one that does not. It is
+also the one the bootstrap lint's hand list never names, so the lint read 0
+problems honestly. A builder is deriving that list from the workflows instead. WHEN
+IT LANDS, THE REQUEST FILE MUST BE TOUCHED AGAIN: the art workflow triggers on a
+push to production/pc-ops/art-preview.request and an unchanged file starts nothing.
+
+IN FLIGHT RIGHT NOW, three builders, none of them committing:
+  the board's `short` and `where` fields plus the attribution line
+  the art lane's PATH bootstrap and the lint that should have caught it
+  queue 197's measurement half, naming why nothing casts a shadow
+
+THE 06:00 WAKE IS ARMED TWICE OVER and needs no further action: the server Routine
+fires 2026-09-10T04:07Z into this session, and production/wakes carries the disk
+record, amended today with what the message must carry and what it must admit is
+missing. THE SPLIT IS RETIRED FROM THE DAILY BRIEF, kept as a rule with its
+fixtures, because it breaks two of his four register laws.
+
+THREE PICTURES ARE COMMITTED AND WAITING for that message, under
+game-design/sim-shots/: rung1_vs_reference.jpg, sky_before_after.jpg,
+map_first_screen.jpg.
+
 ## 2026-09-09 09:15Z: THE CHANNEL REGIME CHANGE, AND IT RETIRES TODAY'S WORK
 
 Jafar, with a reading of total 25, Fable 24, ceiling 75. His diagnosis first,

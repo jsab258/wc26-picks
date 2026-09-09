@@ -1,0 +1,9 @@
+receipt: card
+cardId: 4f99f11e
+fingerprint: 685f8c7d
+card: The gully grate is under the road. Raise it flush, or cut the ground?
+options: A/B
+sent: 2026-09-09T08:54:06+00:00
+sentEpoch: 1788944046
+messageId: 55
+chars: 1345

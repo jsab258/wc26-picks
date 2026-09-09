@@ -2126,15 +2126,52 @@ HEAT_UNKNOWN_MARK = "?"
 # One table, two readers: the builder and check_heatmap.
 HEAT_MARK_OF_CLASS = dict([(HEAT_CLASS[s], HEAT_MARK[s]) for s in HEAT_STATES]
                           + [(HEAT_UNKNOWN_CLASS, HEAT_UNKNOWN_MARK)])
-# HOW LONG A TILE LABEL MAY BE, READ OFF THE PRINTED SERIES AND NOT BEFORE IT.
-# The 27 system names in the live inventory on 2026-09-09 are 3 to 48
-# characters, median 13, and exactly one is over 34 ("graphics settings
-# including the local-LLM toggle", 48). A tile is two lines of about 25
-# characters at this font and width, so 50 holds every name that exists whole
-# and bites only on a name longer than any written so far. Every run prints the
-# length series and the number capped, so the next reader moves this number
-# from evidence rather than from taste.
-HEAT_NAME_CAP = 50
+# NO LENGTH CAP ON A TILE LABEL, AND THE CAP THAT WAS HERE IS RETIRED. Until
+# 2026-09-09 this was HEAT_NAME_CAP = 50 and cap_text clipped a longer name to
+# "...". The ruling of that afternoon, section 4a, replaces it: a tile shows the
+# inventory's own `short` label when one is typed and the FULL NAME WRAPPED,
+# never clipped, when it is not, because a silently truncated label is the
+# unreadable-output fault of rule 12 on the one screen Jafar reads. Ten names
+# carry a `short` and six of those are his own words. What the run prints
+# instead of a cap count is the label series in characters and the longest label
+# drawn with the tile it is on, which is the series the NEXT rung comes from: a
+# rendered width measured at 360px, which no session has measured yet.
+HEAT_LABELS_CLIPPED = 0          # structurally, not a measurement of a run
+# WHICH CODEBASE A TILE'S COLOUR IS ABOUT, ruled 2026-09-09 section 4b. The
+# vocabulary is the inventory's `where` field and its validator owns the fixed
+# set; this table is only how the board DRAWS it. A mark and a count, never a
+# fourth colour: three colours stay three colours.
+HEAT_WHERE_MARK = {"core-csharp": "C#", "ue-probe": "UE", "both": "C#+UE",
+                   "repo": "repo"}
+HEAT_WHERE_WORDS = {
+    "core-csharp": "a reading of the C# game under ledger, with nothing "
+                   "measured on the Unreal side for it",
+    "ue-probe": "a reading of the Unreal probe only",
+    "both": "measured on each side, by a golden parity row or a printed key",
+    "repo": "files and process, neither engine",
+}
+# THE ORDER THE SPLIT IS SAID IN, worst news first: the count that matters is
+# how many green tiles are green in a codebase Jafar is not looking at.
+HEAT_WHERE_ORDER = ("core-csharp", "both", "ue-probe", "repo")
+# THE SAME FOUR IN THE SPLIT SENTENCE'S OWN WORDS, PLAIN AND WITHOUT THE MARK.
+# The split sentence lived on the board's face for one run and came off it,
+# ruled 2026-09-09: C#, UE, Unreal probe and repo are four pieces of studio
+# vocabulary in one sentence on the one surface Jafar judges in five seconds,
+# and it cost 73 px of a screen that already pushes the tiles under the fold.
+# The sentence now sits in the sheet one tap down, beside the glossary that
+# defines the marks, so it can say what it means in words. THE COUNTS DID NOT
+# CHANGE WHEN IT MOVED and the marks stay on the tiles: nothing was deleted,
+# one surface was cleared.
+HEAT_WHERE_SHORT = {"core-csharp": "are a reading of the C# game alone",
+                    "both": "are measured on each side",
+                    "ue-probe": "are the Unreal probe alone",
+                    "repo": "are files and process"}
+HEAT_WHERE_UNKNOWN = "?"
+# THE WORDS FOR A TILE THAT IS NOT ABSENT AND NAMES NO CODEBASE. The validator
+# refuses this, so the board should never draw one; if it ever does, it says so
+# rather than drawing a tile with a silent gap where the engine goes.
+HEAT_WHERE_MISSING_SAYS = ("system(s) that are not absent name no codebase, "
+                           "which their validator refuses")
 # HOW MANY OF A SYSTEM'S EVIDENCE PATHS THE SHEET LISTS before the cap
 # announces itself.
 HEAT_EVIDENCE_SHOWN = 4
@@ -2220,7 +2257,20 @@ def heatmap(root):
                    notesScoped=0, sentencesScoped=0, notesWithText=0,
                    refused=False, refusedWhy="none", refusedSay="none",
                    areasAsked=len(HEAT_AREAS), areasDrawn=0, emptyAreas=0,
-                   statesAsked=len(HEAT_STATES))
+                   statesAsked=len(HEAT_STATES),
+                   # THE TWO FIELDS RULED IN ON 2026-09-09. shortUsed and
+                   # labelLongest are whole-file counts over the tiles drawn;
+                   # whereCounts is a census of `where`; greenWhere is the same
+                   # census over the green tiles ONLY, which is the number the
+                   # ruling asked the board to carry. The two are separate keys
+                   # because they answer different questions and a reader must
+                   # not have to remember which is which.
+                   shortUsed=0, labelLongest=0, labelLongestOn="",
+                   labelChars=[], whereCounts={}, greenWhere={},
+                   whereMissing=0,
+                   # ATTRIBUTION, COMPUTED AND NEVER TYPED INTO THE PAGE.
+                   roleCounts={}, typedOldest=None, typedNewest=None,
+                   untyped=0)
     if not r["present"] or r["note"] == "did-not-parse":
         reading["refused"] = True
         reading["refusedWhy"] = r["note"]
@@ -2242,10 +2292,48 @@ def heatmap(root):
     for e in systems:
         name = str(e.get("name") or "").strip() or "(unnamed)"
         state = str(e.get("status") or "").strip().lower()
-        label, bit, full = cap_text(name, HEAT_NAME_CAP)
-        reading["nameLengths"].append(full)
-        if bit:
-            reading["capped"] += 1
+        # THE LABEL IS THE TYPED `short` OR THE WHOLE NAME. Nothing is clipped:
+        # see HEAT_LABELS_CLIPPED above for the cap this replaced and why.
+        short = " ".join(str(e.get("short") or "").split())
+        label = short or " ".join(name.split())
+        reading["nameLengths"].append(len(name))
+        reading["labelChars"].append(len(label))
+        if short:
+            reading["shortUsed"] += 1
+        if len(label) > reading["labelLongest"]:
+            reading["labelLongest"] = len(label)
+            reading["labelLongestOn"] = name
+        # WHICH CODEBASE THIS COLOUR IS ABOUT. An absent tile carries none by
+        # its own contract, so absent is NOT counted as missing: the missing
+        # count is tiles that should have one and do not.
+        where = str(e.get("where") or "").strip().lower()
+        eng = HEAT_WHERE_MARK.get(where, "")
+        if where:
+            reading["whereCounts"][where] = \
+                reading["whereCounts"].get(where, 0) + 1
+            if not eng:
+                eng = HEAT_WHERE_UNKNOWN
+        elif state in ("exists", "partial"):
+            reading["whereMissing"] += 1
+            eng = HEAT_WHERE_UNKNOWN
+        if state == "exists":
+            key = where or "none"
+            reading["greenWhere"][key] = reading["greenWhere"].get(key, 0) + 1
+        # WHO TYPED IT AND WHEN, counted for the line the ruling put on the
+        # first screen. The role is the half before the slash, which is the
+        # inventory's own role/name shape and its validator's fixed set.
+        by = str(e.get("typedBy") or "").strip()
+        role = by.split("/", 1)[0] if by else ""
+        if role:
+            reading["roleCounts"][role] = reading["roleCounts"].get(role, 0) + 1
+        else:
+            reading["untyped"] += 1
+        on = str(e.get("typedOn") or "").strip()
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", on):
+            if not reading["typedOldest"] or on < reading["typedOldest"]:
+                reading["typedOldest"] = on
+            if not reading["typedNewest"] or on > reading["typedNewest"]:
+                reading["typedNewest"] = on
         known = state in HEAT_STATES
         if not known:
             reading["badStates"].append("%s/%s" % (re.sub(r"\s+", ".",
@@ -2257,13 +2345,18 @@ def heatmap(root):
         reading["notesWithText"] += 1 if note.strip() else 0
         reading["notesScoped"] += 1 if scoped else 0
         reading["sentencesScoped"] += scoped
-        tile = {"name": name, "label": label, "capped": bit, "state": state,
+        tile = {"name": name, "label": label, "capped": False, "state": state,
+                "short": short,
                 "stateWord": state if known else "status-not-one-of-the-three",
                 "known": known,
                 "cls": HEAT_CLASS[state] if known else HEAT_UNKNOWN_CLASS,
                 "mark": HEAT_MARK[state] if known else HEAT_UNKNOWN_MARK,
+                "where": where, "engine": eng,
+                "engineWords": HEAT_WHERE_WORDS.get(
+                    where, "%s: this tile names no codebase" % NOTHING),
                 "phase": str(e.get("phase") or NOTHING),
                 "blocker": str(e.get("blocker") or NOTHING),
+                "typedBy": by or NOTHING, "typedOn": on or NOTHING,
                 "note": note, "evidence": ev,
                 "area": str(e.get("area") or "")}
         reading["counts"][tile["stateWord"]] = \
@@ -2336,6 +2429,90 @@ def heat_counts_words(reading):
     return ", ".join(parts)
 
 
+def heat_series(vals):
+    """min..max/med over n, in characters, for a key=value channel: the series
+    a label-width bound would come FROM, with no bound set anywhere yet."""
+    v = sorted(vals or [])
+    if not v:
+        return NOTHING.replace(" ", "-") + "/n=0"
+    return "%d..%d/med%d/n=%d" % (v[0], v[-1], v[len(v) // 2], len(v))
+
+
+def heat_typed_words(reading):
+    """THE ATTRIBUTION SENTENCE, COMPUTED FROM `typedBy` AND NEVER TYPED IN.
+
+    Ruled 2026-09-09, section 1, and this is the sentence that stops the board
+    borrowing Jafar's name: until this ran, the board said its colours were
+    "ruled by Jafar" while nothing on it had been, 62 tiles being a builder's
+    reading and 7 a director's, which the file said in `typedBy` all along.
+
+    Every count is a whole-file count over the tiles this run drew. The zero
+    ships its denominator because "none ruled by you" and "nobody has looked"
+    are different facts and the first is an invitation. A board whose entries
+    name nobody says the words nothing measured rather than printing a 0 that
+    reads as clean. The wording survives a count changing: the roles are read
+    out of the data, a role the sentence does not name is still printed by
+    name, and the opener follows who holds the majority.
+    """
+    total = reading.get("tiles", 0)
+    roles = dict(reading.get("roleCounts") or {})
+    untyped = reading.get("untyped", 0)
+    if not roles:
+        return ("Who typed these colours: %s. No tile of the %d on this board "
+                "names anybody, so nothing here is attributable."
+                % (NOTHING, total))
+    director = roles.pop("director", 0)
+    builder = roles.pop("builder", 0)
+    jafar = roles.pop("jafar", 0)
+    bits = ["%d of %d typed by a director" % (director, total),
+            "%d by a builder" % builder]
+    for role, n in sorted(roles.items()):
+        bits.append("%d by a %s" % (n, role))
+    bits.append("%d of %d ruled by you" % (jafar, total))
+    if untyped:
+        bits.append("%d of %d typed by nobody" % (untyped, total))
+    # THE DATE PAIR COLLAPSES WHEN IT IS ONE DAY, ruled 2026-09-09. A pair
+    # reading 2026-09-09..2026-09-09 is a format a reader has to be holding in
+    # their head to parse, and it looks like a bug to everybody else. The pair
+    # survives where it carries something: two different days.
+    oldest = reading.get("typedOldest") or NOTHING
+    newest = reading.get("typedNewest") or NOTHING
+    when = ("on %s" % oldest) if oldest == newest else "%s..%s" % (oldest,
+                                                                   newest)
+    return ("Typed by %s %s. %s. Your ruling replaces any tile."
+            % ("you" if total and jafar == total else "the studio",
+               when, ", ".join(bits)))
+
+
+def heat_where_words(reading):
+    """THE ENGINE SPLIT OVER THE GREEN TILES ONLY, ruled 2026-09-09 section 4b.
+
+    The question it answers is the one that makes the board honest: how many of
+    the tiles typed exists are green in a codebase Jafar is not looking at. It
+    is a count over the GREEN tiles and says so in its own first clause, so it
+    can never be read as a count over all 69; the whole-file census by `where`
+    goes on the run's done line instead, which is a different population at the
+    same instant and therefore a different key.
+    """
+    green = dict(reading.get("greenWhere") or {})
+    total = sum(green.values())
+    if not total:
+        return ("No tile on this board is typed exists, of the %d drawn, so "
+                "there is no green to split by codebase."
+                % reading.get("tiles", 0))
+    bits = []
+    for key in HEAT_WHERE_ORDER:
+        n = green.get(key, 0)
+        bits.append("%s %s" % ("none" if not n else str(n),
+                               HEAT_WHERE_SHORT[key]))
+    nowhere = green.get("none", 0)
+    if nowhere:
+        bits.append("%d name no codebase" % nowhere)
+    last = bits.pop()
+    return ("Of the %d tiles typed exists, %s and %s, which is the corner mark "
+            "on every tile." % (total, ", ".join(bits), last))
+
+
 def heatmap_html(rows, r):
     """THE BOARD. Three signals per tile and the typed claim above the tiles.
 
@@ -2371,9 +2548,23 @@ def heatmap_html(rows, r):
             # Jafar rejected, and "none of 27" carries the same denominator.
             count = ('<span class="hCount">none of %d</span>'
                      % r["walked"])
+        # THE ENGINE MARK IS AN ATTRIBUTE AND A CSS ::after, FOR A MEASUREMENT
+        # REASON AND NOT A STYLING ONE. A tile must stay ONE text node: the
+        # fold model is block-flow and walks a nested span as its own line, so
+        # a mark in its own element made every tile model as two lines and the
+        # board read 2213 px when the browser draws one. data-eng floats into
+        # the tile's top right corner, is readable off the bytes by a guard,
+        # and leaves the text node single. What the block-flow model cannot see
+        # is the float's own width, so the TRUTH of this board's height is the
+        # browser reading at 390x844 and the model is the forecast beside it.
+        # The full name is in the title and the area sheet either way, so a
+        # short label is never the only place a name appears.
         tiles = "".join(
-            '<span class="hTile %s" title="%s">%s %s</span>'
-            % (t["cls"], esc("%s: %s" % (t["name"], t["stateWord"])),
+            '<span class="hTile %s" title="%s"%s>%s %s</span>'
+            % (t["cls"],
+               esc("%s: %s, %s" % (t["name"], t["stateWord"],
+                                   t.get("engineWords") or NOTHING)),
+               (' data-eng="%s"' % esc(t["engine"])) if t.get("engine") else "",
                t["mark"], esc(t["label"]))
             for t in row["tiles"])
         body.append('<p class="hArea"><a class="hLink" href="#h-%s">%s</a>%s'
@@ -2390,8 +2581,8 @@ def heatmap_html(rows, r):
     # sentence was added to the thing being measured.
     if r.get("tallerThanOneScreen"):
         note.append(HEAT_TOO_TALL_SAYS)
-    if r["capped"]:
-        note.append("%d name(s) shortened to fit a tile" % r["capped"])
+    if r.get("whereMissing"):
+        note.append("%d %s" % (r["whereMissing"], HEAT_WHERE_MISSING_SAYS))
     if r["unplaced"]:
         note.append("%d system(s) name an area this board does not draw"
                     % r["unplaced"])
@@ -2402,17 +2593,24 @@ def heatmap_html(rows, r):
     return ('%s<section class="heat" id="heatmap">'
             '<p class="hHead">THE BOARD</p>'
             '<p class="hNow">%s</p>'
+            '<p class="hTyped">%s</p>'
             '<p class="hLegend">%s</p>'
             '<p class="hNote">%s%s <a class="tap" href="#h-source">where '
-            'these come from</a></p>'
+            'these come from, and who typed each one</a></p>'
             '%s</section>%s'
             % (HEAT_START,
                esc("%d systems, %s." % (r["tiles"], heat_counts_words(r))),
+               # THE ONE COMPUTED SENTENCE THE RULING KEEPS HERE, computed
+               # from the file every run and never typed into this page, which
+               # is the whole point of it. The engine split is computed the
+               # same way and lives in the sheet one tap down, ruled off this
+               # surface for its studio vocabulary and its 73 px.
+               esc(heat_typed_words(r)),
                legend,
-               esc("Every colour here is a typed judgement of state, ruled by "
-                   "Jafar and updated by his rulings, not measured by this "
-                   "page. What this page did measure is below, in the audit "
-                   "view."),
+               esc("Every colour here is a typed judgement of state, not "
+                   "measured by this page, and it changes by a ruling rather "
+                   "than by a grep. What this page did measure is below, in "
+                   "the audit view."),
                esc(tail),
                "".join(body), HEAT_END))
 
@@ -2443,12 +2641,20 @@ def heatmap_sheets(rows, r):
                                         % (more, len(t["evidence"]))
                                         if more > 0 else "")) if ev \
                 else "%s: the inventory names no evidence for this one" % NOTHING
+            # PER-TILE ATTRIBUTION LIVES HERE, ONE TAP DOWN, and that is the
+            # ruling's own split: 69 badges on the first screen is the
+            # measured-evidence noise it pushed below the fold, and a tile
+            # whose owner nobody can find is the anonymous colour again.
             items.append('<dt>%s</dt><dd>%s</dd>'
                          % (esc("%s %s  %s" % (t["mark"], t["name"],
                                                t["stateWord"].upper())),
-                            esc("%s Phase %s, blocker %s. Evidence typed in "
-                                "the inventory: %s"
+                            esc("%s Phase %s, blocker %s. Typed by %s on %s; "
+                                "this colour is %s. Evidence typed in the "
+                                "inventory: %s"
                                 % (t["note"] or "", t["phase"], t["blocker"],
+                                   t.get("typedBy") or NOTHING,
+                                   t.get("typedOn") or NOTHING,
+                                   t.get("engineWords") or NOTHING,
                                    ev_text))))
         if not items:
             items.append('<dt>%s</dt><dd>%s</dd>'
@@ -2475,23 +2681,45 @@ def heatmap_sheets(rows, r):
                       "".join(items)))
     said = ("%d tile(s) drawn over %d system(s) walked in %s, last changed in "
             "commit %s on %s, typed as of %s. %d area(s) drawn of the %d "
-            "ruled, %d of them empty. States typed %s; %d name(s) capped at "
-            "%d characters; %d evidence path(s) named by those systems, none "
-            "of which this page opened."
+            "ruled, %d of them empty. States typed %s; %d tile(s) show a "
+            "short label typed in the file and the other %d show the whole "
+            "name wrapped, %d clipped; the longest label drawn is %d "
+            "characters, on %s. By codebase, over every tile: %s. %d evidence "
+            "path(s) named by those systems, none of which this page opened."
             % (r["tiles"], r["walked"], INVENTORY, r["sha"] or NOTHING,
                r["day"] or NOTHING, r["measuredAt"] or NOTHING,
                r["areasDrawn"], r["areasAsked"], r["emptyAreas"],
-               heat_counts_words(r), r["capped"], HEAT_NAME_CAP,
+               heat_counts_words(r), r.get("shortUsed", 0),
+               r["tiles"] - r.get("shortUsed", 0), HEAT_LABELS_CLIPPED,
+               r.get("labelLongest", 0), r.get("labelLongestOn") or NOTHING,
+               ", ".join("%d %s" % (r.get("whereCounts", {}).get(k, 0), k)
+                         for k in HEAT_WHERE_ORDER)
+               + (", %d absent and carrying none" % r["counts"].get("absent", 0)),
                r["evidencePaths"]))
+    # THE MARK GLOSSARY LIVES HERE AND NOT ON THE BOARD. A second legend line
+    # for the engine marks cost 60 px above the tiles in the browser at 390x844
+    # while repeating the split sentence's own words, so the words stay in the
+    # sentence and the full definitions are one tap down.
+    marks = "; ".join("%s is %s" % (HEAT_WHERE_MARK[k], HEAT_WHERE_WORDS[k])
+                      for k in HEAT_WHERE_ORDER)
     out.append('<section class="sheet" id="h-source"><div class="inner">'
                '<a class="close" href="#map">back to the map</a>'
                '<h3>where the board comes from</h3>'
                '<dl><dt>the file</dt><dd>%s</dd>'
                '<dt>what this run read</dt><dd>%s</dd>'
+               '<dt>the corner mark on a tile</dt><dd>%s</dd>'
+               '<dt>the split by codebase</dt><dd>%s</dd>'
                '<dt>what it is not</dt><dd>%s</dd></dl>'
                '<a class="close" href="#map">back to the map</a>'
                '</div></section>'
                % (esc(INVENTORY), esc(said),
+                  esc("Which codebase a tile's colour is a reading of, typed "
+                      "in the inventory's own where field and checked by its "
+                      "validator: %s. An absent tile carries none, because a "
+                      "system that is nowhere cannot be somewhere." % marks),
+                  esc("%s This is the count that says how much of the green "
+                      "on the board is green somewhere you are not looking."
+                      % heat_where_words(r)),
                   esc("It is not a measurement. Jafar ruled on 2026-09-09 "
                       "that a director's overview is a human's judgement of "
                       "state; the words and colours above are that judgement. "
@@ -2863,6 +3091,7 @@ a { color: #8fb8ff; }
   font-weight: 800; color: #868d95; margin: 0 0 4px; }
 .hNow { font-size: 17px; font-weight: 600; color: #e7e9ec; margin: 0 0 7px;
   line-height: 1.3; }
+.hTyped { font-size: 13px; line-height: 1.45; color: #c9ced5; margin: 0 0 6px; }
 .hLegend { font-size: 12px; margin: 0 0 6px; color: #aab1b9; }
 .hKey { display: inline-block; margin-right: 13px; letter-spacing: 0.04em; }
 .hNote { font-size: 12.5px; line-height: 1.5; color: #868d95; margin: 0 0 12px; }
@@ -2876,6 +3105,8 @@ a { color: #8fb8ff; }
 .hTile { display: block; border: 1px solid #2b3038; border-left: 4px solid
   #4b535d; border-radius: 5px; background: #191c21; padding: 5px 7px;
   font-size: 12px; line-height: 1.3; color: #dbe0e6; }
+.hTile[data-eng]::before { content: attr(data-eng); float: right;
+  font-size: 9.5px; letter-spacing: 0.06em; color: #7d848c; margin-left: 6px; }
 .h-exists { border-left-color: #57c39a; border-left-style: solid; }
 .h-partial { border-left-color: #e0a640; border-left-style: dashed; }
 .h-absent { border-left-color: #8e97a1; border-left-style: dotted; }
@@ -2994,6 +3225,8 @@ h2 { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
   .tile .tName { color: #12161a; } .tile .tWord { color: #4d545c; }
   .hHead { color: #5d646c; } .hNow { color: #12161a; }
   .hLegend { color: #3c434a; } .hNote { color: #5d646c; }
+  .hTyped { color: #23282e; }
+  .hTile[data-eng]::before { color: #5d646c; }
   .hArea { color: #4d545c; } .hLink { color: #4d545c; }
   .hCount { color: #5d646c; }
   .hTile { background: #ffffff; border-color: #d9dee4; color: #23282e; }
@@ -3803,7 +4036,13 @@ def build(root, now, out_path=None, served=None):
         "heatStates=%s heatStatesTyped=%d/%d "
         "heatStatesProven=0/%d-because-a-state-here-is-ruled-not-measured "
         "heatAreas=%d/%d-ruled heatEmptyAreas=%d/%d heatUnplaced=%d/%d "
-        "heatStatesNotOneOfThree=%d/%d heatNamesCapped=%d/%d-at-%d-chars "
+        "heatStatesNotOneOfThree=%d/%d heatShortLabels=%d/%d-tiles "
+        "heatLabelsClipped=%d/%d-tiles-never-clipped-since-the-ruling "
+        "heatLongestLabelChars=%d/on=%s "
+        "heatLabelCharsSeries=%s/whole-run-min..max-med "
+        "heatWhere=%s heatWhereMissing=%d/%d-not-absent "
+        "heatGreenWhere=%s/over-the-%d-green-tiles-only "
+        "heatTypedBy=%s/untyped.%d/of.%d heatTypedOn=%s..%s-oldest..newest "
         "heatAreaLabelsAgreeWithTheRuling=%d/%d-in-the-file heatStampField=%s "
         "heatEvidencePathsTyped=%d-not-opened-by-this-page "
         "heatNotesScoped=%d/%d-note(s)-with-text heatSentencesScoped=%d "
@@ -3814,7 +4053,25 @@ def build(root, now, out_path=None, served=None):
            or NOTHING.replace(" ", "-"), h["tiles"], h["tiles"], h["tiles"],
            h["areasDrawn"], h["areasAsked"], h["emptyAreas"], h["areasDrawn"],
            h["unplaced"], h["tiles"], len(h["badStates"]), h["tiles"],
-           h["capped"], h["tiles"], HEAT_NAME_CAP,
+           h.get("shortUsed", 0), h["tiles"],
+           HEAT_LABELS_CLIPPED, h["tiles"],
+           h.get("labelLongest", 0),
+           re.sub(r"\s+", "_", str(h.get("labelLongestOn") or NOTHING)),
+           heat_series(h.get("labelChars")),
+           "/".join("%s.%d" % (k, h.get("whereCounts", {}).get(k, 0))
+                    for k in HEAT_WHERE_ORDER),
+           h.get("whereMissing", 0),
+           h["tiles"] - h["counts"].get("absent", 0),
+           "/".join("%s.%d" % (k, h.get("greenWhere", {}).get(k, 0))
+                    for k in sorted(h.get("greenWhere") or {}))
+           or NOTHING.replace(" ", "-"),
+           h["counts"].get("exists", 0),
+           "/".join("%s.%d" % kv for kv in sorted((h.get("roleCounts") or {})
+                                                  .items()))
+           or NOTHING.replace(" ", "-"),
+           h.get("untyped", 0), h["tiles"],
+           h.get("typedOldest") or NOTHING.replace(" ", "-"),
+           h.get("typedNewest") or NOTHING.replace(" ", "-"),
            h["areaLabelsAgree"], h["theirAreas"], h["stampField"],
            h["evidencePaths"],
            h["notesScoped"], h["notesWithText"], h["sentencesScoped"],
@@ -4314,7 +4571,19 @@ DIAGNOSTIC_SHAPES = (
 # 10" at a glance, so the rung count is not a diagnostic; it is the headline.
 # It is excused BY SHAPE, not by position, so a second fraction sneaking in
 # beside it still bites.
-FOLD_ALLOWED = (re.compile(r"RUNG \d+ OF \d+"), re.compile(r"STEP \d+ OF \d+"))
+# THE SECOND AND THIRD SHAPES RULED ONTO THE FIRST SCREEN, 2026-09-09 section
+# 1. The attribution sentence is DICTATED as "<N> of 69 typed by a director,
+# <M> by a builder, 0 of 69 ruled by you", and its zero has to ship its
+# denominator under rule 3b: "none ruled by you" and "nobody has looked" are
+# different facts. So these two fractions are excused BY SHAPE, like the rung
+# count above and for the same reason, and anything else of that shape on the
+# board still bites. The count excused is printed by the board's own guard, so
+# an exemption that starts covering more than two sentences shows up as a
+# number rather than as silence.
+FOLD_ALLOWED = (re.compile(r"RUNG \d+ OF \d+"), re.compile(r"STEP \d+ OF \d+"),
+                re.compile(r"\d+ of \d+ typed by a director"),
+                re.compile(r"\d+ of \d+ ruled by you"),
+                re.compile(r"\d+ of \d+ typed by nobody"))
 
 
 def diagnostics_above_fold(text):
@@ -4713,6 +4982,79 @@ def check_heatmap_is_typed_not_measured(page, model):
                "" if not hits else " (" + ",".join(hits[:3])
                + (" +%d-more-not-shown" % (len(hits) - 3) if len(hits) > 3
                   else "") + ")"))
+
+
+TYPED_LINE_RX = re.compile(r"(\d+) of (\d+) typed by a director, (\d+) by a "
+                           r"builder.*?(\d+) of (\d+) ruled by you")
+GREEN_SPLIT_RX = re.compile(r"Of the (\d+) tiles typed exists")
+HEAT_SOURCE_START = '<section class="sheet" id="h-source">'
+
+
+def heat_source_slice(page):
+    """The bytes of the board's provenance sheet, one tap down, or "". The
+    engine split lives HERE and not on the board since 2026-09-09, so the
+    guard that reads it has to know which surface it is reading."""
+    i = page.find(HEAT_SOURCE_START)
+    if i < 0:
+        return ""
+    j = page.find("</section>", i)
+    return page[i:j] if j > i else page[i:]
+
+
+def check_typed_attribution(page, model):
+    """THE BOARD'S ATTRIBUTION SENTENCE, PARSED BACK OFF THE BYTES AND COMPARED
+    WITH THE DATA. This is the guard the 2026-09-09 ruling needs and the reason
+    it exists is an instrument fault that shipped: the board said "ruled by
+    Jafar and updated by his rulings" while the file said 62 tiles were a
+    builder's reading and 7 a director's, and NOTHING on the page could tell
+    the difference. A sentence with three counts in it that nothing reads back
+    is a sentence somebody will eventually hardcode.
+
+    Four things are read: the sentence is there, its director count is the one
+    this run counted in `typedBy`, its builder count likewise, and the count
+    ruled by Jafar is the live one with its denominator beside it. The tile
+    count is the denominator on the page and it is compared too, so a board
+    that drops a tile cannot keep a stale total. The engine split's own
+    denominator is read the same way, off the green tiles.
+    """
+    h = model["heat"]
+    slice_ = heat_slice(page)
+    if h["refused"]:
+        return ("typedAttribution", True,
+                "boardRefused=yes nothingToAttribute=%s tilesDrawn=0/%d-walked"
+                % (NOTHING.replace(" ", "-"), h["walked"]))
+    roles = h.get("roleCounts") or {}
+    want = (roles.get("director", 0), h["tiles"], roles.get("builder", 0),
+            roles.get("jafar", 0), h["tiles"])
+    m = TYPED_LINE_RX.search(re.sub(r"<[^>]+>", " ", slice_))
+    got = tuple(int(x) for x in m.groups()) if m else None
+    # THE SPLIT IS READ IN THE SHEET AND MUST NOT BE ON THE BOARD. Ruled off
+    # the first screen on 2026-09-09 for four pieces of studio vocabulary in
+    # one sentence, so both halves are checked: the number is still computed
+    # and printed one tap down, and the surface it was ruled off is clean.
+    sheet = re.sub(r"<[^>]+>", " ", heat_source_slice(page))
+    g = GREEN_SPLIT_RX.search(sheet)
+    green_on_page = int(g.group(1)) if g else None
+    green_want = sum((h.get("greenWhere") or {}).values())
+    on_board = bool(GREEN_SPLIT_RX.search(re.sub(r"<[^>]+>", " ", slice_)))
+    ok = (got == want and green_on_page == green_want and not on_board
+          and (h.get("typedOldest") or "") in slice_)
+    return ("typedAttribution", ok,
+            "attributionSentenceFound=%s directorOnPage=%s/counted=%d "
+            "builderOnPage=%s/counted=%d ruledByJafarOnPage=%s/counted=%d "
+            "denominatorOnPage=%s/tilesDrawn=%d greenSplitDenominator=%s/"
+            "greenTiles=%d greenSplitOnTheBoard=%s/0-allowed-since-the-ruling "
+            "typedOnOldestOnPage=%s rolesCounted=%s"
+            % ("yes" if m else "MISSING",
+               got[0] if got else "MISSING", want[0],
+               got[2] if got else "MISSING", want[2],
+               got[3] if got else "MISSING", want[3],
+               got[1] if got else "MISSING", h["tiles"],
+               green_on_page if g else "MISSING", green_want,
+               1 if on_board else 0,
+               "yes" if (h.get("typedOldest") or "") in slice_ else "MISSING",
+               "/".join("%s.%d" % kv for kv in sorted(roles.items()))
+               or NOTHING.replace(" ", "-")))
 
 
 def check_heatmap_fits_one_screen(page, model):
@@ -5215,7 +5557,7 @@ CHECKS = (check_ladder_at_top, check_ladder_step_count,
           # THE BOARD, ruled the afternoon of 2026-09-09. The typed half of the
           # page, and the third of these is the one that says it is typed.
           check_heatmap, check_heatmap_is_typed_not_measured,
-          check_heatmap_fits_one_screen,
+          check_typed_attribution, check_heatmap_fits_one_screen,
           check_area_tiles, check_first_screen_clean,
           check_first_screen, check_picture, check_probe_is_not_a_game,
           check_player_control_matches_scan,
@@ -5258,6 +5600,7 @@ HALF_OF = {
     # THE OVERVIEW. Typed states, said to be typed, and counted.
     "heatmap": HALF_TYPED,
     "heatmapIsTyped": HALF_TYPED,
+    "typedAttribution": HALF_TYPED,
     "heatmapFitsOneScreen": HALF_TYPED,
     "visualLadderCount": HALF_TYPED,
     "visualLadderIsRuled": HALF_TYPED,
@@ -5993,6 +6336,116 @@ def selftest():
        "fitting or by saying it does not (%s)"
        % check_heatmap_fits_one_screen(page, model)[2],
        check_heatmap_fits_one_screen(page, model)[1])
+    # ------------------------------------------------------------------
+    # THE ATTRIBUTION SENTENCE, RULED 2026-09-09 SECTION 1. ACCEPTING FIRST, on
+    # the live file, because this is the sentence that was FALSE until today:
+    # the board said "ruled by Jafar and updated by his rulings" while the file
+    # said 62 tiles were a builder's reading. Nothing is pinned to 7 or 62: the
+    # counts are computed here the same way the page computes them, so the day
+    # Jafar rules a tile this rung still passes and the page still tells him so.
+    # ------------------------------------------------------------------
+    roles = hm.get("roleCounts") or {}
+    ok("the board's attribution sentence is computed from typedBy and matches "
+       "this run's own count (%s)" % check_typed_attribution(page, model)[2],
+       check_typed_attribution(page, model)[1])
+    ok("and it says in words what it says in numbers, with the zero carrying "
+       "its denominator: '%s'" % heat_typed_words(hm),
+       ("%d of %d typed by a director" % (roles.get("director", 0),
+                                          hm["tiles"])) in page
+       and ("%d of %d ruled by you" % (roles.get("jafar", 0), hm["tiles"]))
+       in page and "ruled by Jafar and updated by his rulings" not in page,
+       heat_typed_words(hm))
+    ok("and a board whose entries name nobody says %s instead of printing a "
+       "zero that reads as clean" % NOTHING,
+       NOTHING in heat_typed_words({"tiles": 9, "roleCounts": {}, "untyped": 9})
+       and "9" in heat_typed_words({"tiles": 9, "roleCounts": {},
+                                    "untyped": 9}),
+       heat_typed_words({"tiles": 9, "roleCounts": {}, "untyped": 9}))
+    ok("and a role the dictated sentence does not name is printed BY NAME "
+       "rather than dropped into a silent remainder",
+       "2 by a producer" in heat_typed_words(
+           {"tiles": 9, "roleCounts": {"director": 3, "builder": 4,
+                                       "producer": 2}, "untyped": 0})
+       and "of 9 typed by nobody" in heat_typed_words(
+           {"tiles": 9, "roleCounts": {"director": 3}, "untyped": 6}),
+       heat_typed_words({"tiles": 9, "roleCounts": {"director": 3,
+                                                   "builder": 4,
+                                                   "producer": 2},
+                         "untyped": 0}))
+    # THE ENGINE MARK AND THE SPLIT, 2026-09-09 SECTION 4b. The mark is an
+    # attribute so the tile stays one text node; the count is over the GREEN
+    # tiles only and the sentence names that population in its first clause.
+    eng_on_page = len(re.findall(r'data-eng="', heat_slice(page)))
+    want_eng = sum(1 for row in hm["rows"] for t in row["tiles"] if t["engine"])
+    ok("every tile that names a codebase carries its engine mark, and the "
+       "absent tiles carry none (%d mark(s) on the board over %d tile(s) with "
+       "a where, of %d drawn; byWhere %s)"
+       % (eng_on_page, want_eng, hm["tiles"],
+          "/".join("%s.%d" % (k, hm["whereCounts"].get(k, 0))
+                   for k in HEAT_WHERE_ORDER)),
+       eng_on_page == want_eng and want_eng == hm["tiles"]
+       - hm["counts"].get("absent", 0) and hm["whereMissing"] == 0,
+       (eng_on_page, want_eng, hm["whereCounts"], hm["whereMissing"]))
+    # THE SENTENCE ITSELF IS THE FIXTURE, never a typed copy of it: a second
+    # copy here would drift the first time the wording moved, which it did.
+    # BOTH HALVES OF THE 2026-09-09 MOVE: the count survives one tap down and
+    # the board's face is clear of it. The counts did not change when it moved,
+    # which is what the second assertion pins.
+    ok("the engine split is in the sheet one tap down, whole, and NOT on the "
+       "board's face: '%s'" % heat_where_words(hm),
+       heat_where_words(hm) in heat_source_slice(page)
+       and "Of the" not in heat_slice(page)
+       and "corner mark" in heat_source_slice(page),
+       (heat_where_words(hm) in heat_source_slice(page),
+        "Of the" in heat_slice(page)))
+    ok("and the number that moved is the same number: %d of the %d green "
+       "tiles are the C# game alone and %d are the Unreal probe alone"
+       % (hm["greenWhere"].get("core-csharp", 0),
+          hm["counts"].get("exists", 0), hm["greenWhere"].get("ue-probe", 0)),
+       sum(hm["greenWhere"].values()) == hm["counts"].get("exists", 0)
+       and ("Of the %d tiles typed exists" % hm["counts"].get("exists", 0))
+       in heat_source_slice(page), hm["greenWhere"])
+    # THE DATE PAIR, BOTH BRANCHES, ruled 2026-09-09. The live file is the
+    # ACCEPTING fixture for the collapsed branch (all 69 typed on one day);
+    # the two-day case is planted, because no file in this checkout has one.
+    ok("the attribution line collapses the date pair when every tile was "
+       "typed on one day (%s..%s in the file)"
+       % (hm["typedOldest"], hm["typedNewest"]),
+       hm["typedOldest"] == hm["typedNewest"]
+       and ("on %s" % hm["typedOldest"]) in heat_typed_words(hm)
+       and ".." not in heat_typed_words(hm), heat_typed_words(hm))
+    two_days = heat_typed_words({"tiles": 9, "roleCounts": {"director": 9},
+                                 "untyped": 0, "typedOldest": "2026-09-01",
+                                 "typedNewest": "2026-09-09"})
+    ok("and keeps the pair when the tiles were typed on different days, so "
+       "the collapse is not a ratchet: '%s'" % two_days,
+       "2026-09-01..2026-09-09" in two_days, two_days)
+    ok("and with no green tile at all it says so with the denominator rather "
+       "than printing an empty split",
+       "no green to split" in heat_where_words({"tiles": 9, "greenWhere": {}})
+       and "9" in heat_where_words({"tiles": 9, "greenWhere": {}}),
+       heat_where_words({"tiles": 9, "greenWhere": {}}))
+    # THE LABEL, 4a: the typed short where there is one, the WHOLE name where
+    # there is not, and nothing clipped. The longest name in the live file is
+    # the accepting fixture for "never clipped".
+    longest_name = max((t["name"] for row in hm["rows"]
+                        for t in row["tiles"] if not t["short"]), key=len)
+    shorts = [t for row in hm["rows"] for t in row["tiles"] if t["short"]]
+    ok("a tile with no short label shows its WHOLE name and no ellipsis: '%s' "
+       "at %d characters, the longest of the %d drawn without one"
+       % (longest_name, len(longest_name), hm["tiles"] - len(shorts)),
+       (">%s %s</span>" % (HEAT_MARK_OF_CLASS.get(
+           [t["cls"] for row in hm["rows"] for t in row["tiles"]
+            if t["name"] == longest_name][0]), longest_name)) in page
+       and "..." not in heat_slice(page), longest_name)
+    ok("and the %d tile(s) carrying a typed short label show the label, not "
+       "the name (%s)"
+       % (len(shorts), ", ".join(t["short"] for t in shorts[:3])
+          + (" (+%d more not shown of %d)" % (len(shorts) - 3, len(shorts))
+             if len(shorts) > 3 else "")),
+       all((">%s %s</span>" % (t["mark"], t["short"])) in page
+           for t in shorts) and len(shorts) >= 1,
+       [t["short"] for t in shorts])
     print("\n    the board, one row per area, and then the height series:")
     for row in hm["rows"]:
         counts = {}
@@ -6200,6 +6653,42 @@ def selftest():
         page.replace(HEAT_START, HEAT_START + "<p>all done ✓</p>", 1), model)
     ok("and bites on a tick glyph on the board, the same way both ladders "
        "refuse one", not c, s)
+    # THE ATTRIBUTION GUARD MUST GO RED THREE WAYS, or a hardcoded sentence
+    # survives it. Every planted page is the live bytes with one number or one
+    # sentence changed.
+    live_typed = "%d of %d typed by a director" % (roles.get("director", 0),
+                                                   hm["tiles"])
+    n, c, s = check_typed_attribution(
+        page.replace(live_typed, "%d of %d typed by a director"
+                     % (hm["tiles"], hm["tiles"]), 1), model)
+    ok("typedAttribution bites when the board claims a director typed every "
+       "tile (%s)" % s, not c, s)
+    n, c, s = check_typed_attribution(
+        page.replace("%d of %d ruled by you" % (roles.get("jafar", 0),
+                                                hm["tiles"]),
+                     "%d of %d ruled by you" % (hm["tiles"], hm["tiles"]), 1),
+        model)
+    ok("and bites when the board claims Jafar has ruled tiles he has not, "
+       "which is the false sentence this whole rung exists for (%s)" % s,
+       not c, s)
+    n, c, s = check_typed_attribution(
+        page.replace(heat_slice(page),
+                     heat_slice(page).replace(heat_typed_words(hm), "", 1), 1),
+        model)
+    ok("and bites when the sentence is deleted from the board altogether, so "
+       "silence is not a pass (%s)" % s, not c, s)
+    n, c, s = check_typed_attribution(
+        page.replace("Of the %d tiles typed exists"
+                     % hm["counts"].get("exists", 0),
+                     "Of the %d tiles typed exists" % hm["tiles"], 1), model)
+    ok("and bites when the engine split is counted over all the tiles instead "
+       "of the green ones (%s)" % s, not c, s)
+    n, c, s = check_typed_attribution(
+        page.replace(HEAT_START, HEAT_START + "<p>Of the 26 tiles typed "
+                     "exists, 19 are a reading of the C# game alone.</p>", 1),
+        model)
+    ok("and bites when the engine split is put back on the board's face, "
+       "which is the surface the ruling cleared (%s)" % s, not c, s)
     n, c, s = check_heatmap_is_typed_not_measured(
         page.replace(HEAT_START,
                      HEAT_START + "<p>production/systems-inventory.json "

@@ -1761,16 +1761,30 @@ def bootstrap_single():
     This gate cannot tell you the script WORKS on the machine; only a green
     dispatch of both workflows does that. It tells you there is exactly one
     of it, which is the part a lint can know and the part that decayed.
+
+    THE NUMBER BELOW CHANGED MEANING ON 9 SEP 2026 and that is the whole
+    repair. It used to be the length of a hand-written tuple inside the
+    lint, so the gate's `0 problem(s)` was measured against the list of
+    workflows somebody had remembered rather than the workflows that exist.
+    ledger-art-blender-preview.yml was self-hosted, ran pwsh, never called
+    the script, was not in the tuple, and died in twelve seconds on `pwsh:
+    command not found` with this gate green on every commit of its life. The
+    count is now DERIVED from the workflows (a self-hosted job with a pwsh
+    or bash step), and a workflow that needs the bootstrap is either calling
+    it or exempted with a written reason.
     """
     code, out = run(["python3", str(ROOT.parent / "tools" / "lint-bootstrap-single.py")])
     if code != 0:
         return False, _lint_red(code, out, "THE PATH BOOTSTRAP HAS DUPLICATED AGAIN",
                                 "lint-bootstrap-single")
     m = re.search(r"(\d+) workflow\(s\) read, (\d+) call the shared script, (\d+) named", out)
+    x = re.search(r"(\d+)/(\d+) exempted with a written reason", out)
     return True, ("one PATH bootstrap (%s workflow(s) read, %s call the shared "
-                  "script, %s named as needing it)" % (m.group(1), m.group(2), m.group(3))
+                  "script, %s DERIVED as needing it%s)"
+                  % (m.group(1), m.group(2), m.group(3),
+                     ", %s exempted with a written reason" % x.group(1) if x else "")
                   if m else
-                  "PATH bootstrap ok (%s — lint-bootstrap-single printed no census)"
+                  "PATH bootstrap ok (%s, lint-bootstrap-single printed no census)"
                   % NOTHING_MEASURED)
 
 
