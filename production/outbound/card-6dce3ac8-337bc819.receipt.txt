@@ -1,0 +1,9 @@
+receipt: card
+cardId: 6dce3ac8
+fingerprint: 337bc819
+card: Is this the visual ladder?
+options: A/B/C
+sent: 2026-09-09T08:54:06+00:00
+sentEpoch: 1788944046
+messageId: 54
+chars: 1175

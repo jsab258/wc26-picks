@@ -1,0 +1,9 @@
+receipt: card
+cardId: 1b007ac5
+fingerprint: 7fcf2382
+card: When does the last bus leave Meridian?
+options: A/B/C
+sent: 2026-09-09T08:54:05+00:00
+sentEpoch: 1788944045
+messageId: 53
+chars: 966

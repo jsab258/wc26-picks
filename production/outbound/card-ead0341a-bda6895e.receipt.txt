@@ -1,0 +1,9 @@
+receipt: card
+cardId: ead0341a
+fingerprint: bda6895e
+card: Which bay is Mickey's?
+options: A/B
+sent: 2026-09-09T08:54:05+00:00
+sentEpoch: 1788944045
+messageId: 52
+chars: 957

@@ -1,0 +1,13 @@
+receipt: sent
+file: production/outbox/2026-09-09-the-map-changed-388cdbcead10.unprompted.md
+kind: unprompted
+fileCommit: 56c877e3cf9b128c56479a0493dc3e72425a0f46
+fileCommitEpoch: 1788943472
+sent: 2026-09-09T08:44:59+00:00
+sentEpoch: 1788943499
+messageId: 48
+chars: 285
+outboundLatencySec: 27
+outboundLatencySecFrom: fileCommitInstant
+outboundLatencySecTo: sendInstant
+note: one sample of one message, not a rate.

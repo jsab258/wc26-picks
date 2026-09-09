@@ -1,0 +1,13 @@
+receipt: sent
+file: production/outbox/2026-09-09-atlas-02-research-digest.unprompted.md
+kind: unprompted
+fileCommit: 3cf3731b495a92a94ca2cb868603f530191d3c9e
+fileCommitEpoch: 1788943311
+sent: 2026-09-09T08:42:52+00:00
+sentEpoch: 1788943372
+messageId: 47
+chars: 833
+outboundLatencySec: 61
+outboundLatencySecFrom: fileCommitInstant
+outboundLatencySecTo: sendInstant
+note: one sample of one message, not a rate.

@@ -1,0 +1,9 @@
+receipt: card
+cardId: c37b5b24
+fingerprint: 9e6aebf7
+card: How close should strangers stand?
+options: A/B/C
+sent: 2026-09-09T08:54:05+00:00
+sentEpoch: 1788944045
+messageId: 49
+chars: 701
