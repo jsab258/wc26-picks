@@ -3129,3 +3129,77 @@ longer "a lane that has never completed once and may claim only that its steps a
 written". Every step has now executed at least once on the real machine, which is a
 different sentence and a stronger one, and it took three round trips to be allowed to
 say it.
+
+--------------------------------------------------------------------------------
+2026-09-09, RUN 38: THE LADDER ANSWERED, PREDICTION 5 FAILED, AND THE RULING'S
+READING OF THAT FAILURE IS REFUTED BY THE RUN ITSELF
+
+The probe landed as 4c2ea2c0, eleven of eleven shots, captureStatus=ALL.
+
+PREDICTION 5 FAILED. `vign_ladder_sun003` and `vign_camA_day` are the same camera
+at the same sun and are NOT the same picture: every one of 921600 pixels differs,
+max channel difference 70, and the ladder frame is uniformly DARKER (luma
+difference p05 -40.9, p50 -30.8, p95 -8.0; ratio p50 0.8186).
+
+THE RULING SAID WHAT THAT WOULD MEAN, and it is wrong: "the field did not replace
+the literal cleanly and NO OTHER RUNG ON THE LADDER MEANS ANYTHING." Two
+measurements refute the antecedent.
+
+    The field DID replace the literal cleanly. Every shot reads its own sun back
+    off the component: 3.000, 0.000, 3.000, 0.000, 3.000, then the ladder at
+    3.000, 10.000, 30.000, 100.000, 300.000, and the control at 3.000. Exact.
+
+    The two conditions are identical in DATA. Diffed key by key: of 11 keys they
+    differ on `id` and `note` and on nothing else.
+
+So the frames differ for a RENDER-STATE reason and not a plumbing one. What
+changed between them is their POSITION IN THE SHOT LIST: camA_day is shot 1 of 11
+and ladder_sun003 is shot 6, with two night shots between. Auto exposure is in
+force and unoverridden, and the skylight is a real-time capture. THIS IS A NEW
+FAULT AND IT IS BIGGER THAN THE LADDER: two frames with identical inputs at
+different positions in one run are not the same picture, which silently taxes
+every frame-to-frame comparison this project makes.
+
+WHAT THE LADDER ACTUALLY SAYS, read off the verdict's own bands:
+
+    shot                        sun     mean    ground   ground/sky
+    vign_camA_day               3      0.7048   0.7512   0.8890
+    vign_ladder_sun003          3      0.5942   0.6530   0.8447
+    vign_ladder_sun010         10      0.6337   0.7286   0.9483
+    vign_ladder_sun030         30      0.6500   0.7630   1.0079
+    vign_ladder_sun100        100      0.6655   0.7849   1.0387
+    vign_ladder_sun300        300      0.7029   0.8146   1.0419
+    vign_ladder_sun003_sky035   3      0.0922   0.1187   0.5289
+
+THE SLOPE IS REAL AND IT IS NEARLY FLAT. A HUNDREDFOLD increase in the sun moves
+the ground from 0.6530 to 0.8146, twenty-five per cent, and moves ground-over-sky
+from 0.8447 past 1.0. The sun is doing something and it is being crushed, exactly
+as the tonemapper argument predicted.
+
+AND THE CONTROL ROW SETTLES THE QUESTION THE LADDER WAS BUILT TO ASK. Dropping the
+sky from 1.0 to 0.35 at the SAME sun of 3.0 takes the ground from 0.6530 to
+0.1187, a fall of eighty-two per cent. Three times less sky moves the frame far
+further than a hundred times more sun.
+
+    THE SKYLIGHT OWNS THE EXPOSURE. The sky comes DOWN; the sun does not go up.
+
+That is the named second suspect from this afternoon's ruling, and the run chose
+it. Queue 206's conditional branch is the live one.
+
+WHAT THIS RUN COULD NOT MEASURE, and it was filed before the run and is now proven
+blocking rather than latent: the shadow-edge step. `tools/frame-shadow-probe.py`
+refuses on every ladder frame, correctly:
+
+    camBind=REFUSED camReadXYZcm=400.0/400.0/167.2 camReadPitchYaw=-4.0/0.0
+    camJsonXZYawPitch=4.0/-2.1/11.0/-2.6 probeStatus=REFUSED probe=nothing-measured
+
+The verdict carries ONE camera line for eleven shots. Queue 208 called that a
+per-sample fact printed on the whole-run line; it is now the thing standing
+between this run and its own acceptance criterion. The acceptance number, the step
+reaching +0.027, is UNMEASURED, and no direction may be quoted for it.
+
+THE HONEST SUMMARY OF THE DAY'S LAST RUN: it answered the question that mattered
+(which lever), by the route nobody expected (the control row rather than the
+slope), while failing its own headline prediction for a third reason nobody had
+written down, and leaving its stated acceptance number unmeasurable by an
+instrument fault filed hours earlier.

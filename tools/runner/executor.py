@@ -208,6 +208,29 @@ STOP_REL = "production/STOP"
 #: machine rather than a round trip to change code.
 CLI_ARGS_FILE = "claude-args.txt"
 
+#: THE STOP-HOOK OPT-OUT (ruling 2026-09-09, section 8, A1). `.claude/
+#: settings.json` travels with the repository, so the `claude -p` this daemon
+#: runs drains THE SAME wake records as every other session in every checkout.
+#: If the container's daily-brief record is due and undischarged at that
+#: moment, which is the normal state for hours after an absorbed 04:09 wake,
+#: this session's first Stop is BLOCKED and the model answering the question
+#: Jafar sent from his phone is told to produce the day's brief instead: wrong
+#: session, wrong work, his answer delayed or bent. `.claude/hooks/
+#: wake-drain.sh` honours this variable, PERMITS, and prints
+#: `reason=opted-out` with the count it did not block on, so the opt-out is
+#: never silent. THE VALUE IS EXACT AND LOWER CASE: the parser is
+#: `tools/wake-queue.py:is_opted_out`, which is deliberately strict because
+#: this string turns a guard off, and `OFF` or `0` or `false` all block.
+WAKE_DRAIN_ENV = "WAKE_DRAIN"
+WAKE_DRAIN_OFF = "off"
+
+#: The words rather than a blank, for a run where THIS process did not build
+#: the child's environment (an injected spawn in the suite). Spelled here
+#: rather than imported from `tools/capsay.py`, which owns the spelling: this
+#: daemon starts on a PC where anything outside `tools/runner/` may be
+#: missing, and an ImportError at start is a daemon that never runs at all.
+NOTHING_MEASURED = "nothing-measured"
+
 #: WHAT A SESSION LIMIT LOOKS LIKE, AND THIS LIST IS A GUESS. No session limit
 #: has ever been observed from this CLI by anything in this repository, so
 #: these are patterns to recognise, not a measurement. That is exactly why
@@ -897,6 +920,31 @@ def claude_argv(prompt, turns=SESSION_TURNS, extra=()):
     return ["claude", "-p", prompt, "--max-turns", str(int(turns))] + list(extra)
 
 
+def session_env(base=None):
+    """The environment the `claude -p` child runs in: this one, plus the
+    Stop-hook opt-out. PURE, so the suite reads what it sets instead of
+    trusting a comment.
+
+    WHY THE ENVIRONMENT AND NOT AN ARGUMENT. Nothing on the CLI can say "do
+    not run the Stop hook", and nothing should: the hook is registered in
+    `.claude/settings.json`, which travels with the checkout the worktree is
+    made from, so the drain is going to run. What the environment can say is
+    WHICH session it is running in, and that is the whole decision.
+
+    THAT STOP FIRES AT ALL UNDER `claude -p` was read off /opt/claude-code/
+    bin/claude on 2026-09-09 (version 2.1.266) rather than remembered, and the
+    reading is quoted in full in `tools/wake-queue.py`'s docstring beside the
+    block cap. In short: the one mode that turns hooks off names itself
+    ("hooks are disabled in this mode (--bare)"), print mode is not it, and
+    the Stop payload is built in the same turn-end branch that enforces
+    `--max-turns`, which is the flag `claude_argv` above passes. NOT OBSERVED:
+    no `claude -p` has run here or anywhere in this repository.
+    """
+    env = dict(os.environ if base is None else base)
+    env[WAKE_DRAIN_ENV] = WAKE_DRAIN_OFF
+    return env
+
+
 def kill_tree(proc):
     """Stop a session and everything it started. UNVERIFIED ON WINDOWS.
 
@@ -939,8 +987,13 @@ def read_log(log_path):
 
 
 def _not_started(why):
+    # `wakeDrain` IS THE WORDS HERE, not "off": no child was started, so no
+    # environment was handed to one, and a journal line claiming the opt-out
+    # was set on a session that never existed is a false reading with a value
+    # on it.
     return {"rc": None, "out": "", "elapsed": 0, "timedout": False,
-            "stopped": False, "started": False, "why": why}
+            "stopped": False, "started": False, "why": why,
+            "wakeDrain": NOTHING_MEASURED}
 
 
 def run_session(prompt, cwd, log_path, turns=SESSION_TURNS,
@@ -981,14 +1034,21 @@ def run_session(prompt, cwd, log_path, turns=SESSION_TURNS,
         argv = [resolved] + argv[1:]
     elif spawn is None:
         return _not_started("the claude command is not on PATH on this PC")
+    child_env = None
     if spawn is None:
+        # THE STOP-HOOK OPT-OUT GOES IN HERE (A1), at the ONE place this
+        # process builds the child's environment. An injected spawn leaves
+        # `child_env` None and the reading below says the words rather than
+        # claiming an opt-out this process did not set.
+        child_env = session_env()
+
         def spawn(a, c, out_fh):
             kw = {}
             if os.name != "nt":
                 kw["start_new_session"] = True
             return subprocess.Popen(a, cwd=c, stdin=subprocess.DEVNULL,
                                     stdout=out_fh, stderr=subprocess.STDOUT,
-                                    **kw)
+                                    env=child_env, **kw)
     try:
         if os.path.dirname(log_path):
             os.makedirs(os.path.dirname(log_path), exist_ok=True)
@@ -1037,7 +1097,12 @@ def run_session(prompt, cwd, log_path, turns=SESSION_TURNS,
         say("session: %s" % why_log)
     return {"rc": proc.returncode, "out": out,
             "elapsed": int(time.time() - started), "timedout": timedout,
-            "stopped": stopped, "started": True, "why": ""}
+            "stopped": stopped, "started": True, "why": "",
+            # WHAT WAS ACTUALLY HANDED TO THE CHILD, read back out of the
+            # environment this process built rather than asserted from the
+            # constant, so the journal line is a reading and not a claim.
+            "wakeDrain": (child_env or {}).get(WAKE_DRAIN_ENV,
+                                               NOTHING_MEASURED)}
 
 
 # --------------------------------------------------------------------------
@@ -1463,10 +1528,17 @@ class Executor(object):
                 self.publish_status({"executor": "stopped-by-the-stop-file"})
                 return "failed"
             is_limit, pattern = looks_like_limit(res["out"], res["rc"])
+            # `wakeDrain` IS PER SESSION AND LAST-WINS, on the line for the
+            # session it describes: it is the value this process put in THAT
+            # child's environment, `off` when the opt-out was set and the
+            # words when no environment was built here. It rides the
+            # session-exit line rather than a line of its own so a reader
+            # never has to join two lines to learn which session was opted
+            # out (A1, ruling 2026-09-09).
             self.record("session-exit", msg=stemname, code=res["rc"],
                         elapsedSec=res["elapsed"], timedOut=res["timedout"],
                         outChars=len(res["out"]), limitLooking=is_limit,
-                        limitPattern=pattern,
+                        limitPattern=pattern, wakeDrain=res["wakeDrain"],
                         firstLine=first_line(res["out"]))
             if not is_limit:
                 break
@@ -2352,6 +2424,45 @@ def selftest():                                               # noqa: C901
                        which=lambda _n: None)
     check("reject/a-CLI-the-resolver-cannot-find-is-never-spawned",
           res7["started"] is False and "not on PATH" in res7["why"], res7)
+
+    # A1 (ruling 2026-09-09, section 8). THE STOP-HOOK OPT-OUT REACHES THE
+    # CHILD. Without it the first Stop of the session answering Jafar's
+    # question is blocked by a due daily-brief record and that session is told
+    # to write the brief instead: wrong session, wrong work.
+    check("accept/the-child-environment-carries-the-stop-hook-opt-out",
+          session_env({"PATH": "/x"})[WAKE_DRAIN_ENV] == WAKE_DRAIN_OFF,
+          session_env({"PATH": "/x"}))
+    check("accept/and-carries-everything-else-it-was-given",
+          session_env({"PATH": "/x"})["PATH"] == "/x",
+          session_env({"PATH": "/x"}))
+    check("accept/and-the-value-is-the-exact-string-the-drain-parses",
+          WAKE_DRAIN_OFF == "off" and WAKE_DRAIN_ENV == "WAKE_DRAIN",
+          (WAKE_DRAIN_ENV, WAKE_DRAIN_OFF))
+    # AND END TO END, THROUGH THE SPAWN PRODUCTION ACTUALLY USES: `spawn` is
+    # NOT injected here, so this runs the default closure inside run_session,
+    # with a stand-in for the CLI that prints what it was handed. An injected
+    # spawn would have proven the fixture and nothing else.
+    if os.name != "nt":
+        fake_cli = os.path.join(tmp, "fake-claude.sh")
+        with open(fake_cli, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write("#!/bin/sh\n"
+                     "printf 'WAKE_DRAIN=%s\\n' \"${WAKE_DRAIN-(unset)}\"\n")
+        os.chmod(fake_cli, 0o755)
+        res8 = run_session("do the thing", tmp,
+                           os.path.join(tmp, "logs", "wakedrain.log"),
+                           which=lambda _n: fake_cli)
+        check("accept/the-REAL-spawn-hands-WAKE_DRAIN=off-to-the-child",
+              res8["started"] and res8["out"].strip() == "WAKE_DRAIN=off",
+              res8)
+        check("accept/and-the-journal-reading-is-what-the-child-got",
+              res8["wakeDrain"] == WAKE_DRAIN_OFF, res8["wakeDrain"])
+    else:
+        # A SKIPPED CASE SAYS SO. Silence here would read as a pass.
+        print("  NOT RUN on this OS (nothing measured): the end-to-end "
+              "opt-out case needs a POSIX shell stand-in for the CLI")
+    check("reject/a-session-that-never-started-reports-nothing-measured",
+          _not_started("no cli")["wakeDrain"] == NOTHING_MEASURED
+          and res7["wakeDrain"] == NOTHING_MEASURED, res7["wakeDrain"])
 
     print("executor selftest: %d passed, %d failed (of %d case(s))"
           % (len(ok), len(bad), len(ok) + len(bad)))

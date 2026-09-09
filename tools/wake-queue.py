@@ -7,6 +7,7 @@
     python3 tools/wake-queue.py discharge 7f3c1a2b   # one done, with the instant
     python3 tools/wake-queue.py series               # the printer a bound comes from
     python3 tools/wake-queue.py drain --hook         # the Stop hook calls this
+    WAKE_DRAIN=off <the same drain>                  # the executor's opt-out
     python3 tools/wake-queue.py --selftest           # accepting case FIRST
 
 THE FAULT, read off the scheduler's own record for trigger
@@ -99,6 +100,40 @@ than remembered:
 And the fourth thing, which is the real loop-breaker: THE WORK DISCHARGES ITS
 OWN RECORD, so the next boundary finds nothing due.
 
+AND THE FIFTH, WHICH IS NOT A BOUND ON THE LOOP BUT ON WHO IS ASKED:
+`WAKE_DRAIN=off` in the environment of a session that must not be diverted.
+`tools/runner/executor.py` sets it for the `claude -p` it runs to answer a
+question Jafar sent from his phone, because that session's first Stop would
+otherwise be told to produce the day's brief instead of answering him. The
+opt-out PERMITS, exits 15, and PRINTS `reason=opted-out` with the count it
+chose not to block on, so it can never be a silent permit. Only the exact
+string `off` opts out; see OPT_OUT below for the case decision and why.
+
+WHETHER STOP FIRES AT ALL UNDER `claude -p`, read off /opt/claude-code/bin/
+claude on 2026-09-09 (version 2.1.266, from `claude --version`) rather than
+remembered, because an opt-out for an event that never fires would be theatre:
+
+  1. The one mode that turns hooks off NAMES ITSELF, and it is not print
+     mode. The binary's strings: "hooks are disabled in this mode (--bare)",
+     reached from `hooksDisabled:zr("hooks")`, and `--bare`'s own help is
+     "Minimal mode: skip hooks, LSP, plugin sync, ...". The help for `-p,
+     --print` lists what print mode changes ("The workspace trust dialog is
+     skipped ... Settings files that fail validation are silently ignored in
+     this mode") and hooks are not among them.
+  2. The Stop payload is built in the SAME turn-end branch that enforces
+     `--max-turns`, which is the flag this project's executor passes:
+     `vw=yield*Snr(...)` then `if(O&&Gc>O) ... {type:"max_turns_reached",
+     maxTurns:O,turnCount:Gc}` then `let Ad=a.CLAUDE_CODE_STOP_HOOK_BLOCK_CAP
+     ??8`. A Stop block and the `--max-turns` bound are one code path.
+  3. The only gates on the emitter are about SUBAGENTS, not about modes:
+     `if(Ei(p.agentContext))return;` with `function Ei(e){return
+     e?.agentType==="subagent"&&e.delegatedObservation===!0}`.
+
+So: Stop FIRES under `claude -p`, and the executor's first boundary is a real
+boundary. NOT OBSERVED, said rather than blurred: no `claude -p` was run to
+watch it, here or anywhere in this repository (there is no CLI in this
+container), so this is a reading of one build's code and not of a run.
+
 WHAT THIS HOOK DOES NOT DO, said out loud because a Stop hook here has a
 history (`ledger-v2/studio-v2/learning.md` L32, `production/queue/014`): it
 never asks for a commit, never looks at the working tree, and never mentions a
@@ -117,6 +152,8 @@ must not have to parse prose:
     12  permit, LOUD: the payload on stdin could not be read (fail open)
     13  permit: `stop_hook_active` was true, a platform chain is in progress
     14  permit, LOUD: the records directory could not be read (fail open)
+    15  permit, LOUD: WAKE_DRAIN=off opted this session out of blocking, and
+        the line says how many records it did not block on
 
 FAIL OPEN, DELIBERATELY AND OUT LOUD. Every failure of this instrument permits
 the stop. A broken drain that blocks is a session that can never end; a broken
@@ -181,6 +218,21 @@ UNSET = "-"
 #: argue for moving it.
 BLOCK_CAP = 3
 
+#: THE OPT-OUT (ruling 2026-09-09, section 8 A1). The environment variable a
+#: session sets to say "do not divert ME", and the ONE value that takes it.
+WAKE_DRAIN_ENV = "WAKE_DRAIN"
+
+#: EXACT, CASE-SENSITIVE, WHOLE-STRING, UNTRIMMED, and that is a decision
+#: rather than an oversight. This value turns a guard OFF, so every ambiguity
+#: is resolved towards blocking: `OFF`, `Off`, `off ` with a trailing space,
+#: `0`, `false`, `no`, the empty string and an unset variable ALL BLOCK. A
+#: permissive parser here is a permit nobody intended and nobody can see,
+#: which is the one outcome this whole mechanism exists to prevent; the cost
+#: of the strict reading is a session that blocks once, prints why, and is
+#: fixed by typing three lower-case letters, and the drain line prints the
+#: value it actually saw (`wakeDrain=`) so a near miss is never a mystery.
+OPT_OUT = "off"
+
 #: How many due instructions the block reason carries in full. The cap
 #: announces itself through `capsay.cap`, so a sixth due wake is never
 #: silently dropped from the reason that is supposed to carry it.
@@ -207,6 +259,7 @@ EXIT_CAP_BIT = 11
 EXIT_BAD_PAYLOAD = 12
 EXIT_STOP_HOOK_ACTIVE = 13
 EXIT_DIR_UNREADABLE = 14
+EXIT_OPTED_OUT = 15
 #: A USAGE ERROR MAY NOT WEAR A MEASUREMENT'S CLOTHES. argparse exits 2 on a
 #: bad flag, and 2 here means NOTHING MEASURED, so the hook would have read
 #: "you called me wrong" as "the queue is empty" and permitted every stop for
@@ -449,6 +502,30 @@ def counts(reading, now):
             "skipped": len(reading["skipped"])}
 
 
+def due_fraction(reading, now):
+    """`N/M`: records DUE out of records EXAMINED, one read, one instant.
+
+    The same `counts()` every other line is built from, so `dueOnDisk=` on the
+    opt-out line and `wakesDue=` on the shared line can never come to disagree
+    about what the numerator is a fraction of. They are one fraction printed
+    under two names on ONE line: the ruling dictates the key `dueOnDisk`, and
+    the rest of the denominators (notYetDue, unreadable, skippedByName) live
+    in `counts_text` where every other subcommand already reads them.
+
+    A DIRECTORY WITH NOTHING IN IT AND A DIRECTORY THAT WOULD NOT OPEN BOTH
+    PRINT THE WORDS, never `0/0`: an opt-out that says it declined to block on
+    zero due records, when in truth it could not see the directory at all, is
+    a clean-looking lie. Which of the two it was is in `counts_text` beside
+    it.
+    """
+    if not reading["readable"]:
+        return NOTHING_MEASURED
+    c = counts(reading, now)
+    if c["examined"] == 0:
+        return NOTHING_MEASURED
+    return "%d/%d" % (c["due"], c["examined"])
+
+
 def counts_text(reading, now, extra=""):
     """THE WHOLE-RUN NUMBERS AS ONE STRING, ONE IMPLEMENTATION. Every caller
     (arm, due, discharge, drain, series) prints this same string, so no two of
@@ -667,6 +744,36 @@ def report_due(dirpath, now, say=print):
 
 # --------------------------------------------------------------------- drain
 
+def is_opted_out(value):
+    """Does this WAKE_DRAIN value opt the session out of blocking? ONE SITE.
+
+    `None` means the variable is not set at all, which BLOCKS, exactly like
+    every value that is not the one string. See OPT_OUT for the case decision
+    and the reasoning behind resolving every ambiguity towards blocking.
+    """
+    return value == OPT_OUT
+
+
+def env_shown(value):
+    """The WAKE_DRAIN value as ONE PRINTABLE TOKEN with no whitespace in it.
+
+    THREE CASES READ DIFFERENTLY, because they are three different facts: the
+    variable was never set, it was set to nothing, or it was set to something
+    that is not the opt-out.
+
+    WHITESPACE IS SHOWN RATHER THAN STRIPPED. `no_space` would print `off `
+    (trailing space, which BLOCKS) as `off` (which permits), and that is the
+    one line in this file that must never lie: a reader debugging a session
+    that blocked would see the string that does not block. Every whitespace
+    character becomes `_`. The cap announces itself through `capsay.cap`.
+    """
+    if value is None:
+        return "(unset)"
+    if value == "":
+        return "(empty)"
+    return cap([re.sub(r"\s", "_", value)], keep=1, width=40)
+
+
 def session_crons(payload):
     """COUNT of session-scoped cron tasks the platform reports in THIS Stop
     payload. Last-wins at this boundary, not cumulative and not a peak.
@@ -686,17 +793,25 @@ def session_crons(payload):
     return len(v) if isinstance(v, list) else None
 
 
-def drain(payload_text, dirpath, now):
+def drain(payload_text, dirpath, now, wake_drain=None):
     """THE TURN BOUNDARY. (code, lines, reason).
 
     `lines` is what goes to stdout on every outcome. `reason` is non-empty ONLY
     for EXIT_BLOCK, and it is what the hook puts on stderr for the model to
     read.
 
+    `wake_drain` is the live WAKE_DRAIN value as the CALLER saw it, `None` for
+    not set. It is a parameter and not a read of `os.environ` in here for the
+    same reason `now` is a parameter: a fixture must be able to plant it, and
+    a guard that reads the ambient world cannot be tested against the world it
+    is meant to judge.
+
     WRITES: on a block it increments `blocks` on each record named in the
     reason, and when the cap bites it stamps `capBitAt`. Both live in the
     record, so the guard's state survives the container that is about to be
-    reclaimed.
+    reclaimed. THE OPT-OUT WRITES NOTHING AT ALL: a session that is not being
+    blocked has not spent a block, and counting one would burn the cap of a
+    record no session was ever asked to serve.
     """
     lines = []
     try:
@@ -714,11 +829,26 @@ def drain(payload_text, dirpath, now):
 
     crons = session_crons(payload)
     active = payload.get("stop_hook_active") is True
-    extra = (" sessionCrons=%s stopHookActive=%s"
+    # `wakeDrain` RIDES ON EVERY DRAIN LINE, not only the opted-out one, so a
+    # session that blocked while somebody believed it had opted out can be
+    # told which value the hook actually saw. Last-wins at this boundary.
+    extra = (" sessionCrons=%s stopHookActive=%s wakeDrain=%s"
              % (NOTHING_MEASURED if crons is None else crons,
-                "true" if active else "false"))
+                "true" if active else "false", env_shown(wake_drain)))
 
     reading = read_dir(dirpath)
+    if is_opted_out(wake_drain):
+        # THE OPT-OUT, AND IT IS NEVER SILENT (ruling A1). It is read BEFORE
+        # every other verdict and before any write, because the session it
+        # protects must not be blocked for any reason; and it prints the count
+        # it is declining to block on, because a permit nobody can see is the
+        # failure this whole mechanism exists to prevent. THE WAKE IS NOT
+        # LOST: nothing is incremented, nothing is stamped, and the record is
+        # still due at the next boundary of a session that did not opt out.
+        lines.append("wake-drain: PERMIT reason=opted-out dueOnDisk=%s %s"
+                     % (due_fraction(reading, now),
+                        counts_text(reading, now, extra)))
+        return EXIT_OPTED_OUT, lines, ""
     if not reading["readable"]:
         lines.append(drain_line("PERMIT-UNASSESSED", reading, now, extra))
         return EXIT_DIR_UNREADABLE, lines, ""
@@ -808,7 +938,8 @@ def drain(payload_text, dirpath, now):
     return EXIT_BLOCK, lines, "\n".join(reason)
 
 
-def report_drain(dirpath, now, payload_text, say=print, err=None):
+def report_drain(dirpath, now, payload_text, say=print, err=None,
+                 wake_drain=None):
     """Prints the one `wake-drain:` line, then the reason when there is one.
 
     TWO CHANNELS, AND THE SPLIT IS THE CONTRACT. The one-line verdict with its
@@ -818,7 +949,7 @@ def report_drain(dirpath, now, payload_text, say=print, err=None):
     feeds back to the model for a Stop hook. Run by hand without `--hook`,
     `err` is stdout too, so a person reads it in order.
     """
-    code, lines, reason = drain(payload_text, dirpath, now)
+    code, lines, reason = drain(payload_text, dirpath, now, wake_drain)
     for l in lines:
         say(l)
     if reason:
@@ -1021,15 +1152,26 @@ def selftest():
         shutil.rmtree(str(work), ignore_errors=True)
 
 
-def _run_hook(wake_dir, payload_text):
-    """The hook AS THE HOOK: bash, the real JSON shape on stdin, the env var
+def _run_hook(wake_dir, payload_text, wake_drain=None):
+    """The hook AS THE HOOK: bash, the real JSON shape on stdin, the env vars
     settings.json names. Not an import of this module, because what is being
     proven is the registration and the exit-code contract, and an import
-    proves neither."""
+    proves neither.
+
+    THE AMBIENT WAKE_DRAIN IS REMOVED ON EVERY CASE, always, and set only when
+    the case asks for it. Inherited, it would decide the cases instead of the
+    fixture: this suite runs at every commit, and the session most likely to
+    run it with WAKE_DRAIN=off exported is the executor's, whose whole purpose
+    is to be opted out. Every case that expects a BLOCK would have gone green
+    while permitting.
+    """
     hook = REPO / HOOK_REL
+    env = dict(os.environ, WAKE_DIR=str(wake_dir))
+    env.pop(WAKE_DRAIN_ENV, None)
+    if wake_drain is not None:
+        env[WAKE_DRAIN_ENV] = wake_drain
     p = subprocess.run(["bash", str(hook)], input=payload_text,
-                       capture_output=True, text=True,
-                       env=dict(os.environ, WAKE_DIR=str(wake_dir)),
+                       capture_output=True, text=True, env=env,
                        cwd=str(REPO), timeout=60)
     return p.returncode, p.stdout, p.stderr
 
@@ -1207,6 +1349,65 @@ def _selftest_body(work, ok, passed, failed):
     ok("accept/our-cap-bites-before-the-platforms-8-consecutive-blocks",
        BLOCK_CAP < 8)
 
+    # ---- 8b. THE EXECUTOR'S OPT-OUT, WAKE_DRAIN=off (ruling 2026-09-09,
+    #          section 8 A1). ACCEPTING CASE FIRST, and here the accepting
+    #          case is the PERMIT: the session that must not be diverted is
+    #          the one answering Jafar's question. The rejecting half is THE
+    #          SAME RECORD, unchanged on disk, with no opt-out set.
+    opted = work / "optout"
+    opted.mkdir()
+    optrec, _ = arm(opted, past, "Land A1 of the batch ruling before his "
+                    "evening; discharge when the executor journal prints the "
+                    "opted-out line.", "director/2026-09-09-batch-ruling", t0)
+    code, out, err = _run_hook(opted, _payload(), wake_drain=OPT_OUT)
+    ok("accept/OPT-OUT-a-DUE-record-with-WAKE_DRAIN=off-PERMITS-the-stop",
+       code == 0, (code, out, err))
+    ok("accept/OPT-OUT-and-says-so-out-loud-with-the-count-it-did-NOT-block-on",
+       "wake-drain: PERMIT reason=opted-out dueOnDisk=1/1" in out, out)
+    ok("accept/OPT-OUT-and-names-the-value-it-saw-on-the-same-line",
+       "wakeDrain=off" in out and len(
+           [l for l in out.splitlines() if "reason=opted-out" in l]) == 1, out)
+    ok("accept/OPT-OUT-and-writes-nothing-on-stderr-because-it-permits",
+       err.strip() == "", err)
+    quiet, _ = parse((opted / optrec["name"]).read_text(encoding="utf-8"))
+    ok("accept/OPT-OUT-spends-no-block-on-a-session-it-never-blocked",
+       quiet["blocks"] == 0 and quiet["capBitAt"] == UNSET, quiet)
+    code, out, err = _run_hook(opted, _payload())
+    ok("reject/OPT-OUT-THE-SAME-RECORD-with-no-opt-out-set-BLOCKS", code == 2,
+       (code, out, err))
+    ok("reject/and-the-block-line-says-which-value-it-saw",
+       "wake-drain: BLOCK" in out and "wakeDrain=(unset)" in out, out)
+    # A ZERO NEEDS ITS DENOMINATOR HERE TOO: an opt-out that declined to block
+    # on "0 due" when it could not see a record at all is a clean-looking lie.
+    code, out, err = _run_hook(empty, _payload(), wake_drain=OPT_OUT)
+    ok("accept/OPT-OUT-on-an-empty-directory-prints-the-words-not-0/0",
+       code == 0 and ("dueOnDisk=%s" % NOTHING_MEASURED) in out, (code, out))
+
+    # THE NEAR MISSES, EACH ON ITS OWN DUE RECORD so that the block cap can
+    # never answer for the parser. Two go through bash on the real hook (the
+    # value somebody will actually type, and the empty string a shell leaves
+    # behind); the rest go through the one function that decides, which is
+    # where the comparison lives and the only place it is written.
+    for value in ("OFF", ""):
+        near = work / ("near-%s" % (value or "empty"))
+        near.mkdir()
+        arm(near, past, "A wake nothing has discharged.", "resident", t0)
+        code, out, err = _run_hook(near, _payload(), wake_drain=value)
+        ok("reject/WAKE_DRAIN=%s-is-not-the-opt-out-and-BLOCKS"
+           % (value or "(empty)"), code == 2, (code, out, err))
+    misses = ["OFF", "Off", "oFf", "off ", " off", "off\n", "0", "false",
+              "no", "", "none", "true", "1", "off,on", None]
+    ok("accept/the-one-value-that-opts-out-is-the-exact-lower-case-string",
+       is_opted_out(OPT_OUT) and OPT_OUT == "off")
+    ok("reject/every-near-miss-blocks-including-the-other-cases-of-the-word",
+       not any(is_opted_out(v) for v in misses),
+       [v for v in misses if is_opted_out(v)])
+    ok("accept/and-the-printed-value-cannot-read-as-the-one-that-permits",
+       env_shown("off ") == "off_" and env_shown(None) == "(unset)"
+       and env_shown("") == "(empty)" and " " not in env_shown("o f f"),
+       (env_shown("off "), env_shown(None), env_shown(""),
+        env_shown("o f f")))
+
     # ---- 9. REJECTING: a payload the hook cannot read FAILS OPEN, loudly.
     code, out, err = _run_hook(loop, "{ not json")
     ok("reject/an-unreadable-payload-permits-rather-than-wedge-the-session",
@@ -1288,10 +1489,17 @@ def _selftest_body(work, ok, passed, failed):
     arm(future, "2027-01-01T04:00:00Z", "Next year.", "resident", noon)
     ok("accept/due-with-a-record-that-is-not-due-yet-exits-0",
        report_due(future, noon, say=lambda *a: None) == EXIT_OK)
-    ok("accept/the-seven-outcome-codes-are-seven-different-numbers",
+    ok("accept/the-eight-outcome-codes-are-eight-different-numbers",
        len({EXIT_OK, EXIT_NOTHING_MEASURED, EXIT_BLOCK, EXIT_CAP_BIT,
-            EXIT_BAD_PAYLOAD, EXIT_STOP_HOOK_ACTIVE, EXIT_DIR_UNREADABLE})
-       == 7)
+            EXIT_BAD_PAYLOAD, EXIT_STOP_HOOK_ACTIVE, EXIT_DIR_UNREADABLE,
+            EXIT_OPTED_OUT}) == 8)
+    # AND THE HOOK PERMITS ON THE NEW ONE. A code the hook does not model
+    # lands in its PERMIT-UNASSESSED branch, which permits too, so the exit
+    # code alone cannot tell the two apart: what is asserted is that the hook
+    # file NAMES 15 in the branch that permits deliberately.
+    ok("accept/the-hook-models-the-opted-out-code-rather-than-falling-through",
+       "    15)" in (REPO / HOOK_REL).read_text(encoding="utf-8"),
+       "the hook has no arm for exit %d" % EXIT_OPTED_OUT)
 
     # ---- 12. THE SERIES PRINTS, AND SETS NO BOUND.
     lines = []
@@ -1350,7 +1558,10 @@ def _selftest_body(work, ok, passed, failed):
           "cannot be asserted from inside this repository; (2) the "
           "could-not-list-the-directory branch is asserted at its wording "
           "only, because this process runs as root and root cannot plant an "
-          "unreadable directory. What IS asserted end to end is that a record "
+          "unreadable directory; (3) nothing here runs `claude -p`, so that "
+          "Stop fires under it at all is a reading of the binary quoted in "
+          "the module docstring and not an observation of a run. What IS "
+          "asserted end to end is that a record "
           "armed before a boundary is found AT the boundary by the hook as "
           "registered, through bash, on the real payload shape."
           % (len(passed), len(failed), len(passed) + len(failed)))
@@ -1426,6 +1637,16 @@ def main(argv):
                              help="the Stop hook's decision")
     p_drain.add_argument("--hook", action="store_true",
                          help="read the Stop payload on stdin")
+    # THE HOOK FORWARDS WHAT IT SAW, and passes the flag only when the
+    # variable is SET, so "never set" and "set to nothing" stay two facts
+    # rather than one empty string. A hand-run without the flag reads this
+    # process's own environment instead, so the two paths cannot come to
+    # disagree about a session that is opted out.
+    p_drain.add_argument("--wake-drain", default=None, metavar="VALUE",
+                         help="the live value of %s as the caller saw it; "
+                              "only the exact string %r opts this session out "
+                              "of blocking (default: this process's own "
+                              "environment)" % (WAKE_DRAIN_ENV, OPT_OUT))
     sub.add_parser("series", parents=[common],
                    help="the printed series a bound comes from")
     sub.add_parser("selftest", parents=[common],
@@ -1464,12 +1685,17 @@ def main(argv):
         # It still COUNTS A BLOCK exactly as the hook would; `due` is the
         # read-only half and is the one to use for looking.
         payload = sys.stdin.read() if args.hook else "{}"
+        # ONE RESOLUTION SITE for the opt-out value: the forwarded flag when
+        # the caller passed it, this process's environment when it did not.
+        wake_drain = (args.wake_drain if args.wake_drain is not None
+                      else os.environ.get(WAKE_DRAIN_ENV))
 
         def to_stderr(text):
             sys.stderr.write(text + "\n")
 
         return report_drain(dirpath, now, payload,
-                            err=to_stderr if args.hook else print)
+                            err=to_stderr if args.hook else print,
+                            wake_drain=wake_drain)
     ap.print_help()
     return EXIT_OK
 

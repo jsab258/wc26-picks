@@ -46,6 +46,32 @@
 # The real loop-breaker is that the work discharges its own record, so the next
 # boundary finds nothing due.
 #
+# THE OPT-OUT, WAKE_DRAIN=off, AND IT IS NEVER SILENT (ruling 2026-09-09,
+# section 8 A1). settings.json travels with the repository, so EVERY session in
+# EVERY checkout drains the same records, including the `claude -p` that
+# tools/runner/executor.py runs in an isolated worktree to answer a question
+# Jafar sent from his phone. If the container's daily-brief record is due and
+# undischarged at that moment, which is the normal state for hours after an
+# absorbed 04:09 wake, that session's first Stop is BLOCKED and the model
+# answering him is told to produce the day's brief instead: wrong session,
+# wrong work, his answer delayed or bent. So the executor sets WAKE_DRAIN=off
+# in the environment of its own invocation and this hook honours it: PERMIT,
+# exit 0, and ONE line on stdout naming the reason and the count it chose not
+# to block on (`wake-drain: PERMIT reason=opted-out dueOnDisk=N/M`). A silent
+# permit is the failure the whole mechanism exists to prevent. The value is
+# forwarded to the tool rather than judged here (see below); only the exact
+# string `off` opts out, and every other value, including OFF and 0 and false
+# and unset, BLOCKS.
+#
+# WHETHER STOP FIRES AT ALL UNDER `claude -p` is read off the binary the way
+# the cap above was, not remembered, and it does: the one mode that turns
+# hooks off names itself ("hooks are disabled in this mode (--bare)", and
+# `--bare` is "Minimal mode: skip hooks, LSP, ..."), while `-p, --print`'s own
+# help lists what print mode changes and hooks are not in it. The full reading,
+# with the three quotations and the `--max-turns` branch the Stop payload
+# shares, is in tools/wake-queue.py's docstring beside BLOCK_CAP. NOT OBSERVED:
+# no `claude -p` was run to watch it; there is no CLI in this container.
+#
 # WHAT THIS HOOK DOES NOT DO, because a Stop hook here has a history
 # (ledger-v2/studio-v2/learning.md L32, production/queue/014): it never asks
 # for a commit, never reads the working tree, never mentions a clean tree. It
@@ -72,7 +98,9 @@
 #           armed before the turn and due during it BLOCKS with its
 #           instruction and its discharge command in the reason;
 #           stop_hook_active=true permits and names what stays due; the cap
-#           bites after 3 blocks, permits, and says so
+#           bites after 3 blocks, permits, and says so; WAKE_DRAIN=off with a
+#           DUE record permits, prints dueOnDisk=1/1, and counts no block,
+#           while THE SAME RECORD without the opt-out blocks
 #   REJECT: stdin that is not JSON permits and prints PERMIT-UNASSESSED; a
 #           records path that is a file permits and prints "nothing measured"
 # That suite runs at every commit from ledger/verify.py (TOOL_SELFTESTS).
@@ -120,13 +148,32 @@ fi
 # stderr, which is the channel Claude Code feeds back to the model. Merging them
 # would have put the verdict line where only the model can see it and the reason
 # where only a human can.
-python3 "$TOOL" drain --hook --dir "$WAKE_DIR"
+#
+# THE OPT-OUT IS FORWARDED, NOT DECIDED HERE, for the same reason the payload
+# is not re-typed here: the string comparison that turns a guard off belongs in
+# the layer that has a selftest, beside the constant that spells the value and
+# the line that prints it. This supplies live state and nothing else. The flag
+# goes only when the variable is SET, so "never set" and "set to nothing" stay
+# two facts rather than one empty string.
+DRAIN=(drain --hook --dir "$WAKE_DIR")
+if [ -n "${WAKE_DRAIN+set}" ]; then
+    DRAIN+=(--wake-drain "$WAKE_DRAIN")
+fi
+
+python3 "$TOOL" "${DRAIN[@]}"
 RC=$?
 
 case "$RC" in
     10)
         # THE ONLY BLOCKING CODE. The reason is already on stderr.
         exit 2
+        ;;
+    15)
+        # WAKE_DRAIN=off. THE OPT-OUT PERMITS, and its own line on stdout has
+        # already said `reason=opted-out` with the count it did not block on.
+        # Its own arm rather than a number in the list below, because a reader
+        # of this file has to be able to see that the opt-out exists.
+        exit 0
         ;;
     0|2|11|12|13|14)
         # Every permit has already printed its line, denominators and all.
