@@ -1455,3 +1455,55 @@ WHAT SURVIVES UNCHANGED: the z-fight reading from run 35 is still void, now for
 two reasons rather than one, because a flat near-white patch is not a surface a
 speckle statistic can read either. And the occlusion trace is still the right
 fix, because something IS in the line; only its name was wrong.
+
+--------------------------------------------------------------------------
+2026-09-09  THE RECEIPTS CAME BACK. EVERYTHING REACHED HIM, INCLUDING THE
+            BRIEF THAT SAID NOTHING PROVED IT HAD.
+--------------------------------------------------------------------------
+THE MORNING BRIEF IS TELEGRAM MESSAGE 39, sent 2026-09-09T04:28:38Z, 963
+characters, 142 seconds after the file was committed. Its own receipt says so:
+production/outbound/2026-09-09-morning-brief.brief.receipt.txt, carried back on
+pc-inbox 650c2c31 in a push of 126 outbound records.
+
+SO THE BRIEF CONTAINS A SENTENCE THAT WAS TRUE WHEN WRITTEN AND WAS FALSE
+TWENTY-SEVEN MINUTES LATER, refuted by its own delivery: "Nothing proves any of
+this reached your phone." It needs no correction to him, because the thing that
+refutes it is the message in his hand.
+
+AND THE WHOLE RECEIPT DROUGHT IS EXPLAINED AND CLOSED. The entry above, "THE
+RECEIPT DIRECTORY STOPS ON 7 SEPTEMBER AND THE MAP CLAIMS A DELIVERY NO FILE
+PROVES", was right that the evidence was missing and wrong to leave the delivery
+in doubt. Every message DID arrive; the RECORDS could not get home. Now that they
+have, the ids are:
+
+    31  2026-09-08T02:34:10Z  the street and the correction
+    32  2026-09-08T11:52:50Z  you were right about 11:30
+    33, 34                    bot replies
+    36  2026-09-08T16:38:25Z  the return half works
+    37  2026-09-08T20:24:57Z  the four confirmations
+    38  2026-09-08T20:58:08Z  the first crime
+    39  2026-09-09T04:28:38Z  this morning's brief
+
+SO next-three.json's CLAIM ABOUT ID 31 WAS CORRECT ALL ALONG. It was recorded
+from a live reading during an install run, doubted here because the receipt file
+had never arrived, and the file has now arrived and agrees with it to the second.
+THE LESSON IS NOT THAT THE DOUBT WAS WRONG: a claim with no artifact behind it
+was rightly marked unproven, and the fix was for the artifact to arrive, which is
+what happened.
+
+AND THE BOT'S OWN LOOP SENT IT, NOT THE SWEEP THIS SESSION FIRED. The brief was
+committed at 04:26:16Z and sent at 04:28:38Z, 142 seconds later. The sweep push
+went out at 05:10Z, forty minutes after the send, and found the brief
+alreadySent=14 among fifteen outbox files with sent=0. So the loop works, it
+swept in under two and a half minutes, and the push that fired the sweep was
+unnecessary. IT WAS NOT WRONG TO FIRE IT: nothing observable at the time said the
+loop was working, because the observation channel was the thing that was broken.
+That is the shape worth keeping. When the instrument that would tell you a system
+is healthy is the same system, a redundant action is cheaper than a confident
+guess.
+
+ONE THING STILL REFUSED AND CORRECTLY: outbox: REFUSED
+2026-09-03-batch-landed-and-the-wait.unprompted.md, on four register rules at
+once, including a deadline 70 hours in the past. A six-day-old message that fails
+the register should not be sent, and the sweep saying so on every pass is the
+guard working rather than a fault.

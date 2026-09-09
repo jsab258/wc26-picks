@@ -32,8 +32,10 @@ status: READY 2026-09-09, and it is the reason Jafar's item 2 is still one step 
   actorOccluded=yes/actorBlocker=west_south_bay2, which is how run 32 proved one crime
   was seen and one was not. The grate camera traces nothing at all.
   AND THE Z-FIGHT READING FROM THAT RUN IS VOID. It printed zfightStatus=TIE with
-  zfightSpeckleFired=yes/subject=155px-control=6px, and it measured speckle on a barrier
-  post against asphalt. Every denominator in it is honest, which is what makes a correct
+  zfightSpeckleFired=yes/subject=155px-control=6px. It measured speckle inside a
+  rectangle crossed by the guard railing's post and mid rail, over a piece that renders
+  as a near-white patch with almost no texture. A flat near-white patch is not a surface
+  a speckle statistic can read. Every denominator in it is honest, which is what makes a correct
   reading of the wrong rectangle the worst kind.
   SECOND FINDING IN THE SAME FRAME, filed here because it is what the camera saw: the
   background behind the barrier is WHITE VOID and not the street. The same void appears

@@ -157,17 +157,17 @@ namespace
 
 	// ---- THE GRATE SHOT: WHERE IT STANDS AND WHY ------------------------
 	//
-	// TWO FRAMES OF ONE STATIC CAMERA, AND THAT IS THE WHOLE REASON FOR THE
-	// SEVENTH. The grate's top face is exactly coincident with the channel
-	// and carriageway top faces over about 0.16 square metres, and whether
-	// that TIES in the depth test is answered by tools/grate-zfight.py, which
-	// reads a speckle density AND a FRAME-TO-FRAME FLICKER density against a
-	// same-area control rectangle on plain carriageway in the same frame.
-	// Flicker needs two frames of the SAME view: one still cannot produce it,
-	// and every ue-walkseq frame is from a different place. So this takes two
-	// from one camera that does not move between them, and whatever temporal
-	// jitter the renderer applies between two ticks is what a tie shimmers
-	// through.
+	// TWO FRAMES OF ONE STATIC CAMERA, AND WHAT THE SECOND ONE CAN AND CANNOT
+	// SHOW. The grate's top face is coincident with the channel and
+	// carriageway top faces over about 0.16 square metres (0.1599, the flush
+	// ruling), and tools/grate-zfight.py reads a 22 cm rectangle wholly inside
+	// the CHANNEL course: the carriageway strip, about z 2.60 to 2.745, is
+	// unmeasured by any rectangle here. The second frame was taken for a
+	// frame-to-frame flicker density, and production/queue/173 establishes
+	// that a static camera over static geometry cannot produce one: the tie is
+	// deterministic, so a flicker of zero rules nothing out. THE PAIR STAYS
+	// because it costs one capture and the pair that CAN differ is queued;
+	// until 173 lands, the flicker half is a named gap and not evidence.
 	//
 	// EVERY OFFSET BELOW IS FROM THE ENGINE'S OWN PLACED BOUNDS OF THE GRATE
 	// (GetComponentsBoundingBox, after scale and rotation), never from the
@@ -1022,7 +1022,7 @@ namespace
 				TEXT("grateRaysTraced=%d/%d grateFramesNotTaken=2/2 ")
 				TEXT("grateSubjGridRaysTraced=%d/%d ")
 				TEXT("grateSubjGridRaysStat=cumulative-over-the-standpoints-actually-tried/")
-				TEXT("81-cells-each/counted-apart-from-grateRaysTraced-so-neither-borrows-the-")
+				TEXT("81-cells-each/the-denominator-is-every-standpoint-in-the-list-and-the-search-stops-at-the-first-clear-one/counted-apart-from-grateRaysTraced-so-neither-borrows-the-")
 				TEXT("others-denominator ")
 				TEXT("grateRayLiftCm=%.1f ")
 				TEXT("grateRayLiftStat=clearance-above-the-placed-top-face/not-a-bound/")
@@ -1108,7 +1108,7 @@ namespace
 			TEXT("the-search-stops-at-the-first-clear-one ")
 			TEXT("grateSubjGridRaysTraced=%d/%d ")
 			TEXT("grateSubjGridRaysStat=cumulative-over-the-standpoints-actually-tried/")
-			TEXT("81-cells-each/counted-apart-from-grateRaysTraced-so-neither-borrows-the-")
+			TEXT("81-cells-each/the-denominator-is-every-standpoint-in-the-list-and-the-search-stops-at-the-first-clear-one/counted-apart-from-grateRaysTraced-so-neither-borrows-the-")
 			TEXT("others-denominator ")
 			TEXT("grateRayLiftCm=%.1f ")
 			TEXT("grateRayLiftStat=clearance-above-the-placed-top-face/not-a-bound/")
@@ -1322,12 +1322,22 @@ namespace
 		Out.Add(TEXT("#   without moving. Frame 05 is the picture of Jafar's accepting case, which"));
 		Out.Add(TEXT("#   run 34 measured (propsAsMesh, propPlacedWithCollision, propFullyBuried)"));
 		Out.Add(TEXT("#   and no frame showed. The PAIR exists because the piece's top face is"));
-		Out.Add(TEXT("#   coincident with the channel and carriageway top faces, and whether that"));
-		Out.Add(TEXT("#   ties in the depth test is read by tools/grate-zfight.py as a speckle AND"));
-		Out.Add(TEXT("#   a frame-to-frame flicker density, against the same-area control rectangle"));
-		Out.Add(TEXT("#   named on the grateRect line. THE CONTROL IS THE DENOMINATOR: no bound is"));
-		Out.Add(TEXT("#   set here, and this file decides nothing about the tie. It supplies the"));
-		Out.Add(TEXT("#   two frames and the two rectangles as FRACTIONS of the frame."));
+		Out.Add(TEXT("#   coincident with the channel and carriageway top faces over about 0.16"));
+		Out.Add(TEXT("#   square metres (0.1599, decision-2026-09-09-the-grate-rises-flush.md)."));
+		Out.Add(TEXT("#   WHAT IS ACTUALLY READ IS THE CHANNEL HALF: tools/grate-zfight.py"));
+		Out.Add(TEXT("#   measures a 22 cm rectangle spanning z 2.76 to 2.98, wholly inside the"));
+		Out.Add(TEXT("#   channel course, so the crown-side strip where the grate meets the"));
+		Out.Add(TEXT("#   CARRIAGEWAY, about 2.60 to 2.745, is UNMEASURED by any rectangle in"));
+		Out.Add(TEXT("#   this run (amendment 2, decision-2026-09-09-grate-camera-and-zfight.md)."));
+		Out.Add(TEXT("#   AND THE FLICKER HALF CANNOT FIRE ON A STATIC PAIR: both frames come"));
+		Out.Add(TEXT("#   from a camera that did not move over static geometry, so a depth-test"));
+		Out.Add(TEXT("#   tie is deterministic and reproduces identically, and a flicker of zero"));
+		Out.Add(TEXT("#   is what a stable tie looks like (production/queue/173). So this run"));
+		Out.Add(TEXT("#   carries ONE reading, the speckle density against the same-area control"));
+		Out.Add(TEXT("#   rectangle named on the grateRect line, and one named gap. THE CONTROL"));
+		Out.Add(TEXT("#   IS THE DENOMINATOR: no bound is set here and this file decides nothing"));
+		Out.Add(TEXT("#   about the tie. It supplies the two frames and the two rectangles as"));
+		Out.Add(TEXT("#   FRACTIONS of the frame."));
 		Out.Add(TEXT("# AND IT TRACES BEFORE IT SHOOTS, since run 35. That run printed"));
 		Out.Add(TEXT("#   grateShotStatus=AIMED, grateRectStatus=MEASURED and walkFramesWrote=7/7"));
 		Out.Add(TEXT("#   over a frame in which the east kerb's pedestrian guard railing (E8,"));

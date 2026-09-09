@@ -26,8 +26,9 @@ barrier is on the WEST side at x=22.5 m and cannot be in that frame. So there ar
 TWO faults and not one: a railing in the line, which this change addresses, and a
 near-white render, which it does not.
 
-THE Z-FIGHT READING FROM THAT RUN IS VOID AND MUST NOT BE QUOTED. It measured
-speckle on a barrier post against asphalt. Every denominator in it is honest,
+THE Z-FIGHT READING FROM THAT RUN IS VOID AND MUST NOT BE QUOTED. It measured speckle inside a rectangle crossed by the guard railing's
+post and mid rail, over a piece that renders as a near-white patch with almost no
+texture. A flat near-white patch is not a surface a speckle statistic can read. Every denominator in it is honest,
 which is what makes a correct reading of the wrong rectangle the worst kind.
 
 SO ITEM 2 STANDS WHERE RUN 34 LEFT IT: the grate is a real imported mesh, it
