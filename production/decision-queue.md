@@ -46,6 +46,29 @@ the studio has looked at a question and CANNOT form a recommendation, and then i
 is one a week and it carries buttons. Everything else is taken, logged below, and
 surfaced in the Sunday summary if it is notable.
 
+### 2026-09-09 22:05Z, three taken on the four absent surfaces
+
+All three carried a recommendation and a default, so all three are TAKEN and
+logged here rather than sent. None is notable enough for the Sunday summary on
+its own; the finding underneath them is (queue 223).
+
+1. THE ACCEPTANCE NUMBER FOR THE SURFACE GATE. Recommendation was to change it,
+   because surfacesAsked=16 counts two decal blend modes as library surfaces and
+   its green state would require shipping wrong content. TAKEN as recommended,
+   filed as queue 227, and it does NOT land without a ruling: changing what a
+   gate counts turns a standing fault into a mismeasurement, which is a
+   conclusion change and a mechanical escalation.
+2. INTERIOR ART. Recommendation was no fetch: take the Unity answer, a tint plus
+   the window surface's normal and roughness by the existing borrow rule, for
+   parity now, and put a generated dim interior back-wall plate on the quality
+   ladder for the imagegen lane, which is free PC compute on allowlisted weights
+   with no account and no purchase. TAKEN as recommended.
+3. RoadLines011 AND THE FIVE UNUSED PACK VARIANTS. Recommendation was one card
+   each and not tonight's work. TAKEN as recommended. The half that is not
+   deferred is the false sentence in three files saying no yellow line art is
+   held, which is queue 226, because a decayed claim is a correction and not a
+   decision.
+
 WHAT CHANGED FOR THE STUDIO, said plainly because it is the point of his ruling:
 a card was how the studio avoided deciding. Eight sat here, six of them reached
 his phone this morning as a burst, and every one carried a recommendation the

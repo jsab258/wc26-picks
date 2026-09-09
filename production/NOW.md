@@ -9,6 +9,161 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-09 22:40Z: A CONTAINER RESTART KILLED TWO BUILDERS MID-EDIT
+
+WHAT WAS LOST AND WHAT WAS NOT. The container restarted, both builders died
+mid-edit, and the checkout rolled back behind origin. Everything pushed was
+safe. Thirty-five uncommitted paths were not, and they were separated by hand
+rather than committed together, because a resident never commits a builder's
+work-in-progress.
+
+THE ENGINE BUILDER'S 1625 INSERTIONS WERE REVERTED, NOT LANDED, and the reason
+is that the tests caught real defects rather than pinned numbers. Three of 275
+checks failed alone: the burial half ships the count it examined over the count
+the file asked for; a fixture pinned to "pieces":593 could not be planted after
+the count moved to 610; and a nothing-measured cell row CONTAINS A SPACE, which
+is the instruments.md rule that every reader splits on whitespace. Two of those
+three are faults in the new code. FIXING TESTS TO MAKE RED GO GREEN IS THE ONE
+THING THAT ERODES A GATE, so nothing was edited to pass. The work is preserved
+as a 2215-line patch in the session scratchpad, which does NOT survive another
+container reclaim, and it is cheaper to rebuild from the ruling than to nurse.
+
+WHAT LANDED INSTEAD: the record, the ruling, eight queue items, the pass-2 art
+sentinel and spec, the rebuilt comparison sheet and its compositor, and the art
+lane's two fascia meshes with their attribution. All of it reviewed, all of it
+mine or the director's.
+
+THE ART LANE GOT FURTHER THAN THE GAME LANE and its meshes are on disk:
+ledger/Assets/Props/base-mesh/fascia_console_01.glb and fascia_cornice_01.glb,
+with production/art/fascia-01/ carrying the station work. Its spec rows were
+reverted with the engine batch because they moved a bill-of-materials count
+that CoreTests pins, so the meshes are present and named by nothing yet, which
+is rule 6 and is stated here rather than hidden. Queue 228 carries the burial
+reading its placement produced.
+
+## 2026-09-09 21:15Z: THE FRAME WAS OPENED AND IT MOVED THE RUNG
+
+FOUR THINGS ARE IN FLIGHT RIGHT NOW, three of them builders and one a ruling.
+A session that resumes this file should read this section before starting
+anything, because all four touch rung 1 and two of them touch the same files.
+
+  in flight  engine builder: the sky-by-sun grid on cam_hook, the in-frame
+             ratio in FrameStats, wetness reaching the material, the fog's max
+             opacity, and the DISPATCH entry. Resumed once after a turn limit.
+  in flight  world designer: the fascia package through all five stations.
+  in flight  content wrangler: the four surfaces with no maps (queue 223).
+  in flight  studio director: the ruling on the grid, at
+             game-design/decision-2026-09-09-ruling-the-grid-not-the-ladder.md.
+  ready, held: the art lane's Hook pass 2 is written and validated and is NOT
+             pushed, because two builders hold uncommitted work in this
+             checkout and merging under them would destroy it. Push it with
+             their work, not before.
+
+THE ART LANE COMPLETED ITS FIRST FULL PASS. imagegen run 5 banked four Hook
+draws at commit e4924cb7: wroteThisRun=4 blankThisRun=0 checkedThisRun=4, 154
+to 157 seconds each. THEY WERE THEN OPENED AND INSPECTED BY VISION, which is
+the middle step of the method and the step that had been missing. Seed
+20260910 carries a crisp MICKEY'S; the other three garble it; every secondary
+fascia is a smear on all four; and the three objects the prompt asked for were
+dropped by the model while the four swatches arrived. Pass 2 corrects exactly
+those and concedes swatch labels rather than risk the two fascias.
+
+THE REFERENCE NUMBER THAT DROVE THIS RUNG ALL DAY WAS MEASURING A CAPTION
+STRIP. The crop at (0,768,1024,1536) is 32 per cent swatch strip and near-white
+caption band and omits 106 rows off the top of the photograph. The claim it
+supported, that the two pictures' bright ends nearly agree, IS FALSE: reference
+street p95 is 0.8239 against our 0.9532. Corrected in production/findings.txt
+with nothing deleted, and both copies in this file corrected in place.
+
+AND THE CORRECT BOUNDS WERE ALREADY IN THE REPO. vignette-scene.json's cam_hook
+note records the panel content area as x 11 to 1012, y 662 to 1278, written
+when cam_hook was placed from that panel, agreeing with tonight's independent
+measurement to one pixel. THAT IS THE SECOND TIME IN ONE DAY that this studio
+re-derived, wrongly, something already written down; the first cost a CI round
+trip on a Blender question answered in blender-setup.txt on 1 September. Queue
+220 is now "read the bounds that exist", not "find them".
+
+WHAT THE CORRECTED BANDS SAY, and it is not what the instruction assumed:
+
+    region      ref street photo              ours, ue-vign_hook_day
+    ground      mean 0.4159  p95/p05 3.68     mean 0.7735  p95/p05 1.61
+    sky         mean 0.6102  p95/p05 4.27     mean 0.6535  p95/p05 4.02
+
+The sky band nearly agrees on level and on ratio; THE WHOLE GAP IS THE GROUND.
+Limit stamped on it, because this is the shape that already misled twice: these
+are proportional bands over pictures with different content, so the ground rows
+are strong and the SKY ROWS ARE WEAK and may be a content coincidence. Queue
+222 is that item.
+
+THE BIGGEST FINDING IS NOT A LIGHTING NUMBER. Opening the frame beside the
+reference shows no windows, no shop interiors, no signage and no road markings.
+The obvious reading, that the blockout is untextured, IS WRONG and the verdict
+refutes it: piecesTextured=563/593, texturesImported=36, texResourceValid=12/12.
+The real fault is surfacesAbsent=card/interior/multiply/paint_yellow with
+mapsFound=36/48, and the arithmetic closes exactly at 4 surfaces times 3 maps.
+
+AND THE READING OF THAT WAS ALSO WRONG, corrected 22:05Z after the wrangler
+answered it. NOTHING NEEDS SOURCING. card and multiply ARE NOT SURFACES AT ALL,
+they are decal BLEND MODES declared at StreetVignette.cs:57 and enforced at
+1651, and all twenty decal images are already on disk, ten generated plus five
+CC0 ambientCG sets. paint_yellow is ProceduralOnly at AssetLibrary.cs:1613 and
+a pack file for it is deliberately ignored. interior is generated from a tint
+and BORROWS its normal and roughness from the window surface at
+AssetLibrary.cs:611.
+
+THE ACTUAL CAUSE OF THE BLANK FRAME IS ONE LINE, VignetteShot.cpp:2749: a piece
+whose surface did not resolve gets NO MATERIAL INSTANCE AT ALL and renders the
+engine default. 10 card + 10 multiply + 6 interior + 4 paint_yellow = 30, and
+593 minus 563 is 30. The UE probe is missing four rules the Unity host already
+has and that are already written down: the tint fallback, the
+interior-borrows-window rule, any decal texture path at all, and the _b variant
+rule, whose absence is why 15 of the 51 staged pack files are named by nothing.
+THAT is the highest-leverage visual fix on the board and it is queue 223,
+rewritten. Queue 227 is the gate whose green state would require shipping wrong
+content; queue 226 is a false sentence in three files saying no yellow line art
+is held, refuted by measuring it at yellowness 150.5 against 4.8.
+
+THE RESOLVER WAS SIMULATED, NOT ASSUMED: re-implemented in Python against the
+51 files on disk it printed surfacesResolved=12/16 mapsFound=36/48 and the same
+four absent names, character for character with the PC. The ruler is understood.
+
+THE SUN IS AT 82 DEGREES AND THE SPEC ASKS FOR 36. Proven by arithmetic on
+committed files, not inferred. vignette-pieces.json:16 asks elevation_deg 36
+and azimuth_deg 205; VignetteSpec.h's own two conversions turn those into an
+asked pitch of -36.0 and an asked yaw of 25.0; the committed verdict reads
+sunPitchYawRead=-82.0/25.0. YAW AGREES TO THE DECIMAL AND PITCH IS OFF BY
+EXACTLY 46.0, which rules out coincidence and rules out the readback reading a
+different actor. A 4 m post casts 5.5 m at the asked elevation and 0.56 m at
+the rendered one, a factor of ten, and that is queue 197 explained. The
+readback has printed the truth on every run since it was written and NOBODY
+EVER DIFFERENCED ASKED AGAINST READ. Queue 224.
+
+IT IS NOT THE WHOLE STORY, and the record says so rather than letting the
+newest finding eat the older one. The grid ruling's own series has the
+shadow-edge step at +0.0270 with three fills and no skylight and -0.0003 on
+the same pixels with the captured sky. The sun was at 82 on both sides of that
+change, so THE SKY IS WHAT KILLED THE STEP, which is exactly Jafar's diagnosis
+with a measurement under it, and the elevation is a standing defect that caps
+how much shadow is available at all. Both are real. The run separates them.
+
+THREE OF THE RESIDENT'S OWN READINGS WERE REFUSED BY THE DIRECTOR TONIGHT and
+all three deserved it. The inference that a sun would put a lit road far above
+0.38 is an absolute-luma claim under unsnapped auto exposure, and there is no
+level at which "far above" could have been checked. The frame it called night
+is a dusk street with legible setts and a white kerb, which the director
+established by OPENING it, as the resident should have. And shotMaxLuma=0.6240
+is very likely a control-quad pixel rather than scene content, because
+controlQuadHidden names only three frames and the quads are in all eight cam_A
+frames. The whole-picture conclusion survives on the two band readings, which
+are clean because the quad boxes end at y422 and the ground band starts at
+y576.
+
+SO THE ORDER HE GAVE IS BEING RUN IN PARALLEL RATHER THAN RESEQUENCED. His
+words were sky, then wetness, then worn materials. The measurement says the
+surfaces are the bigger lever and the sky may already be right. Decision TAKEN
+and logged per his standing order: both run at once, the picture goes in the
+brief with the numbers, and his verdict adjusts it.
+
 ## 2026-09-09 17:40Z: TWO LANES, AND NEITHER ENDS A TURN WITH WORK IN THE QUEUE
 
 Jafar, reading total 39, Fable 38, ceiling 75. His standing correction first,
@@ -85,8 +240,9 @@ His three owed items and the map ruling are done and pushed. In his order:
    claims he ruled any of it. First screen committed as map_first_screen.jpg.
 
 RUNG 1 CONTINUED AND PRODUCED THE MEASUREMENT IT WAS MISSING. Against Codex's sheet
-our street has NO DARK IN IT: median 0.6987 against 0.3942, darkest twentieth 0.3238
-against 0.1215. The cause is named by a control rather than inferred: THE SKY THIS
+our street has NO DARK IN IT: median 0.6992 against 0.3568, darkest twentieth 0.3249
+against 0.1093 (CORRECTED 19:55Z, the first pair measured the sheet's caption
+band; see findings.txt at the 2026-09-09 EVENING block). The cause is named by a control rather than inferred: THE SKY THIS
 MORNING DROWNED THE SUN, which is still a bare literal 3.0f. Queue 205 is the ladder
 that answers it and it is UNBLOCKED as of 15:36Z, because the probe is a game workflow
 and starting one would have destroyed the art render in flight.
@@ -139,7 +295,8 @@ rooftops: cam_A's 0.8459 is not the rung-1 camera's, which reads 0.9323 at sprea
 0.0078. Queue 194.
 
 THE MEASUREMENT RUNG 1 WAS MISSING. The reference panel beside our frame: median
-0.3942 against 0.6987, darkest twentieth 0.1215 against 0.3238. OUR STREET HAS NO
+0.3568 against 0.6992, darkest twentieth 0.1093 against 0.3249 (CORRECTED
+19:55Z, see findings.txt). OUR STREET HAS NO
 DARK IN IT. The sky lit the street UP when the reference has not more light but
 more shadow. Four items filed from opening the frame rather than from a gate: 194
 the sky band, 195 no windows anywhere, 196 the street furniture is flat grey and

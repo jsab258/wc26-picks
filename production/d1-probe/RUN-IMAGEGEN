@@ -160,3 +160,60 @@ out: production/art/compare/hook-2026-09-09
 only: hook_compare,hook_compare_s2,hook_compare_s3,hook_compare_s4
 limit: 4
 max_minutes: 30
+
+# ---------------------------------------------------------------------------
+# run 6 - 2026-09-09 - PASS 2 OF THE HOOK COMPARISON, THE CORRECTION PASS.
+# Run 5 banked all four pass-1 draws: imagegenVerdict=BANKED wroteThisRun=4
+# blankThisRun=0 checkedThisRun=4, 154 to 157 s each, commit e4924cb7. THE
+# FOUR WERE THEN OPENED AND INSPECTED BY VISION, which is the middle step of
+# the method Jafar named on 2026-09-09 and the step Codex's own sheet had
+# three of against our two.
+#
+# WHAT THE INSPECTION FOUND, and every one of these is a fault in OUR draw
+# rather than a fault in the lane:
+#   1. MICKEY'S is crisp and correctly spelled on seed 20260910 and garbled
+#      on the other three. Every SECONDARY fascia is an illegible smear on
+#      all four, where the reference sheet carries a legible HARBOUR FISH.
+#   2. The three objects the pass-1 prompt already asked for, rope fender,
+#      metal dustbin and beer firkin, were DROPPED BY THE MODEL on all four.
+#      Only the four material swatches arrived. The prompt asked for both in
+#      one sentence and the model rendered the first half.
+#
+# WHAT PASS 2 CHANGES, and it is one correction because the method allows one.
+# The two fascia strings are named explicitly and every other shopfront is
+# ordered to carry NO text at all, so the model draws two strings rather than
+# a terrace of invented ones. The dropped objects are pulled onto their own
+# separate named row rather than sharing a sentence with the swatches.
+#
+# WHAT IT DELIBERATELY DOES NOT DO, recorded as a judgement rather than left
+# as an oversight: it does not ask for swatch LABEL text, which the reference
+# sheet has. At 8 steps every additional string degrades the lettering that
+# already works, so this CONCEDES A VISIBLE DIFFERENCE to protect the two
+# fascias. Recommendation taken and logged per his standing order; he may
+# reverse it and the next pass would carry the labels.
+#
+# THE SEED THAT LED IS THE ONE THAT WORKED. 20260910 is the pass-1 draw whose
+# lettering came out right, and it leads here. A CHANGED PROMPT DOES NOT
+# REPRODUCE A COMPOSITION AT A GIVEN SEED, so that is the closest available
+# anchor and not a guarantee; three fresh seeds ride with it for spread.
+#
+# COST, off the tool's own estimate rather than typed here: the four pass-1
+# draws measured 154.2, 154.5, 154.8 and 156.7 s at this exact size, so 620 s
+# of GPU is a MEASURED neighbour rather than an estimate. max_minutes 30 is
+# about three times that and inside the 250 ceiling.
+#
+# THE SPEC WAS BUILT WRONG FIRST AND THE ENTRY POINT CAUGHT IT. Written from
+# scratch, it dropped content_rules, which is the clause forbidding real
+# company names, real brand logos, trade marks and recognisable faces, and
+# `plan --dry-run` refused with KeyError rather than drawing four pictures
+# without it. Rebuilt by CARRYING EVERY TOP-LEVEL KEY off the pass-1 spec:
+# 9 of 9 carried, 0 missing. Same fault class as a hand-written NEEDS tuple,
+# and the same repair: derive the set, never hand-list it.
+#
+# THE SETTINGS. Uncommented lines only, last-wins, so these five override
+# every pair above and nothing at all is inherited by accident.
+spec: tools/imagegen/compare-hook-2026-09-09-pass2.json
+out: production/art/compare/hook-2026-09-09-pass2
+only: hook_pass2,hook_pass2_s2,hook_pass2_s3,hook_pass2_s4
+limit: 4
+max_minutes: 30

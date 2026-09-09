@@ -2730,7 +2730,8 @@ Codex's hook.png fetched from origin/art/atlas-01 and its lower panel measured
 against ue-vign_hook_day.png, same street, the camera rung 1 is judged from:
 
     picture                       mean     p05      p50      p95    range
-    hook sheet, lower panel     0.4937  0.1215   0.3942   0.9720   0.8505
+    hook sheet, lower panel     0.4937  0.1215   0.3942   0.9720   0.8505   <- SUPERSEDED 2026-09-09 19:55Z, SEE BELOW: this row measured a
+                                                                         white caption strip as well as the street
     ue-vign_hook_day            0.6714  0.3238   0.6987   0.9527   0.6289
 
 The two p95 values nearly agree: both pictures have a bright top end. Everything
@@ -2781,6 +2782,86 @@ differ:
 The left-hand building is the encouraging half. It is red brick in both pictures
 and the material reads correctly. What it is missing is everything drawn ON a
 building: windows, a drainpipe, a sill, a door.
+
+
+--------------------------------------------------------------------------------
+2026-09-09 EVENING, THE REFERENCE ROW ABOVE IS CORRECTED: IT MEASURED THE
+SHEET'S CAPTION BAND, AND THE ONE CLAIM IT SUPPORTED IS FALSE.
+
+The row above cropped hook.png at (0,768,1024,1536) and called that the lower
+panel. Two faults in one crop, both found by OPENING THE CROP rather than by
+rereading the code that made it. 244 of its 768 rows, 32 per cent, are the
+sheet's material swatch strip and its near-white caption band; and it omits 106
+rows off the TOP of the street photograph.
+
+THE CLAIM IT KILLED: "the two bright ends nearly agree" and "both pictures have
+a bright top end". That agreement WAS the caption band, which alone reads
+mean=0.9566 p95=0.9723. The reference street photograph's p95 is 0.8239 against
+our 0.9532. Every quantile disagrees, all in the same direction, ours brighter.
+
+THE PANEL BOUNDS, found by row statistics and not by eye, after eye got them
+wrong once: near-uniform bright gutter runs at rows 655..661 and 1279..1291, and
+the cream margin then trimmed off both axes by the same rule. The street
+photograph is x 11..1013, y 662..1279, 1002x617.
+
+    region        picture        n        mean     p05      p50      p95   p95/p05
+    whole         ref street   618234   0.4102   0.1119   0.3611   0.8230    7.35
+    whole         ours         921600   0.6724   0.3258   0.6982   0.9534    2.93
+    ground b20    ref street   123246   0.4175   0.1935   0.3758   0.7071    3.65
+    ground b20    ours         184320   0.7734   0.5785   0.7793   0.9304    1.61
+    sky t12       ref street    74148   0.6114   0.2015   0.7855   0.8445    4.19
+    sky t12       ours         115200   0.6539   0.2364   0.5867   0.9409    3.98
+
+THE RULER, NAMED, BECAUSE THE FIRST PRINT OF THIS TABLE USED A DIFFERENT ONE.
+Rec.601 weights, (0.299R + 0.587G + 0.114B) / 255, and percentiles INDEXED and
+not interpolated, both copied from FrameStats.h lines 56 to 59 and 606 to 615
+rather than chosen here. The first print used Rec.709 weights and numpy's
+interpolated percentiles, which is a THIRD ruler, agreeing with the project's
+only on near-neutral pixels and drifting on the reference's red brick. Caught
+by the director, not by me.
+
+THE CROSS-RULER CHECK, condition C8 of the grid ruling, DISCHARGED EXACTLY.
+This ruler run on our own committed frame over the verdict's own band.ground
+rectangle 0/576/1280/720 reproduces the committed verdict on all four
+statistics: mean 0.7734, p05 0.5785, p50 0.7793, p95 0.9304, worst residual
+0.0000 over 4 statistic(s) compared on 184320 px. The reference rows above are
+therefore measured by the same ruler as every committed number in this project.
+
+THE ROW RANGE, condition C9, RESOLVED IN THE PRINT. The box is x0=11 y0=662
+x1=1013 y1=1279 HALF-OPEN, which is columns 11..1012 and rows 662..1278
+INCLUSIVE, 1002 x 617 = 618234, and that equals n. The earlier print wrote
+"rows 662..1279" meaning the half-open end and it was correctly read as one
+row too many. The bounds agree within 1 px with vignette-scene.json's cam_hook
+note, whose numbers are the inclusive form of the same box.
+
+EVERY ROW ABOVE IS ON THE ONE RULER, sky rows included, because a table mixing
+two rulers is the fault this block exists to correct. THE SKY ROWS ARE STILL
+THE WEAK READING and should not be quoted for a decision: they were already
+proportional bands over different content, and the director added a second
+reason, that the two sky bands are not even the same fraction, ours 12.5 per
+cent against the reference's 11.8.
+
+WHAT IT SAYS, AND IT MOVES THE RUNG. The sky band nearly agrees on level and on
+ratio. THE WHOLE GAP IS THE GROUND: our road is 1.8x brighter at the mean, 3x
+brighter at its darkest twentieth, and carries a contrast ratio of 1.61 against
+3.68, less than half. That is a material and shadow deficit and not a light
+level one, which raises wetness, queue 186's unbuilt half, above the sky.
+
+WHY p95/p05 AND NOT A DIFFERENCE. Commit b7ce9f61 established that no frame this
+rig takes is photographed at a settled exposure, so a whole-frame exposure
+multiplier is in every number it prints. A luma DIFFERENCE scales with that
+multiplier and a RATIO does not. Every step and delta key this rig prints is a
+difference; the ratio is the shape that survives.
+
+TWO LIMITS ON THE TABLE, stated because the fault it corrects was exactly this
+shape. These are PROPORTIONAL bands over two pictures with different content,
+not registered to the same world geometry. The GROUND rows are the strong ones,
+both bands demonstrably covering road and pavement in both pictures. THE SKY
+ROWS ARE WEAK and may be a content coincidence: the reference's top twelfth is
+mostly brick terrace with a sky strip in it, ours is mostly the flat white void
+of queue 016. Do not rest a decision on the sky agreement. And a concept panel
+is an illustration, so this is a comparison of two pictures meant to match and
+never a photometric calibration.
 
 --------------------------------------------------------------------------------
 2026-09-09, A SUITE WENT RED WITH NOTHING CHANGED, AND THE CAUSE WAS THE HOUR
