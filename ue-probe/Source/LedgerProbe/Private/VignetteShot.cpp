@@ -184,15 +184,17 @@ namespace
 	const float kSkyMieScale        = 0.040f;   // engine default 0.003996
 	const float kSkyMieAnisotropy   = 0.05f;    // engine default 0.8
 	const float kSkyMultiScattering = 1.0f;     // engine default 1.0, named anyway
-	// THE SKYLIGHT'S INTENSITY, day and night. The engine's own default is
-	// 1.0 and the day value is left there deliberately: this is the first
-	// run in which a captured sky lights anything here, and starting
-	// anywhere but the engine's default would make the frame a statement
-	// about a number I chose rather than about the mechanism. Night is
-	// lower because the atmosphere with the sun off is nearly black anyway
-	// and the lanterns are meant to own that frame.
-	const float kSkyIntensityDay   = 1.0f;
-	const float kSkyIntensityNight = 0.35f;
+	// THE SKYLIGHT'S INTENSITY IS NO LONGER IN THIS FILE, QUEUE 205.
+	// It was kSkyIntensityDay = 1.0f and kSkyIntensityNight = 0.35f,
+	// chosen here by whether the sun was on. Both values now ride on the
+	// CONDITION as sky_intensity, carried unchanged into overcast_day and
+	// wet_night, because the ladder's control row needs a day condition
+	// with the sky at 0.35 and a constant keyed on SunOn cannot express
+	// one. THEY ARE DELETED RATHER THAN LEFT UNUSED: a constant that
+	// still looks live and feeds nothing is a number a later session
+	// would change to no effect, which is the quietest fault there is.
+	// The value in force is read back on every verdict as
+	// skyIntensityRead and per frame as shotSkyIntensityRead.
 	// HOW MUCH OF THE FAR FIELD THE HEIGHT FOG MAY STILL OWN, now that
 	// something else is behind it. DERIVED, WITH ITS UNKNOWN NAMED. The
 	// current far field measures 0.980 luma and the reference panel's sky
@@ -1147,12 +1149,17 @@ namespace
 		// THE SPAWNS THAT ARE NOT PIECES, READ BACK RATHER THAN ASSUMED. A
 		// null here is why a frame would be black, and it is a different
 		// fault from an empty street.
+		// `sun=` USED TO BE PRINTED HERE AND IS NOT ANY MORE, QUEUE 205.
+		// It said a directional light had been SPAWNED and nothing about
+		// what that light is, and it is now one key of five that
+		// LedgerVignette::SunSegment prints off the live component. Two
+		// producers for one key on one line would make the reader's answer
+		// depend on which token it split first.
 		char Buf[420];
 		std::snprintf(Buf, sizeof(Buf),
-			" sun=%s fill=%d/3 fog=%s"
+			" fill=%d/3 fog=%s"
 			" lampGain=%.2f fogGain=%.2f"
 			" lightUnits=unitless/not-candelas decalLiftCm=%.1f decalModel=quad/phase-C-owns-the-decal",
-			GSun ? "yes" : "SPAWN-FAILED",
 			(GFillA ? 1 : 0) + (GFillB ? 1 : 0) + (GFillC ? 1 : 0),
 			GFog ? "yes" : "SPAWN-FAILED",
 			kLampGainUnitless, kFogDensityGain, kDecalLiftCm);
@@ -1237,7 +1244,17 @@ namespace
 		const FLinearColor NightSky(0.05f, 0.05f, 0.07f, 1.0f);
 		const FLinearColor Sky = C.SunOn ? DaySky : NightSky;
 		const bool bWhole = SkyIsWhole();
-		SetDirectional(GSun, FLinearColor(0.95f, 0.96f, 1.0f, 1.0f), C.SunOn ? 3.0f : 0.0f);
+		// THE SUN'S INTENSITY COMES OFF THE CONDITION, QUEUE 205. It was the
+		// bare literal 3.0f here, the only light in this file with no named
+		// constant, and it was tuned against three directional fills that
+		// the captured sky retired four lines below on 9 September: the
+		// value stood while the thing it was calibrated against was
+		// deleted, and no number moved, so no gate could see it. NIGHT IS
+		// STILL A HARD ZERO and the gate stays: a sun-off condition that
+		// names a bright sun must not light the night, whatever its data
+		// row says.
+		SetDirectional(GSun, FLinearColor(0.95f, 0.96f, 1.0f, 1.0f),
+		               C.SunOn ? (float)C.SunIntensity : 0.0f);
 		// THE FILLS AT ZERO ALSO STOP THEM BEING SUNS. A directional light
 		// is an atmosphere sun light by default in this engine, so three
 		// fills left burning would put up to two extra sun discs in the sky
@@ -1300,7 +1317,10 @@ namespace
 			}
 			if (USkyLightComponent* SC = GSky->FindComponentByClass<USkyLightComponent>())
 			{
-				SC->SetIntensity(C.SunOn ? kSkyIntensityDay : kSkyIntensityNight);
+				// OFF THE CONDITION, NOT OFF A CONSTANT KEYED ON SunOn. The
+				// ladder's control row is a DAY condition with the sky at
+				// 0.35, which the old pair of constants could not say.
+				SC->SetIntensity((float)C.SkyIntensity);
 				// RECAPTURED EXPLICITLY ON THE CHANGE. Real-time capture
 				// refreshes on its own, but a shot is photographed a fixed
 				// number of frames after the condition changes and a sky
@@ -1354,6 +1374,28 @@ namespace
 				In.bFogComponent     = true;
 				In.FogDensityRead    = (double)F->FogDensity;
 				In.FogMaxOpacityRead = (double)F->FogMaxOpacity;
+			}
+		}
+		// ---- QUEUE 205: THE SUN, OFF ITS OWN COMPONENT ------------------
+		//
+		// The verdict said `sun=yes` and that was the whole of what any run
+		// has ever known about this light: that something spawned. Every
+		// value below is asked of the live component, so a sun whose
+		// intensity never took, whose shadows were turned off by something
+		// else, or which is pointing somewhere else, says so itself
+		// instead of being inferred from the number that was written.
+		if (GSun != nullptr)
+		{
+			In.bSunActor = true;
+			if (ULightComponent* LC = GSun->GetLightComponent())
+			{
+				In.bSunComponent        = true;
+				In.SunIntensityRead     = (double)LC->Intensity;
+				In.bSunCastShadowsRead  = (LC->CastShadows != 0);
+				const FRotator R        = LC->GetComponentRotation();
+				In.SunPitchRead         = (double)R.Pitch;
+				In.SunYawRead           = (double)R.Yaw;
+				In.SunMobilityRead      = (int)LC->Mobility.GetValue();
 			}
 		}
 		In.FillsSpawned = (GFillA ? 1 : 0) + (GFillB ? 1 : 0) + (GFillC ? 1 : 0);
@@ -1800,6 +1842,44 @@ namespace
 		return (C->LanternsOn && GLanterns.Num() > 0) || (C->WindowsOn && GWindows.Num() > 0);
 	}
 
+	// WHAT THE TWO LIGHTS WERE WHILE THIS FRAME STOOD, QUEUE 205.
+	//
+	// Called from MeasureShot, which runs after the screenshot and before
+	// the next condition is applied, so these are readings of the light
+	// that took the picture. The scene line's sun keys are one-per-run and
+	// last-wins; a ladder renders six conditions in one run, so without
+	// this five of its six frames would carry no component reading at all
+	// and a rung could only be attributed by trusting a data file.
+	std::string ShotLightNow()
+	{
+		bool bSunComp = false, bCast = false, bSkyComp = false;
+		double Intensity = 0.0, Pitch = 0.0, Yaw = 0.0, SkyIntensity = 0.0;
+		int Mobility = -1;
+		if (GSun != nullptr)
+		{
+			if (ULightComponent* LC = GSun->GetLightComponent())
+			{
+				bSunComp     = true;
+				Intensity    = (double)LC->Intensity;
+				bCast        = (LC->CastShadows != 0);
+				const FRotator R = LC->GetComponentRotation();
+				Pitch        = (double)R.Pitch;
+				Yaw          = (double)R.Yaw;
+				Mobility     = (int)LC->Mobility.GetValue();
+			}
+		}
+		if (GSky != nullptr)
+		{
+			if (USkyLightComponent* SC = GSky->FindComponentByClass<USkyLightComponent>())
+			{
+				bSkyComp     = true;
+				SkyIntensity = (double)SC->Intensity;
+			}
+		}
+		return LedgerVignette::ShotLightLine(bSunComp, Intensity, bCast, Pitch, Yaw,
+		                                     Mobility, bSkyComp, SkyIntensity);
+	}
+
 	// MEASURE THE FILE THAT IS ABOUT TO BE COMMITTED, not the buffer the
 	// engine had in memory, and let the maths and the string come from the
 	// tested header.
@@ -1873,6 +1953,10 @@ namespace
 			Line += " ";
 			Line += LedgerFrame::SkyBandLine(SkyTop, SkyCentre, Ground);
 		}
+		// AND WHAT LIT IT, READ OFF THE COMPONENTS RATHER THAN OFF THE ROW
+		// OF THE FILE THAT ASKED FOR IT. Per-sample keys on the sample line.
+		Line += " ";
+		Line += ShotLightNow();
 		GShotLines.push_back(Line);
 		if (GArt.empty())
 		{

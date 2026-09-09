@@ -7,7 +7,7 @@
 "quantisation_decimals":6,
 "quantisation_note":"Every number is rounded to that many decimals, so a coordinate here is within 0.5 um of the unrounded plan Unity builds from. Deliberate: a byte-identical drift guard needs a fixed printed form, and 0.5 um is four orders below the thinnest piece in the scene.",
 "frame":{"units":"metres","x":"along-the-street","y":"up/0-at-the-road-crown","z":"across-the-street/+z-is-east","yaw_deg":"compass-bearing-from-+x/turns-+x-toward-+z","pitch_deg":"about-+x/positive-tips-the-+z-end-down","roll_deg":"about-+z/lays-a-cylinder-axis-along-the-street","size":"full-size-before-rotation/not-half-extents","centre":"x_m/y_m/z_m-is-the-CENTRE-of-the-piece","cylinder_axis":"local-+y-in-both-engines/height-is-sy_m/diameter-is-sx_m-and-sz_m","mesh_placement":"load-asset/never-scale-it/put-its-own-bounds-centre-on-x_m,y_m,z_m","decal_placement":"a-quad/sx_m-by-sy_m/normal-is--z-before-rotation/sz_m-is-0","unity_piece_rotation":"Euler(pitch,-yaw,roll)","unity_camera_rotation":"Euler(pitch,90-yaw,0)"},
-"counts":{"pieces":593,"unique_names":593,"emissive":4,"multi_rotation":0,"props_asked":23,"decals_asked":20,"bom_lines":41,"cameras":3,"conditions":2,"shots":5},
+"counts":{"pieces":593,"unique_names":593,"emissive":4,"multi_rotation":0,"props_asked":23,"decals_asked":20,"bom_lines":41,"cameras":3,"conditions":8,"shots":11},
 "shapes_line":"shapes pieces=593 box=404 cyl=146 mesh=23 decal=20 unknown=0 cylRolled=9 cylPitched=32 cylUpright=105",
 "per_bom":{"A0_ground_planes":9,"A5_double_yellow_lines":4,"A7_gully_grate":1,"A8_manhole":2,"B1_kerbstone_run":84,"B2_dropped_kerb":5,"B3_gully_recess":4,"C11_lit_interior_card":3,"C13_sills_lintels":72,"C1_terrace_carcass":16,"C5_shopfront_assembly":36,"C6_fascia_lettering":4,"C7_shop_glazing":12,"C8_door_shop":18,"C9_door_side":30,"D2_chimney_stack":5,"D3_chimney_pots":5,"D4_tv_aerial":24,"D5_downpipe":27,"D6_gutter_run":2,"D7_parapet_coping":4,"D8_upper_windows":36,"E11_cones_barrier":3,"E12_a_board_posters":3,"E13_household_dustbin":4,"E14_dock_clutter":5,"E18_shop_awnings":2,"E1_lighting_column":20,"E2_sodium_lantern_head":4,"E3_telephone_kiosk":11,"E4_pillar_box":4,"E5_bollards":2,"E6_public_bins":2,"E8_guard_railing":25,"G1_leak_stains":3,"G2_asphalt_damage":2,"G4_moss_damp":2,"G5_stickers":1,"G6_fly_posters":3,"G8_litter":34,"G9_chewing_gum":60},
 "lantern":{"colour_space":"gamma-sRGB","r":1,"g":0.8573,"b":0,"range_m":18,"intensity":3.2,"placement":"one-point-light-0.05m-below-the-centre-of-each-emissive-piece"},
@@ -21,15 +21,27 @@
 {"id":"cam_hook","x_m":4,"z_m":-2.1,"eye_height_above_ground_m":1.65,"ground_found":true,"ground_y_m":-0.0525,"ground_edge":"west_carriageway","yaw_deg":11,"pitch_deg":-2.6,"fov_vertical_deg":39}
 ],
 "conditions":[
-{"id":"overcast_day","hdri":"Sky/polyhaven/belfast_open_field_2k","sun":true,"lanterns":false,"window_practicals":false,"wetness":0.6,"fog_density":0.012},
-{"id":"wet_night","hdri":"Sky/polyhaven/kloppenheim_04_2k","sun":false,"lanterns":true,"window_practicals":true,"wetness":0.9,"fog_density":0.022}
+{"id":"overcast_day","hdri":"Sky/polyhaven/belfast_open_field_2k","sun":true,"lanterns":false,"window_practicals":false,"wetness":0.6,"fog_density":0.012,"sun_intensity":3,"sky_intensity":1},
+{"id":"wet_night","hdri":"Sky/polyhaven/kloppenheim_04_2k","sun":false,"lanterns":true,"window_practicals":true,"wetness":0.9,"fog_density":0.022,"sun_intensity":0,"sky_intensity":0.35},
+{"id":"ladder_sun003","hdri":"Sky/polyhaven/belfast_open_field_2k","sun":true,"lanterns":false,"window_practicals":false,"wetness":0.6,"fog_density":0.012,"sun_intensity":3,"sky_intensity":1},
+{"id":"ladder_sun010","hdri":"Sky/polyhaven/belfast_open_field_2k","sun":true,"lanterns":false,"window_practicals":false,"wetness":0.6,"fog_density":0.012,"sun_intensity":10,"sky_intensity":1},
+{"id":"ladder_sun030","hdri":"Sky/polyhaven/belfast_open_field_2k","sun":true,"lanterns":false,"window_practicals":false,"wetness":0.6,"fog_density":0.012,"sun_intensity":30,"sky_intensity":1},
+{"id":"ladder_sun100","hdri":"Sky/polyhaven/belfast_open_field_2k","sun":true,"lanterns":false,"window_practicals":false,"wetness":0.6,"fog_density":0.012,"sun_intensity":100,"sky_intensity":1},
+{"id":"ladder_sun300","hdri":"Sky/polyhaven/belfast_open_field_2k","sun":true,"lanterns":false,"window_practicals":false,"wetness":0.6,"fog_density":0.012,"sun_intensity":300,"sky_intensity":1},
+{"id":"ladder_sun003_sky035","hdri":"Sky/polyhaven/belfast_open_field_2k","sun":true,"lanterns":false,"window_practicals":false,"wetness":0.6,"fog_density":0.012,"sun_intensity":3,"sky_intensity":0.35}
 ],
 "shots":[
 {"id":"vign_camA_day","camera":"cam_A","condition":"overcast_day"},
 {"id":"vign_camA_night","camera":"cam_A","condition":"wet_night"},
 {"id":"vign_camB_day","camera":"cam_B","condition":"overcast_day"},
 {"id":"vign_camB_night","camera":"cam_B","condition":"wet_night"},
-{"id":"vign_hook_day","camera":"cam_hook","condition":"overcast_day"}
+{"id":"vign_hook_day","camera":"cam_hook","condition":"overcast_day"},
+{"id":"vign_ladder_sun003","camera":"cam_A","condition":"ladder_sun003"},
+{"id":"vign_ladder_sun010","camera":"cam_A","condition":"ladder_sun010"},
+{"id":"vign_ladder_sun030","camera":"cam_A","condition":"ladder_sun030"},
+{"id":"vign_ladder_sun100","camera":"cam_A","condition":"ladder_sun100"},
+{"id":"vign_ladder_sun300","camera":"cam_A","condition":"ladder_sun300"},
+{"id":"vign_ladder_sun003_sky035","camera":"cam_A","condition":"ladder_sun003_sky035"}
 ],
 "pieces":[
 {"bom":"A0_ground_planes","name":"ground_east_carriageway","shape":"box","surface":"asphalt","asset":null,"x_m":21,"y_m":-0.184266,"z_m":1.368751,"sx_m":42,"sy_m":0.3,"sz_m":2.745858,"pitch_deg":1.432096,"yaw_deg":0,"roll_deg":0,"edge":"east_carriageway","region":"all","emissive":false},

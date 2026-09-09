@@ -120,11 +120,23 @@ namespace Ledger.Core
             public double X, Z, EyeHeightM, YawDeg, PitchDeg, FovDeg;
         }
 
+        /// A LIGHTING CONDITION, AND SINCE 2026-09-09 THE TWO INTENSITIES
+        /// THAT LIGHT IT. SunIntensity and SkyIntensity used to be bare
+        /// numbers inside the Unreal emitter: the sun was the literal
+        /// 3.0f at VignetteShot.cpp line 1240, the only light in that
+        /// file without a named constant, and the sky was kSkyIntensityDay
+        /// or kSkyIntensityNight picked by whether the sun was on. Queue
+        /// 205 moves both into the shared file so that a rung of the sun
+        /// ladder is a row of data rather than a rebuild, and so that the
+        /// two engines cannot light one street at two brightnesses.
+        /// UNITLESS, and the same unitless number the probe already prints
+        /// as lightUnits=unitless/not-candelas: neither is a photometric
+        /// quantity and neither has ever been measured.
         public struct Condition
         {
             public string Id, Hdri;
             public bool SunOn, LanternsOn, WindowsOn;
-            public double Wetness, FogDensity;
+            public double Wetness, FogDensity, SunIntensity, SkyIntensity;
         }
 
         public struct Shot
@@ -1789,7 +1801,15 @@ namespace Ledger.Core
                     SunOn = Str(o, "sun") == "on",
                     LanternsOn = Str(o, "lanterns") == "on",
                     WindowsOn = Str(o, "window_practicals") == "on",
-                    Wetness = Num(o, "wetness"), FogDensity = Num(o, "fog_density")
+                    Wetness = Num(o, "wetness"), FogDensity = Num(o, "fog_density"),
+                    // REQUIRED, LIKE EVERY OTHER NUMBER IN THIS READER.
+                    // Num throws on a missing key and the caller turns
+                    // that into plan.Error, so a condition that does not
+                    // name its sun refuses loudly rather than inheriting
+                    // a literal from whichever engine is reading. That
+                    // inheritance is the exact fault queue 205 repairs.
+                    SunIntensity = Num(o, "sun_intensity"),
+                    SkyIntensity = Num(o, "sky_intensity")
                 });
             }
             foreach (var sh in MiniJson.GetList(root, "shots"))

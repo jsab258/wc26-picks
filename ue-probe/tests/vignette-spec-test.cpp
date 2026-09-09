@@ -152,10 +152,142 @@ int main(int argc, char** argv)
 				++Matched;
 			}
 		}
-		Check(S.Cameras.size() == 3 && S.Conditions.size() == 2
-		      && S.Shots.size() == 5 && Matched == 4,
-		      "three cameras, two conditions, and five shots of which the four "
-		      "judged pairs are still exactly four");
+		int LadderShots = 0, LadderAtCamA = 0, JudgedConds = 0, LadderConds = 0;
+		for (size_t I = 0; I < S.Shots.size(); ++I)
+		{
+			if (S.Shots[I].ConditionId.compare(0, 7, "ladder_") == 0)
+			{
+				++LadderShots;
+				if (S.Shots[I].CameraId == "cam_A") { ++LadderAtCamA; }
+				--Matched;
+			}
+		}
+		for (size_t I = 0; I < S.Conditions.size(); ++I)
+		{
+			if (S.Conditions[I].Id.compare(0, 7, "ladder_") == 0) { ++LadderConds; }
+			else { ++JudgedConds; }
+		}
+		Check(S.Cameras.size() == 3 && JudgedConds == 2 && LadderConds == 6
+		      && S.Shots.size() == 11 && Matched == 4,
+		      "three cameras, two judged conditions plus six ladder rows, and eleven "
+		      "shots of which the four judged pairs are still exactly four");
+		// THE LADDER STANDS AT ONE CAMERA AND IT IS cam_A. It is the only
+		// camera with a PRE-SKY control on the same pixels: shadow-edge
+		// step +0.0270 against three fills, -0.0003 against the captured
+		// sky. A ladder read against a datum from another camera would be
+		// two populations compared as one.
+		Check(LadderShots == 6 && LadderAtCamA == 6,
+		      "every ladder shot stands at cam_A, the camera the +0.0270 control was measured on");
+	}
+
+	// ---- QUEUE 205: THE SUN INTENSITY IS A FIELD NOW, AND IT IS READ ----
+	//
+	// PRINTED BEFORE IT IS ASSERTED, because this is the series the next
+	// commit sets a constant from and rule 2 says the printer ships first.
+	{
+		std::printf("    sunLadder:");
+		for (size_t I = 0; I < S.Conditions.size(); ++I)
+		{
+			std::printf(" %s=sun%.2f/sky%.2f", S.Conditions[I].Id.c_str(),
+			            S.Conditions[I].SunIntensity, S.Conditions[I].SkyIntensity);
+		}
+		std::printf("\n");
+		double DaySun = -1.0, DaySky = -1.0, NightSun = -1.0, NightSky = -1.0;
+		int Rungs = 0, Control = 0;
+		const double Want[5] = { 3.0, 10.0, 30.0, 100.0, 300.0 };
+		for (size_t I = 0; I < S.Conditions.size(); ++I)
+		{
+			const LedgerVignette::Condition& C = S.Conditions[I];
+			if (C.Id == "overcast_day") { DaySun = C.SunIntensity; DaySky = C.SkyIntensity; }
+			if (C.Id == "wet_night")    { NightSun = C.SunIntensity; NightSky = C.SkyIntensity; }
+			if (C.Id.compare(0, 7, "ladder_") != 0) { continue; }
+			if (std::fabs(C.SkyIntensity - 0.35) < 1e-9
+			    && std::fabs(C.SunIntensity - 3.0) < 1e-9) { ++Control; continue; }
+			for (int K = 0; K < 5; ++K)
+			{
+				if (std::fabs(C.SunIntensity - Want[K]) < 1e-9
+				    && std::fabs(C.SkyIntensity - 1.0) < 1e-9) { ++Rungs; break; }
+			}
+		}
+		// THE TWO JUDGED ROWS CARRY THE OLD LITERALS UNCHANGED, which is
+		// what makes "the field replaced the literal and moved no number"
+		// a check rather than a claim. 3.0f was the bare literal at
+		// VignetteShot.cpp:1240; 1.0 and 0.35 were kSkyIntensityDay and
+		// kSkyIntensityNight.
+		Check(std::fabs(DaySun - 3.0) < 1e-9 && std::fabs(DaySky - 1.0) < 1e-9,
+		      "the day condition carries the retired sun literal and day sky constant unchanged");
+		Check(std::fabs(NightSun) < 1e-9 && std::fabs(NightSky - 0.35) < 1e-9,
+		      "the night condition carries the night sky constant with its sun at zero");
+		Check(Rungs == 5, "five ladder rungs at 3, 10, 30, 100 and 300 against the unchanged sky");
+		// THE CONTROL ROW IS NOT OPTIONAL. Auto exposure is in force and
+		// unoverridden, so a flat ladder is equally consistent with a dim
+		// sun, a bright sky and the tonemapper. This row tests the second
+		// of the three in the same run.
+		Check(Control == 1, "exactly one control row, sun at the value in force and sky at 0.35");
+	}
+
+	// REJECTING CASE, SYNTHESISED FROM THE LIVE FILE BY DELETING ONE KEY,
+	// so the fixture cannot drift from the accepting case above. A
+	// condition with no sun_intensity must stop the parse and NAME the
+	// key: a silent default is the fault queue 205 repairs, and the value
+	// it would fall back on was tuned against three fills that no longer
+	// exist.
+	{
+		const std::string Key = "\"sun_intensity\":";
+		const size_t At = Text.find(Key);
+		Check(At != std::string::npos,
+		      "the committed piece list carries sun_intensity at all, so the deletion below bites");
+		if (At != std::string::npos)
+		{
+			size_t End = Text.find(',', At);
+			std::string Broken = Text;
+			if (End != std::string::npos) { Broken.erase(At, End - At + 1); }
+			LedgerVignette::Spec B;
+			std::string BErr;
+			const bool BParsed = LedgerVignette::ParseSpec(Broken, B, BErr);
+			std::printf("    rejecting: parsed=%s err=%s\n",
+			            BParsed ? "yes" : "no", BErr.c_str());
+			Check(!BParsed && BErr.find("sun_intensity") != std::string::npos,
+			      "REJECTING CASE - a condition with no sun_intensity refuses and names the key",
+			      BErr.empty() ? "(no error raised)" : BErr);
+		}
+	}
+
+	// AND THE SAME RUNG FOR sky_intensity, BECAUSE A REQUIRED FIELD NOT
+	// PROVEN REQUIRED IS A DEFAULTED FIELD. The parse calls NeedNum on
+	// both, and only one of the two had a rejecting case until this rung.
+	//
+	// CUT FROM THE COMMA BEFORE IT, NOT TO THE COMMA AFTER IT, and the
+	// difference decides what this proves: sky_intensity is the LAST key
+	// of its object, so a cut forward to the next comma would take the
+	// closing brace with it and the parse would then refuse the SHAPE
+	// rather than the missing key. The check below would still pass and
+	// would be about the wrong thing.
+	{
+		const std::string Key = "\"sky_intensity\":";
+		const size_t At = Text.find(Key);
+		Check(At != std::string::npos,
+		      "the committed piece list carries sky_intensity at all, so the deletion below bites");
+		if (At != std::string::npos)
+		{
+			const size_t Cut = Text.rfind(',', At);
+			const size_t End = Text.find_first_of(",}", At);
+			std::string Broken = Text;
+			if (Cut != std::string::npos && End != std::string::npos && End > Cut)
+			{
+				Broken.erase(Cut, End - Cut);
+			}
+			Check(Broken.size() < Text.size(),
+			      "the sky_intensity fixture actually removed something, so the check below is not vacuous");
+			LedgerVignette::Spec B;
+			std::string BErr;
+			const bool BParsed = LedgerVignette::ParseSpec(Broken, B, BErr);
+			std::printf("    rejecting: parsed=%s err=%s\n",
+			            BParsed ? "yes" : "no", BErr.c_str());
+			Check(!BParsed && BErr.find("sky_intensity") != std::string::npos,
+			      "REJECTING CASE - a condition with no sky_intensity refuses and names the key",
+			      BErr.empty() ? "(no error raised)" : BErr);
+		}
 	}
 
 	// ROLL, WHICH IS THE FIELD A READER LOSES WITHOUT CHANGING A COUNT.
@@ -1904,6 +2036,68 @@ int main(int argc, char** argv)
 		const std::string L = LedgerVignette::SkySegment(In);
 		Check(L.find("ambientModel=skylight+trilight/TWO-CONTRIBUTORS/") != std::string::npos,
 		      "a sky that did not take ownership prints two contributors, not one owner");
+	}
+
+	// ---- QUEUE 205: THE FOUR SUN KEYS, OFF THE COMPONENT ----------------
+	{
+		LedgerVignette::SkyIn In;
+		In.bSkyLightActor = true; In.bSkyLightComponent = true;
+		In.bAtmosphereActor = true; In.bAtmosphereComponent = true;
+		In.SkyIntensityRead = 0.35;
+		In.bSunActor = true; In.bSunComponent = true;
+		In.SunIntensityRead = 30.0;
+		In.bSunCastShadowsRead = true;
+		In.SunPitchRead = -36.0; In.SunYawRead = 205.0;
+		In.SunMobilityRead = 2;
+		const std::string L = LedgerVignette::SkySegment(In);
+		std::printf("    %s\n", L.c_str());
+		Check(L.find("sunIntensityRead=30.000") != std::string::npos,
+		      "the sun's intensity is printed as the component reported it");
+		Check(L.find("sunCastShadowsRead=yes") != std::string::npos,
+		      "and whether it casts, which sun=yes never said");
+		Check(L.find("sunPitchYawRead=-36.0/205.0") != std::string::npos,
+		      "and where it points, as one pair with no space in it");
+		Check(L.find("sunMobilityRead=2") != std::string::npos
+		      && L.find("sunMobilityKey=0-static/1-stationary/2-movable/") != std::string::npos,
+		      "and its mobility as the engine's own enum value with the key beside it");
+		Check(L.find("sunReadStat=one-per-run/last-wins/") != std::string::npos,
+		      "and the line says WHICH moment the four are a reading of");
+		Check(L.find("skyIntensityRead=0.350") != std::string::npos,
+		      "the sky it is being read against is still on the same line");
+		Check(EveryTokenIsKeyValue(L),
+		      "the grown line is still space-free, so no reader truncates the sun keys");
+	}
+	{
+		// A SUN THAT DID NOT SPAWN PRINTS WORDS, NOT ZEROS. sun=SPAWN-FAILED
+		// with sunIntensityRead=0.000 would be the same string a sun that
+		// is switched off prints, and those are different facts.
+		LedgerVignette::SkyIn In;
+		const std::string L = LedgerVignette::SkySegment(In);
+		Check(L.find("sun=SPAWN-FAILED") != std::string::npos
+		      && L.find("sunIntensityRead=nothing-measured") != std::string::npos
+		      && L.find("sunMobilityRead=nothing-measured") != std::string::npos,
+		      "a sun that never spawned says nothing-measured rather than printing a zero");
+		Check(EveryTokenIsKeyValue(L), "the nothing-measured sun line is space-free too");
+	}
+	{
+		// PER-SAMPLE, ON THE SAMPLE LINE. A ladder renders six conditions
+		// in one run and the scene line is one-per-run, so this is the
+		// half that can attribute a rung to the sun that lit it.
+		const std::string L = LedgerVignette::ShotLightLine(
+			true, 300.0, true, -36.0, 205.0, 2, true, 1.0);
+		std::printf("    %s\n", L.c_str());
+		Check(L.find("shotSunIntensityRead=300.000") != std::string::npos
+		      && L.find("shotSkyIntensityRead=1.000") != std::string::npos,
+		      "the frame's own line carries both intensities as the components read them");
+		Check(L.find("shotLightStat=read-off-the-components-while-THIS-frame-stood/"
+		             "per-sample-not-per-run") != std::string::npos,
+		      "and says it is a per-sample reading, so it is never read as a whole-run number");
+		Check(EveryTokenIsKeyValue(L), "the shot light line is space-free");
+		const std::string M = LedgerVignette::ShotLightLine(
+			false, 0.0, false, 0.0, 0.0, -1, false, 0.0);
+		Check(M.find("shotSunIntensityRead=nothing-measured") != std::string::npos
+		      && M.find("shotSkyIntensityRead=nothing-measured") != std::string::npos,
+		      "a frame taken with no sun component says nothing-measured on its own line");
 	}
 
 	std::printf("%s: %d of %d check(s) failed\n",

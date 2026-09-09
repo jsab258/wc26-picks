@@ -748,3 +748,133 @@ WHAT THIS RUN CANNOT SETTLE. The road is still dry rough asphalt, so a sky gives
 a wide dim wash and not the mirror in Codex's panel. That needs wetness, which is
 deliberately not in this run. Rung 1's sky is one dispatch away; the panel's road is
 not.
+
+================================================================================
+RUN 38, 2026-09-09: THE SUN INTENSITY LADDER, AND THE CONTROL THAT TESTS THE SKY
+================================================================================
+Queue 205, ordered by section 3.1 of
+game-design/decision-2026-09-09-ruling-the-sun-the-bootstrap-and-the-board.md.
+THIS RUN SETS NO CONSTANT. It prints a series and nothing else; queue 206 sets a
+value from the curve in a later commit, in that order.
+
+WHAT THE LAST RUN ESTABLISHED, because it decides how to read this one. The
+rung-1 street casts no shadow, and shadow casting is ON and works. Same geometry,
+same sun, same direction, same SetCastShadows(true), measured by
+tools/frame-shadow-probe.py on committed frames:
+  camA_day @7a3fa3e, three fills and no skylight   shadow-edge step +0.0270
+                                                   3768 out / 1645 in
+  camA_day @bc7e114a, captured sky, same pixels    shadow-edge step -0.0003
+  hook_day @bc7e114a, the rung-1 frame             shadow-edge step -0.0035
+                                                   2151 / 2176
+The sun is a bare literal 3.0f tuned against three directional fills that the
+sky retired this morning. Its value stood while its calibration context was
+deleted, so no number moved and no gate could see it.
+
+WHAT THIS RUN CHANGES. sun_intensity and sky_intensity are REQUIRED fields on
+every condition in production/specs/vignette-scene.json, parsed by both readers,
+and a condition that names neither refuses the parse with the key named. The two
+judged conditions carry the old literals unchanged (day sun 3.0 / sky 1.0, night
+sky 0.35), so the change moves where the numbers live and moves no number. Six
+new conditions and six new shots are the ladder.
+
+THE LADDER, ALL SIX AT cam_A, LAST IN THE SHOT LIST:
+  vign_ladder_sun003          sun 3    sky 1.00   the value in force
+  vign_ladder_sun010          sun 10   sky 1.00
+  vign_ladder_sun030          sun 30   sky 1.00   the factor of ten, as one rung
+  vign_ladder_sun100          sun 100  sky 1.00
+  vign_ladder_sun300          sun 300  sky 1.00   a hundredfold
+  vign_ladder_sun003_sky035   sun 3    sky 0.35   THE CONTROL ROW
+
+WHY cam_A AND NOT cam_hook, since only one camera was affordable. cam_A is the
+only camera with a PRE-SKY control on the same pixels: +0.0270 against the fills
+and -0.0003 against the sky. That +0.027 is the number the acceptance criterion
+names, and it was measured there. A ladder read against a datum from a different
+camera would be two pixel populations compared as one. cam_hook has one reading
+only, taken after the sky landed, so it can say the step is absent and cannot say
+what it was. THE COST, NAMED: rung 1 is judged from cam_hook, so this run answers
+the hook frame by inference and not by measurement, and queue 206 must re-measure
+the hook frame after the constant lands. vign_hook_day is still shot in this run
+at sun 3.0, unchanged, so the hook frame is this run's own baseline.
+
+WHY THE LADDER IS LAST IN THE SHOT LIST, which is a measurement decision and not
+tidiness. The verdict's shotCam line is one-per-run and last-wins, so it
+describes the LAST camera a run placed. With the six ladder shots last and all at
+cam_A, every ladder frame binds strictly: camBind=MATCHES-cam_A with no flag. The
+same fact costs something and it is stated: reading vign_hook_day off THIS run's
+verdict will need --camera-from-json, because the one-per-run line will no longer
+be the hook camera's. Today it is the other way round and cam_A is what refuses.
+
+WHY A CONTROL ROW AND NOT SIX RUNGS. Auto exposure is in force and unoverridden,
+which the probe prints itself as
+ppNote=this-probe-overrides-nothing/cvars-are-what-is-in-force. A tonemapped luma
+step can therefore move far less than the light does, and ONE SHOT AT 30 COMING
+BACK FLAT WOULD BE CONSISTENT WITH A DIM SUN, A BRIGHT SKY AND THE TONEMAPPER
+ALIKE. The control row holds the sun at the value in force and takes the sky down
+to 0.35, which is the night skylight intensity already in use rather than a
+number invented for this test, so the second suspect is tested in the same run.
+
+WHAT THE VERDICT GAINS. Four keys read OFF THE COMPONENT, never off the constant,
+beside skyIntensityRead on the scene line: sunIntensityRead, sunCastShadowsRead,
+sunPitchYawRead, sunMobilityRead, with sunMobilityKey naming the enum and
+sunReadStat saying they are ONE-PER-RUN and LAST-WINS. The old sun=yes is gone
+from the printf that only ever proved something spawned; SunSegment owns that key
+now, so there is one producer for it. And because a ladder renders six conditions
+in one run, each shot line carries its own shotSunIntensityRead,
+shotSunCastShadowsRead, shotSunPitchYawRead, shotSunMobilityRead and
+shotSkyIntensityRead, read while THAT frame stood, which is what attributes a
+rung to the light that lit it rather than to a row of a file.
+
+PREDICTIONS, WRITTEN BEFORE THE RUN SO THE RUN JUDGES THEM:
+1. The shadow-edge step reaches at least +0.027 at some rung, where the hook
+   frame now reads -0.0035 and camA reads -0.0003.
+2. Asphalt lit-minus-shadowed goes positive, from -0.0131.
+3. band.ground.p05 falls below 0.50, from 0.5776.
+4. THE NAMED SECOND SUSPECT: if the sun goes up tenfold and the step stays under
+   +0.01, the skylight owns the exposure, and the answer is that
+   kSkyIntensityDay comes down rather than the sun going up. The control row is
+   what decides it: a step at sun 3 with the sky at 0.35 that the ladder could
+   not buy at sun 300 settles it in one reading.
+5. And the bootstrap one, which costs nothing and catches a broken refactor:
+   vign_ladder_sun003 and vign_camA_day are the same camera at the same sun and
+   should be the same picture. If they differ, the field did not replace the
+   literal cleanly and no other rung means anything.
+
+READ IN THIS ORDER:
+1. captureStatus and shotsWrote=N/11. Eleven, not five.
+2. The scene line's sunIntensityRead / sunCastShadowsRead / sunPitchYawRead /
+   sunMobilityRead, remembering they describe the LAST condition applied, which
+   is the control row. Not the ladder.
+3. Each ladder shot line's shotSunIntensityRead and shotSkyIntensityRead. These
+   are what say which light took which frame. If a rung's read does not match
+   its row, stop: the field is not reaching the component and nothing below is
+   evidence.
+4. THEN OPEN THE SIX FRAMES, before any number is read off them.
+5. Then, per frame, tools/frame-shadow-probe.py with --frame and --shot, whose
+   measurement code is UNCHANGED in this commit by the ruling's condition:
+     python3 tools/frame-shadow-probe.py \
+       --frame production/d1-probe/ue-vign_ladder_sun010.png \
+       --shot vign_ladder_sun010 --camera cam_A
+   EVERY FRAME QUOTES ITS OWN THREE INSTRUMENT CHECKS BEFORE ITS STEP IS QUOTED:
+   lumaCrossCheck against that frame's shotMeanLuma, quadReproject, and the
+   skyline agreement. A frame whose instrument checks were not run is a frame
+   whose step is not evidence, and a ladder is six chances to quote one.
+6. Only then the series: the step against sun intensity, all six rows together.
+
+WHAT THIS RUN CANNOT SETTLE. It cannot set the constant, by rule 2 and by the
+ruling: the series is read first and queue 206 sets the value. It cannot speak
+for cam_hook's pixels, only for cam_A's. It does not touch wetness, any material,
+any camera pose, or the sky's intensity anywhere but the one control row. And if
+the step is flat across a hundredfold of sun AND flat on the control row, then
+neither the sun nor the sky is the answer, the exposure is, and that is a third
+dispatch with the cvars in it rather than a fifth guess.
+
+WHAT IS UNVERIFIED UNTIL THIS RUN. The Unreal layer does not compile in the
+container. VignetteShot.cpp's use of the new field, the two component readbacks
+and the deletion of the two sky constants are UNVERIFIED UNTIL CI; so is the
+LightComponent API this uses to read CastShadows, the component rotation and the
+Mobility enum. Everything in the tested layer ran here: the parse, its refusal
+with the key named, the five rungs, the one control row, and both formatters,
+231 of 231 checks in ue-probe/tests/vignette-spec-test.cpp, plus 4311 in
+CoreTests. NO PLAYER LOG in the verdict means the sim did not run and reads
+identically to a compile error and to a lost licence seat; read the verdict
+before the run's colour.

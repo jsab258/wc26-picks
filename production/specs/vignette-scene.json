@@ -763,6 +763,8 @@
     {
       "id": "overcast_day",
       "sun": "on",
+      "sun_intensity": 3.0,
+      "sky_intensity": 1.00,
       "hdri": "Sky/polyhaven/belfast_open_field_2k",
       "hdri_bom": "H1_sky_overcast_day",
       "wetness": 0.60,
@@ -774,6 +776,8 @@
     {
       "id": "wet_night",
       "sun": "off",
+      "sun_intensity": 0.0,
+      "sky_intensity": 0.35,
       "hdri": "Sky/polyhaven/kloppenheim_04_2k",
       "hdri_bom": "H2_sky_night",
       "wetness": 0.90,
@@ -781,6 +785,84 @@
       "lanterns": "on",
       "window_practicals": "on",
       "note": "The other half of the D1b evidence. Practical lights at night are mandatory scene content per the re-scope ruling, and they are the sodium lanterns plus the lit windows, which is why lighting.lantern and lighting.window_practicals both exist. Wetness is higher than the day because the reflections of the lanterns in the road are the single thing the two engines are most likely to differ on."
+    },
+    {
+      "id": "ladder_sun003",
+      "sun": "on",
+      "sun_intensity": 3.0,
+      "sky_intensity": 1.00,
+      "hdri": "Sky/polyhaven/belfast_open_field_2k",
+      "hdri_bom": "H1_sky_overcast_day",
+      "wetness": 0.60,
+      "fog_density": 0.0120,
+      "lanterns": "off",
+      "window_practicals": "off",
+      "note": "QUEUE 205 LADDER RUNG 1 OF 5, and it is the repeat of the value in force today. overcast_day with ONE number changed and every other value copied character for character, so the rung differs from the day condition in the sun alone. It is deliberately a duplicate of overcast_day at cam_A: if this frame and vign_camA_day differ, the field did not replace the literal cleanly and no other rung on the ladder means anything."
+    },
+    {
+      "id": "ladder_sun010",
+      "sun": "on",
+      "sun_intensity": 10.0,
+      "sky_intensity": 1.00,
+      "hdri": "Sky/polyhaven/belfast_open_field_2k",
+      "hdri_bom": "H1_sky_overcast_day",
+      "wetness": 0.60,
+      "fog_density": 0.0120,
+      "lanterns": "off",
+      "window_practicals": "off",
+      "note": "QUEUE 205 LADDER RUNG 2 OF 5. overcast_day with ONE number changed and every other value copied character for character, so the rung differs from the day condition in the sun alone. "
+    },
+    {
+      "id": "ladder_sun030",
+      "sun": "on",
+      "sun_intensity": 30.0,
+      "sky_intensity": 1.00,
+      "hdri": "Sky/polyhaven/belfast_open_field_2k",
+      "hdri_bom": "H1_sky_overcast_day",
+      "wetness": 0.60,
+      "fog_density": 0.0120,
+      "lanterns": "off",
+      "window_practicals": "off",
+      "note": "QUEUE 205 LADDER RUNG 3 OF 5, the factor of ten a builder proposed and the ruling refused as a single landed value. overcast_day with ONE number changed and every other value copied character for character, so the rung differs from the day condition in the sun alone. "
+    },
+    {
+      "id": "ladder_sun100",
+      "sun": "on",
+      "sun_intensity": 100.0,
+      "sky_intensity": 1.00,
+      "hdri": "Sky/polyhaven/belfast_open_field_2k",
+      "hdri_bom": "H1_sky_overcast_day",
+      "wetness": 0.60,
+      "fog_density": 0.0120,
+      "lanterns": "off",
+      "window_practicals": "off",
+      "note": "QUEUE 205 LADDER RUNG 4 OF 5. overcast_day with ONE number changed and every other value copied character for character, so the rung differs from the day condition in the sun alone. "
+    },
+    {
+      "id": "ladder_sun300",
+      "sun": "on",
+      "sun_intensity": 300.0,
+      "sky_intensity": 1.00,
+      "hdri": "Sky/polyhaven/belfast_open_field_2k",
+      "hdri_bom": "H1_sky_overcast_day",
+      "wetness": 0.60,
+      "fog_density": 0.0120,
+      "lanterns": "off",
+      "window_practicals": "off",
+      "note": "QUEUE 205 LADDER RUNG 5 OF 5, a hundredfold above the value in force. overcast_day with ONE number changed and every other value copied character for character, so the rung differs from the day condition in the sun alone. If the shadow-edge step is flat from rung 1 to here, no sun intensity is the answer and the exposure or the sky is."
+    },
+    {
+      "id": "ladder_sun003_sky035",
+      "sun": "on",
+      "sun_intensity": 3.0,
+      "sky_intensity": 0.35,
+      "hdri": "Sky/polyhaven/belfast_open_field_2k",
+      "hdri_bom": "H1_sky_overcast_day",
+      "wetness": 0.60,
+      "fog_density": 0.0120,
+      "lanterns": "off",
+      "window_practicals": "off",
+      "note": "QUEUE 205 CONTROL ROW, and it is the reason this is a ladder rather than a retry. The sun is left at the value in force and the SKY comes down to 0.35, which is the night skylight intensity already in use rather than a number invented for the test. Auto exposure is in force and unoverridden, so a flat ladder is consistent with a dim sun, a bright sky and the tonemapper alike; this row tests the second of those three in the same run. If the step comes back here and not on the ladder, kSkyIntensityDay comes down instead of the sun going up."
     }
   ],
 
@@ -789,10 +871,18 @@
     { "id": "vign_camA_night", "camera": "cam_A", "condition": "wet_night" },
     { "id": "vign_camB_day",   "camera": "cam_B", "condition": "overcast_day" },
     { "id": "vign_camB_night", "camera": "cam_B", "condition": "wet_night" },
-    { "id": "vign_hook_day",   "camera": "cam_hook", "condition": "overcast_day" }
+    { "id": "vign_hook_day",   "camera": "cam_hook", "condition": "overcast_day" },
+    { "id": "vign_ladder_sun003", "camera": "cam_A", "condition": "ladder_sun003" },
+    { "id": "vign_ladder_sun010", "camera": "cam_A", "condition": "ladder_sun010" },
+    { "id": "vign_ladder_sun030", "camera": "cam_A", "condition": "ladder_sun030" },
+    { "id": "vign_ladder_sun100", "camera": "cam_A", "condition": "ladder_sun100" },
+    { "id": "vign_ladder_sun300", "camera": "cam_A", "condition": "ladder_sun300" },
+    { "id": "vign_ladder_sun003_sky035", "camera": "cam_A", "condition": "ladder_sun003_sky035" }
   ],
 
   "shots_note": "FOUR MATCHED FRAMES, and they are two cameras by two conditions rather than four camera positions. That is not a shortcut: the re-scope ruling defines decisively better as the Unreal frame being preferred in at least three of the four pairs, and production/specs/vignette-bill-of-materials.md states in as many words that two cameras by two conditions IS the four pairs the ruling judges on. Four camera positions by two conditions would be eight pairs and would silently change the bar the engine decision is made against. Both engines shoot these four ids and no others, and the paired judging is by id.",
+
+  "lighting_ladder_note": "TWO REQUIRED FIELDS ON EVERY CONDITION, sun_intensity and sky_intensity, added 2026-09-09 by queue 205 under section 3.1 of the ruling of the same date. Both were bare numbers in ue-probe VignetteShot.cpp until today: the sun was the literal 3.0f at line 1240, the only light in that file with no named constant, and the sky was kSkyIntensityDay 1.0 and kSkyIntensityNight 0.35 chosen by whether the sun was on. Neither was ever measured, and the sun 3.0 was tuned against three directional fills that the captured sky retired on 9 September, so its calibration context was deleted while its value stood. THE VALUES CARRIED HERE FOR overcast_day AND wet_night ARE THE OLD LITERALS UNCHANGED, so this file moves where the numbers live and moves no number. Required rather than defaulted in both readers: a condition that does not name its sun refuses loudly instead of inheriting a value nobody chose, which is the fault being repaired. THE SIX ladder_ CONDITIONS ARE A PRINTED SERIES AND NOT A SETTING: five rungs at 3, 10, 30, 100 and 300 on one camera, plus one control row at sun 3 with the sky down to 0.35. No constant is set from them in this commit; queue 206 sets it from the read curve, in that order.",
 
   "not_emitted_from_this_file": [
     {

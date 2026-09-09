@@ -239,13 +239,24 @@ namespace LedgerVignette
 		           FovVerticalDeg(60), GroundY(0), GroundFound(false) {}
 	};
 
+	// A LIGHTING CONDITION, AND SINCE QUEUE 205 THE TWO INTENSITIES THAT
+	// LIGHT IT. Until 2026-09-09 the sun was the bare literal 3.0f at
+	// VignetteShot.cpp:1240, the only light in that file with no named
+	// constant, and the sky was kSkyIntensityDay or kSkyIntensityNight
+	// picked by SunOn. Neither number was ever measured, and the 3.0f was
+	// tuned against three directional fills that the captured sky retired
+	// on the morning of 9 September: its value stood while the thing it
+	// was set against was deleted. Both now come out of the shared file.
+	// REQUIRED, NOT DEFAULTED: see the parse below.
+	// UNITLESS, the same unitless the scene line already prints as
+	// lightUnits=unitless/not-candelas.
 	struct Condition
 	{
 		std::string Id, Hdri;
 		bool   SunOn, LanternsOn, WindowsOn;
-		double Wetness, FogDensity;
+		double Wetness, FogDensity, SunIntensity, SkyIntensity;
 		Condition() : SunOn(false), LanternsOn(false), WindowsOn(false),
-		              Wetness(0), FogDensity(0) {}
+		              Wetness(0), FogDensity(0), SunIntensity(0), SkyIntensity(0) {}
 	};
 
 	struct Shot { std::string Id, CameraId, ConditionId; };
@@ -433,6 +444,13 @@ namespace LedgerVignette
 			if (!NeedBool(O, "window_practicals", C.WindowsOn, Err, "condition")) return false;
 			if (!NeedNum(O, "wetness", C.Wetness, Err, "condition")) return false;
 			if (!NeedNum(O, "fog_density", C.FogDensity, Err, "condition")) return false;
+			// REQUIRED, AND THE REFUSAL IS THE POINT. NeedNum fails the whole
+			// parse with the key named in Err, so a condition that does not
+			// say how bright its sun is stops the run rather than inheriting
+			// a literal nobody chose. An optional field with a silent default
+			// would rebuild exactly the fault queue 205 exists to repair.
+			if (!NeedNum(O, "sun_intensity", C.SunIntensity, Err, "condition")) return false;
+			if (!NeedNum(O, "sky_intensity", C.SkyIntensity, Err, "condition")) return false;
 			Out.Conditions.push_back(C);
 		}
 
@@ -1889,6 +1907,28 @@ namespace LedgerVignette
 		int    SourceTypeRead;
 		bool   bRealTimeCaptureRead;
 		double SkyIntensityRead;
+		// ---- QUEUE 205: THE SUN, READ OFF ITS OWN COMPONENT ------------
+		//
+		// The verdict has only ever carried `sun=yes`, which says a
+		// directional light was SPAWNED and nothing about what it is. A
+		// key that echoes the value just written proves nothing either,
+		// so every one of these is asked of the live component after the
+		// write, exactly as the sky keys above are.
+		//
+		// WHAT STATISTIC THESE ARE: one per run, LAST-WINS, taken when a
+		// verdict asks for the scene line, so they describe the LAST
+		// condition the run applied and not each frame. The per-frame
+		// answer is on the shot line, which is where a ladder reads it.
+		bool   bSunActor;
+		bool   bSunComponent;
+		double SunIntensityRead;
+		bool   bSunCastShadowsRead;
+		double SunPitchRead;
+		double SunYawRead;
+		// THE ENGINE'S OWN ENUM VALUE, PRINTED AND NOT TRANSLATED, for the
+		// same reason SourceTypeRead is: a version that renumbers the enum
+		// cannot then make this key print the wrong word.
+		int    SunMobilityRead;
 		double FogDensityRead;
 		double FogMaxOpacityRead;
 		// THE AMBIENT MODEL IS A DECISION AND IT IS MADE HERE, from the two
@@ -1917,6 +1957,9 @@ namespace LedgerVignette
 		          bAtmosphereActor(false), bAtmosphereComponent(false),
 		          bFogComponent(false), SourceTypeRead(-1),
 		          bRealTimeCaptureRead(false), SkyIntensityRead(0.0),
+		          bSunActor(false), bSunComponent(false), SunIntensityRead(0.0),
+		          bSunCastShadowsRead(false), SunPitchRead(0.0), SunYawRead(0.0),
+		          SunMobilityRead(-1),
 		          FogDensityRead(0.0), FogMaxOpacityRead(0.0),
 		          bFillsRetired(false), FillsSpawned(0),
 		          ApplyCalls(0), SkyWrites(0),
@@ -1964,13 +2007,89 @@ namespace LedgerVignette
 		return "trilight-3-directional/not-a-captured-sky/the-sky-is-not-whole";
 	}
 
+	// THE FOUR SUN KEYS, AND A MISSING COMPONENT PRINTS WORDS RATHER THAN
+	// ZEROS. A sun that failed to spawn reading sunIntensityRead=0.000 is
+	// the same string as a sun that is off, and those are different facts;
+	// nothing-measured is what a never-read value says here.
+	inline std::string SunSegment(const SkyIn& In)
+	{
+		char Buf[700];
+		if (!In.bSunActor || !In.bSunComponent)
+		{
+			std::snprintf(Buf, sizeof(Buf),
+				"sun=%s sunComponent=%s sunIntensityRead=nothing-measured "
+				"sunCastShadowsRead=nothing-measured sunPitchYawRead=nothing-measured "
+				"sunMobilityRead=nothing-measured "
+				"sunReadStat=one-per-run/last-wins/off-the-component-after-the-last-condition-applied",
+				In.bSunActor ? "yes" : "SPAWN-FAILED",
+				In.bSunComponent ? "yes" : "NOT-FOUND");
+			return std::string(Buf);
+		}
+		std::snprintf(Buf, sizeof(Buf),
+			"sun=yes sunComponent=yes sunIntensityRead=%.3f "
+			"sunCastShadowsRead=%s sunPitchYawRead=%.1f/%.1f sunMobilityRead=%d "
+			"sunMobilityKey=0-static/1-stationary/2-movable/engine-enum-printed-not-translated "
+			"sunReadStat=one-per-run/last-wins/off-the-component-after-the-last-condition-applied",
+			In.SunIntensityRead, In.bSunCastShadowsRead ? "yes" : "NO",
+			In.SunPitchRead, In.SunYawRead, In.SunMobilityRead);
+		return std::string(Buf);
+	}
+
+	// ---- QUEUE 205: THE LIGHT THAT TOOK ONE FRAME, ON THAT FRAME'S LINE -
+	//
+	// PER-SAMPLE, NOT PER-RUN. The sun segment above is one reading of the
+	// last condition a run applied; a ladder renders six conditions in one
+	// run, so five of its six frames would have no readback at all if the
+	// scene line were the only place this was asked. These keys are taken
+	// off the same components at the moment THIS frame was photographed,
+	// which is what lets a rung of the ladder be attributed to the sun
+	// that lit it rather than to the row of a data file.
+	inline std::string ShotLightLine(bool bSunComponent, double SunIntensityRead,
+	                                 bool bCastShadowsRead, double PitchRead,
+	                                 double YawRead, int MobilityRead,
+	                                 bool bSkyComponent, double SkyIntensityRead)
+	{
+		char Buf[600];
+		char Sun[300];
+		if (bSunComponent)
+		{
+			std::snprintf(Sun, sizeof(Sun),
+				"shotSunIntensityRead=%.3f shotSunCastShadowsRead=%s "
+				"shotSunPitchYawRead=%.1f/%.1f shotSunMobilityRead=%d",
+				SunIntensityRead, bCastShadowsRead ? "yes" : "NO",
+				PitchRead, YawRead, MobilityRead);
+		}
+		else
+		{
+			std::snprintf(Sun, sizeof(Sun),
+				"shotSunIntensityRead=nothing-measured shotSunCastShadowsRead=nothing-measured "
+				"shotSunPitchYawRead=nothing-measured shotSunMobilityRead=nothing-measured");
+		}
+		char Sky[140];
+		if (bSkyComponent)
+		{
+			std::snprintf(Sky, sizeof(Sky), "shotSkyIntensityRead=%.3f", SkyIntensityRead);
+		}
+		else
+		{
+			std::snprintf(Sky, sizeof(Sky), "shotSkyIntensityRead=nothing-measured");
+		}
+		std::snprintf(Buf, sizeof(Buf),
+			"%s %s shotLightStat=read-off-the-components-while-THIS-frame-stood/per-sample-not-per-run",
+			Sun, Sky);
+		return std::string(Buf);
+	}
+
 	inline std::string SkySegment(const SkyIn& In)
 	{
-		char Buf[1400];
+		// GROWN FOR THE SUN SEGMENT. snprintf truncates in silence, which
+		// on a verdict line is a key that vanishes rather than an error.
+		char Buf[2200];
 		std::snprintf(Buf, sizeof(Buf),
 			"skyModel=%s ambientModel=%s "
 			"skyLight=%s skyLightComponent=%s skyAtmosphere=%s skyAtmosphereComponent=%s "
 			"skySourceTypeRead=%d skyRealTimeCaptureRead=%s skyIntensityRead=%.3f "
+			"%s "
 			"skyWrites=%d/of=%d/applyCondition-calls/write-on-change "
 			"fogComponent=%s fogDensityRead=%.4f fogMaxOpacityRead=%.3f "
 			"fillsRetiredToZero=%s fillsSpawned=%d/3 "
@@ -1984,7 +2103,7 @@ namespace LedgerVignette
 			In.bAtmosphereActor ? "yes" : "SPAWN-FAILED",
 			In.bAtmosphereComponent ? "yes" : "NOT-FOUND",
 			In.SourceTypeRead, In.bRealTimeCaptureRead ? "yes" : "no",
-			In.SkyIntensityRead, In.SkyWrites, In.ApplyCalls,
+			In.SkyIntensityRead, SunSegment(In).c_str(), In.SkyWrites, In.ApplyCalls,
 			In.bFogComponent ? "yes" : "NOT-FOUND",
 			In.FogDensityRead, In.FogMaxOpacityRead,
 			In.bFillsRetired ? "yes" : "no", In.FillsSpawned,

@@ -475,7 +475,13 @@ namespace Ledger.Core
                 sb.Append(Kb("lanterns", c.LanternsOn)).Append(',');
                 sb.Append(Kb("window_practicals", c.WindowsOn)).Append(',');
                 sb.Append(Kn("wetness", c.Wetness)).Append(',');
-                sb.Append(Kn("fog_density", c.FogDensity));
+                sb.Append(Kn("fog_density", c.FogDensity)).Append(',');
+                // THE TWO INTENSITIES RIDE WITH THE CONDITION THAT NAMES
+                // THEM. The Unreal reader requires both, so a condition
+                // written without them fails at parse rather than falling
+                // back on the literal this pair replaced.
+                sb.Append(Kn("sun_intensity", c.SunIntensity)).Append(',');
+                sb.Append(Kn("sky_intensity", c.SkyIntensity));
                 sb.Append('}');
                 sb.Append(i + 1 < plan.Conditions.Count ? ",\n" : "\n");
             }

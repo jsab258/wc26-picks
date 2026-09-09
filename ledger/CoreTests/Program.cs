@@ -19477,7 +19477,20 @@ namespace Ledger.CoreTests
                               $"bomLines={plan.PerBom.Count} cameras={plan.Cameras.Count} " +
                               $"conditions={plan.Conditions.Count} shots={plan.Shots.Count}");
             Check(plan.Cameras.Count == 3, "three cameras", plan.Cameras.Count.ToString());
-            Check(plan.Conditions.Count == 2, "two conditions", plan.Conditions.Count.ToString());
+            // TWO JUDGED CONDITIONS PLUS THE SIX QUEUE 205 LADDER ROWS.
+            // The pairing is still overcast_day and wet_night and
+            // nothing else; the six ladder_ rows are a printed series
+            // of sun intensities on one camera and are not part of any
+            // pair, which is why they are counted separately below
+            // rather than hidden inside a bare 8.
+            Check(plan.Conditions.Count == 8, "two judged conditions plus six ladder rows",
+                  plan.Conditions.Count.ToString());
+            int judgedConds = 0, ladderConds = 0;
+            foreach (var cd in plan.Conditions)
+                if (cd.Id.StartsWith("ladder_")) ladderConds++; else judgedConds++;
+            Check(judgedConds == 2 && ladderConds == 6,
+                  "the two judged conditions are still exactly two, and the ladder is six",
+                  judgedConds + " judged, " + ladderConds + " ladder");
             // FOUR MATCHED FRAMES PLUS ONE THAT IS NOT PART OF THE PAIRING.
             // The engine decision is judged on cam_A and cam_B by the two
             // conditions, which is four pairs, and eight would silently
@@ -19489,13 +19502,82 @@ namespace Ledger.CoreTests
             // six and reopen the pairing question. So the count below is
             // 4 + 1 and the comment says which is which, because a bare 5
             // would read as the pairing having changed.
-            Check(plan.Shots.Count == 5, "four matched shots plus the hook viewpoint",
+            // 4 + 1 + 6 SINCE QUEUE 205, and the three groups are counted
+            // apart because a bare 11 would read as the pairing having
+            // changed. The six ladder shots all stand at cam_A and are
+            // LAST in the list on purpose: the probe verdict's shotCam
+            // line is one-per-run and last-wins, so the camera it
+            // describes is the camera every ladder frame was taken with,
+            // and tools/frame-shadow-probe.py can bind strictly instead
+            // of being told which camera to assume.
+            Check(plan.Shots.Count == 11,
+                  "four matched shots plus the hook viewpoint plus the six ladder rungs",
                   plan.Shots.Count.ToString());
-            int matched = 0;
+            int matched = 0, ladderShots = 0, ladderAtCamA = 0;
             foreach (var sh in plan.Shots)
-                if (sh.CameraId == "cam_A" || sh.CameraId == "cam_B") matched++;
+            {
+                if (sh.ConditionId.StartsWith("ladder_"))
+                {
+                    ladderShots++;
+                    if (sh.CameraId == "cam_A") ladderAtCamA++;
+                }
+                else if (sh.CameraId == "cam_A" || sh.CameraId == "cam_B") matched++;
+            }
             Check(matched == 4, "the four judged pairs are still exactly four",
                   matched.ToString());
+            Check(ladderShots == 6 && ladderAtCamA == 6,
+                  "every ladder shot stands at cam_A, which is the camera the +0.0270 control was measured on",
+                  ladderAtCamA + " of " + ladderShots + " ladder shots at cam_A");
+            for (int li = 0; li + 1 < plan.Shots.Count; li++)
+                if (plan.Shots[li].ConditionId.StartsWith("ladder_"))
+                    Check(plan.Shots[li + 1].ConditionId.StartsWith("ladder_"),
+                          "the ladder shots are last in the list, so the one-per-run camera readback is theirs",
+                          plan.Shots[li].Id + " is followed by " + plan.Shots[li + 1].Id);
+
+            // THE LADDER ITSELF, PRINTED BEFORE IT IS ASSERTED. Queue
+            // 205: the sun intensity is a field on the condition now,
+            // and these are the rows the dispatch renders. No constant
+            // is set from them here; the series is read off a run first.
+            var sunLine = new System.Text.StringBuilder("    sunLadder:");
+            foreach (var cd in plan.Conditions)
+                sunLine.Append(" ").Append(cd.Id).Append("=sun").Append(cd.SunIntensity.ToString("0.##"))
+                       .Append("/sky").Append(cd.SkyIntensity.ToString("0.##"));
+            Console.WriteLine(sunLine.ToString());
+            double dayS = 0, daySky = 0, nightS = -1, nightSky = -1;
+            foreach (var cd in plan.Conditions)
+            {
+                if (cd.Id == "overcast_day") { dayS = cd.SunIntensity; daySky = cd.SkyIntensity; }
+                if (cd.Id == "wet_night") { nightS = cd.SunIntensity; nightSky = cd.SkyIntensity; }
+            }
+            // THE TWO JUDGED ROWS CARRY THE OLD LITERALS UNCHANGED. This
+            // check is what makes "the field replaced the literal and
+            // moved no number" a fact rather than a claim: 3.0f was the
+            // bare literal at VignetteShot.cpp:1240 and 1.0 and 0.35 were
+            // kSkyIntensityDay and kSkyIntensityNight.
+            Check(Math.Abs(dayS - 3.0) < 1e-9 && Math.Abs(daySky - 1.0) < 1e-9,
+                  "the day condition carries the sun literal and the day sky constant unchanged",
+                  dayS + "/" + daySky);
+            Check(Math.Abs(nightSky - 0.35) < 1e-9 && Math.Abs(nightS) < 1e-9,
+                  "the night condition carries the night sky constant, and its sun is off at zero",
+                  nightS + "/" + nightSky);
+            var wanted = new double[] { 3.0, 10.0, 30.0, 100.0, 300.0 };
+            int rungsFound = 0;
+            foreach (var w in wanted)
+                foreach (var cd in plan.Conditions)
+                    if (cd.Id.StartsWith("ladder_") && Math.Abs(cd.SunIntensity - w) < 1e-9
+                        && Math.Abs(cd.SkyIntensity - 1.0) < 1e-9) { rungsFound++; break; }
+            Check(rungsFound == 5, "five rungs at 3, 10, 30, 100 and 300 against the unchanged sky",
+                  rungsFound + " of " + wanted.Length);
+            int controlRows = 0;
+            foreach (var cd in plan.Conditions)
+                if (cd.Id.StartsWith("ladder_") && Math.Abs(cd.SkyIntensity - 0.35) < 1e-9
+                    && Math.Abs(cd.SunIntensity - 3.0) < 1e-9) controlRows++;
+            // THE CONTROL ROW IS NOT OPTIONAL. Auto exposure is in force
+            // and unoverridden in the probe, so a flat ladder is equally
+            // consistent with a dim sun, a bright sky and the tonemapper.
+            // This row tests the second of the three in the same run.
+            Check(controlRows == 1, "exactly one control row, at the sun in force with the sky at 0.35",
+                  controlRows.ToString());
 
             // WHAT SHAPE EVERY PIECE IS, AND HOW MANY PIPES ARE LYING DOWN.
             // Printed through the same formatter the Unity host prints, so
@@ -19821,6 +19903,28 @@ namespace Ledger.CoreTests
             var broken = StreetVignette.Read("{\"street\":{\"length_m\":42.0}}");
             Check(broken.Error != null, "a scene json missing a dimension is an error, not a default",
                   broken.Error ?? "(no error raised)");
+            // AND IT REFUSES A CONDITION THAT DOES NOT NAME ITS SUN.
+            // REJECTING FIXTURE, SYNTHESISED FROM THE LIVE FILE by
+            // deleting one line, so it cannot drift from the accepting
+            // case above: the same bytes, minus the key. A default here
+            // is precisely the fault queue 205 repairs, because the
+            // 3.0f it would fall back on was tuned against three fills
+            // that no longer exist.
+            var live = File.ReadAllText(path);
+            var noSun = live.Replace("\"sun_intensity\": 3.0,\n", "");
+            Check(noSun.Length < live.Length,
+                  "the rejecting fixture actually removed something, so the check below is not vacuous",
+                  (live.Length - noSun.Length) + " bytes removed");
+            var sunless = StreetVignette.Read(noSun);
+            Check(sunless.Error != null && sunless.Error.Contains("sun_intensity"),
+                  "REJECTING CASE - a condition with no sun_intensity is an error naming the key, not a default",
+                  sunless.Error ?? "(no error raised)");
+            var noSky = live.Replace("\"sky_intensity\": 1.00,\n", "");
+            var skyless = StreetVignette.Read(noSky);
+            Check(noSky.Length < live.Length && skyless.Error != null
+                  && skyless.Error.Contains("sky_intensity"),
+                  "REJECTING CASE - a condition with no sky_intensity is an error naming the key",
+                  skyless.Error ?? "(no error raised)");
             var notJson = StreetVignette.Read("this is not json");
             Check(notJson.Error != null, "an unreadable scene json is an error");
         }
@@ -20447,7 +20551,7 @@ namespace Ledger.CoreTests
             Check(MiniJson.GetList(root, "cameras").Count == plan.Cameras.Count
                   && MiniJson.GetList(root, "conditions").Count == plan.Conditions.Count
                   && MiniJson.GetList(root, "shots").Count == plan.Shots.Count,
-                  "the cameras, the conditions and the four matched shots ride in the file too",
+                  "the cameras, the conditions and every shot ride in the file too",
                   MiniJson.GetList(root, "cameras").Count + "/" + MiniJson.GetList(root, "conditions").Count
                   + "/" + MiniJson.GetList(root, "shots").Count);
             var lantern = MiniJson.GetObject(root, "lantern");

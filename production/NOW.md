@@ -9,7 +9,49 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
-## 2026-09-09 13:45Z: THE MAP IS THE BOARD, THE SKY IS IN, THE RENDER IS BLOCKED
+## 2026-09-09 15:55Z: EVERYTHING HE ASKED FOR ON 9 SEPTEMBER IS LANDED
+
+His three owed items and the map ruling are done and pushed. In his order:
+
+1. THE BOT RUNS TODAY'S CODE. Restart job, botPidChanged=True, and the hash his
+   machine reported is the CRLF form of the file here, which is why it can never
+   equal ours (queue 193).
+2. THE SKY LANDED AND WAS JUDGED, and two of the resident's own readings of it were
+   FALSE and are corrected in the record: the control quads were hidden correctly,
+   and band.skyCentre is a fixed rectangle full of rooftops on the wide cameras
+   (queue 194). The before and after are committed as sky_before_after.jpg.
+3. MICKEY'S RENDERED, fourth attempt, twelve point eight seconds, five frames on
+   art/atlas-01 at 46d7d759 and the sheet at game-design/sim-shots/mickeys_blockout.jpg.
+   Three distinct faults had to be cleared first and each was invisible until the one
+   before it was fixed: no pwsh, then Blender searched in the wrong place while this
+   repo held its real address since 1 September, then a commit step whose every git
+   call was malformed by nullglob.
+4. THE MAP IS THE BOARD HE APPROVED. 69 tiles, five areas, typed, and it no longer
+   claims he ruled any of it. First screen committed as map_first_screen.jpg.
+
+RUNG 1 CONTINUED AND PRODUCED THE MEASUREMENT IT WAS MISSING. Against Codex's sheet
+our street has NO DARK IN IT: median 0.6987 against 0.3942, darkest twentieth 0.3238
+against 0.1215. The cause is named by a control rather than inferred: THE SKY THIS
+MORNING DROWNED THE SUN, which is still a bare literal 3.0f. Queue 205 is the ladder
+that answers it and it is UNBLOCKED as of 15:36Z, because the probe is a game workflow
+and starting one would have destroyed the art render in flight.
+
+QUEUE ITEMS FILED TODAY FROM MEASUREMENT RATHER THAN FROM OPINION: 193 to 207.
+
+THE 06:00 WAKE IS ARMED ON TWO RAILS and needs nothing further: the server Routine
+fires 2026-09-10T04:07Z into this session, and production/wakes carries the disk
+record, amended three times today with what the message must carry, what it must
+admit, and what it must not oversell. THE SPLIT IS RETIRED FROM THE DAILY BRIEF.
+
+WHAT THE MORNING MESSAGE HAS TO WORK WITH, all committed under game-design/sim-shots/:
+rung1_vs_reference.jpg, mickeys_blockout.jpg, sky_before_after.jpg,
+map_first_screen.jpg.
+
+## 2026-09-09 13:45Z: THE MAP IS THE BOARD, THE SKY IS IN, THE RENDER WAS BLOCKED
+
+SUPERSEDED IN PART BY THE 15:55Z SECTION BELOW IT IN TIME AND ABOVE IT ON THE PAGE:
+the render is no longer blocked, it ran, and the previews are committed. Everything
+else in this section still holds.
 
 Jafar, reading total 31, Fable 33, ceiling 75. Three owed items and a ruling on
 the map. Two owed items are done, the third is blocked and the blocker is named.
