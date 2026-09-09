@@ -645,3 +645,34 @@ run does not print a reading that settles it, the tie is reported UNRESOLVED wit
 its rung named, and nobody squints at a frame and calls it decided.
 THE CLIP MAY BE OFFERED AS ITEM 2 CARRYING BOTH CONDITIONS. Offering it silently
 is the only version of that which is a fault.
+run 35 - 2026-09-09 - A CAMERA IS FINALLY POINTED AT THE GRATE. Run 34 measured
+the piece from placed bounds and every number said yes: propsAsMesh=22/23,
+propPlacedWithCollision=22/22, propFullyBuried=0/23 where it was 1/23 and the one
+was this grate, propBurialSubject via=loaded-asset collision=YES topM=-0.0650,
+propCentreWorstMm=0.00. AND NO FRAME IN THAT RUN SHOWED IT, because the six key
+frames are aimed along the street and the piece is 0.40 m square at x 12.0 on the
+east channel. A verified piece nobody photographed is rule 4 pointed backwards.
+This run writes ue-walk_05_grate_a.png and _06_grate_b.png from a spawned camera
+on the pavement side, 130 cm back and 125 cm above the piece's own PLACED top,
+looking down 43.9 degrees at a 65.8 degree horizontal field, which puts a
+0.3999 m grate at about 164 by 114 pixels of 960 by 540. The aim is
+(AimAt - CamLoc).Rotation() at the placed bounds top, so the pitch is a
+description and not an input and the aim cannot miss by a pitch error. Two frames
+and not one, because flicker needs a pair from a camera that did not move.
+READ, in this order: grateShotStatus, then walkFramesWrote=N/7 which was N/5,
+then grateRectStatus and grateSubjectRectFrac and grateControlRectFrac, then
+grateViewRestoreStatus. THEN OPEN BOTH PICTURES BEFORE READING ANY OF IT.
+THE GRATE PHASES RUN LAST AND THAT IS A CONSTRAINT RATHER THAN AN ORDERING
+ACCIDENT. Three paths can leave the view on the spawned camera (a crash, the shot
+ceiling, a null controller), and what makes all three harmless is that nothing is
+photographed or measured after AimGrate. Do not move a shot below them.
+WHAT THIS RUN MAY NOT BE REPORTED AS CLAIMING. The z-fight rectangles sit at
+z 2.76 to 2.98, which is entirely inside the channel course, so they measure grate
+against CHANNEL and no rectangle examines the carriageway edge at 2.60 to 2.745.
+"No tie under the grate" is a sentence this run cannot support. And nothing in the
+repository calls tools/grate-zfight.py, so this verdict carries no zfight key at
+all: the reading is a local pass over the landed frames, recorded with both frame
+names and both commits, or it is reported UNRESOLVED with its rung named.
+THE CLIP STILL CARRIES ITS TWO CONDITIONS. A double yellow crosses exactly 25.0
+percent of the piece, lying on it at 5.6 um rather than through it; and the top
+face is coincident with two rendered solids over about 0.16 square metres.
